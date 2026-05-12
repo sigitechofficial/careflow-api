@@ -1,0 +1,38 @@
+/**
+ * Canonical job title labels for lookups (legacy casing / typos preserved).
+ * Seeded on app bootstrap and via `prisma db seed`.
+ */
+export const DEFAULT_JOB_TITLES: readonly string[] = [
+  'ADMINISTRATIVE ASSISTANT',
+  'Accounts',
+  'Accounts Manager',
+  'Administrator',
+  'Allocator Coordinator',
+  'Assistant Accountant',
+  'CARE WORKER',
+  'Care Assitance',
+  'Care Home Manager',
+  'Carer',
+  'Consultant',
+  'Drivers',
+  'Feild Support Worker',
+  'Field Quality Assurance Officer',
+  'HEALTH CARE ASSISTANT',
+  'Human Resource',
+  'Inspector',
+  'Managing Director',
+  'Nurse',
+  'Office Manager',
+  'On-call person',
+  'Operation Manager',
+  'Passenger Assitance',
+  'Quality Assurance',
+  'SWIFT LOCATOR',
+  'Supervisor',
+  'System Monitoring officer',
+  'Volunteer',
+  'care support worker',
+  'medication compliance',
+  'senior carer',
+  'spot checker',
+]

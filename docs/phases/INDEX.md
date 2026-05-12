@@ -1,0 +1,6 @@
+# Module Phase Files
+
+- `EMPLOYEE_MANAGEMENT.md`
+- `SERVICE_CARE_MANAGEMENT.md`
+- `SCHEDULING_MANAGEMENT.md`
+

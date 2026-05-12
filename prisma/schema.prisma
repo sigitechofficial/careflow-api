@@ -1,0 +1,930 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "identity", "employees", "lookups", "audit"]
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+
+  @@schema("employees")
+}
+
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  email             String   @unique
+  username          String?  @unique
+  passwordHash      String
+  firstName         String?
+  lastName          String?
+  refreshTokenHash  String?
+
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  createdById       String?  @db.Uuid
+  updatedById       String?  @db.Uuid
+  deletedById       String?  @db.Uuid
+
+  createdBy         User?    @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy         User?    @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  deletedBy         User?    @relation("UserDeletedBy", fields: [deletedById], references: [id])
+
+  createdUsers      User[]   @relation("UserCreatedBy")
+  updatedUsers      User[]   @relation("UserUpdatedBy")
+  deletedUsers      User[]   @relation("UserDeletedBy")
+
+  userRoles         UserRole[]
+  auditLogs         AuditLog[]
+  loginHistories    LoginHistory[]
+  securityEvents    SecurityEvent[]
+  dataAccessLogs    DataAccessLog[]
+  exportLogs        ExportLog[]
+  reviewedEmployees EmployeeReview[] @relation("EmployeeReviewReviewedBy")
+  uploadedEmployeeDocuments EmployeeDocument[]
+
+  @@index([email])
+  @@index([deletedAt])
+  @@schema("identity")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@index([deletedAt])
+  @@schema("identity")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  description String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  rolePermissions RolePermission[]
+
+  @@index([deletedAt])
+  @@schema("identity")
+}
+
+model RolePermission {
+  id           String @id @default(uuid()) @db.Uuid
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  createdAt    DateTime @default(now())
+
+  role         Role      @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@schema("identity")
+}
+
+model UserRole {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  roleId    String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+  role      Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@schema("identity")
+}
+
+model Employee {
+  id          String   @id @default(uuid()) @db.Uuid
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  personalDetail EmployeePersonalDetail?
+  emergencyContacts EmployeeEmergencyContact[]
+  employment     EmployeeEmployment?
+  skills         EmployeeSkill[]
+  certifications EmployeeWorkCertification[]
+  reviews        EmployeeReview[]
+  documents      EmployeeDocument[]
+  nonCoreActivities EmployeeNonCoreActivity[]
+  workingPatterns EmployeeWorkingPattern[]
+  complianceRecords EmployeeCompliance[]
+  holidays       EmployeeHoliday[]
+  leavingRecords EmployeeLeavingRecord[]
+
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeePersonalDetail {
+  id               String   @id @default(uuid()) @db.Uuid
+  employeeId       String   @unique @db.Uuid
+
+  firstName        String
+  lastName         String
+  titleId          String?  @db.Uuid
+  genderId         String?  @db.Uuid
+  email            String?  @unique
+  username         String?  @unique
+  dateOfBirth      DateTime?
+  nationalityId    String?  @db.Uuid
+  addressLine1     String?
+  addressLine2     String?
+  town             String?
+  country          String?
+  postcode         String?
+  homeTelephone    String?
+  mobileTelephone  String?
+  photoUrl         String?
+  statusId         String?  @db.Uuid
+
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+  createdById      String?  @db.Uuid
+  updatedById      String?  @db.Uuid
+  deletedById      String?  @db.Uuid
+
+  employee         Employee @relation(fields: [employeeId], references: [id])
+
+  title            Title?       @relation(fields: [titleId], references: [id])
+  gender           Gender?      @relation(fields: [genderId], references: [id])
+  nationality      Nationality? @relation(fields: [nationalityId], references: [id])
+  status           EmployeeStatus? @relation(fields: [statusId], references: [id])
+
+  @@index([employeeId])
+  @@index([lastName, firstName])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeEmergencyContact {
+  id          String @id @default(uuid()) @db.Uuid
+  employeeId  String @db.Uuid
+  firstName   String
+  lastName    String
+  relationship String
+  phone       String
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeEmployment {
+  id                    String @id @default(uuid()) @db.Uuid
+  employeeId            String @unique @db.Uuid
+  workAreaId            String? @db.Uuid
+  roleId                String? @db.Uuid
+  jobTitleId            String? @db.Uuid
+  rbacLevelId           String? @db.Uuid
+  startDate             DateTime?
+  endDate               DateTime?
+  leavingReasonId       String? @db.Uuid
+  leavingNotes          String?
+  nationalInsuranceNo   String?
+  gradeId               String? @db.Uuid
+  nmcPinNumber          String?
+  contractTypeId        String? @db.Uuid
+  employeeNumber        String?
+  travelPaymentTypeId   String? @db.Uuid
+  payrollNumber         String?
+  baseLocationId        String? @db.Uuid
+  locationId            String? @db.Uuid
+  accessAllZones        Boolean @default(false)
+  defaultZoneView       Boolean @default(false)
+  contractedWeeklyHours Float?
+  maximumWeeklyHours    Float?
+  minimumWeeklyHours    Float?
+  optedOutOf48Hours     Boolean @default(false)
+  isAgencyStaff         Boolean @default(false)
+  agencyName            String?
+  agencyRating          String?
+  isPreferredAgency     Boolean @default(false)
+  isBlacklisted         Boolean @default(false)
+  dailyRate             Float?
+  hourlyDayRate         Float?
+  hourlyNightRate       Float?
+  isBankStaff           Boolean @default(false)
+
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+  createdById           String?  @db.Uuid
+  updatedById           String?  @db.Uuid
+  deletedById           String?  @db.Uuid
+
+  employee              Employee @relation(fields: [employeeId], references: [id])
+  workArea              WorkArea? @relation(fields: [workAreaId], references: [id])
+  role                  EmployeeRoleLookup? @relation(fields: [roleId], references: [id])
+  jobTitle              JobTitle? @relation(fields: [jobTitleId], references: [id])
+  rbacLevel             RBACLevel? @relation(fields: [rbacLevelId], references: [id])
+  grade                 Grade? @relation(fields: [gradeId], references: [id])
+  contractType          ContractType? @relation(fields: [contractTypeId], references: [id])
+  travelPaymentType     TravelPaymentType? @relation(fields: [travelPaymentTypeId], references: [id])
+  baseLocation          Location? @relation("EmploymentBaseLocation", fields: [baseLocationId], references: [id])
+  location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
+  leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeSkill {
+  id          String @id @default(uuid()) @db.Uuid
+  employeeId  String @db.Uuid
+  skillTypeId String? @db.Uuid
+  expiryDate  DateTime?
+  notes       String?
+  documentUrl String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  skillType   SkillType? @relation(fields: [skillTypeId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeWorkCertification {
+  id                String @id @default(uuid()) @db.Uuid
+  employeeId        String @db.Uuid
+  certificationTypeId String? @db.Uuid
+  reference         String?
+  issueDate         DateTime?
+  expiryDate        DateTime?
+  notes             String?
+  certificateUrl    String?
+
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  createdById       String?  @db.Uuid
+  updatedById       String?  @db.Uuid
+  deletedById       String?  @db.Uuid
+
+  employee          Employee @relation(fields: [employeeId], references: [id])
+  certificationType CertificationType? @relation(fields: [certificationTypeId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeReview {
+  id          String @id @default(uuid()) @db.Uuid
+  employeeId  String @db.Uuid
+  reviewTypeId String? @db.Uuid
+  status      String?
+  lastDone    DateTime?
+  nextDue     DateTime?
+  notes       String?
+  reviewedById String? @db.Uuid
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  reviewType  ReviewType? @relation(fields: [reviewTypeId], references: [id])
+  reviewedBy  User? @relation("EmployeeReviewReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeDocument {
+  id           String @id @default(uuid()) @db.Uuid
+  employeeId   String @db.Uuid
+  name         String
+  description  String?
+  fileUrl      String
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  uploadedById String? @db.Uuid
+  uploadedDate DateTime @default(now())
+  tags         String[]
+
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+  createdById  String?  @db.Uuid
+  updatedById  String?  @db.Uuid
+  deletedById  String?  @db.Uuid
+
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  uploadedBy   User? @relation(fields: [uploadedById], references: [id])
+
+  @@index([employeeId])
+  @@index([uploadedDate])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeNonCoreActivity {
+  id                String @id @default(uuid()) @db.Uuid
+  employeeId        String @db.Uuid
+  reasonId          String? @db.Uuid
+  dateFrom          DateTime
+  dateTo            DateTime
+  includeInPayroll  Boolean @default(false)
+  onCallForPeriod   Boolean @default(false)
+  notes             String?
+
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  createdById       String?  @db.Uuid
+  updatedById       String?  @db.Uuid
+  deletedById       String?  @db.Uuid
+
+  employee          Employee @relation(fields: [employeeId], references: [id])
+  reason            NonCoreActivityReason? @relation(fields: [reasonId], references: [id])
+
+  @@index([employeeId])
+  @@index([dateFrom, dateTo])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeWorkingPattern {
+  id         String @id @default(uuid()) @db.Uuid
+  employeeId String @db.Uuid
+  dayOfWeek  DayOfWeek
+  startTime  String?
+  endTime    String?
+  isAvailable Boolean @default(true)
+  notes      String?
+
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([dayOfWeek])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeCompliance {
+  id              String @id @default(uuid()) @db.Uuid
+  employeeId      String @db.Uuid
+  complianceTypeId String? @db.Uuid
+  status          String?
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  documentUrl     String?
+  notes           String?
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  createdById     String?  @db.Uuid
+  updatedById     String?  @db.Uuid
+  deletedById     String?  @db.Uuid
+
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  complianceType  ComplianceType? @relation(fields: [complianceTypeId], references: [id])
+
+  @@index([employeeId])
+  @@index([expiryDate])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeHoliday {
+  id         String @id @default(uuid()) @db.Uuid
+  employeeId String @db.Uuid
+  startDate  DateTime
+  endDate    DateTime
+  notes      String?
+
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeLeavingRecord {
+  id             String @id @default(uuid()) @db.Uuid
+  employeeId     String @db.Uuid
+  leavingReasonId String? @db.Uuid
+  leavingDate    DateTime
+  notes          String?
+
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+  createdById    String?  @db.Uuid
+  updatedById    String?  @db.Uuid
+  deletedById    String?  @db.Uuid
+
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  leavingReason  LeavingReason? @relation(fields: [leavingReasonId], references: [id])
+
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/** Short-lived inspector logins; empty `serviceUserKeys` = access all service users (product default). */
+model TemporaryInspector {
+  id             String    @id @default(uuid()) @db.Uuid
+  firstName      String
+  lastName       String
+  username       String    @unique
+  passwordHash   String
+  reason         String
+  /** Option ids from `GET /temporary-inspectors/service-user-options`; empty = all service users. */
+  serviceUserKeys String[] @default([])
+  validFrom      DateTime
+  validTo        DateTime
+  refreshTokenHash String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  @@index([deletedAt])
+  @@index([validTo])
+  @@schema("employees")
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILED
+
+  @@schema("audit")
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("audit")
+}
+
+enum DataAccessType {
+  VIEW
+  DOWNLOAD
+  EXPORT
+  PRINT
+
+  @@schema("audit")
+}
+
+enum ExportType {
+  CSV
+  EXCEL
+  PDF
+  PRINT
+
+  @@schema("audit")
+}
+
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String?     @db.Uuid
+  module      String
+  action      String
+  recordType  String?
+  recordId    String?
+  description String?
+  oldValues   Json?
+  newValues   Json?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  status      AuditStatus @default(SUCCESS)
+  createdAt   DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([recordType, recordId])
+  @@index([createdAt])
+  @@index([status])
+  @@schema("audit")
+}
+
+model LoginHistory {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String?     @db.Uuid
+  email         String?
+  event         String
+  ipAddress     String?
+  userAgent     String?
+  deviceName    String?
+  status        AuditStatus
+  failureReason String?
+  createdAt     DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
+  @@schema("audit")
+}
+
+model SecurityEvent {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String?           @db.Uuid
+  eventType   String
+  severity    SecuritySeverity  @default(MEDIUM)
+  description String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([severity])
+  @@index([createdAt])
+  @@schema("audit")
+}
+
+model DataAccessLog {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String?         @db.Uuid
+  module      String
+  recordType  String?
+  recordId    String?
+  accessType  DataAccessType
+  reason      String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([recordType, recordId])
+  @@index([createdAt])
+  @@schema("audit")
+}
+
+model ExportLog {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String?    @db.Uuid
+  module      String
+  exportType  ExportType
+  filters     Json?
+  fileName    String?
+  recordCount Int?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([module])
+  @@index([exportType])
+  @@index([createdAt])
+  @@schema("audit")
+}
+
+// ---- Lookups ----
+model Title {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employeePersonalDetails EmployeePersonalDetail[]
+  @@schema("lookups")
+}
+
+model Gender {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employeePersonalDetails EmployeePersonalDetail[]
+  @@schema("lookups")
+}
+
+model Nationality {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employeePersonalDetails EmployeePersonalDetail[]
+  @@schema("lookups")
+}
+
+model EmployeeStatus {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employeePersonalDetails EmployeePersonalDetail[]
+  @@schema("lookups")
+}
+
+model WorkArea {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model EmployeeRoleLookup {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model JobTitle {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model RBACLevel {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model Grade {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model ContractType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model TravelPaymentType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  @@schema("lookups")
+}
+
+model Location {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  baseLocationEmployments EmployeeEmployment[] @relation("EmploymentBaseLocation")
+  locationEmployments     EmployeeEmployment[] @relation("EmploymentLocation")
+  @@schema("lookups")
+}
+
+model Zone {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  @@schema("lookups")
+}
+
+model LeavingReason {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employments EmployeeEmployment[]
+  leavingRecords EmployeeLeavingRecord[]
+  @@schema("lookups")
+}
+
+model SkillType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  skills EmployeeSkill[]
+  @@schema("lookups")
+}
+
+model CertificationType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  certifications EmployeeWorkCertification[]
+  @@schema("lookups")
+}
+
+model ComplianceType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  complianceRecords EmployeeCompliance[]
+  @@schema("lookups")
+}
+
+model ReviewType {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  reviews EmployeeReview[]
+  @@schema("lookups")
+}
+
+model NonCoreActivityReason {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  activities EmployeeNonCoreActivity[]
+  @@schema("lookups")
+}
+
+model DocumentTag {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  @@schema("lookups")
+}
+
