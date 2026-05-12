@@ -22,6 +22,9 @@ import { EmployeeNonCoreActivitiesModule } from './employee-non-core-activities/
 import { EmployeeWorkingPatternsModule } from './employee-working-patterns/employee-working-patterns.module';
 import { EmployeeComplianceModule } from './employee-compliance/employee-compliance.module';
 import { EmployeeReportsModule } from './employee-reports/employee-reports.module';
+import { ComplianceTypesModule } from './compliance-types/compliance-types.module';
+import { ComplianceRequirementsModule } from './compliance-requirements/compliance-requirements.module';
+import { ComplianceReportsModule } from './compliance-reports/compliance-reports.module';
 import { FilesModule } from './files/files.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { LookupsModule } from './lookups/lookups.module';
@@ -68,6 +71,9 @@ import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-insp
     EmployeeNonCoreActivitiesModule,
     EmployeeWorkingPatternsModule,
     EmployeeComplianceModule,
+    ComplianceTypesModule,
+    ComplianceRequirementsModule,
+    ComplianceReportsModule,
     EmployeeReportsModule,
     EmployeeHolidaysModule,
     EmployeeLeavingRecordsModule,

@@ -21,6 +21,67 @@ enum DayOfWeek {
   @@schema("employees")
 }
 
+enum ComplianceCategory {
+  IDENTITY
+  RIGHT_TO_WORK
+  SAFEGUARDING
+  TRAINING
+  CLINICAL
+  EMPLOYMENT
+  HEALTH_AND_SAFETY
+  PROFESSIONAL_REGISTRATION
+  DRIVING
+  OTHER
+
+  @@schema("lookups")
+}
+
+enum EmployeeComplianceStatus {
+  REQUIRED
+  SUBMITTED
+  PENDING_REVIEW
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+  REJECTED
+  MISSING
+  NOT_REQUIRED
+  NO_LONGER_REQUIRED
+
+  @@schema("employees")
+}
+
+enum ComplianceVerificationAction {
+  SUBMITTED
+  VERIFIED
+  REJECTED
+  UPDATED
+  MARKED_NO_LONGER_REQUIRED
+  DOCUMENT_UPLOADED
+  DOCUMENT_DELETED
+
+  @@schema("employees")
+}
+
+enum ComplianceReminderType {
+  EXPIRY_90_DAYS
+  EXPIRY_60_DAYS
+  EXPIRY_30_DAYS
+  EXPIRY_7_DAYS
+  EXPIRED
+
+  @@schema("employees")
+}
+
+enum ComplianceReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+
+  @@schema("employees")
+}
+
 model User {
   id                String   @id @default(uuid()) @db.Uuid
   email             String   @unique
@@ -54,6 +115,11 @@ model User {
   exportLogs        ExportLog[]
   reviewedEmployees EmployeeReview[] @relation("EmployeeReviewReviewedBy")
   uploadedEmployeeDocuments EmployeeDocument[]
+  employeeCompliancesVerified       EmployeeCompliance[]       @relation("EmployeeComplianceVerifiedBy")
+  employeeCompliancesRejected      EmployeeCompliance[]       @relation("EmployeeComplianceRejectedBy")
+  employeeCompliancesNoLongerReq    EmployeeCompliance[]       @relation("EmployeeComplianceNoLongerRequiredBy")
+  employeeComplianceDocumentsUploaded EmployeeComplianceDocument[] @relation("EmployeeComplianceDocumentUploadedBy")
+  complianceVerificationsPerformed ComplianceVerification[]   @relation("ComplianceVerificationPerformedBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -445,30 +511,153 @@ model EmployeeWorkingPattern {
   @@schema("employees")
 }
 
+model ComplianceRequirement {
+  id                 String   @id @default(uuid()) @db.Uuid
+  complianceTypeId   String   @db.Uuid
+  roleId             String?  @db.Uuid
+  workAreaId         String?  @db.Uuid
+  jobTitleId         String?  @db.Uuid
+  contractTypeId     String?  @db.Uuid
+  locationId         String?  @db.Uuid
+  zoneId             String?  @db.Uuid
+  isMandatory        Boolean  @default(true)
+  renewalBeforeDays  Int      @default(30)
+  notes              String?
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  complianceType ComplianceType         @relation(fields: [complianceTypeId], references: [id])
+  role           EmployeeRoleLookup?    @relation(fields: [roleId], references: [id])
+  workArea       WorkArea?              @relation(fields: [workAreaId], references: [id])
+  jobTitle       JobTitle?              @relation(fields: [jobTitleId], references: [id])
+  contractType   ContractType?          @relation(fields: [contractTypeId], references: [id])
+  location       Location?              @relation(fields: [locationId], references: [id])
+  zone           Zone?                  @relation(fields: [zoneId], references: [id])
+
+  employeeComplianceRecords EmployeeCompliance[]
+
+  @@index([complianceTypeId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
 model EmployeeCompliance {
-  id              String @id @default(uuid()) @db.Uuid
-  employeeId      String @db.Uuid
-  complianceTypeId String? @db.Uuid
-  status          String?
-  issueDate       DateTime?
-  expiryDate      DateTime?
-  documentUrl     String?
-  notes           String?
+  id                 String                   @id @default(uuid()) @db.Uuid
+  employeeId         String                   @db.Uuid
+  complianceTypeId   String?                  @db.Uuid
+  requirementId      String?                  @db.Uuid
+  status               EmployeeComplianceStatus @default(REQUIRED)
 
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  createdById     String?  @db.Uuid
-  updatedById     String?  @db.Uuid
-  deletedById     String?  @db.Uuid
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  documentUrl String? /// legacy single URL; prefer EmployeeComplianceDocument rows
+  notes       String?
 
-  employee        Employee @relation(fields: [employeeId], references: [id])
-  complianceType  ComplianceType? @relation(fields: [complianceTypeId], references: [id])
+  submittedAt DateTime?
+  verifiedAt  DateTime?
+  verifiedById String? @db.Uuid
+  rejectedAt   DateTime?
+  rejectedById String? @db.Uuid
+  rejectionReason String?
+
+  isNoLongerRequired       Boolean   @default(false)
+  noLongerRequiredReason   String?
+  noLongerRequiredAt       DateTime?
+  noLongerRequiredById     String?   @db.Uuid
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  complianceType ComplianceType?         @relation(fields: [complianceTypeId], references: [id])
+  requirement    ComplianceRequirement?  @relation(fields: [requirementId], references: [id])
+  verifiedBy     User?                   @relation("EmployeeComplianceVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  rejectedBy     User?                   @relation("EmployeeComplianceRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
+  noLongerRequiredBy User?               @relation("EmployeeComplianceNoLongerRequiredBy", fields: [noLongerRequiredById], references: [id], onDelete: SetNull)
+
+  documents     EmployeeComplianceDocument[]
+  verifications ComplianceVerification[]
+  reminders     ComplianceReminder[]
 
   @@index([employeeId])
+  @@index([complianceTypeId])
+  @@index([requirementId])
+  @@index([status])
   @@index([expiryDate])
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeComplianceDocument {
+  id                   String   @id @default(uuid()) @db.Uuid
+  employeeComplianceId String   @db.Uuid
+  fileName             String
+  originalName         String
+  fileUrl              String
+  fileSize             Int
+  mimeType             String
+  uploadedById         String?  @db.Uuid
+  uploadedAt           DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  employeeCompliance EmployeeCompliance @relation(fields: [employeeComplianceId], references: [id], onDelete: Cascade)
+  uploadedBy         User?              @relation("EmployeeComplianceDocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeComplianceId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model ComplianceVerification {
+  id                   String   @id @default(uuid()) @db.Uuid
+  employeeComplianceId String @db.Uuid
+  action               ComplianceVerificationAction
+  previousStatus       EmployeeComplianceStatus?
+  newStatus            EmployeeComplianceStatus
+  notes                String?
+  performedById        String?  @db.Uuid
+  performedAt          DateTime @default(now())
+  metadata             Json?
+
+  employeeCompliance EmployeeCompliance @relation(fields: [employeeComplianceId], references: [id], onDelete: Cascade)
+  performedBy        User?              @relation("ComplianceVerificationPerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeComplianceId])
+  @@index([performedAt])
+  @@schema("employees")
+}
+
+model ComplianceReminder {
+  id                   String   @id @default(uuid()) @db.Uuid
+  employeeComplianceId String   @db.Uuid
+  reminderType         ComplianceReminderType
+  dueDate              DateTime
+  sentAt               DateTime?
+  status               ComplianceReminderStatus @default(PENDING)
+  metadata             Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employeeCompliance EmployeeCompliance @relation(fields: [employeeComplianceId], references: [id], onDelete: Cascade)
+
+  @@index([employeeComplianceId])
+  @@index([dueDate])
+  @@index([status])
   @@schema("employees")
 }
 
@@ -747,6 +936,7 @@ model WorkArea {
   deletedAt DateTime?
 
   employments EmployeeEmployment[]
+  complianceRequirements ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -759,6 +949,7 @@ model EmployeeRoleLookup {
   deletedAt DateTime?
 
   employments EmployeeEmployment[]
+  complianceRequirements ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -771,6 +962,7 @@ model JobTitle {
   deletedAt DateTime?
 
   employments EmployeeEmployment[]
+  complianceRequirements ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -807,6 +999,7 @@ model ContractType {
   deletedAt DateTime?
 
   employments EmployeeEmployment[]
+  complianceRequirements ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -832,6 +1025,7 @@ model Location {
 
   baseLocationEmployments EmployeeEmployment[] @relation("EmploymentBaseLocation")
   locationEmployments     EmployeeEmployment[] @relation("EmploymentLocation")
+  complianceRequirements  ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -842,6 +1036,8 @@ model Zone {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+
+  complianceRequirements ComplianceRequirement[]
   @@schema("lookups")
 }
 
@@ -885,12 +1081,29 @@ model CertificationType {
 model ComplianceType {
   id        String @id @default(uuid()) @db.Uuid
   name      String @unique
-  isActive  Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  code      String?  @unique
+  description String?
+  category  ComplianceCategory @default(OTHER)
+
+  hasExpiry             Boolean  @default(true)
+  defaultValidityMonths Int?
+  requiresDocument      Boolean  @default(true)
+  requiresVerification  Boolean  @default(true)
+  isMandatoryByDefault  Boolean  @default(false)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
 
   complianceRecords EmployeeCompliance[]
+  requirements      ComplianceRequirement[]
+
+  @@index([category])
+  @@index([deletedAt])
   @@schema("lookups")
 }
 

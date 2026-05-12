@@ -53,11 +53,11 @@ Status: IN PROGRESS
 - [ ] Staff reviews
 - [ ] Non-core activities
 - [ ] Working pattern
-- [ ] Employment compliance (+ expiring/missing)
+- [x] Employment compliance (enterprise: types, requirements, records, reports)
+- [x] Compliance reports (summary / missing / expired / expiring / pending / detail)
 - [ ] Holiday records
 - [ ] Employee leaving records
 - [ ] Employee reports and analytics
-- [ ] Compliance reports
 - [ ] RBAC reporting
 
 ## Phase 3 — Employee Skills, Certifications, Documents
@@ -99,6 +99,30 @@ Status: TODO
 - [ ] Employee leaving report
 - [ ] Holiday report
 - [ ] Employee detail report
+
+## Phase — Employee Compliance (Enterprise)
+Status: IN PROGRESS
+- [x] Create ComplianceType model (expanded) + enums
+- [x] Create ComplianceRequirement model
+- [x] Create EmployeeCompliance model (expanded workflow + status enum)
+- [x] Create EmployeeComplianceDocument model
+- [x] Create ComplianceVerification model
+- [x] Create ComplianceReminder model
+- [x] Create Compliance Types APIs
+- [x] Create Compliance Requirements APIs
+- [x] Create Employee Compliance APIs (CRUD, documents, verify/reject, no-longer-required)
+- [x] Add document upload/download/delete
+- [x] Add verify/reject workflow
+- [x] Add no-longer-required workflow
+- [x] Add missing / expired / expiring / pending logic + reports
+- [x] Add compliance summary report
+- [x] Add compliance detail report
+- [x] Add audit logging + data access logging for downloads
+- [x] Add seed data + permissions
+- [x] Add Swagger tags/DTOs (core)
+- [x] Add unit tests (status calculator)
+- [ ] Install `@nestjs/schedule` and register daily cron calling `runDailyComplianceCheck()`
+- [ ] Integration / e2e tests for compliance APIs
 
 ## Phase 7 — Scheduling Dependencies
 Status: TODO

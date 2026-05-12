@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsDate, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 
 export class UpdateEmployeeComplianceDto {
   @ApiPropertyOptional()
@@ -10,29 +10,35 @@ export class UpdateEmployeeComplianceDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsUUID()
+  requirementId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  issueDate?: Date;
+  issueDate?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  expiryDate?: Date;
+  expiryDate?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  documentUrl?: string;
+  @MaxLength(2000)
+  notes?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  notes?: string;
+  @Type(() => Date)
+  @IsDate()
+  submittedAt?: Date | null;
+
+  @ApiPropertyOptional({ description: 'Clear verification when resetting record' })
+  @IsOptional()
+  @IsBoolean()
+  clearVerification?: boolean;
 }
-

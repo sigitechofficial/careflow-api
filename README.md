@@ -76,6 +76,16 @@ pnpm exec prisma generate
 
 Service Care and Scheduling should call `AuditLogsService.logAudit`, `logDataAccess`, and `logExport` from their services for care plans, medication, schedules, and exports—reuse the same enums/DTO patterns as the Employee module.
 
+## Employee Compliance (enterprise)
+
+Compliance is **not** hard-coded on the `Employee` model. The chain is: **ComplianceType** (master, in `lookups`) → **ComplianceRequirement** (who must hold what, scoped by role/work area/job title/contract/location; `zoneId` reserved until employment has zone data) → **EmployeeCompliance** (per-employee record with workflow and persisted `EmployeeComplianceStatus`) → **EmployeeComplianceDocument** (evidence files under `uploads/employees/compliance/`) → **ComplianceVerification** (audit trail of actions).
+
+- **Status rules:** Effective status is computed with UTC calendar-day boundaries (see `compliance-status.calculator.ts`); list APIs return the computed value as `status` and expose `persistedStatus` for debugging. `runDailyComplianceCheck()` batch-recomputes stored `status` (call from a future `@nestjs/schedule` cron — not wired yet; see `EmployeeComplianceService`).
+- **Permissions:** `compliance_types.*`, `compliance_requirements.*`, `employees.compliance.*` (including `create`, `delete`, `verify`, `reject`, `documents.*`, `reports.read` / `reports.export`). Seed grants read/report keys to Admin, Manager, HR, and Privacy Officer; Super Admin gets all.
+- **Migrations:** `pnpm exec prisma migrate deploy` (or `migrate dev`) after pull; then `pnpm exec prisma db seed` for types/requirements.
+- **Key routes:** `GET/POST/PATCH/DELETE /compliance-types`, `GET/POST/PATCH/DELETE /compliance-requirements`, `GET/POST/PATCH/DELETE /employees/:id/compliance`, document routes under `.../compliance/:complianceId/documents`, reports under `GET /employee-compliance/summary|missing|expired|expiring|pending-review|report|detail-report`.
+- **Chart summary:** `GET /employees/chart-summary` compliance SQL excludes rows with `isNoLongerRequired` so the dashboard matches the compliance module.
+
 ---
 
 ## NestJS starter (reference)

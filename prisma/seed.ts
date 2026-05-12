@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { DEFAULT_JOB_TITLES } from '../src/lookups/default-job-titles';
 
@@ -126,7 +126,24 @@ async function main() {
     'employees.documents.upload',
     'employees.documents.delete',
     'employees.compliance.read',
+    'employees.compliance.create',
     'employees.compliance.update',
+    'employees.compliance.delete',
+    'employees.compliance.verify',
+    'employees.compliance.reject',
+    'employees.compliance.documents.upload',
+    'employees.compliance.documents.download',
+    'employees.compliance.documents.delete',
+    'employees.compliance.reports.read',
+    'employees.compliance.reports.export',
+    'compliance_types.read',
+    'compliance_types.create',
+    'compliance_types.update',
+    'compliance_types.delete',
+    'compliance_requirements.read',
+    'compliance_requirements.create',
+    'compliance_requirements.update',
+    'compliance_requirements.delete',
     'employees.reports.read',
     'lookups.read',
     'users.read',
@@ -213,7 +230,156 @@ async function main() {
     });
   }
 
-  // Default Super Admin user
+  const complianceReportRead = await prisma.permission.findFirst({
+    where: { key: 'employees.compliance.reports.read' },
+  });
+  const complianceRead = await prisma.permission.findFirst({
+    where: { key: 'employees.compliance.read' },
+  });
+  const complianceTypesRead = await prisma.permission.findFirst({
+    where: { key: 'compliance_types.read' },
+  });
+  const complianceReqRead = await prisma.permission.findFirst({
+    where: { key: 'compliance_requirements.read' },
+  });
+  for (const r of [
+    roles.find((x) => x.name === 'Admin'),
+    roles.find((x) => x.name === 'Manager'),
+    roles.find((x) => x.name === 'HR'),
+    privacyOfficerRole,
+  ]) {
+    if (!r) continue;
+    for (const p of [complianceReportRead, complianceRead, complianceTypesRead, complianceReqRead]) {
+      if (!p) continue;
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // --- Compliance types & requirements (idempotent) ---
+  type Cat = (typeof ComplianceCategory)[keyof typeof ComplianceCategory];
+  const complianceTypeDefs: Array<{
+    name: string;
+    code: string;
+    category: Cat;
+    hasExpiry: boolean;
+    defaultValidityMonths: number | null;
+    requiresDocument: boolean;
+    requiresVerification: boolean;
+  }> = [
+    { name: 'DBS Check', code: 'DBS_CHECK', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 36, requiresDocument: true, requiresVerification: true },
+    { name: 'Right to Work', code: 'RIGHT_TO_WORK', category: ComplianceCategory.RIGHT_TO_WORK, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
+    { name: 'Proof of ID', code: 'PROOF_OF_ID', category: ComplianceCategory.IDENTITY, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
+    { name: 'Employment Contract', code: 'EMPLOYMENT_CONTRACT', category: ComplianceCategory.EMPLOYMENT, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
+    { name: 'Care Certificate', code: 'CARE_CERTIFICATE', category: ComplianceCategory.TRAINING, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
+    { name: 'Manual Handling', code: 'MANUAL_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'First Aid', code: 'FIRST_AID', category: ComplianceCategory.TRAINING, hasExpiry: true, defaultValidityMonths: 36, requiresDocument: true, requiresVerification: true },
+    { name: 'Safeguarding Adults', code: 'SAFEGUARDING_ADULTS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Safeguarding Children', code: 'SAFEGUARDING_CHILDREN', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Medication Training', code: 'MEDICATION_TRAINING', category: ComplianceCategory.CLINICAL, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Food Hygiene', code: 'FOOD_HYGIENE', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Fire Safety', code: 'FIRE_SAFETY', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Health and Safety', code: 'HEALTH_AND_SAFETY_GEN', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Infection Prevention and Control', code: 'IPC', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Moving and Handling', code: 'MOVING_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Mental Capacity Act', code: 'MCA', category: ComplianceCategory.TRAINING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Deprivation of Liberty Safeguards', code: 'DOLS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'NMC PIN', code: 'NMC_PIN', category: ComplianceCategory.PROFESSIONAL_REGISTRATION, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Driving Licence', code: 'DRIVING_LICENCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 120, requiresDocument: true, requiresVerification: true },
+    { name: 'Vehicle Insurance', code: 'VEHICLE_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'MOT', code: 'MOT', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+    { name: 'Business Insurance', code: 'BUSINESS_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+  ];
+
+  const typeByCode: Record<string, string> = {};
+  for (const t of complianceTypeDefs) {
+    const row = await prisma.complianceType.upsert({
+      where: { name: t.name },
+      update: {
+        code: t.code,
+        category: t.category,
+        hasExpiry: t.hasExpiry,
+        defaultValidityMonths: t.defaultValidityMonths,
+        requiresDocument: t.requiresDocument,
+        requiresVerification: t.requiresVerification,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        name: t.name,
+        code: t.code,
+        category: t.category,
+        hasExpiry: t.hasExpiry,
+        defaultValidityMonths: t.defaultValidityMonths,
+        requiresDocument: t.requiresDocument,
+        requiresVerification: t.requiresVerification,
+      },
+    });
+    typeByCode[t.code] = row.id;
+  }
+
+  const carerRole = await prisma.employeeRoleLookup.findFirst({ where: { name: 'Carer' } });
+  const seniorCarerRole = await prisma.employeeRoleLookup.findFirst({ where: { name: 'Senior Carer' } });
+  const careArea = await prisma.workArea.findFirst({ where: { name: 'Care' } });
+  const kitchenArea = await prisma.workArea.findFirst({ where: { name: 'Kitchen' } });
+  const nurseTitle = await prisma.jobTitle.findFirst({ where: { name: 'Senior Carer/Nurse' } });
+
+  async function ensureRequirement(
+    code: string,
+    filters: {
+      roleId?: string | null;
+      workAreaId?: string | null;
+      jobTitleId?: string | null;
+    },
+  ) {
+    const complianceTypeId = typeByCode[code];
+    if (!complianceTypeId) return;
+    const where = {
+      complianceTypeId,
+      roleId: filters.roleId ?? null,
+      workAreaId: filters.workAreaId ?? null,
+      jobTitleId: filters.jobTitleId ?? null,
+      contractTypeId: null as string | null,
+      locationId: null as string | null,
+      zoneId: null as string | null,
+      deletedAt: null,
+    };
+    const exists = await prisma.complianceRequirement.findFirst({ where });
+    if (!exists) {
+      await prisma.complianceRequirement.create({
+        data: {
+          complianceTypeId,
+          roleId: filters.roleId ?? undefined,
+          workAreaId: filters.workAreaId ?? undefined,
+          jobTitleId: filters.jobTitleId ?? undefined,
+        },
+      });
+    }
+  }
+
+  const carerPack = ['DBS_CHECK', 'RIGHT_TO_WORK', 'PROOF_OF_ID', 'CARE_CERTIFICATE', 'MANUAL_HANDLING', 'SAFEGUARDING_ADULTS', 'MEDICATION_TRAINING'];
+  for (const code of carerPack) {
+    await ensureRequirement(code, { roleId: carerRole?.id ?? null, workAreaId: careArea?.id ?? null });
+  }
+  if (seniorCarerRole) {
+    await ensureRequirement('FIRST_AID', { roleId: seniorCarerRole.id, workAreaId: careArea?.id ?? null });
+  }
+  if (nurseTitle) {
+    await ensureRequirement('NMC_PIN', { jobTitleId: nurseTitle.id });
+  }
+  if (kitchenArea) {
+    await ensureRequirement('FOOD_HYGIENE', { workAreaId: kitchenArea.id });
+  }
+  const driverRole = carerRole;
+  for (const code of ['DRIVING_LICENCE', 'VEHICLE_INSURANCE', 'MOT', 'BUSINESS_INSURANCE']) {
+    await ensureRequirement(code, { roleId: driverRole?.id ?? null });
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('[seed] Compliance types & requirements upserted.');
   const email = 'admin@careadmin.local';
   const password = 'Admin@12345';
   const passwordHash = await bcrypt.hash(password, 12);

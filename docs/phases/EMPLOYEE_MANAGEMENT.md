@@ -15,7 +15,7 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
   - [x] `PATCH /employees/:id/status`
 - [x] **Dashboard chart summary** — `GET /employees/chart-summary` (`employees.read`)
   - Staff totals: employees with non-deleted personal detail; active/inactive via `EmployeeStatus` names (case-insensitive)
-  - Compliance: counts from `EmployeeCompliance` expiry vs now + 30 days (aggregated in SQL to avoid Prisma P2023 on out-of-range timestamps)
+  - Compliance: counts from `EmployeeCompliance` expiry vs now + 30 days (aggregated in SQL; excludes `isNoLongerRequired` rows)
   - Skills: top skill types by `EmployeeSkill` counts (raw `GROUP BY` + lookup names)
   - Reviews: reviewed vs outstanding from `EmployeeReview.status` heuristics
 - [x] Personal details APIs
@@ -39,7 +39,26 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 - [x] Staff reviews (`EmployeeReview`)
 - [x] Non-core activities (`EmployeeNonCoreActivity`)
 - [x] Working patterns (`EmployeeWorkingPattern`)
-- [x] Employment compliance (`EmployeeCompliance`)
+- [x] **Enterprise employment compliance** — master types, scoped requirements, per-employee records, evidence documents, verification history, and report APIs (see below).
+
+### Enterprise compliance (backend)
+
+| Layer | Prisma / API |
+|--------|----------------|
+| **ComplianceType** | `lookups.ComplianceType` — `code`, `category`, `hasExpiry`, `requiresDocument`, `requiresVerification`, CRUD under `/compliance-types` (`compliance_types.*`). |
+| **ComplianceRequirement** | `employees.ComplianceRequirement` — optional `roleId`, `workAreaId`, `jobTitleId`, `contractTypeId`, `locationId`, `zoneId` (v1: requirements with `zoneId` do not match employees until employment has a zone). CRUD `/compliance-requirements`. |
+| **EmployeeCompliance** | `employees.EmployeeCompliance` — workflow fields (`submittedAt`, `verifiedAt`, `rejectedAt`, `isNoLongerRequired`, …), enum `status`, optional `requirementId`. `/employees/:id/compliance` (`employees.compliance.*`). |
+| **EmployeeComplianceDocument** | Evidence files via `POST …/documents` (multer → `uploads/employees/compliance/`). |
+| **ComplianceVerification** | Immutable action log per change. |
+| **ComplianceReminder** | Table ready for scheduled reminders (no cron wired yet). |
+
+**Status calculation:** `src/employee-compliance/compliance-status.calculator.ts` — UTC day boundaries; `MISSING` when documents are required but absent; `REQUIRED` when a row exists but not yet complete; `PENDING_REVIEW` after submit when verification is required; expiry checks before `VALID`. `GET` list/detail returns computed `status` plus `persistedStatus`.
+
+**Reports:** `GET /employee-compliance/summary|missing|expired|expiring|pending-review|report|detail-report` (`employees.compliance.reports.read`). Query DTO: `employee-compliance-report-query.dto.ts`.
+
+**Dashboard chart:** `GET /employees/chart-summary` excludes compliance rows with `isNoLongerRequired = true` from the compliance aggregate SQL.
+
+**TODO (cron):** Install `@nestjs/schedule` and call `EmployeeComplianceService.runDailyComplianceCheck()` daily.
 - [x] Holidays (`EmployeeHoliday`)
 - [x] Leaving records (`EmployeeLeavingRecord`)
 - [x] **Temporary inspector logins** — model `employees.TemporaryInspector`; APIs:

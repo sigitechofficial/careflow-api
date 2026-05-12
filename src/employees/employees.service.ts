@@ -392,6 +392,7 @@ export class EmployeesService {
         ) AS needs_attention
       FROM "employees"."EmployeeCompliance" c
       WHERE c."deletedAt" IS NULL
+        AND COALESCE(c."isNoLongerRequired", false) = false
     `);
     const complianceUpToDate = Number(complianceAgg?.up_to_date ?? 0);
     const complianceNeedsAttention = Number(complianceAgg?.needs_attention ?? 0);

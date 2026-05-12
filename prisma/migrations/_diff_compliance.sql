@@ -1,0 +1,52 @@
+﻿node.exe : warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please 
+migrate to a Prisma config file (e.g., `prisma.config.ts`).
+At C:\Users\Tufail Khan\AppData\Roaming\npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warn The config...ma.config.ts`).:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+For more information, see: https://pris.ly/prisma-config
+
+Error: 
+option requires argument: --from-url
+
+Usage
+
+  $ prisma migrate diff [options]
+
+Options
+
+  -h, --help               Display this help message
+  --config                 Custom path to your Prisma config file
+  -o, --output             Writes to a file instead of stdout
+
+From and To inputs (1 `--from-...` and 1 `--to-...` must be provided):
+  --from-url               A datasource URL
+  --to-url
+
+  --from-empty             Flag to assume from or to is an empty datamodel
+  --to-empty
+
+  --from-schema-datamodel  Path to a Prisma schema file, uses the datamodel for the diff
+  --to-schema-datamodel
+
+  --from-schema-datasource Path to a Prisma schema file, uses the datasource url for the diff
+  --to-schema-datasource
+
+  --from-migrations        Path to the Prisma Migrate migrations directory
+  --to-migrations
+
+  --from-local-d1          Automatically locate the local Cloudflare D1 database
+  --to-local-d1
+
+Shadow database (only required if using --from-migrations or --to-migrations):
+  --shadow-database-url    URL for the shadow database
+
+Flags
+
+  --script                 Render a SQL script to stdout instead of the default human readable summary (not supported 
+on MongoDB)
+  --exit-code              Change the exit code behavior to signal if the diff is empty or not (Empty: 0, Error: 1, 
+Not empty: 2). Default behavior is Success: 0, Error: 1.
+
