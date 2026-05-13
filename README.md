@@ -53,9 +53,10 @@ Query DTOs support pagination (`page`, `limit`), `search`, filters (`userId`, `m
 ### Behaviour
 
 - **Immutability**: application code must not expose PATCH/DELETE for audit tables.
-- **Masking**: `AuditLogsService` masks known sensitive keys (`password`, `refreshToken`, `pin`, etc.) in JSON payloads before persist.
+- **Masking**: `AuditLogsService` masks known sensitive keys (`password`, `refreshToken`, `pin`, `keySafeNumber`, etc.) in JSON payloads before persist.
 - **Auth logging**: login success/failure, refresh, logout, password change, forgot/reset placeholders write to `LoginHistory`, `AuditLog`, and/or `SecurityEvent` as appropriate.
 - **Employee logging**: CRUD and sub-resources (documents, compliance, reviews, emergency contacts, employment, skills, certifications, non-core activities) emit `AuditLog` rows; sensitive views emit `DataAccessLog` where wired.
+- **Service User logging**: Service User Phase 1 writes `AuditLog` for lifecycle, contacts, address, assignments, and photos; `GET /service-users/:id` writes `DataAccessLog` (VIEW) plus `service_user_profile_viewed`. Address `keySafeNumber` is masked in audit JSON.
 
 ### Migrations
 
@@ -75,6 +76,57 @@ pnpm exec prisma generate
 ### Later modules
 
 Service Care and Scheduling should call `AuditLogsService.logAudit`, `logDataAccess`, and `logExport` from their services for care plans, medication, schedules, and exports—reuse the same enums/DTO patterns as the Employee module.
+
+## Service Users (Phase 1 — core)
+
+PostgreSQL schema **`service_users`** holds Service User entities, domain lookups (status, title, gender, marital status, care type, funding type, risk level, relationship types), contacts, address, references, assignment rows, and photo metadata. **JWT + RBAC** protect all routes; **Swagger** tags: Service Users, Service User Contacts, Service User Address, Service User Assignments, Service User Photos, Service User Lookups.
+
+### Commands
+
+```bash
+npx prisma migrate dev --name service_user_core
+npx prisma generate
+npx prisma db seed
+pnpm start:dev
+```
+
+Open Swagger at `http://localhost:3000/api/docs` (or your `SWAGGER_PATH`), authorize with **Bearer** token from `POST /auth/login`, then exercise Service User endpoints.
+
+### API overview
+
+| Area | Method | Path |
+|------|--------|------|
+| Core | GET | `/service-users` — list (pagination, search, filters, sort) |
+| Core | GET | `/service-users/:id` — detail (audit + data access log) |
+| Core | POST | `/service-users` |
+| Core | PATCH | `/service-users/:id` |
+| Core | DELETE | `/service-users/:id` — soft delete |
+| Core | PATCH | `/service-users/:id/status` |
+| Contacts | GET/POST | `/service-users/:id/contacts` |
+| Contacts | PATCH/DELETE | `/service-users/:id/contacts/:contactId` |
+| Address | GET | `/service-users/:id/address` |
+| Address | PATCH | `/service-users/:id/address` |
+| Assignments | GET | `/service-users/:id/assignments` |
+| Assignments | PATCH | `/service-users/:id/assignments` |
+| Photo | POST | `/service-users/:id/photo` — multipart field `file` (JPEG/PNG/WebP) |
+| Photo | DELETE | `/service-users/:id/photo` — clears profile photo |
+| Lookups | GET | `/service-user-lookups` and `/service-user-lookups/...` segments |
+
+### Permissions (seed)
+
+`service_users.read|create|update|delete|status.update`, `service_users.contacts.*`, `service_users.address.read|update`, `service_users.assignments.read|update`, `service_users.photos.upload|delete`, `service_users.lookups.read`. **Super Admin** receives all keys automatically. **Admin**, **Manager**, and **Care Coordinator** receive read/create/update for core and sub-resources plus photo upload and lookups read (not delete/status update/photo delete by default — see `prisma/seed.ts`).
+
+### File uploads
+
+Photos are stored under `{UPLOAD_BASE_PATH}/service-users/photos` (default `uploads/...`). Static hosting uses `UPLOAD_BASE_PATH` in `main.ts`. Max size: `MAX_UPLOAD_FILE_SIZE_MB` or `UPLOAD_MAX_FILE_SIZE_BYTES` (see `src/config/app.config.ts`).
+
+### Seed lookups
+
+Statuses, titles, genders, marital statuses, care types, funding types, risk levels, and relationship types are upserted in `prisma/seed.ts`.
+
+### Deferred (later phases)
+
+Care plans, observations, medication, visits, reports, hospital/absence, calendar, flash messages, body map, initial assessment, and gallery-style photo management beyond a single profile image.
 
 ## Employee Compliance (enterprise)
 

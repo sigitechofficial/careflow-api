@@ -1,23 +1,68 @@
 # Service Care Management — Phase Plan
 
-Status: TODO
+Status: Phase 1 (Service User core) **implemented** in backend; care delivery features **pending**.
 
 ## Goal
-Enable carers to record observations, complete care actions, record medication, and maintain care notes with full audit history.
+
+Enable carers and coordinators to manage **Service Users** (people receiving care) with RBAC, audit trails, and structured profile data—then extend to observations, medication, care plans, and reporting.
 
 ## Dependencies
-- Employee module (carer lookups, roles/designations, zones/areas)
-- Auth + RBAC permissions
 
-## TODO — Core capabilities
+- Employee module (key worker / named nurse assignments reference `Employee`)
+- Auth + RBAC permissions
+- Location lookups (`Location`) for assignment and filtering
+- `AuditLogsModule` + `DataAccessLog` for sensitive profile access
+
+---
+
+## Done — Phase 1: Service User Core (backend)
+
+- [x] Prisma schema `service_users` with `ServiceUser`, `ServiceUserContact`, `ServiceUserAddress`, `ServiceUserReference`, `ServiceUserAssignment`, `ServiceUserPhoto`
+- [x] Domain lookups: `ServiceUserStatus`, `ServiceUserTitle`, `ServiceUserGender`, `ServiceUserMaritalStatus`, `ServiceUserCareType`, `ServiceUserFundingType`, `ServiceUserRiskLevel`, `RelationshipType`
+- [x] APIs: list/detail/create/update/soft-delete/status; nested contacts, address, assignments; profile photo upload/delete; lookup read endpoints
+- [x] Search/filter/pagination/sort on list
+- [x] Permissions + seed (Super Admin all; Admin / Manager / Care Coordinator subset — see `prisma/seed.ts`)
+- [x] Audit logs for mutations + profile view; **data access log** on `GET /service-users/:id`
+- [x] Mask `keySafeNumber` in audit payloads
+- [x] Swagger tags and DTOs
+- [x] Seed lookup rows
+- [x] E2E tests: `test/service-users.e2e-spec.ts`
+
+---
+
+## Pending — Service User extended profile
+
+- [ ] About Me
+- [ ] Life History
+- [ ] Photos gallery (beyond single profile image)
+- [ ] Calendar
+- [ ] Hospital / absence
+
+## Pending — Care plans and risk
+
+- [ ] Care plans, risk sections, safety/contingency, consent, review/history
+
+## Pending — Observations
+
+- [ ] Types (weight, blood sugar, BP, temperature, SpO2, pulse, fluids, falls, bowel, meals, NEWS2, reports)
+
+## Pending — Medication
+
+- [ ] Medication list, MAR, PRN, events, reports
+
+## Pending — Visits
+
+- [ ] Visits list, add/edit, frequency, checklist, medications, call-offs
+
+## Pending — Reports
+
+- [ ] Care report, observation report, care plan report, housepack, service user details export
+
+## Pending — Cross-cutting (Service Care)
+
 - [ ] Care observations module (create/list/detail)
 - [ ] Care actions module (create/complete/list)
-- [ ] Medication records module (create/administer/list)
+- [ ] Medication administration records (create/administer/list)
 - [ ] Care notes module (create/update/list)
-- [ ] Audit history for care records (who/when/what changed)
-
-## TODO — API and integration
-- [ ] Employee/carer lookup endpoints for Service Care flows
-- [ ] RBAC permission keys for Service Care
-- [ ] Reports for Service Care activity + compliance
-
+- [ ] Employee/carer lookup endpoints tuned for Service Care flows
+- [ ] Additional RBAC keys for clinical write paths as modules ship

@@ -169,3 +169,63 @@ Status: IN PROGRESS
 - [x] Add Swagger docs (audit controller + DTOs)
 - [ ] Wire Service Care / Scheduling sensitive views when modules ship
 
+## Phase — Service User Core
+Status: IN PROGRESS
+- [x] Create ServiceUser model (+ lookups, contacts, address, references, assignment, photo models)
+- [x] Create service user list API
+- [x] Create service user detail API
+- [x] Create add / edit / soft delete / status APIs
+- [x] Create contact APIs
+- [x] Create address APIs
+- [x] Create assignment APIs
+- [x] Create photo upload/delete APIs
+- [x] Add search/filter/pagination
+- [x] Add RBAC permissions + seed
+- [x] Add audit logs + data access logs (detail view)
+- [x] Add Swagger docs
+- [x] Add seed data for lookups
+- [x] Add e2e tests (`test/service-users.e2e-spec.ts`)
+- [ ] Broader integration tests / CI hardening
+
+## Future Phase — Service User Care Profile
+- [ ] About Me
+- [ ] Life History
+- [ ] Photos Gallery
+- [ ] Calendar
+- [ ] Hospital/Absence
+
+## Future Phase — Service User Care Plans
+- [ ] Care plans
+- [ ] Risk sections
+- [ ] Safety/contingency plans
+- [ ] Consent fields
+- [ ] Care plan review
+- [ ] Care plan history
+
+## Future Phase — Service User Observations
+- [ ] Observation types
+- [ ] Weight, blood sugar, blood pressure, temperature, oxygen, pulse, fluid monitor, falls, bowel, meals, NEWS2
+- [ ] Observation reports
+
+## Future Phase — Service User Medication
+- [ ] Medication list
+- [ ] Regular medication chart
+- [ ] PRN chart
+- [ ] Medication event history
+- [ ] Medication reports
+
+## Future Phase — Service User Visits
+- [ ] Visit list
+- [ ] Add/edit visit
+- [ ] Visit frequency
+- [ ] Visit checklist
+- [ ] Visit medications
+- [ ] Call-off visits
+
+## Future Phase — Service User Reports
+- [ ] Detailed care report
+- [ ] Observation report
+- [ ] Care plan report
+- [ ] Housepack report
+- [ ] Service user details report
+

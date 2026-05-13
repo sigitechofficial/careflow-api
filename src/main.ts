@@ -11,7 +11,8 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+  const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
+  app.useStaticAssets(uploadPath, { prefix: '/uploads/' });
 
   app.enableCors({
     origin: true,

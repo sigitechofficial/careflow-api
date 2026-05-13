@@ -31,6 +31,18 @@ import { LookupsModule } from './lookups/lookups.module';
 import { EmployeeHolidaysModule } from './employee-holidays/employee-holidays.module';
 import { EmployeeLeavingRecordsModule } from './employee-leaving-records/employee-leaving-records.module';
 import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-inspectors.module';
+import { ServiceUsersModule } from './service-users/service-users.module';
+import { ServiceUserContactsModule } from './service-user-contacts/service-user-contacts.module';
+import { ServiceUserAddressesModule } from './service-user-addresses/service-user-addresses.module';
+import { ServiceUserAssignmentsModule } from './service-user-assignments/service-user-assignments.module';
+import { ServiceUserPhotosModule } from './service-user-photos/service-user-photos.module';
+import { ServiceUserLookupsModule } from './service-user-lookups/service-user-lookups.module';
+import { ServiceUserInventoryModule } from './service-user-inventory/service-user-inventory.module';
+import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
+import { ServiceUserDocumentsModule } from './service-user-documents/service-user-documents.module';
+import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
+import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
+import { ServiceUserInitialAssessmentModule } from './service-user-initial-assessment/service-user-initial-assessment.module';
 
 @Module({
   imports: [
@@ -81,6 +93,18 @@ import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-insp
     AuditLogsModule,
     LookupsModule,
     TemporaryInspectorsModule,
+    ServiceUsersModule,
+    ServiceUserContactsModule,
+    ServiceUserAddressesModule,
+    ServiceUserAssignmentsModule,
+    ServiceUserPhotosModule,
+    ServiceUserLookupsModule,
+    ServiceUserInventoryModule,
+    ServiceUserAllergiesModule,
+    ServiceUserDocumentsModule,
+    ServiceUserAbsencesModule,
+    ServiceUserDomCareModule,
+    ServiceUserInitialAssessmentModule,
   ],
   providers: [
     {

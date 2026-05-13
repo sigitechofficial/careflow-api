@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users"]
 }
 
 enum DayOfWeek {
@@ -80,6 +80,14 @@ enum ComplianceReminderStatus {
   CANCELLED
 
   @@schema("employees")
+}
+
+enum ServiceUserAbsenceType {
+  PLANNED
+  UNPLANNED
+  NOT_APPLICABLE
+
+  @@schema("service_users")
 }
 
 model User {
@@ -220,6 +228,13 @@ model Employee {
   complianceRecords EmployeeCompliance[]
   holidays       EmployeeHoliday[]
   leavingRecords EmployeeLeavingRecord[]
+
+  serviceUsersAsKeyWorker   ServiceUser[]           @relation("ServiceUserKeyWorker")
+  serviceUsersAsNamedNurse  ServiceUser[]           @relation("ServiceUserNamedNurse")
+  assignmentAsKeyWorker     ServiceUserAssignment[] @relation("AssignmentKeyWorker")
+  assignmentAsNamedNurse    ServiceUserAssignment[] @relation("AssignmentNamedNurse")
+  domCarePreferredLinks       ServiceUserDomCarePreferredCarer[] @relation("DomCarePreferredEmployee")
+  domCareBlockedLinks         ServiceUserDomCareBlockedCarer[]   @relation("DomCareBlockedEmployee")
 
   @@index([deletedAt])
   @@schema("employees")
@@ -1026,6 +1041,8 @@ model Location {
   baseLocationEmployments EmployeeEmployment[] @relation("EmploymentBaseLocation")
   locationEmployments     EmployeeEmployment[] @relation("EmploymentLocation")
   complianceRequirements  ComplianceRequirement[]
+  serviceUsers              ServiceUser[]
+  serviceUserAssignments    ServiceUserAssignment[]
   @@schema("lookups")
 }
 
@@ -1141,3 +1158,641 @@ model DocumentTag {
   @@schema("lookups")
 }
 
+// ---- Service Users (service_users schema) ----
+
+model ServiceUserStatus {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserTitle {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserGender {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserMaritalStatus {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserCareType {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserFundingType {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+/// Billing arrangement for a per–service-user funding profile (separate from lookup “funding type”).
+enum FundingBillingType {
+  SINGLE_FUNDER
+  SPLIT_SU_WEEKLY_CONTRIBUTION
+
+  @@schema("service_users")
+}
+
+enum FundingFunderKind {
+  SERVICE_USER
+  CONTACT
+  EXTERNAL_FUNDER
+
+  @@schema("service_users")
+}
+
+/// Catalog of billable care “services” used on the Funding tab (e.g. Personal Care, Waking Night).
+model FundingCareService {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fundingProfiles ServiceUserFundingProfile[]
+  rateCards         RateCard[]
+
+  @@schema("service_users")
+}
+
+/// Rate cards: global catalog rows plus optional per–service-user custom cards.
+model RateCard {
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String
+  code                 String?   @unique
+  sortOrder            Int       @default(0)
+  isActive             Boolean   @default(true)
+  isCustom             Boolean   @default(false)
+  serviceUserId        String?   @db.Uuid
+  standardHourlyRate   Decimal?  @db.Decimal(12, 2)
+  mileageRatePerUnit   Decimal?  @db.Decimal(12, 4)
+  startDate            DateTime?
+  endDate              DateTime?
+  linkedCareServiceId  String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  serviceUser       ServiceUser?                @relation("RateCardOwner", fields: [serviceUserId], references: [id])
+  linkedCareService FundingCareService?         @relation(fields: [linkedCareServiceId], references: [id])
+  fundingProfiles   ServiceUserFundingProfile[]
+
+  @@index([serviceUserId])
+  @@schema("service_users")
+}
+
+model ServiceUserFundingProfile {
+  id                  String             @id @default(uuid()) @db.Uuid
+  serviceUserId     String             @db.Uuid
+  careServiceId       String             @db.Uuid
+  billingType         FundingBillingType
+  funder1Kind         FundingFunderKind
+  funder1ContactId    String?            @db.Uuid
+  funder1ExternalName String?
+  rateCardId          String             @db.Uuid
+  invoiceMileage      Boolean            @default(false)
+  sortOrder           Int                @default(0)
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser     ServiceUser          @relation(fields: [serviceUserId], references: [id])
+  careService     FundingCareService   @relation(fields: [careServiceId], references: [id])
+  rateCard        RateCard             @relation(fields: [rateCardId], references: [id])
+  funder1Contact  ServiceUserContact?  @relation(fields: [funder1ContactId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserRiskLevel {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  color     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model RelationshipType {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts ServiceUserContact[]
+  @@schema("service_users")
+}
+
+model ServiceUser {
+  id                       String    @id @default(uuid()) @db.Uuid
+  serviceUserNumber        String?   @unique
+  residentId               String?
+  residentGuid             String?   @unique
+  firstName                String
+  middleName               String?
+  lastName                 String
+  preferredName            String?
+  dateOfBirth              DateTime?
+  titleId                  String?   @db.Uuid
+  genderId                 String?   @db.Uuid
+  maritalStatusId          String?   @db.Uuid
+  statusId                 String?   @db.Uuid
+  careTypeId               String?   @db.Uuid
+  fundingTypeId            String?   @db.Uuid
+  riskLevelId              String?   @db.Uuid
+  profilePhotoUrl          String?
+  nhsNumber                String?
+  socialServicesRef        String?
+  nationalInsuranceNumber  String?
+  email                    String?
+  phone                    String?
+  mobile                   String?
+  serviceStartDate         DateTime?
+  serviceEndDate           DateTime?
+  locationId               String?   @db.Uuid
+  keyWorkerId              String?   @db.Uuid
+  namedNurseId             String?   @db.Uuid
+  notes                    String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  title         ServiceUserTitle?         @relation(fields: [titleId], references: [id])
+  gender        ServiceUserGender?        @relation(fields: [genderId], references: [id])
+  maritalStatus ServiceUserMaritalStatus? @relation(fields: [maritalStatusId], references: [id])
+  status        ServiceUserStatus?        @relation(fields: [statusId], references: [id])
+  careType      ServiceUserCareType?      @relation(fields: [careTypeId], references: [id])
+  fundingType   ServiceUserFundingType?   @relation(fields: [fundingTypeId], references: [id])
+  riskLevel     ServiceUserRiskLevel?     @relation(fields: [riskLevelId], references: [id])
+  location      Location?                 @relation(fields: [locationId], references: [id])
+  keyWorker     Employee?                 @relation("ServiceUserKeyWorker", fields: [keyWorkerId], references: [id])
+  namedNurse    Employee?                 @relation("ServiceUserNamedNurse", fields: [namedNurseId], references: [id])
+
+  contacts        ServiceUserContact[]
+  address         ServiceUserAddress?
+  references      ServiceUserReference[]
+  assignments     ServiceUserAssignment[]
+  photos          ServiceUserPhoto[]
+  inventoryItems  ServiceUserInventoryItem[]
+  allergies       ServiceUserAllergy[]
+  legalDocument   ServiceUserLegalDocument?
+  dolsRecords     ServiceUserDolsRecord[]
+  absences          ServiceUserAbsence[]
+  domCare           ServiceUserDomCare?
+  initialAssessment ServiceUserInitialAssessment?
+  fundingProfiles   ServiceUserFundingProfile[]
+  rateCardsCreated  RateCard[]                  @relation("RateCardOwner")
+
+  @@index([deletedAt])
+  @@index([statusId])
+  @@index([careTypeId])
+  @@index([fundingTypeId])
+  @@index([riskLevelId])
+  @@index([locationId])
+  @@index([keyWorkerId])
+  @@index([namedNurseId])
+  @@index([lastName, firstName])
+  @@schema("service_users")
+}
+
+model ServiceUserContact {
+  id                   String  @id @default(uuid()) @db.Uuid
+  serviceUserId        String  @db.Uuid
+  firstName            String
+  lastName             String?
+  relationshipTypeId   String? @db.Uuid
+  phone                String?
+  mobile               String?
+  email                String?
+  address              String?
+  isPrimary            Boolean @default(false)
+  isEmergencyContact   Boolean @default(false)
+  canReceiveUpdates    Boolean @default(false)
+  notes                String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser        ServiceUser       @relation(fields: [serviceUserId], references: [id])
+  relationshipType   RelationshipType? @relation(fields: [relationshipTypeId], references: [id])
+  fundingProfilesAsFunder ServiceUserFundingProfile[]
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserAddress {
+  id                 String   @id @default(uuid()) @db.Uuid
+  serviceUserId      String   @unique @db.Uuid
+  addressLine1       String?
+  addressLine2       String?
+  town               String?
+  county             String?
+  country            String?
+  postcode           String?
+  latitude           Decimal? @db.Decimal(10, 7)
+  longitude          Decimal? @db.Decimal(10, 7)
+  accessInstructions String?
+  keySafeNumber      String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserReference {
+  id             String   @id @default(uuid()) @db.Uuid
+  serviceUserId  String   @db.Uuid
+  referenceType  String
+  referenceValue String
+  notes          String?
+
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserAssignment {
+  id            String    @id @default(uuid()) @db.Uuid
+  serviceUserId String    @db.Uuid
+  keyWorkerId   String?   @db.Uuid
+  namedNurseId  String?   @db.Uuid
+  locationId    String?   @db.Uuid
+  startDate     DateTime?
+  endDate       DateTime?
+  notes         String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser  ServiceUser @relation(fields: [serviceUserId], references: [id])
+  keyWorker    Employee?    @relation("AssignmentKeyWorker", fields: [keyWorkerId], references: [id])
+  namedNurse   Employee?    @relation("AssignmentNamedNurse", fields: [namedNurseId], references: [id])
+  location     Location?    @relation(fields: [locationId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserPhoto {
+  id              String   @id @default(uuid()) @db.Uuid
+  serviceUserId   String   @db.Uuid
+  fileName        String
+  originalName    String
+  fileUrl         String
+  fileSize        Int
+  mimeType        String
+  uploadedById    String?  @db.Uuid
+  uploadedAt      DateTime @default(now())
+  isProfilePhoto  Boolean  @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserInventoryItem {
+  id                      String   @id @default(uuid()) @db.Uuid
+  serviceUserId           String   @db.Uuid
+  itemName                String
+  quantity                Int      @default(1)
+  itemValue               String?
+  description             String   @db.Text
+  location                String
+  itemPhotoUrl            String?
+  dateDeposited           DateTime
+  witnessSignatureDataUrl String?  @db.Text
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model AllergyCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUserAllergies ServiceUserAllergy[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
+model ServiceUserAllergy {
+  id                 String  @id @default(uuid()) @db.Uuid
+  serviceUserId      String  @db.Uuid
+  allergyCatalogId   String? @db.Uuid
+  allergyName      String
+  comment          String  @db.Text
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser    ServiceUser     @relation(fields: [serviceUserId], references: [id])
+  allergyCatalog AllergyCatalog? @relation(fields: [allergyCatalogId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserLegalDocument {
+  id                       String    @id @default(uuid()) @db.Uuid
+  serviceUserId            String    @unique @db.Uuid
+  dnacprInPlace            Boolean   @default(false)
+  dnacprCertificateUrl     String?
+  dnacprStartDate          DateTime?
+  lpaHealthCertificateUrl  String?
+  lpaFinanceCertificateUrl String?
+  isActive                 Boolean   @default(true)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  createdById              String?   @db.Uuid
+  updatedById              String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@schema("service_users")
+}
+
+model ServiceUserDolsRecord {
+  id              String    @id @default(uuid()) @db.Uuid
+  serviceUserId   String    @db.Uuid
+  applicationDate DateTime?
+  issueDate       DateTime?
+  renewalDate     DateTime?
+  isCurrent       Boolean   @default(false)
+  reportedToChc   Boolean   @default(false)
+  notes           String    @default("") @db.Text
+  certificateUrl  String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  createdById     String?   @db.Uuid
+  updatedById     String?   @db.Uuid
+  deletedById     String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model AbsenceReasonCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUserAbsences ServiceUserAbsence[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
+model ServiceUserAbsence {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  serviceUserId          String                 @db.Uuid
+  startDate              DateTime
+  endDate                DateTime?
+  startTime              String?
+  endTime                String?
+  absenceType            ServiceUserAbsenceType @default(NOT_APPLICABLE)
+  absenceReasonCatalogId String                 @db.Uuid
+  notes                  String                 @default("") @db.Text
+  contactInformation     String                 @default("") @db.Text
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser          ServiceUser          @relation(fields: [serviceUserId], references: [id])
+  absenceReasonCatalog AbsenceReasonCatalog @relation(fields: [absenceReasonCatalogId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserDomCare {
+  id                     String  @id @default(uuid()) @db.Uuid
+  serviceUserId          String  @unique @db.Uuid
+  accessInstruction      String  @default("") @db.Text
+  accessRisks            String  @default("") @db.Text
+  doorCode               String?
+  careInstructions       String  @default("") @db.Text
+  weeklyContractedHours  String?
+  contractDocumentUrl    String?
+  numberOfCarers         Int     @default(1)
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser         ServiceUser                      @relation(fields: [serviceUserId], references: [id])
+  preferredCarerLinks ServiceUserDomCarePreferredCarer[]
+  blockedCarerLinks   ServiceUserDomCareBlockedCarer[]
+
+  @@schema("service_users")
+}
+
+model ServiceUserDomCarePreferredCarer {
+  id                   String @id @default(uuid()) @db.Uuid
+  serviceUserDomCareId String @db.Uuid
+  employeeId           String @db.Uuid
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUserDomCare ServiceUserDomCare @relation(fields: [serviceUserDomCareId], references: [id], onDelete: Cascade)
+  employee           Employee           @relation("DomCarePreferredEmployee", fields: [employeeId], references: [id])
+
+  @@unique([serviceUserDomCareId, employeeId])
+  @@index([serviceUserDomCareId])
+  @@schema("service_users")
+}
+
+model ServiceUserDomCareBlockedCarer {
+  id                   String @id @default(uuid()) @db.Uuid
+  serviceUserDomCareId String @db.Uuid
+  employeeId           String @db.Uuid
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceUserDomCare ServiceUserDomCare @relation(fields: [serviceUserDomCareId], references: [id], onDelete: Cascade)
+  employee           Employee           @relation("DomCareBlockedEmployee", fields: [employeeId], references: [id])
+
+  @@unique([serviceUserDomCareId, employeeId])
+  @@index([serviceUserDomCareId])
+  @@schema("service_users")
+}
+
+model ServiceUserInitialAssessment {
+  id                            String  @id @default(uuid()) @db.Uuid
+  serviceUserId                 String  @unique @db.Uuid
+  numberOfCarers                Int     @default(1)
+  likesToBeKnownAs              String?
+  doorCode                      String?
+  accessRisks                   String  @default("") @db.Text
+  accessInstruction             String  @default("") @db.Text
+  reasonForAdmission            String  @default("") @db.Text
+  previousMedicalHistory        String  @default("") @db.Text
+  careInstructions              String  @default("") @db.Text
+  assessmentPictureUrl          String?
+  checklist                     Json    @default("{}")
+  culturalReligiousNotes        String  @default("") @db.Text
+  careCarerNumbersNote          String  @default("") @db.Text
+  additionalRisksNotes          String  @default("") @db.Text
+  environmentAccessHazardsNotes String  @default("") @db.Text
+  hydrationComment              String  @default("") @db.Text
+  nutritionComment              String  @default("") @db.Text
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@schema("service_users")
+}

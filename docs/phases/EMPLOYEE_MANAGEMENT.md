@@ -1,7 +1,36 @@
 
 # Employee Management — Phase Plan
 
-Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summary are in place)
+**Status:** IN PROGRESS — core employee lifecycle, compliance engine, temporary inspectors, and most staff UI are shipped; reporting and a few operational hooks remain.
+
+---
+
+## At a glance — Done vs pending
+
+### Done (high level)
+
+| Area | What is in place |
+|------|-------------------|
+| **Backend — core** | Prisma `employees` models; `GET/POST/PATCH/DELETE` employees; `PATCH …/status`; `GET /employees/chart-summary` |
+| **Backend — personal** | Personal details CRUD path; **photo upload** `POST …/personal-details/photo`; static **`/uploads/`** |
+| **Backend — contacts & patterns** | Emergency contacts CRUD; working patterns CRUD |
+| **Backend — profile** | Employment (incl. **RBAC → identity role sync** when personal email matches a `User`), skills, certifications, documents, reviews, non-core activity, holidays, leaving records |
+| **Backend — compliance** | Enterprise compliance (types, requirements, employee records, documents, verification history, status calculator, **report GETs**); chart summary excludes `isNoLongerRequired` |
+| **Backend — temporary inspector** | Model, migrations, admin CRUD APIs, JWT login/refresh/logout/me, guarded Nest behaviour |
+| **Frontend — staff** | Staff list, charts, add/edit navigation; **permission-aware** Add/Edit |
+| **Frontend — wizard** | Add/edit tabs; Zod; lookups; create + personal + employment + **photo file**; **emergency contacts inline**; **weekly working pattern** save to API; **UK postcode lookup** (postcodes.io) |
+| **Frontend — auth & nav** | Routes gated with `employees.read` / `create` / `update`; sidebar + audit alignment with Nest keys; **Playwright** smoke (`tests/e2e/employee-flow.spec.ts`, optional full path with `E2E_*` env) |
+| **Frontend — temp inspector** | Admin page; login tab; narrow inspector session UX |
+
+### Pending (high level)
+
+| Area | What remains |
+|------|----------------|
+| **Backend — reporting** | Rich **employee reports / analytics** beyond chart summary; dedicated **compliance report** pipelines if product wants more than current report GETs; **RBAC reporting** |
+| **Backend — operations** | **`@nestjs/schedule`** (or external cron) calling **`EmployeeComplianceService.runDailyComplianceCheck()`** daily |
+| **Frontend — patterns** | **Fortnight ↔ API**: second week of rotas if product needs true 2-week patterns in DB (today: standard Mon–Sun only is persisted; fortnight grid is preview) |
+
+---
 
 ## Done — Backend (Prisma `employees` schema)
 
@@ -50,7 +79,7 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 | **EmployeeCompliance** | `employees.EmployeeCompliance` — workflow fields (`submittedAt`, `verifiedAt`, `rejectedAt`, `isNoLongerRequired`, …), enum `status`, optional `requirementId`. `/employees/:id/compliance` (`employees.compliance.*`). |
 | **EmployeeComplianceDocument** | Evidence files via `POST …/documents` (multer → `uploads/employees/compliance/`). |
 | **ComplianceVerification** | Immutable action log per change. |
-| **ComplianceReminder** | Table ready for scheduled reminders (no cron wired yet). |
+| **ComplianceReminder** | Table ready for scheduled reminders (**scheduler not wired** — see Pending). |
 
 **Status calculation:** `src/employee-compliance/compliance-status.calculator.ts` — UTC day boundaries; `MISSING` when documents are required but absent; `REQUIRED` when a row exists but not yet complete; `PENDING_REVIEW` after submit when verification is required; expiry checks before `VALID`. `GET` list/detail returns computed `status` plus `persistedStatus`.
 
@@ -58,7 +87,6 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 
 **Dashboard chart:** `GET /employees/chart-summary` excludes compliance rows with `isNoLongerRequired = true` from the compliance aggregate SQL.
 
-**TODO (cron):** Install `@nestjs/schedule` and call `EmployeeComplianceService.runDailyComplianceCheck()` daily.
 - [x] Holidays (`EmployeeHoliday`)
 - [x] Leaving records (`EmployeeLeavingRecord`)
 - [x] **Temporary inspector logins** — model `employees.TemporaryInspector`; APIs:
@@ -78,6 +106,15 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
   - [x] JWT strategy — if access token payload has `typ: 'ti'`, loads inspector context (re-checks validity window on each request; expired window ⇒ 401)
   - [x] Seed permission `temporary_inspector.session` (for DB consistency; inspector JWT permissions are also issued from code)
 
+## Pending — Backend
+
+- [ ] **Scheduled compliance job** — install `@nestjs/schedule` (or use an external scheduler) and invoke **`EmployeeComplianceService.runDailyComplianceCheck()`** on a daily cadence.
+- [ ] **Employee reports & analytics** — fuller implementations beyond chart summary + existing compliance report GETs (exports, scheduled reports, cross-module dashboards, etc., as product defines).
+- [ ] **Compliance reporting productisation** — if needed: packaged “summary + detail” report flows distinct from current HTTP report endpoints.
+- [ ] **RBAC reporting** — audit / exports for identity role assignments vs employment RBAC (product-defined).
+
+---
+
 ## RBAC level and identity permissions (employment sync)
 
 **What it does:** Saving employment (`PATCH /employees/:id/employment`) runs an **automatic sync** so a **login user** tied to that employee can receive **identity** `Role` assignments aligned with the employment **RBAC level** lookup (`lookups.RBACLevel`).
@@ -96,12 +133,6 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 
 **Operational warning:** Do not reuse the same **personal email** for **IT administrator accounts** as for **employee records** unless you intend RBAC sync to change that user’s roles.
 
-## TODO — Backend reporting
-
-- [ ] Employee reports and analytics APIs (full implementations beyond chart summary)
-- [ ] Compliance reports (summary + detail)
-- [ ] RBAC reporting
-
 ---
 
 ## Frontend — Employee area (`care-admin`)
@@ -111,12 +142,12 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 - [x] Route `/employee/staff-list` (and sibling tab routes) with layout/title
 - [x] Staff table backed by **`GET /employees`** when `VITE_API_BASE_URL` is set and a real JWT is present (pagination meta; status filter via lookups)
 - [x] **Dashboard tiles** load **`GET /employees/chart-summary`**: Staff Status (bars), Compliance / Skills / Reviews (Recharts pies), with loading and empty/error states
-- [x] Navigate to **Add** and **Edit** from the list (edit uses `GET /employees/:id` to bootstrap)
+- [x] Navigate to **Add** and **Edit** from the list (edit uses `GET /employees/:id` to bootstrap); **Add** / **Edit** gated by **`employees.create`** / **`employees.update`**
 
 ### Done — Add / Edit Employee (`/employee/add`, `/employee/$employeeId/edit`)
 
 - [x] Edit route reuses add wizard: `EditEmployeePage` → `AddEmployeePage` with `editEmployeeId`
-- [x] Tabbed UI: Personal Details, Employment, Working Pattern (preview)
+- [x] Tabbed UI: Personal Details, Employment, Working Pattern (preview + persisted week)
 - [x] Zod validation for personal step (aligned with `CreateEmployeeDto` + personal PATCH fields); `photoUrl` accepts `https?://` or **`/uploads/...`** from upload
 - [x] Zod validation for employment step (required work area, role, location; numeric hours/rates)
 - [x] `react-hook-form` with field-level errors and hints
@@ -128,24 +159,23 @@ Status: IN PROGRESS (core CRUD, profile sections, staff UI, and dashboard summar
 - [x] **`resolveMediaUrl()`** — staff list avatars prefix API base for relative `/uploads/...` paths
 - [x] Banners for success / API errors; link back to staff list
 - [x] `.env.example` documents `VITE_API_BASE_URL`
-
 - [x] **Emergency contacts inline** on Personal tab — `EmployeeEmergencyContactsEditor` (`GET`/`POST`/`PATCH`/`DELETE` `/employees/:id/emergency-contacts`) after an employee id exists
 - [x] **Working pattern persistence** — `EmployeeWeeklyPatternEditor`: standard Mon–Sun week saved via `GET`/`POST`/`DELETE` `/employees/:id/working-patterns` (fortnight grid remains a local planning preview)
 - [x] **UK postcode lookup** — postcodes.io from `lookupUkPostcode()`; fills town / default country when empty (search icon by Postcode)
 - [x] **Playwright E2E** — `tests/e2e/employee-flow.spec.ts` (login smoke always; add-employee path when `E2E_API_BASE_URL`, `E2E_LOGIN_EMAIL`, `E2E_LOGIN_PASSWORD` are set). `playwright.config.ts` passes `VITE_API_BASE_URL` from `E2E_API_BASE_URL` to the dev server for those runs
-- [x] **Route guards & nav** — TanStack routes use `employees.read` / `employees.create` / `employees.update`; sidebar employee links carry matching `permission`; `Permission` + `ROLE_PERMISSIONS` include Nest keys (`audit_logs.read`, etc.); audit menu accepts `audit.read` or `audit_logs.read`; staff list **Add** / **Edit** respect `employees.create` / `employees.update`
+- [x] **Route guards & nav** — TanStack routes use `employees.read` / `employees.create` / `employees.update`; sidebar employee links carry matching `permission`; `Permission` + `ROLE_PERMISSIONS` include Nest keys (`audit_logs.read`, etc.); audit menu accepts `audit.read` or `audit_logs.read`
 
 ### Done — Temporary Inspector (`/employee/temp-inspector`)
 
 - [x] **`TempInspectorPage`** loads **`GET /temporary-inspectors`** and **`GET /temporary-inspectors/service-user-options`** when API URL + JWT are set; **Save** → **`POST /temporary-inspectors`**; row delete → **`DELETE /temporary-inspectors/:id`**
-- [x] **Resident scope** — `MultiSelect` (built-in `components/ui/multi-select`): pick **one or more** placeholder residents, or leave empty for **all service users**; stored as `serviceUserKeys` on the server; **tooltip** + “How this works” describe scope behaviour
+- [x] **Resident scope** — `MultiSelect`: pick **one or more** placeholder residents, or leave empty for **all service users**; stored as `serviceUserKeys` on the server; **tooltip** + “How this works” describe scope behaviour
 - [x] **Valid from / to** — `datetime-local` inputs; status in table derived server-side from `validTo` vs now
 - [x] **Inspector sign-in UX** — on **`/auth/login`**, API mode shows tabs **Staff (email)** vs **Temporary inspector** (username + password → **`POST /auth/login/temporary-inspector`**). Admin page shows a short “How they sign in” note with link to Sign in.
 - [x] **Inspector session in SPA** — role `temporary_inspector`, permission `temporary_inspector.session`; **sidebar** shows only **Home** and **Service Users** (All + Calendar). **Routes:** scheduling requires `schedule.read`; accidents require `incidents.read`; **Add Service User** requires `employees.read` (inspectors are redirected to `/` if they hit a guarded URL directly).
 
-### TODO — Frontend (optional polish)
+### Pending — Frontend
 
-- [ ] Fortnight grid synced to a second week of patterns if product requires true 2-week rotas in the API
+- [ ] **Fortnight ↔ API** — sync the second week of the UI grid to persisted `EmployeeWorkingPattern` rows (or a dedicated “week 2” model) if the product requires true **2-week rotas** in the database.
 
 ---
 

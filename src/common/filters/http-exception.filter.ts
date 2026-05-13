@@ -87,6 +87,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
           status: HttpStatus.NOT_FOUND,
           message: 'Resource not found',
         };
+      case 'P2021':
+        return {
+          status: HttpStatus.FAILED_DEPENDENCY,
+          message:
+            'A required database table is missing. From careadmin-backend run: pnpm exec prisma migrate deploy (or prisma migrate dev in development), then restart the API.',
+          errors: [{ code: e.code, meta: e.meta }],
+        };
       default:
         return {
           status: HttpStatus.BAD_REQUEST,

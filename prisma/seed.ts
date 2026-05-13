@@ -152,6 +152,43 @@ async function main() {
     'permissions.manage',
     'audit_logs.read',
     'temporary_inspector.session',
+    'service_users.read',
+    'service_users.create',
+    'service_users.update',
+    'service_users.delete',
+    'service_users.status.update',
+    'service_users.contacts.read',
+    'service_users.contacts.create',
+    'service_users.contacts.update',
+    'service_users.contacts.delete',
+    'service_users.address.read',
+    'service_users.address.update',
+    'service_users.assignments.read',
+    'service_users.assignments.update',
+    'service_users.photos.upload',
+    'service_users.photos.delete',
+    'service_users.lookups.read',
+    'service_users.inventory.read',
+    'service_users.inventory.create',
+    'service_users.inventory.update',
+    'service_users.inventory.delete',
+    'service_users.allergies.read',
+    'service_users.allergies.create',
+    'service_users.allergies.update',
+    'service_users.allergies.delete',
+    'service_users.documents.read',
+    'service_users.documents.update',
+    'service_users.documents.delete',
+    'service_users.absences.read',
+    'service_users.absences.create',
+    'service_users.absences.update',
+    'service_users.absences.delete',
+    'service_users.dom_care.read',
+    'service_users.dom_care.update',
+    'service_users.initial_assessment.read',
+    'service_users.initial_assessment.update',
+    'service_users.funding.read',
+    'service_users.funding.update',
   ];
 
   for (const key of permissionKeys) {
@@ -198,6 +235,55 @@ async function main() {
         },
         update: {},
         create: { roleId: superAdminRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const serviceUserCoordinatorPermKeys = [
+    'service_users.read',
+    'service_users.create',
+    'service_users.update',
+    'service_users.contacts.read',
+    'service_users.contacts.create',
+    'service_users.contacts.update',
+    'service_users.address.read',
+    'service_users.address.update',
+    'service_users.assignments.read',
+    'service_users.assignments.update',
+    'service_users.photos.upload',
+    'service_users.lookups.read',
+    'service_users.inventory.read',
+    'service_users.inventory.create',
+    'service_users.inventory.update',
+    'service_users.allergies.read',
+    'service_users.allergies.create',
+    'service_users.allergies.update',
+    'service_users.allergies.delete',
+    'service_users.documents.read',
+    'service_users.documents.update',
+    'service_users.documents.delete',
+    'service_users.absences.read',
+    'service_users.absences.create',
+    'service_users.absences.update',
+    'service_users.absences.delete',
+    'service_users.dom_care.read',
+    'service_users.dom_care.update',
+    'service_users.initial_assessment.read',
+    'service_users.initial_assessment.update',
+    'service_users.funding.read',
+    'service_users.funding.update',
+  ];
+  const suCoordPerms = await prisma.permission.findMany({
+    where: { key: { in: serviceUserCoordinatorPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Care Coordinator']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of suCoordPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
       });
     }
   }
@@ -408,6 +494,278 @@ async function main() {
       create: { userId: user.id, roleId: superAdminRole.id },
     });
   }
+
+  for (const row of [
+    { name: 'Active', code: 'ACTIVE', description: 'Currently receiving service' },
+    { name: 'Inactive', code: 'INACTIVE', description: 'Not active' },
+    { name: 'Pending', code: 'PENDING', description: 'Pending admission or setup' },
+    { name: 'Discharged', code: 'DISCHARGED', description: 'Discharged from service' },
+    { name: 'Deceased', code: 'DECEASED', description: null },
+    { name: 'On Hold', code: 'ON_HOLD', description: 'Service temporarily on hold' },
+  ]) {
+    await prisma.serviceUserStatus.upsert({
+      where: { code: row.code },
+      update: { name: row.name, description: row.description, isActive: true },
+      create: { name: row.name, code: row.code, description: row.description ?? undefined },
+    });
+  }
+
+  for (const row of [
+    ['Mr', 'MR'],
+    ['Mrs', 'MRS'],
+    ['Miss', 'MISS'],
+    ['Ms', 'MS'],
+    ['Dr', 'DR'],
+    ['Professor', 'PROFESSOR'],
+    ['Lord', 'LORD'],
+    ['Lady', 'LADY'],
+    ['Sir', 'SIR'],
+    ['Dame', 'DAME'],
+  ]) {
+    await prisma.serviceUserTitle.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Female', 'FEMALE'],
+    ['Male', 'MALE'],
+    ['Other', 'OTHER'],
+    ['Prefer not to say', 'PREFER_NOT_TO_SAY'],
+  ]) {
+    await prisma.serviceUserGender.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Single', 'SINGLE'],
+    ['Married', 'MARRIED'],
+    ['Divorced', 'DIVORCED'],
+    ['Widowed', 'WIDOWED'],
+    ['Separated', 'SEPARATED'],
+    ['Civil Partnership', 'CIVIL_PARTNERSHIP'],
+    ['Unknown', 'MARITAL_UNKNOWN'],
+  ]) {
+    await prisma.serviceUserMaritalStatus.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Residential Care', 'RESIDENTIAL'],
+    ['Domiciliary Care', 'DOMICILIARY'],
+    ['Nursing Care', 'NURSING'],
+    ['Supported Living', 'SUPPORTED_LIVING'],
+    ['Respite Care', 'RESPITE'],
+    ['Day Care', 'DAY_CARE'],
+    ['Transport', 'TRANSPORT'],
+  ]) {
+    await prisma.serviceUserCareType.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Private', 'PRIVATE'],
+    ['Local Authority', 'LOCAL_AUTHORITY'],
+    ['NHS', 'NHS'],
+    ['Direct Payment', 'DIRECT_PAYMENT'],
+    ['Mixed Funding', 'MIXED'],
+    ['Unknown', 'FUNDING_UNKNOWN'],
+  ]) {
+    await prisma.serviceUserFundingType.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Low', 'LOW', 'green'],
+    ['Medium', 'MEDIUM', 'amber'],
+    ['High', 'HIGH', 'red'],
+    ['Critical', 'CRITICAL', 'dark red'],
+  ]) {
+    await prisma.serviceUserRiskLevel.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], color: row[2], isActive: true },
+      create: { name: row[0], code: row[1], color: row[2] },
+    });
+  }
+
+  const relationshipDefs = [
+    'Mother',
+    'Father',
+    'Son',
+    'Daughter',
+    'Brother',
+    'Sister',
+    'Husband',
+    'Wife',
+    'Partner',
+    'Friend',
+    'Next of Kin',
+    'Power of Attorney',
+    'Guardian',
+    'Social Worker',
+    'GP',
+    'Other',
+  ];
+  for (const name of relationshipDefs) {
+    const code = name.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+    await prisma.relationshipType.upsert({
+      where: { code },
+      update: { name, isActive: true },
+      create: { name, code },
+    });
+  }
+
+  const allergyCatalogSeed: Array<[string, string]> = [
+    ['ADHESIVE TAPE', 'ADHESIVE_TAPE'],
+    ['Air', 'AIR'],
+    ['Aledronic Acid', 'ALEDRONIC_ACID'],
+    ['allergic to tramadol', 'ALLERGIC_TRAMADOL'],
+    ['allopurinol', 'ALLOPURINOL'],
+    ['Amlodipine', 'AMLODIPINE'],
+    ['Amoxicillin, Clarithromycin', 'AMOXICILLIN_CLARITHROMYCIN'],
+    ['Anadin', 'ANADIN'],
+    ['Angiotensin Converting Enzyme Inhibitors', 'ACE_INHIBITORS'],
+    ['Aspirin', 'ASPIRIN'],
+    ['Atorvastatin', 'ATORVASTATIN'],
+    ['Bee stings', 'BEE_STINGS'],
+    ['Codeine', 'CODEINE'],
+    ['Dairy', 'DAIRY'],
+    ['Eggs', 'EGGS'],
+    ['Ibuprofen', 'IBUPROFEN'],
+    ['Latex', 'LATEX'],
+    ['Metformin', 'METFORMIN'],
+    ['Penicillin', 'PENICILLIN'],
+    ['Peanuts', 'PEANUTS'],
+    ['Shellfish', 'SHELLFISH'],
+    ['Soy', 'SOY'],
+    ['Sulphur / Sulfa drugs', 'SULFA_DRUGS'],
+    ['Tramadol', 'TRAMADOL'],
+    ['Wheat / Gluten', 'WHEAT_GLUTEN'],
+    ['Other / not listed', 'OTHER_NOT_LISTED'],
+  ];
+  for (let i = 0; i < allergyCatalogSeed.length; i++) {
+    const [name, code] = allergyCatalogSeed[i]!;
+    await prisma.allergyCatalog.upsert({
+      where: { code },
+      update: { name, sortOrder: i, isActive: true },
+      create: { name, code, sortOrder: i },
+    });
+  }
+
+  const absenceReasonCatalogSeed: Array<[string, string]> = [
+    ['Hospital Visit', 'HOSPITAL_VISIT'],
+    ['Family Visit', 'FAMILY_VISIT'],
+    ['Other', 'OTHER'],
+    ['Respite Care', 'RESPITE_CARE'],
+  ];
+  const absenceCatalog = prisma as unknown as {
+    absenceReasonCatalog: {
+      upsert: (args: object) => Promise<unknown>;
+      updateMany: (args: object) => Promise<unknown>;
+    };
+  };
+  for (let i = 0; i < absenceReasonCatalogSeed.length; i++) {
+    const [name, code] = absenceReasonCatalogSeed[i]!;
+    await absenceCatalog.absenceReasonCatalog.upsert({
+      where: { code },
+      update: { name, sortOrder: i, isActive: true },
+      create: { name, code, sortOrder: i },
+    });
+  }
+  await absenceCatalog.absenceReasonCatalog.updateMany({
+    where: { code: { notIn: absenceReasonCatalogSeed.map(([, c]) => c) } },
+    data: { isActive: false },
+  });
+
+  const fundingCareServiceSeed: Array<[string, string]> = [
+    ['Personal Care', 'PERSONAL_CARE'],
+    ['Waking Night', 'WAKING_NIGHT'],
+    ['Sleep-in Night', 'SLEEP_IN_NIGHT'],
+    ['Live-in care', 'LIVE_IN_CARE'],
+    ['Domestic call', 'DOMESTIC_CALL'],
+    ['Shopping Call', 'SHOPPING_CALL'],
+    ['Drivers', 'DRIVERS'],
+    ['Passenger Assistance', 'PASSENGER_ASSISTANCE'],
+    ['Cleaning Job', 'CLEANING_JOB'],
+    ['Home First', 'HOME_FIRST'],
+    ['Children services', 'CHILDREN_SERVICES'],
+    ['Family Support', 'FAMILY_SUPPORT'],
+    ['Support Disabled children & young People', 'SUPPORT_DISABLED_CHILDREN'],
+    ['Support Young People', 'SUPPORT_YOUNG_PEOPLE'],
+    ['Contact Supervision', 'CONTACT_SUPERVISION'],
+    ['Outreach', 'OUTREACH'],
+    ['Training', 'TRAINING'],
+  ];
+  try {
+    for (let i = 0; i < fundingCareServiceSeed.length; i++) {
+      const [name, code] = fundingCareServiceSeed[i]!;
+      await prisma.fundingCareService.upsert({
+        where: { code },
+        update: { name, sortOrder: i, isActive: true },
+        create: { name, code, sortOrder: i },
+      });
+    }
+
+    const rateCardSeed: Array<[string, string]> = [
+      ['Croydon Rates', 'CROYDON_RATES'],
+      ['Croydon 30 mins', 'CROYDON_30_MINS'],
+      ['Croydon 45 mins', 'CROYDON_45_MINS'],
+      ['Waking Night', 'RATE_WAKING_NIGHT'],
+      ['Domestic Call', 'RATE_DOMESTIC_CALL'],
+      ['Croydon 60 mins', 'CROYDON_60_MINS'],
+      ['P A', 'PA'],
+      ['Drivers', 'RATE_DRIVERS'],
+      ['Personal care Haringey', 'PERSONAL_CARE_HARINGEY'],
+      ['Outreach Haringey', 'OUTREACH_HARINGEY'],
+      ['Merton Rates', 'MERTON_RATES'],
+      ['Hackney Council', 'HACKNEY_COUNCIL'],
+      ['Greenwich Council', 'GREENWICH_COUNCIL'],
+      ['Lambeth Council', 'LAMBETH_COUNCIL'],
+      ['Southwark Council', 'SOUTHWARK_COUNCIL'],
+      ['Lewisham Council', 'LEWISHAM_COUNCIL'],
+      ['Bromley Council', 'BROMLEY_COUNCIL'],
+      ['Bexley Council', 'BEXLEY_COUNCIL'],
+      ['Service user Private', 'SU_PRIVATE'],
+      ['Allfor care', 'ALLFOR_CARE'],
+      ['Bexley Council ISF', 'BEXLEY_ISF'],
+      ['Private', 'PRIVATE'],
+      ['cleaners', 'CLEANERS'],
+      ['HOME FIRST CROYDON', 'HOME_FIRST_CROYDON'],
+      ['Supervised contract', 'SUPERVISED_CONTRACT'],
+      ['Standard Local Authority', 'STANDARD_LA'],
+      ['NHS CHC Standard', 'NHS_CHC_STANDARD'],
+    ];
+    for (let i = 0; i < rateCardSeed.length; i++) {
+      const [name, code] = rateCardSeed[i]!;
+      await prisma.rateCard.upsert({
+        where: { code },
+        update: { name, sortOrder: i, isActive: true, isCustom: false, serviceUserId: null },
+        create: { name, code, sortOrder: i, isActive: true, isCustom: false },
+      });
+    }
+    // eslint-disable-next-line no-console
+    console.log('[seed] Funding care services and rate cards upserted.');
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[seed] Funding catalog skipped or failed (ensure migrations are applied):', e);
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('[seed] Service user lookups upserted.');
 
   // Nationalities (lookup); extend as needed — re-seed to refresh existing DBs
   for (const name of [

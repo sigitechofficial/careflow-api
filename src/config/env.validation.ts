@@ -62,6 +62,15 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsInt()
+  @Min(1)
+  MAX_UPLOAD_FILE_SIZE_MB?: number;
+
+  @IsOptional()
+  @IsString()
+  UPLOAD_BASE_PATH?: string;
+
+  @IsOptional()
+  @IsInt()
   @Min(1000)
   RATE_LIMIT_TTL_MS?: number;
 

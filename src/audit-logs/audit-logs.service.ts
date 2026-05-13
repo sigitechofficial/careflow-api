@@ -33,6 +33,8 @@ const SENSITIVE_FIELD_NAMES = new Set(
     'authorization',
     'cookie',
     'refreshtokenhash',
+    'keysafenumber',
+    'keysafe',
   ].map((s) => s.toLowerCase()),
 );
 
