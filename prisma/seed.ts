@@ -1,6 +1,6 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { DEFAULT_JOB_TITLES } from '../src/lookups/default-job-titles';
+import { defaultJobTitles } from './seed-data/default-job-titles';
 
 const prisma = new PrismaClient();
 
@@ -42,7 +42,7 @@ async function main() {
   for (const name of ['Carer', 'Senior Carer'])
     await upsertLookup(prisma.employeeRoleLookup, name);
 
-  for (const name of DEFAULT_JOB_TITLES) await upsertLookup(prisma.jobTitle, name);
+  for (const name of defaultJobTitles) await upsertLookup(prisma.jobTitle, name);
 
   for (const name of [
     'Group Administrator',
