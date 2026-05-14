@@ -189,6 +189,58 @@ async function main() {
     'service_users.initial_assessment.update',
     'service_users.funding.read',
     'service_users.funding.update',
+    'service_users.funding.create',
+    'service_users.funding.delete',
+    'service_users.funding.status.update',
+    'service_users.funding.approve',
+    'service_users.funding.set_primary',
+    'funding_types.read',
+    'funding_types.create',
+    'funding_types.update',
+    'funding_types.delete',
+    'funders.read',
+    'funders.create',
+    'funders.update',
+    'funders.delete',
+    'service_users.live_in_profile.read',
+    'service_users.live_in_profile.create',
+    'service_users.live_in_profile.update',
+    'service_users.live_in_profile.delete',
+    'service_users.live_in_profile.status.update',
+    'service_users.live_in_profile.carers.read',
+    'service_users.live_in_profile.carers.manage',
+    'service_users.live_in_profile.documents.read',
+    'service_users.live_in_profile.documents.upload',
+    'service_users.live_in_profile.documents.download',
+    'service_users.live_in_profile.documents.delete',
+    'service_users.live_in_profile.lookups.read',
+    'notifications.read',
+    'notifications.update',
+    'notifications.dismiss',
+    'notifications.preferences.read',
+    'notifications.preferences.update',
+    'notifications.create',
+
+    'service_users.medications.read',
+    'service_users.medications.create',
+    'service_users.medications.update',
+    'service_users.medications.delete',
+    'service_users.medications.status.update',
+    'service_users.medications.administer',
+    'service_users.medications.events.read',
+    'service_users.medications.chart.read',
+    'service_users.medications.prn.read',
+    'service_users.medications.allergies.read',
+    'service_users.medications.allergies.manage',
+    'service_users.medications.support_profile.read',
+    'service_users.medications.support_profile.update',
+    'service_users.medications.reviews.read',
+    'service_users.medications.reviews.create',
+    'service_users.medications.reviews.update',
+    'service_users.medications.reviews.delete',
+    'service_users.medications.reports.read',
+    'service_users.medications.reports.export',
+    'service_users.medications.lookups.read',
   ];
 
   for (const key of permissionKeys) {
@@ -272,6 +324,45 @@ async function main() {
     'service_users.initial_assessment.update',
     'service_users.funding.read',
     'service_users.funding.update',
+    'service_users.funding.create',
+    'service_users.funding.status.update',
+    'service_users.funding.set_primary',
+    'service_users.live_in_profile.read',
+    'service_users.live_in_profile.create',
+    'service_users.live_in_profile.update',
+    'service_users.live_in_profile.status.update',
+    'service_users.live_in_profile.carers.read',
+    'service_users.live_in_profile.carers.manage',
+    'service_users.live_in_profile.documents.read',
+    'service_users.live_in_profile.documents.upload',
+    'service_users.live_in_profile.documents.download',
+    'service_users.live_in_profile.documents.delete',
+    'service_users.live_in_profile.lookups.read',
+
+    'service_users.medications.read',
+    'service_users.medications.events.read',
+    'service_users.medications.chart.read',
+    'service_users.medications.prn.read',
+    'service_users.medications.allergies.read',
+    'service_users.medications.support_profile.read',
+    'service_users.medications.reviews.read',
+    'service_users.medications.lookups.read',
+    'service_users.medications.reports.read',
+
+    'service_users.medications.create',
+    'service_users.medications.update',
+    'service_users.medications.status.update',
+    'service_users.medications.allergies.manage',
+    'service_users.medications.support_profile.update',
+    'service_users.medications.reviews.create',
+    'service_users.medications.reviews.update',
+
+    'funding_types.read',
+    'funding_types.create',
+    'funding_types.update',
+    'funders.read',
+    'funders.create',
+    'funders.update',
   ];
   const suCoordPerms = await prisma.permission.findMany({
     where: { key: { in: serviceUserCoordinatorPermKeys }, deletedAt: null },
@@ -280,6 +371,118 @@ async function main() {
     const r = roles.find((x) => x.name === roleName);
     if (!r) continue;
     for (const p of suCoordPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const seniorNurseMedicationKeys = [
+    'service_users.medications.read',
+    'service_users.medications.events.read',
+    'service_users.medications.chart.read',
+    'service_users.medications.prn.read',
+    'service_users.medications.allergies.read',
+    'service_users.medications.allergies.manage',
+    'service_users.medications.support_profile.read',
+    'service_users.medications.support_profile.update',
+    'service_users.medications.reviews.read',
+    'service_users.medications.reviews.create',
+    'service_users.medications.reviews.update',
+    'service_users.medications.lookups.read',
+    'service_users.medications.reports.read',
+    'service_users.medications.create',
+    'service_users.medications.update',
+    'service_users.medications.status.update',
+    'service_users.medications.administer',
+  ];
+  const seniorNurseMedPerms = await prisma.permission.findMany({
+    where: { key: { in: seniorNurseMedicationKeys }, deletedAt: null },
+  });
+  const seniorNurseRole = roles.find((x) => x.name === 'Senior Carer/Nurse');
+  if (seniorNurseRole) {
+    for (const p of seniorNurseMedPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: seniorNurseRole.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: seniorNurseRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const carerMedicationKeys = [
+    'service_users.medications.read',
+    'service_users.medications.events.read',
+    'service_users.medications.chart.read',
+    'service_users.medications.prn.read',
+    'service_users.medications.lookups.read',
+    'service_users.medications.administer',
+  ];
+  const carerMedPerms = await prisma.permission.findMany({
+    where: { key: { in: carerMedicationKeys }, deletedAt: null },
+  });
+  const carerDomesticRole = roles.find((x) => x.name === 'Carer/Domestic');
+  if (carerDomesticRole) {
+    for (const p of carerMedPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: carerDomesticRole.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: carerDomesticRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const medicationManagerDeleteKeys = [
+    'service_users.medications.delete',
+    'service_users.medications.reviews.delete',
+    'service_users.medications.reports.export',
+  ];
+  const medicationManagerDeletePerms = await prisma.permission.findMany({
+    where: { key: { in: medicationManagerDeleteKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of medicationManagerDeletePerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const managerFundingPermKeys = [
+    'service_users.funding.delete',
+    'service_users.funding.approve',
+    'funding_types.delete',
+    'funders.delete',
+  ];
+  const managerFundingPerms = await prisma.permission.findMany({
+    where: { key: { in: managerFundingPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of managerFundingPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const managerLiveInDeleteKeys = ['service_users.live_in_profile.delete'];
+  const managerLiveInDeletePerms = await prisma.permission.findMany({
+    where: { key: { in: managerLiveInDeleteKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of managerLiveInDeletePerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},
@@ -313,6 +516,41 @@ async function main() {
       },
       update: {},
       create: { roleId: adminRole.id, permissionId: auditReadPerm.id },
+    });
+  }
+
+  const notificationEndUserKeys = [
+    'notifications.read',
+    'notifications.update',
+    'notifications.dismiss',
+    'notifications.preferences.read',
+    'notifications.preferences.update',
+  ];
+  const notificationEndUserPerms = await prisma.permission.findMany({
+    where: { key: { in: notificationEndUserKeys }, deletedAt: null },
+  });
+  const rolesForInAppNotifications = [...roles, privacyOfficerRole].filter(Boolean);
+  for (const r of rolesForInAppNotifications) {
+    if (!r || (superAdminRole && r.id === superAdminRole.id)) continue;
+    for (const p of notificationEndUserPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const notifCreatePerm = await prisma.permission.findFirst({
+    where: { key: 'notifications.create', deletedAt: null },
+  });
+  if (notifCreatePerm && adminRole) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: { roleId: adminRole.id, permissionId: notifCreatePerm.id },
+      },
+      update: {},
+      create: { roleId: adminRole.id, permissionId: notifCreatePerm.id },
     });
   }
 
@@ -691,78 +929,54 @@ async function main() {
     data: { isActive: false },
   });
 
-  const fundingCareServiceSeed: Array<[string, string]> = [
-    ['Personal Care', 'PERSONAL_CARE'],
-    ['Waking Night', 'WAKING_NIGHT'],
-    ['Sleep-in Night', 'SLEEP_IN_NIGHT'],
-    ['Live-in care', 'LIVE_IN_CARE'],
-    ['Domestic call', 'DOMESTIC_CALL'],
-    ['Shopping Call', 'SHOPPING_CALL'],
-    ['Drivers', 'DRIVERS'],
-    ['Passenger Assistance', 'PASSENGER_ASSISTANCE'],
-    ['Cleaning Job', 'CLEANING_JOB'],
-    ['Home First', 'HOME_FIRST'],
-    ['Children services', 'CHILDREN_SERVICES'],
-    ['Family Support', 'FAMILY_SUPPORT'],
-    ['Support Disabled children & young People', 'SUPPORT_DISABLED_CHILDREN'],
-    ['Support Young People', 'SUPPORT_YOUNG_PEOPLE'],
-    ['Contact Supervision', 'CONTACT_SUPERVISION'],
-    ['Outreach', 'OUTREACH'],
-    ['Training', 'TRAINING'],
+  const fundingTypeRows: Array<{ name: string; code: string; description?: string | null }> = [
+    { name: 'Private', code: 'PRIVATE', description: null },
+    { name: 'Local Authority', code: 'LOCAL_AUTHORITY', description: null },
+    { name: 'NHS', code: 'NHS', description: null },
+    { name: 'Direct Payment', code: 'DIRECT_PAYMENT', description: null },
+    { name: 'Mixed Funding', code: 'MIXED', description: null },
+    { name: 'Self-Funded', code: 'SELF_FUNDED', description: null },
+    { name: 'Family Funded', code: 'FAMILY_FUNDED', description: null },
+    { name: 'Unknown', code: 'UNKNOWN', description: null },
   ];
-  try {
-    for (let i = 0; i < fundingCareServiceSeed.length; i++) {
-      const [name, code] = fundingCareServiceSeed[i]!;
-      await prisma.fundingCareService.upsert({
-        where: { code },
-        update: { name, sortOrder: i, isActive: true },
-        create: { name, code, sortOrder: i },
-      });
-    }
-
-    const rateCardSeed: Array<[string, string]> = [
-      ['Croydon Rates', 'CROYDON_RATES'],
-      ['Croydon 30 mins', 'CROYDON_30_MINS'],
-      ['Croydon 45 mins', 'CROYDON_45_MINS'],
-      ['Waking Night', 'RATE_WAKING_NIGHT'],
-      ['Domestic Call', 'RATE_DOMESTIC_CALL'],
-      ['Croydon 60 mins', 'CROYDON_60_MINS'],
-      ['P A', 'PA'],
-      ['Drivers', 'RATE_DRIVERS'],
-      ['Personal care Haringey', 'PERSONAL_CARE_HARINGEY'],
-      ['Outreach Haringey', 'OUTREACH_HARINGEY'],
-      ['Merton Rates', 'MERTON_RATES'],
-      ['Hackney Council', 'HACKNEY_COUNCIL'],
-      ['Greenwich Council', 'GREENWICH_COUNCIL'],
-      ['Lambeth Council', 'LAMBETH_COUNCIL'],
-      ['Southwark Council', 'SOUTHWARK_COUNCIL'],
-      ['Lewisham Council', 'LEWISHAM_COUNCIL'],
-      ['Bromley Council', 'BROMLEY_COUNCIL'],
-      ['Bexley Council', 'BEXLEY_COUNCIL'],
-      ['Service user Private', 'SU_PRIVATE'],
-      ['Allfor care', 'ALLFOR_CARE'],
-      ['Bexley Council ISF', 'BEXLEY_ISF'],
-      ['Private', 'PRIVATE'],
-      ['cleaners', 'CLEANERS'],
-      ['HOME FIRST CROYDON', 'HOME_FIRST_CROYDON'],
-      ['Supervised contract', 'SUPERVISED_CONTRACT'],
-      ['Standard Local Authority', 'STANDARD_LA'],
-      ['NHS CHC Standard', 'NHS_CHC_STANDARD'],
-    ];
-    for (let i = 0; i < rateCardSeed.length; i++) {
-      const [name, code] = rateCardSeed[i]!;
-      await prisma.rateCard.upsert({
-        where: { code },
-        update: { name, sortOrder: i, isActive: true, isCustom: false, serviceUserId: null },
-        create: { name, code, sortOrder: i, isActive: true, isCustom: false },
-      });
-    }
-    // eslint-disable-next-line no-console
-    console.log('[seed] Funding care services and rate cards upserted.');
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('[seed] Funding catalog skipped or failed (ensure migrations are applied):', e);
+  for (const row of fundingTypeRows) {
+    await prisma.fundingType.upsert({
+      where: { code: row.code },
+      update: {
+        name: row.name,
+        description: row.description ?? undefined,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: { name: row.name, code: row.code, description: row.description ?? undefined },
+    });
   }
+
+  const typeId = async (code: string) => {
+    const t = await prisma.fundingType.findFirst({ where: { code, deletedAt: null } });
+    return t?.id ?? null;
+  };
+
+  const funderDefs: Array<{ name: string; code: string; fundingTypeCode: string }> = [
+    { name: 'Croydon Council', code: 'CROYDON_COUNCIL', fundingTypeCode: 'LOCAL_AUTHORITY' },
+    { name: 'NHS Continuing Healthcare', code: 'NHS_CHC', fundingTypeCode: 'NHS' },
+    { name: 'Private / Self-Funded', code: 'PRIVATE_SELF_FUNDED', fundingTypeCode: 'SELF_FUNDED' },
+    { name: 'Direct Payment', code: 'DIRECT_PAYMENT_FUNDER', fundingTypeCode: 'DIRECT_PAYMENT' },
+    { name: 'Family Funded', code: 'FAMILY_FUNDED_FUNDER', fundingTypeCode: 'FAMILY_FUNDED' },
+    { name: 'Unknown', code: 'UNKNOWN_FUNDER', fundingTypeCode: 'UNKNOWN' },
+  ];
+  for (const f of funderDefs) {
+    const ftId = await typeId(f.fundingTypeCode);
+    if (!ftId) continue;
+    await prisma.funder.upsert({
+      where: { code: f.code },
+      update: { name: f.name, fundingTypeId: ftId, isActive: true, deletedAt: null },
+      create: { name: f.name, code: f.code, fundingTypeId: ftId },
+    });
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('[seed] Enterprise funding types and funders upserted.');
 
   // eslint-disable-next-line no-console
   console.log('[seed] Service user lookups upserted.');
@@ -853,6 +1067,209 @@ async function main() {
   } else {
     // eslint-disable-next-line no-console
     console.log('[seed] Employee skills: skipped (no employees or no skill types).');
+  }
+
+  const liveInServiceTypeDefs: Array<{ name: string; code: string; sortOrder: number }> = [
+    { name: 'Personal Care', code: 'PERSONAL_CARE', sortOrder: 10 },
+    { name: 'Waking Night', code: 'WAKING_NIGHT', sortOrder: 20 },
+    { name: 'Sleep-in Night', code: 'SLEEP_IN_NIGHT', sortOrder: 30 },
+    { name: 'Live-in care', code: 'LIVE_IN_CARE', sortOrder: 40 },
+    { name: 'Domestic call', code: 'DOMESTIC_CALL', sortOrder: 50 },
+    { name: 'Shopping Call', code: 'SHOPPING_CALL', sortOrder: 60 },
+    { name: 'Drivers', code: 'DRIVERS', sortOrder: 70 },
+    { name: 'Passenger Assistance', code: 'PASSENGER_ASSISTANCE', sortOrder: 80 },
+    { name: 'Cleaning Job', code: 'CLEANING_JOB', sortOrder: 90 },
+    { name: 'Home First', code: 'HOME_FIRST', sortOrder: 100 },
+    { name: 'Children services', code: 'CHILDREN_SERVICES', sortOrder: 110 },
+    { name: 'Family Support', code: 'FAMILY_SUPPORT', sortOrder: 120 },
+    {
+      name: 'Support Disabled children & young People',
+      code: 'SUPPORT_DISABLED_CHILDREN_YOUNG_PEOPLE',
+      sortOrder: 130,
+    },
+    { name: 'Support Young People', code: 'SUPPORT_YOUNG_PEOPLE', sortOrder: 140 },
+    { name: 'Contact Supervision', code: 'CONTACT_SUPERVISION', sortOrder: 150 },
+    { name: 'Outreach', code: 'OUTREACH', sortOrder: 160 },
+    { name: 'Training', code: 'TRAINING', sortOrder: 170 },
+  ];
+  for (const row of liveInServiceTypeDefs) {
+    await prisma.liveInServiceType.upsert({
+      where: { code: row.code },
+      update: { name: row.name, sortOrder: row.sortOrder, isActive: true, deletedAt: null },
+      create: { name: row.name, code: row.code, sortOrder: row.sortOrder, isActive: true },
+    });
+  }
+
+  for (const row of [
+    { name: 'A', code: 'A', sortOrder: 10 },
+    { name: 'B', code: 'B', sortOrder: 20 },
+    { name: 'C', code: 'C', sortOrder: 30 },
+  ]) {
+    await prisma.liveInLevelOfCare.upsert({
+      where: { code: row.code },
+      update: { name: row.name, sortOrder: row.sortOrder, isActive: true, deletedAt: null },
+      create: { name: row.name, code: row.code, sortOrder: row.sortOrder, isActive: true },
+    });
+  }
+
+  for (const row of [
+    { name: 'None', code: 'NONE', sortOrder: 10 },
+    { name: 'QR or Barcode', code: 'QR_OR_BARCODE', sortOrder: 20 },
+    { name: 'NFC', code: 'NFC', sortOrder: 30 },
+  ]) {
+    await prisma.liveInScanType.upsert({
+      where: { code: row.code },
+      update: { name: row.name, sortOrder: row.sortOrder, isActive: true, deletedAt: null },
+      create: { name: row.name, code: row.code, sortOrder: row.sortOrder, isActive: true },
+    });
+  }
+
+  async function upsertMedCode<T extends { upsert: (args: any) => Promise<any> }>(
+    model: T,
+    row: { name: string; code: string; description?: string | null; timesPerDay?: number | null; intervalHours?: number | null; time?: string; sortOrder?: number },
+  ) {
+    const baseMinimal = {
+      name: row.name,
+      code: row.code,
+      isActive: true,
+      deletedAt: null,
+    };
+    const baseWithDesc = {
+      ...baseMinimal,
+      description: row.description ?? null,
+    };
+    const where = { code: row.code };
+    if ('timesPerDay' in row) {
+      await model.upsert({
+        where,
+        update: { ...baseWithDesc, timesPerDay: row.timesPerDay ?? null, intervalHours: row.intervalHours ?? null },
+        create: { ...baseWithDesc, timesPerDay: row.timesPerDay ?? null, intervalHours: row.intervalHours ?? null },
+      });
+    } else if ('time' in row && row.time !== undefined) {
+      await model.upsert({
+        where,
+        update: { ...baseMinimal, time: row.time, sortOrder: row.sortOrder ?? 0 },
+        create: { ...baseMinimal, time: row.time, sortOrder: row.sortOrder ?? 0 },
+      });
+    } else {
+      await model.upsert({
+        where,
+        update: { ...baseWithDesc },
+        create: { ...baseWithDesc },
+      });
+    }
+  }
+
+  for (const row of [
+    { name: 'Tablet', code: 'TABLET' },
+    { name: 'Capsule', code: 'CAPSULE' },
+    { name: 'Liquid', code: 'LIQUID' },
+    { name: 'Cream', code: 'CREAM' },
+    { name: 'Ointment', code: 'OINTMENT' },
+    { name: 'Drops', code: 'DROPS' },
+    { name: 'Injection', code: 'INJECTION' },
+    { name: 'Inhaler', code: 'INHALER' },
+    { name: 'Patch', code: 'PATCH' },
+    { name: 'Sachet', code: 'SACHET' },
+    { name: 'Other', code: 'OTHER_TYPE' },
+  ]) {
+    await upsertMedCode(prisma.medicationType, row);
+  }
+  for (const row of [
+    { name: 'Oral', code: 'ORAL' },
+    { name: 'Topical', code: 'TOPICAL' },
+    { name: 'Inhalation', code: 'INHALATION' },
+    { name: 'Injection', code: 'ROUTE_INJECTION' },
+    { name: 'Eye', code: 'EYE' },
+    { name: 'Ear', code: 'EAR' },
+    { name: 'Nasal', code: 'NASAL' },
+    { name: 'Rectal', code: 'RECTAL' },
+    { name: 'Sublingual', code: 'SUBLINGUAL' },
+    { name: 'Other', code: 'OTHER_ROUTE' },
+  ]) {
+    await upsertMedCode(prisma.medicationRoute, row);
+  }
+  for (const row of [
+    { name: 'General', code: 'GENERAL' },
+    { name: 'Controlled Drug', code: 'CONTROLLED_DRUG' },
+    { name: 'Diabetes', code: 'DIABETES' },
+    { name: 'Blood Pressure', code: 'BLOOD_PRESSURE' },
+    { name: 'Anticoagulant', code: 'ANTICOAGULANT' },
+    { name: 'Pain Relief', code: 'PAIN_RELIEF' },
+    { name: 'Antibiotic', code: 'ANTIBIOTIC' },
+    { name: 'Mental Health', code: 'MENTAL_HEALTH' },
+    { name: 'PRN', code: 'PRN_CATEGORY' },
+    { name: 'Other', code: 'OTHER_CATEGORY' },
+  ]) {
+    await upsertMedCode(prisma.medicationCategory, row);
+  }
+  for (const row of [
+    { name: 'Once Daily', code: 'ONCE_DAILY', timesPerDay: 1 },
+    { name: 'Twice Daily', code: 'TWICE_DAILY', timesPerDay: 2 },
+    { name: 'Three Times Daily', code: 'THREE_TIMES_DAILY', timesPerDay: 3 },
+    { name: 'Four Times Daily', code: 'FOUR_TIMES_DAILY', timesPerDay: 4 },
+    { name: 'Every 1 day', code: 'EVERY_1_DAY', timesPerDay: 1 },
+    { name: 'Weekly', code: 'WEEKLY', timesPerDay: null },
+    { name: 'Monthly', code: 'MONTHLY', timesPerDay: null },
+    { name: 'As Required', code: 'AS_REQUIRED', timesPerDay: null },
+    { name: 'Other', code: 'OTHER_FREQUENCY', timesPerDay: null },
+  ]) {
+    await upsertMedCode(prisma.medicationFrequency, row);
+  }
+  for (const row of [
+    { name: 'Breakfast Round', code: 'BREAKFAST_ROUND', time: '06:00', sortOrder: 10 },
+    { name: 'Lunch Round', code: 'LUNCH_ROUND', time: '11:00', sortOrder: 20 },
+    { name: 'Tea Round', code: 'TEA_ROUND', time: '15:00', sortOrder: 30 },
+    { name: 'Bed Round', code: 'BED_ROUND', time: '18:00', sortOrder: 40 },
+  ]) {
+    await upsertMedCode(prisma.medicationAdministrationRound, row);
+  }
+  for (const row of [
+    { name: 'Refused', code: 'REFUSED' },
+    { name: 'Not Available', code: 'NOT_AVAILABLE' },
+    { name: 'Service User Away', code: 'SU_AWAY' },
+    { name: 'Sleeping', code: 'SLEEPING' },
+    { name: 'Vomited', code: 'VOMITED' },
+    { name: 'Withheld by Clinician', code: 'WITHHELD_CLINICIAN' },
+    { name: 'Missed Visit', code: 'MISSED_VISIT' },
+    { name: 'Other', code: 'OTHER_REASON' },
+  ]) {
+    await upsertMedCode(prisma.medicationNotGivenReason, row);
+  }
+
+  const demoSu = await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
+  if (demoSu) {
+    const existingPack = await prisma.medicationPack.findFirst({
+      where: { serviceUserId: demoSu.id, name: 'Blister Pack 2025', deletedAt: null },
+    });
+    if (!existingPack) {
+      const pack = await prisma.medicationPack.create({
+        data: {
+          serviceUserId: demoSu.id,
+          name: 'Blister Pack 2025',
+          description: 'Demo blister pack contents',
+          startDate: new Date('2025-09-20T00:00:00.000Z'),
+        },
+      });
+      const items = [
+        'Amlodipine 10mg tablets',
+        'Atorvastatin 80mg tablets',
+        'Bisoprolol 2.5mg tablets',
+        'Clopidogrel 75mg tablets',
+        'Doxazosin 4mg tablets',
+        'Lansoprazole 30mg gastro-resistant capsules',
+        'Metformin 500mg tablets',
+        'Sitagliptin 100mg tablets',
+      ];
+      let order = 0;
+      for (const line of items) {
+        await prisma.medicationPackItem.create({
+          data: { medicationPackId: pack.id, medicationName: line, sortOrder: order++ },
+        });
+      }
+      // eslint-disable-next-line no-console
+      console.log('[seed] Medication demo pack created for first service user.');
+    }
   }
 }
 

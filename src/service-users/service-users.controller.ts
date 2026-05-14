@@ -13,9 +13,6 @@ import { CreateServiceUserDto } from './dto/create-service-user.dto';
 import { UpdateServiceUserDto } from './dto/update-service-user.dto';
 import { UpdateServiceUserStatusDto } from './dto/update-service-user-status.dto';
 import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding-refs.dto';
-import { CreateServiceUserFundingProfileDto } from './dto/create-service-user-funding-profile.dto';
-import { UpdateServiceUserFundingProfileDto } from './dto/update-service-user-funding-profile.dto';
-import { CreateCustomRateCardDto } from './dto/create-custom-rate-card.dto';
 
 @ApiTags('Service Users')
 @ApiBearerAuth()
@@ -31,20 +28,6 @@ export class ServiceUsersController {
     return this.serviceUsersService.list(query);
   }
 
-  @Get(':id/funding/lookups')
-  @AnyPermission('service_users.funding.read', 'service_users.read')
-  @ApiOperation({ summary: 'Care services and rate cards for the Funding tab' })
-  fundingLookups(@Param('id') id: string) {
-    return this.serviceUsersService.getFundingLookups(id);
-  }
-
-  @Get(':id/funding')
-  @AnyPermission('service_users.funding.read', 'service_users.read')
-  @ApiOperation({ summary: 'Funding profiles and reference fields for a service user' })
-  funding(@Param('id') id: string) {
-    return this.serviceUsersService.getFunding(id);
-  }
-
   @Patch(':id/funding')
   @AnyPermission('service_users.funding.update', 'service_users.update')
   @ApiOperation({ summary: 'Update Social Services ref and/or NHS number (funding tab)' })
@@ -55,57 +38,6 @@ export class ServiceUsersController {
     @Req() req: Request,
   ) {
     return this.serviceUsersService.patchFundingRefs(user.id, id, dto, getRequestAuditMeta(req));
-  }
-
-  @Post(':id/funding/profiles')
-  @HttpCode(HttpStatus.CREATED)
-  @AnyPermission('service_users.funding.update', 'service_users.update')
-  @ApiOperation({ summary: 'Add a funding profile' })
-  createFundingProfile(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: CreateServiceUserFundingProfileDto,
-    @Req() req: Request,
-  ) {
-    return this.serviceUsersService.createFundingProfile(user.id, id, dto, getRequestAuditMeta(req));
-  }
-
-  @Patch(':id/funding/profiles/:profileId')
-  @AnyPermission('service_users.funding.update', 'service_users.update')
-  @ApiOperation({ summary: 'Update a funding profile' })
-  updateFundingProfile(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Param('profileId') profileId: string,
-    @Body() dto: UpdateServiceUserFundingProfileDto,
-    @Req() req: Request,
-  ) {
-    return this.serviceUsersService.updateFundingProfile(user.id, id, profileId, dto, getRequestAuditMeta(req));
-  }
-
-  @Delete(':id/funding/profiles/:profileId')
-  @AnyPermission('service_users.funding.update', 'service_users.update')
-  @ApiOperation({ summary: 'Remove a funding profile' })
-  deleteFundingProfile(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Param('profileId') profileId: string,
-    @Req() req: Request,
-  ) {
-    return this.serviceUsersService.deleteFundingProfile(user.id, id, profileId, getRequestAuditMeta(req));
-  }
-
-  @Post(':id/funding/rate-cards')
-  @HttpCode(HttpStatus.CREATED)
-  @AnyPermission('service_users.funding.update', 'service_users.update')
-  @ApiOperation({ summary: 'Create a custom rate card for this service user' })
-  createCustomRateCard(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: CreateCustomRateCardDto,
-    @Req() req: Request,
-  ) {
-    return this.serviceUsersService.createCustomRateCard(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Get(':id')

@@ -187,6 +187,49 @@ Status: IN PROGRESS
 - [x] Add e2e tests (`test/service-users.e2e-spec.ts`)
 - [ ] Broader integration tests / CI hardening
 
+## Phase — Service User Funding
+Status: IN PROGRESS
+- [x] Create `FundingType` model
+- [x] Create `Funder` model
+- [x] Create `ServiceUserFunding` model (+ `ServiceUser.currentFundingId`)
+- [x] Add funding type APIs
+- [x] Add funder APIs
+- [x] Add service user funding APIs
+- [x] Add primary funding logic
+- [x] Add approval workflow
+- [x] Add end funding workflow
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add seed data
+- [x] Add Swagger docs
+- [x] Add README documentation
+- [ ] Add automated tests (e2e/unit)
+
+## Phase — Service User Live-in Service Profile
+
+Status: IN PROGRESS
+
+Tasks:
+- [x] Create LiveInServiceType model
+- [x] Create LiveInLevelOfCare model
+- [x] Create LiveInScanType model
+- [x] Create ServiceUserLiveInProfile model
+- [x] Create preferred carers model
+- [x] Create blocked carers model
+- [x] Create contract document model
+- [x] Add live-in lookup APIs
+- [x] Add live-in profile APIs
+- [x] Add preferred carers APIs
+- [x] Add blocked carers APIs
+- [x] Add contract document upload/download/delete
+- [x] Add validation rules
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add data access logging
+- [x] Add seed data
+- [x] Add Swagger docs
+- [x] Add tests (`test/service-user-live-in-profile.e2e-spec.ts`; requires migrated DB)
+
 ## Future Phase — Service User Care Profile
 - [ ] About Me
 - [ ] Life History
@@ -228,4 +271,76 @@ Status: IN PROGRESS
 - [ ] Care plan report
 - [ ] Housepack report
 - [ ] Service user details report
+
+## Phase — Real-time Notifications with WebSocket and Sound
+
+Status: IN PROGRESS
+
+Tasks:
+
+- [x] Create Notification model
+- [x] Create NotificationRecipient model
+- [x] Create NotificationPreference model with soundEnabled
+- [x] Create NotificationsModule
+- [x] Create NotificationsGateway
+- [x] Add JWT socket authentication
+- [x] Add user-specific socket rooms
+- [x] Add notification REST APIs
+- [x] Emit notification:new
+- [x] Emit unread count updates
+- [x] Add frontend socket client
+- [x] Add NotificationBell
+- [x] Add NotificationDropdown
+- [x] Add notification toast
+- [x] Add notification sound hook
+- [x] Add sound preference toggle
+- [x] Add README docs
+- [x] Add tests (unit / component)
+
+Future:
+
+- [ ] Redis Socket.IO adapter for multi-server scaling
+- [ ] Email notifications
+- [ ] SMS notifications
+- [ ] BullMQ queues
+- [ ] Notification templates
+
+## Phase — Service User Medication
+
+Status: IN PROGRESS
+
+- [x] Create medication lookup models
+- [x] Seed medication lookups
+- [x] Create ServiceUserMedication model
+- [x] Create MedicationPack model
+- [x] Create MedicationPackItem model
+- [x] Create MedicationAllergy model
+- [x] Create MedicationSchedule model
+- [x] Create MedicationAdministrationEvent model
+- [x] Create MedicationSupportProfile model
+- [x] Create MedicationReview model
+- [x] Create MedicationStockRecord model
+- [x] Add medication list APIs
+- [x] Add medication pack APIs
+- [x] Add allergy APIs
+- [x] Add support profile API
+- [x] Add schedule APIs
+- [x] Add administration event APIs
+- [x] Add regular chart endpoint
+- [x] Add PRN chart endpoint
+- [x] Add medication report endpoints
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add data access logging
+- [x] Add notification hooks
+- [x] Add Swagger docs
+- [ ] Add broader e2e tests
+
+Future (medication):
+
+- [ ] Advanced stock control
+- [ ] MAR export
+- [ ] Pharmacy integration
+- [ ] Medication review reminders
+- [ ] Advanced alerts
 

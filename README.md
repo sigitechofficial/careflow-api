@@ -77,6 +77,24 @@ pnpm exec prisma generate
 
 Service Care and Scheduling should call `AuditLogsService.logAudit`, `logDataAccess`, and `logExport` from their services for care plans, medication, schedules, and exports—reuse the same enums/DTO patterns as the Employee module.
 
+## Service User Medication (MAR foundation)
+
+Clinical medication data lives in the **`service_users`** schema (types, routes, categories, frequencies, administration rounds, medications, packs, schedules, administration events, medication-specific allergies, support profile, reviews, and placeholder stock movements).
+
+- **Regular vs PRN**: `MedicationKind.REGULAR` supports scheduled rounds; `PRN` records administrations with mandatory free-text reason or notes.
+- **Charts**: `GET /service-users/:id/medication-chart/regular?month=YYYY-MM` builds a month grid with per-day statuses from events and schedules. `GET .../medication-chart/prn?dateFrom=&dateTo=` lists PRN events grouped by medication.
+- **Reports** (tenant-wide or per SU): `GET /medication-reports/administered|stock-levels|late-administrations|audit` with `dateFrom` / `dateTo` and optional `serviceUserId` or `allServiceUsers=true` (requires appropriate permissions).
+- **Late administrations**: compared with `scheduledDateTime`; threshold minutes from env `MEDICATION_LATE_THRESHOLD_MINUTES` (default **30**).
+- **Permissions** (seed): `service_users.medications.*` keys — Super Admin all; Admin/Manager/Care Coordinator clinical coordination set; **Senior Carer/Nurse** read + administer + write; **Carer/Domestic** read charts + **administer**; delete/reviews delete/reports export tightened to Admin/Manager.
+- **Audit / data access**: creates/updates/deletes, administrations, chart views, and report generation emit `AuditLog` (`AuditModule.MEDICATION`) and `DataAccessLog` (VIEW) per product rules. Controlled-drug and missed/refused paths call optional **in-app notification** hooks (`MEDICATION_ALERT`) when `NotificationsModule` is available (recipient list is placeholder until routing is defined).
+- **Seed**: medication lookup tables + optional **Blister Pack 2025** demo on the first service user (idempotent).
+
+```bash
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
 ## Service Users (Phase 1 — core)
 
 PostgreSQL schema **`service_users`** holds Service User entities, domain lookups (status, title, gender, marital status, care type, funding type, risk level, relationship types), contacts, address, references, assignment rows, and photo metadata. **JWT + RBAC** protect all routes; **Swagger** tags: Service Users, Service User Contacts, Service User Address, Service User Assignments, Service User Photos, Service User Lookups.
@@ -111,10 +129,12 @@ Open Swagger at `http://localhost:3000/api/docs` (or your `SWAGGER_PATH`), autho
 | Photo | POST | `/service-users/:id/photo` — multipart field `file` (JPEG/PNG/WebP) |
 | Photo | DELETE | `/service-users/:id/photo` — clears profile photo |
 | Lookups | GET | `/service-user-lookups` and `/service-user-lookups/...` segments |
+| Live-in | GET | `/live-in-lookups` (+ `service-types`, `levels-of-care`, `scan-types`) |
+| Live-in | GET/POST/PATCH/DELETE | `/service-users/:id/live-in-profile` (+ `status`, `preferred-carers`, `blocked-carers`, `contract-documents`, download) |
 
 ### Permissions (seed)
 
-`service_users.read|create|update|delete|status.update`, `service_users.contacts.*`, `service_users.address.read|update`, `service_users.assignments.read|update`, `service_users.photos.upload|delete`, `service_users.lookups.read`. **Super Admin** receives all keys automatically. **Admin**, **Manager**, and **Care Coordinator** receive read/create/update for core and sub-resources plus photo upload and lookups read (not delete/status update/photo delete by default — see `prisma/seed.ts`).
+`service_users.read|create|update|delete|status.update`, `service_users.contacts.*`, `service_users.address.read|update`, `service_users.assignments.read|update`, `service_users.photos.upload|delete`, `service_users.lookups.read`, and **`service_users.live_in_profile.*`** (profile, carers, documents, lookups — see Live-in section below). **Super Admin** receives all keys automatically. **Admin**, **Manager**, and **Care Coordinator** receive read/create/update for core and sub-resources plus photo upload and lookups read (not delete/status update/photo delete by default — see `prisma/seed.ts`).
 
 ### File uploads
 
@@ -124,9 +144,120 @@ Photos are stored under `{UPLOAD_BASE_PATH}/service-users/photos` (default `uplo
 
 Statuses, titles, genders, marital statuses, care types, funding types, risk levels, and relationship types are upserted in `prisma/seed.ts`.
 
+## Service User Funding (enterprise)
+
+**Funding** means who pays for the service user’s care and under which arrangement. This is separate from the demographic **Service User Funding Type** lookup on `ServiceUser` (e.g. high-level category on the person record).
+
+| Concept | Role |
+|--------|------|
+| **FundingType** | Classification of funding (Private, Local Authority, NHS, Direct Payment, Mixed, Self-Funded, Family Funded, Unknown). Seeded with stable `code` values. |
+| **Funder** | Organisation or entity that pays (e.g. Croydon Council, NHS CHC). Optionally linked to a `FundingType`. |
+| **ServiceUserFunding** | A dated arrangement for one service user: type, optional funder, status, references, amounts, primary flag, approval metadata, soft delete. **Source of truth** for funding history; `ServiceUser.currentFundingId` points at the current primary row when set. |
+
+### API (JWT + permissions)
+
+| Area | Method | Path |
+|------|--------|------|
+| Funding types | GET/POST/PATCH/DELETE | `/funding-types`, `/funding-types/:id` |
+| Funders | GET/POST/PATCH/DELETE | `/funders`, `/funders/:id` |
+| Per service user | GET | `/service-users/:id/funding` (paginated list) |
+| Per service user | GET/PATCH/DELETE | `/service-users/:id/funding/:fundingId` |
+| Per service user | POST | `/service-users/:id/funding` |
+| Workflow | PATCH | `.../funding/:fundingId/status`, `.../set-primary`, `.../approve`, `.../end` |
+| References only | PATCH | `/service-users/:id/funding` — NHS number / Social Services ref (unchanged) |
+
+Swagger tags: **Funding Types**, **Funders**, **Service User Funding**.
+
+### Permissions (seed)
+
+`funding_types.*`, `funders.*`, `service_users.funding.read|create|update|delete|status.update|approve|set_primary`. **Super Admin** gets all. **Admin**, **Manager**, and **Care Coordinator** get read/create/update for lookups and service-user funding plus status and set-primary; **delete** and **approve** (and lookup **delete**) are also granted to **Admin** and **Manager** (see `prisma/seed.ts`).
+
+### Business rules
+
+- Multiple `ServiceUserFunding` rows per user; at most one **primary**; setting primary clears others and updates `currentFundingId`.
+- **Approve** sets `approvedAt` / `approvedById`, optional `approvalReference`, and status **APPROVED** (future start date) or **ACTIVE** (started or no start date).
+- **End** sets status **ENDED**, `endDate`, clears primary/current pointer when applicable.
+- Soft delete only; primary cleared on delete.
+
+### Migrate and seed
+
+```bash
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
+### Swagger
+
+Authorize with **Bearer** from `POST /auth/login`, then open `/api/docs` and try **Funding Types**, **Funders**, and **Service User Funding** operations.
+
 ### Deferred (later phases)
 
 Care plans, observations, medication, visits, reports, hospital/absence, calendar, flash messages, body map, initial assessment, and gallery-style photo management beyond a single profile image.
+
+## Service User Live-in Service Profile
+
+**Live-in Service Profile** models arrangements where carers **stay overnight, live in, or provide extended-duration support** for a service user (from the “Live in Service Profile” tab on Edit Service User).
+
+### Data model (schema `service_users`)
+
+| Model | Role |
+|--------|------|
+| `LiveInServiceType`, `LiveInLevelOfCare`, `LiveInScanType` | Lookups (seeded codes; soft-deletable) |
+| `ServiceUserLiveInProfile` | **One row per service user** (`serviceUserId` unique): enabled flag, custom setup, FKs to lookups + optional `ServiceUserContact` as resident contact, care instructions, dates, `LiveInProfileStatus`, `numberOfCarers` |
+| `ServiceUserLiveInPreferredCarer` / `ServiceUserLiveInBlockedCarer` | Junction to `Employee`; unique per profile + employee; mutual exclusion enforced in service |
+| `ServiceUserLiveInContractDocument` | File metadata (`fileUrl` under `/uploads/service-users/live-in-contracts/`); soft delete |
+
+### API (JWT + permissions)
+
+| Area | Method | Path |
+|------|--------|------|
+| Lookups | GET | `/live-in-lookups`, `/live-in-lookups/service-types`, `/live-in-lookups/levels-of-care`, `/live-in-lookups/scan-types` |
+| Profile | GET | `/service-users/:id/live-in-profile` — **DataAccessLog** (VIEW) + audit `live_in_profile_viewed` when a profile exists |
+| Profile | POST | `/service-users/:id/live-in-profile` — create or reactivate soft-deleted profile |
+| Profile | PATCH | `/service-users/:id/live-in-profile` |
+| Profile | DELETE | `/service-users/:id/live-in-profile` — soft delete; clears preferred/blocked rows; soft-deletes contract rows |
+| Profile | PATCH | `/service-users/:id/live-in-profile/status` |
+| Preferred carers | GET/POST | `.../live-in-profile/preferred-carers` |
+| Preferred carers | DELETE | `.../live-in-profile/preferred-carers/:employeeId` |
+| Blocked carers | GET/POST | `.../live-in-profile/blocked-carers` |
+| Blocked carers | DELETE | `.../live-in-profile/blocked-carers/:employeeId` |
+| Contracts | GET | `.../live-in-profile/contract-documents` |
+| Contracts | POST | `.../live-in-profile/contract-documents` — multipart field **`file`** (PDF, DOC, DOCX, JPG, PNG) |
+| Contracts | GET | `.../live-in-profile/contract-documents/:documentId/download` — **requires** `service_users.live_in_profile.documents.download`; **DataAccessLog** (DOWNLOAD) + audit |
+| Contracts | DELETE | `.../live-in-profile/contract-documents/:documentId` |
+
+Swagger tags: **Live-in Lookups**, **Service User Live-in Profile**.
+
+### Permissions (seed)
+
+- `service_users.live_in_profile.read|create|update|delete|status.update`
+- `service_users.live_in_profile.carers.read|manage`
+- `service_users.live_in_profile.documents.read|upload|download|delete`
+- `service_users.live_in_profile.lookups.read`
+
+**Super Admin** receives all keys. **Admin**, **Manager**, and **Care Coordinator** receive read/create/update/status, carers, documents (including download), and lookups; **delete** on the live-in profile is additionally granted to **Admin** and **Manager** only (see `prisma/seed.ts`).
+
+### File uploads
+
+Contracts are stored under `{UPLOAD_BASE_PATH}/service-users/live-in-contracts` (default `uploads/...`). Max size: **`MAX_UPLOAD_FILE_SIZE_MB`** (default **10**) or **`UPLOAD_MAX_FILE_SIZE_BYTES`** when set (same pattern as other upload modules).
+
+### Audit and data access
+
+- Profile **GET** and contract **download** write **`DataAccessLog`** with module `SERVICE_USER` and metadata including `serviceUserId` / `liveInProfileId`.
+- Create/update/delete/status, carers, and contracts emit **`AuditLog`** actions such as `live_in_profile_created`, `live_in_contract_uploaded`, etc. (see `audit-action.enum.ts`).
+
+### Migrate and seed
+
+```bash
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
+### Swagger
+
+Authorize with **Bearer** from `POST /auth/login`, then use tags **Live-in Lookups** and **Service User Live-in Profile**.
 
 ## Employee Compliance (enterprise)
 
@@ -137,6 +268,48 @@ Compliance is **not** hard-coded on the `Employee` model. The chain is: **Compli
 - **Migrations:** `pnpm exec prisma migrate deploy` (or `migrate dev`) after pull; then `pnpm exec prisma db seed` for types/requirements.
 - **Key routes:** `GET/POST/PATCH/DELETE /compliance-types`, `GET/POST/PATCH/DELETE /compliance-requirements`, `GET/POST/PATCH/DELETE /employees/:id/compliance`, document routes under `.../compliance/:complianceId/documents`, reports under `GET /employee-compliance/summary|missing|expired|expiring|pending-review|report|detail-report`.
 - **Chart summary:** `GET /employees/chart-summary` compliance SQL excludes rows with `isNoLongerRequired` so the dashboard matches the compliance module.
+
+---
+
+## Real-time in-app notifications (WebSocket + PostgreSQL)
+
+Notifications are stored in PostgreSQL (`notifications` schema: `Notification`, `NotificationRecipient`, `NotificationPreference`). **WebSocket** (Socket.IO, namespace `/notifications`) is only used for live delivery to signed-in users — there is **no Redis** in this phase; scaling to multiple API instances will require a **Redis adapter for Socket.IO** (see TODO below).
+
+### WebSocket
+
+- **Namespace:** `/notifications` (client URL example: `https://<api-host>/notifications` with Socket.IO path `/socket.io`).
+- **Auth:** send the JWT access token as `auth: { token: "<accessToken>" }` (or `Authorization: Bearer <token>` on the handshake). Temporary inspector tokens are rejected. Rooms are derived from the JWT (`user:<userId>` and `role:<roleName>`); the client cannot subscribe to another user’s id.
+- **Server → client events:** `notification:new`, `notification:read`, `notification:read-all`, `notification:dismissed`, `notification:unread-count`.
+- **Client → server events (optional; REST is primary):** `notification:subscribe`, `notification:unsubscribe`, `notification:mark-read`, `notification:mark-all-read`, `notification:dismiss`.
+
+### REST APIs
+
+| Method | Path | Permission |
+|--------|------|--------------|
+| GET | `/notifications` | `notifications.read` |
+| GET | `/notifications/unread-count` | `notifications.read` |
+| GET | `/notifications/:id` | `notifications.read` |
+| PATCH | `/notifications/:id/read` | `notifications.update` |
+| PATCH | `/notifications/read-all` | `notifications.update` |
+| PATCH | `/notifications/:id/dismiss` | `notifications.dismiss` |
+| GET | `/notification-preferences` | `notifications.preferences.read` |
+| PATCH | `/notification-preferences` | `notifications.preferences.update` |
+| POST | `/notifications` | `notifications.create` |
+
+`POST /notifications` creates rows for recipients who have **in-app** enabled for that notification type, emits `notification:new` (with `playSound` derived from **sound** preference and self-recipient rule), and pushes updated unread counts.
+
+### User preferences
+
+`NotificationPreference` uses a **composite primary key** `(userId, type)` (no separate surrogate id). Columns: `inAppEnabled` (default true), `soundEnabled` (default true), and reserved `emailEnabled` / `smsEnabled` / `pushEnabled` (defaults false) for future channels. PostgreSQL enforces **`soundEnabled` ⇒ `inAppEnabled`** via a check constraint; the API applies the same rule when saving.
+
+### Frontend sound behaviour
+
+The SPA uses the Web Audio API (soft beeps by severity) and, if present, tries `/sounds/notification.mp3` first. Sound **never** plays until the user has interacted with the page (pointer/key), respects the server `playSound` flag and per-type `soundEnabled`, and is **throttled** (at most once per ~2s). Preferences are not stored in `localStorage`.
+
+### Limitations & future work
+
+- **Single instance:** without Redis, WebSocket fan-out works for one Node process only.
+- **TODO:** add **Redis Socket.IO adapter** when running multiple backend replicas so every instance can deliver to connected clients.
 
 ---
 

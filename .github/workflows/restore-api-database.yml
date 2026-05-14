@@ -1,0 +1,459 @@
+name: Restore Careflow API Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      restore_action:
+        description: "Choose database restore action"
+        required: true
+        type: choice
+        options:
+          - list-available
+          - restore-specific-db-backup
+
+      target:
+        description: "Required only for restore-specific-db-backup. Example: db-before-release-20260514-083000Z-run-8-790ef770.dump"
+        required: false
+        type: string
+
+      confirmation:
+        description: "Type RESTORE_DATABASE to confirm. Not required for list-available."
+        required: false
+        type: string
+
+concurrency:
+  group: careflow-api-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  restore-database:
+    name: Restore Careflow API Database
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
+      BACKEND_APP_URL: ${{ secrets.BACKEND_APP_URL }}
+      BACKEND_PM2_APP_NAME: ${{ secrets.BACKEND_PM2_APP_NAME }}
+      RESTORE_ACTION: ${{ github.event.inputs.restore_action }}
+      TARGET: ${{ github.event.inputs.target }}
+      CONFIRMATION: ${{ github.event.inputs.confirmation }}
+
+    steps:
+      - name: Validate database restore confirmation
+        run: |
+          if [ "$RESTORE_ACTION" = "list-available" ]; then
+            echo "Listing available database backups. Confirmation is not required."
+            exit 0
+          fi
+
+          if [ "$RESTORE_ACTION" != "restore-specific-db-backup" ]; then
+            echo "Invalid restore action: $RESTORE_ACTION"
+            exit 1
+          fi
+
+          if [ -z "$TARGET" ]; then
+            echo "Target backup filename is required for restore-specific-db-backup."
+            exit 1
+          fi
+
+          if [ "$CONFIRMATION" != "RESTORE_DATABASE" ]; then
+            echo "Database restore blocked."
+            echo "Type RESTORE_DATABASE in the confirmation field to continue."
+            exit 1
+          fi
+
+          echo "Database restore confirmation accepted."
+
+      - name: Configure SSH access
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          echo "Adding VPS host key to known_hosts..."
+
+          for i in 1 2 3 4 5; do
+            ssh-keyscan -T 20 -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts && break
+            echo "ssh-keyscan failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Failed to add VPS host key."
+            exit 1
+          fi
+
+          echo "SSH access configured."
+
+      - name: Run database restore command on VPS
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          APP_NAME="careflow-api"
+          LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+          APP_URL="${{ secrets.BACKEND_APP_URL }}"
+          PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
+          RESTORE_ACTION="${{ github.event.inputs.restore_action }}"
+          TARGET="${{ github.event.inputs.target }}"
+
+          if [ -z "$LIVE_PATH" ]; then
+            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+          fi
+
+          if [ -z "$APP_URL" ]; then
+            APP_URL="https://careflowbackend.sigisolutions.net/"
+          fi
+
+          if [ -z "$PM2_APP_NAME" ]; then
+            PM2_APP_NAME="main"
+          fi
+
+          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          DB_BACKUPS_DIR="$DEPLOY_ROOT/db-backups"
+          LOGS_DIR="$DEPLOY_ROOT/logs"
+          RESTORE_LOG="$LOGS_DIR/database-restores.log"
+
+          RESTORE_TS="$(date -u +%Y%m%d-%H%M%SZ)"
+          CURRENT_BACKUP="$DB_BACKUPS_DIR/pre-db-restore-current-${RESTORE_TS}.dump"
+
+          mkdir -p "$DB_BACKUPS_DIR" "$LOGS_DIR"
+
+          echo "Database restore workflow for $APP_NAME"
+          echo "Restore action: $RESTORE_ACTION"
+          echo "Target: ${TARGET:-not provided}"
+          echo "Live path: $LIVE_PATH"
+          echo "PM2 app: $PM2_APP_NAME"
+
+          print_db_backup_metadata() {
+            DB_FILE="$1"
+            DB_NAME="$(basename "$DB_FILE")"
+
+            echo ""
+            echo "----------------------------------------"
+            echo "Database restore target:"
+            echo "$DB_NAME"
+            echo "----------------------------------------"
+
+            ls -lh "$DB_FILE" || true
+
+            if [ ! -s "$DB_FILE" ]; then
+              echo "Status: INVALID, file is empty. Do not restore this backup."
+              return 0
+            fi
+
+            echo "Status: Valid backup file"
+
+            if command -v pg_restore > /dev/null 2>&1; then
+              echo "Backup contents preview:"
+              pg_restore -l "$DB_FILE" 2>/dev/null | head -n 25 || echo "Could not preview backup with pg_restore -l"
+            else
+              echo "pg_restore is not available, so backup preview is skipped."
+            fi
+
+            echo ""
+            echo "Use this value as target:"
+            echo "$DB_NAME"
+          }
+
+          if [ "$RESTORE_ACTION" = "list-available" ]; then
+            echo ""
+            echo "=============================="
+            echo "Available database backups"
+            echo "Use one filename below as target for restore-specific-db-backup"
+            echo "=============================="
+
+            echo ""
+            echo "Regular DB backups created before deployments:"
+            if ls -1t "$DB_BACKUPS_DIR"/db-before-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/db-before-*.dump 2>/dev/null | head -n 20); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No db-before-release backups found."
+            fi
+
+            echo ""
+            echo "Pre-rollback DB backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/pre-rollback-db-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/pre-rollback-db-*.dump 2>/dev/null | head -n 20); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No pre-rollback DB backups found."
+            fi
+
+            echo ""
+            echo "Pre-DB-restore safety backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/pre-db-restore-current-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/pre-db-restore-current-*.dump 2>/dev/null | head -n 20); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No pre-db-restore safety backups found."
+            fi
+
+            echo ""
+            echo "Legacy DB backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/db-backup-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/db-backup-*.dump 2>/dev/null | head -n 20); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No legacy db-backup files found."
+            fi
+
+            echo ""
+            echo "List completed."
+            exit 0
+          fi
+
+          if [ "$RESTORE_ACTION" != "restore-specific-db-backup" ]; then
+            echo "Invalid restore action: $RESTORE_ACTION"
+            exit 1
+          fi
+
+          if [ -z "$TARGET" ]; then
+            echo "Target backup filename is required."
+            exit 1
+          fi
+
+          case "$TARGET" in
+            *".."*|*"/"*|"")
+              echo "Invalid target filename."
+              exit 1
+              ;;
+          esac
+
+          RESTORE_FILE="$DB_BACKUPS_DIR/$TARGET"
+
+          if [ ! -f "$RESTORE_FILE" ]; then
+            echo "Database backup file not found:"
+            echo "$RESTORE_FILE"
+            exit 1
+          fi
+
+          if [ ! -s "$RESTORE_FILE" ]; then
+            echo "Database backup file exists but is empty. Restore blocked:"
+            echo "$RESTORE_FILE"
+            exit 1
+          fi
+
+          echo "Selected database backup for restore:"
+          ls -lh "$RESTORE_FILE"
+
+          echo "Loading PG_BACKUP variables from server .env..."
+
+          PG_BACKUP_HOST=""
+          PG_BACKUP_PORT=""
+          PG_BACKUP_DATABASE=""
+          PG_BACKUP_USER=""
+          PG_BACKUP_PASSWORD=""
+
+          if [ -f "$LIVE_PATH/.env" ]; then
+            PG_BACKUP_HOST="$(grep -E '^PG_BACKUP_HOST=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PORT="$(grep -E '^PG_BACKUP_PORT=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_DATABASE="$(grep -E '^PG_BACKUP_DATABASE=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_USER="$(grep -E '^PG_BACKUP_USER=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PASSWORD="$(grep -E '^PG_BACKUP_PASSWORD=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+          fi
+
+          if ! command -v pg_dump > /dev/null 2>&1; then
+            echo "pg_dump is not available on server."
+            exit 1
+          fi
+
+          if ! command -v pg_restore > /dev/null 2>&1; then
+            echo "pg_restore is not available on server."
+            exit 1
+          fi
+
+          if [ -z "$PG_BACKUP_HOST" ] || [ -z "$PG_BACKUP_PORT" ] || [ -z "$PG_BACKUP_DATABASE" ] || [ -z "$PG_BACKUP_USER" ] || [ -z "$PG_BACKUP_PASSWORD" ]; then
+            echo "Database restore variables are missing in server .env."
+            echo "Required variables:"
+            echo "PG_BACKUP_HOST"
+            echo "PG_BACKUP_PORT"
+            echo "PG_BACKUP_DATABASE"
+            echo "PG_BACKUP_USER"
+            echo "PG_BACKUP_PASSWORD"
+            exit 1
+          fi
+
+          echo "Restore target database:"
+          echo "Host: $PG_BACKUP_HOST"
+          echo "Port: $PG_BACKUP_PORT"
+          echo "Database: $PG_BACKUP_DATABASE"
+          echo "User: $PG_BACKUP_USER"
+          echo "Password: hidden"
+          echo "Restore file: $RESTORE_FILE"
+
+          echo "Creating safety backup of CURRENT live database before restore..."
+
+          rm -f "$CURRENT_BACKUP"
+
+          PGPASSWORD="$PG_BACKUP_PASSWORD" pg_dump \
+            -h "$PG_BACKUP_HOST" \
+            -p "$PG_BACKUP_PORT" \
+            -U "$PG_BACKUP_USER" \
+            -d "$PG_BACKUP_DATABASE" \
+            -Fc \
+            -f "$CURRENT_BACKUP"
+
+          if [ ! -s "$CURRENT_BACKUP" ]; then
+            echo "Current database safety backup failed or is empty."
+            echo "Restore stopped."
+            exit 1
+          fi
+
+          chmod 600 "$CURRENT_BACKUP"
+
+          echo "Current live database safety backup created:"
+          ls -lh "$CURRENT_BACKUP"
+
+          echo "Stopping API before database restore..."
+
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 stop "$PM2_APP_NAME"
+          else
+            echo "PM2 app $PM2_APP_NAME was not found. Continuing with database restore."
+          fi
+
+          restore_failed() {
+            trap - ERR
+
+            echo "Database restore failed."
+            echo "Restarting API to avoid leaving service stopped..."
+
+            if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+              pm2 restart "$PM2_APP_NAME" --update-env || true
+            else
+              cd "$LIVE_PATH/dist/src"
+              pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env || true
+            fi
+
+            pm2 save || true
+
+            echo "Current database safety backup is available here:"
+            echo "$CURRENT_BACKUP"
+
+            echo "Selected restore file was:"
+            echo "$RESTORE_FILE"
+
+            exit 1
+          }
+
+          trap restore_failed ERR
+
+          echo "Restoring selected database backup..."
+          echo "This will modify the live database."
+
+          PGPASSWORD="$PG_BACKUP_PASSWORD" pg_restore \
+            -h "$PG_BACKUP_HOST" \
+            -p "$PG_BACKUP_PORT" \
+            -U "$PG_BACKUP_USER" \
+            -d "$PG_BACKUP_DATABASE" \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-acl \
+            --single-transaction \
+            --exit-on-error \
+            "$RESTORE_FILE"
+
+          trap - ERR
+
+          echo "Database restore completed successfully."
+
+          echo "Restarting API after database restore..."
+
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 restart "$PM2_APP_NAME" --update-env
+          else
+            cd "$LIVE_PATH/dist/src"
+            pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+          fi
+
+          pm2 save
+
+          echo "Checking backend website/API reachability with retry..."
+
+          HTTP_CODE="000"
+          ATTEMPT=1
+          MAX_ATTEMPTS=12
+
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+
+            if [ -z "$HTTP_CODE" ]; then
+              HTTP_CODE="000"
+            fi
+
+            echo "Backend HTTP code: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" -lt 500 ]; then
+              echo "Backend smoke check passed."
+              break
+            fi
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Backend smoke check failed after $MAX_ATTEMPTS attempts."
+              echo "Final HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "Backend not ready yet. Waiting 5 seconds..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          {
+            echo "restore_action=$RESTORE_ACTION"
+            echo "restore_file=$RESTORE_FILE"
+            echo "current_db_safety_backup=$CURRENT_BACKUP"
+            echo "pm2_app=$PM2_APP_NAME"
+            echo "actor=${{ github.actor }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "---"
+          } >> "$RESTORE_LOG"
+
+          echo "Cleaning empty DB backup files if any..."
+          find "$DB_BACKUPS_DIR" \
+            -type f \
+            -name "*.dump" \
+            -size 0 \
+            -print \
+            -delete || true
+
+          echo "Database restore workflow completed successfully."
+          echo ""
+          echo "Live database was restored from:"
+          echo "$RESTORE_FILE"
+          echo ""
+          echo "Safety backup of database before restore:"
+          echo "$CURRENT_BACKUP"
+          echo ""
+          echo "Important:"
+          echo "If the restored database belongs to an older code version, also rollback the backend code to the matching release."
+          REMOTE_SCRIPT

@@ -46,9 +46,17 @@ Enable carers and coordinators to manage **Service Users** (people receiving car
 
 - [ ] Types (weight, blood sugar, BP, temperature, SpO2, pulse, fluids, falls, bowel, meals, NEWS2, reports)
 
-## Pending — Medication
+## Done — Medication (MAR foundation, backend)
 
-- [ ] Medication list, MAR, PRN, events, reports
+- [x] Prisma models: lookups (type, route, category, frequency, round, not-given reason), `MedicationPack` / `MedicationPackItem`, `ServiceUserMedication`, `MedicationSchedule`, `MedicationAdministrationEvent`, `MedicationAllergy` (medication module), `MedicationSupportProfile`, `MedicationReview`, `MedicationStockRecord`
+- [x] REST APIs under `service-users/:id/...` and `medication-lookups`, `medication-reports`
+- [x] RBAC keys `service_users.medications.*` + seed role bundles
+- [x] Audit + data access logging for sensitive reads and mutations
+- [x] Optional `MEDICATION_ALERT` notification hook (recipient list placeholder)
+
+## Pending — Medication (advanced)
+
+- [ ] MAR PDF/export, pharmacy integration, stock par levels, automated review reminders
 
 ## Pending — Visits
 

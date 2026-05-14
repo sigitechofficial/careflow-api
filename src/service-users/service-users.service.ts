@@ -1,6 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { DataAccessType, FundingBillingType, FundingFunderKind } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { DataAccessType } from '@prisma/client';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -15,9 +14,6 @@ import { ServiceUserQueryDto } from './dto/service-user-query.dto';
 import { UpdateServiceUserStatusDto } from './dto/update-service-user-status.dto';
 import type { ServiceUserReferenceItemDto } from './dto/service-user-reference-item.dto';
 import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding-refs.dto';
-import { CreateServiceUserFundingProfileDto } from './dto/create-service-user-funding-profile.dto';
-import { UpdateServiceUserFundingProfileDto } from './dto/update-service-user-funding-profile.dto';
-import { CreateCustomRateCardDto } from './dto/create-custom-rate-card.dto';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
@@ -474,6 +470,37 @@ export class ServiceUsersService {
 
       await tx.serviceUser.update({
         where: { id },
+        data: { currentFundingId: null },
+      });
+      await tx.serviceUserFunding.updateMany({
+        where: { serviceUserId: id, deletedAt: null },
+        data: {
+          deletedAt: now,
+          deletedById: userId,
+          isActive: false,
+          isPrimary: false,
+          updatedById: userId,
+        },
+      });
+
+      const liveInProfile = await tx.serviceUserLiveInProfile.findFirst({
+        where: { serviceUserId: id, deletedAt: null },
+      });
+      if (liveInProfile) {
+        await tx.serviceUserLiveInPreferredCarer.deleteMany({ where: { liveInProfileId: liveInProfile.id } });
+        await tx.serviceUserLiveInBlockedCarer.deleteMany({ where: { liveInProfileId: liveInProfile.id } });
+        await tx.serviceUserLiveInContractDocument.updateMany({
+          where: { liveInProfileId: liveInProfile.id, deletedAt: null },
+          data: { deletedAt: now, isActive: false },
+        });
+        await tx.serviceUserLiveInProfile.update({
+          where: { id: liveInProfile.id },
+          data: { deletedAt: now, deletedById: userId, isActive: false, updatedById: userId },
+        });
+      }
+
+      await tx.serviceUser.update({
+        where: { id },
         data: { deletedAt: now, deletedById: userId, isActive: false },
       });
 
@@ -527,137 +554,6 @@ export class ServiceUsersService {
     if (!u) throw new NotFoundException('Service user not found');
   }
 
-  private mapFundingProfile(p: {
-    id: string;
-    billingType: FundingBillingType;
-    funder1Kind: FundingFunderKind;
-    funder1ContactId: string | null;
-    funder1ExternalName: string | null;
-    invoiceMileage: boolean;
-    sortOrder: number;
-    careService: { id: string; name: string; code: string };
-    rateCard: { id: string; name: string; code: string | null; isCustom: boolean };
-    funder1Contact: { id: string; firstName: string; lastName: string | null } | null;
-  }) {
-    return {
-      id: p.id,
-      billingType: p.billingType,
-      funder1Kind: p.funder1Kind,
-      funder1ContactId: p.funder1ContactId,
-      funder1ExternalName: p.funder1ExternalName,
-      invoiceMileage: p.invoiceMileage,
-      sortOrder: p.sortOrder,
-      careService: { id: p.careService.id, name: p.careService.name, code: p.careService.code },
-      rateCard: {
-        id: p.rateCard.id,
-        name: p.rateCard.name,
-        code: p.rateCard.code,
-        isCustom: p.rateCard.isCustom,
-      },
-      funder1Contact: p.funder1Contact
-        ? {
-            id: p.funder1Contact.id,
-            firstName: p.funder1Contact.firstName,
-            lastName: p.funder1Contact.lastName,
-          }
-        : null,
-    };
-  }
-
-  private assertFundingFunderFields(
-    kind: FundingFunderKind,
-    contactId: string | null | undefined,
-    externalName: string | null | undefined,
-  ) {
-    if (kind === 'SERVICE_USER') {
-      if (contactId) throw new BadRequestException('funder1ContactId must be empty when funder1Kind is SERVICE_USER');
-      if (externalName?.trim())
-        throw new BadRequestException('funder1ExternalName must be empty when funder1Kind is SERVICE_USER');
-      return;
-    }
-    if (kind === 'CONTACT') {
-      if (!contactId) throw new BadRequestException('funder1ContactId is required when funder1Kind is CONTACT');
-      if (externalName?.trim())
-        throw new BadRequestException('funder1ExternalName must be empty when funder1Kind is CONTACT');
-      return;
-    }
-    if (kind === 'EXTERNAL_FUNDER') {
-      const n = externalName?.trim();
-      if (!n) throw new BadRequestException('funder1ExternalName is required when funder1Kind is EXTERNAL_FUNDER');
-      if (contactId) throw new BadRequestException('funder1ContactId must be empty when funder1Kind is EXTERNAL_FUNDER');
-    }
-  }
-
-  private async assertRateCardForServiceUser(serviceUserId: string, rateCardId: string) {
-    const globalRc = await this.prisma.rateCard.findFirst({
-      where: { id: rateCardId, isActive: true, serviceUserId: null },
-    });
-    const customRc = await this.prisma.rateCard.findFirst({
-      where: { id: rateCardId, isActive: true, serviceUserId },
-    });
-    if (!globalRc && !customRc) throw new BadRequestException('Invalid or inactive rate card for this service user');
-  }
-
-  async getFundingLookups(serviceUserId: string) {
-    await this.ensureExists(serviceUserId);
-    const [careServices, globalRateCards, customRateCards] = await Promise.all([
-      this.prisma.fundingCareService.findMany({
-        where: { isActive: true },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-        select: { id: true, name: true, code: true },
-      }),
-      this.prisma.rateCard.findMany({
-        where: { isActive: true, serviceUserId: null },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-        select: { id: true, name: true, code: true, isCustom: true, serviceUserId: true, sortOrder: true },
-      }),
-      this.prisma.rateCard.findMany({
-        where: { isActive: true, serviceUserId },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-        select: { id: true, name: true, code: true, isCustom: true, serviceUserId: true, sortOrder: true },
-      }),
-    ]);
-    const rateCardKey = (r: { id: string }) => r.id;
-    const merged = new Map<string, (typeof globalRateCards)[0]>();
-    for (const r of globalRateCards) merged.set(rateCardKey(r), r);
-    for (const r of customRateCards) merged.set(rateCardKey(r), r);
-    const rateCards = Array.from(merged.values()).sort((a, b) => {
-      const so = a.sortOrder - b.sortOrder;
-      if (so !== 0) return so;
-      return a.name.localeCompare(b.name);
-    });
-    return {
-      data: {
-        careServices,
-        rateCards,
-      },
-    };
-  }
-
-  async getFunding(serviceUserId: string) {
-    await this.ensureExists(serviceUserId);
-    const user = await this.prisma.serviceUser.findFirst({
-      where: { id: serviceUserId, deletedAt: null },
-      select: { nhsNumber: true, socialServicesRef: true },
-    });
-    const profiles = await this.prisma.serviceUserFundingProfile.findMany({
-      where: { serviceUserId, deletedAt: null },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      include: {
-        careService: true,
-        rateCard: true,
-        funder1Contact: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
-    return {
-      data: {
-        nhsNumber: user?.nhsNumber ?? null,
-        socialServicesRef: user?.socialServicesRef ?? null,
-        profiles: profiles.map((p) => this.mapFundingProfile(p)),
-      },
-    };
-  }
-
   async patchFundingRefs(
     userId: string,
     serviceUserId: string,
@@ -693,209 +589,5 @@ export class ServiceUsersService {
       userAgent: meta?.userAgent,
     });
     return { message: 'Funding references updated', data: updated };
-  }
-
-  async createFundingProfile(
-    userId: string,
-    serviceUserId: string,
-    dto: CreateServiceUserFundingProfileDto,
-    meta?: RequestAuditMeta,
-  ) {
-    await this.ensureExists(serviceUserId);
-    const care = await this.prisma.fundingCareService.findFirst({
-      where: { id: dto.careServiceId, isActive: true },
-    });
-    if (!care) throw new BadRequestException('Invalid or inactive care service');
-    await this.assertRateCardForServiceUser(serviceUserId, dto.rateCardId);
-    this.assertFundingFunderFields(dto.funder1Kind, dto.funder1ContactId, dto.funder1ExternalName);
-    if (dto.funder1Kind === 'CONTACT' && dto.funder1ContactId) {
-      const c = await this.prisma.serviceUserContact.findFirst({
-        where: { id: dto.funder1ContactId, serviceUserId, deletedAt: null },
-      });
-      if (!c) throw new BadRequestException('Contact does not belong to this service user');
-    }
-    const maxSort = await this.prisma.serviceUserFundingProfile.aggregate({
-      where: { serviceUserId, deletedAt: null },
-      _max: { sortOrder: true },
-    });
-    const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
-    const row = await this.prisma.serviceUserFundingProfile.create({
-      data: {
-        serviceUserId,
-        careServiceId: dto.careServiceId,
-        billingType: dto.billingType,
-        funder1Kind: dto.funder1Kind,
-        funder1ContactId: dto.funder1Kind === 'CONTACT' ? dto.funder1ContactId : null,
-        funder1ExternalName:
-          dto.funder1Kind === 'EXTERNAL_FUNDER' ? (dto.funder1ExternalName ?? '').trim() || null : null,
-        rateCardId: dto.rateCardId,
-        invoiceMileage: dto.invoiceMileage ?? false,
-        sortOrder,
-        createdById: userId,
-        updatedById: userId,
-      },
-      include: {
-        careService: true,
-        rateCard: true,
-        funder1Contact: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.SERVICE_USER,
-      action: AuditAction.SERVICE_USER_FUNDING_PROFILE_ADDED,
-      recordType: 'ServiceUserFundingProfile',
-      recordId: row.id,
-      newValues: auditSnapshot(row),
-      metadata: { serviceUserId },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
-    return { data: this.mapFundingProfile(row) };
-  }
-
-  async updateFundingProfile(
-    userId: string,
-    serviceUserId: string,
-    profileId: string,
-    dto: UpdateServiceUserFundingProfileDto,
-    meta?: RequestAuditMeta,
-  ) {
-    const existing = await this.prisma.serviceUserFundingProfile.findFirst({
-      where: { id: profileId, serviceUserId, deletedAt: null },
-      include: {
-        careService: true,
-        rateCard: true,
-        funder1Contact: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
-    if (!existing) throw new NotFoundException('Funding profile not found');
-    const careServiceId = dto.careServiceId ?? existing.careServiceId;
-    if (dto.careServiceId) {
-      const care = await this.prisma.fundingCareService.findFirst({
-        where: { id: careServiceId, isActive: true },
-      });
-      if (!care) throw new BadRequestException('Invalid or inactive care service');
-    }
-    const rateCardId = dto.rateCardId ?? existing.rateCardId;
-    if (dto.rateCardId) {
-      await this.assertRateCardForServiceUser(serviceUserId, rateCardId);
-    }
-    const billingType = dto.billingType ?? existing.billingType;
-    const funder1Kind = dto.funder1Kind ?? existing.funder1Kind;
-    let funder1ContactId = dto.funder1ContactId !== undefined ? dto.funder1ContactId : existing.funder1ContactId;
-    let funder1ExternalName = dto.funder1ExternalName !== undefined ? dto.funder1ExternalName : existing.funder1ExternalName;
-    if (dto.funder1Kind !== undefined) {
-      if (funder1Kind !== 'CONTACT') funder1ContactId = null;
-      if (funder1Kind !== 'EXTERNAL_FUNDER') funder1ExternalName = null;
-    }
-    this.assertFundingFunderFields(funder1Kind, funder1ContactId, funder1ExternalName);
-    if (funder1Kind === 'CONTACT' && funder1ContactId) {
-      const c = await this.prisma.serviceUserContact.findFirst({
-        where: { id: funder1ContactId, serviceUserId, deletedAt: null },
-      });
-      if (!c) throw new BadRequestException('Contact does not belong to this service user');
-    }
-    const invoiceMileage = dto.invoiceMileage ?? existing.invoiceMileage;
-    const row = await this.prisma.serviceUserFundingProfile.update({
-      where: { id: profileId },
-      data: {
-        careServiceId,
-        billingType,
-        funder1Kind,
-        funder1ContactId: funder1Kind === 'CONTACT' ? funder1ContactId : null,
-        funder1ExternalName:
-          funder1Kind === 'EXTERNAL_FUNDER' ? (funder1ExternalName ?? '').trim() || null : null,
-        rateCardId,
-        invoiceMileage,
-        updatedById: userId,
-      },
-      include: {
-        careService: true,
-        rateCard: true,
-        funder1Contact: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.SERVICE_USER,
-      action: AuditAction.SERVICE_USER_FUNDING_PROFILE_UPDATED,
-      recordType: 'ServiceUserFundingProfile',
-      recordId: profileId,
-      oldValues: auditSnapshot(existing),
-      newValues: auditSnapshot(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
-    return { data: this.mapFundingProfile(row) };
-  }
-
-  async deleteFundingProfile(userId: string, serviceUserId: string, profileId: string, meta?: RequestAuditMeta) {
-    const existing = await this.prisma.serviceUserFundingProfile.findFirst({
-      where: { id: profileId, serviceUserId, deletedAt: null },
-    });
-    if (!existing) throw new NotFoundException('Funding profile not found');
-    await this.prisma.serviceUserFundingProfile.update({
-      where: { id: profileId },
-      data: { deletedAt: new Date(), deletedById: userId, updatedById: userId },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.SERVICE_USER,
-      action: AuditAction.SERVICE_USER_FUNDING_PROFILE_DELETED,
-      recordType: 'ServiceUserFundingProfile',
-      recordId: profileId,
-      oldValues: auditSnapshot(existing),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
-    return { message: 'Funding profile deleted', data: {} };
-  }
-
-  async createCustomRateCard(
-    userId: string,
-    serviceUserId: string,
-    dto: CreateCustomRateCardDto,
-    meta?: RequestAuditMeta,
-  ) {
-    await this.ensureExists(serviceUserId);
-    const care = await this.prisma.fundingCareService.findFirst({
-      where: { id: dto.careServiceId, isActive: true },
-    });
-    if (!care) throw new BadRequestException('Invalid or inactive care service');
-    const code = `CUSTOM_${randomUUID().replace(/-/g, '')}`;
-    const row = await this.prisma.rateCard.create({
-      data: {
-        name: dto.name.trim(),
-        code,
-        isCustom: true,
-        serviceUserId,
-        linkedCareServiceId: dto.careServiceId,
-        standardHourlyRate: dto.standardHourlyRate,
-        mileageRatePerUnit: dto.mileageRatePerUnit ?? undefined,
-        startDate: new Date(dto.startDate),
-        sortOrder: 10_000,
-      },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.SERVICE_USER,
-      action: AuditAction.SERVICE_USER_RATE_CARD_CREATED,
-      recordType: 'RateCard',
-      recordId: row.id,
-      newValues: auditSnapshot(row),
-      metadata: { serviceUserId },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
-    return {
-      data: {
-        id: row.id,
-        name: row.name,
-        code: row.code,
-        isCustom: row.isCustom,
-        serviceUserId: row.serviceUserId,
-      },
-    };
   }
 }

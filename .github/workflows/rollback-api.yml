@@ -1,0 +1,654 @@
+name: Rollback Careflow API
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_type:
+        description: "Choose rollback action"
+        required: true
+        type: choice
+        options:
+          - list-available
+          - previous-release
+          - specific-release
+          - latest-file-backup
+          - specific-file-backup
+
+      target:
+        description: "Required only for specific-release or specific-file-backup. Example: release-20260514-083000Z-run-8-790ef770 or file-before-release-20260514-083000Z-run-8-790ef770.tar.gz"
+        required: false
+        type: string
+
+      confirmation:
+        description: "Type ROLLBACK to confirm. Not required for list-available."
+        required: false
+        type: string
+
+concurrency:
+  group: careflow-api-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback Careflow API
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
+      BACKEND_APP_URL: ${{ secrets.BACKEND_APP_URL }}
+      BACKEND_PM2_APP_NAME: ${{ secrets.BACKEND_PM2_APP_NAME }}
+      ROLLBACK_TYPE: ${{ github.event.inputs.rollback_type }}
+      TARGET: ${{ github.event.inputs.target }}
+      CONFIRMATION: ${{ github.event.inputs.confirmation }}
+
+    steps:
+      - name: Validate rollback confirmation
+        run: |
+          if [ "$ROLLBACK_TYPE" = "list-available" ]; then
+            echo "Listing available rollback options. Confirmation is not required."
+            exit 0
+          fi
+
+          if [ "$CONFIRMATION" != "ROLLBACK" ]; then
+            echo "Rollback blocked."
+            echo "Type ROLLBACK in the confirmation field to continue."
+            exit 1
+          fi
+
+          echo "Rollback confirmation accepted."
+
+      - name: Configure SSH access
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          echo "Adding VPS host key to known_hosts..."
+
+          for i in 1 2 3 4 5; do
+            ssh-keyscan -T 20 -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts && break
+            echo "ssh-keyscan failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Failed to add VPS host key."
+            exit 1
+          fi
+
+          echo "SSH access configured."
+
+      - name: Run rollback command on VPS
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          APP_NAME="careflow-api"
+          LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+          APP_URL="${{ secrets.BACKEND_APP_URL }}"
+          PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
+          ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+          TARGET="${{ github.event.inputs.target }}"
+
+          if [ -z "$LIVE_PATH" ]; then
+            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+          fi
+
+          if [ -z "$APP_URL" ]; then
+            APP_URL="https://careflowbackend.sigisolutions.net/"
+          fi
+
+          if [ -z "$PM2_APP_NAME" ]; then
+            PM2_APP_NAME="main"
+          fi
+
+          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          RELEASES_DIR="$DEPLOY_ROOT/releases"
+          BACKUPS_DIR="$DEPLOY_ROOT/backups"
+          DB_BACKUPS_DIR="$DEPLOY_ROOT/db-backups"
+          LOGS_DIR="$DEPLOY_ROOT/logs"
+          CURRENT_RELEASE_FILE="$DEPLOY_ROOT/current-release.txt"
+
+          ROLLBACK_TEMP="$DEPLOY_ROOT/manual-rollback-temp"
+          RECOVERY_TEMP="$DEPLOY_ROOT/rollback-recovery-temp"
+
+          ROLLBACK_TS="$(date -u +%Y%m%d-%H%M%SZ)"
+          SAFE_ROLLBACK_TYPE="$(printf '%s' "$ROLLBACK_TYPE" | tr -cd 'A-Za-z0-9_.-')"
+
+          PRE_ROLLBACK_BACKUP="$BACKUPS_DIR/pre-rollback-file-${ROLLBACK_TS}-${SAFE_ROLLBACK_TYPE}.tar.gz"
+          PRE_ROLLBACK_DB_BACKUP="$DB_BACKUPS_DIR/pre-rollback-db-${ROLLBACK_TS}-${SAFE_ROLLBACK_TYPE}.dump"
+          ROLLBACK_LOG="$LOGS_DIR/rollbacks.log"
+
+          mkdir -p "$RELEASES_DIR" "$BACKUPS_DIR" "$DB_BACKUPS_DIR" "$LOGS_DIR"
+
+          echo "Rollback workflow for $APP_NAME"
+          echo "Rollback type: $ROLLBACK_TYPE"
+          echo "Target: ${TARGET:-not provided}"
+          echo "Live path: $LIVE_PATH"
+          echo "PM2 app: $PM2_APP_NAME"
+
+          print_release_metadata() {
+            RELEASE_DIR="$1"
+            RELEASE_NAME="$(basename "$RELEASE_DIR")"
+
+            echo ""
+            echo "----------------------------------------"
+            echo "Rollback target for specific-release:"
+            echo "$RELEASE_NAME"
+            echo "----------------------------------------"
+
+            if [ -f "$RELEASE_DIR/release-info.txt" ]; then
+              cat "$RELEASE_DIR/release-info.txt"
+            elif [ -f "$RELEASE_DIR/release.json" ]; then
+              echo "Release metadata:"
+              cat "$RELEASE_DIR/release.json"
+            else
+              echo "No release metadata found for this release."
+            fi
+          }
+
+          print_file_backup_metadata() {
+            BACKUP_FILE="$1"
+            BACKUP_NAME="$(basename "$BACKUP_FILE")"
+
+            echo ""
+            echo "----------------------------------------"
+            echo "Rollback target for specific-file-backup:"
+            echo "$BACKUP_NAME"
+            echo "----------------------------------------"
+
+            ls -lh "$BACKUP_FILE" || true
+
+            META_INFO_PATH="$(tar -tzf "$BACKUP_FILE" 2>/dev/null | grep -E '(^|/)release-info\.txt$' | head -n 1 || true)"
+            META_JSON_PATH="$(tar -tzf "$BACKUP_FILE" 2>/dev/null | grep -E '(^|/)release\.json$' | head -n 1 || true)"
+
+            if [ -n "$META_INFO_PATH" ]; then
+              echo "Release info inside backup:"
+              tar -xOzf "$BACKUP_FILE" "$META_INFO_PATH" || true
+            elif [ -n "$META_JSON_PATH" ]; then
+              echo "Release metadata inside backup:"
+              tar -xOzf "$BACKUP_FILE" "$META_JSON_PATH" || true
+            else
+              echo "No release metadata found inside this backup."
+            fi
+          }
+
+          print_db_backup_metadata() {
+            DB_FILE="$1"
+            DB_NAME="$(basename "$DB_FILE")"
+
+            echo ""
+            echo "----------------------------------------"
+            echo "Database backup file:"
+            echo "$DB_NAME"
+            echo "----------------------------------------"
+
+            ls -lh "$DB_FILE" || true
+
+            if [ ! -s "$DB_FILE" ]; then
+              echo "Status: INVALID, file is empty. Do not restore this backup."
+            else
+              echo "Status: Valid backup file"
+            fi
+          }
+
+          if [ "$ROLLBACK_TYPE" = "list-available" ]; then
+            echo ""
+            echo "=============================="
+            echo "Current release"
+            echo "=============================="
+
+            if [ -f "$CURRENT_RELEASE_FILE" ]; then
+              cat "$CURRENT_RELEASE_FILE"
+            else
+              echo "No current-release.txt found."
+            fi
+
+            echo ""
+            echo "=============================="
+            echo "Available releases"
+            echo "Use these values with rollback_type = specific-release"
+            echo "=============================="
+
+            if ls -1dt "$RELEASES_DIR"/* > /dev/null 2>&1; then
+              for RELEASE_DIR in $(ls -1dt "$RELEASES_DIR"/* 2>/dev/null | head -n 15); do
+                print_release_metadata "$RELEASE_DIR"
+              done
+            else
+              echo "No releases found."
+            fi
+
+            echo ""
+            echo "=============================="
+            echo "Available file backups"
+            echo "Use these values with rollback_type = specific-file-backup"
+            echo "=============================="
+
+            if ls -1t "$BACKUPS_DIR"/*.tar.gz > /dev/null 2>&1; then
+              for BACKUP_FILE in $(ls -1t "$BACKUPS_DIR"/*.tar.gz 2>/dev/null | grep -v '/pre-rollback-file-' | head -n 15); do
+                print_file_backup_metadata "$BACKUP_FILE"
+              done
+            else
+              echo "No file backups found."
+            fi
+
+            echo ""
+            echo "=============================="
+            echo "Available pre-rollback file backups"
+            echo "Use these with rollback_type = specific-file-backup only if needed"
+            echo "=============================="
+
+            if ls -1t "$BACKUPS_DIR"/pre-rollback-file-*.tar.gz > /dev/null 2>&1; then
+              for BACKUP_FILE in $(ls -1t "$BACKUPS_DIR"/pre-rollback-file-*.tar.gz 2>/dev/null | head -n 15); do
+                print_file_backup_metadata "$BACKUP_FILE"
+              done
+            else
+              echo "No pre-rollback file backups found."
+            fi
+
+            echo ""
+            echo "=============================="
+            echo "Available database backups"
+            echo "DB backups are listed only. This rollback workflow does not restore DB automatically."
+            echo "=============================="
+
+            echo ""
+            echo "Regular DB backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/db-before-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/db-before-*.dump 2>/dev/null | head -n 15); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No regular DB backups found."
+            fi
+
+            echo ""
+            echo "Pre-rollback DB backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/pre-rollback-db-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/pre-rollback-db-*.dump 2>/dev/null | head -n 15); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No pre-rollback DB backups found."
+            fi
+
+            echo ""
+            echo "Legacy DB backups:"
+            if ls -1t "$DB_BACKUPS_DIR"/db-backup-*.dump > /dev/null 2>&1; then
+              for DB_FILE in $(ls -1t "$DB_BACKUPS_DIR"/db-backup-*.dump 2>/dev/null | head -n 15); do
+                print_db_backup_metadata "$DB_FILE"
+              done
+            else
+              echo "No legacy DB backups found."
+            fi
+
+            echo ""
+            echo "List completed."
+            exit 0
+          fi
+
+          create_pre_rollback_file_backup() {
+            echo "Creating pre-rollback file backup..."
+
+            tar \
+              --exclude=".env" \
+              --exclude=".env.*" \
+              --exclude=".htaccess" \
+              --exclude=".well-known" \
+              --exclude="uploads" \
+              --exclude="node_modules" \
+              --exclude="careadmin-backend.zip" \
+              --exclude="*.pem" \
+              --exclude="*.key" \
+              -czf "$PRE_ROLLBACK_BACKUP" \
+              -C "$LIVE_PATH" .
+
+            if [ ! -s "$PRE_ROLLBACK_BACKUP" ]; then
+              echo "Pre-rollback file backup was not created or is empty."
+              exit 1
+            fi
+
+            chmod 600 "$PRE_ROLLBACK_BACKUP"
+
+            echo "Pre-rollback file backup created:"
+            ls -lh "$PRE_ROLLBACK_BACKUP"
+          }
+
+          create_pre_rollback_db_backup_if_possible() {
+            echo "Creating pre-rollback database backup if PG_BACKUP variables are available..."
+
+            PG_BACKUP_HOST=""
+            PG_BACKUP_PORT=""
+            PG_BACKUP_DATABASE=""
+            PG_BACKUP_USER=""
+            PG_BACKUP_PASSWORD=""
+
+            if [ -f "$LIVE_PATH/.env" ]; then
+              PG_BACKUP_HOST="$(grep -E '^PG_BACKUP_HOST=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+              PG_BACKUP_PORT="$(grep -E '^PG_BACKUP_PORT=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+              PG_BACKUP_DATABASE="$(grep -E '^PG_BACKUP_DATABASE=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+              PG_BACKUP_USER="$(grep -E '^PG_BACKUP_USER=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+              PG_BACKUP_PASSWORD="$(grep -E '^PG_BACKUP_PASSWORD=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            fi
+
+            if ! command -v pg_dump > /dev/null 2>&1; then
+              echo "pg_dump not available. Skipping pre-rollback database backup."
+              return 0
+            fi
+
+            if [ -z "$PG_BACKUP_HOST" ] || [ -z "$PG_BACKUP_PORT" ] || [ -z "$PG_BACKUP_DATABASE" ] || [ -z "$PG_BACKUP_USER" ] || [ -z "$PG_BACKUP_PASSWORD" ]; then
+              echo "One or more PG_BACKUP variables missing. Skipping pre-rollback database backup."
+              return 0
+            fi
+
+            echo "Pre-rollback database backup target:"
+            echo "Host: $PG_BACKUP_HOST"
+            echo "Port: $PG_BACKUP_PORT"
+            echo "Database: $PG_BACKUP_DATABASE"
+            echo "User: $PG_BACKUP_USER"
+            echo "Password: hidden"
+
+            rm -f "$PRE_ROLLBACK_DB_BACKUP"
+
+            if PGPASSWORD="$PG_BACKUP_PASSWORD" pg_dump \
+              -h "$PG_BACKUP_HOST" \
+              -p "$PG_BACKUP_PORT" \
+              -U "$PG_BACKUP_USER" \
+              -d "$PG_BACKUP_DATABASE" \
+              -Fc \
+              -f "$PRE_ROLLBACK_DB_BACKUP"; then
+
+              if [ -s "$PRE_ROLLBACK_DB_BACKUP" ]; then
+                chmod 600 "$PRE_ROLLBACK_DB_BACKUP"
+                echo "Pre-rollback database backup created:"
+                ls -lh "$PRE_ROLLBACK_DB_BACKUP"
+              else
+                echo "Pre-rollback database backup file is empty. Removing it."
+                rm -f "$PRE_ROLLBACK_DB_BACKUP"
+              fi
+            else
+              echo "Pre-rollback database backup failed. Continuing with code rollback only."
+              rm -f "$PRE_ROLLBACK_DB_BACKUP"
+            fi
+          }
+
+          restore_original_on_failed_rollback() {
+            trap - ERR
+
+            echo "Rollback failed. Attempting to restore pre-rollback file backup..."
+
+            if [ -f "$PRE_ROLLBACK_BACKUP" ]; then
+              rm -rf "$RECOVERY_TEMP"
+              mkdir -p "$RECOVERY_TEMP"
+
+              tar -xzf "$PRE_ROLLBACK_BACKUP" -C "$RECOVERY_TEMP"
+
+              rsync -az --delete \
+                --exclude=".env" \
+                --exclude=".env.*" \
+                --exclude=".htaccess" \
+                --exclude=".well-known" \
+                --exclude="uploads" \
+                --exclude="node_modules" \
+                --exclude="*.pem" \
+                --exclude="*.key" \
+                "$RECOVERY_TEMP/" "$LIVE_PATH/"
+
+              cd "$LIVE_PATH"
+
+              npm ci
+              npx prisma generate
+
+              if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+                pm2 reload "$PM2_APP_NAME" --update-env
+              else
+                cd "$LIVE_PATH/dist/src"
+                pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+              fi
+
+              pm2 save
+
+              echo "Recovery from failed rollback completed."
+            else
+              echo "No pre-rollback file backup available for recovery."
+            fi
+
+            exit 1
+          }
+
+          create_pre_rollback_file_backup
+          create_pre_rollback_db_backup_if_possible
+
+          trap restore_original_on_failed_rollback ERR
+
+          SOURCE_TYPE=""
+          SOURCE_PATH=""
+
+          if [ "$ROLLBACK_TYPE" = "previous-release" ]; then
+            SOURCE_TYPE="release"
+
+            CURRENT_RELEASE=""
+            if [ -f "$CURRENT_RELEASE_FILE" ]; then
+              CURRENT_RELEASE="$(cat "$CURRENT_RELEASE_FILE")"
+            fi
+
+            if [ -z "$CURRENT_RELEASE" ]; then
+              echo "Current release is unknown. Cannot safely choose previous release."
+              exit 1
+            fi
+
+            SOURCE_PATH=""
+
+            for RELEASE_DIR in $(ls -1dt "$RELEASES_DIR"/* 2>/dev/null || true); do
+              RELEASE_NAME="$(basename "$RELEASE_DIR")"
+
+              if [ "$RELEASE_NAME" != "$CURRENT_RELEASE" ]; then
+                SOURCE_PATH="$RELEASE_DIR"
+                break
+              fi
+            done
+
+            if [ -z "$SOURCE_PATH" ]; then
+              echo "No previous release found."
+              exit 1
+            fi
+
+          elif [ "$ROLLBACK_TYPE" = "specific-release" ]; then
+            SOURCE_TYPE="release"
+
+            if [ -z "$TARGET" ]; then
+              echo "Target is required for specific-release."
+              exit 1
+            fi
+
+            case "$TARGET" in
+              *".."*|*"/"*|"")
+                echo "Invalid specific-release target."
+                exit 1
+                ;;
+            esac
+
+            SOURCE_PATH="$RELEASES_DIR/$TARGET"
+
+            if [ ! -d "$SOURCE_PATH" ]; then
+              echo "Specific release folder not found: $SOURCE_PATH"
+              exit 1
+            fi
+
+          elif [ "$ROLLBACK_TYPE" = "latest-file-backup" ]; then
+            SOURCE_TYPE="file-backup"
+
+            SOURCE_PATH="$(ls -1t "$BACKUPS_DIR"/*.tar.gz 2>/dev/null | grep -v '/pre-rollback-file-' | head -n 1 || true)"
+
+            if [ -z "$SOURCE_PATH" ]; then
+              echo "No latest file backup found."
+              exit 1
+            fi
+
+          elif [ "$ROLLBACK_TYPE" = "specific-file-backup" ]; then
+            SOURCE_TYPE="file-backup"
+
+            if [ -z "$TARGET" ]; then
+              echo "Target is required for specific-file-backup."
+              exit 1
+            fi
+
+            case "$TARGET" in
+              *".."*|*"/"*|"")
+                echo "Invalid specific-file-backup target."
+                exit 1
+                ;;
+            esac
+
+            SOURCE_PATH="$BACKUPS_DIR/$TARGET"
+
+            if [ ! -f "$SOURCE_PATH" ]; then
+              echo "Specific file backup not found: $SOURCE_PATH"
+              exit 1
+            fi
+
+          else
+            echo "Invalid rollback type: $ROLLBACK_TYPE"
+            exit 1
+          fi
+
+          echo "Selected rollback source type: $SOURCE_TYPE"
+          echo "Selected rollback source path: $SOURCE_PATH"
+
+          rm -rf "$ROLLBACK_TEMP"
+          mkdir -p "$ROLLBACK_TEMP"
+
+          if [ "$SOURCE_TYPE" = "file-backup" ]; then
+            tar -xzf "$SOURCE_PATH" -C "$ROLLBACK_TEMP"
+            DEPLOY_SOURCE="$ROLLBACK_TEMP"
+          else
+            DEPLOY_SOURCE="$SOURCE_PATH"
+          fi
+
+          test -f "$DEPLOY_SOURCE/dist/src/main.js"
+          test -f "$DEPLOY_SOURCE/package.json"
+          test -f "$DEPLOY_SOURCE/package-lock.json"
+          test -f "$DEPLOY_SOURCE/prisma/schema.prisma"
+
+          echo "Syncing rollback source to live folder..."
+
+          rsync -az --delete \
+            --exclude=".env" \
+            --exclude=".env.*" \
+            --exclude=".htaccess" \
+            --exclude=".well-known" \
+            --exclude="uploads" \
+            --exclude="node_modules" \
+            --exclude="*.pem" \
+            --exclude="*.key" \
+            "$DEPLOY_SOURCE/" "$LIVE_PATH/"
+
+          cd "$LIVE_PATH"
+
+          echo "Installing dependencies after rollback..."
+          npm ci
+
+          echo "Generating Prisma client after rollback..."
+          npx prisma generate
+
+          echo "Reloading PM2 app after rollback..."
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 reload "$PM2_APP_NAME" --update-env
+          else
+            cd "$LIVE_PATH/dist/src"
+            pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+          fi
+
+          pm2 save
+
+          if [ "$SOURCE_TYPE" = "release" ]; then
+            basename "$SOURCE_PATH" > "$CURRENT_RELEASE_FILE"
+          else
+            BACKUP_BASE="$(basename "$SOURCE_PATH" .tar.gz)"
+            echo "rollback-from-${BACKUP_BASE}-${ROLLBACK_TS}" > "$CURRENT_RELEASE_FILE"
+          fi
+
+          echo "Checking backend website/API reachability with retry..."
+
+          HTTP_CODE="000"
+          ATTEMPT=1
+          MAX_ATTEMPTS=12
+
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+
+            if [ -z "$HTTP_CODE" ]; then
+              HTTP_CODE="000"
+            fi
+
+            echo "Backend HTTP code: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" -lt 500 ]; then
+              echo "Backend smoke check passed."
+              break
+            fi
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Backend smoke check failed after $MAX_ATTEMPTS attempts."
+              echo "Final HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "Backend not ready yet. Waiting 5 seconds..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          {
+            echo "rollback_type=$ROLLBACK_TYPE"
+            echo "target=$TARGET"
+            echo "source_type=$SOURCE_TYPE"
+            echo "source_path=$SOURCE_PATH"
+            echo "pre_rollback_file_backup=$PRE_ROLLBACK_BACKUP"
+            echo "pre_rollback_db_backup=$PRE_ROLLBACK_DB_BACKUP"
+            echo "pm2_app=$PM2_APP_NAME"
+            echo "actor=${{ github.actor }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "---"
+          } >> "$ROLLBACK_LOG"
+
+          rm -rf "$ROLLBACK_TEMP" "$RECOVERY_TEMP"
+
+          echo "Rollback completed successfully."
+          echo ""
+          echo "Rollback source:"
+          echo "$SOURCE_PATH"
+          echo ""
+          echo "Pre-rollback file backup created:"
+          echo "$PRE_ROLLBACK_BACKUP"
+          echo ""
+          echo "Pre-rollback database backup attempted here:"
+          echo "$PRE_ROLLBACK_DB_BACKUP"
+          echo ""
+          echo "Important:"
+          echo "This workflow restored backend application files only."
+          echo "It did not restore the PostgreSQL database."
+          echo "Use the separate database restore workflow only if database restore is required."
+          REMOTE_SCRIPT

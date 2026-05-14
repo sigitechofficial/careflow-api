@@ -1,0 +1,515 @@
+name: Deploy Careflow API
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: careflow-api-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build NestJS API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout API repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build NestJS API
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Validate backend build output
+        run: |
+          test -f dist/src/main.js
+          test -f prisma/schema.prisma
+          test -d prisma/migrations
+          test -f package.json
+          test -f package-lock.json
+          echo "Backend build output verified."
+
+      - name: Create release metadata
+        run: |
+          cat > release.json <<EOF
+          {
+            "app": "careflow-api",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "deployedBy": "${{ github.actor }}",
+            "runId": "${{ github.run_id }}",
+            "runNumber": "${{ github.run_number }}",
+            "deployedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+      - name: Package backend release
+        run: |
+          tar -czf careflow-api-release.tar.gz \
+            dist \
+            prisma \
+            package.json \
+            package-lock.json \
+            nest-cli.json \
+            tsconfig.json \
+            tsconfig.build.json \
+            release.json
+
+      - name: Upload backend release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: careflow-api-release
+          path: careflow-api-release.tar.gz
+          retention-days: 7
+
+  deploy:
+    name: Deploy to cPanel VPS
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
+      BACKEND_APP_URL: ${{ secrets.BACKEND_APP_URL }}
+      BACKEND_PM2_APP_NAME: ${{ secrets.BACKEND_PM2_APP_NAME }}
+
+    steps:
+      - name: Download backend release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: careflow-api-release
+
+      - name: Configure SSH access
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          echo "Adding VPS host key to known_hosts..."
+
+          for i in 1 2 3 4 5; do
+            ssh-keyscan -T 20 -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts && break
+            echo "ssh-keyscan failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Failed to add VPS host key."
+            exit 1
+          fi
+
+          echo "SSH access configured."
+
+      - name: Verify SSH connection
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "whoami && pwd && ls -ld '$BACKEND_DEPLOY_PATH'"
+
+      - name: Prepare remote deployment folders
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "
+              mkdir -p /home/sigisolutions/deployments/careflow-api/incoming
+              mkdir -p /home/sigisolutions/deployments/careflow-api/releases
+              mkdir -p /home/sigisolutions/deployments/careflow-api/backups
+              mkdir -p /home/sigisolutions/deployments/careflow-api/db-backups
+              mkdir -p /home/sigisolutions/deployments/careflow-api/logs
+            "
+
+      - name: Upload backend release package
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          scp -i ~/.ssh/deploy_key \
+            -P "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            careflow-api-release.tar.gz \
+            "$VPS_USER@$VPS_HOST:/home/sigisolutions/deployments/careflow-api/incoming/${{ github.sha }}.tar.gz"
+
+      - name: Deploy backend release with backup and rollback protection
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          APP_NAME="careflow-api"
+          RELEASE_ID="${{ github.sha }}"
+          LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+          APP_URL="${{ secrets.BACKEND_APP_URL }}"
+          PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
+
+          if [ -z "$LIVE_PATH" ]; then
+            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+          fi
+
+          if [ -z "$APP_URL" ]; then
+            APP_URL="https://careflowbackend.sigisolutions.net/"
+          fi
+
+          if [ -z "$PM2_APP_NAME" ]; then
+            PM2_APP_NAME="main"
+          fi
+
+          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          INCOMING_FILE="$DEPLOY_ROOT/incoming/$RELEASE_ID.tar.gz"
+
+          DEPLOY_TS="$(date -u +%Y%m%d-%H%M%SZ)"
+          SHORT_SHA="$(printf '%s' "$RELEASE_ID" | cut -c1-8)"
+          RELEASE_NAME="release-${DEPLOY_TS}-run-${{ github.run_number }}-${SHORT_SHA}"
+
+          RELEASE_PATH="$DEPLOY_ROOT/releases/$RELEASE_NAME"
+          BACKUP_FILE="$DEPLOY_ROOT/backups/file-before-${RELEASE_NAME}.tar.gz"
+          DB_BACKUP_FILE="$DEPLOY_ROOT/db-backups/db-before-${RELEASE_NAME}.dump"
+
+          ROLLBACK_DIR="$DEPLOY_ROOT/rollback-temp"
+          DEPLOY_LOG="$DEPLOY_ROOT/logs/deployments.log"
+
+          rollback() {
+            echo "Deployment failed. Starting backend file rollback..."
+
+            if [ -f "$BACKUP_FILE" ]; then
+              rm -rf "$ROLLBACK_DIR"
+              mkdir -p "$ROLLBACK_DIR"
+
+              tar -xzf "$BACKUP_FILE" -C "$ROLLBACK_DIR"
+
+              rsync -az --delete \
+                --exclude=".env" \
+                --exclude=".env.*" \
+                --exclude=".htaccess" \
+                --exclude=".well-known" \
+                --exclude="uploads" \
+                --exclude="node_modules" \
+                --exclude="*.pem" \
+                --exclude="*.key" \
+                "$ROLLBACK_DIR/" "$LIVE_PATH/"
+
+              cd "$LIVE_PATH"
+
+              echo "Reinstalling dependencies after rollback..."
+              npm ci
+
+              echo "Regenerating Prisma client after rollback..."
+              npx prisma generate
+
+              echo "Reloading PM2 after rollback..."
+              if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+                pm2 reload "$PM2_APP_NAME" --update-env
+              else
+                cd "$LIVE_PATH/dist/src"
+                pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+              fi
+
+              pm2 save
+
+              echo "Backend file rollback completed."
+              echo "Important: database was not restored automatically."
+              echo "Database backup created before this deployment is available at:"
+              echo "$DB_BACKUP_FILE"
+            else
+              echo "No file backup found. Rollback skipped."
+            fi
+          }
+
+          trap rollback ERR
+
+          echo "Starting deployment for $APP_NAME"
+          echo "Release ID: $RELEASE_ID"
+          echo "Release name: $RELEASE_NAME"
+          echo "Live path: $LIVE_PATH"
+          echo "PM2 app: $PM2_APP_NAME"
+
+          test -f "$INCOMING_FILE"
+
+          rm -rf "$RELEASE_PATH"
+          mkdir -p "$RELEASE_PATH"
+
+          echo "Extracting release..."
+          tar -xzf "$INCOMING_FILE" -C "$RELEASE_PATH"
+
+          test -f "$RELEASE_PATH/dist/src/main.js"
+          test -f "$RELEASE_PATH/prisma/schema.prisma"
+          test -d "$RELEASE_PATH/prisma/migrations"
+          test -f "$RELEASE_PATH/package.json"
+          test -f "$RELEASE_PATH/package-lock.json"
+
+          cat > "$RELEASE_PATH/release-info.txt" <<EOF
+          Release name:
+          $RELEASE_NAME
+
+          How to read this release name:
+          release = deployable backend release
+          $DEPLOY_TS = deployment date and UTC time
+          run-${{ github.run_number }} = GitHub Actions run number
+          $SHORT_SHA = first 8 characters of the commit SHA
+
+          App:
+          $APP_NAME
+
+          Full commit:
+          $RELEASE_ID
+
+          Short commit:
+          $SHORT_SHA
+
+          Branch:
+          ${{ github.ref_name }}
+
+          GitHub run number:
+          ${{ github.run_number }}
+
+          GitHub run ID:
+          ${{ github.run_id }}
+
+          Deployed by:
+          ${{ github.actor }}
+
+          Deployed at UTC:
+          $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          File backup created before this release:
+          file-before-${RELEASE_NAME}.tar.gz
+
+          Database backup created before this release:
+          db-before-${RELEASE_NAME}.dump
+
+          Use this value for specific-release rollback:
+          $RELEASE_NAME
+          EOF
+
+          echo "Creating backup of current backend files..."
+          tar \
+            --exclude=".env" \
+            --exclude=".env.*" \
+            --exclude=".htaccess" \
+            --exclude=".well-known" \
+            --exclude="uploads" \
+            --exclude="node_modules" \
+            --exclude="careadmin-backend.zip" \
+            --exclude="*.pem" \
+            --exclude="*.key" \
+            -czf "$BACKUP_FILE" \
+            -C "$LIVE_PATH" .
+
+          if [ ! -s "$BACKUP_FILE" ]; then
+            echo "File backup was not created or is empty."
+            exit 1
+          fi
+
+          chmod 600 "$BACKUP_FILE"
+
+          echo "File backup created successfully:"
+          ls -lh "$BACKUP_FILE"
+
+          echo "Creating PostgreSQL backup using PG_BACKUP variables from server .env..."
+
+          PG_BACKUP_HOST=""
+          PG_BACKUP_PORT=""
+          PG_BACKUP_DATABASE=""
+          PG_BACKUP_USER=""
+          PG_BACKUP_PASSWORD=""
+
+          if [ -f "$LIVE_PATH/.env" ]; then
+            PG_BACKUP_HOST="$(grep -E '^PG_BACKUP_HOST=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PORT="$(grep -E '^PG_BACKUP_PORT=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_DATABASE="$(grep -E '^PG_BACKUP_DATABASE=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_USER="$(grep -E '^PG_BACKUP_USER=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PASSWORD="$(grep -E '^PG_BACKUP_PASSWORD=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+          fi
+
+          if ! command -v pg_dump > /dev/null 2>&1; then
+            echo "pg_dump is not available on server. Database backup cannot continue."
+            exit 1
+          fi
+
+          if [ -z "$PG_BACKUP_HOST" ] || [ -z "$PG_BACKUP_PORT" ] || [ -z "$PG_BACKUP_DATABASE" ] || [ -z "$PG_BACKUP_USER" ] || [ -z "$PG_BACKUP_PASSWORD" ]; then
+            echo "Database backup variables are missing in server .env."
+            echo "Required variables:"
+            echo "PG_BACKUP_HOST"
+            echo "PG_BACKUP_PORT"
+            echo "PG_BACKUP_DATABASE"
+            echo "PG_BACKUP_USER"
+            echo "PG_BACKUP_PASSWORD"
+            exit 1
+          fi
+
+          echo "Database backup target:"
+          echo "Host: $PG_BACKUP_HOST"
+          echo "Port: $PG_BACKUP_PORT"
+          echo "Database: $PG_BACKUP_DATABASE"
+          echo "User: $PG_BACKUP_USER"
+          echo "Password: hidden"
+
+          rm -f "$DB_BACKUP_FILE"
+
+          PGPASSWORD="$PG_BACKUP_PASSWORD" pg_dump \
+            -h "$PG_BACKUP_HOST" \
+            -p "$PG_BACKUP_PORT" \
+            -U "$PG_BACKUP_USER" \
+            -d "$PG_BACKUP_DATABASE" \
+            -Fc \
+            -f "$DB_BACKUP_FILE"
+
+          if [ ! -s "$DB_BACKUP_FILE" ]; then
+            echo "Database backup file was not created or is empty."
+            exit 1
+          fi
+
+          chmod 600 "$DB_BACKUP_FILE"
+
+          echo "Database backup created successfully:"
+          ls -lh "$DB_BACKUP_FILE"
+
+          echo "Syncing new backend release to live folder..."
+          rsync -az --delete \
+            --exclude=".env" \
+            --exclude=".env.*" \
+            --exclude=".htaccess" \
+            --exclude=".well-known" \
+            --exclude="uploads" \
+            --exclude="node_modules" \
+            --exclude="*.pem" \
+            --exclude="*.key" \
+            "$RELEASE_PATH/" "$LIVE_PATH/"
+
+          cd "$LIVE_PATH"
+
+          echo "Installing backend dependencies..."
+          npm ci
+
+          echo "Generating Prisma client..."
+          npx prisma generate
+
+          echo "Applying Prisma migrations..."
+          npx prisma migrate deploy
+
+          echo "Reloading PM2 app..."
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 reload "$PM2_APP_NAME" --update-env
+          else
+            cd "$LIVE_PATH/dist/src"
+            pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+          fi
+
+          pm2 save
+
+          echo "$RELEASE_NAME" > "$DEPLOY_ROOT/current-release.txt"
+
+          {
+            echo "release_name=$RELEASE_NAME"
+            echo "commit=$RELEASE_ID"
+            echo "short_commit=$SHORT_SHA"
+            echo "file_backup=$BACKUP_FILE"
+            echo "db_backup=$DB_BACKUP_FILE"
+            echo "pm2_app=$PM2_APP_NAME"
+            echo "actor=${{ github.actor }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "run_number=${{ github.run_number }}"
+            echo "date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "---"
+          } >> "$DEPLOY_LOG"
+
+          echo "Checking backend website/API reachability with retry..."
+
+          HTTP_CODE="000"
+          ATTEMPT=1
+          MAX_ATTEMPTS=12
+
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+
+            if [ -z "$HTTP_CODE" ]; then
+              HTTP_CODE="000"
+            fi
+
+            echo "Backend HTTP code: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" -lt 500 ]; then
+              echo "Backend smoke check passed."
+              break
+            fi
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Backend smoke check failed after $MAX_ATTEMPTS attempts."
+              echo "Final HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "Backend not ready yet. Waiting 5 seconds..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "Cleaning empty database backups if any..."
+          find "$DEPLOY_ROOT/db-backups" \
+            -type f \
+            -name "*.dump" \
+            -size 0 \
+            -print \
+            -delete || true
+
+          echo "Cleaning old backend releases, file backups, and DB backups..."
+          ls -1dt "$DEPLOY_ROOT/releases"/* 2>/dev/null | tail -n +11 | xargs -r rm -rf
+          ls -1t "$DEPLOY_ROOT/backups"/*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+          ls -1t "$DEPLOY_ROOT/db-backups"/*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f
+
+          echo "Backend deployment completed successfully."
+          echo "Release deployed:"
+          echo "$RELEASE_NAME"
+          echo "File backup:"
+          echo "$BACKUP_FILE"
+          echo "Database backup:"
+          echo "$DB_BACKUP_FILE"
+          REMOTE_SCRIPT

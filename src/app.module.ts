@@ -43,6 +43,22 @@ import { ServiceUserDocumentsModule } from './service-user-documents/service-use
 import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
 import { ServiceUserInitialAssessmentModule } from './service-user-initial-assessment/service-user-initial-assessment.module';
+import { FundingTypesModule } from './funding-types/funding-types.module';
+import { FundersModule } from './funders/funders.module';
+import { ServiceUserFundingModule } from './service-user-funding/service-user-funding.module';
+import { LiveInLookupsModule } from './live-in-lookups/live-in-lookups.module';
+import { ServiceUserLiveInProfilesModule } from './service-user-live-in-profiles/service-user-live-in-profiles.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MedicationLookupsModule } from './medication-lookups/medication-lookups.module';
+import { ServiceUserMedicationsModule } from './service-user-medications/service-user-medications.module';
+import { MedicationPacksModule } from './medication-packs/medication-packs.module';
+import { MedicationAllergiesModule } from './medication-allergies/medication-allergies.module';
+import { MedicationSupportProfilesModule } from './medication-support-profiles/medication-support-profiles.module';
+import { MedicationSchedulesModule } from './medication-schedules/medication-schedules.module';
+import { MedicationAdministrationModule } from './medication-administration/medication-administration.module';
+import { MedicationChartsModule } from './medication-charts/medication-charts.module';
+import { MedicationReportsModule } from './medication-reports/medication-reports.module';
+import { MedicationReviewsModule } from './medication-reviews/medication-reviews.module';
 
 @Module({
   imports: [
@@ -105,6 +121,22 @@ import { ServiceUserInitialAssessmentModule } from './service-user-initial-asses
     ServiceUserAbsencesModule,
     ServiceUserDomCareModule,
     ServiceUserInitialAssessmentModule,
+    FundingTypesModule,
+    FundersModule,
+    ServiceUserFundingModule,
+    LiveInLookupsModule,
+    ServiceUserLiveInProfilesModule,
+    NotificationsModule,
+    MedicationLookupsModule,
+    ServiceUserMedicationsModule,
+    MedicationPacksModule,
+    MedicationAllergiesModule,
+    MedicationSupportProfilesModule,
+    MedicationSchedulesModule,
+    MedicationAdministrationModule,
+    MedicationChartsModule,
+    MedicationReportsModule,
+    MedicationReviewsModule,
   ],
   providers: [
     {
