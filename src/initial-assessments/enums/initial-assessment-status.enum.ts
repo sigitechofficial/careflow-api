@@ -1,0 +1,8 @@
+export enum InitialAssessmentStatus {
+  DRAFT = 'DRAFT',
+  IN_PROGRESS = 'IN_PROGRESS',
+  SUBMITTED = 'SUBMITTED',
+  REVIEWED = 'REVIEWED',
+  ARCHIVED = 'ARCHIVED',
+  CANCELLED = 'CANCELLED',
+}

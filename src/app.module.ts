@@ -59,6 +59,10 @@ import { MedicationAdministrationModule } from './medication-administration/medi
 import { MedicationChartsModule } from './medication-charts/medication-charts.module';
 import { MedicationReportsModule } from './medication-reports/medication-reports.module';
 import { MedicationReviewsModule } from './medication-reviews/medication-reviews.module';
+import { CalendarEventTypesModule } from './calendar-event-types/calendar-event-types.module';
+import { ServiceUserCalendarModule } from './service-user-calendar/service-user-calendar.module';
+import { InitialAssessmentTemplatesModule } from './initial-assessment-templates/initial-assessment-templates.module';
+import { InitialAssessmentsModule } from './initial-assessments/initial-assessments.module';
 
 @Module({
   imports: [
@@ -119,8 +123,12 @@ import { MedicationReviewsModule } from './medication-reviews/medication-reviews
     ServiceUserAllergiesModule,
     ServiceUserDocumentsModule,
     ServiceUserAbsencesModule,
+    CalendarEventTypesModule,
+    ServiceUserCalendarModule,
     ServiceUserDomCareModule,
     ServiceUserInitialAssessmentModule,
+    InitialAssessmentTemplatesModule,
+    InitialAssessmentsModule,
     FundingTypesModule,
     FundersModule,
     ServiceUserFundingModule,

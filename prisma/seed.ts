@@ -1,6 +1,7 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
+import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 
 const prisma = new PrismaClient();
 
@@ -183,10 +184,30 @@ async function main() {
     'service_users.absences.create',
     'service_users.absences.update',
     'service_users.absences.delete',
+    'service_users.calendar.read',
+    'service_users.calendar.create',
+    'service_users.calendar.update',
+    'service_users.calendar.delete',
+    'service_users.calendar.status.update',
+    'service_users.calendar.export',
+    'service_users.calendar_event_types.read',
+    'service_users.calendar_event_types.create',
+    'service_users.calendar_event_types.update',
+    'service_users.calendar_event_types.delete',
     'service_users.dom_care.read',
     'service_users.dom_care.update',
     'service_users.initial_assessment.read',
+    'service_users.initial_assessment.create',
     'service_users.initial_assessment.update',
+    'service_users.initial_assessment.delete',
+    'service_users.initial_assessment.submit',
+    'service_users.initial_assessment.review',
+    'service_users.initial_assessment.export',
+    'initial_assessment_templates.read',
+    'initial_assessment_templates.create',
+    'initial_assessment_templates.update',
+    'initial_assessment_templates.delete',
+    'initial_assessment_templates.manage_default',
     'service_users.funding.read',
     'service_users.funding.update',
     'service_users.funding.create',
@@ -318,10 +339,18 @@ async function main() {
     'service_users.absences.create',
     'service_users.absences.update',
     'service_users.absences.delete',
+    'service_users.calendar.read',
+    'service_users.calendar.create',
+    'service_users.calendar.update',
+    'service_users.calendar.status.update',
+    'service_users.calendar_event_types.read',
     'service_users.dom_care.read',
     'service_users.dom_care.update',
     'service_users.initial_assessment.read',
+    'service_users.initial_assessment.create',
     'service_users.initial_assessment.update',
+    'service_users.initial_assessment.submit',
+    'initial_assessment_templates.read',
     'service_users.funding.read',
     'service_users.funding.update',
     'service_users.funding.create',
@@ -1237,7 +1266,129 @@ async function main() {
     await upsertMedCode(prisma.medicationNotGivenReason, row);
   }
 
+  const calendarEventTypes = [
+    { name: 'Customer Event', code: 'CUSTOMER_EVENT', color: '#0D9488', sortOrder: 5 },
+    { name: 'Birthday', code: 'BIRTHDAY', color: '#F59E0B', sortOrder: 10 },
+    { name: 'Appointment', code: 'APPOINTMENT', color: '#3B82F6', sortOrder: 20 },
+    { name: 'GP Appointment', code: 'GP_APPOINTMENT', color: '#2563EB', sortOrder: 30 },
+    { name: 'Hospital Appointment', code: 'HOSPITAL_APPOINTMENT', color: '#DC2626', sortOrder: 40 },
+    { name: 'Care Review', code: 'CARE_REVIEW', color: '#7C3AED', sortOrder: 50 },
+    { name: 'Medication Review', code: 'MEDICATION_REVIEW', color: '#16A34A', sortOrder: 60 },
+    { name: 'Family Visit', code: 'FAMILY_VISIT', color: '#EC4899', sortOrder: 70 },
+    { name: 'Social Activity', code: 'SOCIAL_ACTIVITY', color: '#14B8A6', sortOrder: 80 },
+    { name: 'Assessment', code: 'ASSESSMENT', color: '#6366F1', sortOrder: 90 },
+    { name: 'Care Plan Review', code: 'CARE_PLAN_REVIEW', color: '#9333EA', sortOrder: 100 },
+    { name: 'Reminder', code: 'REMINDER', color: '#64748B', sortOrder: 110 },
+    { name: 'Other', code: 'OTHER', color: '#6B7280', sortOrder: 120 },
+  ];
+  for (const row of calendarEventTypes) {
+    await prisma.calendarEventType.upsert({
+      where: { code: row.code },
+      update: {
+        name: row.name,
+        color: row.color,
+        sortOrder: row.sortOrder,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        name: row.name,
+        code: row.code,
+        color: row.color,
+        sortOrder: row.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
+  const calendarDeletePermKeys = [
+    'service_users.calendar.delete',
+    'service_users.calendar_event_types.create',
+    'service_users.calendar_event_types.update',
+    'service_users.calendar_event_types.delete',
+  ];
+  const calendarDeletePerms = await prisma.permission.findMany({
+    where: { key: { in: calendarDeletePermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of calendarDeletePerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+  const adminOnlyCalendarTypeKeys = ['service_users.calendar_event_types.create', 'service_users.calendar_event_types.update', 'service_users.calendar_event_types.delete'];
+  const adminOnlyCalendarTypePerms = await prisma.permission.findMany({
+    where: { key: { in: adminOnlyCalendarTypeKeys }, deletedAt: null },
+  });
+  const adminRoleForCalendarTypes = roles.find((x) => x.name === 'Admin');
+  if (adminRoleForCalendarTypes) {
+    for (const p of adminOnlyCalendarTypePerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: adminRoleForCalendarTypes.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: adminRoleForCalendarTypes.id, permissionId: p.id },
+      });
+    }
+  }
+  const calendarEventTypesReadPerm = await prisma.permission.findFirst({
+    where: { key: 'service_users.calendar_event_types.read' },
+  });
+  if (calendarEventTypesReadPerm) {
+    for (const roleName of ['Admin', 'Manager', 'Care Coordinator']) {
+      const r = roles.find((x) => x.name === roleName);
+      if (!r) continue;
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: calendarEventTypesReadPerm.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: calendarEventTypesReadPerm.id },
+      });
+    }
+  }
+
   const demoSu = await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
+  if (demoSu) {
+    const birthdayType = await prisma.calendarEventType.findFirst({ where: { code: 'BIRTHDAY' } });
+    const careReviewType = await prisma.calendarEventType.findFirst({ where: { code: 'CARE_REVIEW' } });
+    const existingCal = await prisma.serviceUserCalendarEvent.findFirst({
+      where: { serviceUserId: demoSu.id, title: 'Demo birthday reminder', deletedAt: null },
+    });
+    if (!existingCal && birthdayType) {
+      await prisma.serviceUserCalendarEvent.create({
+        data: {
+          serviceUserId: demoSu.id,
+          eventTypeId: birthdayType.id,
+          title: 'Demo birthday reminder',
+          startDateTime: new Date('2026-05-17T09:00:00.000Z'),
+          allDay: true,
+          status: 'SCHEDULED',
+        },
+      });
+    }
+    if (careReviewType) {
+      const existingReview = await prisma.serviceUserCalendarEvent.findFirst({
+        where: { serviceUserId: demoSu.id, title: 'Annual care review', deletedAt: null },
+      });
+      if (!existingReview) {
+        await prisma.serviceUserCalendarEvent.create({
+          data: {
+            serviceUserId: demoSu.id,
+            eventTypeId: careReviewType.id,
+            title: 'Annual care review',
+            startDateTime: new Date('2026-05-25T14:00:00.000Z'),
+            endDateTime: new Date('2026-05-25T15:00:00.000Z'),
+            location: 'Office',
+            status: 'SCHEDULED',
+          },
+        });
+      }
+    }
+  }
+
   if (demoSu) {
     const existingPack = await prisma.medicationPack.findFirst({
       where: { serviceUserId: demoSu.id, name: 'Blister Pack 2025', deletedAt: null },
@@ -1269,6 +1420,45 @@ async function main() {
       }
       // eslint-disable-next-line no-console
       console.log('[seed] Medication demo pack created for first service user.');
+    }
+  }
+
+  await seedInitialAssessmentChecklist(prisma);
+
+  const initialAssessmentReviewPermKeys = ['service_users.initial_assessment.review'];
+  const initialAssessmentReviewPerms = await prisma.permission.findMany({
+    where: { key: { in: initialAssessmentReviewPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Senior Carer/Nurse']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of initialAssessmentReviewPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const templateAdminPermKeys = [
+    'initial_assessment_templates.create',
+    'initial_assessment_templates.update',
+    'initial_assessment_templates.delete',
+    'initial_assessment_templates.manage_default',
+  ];
+  const templateAdminPerms = await prisma.permission.findMany({
+    where: { key: { in: templateAdminPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of templateAdminPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
     }
   }
 }

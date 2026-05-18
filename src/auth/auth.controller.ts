@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -13,6 +13,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TemporaryInspectorLoginDto } from './dto/temporary-inspector-login.dto';
 
 @ApiTags('Auth')
@@ -84,5 +85,22 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: RequestUser) {
     return { data: user };
+  }
+
+  @Patch('me')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  updateMe(@CurrentUser() user: RequestUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
+    if (user.accountKind === 'temporary_inspector') {
+      throw new ForbiddenException('Profile update is not available for temporary inspector accounts');
+    }
+    return this.authService.updateProfile(user.id, dto, req);
+  }
+
+  @Get('me/login-history')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  myLoginHistory(@CurrentUser() user: RequestUser) {
+    return this.authService.getMyLoginHistory(user.id);
   }
 }

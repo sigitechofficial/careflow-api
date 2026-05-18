@@ -344,3 +344,70 @@ Future (medication):
 - [ ] Medication review reminders
 - [ ] Advanced alerts
 
+## Phase — Service User Calendar
+
+Status: IN PROGRESS
+
+- [x] Create CalendarEventType model
+- [x] Create ServiceUserCalendarEvent model
+- [x] Seed calendar event types
+- [x] Add calendar event type APIs
+- [x] Add service user calendar event APIs
+- [x] Add day/week/month calendar view API
+- [x] Add global service users calendar API
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add data access logging
+- [x] Add notification hooks
+- [x] Add Swagger docs
+- [x] Add frontend Service Users Calendar page
+- [x] Add info icon beside page title
+- [x] Add hover tooltip explaining page purpose
+- [x] Add day/week/month frontend views
+- [x] Add calendar event dialog/form
+- [x] Add filters
+- [ ] Add tests
+
+Future:
+
+- [ ] Recurring event expansion
+- [ ] Reminder scheduler
+- [ ] Calendar export
+- [ ] Read-only Scheduling overlay
+- [ ] External calendar sync
+
+## Phase — Initial Assessment Checklist
+
+Status: IN PROGRESS
+
+- [x] Create InitialAssessmentTemplate model
+- [x] Create InitialAssessmentSection model
+- [x] Create InitialAssessmentQuestion model
+- [x] Create InitialAssessmentSubmission model
+- [x] Create InitialAssessmentAnswer model
+- [x] Seed default 28-section checklist
+- [x] Add template APIs
+- [x] Add section APIs
+- [x] Add question APIs
+- [x] Add service user assessment APIs
+- [x] Add answer save API
+- [x] Add submit workflow
+- [x] Add review workflow
+- [x] Add risk summary API
+- [x] Add care plan trigger API
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add data access logging
+- [x] Add notification hooks
+- [x] Add Swagger docs
+- [x] Add e2e tests
+
+Future:
+
+- [ ] Frontend dynamic checklist renderer
+- [ ] Care Plan generation from triggers
+- [ ] PDF export
+- [ ] Versioned assessment templates
+- [ ] Advanced risk scoring
+- [ ] Manager review dashboard
+

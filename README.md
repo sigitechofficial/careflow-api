@@ -193,7 +193,120 @@ Authorize with **Bearer** from `POST /auth/login`, then open `/api/docs` and try
 
 ### Deferred (later phases)
 
-Care plans, observations, medication, visits, reports, hospital/absence, calendar, flash messages, body map, initial assessment, and gallery-style photo management beyond a single profile image.
+Care plans, observations, visits, reports, flash messages, body map, and gallery-style photo management beyond a single profile image.
+
+## Service User Calendar
+
+**Service User Calendar** manages date-based events for service users (birthdays, appointments, reviews, reminders). It is **separate from Scheduling**, which handles visits, jobs, and carer allocation.
+
+### Purpose
+
+Staff use the calendar to see upcoming birthdays, GP/hospital appointments, care reviews, medication reviews, family/social events, assessments, and care-plan review dates.
+
+### Data model (schema `service_users`)
+
+| Model | Role |
+|--------|------|
+| `CalendarEventType` | Lookup: `CUSTOMER_EVENT`, `BIRTHDAY`, `APPOINTMENT`, `GP_APPOINTMENT`, etc. (seeded with colours) |
+| `ServiceUserCalendarEvent` | Event row: title, `startDateTime`, optional `endDateTime`, `allDay`, `status`, reminders, notify flags |
+
+Event statuses: `SCHEDULED`, `COMPLETED`, `CANCELLED`, `MISSED`, `RESCHEDULED`.
+
+### API (JWT + permissions)
+
+| Area | Method | Path |
+|------|--------|------|
+| Event types | GET/POST/PATCH/DELETE | `/calendar-event-types`, `/calendar-event-types/:id` |
+| Per-user events | GET/POST/PATCH/DELETE | `/service-users/:id/calendar/events`, `.../events/:eventId` |
+| Status | PATCH | `/service-users/:id/calendar/events/:eventId/status` |
+| Calendar view | GET | `/service-users/:id/calendar?view=DAY\|WEEK\|MONTH&date=YYYY-MM-DD` |
+| Global calendar | GET | `/service-users/calendar/events?dateFrom=&dateTo=` (required range) |
+
+**Calendar views:** `DAY` = selected UTC day; `WEEK` = Sun–Sat week containing `date`; `MONTH` = full month. Response includes `events` and `groupedByDate`.
+
+### Permissions
+
+- `service_users.calendar.read` — list/view (global + per user)
+- `service_users.calendar.create` / `.update` / `.delete` / `.status.update` / `.export`
+- `service_users.calendar_event_types.*` — lookup admin (Admin/Super Admin for mutations)
+
+Seeded to Super Admin; read/create/update/status to Admin, Manager, Care Coordinator; delete to Admin/Manager.
+
+### Audit and data access
+
+- Audit: `service_user_calendar_event_*`, `service_user_calendar_view_opened`, `service_user_global_calendar_viewed`, `calendar_event_type_*`
+- **DataAccessLog** (VIEW) on calendar view, event list/detail, and global calendar
+
+### Notifications
+
+When `reminderBeforeMinutes` or notify flags are set on create/update, in-app notifications are sent via `NotificationsService` (types such as `APPOINTMENT_REMINDER`, `BIRTHDAY_REMINDER`). A full reminder **scheduler** is not implemented yet.
+
+### Frontend
+
+- Global page: `/service-users/calendar` — title **Service Users Calendar**, info icon tooltip explaining difference from Scheduling
+- Profile tab: **Calendar** on Edit Service User
+
+### Migrate and seed
+
+```bash
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
+Swagger: tags **Service User Calendar** and **Calendar Event Types** at `/api/docs`.
+
+## Initial Assessment Checklist (template-based)
+
+Structured **initial assessment** for a selected service user: care needs, risks, equipment, environment, nutrition, medication support, communication, and emotional wellbeing. This complements the legacy **`ServiceUserInitialAssessment`** 1:1 profile (`/service-users/:id/initial-assessment`) — the new module uses reusable templates, sections, questions, submissions, and answers.
+
+### Data model (schema `service_users`)
+
+| Model | Role |
+|--------|------|
+| `InitialAssessmentTemplate` | Reusable checklist definition (`isDefault`, `version`) |
+| `InitialAssessmentSection` | 28 numbered sections (Mobility, Amputation, … Emotional wellbeing) |
+| `InitialAssessmentQuestion` | Checkbox/text items with `riskFlag`, `carePlanTrigger` |
+| `InitialAssessmentSubmission` | Per service user + template; workflow status |
+| `InitialAssessmentAnswer` | One row per question per submission (upserted) |
+
+**Statuses:** `DRAFT` → `IN_PROGRESS` → `SUBMITTED` → `REVIEWED` (or `ARCHIVED` / `CANCELLED`).
+
+### API (JWT + permissions)
+
+| Area | Method | Path |
+|------|--------|------|
+| Templates | GET/POST/PATCH/DELETE | `/initial-assessment-templates`, `.../default`, sections, questions |
+| Submissions | GET/POST/PATCH/DELETE | `/service-users/:id/initial-assessments`, `.../latest`, `.../:submissionId` |
+| Answers | GET/PATCH | `.../:submissionId/answers` |
+| Workflow | PATCH | `.../submit`, `.../review`, `.../status` |
+| Reports | GET | `.../summary`, `.../risk-summary`, `.../care-plan-triggers` |
+
+### Permissions
+
+- `service_users.initial_assessment.read|create|update|delete|submit|review|export`
+- `initial_assessment_templates.read|create|update|delete|manage_default`
+
+Super Admin: all. Care Coordinator: read/create/update/submit. Admin/Manager/Senior Carer: review. Template mutations: Admin.
+
+### Audit and data access
+
+- Audit: `initial_assessment_*` actions on template/section/question/submission/answers/submit/review/summary views
+- **DataAccessLog** (VIEW) on list/detail/answers/summary/risk/triggers
+
+### Seed
+
+Default template **Initial Assessment Checklist** v1 with **28 sections** and representative questions (idempotent). Run:
+
+```bash
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
+E2E: `pnpm test:e2e --testPathPatterns=initial-assessment`
+
+Swagger tags: **Initial Assessments**, **Initial Assessment Templates**.
 
 ## Service User Live-in Service Profile
 

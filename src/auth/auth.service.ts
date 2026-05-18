@@ -15,6 +15,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TemporaryInspectorLoginDto } from './dto/temporary-inspector-login.dto';
 import { TemporaryInspectorsService } from '../temporary-inspectors/temporary-inspectors.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -320,6 +321,42 @@ export class AuthService {
     });
 
     return { message: 'Password changed', data: {} };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto, req: Request) {
+    const meta = this.auditLogs.getRequestMeta(req);
+    const existing = await this.usersService.findById(userId);
+    if (!existing) throw new UnauthorizedException('User not found');
+
+    const updated = await this.usersService.updateProfile(userId, {
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+    });
+
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.USER,
+      action: AuditAction.USER_PROFILE_UPDATED,
+      recordType: 'User',
+      recordId: userId,
+      oldValues: { firstName: existing.firstName, lastName: existing.lastName },
+      newValues: { firstName: updated.firstName, lastName: updated.lastName },
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+
+    const ctx = await this.usersService.getAuthContext(userId);
+    return { message: 'Profile updated', data: ctx };
+  }
+
+  async getMyLoginHistory(userId: string, limit = 50) {
+    return this.auditLogs.findLoginHistory({
+      userId,
+      limit,
+      page: 1,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    });
   }
 
   async forgotPassword(dto: ForgotPasswordDto, req: Request) {

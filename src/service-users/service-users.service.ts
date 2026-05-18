@@ -89,11 +89,14 @@ export class ServiceUsersService {
   async list(query: ServiceUserQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where: Prisma.ServiceUserWhereInput = {
-      deletedAt: null,
-    };
-    if (!query.showInactive) {
-      where.isActive = true;
+    const where: Prisma.ServiceUserWhereInput = {};
+    if (query.showDeleted) {
+      where.deletedAt = { not: null };
+    } else {
+      where.deletedAt = null;
+      if (!query.showInactive) {
+        where.isActive = true;
+      }
     }
     if (query.statusId) where.statusId = query.statusId;
     if (query.careTypeId) where.careTypeId = query.careTypeId;

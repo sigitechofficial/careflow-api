@@ -58,6 +58,17 @@ export class UsersService {
     });
   }
 
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName !== undefined ? { firstName: data.firstName.trim() || null } : {}),
+        ...(data.lastName !== undefined ? { lastName: data.lastName.trim() || null } : {}),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   async getAuthContext(userId: string) {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null, isActive: true },
@@ -87,6 +98,9 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      username: user.username ?? undefined,
       roles,
       permissions,
       accountKind: 'user' as const,

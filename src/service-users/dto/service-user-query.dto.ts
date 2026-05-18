@@ -80,6 +80,12 @@ export class ServiceUserQueryDto extends PaginationQueryDto {
   @IsBoolean()
   showInactive?: boolean;
 
+  @ApiPropertyOptional({ description: 'When true, list only soft-deleted service users' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  showDeleted?: boolean;
+
   @ApiPropertyOptional({ enum: SORT_FIELDS })
   @IsOptional()
   @IsIn([...SORT_FIELDS])
