@@ -17,11 +17,11 @@ ALTER TYPE "notifications"."NotificationType" ADD VALUE 'MEDICATION_REVIEW_REMIN
 ALTER TYPE "notifications"."NotificationType" ADD VALUE 'ASSESSMENT_DUE_REMINDER';
 ALTER TYPE "notifications"."NotificationType" ADD VALUE 'BIRTHDAY_REMINDER';
 
--- DropIndex
-DROP INDEX "service_users"."ServiceUserFunding_funderId_idx";
+-- DropIndex (IF EXISTS: indexes are re-created in 20260515120000_service_user_funding_enterprise)
+DROP INDEX IF EXISTS "service_users"."ServiceUserFunding_funderId_idx";
 
 -- DropIndex
-DROP INDEX "service_users"."ServiceUserFunding_fundingTypeId_idx";
+DROP INDEX IF EXISTS "service_users"."ServiceUserFunding_fundingTypeId_idx";
 
 -- AlterTable
 ALTER TABLE "notifications"."Notification" ALTER COLUMN "id" DROP DEFAULT,

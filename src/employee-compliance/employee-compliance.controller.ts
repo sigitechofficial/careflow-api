@@ -59,6 +59,24 @@ export class EmployeeComplianceController {
     return this.service.getRequiredComplianceTypesForEmployee(employeeId);
   }
 
+  @Get('checklist')
+  @Permissions('employees.compliance.read')
+  @ApiOperation({ summary: 'Compliance checklist for employee (types + existing records)' })
+  checklist(@Param('id', ParseUUIDPipe) employeeId: string) {
+    return this.service.getChecklist(employeeId);
+  }
+
+  @Post('ensure-checklist')
+  @Permissions('employees.compliance.create')
+  @ApiOperation({ summary: 'Create missing compliance rows for required checklist items' })
+  ensureChecklist(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) employeeId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.ensureChecklist(user.id, employeeId, getRequestAuditMeta(req));
+  }
+
   @Get(':complianceId/documents/:documentId/download')
   @Permissions('employees.compliance.documents.download')
   @ApiOperation({ summary: 'Download compliance evidence file' })

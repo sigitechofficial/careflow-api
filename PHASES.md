@@ -376,6 +376,133 @@ Future:
 - [ ] Read-only Scheduling overlay
 - [ ] External calendar sync
 
+## Phase — Schedule Management 1: Foundation
+
+Status: IN PROGRESS
+
+Tasks:
+
+- [x] Create ScheduleArea model
+- [x] Create ScheduleBatch model
+- [x] Create ScheduleAreaStatus model
+- [x] Add schedule area APIs
+- [x] Add previous schedules API
+- [x] Add schedule status API
+- [x] Add build schedule placeholder API
+- [x] Add RBAC permissions
+- [x] Add audit logs
+- [x] Add data access logs
+- [x] Add Swagger docs
+- [x] Add seed data
+
+Next phase will be provided in a separate Cursor prompt:
+
+**Schedule Management 2 — Scheduled Jobs, Visits, Runs, and Visit Actions.**
+
+## Phase — Schedule Management 2: Scheduled Jobs and Visits
+
+Status: IN PROGRESS
+
+Tasks:
+
+- [x] Create ScheduleRun model
+- [x] Create ScheduledJob model
+- [x] Create ScheduledVisit model
+- [x] Create VisitAction model
+- [x] Add APIs
+- [x] Update build schedule to create basic jobs
+- [x] Add permissions
+- [x] Add audit logs
+- [x] Add Swagger docs
+
+Next phase will be provided in a separate Cursor prompt:
+
+**Schedule Management 3 — Allocation and Carer Assignment.**
+
+## Phase — Schedule Management 3: Allocation
+
+Status: IN PROGRESS
+
+Tasks:
+
+- [x] Create JobAllocation model
+- [x] Add allocate API
+- [x] Add unallocate API
+- [x] Add confirm allocation API
+- [x] Add allocation checks
+- [x] Add preferred/blocked carer check
+- [x] Add capacity check
+- [x] Add conflict check
+- [x] Add audit logs
+- [x] Add notification hooks
+
+Next phase will be provided in a separate Cursor prompt:
+
+**Schedule Management 4 — Timeline Views and Filters.**
+
+## Phase — Schedule Management 4: Timeline Views and Filters
+
+Status: COMPLETED
+
+Tasks:
+
+- [x] Jobs/day/runs API
+- [x] Jobs/day/timeline API
+- [x] Employee/day timeline API
+- [x] Employee/week timeline API
+- [x] Employee/month timeline API
+- [x] Service user/day timeline API
+- [x] Service user/week timeline API
+- [x] Employee capacity API
+- [x] Filter Jobs API
+- [x] Filter Carer API
+- [x] Filter Customer API
+- [x] Audit/data access logs
+
+Next phase will be provided in a separate Cursor prompt:
+
+**Schedule Management 5 — Housekeeping and Call-off Visits.**
+
+## Phase — Schedule Management 5: Housekeeping and Call-off Visits
+
+Status: COMPLETED
+
+Tasks:
+
+- [x] Jobs Not Started API
+- [x] Jobs Needing Attention API
+- [x] Day Jobs API
+- [x] Complete job action
+- [x] Cancel job action
+- [x] CallOffVisit model
+- [x] Call-off visit APIs
+- [x] Approve/reject call-off
+- [x] Audit logs
+- [x] Notification hooks
+
+Next phase will be provided in a separate Cursor prompt:
+
+**Schedule Management 6 — Reports.**
+
+## Phase — Schedule Management 6: Reports
+
+Status: COMPLETED
+
+Tasks:
+
+- [x] Report types API
+- [x] Visit Detail Report
+- [x] Daily Carer Allocation Report
+- [x] Call-off Visit Report
+- [x] Employee Capacity Report
+- [x] Service User Visit Report
+- [x] Service User Time Analysis
+- [x] Scheduled Jobs Status Report
+- [x] Audit/report logs
+- [x] Export placeholders
+
+Next phase can be frontend integration or advanced scheduling rules.
+
 ## Phase — Initial Assessment Checklist
 
 Status: IN PROGRESS

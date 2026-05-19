@@ -39,6 +39,8 @@ import { ServiceUserPhotosModule } from './service-user-photos/service-user-phot
 import { ServiceUserLookupsModule } from './service-user-lookups/service-user-lookups.module';
 import { ServiceUserInventoryModule } from './service-user-inventory/service-user-inventory.module';
 import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
+import { ObservationLookupsModule } from './observation-lookups/observation-lookups.module';
+import { ServiceUserObservationsModule } from './service-user-observations/service-user-observations.module';
 import { ServiceUserDocumentsModule } from './service-user-documents/service-user-documents.module';
 import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
@@ -63,6 +65,18 @@ import { CalendarEventTypesModule } from './calendar-event-types/calendar-event-
 import { ServiceUserCalendarModule } from './service-user-calendar/service-user-calendar.module';
 import { InitialAssessmentTemplatesModule } from './initial-assessment-templates/initial-assessment-templates.module';
 import { InitialAssessmentsModule } from './initial-assessments/initial-assessments.module';
+import { ScheduleAreasModule } from './schedule-areas/schedule-areas.module';
+import { SchedulesModule } from './schedules/schedules.module';
+import { ScheduledJobsModule } from './scheduled-jobs/scheduled-jobs.module';
+import { ScheduledVisitsModule } from './scheduled-visits/scheduled-visits.module';
+import { ScheduleRunsModule } from './schedule-runs/schedule-runs.module';
+import { VisitActionsModule } from './visit-actions/visit-actions.module';
+import { JobAllocationsModule } from './job-allocations/job-allocations.module';
+import { ScheduleTimelinesModule } from './schedule-timelines/schedule-timelines.module';
+import { ScheduleFiltersModule } from './schedule-filters/schedule-filters.module';
+import { ScheduledJobsHousekeepingModule } from './scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
+import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
+import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
 
 @Module({
   imports: [
@@ -121,6 +135,8 @@ import { InitialAssessmentsModule } from './initial-assessments/initial-assessme
     ServiceUserLookupsModule,
     ServiceUserInventoryModule,
     ServiceUserAllergiesModule,
+    ObservationLookupsModule,
+    ServiceUserObservationsModule,
     ServiceUserDocumentsModule,
     ServiceUserAbsencesModule,
     CalendarEventTypesModule,
@@ -145,6 +161,18 @@ import { InitialAssessmentsModule } from './initial-assessments/initial-assessme
     MedicationChartsModule,
     MedicationReportsModule,
     MedicationReviewsModule,
+    ScheduleAreasModule,
+    SchedulesModule,
+    ScheduledJobsModule,
+    ScheduledVisitsModule,
+    ScheduleRunsModule,
+    VisitActionsModule,
+    JobAllocationsModule,
+    ScheduleTimelinesModule,
+    ScheduleFiltersModule,
+    ScheduledJobsHousekeepingModule,
+    CallOffVisitsModule,
+    ScheduleReportsModule,
   ],
   providers: [
     {

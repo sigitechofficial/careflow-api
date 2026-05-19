@@ -24,7 +24,9 @@ import { calculateComplianceStatus } from './compliance-status.calculator';
 import {
   employmentDimsFromEmployment,
   pickBestRequirementsPerType,
+  requirementMatchesEmployment,
 } from './compliance-requirement.matcher';
+import { CARE_COMPLIANCE_CODE_ORDER } from './care-compliance-catalog-order';
 
 const complianceInclude = {
   complianceType: true,
@@ -731,6 +733,99 @@ export class EmployeeComplianceService {
     res.setHeader('Content-Type', doc.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.originalName)}"`);
     createReadStream(abs).pipe(res);
+  }
+
+  private async buildChecklistItems(employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      include: { employment: true },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const dims = employee.employment
+      ? employmentDimsFromEmployment(employee.employment)
+      : { roleId: null, workAreaId: null, jobTitleId: null, contractTypeId: null, locationId: null };
+
+    const allReqs = await this.prisma.complianceRequirement.findMany({
+      where: { deletedAt: null, isActive: true },
+    });
+    const matched = allReqs.filter((r) => requirementMatchesEmployment(r, dims));
+    const best = pickBestRequirementsPerType(matched, dims);
+
+    const records = await this.prisma.employeeCompliance.findMany({
+      where: { employeeId, deletedAt: null },
+      include: complianceInclude,
+    });
+    const recordByTypeId = new Map(
+      records.map((r) => [r.complianceTypeId, this.decorateRow(r)] as const),
+    );
+
+    const types = await this.prisma.complianceType.findMany({
+      where: { deletedAt: null, isActive: true },
+    });
+    const typeByCode = new Map(types.filter((t) => t.code).map((t) => [t.code!, t]));
+    const typeById = new Map(types.map((t) => [t.id, t]));
+
+    const orderedTypeIds: string[] = [];
+    for (const code of CARE_COMPLIANCE_CODE_ORDER) {
+      const t = typeByCode.get(code);
+      if (t && best.has(t.id)) orderedTypeIds.push(t.id);
+    }
+    for (const typeId of best.keys()) {
+      if (!orderedTypeIds.includes(typeId)) orderedTypeIds.push(typeId);
+    }
+
+    let workAreaName: string | null = null;
+    if (dims.workAreaId) {
+      const wa = await this.prisma.workArea.findFirst({ where: { id: dims.workAreaId } });
+      workAreaName = wa?.name ?? null;
+    }
+
+    const items = orderedTypeIds.map((typeId) => {
+      const type = typeById.get(typeId);
+      const req = best.get(typeId);
+      const record = recordByTypeId.get(typeId) ?? null;
+      return {
+        complianceTypeId: typeId,
+        code: type?.code ?? null,
+        name: type?.name ?? '—',
+        isMandatory: req?.isMandatory ?? type?.isMandatoryByDefault ?? false,
+        requirementId: req?.id ?? null,
+        record,
+      };
+    });
+
+    return { workAreaId: dims.workAreaId, workAreaName, items };
+  }
+
+  async getChecklist(employeeId: string) {
+    await this.ensureEmployee(employeeId);
+    const data = await this.buildChecklistItems(employeeId);
+    return { data };
+  }
+
+  async ensureChecklist(userId: string, employeeId: string, meta?: RequestAuditMeta) {
+    await this.ensureEmployee(employeeId);
+    const built = await this.buildChecklistItems(employeeId);
+    let createdCount = 0;
+    for (const item of built.items) {
+      if (item.record) continue;
+      await this.create(
+        userId,
+        employeeId,
+        {
+          complianceTypeId: item.complianceTypeId,
+          requirementId: item.requirementId ?? undefined,
+        },
+        meta,
+      );
+      createdCount++;
+    }
+    const refreshed = await this.buildChecklistItems(employeeId);
+    return {
+      message: createdCount > 0 ? `Created ${createdCount} compliance placeholder(s).` : 'Checklist already complete.',
+      data: { createdCount, ...refreshed },
+    };
   }
 
   async ensureEmployee(employeeId: string) {

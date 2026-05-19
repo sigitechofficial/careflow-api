@@ -1,7 +1,10 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
+import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
+import { seedScheduleAreas } from './seeds/schedule-areas.seed';
+import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 
 const prisma = new PrismaClient();
 
@@ -147,6 +150,7 @@ async function main() {
     'compliance_requirements.delete',
     'employees.reports.read',
     'lookups.read',
+    'lookups.manage',
     'users.read',
     'users.create',
     'roles.manage',
@@ -262,6 +266,66 @@ async function main() {
     'service_users.medications.reports.read',
     'service_users.medications.reports.export',
     'service_users.medications.lookups.read',
+
+    'service_users.observations.read',
+    'service_users.observations.create',
+    'service_users.observations.update',
+    'service_users.observations.delete',
+    'service_users.observations.lookups.read',
+
+    'schedules.read',
+    'schedules.create',
+    'schedules.update',
+    'schedules.delete',
+    'schedules.build',
+    'schedules.status.read',
+    'schedule_areas.read',
+    'schedule_areas.create',
+    'schedule_areas.update',
+    'schedule_areas.delete',
+
+    'scheduled_jobs.read',
+    'scheduled_jobs.create',
+    'scheduled_jobs.update',
+    'scheduled_jobs.delete',
+    'scheduled_jobs.status.update',
+    'scheduled_visits.read',
+    'scheduled_visits.create',
+    'scheduled_visits.update',
+    'scheduled_visits.delete',
+    'scheduled_visits.status.update',
+    'schedule_runs.read',
+    'schedule_runs.create',
+    'schedule_runs.update',
+    'schedule_runs.delete',
+    'visit_actions.read',
+    'visit_actions.create',
+    'visit_actions.update',
+    'visit_actions.delete',
+
+    'job_allocations.read',
+    'job_allocations.create',
+    'job_allocations.delete',
+    'job_allocations.confirm',
+
+    'schedule_timelines.read',
+    'schedule_filters.jobs',
+    'schedule_filters.carers',
+    'schedule_filters.customers',
+    'employee_capacity.read',
+
+    'scheduled_jobs_housekeeping.read',
+    'scheduled_jobs_housekeeping.complete',
+    'scheduled_jobs_housekeeping.cancel',
+    'call_off_visits.read',
+    'call_off_visits.create',
+    'call_off_visits.update',
+    'call_off_visits.delete',
+    'call_off_visits.approve',
+    'call_off_visits.reject',
+
+    'schedule_reports.read',
+    'schedule_reports.export',
   ];
 
   for (const key of permissionKeys) {
@@ -595,6 +659,18 @@ async function main() {
   const complianceReqRead = await prisma.permission.findFirst({
     where: { key: 'compliance_requirements.read' },
   });
+  const complianceTypesCreate = await prisma.permission.findFirst({
+    where: { key: 'compliance_types.create' },
+  });
+  const complianceTypesUpdate = await prisma.permission.findFirst({
+    where: { key: 'compliance_types.update' },
+  });
+  const complianceTypesDelete = await prisma.permission.findFirst({
+    where: { key: 'compliance_types.delete' },
+  });
+  const lookupsManage = await prisma.permission.findFirst({
+    where: { key: 'lookups.manage' },
+  });
   for (const r of [
     roles.find((x) => x.name === 'Admin'),
     roles.find((x) => x.name === 'Manager'),
@@ -602,7 +678,16 @@ async function main() {
     privacyOfficerRole,
   ]) {
     if (!r) continue;
-    for (const p of [complianceReportRead, complianceRead, complianceTypesRead, complianceReqRead]) {
+    for (const p of [
+      complianceReportRead,
+      complianceRead,
+      complianceTypesRead,
+      complianceTypesCreate,
+      complianceTypesUpdate,
+      complianceTypesDelete,
+      complianceReqRead,
+      lookupsManage,
+    ]) {
       if (!p) continue;
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
@@ -612,73 +697,65 @@ async function main() {
     }
   }
 
-  // --- Compliance types & requirements (idempotent) ---
-  type Cat = (typeof ComplianceCategory)[keyof typeof ComplianceCategory];
-  const complianceTypeDefs: Array<{
-    name: string;
-    code: string;
-    category: Cat;
-    hasExpiry: boolean;
-    defaultValidityMonths: number | null;
-    requiresDocument: boolean;
-    requiresVerification: boolean;
-  }> = [
-    { name: 'DBS Check', code: 'DBS_CHECK', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 36, requiresDocument: true, requiresVerification: true },
-    { name: 'Right to Work', code: 'RIGHT_TO_WORK', category: ComplianceCategory.RIGHT_TO_WORK, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
-    { name: 'Proof of ID', code: 'PROOF_OF_ID', category: ComplianceCategory.IDENTITY, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
-    { name: 'Employment Contract', code: 'EMPLOYMENT_CONTRACT', category: ComplianceCategory.EMPLOYMENT, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
-    { name: 'Care Certificate', code: 'CARE_CERTIFICATE', category: ComplianceCategory.TRAINING, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true },
-    { name: 'Manual Handling', code: 'MANUAL_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'First Aid', code: 'FIRST_AID', category: ComplianceCategory.TRAINING, hasExpiry: true, defaultValidityMonths: 36, requiresDocument: true, requiresVerification: true },
-    { name: 'Safeguarding Adults', code: 'SAFEGUARDING_ADULTS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Safeguarding Children', code: 'SAFEGUARDING_CHILDREN', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Medication Training', code: 'MEDICATION_TRAINING', category: ComplianceCategory.CLINICAL, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Food Hygiene', code: 'FOOD_HYGIENE', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Fire Safety', code: 'FIRE_SAFETY', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Health and Safety', code: 'HEALTH_AND_SAFETY_GEN', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Infection Prevention and Control', code: 'IPC', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Moving and Handling', code: 'MOVING_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Mental Capacity Act', code: 'MCA', category: ComplianceCategory.TRAINING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Deprivation of Liberty Safeguards', code: 'DOLS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'NMC PIN', code: 'NMC_PIN', category: ComplianceCategory.PROFESSIONAL_REGISTRATION, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Driving Licence', code: 'DRIVING_LICENCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 120, requiresDocument: true, requiresVerification: true },
-    { name: 'Vehicle Insurance', code: 'VEHICLE_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'MOT', code: 'MOT', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
-    { name: 'Business Insurance', code: 'BUSINESS_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true },
+  // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
+  const complianceTypeDefs = [
+    ...CARE_COMPLIANCE_CATALOG,
+    { name: 'Right to Work', code: 'RIGHT_TO_WORK', category: ComplianceCategory.RIGHT_TO_WORK, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Care Certificate', code: 'CARE_CERTIFICATE', category: ComplianceCategory.TRAINING, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Manual Handling', code: 'MANUAL_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Safeguarding Adults', code: 'SAFEGUARDING_ADULTS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Medication Training', code: 'MEDICATION_TRAINING', category: ComplianceCategory.CLINICAL, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Driving Licence', code: 'DRIVING_LICENCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 120, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: false },
+    { name: 'Vehicle Insurance', code: 'VEHICLE_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: false },
   ];
+
+  /** Upsert by stable `code` first — avoids P2002 when legacy rows used different display names. */
+  async function upsertComplianceType(t: (typeof complianceTypeDefs)[number]) {
+    const payload = {
+      name: t.name,
+      code: t.code,
+      category: t.category,
+      hasExpiry: t.hasExpiry,
+      defaultValidityMonths: t.defaultValidityMonths,
+      requiresDocument: t.requiresDocument,
+      requiresVerification: t.requiresVerification,
+      isMandatoryByDefault: t.isMandatoryByDefault ?? false,
+      isActive: true,
+      deletedAt: null as Date | null,
+    };
+
+    let row =
+      (t.code
+        ? await prisma.complianceType.findFirst({ where: { code: t.code } })
+        : null) ??
+      (await prisma.complianceType.findFirst({ where: { name: t.name } }));
+
+    if (row && t.code) {
+      const codeOwner = await prisma.complianceType.findFirst({ where: { code: t.code } });
+      if (codeOwner && codeOwner.id !== row.id) {
+        await prisma.complianceType.update({
+          where: { id: row.id },
+          data: { isActive: false, deletedAt: new Date() },
+        });
+        row = codeOwner;
+      }
+    }
+
+    if (row) {
+      return prisma.complianceType.update({ where: { id: row.id }, data: payload });
+    }
+    return prisma.complianceType.create({ data: payload });
+  }
 
   const typeByCode: Record<string, string> = {};
   for (const t of complianceTypeDefs) {
-    const row = await prisma.complianceType.upsert({
-      where: { name: t.name },
-      update: {
-        code: t.code,
-        category: t.category,
-        hasExpiry: t.hasExpiry,
-        defaultValidityMonths: t.defaultValidityMonths,
-        requiresDocument: t.requiresDocument,
-        requiresVerification: t.requiresVerification,
-        isActive: true,
-        deletedAt: null,
-      },
-      create: {
-        name: t.name,
-        code: t.code,
-        category: t.category,
-        hasExpiry: t.hasExpiry,
-        defaultValidityMonths: t.defaultValidityMonths,
-        requiresDocument: t.requiresDocument,
-        requiresVerification: t.requiresVerification,
-      },
-    });
-    typeByCode[t.code] = row.id;
+    const row = await upsertComplianceType(t);
+    if (t.code) typeByCode[t.code] = row.id;
   }
 
   const carerRole = await prisma.employeeRoleLookup.findFirst({ where: { name: 'Carer' } });
-  const seniorCarerRole = await prisma.employeeRoleLookup.findFirst({ where: { name: 'Senior Carer' } });
   const careArea = await prisma.workArea.findFirst({ where: { name: 'Care' } });
   const kitchenArea = await prisma.workArea.findFirst({ where: { name: 'Kitchen' } });
-  const nurseTitle = await prisma.jobTitle.findFirst({ where: { name: 'Senior Carer/Nurse' } });
 
   async function ensureRequirement(
     code: string,
@@ -686,6 +763,7 @@ async function main() {
       roleId?: string | null;
       workAreaId?: string | null;
       jobTitleId?: string | null;
+      isMandatory?: boolean;
     },
   ) {
     const complianceTypeId = typeByCode[code];
@@ -708,27 +786,32 @@ async function main() {
           roleId: filters.roleId ?? undefined,
           workAreaId: filters.workAreaId ?? undefined,
           jobTitleId: filters.jobTitleId ?? undefined,
+          isMandatory: filters.isMandatory ?? true,
         },
       });
     }
   }
 
-  const carerPack = ['DBS_CHECK', 'RIGHT_TO_WORK', 'PROOF_OF_ID', 'CARE_CERTIFICATE', 'MANUAL_HANDLING', 'SAFEGUARDING_ADULTS', 'MEDICATION_TRAINING'];
-  for (const code of carerPack) {
-    await ensureRequirement(code, { roleId: carerRole?.id ?? null, workAreaId: careArea?.id ?? null });
+  if (careArea) {
+    for (const t of CARE_COMPLIANCE_CATALOG) {
+      await ensureRequirement(t.code, {
+        workAreaId: careArea.id,
+        isMandatory: t.isMandatoryByDefault,
+      });
+    }
+    for (const code of ['RIGHT_TO_WORK', 'CARE_CERTIFICATE', 'MANUAL_HANDLING', 'SAFEGUARDING_ADULTS', 'MEDICATION_TRAINING']) {
+      if (typeByCode[code]) {
+        await ensureRequirement(code, { workAreaId: careArea.id, isMandatory: true });
+      }
+    }
   }
-  if (seniorCarerRole) {
-    await ensureRequirement('FIRST_AID', { roleId: seniorCarerRole.id, workAreaId: careArea?.id ?? null });
+  if (carerRole && careArea) {
+    await ensureRequirement('MEDICATION_TRAINING', { roleId: carerRole.id, workAreaId: careArea.id });
   }
-  if (nurseTitle) {
-    await ensureRequirement('NMC_PIN', { jobTitleId: nurseTitle.id });
-  }
-  if (kitchenArea) {
-    await ensureRequirement('FOOD_HYGIENE', { workAreaId: kitchenArea.id });
-  }
-  const driverRole = carerRole;
-  for (const code of ['DRIVING_LICENCE', 'VEHICLE_INSURANCE', 'MOT', 'BUSINESS_INSURANCE']) {
-    await ensureRequirement(code, { roleId: driverRole?.id ?? null });
+  if (carerRole) {
+    for (const code of ['DRIVING_LICENCE', 'VEHICLE_INSURANCE']) {
+      if (typeByCode[code]) await ensureRequirement(code, { roleId: carerRole.id, isMandatory: false });
+    }
   }
 
   // eslint-disable-next-line no-console
@@ -1458,6 +1541,125 @@ async function main() {
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},
         create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  await seedScheduleAreas(prisma);
+  await seedServiceUserObservations(prisma);
+
+  const scheduleOperatorPermKeys = [
+    'schedules.read',
+    'schedules.build',
+    'schedules.status.read',
+    'scheduled_jobs.read',
+    'scheduled_jobs.create',
+    'scheduled_jobs.update',
+    'scheduled_jobs.status.update',
+    'scheduled_visits.read',
+    'scheduled_visits.create',
+    'scheduled_visits.update',
+    'scheduled_visits.status.update',
+    'schedule_runs.read',
+    'schedule_runs.create',
+    'schedule_runs.update',
+    'visit_actions.read',
+    'visit_actions.create',
+    'visit_actions.update',
+    'job_allocations.read',
+    'job_allocations.create',
+    'job_allocations.delete',
+    'job_allocations.confirm',
+    'schedule_timelines.read',
+    'schedule_filters.jobs',
+    'schedule_filters.carers',
+    'schedule_filters.customers',
+    'employee_capacity.read',
+    'scheduled_jobs_housekeeping.read',
+    'scheduled_jobs_housekeeping.complete',
+    'scheduled_jobs_housekeeping.cancel',
+    'call_off_visits.read',
+    'call_off_visits.create',
+    'call_off_visits.update',
+    'call_off_visits.approve',
+    'call_off_visits.reject',
+    'schedule_reports.read',
+    'schedule_reports.export',
+  ];
+  const scheduleOperatorPerms = await prisma.permission.findMany({
+    where: { key: { in: scheduleOperatorPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Care Coordinator', 'Staff Allocation']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of scheduleOperatorPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const scheduleAdminPermKeys = [
+    'schedule_areas.read',
+    'schedule_areas.create',
+    'schedule_areas.update',
+    'schedule_areas.delete',
+    'schedules.read',
+    'schedules.create',
+    'schedules.update',
+    'schedules.delete',
+    'schedules.build',
+    'schedules.status.read',
+    'scheduled_jobs.read',
+    'scheduled_jobs.create',
+    'scheduled_jobs.update',
+    'scheduled_jobs.delete',
+    'scheduled_jobs.status.update',
+    'scheduled_visits.read',
+    'scheduled_visits.create',
+    'scheduled_visits.update',
+    'scheduled_visits.delete',
+    'scheduled_visits.status.update',
+    'schedule_runs.read',
+    'schedule_runs.create',
+    'schedule_runs.update',
+    'schedule_runs.delete',
+    'visit_actions.read',
+    'visit_actions.create',
+    'visit_actions.update',
+    'visit_actions.delete',
+    'job_allocations.read',
+    'job_allocations.create',
+    'job_allocations.delete',
+    'job_allocations.confirm',
+    'schedule_timelines.read',
+    'schedule_filters.jobs',
+    'schedule_filters.carers',
+    'schedule_filters.customers',
+    'employee_capacity.read',
+    'scheduled_jobs_housekeeping.read',
+    'scheduled_jobs_housekeeping.complete',
+    'scheduled_jobs_housekeeping.cancel',
+    'call_off_visits.read',
+    'call_off_visits.create',
+    'call_off_visits.update',
+    'call_off_visits.delete',
+    'call_off_visits.approve',
+    'call_off_visits.reject',
+    'schedule_reports.read',
+    'schedule_reports.export',
+  ];
+  const scheduleAdminPerms = await prisma.permission.findMany({
+    where: { key: { in: scheduleAdminPermKeys }, deletedAt: null },
+  });
+  if (adminRole) {
+    for (const p of scheduleAdminPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: adminRole.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: adminRole.id, permissionId: p.id },
       });
     }
   }

@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling"]
 }
 
 enum DayOfWeek {
@@ -170,6 +170,29 @@ model User {
   notificationsCreated               Notification[]                    @relation("NotificationCreatedBy")
   initialAssessmentsSubmitted        InitialAssessmentSubmission[]     @relation("InitialAssessmentSubmittedBy")
   initialAssessmentsReviewed         InitialAssessmentSubmission[]     @relation("InitialAssessmentReviewedBy")
+  scheduleAreasCreated               ScheduleArea[]                    @relation("ScheduleAreaCreatedBy")
+  scheduleAreasUpdated               ScheduleArea[]                    @relation("ScheduleAreaUpdatedBy")
+  scheduleAreasDeleted               ScheduleArea[]                    @relation("ScheduleAreaDeletedBy")
+  scheduleBatchesCreated             ScheduleBatch[]                   @relation("ScheduleBatchCreatedBy")
+  scheduleBatchesUpdated             ScheduleBatch[]                   @relation("ScheduleBatchUpdatedBy")
+  scheduleBatchesDeleted             ScheduleBatch[]                   @relation("ScheduleBatchDeletedBy")
+  scheduleBatchesBuilt               ScheduleBatch[]                   @relation("ScheduleBatchBuiltBy")
+  scheduleAreaStatusesBuilt          ScheduleAreaStatus[]              @relation("ScheduleAreaStatusBuiltBy")
+  scheduleRunsCreated                  ScheduleRun[]                     @relation("ScheduleRunCreatedBy")
+  scheduleRunsUpdated                  ScheduleRun[]                     @relation("ScheduleRunUpdatedBy")
+  scheduleRunsDeleted                  ScheduleRun[]                     @relation("ScheduleRunDeletedBy")
+  scheduledJobsCreated                 ScheduledJob[]                    @relation("ScheduledJobCreatedBy")
+  scheduledJobsUpdated                 ScheduledJob[]                    @relation("ScheduledJobUpdatedBy")
+  scheduledJobsDeleted                 ScheduledJob[]                    @relation("ScheduledJobDeletedBy")
+  scheduledVisitsCreated               ScheduledVisit[]                  @relation("ScheduledVisitCreatedBy")
+  scheduledVisitsUpdated               ScheduledVisit[]                  @relation("ScheduledVisitUpdatedBy")
+  scheduledVisitsDeleted               ScheduledVisit[]                  @relation("ScheduledVisitDeletedBy")
+  jobAllocationsAllocated              JobAllocation[]                   @relation("JobAllocationAllocatedBy")
+  jobAllocationsConfirmed              JobAllocation[]                   @relation("JobAllocationConfirmedBy")
+  jobAllocationsUnallocated            JobAllocation[]                   @relation("JobAllocationUnallocatedBy")
+  callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
+  callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
+  observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
 
   @@index([email])
   @@index([deletedAt])
@@ -283,6 +306,9 @@ model Employee {
   medicationAdministrations MedicationAdministrationEvent[] @relation("MedAdministeredBy")
   medicationReviews         MedicationReview[]              @relation("MedReviewedBy")
   medicationStockRecords    MedicationStockRecord[]         @relation("MedStockRecordedBy")
+  visitActionsCompleted     VisitAction[]                   @relation("VisitActionCompletedBy")
+  jobAllocations            JobAllocation[]
+  observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
 
   @@index([deletedAt])
   @@schema("employees")
@@ -1091,6 +1117,7 @@ model Location {
   complianceRequirements  ComplianceRequirement[]
   serviceUsers              ServiceUser[]
   serviceUserAssignments    ServiceUserAssignment[]
+  scheduleAreas             ScheduleArea[]
   @@schema("lookups")
 }
 
@@ -1103,6 +1130,7 @@ model Zone {
   deletedAt DateTime?
 
   complianceRequirements ComplianceRequirement[]
+  scheduleAreas          ScheduleArea[]
   @@schema("lookups")
 }
 
@@ -1485,6 +1513,10 @@ model ServiceUser {
   medicationReviews          MedicationReview[]
   calendarEvents             ServiceUserCalendarEvent[]
   initialAssessmentSubmissions InitialAssessmentSubmission[]
+  scheduledJobs              ScheduledJob[]
+  scheduledVisits            ScheduledVisit[]
+  callOffVisits              CallOffVisit[]
+  observations               ServiceUserObservation[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -2623,6 +2655,138 @@ model MedicationStockRecord {
   @@schema("service_users")
 }
 
+// --- Service user observations (vitals, wellbeing, clinical charts) ---
+
+enum ObservationValueKind {
+  NUMERIC
+  WELLBEING
+  COMPOSITE
+
+  @@schema("service_users")
+}
+
+model ObservationType {
+  id         String               @id @default(uuid()) @db.Uuid
+  code       String               @unique
+  name       String
+  sortOrder  Int                  @default(0)
+  valueKind  ObservationValueKind
+  usesNews2  Boolean              @default(false)
+  unitLabel  String?
+  isActive   Boolean              @default(true)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  observations ServiceUserObservation[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("service_users")
+}
+
+model ObservationShareTarget {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  observationShares ObservationRecordShare[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
+model WellbeingDimension {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  levelLabels WellbeingLevelLabel[]
+  scores      WellbeingObservationScore[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
+model WellbeingLevelLabel {
+  id          String @id @default(uuid()) @db.Uuid
+  dimensionId String @db.Uuid
+  level       Int
+  label       String @db.Text
+
+  dimension WellbeingDimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+
+  @@unique([dimensionId, level])
+  @@index([dimensionId])
+  @@schema("service_users")
+}
+
+model ServiceUserObservation {
+  id                   String    @id @default(uuid()) @db.Uuid
+  serviceUserId        String    @db.Uuid
+  observationTypeId    String    @db.Uuid
+  recordedAt           DateTime
+  notes                String?   @db.Text
+  numericValue         Decimal?  @db.Decimal(12, 4)
+  unit                 String?
+  payload              Json?
+  recordedByUserId     String?   @db.Uuid
+  recordedByEmployeeId String?   @db.Uuid
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser        ServiceUser        @relation(fields: [serviceUserId], references: [id])
+  observationType    ObservationType    @relation(fields: [observationTypeId], references: [id])
+  recordedByUser     User?              @relation("ObservationRecordedByUser", fields: [recordedByUserId], references: [id])
+  recordedByEmployee Employee?          @relation("ObservationRecordedByEmployee", fields: [recordedByEmployeeId], references: [id])
+  shares             ObservationRecordShare[]
+  wellbeingScores  WellbeingObservationScore[]
+
+  @@index([serviceUserId])
+  @@index([observationTypeId])
+  @@index([recordedAt])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ObservationRecordShare {
+  observationId String @db.Uuid
+  shareTargetId String @db.Uuid
+
+  observation ServiceUserObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  shareTarget ObservationShareTarget @relation(fields: [shareTargetId], references: [id])
+
+  @@id([observationId, shareTargetId])
+  @@schema("service_users")
+}
+
+model WellbeingObservationScore {
+  id            String @id @default(uuid()) @db.Uuid
+  observationId String @db.Uuid
+  dimensionId   String @db.Uuid
+  level         Int
+
+  observation ServiceUserObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  dimension   WellbeingDimension     @relation(fields: [dimensionId], references: [id])
+
+  @@unique([observationId, dimensionId])
+  @@index([observationId])
+  @@schema("service_users")
+}
+
 // --- In-app notifications (PostgreSQL source of truth; WebSocket for live delivery) ---
 
 enum NotificationType {
@@ -2739,5 +2903,400 @@ model NotificationPreference {
   @@index([userId])
   @@index([type])
   @@schema("notifications")
+}
+
+enum ScheduleStatus {
+  NOT_BUILT
+  BUILDING
+  BUILT
+  FAILED
+  CANCELLED
+
+  @@schema("scheduling")
+}
+
+enum ScheduleBuildSource {
+  TEMPLATE
+  WITHOUT_TEMPLATE
+  MANUAL
+
+  @@schema("scheduling")
+}
+
+model ScheduleArea {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String   @unique
+  description String?
+  locationId  String?  @db.Uuid
+  zoneId      String?  @db.Uuid
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
+
+  location     Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  zone         Zone?                @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  createdBy    User?                @relation("ScheduleAreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?                @relation("ScheduleAreaUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy    User?                @relation("ScheduleAreaDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  areaStatuses ScheduleAreaStatus[]
+  runs         ScheduleRun[]
+  jobs         ScheduledJob[]
+
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([locationId])
+  @@index([zoneId])
+  @@schema("scheduling")
+}
+
+model ScheduleBatch {
+  id           String               @id @default(uuid()) @db.Uuid
+  scheduleDate DateTime             @db.Date
+  name         String?
+  status       ScheduleStatus       @default(NOT_BUILT)
+  buildSource  ScheduleBuildSource?
+  templateId   String?              @db.Uuid
+  builtAt      DateTime?
+  builtById    String?              @db.Uuid
+  notes        String?
+  metadata     Json?
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
+  createdById  String?              @db.Uuid
+  updatedById  String?              @db.Uuid
+  deletedById  String?              @db.Uuid
+
+  builtBy      User?                @relation("ScheduleBatchBuiltBy", fields: [builtById], references: [id], onDelete: SetNull)
+  createdBy    User?                @relation("ScheduleBatchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?                @relation("ScheduleBatchUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy    User?                @relation("ScheduleBatchDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  areaStatuses ScheduleAreaStatus[]
+  runs         ScheduleRun[]
+  jobs         ScheduledJob[]
+
+  @@index([scheduleDate])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+model ScheduleAreaStatus {
+  id              String         @id @default(uuid()) @db.Uuid
+  scheduleBatchId String         @db.Uuid
+  scheduleAreaId  String         @db.Uuid
+  status          ScheduleStatus @default(NOT_BUILT)
+  builtAt         DateTime?
+  builtById       String?        @db.Uuid
+  notes           String?
+  metadata        Json?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  scheduleBatch ScheduleBatch @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
+  scheduleArea  ScheduleArea  @relation(fields: [scheduleAreaId], references: [id], onDelete: Cascade)
+  builtBy       User?         @relation("ScheduleAreaStatusBuiltBy", fields: [builtById], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleBatchId, scheduleAreaId])
+  @@index([scheduleBatchId])
+  @@index([scheduleAreaId])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("scheduling")
+}
+
+enum ScheduledJobStatus {
+  DRAFT
+  UNALLOCATED
+  ALLOCATED
+  IN_PROGRESS
+  COMPLETED
+  PARTIALLY_COMPLETED
+  MISSED
+  CANCELLED
+  CALLED_OFF
+  NEEDS_ATTENTION
+
+  @@schema("scheduling")
+}
+
+enum ScheduledJobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@schema("scheduling")
+}
+
+enum ScheduledVisitStatus {
+  PLANNED
+  STARTED
+  COMPLETED
+  MISSED
+  CANCELLED
+  CALLED_OFF
+  PARTIALLY_COMPLETED
+  NEEDS_ATTENTION
+
+  @@schema("scheduling")
+}
+
+model ScheduleRun {
+  id              String    @id @default(uuid()) @db.Uuid
+  scheduleBatchId String    @db.Uuid
+  scheduleAreaId  String?   @db.Uuid
+  name            String
+  description     String?
+  runDate         DateTime  @db.Date
+  startTime       String?
+  endTime         String?
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  createdById     String?   @db.Uuid
+  updatedById     String?   @db.Uuid
+  deletedById     String?   @db.Uuid
+
+  scheduleBatch ScheduleBatch  @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
+  scheduleArea  ScheduleArea?  @relation(fields: [scheduleAreaId], references: [id], onDelete: SetNull)
+  createdBy     User?          @relation("ScheduleRunCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?          @relation("ScheduleRunUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy     User?          @relation("ScheduleRunDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  jobs          ScheduledJob[]
+
+  @@index([scheduleBatchId])
+  @@index([scheduleAreaId])
+  @@index([runDate])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+model ScheduledJob {
+  id                       String               @id @default(uuid()) @db.Uuid
+  scheduleBatchId          String               @db.Uuid
+  scheduleAreaId           String?              @db.Uuid
+  scheduleRunId            String?              @db.Uuid
+  serviceUserId            String               @db.Uuid
+  jobName                  String
+  description              String?
+  scheduledStartDateTime   DateTime
+  scheduledEndDateTime     DateTime?
+  estimatedDurationMinutes Int?
+  requiredCarers           Int                  @default(1)
+  priority                 ScheduledJobPriority @default(NORMAL)
+  status                   ScheduledJobStatus   @default(DRAFT)
+  postcode                 String?
+  address                  String?
+  latitude                 Decimal?             @db.Decimal(10, 7)
+  longitude                Decimal?             @db.Decimal(10, 7)
+  timePeriodColor          String?
+  notes                    String?
+  metadata                 Json?
+  isActive                 Boolean              @default(true)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  deletedAt                DateTime?
+  createdById              String?              @db.Uuid
+  updatedById              String?              @db.Uuid
+  deletedById              String?              @db.Uuid
+
+  scheduleBatch ScheduleBatch   @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
+  scheduleArea  ScheduleArea?   @relation(fields: [scheduleAreaId], references: [id], onDelete: SetNull)
+  scheduleRun   ScheduleRun?    @relation(fields: [scheduleRunId], references: [id], onDelete: SetNull)
+  serviceUser   ServiceUser     @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  createdBy     User?           @relation("ScheduledJobCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?           @relation("ScheduledJobUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy     User?           @relation("ScheduledJobDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  visits        ScheduledVisit[]
+  actions       VisitAction[]
+  allocations   JobAllocation[]
+  callOffVisits CallOffVisit[]
+
+  @@index([scheduleBatchId])
+  @@index([scheduleAreaId])
+  @@index([scheduleRunId])
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledStartDateTime])
+  @@index([postcode])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+model ScheduledVisit {
+  id                     String               @id @default(uuid()) @db.Uuid
+  scheduledJobId         String               @db.Uuid
+  serviceUserId          String               @db.Uuid
+  visitName              String
+  scheduledStartDateTime DateTime
+  scheduledEndDateTime   DateTime?
+  actualStartDateTime    DateTime?
+  actualEndDateTime      DateTime?
+  status                 ScheduledVisitStatus @default(PLANNED)
+  requiredCarers         Int                  @default(1)
+  notes                  String?
+  medicationRequired     Boolean              @default(false)
+  checklistRequired      Boolean              @default(false)
+  photoRequired          Boolean              @default(false)
+  notesRequired          Boolean              @default(false)
+  isActive               Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  deletedAt              DateTime?
+  createdById            String?              @db.Uuid
+  updatedById            String?              @db.Uuid
+  deletedById            String?              @db.Uuid
+
+  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  serviceUser  ServiceUser     @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  createdBy    User?           @relation("ScheduledVisitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?           @relation("ScheduledVisitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy    User?           @relation("ScheduledVisitDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  actions      VisitAction[]
+  allocations  JobAllocation[]
+  callOffVisits CallOffVisit[]
+
+  @@index([scheduledJobId])
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([scheduledStartDateTime])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum CallOffVisitStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+
+  @@schema("scheduling")
+}
+
+model CallOffVisit {
+  id               String             @id @default(uuid()) @db.Uuid
+  scheduledJobId   String?            @db.Uuid
+  scheduledVisitId String?            @db.Uuid
+  serviceUserId    String             @db.Uuid
+  callOffDate      DateTime           @db.Date
+  reason           String
+  notes            String?
+  status           CallOffVisitStatus @default(REQUESTED)
+  requestedById    String?            @db.Uuid
+  approvedById     String?            @db.Uuid
+  approvedAt       DateTime?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+
+  scheduledJob   ScheduledJob?   @relation(fields: [scheduledJobId], references: [id], onDelete: SetNull)
+  scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: SetNull)
+  serviceUser    ServiceUser     @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  requestedBy    User?           @relation("CallOffVisitRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  approvedBy     User?           @relation("CallOffVisitApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId])
+  @@index([scheduledVisitId])
+  @@index([serviceUserId])
+  @@index([callOffDate])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum AllocationStatus {
+  PENDING_CONFIRMATION
+  ALLOCATED
+  CONFIRMED
+  UNALLOCATED
+  CANCELLED
+
+  @@schema("scheduling")
+}
+
+model JobAllocation {
+  id                 String           @id @default(uuid()) @db.Uuid
+  scheduledJobId     String           @db.Uuid
+  scheduledVisitId   String?          @db.Uuid
+  employeeId         String           @db.Uuid
+  status             AllocationStatus @default(PENDING_CONFIRMATION)
+  requiresConfirmation Boolean        @default(false)
+  confirmedAt        DateTime?
+  confirmedById      String?          @db.Uuid
+  warningTypes       Json?
+  warningMessages    Json?
+  notes              String?
+  allocatedAt        DateTime         @default(now())
+  allocatedById      String?          @db.Uuid
+  unallocatedAt      DateTime?
+  unallocatedById    String?          @db.Uuid
+  unallocationReason String?
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+
+  scheduledJob   ScheduledJob    @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: SetNull)
+  employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  allocatedBy    User?           @relation("JobAllocationAllocatedBy", fields: [allocatedById], references: [id], onDelete: SetNull)
+  confirmedBy    User?           @relation("JobAllocationConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  unallocatedBy  User?           @relation("JobAllocationUnallocatedBy", fields: [unallocatedById], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId])
+  @@index([scheduledVisitId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
+}
+
+model VisitAction {
+  id               String    @id @default(uuid()) @db.Uuid
+  scheduledJobId   String?   @db.Uuid
+  scheduledVisitId String?   @db.Uuid
+  name             String
+  description      String?
+  actionType       String?
+  isRequired       Boolean   @default(false)
+  sortOrder        Int       @default(0)
+  completedAt      DateTime?
+  completedById    String?   @db.Uuid
+  status           String?
+  notes            String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  scheduledJob   ScheduledJob?   @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: Cascade)
+  completedBy    Employee?       @relation("VisitActionCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId])
+  @@index([scheduledVisitId])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("scheduling")
 }
 
