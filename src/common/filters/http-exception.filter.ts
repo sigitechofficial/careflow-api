@@ -4,11 +4,14 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
@@ -49,7 +52,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      // https://www.prisma.io/docs/orm/reference/error-reference
       const mapped = this.mapPrismaKnownError(exception);
       return {
         status: mapped.status,
@@ -61,11 +63,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
+    if (exception instanceof Prisma.PrismaClientValidationError) {
+      this.logger.warn(exception.message);
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        body: {
+          success: false,
+          message: 'Invalid request data',
+          errors: [exception.message],
+        },
+      };
+    }
+
+    const message =
+      exception instanceof Error ? exception.message : fallbackMessage;
+    this.logger.error(exception);
+
     return {
       status: fallbackStatus,
       body: {
         success: false,
-        message: fallbackMessage,
+        message: process.env.NODE_ENV === 'production' ? fallbackMessage : message,
       },
     };
   }
@@ -86,6 +104,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return {
           status: HttpStatus.NOT_FOUND,
           message: 'Resource not found',
+        };
+      case 'P2003':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Related record not found (invalid reference)',
+          errors: [{ code: e.code, field: (e.meta as { field_name?: string })?.field_name }],
         };
       case 'P2021':
         return {

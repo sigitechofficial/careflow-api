@@ -1,0 +1,23 @@
+-- Dom care organisation settings (General Settings → Dom Care tab)
+ALTER TABLE "identity"."OrganisationGeneralSettings"
+  ADD COLUMN "domJobCancellationRules" JSONB NOT NULL DEFAULT '[]',
+  ADD COLUMN "domGlobalToleranceMinutes" INTEGER NOT NULL DEFAULT 30,
+  ADD COLUMN "domGeofenceDistanceMeters" INTEGER NOT NULL DEFAULT 100,
+  ADD COLUMN "domWorkPatternCycles" INTEGER NOT NULL DEFAULT 2,
+  ADD COLUMN "domShowAllEmployeesAcrossZones" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domEmailTomorrowsSchedule" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "domAppShowHoursBefore" INTEGER NOT NULL DEFAULT 48,
+  ADD COLUMN "domRestrictJobOutsideGeofence" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domGeofenceToleranceMeters" INTEGER NOT NULL DEFAULT 150,
+  ADD COLUMN "domDownloadAllServiceUsers" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "domFutureVisitsDays" INTEGER NOT NULL DEFAULT 14,
+  ADD COLUMN "domShowWeeklyHours" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domShowServiceUserName" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domLateVisitAlertRequired" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domLateVisitAlertMinutes" INTEGER NOT NULL DEFAULT 20,
+  ADD COLUMN "domLateVisitAlertEmail" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domLateVisitAlertText" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "domLateVisitAlertNotification" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "domTextAlertsSentThisMonth" INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN "domTextAlertsSentLastMonth" INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN "domLateVisitZoneAlerts" JSONB NOT NULL DEFAULT '[]';

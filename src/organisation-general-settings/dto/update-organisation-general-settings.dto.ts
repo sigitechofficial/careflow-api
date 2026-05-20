@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsIn,
   IsInt,
@@ -9,7 +10,16 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import {
+  DomCareAllocationRuleDto,
+  DomCareShiftDefinitionDto,
+  DomJobCancellationRuleDto,
+  DomLateVisitZoneAlertDto,
+} from './dom-care-settings.dto';
+import { IncidentTypeSettingDto } from './incident-management.dto';
+import { INCIDENT_DEFAULT_STATUSES } from '../incident-management.util';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
 const DEFAULT_CARER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
@@ -18,7 +28,7 @@ const COMPLIANCE_REQUIRED_BY = ['ROLE_WORK_AREA', 'CITIZENSHIP'] as const;
 const COMPLIANCE_APPROVAL_TYPES = ['MANAGER_APPROVAL', 'HR_APPROVAL'] as const;
 const WELLBEING_REGULARITIES = ['DAILY', 'WEEKLY', 'MONTHLY'] as const;
 const ACTIONS_DEFAULT_VIEWS = ['TASK_LIST', 'ACTIONS_LIST'] as const;
-const ALLOCATE_EMPLOYEE_BY = ['FLOOR', 'WARD', 'UNIT', 'TEAM', 'ZONE'] as const;
+const ALLOCATE_EMPLOYEE_BY = ['FLOOR', 'WARD', 'ZONE', 'UNIT'] as const;
 
 export class UpdateOrganisationGeneralSettingsDto {
   @ApiPropertyOptional({ minimum: 1, maximum: 3650 })
@@ -205,4 +215,166 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Min(0)
   @Max(120)
   shiftAccessMinutesAfter?: number;
+
+  @ApiPropertyOptional({ type: [DomJobCancellationRuleDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DomJobCancellationRuleDto)
+  domJobCancellationRules?: DomJobCancellationRuleDto[];
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 1440 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  domGlobalToleranceMinutes?: number;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 50000 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50000)
+  domGeofenceDistanceMeters?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 52 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(52)
+  domWorkPatternCycles?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domShowAllEmployeesAcrossZones?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domEmailTomorrowsSchedule?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 168 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(168)
+  domAppShowHoursBefore?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domRestrictJobOutsideGeofence?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 50000 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50000)
+  domGeofenceToleranceMeters?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domDownloadAllServiceUsers?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 365 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  domFutureVisitsDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domShowWeeklyHours?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domShowServiceUserName?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domLateVisitAlertRequired?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 240 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  domLateVisitAlertMinutes?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domLateVisitAlertEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domLateVisitAlertText?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domLateVisitAlertNotification?: boolean;
+
+  @ApiPropertyOptional({ type: [DomLateVisitZoneAlertDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DomLateVisitZoneAlertDto)
+  domLateVisitZoneAlerts?: DomLateVisitZoneAlertDto[];
+
+  @ApiPropertyOptional({ type: [DomCareShiftDefinitionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DomCareShiftDefinitionDto)
+  domCareShiftDefinitions?: DomCareShiftDefinitionDto[];
+
+  @ApiPropertyOptional({ type: [DomCareAllocationRuleDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DomCareAllocationRuleDto)
+  domCareAllocationRules?: DomCareAllocationRuleDto[];
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 10080 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10080)
+  incidentDetailsEditableMinutes?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 8760 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(8760)
+  incidentDisplayHours?: number;
+
+  @ApiPropertyOptional({ enum: INCIDENT_DEFAULT_STATUSES })
+  @IsOptional()
+  @IsIn([...INCIDENT_DEFAULT_STATUSES])
+  incidentDefaultStatus?: (typeof INCIDENT_DEFAULT_STATUSES)[number];
+
+  @ApiPropertyOptional({ type: [IncidentTypeSettingDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTypeSettingDto)
+  incidentTypeSettings?: IncidentTypeSettingDto[];
 }

@@ -357,9 +357,8 @@ enum ActionsDefaultView {
 enum AllocateEmployeeBy {
   FLOOR
   WARD
-  UNIT
-  TEAM
   ZONE
+  UNIT
 
   @@schema("identity")
 }
@@ -400,6 +399,33 @@ model OrganisationGeneralSettings {
   preventCarerWebLogin          Boolean           @default(true)
   shiftAccessMinutesBefore      Int               @default(60)
   shiftAccessMinutesAfter       Int               @default(30)
+  domJobCancellationRules       Json              @default("[]")
+  domGlobalToleranceMinutes     Int               @default(30)
+  domGeofenceDistanceMeters     Int               @default(100)
+  domWorkPatternCycles          Int               @default(2)
+  domShowAllEmployeesAcrossZones Boolean          @default(true)
+  domEmailTomorrowsSchedule     Boolean           @default(false)
+  domAppShowHoursBefore         Int               @default(48)
+  domRestrictJobOutsideGeofence Boolean         @default(true)
+  domGeofenceToleranceMeters    Int               @default(150)
+  domDownloadAllServiceUsers    Boolean           @default(false)
+  domFutureVisitsDays           Int               @default(14)
+  domShowWeeklyHours            Boolean           @default(true)
+  domShowServiceUserName        Boolean           @default(true)
+  domLateVisitAlertRequired     Boolean           @default(true)
+  domLateVisitAlertMinutes      Int               @default(20)
+  domLateVisitAlertEmail        Boolean           @default(true)
+  domLateVisitAlertText         Boolean           @default(false)
+  domLateVisitAlertNotification Boolean           @default(true)
+  domTextAlertsSentThisMonth    Int               @default(0)
+  domTextAlertsSentLastMonth    Int               @default(0)
+  domLateVisitZoneAlerts        Json              @default("[]")
+  domCareShiftDefinitions       Json              @default("[]")
+  domCareAllocationRules        Json              @default("[]")
+  incidentDetailsEditableMinutes Int              @default(60)
+  incidentDisplayHours          Int               @default(12)
+  incidentDefaultStatus         String            @default("REPORTED")
+  incidentTypeSettings          Json              @default("[]")
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
   updatedById                   String?           @db.Uuid

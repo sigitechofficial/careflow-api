@@ -1,6 +1,6 @@
 -- CreateEnum
 CREATE TYPE "identity"."ActionsDefaultView" AS ENUM ('TASK_LIST', 'ACTIONS_LIST');
-CREATE TYPE "identity"."AllocateEmployeeBy" AS ENUM ('FLOOR', 'WARD', 'UNIT', 'TEAM', 'ZONE');
+CREATE TYPE "identity"."AllocateEmployeeBy" AS ENUM ('FLOOR', 'WARD', 'ZONE', 'UNIT');
 
 -- AlterTable
 ALTER TABLE "identity"."OrganisationGeneralSettings"
