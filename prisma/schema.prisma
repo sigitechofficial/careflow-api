@@ -193,6 +193,8 @@ model User {
   callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
   callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
   observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
+  companyProfilesUpdated               CompanyProfile[]                  @relation("CompanyProfileUpdatedBy")
+  organisationGeneralSettingsUpdated OrganisationGeneralSettings[]     @relation("OrganisationGeneralSettingsUpdatedBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -267,6 +269,143 @@ model UserRole {
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
+  @@schema("identity")
+}
+
+/// Singleton organisation profile (one row per deployment).
+model CompanyProfile {
+  id                   String   @id @default(uuid()) @db.Uuid
+  groupName            String?
+  companyName          String
+  odsCsCode            String
+  displayName          String
+  displayLogoUrl       String?
+  displayLogoFileName  String?
+  companyLogoUrl       String?
+  companyLogoFileName  String?
+  companyWebsite       String?
+  contactName          String
+  email                String
+  phoneNumber          String
+  companyNumber        String?
+  vatNumber            String?
+  bankName             String?
+  bankSortCode         String?
+  bankAccountNumber    String?
+  numberOfCarers       Int      @default(0)
+  numberOfServiceUsers Int      @default(0)
+  activeModules        String[] @default([])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  updatedById          String?  @db.Uuid
+
+  updatedBy User? @relation("CompanyProfileUpdatedBy", fields: [updatedById], references: [id])
+
+  @@schema("identity")
+}
+
+enum TimeDisplayFormat {
+  HH_XX
+  HH_MM
+
+  @@schema("identity")
+}
+
+enum DefaultCarerStatus {
+  ACTIVE
+  INACTIVE
+
+  @@schema("identity")
+}
+
+enum HolidayUnit {
+  HOURS
+  DAYS
+
+  @@schema("identity")
+}
+
+enum ComplianceRequiredBy {
+  ROLE_WORK_AREA
+  CITIZENSHIP
+
+  @@schema("identity")
+}
+
+enum ComplianceApprovalType {
+  MANAGER_APPROVAL
+  HR_APPROVAL
+
+  @@schema("identity")
+}
+
+enum WellbeingRegularity {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("identity")
+}
+
+enum ActionsDefaultView {
+  TASK_LIST
+  ACTIONS_LIST
+
+  @@schema("identity")
+}
+
+enum AllocateEmployeeBy {
+  FLOOR
+  WARD
+  UNIT
+  TEAM
+  ZONE
+
+  @@schema("identity")
+}
+
+/// Singleton organisation general settings (care rules, time display, etc.).
+model OrganisationGeneralSettings {
+  id                            String            @id @default(uuid()) @db.Uuid
+  reviewCarePlanAfterDays       Int               @default(180)
+  handoverReportLastHours       Int               @default(12)
+  archiveServiceUserAfterMonths Int               @default(3)
+  timeDisplayFormat             TimeDisplayFormat @default(HH_MM)
+  defaultCarerStatus            DefaultCarerStatus @default(ACTIVE)
+  sendEmailWhenEmployeeActive   Boolean           @default(true)
+  allowMultipleRoles            Boolean           @default(true)
+  allowWeekendDaysInHoliday     Boolean           @default(true)
+  mandateComplianceForNewEmployees Boolean        @default(false)
+  defaultHolidaysUnit           HolidayUnit       @default(DAYS)
+  recruitmentFunctionalityRequired Boolean        @default(true)
+  complianceRequiredBy          ComplianceRequiredBy @default(ROLE_WORK_AREA)
+  complianceApprovalForNewEmployee ComplianceApprovalType @default(MANAGER_APPROVAL)
+  calculateSicknessBradfordScale Boolean          @default(false)
+  recordServiceUserWellbeing    Boolean           @default(false)
+  recordEmployeeWellbeing       Boolean           @default(true)
+  wellbeingRegularity           WellbeingRegularity @default(DAILY)
+  wellbeingLabel1               String            @default("Very Happy")
+  wellbeingLabel2               String            @default("Somewhat Happy")
+  wellbeingLabel3               String            @default("Somewhat sad")
+  wellbeingLabel4               String            @default("sad")
+  wellbeingLabel5               String            @default("Very Sad")
+  enhancedRegularActionChecks   Boolean           @default(true)
+  showRegularActionsInDailyList Boolean           @default(true)
+  allowFastAction               Boolean           @default(true)
+  actionsDefaultView            ActionsDefaultView @default(TASK_LIST)
+  appDefaultToObservationsTab   Boolean           @default(true)
+  allocateEmployeeBy            AllocateEmployeeBy @default(FLOOR)
+  restrictCarerToAllocatedServiceUsers Boolean    @default(true)
+  restrictLoginToShiftTimes     Boolean           @default(true)
+  preventCarerWebLogin          Boolean           @default(true)
+  shiftAccessMinutesBefore      Int               @default(60)
+  shiftAccessMinutesAfter       Int               @default(30)
+  createdAt                     DateTime          @default(now())
+  updatedAt                     DateTime          @updatedAt
+  updatedById                   String?           @db.Uuid
+
+  updatedBy User? @relation("OrganisationGeneralSettingsUpdatedBy", fields: [updatedById], references: [id])
+
   @@schema("identity")
 }
 

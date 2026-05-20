@@ -44,6 +44,7 @@ jobs:
         run: |
           test -f dist/src/main.js
           test -f prisma/schema.prisma
+          test -f prisma/seed.ts
           test -d prisma/migrations
           test -f package.json
           test -f package-lock.json
@@ -237,7 +238,7 @@ jobs:
               cd "$LIVE_PATH"
 
               echo "Reinstalling dependencies after rollback..."
-              npm ci
+              npm ci --include=dev
 
               echo "Regenerating Prisma client after rollback..."
               npx prisma generate
@@ -424,14 +425,39 @@ jobs:
 
           cd "$LIVE_PATH"
 
-          echo "Installing backend dependencies..."
-          npm ci
+          echo "Installing backend dependencies (including dev tools for Prisma migrate/seed)..."
+          npm ci --include=dev
+
+          if [ ! -f "$LIVE_PATH/.env" ]; then
+            echo "Missing .env at $LIVE_PATH/.env — cannot run migrations or seed."
+            exit 1
+          fi
+
+          echo "Loading DATABASE_URL from server .env..."
+          set -a
+          # shellcheck disable=SC1091
+          . "$LIVE_PATH/.env"
+          set +a
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is not set in $LIVE_PATH/.env"
+            exit 1
+          fi
 
           echo "Generating Prisma client..."
           npx prisma generate
 
+          echo "Prisma migration status (before deploy)..."
+          npx prisma migrate status
+
           echo "Applying Prisma migrations..."
           npx prisma migrate deploy
+
+          echo "Prisma migration status (after deploy)..."
+          npx prisma migrate status
+
+          echo "Seeding database (idempotent upserts)..."
+          npx prisma db seed
 
           echo "Reloading PM2 app..."
           if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then

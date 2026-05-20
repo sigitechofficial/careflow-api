@@ -77,6 +77,8 @@ import { ScheduleFiltersModule } from './schedule-filters/schedule-filters.modul
 import { ScheduledJobsHousekeepingModule } from './scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
 import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
 import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
+import { CompanyProfileModule } from './company-profile/company-profile.module';
+import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
 
 @Module({
   imports: [
@@ -173,6 +175,8 @@ import { ScheduleReportsModule } from './schedule-reports/schedule-reports.modul
     ScheduledJobsHousekeepingModule,
     CallOffVisitsModule,
     ScheduleReportsModule,
+    CompanyProfileModule,
+    OrganisationGeneralSettingsModule,
   ],
   providers: [
     {

@@ -5,6 +5,8 @@ import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 import { seedScheduleAreas } from './seeds/schedule-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
+import { seedCompanyProfile } from './seeds/company-profile.seed';
+import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 
 const prisma = new PrismaClient();
 
@@ -151,6 +153,8 @@ async function main() {
     'employees.reports.read',
     'lookups.read',
     'lookups.manage',
+    'settings.company.read',
+    'settings.company.update',
     'users.read',
     'users.create',
     'roles.manage',
@@ -671,6 +675,12 @@ async function main() {
   const lookupsManage = await prisma.permission.findFirst({
     where: { key: 'lookups.manage' },
   });
+  const settingsCompanyRead = await prisma.permission.findFirst({
+    where: { key: 'settings.company.read' },
+  });
+  const settingsCompanyUpdate = await prisma.permission.findFirst({
+    where: { key: 'settings.company.update' },
+  });
   for (const r of [
     roles.find((x) => x.name === 'Admin'),
     roles.find((x) => x.name === 'Manager'),
@@ -687,6 +697,8 @@ async function main() {
       complianceTypesDelete,
       complianceReqRead,
       lookupsManage,
+      settingsCompanyRead,
+      settingsCompanyUpdate,
     ]) {
       if (!p) continue;
       await prisma.rolePermission.upsert({
@@ -1547,6 +1559,8 @@ async function main() {
 
   await seedScheduleAreas(prisma);
   await seedServiceUserObservations(prisma);
+  await seedCompanyProfile(prisma);
+  await seedOrganisationGeneralSettings(prisma);
 
   const scheduleOperatorPermKeys = [
     'schedules.read',
