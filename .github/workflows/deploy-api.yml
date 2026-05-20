@@ -447,13 +447,13 @@ jobs:
           echo "Generating Prisma client..."
           npx prisma generate
 
-          echo "Prisma migration status (before deploy)..."
-          npx prisma migrate status
+          echo "Pending migrations (informational; non-zero exit is expected)..."
+          npx prisma migrate status || true
 
           echo "Applying Prisma migrations..."
           npx prisma migrate deploy
 
-          echo "Prisma migration status (after deploy)..."
+          echo "Verifying all migrations are applied..."
           npx prisma migrate status
 
           echo "Seeding database (idempotent upserts)..."
