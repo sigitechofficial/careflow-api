@@ -128,6 +128,18 @@ See [README.md](../README.md) → *Schedule Management* for behaviour notes.
 | PATCH `/call-off-visits/:id/approve` | `call_off_visits.approve` |
 | PATCH `/call-off-visits/:id/reject` | `call_off_visits.reject` |
 
+## Service User Flash Message
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/service-users/:id/flash-message` | `service_users.flash_message.read` |
+| PUT | `/service-users/:id/flash-message` | `service_users.flash_message.update` |
+| DELETE | `/service-users/:id/flash-message` | `service_users.flash_message.delete` |
+| PATCH | `/service-users/:id/flash-message/clear` | `service_users.flash_message.delete` |
+| GET | `/service-users/:id/flash-message/history` | `service_users.flash_message.history.read` |
+
+See [README.md](../README.md) → *Service User Flash Message*.
+
 ## Schedule Management — Phase 6
 
 | Path | Permission |

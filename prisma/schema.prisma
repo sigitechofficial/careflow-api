@@ -193,6 +193,10 @@ model User {
   callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
   callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
   observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
+  serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]         @relation("FlashMessageCreatedBy")
+  serviceUserFlashMessagesUpdated      ServiceUserFlashMessage[]         @relation("FlashMessageUpdatedBy")
+  serviceUserFlashMessagesCleared      ServiceUserFlashMessage[]         @relation("FlashMessageClearedBy")
+  serviceUserFlashMessagesDeleted      ServiceUserFlashMessage[]         @relation("FlashMessageDeletedBy")
   companyProfilesUpdated               CompanyProfile[]                  @relation("CompanyProfileUpdatedBy")
   organisationGeneralSettingsUpdated OrganisationGeneralSettings[]     @relation("OrganisationGeneralSettingsUpdatedBy")
 
@@ -426,6 +430,47 @@ model OrganisationGeneralSettings {
   incidentDisplayHours          Int               @default(12)
   incidentDefaultStatus         String            @default("REPORTED")
   incidentTypeSettings          Json              @default("[]")
+  optionalEmarIntegration       Boolean           @default(false)
+  optionalMedicationListRequired Boolean          @default(true)
+  optionalMedicationAmendRoles  Json              @default("[]")
+  optionalMhaDetentionRequired  Boolean           @default(false)
+  optionalRestraintRecordingRequired Boolean      @default(false)
+  optionalCarePlanReadRequired  Boolean           @default(true)
+  optionalCarePlanReadCycleMonths Int             @default(1)
+  optionalFormBuilderRequired   Boolean           @default(true)
+  optionalRemoveCreateNewCarePlan Boolean         @default(true)
+  optionalAboutMeFields         Json              @default("[]")
+  optionalServiceManagementRequired Boolean       @default(true)
+  optionalLearningDevSessionsRequired Boolean     @default(true)
+  optionalFamilyPortalEnabled   Boolean           @default(true)
+  optionalFamilySharingAuthRequired Boolean       @default(false)
+  optionalFamilyShareAllActions Boolean           @default(true)
+  optionalFamilyShareCarePlans  Boolean           @default(true)
+  optionalFamilyShareVisitInfo  Json              @default("{}")
+  optionalAllowInspectorLogin   Boolean           @default(true)
+  preAssessmentCareRequired     Boolean           @default(true)
+  preAssessmentComponents       Json              @default("[]")
+  preAssessmentForms            Json              @default("[]")
+  alertActionsOverdueEnabled    Boolean           @default(true)
+  alertActionsOverdueMinutes    Int               @default(30)
+  alertRequiredCheckNotTicked   Boolean           @default(true)
+  alertRequiredMedicationNotGiven Boolean         @default(true)
+  alertScheduleJobsBeforeHours  Int               @default(24)
+  alertBeepOnNewAlert           Boolean           @default(true)
+  alertFluidAlertsEnabled       Boolean           @default(false)
+  criticalGenerateActions       Boolean           @default(true)
+  criticalMemorableAnswerRequired Boolean         @default(false)
+  criticalLockdownWebAccess     Boolean           @default(false)
+  criticalLockdownCareAppAccess Boolean           @default(false)
+  appSettingPinCodeRequired     Boolean           @default(false)
+  appSettingViewPoliciesCareApp Boolean           @default(true)
+  appSettingViewPoliciesRosterApp Boolean         @default(true)
+  appSettingBookHolidaysCareApp Boolean           @default(true)
+  appSettingFingerprintLoginCareApp Boolean       @default(true)
+  privacyNonActiveServiceUserDays Int             @default(60)
+  privacyNotifyInternalMessage  Boolean           @default(true)
+  privacyNotifyEmail            Boolean           @default(false)
+  privacySensitiveViewerRoles   Json              @default("[]")
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
   updatedById                   String?           @db.Uuid
@@ -600,9 +645,23 @@ model EmployeeEmployment {
   baseLocation          Location? @relation("EmploymentBaseLocation", fields: [baseLocationId], references: [id])
   location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
   leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
+  floorLocations        EmployeeEmploymentFloorLocation[]
 
   @@index([employeeId])
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeeEmploymentFloorLocation {
+  employmentId String @db.Uuid
+  locationId   String @db.Uuid
+  createdAt    DateTime @default(now())
+
+  employment EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
+  location   Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([employmentId, locationId])
+  @@index([locationId])
   @@schema("employees")
 }
 
@@ -1283,6 +1342,7 @@ model Location {
   serviceUsers              ServiceUser[]
   serviceUserAssignments    ServiceUserAssignment[]
   scheduleAreas             ScheduleArea[]
+  employmentFloorLocations  EmployeeEmploymentFloorLocation[]
   @@schema("lookups")
 }
 
@@ -1682,6 +1742,7 @@ model ServiceUser {
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
   observations               ServiceUserObservation[]
+  flashMessages              ServiceUserFlashMessage[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -2639,6 +2700,8 @@ model ServiceUserMedication {
   strength                 String?
   startDate                DateTime?
   endDate                  DateTime?
+  expiryDate               DateTime?
+  howAssisted              String?
   medicationTypeId         String?                @db.Uuid
   routeId                  String?                @db.Uuid
   categoryId               String?                @db.Uuid
@@ -2672,6 +2735,48 @@ model ServiceUserMedication {
   @@index([deletedAt])
   @@index([medicationKind])
   @@index([status])
+  @@schema("service_users")
+}
+
+enum FlashMessageStatus {
+  ACTIVE
+  EXPIRED
+  CLEARED
+  ARCHIVED
+
+  @@schema("service_users")
+}
+
+model ServiceUserFlashMessage {
+  id            String             @id @default(uuid()) @db.Uuid
+  serviceUserId String             @db.Uuid
+  message       String
+  displayUntil  DateTime
+  status        FlashMessageStatus @default(ACTIVE)
+  isCurrent     Boolean            @default(true)
+  clearedAt     DateTime?
+  clearedById   String?            @db.Uuid
+  clearReason   String?
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  deletedAt     DateTime?
+  createdById   String?            @db.Uuid
+  updatedById   String?            @db.Uuid
+  deletedById   String?            @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+  createdBy   User?       @relation("FlashMessageCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?       @relation("FlashMessageUpdatedBy", fields: [updatedById], references: [id])
+  clearedBy   User?       @relation("FlashMessageClearedBy", fields: [clearedById], references: [id])
+  deletedBy   User?       @relation("FlashMessageDeletedBy", fields: [deletedById], references: [id])
+
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([displayUntil])
+  @@index([isCurrent])
+  @@index([createdAt])
+  @@index([deletedAt])
   @@schema("service_users")
 }
 
@@ -3097,6 +3202,10 @@ model ScheduleArea {
   zoneId      String?  @db.Uuid
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
+  markerColorHex          String?
+  incidentMessageUserIds  Json     @default("[]")
+  incidentEmailUserIds    Json     @default("[]")
+  parentZoneName          String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?

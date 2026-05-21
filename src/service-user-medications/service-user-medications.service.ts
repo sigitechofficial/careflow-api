@@ -22,7 +22,18 @@ const medInclude = {
   route: true,
   category: true,
   frequency: true,
-  medicationPack: true,
+  medicationPack: { select: { id: true, name: true } },
+  schedules: {
+    where: { deletedAt: null, isActive: true },
+    orderBy: [{ dueTime: 'asc' as const }, { createdAt: 'asc' as const }],
+    select: {
+      id: true,
+      dueTime: true,
+      dueVisitName: true,
+      roundId: true,
+      frequencyText: true,
+    },
+  },
 } satisfies Prisma.ServiceUserMedicationInclude;
 
 function startOfUtcDay(d: Date) {
@@ -153,6 +164,30 @@ export class ServiceUserMedicationsService {
     }
   }
 
+  private validateSchedules(
+    medicationKind: string,
+    schedules?: { dueTime: string }[] | null,
+  ) {
+    if (!schedules?.length) return;
+    if (medicationKind === 'PRN') {
+      throw new BadRequestException('PRN medications cannot have administration schedules');
+    }
+    const times = schedules.map((s) => s.dueTime);
+    const unique = new Set(times);
+    if (unique.size !== times.length) {
+      throw new BadRequestException('Duplicate administration times are not allowed');
+    }
+  }
+
+  private buildScheduleFrequencyText(
+    dto: CreateServiceUserMedicationDto,
+  ): string | undefined {
+    if (dto.frequencyIntervalDays != null) {
+      return `Every ${dto.frequencyIntervalDays} day(s)`;
+    }
+    return dto.frequencyText;
+  }
+
   private async ensurePackForUser(serviceUserId: string, packId?: string | null) {
     if (!packId) return;
     const pack = await this.prisma.medicationPack.findFirst({
@@ -169,36 +204,80 @@ export class ServiceUserMedicationsService {
   ) {
     await assertServiceUserExists(this.prisma, serviceUserId);
     this.validateDates(dto.startDate, dto.endDate);
+    if (dto.expiryDate && dto.startDate) {
+      this.validateDates(dto.startDate, dto.expiryDate);
+    }
     await this.ensurePackForUser(serviceUserId, dto.medicationPackId);
+    this.validateSchedules(dto.medicationKind, dto.schedules);
 
     const allergies = await this.prisma.medicationAllergy.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
     });
     const warnings = buildAllergyWarnings(dto.medicationName, allergies);
+    const scheduleFrequencyText = this.buildScheduleFrequencyText(dto);
 
-    const created = await this.prisma.serviceUserMedication.create({
-      data: {
-        serviceUserId,
-        medicationPackId: dto.medicationPackId,
-        medicationName: dto.medicationName,
-        dose: dto.dose,
-        strength: dto.strength,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        medicationTypeId: dto.medicationTypeId,
-        routeId: dto.routeId,
-        categoryId: dto.categoryId,
-        frequencyId: dto.frequencyId,
-        frequencyText: dto.frequencyText,
-        instructions: dto.instructions,
-        notes: dto.notes,
-        isControlledMedication: dto.isControlledMedication ?? false,
-        medicationKind: dto.medicationKind,
-        status: dto.status ?? MedicationRecordStatus.ACTIVE,
-        createdById: userId,
-        updatedById: userId,
-      },
-      include: medInclude,
+    const created = await this.prisma.$transaction(async (tx) => {
+      const med = await tx.serviceUserMedication.create({
+        data: {
+          serviceUserId,
+          medicationPackId: dto.medicationPackId,
+          medicationName: dto.medicationName,
+          dose: dto.dose,
+          strength: dto.strength,
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
+          howAssisted: dto.howAssisted,
+          medicationTypeId: dto.medicationTypeId,
+          routeId: dto.routeId,
+          categoryId: dto.categoryId,
+          frequencyId: dto.frequencyId,
+          frequencyText: scheduleFrequencyText ?? dto.frequencyText,
+          instructions: dto.instructions,
+          notes: dto.notes,
+          isControlledMedication: dto.isControlledMedication ?? false,
+          medicationKind: dto.medicationKind,
+          status: dto.status ?? MedicationRecordStatus.ACTIVE,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+
+      if (dto.schedules?.length) {
+        for (const slot of dto.schedules) {
+          const schedule = await tx.medicationSchedule.create({
+            data: {
+              serviceUserMedicationId: med.id,
+              roundId: slot.roundId,
+              dueTime: slot.dueTime,
+              dueVisitName: slot.dueVisitName,
+              startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+              endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+              frequencyId: dto.frequencyId,
+              frequencyText: scheduleFrequencyText,
+              instructions: dto.instructions,
+              createdById: userId,
+              updatedById: userId,
+            },
+          });
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.MEDICATION,
+            action: AuditAction.MEDICATION_SCHEDULE_CREATED,
+            recordType: 'MedicationSchedule',
+            recordId: schedule.id,
+            newValues: auditSnapshot(schedule),
+            metadata: { serviceUserId, medicationId: med.id, dueTime: slot.dueTime },
+            ...meta,
+          });
+        }
+      }
+
+      return tx.serviceUserMedication.findUniqueOrThrow({
+        where: { id: med.id },
+        include: medInclude,
+      });
     });
 
     await this.audit.logAudit({
@@ -212,11 +291,15 @@ export class ServiceUserMedicationsService {
         serviceUserId,
         controlledMedication: created.isControlledMedication,
         allergyWarnings: warnings,
+        scheduleCount: dto.schedules?.length ?? 0,
       },
       ...meta,
     });
 
-    return { data: created, meta: { allergyWarnings: warnings } };
+    return {
+      data: created,
+      meta: { allergyWarnings: warnings, scheduleCount: dto.schedules?.length ?? 0 },
+    };
   }
 
   async update(

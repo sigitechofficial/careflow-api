@@ -20,6 +20,11 @@ import {
 } from './dom-care-settings.dto';
 import { IncidentTypeSettingDto } from './incident-management.dto';
 import { INCIDENT_DEFAULT_STATUSES } from '../incident-management.util';
+import {
+  OptionalAboutMeFieldDto,
+  OptionalFamilyShareVisitInfoDto,
+} from './optional-settings.dto';
+import { PreAssessmentChecklistItemDto } from './pre-assessment-settings.dto';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
 const DEFAULT_CARER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
@@ -377,4 +382,230 @@ export class UpdateOrganisationGeneralSettingsDto {
   @ValidateNested({ each: true })
   @Type(() => IncidentTypeSettingDto)
   incidentTypeSettings?: IncidentTypeSettingDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalEmarIntegration?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalMedicationListRequired?: boolean;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  optionalMedicationAmendRoles?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalMhaDetentionRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalRestraintRecordingRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalCarePlanReadRequired?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 60 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  optionalCarePlanReadCycleMonths?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalFormBuilderRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalRemoveCreateNewCarePlan?: boolean;
+
+  @ApiPropertyOptional({ type: [OptionalAboutMeFieldDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OptionalAboutMeFieldDto)
+  optionalAboutMeFields?: OptionalAboutMeFieldDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalServiceManagementRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalLearningDevSessionsRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalFamilyPortalEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalFamilySharingAuthRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalFamilyShareAllActions?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalFamilyShareCarePlans?: boolean;
+
+  @ApiPropertyOptional({ type: OptionalFamilyShareVisitInfoDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OptionalFamilyShareVisitInfoDto)
+  optionalFamilyShareVisitInfo?: OptionalFamilyShareVisitInfoDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optionalAllowInspectorLogin?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  preAssessmentCareRequired?: boolean;
+
+  @ApiPropertyOptional({ type: [PreAssessmentChecklistItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PreAssessmentChecklistItemDto)
+  preAssessmentComponents?: PreAssessmentChecklistItemDto[];
+
+  @ApiPropertyOptional({ type: [PreAssessmentChecklistItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PreAssessmentChecklistItemDto)
+  preAssessmentForms?: PreAssessmentChecklistItemDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  alertActionsOverdueEnabled?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 1440 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1440)
+  alertActionsOverdueMinutes?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  alertRequiredCheckNotTicked?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  alertRequiredMedicationNotGiven?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 168 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  alertScheduleJobsBeforeHours?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  alertBeepOnNewAlert?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  alertFluidAlertsEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  criticalGenerateActions?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  criticalMemorableAnswerRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  criticalLockdownWebAccess?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  criticalLockdownCareAppAccess?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingPinCodeRequired?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingViewPoliciesCareApp?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingViewPoliciesRosterApp?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingBookHolidaysCareApp?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingFingerprintLoginCareApp?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 3650 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  privacyNonActiveServiceUserDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  privacyNotifyInternalMessage?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  privacyNotifyEmail?: boolean;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  privacySensitiveViewerRoles?: string[];
 }

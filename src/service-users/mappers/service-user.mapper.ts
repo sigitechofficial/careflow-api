@@ -45,6 +45,8 @@ export function mapServiceUserListRow(user: {
   location: { id: string; name: string } | null;
   keyWorker: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   namedNurse: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
+  absences?: { id: string }[];
+  flashMessages?: { id: string }[];
 }) {
   return {
     id: user.id,
@@ -65,6 +67,8 @@ export function mapServiceUserListRow(user: {
     location: user.location ? { id: user.location.id, name: user.location.name } : null,
     keyWorker: mapEmployeeBrief(user.keyWorker),
     namedNurse: mapEmployeeBrief(user.namedNurse),
+    hasActiveAbsence: (user.absences?.length ?? 0) > 0,
+    hasActiveFlashMessage: (user.flashMessages?.length ?? 0) > 0,
   };
 }
 

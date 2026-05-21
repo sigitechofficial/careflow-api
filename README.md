@@ -95,6 +95,55 @@ pnpm exec prisma generate
 pnpm exec prisma db seed
 ```
 
+## Service User Flash Message
+
+A **flash message** is a short temporary alert shown on a service user profile until a selected **display-until** date. It is **not** a care note, care plan, or clinical record — it is an urgent visible note for staff (e.g. “Call daughter before visit”, “Do not use back entrance”, “Service user at hospital”).
+
+| Topic | Behaviour |
+|--------|-----------|
+| **Current message** | At most one **current** non-expired `ACTIVE` row per service user (`isCurrent=true`). |
+| **Upsert** | `PUT /service-users/:id/flash-message` archives the previous current row (`ARCHIVED`, `isCurrent=false`) and creates a new `ACTIVE` row. |
+| **Clear** | `DELETE` or `PATCH .../clear` sets `CLEARED`, `isCurrent=false`, `clearedAt` / `clearedById`, optional `clearReason`. History rows are retained (no hard delete). |
+| **Expiry** | After the inclusive display-until calendar day (UTC), reads mark the row `EXPIRED` and return no current message. A daily cron is TODO when `@nestjs/schedule` is added. |
+| **Validation** | `message` required, max **150** characters (trimmed). `displayUntil` required as `YYYY-MM-DD`, today or future. |
+| **History** | `GET /service-users/:id/flash-message/history` — paginated, filter by `status`, `dateFrom`, `dateTo`, sort. |
+
+### API
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/service-users/:id/flash-message` | `service_users.flash_message.read` (or `service_users.read`) |
+| PUT | `/service-users/:id/flash-message` | `service_users.flash_message.update` (or `service_users.update`) |
+| DELETE | `/service-users/:id/flash-message` | `service_users.flash_message.delete` |
+| PATCH | `/service-users/:id/flash-message/clear` | `service_users.flash_message.delete` |
+| GET | `/service-users/:id/flash-message/history` | `service_users.flash_message.history.read` |
+
+### Permissions (seed)
+
+- **Super Admin**: all flash message keys.
+- **Admin / Manager / Care Coordinator**: read + update; delete/clear for Admin, Manager, Care Coordinator.
+- **Senior Carer/Nurse**: read + update.
+- **History read**: Admin, Manager, **Privacy Officer**.
+
+### Audit and data access
+
+- **Audit** (`AuditModule.FLASH_MESSAGE`): viewed, created, updated, archived, cleared, deleted, expired, history viewed.
+- **Data access** (`AuditModule.SERVICE_USER`, `ServiceUserFlashMessage`, `VIEW`): current message and history list.
+
+### Notifications
+
+Optional in-app notifications (`SERVICE_USER_UPDATED`) to key worker, named nurse (when linked to a user account), and Admin/Manager users — failures are logged and do not block the API.
+
+### Swagger
+
+Tag: **Service User Flash Messages**. Log in via `POST /auth/login`, authorize Bearer token, then call the endpoints above.
+
+```bash
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm exec prisma db seed
+```
+
 ## Service Users (Phase 1 — core)
 
 PostgreSQL schema **`service_users`** holds Service User entities, domain lookups (status, title, gender, marital status, care type, funding type, risk level, relationship types), contacts, address, references, assignment rows, and photo metadata. **JWT + RBAC** protect all routes; **Swagger** tags: Service Users, Service User Contacts, Service User Address, Service User Assignments, Service User Photos, Service User Lookups.

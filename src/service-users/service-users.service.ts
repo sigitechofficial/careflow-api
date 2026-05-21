@@ -14,6 +14,8 @@ import { ServiceUserQueryDto } from './dto/service-user-query.dto';
 import { UpdateServiceUserStatusDto } from './dto/update-service-user-status.dto';
 import type { ServiceUserReferenceItemDto } from './dto/service-user-reference-item.dto';
 import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding-refs.dto';
+import { activeServiceUserAbsenceWhere } from '../service-user-absences/active-absence.util';
+import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
@@ -151,6 +153,16 @@ export class ServiceUsersService {
           location: true,
           keyWorker: { include: { personalDetail: true } },
           namedNurse: { include: { personalDetail: true } },
+          absences: {
+            where: activeServiceUserAbsenceWhere(),
+            take: 1,
+            select: { id: true },
+          },
+          flashMessages: {
+            where: activeServiceUserFlashMessageWhere(),
+            take: 1,
+            select: { id: true },
+          },
         },
       }),
     ]);

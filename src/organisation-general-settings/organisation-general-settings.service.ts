@@ -27,6 +27,16 @@ import {
   serializeDomCareShiftDefinitions,
   type DomCareShiftDefinition,
 } from './dom-care-shifts.util';
+import { parseOrganisationOptionalSettings } from './optional-settings.util';
+import {
+  parseOrganisationPreAssessmentSettings,
+  serializePreAssessmentChecklist,
+  type PreAssessmentChecklistItem,
+} from './pre-assessment-settings.util';
+import { parseOrganisationAlertsSettings } from './alerts-settings.util';
+import { parseOrganisationCriticalInformationSettings } from './critical-information-settings.util';
+import { parseOrganisationAppSettings } from './app-settings.util';
+import { parseOrganisationPrivacySettings } from './privacy-settings.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
@@ -100,6 +110,47 @@ type SettingsRow = {
   incidentDisplayHours: number;
   incidentDefaultStatus: string;
   incidentTypeSettings: unknown;
+  optionalEmarIntegration: boolean;
+  optionalMedicationListRequired: boolean;
+  optionalMedicationAmendRoles: unknown;
+  optionalMhaDetentionRequired: boolean;
+  optionalRestraintRecordingRequired: boolean;
+  optionalCarePlanReadRequired: boolean;
+  optionalCarePlanReadCycleMonths: number;
+  optionalFormBuilderRequired: boolean;
+  optionalRemoveCreateNewCarePlan: boolean;
+  optionalAboutMeFields: unknown;
+  optionalServiceManagementRequired: boolean;
+  optionalLearningDevSessionsRequired: boolean;
+  optionalFamilyPortalEnabled: boolean;
+  optionalFamilySharingAuthRequired: boolean;
+  optionalFamilyShareAllActions: boolean;
+  optionalFamilyShareCarePlans: boolean;
+  optionalFamilyShareVisitInfo: unknown;
+  optionalAllowInspectorLogin: boolean;
+  preAssessmentCareRequired: boolean;
+  preAssessmentComponents: unknown;
+  preAssessmentForms: unknown;
+  alertActionsOverdueEnabled: boolean;
+  alertActionsOverdueMinutes: number;
+  alertRequiredCheckNotTicked: boolean;
+  alertRequiredMedicationNotGiven: boolean;
+  alertScheduleJobsBeforeHours: number;
+  alertBeepOnNewAlert: boolean;
+  alertFluidAlertsEnabled: boolean;
+  criticalGenerateActions: boolean;
+  criticalMemorableAnswerRequired: boolean;
+  criticalLockdownWebAccess: boolean;
+  criticalLockdownCareAppAccess: boolean;
+  appSettingPinCodeRequired: boolean;
+  appSettingViewPoliciesCareApp: boolean;
+  appSettingViewPoliciesRosterApp: boolean;
+  appSettingBookHolidaysCareApp: boolean;
+  appSettingFingerprintLoginCareApp: boolean;
+  privacyNonActiveServiceUserDays: number;
+  privacyNotifyInternalMessage: boolean;
+  privacyNotifyEmail: boolean;
+  privacySensitiveViewerRoles: unknown;
   updatedAt: Date;
 };
 
@@ -184,6 +235,12 @@ function mapRow(row: SettingsRow) {
     incidentTypeSettings: parseIncidentTypeSettings(
       row.incidentTypeSettings as Parameters<typeof parseIncidentTypeSettings>[0],
     ),
+    optionalSettings: parseOrganisationOptionalSettings(row),
+    preAssessmentSettings: parseOrganisationPreAssessmentSettings(row),
+    alertsSettings: parseOrganisationAlertsSettings(row),
+    criticalInformationSettings: parseOrganisationCriticalInformationSettings(row),
+    appSettings: parseOrganisationAppSettings(row),
+    privacySettings: parseOrganisationPrivacySettings(row),
     updatedAt: toIso(row.updatedAt),
   };
 }
@@ -281,6 +338,70 @@ function buildUpdateData(
     data.incidentTypeSettings = serializeIncidentTypeSettings(
       dto.incidentTypeSettings as IncidentTypeSetting[],
     );
+  }
+
+  set('optionalEmarIntegration', dto.optionalEmarIntegration);
+  set('optionalMedicationListRequired', dto.optionalMedicationListRequired);
+  set('optionalMhaDetentionRequired', dto.optionalMhaDetentionRequired);
+  set('optionalRestraintRecordingRequired', dto.optionalRestraintRecordingRequired);
+  set('optionalCarePlanReadRequired', dto.optionalCarePlanReadRequired);
+  set('optionalCarePlanReadCycleMonths', dto.optionalCarePlanReadCycleMonths);
+  set('optionalFormBuilderRequired', dto.optionalFormBuilderRequired);
+  set('optionalRemoveCreateNewCarePlan', dto.optionalRemoveCreateNewCarePlan);
+  set('optionalServiceManagementRequired', dto.optionalServiceManagementRequired);
+  set('optionalLearningDevSessionsRequired', dto.optionalLearningDevSessionsRequired);
+  set('optionalFamilyPortalEnabled', dto.optionalFamilyPortalEnabled);
+  set('optionalFamilySharingAuthRequired', dto.optionalFamilySharingAuthRequired);
+  set('optionalFamilyShareAllActions', dto.optionalFamilyShareAllActions);
+  set('optionalFamilyShareCarePlans', dto.optionalFamilyShareCarePlans);
+  set('optionalAllowInspectorLogin', dto.optionalAllowInspectorLogin);
+  if (dto.optionalMedicationAmendRoles !== undefined) {
+    data.optionalMedicationAmendRoles = dto.optionalMedicationAmendRoles as Prisma.InputJsonValue;
+  }
+  if (dto.optionalAboutMeFields !== undefined) {
+    data.optionalAboutMeFields = dto.optionalAboutMeFields as unknown as Prisma.InputJsonValue;
+  }
+  if (dto.optionalFamilyShareVisitInfo !== undefined) {
+    data.optionalFamilyShareVisitInfo =
+      dto.optionalFamilyShareVisitInfo as unknown as Prisma.InputJsonValue;
+  }
+
+  set('preAssessmentCareRequired', dto.preAssessmentCareRequired);
+  if (dto.preAssessmentComponents !== undefined) {
+    data.preAssessmentComponents = serializePreAssessmentChecklist(
+      dto.preAssessmentComponents as PreAssessmentChecklistItem[],
+    );
+  }
+  if (dto.preAssessmentForms !== undefined) {
+    data.preAssessmentForms = serializePreAssessmentChecklist(
+      dto.preAssessmentForms as PreAssessmentChecklistItem[],
+    );
+  }
+
+  set('alertActionsOverdueEnabled', dto.alertActionsOverdueEnabled);
+  set('alertActionsOverdueMinutes', dto.alertActionsOverdueMinutes);
+  set('alertRequiredCheckNotTicked', dto.alertRequiredCheckNotTicked);
+  set('alertRequiredMedicationNotGiven', dto.alertRequiredMedicationNotGiven);
+  set('alertScheduleJobsBeforeHours', dto.alertScheduleJobsBeforeHours);
+  set('alertBeepOnNewAlert', dto.alertBeepOnNewAlert);
+  set('alertFluidAlertsEnabled', dto.alertFluidAlertsEnabled);
+
+  set('criticalGenerateActions', dto.criticalGenerateActions);
+  set('criticalMemorableAnswerRequired', dto.criticalMemorableAnswerRequired);
+  set('criticalLockdownWebAccess', dto.criticalLockdownWebAccess);
+  set('criticalLockdownCareAppAccess', dto.criticalLockdownCareAppAccess);
+
+  set('appSettingPinCodeRequired', dto.appSettingPinCodeRequired);
+  set('appSettingViewPoliciesCareApp', dto.appSettingViewPoliciesCareApp);
+  set('appSettingViewPoliciesRosterApp', dto.appSettingViewPoliciesRosterApp);
+  set('appSettingBookHolidaysCareApp', dto.appSettingBookHolidaysCareApp);
+  set('appSettingFingerprintLoginCareApp', dto.appSettingFingerprintLoginCareApp);
+
+  set('privacyNonActiveServiceUserDays', dto.privacyNonActiveServiceUserDays);
+  set('privacyNotifyInternalMessage', dto.privacyNotifyInternalMessage);
+  set('privacyNotifyEmail', dto.privacyNotifyEmail);
+  if (dto.privacySensitiveViewerRoles !== undefined) {
+    data.privacySensitiveViewerRoles = dto.privacySensitiveViewerRoles as Prisma.InputJsonValue;
   }
 
   return data;

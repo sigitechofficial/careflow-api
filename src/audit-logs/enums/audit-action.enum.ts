@@ -147,6 +147,15 @@ export enum AuditAction {
   SERVICE_USER_OBSERVATION_UPDATED = 'service_user_observation_updated',
   SERVICE_USER_OBSERVATION_DELETED = 'service_user_observation_deleted',
 
+  SERVICE_USER_FLASH_MESSAGE_VIEWED = 'service_user_flash_message_viewed',
+  SERVICE_USER_FLASH_MESSAGE_CREATED = 'service_user_flash_message_created',
+  SERVICE_USER_FLASH_MESSAGE_UPDATED = 'service_user_flash_message_updated',
+  SERVICE_USER_FLASH_MESSAGE_ARCHIVED = 'service_user_flash_message_archived',
+  SERVICE_USER_FLASH_MESSAGE_CLEARED = 'service_user_flash_message_cleared',
+  SERVICE_USER_FLASH_MESSAGE_DELETED = 'service_user_flash_message_deleted',
+  SERVICE_USER_FLASH_MESSAGE_EXPIRED = 'service_user_flash_message_expired',
+  SERVICE_USER_FLASH_MESSAGE_HISTORY_VIEWED = 'service_user_flash_message_history_viewed',
+
   LIVE_IN_PROFILE_CREATED = 'live_in_profile_created',
   LIVE_IN_PROFILE_UPDATED = 'live_in_profile_updated',
   LIVE_IN_PROFILE_DELETED = 'live_in_profile_deleted',

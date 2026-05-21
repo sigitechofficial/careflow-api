@@ -25,6 +25,25 @@ Prisma multi-schema PostgreSQL. See `prisma/schema.prisma` for the source of tru
 
 Migration: `prisma/migrations/20260519120000_schedule_foundation/`
 
+## Service User Flash Message (`service_users` schema)
+
+### Enum
+
+- `FlashMessageStatus`: `ACTIVE`, `EXPIRED`, `CLEARED`, `ARCHIVED`
+
+### Model
+
+| Model | Purpose |
+|-------|---------|
+| `ServiceUserFlashMessage` | Short profile alert per service user. `message` (max 150 in API), `displayUntil` (inclusive UTC calendar day), `isCurrent`, clear metadata, soft delete + audit user FKs. Historical rows retained when superseded or cleared. |
+
+### Rules
+
+- One current active non-expired message per service user (enforced in application transactions).
+- Upsert archives prior current row to `ARCHIVED`.
+
+Migration: `prisma/migrations/20260602120000_service_user_flash_messages/`
+
 ## Schedule Management — Phase 2 (`scheduling` schema)
 
 ### Enums

@@ -41,6 +41,7 @@ import { ServiceUserInventoryModule } from './service-user-inventory/service-use
 import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
 import { ObservationLookupsModule } from './observation-lookups/observation-lookups.module';
 import { ServiceUserObservationsModule } from './service-user-observations/service-user-observations.module';
+import { ServiceUserFlashMessagesModule } from './service-user-flash-messages/service-user-flash-messages.module';
 import { ServiceUserDocumentsModule } from './service-user-documents/service-user-documents.module';
 import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
@@ -79,6 +80,7 @@ import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
 import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
 import { CompanyProfileModule } from './company-profile/company-profile.module';
 import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
+import { LocationManagementModule } from './location-management/location-management.module';
 
 @Module({
   imports: [
@@ -139,6 +141,7 @@ import { OrganisationGeneralSettingsModule } from './organisation-general-settin
     ServiceUserAllergiesModule,
     ObservationLookupsModule,
     ServiceUserObservationsModule,
+    ServiceUserFlashMessagesModule,
     ServiceUserDocumentsModule,
     ServiceUserAbsencesModule,
     CalendarEventTypesModule,
@@ -177,6 +180,7 @@ import { OrganisationGeneralSettingsModule } from './organisation-general-settin
     ScheduleReportsModule,
     CompanyProfileModule,
     OrganisationGeneralSettingsModule,
+    LocationManagementModule,
   ],
   providers: [
     {

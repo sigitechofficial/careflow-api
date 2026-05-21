@@ -344,6 +344,32 @@ Future (medication):
 - [ ] Medication review reminders
 - [ ] Advanced alerts
 
+## Phase — Service User Flash Message
+
+Status: IN PROGRESS
+
+- [x] Create ServiceUserFlashMessage model
+- [x] Add current flash message API
+- [x] Add upsert flash message API
+- [x] Add clear/delete flash message API
+- [x] Add flash message history API
+- [x] Add max 150 character validation
+- [x] Add display-until date validation
+- [x] Add expiry handling
+- [x] Add RBAC permissions
+- [x] Add audit logging
+- [x] Add data access logging
+- [x] Add notification hook
+- [x] Add Swagger docs
+- [x] Add unit tests
+
+Future:
+
+- [ ] Frontend profile header flash alert
+- [ ] Carer app flash alert display
+- [ ] Scheduling job card flash alert display
+- [ ] Automatic scheduled expiry cron if not added now
+
 ## Phase — Service User Calendar
 
 Status: IN PROGRESS

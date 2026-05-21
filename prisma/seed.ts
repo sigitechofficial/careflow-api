@@ -277,6 +277,11 @@ async function main() {
     'service_users.observations.delete',
     'service_users.observations.lookups.read',
 
+    'service_users.flash_message.read',
+    'service_users.flash_message.update',
+    'service_users.flash_message.delete',
+    'service_users.flash_message.history.read',
+
     'schedules.read',
     'schedules.create',
     'schedules.update',
@@ -460,6 +465,9 @@ async function main() {
     'funders.read',
     'funders.create',
     'funders.update',
+
+    'service_users.flash_message.read',
+    'service_users.flash_message.update',
   ];
   const suCoordPerms = await prisma.permission.findMany({
     where: { key: { in: serviceUserCoordinatorPermKeys }, deletedAt: null },
@@ -494,6 +502,8 @@ async function main() {
     'service_users.medications.update',
     'service_users.medications.status.update',
     'service_users.medications.administer',
+    'service_users.flash_message.read',
+    'service_users.flash_message.update',
   ];
   const seniorNurseMedPerms = await prisma.permission.findMany({
     where: { key: { in: seniorNurseMedicationKeys }, deletedAt: null },
@@ -588,6 +598,38 @@ async function main() {
     }
   }
 
+  const flashMessageDeleteKeys = ['service_users.flash_message.delete'];
+  const flashMessageDeletePerms = await prisma.permission.findMany({
+    where: { key: { in: flashMessageDeleteKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Care Coordinator']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of flashMessageDeletePerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const flashMessageHistoryKeys = ['service_users.flash_message.history.read'];
+  const flashMessageHistoryPerms = await prisma.permission.findMany({
+    where: { key: { in: flashMessageHistoryKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of flashMessageHistoryPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
   const privacyOfficerRole = await prisma.role.upsert({
     where: { name: 'Privacy Officer' },
     update: { isActive: true, deletedAt: null },
@@ -603,6 +645,18 @@ async function main() {
       update: {},
       create: { roleId: privacyOfficerRole.id, permissionId: auditReadPerm.id },
     });
+  }
+
+  if (privacyOfficerRole && flashMessageHistoryPerms.length) {
+    for (const p of flashMessageHistoryPerms) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: { roleId: privacyOfficerRole.id, permissionId: p.id },
+        },
+        update: {},
+        create: { roleId: privacyOfficerRole.id, permissionId: p.id },
+      });
+    }
   }
 
   const adminRole = roles.find((r) => r.name === 'Admin');

@@ -8,13 +8,13 @@ type ScheduleAreaSeed = {
   zoneName?: string;
 };
 
-const SCHEDULE_AREAS: ScheduleAreaSeed[] = [
-  { name: 'Croydon Transport', code: 'CROYDON_TRANSPORT', sortOrder: 10, locationName: 'Transport - Croydon Transport' },
-  { name: 'Croydon 1', code: 'CROYDON_1', sortOrder: 20, locationName: 'Croydon - Croydon 1' },
-  { name: 'Croydon 2', code: 'CROYDON_2', sortOrder: 30, locationName: 'Croydon - Croydon 2' },
-  { name: 'Croydon 3', code: 'CROYDON_3', sortOrder: 40, locationName: 'Croydon - Croydon 3' },
-  { name: 'Croydon 4', code: 'CROYDON_4', sortOrder: 50, locationName: 'Croydon - Croydon 4' },
-  { name: 'Croydon 5', code: 'CROYDON_5', sortOrder: 60, locationName: 'Croydon - Croydon 5' },
+const SCHEDULE_AREAS: (ScheduleAreaSeed & { parentZoneName?: string })[] = [
+  { name: 'Croydon Transport', code: 'CROYDON_TRANSPORT', sortOrder: 10, locationName: 'Transport - Croydon Transport', parentZoneName: 'Transport' },
+  { name: 'Croydon 1', code: 'CROYDON_1', sortOrder: 20, locationName: 'Croydon - Croydon 1', parentZoneName: 'Croydon' },
+  { name: 'Croydon 2', code: 'CROYDON_2', sortOrder: 30, locationName: 'Croydon - Croydon 2', parentZoneName: 'Croydon' },
+  { name: 'Croydon 3', code: 'CROYDON_3', sortOrder: 40, locationName: 'Croydon - Croydon 3', parentZoneName: 'Croydon' },
+  { name: 'Croydon 4', code: 'CROYDON_4', sortOrder: 50, locationName: 'Croydon - Croydon 4', parentZoneName: 'Croydon' },
+  { name: 'Croydon 5', code: 'CROYDON_5', sortOrder: 60, locationName: 'Croydon - Croydon 5', parentZoneName: 'Croydon' },
   { name: 'Merton', code: 'MERTON', sortOrder: 70, locationName: 'Merton - Merton' },
   { name: 'Haringey', code: 'HARINGEY', sortOrder: 80, locationName: 'Haringey - Haringey' },
   { name: 'Bexley', code: 'BEXLEY', sortOrder: 90, locationName: 'Bexley ISF - Bexley' },
@@ -51,6 +51,7 @@ export async function seedScheduleAreas(prisma: PrismaClient): Promise<void> {
         sortOrder: item.sortOrder,
         locationId,
         zoneId,
+        parentZoneName: item.parentZoneName ?? null,
         isActive: true,
         deletedAt: null,
       },
@@ -60,6 +61,7 @@ export async function seedScheduleAreas(prisma: PrismaClient): Promise<void> {
         sortOrder: item.sortOrder,
         locationId,
         zoneId,
+        parentZoneName: item.parentZoneName ?? null,
         isActive: true,
       },
     });
