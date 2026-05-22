@@ -1,0 +1,9 @@
+# Paste legacy gallery img src URLs here (one per line).
+# Format A — name and URL:
+#   Medication|https://logicareprodnortheurop.blob.core.windows.net/careimages/Medication.png
+# Format B — URL only (must match gallery-order.json line order):
+#   https://logicareprodnortheurop.blob.core.windows.net/careimages/Access.png
+#
+# After saving as gallery-legacy-urls.txt, run:
+#   npm run import:gallery-urls
+#   npm run prisma:seed

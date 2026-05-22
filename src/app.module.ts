@@ -81,6 +81,13 @@ import { ScheduleReportsModule } from './schedule-reports/schedule-reports.modul
 import { CompanyProfileModule } from './company-profile/company-profile.module';
 import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
 import { LocationManagementModule } from './location-management/location-management.module';
+import { CarePathwayModule } from './care-pathway/care-pathway.module';
+import { FormSelectionModule } from './form-selection/form-selection.module';
+import { FormBuilderModule } from './form-builder/form-builder.module';
+import { CarePlanTextModule } from './care-plan-text/care-plan-text.module';
+import { PathwayChecklistsModule } from './pathway-checklists/pathway-checklists.module';
+import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
+import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 
 @Module({
   imports: [
@@ -181,6 +188,13 @@ import { LocationManagementModule } from './location-management/location-managem
     CompanyProfileModule,
     OrganisationGeneralSettingsModule,
     LocationManagementModule,
+    CarePathwayModule,
+    FormSelectionModule,
+    FormBuilderModule,
+    CarePlanTextModule,
+    PathwayChecklistsModule,
+    PathwayActionsModule,
+    PictureGalleryModule,
   ],
   providers: [
     {

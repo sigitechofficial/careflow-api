@@ -28,4 +28,5 @@ export enum AuditModule {
   FILE = 'FILE',
   SETTINGS = 'SETTINGS',
   NOTIFICATION = 'NOTIFICATION',
+  CARE_PATHWAY = 'CARE_PATHWAY',
 }

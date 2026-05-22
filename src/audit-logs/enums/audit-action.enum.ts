@@ -257,4 +257,44 @@ export enum AuditAction {
   SCHEDULE_REPORT_VIEWED = 'schedule_report_viewed',
   SCHEDULE_REPORT_GENERATED = 'schedule_report_generated',
   SCHEDULE_REPORT_EXPORTED = 'schedule_report_exported',
+
+  CARE_PATHWAY_VIEWED = 'care_pathway_viewed',
+
+  FORM_CREATED = 'form_created',
+  FORM_UPDATED = 'form_updated',
+  FORM_DELETED = 'form_deleted',
+  FORM_PUBLISHED = 'form_published',
+  FORM_DUPLICATED = 'form_duplicated',
+  FORM_PREVIEWED = 'form_previewed',
+  FORM_SECTION_CREATED = 'form_section_created',
+  FORM_SECTION_UPDATED = 'form_section_updated',
+  FORM_SECTION_DELETED = 'form_section_deleted',
+  FORM_FIELD_CREATED = 'form_field_created',
+  FORM_FIELD_UPDATED = 'form_field_updated',
+  FORM_FIELD_DELETED = 'form_field_deleted',
+
+  DEFAULT_FORMS_UPDATED = 'default_forms_updated',
+
+  CARE_PLAN_TEXT_CREATED = 'care_plan_text_created',
+  CARE_PLAN_TEXT_UPDATED = 'care_plan_text_updated',
+  CARE_PLAN_TEXT_DELETED = 'care_plan_text_deleted',
+  CARE_PLAN_TEXT_PREVIEWED = 'care_plan_text_previewed',
+
+  PATHWAY_CHECKLIST_CREATED = 'pathway_checklist_created',
+  PATHWAY_CHECKLIST_UPDATED = 'pathway_checklist_updated',
+  PATHWAY_CHECKLIST_DELETED = 'pathway_checklist_deleted',
+  PATHWAY_CHECKLIST_ITEM_CREATED = 'pathway_checklist_item_created',
+  PATHWAY_CHECKLIST_ITEM_UPDATED = 'pathway_checklist_item_updated',
+  PATHWAY_CHECKLIST_ITEM_DELETED = 'pathway_checklist_item_deleted',
+
+  PATHWAY_ACTION_CREATED = 'pathway_action_created',
+  PATHWAY_ACTION_UPDATED = 'pathway_action_updated',
+  PATHWAY_ACTION_DELETED = 'pathway_action_deleted',
+  PATHWAY_ACTION_CHECKLIST_LINKED = 'pathway_action_checklist_linked',
+  PATHWAY_ACTION_CHECKLIST_UNLINKED = 'pathway_action_checklist_unlinked',
+
+  PICTURE_UPLOADED = 'picture_uploaded',
+  PICTURE_UPDATED = 'picture_updated',
+  PICTURE_DELETED = 'picture_deleted',
+  PICTURE_SEARCHED = 'picture_searched',
 }

@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway"]
 }
 
 enum DayOfWeek {
@@ -3574,3 +3574,381 @@ model VisitAction {
   @@schema("scheduling")
 }
 
+// Append to schema.prisma — Care Pathway module
+
+enum CarePathwayFormType {
+  CARE_PLAN
+  ASSESSMENT
+  SERVICE_FORM
+  STAFF_FORM
+
+  @@schema("care_pathway")
+}
+
+enum CarePathwayFormStatus {
+  DRAFT
+  ACTIVE
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("care_pathway")
+}
+
+enum CarePathwayFormVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("care_pathway")
+}
+
+enum CarePathwayFormFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  TIME
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  YES_NO
+  RICH_TEXT
+  FILE_UPLOAD
+  SIGNATURE
+  PHOTO
+  SECTION_TEXT
+
+  @@schema("care_pathway")
+}
+
+enum PathwayActionType {
+  CHECKLIST
+  OBSERVATION
+
+  @@schema("care_pathway")
+}
+
+enum CarePictureType {
+  STANDARD
+  UPLOADED
+
+  @@schema("care_pathway")
+}
+
+model CarePathwayForm {
+  id               String                @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  formType         CarePathwayFormType
+  status           CarePathwayFormStatus @default(DRAFT)
+  currentVersionId String?               @unique @db.Uuid
+  lastPublishedAt  DateTime?
+  publishedById    String?               @db.Uuid
+  pictureUrl       String?
+  versionLabel     String                @default("1")
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  deletedAt        DateTime?
+  createdById      String?               @db.Uuid
+  updatedById      String?               @db.Uuid
+  deletedById      String?               @db.Uuid
+
+  currentVersion CarePathwayFormVersion?  @relation("CurrentFormVersion", fields: [currentVersionId], references: [id])
+  versions       CarePathwayFormVersion[] @relation("FormVersions")
+  publishLogs    CarePathwayFormPublishLog[]
+  defaultSelections DefaultFormSelection[]
+  textTemplates  CarePlanTextTemplate[]
+
+  @@index([deletedAt])
+  @@index([formType])
+  @@index([status])
+  @@index([name])
+  @@schema("care_pathway")
+}
+
+model CarePathwayFormVersion {
+  id            String                       @id @default(uuid()) @db.Uuid
+  formId        String                       @db.Uuid
+  versionNumber Int                          @default(1)
+  status        CarePathwayFormVersionStatus @default(DRAFT)
+  schemaJson    Json?
+  publishedAt   DateTime?
+  publishedById String?                      @db.Uuid
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  form        CarePathwayForm              @relation("FormVersions", fields: [formId], references: [id])
+  currentFor  CarePathwayForm?             @relation("CurrentFormVersion")
+  sections    CarePathwayFormSection[]
+  publishLogs CarePathwayFormPublishLog[]
+
+  @@unique([formId, versionNumber])
+  @@index([formId])
+  @@index([status])
+  @@schema("care_pathway")
+}
+
+model CarePathwayFormSection {
+  id            String    @id @default(uuid()) @db.Uuid
+  formVersionId String    @db.Uuid
+  title         String
+  description   String?
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  formVersion CarePathwayFormVersion @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  fields      CarePathwayFormField[]
+
+  @@index([formVersionId])
+  @@index([deletedAt])
+  @@schema("care_pathway")
+}
+
+model CarePathwayFormField {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  sectionId           String                 @db.Uuid
+  label               String
+  fieldType           CarePathwayFormFieldType
+  placeholder         String?
+  helpText            String?
+  required            Boolean                @default(false)
+  optionsJson         Json?
+  validationJson      Json?
+  conditionalLogicJson Json?
+  sortOrder           Int                    @default(0)
+  isActive            Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  deletedAt           DateTime?
+
+  section CarePathwayFormSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([deletedAt])
+  @@schema("care_pathway")
+}
+
+model CarePathwayFormPublishLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  formId        String   @db.Uuid
+  formVersionId String   @db.Uuid
+  publishedById String?  @db.Uuid
+  publishedAt   DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  form        CarePathwayForm        @relation(fields: [formId], references: [id])
+  formVersion CarePathwayFormVersion @relation(fields: [formVersionId], references: [id])
+
+  @@index([formId])
+  @@schema("care_pathway")
+}
+
+model DefaultFormSelection {
+  id           String              @id @default(uuid()) @db.Uuid
+  formId       String              @db.Uuid
+  formType     CarePathwayFormType
+  isDefault    Boolean             @default(true)
+  selectedById String?             @db.Uuid
+  selectedAt   DateTime            @default(now())
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+
+  form CarePathwayForm @relation(fields: [formId], references: [id])
+
+  @@index([formType, deletedAt])
+  @@index([formId])
+  @@schema("care_pathway")
+}
+
+model CarePlanTextCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  templates CarePlanTextTemplate[]
+
+  @@index([deletedAt])
+  @@schema("care_pathway")
+}
+
+model CarePlanTextTemplate {
+  id           String    @id @default(uuid()) @db.Uuid
+  title        String
+  categoryId   String?   @db.Uuid
+  formId       String?   @db.Uuid
+  contentHtml  String    @db.Text
+  plainText    String?   @db.Text
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdById  String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  deletedById  String?   @db.Uuid
+
+  category CarePlanTextCategory? @relation(fields: [categoryId], references: [id])
+  form     CarePathwayForm?      @relation(fields: [formId], references: [id])
+
+  @@index([deletedAt])
+  @@index([categoryId])
+  @@schema("care_pathway")
+}
+
+model CarePlanTextPersonalisationToken {
+  id                String  @id @default(uuid()) @db.Uuid
+  token             String  @unique
+  description       String
+  replacementSource String
+  isActive          Boolean @default(true)
+
+  @@schema("care_pathway")
+}
+
+model PathwayChecklist {
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String
+  icon               String?
+  carePlanId         String?   @db.Uuid
+  analysisGroupId    String?   @db.Uuid
+  observationEnabled Boolean   @default(false)
+  recordPhoto        Boolean   @default(false)
+  familyShare        Boolean   @default(false)
+  groupAction        Boolean   @default(false)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  createdById        String?   @db.Uuid
+  updatedById        String?   @db.Uuid
+  deletedById        String?   @db.Uuid
+
+  items       PathwayChecklistItem[]
+  actionLinks PathwayActionChecklistLink[]
+
+  @@index([deletedAt])
+  @@index([name])
+  @@schema("care_pathway")
+}
+
+model PathwayChecklistItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  checklistId String    @db.Uuid
+  itemText    String
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  checklist PathwayChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId])
+  @@index([deletedAt])
+  @@schema("care_pathway")
+}
+
+model PathwayAction {
+  id                    String            @id @default(uuid()) @db.Uuid
+  actionName            String
+  actionIcon            String
+  instruction           String?           @db.Text
+  actionType            PathwayActionType
+  carersCount           Int               @default(1)
+  startTime             String?
+  endTime               String?
+  durationMinutes       Int?
+  notesMandatory        Boolean           @default(false)
+  photoAllowed          Boolean           @default(false)
+  allowFamilyShare      Boolean           @default(false)
+  analysisAreaId        String?           @db.Uuid
+  approxDurationMinutes Int?
+  isActive              Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  deletedAt             DateTime?
+  createdById           String?           @db.Uuid
+  updatedById           String?           @db.Uuid
+  deletedById           String?           @db.Uuid
+
+  checklistLinks    PathwayActionChecklistLink[]
+  observationLinks  PathwayActionObservationLink[]
+
+  @@index([deletedAt])
+  @@index([actionName])
+  @@index([actionType])
+  @@schema("care_pathway")
+}
+
+model PathwayActionChecklistLink {
+  id               String   @id @default(uuid()) @db.Uuid
+  pathwayActionId  String   @db.Uuid
+  checklistId      String   @db.Uuid
+  createdAt        DateTime @default(now())
+
+  pathwayAction PathwayAction    @relation(fields: [pathwayActionId], references: [id], onDelete: Cascade)
+  checklist     PathwayChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@unique([pathwayActionId, checklistId])
+  @@schema("care_pathway")
+}
+
+model PathwayActionObservationLink {
+  id                 String   @id @default(uuid()) @db.Uuid
+  pathwayActionId    String   @db.Uuid
+  observationTypeId  String?  @db.Uuid
+  createdAt          DateTime @default(now())
+
+  pathwayAction PathwayAction @relation(fields: [pathwayActionId], references: [id], onDelete: Cascade)
+
+  @@index([pathwayActionId])
+  @@schema("care_pathway")
+}
+
+model CarePictureCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  pictures CarePicture[]
+
+  @@schema("care_pathway")
+}
+
+model CarePicture {
+  id           String          @id @default(uuid()) @db.Uuid
+  name         String
+  type         CarePictureType
+  categoryId   String?         @db.Uuid
+  category     String?
+  fileUrl      String
+  thumbnailUrl String?
+  uploadedById String?         @db.Uuid
+  isStandard   Boolean         @default(false)
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+
+  pictureCategory CarePictureCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([deletedAt])
+  @@index([name])
+  @@index([type])
+  @@schema("care_pathway")
+}

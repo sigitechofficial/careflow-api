@@ -527,6 +527,19 @@ Tasks:
 - [x] Audit/report logs
 - [x] Export placeholders
 
+## Phase — Care Pathway / Form Builder
+
+Status: COMPLETED
+
+Tasks:
+
+- [x] `care_pathway` Prisma schema and migration
+- [x] RBAC permissions and audit actions (`AuditModule.CARE_PATHWAY`)
+- [x] APIs: overview, form selection, care plan text, pathway checklists/actions, picture gallery (form builder removed)
+- [x] Idempotent seeds (checklists, actions, sample forms, standard pictures, `@` token)
+- [x] CareAdmin Settings → Care Pathway tabs (API-backed)
+- [x] Unit tests: publish validation, checklist flags, `@` preview replacement
+
 Next phase can be frontend integration or advanced scheduling rules.
 
 ## Phase — Initial Assessment Checklist

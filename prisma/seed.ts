@@ -7,6 +7,7 @@ import { seedScheduleAreas } from './seeds/schedule-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
+import { seedCarePathway } from './seeds/care-pathway.seed';
 
 const prisma = new PrismaClient();
 
@@ -335,6 +336,34 @@ async function main() {
 
     'schedule_reports.read',
     'schedule_reports.export',
+
+    'care_pathway.read',
+    'form_selection.read',
+    'form_selection.update',
+    'form_builder.read',
+    'form_builder.create',
+    'form_builder.update',
+    'form_builder.delete',
+    'form_builder.publish',
+    'care_plan_text.read',
+    'care_plan_text.create',
+    'care_plan_text.update',
+    'care_plan_text.delete',
+    'care_plan_text.preview',
+    'pathway_checklists.read',
+    'pathway_checklists.create',
+    'pathway_checklists.update',
+    'pathway_checklists.delete',
+    'pathway_checklists.items.manage',
+    'pathway_actions.read',
+    'pathway_actions.create',
+    'pathway_actions.update',
+    'pathway_actions.delete',
+    'pathway_actions.checklists.manage',
+    'picture_gallery.read',
+    'picture_gallery.upload',
+    'picture_gallery.update',
+    'picture_gallery.delete',
   ];
 
   for (const key of permissionKeys) {
@@ -356,7 +385,7 @@ async function main() {
     'Senior Carer/Nurse',
     'Carer/Domestic',
   ];
-  const roles = [];
+  const roles: Awaited<ReturnType<typeof prisma.role.upsert>>[] = [];
   for (const name of roleNames) {
     roles.push(
       await prisma.role.upsert({
@@ -762,6 +791,61 @@ async function main() {
       });
     }
   }
+
+  const carePathwayReadKeys = [
+    'care_pathway.read',
+    'form_builder.read',
+    'form_selection.read',
+    'care_plan_text.read',
+    'care_plan_text.preview',
+    'pathway_checklists.read',
+    'pathway_actions.read',
+    'picture_gallery.read',
+  ];
+  const carePathwayManageKeys = [
+    ...carePathwayReadKeys,
+    'form_builder.create',
+    'form_builder.update',
+    'form_builder.publish',
+    'form_selection.update',
+    'care_plan_text.create',
+    'care_plan_text.update',
+    'pathway_checklists.create',
+    'pathway_checklists.update',
+    'pathway_checklists.items.manage',
+    'pathway_actions.create',
+    'pathway_actions.update',
+    'pathway_actions.checklists.manage',
+    'picture_gallery.upload',
+    'picture_gallery.update',
+  ];
+  const carePathwayAdminKeys = [
+    ...carePathwayManageKeys,
+    'form_builder.delete',
+    'care_plan_text.delete',
+    'pathway_checklists.delete',
+    'pathway_actions.delete',
+    'picture_gallery.delete',
+  ];
+
+  async function assignPermKeys(roleName: string, keys: string[]) {
+    const role = roles.find((r) => r.name === roleName);
+    if (!role) return;
+    const perms = await prisma.permission.findMany({
+      where: { key: { in: keys }, deletedAt: null },
+    });
+    for (const p of perms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: role.id, permissionId: p.id },
+      });
+    }
+  }
+
+  await assignPermKeys('Care Coordinator', carePathwayReadKeys);
+  await assignPermKeys('Manager', carePathwayManageKeys);
+  await assignPermKeys('Admin', carePathwayAdminKeys);
 
   // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
   const complianceTypeDefs = [
@@ -1615,6 +1699,8 @@ async function main() {
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
+
+  await seedCarePathway(prisma);
 
   const scheduleOperatorPermKeys = [
     'schedules.read',

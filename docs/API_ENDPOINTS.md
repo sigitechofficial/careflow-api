@@ -140,6 +140,23 @@ See [README.md](../README.md) → *Schedule Management* for behaviour notes.
 
 See [README.md](../README.md) → *Service User Flash Message*.
 
+## Care Pathway
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/care-pathway/overview` | `care_pathway.read` |
+| GET/POST/PATCH/DELETE | `/pathway-checklists` (+ nested items) | `pathway_checklists.*` |
+| GET/POST/PATCH/DELETE | `/pathway-actions` (+ checklist links) | `pathway_actions.*` |
+| GET/PATCH | `/form-selection` (+ typed form lists) | `form_selection.*` |
+| GET/POST/PATCH/DELETE | `/care-plan-text` | `care_plan_text.*` |
+| GET | `/care-plan-text/categories` | `care_plan_text.read` |
+| POST | `/care-plan-text/:id/preview` | `care_plan_text.preview` |
+| GET | `/picture-gallery/standard`, `/uploaded`, `/search` | `picture_gallery.read` |
+| POST | `/picture-gallery/uploaded` | `picture_gallery.upload` |
+| DELETE | `/picture-gallery/uploaded/:id` | `picture_gallery.delete` |
+
+See [README.md](../README.md) → *Care Pathway* and [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) → `care_pathway` schema.
+
 ## Schedule Management — Phase 6
 
 | Path | Permission |

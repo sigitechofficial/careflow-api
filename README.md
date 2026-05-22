@@ -686,6 +686,16 @@ $ pnpm run start:dev
 $ pnpm run start:prod
 ```
 
+## Care Pathway
+
+Configuration APIs under **`care_pathway`** schema modules: wizard overview, **form selection** (defaults per form type), **care plan text** (templates + `@` preview), **pathway checklists/actions**, and **picture gallery** (standard + uploaded images). Form Builder UI/API is not included in this release.
+
+- Permissions: `care_pathway.read`, `form_selection.*`, `care_plan_text.*`, `pathway_checklists.*`, `pathway_actions.*`, `picture_gallery.*`
+- Seed: `prisma/seeds/care-pathway.seed.ts` (run via `pnpm exec prisma db seed`)
+- Docs: [docs/API_ENDPOINTS.md](./docs/API_ENDPOINTS.md), [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md)
+
+CareAdmin UI: **Settings → Care Pathway** (`care_pathway.read`).
+
 ## Run tests
 
 ```bash

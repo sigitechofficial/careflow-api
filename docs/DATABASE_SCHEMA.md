@@ -76,3 +76,31 @@ Migration: `prisma/migrations/20260521120000_job_allocations/`
 Enum: `CallOffVisitStatus` — `REQUESTED`, `APPROVED`, `REJECTED`, `CANCELLED`.
 
 Migration: `prisma/migrations/20260522120000_call_off_visits/`
+
+## Care Pathway (`care_pathway` schema)
+
+PostgreSQL schema **`care_pathway`** holds configuration for forms, default form selection, care plan text templates, pathway checklists/actions, and the picture gallery. Migration: `prisma/migrations/20260603120000_care_pathway_foundation/`.
+
+### Enums
+
+- `CarePathwayFormType`: `CARE_PLAN`, `ASSESSMENT`, `SERVICE_FORM`, `STAFF_FORM`
+- `CarePathwayFormStatus` / `CarePathwayFormVersionStatus`: draft, published, archived (plus `ACTIVE` on forms)
+- `FormFieldType`: text, number, date, select, signature, photo, etc.
+- `PathwayActionType`: `CHECKLIST`, `OBSERVATION`
+- `CarePictureType`: `STANDARD`, `UPLOADED`
+
+### Core models
+
+| Model | Purpose |
+|-------|---------|
+| `CarePathwayForm` | Form metadata, `currentVersionId`, publish fields |
+| `CarePathwayFormVersion` | Versioned schema; `schemaJson` cache |
+| `CarePathwayFormSection` / `CarePathwayFormField` | Designer structure (`validationJson`, `optionsJson`) |
+| `CarePathwayFormPublishLog` | Append-only publish history |
+| `DefaultFormSelection` | Active default forms per `formType` |
+| `CarePlanTextCategory` / `CarePlanTextTemplate` | Pre-set care plan wording; `@` token table |
+| `PathwayChecklist` / `PathwayChecklistItem` | Pre-set checklists |
+| `PathwayAction` + link tables | Actions/visits; optional `ObservationType` FK |
+| `CarePictureCategory` / `CarePicture` | Standard and uploaded gallery assets |
+
+`carePlanId` and `analysisGroupId` on checklists are nullable UUIDs without FK until care-plan models exist.
