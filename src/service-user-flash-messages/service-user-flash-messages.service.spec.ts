@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FlashMessageStatus } from '@prisma/client';
+import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserFlashMessagesService } from './service-user-flash-messages.service';
 import { FlashMessageNotificationHook } from './flash-message-notification.hook';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -9,6 +10,7 @@ import { parseDisplayUntilInput } from './utils/flash-message-date.util';
 
 describe('ServiceUserFlashMessagesService', () => {
   let service: ServiceUserFlashMessagesService;
+  const testAuditMeta: RequestAuditMeta = { ipAddress: '127.0.0.1', userAgent: 'jest' };
   const audit = {
     logAudit: jest.fn(),
     logDataAccess: jest.fn(),
@@ -53,7 +55,7 @@ describe('ServiceUserFlashMessagesService', () => {
         'su-1',
         { message: 'Test', displayUntil: '2000-01-01' },
         'user-1',
-        {},
+        testAuditMeta,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -73,7 +75,7 @@ describe('ServiceUserFlashMessagesService', () => {
     prisma.serviceUserFlashMessage.findMany.mockResolvedValue([]);
     prisma.serviceUserFlashMessage.findFirst.mockResolvedValue(null);
 
-    const result = await service.getCurrent('su-1', 'user-1', {});
+    const result = await service.getCurrent('su-1', 'user-1', testAuditMeta);
     expect(result.data).toBeNull();
     expect(result.message).toBe('No active flash message');
     expect(audit.logDataAccess).toHaveBeenCalled();
@@ -135,7 +137,7 @@ describe('ServiceUserFlashMessagesService', () => {
       'su-1',
       { message: 'New alert', displayUntil: '2099-12-31' },
       'user-1',
-      {},
+      testAuditMeta,
     );
 
     expect(result.data?.message).toBe('New alert');

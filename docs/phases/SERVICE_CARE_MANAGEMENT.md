@@ -1,6 +1,8 @@
 # Service Care Management — Phase Plan
 
-Status: Phase 1 (Service User core) **implemented** in backend; care delivery features **pending**.
+**Local setup:** [root README](../../../README.md)
+
+**Summary (May 2026):** Service user **core**, **funding**, **live-in**, **flash message**, **calendar**, **medication (MAR)**, and **care pathway** (gallery + form builder) are **implemented** in backend with substantial Care Admin UI. Extended profile slices, visit management, and advanced reporting remain **pending**.
 
 ## Goal
 
@@ -38,9 +40,19 @@ Enable carers and coordinators to manage **Service Users** (people receiving car
 - [ ] Calendar
 - [ ] Hospital / absence
 
-## Pending — Care plans and risk
+## Done — Care Pathway (settings, gallery, forms)
 
-- [ ] Care plans, risk sections, safety/contingency, consent, review/history
+- [x] Prisma `care_pathway` schema (`CarePicture`, forms, versions, sections, fields, checklists, actions, care plan text)
+- [x] Picture gallery APIs (standard + uploaded) + RBAC
+- [x] Form builder APIs (CRUD, publish, schema, form icon upload)
+- [x] Seeds: checklists, actions, care plan form catalogue, gallery PNGs (`sync:gallery-images`)
+- [x] Care Admin **Settings → Care Pathway** (gallery, form builder, form selection, checklists, actions)
+- [x] Form icons mapped to gallery assets (`refresh:form-icons`)
+
+## Pending — Care plans and risk (clinical delivery)
+
+- [ ] Full service-user care plan execution UI beyond pathway templates
+- [ ] Risk sections, safety/contingency, consent, review/history at scale
 
 ## Pending — Observations
 

@@ -3,11 +3,18 @@ import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
 import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
+import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
+import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
 import { seedScheduleAreas } from './seeds/schedule-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 import { seedCarePathway } from './seeds/care-pathway.seed';
+import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
+import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
+import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
+import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
+import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 
 const prisma = new PrismaClient();
 
@@ -271,12 +278,22 @@ async function main() {
     'service_users.medications.reports.read',
     'service_users.medications.reports.export',
     'service_users.medications.lookups.read',
+    'service_users.medications.packs.publish',
+    'service_users.medications.packs.deliver',
+    'service_users.medications.packs.supersede',
 
     'service_users.observations.read',
     'service_users.observations.create',
     'service_users.observations.update',
     'service_users.observations.delete',
     'service_users.observations.lookups.read',
+
+    'service_users.body_map.read',
+    'service_users.body_map.create',
+    'service_users.body_map.update',
+    'service_users.body_map.review',
+    'service_users.body_map.close',
+    'service_users.body_map.export',
 
     'service_users.flash_message.read',
     'service_users.flash_message.update',
@@ -384,6 +401,7 @@ async function main() {
     'Staff Allocation',
     'Senior Carer/Nurse',
     'Carer/Domestic',
+    'CQC Inspector',
   ];
   const roles: Awaited<ReturnType<typeof prisma.role.upsert>>[] = [];
   for (const name of roleNames) {
@@ -487,6 +505,10 @@ async function main() {
     'service_users.medications.support_profile.update',
     'service_users.medications.reviews.create',
     'service_users.medications.reviews.update',
+    'service_users.medications.packs.publish',
+    'service_users.medications.packs.deliver',
+    'service_users.medications.packs.supersede',
+    'audit_logs.read',
 
     'funding_types.read',
     'funding_types.create',
@@ -497,6 +519,19 @@ async function main() {
 
     'service_users.flash_message.read',
     'service_users.flash_message.update',
+
+    'service_users.observations.read',
+    'service_users.observations.create',
+    'service_users.observations.update',
+    'service_users.observations.delete',
+    'service_users.observations.lookups.read',
+
+    'service_users.body_map.read',
+    'service_users.body_map.create',
+    'service_users.body_map.update',
+    'service_users.body_map.review',
+    'service_users.body_map.close',
+    'service_users.body_map.export',
   ];
   const suCoordPerms = await prisma.permission.findMany({
     where: { key: { in: serviceUserCoordinatorPermKeys }, deletedAt: null },
@@ -531,6 +566,9 @@ async function main() {
     'service_users.medications.update',
     'service_users.medications.status.update',
     'service_users.medications.administer',
+    'service_users.medications.packs.publish',
+    'service_users.medications.packs.deliver',
+    'service_users.medications.packs.supersede',
     'service_users.flash_message.read',
     'service_users.flash_message.update',
   ];
@@ -555,6 +593,7 @@ async function main() {
     'service_users.medications.prn.read',
     'service_users.medications.lookups.read',
     'service_users.medications.administer',
+    'service_users.medications.packs.deliver',
   ];
   const carerMedPerms = await prisma.permission.findMany({
     where: { key: { in: carerMedicationKeys }, deletedAt: null },
@@ -566,6 +605,27 @@ async function main() {
         where: { roleId_permissionId: { roleId: carerDomesticRole.id, permissionId: p.id } },
         update: {},
         create: { roleId: carerDomesticRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const cqcInspectorKeys = [
+    'service_users.read',
+    'service_users.body_map.read',
+    'service_users.body_map.export',
+    'audit.read',
+    'audit_logs.read',
+  ];
+  const cqcInspectorPerms = await prisma.permission.findMany({
+    where: { key: { in: cqcInspectorKeys }, deletedAt: null },
+  });
+  const cqcInspectorRole = roles.find((x) => x.name === 'CQC Inspector');
+  if (cqcInspectorRole) {
+    for (const p of cqcInspectorPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: cqcInspectorRole.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: cqcInspectorRole.id, permissionId: p.id },
       });
     }
   }
@@ -999,6 +1059,7 @@ async function main() {
     { name: 'Active', code: 'ACTIVE', description: 'Currently receiving service' },
     { name: 'Inactive', code: 'INACTIVE', description: 'Not active' },
     { name: 'Pending', code: 'PENDING', description: 'Pending admission or setup' },
+    { name: 'Pre-admission', code: 'PRE_ADMISSION', description: 'Pre-admission assessment or setup before service starts' },
     { name: 'Discharged', code: 'DISCHARGED', description: 'Discharged from service' },
     { name: 'Deceased', code: 'DECEASED', description: null },
     { name: 'On Hold', code: 'ON_HOLD', description: 'Service temporarily on hold' },
@@ -1388,13 +1449,25 @@ async function main() {
 
   async function upsertMedCode<T extends { upsert: (args: any) => Promise<any> }>(
     model: T,
-    row: { name: string; code: string; description?: string | null; timesPerDay?: number | null; intervalHours?: number | null; time?: string; sortOrder?: number },
+    row: {
+      name: string
+      code: string
+      description?: string | null
+      requiresBodyMapSite?: boolean
+      timesPerDay?: number | null
+      intervalHours?: number | null
+      time?: string
+      sortOrder?: number
+    },
   ) {
+    const bodyMapFlag =
+      row.requiresBodyMapSite !== undefined ? { requiresBodyMapSite: row.requiresBodyMapSite } : {}
     const baseMinimal = {
       name: row.name,
       code: row.code,
       isActive: true,
       deletedAt: null,
+      ...bodyMapFlag,
     };
     const baseWithDesc = {
       ...baseMinimal,
@@ -1423,31 +1496,34 @@ async function main() {
   }
 
   for (const row of [
-    { name: 'Tablet', code: 'TABLET' },
-    { name: 'Capsule', code: 'CAPSULE' },
-    { name: 'Liquid', code: 'LIQUID' },
-    { name: 'Cream', code: 'CREAM' },
-    { name: 'Ointment', code: 'OINTMENT' },
-    { name: 'Drops', code: 'DROPS' },
-    { name: 'Injection', code: 'INJECTION' },
-    { name: 'Inhaler', code: 'INHALER' },
-    { name: 'Patch', code: 'PATCH' },
-    { name: 'Sachet', code: 'SACHET' },
-    { name: 'Other', code: 'OTHER_TYPE' },
+    { name: 'Tablet', code: 'TABLET', requiresBodyMapSite: false },
+    { name: 'Capsule', code: 'CAPSULE', requiresBodyMapSite: false },
+    { name: 'Liquid', code: 'LIQUID', requiresBodyMapSite: false },
+    { name: 'Cream', code: 'CREAM', requiresBodyMapSite: true },
+    { name: 'Ointment', code: 'OINTMENT', requiresBodyMapSite: true },
+    { name: 'Lotion', code: 'LOTION', requiresBodyMapSite: true },
+    { name: 'Drops', code: 'DROPS', requiresBodyMapSite: false },
+    { name: 'Injection', code: 'INJECTION', requiresBodyMapSite: true },
+    { name: 'Inhaler', code: 'INHALER', requiresBodyMapSite: false },
+    { name: 'Patch', code: 'PATCH', requiresBodyMapSite: true },
+    { name: 'Spray', code: 'SPRAY', requiresBodyMapSite: true },
+    { name: 'Sachet', code: 'SACHET', requiresBodyMapSite: false },
+    { name: 'Other', code: 'OTHER_TYPE', requiresBodyMapSite: false },
   ]) {
     await upsertMedCode(prisma.medicationType, row);
   }
   for (const row of [
-    { name: 'Oral', code: 'ORAL' },
-    { name: 'Topical', code: 'TOPICAL' },
-    { name: 'Inhalation', code: 'INHALATION' },
-    { name: 'Injection', code: 'ROUTE_INJECTION' },
-    { name: 'Eye', code: 'EYE' },
-    { name: 'Ear', code: 'EAR' },
-    { name: 'Nasal', code: 'NASAL' },
-    { name: 'Rectal', code: 'RECTAL' },
-    { name: 'Sublingual', code: 'SUBLINGUAL' },
-    { name: 'Other', code: 'OTHER_ROUTE' },
+    { name: 'Oral', code: 'ORAL', requiresBodyMapSite: false },
+    { name: 'Topical', code: 'TOPICAL', requiresBodyMapSite: true },
+    { name: 'Transdermal / Patch', code: 'TRANSDERMAL', requiresBodyMapSite: true },
+    { name: 'Inhalation', code: 'INHALATION', requiresBodyMapSite: false },
+    { name: 'Injection', code: 'ROUTE_INJECTION', requiresBodyMapSite: true },
+    { name: 'Eye', code: 'EYE', requiresBodyMapSite: false },
+    { name: 'Ear', code: 'EAR', requiresBodyMapSite: false },
+    { name: 'Nasal', code: 'NASAL', requiresBodyMapSite: false },
+    { name: 'Rectal', code: 'RECTAL', requiresBodyMapSite: false },
+    { name: 'Sublingual', code: 'SUBLINGUAL', requiresBodyMapSite: false },
+    { name: 'Other', code: 'OTHER_ROUTE', requiresBodyMapSite: false },
   ]) {
     await upsertMedCode(prisma.medicationRoute, row);
   }
@@ -1470,6 +1546,7 @@ async function main() {
     { name: 'Twice Daily', code: 'TWICE_DAILY', timesPerDay: 2 },
     { name: 'Three Times Daily', code: 'THREE_TIMES_DAILY', timesPerDay: 3 },
     { name: 'Four Times Daily', code: 'FOUR_TIMES_DAILY', timesPerDay: 4 },
+    { name: 'Five Times Daily', code: 'FIVE_TIMES_DAILY', timesPerDay: 5 },
     { name: 'Every 1 day', code: 'EVERY_1_DAY', timesPerDay: 1 },
     { name: 'Weekly', code: 'WEEKLY', timesPerDay: null },
     { name: 'Monthly', code: 'MONTHLY', timesPerDay: null },
@@ -1478,13 +1555,28 @@ async function main() {
   ]) {
     await upsertMedCode(prisma.medicationFrequency, row);
   }
-  for (const row of [
-    { name: 'Breakfast Round', code: 'BREAKFAST_ROUND', time: '06:00', sortOrder: 10 },
-    { name: 'Lunch Round', code: 'LUNCH_ROUND', time: '11:00', sortOrder: 20 },
-    { name: 'Tea Round', code: 'TEA_ROUND', time: '15:00', sortOrder: 30 },
-    { name: 'Bed Round', code: 'BED_ROUND', time: '18:00', sortOrder: 40 },
-  ]) {
-    await upsertMedCode(prisma.medicationAdministrationRound, row);
+  for (const row of DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS) {
+    await prisma.medicationAdministrationRound.upsert({
+      where: { code: row.code },
+      update: {
+        name: row.name,
+        time: row.time,
+        windowStart: row.windowStart,
+        windowEnd: row.windowEnd,
+        sortOrder: row.sortOrder,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        name: row.name,
+        code: row.code,
+        time: row.time,
+        windowStart: row.windowStart,
+        windowEnd: row.windowEnd,
+        sortOrder: row.sortOrder,
+        isActive: true,
+      },
+    });
   }
   for (const row of [
     { name: 'Refused', code: 'REFUSED' },
@@ -1497,6 +1589,36 @@ async function main() {
     { name: 'Other', code: 'OTHER_REASON' },
   ]) {
     await upsertMedCode(prisma.medicationNotGivenReason, row);
+  }
+
+  for (const row of DEFAULT_MEDICATION_STATUS_CODES) {
+    await prisma.medicationStatusCode.upsert({
+      where: { code: row.code },
+      update: {
+        label: row.label,
+        color: row.color,
+        textColor: row.textColor,
+        category: row.category,
+        administrationStatus: row.administrationStatus,
+        reasonRequirement: row.reasonRequirement,
+        managerReviewRequirement: row.managerReviewRequirement,
+        sortOrder: row.sortOrder,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        code: row.code,
+        label: row.label,
+        color: row.color,
+        textColor: row.textColor,
+        category: row.category,
+        administrationStatus: row.administrationStatus,
+        reasonRequirement: row.reasonRequirement,
+        managerReviewRequirement: row.managerReviewRequirement,
+        sortOrder: row.sortOrder,
+        isActive: true,
+      },
+    });
   }
 
   const calendarEventTypes = [
@@ -1657,6 +1779,8 @@ async function main() {
   }
 
   await seedInitialAssessmentChecklist(prisma);
+  await seedBodyMapRecordTypeCatalog(prisma);
+  await seedInitialAssessmentEnterprise(prisma);
 
   const initialAssessmentReviewPermKeys = ['service_users.initial_assessment.review'];
   const initialAssessmentReviewPerms = await prisma.permission.findMany({
@@ -1701,6 +1825,17 @@ async function main() {
   await seedOrganisationGeneralSettings(prisma);
 
   await seedCarePathway(prisma);
+
+  // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
+  const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
+
+  // Demo service-user data (medications, observations, allergies, inventory, etc.)
+  await seedDemoServiceUserData(prisma, demoSuId ? { serviceUserId: demoSuId } : {});
+
+  await resetAndSeedBodyMapDemo(prisma, {
+    serviceUserId: demoSuId ?? undefined,
+    includeSecondServiceUser: true,
+  });
 
   const scheduleOperatorPermKeys = [
     'schedules.read',

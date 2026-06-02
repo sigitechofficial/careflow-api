@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { AuditStatus } from '@prisma/client';
+import { AuditEventType, AuditStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
@@ -14,6 +14,11 @@ export class AuditLogQueryDto extends PaginationQueryDto {
   @IsUUID()
   userId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter rows tied to a service user (metadata or medication records)' })
+  @IsOptional()
+  @IsUUID()
+  serviceUserId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -23,6 +28,14 @@ export class AuditLogQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   action?: string;
+
+  @ApiPropertyOptional({
+    enum: AuditEventType,
+    description: 'Enterprise event category (VIEW, CREATE, UPDATE, DELETE, EXPORT, SECURITY, SYSTEM)',
+  })
+  @IsOptional()
+  @IsEnum(AuditEventType)
+  eventType?: AuditEventType;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -48,6 +61,11 @@ export class AuditLogQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   dateTo?: string;
+
+  @ApiPropertyOptional({ description: 'Partial match on stored IP address' })
+  @IsOptional()
+  @IsString()
+  ipAddress?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -67,4 +67,13 @@ export class SaveInitialAssessmentAnswersDto {
   @ValidateNested({ each: true })
   @Type(() => InitialAssessmentAnswerItemDto)
   answers!: InitialAssessmentAnswerItemDto[];
+
+  @ApiPropertyOptional({
+    maxLength: 2000,
+    description: 'Required when saving corrections after a manager reopen',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  correctionReason?: string;
 }

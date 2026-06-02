@@ -6,6 +6,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { AuditEventType } from '@prisma/client';
 import { CreateServiceUserObservationDto } from './dto/create-service-user-observation.dto';
 import type { ObservationQueryDto } from './dto/observation-query.dto';
 import { validateObservationCreate } from './observation-payload.validation';
@@ -32,6 +33,26 @@ function carerDisplayName(row: ObservationRow): string | null {
     const { firstName, lastName, email } = row.recordedByUser;
     const name = [firstName, lastName].filter(Boolean).join(' ').trim();
     return name || email;
+  }
+  return null;
+}
+
+function formatObservationValueLabel(obs: {
+  numericValue: number | null;
+  unit: string | null;
+  payload: unknown;
+}): string | null {
+  if (obs.numericValue != null) {
+    const unit = obs.unit?.trim();
+    return unit ? `${obs.numericValue} ${unit}` : String(obs.numericValue);
+  }
+  if (obs.payload && typeof obs.payload === 'object' && !Array.isArray(obs.payload)) {
+    const p = obs.payload as Record<string, unknown>;
+    const parts = Object.entries(p)
+      .filter(([, v]) => v != null && v !== '')
+      .slice(0, 4)
+      .map(([k, v]) => `${k}: ${v}`);
+    if (parts.length > 0) return parts.join(', ');
   }
   return null;
 }
@@ -198,14 +219,26 @@ export class ServiceUserObservationsService {
       });
 
       const mapped = mapObservation(full);
+      const typeName = full.observationType.name;
+      const valueLabel = formatObservationValueLabel(mapped);
       await this.audit.logAudit({
         tx,
         userId,
         module: AuditModule.OBSERVATION,
         action: AuditAction.SERVICE_USER_OBSERVATION_CREATED,
+        eventType: AuditEventType.CREATE,
         recordType: 'ServiceUserObservation',
         recordId: full.id,
+        description: valueLabel
+          ? `Recorded ${typeName}: ${valueLabel}`
+          : `Recorded ${typeName}`,
         newValues: auditSnapshot(mapped),
+        metadata: {
+          serviceUserId,
+          observationTypeName: typeName,
+          observationTypeCode: full.observationType.code,
+          valueLabel,
+        },
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
@@ -236,15 +269,27 @@ export class ServiceUserObservationsService {
       });
 
       const mapped = mapObservation(deleted);
+      const typeName = before.observationType.name;
+      const valueLabel = formatObservationValueLabel(mapObservation(before));
       await this.audit.logAudit({
         tx,
         userId,
         module: AuditModule.OBSERVATION,
         action: AuditAction.SERVICE_USER_OBSERVATION_DELETED,
+        eventType: AuditEventType.DELETE,
         recordType: 'ServiceUserObservation',
         recordId: deleted.id,
+        description: valueLabel
+          ? `Removed ${typeName}: ${valueLabel}`
+          : `Removed ${typeName}`,
         oldValues: auditSnapshot(mapObservation(before)),
         newValues: auditSnapshot(mapped),
+        metadata: {
+          serviceUserId,
+          observationTypeName: typeName,
+          observationTypeCode: before.observationType.code,
+          valueLabel,
+        },
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });

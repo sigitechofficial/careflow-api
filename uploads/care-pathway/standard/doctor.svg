@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Doctor">
+  <rect width="72" height="72" rx="12" fill="#6366f1"/>
+  <g><rect x="30" y="22" width="12" height="28" rx="3" fill="#fff"/><circle cx="36" cy="18" r="6" fill="#fff"/></g>
+</svg>

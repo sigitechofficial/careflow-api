@@ -41,10 +41,24 @@ export class MedicationAdministrationQueryDto {
   @IsUUID()
   medicationId?: string;
 
+  @ApiPropertyOptional({ description: 'Comma-separated medication UUIDs (duplicate rows)' })
+  @IsOptional()
+  @IsString()
+  medicationIds?: string;
+
   @ApiPropertyOptional({ enum: MedicationAdministrationStatus })
   @IsOptional()
   @IsEnum(MedicationAdministrationStatus)
   status?: MedicationAdministrationStatus;
+
+  @ApiPropertyOptional({
+    description: 'MAR short code (G, R, N, U, …). Preferred over status for history filters.',
+    example: 'G',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  statusCode?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -76,6 +90,12 @@ export class MedicationAdministrationQueryDto {
   @IsOptional()
   @IsEnum(MedicationEventReportTypeFilter)
   reportType?: MedicationEventReportTypeFilter;
+
+  @ApiPropertyOptional({ description: 'Exception statuses needing manager review' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  needsReview?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

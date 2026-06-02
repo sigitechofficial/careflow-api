@@ -22,6 +22,14 @@ export class UpdateMedicationSupportProfileDto {
   @IsBoolean()
   requiresCarerAdministration?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      'Family member or carer gives medicines support (CQC / NICE NG67).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  familyMemberOrCarerSupportsMedication?: boolean;
+
   @ApiPropertyOptional({ maxLength: 2000 })
   @IsOptional()
   @IsString()

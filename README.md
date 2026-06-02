@@ -1,19 +1,53 @@
 # CareAdmin backend
 
-NestJS API for the Care Admin platform: **PostgreSQL**, **Prisma** (multi-schema), **JWT** auth, **RBAC** permissions, and **Swagger** under `/api`.
+NestJS API for the Care Admin platform: **PostgreSQL**, **Prisma** (multi-schema), **JWT** auth, **RBAC** permissions, and **Swagger** under `/api/docs`.
+
+**Full local setup (database, frontend, both servers):** see the [root README](../README.md).
 
 Default dev user from seed: `admin@careadmin.local` / `Admin@12345` (see `prisma/seed.ts`).
 
+**Phase tracker:** [`PHASES.md`](PHASES.md) · **Module detail:** [`docs/phases/`](docs/phases/)
+
 **Employee RBAC → login roles:** When employment is saved, matching users can receive identity role updates from the employee’s RBAC level (email match; Super Admin excluded). See **`docs/phases/EMPLOYEE_MANAGEMENT.md`** → *RBAC level and identity permissions*.
+
+## Local setup (quick)
+
+```powershell
+pnpm install
+copy .env.example .env
+# Edit DATABASE_URL and JWT secrets in .env
+
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
+pnpm run prisma:seed
+
+pnpm run start:dev
+```
+
+API: http://localhost:3000 · Swagger: http://localhost:3000/api/docs
+
+### Care pathway gallery & form icons
+
+```powershell
+pnpm run sync:gallery-images    # from uploads/gallery-images/*.png
+pnpm run prisma:seed
+pnpm run refresh:form-icons       # update existing forms to gallery PNGs
+```
+
+See `prisma/seeds/data/GALLERY_IMPORT.md`.
 
 ## Scripts
 
-```bash
-pnpm install
-pnpm run start:dev
-pnpm exec prisma migrate dev
-pnpm exec prisma db seed
-```
+| Command | Purpose |
+|---------|---------|
+| `pnpm run start:dev` | Dev server with watch |
+| `pnpm run build` | Compile NestJS |
+| `pnpm exec prisma migrate dev` | Apply migrations |
+| `pnpm run prisma:seed` | Seed database |
+| `pnpm run prisma:studio` | Prisma Studio UI |
+| `pnpm run sync:gallery-images` | Import gallery PNGs into `uploads/care-pathway/imported` |
+| `pnpm run refresh:form-icons` | Refresh form `pictureUrl` from gallery |
+| `pnpm run test` / `test:e2e` | Jest unit / e2e tests |
 
 ## Audit activity module
 
@@ -23,7 +57,7 @@ Immutable audit data lives in the **`audit`** Postgres schema. The `AuditLogsMod
 
 | Model | Purpose |
 |--------|---------|
-| `AuditLog` | Domain actions (`module`, `action`, optional `recordType` / `recordId`, `oldValues` / `newValues` JSON, IP, user agent, `status`) |
+| `AuditLog` | Domain actions (`module`, `action`, `eventType` — VIEW/CREATE/UPDATE/DELETE/EXPORT/SECURITY/SYSTEM, optional `recordType` / `recordId`, `oldValues` / `newValues` JSON, IP, user agent, `status`) |
 | `LoginHistory` | Login/logout/refresh outcomes (`event`, `email`, `failureReason`, `status`) |
 | `SecurityEvent` | Security-oriented events (`eventType`, `severity`, `metadata`) |
 | `DataAccessLog` | Sensitive reads (`accessType`: VIEW, DOWNLOAD, EXPORT, PRINT) |
@@ -35,14 +69,15 @@ Base path: **`/audit-logs`** (all require JWT + permission **`audit_logs.read`**
 
 | Method | Path |
 |--------|------|
-| GET | `/audit-logs` — paged audit log list |
+| GET | `/audit-logs` — paged audit log list (enriched with service user name, item label, readable summary) |
 | GET | `/audit-logs/:id` — single audit log |
+| GET | `/audit-logs/event-types` — filter labels for `eventType` enum |
 | GET | `/audit-logs/login-history` |
 | GET | `/audit-logs/security-events` |
 | GET | `/audit-logs/data-access` |
 | GET | `/audit-logs/exports` |
 
-Query DTOs support pagination (`page`, `limit`), `search`, filters (`userId`, `module`, `action`, `recordType`, `recordId`, `status`, `eventType`, `severity`, `dateFrom`, `dateTo`, `sortBy`, `sortOrder`).
+`GET /audit-logs` query: pagination (`page`, `limit`), `search`, `userId`, `serviceUserId`, `module`, `action`, `eventType`, `recordType`, `recordId`, `status`, `dateFrom`, `dateTo` (UTC day bounds), `ipAddress` (partial match), `sortBy`, `sortOrder`. Other list endpoints use their own DTOs (`severity` on security events, etc.).
 
 ### Permissions
 
@@ -72,6 +107,9 @@ pnpm exec prisma generate
 1. Seed DB and log in as a user with `audit_logs.read`.
 2. Perform login, employee updates, document download, etc.
 3. Call `GET /audit-logs` (and sibling endpoints) with your bearer token.
+4. Regenerate the committed OpenAPI artifact after controller/DTO changes: `pnpm run openapi:export` (writes `openapi/openapi.json`).
+
+Swagger tag: **Audit Logs** — same surface as `/api/docs`.
 
 ### Later modules
 
@@ -82,12 +120,35 @@ Service Care and Scheduling should call `AuditLogsService.logAudit`, `logDataAcc
 Clinical medication data lives in the **`service_users`** schema (types, routes, categories, frequencies, administration rounds, medications, packs, schedules, administration events, medication-specific allergies, support profile, reviews, and placeholder stock movements).
 
 - **Regular vs PRN**: `MedicationKind.REGULAR` supports scheduled rounds; `PRN` records administrations with mandatory free-text reason or notes.
-- **Charts**: `GET /service-users/:id/medication-chart/regular?month=YYYY-MM` builds a month grid with per-day statuses from events and schedules. `GET .../medication-chart/prn?dateFrom=&dateTo=` lists PRN events grouped by medication.
+- **Medications** (Swagger: **Service User Medications** tag): list/create/update/delete; `POST .../medications/:medicationId/restore` for archived rows; `GET .../medications/activity-log` for per–service-user medication audit trail; status end reason (`MANUAL` vs `END_DATE`) on end workflow.
+- **Charts** (Swagger: **Medication Charts** tag):
+  - `GET /service-users/:id/medication-chart/regular` — MAR grid. Query: `month=YYYY-MM` **or** `dateFrom` + `dateTo` (≤93 days); optional `medicationIds` (comma-separated UUIDs). Response includes `medications[]` (rows × `days[]` cells), `legend`, `summary` (today only: due / recorded / missed N+R / review), and `monthStats` (**MAR completion to date**):
+    - `completionThroughDate`, `scheduledToDate`, `documented`, `stillOpen`, `given`, `notGiven`, `marCompletionPercent`, `prnAdministered`
+    - Deprecated aliases: `due` → `stillOpen`, `recorded` → `documented`, `compliancePercent` → `marCompletionPercent`
+    - Completion window: `periodStart` → `min(today UTC, periodEnd)` (past months use the full period; future days in the current month are excluded)
+    - `marCompletionPercent` = `documented ÷ (documented + stillOpen)` — documentation completeness (CQC/NICE), not % physically given
+  - `GET /service-users/:id/medication-chart/regular/export` — HTML (default), `format=pdf|csv|xlsx`, or multi-month Excel via `months=`. `preview=true` skips export audit (UI preview).
+  - `GET /service-users/:id/medication-chart/prn?dateFrom=&dateTo=` — PRN events grouped by medication.
 - **Reports** (tenant-wide or per SU): `GET /medication-reports/administered|stock-levels|late-administrations|audit` with `dateFrom` / `dateTo` and optional `serviceUserId` or `allServiceUsers=true` (requires appropriate permissions).
 - **Late administrations**: compared with `scheduledDateTime`; threshold minutes from env `MEDICATION_LATE_THRESHOLD_MINUTES` (default **30**).
 - **Permissions** (seed): `service_users.medications.*` keys — Super Admin all; Admin/Manager/Care Coordinator clinical coordination set; **Senior Carer/Nurse** read + administer + write; **Carer/Domestic** read charts + **administer**; delete/reviews delete/reports export tightened to Admin/Manager.
 - **Audit / data access**: creates/updates/deletes, administrations, chart views, and report generation emit `AuditLog` (`AuditModule.MEDICATION`) and `DataAccessLog` (VIEW) per product rules. Controlled-drug and missed/refused paths call optional **in-app notification** hooks (`MEDICATION_ALERT`) when `NotificationsModule` is available (recipient list is placeholder until routing is defined).
 - **Seed**: medication lookup tables + optional **Blister Pack 2025** demo on the first service user (idempotent).
+
+### Swagger
+
+All medication routes are documented at **`http://localhost:3000/api/docs`** (Bearer auth). **14 tags**, **59 routes** — charts, administration, supply, medications, schedules, lookups, status codes, time slots, reports, reviews, allergies, packs, support profile.
+
+Every route includes standard error docs via `ApiMedicationStandardResponses()`: **400** / **404** (`ApiErrorResponseDto` with examples), **401**, **403**. Critical routes include **golden wire examples** (`{ success, message, data, meta }`) via `ApiEnvelopeOkResponse` — see `src/common/swagger/medication-api.examples.ts`.
+
+```bash
+pnpm run openapi:export   # writes openapi/openapi.json (full API, 340+ paths)
+pnpm test -- --testPathPatterns=medication-api.examples|medication-openapi.contract
+```
+
+Product spec: `canvases/medication.md` **§16.7**.
+
+**Future (sw-9):** CI on each PR — run `pnpm run openapi:export`, then `git diff --exit-code openapi/openapi.json` so the committed spec cannot drift from controllers. Tracked in `canvases/enterprise-design-plan.canvas.tsx` (Track D) and `canvases/medication.md` §34.
 
 ```bash
 pnpm exec prisma migrate dev

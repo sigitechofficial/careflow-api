@@ -65,6 +65,12 @@ export class ServiceUserMedicationQueryDto {
   @IsBoolean()
   showPastEndDate?: boolean;
 
+  @ApiPropertyOptional({ description: 'List soft-deleted (archived) medications only' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  archivedOnly?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()

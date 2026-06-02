@@ -15,6 +15,14 @@ import { LoginHistoryQueryDto } from './dto/login-history-query.dto';
 import { SecurityEventQueryDto } from './dto/security-event-query.dto';
 import { DataAccessLogQueryDto } from './dto/data-access-log-query.dto';
 import { ExportLogQueryDto } from './dto/export-log-query.dto';
+import {
+  buildAuditLogContext,
+  collectAuditEnrichmentIds,
+  formatServiceUserDisplayName,
+  type AuditLogContext,
+} from './audit-log-context.util';
+import { resolveAuditEventType } from './audit-event-type.util';
+import { AuditEventType } from '@prisma/client';
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -43,6 +51,8 @@ export type LogAuditParams = {
   userId?: string | null;
   module: string;
   action: string;
+  /** Enterprise event category (stored for filtering). Inferred from action when omitted. */
+  eventType?: AuditEventType | null;
   recordType?: string | null;
   recordId?: string | null;
   description?: string | null;
@@ -162,11 +172,17 @@ export class AuditLogsService {
 
   async logAudit(params: LogAuditParams) {
     const client = this.db(params.tx);
+    const eventType = resolveAuditEventType(
+      params.action,
+      params.metadata,
+      params.eventType,
+    );
     return client.auditLog.create({
       data: {
         userId: params.userId ?? undefined,
         module: params.module,
         action: params.action,
+        eventType,
         recordType: params.recordType ?? undefined,
         recordId: params.recordId ?? undefined,
         description: params.description ?? undefined,
@@ -266,6 +282,28 @@ export class AuditLogsService {
     });
   }
 
+  private async medicationIdsForServiceUser(serviceUserId: string): Promise<string[]> {
+    const rows = await this.prisma.serviceUserMedication.findMany({
+      where: { serviceUserId },
+      select: { id: true },
+    });
+    return rows.map(r => r.id);
+  }
+
+  private serviceUserAuditScope(serviceUserId: string, medicationIds: string[]): Prisma.AuditLogWhereInput {
+    const or: Prisma.AuditLogWhereInput[] = [
+      { metadata: { path: ['serviceUserId'], equals: serviceUserId } },
+      { recordId: serviceUserId },
+    ];
+    if (medicationIds.length > 0) {
+      or.push({
+        recordType: 'ServiceUserMedication',
+        recordId: { in: medicationIds },
+      });
+    }
+    return { OR: or };
+  }
+
   async findAuditLogs(query: AuditLogQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -274,27 +312,150 @@ export class AuditLogsService {
     if (query.userId) where.userId = query.userId;
     if (query.module) where.module = query.module;
     if (query.action) where.action = query.action;
+    if (query.eventType) where.eventType = query.eventType;
     if (query.recordType) where.recordType = query.recordType;
     if (query.recordId) where.recordId = query.recordId;
     if (query.status) where.status = query.status;
+    if (query.ipAddress?.trim()) {
+      where.ipAddress = { contains: query.ipAddress.trim(), mode: 'insensitive' };
+    }
     const range = this.buildDateRange(query.dateFrom, query.dateTo);
     if (range) where.createdAt = range;
+    if (query.serviceUserId) {
+      const medicationIds = await this.medicationIdsForServiceUser(query.serviceUserId);
+      where.AND = [
+        ...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []),
+        this.serviceUserAuditScope(query.serviceUserId, medicationIds),
+      ];
+    }
     if (query.search?.trim()) {
       const s = query.search.trim();
-      where.OR = [
+      const searchOr: Prisma.AuditLogWhereInput[] = [
         { action: { contains: s, mode: 'insensitive' } },
         { module: { contains: s, mode: 'insensitive' } },
         { description: { contains: s, mode: 'insensitive' } },
+        { recordType: { contains: s, mode: 'insensitive' } },
+        { ipAddress: { contains: s, mode: 'insensitive' } },
+      ];
+      where.AND = [
+        ...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []),
+        { OR: searchOr },
       ];
     }
     const orderBy: Prisma.AuditLogOrderByWithRelationInput = {
       [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
     };
+    const userSelect = { id: true, email: true, firstName: true, lastName: true } as const;
     const [total, data] = await this.prisma.$transaction([
       this.prisma.auditLog.count({ where }),
-      this.prisma.auditLog.findMany({ where, skip, take: limit, orderBy }),
+      this.prisma.auditLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: { user: { select: userSelect } },
+      }),
     ]);
-    return { data, meta: buildPaginationMeta({ page, limit, total }) };
+    const enriched = await this.enrichAuditLogRows(data);
+    return { data: enriched, meta: buildPaginationMeta({ page, limit, total }) };
+  }
+
+  private async enrichAuditLogRows<
+    T extends {
+      action: string;
+      eventType: AuditEventType | null;
+      description: string | null;
+      metadata: Prisma.JsonValue;
+      newValues: Prisma.JsonValue;
+      oldValues: Prisma.JsonValue;
+      recordType: string | null;
+      recordId: string | null;
+    },
+  >(rows: T[]): Promise<Array<T & { context: AuditLogContext }>> {
+    if (rows.length === 0) return [];
+
+    const {
+      serviceUserIds: suIdsFromRows,
+      medicationIds,
+      observationIds,
+    } = collectAuditEnrichmentIds(rows);
+
+    const [medications, observations] = await Promise.all([
+      medicationIds.length > 0
+        ? this.prisma.serviceUserMedication.findMany({
+            where: { id: { in: medicationIds } },
+            select: { id: true, medicationName: true, serviceUserId: true },
+          })
+        : Promise.resolve([]),
+      observationIds.length > 0
+        ? this.prisma.serviceUserObservation.findMany({
+            where: { id: { in: observationIds } },
+            select: {
+              id: true,
+              serviceUserId: true,
+              numericValue: true,
+              unit: true,
+              observationType: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const allServiceUserIds = [
+      ...new Set([
+        ...suIdsFromRows,
+        ...medications.map(m => m.serviceUserId),
+        ...observations.map(o => o.serviceUserId),
+      ]),
+    ];
+
+    const serviceUsers =
+      allServiceUserIds.length > 0
+        ? await this.prisma.serviceUser.findMany({
+            where: { id: { in: allServiceUserIds } },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+              serviceUserNumber: true,
+            },
+          })
+        : [];
+
+    const serviceUserNames = new Map(
+      serviceUsers.map(u => [u.id, formatServiceUserDisplayName(u)]),
+    );
+    const medicationById = new Map(
+      medications.map(m => [
+        m.id,
+        { medicationName: m.medicationName, serviceUserId: m.serviceUserId },
+      ]),
+    );
+    const observationById = new Map(
+      observations.map(o => {
+        const typeName = o.observationType.name;
+        const valueLabel =
+          o.numericValue != null
+            ? o.unit?.trim()
+              ? `${Number(o.numericValue)} ${o.unit.trim()}`
+              : String(Number(o.numericValue))
+            : null;
+        return [
+          o.id,
+          { serviceUserId: o.serviceUserId, observationTypeName: typeName, valueLabel },
+        ];
+      }),
+    );
+
+    return rows.map(row => ({
+      ...row,
+      context: buildAuditLogContext(row, {
+        serviceUserNames,
+        medicationById,
+        observationById,
+      }),
+    }));
   }
 
   async findAuditLogById(id: string) {
@@ -420,13 +581,23 @@ export class AuditLogsService {
     dateTo?: string,
   ): Prisma.DateTimeFilter | undefined {
     if (!dateFrom && !dateTo) return undefined;
-    const f = dateFrom ? new Date(dateFrom) : undefined;
-    const t = dateTo ? new Date(dateTo) : undefined;
-    if (f && Number.isNaN(f.getTime())) return undefined;
-    if (t && Number.isNaN(t.getTime())) return undefined;
-    return {
-      ...(f ? { gte: f } : {}),
-      ...(t ? { lte: t } : {}),
-    };
+
+    const filter: Prisma.DateTimeFilter = {};
+
+    if (dateFrom) {
+      const start = new Date(dateFrom);
+      if (Number.isNaN(start.getTime())) return undefined;
+      start.setUTCHours(0, 0, 0, 0);
+      filter.gte = start;
+    }
+
+    if (dateTo) {
+      const end = new Date(dateTo);
+      if (Number.isNaN(end.getTime())) return undefined;
+      end.setUTCHours(23, 59, 59, 999);
+      filter.lte = end;
+    }
+
+    return Object.keys(filter).length > 0 ? filter : undefined;
   }
 }

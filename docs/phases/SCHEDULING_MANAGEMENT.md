@@ -1,5 +1,7 @@
 # Scheduling Management — Phase Plan
 
+**Local setup:** [root README](../../../README.md) · **Tracker:** [PHASES.md](../../PHASES.md)
+
 ## Phase 1 — Foundation
 
 Status: **DONE** (backend implemented)

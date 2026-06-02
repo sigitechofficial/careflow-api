@@ -28,13 +28,19 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "openapi:export": "ts-node --transpile-only --prefer-ts-exts scripts/export-openapi.ts",
+    "seed:full-su": "ts-node --transpile-only prisma/scripts/seed-full-service-user-demo.ts",
+    "seed:mar-30-api": "ts-node --transpile-only prisma/scripts/seed-mar-30-days-via-api.ts",
+    "seed:medication-realistic": "ts-node --transpile-only prisma/scripts/reset-and-seed-realistic-medication-via-api.ts",
+    "seed:section-311-flooring": "ts-node --transpile-only prisma/scripts/resync-section-311-flooring.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.0",
+    "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.21",
@@ -45,9 +51,12 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "exceljs": "^4.4.0",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdfkit": "^0.18.0",
+    "puppeteer-core": "^24.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
@@ -65,6 +74,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pdfkit": "^0.17.6",
     "@types/socket.io": "^3.0.2",
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
@@ -88,9 +98,10 @@
   },
   "jest": {
     "moduleFileExtensions": [
+      "ts",
+      "tsx",
       "js",
-      "json",
-      "ts"
+      "json"
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",

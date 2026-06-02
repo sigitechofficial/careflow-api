@@ -189,7 +189,7 @@ export class ServiceUsersService {
         accessType: DataAccessType.VIEW,
         ipAddress: audit.ipAddress ?? undefined,
         userAgent: audit.userAgent ?? undefined,
-        metadata: { route: 'service_users.detail' },
+        metadata: { route: 'service_users.detail', serviceUserId: id },
       });
       await this.audit.logAudit({
         userId: audit.actorUserId,
@@ -197,7 +197,7 @@ export class ServiceUsersService {
         action: AuditAction.SERVICE_USER_PROFILE_VIEWED,
         recordType: 'ServiceUser',
         recordId: id,
-        metadata: { route: 'service_users.detail' },
+        metadata: { route: 'service_users.detail', serviceUserId: id },
         ipAddress: audit.ipAddress ?? undefined,
         userAgent: audit.userAgent ?? undefined,
       });

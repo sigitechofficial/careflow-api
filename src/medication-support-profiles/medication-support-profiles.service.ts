@@ -21,15 +21,31 @@ export class MedicationSupportProfilesService {
       where: { serviceUserId, deletedAt: null },
     });
     if (!row) {
-      row = await this.prisma.medicationSupportProfile.create({
-        data: {
-          serviceUserId,
-          selfAdministersMedication: false,
-          requiresPrompting: false,
-          requiresSupervision: false,
-          requiresCarerAdministration: false,
-        },
+      const archived = await this.prisma.medicationSupportProfile.findFirst({
+        where: { serviceUserId, deletedAt: { not: null } },
+        orderBy: { updatedAt: 'desc' },
       });
+      if (archived) {
+        row = await this.prisma.medicationSupportProfile.update({
+          where: { id: archived.id },
+          data: {
+            deletedAt: null,
+            deletedById: null,
+            isActive: true,
+          },
+        });
+      } else {
+        row = await this.prisma.medicationSupportProfile.create({
+          data: {
+            serviceUserId,
+            selfAdministersMedication: false,
+            requiresPrompting: false,
+            requiresSupervision: false,
+            requiresCarerAdministration: false,
+            familyMemberOrCarerSupportsMedication: false,
+          },
+        });
+      }
     }
     return row;
   }
@@ -44,6 +60,8 @@ export class MedicationSupportProfilesService {
         requiresPrompting: dto.requiresPrompting ?? existing.requiresPrompting,
         requiresSupervision: dto.requiresSupervision ?? existing.requiresSupervision,
         requiresCarerAdministration: dto.requiresCarerAdministration ?? existing.requiresCarerAdministration,
+        familyMemberOrCarerSupportsMedication:
+          dto.familyMemberOrCarerSupportsMedication ?? existing.familyMemberOrCarerSupportsMedication,
         notes: dto.notes === undefined ? undefined : dto.notes,
         updatedById: userId,
       },

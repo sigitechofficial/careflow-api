@@ -10,11 +10,16 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
-import { MedicationKind, MedicationRecordStatus } from '@prisma/client';
+import {
+  MedicationKind,
+  MedicationRecordStatus,
+  MedicationSchedulePattern,
+} from '@prisma/client';
 import { CreateMedicationScheduleItemDto } from './create-medication-schedule-item.dto';
 
 export class CreateServiceUserMedicationDto {
@@ -98,7 +103,32 @@ export class CreateServiceUserMedicationDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(365)
   frequencyIntervalDays?: number;
+
+  @ApiPropertyOptional({ enum: MedicationSchedulePattern })
+  @IsOptional()
+  @IsEnum(MedicationSchedulePattern)
+  schedulePattern?: MedicationSchedulePattern;
+
+  @ApiPropertyOptional({
+    description: 'Day of month (1–31) when schedulePattern is MONTHLY and monthlyAnchorToStartDate is false',
+    minimum: 1,
+    maximum: 31,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  monthlyDayOfMonth?: number;
+
+  @ApiPropertyOptional({
+    description: 'When true, monthly doses fall on the same calendar day as startDate',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  monthlyAnchorToStartDate?: boolean;
 
   @ApiPropertyOptional({
     type: [CreateMedicationScheduleItemDto],

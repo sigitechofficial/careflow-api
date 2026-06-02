@@ -19,6 +19,10 @@ async function bootstrap() {
   app.enableCors({
     origin: true,
     credentials: true,
+    // Cache the CORS preflight response in the browser for 10 minutes so
+    // routine SPA navigation does not generate an OPTIONS round-trip before
+    // every distinct API call.
+    maxAge: 600,
   });
 
   app.useGlobalPipes(

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,16 +11,20 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
-import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { getPublicOrigin, getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { InitialAssessmentsService } from './initial-assessments.service';
 import { InitialAssessmentQueryDto } from './dto/initial-assessment-query.dto';
 import { CreateInitialAssessmentSubmissionDto } from './dto/create-initial-assessment-submission.dto';
@@ -28,6 +33,17 @@ import { SaveInitialAssessmentAnswersDto } from './dto/save-initial-assessment-a
 import { SubmitInitialAssessmentDto } from './dto/submit-initial-assessment.dto';
 import { ReviewInitialAssessmentDto } from './dto/review-initial-assessment.dto';
 import { UpdateInitialAssessmentStatusDto } from './dto/update-initial-assessment-status.dto';
+import {
+  CreateInitialAssessmentActionDto,
+  UpdateInitialAssessmentActionDto,
+} from './dto/initial-assessment-action.dto';
+import {
+  CreateInitialAssessmentRiskRecordDto,
+  UpdateInitialAssessmentRiskRecordDto,
+} from './dto/initial-assessment-risk-record.dto';
+import { UploadInitialAssessmentAttachmentDto } from './dto/initial-assessment-attachment.dto';
+import { InitialAssessmentCarePlanDecisionDto } from './dto/initial-assessment-care-plan-decision.dto';
+import { initialAssessmentUploadMulterOptionsFromRequest } from './initial-assessment-upload.util';
 
 @ApiTags('Initial Assessments')
 @ApiBearerAuth()
@@ -110,6 +126,25 @@ export class InitialAssessmentsController {
     return this.service.getAnswers(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
   }
 
+  @Post(':submissionId/answers/:questionId/reveal-secure')
+  @HttpCode(HttpStatus.OK)
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  revealSecureField(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('questionId') questionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.revealSecureFieldAnswer(
+      user.id,
+      serviceUserId,
+      submissionId,
+      questionId,
+      getRequestAuditMeta(req),
+    );
+  }
+
   @Patch(':submissionId/answers')
   @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
   saveAnswers(
@@ -120,6 +155,18 @@ export class InitialAssessmentsController {
     @Req() req: Request,
   ) {
     return this.service.saveAnswers(user.id, serviceUserId, submissionId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/validate')
+  @HttpCode(HttpStatus.OK)
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.initial_assessment.submit')
+  validate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.validateSubmission(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
   }
 
   @Patch(':submissionId/submit')
@@ -158,6 +205,101 @@ export class InitialAssessmentsController {
     return this.service.updateStatus(user.id, serviceUserId, submissionId, dto, getRequestAuditMeta(req));
   }
 
+  @Get(':submissionId/html')
+  @AnyPermission('service_users.initial_assessment.export', 'service_users.initial_assessment.read')
+  @ApiOperation({ summary: 'Download initial assessment submission as HTML' })
+  async exportHtml(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Query('includeSecureFields') includeSecureFieldsRaw: string | undefined,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    const includeSecureFields = includeSecureFieldsRaw === 'true';
+    const { html, filename } = await this.service.exportSubmissionHtml(
+      user.id,
+      serviceUserId,
+      submissionId,
+      includeSecureFields,
+      getRequestAuditMeta(req),
+      getPublicOrigin(req),
+    );
+    res
+      .type('text/html; charset=utf-8')
+      .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(html);
+  }
+
+  @Get(':submissionId/pdf')
+  @AnyPermission('service_users.initial_assessment.export', 'service_users.initial_assessment.read')
+  @ApiOperation({ summary: 'Download initial assessment submission as PDF' })
+  async exportPdf(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Query('includeSecureFields') includeSecureFieldsRaw: string | undefined,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    const includeSecureFields = includeSecureFieldsRaw === 'true';
+    const { pdf, filename } = await this.service.exportSubmissionPdf(
+      user.id,
+      serviceUserId,
+      submissionId,
+      includeSecureFields,
+      getRequestAuditMeta(req),
+      getPublicOrigin(req),
+    );
+    res
+      .type('application/pdf')
+      .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(pdf);
+  }
+
+  @Get(':submissionId/clinical')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  clinical(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.getClinicalSnapshot(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Get(':submissionId/cqc-evidence')
+  @AnyPermission('service_users.initial_assessment.export', 'service_users.initial_assessment.read')
+  @ApiOperation({ summary: 'CQC evidence bundle (JSON) for inspection' })
+  cqcEvidence(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.exportCqcEvidence(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Patch(':submissionId/care-plan-recommendations/:recommendationId')
+  @AnyPermission('service_users.initial_assessment.review', 'service_users.initial_assessment.update')
+  decideCarePlanRecommendation(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('recommendationId') recommendationId: string,
+    @Body() dto: InitialAssessmentCarePlanDecisionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.decideCarePlanRecommendation(
+      user.id,
+      serviceUserId,
+      submissionId,
+      recommendationId,
+      dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
   @Get(':submissionId/summary')
   @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
   summary(
@@ -189,5 +331,183 @@ export class InitialAssessmentsController {
     @Req() req: Request,
   ) {
     return this.service.getCarePlanTriggers(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Get(':submissionId/actions')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  listActions(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.listActions(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/actions')
+  @HttpCode(HttpStatus.CREATED)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  createAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: CreateInitialAssessmentActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createAction(user.id, serviceUserId, submissionId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/actions/regenerate')
+  @HttpCode(HttpStatus.OK)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  regenerateActions(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.regenerateActions(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Patch(':submissionId/actions/:actionId')
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  updateAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('actionId') actionId: string,
+    @Body() dto: UpdateInitialAssessmentActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateAction(
+      user.id,
+      serviceUserId,
+      submissionId,
+      actionId,
+      dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Get(':submissionId/risk-records')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  listRiskRecords(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.listRiskRecords(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/risk-records')
+  @HttpCode(HttpStatus.CREATED)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  createRiskRecord(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: CreateInitialAssessmentRiskRecordDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createRiskRecord(user.id, serviceUserId, submissionId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/risk-records/regenerate')
+  @HttpCode(HttpStatus.OK)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  regenerateRiskRecords(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.regenerateRiskRecords(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Patch(':submissionId/risk-records/:riskRecordId')
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  updateRiskRecord(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('riskRecordId') riskRecordId: string,
+    @Body() dto: UpdateInitialAssessmentRiskRecordDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateRiskRecord(
+      user.id,
+      serviceUserId,
+      submissionId,
+      riskRecordId,
+      dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Get(':submissionId/attachments')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  listAttachments(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.listAttachments(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/attachments')
+  @HttpCode(HttpStatus.CREATED)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload assessment attachment (JPEG, PNG, WebP, PDF)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        category: { type: 'string' },
+        label: { type: 'string' },
+        sectionNumber: { type: 'integer' },
+      },
+      required: ['file', 'category'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', initialAssessmentUploadMulterOptionsFromRequest()))
+  uploadAttachment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: UploadInitialAssessmentAttachmentDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    if (!file) throw new BadRequestException('File is required');
+    return this.service.uploadAttachment(
+      user.id,
+      serviceUserId,
+      submissionId,
+      dto,
+      file,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Delete(':submissionId/attachments/:attachmentId')
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  deleteAttachment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('attachmentId') attachmentId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteAttachment(
+      user.id,
+      serviceUserId,
+      submissionId,
+      attachmentId,
+      getRequestAuditMeta(req),
+    );
   }
 }

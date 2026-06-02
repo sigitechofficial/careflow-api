@@ -5,6 +5,8 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# Accidental `tsc` output beside `.ts` sources (breaks Jest / ts-node resolution)
+src/**/*.js
 
 # ─── Environment (never commit) ───────────────────────────────
 .env
@@ -38,7 +40,7 @@ tmp/
 temp/
 
 # ─── Local file uploads (dev / runtime) ───────────────────────
-uploads/
+# uploads/
 
 # ─── Local archives / exports ────────────────────────────────
 *.zip

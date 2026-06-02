@@ -15,6 +15,7 @@ import { CreateInitialAssessmentSectionDto } from './dto/create-initial-assessme
 import { UpdateInitialAssessmentSectionDto } from './dto/update-initial-assessment-section.dto';
 import { CreateInitialAssessmentQuestionDto } from './dto/create-initial-assessment-question.dto';
 import { UpdateInitialAssessmentQuestionDto } from './dto/update-initial-assessment-question.dto';
+import { getInitialAssessmentAgencySettings } from '../initial-assessments/initial-assessment-agency-settings.util';
 
 @ApiTags('Initial Assessment Templates')
 @ApiBearerAuth()
@@ -35,6 +36,13 @@ export class InitialAssessmentTemplatesController {
   @ApiOperation({ summary: 'Get default initial assessment template with sections and questions' })
   getDefault() {
     return this.service.getDefaultTemplate();
+  }
+
+  @Get('agency-settings')
+  @AnyPermission('initial_assessment_templates.read', 'service_users.initial_assessment.read')
+  @ApiOperation({ summary: 'Agency thresholds and blocking rules for initial assessments' })
+  getAgencySettings() {
+    return { data: getInitialAssessmentAgencySettings() };
   }
 
   @Get(':id')

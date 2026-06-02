@@ -1,7 +1,9 @@
 
 # Employee Management — Phase Plan
 
-**Status:** IN PROGRESS — core employee lifecycle, compliance engine, temporary inspectors, and most staff UI are shipped; reporting and a few operational hooks remain.
+**Local setup:** [root README](../../../README.md) · **Tracker:** [PHASES.md](../../PHASES.md)
+
+**Status:** **MOSTLY COMPLETED** — core employee lifecycle, compliance engine, temporary inspectors, and staff UI are shipped; advanced reporting and daily compliance cron remain.
 
 ---
 

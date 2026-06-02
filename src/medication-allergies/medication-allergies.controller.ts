@@ -1,5 +1,12 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -7,9 +14,12 @@ import { AnyPermission } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { ApiMedicationStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { MedicationAllergiesService } from './medication-allergies.service';
 import { CreateMedicationAllergyDto } from './dto/create-medication-allergy.dto';
 import { UpdateMedicationAllergyDto } from './dto/update-medication-allergy.dto';
+import { ApiSimpleDeleteResultDto } from '../common/dto/api-error-response.dto';
+import { MedicationAllergyDto } from './dto/medication-allergy-response.dto';
 
 @ApiTags('Medication Allergies')
 @ApiBearerAuth()
@@ -21,6 +31,9 @@ export class MedicationAllergiesController {
   @Get()
   @AnyPermission('service_users.medications.allergies.read', 'service_users.medications.read', 'service_users.read')
   @ApiOperation({ summary: 'List medication-specific allergies' })
+  @ApiParam({ name: 'id', description: 'Service user UUID' })
+  @ApiOkResponse({ type: [MedicationAllergyDto] })
+  @ApiMedicationStandardResponses()
   list(@Param('id') serviceUserId: string) {
     return this.service.list(serviceUserId);
   }
@@ -28,6 +41,10 @@ export class MedicationAllergiesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @AnyPermission('service_users.medications.allergies.manage', 'service_users.update')
+  @ApiOperation({ summary: 'Create medication allergy' })
+  @ApiParam({ name: 'id', description: 'Service user UUID' })
+  @ApiCreatedResponse({ type: MedicationAllergyDto })
+  @ApiMedicationStandardResponses()
   create(
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,
@@ -39,6 +56,11 @@ export class MedicationAllergiesController {
 
   @Patch(':allergyId')
   @AnyPermission('service_users.medications.allergies.manage', 'service_users.update')
+  @ApiOperation({ summary: 'Update medication allergy' })
+  @ApiParam({ name: 'id', description: 'Service user UUID' })
+  @ApiParam({ name: 'allergyId', description: 'Allergy UUID' })
+  @ApiOkResponse({ type: MedicationAllergyDto })
+  @ApiMedicationStandardResponses()
   update(
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,
@@ -51,6 +73,11 @@ export class MedicationAllergiesController {
 
   @Delete(':allergyId')
   @AnyPermission('service_users.medications.allergies.manage', 'service_users.delete')
+  @ApiOperation({ summary: 'Delete medication allergy' })
+  @ApiParam({ name: 'id', description: 'Service user UUID' })
+  @ApiParam({ name: 'allergyId', description: 'Allergy UUID' })
+  @ApiOkResponse({ type: ApiSimpleDeleteResultDto })
+  @ApiMedicationStandardResponses()
   remove(
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,

@@ -9,6 +9,8 @@ import { LoginHistoryQueryDto } from './dto/login-history-query.dto';
 import { SecurityEventQueryDto } from './dto/security-event-query.dto';
 import { DataAccessLogQueryDto } from './dto/data-access-log-query.dto';
 import { ExportLogQueryDto } from './dto/export-log-query.dto';
+import { AUDIT_EVENT_TYPE_VALUES } from './enums/audit-event-type.enum';
+import { auditEventTypeLabel } from './audit-event-type.util';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -54,6 +56,18 @@ export class AuditLogsController {
   @ApiOperation({ summary: 'List export logs' })
   async exports(@Query() query: ExportLogQueryDto) {
     return this.auditLogsService.findExportLogs(query);
+  }
+
+  @Get('event-types')
+  @Permissions('audit_logs.read')
+  @ApiOperation({ summary: 'List filterable audit event type categories' })
+  listEventTypes() {
+    return {
+      data: AUDIT_EVENT_TYPE_VALUES.map((value) => ({
+        value,
+        label: auditEventTypeLabel(value),
+      })),
+    };
   }
 
   @Get(':id')

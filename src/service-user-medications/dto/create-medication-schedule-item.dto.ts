@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class CreateMedicationScheduleItemDto {
   @ApiProperty({ description: 'HH:mm 24h', example: '08:00' })
@@ -17,4 +17,22 @@ export class CreateMedicationScheduleItemDto {
   @IsOptional()
   @IsUUID()
   roundId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Dose for this administration time; falls back to medication dose when omitted',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  dose?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Weekdays when pattern is weekly (e.g. MONDAY, FRIDAY)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  daysOfWeek?: string[];
 }

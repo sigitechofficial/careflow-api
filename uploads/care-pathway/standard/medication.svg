@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Medication">
+  <rect width="72" height="72" rx="12" fill="#14b8a6"/>
+  <g><rect x="22" y="26" width="28" height="20" rx="10" fill="#fff"/><line x1="30" y1="36" x2="42" y2="36" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round"/></g>
+</svg>

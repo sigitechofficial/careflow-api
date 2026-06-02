@@ -45,10 +45,14 @@ jobs:
           test -f dist/src/main.js
           test -f prisma/schema.prisma
           test -f prisma/seed.ts
+          test -f prisma/seed-data/medication-status-codes.defaults.ts
+          test -f prisma/seed-data/medication-administration-rounds.defaults.ts
           test -d prisma/migrations
           test -f package.json
           test -f package-lock.json
           echo "Backend build output verified."
+          ! grep -q "from '../src/" prisma/seed.ts
+          echo "prisma/seed.ts does not import from src/ (deploy artifact has no src)."
 
       - name: Create release metadata
         run: |

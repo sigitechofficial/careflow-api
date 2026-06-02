@@ -125,6 +125,209 @@ enum InitialAssessmentQuestionType {
   @@schema("service_users")
 }
 
+enum InitialAssessmentActionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentActionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentActionType {
+  GP_REVIEW
+  SPECIALIST_NURSE
+  SALT_REFERRAL
+  DIETITIAN_REFERRAL
+  CONTINENCE_REFERRAL
+  EQUIPMENT_ORDER
+  FIRE_SAFETY_FOLLOW_UP
+  SAFEGUARDING_REFERRAL
+  MCA_ASSESSMENT
+  WOUND_ASSESSMENT
+  FALLS_ASSESSMENT
+  MEDICATION_VERIFICATION
+  EMAR_SETUP
+  MANAGER_REVIEW
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentAttachmentCategory {
+  ASSESSMENT_PICTURE
+  MCA_DOCUMENT
+  DISCHARGE_SUMMARY
+  MEDICATION_LIST
+  WOUND_PHOTO
+  EMERGENCY_DOCUMENT
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentRiskType {
+  FALLS
+  MEDICATION
+  SKIN_INTEGRITY
+  CHOKING
+  NUTRITION
+  HYDRATION
+  FIRE
+  HOME_ENVIRONMENT
+  MOVING_HANDLING
+  SAFEGUARDING
+  FINANCE
+  LONE_WORKER
+  INFECTION_CONTROL
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentRiskStatus {
+  OPEN
+  CONTROLLED
+  CLOSED
+
+  @@schema("service_users")
+}
+
+enum BodyMapRecordType {
+  INJURY
+  WOUND
+  PRESSURE
+  MEDICATION
+  PAIN
+  SKIN
+  DEVICE
+  SAFEGUARDING
+
+  @@schema("service_users")
+}
+
+enum BodyMapRecordStatus {
+  ACTIVE
+  REVIEW_DUE
+  MONITORING
+  RESOLVED
+  CLOSED
+  AWAITING_REVIEW
+
+  @@schema("service_users")
+}
+
+enum BodyMapRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("service_users")
+}
+
+enum BodyMapBodyView {
+  FRONT
+  BACK
+  LEFT
+  RIGHT
+  FACE
+  HAND
+  FOOT
+
+  @@schema("service_users")
+}
+
+enum BodyMapSide {
+  LEFT
+  RIGHT
+  CENTRE
+
+  @@schema("service_users")
+}
+
+enum BodyMapConditionStatus {
+  IMPROVING
+  UNCHANGED
+  WORSENING
+  RESOLVED
+
+  @@schema("service_users")
+}
+
+enum BodyMapAlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("service_users")
+}
+
+enum BodyMapAuditAction {
+  CREATE
+  UPDATE
+  CLOSE
+  ADD_MARKER
+  UPDATE_MARKER
+  ADD_REVIEW
+  SAFEGUARDING_CHECK
+  ADD_PHOTO
+  ADD_LINK
+  WOUND_ASSESSMENT
+  PRESSURE_ASSESSMENT
+  MEDICATION_SITE_CREATE
+  MEDICATION_SITE_UPDATE
+
+  @@schema("service_users")
+}
+
+enum BodyMapEmollientFireRisk {
+  NOT_APPLICABLE
+  NOT_ASSESSED
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("service_users")
+}
+
+enum BodyMapLinkedModule {
+  CARE_PLAN
+  MAR
+  INCIDENT
+  RISK_ASSESSMENT
+  REFERRAL
+  CARE_NOTE
+
+  @@schema("service_users")
+}
+
+enum BodyMapPhotoConsentStatus {
+  GRANTED
+  DENIED
+  PENDING
+
+  @@schema("service_users")
+}
+
 model User {
   id                String   @id @default(uuid()) @db.Uuid
   email             String   @unique
@@ -170,6 +373,11 @@ model User {
   notificationsCreated               Notification[]                    @relation("NotificationCreatedBy")
   initialAssessmentsSubmitted        InitialAssessmentSubmission[]     @relation("InitialAssessmentSubmittedBy")
   initialAssessmentsReviewed         InitialAssessmentSubmission[]     @relation("InitialAssessmentReviewedBy")
+  initialAssessmentsCreated          InitialAssessmentSubmission[]     @relation("InitialAssessmentCreatedBy")
+  initialAssessmentsUpdated          InitialAssessmentSubmission[]     @relation("InitialAssessmentUpdatedBy")
+  initialAssessmentActionsAssigned   InitialAssessmentAction[]         @relation("InitialAssessmentActionAssignee")
+  initialAssessmentAttachmentsUploaded InitialAssessmentAttachment[]   @relation("InitialAssessmentAttachmentUploadedBy")
+  initialAssessmentRisksResponsible  InitialAssessmentRiskRecord[]     @relation("InitialAssessmentRiskResponsible")
   scheduleAreasCreated               ScheduleArea[]                    @relation("ScheduleAreaCreatedBy")
   scheduleAreasUpdated               ScheduleArea[]                    @relation("ScheduleAreaUpdatedBy")
   scheduleAreasDeleted               ScheduleArea[]                    @relation("ScheduleAreaDeletedBy")
@@ -194,11 +402,32 @@ model User {
   callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
   observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
   serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]         @relation("FlashMessageCreatedBy")
+  bodyMapRecordsCreated                BodyMapRecord[]                   @relation("BodyMapRecordCreatedBy")
+  bodyMapRecordsUpdated                BodyMapRecord[]                   @relation("BodyMapRecordUpdatedBy")
+  bodyMapRecordsClosed                 BodyMapRecord[]                   @relation("BodyMapRecordClosedBy")
+  bodyMapMarkersCreated                BodyMapMarker[]                   @relation("BodyMapMarkerCreatedBy")
+  bodyMapReviewsAuthored               BodyMapReview[]                   @relation("BodyMapReviewedBy")
+  bodyMapAlertsDismissed               BodyMapAlert[]                    @relation("BodyMapAlertDismissedBy")
+  bodyMapAuditLogs                     BodyMapAuditLog[]                 @relation("BodyMapAuditActor")
+  bodyMapSafeguardingChecksCompleted   BodyMapSafeguardingCheck[]        @relation("BodyMapSafeguardingCompletedBy")
+  bodyMapPhotosUploaded                BodyMapPhoto[]                    @relation("BodyMapPhotoUploadedBy")
+  bodyMapLinksCreated                  BodyMapLink[]                     @relation("BodyMapLinkCreatedBy")
+  bodyMapWoundAssessmentsCreated       BodyMapWoundAssessment[]          @relation("BodyMapWoundAssessmentCreatedBy")
+  bodyMapPressureAssessmentsCreated    BodyMapPressureAssessment[]       @relation("BodyMapPressureAssessmentCreatedBy")
+  bodyMapMedicationSitesApplied        BodyMapMedicationSite[]           @relation("BodyMapMedicationSiteAppliedBy")
+  bodyMapMedicationSitesCreated        BodyMapMedicationSite[]           @relation("BodyMapMedicationSiteCreatedBy")
   serviceUserFlashMessagesUpdated      ServiceUserFlashMessage[]         @relation("FlashMessageUpdatedBy")
   serviceUserFlashMessagesCleared      ServiceUserFlashMessage[]         @relation("FlashMessageClearedBy")
   serviceUserFlashMessagesDeleted      ServiceUserFlashMessage[]         @relation("FlashMessageDeletedBy")
   companyProfilesUpdated               CompanyProfile[]                  @relation("CompanyProfileUpdatedBy")
   organisationGeneralSettingsUpdated OrganisationGeneralSettings[]     @relation("OrganisationGeneralSettingsUpdatedBy")
+  medicationSupplyDeliveriesReceived MedicationSupplyDelivery[]        @relation("MedSupplyReceivedBy")
+  medicationSupplyDeliveriesWitnessed  MedicationSupplyDelivery[]        @relation("MedSupplyWitnessBy")
+  medicationSupplyDeliveriesCreated    MedicationSupplyDelivery[]        @relation("MedSupplyDeliveryCreatedBy")
+  medicationEventsEntered            MedicationAdministrationEvent[] @relation("MedEventEnteredBy")
+  medicationEventsCreated            MedicationAdministrationEvent[] @relation("MedEventCreatedBy")
+  medicationEventsManagerReviewed    MedicationAdministrationEvent[] @relation("MedEventManagerReviewedBy")
+  medicationsStatusEnded             ServiceUserMedication[]         @relation("MedicationStatusEndedBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -1052,6 +1281,19 @@ enum AuditStatus {
   @@schema("audit")
 }
 
+/// Immutable category for audit log filtering (stored on each row).
+enum AuditEventType {
+  VIEW
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  SECURITY
+  SYSTEM
+
+  @@schema("audit")
+}
+
 enum SecuritySeverity {
   LOW
   MEDIUM
@@ -1080,10 +1322,11 @@ enum ExportType {
 }
 
 model AuditLog {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String?     @db.Uuid
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String?         @db.Uuid
   module      String
   action      String
+  eventType   AuditEventType?
   recordType  String?
   recordId    String?
   description String?
@@ -1092,14 +1335,15 @@ model AuditLog {
   metadata    Json?
   ipAddress   String?
   userAgent   String?
-  status      AuditStatus @default(SUCCESS)
-  createdAt   DateTime    @default(now())
+  status      AuditStatus     @default(SUCCESS)
+  createdAt   DateTime        @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([module])
   @@index([action])
+  @@index([eventType])
   @@index([recordType, recordId])
   @@index([createdAt])
   @@index([status])
@@ -1733,16 +1977,22 @@ model ServiceUser {
   medicationPacks              MedicationPack[]
   medicationAllergies          MedicationAllergy[]
   medications                ServiceUserMedication[]
-  medicationSupportProfile   MedicationSupportProfile?
+  medicationSupportProfiles  MedicationSupportProfile[]
   medicationAdministrationEvents MedicationAdministrationEvent[]
+  medicationSupplyDeliveries   MedicationSupplyDelivery[]
   medicationReviews          MedicationReview[]
   calendarEvents             ServiceUserCalendarEvent[]
   initialAssessmentSubmissions InitialAssessmentSubmission[]
+  initialAssessmentActions     InitialAssessmentAction[]
+  initialAssessmentAttachments InitialAssessmentAttachment[]
+  initialAssessmentRiskRecords InitialAssessmentRiskRecord[]
   scheduledJobs              ScheduledJob[]
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
   observations               ServiceUserObservation[]
   flashMessages              ServiceUserFlashMessage[]
+  bodyMapRecords             BodyMapRecord[]
+  bodyMapAlerts              BodyMapAlert[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -1753,6 +2003,291 @@ model ServiceUser {
   @@index([keyWorkerId])
   @@index([namedNurseId])
   @@index([lastName, firstName])
+  @@schema("service_users")
+}
+
+model BodyMapAlert {
+  id              String               @id @default(uuid()) @db.Uuid
+  serviceUserId   String               @db.Uuid
+  bodyMapRecordId String?              @db.Uuid
+  alertType       String               @db.VarChar(80)
+  severity        BodyMapAlertSeverity @default(MEDIUM)
+  message         String               @db.Text
+  dismissedAt     DateTime?
+  dismissedById   String?              @db.Uuid
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  serviceUser   ServiceUser    @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
+  bodyMapRecord BodyMapRecord? @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  dismissedBy   User?          @relation("BodyMapAlertDismissedBy", fields: [dismissedById], references: [id])
+
+  @@index([serviceUserId])
+  @@index([bodyMapRecordId])
+  @@index([dismissedAt])
+  @@index([severity])
+  @@schema("service_users")
+}
+
+model BodyMapRecord {
+  id                      String              @id @default(uuid()) @db.Uuid
+  serviceUserId           String              @db.Uuid
+  recordType              BodyMapRecordType
+  subType                 String?
+  title                   String?
+  description             String?             @db.Text
+  riskLevel               BodyMapRiskLevel    @default(MEDIUM)
+  status                  BodyMapRecordStatus @default(ACTIVE)
+  firstNoticedAt          DateTime?
+  noticedByType           String?
+  noticedByName           String?
+  causeSummary            String?             @db.Text
+  actionSummary           String?             @db.Text
+  observationDetails      Json?
+  reviewRequired          Boolean             @default(true)
+  nextReviewAt            DateTime?
+  safeguardingTriggered   Boolean             @default(false)
+  managerReviewRequired   Boolean             @default(false)
+  closedAt                DateTime?
+  closedById              String?             @db.Uuid
+  closureNote             String?             @db.Text
+  isArchived              Boolean             @default(false)
+  createdById             String?             @db.Uuid
+  updatedById             String?             @db.Uuid
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  serviceUser ServiceUser       @relation(fields: [serviceUserId], references: [id])
+  createdBy   User?             @relation("BodyMapRecordCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?             @relation("BodyMapRecordUpdatedBy", fields: [updatedById], references: [id])
+  closedBy    User?             @relation("BodyMapRecordClosedBy", fields: [closedById], references: [id])
+  markers            BodyMapMarker[]
+  reviews            BodyMapReview[]
+  auditLogs          BodyMapAuditLog[]
+  safeguardingCheck  BodyMapSafeguardingCheck?
+  photos             BodyMapPhoto[]
+  woundAssessment    BodyMapWoundAssessment?
+  pressureAssessment BodyMapPressureAssessment?
+  medicationSite     BodyMapMedicationSite?
+  links              BodyMapLink[]
+  alerts             BodyMapAlert[]
+
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([recordType])
+  @@index([nextReviewAt])
+  @@index([managerReviewRequired])
+  @@index([safeguardingTriggered])
+  @@index([createdAt])
+  @@schema("service_users")
+}
+
+model BodyMapSafeguardingCheck {
+  id                      String   @id @default(uuid()) @db.Uuid
+  bodyMapRecordId         String   @unique @db.Uuid
+  causeKnown              String?
+  explanationConsistent   String?
+  happenedBefore          String?
+  immediateRisk           String?
+  managerInformed         String?
+  incidentRequired        String?
+  referralRequired        String?
+  referralReason          String?  @db.Text
+  managerReviewRequired   Boolean  @default(true)
+  managerNotes            String?  @db.Text
+  checklistData           Json?
+  completedById           String?  @db.Uuid
+  completedAt             DateTime @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  completedBy   User?         @relation("BodyMapSafeguardingCompletedBy", fields: [completedById], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@schema("service_users")
+}
+
+model BodyMapPhoto {
+  id              String                    @id @default(uuid()) @db.Uuid
+  bodyMapRecordId String                    @db.Uuid
+  fileName        String
+  originalName    String?
+  fileUrl         String
+  fileSize        Int?
+  mimeType        String?
+  consentStatus   BodyMapPhotoConsentStatus
+  caption         String?
+  uploadedById    String?                   @db.Uuid
+  createdAt       DateTime                  @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  uploadedBy    User?         @relation("BodyMapPhotoUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@schema("service_users")
+}
+
+model BodyMapMarker {
+  id                String            @id @default(uuid()) @db.Uuid
+  bodyMapRecordId   String            @db.Uuid
+  bodyView          BodyMapBodyView
+  side              BodyMapSide?
+  bodyPart          String
+  specificLocation  String?
+  xCoordinate       Decimal           @db.Decimal(8, 5)
+  yCoordinate       Decimal           @db.Decimal(8, 5)
+  markerNumber      Int
+  markerType        BodyMapRecordType
+  riskLevel         BodyMapRiskLevel
+  status            BodyMapRecordStatus
+  isVisible         Boolean           @default(true)
+  createdById       String?           @db.Uuid
+  createdAt         DateTime          @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation("BodyMapMarkerCreatedBy", fields: [createdById], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@index([bodyView])
+  @@schema("service_users")
+}
+
+model BodyMapReview {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  bodyMapRecordId     String                  @db.Uuid
+  reviewedById        String?                 @db.Uuid
+  reviewedAt          DateTime                @default(now())
+  conditionStatus     BodyMapConditionStatus
+  reviewNote          String?                 @db.Text
+  actionTaken         String?                 @db.Text
+  escalationRequired  Boolean                 @default(false)
+  nextReviewAt        DateTime?
+  signature           String?
+  reviewDetails       Json?
+  createdAt           DateTime                @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  reviewedBy    User?         @relation("BodyMapReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@index([reviewedAt])
+  @@schema("service_users")
+}
+
+model BodyMapAuditLog {
+  id              String             @id @default(uuid()) @db.Uuid
+  bodyMapRecordId String             @db.Uuid
+  action          BodyMapAuditAction
+  actorUserId     String?            @db.Uuid
+  payload         Json?
+  createdAt       DateTime           @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  actor         User?         @relation("BodyMapAuditActor", fields: [actorUserId], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@index([createdAt])
+  @@schema("service_users")
+}
+
+model BodyMapWoundAssessment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  bodyMapRecordId     String    @unique @db.Uuid
+  woundType           String?
+  exudate             String?
+  dressing            String?
+  nextDressingChange  DateTime?
+  measurements        String?
+  infectionSigns      String?   @db.Text
+  professionalInvolvement String? @db.Text
+  assessmentData      Json?
+  createdById         String?   @db.Uuid
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation("BodyMapWoundAssessmentCreatedBy", fields: [createdById], references: [id])
+
+  @@schema("service_users")
+}
+
+model BodyMapPressureAssessment {
+  id                     String   @id @default(uuid()) @db.Uuid
+  bodyMapRecordId        String   @unique @db.Uuid
+  riskTool               String?
+  blanching              String?
+  skinIntact             String?
+  repositioningRecorded  String?
+  nonBlanching           String?
+  repositioningFrequency String?
+  pressureEquipment      String?
+  assessmentData         Json?
+  createdById            String?  @db.Uuid
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation("BodyMapPressureAssessmentCreatedBy", fields: [createdById], references: [id])
+
+  @@schema("service_users")
+}
+
+model BodyMapLink {
+  id              String              @id @default(uuid()) @db.Uuid
+  bodyMapRecordId String              @db.Uuid
+  linkedModule    BodyMapLinkedModule
+  linkedRecordId  String              @db.Uuid
+  label           String?
+  createdById     String?             @db.Uuid
+  createdAt       DateTime            @default(now())
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation("BodyMapLinkCreatedBy", fields: [createdById], references: [id])
+
+  @@index([bodyMapRecordId])
+  @@index([linkedModule, linkedRecordId])
+  @@schema("service_users")
+}
+
+model BodyMapMedicationSite {
+  id                           String                    @id @default(uuid()) @db.Uuid
+  bodyMapRecordId              String                    @unique @db.Uuid
+  serviceUserMedicationId      String                    @db.Uuid
+  lastAdministrationEventId    String?                   @db.Uuid
+  medicineNameSnapshot         String
+  strength                     String?
+  frequencyText                String?
+  appliedAt                    DateTime?
+  appliedById                  String?                   @db.Uuid
+  consentGiven                 Boolean?
+  marLinkedAt                  DateTime?
+  amountOrThickness            String?
+  reasonForApplication         String?                   @db.Text
+  fireRiskEmollient            BodyMapEmollientFireRisk?
+  outcomeNote                  String?                   @db.Text
+  oldPatchPresent              Boolean?
+  oldPatchRemoved              Boolean?
+  oldPatchRemovalAt            DateTime?
+  oldPatchBodyPart             String?
+  oldPatchNotes                String?                   @db.Text
+  disposalRecorded             Boolean?
+  nextChangeDue                DateTime?
+  siteRotationChecked          Boolean?
+  secondStaffCheck             Boolean?
+  siteRotationNotes            String?                   @db.Text
+  assessmentData               Json?
+  createdById                  String?                   @db.Uuid
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+
+  bodyMapRecord              BodyMapRecord                  @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+  serviceUserMedication      ServiceUserMedication          @relation(fields: [serviceUserMedicationId], references: [id])
+  lastAdministrationEvent    MedicationAdministrationEvent? @relation(fields: [lastAdministrationEventId], references: [id])
+  appliedBy                  User?                          @relation("BodyMapMedicationSiteAppliedBy", fields: [appliedById], references: [id])
+  createdBy                  User?                          @relation("BodyMapMedicationSiteCreatedBy", fields: [createdById], references: [id])
+
+  @@index([serviceUserMedicationId])
+  @@index([lastAdministrationEventId])
+  @@index([nextChangeDue])
   @@schema("service_users")
 }
 
@@ -1879,6 +2414,8 @@ model InitialAssessmentQuestion {
 
   section InitialAssessmentSection @relation(fields: [sectionId], references: [id])
   answers InitialAssessmentAnswer[]
+  sourceActions InitialAssessmentAction[]
+  sourceRiskRecords InitialAssessmentRiskRecord[]
 
   @@index([sectionId])
   @@index([deletedAt])
@@ -1898,6 +2435,7 @@ model InitialAssessmentSubmission {
   reviewedById   String?                @db.Uuid
   reviewNotes    String?                @db.Text
   overallNotes   String?                @db.Text
+  metadata       Json                   @default("{}")
   isActive       Boolean                @default(true)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
@@ -1910,7 +2448,12 @@ model InitialAssessmentSubmission {
   template     InitialAssessmentTemplate @relation(fields: [templateId], references: [id])
   submittedBy  User?                     @relation("InitialAssessmentSubmittedBy", fields: [submittedById], references: [id])
   reviewedBy   User?                     @relation("InitialAssessmentReviewedBy", fields: [reviewedById], references: [id])
+  createdBy    User?                     @relation("InitialAssessmentCreatedBy", fields: [createdById], references: [id])
+  updatedBy    User?                     @relation("InitialAssessmentUpdatedBy", fields: [updatedById], references: [id])
   answers      InitialAssessmentAnswer[]
+  actions      InitialAssessmentAction[]
+  attachments  InitialAssessmentAttachment[]
+  riskRecords  InitialAssessmentRiskRecord[]
 
   @@index([serviceUserId])
   @@index([templateId])
@@ -1942,6 +2485,100 @@ model InitialAssessmentAnswer {
   @@unique([submissionId, questionId])
   @@index([submissionId])
   @@index([questionId])
+  @@schema("service_users")
+}
+
+model InitialAssessmentAction {
+  id                  String                          @id @default(uuid()) @db.Uuid
+  submissionId        String                          @db.Uuid
+  serviceUserId       String                          @db.Uuid
+  title               String
+  actionType          InitialAssessmentActionType
+  priority            InitialAssessmentActionPriority @default(MEDIUM)
+  status              InitialAssessmentActionStatus   @default(OPEN)
+  dueDate             DateTime?
+  notes               String?                         @db.Text
+  sourceSectionNumber Int?
+  sourceQuestionId    String?                         @db.Uuid
+  sourceQuestionText  String?
+  assignedToId        String?                         @db.Uuid
+  autoGenerated       Boolean                         @default(false)
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  createdById         String?                         @db.Uuid
+  updatedById         String?                         @db.Uuid
+
+  submission     InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  serviceUser    ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  sourceQuestion InitialAssessmentQuestion?  @relation(fields: [sourceQuestionId], references: [id])
+  assignedTo     User?                       @relation("InitialAssessmentActionAssignee", fields: [assignedToId], references: [id])
+
+  @@index([submissionId])
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([dueDate])
+  @@schema("service_users")
+}
+
+model InitialAssessmentAttachment {
+  id            String                            @id @default(uuid()) @db.Uuid
+  submissionId  String                            @db.Uuid
+  serviceUserId String                            @db.Uuid
+  category      InitialAssessmentAttachmentCategory
+  label         String?
+  sectionNumber Int?
+  fileName      String
+  originalName  String
+  fileUrl       String
+  mimeType      String
+  fileSize      Int
+  uploadedById  String                            @db.Uuid
+  createdAt     DateTime                          @default(now())
+  updatedAt     DateTime                          @updatedAt
+  deletedAt     DateTime?
+
+  submission  InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  serviceUser ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  uploadedBy  User                        @relation("InitialAssessmentAttachmentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([submissionId])
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model InitialAssessmentRiskRecord {
+  id                  String                      @id @default(uuid()) @db.Uuid
+  submissionId        String                      @db.Uuid
+  serviceUserId       String                      @db.Uuid
+  riskType            InitialAssessmentRiskType
+  description         String                      @db.Text
+  likelihood          InitialAssessmentRiskLevel
+  severity            InitialAssessmentRiskLevel
+  riskLevel           InitialAssessmentRiskLevel
+  controlMeasures     String?                     @db.Text
+  residualRisk        InitialAssessmentRiskLevel?
+  reviewDate          DateTime?
+  status              InitialAssessmentRiskStatus @default(OPEN)
+  sourceSectionNumber Int?
+  sourceQuestionId    String?                     @db.Uuid
+  sourceQuestionText  String?
+  responsiblePersonId String?                     @db.Uuid
+  autoGenerated       Boolean                     @default(false)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  createdById         String?                     @db.Uuid
+  updatedById         String?                     @db.Uuid
+
+  submission        InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  serviceUser       ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  sourceQuestion    InitialAssessmentQuestion?  @relation(fields: [sourceQuestionId], references: [id])
+  responsiblePerson User?                       @relation("InitialAssessmentRiskResponsible", fields: [responsiblePersonId], references: [id])
+
+  @@index([submissionId])
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([riskLevel])
   @@schema("service_users")
 }
 
@@ -2114,6 +2751,27 @@ model AllergyCatalog {
   serviceUserAllergies ServiceUserAllergy[]
 
   @@index([isActive])
+  @@schema("service_users")
+}
+
+/// Shared catalogue for body map record types / sub-types and initial assessment wound type.
+model BodyMapRecordTypeCatalog {
+  id                         String   @id @default(uuid()) @db.Uuid
+  code                       String   @unique
+  name                       String
+  parentId                   String?  @db.Uuid
+  sortOrder                  Int      @default(0)
+  isActive                   Boolean  @default(true)
+  initialAssessmentWoundType Boolean  @default(false)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  parent   BodyMapRecordTypeCatalog?  @relation("BodyMapRecordTypeHierarchy", fields: [parentId], references: [id])
+  children BodyMapRecordTypeCatalog[] @relation("BodyMapRecordTypeHierarchy")
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([initialAssessmentWoundType])
   @@schema("service_users")
 }
 
@@ -2495,6 +3153,63 @@ enum MedicationRecordStatus {
   @@schema("service_users")
 }
 
+enum MedicationStatusEndReason {
+  MANUAL
+  END_DATE
+
+  @@schema("service_users")
+}
+
+enum MedicationPackType {
+  BLISTER
+  DOSSETTE
+  NOMAD
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum MedicationPackStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+  ENDED
+
+  @@schema("service_users")
+}
+
+enum MedicationPackMemberStatus {
+  ACTIVE
+  ENDED
+
+  @@schema("service_users")
+}
+
+enum MedicationPackDeliveryStatus {
+  PENDING
+  RECONCILED
+  FLAGGED
+  VERIFIED
+
+  @@schema("service_users")
+}
+
+enum MedicationPackCondition {
+  INTACT
+  DAMAGED
+
+  @@schema("service_users")
+}
+
+enum MedicationPackDeliveryLineState {
+  PENDING
+  MATCHED
+  MISSING
+  DISCREPANCY
+
+  @@schema("service_users")
+}
+
 enum MedicationAdministrationStatus {
   GIVEN
   NOT_GIVEN
@@ -2503,6 +3218,26 @@ enum MedicationAdministrationStatus {
   HELD
   CANCELLED
   PENDING
+
+  @@schema("service_users")
+}
+
+enum MedicationStatusCodeCategory {
+  SUCCESS
+  EXCEPTION
+  WARNING
+  INFORMATION
+  NEUTRAL
+  CRITICAL
+  PENDING
+
+  @@schema("service_users")
+}
+
+enum MedicationStatusCodeFieldRequirement {
+  NOT_REQUIRED
+  OPTIONAL
+  REQUIRED
 
   @@schema("service_users")
 }
@@ -2517,14 +3252,15 @@ enum MedicationStockMovementType {
 }
 
 model MedicationType {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String
-  code        String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String
+  code                 String    @unique
+  description          String?
+  requiresBodyMapSite  Boolean   @default(false)
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
 
   medications ServiceUserMedication[]
 
@@ -2534,14 +3270,15 @@ model MedicationType {
 }
 
 model MedicationRoute {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String
-  code        String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id                   String    @id @default(uuid()) @db.Uuid
+  name                 String
+  code                 String    @unique
+  description          String?
+  requiresBodyMapSite  Boolean   @default(false)
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
 
   medications ServiceUserMedication[]
   administrationEvents MedicationAdministrationEvent[]
@@ -2568,6 +3305,14 @@ model MedicationCategory {
   @@schema("service_users")
 }
 
+enum MedicationSchedulePattern {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("service_users")
+}
+
 model MedicationFrequency {
   id            String    @id @default(uuid()) @db.Uuid
   name          String
@@ -2589,12 +3334,14 @@ model MedicationFrequency {
 }
 
 model MedicationAdministrationRound {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String
-  code      String    @unique
-  time      String    @db.VarChar(5)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  code        String    @unique
+  time        String    @db.VarChar(5)
+  windowStart String?   @db.VarChar(5)
+  windowEnd   String?   @db.VarChar(5)
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -2621,6 +3368,32 @@ model MedicationNotGivenReason {
 
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("service_users")
+}
+
+model MedicationStatusCode {
+  id                       String                               @id @default(uuid()) @db.Uuid
+  code                     String                               @unique @db.VarChar(16)
+  label                    String
+  color                    String                               @db.VarChar(7)
+  textColor                String                               @db.VarChar(7)
+  category                 MedicationStatusCodeCategory
+  /// Coarse Prisma enum derived from this code on write (reporting / legacy APIs).
+  administrationStatus     MedicationAdministrationStatus
+  reasonRequirement        MedicationStatusCodeFieldRequirement @default(NOT_REQUIRED)
+  managerReviewRequirement MedicationStatusCodeFieldRequirement @default(NOT_REQUIRED)
+  sortOrder                Int                                  @default(0)
+  isActive                 Boolean                              @default(true)
+  createdAt                DateTime                             @default(now())
+  updatedAt                DateTime                             @updatedAt
+  deletedAt                DateTime?
+
+  administrationEvents MedicationAdministrationEvent[]
+
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([administrationStatus])
   @@schema("service_users")
 }
 
@@ -2656,6 +3429,33 @@ model MedicationPack {
   startDate     DateTime?
   endDate       DateTime?
   isActive      Boolean   @default(true)
+
+  // Track E — pack cycle lifecycle (medication.md §35)
+  cycleNumber       Int                  @default(1)
+  packType          MedicationPackType   @default(BLISTER)
+  status            MedicationPackStatus @default(DRAFT)
+  roundLabel        String?
+  pharmacyName      String?
+  pharmacyPhone     String?
+  gpName            String?
+  gpSurgery         String?
+  nhsNumber         String?
+  publishedAt       DateTime?
+  publishedById     String?              @db.Uuid
+  supersededAt      DateTime?
+  supersededById    String?              @db.Uuid
+  supersededByPackId String?             @db.Uuid
+  endedAt           DateTime?
+  endedById         String?              @db.Uuid
+
+  cycleDurationDays      Int?
+  reviewDate             DateTime?
+  prescriptionChecked    Boolean   @default(false)
+  prescriptionCheckedBy  String?
+  prescriptionCheckedAt  DateTime?
+  generateAheadDays      Int?
+  adminRules             Json?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -2663,12 +3463,167 @@ model MedicationPack {
   updatedById   String?   @db.Uuid
   deletedById   String?   @db.Uuid
 
-  serviceUser ServiceUser             @relation(fields: [serviceUserId], references: [id])
-  items       MedicationPackItem[]
-  medications ServiceUserMedication[]
+  serviceUser      ServiceUser                       @relation(fields: [serviceUserId], references: [id])
+  items            MedicationPackItem[]
+  medications      ServiceUserMedication[]
+  members          MedicationPackMember[]
+  contentsSnapshots MedicationPackContentsSnapshot[]
+  deliveries       MedicationPackDelivery[]
+  compartments     MedicationPackCompartment[]
+  supersededByPack MedicationPack?                   @relation("MedicationPackSupersession", fields: [supersededByPackId], references: [id])
+  supersedes       MedicationPack[]                  @relation("MedicationPackSupersession")
 
   @@index([serviceUserId])
   @@index([deletedAt])
+  @@index([status])
+  @@schema("service_users")
+}
+
+/// Canonical pack membership — authoritative link between a pack cycle and a
+/// service user medication (medication.md §35.2). ServiceUserMedication.medicationPackId
+/// is a denormalized cache synced from the ACTIVE member row.
+model MedicationPackMember {
+  id                      String                     @id @default(uuid()) @db.Uuid
+  medicationPackId        String                     @db.Uuid
+  serviceUserMedicationId String                     @db.Uuid
+  status                  MedicationPackMemberStatus @default(ACTIVE)
+  linkedAt                DateTime                   @default(now())
+  linkedById              String?                    @db.Uuid
+  endedAt                 DateTime?
+  endedById               String?                    @db.Uuid
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  deletedAt               DateTime?
+
+  medicationPack        MedicationPack        @relation(fields: [medicationPackId], references: [id])
+  serviceUserMedication ServiceUserMedication @relation(fields: [serviceUserMedicationId], references: [id])
+
+  @@unique([medicationPackId, serviceUserMedicationId])
+  @@index([medicationPackId])
+  @@index([serviceUserMedicationId])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Immutable contents record captured at publish (CQC / MCA cross-reference §35.3).
+model MedicationPackContentsSnapshot {
+  id               String   @id @default(uuid()) @db.Uuid
+  medicationPackId String   @db.Uuid
+  cycleNumber      Int
+  packName         String
+  packType         MedicationPackType
+  pharmacyName     String?
+  pharmacyPhone    String?
+  gpName           String?
+  gpSurgery        String?
+  nhsNumber        String?
+  startDate        DateTime?
+  endDate          DateTime?
+  publishedAt      DateTime @default(now())
+  publishedById    String?  @db.Uuid
+  createdAt        DateTime @default(now())
+
+  medicationPack MedicationPack                       @relation(fields: [medicationPackId], references: [id])
+  lines          MedicationPackContentsSnapshotLine[]
+
+  @@index([medicationPackId])
+  @@schema("service_users")
+}
+
+model MedicationPackContentsSnapshotLine {
+  id                      String  @id @default(uuid()) @db.Uuid
+  snapshotId              String  @db.Uuid
+  serviceUserMedicationId String? @db.Uuid
+  medicationName          String
+  strength                String?
+  dose                    String?
+  routeName               String?
+  instructions            String?
+  roundLabels             String?
+  tabletDescription       String?
+  sortOrder               Int     @default(0)
+  createdAt               DateTime @default(now())
+
+  snapshot MedicationPackContentsSnapshot @relation(fields: [snapshotId], references: [id])
+
+  @@index([snapshotId])
+  @@schema("service_users")
+}
+
+/// Flow 2 — a physical pack arriving from the pharmacy for a cycle, reconciled
+/// against the published contents snapshot (medication.md §35.4, CQC evidence).
+model MedicationPackDelivery {
+  id                String                       @id @default(uuid()) @db.Uuid
+  medicationPackId  String                       @db.Uuid
+  contentsSnapshotId String?                     @db.Uuid
+  cycleNumber       Int
+  status            MedicationPackDeliveryStatus @default(PENDING)
+  receivedAt        DateTime
+  receivedById      String?                      @db.Uuid
+  deliveredBy       String?
+  batchReference    String?
+  condition         MedicationPackCondition      @default(INTACT)
+  conditionNotes    String?
+  countersignedAt   DateTime?
+  countersignedById String?                      @db.Uuid
+  countersignNotes  String?
+  isActive          Boolean                      @default(true)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  deletedAt         DateTime?
+  createdById       String?                      @db.Uuid
+
+  medicationPack MedicationPack                @relation(fields: [medicationPackId], references: [id])
+  lines          MedicationPackDeliveryLine[]
+
+  @@index([medicationPackId])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Flow 1 Step 3 — a time-slot compartment in the physical tray (medication.md §35.5).
+model MedicationPackCompartment {
+  id               String    @id @default(uuid()) @db.Uuid
+  medicationPackId String    @db.Uuid
+  label            String
+  dueTime          String    @db.VarChar(5)
+  windowStart      String?   @db.VarChar(5)
+  windowEnd        String?   @db.VarChar(5)
+  lateThresholdMinutes Int   @default(0)
+  witnessRequired  Boolean   @default(false)
+  sortOrder        Int       @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  medicationPack MedicationPack @relation(fields: [medicationPackId], references: [id])
+
+  @@index([medicationPackId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model MedicationPackDeliveryLine {
+  id                      String                          @id @default(uuid()) @db.Uuid
+  deliveryId              String                          @db.Uuid
+  serviceUserMedicationId String?                         @db.Uuid
+  medicationName          String
+  strength                String?
+  dose                    String?
+  expectedOnSnapshot      Boolean                         @default(true)
+  state                   MedicationPackDeliveryLineState @default(PENDING)
+  confirmedPresent        Boolean                         @default(false)
+  notes                   String?
+  sortOrder               Int                             @default(0)
+  createdAt               DateTime                        @default(now())
+  updatedAt               DateTime                        @updatedAt
+
+  delivery MedicationPackDelivery @relation(fields: [deliveryId], references: [id])
+
+  @@index([deliveryId])
   @@schema("service_users")
 }
 
@@ -2707,11 +3662,18 @@ model ServiceUserMedication {
   categoryId               String?                @db.Uuid
   frequencyId              String?                @db.Uuid
   frequencyText            String?
+  schedulePattern          MedicationSchedulePattern?
+  frequencyIntervalDays    Int                    @default(1)
+  monthlyDayOfMonth        Int?
+  monthlyAnchorToStartDate Boolean                @default(true)
   instructions             String?
   notes                    String?
   isControlledMedication   Boolean                @default(false)
   medicationKind           MedicationKind
   status                   MedicationRecordStatus @default(ACTIVE)
+  statusEndReason          MedicationStatusEndReason?
+  statusEndedAt            DateTime?
+  statusEndedById          String?                @db.Uuid
   isActive                 Boolean                @default(true)
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
@@ -2721,6 +3683,7 @@ model ServiceUserMedication {
   deletedById              String?                @db.Uuid
 
   serviceUser    ServiceUser            @relation(fields: [serviceUserId], references: [id])
+  statusEndedBy  User?                  @relation("MedicationStatusEndedBy", fields: [statusEndedById], references: [id])
   medicationPack MedicationPack?        @relation(fields: [medicationPackId], references: [id])
   medicationType MedicationType?        @relation(fields: [medicationTypeId], references: [id])
   route          MedicationRoute?       @relation(fields: [routeId], references: [id])
@@ -2729,6 +3692,10 @@ model ServiceUserMedication {
   schedules      MedicationSchedule[]
   events         MedicationAdministrationEvent[]
   stockRecords   MedicationStockRecord[]
+  supplyProfile  MedicationSupplyProfile?
+  supplyDeliveries MedicationSupplyDelivery[]
+  packMemberships       MedicationPackMember[]
+  bodyMapMedicationSites BodyMapMedicationSite[]
 
   @@index([serviceUserId])
   @@index([medicationPackId])
@@ -2785,6 +3752,7 @@ model MedicationSchedule {
   serviceUserMedicationId String @db.Uuid
   roundId                String?   @db.Uuid
   dueTime                String?   @db.VarChar(5)
+  dose                   String?   @db.VarChar(100)
   dueVisitName           String?
   startDate              DateTime?
   endDate                DateTime?
@@ -2817,12 +3785,24 @@ model MedicationAdministrationEvent {
   medicationScheduleId    String?                       @db.Uuid
   roundId                 String?                       @db.Uuid
   administeredById        String?                       @db.Uuid
+  enteredById             String?                       @db.Uuid
   scheduledDateTime       DateTime?
   actualDateTime          DateTime?
   status                  MedicationAdministrationStatus
+  statusCode              String?                       @db.VarChar(20)
+  statusCodeId            String?                       @db.Uuid
   notGivenReasonId        String?                       @db.Uuid
   reason                  String?
   notes                   String?
+  correctionReason        String?
+  correctionNotes         String?
+  medicationNameSnapshot  String?
+  doseSnapshot            String?
+  strengthSnapshot        String?
+  routeNameSnapshot       String?
+  managerReviewedAt       DateTime?
+  managerReviewedById     String?                       @db.Uuid
+  managerReviewNotes      String?
   doseGiven               String?
   routeId                 String?                       @db.Uuid
   visitId                 String?                       @db.Uuid
@@ -2842,25 +3822,103 @@ model MedicationAdministrationEvent {
   schedule              MedicationSchedule?          @relation(fields: [medicationScheduleId], references: [id])
   round                 MedicationAdministrationRound? @relation(fields: [roundId], references: [id])
   administeredBy        Employee?                    @relation("MedAdministeredBy", fields: [administeredById], references: [id])
+  enteredBy             User?                        @relation("MedEventEnteredBy", fields: [enteredById], references: [id])
+  createdBy             User?                        @relation("MedEventCreatedBy", fields: [createdById], references: [id])
+  managerReviewedBy     User?                        @relation("MedEventManagerReviewedBy", fields: [managerReviewedById], references: [id])
   route                   MedicationRoute?           @relation(fields: [routeId], references: [id])
   notGivenReason          MedicationNotGivenReason?  @relation(fields: [notGivenReasonId], references: [id])
+  statusCodeRef           MedicationStatusCode?      @relation(fields: [statusCodeId], references: [id])
+  bodyMapMedicationSites  BodyMapMedicationSite[]
 
   @@index([serviceUserId])
+  @@index([managerReviewedAt])
   @@index([serviceUserMedicationId])
   @@index([scheduledDateTime])
   @@index([actualDateTime])
   @@index([status])
+  @@index([statusCode])
+  @@index([statusCodeId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum MedicationSupplyModel {
+  BLISTER_CYCLE
+  BOTTLE_28DAY
+  PRESCRIPTION_QTY
+
+  @@schema("service_users")
+}
+
+model MedicationSupplyProfile {
+  id                      String                @id @default(uuid()) @db.Uuid
+  serviceUserMedicationId String                @unique @db.Uuid
+  supplyModel             MedicationSupplyModel
+  cycleDays               Int?                  @default(28)
+  bottleDiscardDays       Int?                  @default(28)
+  defaultQty              Int?
+  qtyUnit                 String?               @db.VarChar(20)
+  pharmacyName            String?
+  notes                   String?
+  isActive                Boolean               @default(true)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  deletedAt               DateTime?
+  createdById             String?               @db.Uuid
+  updatedById             String?               @db.Uuid
+
+  serviceUserMedication ServiceUserMedication   @relation(fields: [serviceUserMedicationId], references: [id])
+  deliveries            MedicationSupplyDelivery[]
+
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model MedicationSupplyDelivery {
+  id                      String    @id @default(uuid()) @db.Uuid
+  serviceUserId           String    @db.Uuid
+  serviceUserMedicationId String    @db.Uuid
+  supplyProfileId         String?   @db.Uuid
+  deliveredAt             DateTime  @db.Date
+  cycleEndDate            DateTime? @db.Date
+  openedAt                DateTime? @db.Date
+  expiresAt               DateTime? @db.Date
+  runsOutDate             DateTime? @db.Date
+  quantity                Int?
+  pharmacyName            String?
+  receivedById            String?   @db.Uuid
+  witnessById             String?   @db.Uuid
+  notes                   String?
+  source                  String?   @db.VarChar(32)
+  isActive                Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime?
+  createdById             String?   @db.Uuid
+  updatedById             String?   @db.Uuid
+
+  serviceUser           ServiceUser             @relation(fields: [serviceUserId], references: [id])
+  serviceUserMedication ServiceUserMedication   @relation(fields: [serviceUserMedicationId], references: [id])
+  supplyProfile         MedicationSupplyProfile? @relation(fields: [supplyProfileId], references: [id])
+  receivedBy            User?                   @relation("MedSupplyReceivedBy", fields: [receivedById], references: [id])
+  witnessBy             User?                   @relation("MedSupplyWitnessBy", fields: [witnessById], references: [id])
+  createdBy             User?                   @relation("MedSupplyDeliveryCreatedBy", fields: [createdById], references: [id])
+
+  @@index([serviceUserId])
+  @@index([serviceUserMedicationId])
+  @@index([deliveredAt])
   @@index([deletedAt])
   @@schema("service_users")
 }
 
 model MedicationSupportProfile {
   id                           String    @id @default(uuid()) @db.Uuid
-  serviceUserId                String    @unique @db.Uuid
+  serviceUserId                String    @db.Uuid
   selfAdministersMedication    Boolean   @default(false)
   requiresPrompting            Boolean   @default(false)
   requiresSupervision          Boolean   @default(false)
   requiresCarerAdministration  Boolean   @default(false)
+  familyMemberOrCarerSupportsMedication Boolean @default(false)
   notes                        String?
   isActive                     Boolean   @default(true)
   createdAt                    DateTime  @default(now())
@@ -2872,6 +3930,8 @@ model MedicationSupportProfile {
 
   serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
 
+  // Partial unique (serviceUserId) WHERE deletedAt IS NULL — see migration 20260528190000
+  @@index([serviceUserId])
   @@index([deletedAt])
   @@schema("service_users")
 }

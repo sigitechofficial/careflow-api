@@ -62,6 +62,9 @@ import { MedicationAdministrationModule } from './medication-administration/medi
 import { MedicationChartsModule } from './medication-charts/medication-charts.module';
 import { MedicationReportsModule } from './medication-reports/medication-reports.module';
 import { MedicationReviewsModule } from './medication-reviews/medication-reviews.module';
+import { MedicationStatusCodesModule } from './medication-status-codes/medication-status-codes.module';
+import { MedicationAdministrationRoundsModule } from './medication-administration-rounds/medication-administration-rounds.module';
+import { MedicationSupplyModule } from './medication-supply/medication-supply.module';
 import { CalendarEventTypesModule } from './calendar-event-types/calendar-event-types.module';
 import { ServiceUserCalendarModule } from './service-user-calendar/service-user-calendar.module';
 import { InitialAssessmentTemplatesModule } from './initial-assessment-templates/initial-assessment-templates.module';
@@ -88,6 +91,7 @@ import { CarePlanTextModule } from './care-plan-text/care-plan-text.module';
 import { PathwayChecklistsModule } from './pathway-checklists/pathway-checklists.module';
 import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
+import { BodyMapModule } from './body-map/body-map.module';
 
 @Module({
   imports: [
@@ -173,6 +177,9 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
     MedicationChartsModule,
     MedicationReportsModule,
     MedicationReviewsModule,
+    MedicationStatusCodesModule,
+    MedicationAdministrationRoundsModule,
+    MedicationSupplyModule,
     ScheduleAreasModule,
     SchedulesModule,
     ScheduledJobsModule,
@@ -195,6 +202,7 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
     PathwayChecklistsModule,
     PathwayActionsModule,
     PictureGalleryModule,
+    BodyMapModule,
   ],
   providers: [
     {

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Social Activities">
+  <rect width="72" height="72" rx="12" fill="#6366f1"/>
+  <g><circle cx="28" cy="32" r="7" fill="#fff"/><circle cx="44" cy="32" r="7" fill="#fff"/><path d="M18 54c6-8 14-12 18-12s12 4 18 12" fill="#fff"/></g>
+</svg>

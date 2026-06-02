@@ -25,10 +25,17 @@ export class CreateMedicationAdministrationEventDto {
   @IsUUID()
   roundId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Employee who administered (carer)' })
   @IsOptional()
   @IsUUID()
   administeredById?: string;
+
+  @ApiPropertyOptional({
+    description: 'When true with administeredById, current user is stored as enteredById',
+  })
+  @IsOptional()
+  @IsBoolean()
+  recordOnBehalfOfCarer?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -40,9 +47,19 @@ export class CreateMedicationAdministrationEventDto {
   @IsDateString()
   actualDateTime?: string;
 
-  @ApiProperty({ enum: MedicationAdministrationStatus })
+  @ApiPropertyOptional({
+    description: 'MAR short code (G, R, N, …). When set, maps to status enum server-side.',
+    example: 'G',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  statusCode?: string;
+
+  @ApiPropertyOptional({ enum: MedicationAdministrationStatus })
+  @IsOptional()
   @IsEnum(MedicationAdministrationStatus)
-  status!: MedicationAdministrationStatus;
+  status?: MedicationAdministrationStatus;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -9,6 +9,11 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { assertServiceUserExists } from '../medications/medication.asserts';
 import { CreateMedicationScheduleDto } from './dto/create-medication-schedule.dto';
 import { UpdateMedicationScheduleDto } from './dto/update-medication-schedule.dto';
+import { MedicationSchedulePreviewDto } from './dto/medication-schedule-preview.dto';
+import {
+  computeSchedulePreview,
+  defaultPreviewEndDate,
+} from './medication-schedule-preview.util';
 
 const scheduleInclude = {
   round: true,
@@ -37,6 +42,43 @@ export class MedicationSchedulesService {
     if (start && end && new Date(end).getTime() < new Date(start).getTime()) {
       throw new BadRequestException('endDate must be on or after startDate');
     }
+  }
+
+  async preview(serviceUserId: string, dto: MedicationSchedulePreviewDto) {
+    await assertServiceUserExists(this.prisma, serviceUserId);
+    const endDate = dto.endDate ?? defaultPreviewEndDate(dto.startDate, dto.previewDays ?? 30);
+    const roundIds = [
+      ...new Set(dto.schedules.map(s => s.roundId).filter((id): id is string => Boolean(id))),
+    ];
+    const rounds =
+      roundIds.length > 0
+        ? await this.prisma.medicationAdministrationRound.findMany({
+            where: { id: { in: roundIds }, deletedAt: null },
+            select: { id: true, name: true, time: true },
+          })
+        : [];
+    const roundById = new Map(rounds.map(r => [r.id, r]));
+    const schedules = dto.schedules.map(s => {
+      const round = s.roundId ? roundById.get(s.roundId) : undefined;
+      return {
+        dueTime: s.dueTime,
+        dueVisitName: s.dueVisitName,
+        roundId: s.roundId,
+        roundName: round?.name ?? null,
+        daysOfWeek: s.daysOfWeek ?? [],
+      };
+    });
+    const data = computeSchedulePreview({
+      startDate: dto.startDate,
+      endDate,
+      medicationKind: dto.medicationKind ?? MedicationKind.REGULAR,
+      schedulePattern: dto.schedulePattern,
+      frequencyIntervalDays: dto.frequencyIntervalDays,
+      monthlyDayOfMonth: dto.monthlyDayOfMonth,
+      monthlyAnchorToStartDate: dto.monthlyAnchorToStartDate,
+      schedules,
+    });
+    return { data };
   }
 
   async list(serviceUserId: string, medicationId: string) {
