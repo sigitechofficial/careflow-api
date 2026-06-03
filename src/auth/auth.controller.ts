@@ -16,6 +16,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TemporaryInspectorLoginDto } from './dto/temporary-inspector-login.dto';
 
+
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
