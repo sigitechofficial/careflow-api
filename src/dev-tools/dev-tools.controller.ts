@@ -13,7 +13,7 @@ import { DevToolsService } from './dev-tools.service';
 export class DevToolsController {
   constructor(private readonly devTools: DevToolsService) {}
 
-  /** Runs Playwright IA autofill on the API host (requires ENABLE_IA_PLAYWRIGHT on production). */
+  /** Runs Playwright IA autofill on the API host (requires Playwright + care-admin on the server). */
   @Post('run-ia-playwright')
   @Permissions('service_users.initial_assessment.update')
   async runIaPlaywright(@Body() body: RunIaPlaywrightDto) {

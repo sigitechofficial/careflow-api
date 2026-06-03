@@ -94,13 +94,6 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 
-const iaPlaywrightAutofillEnabled =
-  process.env.NODE_ENV !== 'production' ||
-  process.env.ENABLE_IA_PLAYWRIGHT === 'true' ||
-  process.env.ENABLE_IA_PLAYWRIGHT === '1';
-
-const devImports = iaPlaywrightAutofillEnabled ? [DevToolsModule] : [];
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -211,7 +204,7 @@ const devImports = iaPlaywrightAutofillEnabled ? [DevToolsModule] : [];
     PathwayActionsModule,
     PictureGalleryModule,
     BodyMapModule,
-    ...devImports,
+    DevToolsModule,
   ],
   providers: [
     {
