@@ -35,6 +35,7 @@ import {
   ensureBodyMapBaseline,
   existingBodyMapRecordId,
 } from './initial-assessment-body-map.util';
+import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { buildCarePlanRecommendations } from './initial-assessment-care-plan.util';
 import {
   applyCarePlanDecisions,
@@ -117,6 +118,7 @@ export class InitialAssessmentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly notifications: InitialAssessmentNotificationHook,
+    private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -1299,7 +1301,7 @@ export class InitialAssessmentsService {
     const clinical = parseStoredClinicalMetadata(submission.metadata);
     const carePlanDecisions = readCarePlanDecisions(submission.metadata);
     const carePlanRecommendations = applyCarePlanDecisions(
-      buildCarePlanRecommendations(triggerItems),
+      await this.carePlanRules.resolveRecommendations(submissionId, triggerItems),
       carePlanDecisions,
     );
     const agencySettings = getInitialAssessmentAgencySettings();
@@ -1661,7 +1663,13 @@ export class InitialAssessmentsService {
 
     const answers = await tx.initialAssessmentAnswer.findMany({
       where: { submissionId: params.submissionId },
-      select: { questionId: true, checked: true, booleanValue: true, riskFlag: true },
+      select: {
+        questionId: true,
+        checked: true,
+        booleanValue: true,
+        riskFlag: true,
+        selectedOptions: true,
+      },
     });
 
     const drafts = buildAutoRiskRecordsFromSubmission({
@@ -2527,7 +2535,7 @@ export class InitialAssessmentsService {
     }
 
     const triggerItems = await this.getFlaggedAnswers(submissionId, 'carePlan');
-    const recommendations = buildCarePlanRecommendations(triggerItems);
+    const recommendations = await this.carePlanRules.resolveRecommendations(submissionId, triggerItems);
     const target = recommendations.find((r) => r.id === recommendationId);
     if (!target) {
       throw new NotFoundException('Care plan recommendation not found');
@@ -2661,7 +2669,7 @@ export class InitialAssessmentsService {
         ? (submission.metadata as Record<string, unknown>)
         : {};
     const carePlanRecommendations = applyCarePlanDecisions(
-      buildCarePlanRecommendations(triggerItems),
+      await this.carePlanRules.resolveRecommendations(submissionId, triggerItems),
       readCarePlanDecisions(submission.metadata),
     );
     const clinical = parseStoredClinicalMetadata(submission.metadata);

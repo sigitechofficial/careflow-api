@@ -4,6 +4,31 @@ export type OptionSet = { options: { value: string; label: string }[] };
 
 export const NO_CONCERN_OPTION = { value: 'no_concern', label: 'No concern / need identified' };
 
+/** §3.12 Car parking — likelihood without control measures (1–3 matrix score). */
+export const CAR_PARKING_LIKELIHOOD_OPTIONS: OptionSet = {
+  options: [
+    { value: 'rare', label: 'Rare — very unlikely to occur' },
+    { value: 'unlikely', label: 'Unlikely — could occur but not expected' },
+    { value: 'possible', label: 'Possible — could occur' },
+    { value: 'likely', label: 'Likely — will probably occur' },
+    { value: 'almost_certain', label: 'Almost certain — expected to occur' },
+  ],
+};
+
+/** §3.12 Car parking — harm severity (1–3 matrix score). */
+export const CAR_PARKING_SEVERITY_OPTIONS: OptionSet = {
+  options: [
+    { value: 'negligible', label: 'Negligible — no injury' },
+    { value: 'minor', label: 'Minor — first aid only' },
+    { value: 'moderate', label: 'Moderate — medical attention required' },
+    {
+      value: 'major',
+      label: 'Major — may cause temporary disability or a fracture',
+    },
+    { value: 'catastrophic', label: 'Catastrophic — permanent disability or death' },
+  ],
+};
+
 export const PREFERRED_VISIT_TIMES_OPTIONS: OptionSet = {
   options: [
     { value: 'early_morning', label: 'Early morning (06:00-09:00)' },

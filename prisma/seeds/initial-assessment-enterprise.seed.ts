@@ -23,6 +23,8 @@ import {
 import { SECTION_4_QUESTIONS } from './initial-assessment-enterprise-section-4.seed';
 import {
   ASSESSMENT_REASON_OPTIONS,
+  CAR_PARKING_LIKELIHOOD_OPTIONS,
+  CAR_PARKING_SEVERITY_OPTIONS,
   REVIEW_FREQUENCY_OPTIONS,
 } from './initial-assessment-enterprise-options';
 import { whenFieldYes } from './initial-assessment-enterprise-metadata';
@@ -401,6 +403,50 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       { questionText: 'Environment / access hazard notes', questionType: TEXTAREA, sortOrder: 24, metadata: { specRef: '3.10' } },
       { questionText: 'Rugs or worn carpet (flooring risk)?', questionType: YES_NO, sortOrder: 25, metadata: { specRef: '3.11' } },
       { questionText: 'Worn carpet on stairs?', questionType: YES_NO, sortOrder: 26, metadata: { specRef: '3.11' } },
+      {
+        questionText: 'Car parking arrangements when visiting my home',
+        questionType: TEXTAREA,
+        helpText:
+          'Describe where staff can park, restrictions, and anything they should know before arriving (e.g. no roadside parking, permit zones, bus route).',
+        sortOrder: 27,
+        metadata: { specRef: '3.12', fieldKey: 'carParkingArrangements' },
+      },
+      {
+        questionText: 'Roadside parking available near the home?',
+        questionType: YES_NO,
+        sortOrder: 28,
+        metadata: { specRef: '3.12', fieldKey: 'roadsideParkingAvailable' },
+      },
+      {
+        questionText:
+          'Likelihood of harm from car parking at my home (without control measures in place)',
+        questionType: SINGLE_SELECT,
+        options: CAR_PARKING_LIKELIHOOD_OPTIONS,
+        sortOrder: 29,
+        metadata: { specRef: '3.12', fieldKey: 'carParkingHarmLikelihood', riskMatrixScore: true },
+      },
+      {
+        questionText: 'How serious could the harm from car parking be?',
+        questionType: SINGLE_SELECT,
+        options: CAR_PARKING_SEVERITY_OPTIONS,
+        sortOrder: 30,
+        metadata: { specRef: '3.12', fieldKey: 'carParkingHarmSeverity', riskMatrixScore: true },
+      },
+      {
+        questionText: 'Control measures and actions to reduce car parking harm',
+        questionType: TEXTAREA,
+        helpText:
+          'e.g. familiarise yourself with your route; check safety when opening car doors; take care when manoeuvring your vehicle.',
+        carePlanTrigger: true,
+        sortOrder: 31,
+        metadata: { specRef: '3.12', fieldKey: 'carParkingControlMeasures' },
+      },
+      {
+        questionText: 'Other car parking risks or considerations for staff',
+        questionType: TEXTAREA,
+        sortOrder: 32,
+        metadata: { specRef: '3.12', fieldKey: 'carParkingOtherRisks' },
+      },
     ],
   },
   {

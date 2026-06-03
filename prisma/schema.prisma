@@ -210,6 +210,13 @@ enum InitialAssessmentRiskStatus {
   @@schema("service_users")
 }
 
+enum InitialAssessmentCarePlanRuleMatchMode {
+  ANY
+  ALL
+
+  @@schema("service_users")
+}
+
 enum BodyMapRecordType {
   INJURY
   WOUND
@@ -2485,6 +2492,26 @@ model InitialAssessmentAnswer {
   @@unique([submissionId, questionId])
   @@index([submissionId])
   @@index([questionId])
+  @@schema("service_users")
+}
+
+/// Maps a care pathway care plan form to initial assessment answer conditions (no re-seed required).
+model InitialAssessmentCarePlanRecommendationRule {
+  id                 String                               @id @default(uuid()) @db.Uuid
+  carePathwayFormId  String                               @db.Uuid
+  label              String?
+  matchMode          InitialAssessmentCarePlanRuleMatchMode @default(ANY)
+  conditions         Json
+  suppressLegacyArea String?
+  sortOrder          Int                                  @default(0)
+  isActive           Boolean                              @default(true)
+  createdAt          DateTime                             @default(now())
+  updatedAt          DateTime                             @updatedAt
+  deletedAt          DateTime?
+
+  @@index([carePathwayFormId])
+  @@index([isActive])
+  @@index([deletedAt])
   @@schema("service_users")
 }
 

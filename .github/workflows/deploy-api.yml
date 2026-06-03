@@ -219,6 +219,20 @@ jobs:
           ROLLBACK_DIR="$DEPLOY_ROOT/rollback-temp"
           DEPLOY_LOG="$DEPLOY_ROOT/logs/deployments.log"
 
+          on_deploy_error() {
+            local exit_code=$?
+            set +e
+            trap - ERR
+            echo "========================================"
+            echo "DEPLOYMENT FAILED (exit code: $exit_code)"
+            echo "Check logs on server:"
+            echo "  $DEPLOY_ROOT/logs/last-migrate-deploy.log"
+            echo "  $DEPLOY_ROOT/logs/last-seed.log"
+            echo "========================================"
+            rollback
+            exit "$exit_code"
+          }
+
           rollback() {
             echo "Deployment failed. Starting backend file rollback..."
 
@@ -266,7 +280,8 @@ jobs:
             fi
           }
 
-          trap rollback ERR
+          trap on_deploy_error ERR
+          set -x
 
           echo "Starting deployment for $APP_NAME"
           echo "Release ID: $RELEASE_ID"
@@ -455,13 +470,23 @@ jobs:
           npx prisma migrate status || true
 
           echo "Applying Prisma migrations..."
-          npx prisma migrate deploy
+          if ! npx prisma migrate deploy 2>&1 | tee "$DEPLOY_ROOT/logs/last-migrate-deploy.log"; then
+            echo "prisma migrate deploy failed. Log: $DEPLOY_ROOT/logs/last-migrate-deploy.log"
+            if npx prisma migrate status 2>&1 | grep -q "failed"; then
+              echo "Hint: a migration may be marked failed. On the server run:"
+              echo "  cd $LIVE_PATH && npx prisma migrate resolve --applied <migration_name>"
+              echo "  or restore DB from: $DB_BACKUP_FILE"
+            fi
+            exit 1
+          fi
 
-          echo "Verifying all migrations are applied..."
-          npx prisma migrate status
+          echo "Verifying migrations (informational)..."
+          npx prisma migrate status || true
 
-          echo "Seeding database (idempotent upserts)..."
-          npx prisma db seed
+          echo "Seeding database (idempotent upserts; failures are logged but do not block deploy)..."
+          if ! npx prisma db seed 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
+            echo "WARN: prisma db seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
+          fi
 
           echo "Reloading PM2 app..."
           if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then

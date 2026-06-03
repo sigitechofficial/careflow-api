@@ -4,6 +4,12 @@ import {
   Prisma,
 } from '@prisma/client';
 import { waterlowScoreFromMetadata } from './initial-assessment-waterlow.util';
+import {
+  carParkingMatrixToRiskLevel,
+  carParkingRiskScore,
+  findCarParkingMatrixQuestions,
+  singleSelectOptionValue,
+} from './initial-assessment-car-parking-risk.util';
 
 export type RiskRecordDraft = {
   riskType: InitialAssessmentRiskType;
@@ -31,6 +37,7 @@ type AnswerRow = {
   checked: boolean | null;
   booleanValue: boolean | null;
   riskFlag: boolean;
+  selectedOptions?: Prisma.JsonValue;
 };
 
 const LEVEL_SCORE: Record<InitialAssessmentRiskLevel, number> = {
@@ -81,6 +88,9 @@ function inferRiskType(q: QuestionRow): InitialAssessmentRiskType {
     return InitialAssessmentRiskType.MOVING_HANDLING;
   }
   if (text.includes('finance') || text.includes('money')) return InitialAssessmentRiskType.FINANCE;
+  if (text.includes('car parking') || text.includes('parking')) {
+    return InitialAssessmentRiskType.HOME_ENVIRONMENT;
+  }
   if (text.includes('hoard') || text.includes('environment') || text.includes('hazard')) {
     return InitialAssessmentRiskType.HOME_ENVIRONMENT;
   }
@@ -157,6 +167,37 @@ export function buildAutoRiskRecordsFromSubmission(params: {
       sourceSectionNumber: 11,
       reviewDate: addDays(now, reviewDaysFor(calculateRiskLevel(likelihood, severity))),
     });
+  }
+
+  const { likelihood: parkingLikelihoodQ, severity: parkingSeverityQ } =
+    findCarParkingMatrixQuestions(params.questions);
+  if (parkingLikelihoodQ && parkingSeverityQ) {
+    const likelihoodValue = singleSelectOptionValue(
+      answerMap.get(parkingLikelihoodQ.id)?.selectedOptions ?? null,
+    );
+    const severityValue = singleSelectOptionValue(
+      answerMap.get(parkingSeverityQ.id)?.selectedOptions ?? null,
+    );
+    if (likelihoodValue && severityValue) {
+      const likelihood = carParkingMatrixToRiskLevel(likelihoodValue);
+      const severity = carParkingMatrixToRiskLevel(severityValue);
+      const score = carParkingRiskScore(likelihoodValue, severityValue);
+      const riskLevel = calculateRiskLevel(likelihood, severity);
+      drafts.push({
+        riskType: InitialAssessmentRiskType.HOME_ENVIRONMENT,
+        description:
+          score != null
+            ? `Car parking at home — risk score ${score} (without control measures)`
+            : 'Car parking at home — access and staff safety',
+        likelihood,
+        severity,
+        riskLevel,
+        sourceSectionNumber: parkingLikelihoodQ.section.sectionNumber,
+        sourceQuestionId: parkingLikelihoodQ.id,
+        sourceQuestionText: parkingLikelihoodQ.questionText,
+        reviewDate: addDays(now, reviewDaysFor(riskLevel)),
+      });
+    }
   }
 
   return drafts;

@@ -22,6 +22,10 @@ export type CarePlanRecommendation = {
     specRef?: string;
   }>;
   status: 'pending' | 'accepted' | 'declined';
+  carePathwayFormId?: string;
+  carePathwayFormName?: string;
+  source?: 'rule' | 'legacy';
+  ruleId?: string;
 };
 
 export function buildCarePlanRecommendations(items: CarePlanTriggerItem[]): CarePlanRecommendation[] {
@@ -59,6 +63,7 @@ export function buildCarePlanRecommendations(items: CarePlanTriggerItem[]): Care
         specRef: t.specRef,
       })),
       status: 'pending',
+      source: 'legacy',
     });
   }
 

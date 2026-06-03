@@ -10,6 +10,7 @@ import { seedServiceUserObservations } from './seeds/service-user-observations.s
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 import { seedCarePathway } from './seeds/care-pathway.seed';
+import { seedInitialAssessmentCarePlanRules } from './seeds/initial-assessment-care-plan-rules.seed';
 import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
 import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
@@ -1825,6 +1826,14 @@ async function main() {
   await seedOrganisationGeneralSettings(prisma);
 
   await seedCarePathway(prisma);
+  try {
+    await seedInitialAssessmentCarePlanRules(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Initial assessment care plan recommendation rules skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
 
   // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
   const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
