@@ -94,7 +94,12 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 
-const devImports = process.env.NODE_ENV === 'production' ? [] : [DevToolsModule];
+const iaPlaywrightAutofillEnabled =
+  process.env.NODE_ENV !== 'production' ||
+  process.env.ENABLE_IA_PLAYWRIGHT === 'true' ||
+  process.env.ENABLE_IA_PLAYWRIGHT === '1';
+
+const devImports = iaPlaywrightAutofillEnabled ? [DevToolsModule] : [];
 
 @Module({
   imports: [

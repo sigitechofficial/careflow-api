@@ -166,7 +166,7 @@ export class NotificationsService {
 
     for (const recipient of notification.recipients) {
       const pref = await this.effectivePreference(recipient.userId, notification.type);
-      const playSound = pref.soundEnabled && notification.createdById !== recipient.userId;
+      const playSound = pref.soundEnabled;
       const payload = this.buildNewPayload(notification, recipient, playSound);
       await this.prisma.notificationRecipient.update({
         where: { id: recipient.id },
