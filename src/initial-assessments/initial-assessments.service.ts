@@ -24,6 +24,7 @@ import { UpdateInitialAssessmentStatusDto } from './dto/update-initial-assessmen
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
 import { expandAnswersWithCrossFieldSync } from './initial-assessment-cross-field-sync.util';
 import {
+  partitionSubmitValidationBlocks,
   validateInitialAssessmentSubmission,
   waterlowScoreFromMetadata,
 } from './initial-assessment-validation.util';
@@ -43,7 +44,10 @@ import {
 } from './initial-assessment-care-plan-decisions.util';
 import { CarePlanRecommendationDecision } from './dto/initial-assessment-care-plan-decision.dto';
 import type { InitialAssessmentReviewQueueQueryDto } from './dto/initial-assessment-review-queue-query.dto';
-import { comparableAnswerValue } from './initial-assessment-answer-format.util';
+import {
+  batchHasAnswerCorrections,
+  comparableAnswerValue,
+} from './initial-assessment-answer-format.util';
 import { getInitialAssessmentAgencySettings } from './initial-assessment-agency-settings.util';
 import { syncEmergencyContactAnswerFromProfile } from './initial-assessment-contacts-sync.util';
 import {
@@ -536,11 +540,6 @@ export class InitialAssessmentsService {
         : {};
     const correctionRequired = submissionMeta.correctionRequired === true;
     const correctionReason = dto.correctionReason?.trim() ?? '';
-    if (correctionRequired && correctionReason.length < 10) {
-      throw new BadRequestException(
-        'A correction reason (min 10 characters) is required when editing after reopen',
-      );
-    }
 
     const validIds = await this.getTemplateQuestionIds(submission.templateId);
     const allTemplateQuestions = await this.prisma.initialAssessmentQuestion.findMany({
@@ -572,6 +571,17 @@ export class InitialAssessmentsService {
       },
     });
     const existingAnswerMap = new Map(existingAnswers.map(a => [a.questionId, a]));
+
+    const hasCorrections = batchHasAnswerCorrections({
+      items: expandedAnswers,
+      questionMap,
+      existingAnswerMap,
+    });
+    if (correctionRequired && hasCorrections && correctionReason.length < 10) {
+      throw new BadRequestException(
+        'A correction reason (min 10 characters) is required when changing answers after reopen',
+      );
+    }
 
     const answerCorrections: Array<{
       questionId: string;
@@ -845,14 +855,28 @@ export class InitialAssessmentsService {
       metadata: submission.metadata,
       agencySettings,
     });
+    const skipIncomplete = dto.skipIncompleteValidation === true;
+    const { hardBlocks, skippableBlocks } = partitionSubmitValidationBlocks(validation.blocks);
+    const canSubmitIncomplete =
+      validation.canSubmitIncomplete ??
+      (hardBlocks.length === 0 && skippableBlocks.length > 0);
     if (!validation.canSubmit) {
-      const preview = validation.blocks
-        .slice(0, 5)
-        .map((b) => b.message)
-        .join('; ');
-      throw new BadRequestException(
-        validation.blocks.length > 5 ? `${preview}…` : preview || 'Submission validation failed',
-      );
+      const allowIncomplete = skipIncomplete && canSubmitIncomplete;
+      if (!allowIncomplete) {
+        const previewSource =
+          skipIncomplete && hardBlocks.length > 0 ? hardBlocks : validation.blocks;
+        const preview = previewSource
+          .slice(0, 5)
+          .map((b) => b.message)
+          .join('; ');
+        const suffix =
+          previewSource.length > 5
+            ? '…'
+            : skipIncomplete && hardBlocks.length > 0
+              ? ' — fix these before submitting incomplete.'
+              : '';
+        throw new BadRequestException(preview ? `${preview}${suffix}` : 'Submission validation failed');
+      }
     }
 
     const managerReviewRequired =
@@ -934,10 +958,15 @@ export class InitialAssessmentsService {
         submittedAt: capturedAt,
       });
 
-      const metaBase =
+      const metaBase: Record<string, unknown> =
         typeof submissionMetadata === 'object' && submissionMetadata && !Array.isArray(submissionMetadata)
-          ? (submissionMetadata as Record<string, unknown>)
-          : {};
+          ? {
+              ...(submissionMetadata as Record<string, unknown>),
+              ...(skipIncomplete ? { submittedWithIncompleteFields: true } : {}),
+            }
+          : skipIncomplete
+            ? { submittedWithIncompleteFields: true }
+            : {};
       const existingWaterlow = metaBase.waterlow;
       const waterlow =
         existingWaterlow && typeof existingWaterlow === 'object' && !Array.isArray(existingWaterlow)

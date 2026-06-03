@@ -92,6 +92,9 @@ import { PathwayChecklistsModule } from './pathway-checklists/pathway-checklists
 import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
+import { DevToolsModule } from './dev-tools/dev-tools.module';
+
+const devImports = process.env.NODE_ENV === 'production' ? [] : [DevToolsModule];
 
 @Module({
   imports: [
@@ -203,6 +206,7 @@ import { BodyMapModule } from './body-map/body-map.module';
     PathwayActionsModule,
     PictureGalleryModule,
     BodyMapModule,
+    ...devImports,
   ],
   providers: [
     {

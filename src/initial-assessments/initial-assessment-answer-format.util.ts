@@ -110,3 +110,40 @@ export function comparableAnswerValue(
     { includeSecureFields: false },
   );
 }
+
+/** True when any payload would change an answer row that already exists on the submission. */
+export function batchHasAnswerCorrections(params: {
+  items: Array<{
+    questionId: string;
+    checked?: boolean | null;
+    booleanValue?: boolean | null;
+    textValue?: string | null;
+    numberValue?: number | null;
+    dateValue?: string | Date | null;
+    timeValue?: string | null;
+    selectedOptions?: unknown;
+    notes?: string | null;
+  }>;
+  questionMap: Map<string, Pick<QuestionRow, 'questionType' | 'metadata'>>;
+  existingAnswerMap: Map<string, AnswerComparable>;
+}): boolean {
+  for (const item of params.items) {
+    const q = params.questionMap.get(item.questionId);
+    const existing = params.existingAnswerMap.get(item.questionId);
+    if (!q || !existing) continue;
+    const oldValue = comparableAnswerValue(q, existing);
+    const newValue = comparableAnswerValue(q, {
+      checked: item.checked ?? null,
+      booleanValue: item.booleanValue ?? null,
+      textValue: item.textValue?.trim() ?? null,
+      numberValue:
+        item.numberValue != null ? (item.numberValue as unknown as Prisma.Decimal) : null,
+      dateValue: item.dateValue ? new Date(item.dateValue) : null,
+      timeValue: item.timeValue ?? null,
+      selectedOptions: (item.selectedOptions ?? null) as Prisma.JsonValue,
+      notes: item.notes?.trim() ?? null,
+    });
+    if (oldValue !== newValue) return true;
+  }
+  return false;
+}

@@ -114,6 +114,26 @@ describe('validateInitialAssessmentSubmission', () => {
     });
     expect(result.canSubmit).toBe(false);
     expect(result.blocks.some((b) => b.message.includes('Safeguarding concern flagged but details'))).toBe(true);
+    expect(result.canSubmitIncomplete).toBe(false);
+  });
+
+  it('allows incomplete submit when only skippable required fields are missing', () => {
+    const required = baseQuestion({
+      id: 'r1',
+      questionText: 'Preferred name?',
+      sectionNumber: 1,
+      isRequired: true,
+      questionType: 'TEXT',
+    });
+    const result = validateInitialAssessmentSubmission({
+      status: InitialAssessmentStatus.IN_PROGRESS,
+      questions: [required],
+      answers: [],
+      metadata: { adl: { rows: defaultAdlRows() } },
+    });
+    expect(result.canSubmit).toBe(false);
+    expect(result.canSubmitIncomplete).toBe(true);
+    expect(result.blocks.some((b) => b.message.startsWith('Required:'))).toBe(true);
   });
 });
 

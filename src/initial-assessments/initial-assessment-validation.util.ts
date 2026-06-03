@@ -17,6 +17,25 @@ export type ValidationIssue = {
   blocking: boolean;
 };
 
+/** Missing answers / worksheets — allowed when user confirms incomplete submit. */
+export function isSkippableIncompleteValidationMessage(message: string): boolean {
+  if (message.startsWith('Required: ')) return true;
+  if (message.startsWith('Assessor sign-off required:')) return true;
+  if (message.includes('Next review date is required')) return true;
+  if (message.includes('ADL dependency scores incomplete')) return true;
+  if (message.includes('Complete the Waterlow assessment')) return true;
+  if (message.includes('Falls trigger assessment') || message.includes('Falls assessment')) return true;
+  if (message.includes('Mobility aids')) return true;
+  if (message.includes('Emergency contact 1 not recorded')) return true;
+  return false;
+}
+
+export function partitionSubmitValidationBlocks(blocks: ValidationIssue[]) {
+  const hardBlocks = blocks.filter((b) => !isSkippableIncompleteValidationMessage(b.message));
+  const skippableBlocks = blocks.filter((b) => isSkippableIncompleteValidationMessage(b.message));
+  return { hardBlocks, skippableBlocks };
+}
+
 type QuestionRow = {
   id: string;
   questionText: string;
@@ -139,14 +158,20 @@ export function validateInitialAssessmentSubmission(params: {
   answers: AnswerRow[];
   metadata?: Prisma.JsonValue | null;
   agencySettings?: InitialAssessmentAgencySettings;
-}): { blocks: ValidationIssue[]; warnings: ValidationIssue[]; canSubmit: boolean; overallPercent: number } {
+}): {
+  blocks: ValidationIssue[];
+  warnings: ValidationIssue[];
+  canSubmit: boolean;
+  canSubmitIncomplete: boolean;
+  overallPercent: number;
+} {
   const { status, questions, answers, metadata } = params;
   const agencySettings = params.agencySettings ?? getInitialAssessmentAgencySettings();
   const blocks: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
 
   if (!EDITABLE.includes(status)) {
-    return { blocks, warnings, canSubmit: false, overallPercent: 0 };
+    return { blocks, warnings, canSubmit: false, canSubmitIncomplete: false, overallPercent: 0 };
   }
 
   const map = new Map(answers.map((a) => [a.questionId, a]));
@@ -415,11 +440,13 @@ export function validateInitialAssessmentSubmission(params: {
 
   const finalBlocks = dedupe(blocks);
   const finalWarnings = dedupe(warnings);
+  const { hardBlocks, skippableBlocks } = partitionSubmitValidationBlocks(finalBlocks);
 
   return {
     blocks: finalBlocks,
     warnings: finalWarnings,
     canSubmit: finalBlocks.length === 0,
+    canSubmitIncomplete: hardBlocks.length === 0 && skippableBlocks.length > 0,
     overallPercent,
   };
 }
