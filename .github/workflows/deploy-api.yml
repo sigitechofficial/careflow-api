@@ -472,9 +472,9 @@ jobs:
           echo "Applying Prisma migrations..."
           if ! npx prisma migrate deploy 2>&1 | tee "$DEPLOY_ROOT/logs/last-migrate-deploy.log"; then
             echo "prisma migrate deploy failed. Log: $DEPLOY_ROOT/logs/last-migrate-deploy.log"
-            if npx prisma migrate status 2>&1 | grep -q "failed"; then
-              echo "Hint: a migration may be marked failed. On the server run:"
-              echo "  cd $LIVE_PATH && npx prisma migrate resolve --applied <migration_name>"
+            if npx prisma migrate status 2>&1 | grep -qE "failed|P3009"; then
+              echo "Hint: failed migration or drift. On the server run:"
+              echo "  cd $LIVE_PATH && bash prisma/scripts/reconcile-production-migrations.sh"
               echo "  or restore DB from: $DB_BACKUP_FILE"
             fi
             exit 1

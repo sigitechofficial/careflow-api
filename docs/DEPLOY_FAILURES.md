@@ -16,9 +16,47 @@ Or re-run the GitHub Actions job and expand the **Deploy backend release** step 
 
 ## Common causes
 
-### 1. `prisma migrate deploy` failed
+### 1. `prisma migrate deploy` failed (P3009)
 
-- **Failed migration** (previous deploy stopped mid-way):
+**Typical log:**
+
+```
+Error: P3009 migrate found failed migrations
+The `20260528185000_medication_status_codes` migration ... failed
+```
+
+Plus drift:
+
+```
+The migration from the database are not found locally:
+20260604120000_medication_status_codes
+```
+
+**Fix on the VPS** (SSH, then):
+
+```bash
+cd /home/sigisolutions/careflowbackend.sigisolutions.net
+bash prisma/scripts/reconcile-production-migrations.sh
+```
+
+Or manually:
+
+```bash
+# Remove orphan DB-only migration (deleted from git)
+psql "$DATABASE_URL" -c "DELETE FROM \"_prisma_migrations\" WHERE migration_name = '20260604120000_medication_status_codes';"
+
+# If MedicationStatusCode table already exists:
+npx prisma migrate resolve --applied 20260528185000_medication_status_codes
+
+# If table does NOT exist:
+npx prisma migrate resolve --rolled-back 20260528185000_medication_status_codes
+
+npx prisma migrate deploy
+```
+
+Then push latest backend (idempotent migration SQL) and re-run GitHub Actions deploy.
+
+- **Failed migration** (other cases):
 
   ```bash
   cd /home/sigisolutions/careflowbackend.sigisolutions.net

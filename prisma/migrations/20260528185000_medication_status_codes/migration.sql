@@ -1,11 +1,22 @@
--- CreateEnum
-CREATE TYPE "service_users"."MedicationStatusCodeCategory" AS ENUM ('SUCCESS', 'EXCEPTION', 'WARNING', 'INFORMATION', 'NEUTRAL', 'CRITICAL', 'PENDING');
+-- Medication status code catalog (idempotent for production recovery).
 
--- CreateEnum
-CREATE TYPE "service_users"."MedicationStatusCodeFieldRequirement" AS ENUM ('NOT_REQUIRED', 'OPTIONAL', 'REQUIRED');
+DO $$ BEGIN
+  CREATE TYPE "service_users"."MedicationStatusCodeCategory" AS ENUM (
+    'SUCCESS', 'EXCEPTION', 'WARNING', 'INFORMATION', 'NEUTRAL', 'CRITICAL', 'PENDING'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- CreateTable
-CREATE TABLE "service_users"."MedicationStatusCode" (
+DO $$ BEGIN
+  CREATE TYPE "service_users"."MedicationStatusCodeFieldRequirement" AS ENUM (
+    'NOT_REQUIRED', 'OPTIONAL', 'REQUIRED'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "service_users"."MedicationStatusCode" (
     "id" UUID NOT NULL,
     "code" VARCHAR(16) NOT NULL,
     "label" TEXT NOT NULL,
@@ -24,17 +35,17 @@ CREATE TABLE "service_users"."MedicationStatusCode" (
     CONSTRAINT "MedicationStatusCode_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "MedicationStatusCode_code_key" ON "service_users"."MedicationStatusCode"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "MedicationStatusCode_code_key"
+  ON "service_users"."MedicationStatusCode"("code");
 
--- CreateIndex
-CREATE INDEX "MedicationStatusCode_deletedAt_idx" ON "service_users"."MedicationStatusCode"("deletedAt");
+CREATE INDEX IF NOT EXISTS "MedicationStatusCode_deletedAt_idx"
+  ON "service_users"."MedicationStatusCode"("deletedAt");
 
--- CreateIndex
-CREATE INDEX "MedicationStatusCode_isActive_idx" ON "service_users"."MedicationStatusCode"("isActive");
+CREATE INDEX IF NOT EXISTS "MedicationStatusCode_isActive_idx"
+  ON "service_users"."MedicationStatusCode"("isActive");
 
--- CreateIndex
-CREATE INDEX "MedicationStatusCode_sortOrder_idx" ON "service_users"."MedicationStatusCode"("sortOrder");
+CREATE INDEX IF NOT EXISTS "MedicationStatusCode_sortOrder_idx"
+  ON "service_users"."MedicationStatusCode"("sortOrder");
 
--- CreateIndex
-CREATE INDEX "MedicationStatusCode_administrationStatus_idx" ON "service_users"."MedicationStatusCode"("administrationStatus");
+CREATE INDEX IF NOT EXISTS "MedicationStatusCode_administrationStatus_idx"
+  ON "service_users"."MedicationStatusCode"("administrationStatus");
