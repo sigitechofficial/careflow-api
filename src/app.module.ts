@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
+import { openfdaConfig } from './config/openfda.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -53,6 +54,7 @@ import { LiveInLookupsModule } from './live-in-lookups/live-in-lookups.module';
 import { ServiceUserLiveInProfilesModule } from './service-user-live-in-profiles/service-user-live-in-profiles.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MedicationLookupsModule } from './medication-lookups/medication-lookups.module';
+import { OpenFdaModule } from './openfda/openfda.module';
 import { ServiceUserMedicationsModule } from './service-user-medications/service-user-medications.module';
 import { MedicationPacksModule } from './medication-packs/medication-packs.module';
 import { MedicationAllergiesModule } from './medication-allergies/medication-allergies.module';
@@ -99,7 +101,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, openfdaConfig],
       validate: validateEnv,
     }),
     ThrottlerModule.forRootAsync({
@@ -169,6 +171,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     ServiceUserLiveInProfilesModule,
     NotificationsModule,
     MedicationLookupsModule,
+    OpenFdaModule,
     ServiceUserMedicationsModule,
     MedicationPacksModule,
     MedicationAllergiesModule,

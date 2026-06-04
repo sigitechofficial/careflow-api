@@ -83,6 +83,11 @@ class EnvironmentVariables {
   @IsInt()
   @Min(1000)
   HTTP_REQUEST_TIMEOUT_MS?: number;
+
+  @IsOptional()
+  @IsString()
+  OPENDFDA_API_KEY?: string;
+
 }
 
 export function validateEnv(config: Record<string, unknown>) {

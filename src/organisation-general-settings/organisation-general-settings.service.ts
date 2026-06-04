@@ -37,6 +37,11 @@ import { parseOrganisationAlertsSettings } from './alerts-settings.util';
 import { parseOrganisationCriticalInformationSettings } from './critical-information-settings.util';
 import { parseOrganisationAppSettings } from './app-settings.util';
 import { parseOrganisationPrivacySettings } from './privacy-settings.util';
+import {
+  parseEmployeeVisaTypes,
+  serializeEmployeeVisaTypes,
+  type EmployeeVisaType,
+} from './employee-visa-types.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
@@ -151,6 +156,7 @@ type SettingsRow = {
   privacyNotifyInternalMessage: boolean;
   privacyNotifyEmail: boolean;
   privacySensitiveViewerRoles: unknown;
+  employeeVisaTypes: unknown;
   updatedAt: Date;
 };
 
@@ -241,6 +247,7 @@ function mapRow(row: SettingsRow) {
     criticalInformationSettings: parseOrganisationCriticalInformationSettings(row),
     appSettings: parseOrganisationAppSettings(row),
     privacySettings: parseOrganisationPrivacySettings(row),
+    employeeVisaTypes: parseEmployeeVisaTypes(row.employeeVisaTypes),
     updatedAt: toIso(row.updatedAt),
   };
 }
@@ -282,6 +289,11 @@ function buildUpdateData(
   set('wellbeingLabel3', dto.wellbeingLabel3?.trim());
   set('wellbeingLabel4', dto.wellbeingLabel4?.trim());
   set('wellbeingLabel5', dto.wellbeingLabel5?.trim());
+  if (dto.employeeVisaTypes !== undefined) {
+    data.employeeVisaTypes = serializeEmployeeVisaTypes(
+      dto.employeeVisaTypes as EmployeeVisaType[],
+    );
+  }
   set('enhancedRegularActionChecks', dto.enhancedRegularActionChecks);
   set('showRegularActionsInDailyList', dto.showRegularActionsInDailyList);
   set('allowFastAction', dto.allowFastAction);

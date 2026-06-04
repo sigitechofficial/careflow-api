@@ -17,6 +17,7 @@ src/**/*.js
 prisma/.env
 !.env.example
 
+
 # ─── Logs ─────────────────────────────────────────────────────
 logs/
 *.log
@@ -41,6 +42,10 @@ temp/
 
 # ─── Local file uploads (dev / runtime) ───────────────────────
 # uploads/
+
+# ─── Local documentation (not pushed to git) ────────────────────
+Dcoumentation/
+Documentation/
 
 # ─── Local archives / exports ────────────────────────────────
 *.zip

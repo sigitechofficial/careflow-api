@@ -109,6 +109,8 @@ export class EmployeesService {
             grade: true,
             contractType: true,
             travelPaymentType: true,
+            baseLocation: true,
+            location: true,
             leavingReason: true,
           },
         },

@@ -25,6 +25,7 @@ import {
   OptionalFamilyShareVisitInfoDto,
 } from './optional-settings.dto';
 import { PreAssessmentChecklistItemDto } from './pre-assessment-settings.dto';
+import { EmployeeVisaTypeDto } from './employee-visa-types.dto';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
 const DEFAULT_CARER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
@@ -159,6 +160,13 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsString()
   @MaxLength(80)
   wellbeingLabel5?: string;
+
+  @ApiPropertyOptional({ type: [EmployeeVisaTypeDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EmployeeVisaTypeDto)
+  employeeVisaTypes?: EmployeeVisaTypeDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

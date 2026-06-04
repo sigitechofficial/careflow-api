@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -107,6 +108,17 @@ export class UpdateEmployeeEmploymentDto {
   @IsOptional()
   @IsBoolean()
   defaultZoneView?: boolean;
+
+  @ApiPropertyOptional({ description: 'Visa type id from organisation employee visa settings' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  visaTypeId?: string | null;
+
+  @ApiPropertyOptional({ description: 'Whether the employee is currently in the country' })
+  @IsOptional()
+  @IsBoolean()
+  isInCountry?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

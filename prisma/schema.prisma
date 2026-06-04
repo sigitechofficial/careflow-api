@@ -707,6 +707,7 @@ model OrganisationGeneralSettings {
   privacyNotifyInternalMessage  Boolean           @default(true)
   privacyNotifyEmail            Boolean           @default(false)
   privacySensitiveViewerRoles   Json              @default("[]")
+  employeeVisaTypes             Json              @default("[{\"id\":\"full_time\",\"label\":\"Full time visa\",\"weeklyHours\":40},{\"id\":\"student\",\"label\":\"Student visa\",\"weeklyHours\":20}]")
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
   updatedById                   String?           @db.Uuid
@@ -851,6 +852,8 @@ model EmployeeEmployment {
   contractedWeeklyHours Float?
   maximumWeeklyHours    Float?
   minimumWeeklyHours    Float?
+  visaTypeId            String?
+  isInCountry           Boolean @default(true)
   optedOutOf48Hours     Boolean @default(false)
   isAgencyStaff         Boolean @default(false)
   agencyName            String?
@@ -4701,6 +4704,7 @@ enum CarePathwayFormFieldType {
   RADIO
   YES_NO
   RICH_TEXT
+  SUMMERNOTE
   FILE_UPLOAD
   SIGNATURE
   PHOTO

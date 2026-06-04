@@ -16,6 +16,8 @@ export function mapEmployeeListRow(row: any) {
     role: emp?.role ?? null,
     grade: emp?.grade ?? null,
     contractType: emp?.contractType ?? null,
+    visaTypeId: emp?.visaTypeId ?? null,
+    isInCountry: emp?.isInCountry ?? true,
   };
 }
 
