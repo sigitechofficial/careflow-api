@@ -6,6 +6,7 @@ import {
 import { CarePathwayFormType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CarePlanRecommendation } from './initial-assessment-care-plan.util';
+import { enrichCarePlanRecommendationsWithForms } from './initial-assessment-care-plan-area-map.util';
 import { buildCarePlanRecommendations } from './initial-assessment-care-plan.util';
 import {
   buildRecommendationsFromRules,
@@ -239,7 +240,13 @@ export class InitialAssessmentCarePlanRulesService {
       .filter((r) => r.suppressLegacyArea)
       .map((r) => r.suppressLegacyArea as string);
 
-    return mergeCarePlanRecommendations(ruleBased, legacy, suppressAreas);
+    const merged = mergeCarePlanRecommendations(ruleBased, legacy, suppressAreas);
+    const catalogue = await this.prisma.carePathwayForm.findMany({
+      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    enrichCarePlanRecommendationsWithForms(merged, catalogue);
+    return merged;
   }
 
   private async loadActiveRules(): Promise<CarePlanRecommendationRuleRow[]> {

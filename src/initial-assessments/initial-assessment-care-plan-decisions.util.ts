@@ -7,6 +7,11 @@ export type StoredCarePlanDecision = {
   reason: string | null;
   decidedAt: string;
   decidedById: string;
+  /** Resolved care pathway form — stored on accept so active care plans do not re-guess by name. */
+  carePathwayFormId?: string;
+  carePathwayFormName?: string;
+  title?: string;
+  carePlanArea?: string;
 };
 
 export type CarePlanRecommendationWithDecision = CarePlanRecommendation & {
@@ -30,6 +35,12 @@ export function readCarePlanDecisions(metadata: unknown): Record<string, StoredC
       reason: typeof row.reason === 'string' ? row.reason : null,
       decidedAt: row.decidedAt,
       decidedById: row.decidedById,
+      carePathwayFormId:
+        typeof row.carePathwayFormId === 'string' ? row.carePathwayFormId : undefined,
+      carePathwayFormName:
+        typeof row.carePathwayFormName === 'string' ? row.carePathwayFormName : undefined,
+      title: typeof row.title === 'string' ? row.title : undefined,
+      carePlanArea: typeof row.carePlanArea === 'string' ? row.carePlanArea : undefined,
     };
   }
   return out;

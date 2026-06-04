@@ -69,6 +69,17 @@ export class InitialAssessmentsController {
     return this.service.getLatestSubmission(user.id, serviceUserId, getRequestAuditMeta(req));
   }
 
+  @Get('accepted-care-plans')
+  @ApiOperation({ summary: 'Care pathway forms accepted via initial assessment for this service user' })
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  acceptedCarePlans(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.getAcceptedCarePlans(user.id, serviceUserId, getRequestAuditMeta(req));
+  }
+
   @Get(':submissionId')
   @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
   getOne(

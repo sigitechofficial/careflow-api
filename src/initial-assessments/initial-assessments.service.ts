@@ -5,7 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataAccessType, InitialAssessmentStatus as PrismaStatus, Prisma } from '@prisma/client';
+import {
+  CarePathwayFormType,
+  DataAccessType,
+  InitialAssessmentStatus as PrismaStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -42,6 +47,7 @@ import {
   applyCarePlanDecisions,
   readCarePlanDecisions,
 } from './initial-assessment-care-plan-decisions.util';
+import { resolveCarePlanFormFromCatalogue } from './initial-assessment-care-plan-area-map.util';
 import { CarePlanRecommendationDecision } from './dto/initial-assessment-care-plan-decision.dto';
 import type { InitialAssessmentReviewQueueQueryDto } from './dto/initial-assessment-review-queue-query.dto';
 import {
@@ -1302,6 +1308,119 @@ export class InitialAssessmentsService {
         medications,
         falls,
       },
+    };
+  }
+
+  async getAcceptedCarePlans(userId: string, serviceUserId: string, meta?: RequestAuditMeta) {
+    await this.ensureServiceUser(serviceUserId);
+
+    const submissions = await this.prisma.initialAssessmentSubmission.findMany({
+      where: {
+        serviceUserId,
+        deletedAt: null,
+        status: { in: [PrismaStatus.SUBMITTED, PrismaStatus.REVIEWED] },
+      },
+      select: { id: true, metadata: true },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    const carePlanCatalogue = await this.prisma.carePathwayForm.findMany({
+      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+      select: { id: true, name: true, pictureUrl: true },
+    });
+
+    const byFormId = new Map<
+      string,
+      { formId: string; formName: string; pictureUrl: string | null; acceptedAt: string; carePlanArea: string }
+    >();
+    const unresolved: Array<{
+      recommendationId: string;
+      title: string;
+      carePlanArea: string;
+      acceptedAt: string;
+    }> = [];
+    let acceptedRecommendationCount = 0;
+
+    for (const submission of submissions) {
+      const decisions = readCarePlanDecisions(submission.metadata);
+      const triggerItems = await this.getFlaggedAnswers(submission.id, 'carePlan');
+      const recommendations = await this.carePlanRules.resolveRecommendations(
+        submission.id,
+        triggerItems,
+      );
+      const withDecisions = applyCarePlanDecisions(recommendations, decisions);
+      const recById = new Map(withDecisions.map((r) => [r.id, r]));
+
+      const processAccepted = (
+        recommendationId: string,
+        acceptedAt: string,
+        stored: (typeof decisions)[string] | undefined,
+        rec: (typeof withDecisions)[number] | undefined,
+      ) => {
+        acceptedRecommendationCount += 1;
+        const catalogueRow =
+          stored?.carePathwayFormId != null
+            ? carePlanCatalogue.find((f) => f.id === stored.carePathwayFormId)
+            : resolveCarePlanFormFromCatalogue(
+                carePlanCatalogue,
+                stored?.carePlanArea ?? rec?.carePlanArea ?? '',
+                stored?.carePathwayFormName ?? rec?.carePathwayFormName,
+              );
+        const formId =
+          stored?.carePathwayFormId ?? rec?.carePathwayFormId ?? catalogueRow?.id;
+
+        if (!formId) {
+          unresolved.push({
+            recommendationId,
+            title: stored?.title ?? rec?.title ?? recommendationId,
+            carePlanArea: stored?.carePlanArea ?? rec?.carePlanArea ?? 'Unknown',
+            acceptedAt,
+          });
+          return;
+        }
+
+        const formName =
+          stored?.carePathwayFormName ??
+          rec?.carePathwayFormName ??
+          catalogueRow?.name ??
+          stored?.carePlanArea ??
+          rec?.carePlanArea ??
+          'Care plan';
+        const pictureUrl =
+          carePlanCatalogue.find((f) => f.id === formId)?.pictureUrl ?? null;
+        const existing = byFormId.get(formId);
+        if (!existing || acceptedAt > existing.acceptedAt) {
+          byFormId.set(formId, {
+            formId,
+            formName,
+            pictureUrl,
+            acceptedAt,
+            carePlanArea: stored?.carePlanArea ?? rec?.carePlanArea ?? formName,
+          });
+        }
+      };
+
+      for (const [recommendationId, stored] of Object.entries(decisions)) {
+        if (stored.decision !== 'accepted') continue;
+        processAccepted(recommendationId, stored.decidedAt, stored, recById.get(recommendationId));
+      }
+    }
+
+    const items = [...byFormId.values()].sort((a, b) => b.acceptedAt.localeCompare(a.acceptedAt));
+
+    await this.logDataAccess(
+      userId,
+      {
+        recordType: 'ServiceUserAcceptedCarePlans',
+        recordId: serviceUserId,
+        serviceUserId,
+      },
+      meta,
+    );
+
+    return {
+      message: 'Accepted care plans loaded',
+      data: { items, acceptedRecommendationCount, unresolved },
     };
   }
 
@@ -2582,12 +2701,37 @@ export class InitialAssessmentsService {
         ? (submission.metadata as Record<string, unknown>)
         : {};
     const priorDecisions = readCarePlanDecisions(submission.metadata);
+
+    let resolvedFormId = target.carePathwayFormId;
+    let resolvedFormName = target.carePathwayFormName;
+    if (dto.decision === CarePlanRecommendationDecision.ACCEPTED) {
+      const catalogue = await this.prisma.carePathwayForm.findMany({
+        where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+        select: { id: true, name: true },
+      });
+      const row = resolveCarePlanFormFromCatalogue(
+        catalogue,
+        target.carePlanArea,
+        target.carePathwayFormName,
+      );
+      resolvedFormId = target.carePathwayFormId ?? row?.id;
+      resolvedFormName = target.carePathwayFormName ?? row?.name;
+    }
+
     const nextDecision = {
       decision: dto.decision,
       reason:
         dto.decision === CarePlanRecommendationDecision.DECLINED ? (dto.reason?.trim() ?? null) : null,
       decidedAt: new Date().toISOString(),
       decidedById: userId,
+      ...(dto.decision === CarePlanRecommendationDecision.ACCEPTED
+        ? {
+            carePathwayFormId: resolvedFormId,
+            carePathwayFormName: resolvedFormName,
+            title: target.title,
+            carePlanArea: target.carePlanArea,
+          }
+        : {}),
     };
 
     let managerReviewRequired = priorMeta.managerReviewRequired === true;
