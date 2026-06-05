@@ -3699,6 +3699,7 @@ model ServiceUserMedication {
   instructions             String?
   notes                    String?
   isControlledMedication   Boolean                @default(false)
+  isDecongestantMedication Boolean               @default(false)
   medicationKind           MedicationKind
   status                   MedicationRecordStatus @default(ACTIVE)
   statusEndReason          MedicationStatusEndReason?

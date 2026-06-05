@@ -147,6 +147,11 @@ export class CreateServiceUserMedicationDto {
   @IsBoolean()
   isControlledMedication?: boolean;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isDecongestantMedication?: boolean;
+
   @ApiProperty({ enum: MedicationKind })
   @IsEnum(MedicationKind)
   medicationKind!: MedicationKind;

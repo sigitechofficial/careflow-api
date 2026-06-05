@@ -2678,8 +2678,10 @@ export class InitialAssessmentsService {
     meta?: RequestAuditMeta,
   ) {
     const submission = await this.getSubmissionOrThrow(serviceUserId, submissionId);
-    if (submission.status !== PrismaStatus.SUBMITTED && submission.status !== PrismaStatus.REVIEWED) {
-      throw new BadRequestException('Care plan decisions are only allowed on submitted assessments');
+    if (submission.status !== PrismaStatus.REVIEWED) {
+      throw new BadRequestException(
+        'Care plan decisions are only allowed after manager review is complete',
+      );
     }
 
     const triggerItems = await this.getFlaggedAnswers(submissionId, 'carePlan');

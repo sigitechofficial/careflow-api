@@ -355,6 +355,27 @@ export const ASSESSMENT_REASON_OPTIONS: OptionSet = {
   ],
 };
 
+export const LPOA_SCOPE_OPTIONS: OptionSet = {
+  options: [
+    { value: 'none', label: 'Not appointed' },
+    { value: 'health', label: 'Health' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'both', label: 'Health and finance' },
+  ],
+};
+
+export const ACCOMMODATION_TYPE_OPTIONS: OptionSet = {
+  options: [
+    { value: 'private_house', label: 'Privately owned house' },
+    { value: 'private_bungalow', label: 'Privately owned bungalow' },
+    { value: 'private_flat', label: 'Privately owned flat' },
+    { value: 'housing_authority', label: 'Local/Private housing authority' },
+    { value: 'assisted_living', label: 'Assisted living housing' },
+    { value: 'residential_home', label: 'Residential home' },
+    { value: 'other', label: 'Other, please state' },
+  ],
+};
+
 export const REVIEW_FREQUENCY_OPTIONS: OptionSet = {
   options: [
     { value: 'monthly', label: 'Monthly' },

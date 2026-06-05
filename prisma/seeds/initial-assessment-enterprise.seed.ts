@@ -37,6 +37,8 @@ import {
   SECTION_10_QUESTIONS,
   type EnterpriseQuestionSeed,
 } from './initial-assessment-enterprise-sections-5-10.seed';
+import { HOLISTIC_SECTION_1_EXTRA_QUESTIONS } from './initial-assessment-holistic-section-1.seed';
+import { MCA_SCREENING_QUESTIONS } from './initial-assessment-mca-screening.seed';
 import {
   SECTION_11_QUESTIONS,
   SECTION_12_QUESTIONS,
@@ -320,10 +322,10 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
 export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
   {
     sectionNumber: 1,
-    title: 'Service User Profile and Person Centred Preferences',
+    title: 'Personal Details & Preferences',
     carePlanArea: 'Person Centred',
     description: 'Â§1 â€” person first (1.1â†’1.8 then 1.0). Door codes in Â§3 only.',
-    questions: SECTION_1_QUESTIONS,
+    questions: [...SECTION_1_QUESTIONS, ...HOLISTIC_SECTION_1_EXTRA_QUESTIONS],
   },
   {
     sectionNumber: 2,
@@ -352,11 +354,12 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       { questionText: 'Consent to share with family', questionType: YES_NO, isRequired: true, sortOrder: 12, metadata: { specRef: '2.8' } },
       { questionText: 'Consent to share with pharmacy', questionType: YES_NO, sortOrder: 13, metadata: { specRef: '2.8' } },
       { questionText: 'Consent to share with local authority', questionType: YES_NO, sortOrder: 14, metadata: { specRef: '2.8' } },
+      ...MCA_SCREENING_QUESTIONS,
     ],
   },
   {
     sectionNumber: 3,
-    title: 'Home, Fire and Environmental Safety',
+    title: 'Environmental / Home Safety',
     carePlanArea: 'Environment',
     description: 'Spec Â§3 â€” fire, access, environment checklist, flooring, pets',
     questions: [
@@ -451,14 +454,14 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
   },
   {
     sectionNumber: 4,
-    title: 'Physical Health and Vital Signs',
+    title: 'Physical Assessment / Vital Signs',
     carePlanArea: 'Physical Health',
     description: 'Spec Â§4 â€” vitals, build, monitoring, wellbeing',
     questions: asQuestionSeeds(SECTION_4_QUESTIONS),
   },
   {
     sectionNumber: 5,
-    title: 'Breathing, Pain and Swallowing',
+    title: 'Breathing, Distress/Pain & Swallowing',
     carePlanArea: 'Respiratory',
     description: 'Spec Â§5 â€” structured multi-select options + legacy catalog',
     questions: asQuestionSeeds(SECTION_5_QUESTIONS),
@@ -500,7 +503,7 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
   },
   {
     sectionNumber: 11,
-    title: 'Skin Integrity, Wounds and Pressure Care',
+    title: 'Skin Integrity',
     carePlanArea: 'Skin Integrity',
     description: 'Spec §11 — skin, wounds, pressure equipment (Waterlow scoring on separate tab)',
     questions: asQuestionSeeds(SECTION_11_QUESTIONS),

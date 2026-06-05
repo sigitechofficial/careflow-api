@@ -61,6 +61,7 @@ export const SECTION_5_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Pain assessment completed?', questionType: Y, sortOrder: 15, metadata: iaMeta('5.3') },
   { questionText: 'Pain assessment date', questionType: D, sortOrder: 16, metadata: iaMeta('5.3', whenYes('pain assessment completed')) },
   { questionText: 'Pain management plan documented?', questionType: Y, sortOrder: 17, metadata: iaMeta('5.3', whenYes('pain or distress identified')) },
+  { questionText: 'What pain management plan in place', questionType: A, sortOrder: 175, metadata: iaMeta('5.3', { fieldKey: 'painManagementPlan', ...whenYes('pain or distress identified') }) },
   { questionText: 'Swallowing concern options', questionType: M, isRequired: true, sortOrder: 18, options: SWALLOWING_CONCERN_OPTIONS, metadata: iaMeta('5.4', { fieldKey: 'swallowingConcerns' }) },
   { questionText: 'Swallowing or choking concerns?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 19, metadata: iaMeta('5.4') },
   { questionText: 'Choking history details', questionType: A, sortOrder: 20, metadata: iaMeta('5.4', whenYes('swallowing or choking concerns')) },
