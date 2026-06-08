@@ -6,6 +6,10 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { LookupsService } from './lookups.service';
 import { CreateLookupNameDto } from './dto/create-lookup-name.dto';
+import { CreateServiceUserFundingTypeDto } from './dto/create-service-user-funding-type.dto';
+import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
+import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
+import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
 
 @ApiTags('Lookups')
 @ApiBearerAuth()
@@ -192,6 +196,70 @@ export class LookupsController {
   @Permissions('lookups.read')
   async nonCoreActivityReasons() {
     return { data: await this.service.nonCoreActivityReasons() };
+  }
+
+  @Get('service-user-funding-types')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user funding types (lookup data)' })
+  async serviceUserFundingTypes() {
+    return { data: await this.service.listServiceUserFundingTypes() };
+  }
+
+  @Post('service-user-funding-types')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user funding type' })
+  async createServiceUserFundingType(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserFundingType(dto) };
+  }
+
+  @Patch('service-user-funding-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user funding type' })
+  async updateServiceUserFundingType(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserFundingType(id, dto) };
+  }
+
+  @Delete('service-user-funding-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user funding type' })
+  async deleteServiceUserFundingType(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserFundingType(id);
+    return { message: 'Funding type deleted' };
+  }
+
+  @Get('body-map-record-types')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List body map record types and sub-types' })
+  async bodyMapRecordTypes() {
+    return { data: await this.service.listBodyMapRecordTypes() };
+  }
+
+  @Post('body-map-record-types')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create body map record type or sub-type' })
+  async createBodyMapRecordType(@Body() dto: CreateBodyMapRecordTypeDto) {
+    return { data: await this.service.createBodyMapRecordType(dto) };
+  }
+
+  @Patch('body-map-record-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update body map record type or sub-type' })
+  async updateBodyMapRecordType(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateBodyMapRecordTypeDto,
+  ) {
+    return { data: await this.service.updateBodyMapRecordType(id, dto) };
+  }
+
+  @Delete('body-map-record-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate body map record type (and sub-types if parent)' })
+  async deleteBodyMapRecordType(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteBodyMapRecordType(id);
+    return { message: 'Record type deleted' };
   }
 
   @Patch(':resource/:id')

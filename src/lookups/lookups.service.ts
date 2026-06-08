@@ -13,6 +13,10 @@ import {
   parseLookupManageableResource,
   type LookupManageableResource,
 } from './lookup-manageable-resources';
+import { CreateServiceUserFundingTypeDto } from './dto/create-service-user-funding-type.dto';
+import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
+import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
+import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
 
 @Injectable()
 export class LookupsService implements OnModuleInit {
@@ -507,6 +511,181 @@ export class LookupsService implements OnModuleInit {
       default:
         throw new BadRequestException(`Unknown lookup resource: ${resource}`);
     }
+  }
+
+  private normalizeLookupCode(raw: string): string {
+    return raw.trim().toUpperCase().replace(/\s+/g, '_');
+  }
+
+  private handleUniqueViolation(e: unknown, message: string): never {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictException(message);
+    }
+    throw e;
+  }
+
+  async listServiceUserFundingTypes() {
+    return this.prisma.serviceUserFundingType.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserFundingType(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserFundingType.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A funding type with this code already exists');
+    }
+  }
+
+  async updateServiceUserFundingType(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserFundingType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Funding type not found');
+    const data: Prisma.ServiceUserFundingTypeUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserFundingType.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A funding type with this code already exists');
+    }
+  }
+
+  async deleteServiceUserFundingType(id: string) {
+    const existing = await this.prisma.serviceUserFundingType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Funding type not found');
+    const inUse = await this.prisma.serviceUser.count({ where: { fundingTypeId: id } });
+    if (inUse > 0) {
+      throw new ConflictException('Funding type is assigned to service users and cannot be deleted');
+    }
+    await this.prisma.serviceUserFundingType.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listBodyMapRecordTypes() {
+    return this.prisma.bodyMapRecordTypeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        parentId: true,
+        sortOrder: true,
+        isActive: true,
+        initialAssessmentWoundType: true,
+      },
+    });
+  }
+
+  async createBodyMapRecordType(dto: CreateBodyMapRecordTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    if (dto.parentId) {
+      const parent = await this.prisma.bodyMapRecordTypeCatalog.findFirst({
+        where: { id: dto.parentId, isActive: true, parentId: null },
+      });
+      if (!parent) throw new BadRequestException('Parent record type not found');
+    }
+    try {
+      return await this.prisma.bodyMapRecordTypeCatalog.create({
+        data: {
+          name,
+          code,
+          parentId: dto.parentId ?? null,
+          sortOrder: dto.sortOrder ?? 0,
+          initialAssessmentWoundType: dto.initialAssessmentWoundType ?? false,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          parentId: true,
+          sortOrder: true,
+          isActive: true,
+          initialAssessmentWoundType: true,
+        },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A record type with this code already exists');
+    }
+  }
+
+  async updateBodyMapRecordType(id: string, dto: UpdateBodyMapRecordTypeDto) {
+    const existing = await this.prisma.bodyMapRecordTypeCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Record type not found');
+    const data: Prisma.BodyMapRecordTypeCatalogUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.initialAssessmentWoundType !== undefined) {
+      data.initialAssessmentWoundType = dto.initialAssessmentWoundType;
+    }
+    try {
+      return await this.prisma.bodyMapRecordTypeCatalog.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          parentId: true,
+          sortOrder: true,
+          isActive: true,
+          initialAssessmentWoundType: true,
+        },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A record type with this code already exists');
+    }
+  }
+
+  async deleteBodyMapRecordType(id: string) {
+    const existing = await this.prisma.bodyMapRecordTypeCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Record type not found');
+    const childIds = await this.prisma.bodyMapRecordTypeCatalog.findMany({
+      where: { parentId: id, isActive: true },
+      select: { id: true },
+    });
+    const ids = [id, ...childIds.map((row) => row.id)];
+    await this.prisma.bodyMapRecordTypeCatalog.updateMany({
+      where: { id: { in: ids } },
+      data: { isActive: false },
+    });
   }
 
   async employeeLookups() {

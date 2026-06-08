@@ -145,18 +145,6 @@ function asQuestionSeeds(rows: EnterpriseQuestionSeed[]): QuestionSeed[] {
   return rows as QuestionSeed[];
 }
 
-const FUNDING_TYPE_OPTIONS = {
-  options: [
-    { value: 'private', label: 'Private' },
-    { value: 'local_authority', label: 'Local Authority' },
-    { value: 'nhs', label: 'NHS' },
-    { value: 'direct_payment', label: 'Direct Payment' },
-    { value: 'self_funded', label: 'Self Funded' },
-    { value: 'mixed', label: 'Mixed Funding' },
-    { value: 'unknown', label: 'Unknown at assessment stage' },
-  ],
-};
-
 const REFERRAL_SOURCE_OPTIONS = {
   options: [
     { value: 'local_authority', label: 'Local authority' },
@@ -225,8 +213,11 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
     questionType: SINGLE_SELECT,
     isRequired: true,
     sortOrder: 5,
-    options: FUNDING_TYPE_OPTIONS,
-    metadata: { specRef: '1.1', fieldKey: 'fundingType' },
+    metadata: {
+      specRef: '1.1',
+      fieldKey: 'fundingType',
+      optionsLookup: 'service_user_funding_types',
+    },
   },
   {
     questionText: 'Referral source',
