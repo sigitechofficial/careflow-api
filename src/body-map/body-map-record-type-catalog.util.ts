@@ -3,7 +3,14 @@ import type { PrismaClient } from '@prisma/client';
 export type BodyMapRecordTypeLookupRow = {
   code: string;
   label: string;
-  subTypes: string[];
+  markerColorHex?: string | null;
+  subTypes: BodyMapRecordSubTypeLookupRow[];
+};
+
+export type BodyMapRecordSubTypeLookupRow = {
+  name: string;
+  code: string;
+  markerColorHex?: string | null;
 };
 
 export type BodyMapRecordTypeCatalogLookups = {
@@ -60,6 +67,7 @@ type CatalogRow = {
   parentId: string | null;
   sortOrder: number;
   initialAssessmentWoundType: boolean;
+  markerColorHex: string | null;
 };
 
 export async function buildBodyMapRecordTypeCatalogLookups(
@@ -75,6 +83,7 @@ export async function buildBodyMapRecordTypeCatalogLookups(
       parentId: true,
       sortOrder: true,
       initialAssessmentWoundType: true,
+      markerColorHex: true,
     },
   });
 
@@ -82,10 +91,15 @@ export async function buildBodyMapRecordTypeCatalogLookups(
   const recordTypes: BodyMapRecordTypeLookupRow[] = roots.map((root) => ({
     code: root.code,
     label: root.name,
+    markerColorHex: root.markerColorHex,
     subTypes: rows
       .filter((c) => c.parentId === root.id)
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
-      .map((c) => c.name),
+      .map((c) => ({
+        name: c.name,
+        code: c.code,
+        markerColorHex: c.markerColorHex,
+      })),
   }));
 
   const woundTypes = rows
@@ -105,49 +119,98 @@ export async function buildBodyMapRecordTypeCatalogLookups(
 
 /** Static fallback when catalogue table is empty (e.g. before seed). */
 export function staticBodyMapRecordTypeCatalogLookups(): BodyMapRecordTypeCatalogLookups {
+  const sub = (name: string, code: string, markerColorHex?: string) => ({
+    name,
+    code,
+    markerColorHex: markerColorHex ?? null,
+  });
   return {
     recordTypes: [
       {
         code: 'INJURY',
         label: 'Injury or Mark',
-        subTypes: ['Bruise', 'Cut', 'Scratch', 'Burn', 'Bite mark', 'Unexplained mark', 'Swelling'],
+        markerColorHex: '#dc2626',
+        subTypes: [
+          sub('Bruise', 'bruise'),
+          sub('Cut', 'cut'),
+          sub('Scratch', 'scratch'),
+          sub('Burn', 'burn'),
+          sub('Bite mark', 'bite_mark'),
+          sub('Unexplained mark', 'unexplained_mark'),
+          sub('Swelling', 'swelling'),
+        ],
       },
       {
         code: 'WOUND',
         label: 'Wound',
-        subTypes: ['Skin tear', 'Open wound', 'Surgical wound', 'Infected wound', 'Dressing required'],
+        markerColorHex: '#7c3aed',
+        subTypes: [
+          sub('Skin tear', 'skin_tear'),
+          sub('Open wound', 'open_wound'),
+          sub('Surgical wound', 'surgical'),
+          sub('Infected wound', 'infected_wound'),
+          sub('Dressing required', 'dressing_required'),
+        ],
       },
       {
         code: 'PRESSURE',
         label: 'Pressure Area',
+        markerColorHex: '#ea580c',
         subTypes: [
-          'Redness',
-          'Non-blanching redness',
-          'Suspected pressure damage',
-          'Heel concern',
-          'Sacral concern',
+          sub('Redness', 'redness'),
+          sub('Non-blanching redness', 'non_blanching_redness'),
+          sub('Suspected pressure damage', 'suspected_pressure_damage'),
+          sub('Heel concern', 'heel_concern'),
+          sub('Sacral concern', 'sacral_concern'),
         ],
       },
       {
         code: 'MEDICATION',
         label: 'Medication Site',
-        subTypes: ['Cream application', 'Patch site', 'Injection site', 'Spray site'],
+        markerColorHex: '#2563eb',
+        subTypes: [
+          sub('Cream application', 'cream_application', '#2563eb'),
+          sub('Patch site', 'patch_site', '#3b82f6'),
+          sub('Injection site', 'injection_site', '#0d9488'),
+          sub('Spray site', 'spray_site', '#0891b2'),
+        ],
       },
-      { code: 'PAIN', label: 'Pain', subTypes: ['Acute', 'Chronic', 'Intermittent'] },
+      {
+        code: 'PAIN',
+        label: 'Pain',
+        markerColorHex: '#db2777',
+        subTypes: [sub('Acute', 'pain_acute'), sub('Chronic', 'pain_chronic'), sub('Intermittent', 'pain_intermittent')],
+      },
       {
         code: 'SKIN',
         label: 'Skin Condition',
-        subTypes: ['Rash', 'Dry skin', 'Moisture lesion', 'Infection concern'],
+        markerColorHex: '#ca8a04',
+        subTypes: [
+          sub('Rash', 'rash'),
+          sub('Dry skin', 'dry_skin'),
+          sub('Moisture lesion', 'moisture_lesion'),
+          sub('Infection concern', 'infection_concern'),
+        ],
       },
       {
         code: 'DEVICE',
         label: 'Medical Device Mark',
-        subTypes: ['Catheter mark', 'Wheelchair pressure', 'Hoist sling mark'],
+        markerColorHex: '#475569',
+        subTypes: [
+          sub('Catheter mark', 'catheter_mark'),
+          sub('Wheelchair pressure', 'wheelchair_pressure'),
+          sub('Hoist sling mark', 'hoist_sling_mark'),
+        ],
       },
       {
         code: 'SAFEGUARDING',
         label: 'Safeguarding Concern',
-        subTypes: ['Unexplained injury', 'Pattern of marks', 'Other concern'],
+        markerColorHex: '#7f1d1d',
+        subTypes: [
+          sub('Unexplained injury', 'unexplained_injury'),
+          sub('Pattern of marks', 'pattern_of_marks'),
+          sub('Other concern', 'safeguarding_other'),
+        ],
       },
     ],
     woundTypes: [

@@ -13,7 +13,9 @@ import {
   parseLookupManageableResource,
   type LookupManageableResource,
 } from './lookup-manageable-resources';
+import { CreateServiceUserCareTypeDto } from './dto/create-service-user-care-type.dto';
 import { CreateServiceUserFundingTypeDto } from './dto/create-service-user-funding-type.dto';
+import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-type.dto';
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
@@ -517,11 +519,83 @@ export class LookupsService implements OnModuleInit {
     return raw.trim().toUpperCase().replace(/\s+/g, '_');
   }
 
+  private normalizeMarkerColorHex(raw: string | undefined | null): string | null {
+    if (raw == null) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(withHash)) {
+      throw new BadRequestException('Pin colour must be a valid hex code (e.g. #dc2626)');
+    }
+    return withHash.toLowerCase();
+  }
+
   private handleUniqueViolation(e: unknown, message: string): never {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       throw new ConflictException(message);
     }
     throw e;
+  }
+
+  async listServiceUserCareTypes() {
+    return this.prisma.serviceUserCareType.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserCareType(dto: CreateServiceUserCareTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserCareType.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A care type with this code already exists');
+    }
+  }
+
+  async updateServiceUserCareType(id: string, dto: UpdateServiceUserCareTypeDto) {
+    const existing = await this.prisma.serviceUserCareType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Care type not found');
+    const data: Prisma.ServiceUserCareTypeUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserCareType.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A care type with this code already exists');
+    }
+  }
+
+  async deleteServiceUserCareType(id: string) {
+    const existing = await this.prisma.serviceUserCareType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Care type not found');
+    const inUse = await this.prisma.serviceUser.count({ where: { careTypeId: id } });
+    if (inUse > 0) {
+      throw new ConflictException('Care type is assigned to service users and cannot be deleted');
+    }
+    await this.prisma.serviceUserCareType.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   async listServiceUserFundingTypes() {
@@ -597,6 +671,7 @@ export class LookupsService implements OnModuleInit {
         sortOrder: true,
         isActive: true,
         initialAssessmentWoundType: true,
+        markerColorHex: true,
       },
     });
   }
@@ -619,6 +694,7 @@ export class LookupsService implements OnModuleInit {
           parentId: dto.parentId ?? null,
           sortOrder: dto.sortOrder ?? 0,
           initialAssessmentWoundType: dto.initialAssessmentWoundType ?? false,
+          markerColorHex: this.normalizeMarkerColorHex(dto.markerColorHex),
           isActive: true,
         },
         select: {
@@ -629,6 +705,7 @@ export class LookupsService implements OnModuleInit {
           sortOrder: true,
           isActive: true,
           initialAssessmentWoundType: true,
+          markerColorHex: true,
         },
       });
     } catch (e) {
@@ -655,6 +732,9 @@ export class LookupsService implements OnModuleInit {
     if (dto.initialAssessmentWoundType !== undefined) {
       data.initialAssessmentWoundType = dto.initialAssessmentWoundType;
     }
+    if (dto.markerColorHex !== undefined) {
+      data.markerColorHex = this.normalizeMarkerColorHex(dto.markerColorHex);
+    }
     try {
       return await this.prisma.bodyMapRecordTypeCatalog.update({
         where: { id },
@@ -667,6 +747,7 @@ export class LookupsService implements OnModuleInit {
           sortOrder: true,
           isActive: true,
           initialAssessmentWoundType: true,
+          markerColorHex: true,
         },
       });
     } catch (e) {

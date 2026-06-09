@@ -5,6 +5,7 @@ type CatalogSeed = {
   name: string;
   sortOrder: number;
   initialAssessmentWoundType?: boolean;
+  markerColorHex?: string;
   children?: CatalogSeed[];
 };
 
@@ -14,6 +15,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'INJURY',
     name: 'Injury or Mark',
     sortOrder: 1,
+    markerColorHex: '#dc2626',
     children: [
       { code: 'bruise', name: 'Bruise', sortOrder: 1 },
       { code: 'cut', name: 'Cut', sortOrder: 2 },
@@ -28,6 +30,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'WOUND',
     name: 'Wound',
     sortOrder: 2,
+    markerColorHex: '#7c3aed',
     children: [
       { code: 'skin_tear', name: 'Skin tear', sortOrder: 1, initialAssessmentWoundType: true },
       { code: 'open_wound', name: 'Open wound', sortOrder: 2 },
@@ -41,6 +44,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'PRESSURE',
     name: 'Pressure Area',
     sortOrder: 3,
+    markerColorHex: '#ea580c',
     children: [
       { code: 'pressure_ulcer', name: 'Pressure ulcer', sortOrder: 1, initialAssessmentWoundType: true },
       { code: 'redness', name: 'Redness', sortOrder: 2 },
@@ -54,17 +58,19 @@ const CATALOG: CatalogSeed[] = [
     code: 'MEDICATION',
     name: 'Medication Site',
     sortOrder: 4,
+    markerColorHex: '#2563eb',
     children: [
-      { code: 'cream_application', name: 'Cream application', sortOrder: 1 },
-      { code: 'patch_site', name: 'Patch site', sortOrder: 2 },
-      { code: 'injection_site', name: 'Injection site', sortOrder: 3 },
-      { code: 'spray_site', name: 'Spray site', sortOrder: 4 },
+      { code: 'cream_application', name: 'Cream application', sortOrder: 1, markerColorHex: '#2563eb' },
+      { code: 'patch_site', name: 'Patch site', sortOrder: 2, markerColorHex: '#3b82f6' },
+      { code: 'injection_site', name: 'Injection site', sortOrder: 3, markerColorHex: '#0d9488' },
+      { code: 'spray_site', name: 'Spray site', sortOrder: 4, markerColorHex: '#0891b2' },
     ],
   },
   {
     code: 'PAIN',
     name: 'Pain',
     sortOrder: 5,
+    markerColorHex: '#db2777',
     children: [
       { code: 'pain_acute', name: 'Acute', sortOrder: 1 },
       { code: 'pain_chronic', name: 'Chronic', sortOrder: 2 },
@@ -75,6 +81,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'SKIN',
     name: 'Skin Condition',
     sortOrder: 6,
+    markerColorHex: '#ca8a04',
     children: [
       { code: 'rash', name: 'Rash', sortOrder: 1 },
       { code: 'dry_skin', name: 'Dry skin', sortOrder: 2 },
@@ -86,6 +93,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'DEVICE',
     name: 'Medical Device Mark',
     sortOrder: 7,
+    markerColorHex: '#475569',
     children: [
       { code: 'catheter_mark', name: 'Catheter mark', sortOrder: 1 },
       { code: 'wheelchair_pressure', name: 'Wheelchair pressure', sortOrder: 2 },
@@ -96,6 +104,7 @@ const CATALOG: CatalogSeed[] = [
     code: 'SAFEGUARDING',
     name: 'Safeguarding Concern',
     sortOrder: 8,
+    markerColorHex: '#7f1d1d',
     children: [
       { code: 'unexplained_injury', name: 'Unexplained injury', sortOrder: 1 },
       { code: 'pattern_of_marks', name: 'Pattern of marks', sortOrder: 2 },
@@ -117,6 +126,7 @@ async function upsertNode(
       sortOrder: row.sortOrder,
       isActive: true,
       initialAssessmentWoundType: row.initialAssessmentWoundType ?? false,
+      ...(row.markerColorHex ? { markerColorHex: row.markerColorHex } : {}),
     },
     create: {
       code: row.code,
@@ -125,6 +135,7 @@ async function upsertNode(
       sortOrder: row.sortOrder,
       isActive: true,
       initialAssessmentWoundType: row.initialAssessmentWoundType ?? false,
+      markerColorHex: row.markerColorHex ?? null,
     },
   });
   for (const child of row.children ?? []) {

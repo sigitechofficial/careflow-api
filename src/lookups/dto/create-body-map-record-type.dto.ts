@@ -28,4 +28,10 @@ export class CreateBodyMapRecordTypeDto {
   @IsOptional()
   @IsBoolean()
   initialAssessmentWoundType?: boolean;
+
+  @ApiPropertyOptional({ example: '#dc2626', description: 'Body map pin colour (hex)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(7)
+  markerColorHex?: string;
 }

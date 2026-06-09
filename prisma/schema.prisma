@@ -1996,6 +1996,7 @@ model ServiceUser {
   initialAssessmentActions     InitialAssessmentAction[]
   initialAssessmentAttachments InitialAssessmentAttachment[]
   initialAssessmentRiskRecords InitialAssessmentRiskRecord[]
+  visitPlans                 ServiceUserVisitPlan[]
   scheduledJobs              ScheduledJob[]
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
@@ -2464,6 +2465,7 @@ model InitialAssessmentSubmission {
   actions      InitialAssessmentAction[]
   attachments  InitialAssessmentAttachment[]
   riskRecords  InitialAssessmentRiskRecord[]
+  visitPlans   ServiceUserVisitPlan[]
 
   @@index([serviceUserId])
   @@index([templateId])
@@ -2793,6 +2795,8 @@ model BodyMapRecordTypeCatalog {
   sortOrder                  Int      @default(0)
   isActive                   Boolean  @default(true)
   initialAssessmentWoundType Boolean  @default(false)
+  /// Hex colour for body map pins (e.g. #dc2626).
+  markerColorHex             String?  @db.VarChar(7)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -2972,6 +2976,146 @@ model ServiceUserDomCareBlockedCarer {
 
   @@unique([serviceUserDomCareId, employeeId])
   @@index([serviceUserDomCareId])
+  @@schema("service_users")
+}
+
+enum VisitPlanStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ENDED
+
+  @@schema("service_users")
+}
+
+enum VisitPlanSlotCode {
+  MORNING
+  LUNCH
+  TEA
+  EVENING
+  NIGHT
+
+  @@schema("service_users")
+}
+
+enum VisitPlanScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("service_users")
+}
+
+enum VisitPlanRepeatUnit {
+  DAYS
+  WEEKS
+  MONTHS
+
+  @@schema("service_users")
+}
+
+enum VisitPlanMonthlyDayMode {
+  BY_DATE
+  BY_PATTERN
+
+  @@schema("service_users")
+}
+
+enum VisitPlanMonthlyOrdinal {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  LAST
+
+  @@schema("service_users")
+}
+
+model ServiceUserVisitPlan {
+  id                    String           @id @default(uuid()) @db.Uuid
+  serviceUserId         String           @db.Uuid
+  status                VisitPlanStatus  @default(DRAFT)
+  effectiveFrom         DateTime         @default(now())
+  effectiveTo           DateTime?
+  weeklyContractedHours String?
+  numberOfCarers        Int              @default(1)
+  sourceSubmissionId    String?          @db.Uuid
+  reviewDueAt           DateTime?
+  notes                 String           @default("") @db.Text
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  approvedById String?  @db.Uuid
+  approvedAt  DateTime?
+
+  serviceUser      ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  sourceSubmission InitialAssessmentSubmission? @relation(fields: [sourceSubmissionId], references: [id], onDelete: SetNull)
+  slots            VisitPlanSlot[]
+  amendments       VisitPlanAmendment[]
+
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([sourceSubmissionId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model VisitPlanSlot {
+  id                  String            @id @default(uuid()) @db.Uuid
+  visitPlanId         String            @db.Uuid
+  slotCode            VisitPlanSlotCode
+  daysOfWeek          Int[]
+  plannedStartTime    String
+  plannedEndTime      String
+  requiredCarers      Int               @default(1)
+  isEnabled           Boolean           @default(false)
+  medicationRoundCode    String?
+  notes                  String                     @default("") @db.Text
+  sortOrder              Int                        @default(0)
+  scheduleFrequency      VisitPlanScheduleFrequency @default(DAILY)
+  repeatEvery            Int                        @default(1)
+  repeatUnit             VisitPlanRepeatUnit        @default(DAYS)
+  timeCritical           Boolean                    @default(false)
+  timeToleranceMinutes   Int                        @default(30)
+  durationMinutes        Int?
+  notesRequired          Boolean                    @default(false)
+  photoAllowed           Boolean                    @default(false)
+  shareOutcomeWithFamily Boolean                    @default(false)
+  analysisArea           String?
+  monthlyDayMode         VisitPlanMonthlyDayMode    @default(BY_DATE)
+  monthlyDaysOfMonth     Int[]                      @default([])
+  monthlyPatternOrdinal  VisitPlanMonthlyOrdinal?
+  monthlyPatternWeekday  Int?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visitPlan       ServiceUserVisitPlan @relation(fields: [visitPlanId], references: [id], onDelete: Cascade)
+  scheduledVisits ScheduledVisit[]
+
+  @@unique([visitPlanId, slotCode])
+  @@index([visitPlanId])
+  @@schema("service_users")
+}
+
+model VisitPlanAmendment {
+  id             String   @id @default(uuid()) @db.Uuid
+  visitPlanId    String   @db.Uuid
+  reason         String   @db.Text
+  snapshotBefore Json
+  snapshotAfter  Json
+  amendedAt      DateTime @default(now())
+  amendedById    String?  @db.Uuid
+
+  visitPlan ServiceUserVisitPlan @relation(fields: [visitPlanId], references: [id], onDelete: Cascade)
+
+  @@index([visitPlanId])
+  @@index([amendedAt])
   @@schema("service_users")
 }
 
@@ -4520,6 +4664,7 @@ model ScheduledVisit {
   checklistRequired      Boolean              @default(false)
   photoRequired          Boolean              @default(false)
   notesRequired          Boolean              @default(false)
+  visitPlanSlotId        String?              @db.Uuid
   isActive               Boolean              @default(true)
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -4528,8 +4673,9 @@ model ScheduledVisit {
   updatedById            String?              @db.Uuid
   deletedById            String?              @db.Uuid
 
-  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
-  serviceUser  ServiceUser     @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  scheduledJob  ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  serviceUser   ServiceUser   @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  visitPlanSlot VisitPlanSlot? @relation(fields: [visitPlanSlotId], references: [id], onDelete: SetNull)
   createdBy    User?           @relation("ScheduledVisitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy    User?           @relation("ScheduledVisitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   deletedBy    User?           @relation("ScheduledVisitDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -4539,6 +4685,7 @@ model ScheduledVisit {
 
   @@index([scheduledJobId])
   @@index([serviceUserId])
+  @@index([visitPlanSlotId])
   @@index([status])
   @@index([scheduledStartDateTime])
   @@index([deletedAt])

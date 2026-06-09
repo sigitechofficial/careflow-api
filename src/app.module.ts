@@ -46,6 +46,7 @@ import { ServiceUserFlashMessagesModule } from './service-user-flash-messages/se
 import { ServiceUserDocumentsModule } from './service-user-documents/service-user-documents.module';
 import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
+import { ServiceUserVisitPlansModule } from './service-user-visit-plans/service-user-visit-plans.module';
 import { ServiceUserInitialAssessmentModule } from './service-user-initial-assessment/service-user-initial-assessment.module';
 import { FundingTypesModule } from './funding-types/funding-types.module';
 import { FundersModule } from './funders/funders.module';
@@ -161,6 +162,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     CalendarEventTypesModule,
     ServiceUserCalendarModule,
     ServiceUserDomCareModule,
+    ServiceUserVisitPlansModule,
     ServiceUserInitialAssessmentModule,
     InitialAssessmentTemplatesModule,
     InitialAssessmentsModule,

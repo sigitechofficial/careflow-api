@@ -30,4 +30,10 @@ export class UpdateBodyMapRecordTypeDto {
   @IsOptional()
   @IsBoolean()
   initialAssessmentWoundType?: boolean;
+
+  @ApiPropertyOptional({ example: '#dc2626' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(7)
+  markerColorHex?: string;
 }

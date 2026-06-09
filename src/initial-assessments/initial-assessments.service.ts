@@ -48,6 +48,7 @@ import {
   readCarePlanDecisions,
 } from './initial-assessment-care-plan-decisions.util';
 import { resolveCarePlanFormFromCatalogue } from './initial-assessment-care-plan-area-map.util';
+import { ServiceUserVisitPlansService } from '../service-user-visit-plans/service-user-visit-plans.service';
 import { CarePlanRecommendationDecision } from './dto/initial-assessment-care-plan-decision.dto';
 import type { InitialAssessmentReviewQueueQueryDto } from './dto/initial-assessment-review-queue-query.dto';
 import {
@@ -129,6 +130,7 @@ export class InitialAssessmentsService {
     private readonly audit: AuditLogsService,
     private readonly notifications: InitialAssessmentNotificationHook,
     private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
+    private readonly visitPlans: ServiceUserVisitPlansService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -1111,6 +1113,10 @@ export class InitialAssessmentsService {
     });
 
     await this.notifications.onReviewed({ submissionId, serviceUserId, reviewedById: userId });
+
+    if (dto.status === PrismaStatus.REVIEWED && dto.approvedForCareStart === true) {
+      await this.visitPlans.createDraftFromAssessment(userId, serviceUserId, submissionId, meta);
+    }
 
     return { message: 'Initial assessment reviewed', data: this.mapSubmission(result) };
   }

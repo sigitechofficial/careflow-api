@@ -6,7 +6,9 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { LookupsService } from './lookups.service';
 import { CreateLookupNameDto } from './dto/create-lookup-name.dto';
+import { CreateServiceUserCareTypeDto } from './dto/create-service-user-care-type.dto';
 import { CreateServiceUserFundingTypeDto } from './dto/create-service-user-funding-type.dto';
+import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-type.dto';
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
@@ -196,6 +198,38 @@ export class LookupsController {
   @Permissions('lookups.read')
   async nonCoreActivityReasons() {
     return { data: await this.service.nonCoreActivityReasons() };
+  }
+
+  @Get('service-user-care-types')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user care types (lookup data)' })
+  async serviceUserCareTypes() {
+    return { data: await this.service.listServiceUserCareTypes() };
+  }
+
+  @Post('service-user-care-types')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user care type' })
+  async createServiceUserCareType(@Body() dto: CreateServiceUserCareTypeDto) {
+    return { data: await this.service.createServiceUserCareType(dto) };
+  }
+
+  @Patch('service-user-care-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user care type' })
+  async updateServiceUserCareType(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserCareTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserCareType(id, dto) };
+  }
+
+  @Delete('service-user-care-types/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user care type' })
+  async deleteServiceUserCareType(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserCareType(id);
+    return { message: 'Care type deleted' };
   }
 
   @Get('service-user-funding-types')
