@@ -15,6 +15,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -152,4 +153,18 @@ export class VisitPlanSlotDto {
   @Min(0)
   @Max(6)
   monthlyPatternWeekday?: number | null;
+
+  @ApiPropertyOptional({ type: [String], description: 'Accepted care pathway form ids delivered on this call' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('4', { each: true })
+  linkedCarePlanFormIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Assigned carer employee ids for this call slot' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsUUID('4', { each: true })
+  assignedEmployeeIds?: string[];
 }

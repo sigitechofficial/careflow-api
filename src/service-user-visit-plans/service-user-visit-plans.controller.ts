@@ -12,6 +12,7 @@ import { CreateVisitPlanDto } from './dto/create-visit-plan.dto';
 import { UpdateVisitPlanDto } from './dto/update-visit-plan.dto';
 import { VisitPlanStatusChangeDto } from './dto/visit-plan-status.dto';
 import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule.dto';
+import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 
 @ApiTags('Service User Visit Plans')
 @ApiBearerAuth()
@@ -32,6 +33,13 @@ export class ServiceUserVisitPlansController {
   @ApiOperation({ summary: 'Active visit plan for a service user' })
   getActive(@Param('id') serviceUserId: string) {
     return this.service.getActive(serviceUserId);
+  }
+
+  @Post('suggest-carers')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.allocate')
+  @ApiOperation({ summary: 'Suggest carers for a visit plan slot (availability, skills, preferences)' })
+  suggestCarers(@Param('id') serviceUserId: string, @Body() dto: SuggestVisitPlanCarersDto) {
+    return this.service.suggestCarers(serviceUserId, dto);
   }
 
   @Get(':planId')

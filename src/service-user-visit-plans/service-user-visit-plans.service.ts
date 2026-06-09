@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  AllocationStatus,
+  EmployeeComplianceStatus,
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
@@ -25,6 +27,13 @@ import {
 import { mergeSlotSchedulingOptions } from './visit-plan-slot-options.defaults';
 import { visitPlanSlotMatchesDay } from './visit-plan-schedule-match.util';
 import { buildSlotsFromPreferredVisitTimes } from './visit-plan-from-assessment.util';
+import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
+import {
+  carerFitScore,
+  evaluateCarerAvailability,
+  matchEmployeeSkills,
+  requiredSkillKeywords,
+} from './visit-plan-carer-suggest.util';
 
 const planInclude = {
   slots: { orderBy: { sortOrder: 'asc' as const } },
@@ -99,6 +108,8 @@ export class ServiceUserVisitPlansService {
         monthlyDaysOfMonth: s.monthlyDaysOfMonth,
         monthlyPatternOrdinal: s.monthlyPatternOrdinal,
         monthlyPatternWeekday: s.monthlyPatternWeekday,
+        linkedCarePlanFormIds: s.linkedCarePlanFormIds ?? [],
+        assignedEmployeeIds: s.assignedEmployeeIds ?? [],
       })),
       amendments: (row.amendments ?? []).map((a) => ({
         id: a.id,
@@ -129,6 +140,8 @@ export class ServiceUserVisitPlansService {
         medicationRoundCode: input?.medicationRoundCode ?? null,
         notes: input?.notes?.trim() ?? '',
         sortOrder: defaults.sortOrder,
+        linkedCarePlanFormIds: input?.linkedCarePlanFormIds ?? [],
+        assignedEmployeeIds: input?.assignedEmployeeIds ?? [],
         ...mergeSlotSchedulingOptions(input ?? null),
       };
     });
@@ -159,6 +172,141 @@ export class ServiceUserVisitPlansService {
       monthlyDaysOfMonth: slot.monthlyDaysOfMonth,
       monthlyPatternOrdinal: slot.monthlyPatternOrdinal,
       monthlyPatternWeekday: slot.monthlyPatternWeekday,
+      linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
+      assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+    };
+  }
+
+  async suggestCarers(serviceUserId: string, dto: SuggestVisitPlanCarersDto) {
+    await this.ensureServiceUser(serviceUserId);
+
+    const domCare = await this.prisma.serviceUserDomCare.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      include: {
+        preferredCarerLinks: { where: { isActive: true } },
+        blockedCarerLinks: { where: { isActive: true } },
+      },
+    });
+    const preferredIds = new Set(domCare?.preferredCarerLinks.map((l) => l.employeeId) ?? []);
+    const blockedIds = new Set(domCare?.blockedCarerLinks.map((l) => l.employeeId) ?? []);
+
+    const linkedFormIds = dto.linkedCarePlanFormIds ?? [];
+    const careForms =
+      linkedFormIds.length > 0
+        ? await this.prisma.carePathwayForm.findMany({
+            where: { id: { in: linkedFormIds }, deletedAt: null },
+            select: { id: true, name: true },
+          })
+        : [];
+    const skillKeywords = requiredSkillKeywords([], careForms.map((f) => f.name));
+
+    const employees = await this.prisma.employee.findMany({
+      where: { deletedAt: null, isActive: true },
+      include: {
+        personalDetail: true,
+        employment: { include: { role: true, jobTitle: true } },
+        workingPatterns: { where: { deletedAt: null, isActive: true } },
+        skills: {
+          where: { deletedAt: null, isActive: true },
+          include: { skillType: { select: { id: true, name: true } } },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    });
+
+    const slotDays = [...new Set(dto.daysOfWeek)].sort();
+    const candidates = [];
+
+    for (const emp of employees) {
+      if (!emp.personalDetail || emp.personalDetail.deletedAt) continue;
+      const name = `${emp.personalDetail.firstName ?? ''} ${emp.personalDetail.lastName ?? ''}`.trim();
+      const isBlocked = blockedIds.has(emp.id);
+      const isPreferred = preferredIds.has(emp.id);
+
+      const availability = evaluateCarerAvailability(
+        emp.workingPatterns.map((p) => ({
+          dayOfWeek: p.dayOfWeek,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          isAvailable: p.isAvailable,
+          notes: p.notes,
+        })),
+        slotDays,
+        dto.plannedStartTime,
+        dto.plannedEndTime,
+      );
+
+      const skillRows = emp.skills.map((s) => ({
+        skillTypeId: s.skillTypeId,
+        skillName: s.skillType?.name ?? null,
+        expiryDate: s.expiryDate,
+      }));
+      const skills = matchEmployeeSkills(skillRows, skillKeywords);
+
+      const complianceIssues = await this.prisma.employeeCompliance.count({
+        where: {
+          employeeId: emp.id,
+          deletedAt: null,
+          status: {
+            in: [
+              EmployeeComplianceStatus.EXPIRED,
+              EmployeeComplianceStatus.MISSING,
+              EmployeeComplianceStatus.REJECTED,
+              EmployeeComplianceStatus.EXPIRING_SOON,
+            ],
+          },
+        },
+      });
+
+      const warnings: string[] = [];
+      if (isBlocked) warnings.push('Blocked for this service user');
+      if (isPreferred) warnings.push('Preferred carer');
+      if (availability.unavailableDays.length) warnings.push(availability.summary);
+      if (skills.missing.length) warnings.push(`Missing skills: ${skills.missing.join(', ')}`);
+      if (complianceIssues > 0) warnings.push(`${complianceIssues} compliance item(s) need attention`);
+
+      const fit = carerFitScore({
+        isBlocked,
+        unavailableDays: availability.unavailableDays,
+        slotDaysCount: slotDays.length,
+        missingSkills: skills.missing,
+        requiredSkillCount: skillKeywords.length,
+        complianceIssues,
+        isPreferred,
+      });
+
+      candidates.push({
+        employeeId: emp.id,
+        displayName: name || emp.id,
+        role: emp.employment?.role?.name ?? null,
+        jobTitle: emp.employment?.jobTitle?.name ?? null,
+        fit,
+        isPreferred,
+        isBlocked,
+        availability,
+        skills,
+        complianceIssues,
+        warnings,
+      });
+    }
+
+    const fitOrder = { good: 0, partial: 1, poor: 2 };
+    candidates.sort((a, b) => {
+      if (a.isPreferred !== b.isPreferred) return a.isPreferred ? -1 : 1;
+      const fo = fitOrder[a.fit] - fitOrder[b.fit];
+      if (fo !== 0) return fo;
+      return a.displayName.localeCompare(b.displayName);
+    });
+
+    return {
+      data: {
+        candidates,
+        preferredCarerIds: [...preferredIds],
+        blockedCarerIds: [...blockedIds],
+        requiredSkillKeywords: skillKeywords,
+        requiredCarers: dto.requiredCarers ?? 1,
+      },
     };
   }
 
@@ -634,7 +782,7 @@ export class ServiceUserVisitPlansService {
             },
           });
 
-          await tx.scheduledVisit.create({
+          const visit = await tx.scheduledVisit.create({
             data: {
               scheduledJobId: job.id,
               serviceUserId,
@@ -650,6 +798,33 @@ export class ServiceUserVisitPlansService {
               createdById: userId,
             },
           });
+
+          const assignedCarers = slot.assignedEmployeeIds ?? [];
+          if (assignedCarers.length > 0) {
+            const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
+            for (const employeeId of toAllocate) {
+              await tx.jobAllocation.create({
+                data: {
+                  scheduledJobId: job.id,
+                  scheduledVisitId: visit.id,
+                  employeeId,
+                  status: AllocationStatus.CONFIRMED,
+                  requiresConfirmation: false,
+                  allocatedById: userId,
+                },
+              });
+            }
+            await tx.scheduledJob.update({
+              where: { id: job.id },
+              data: {
+                status:
+                  toAllocate.length >= slot.requiredCarers
+                    ? ScheduledJobStatus.ALLOCATED
+                    : ScheduledJobStatus.NEEDS_ATTENTION,
+              },
+            });
+          }
+
           visitsCreated += 1;
         }
       }

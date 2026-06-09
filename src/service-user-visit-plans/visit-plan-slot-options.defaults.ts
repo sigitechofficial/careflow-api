@@ -5,6 +5,16 @@ import {
   VisitPlanScheduleFrequency,
 } from '@prisma/client';
 
+export type VisitPlanSlotLinkFields = {
+  linkedCarePlanFormIds: string[];
+  assignedEmployeeIds: string[];
+};
+
+export const DEFAULT_SLOT_LINK_FIELDS: VisitPlanSlotLinkFields = {
+  linkedCarePlanFormIds: [],
+  assignedEmployeeIds: [],
+};
+
 export type VisitPlanSlotSchedulingOptions = {
   scheduleFrequency: VisitPlanScheduleFrequency;
   repeatEvery: number;

@@ -1,6 +1,7 @@
 import { VisitPlanSlotCode } from '@prisma/client';
 import { DEFAULT_DOM_CARE_SHIFT_DEFINITIONS } from '../organisation-general-settings/dom-care-shifts.util';
 import {
+  DEFAULT_SLOT_LINK_FIELDS,
   DEFAULT_SLOT_SCHEDULING_OPTIONS,
   mergeSlotSchedulingOptions,
 } from './visit-plan-slot-options.defaults';
@@ -60,7 +61,8 @@ export function defaultVisitPlanSlots(): Array<{
   medicationRoundCode: string | null;
   notes: string;
   sortOrder: number;
-} & typeof DEFAULT_SLOT_SCHEDULING_OPTIONS> {
+} & typeof DEFAULT_SLOT_SCHEDULING_OPTIONS &
+  typeof DEFAULT_SLOT_LINK_FIELDS> {
   return VISIT_PLAN_SLOT_ORDER.map((slotCode) => {
     const times = defaultSlotTimes(slotCode);
     return {
@@ -73,6 +75,7 @@ export function defaultVisitPlanSlots(): Array<{
       medicationRoundCode: null,
       notes: '',
       sortOrder: times.sortOrder,
+      ...DEFAULT_SLOT_LINK_FIELDS,
       ...mergeSlotSchedulingOptions(null),
     };
   });

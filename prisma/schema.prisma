@@ -3090,6 +3090,8 @@ model VisitPlanSlot {
   monthlyDaysOfMonth     Int[]                      @default([])
   monthlyPatternOrdinal  VisitPlanMonthlyOrdinal?
   monthlyPatternWeekday  Int?
+  linkedCarePlanFormIds  String[]               @default([])
+  assignedEmployeeIds    String[]               @default([])
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
