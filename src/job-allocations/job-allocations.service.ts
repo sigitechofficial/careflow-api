@@ -151,10 +151,9 @@ export class JobAllocationsService {
     if (count >= job.requiredCarers) {
       next = PrismaJobStatus.ALLOCATED;
     } else if (count > 0) {
-      next = PrismaJobStatus.UNALLOCATED;
+      next = PrismaJobStatus.NEEDS_ATTENTION;
     } else {
-      next =
-        job.status === PrismaJobStatus.ALLOCATED ? PrismaJobStatus.UNALLOCATED : job.status;
+      next = PrismaJobStatus.UNALLOCATED;
     }
 
     if (next !== job.status) {

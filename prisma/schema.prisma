@@ -2988,16 +2988,6 @@ enum VisitPlanStatus {
   @@schema("service_users")
 }
 
-enum VisitPlanSlotCode {
-  MORNING
-  LUNCH
-  TEA
-  EVENING
-  NIGHT
-
-  @@schema("service_users")
-}
-
 enum VisitPlanScheduleFrequency {
   DAILY
   WEEKLY
@@ -3067,7 +3057,7 @@ model ServiceUserVisitPlan {
 model VisitPlanSlot {
   id                  String            @id @default(uuid()) @db.Uuid
   visitPlanId         String            @db.Uuid
-  slotCode            VisitPlanSlotCode
+  slotCode            String
   daysOfWeek          Int[]
   plannedStartTime    String
   plannedEndTime      String

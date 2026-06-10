@@ -1,9 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from '../../prisma/seed-data/medication-administration-rounds.defaults';
 import {
-  defaultSlotTimes,
-  medRoundCodeToSlot,
-  VISIT_PLAN_SLOT_ORDER,
+  defaultVisitPlanSlotsFromRounds,
+  type MedicationRoundCatalogRow,
 } from './visit-plan-slot-defaults';
 
 type VisitSlotRow = { selected?: boolean; from?: string; to?: string; roundName?: string };
@@ -16,7 +15,7 @@ function hm(value: string | null | undefined, fallback: string): string {
 }
 
 export type VisitPlanSlotSeed = {
-  slotCode: (typeof VISIT_PLAN_SLOT_ORDER)[number];
+  slotCode: string;
   daysOfWeek: number[];
   plannedStartTime: string;
   plannedEndTime: string;
@@ -29,46 +28,44 @@ export type VisitPlanSlotSeed = {
 export function buildSlotsFromPreferredVisitTimes(
   selectedOptions: Prisma.JsonValue | null | undefined,
   numberOfCarers: number,
+  rounds: MedicationRoundCatalogRow[] = DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS,
 ): VisitPlanSlotSeed[] {
+  const catalogue = defaultVisitPlanSlotsFromRounds(rounds);
   const enabled = new Map<string, { from: string; to: string; roundCode: string }>();
 
   if (selectedOptions && typeof selectedOptions === 'object' && !Array.isArray(selectedOptions)) {
-    for (const round of DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS) {
+    for (const round of rounds) {
       const entry = (selectedOptions as Record<string, VisitSlotRow>)[round.code];
       if (!entry?.selected) continue;
-      const slot = medRoundCodeToSlot(round.code);
-      if (!slot) continue;
-      enabled.set(slot, {
-        from: hm(entry.from, round.windowStart),
-        to: hm(entry.to, round.windowEnd),
+      enabled.set(round.code, {
+        from: hm(entry.from, round.windowStart ?? round.time),
+        to: hm(entry.to, round.windowEnd ?? round.time),
         roundCode: round.code,
       });
     }
   } else if (Array.isArray(selectedOptions)) {
     for (const raw of selectedOptions) {
       const code = String(raw).toUpperCase();
-      const round = DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS.find((r) => r.code === code);
-      const slot = medRoundCodeToSlot(code);
-      if (!round || !slot) continue;
-      enabled.set(slot, {
-        from: hm(round.windowStart, round.windowStart),
-        to: hm(round.windowEnd, round.windowEnd),
+      const round = rounds.find((r) => r.code === code);
+      if (!round) continue;
+      enabled.set(round.code, {
+        from: hm(round.windowStart ?? round.time, round.time),
+        to: hm(round.windowEnd ?? round.time, round.time),
         roundCode: round.code,
       });
     }
   }
 
-  return VISIT_PLAN_SLOT_ORDER.map((slotCode) => {
-    const defaults = defaultSlotTimes(slotCode);
-    const pick = enabled.get(slotCode);
+  return catalogue.map((defaults) => {
+    const pick = enabled.get(defaults.slotCode);
     return {
-      slotCode,
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-      plannedStartTime: pick?.from ?? defaults.start,
-      plannedEndTime: pick?.to ?? defaults.end,
+      slotCode: defaults.slotCode,
+      daysOfWeek: defaults.daysOfWeek,
+      plannedStartTime: pick?.from ?? defaults.plannedStartTime,
+      plannedEndTime: pick?.to ?? defaults.plannedEndTime,
       requiredCarers: numberOfCarers,
       isEnabled: Boolean(pick),
-      medicationRoundCode: pick?.roundCode ?? null,
+      medicationRoundCode: pick?.roundCode ?? defaults.medicationRoundCode,
       sortOrder: defaults.sortOrder,
     };
   });

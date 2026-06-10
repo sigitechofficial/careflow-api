@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -13,6 +13,8 @@ import { UpdateVisitPlanDto } from './dto/update-visit-plan.dto';
 import { VisitPlanStatusChangeDto } from './dto/visit-plan-status.dto';
 import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule.dto';
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
+import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
+import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
 
 @ApiTags('Service User Visit Plans')
 @ApiBearerAuth()
@@ -134,6 +136,34 @@ export class ServiceUserVisitPlansController {
     @Req() req: Request,
   ) {
     return this.service.prefillFromDomCare(user.id, serviceUserId, planId, getRequestAuditMeta(req));
+  }
+
+  @Get(':planId/calendar-visits')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduled_visits.read')
+  @ApiOperation({ summary: 'List scheduled visit outcomes for visit plan calendar' })
+  listCalendarVisits(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Query() query: VisitPlanCalendarVisitsQueryDto,
+  ) {
+    return this.service.listCalendarVisits(serviceUserId, planId, query);
+  }
+
+  @Post(':planId/calendar-visits/record-outcome')
+  @AnyPermission(
+    'scheduled_visits.status.update',
+    'scheduled_visits.update',
+    'service_users.visit_plan.write',
+  )
+  @ApiOperation({ summary: 'Record carer outcome for a visit plan calendar occurrence' })
+  recordCalendarOutcome(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Body() dto: RecordVisitPlanCalendarOutcomeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordCalendarOutcome(user.id, serviceUserId, planId, dto, getRequestAuditMeta(req));
   }
 
   @Post(':planId/generate-schedule')

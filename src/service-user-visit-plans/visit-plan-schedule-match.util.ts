@@ -2,11 +2,10 @@ import {
   VisitPlanMonthlyDayMode,
   VisitPlanMonthlyOrdinal,
   VisitPlanScheduleFrequency,
-  VisitPlanSlotCode,
 } from '@prisma/client';
 
 export type VisitPlanSlotScheduleShape = {
-  slotCode: VisitPlanSlotCode;
+  slotCode: string;
   daysOfWeek: number[];
   scheduleFrequency: VisitPlanScheduleFrequency;
   repeatEvery: number;

@@ -1,58 +1,45 @@
-import { VisitPlanSlotCode } from '@prisma/client';
-import { DEFAULT_DOM_CARE_SHIFT_DEFINITIONS } from '../organisation-general-settings/dom-care-shifts.util';
+import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from '../../prisma/seed-data/medication-administration-rounds.defaults';
 import {
   DEFAULT_SLOT_LINK_FIELDS,
   DEFAULT_SLOT_SCHEDULING_OPTIONS,
   mergeSlotSchedulingOptions,
 } from './visit-plan-slot-options.defaults';
 
-export const VISIT_PLAN_SLOT_ORDER: VisitPlanSlotCode[] = [
-  'MORNING',
-  'LUNCH',
-  'TEA',
-  'EVENING',
-  'NIGHT',
-];
-
-const SLOT_TO_SHIFT_NAME: Record<VisitPlanSlotCode, string> = {
-  MORNING: 'Morning Call',
-  LUNCH: 'Lunch Call',
-  TEA: 'Tea Call',
-  EVENING: 'Evening Call',
-  NIGHT: 'Night call',
+export type MedicationRoundCatalogRow = {
+  code: string;
+  name: string;
+  time: string;
+  windowStart: string | null;
+  windowEnd: string | null;
+  sortOrder: number;
 };
 
-const MED_ROUND_TO_SLOT: Record<string, VisitPlanSlotCode> = {
-  MORNING: 'MORNING',
-  MIDDAY: 'LUNCH',
-  AFTERNOON: 'TEA',
-  EVENING: 'EVENING',
-  NIGHT: 'NIGHT',
+export const LEGACY_VISIT_SLOT_TO_ROUND: Record<string, string> = {
+  LUNCH: 'MIDDAY',
+  TEA: 'AFTERNOON',
 };
 
-export function slotLabel(code: VisitPlanSlotCode): string {
-  return SLOT_TO_SHIFT_NAME[code] ?? code;
+export function normalizeVisitPlanSlotCode(code: string): string {
+  const upper = code.trim().toUpperCase();
+  return LEGACY_VISIT_SLOT_TO_ROUND[upper] ?? upper;
 }
 
-export function medRoundCodeToSlot(code: string): VisitPlanSlotCode | null {
-  return MED_ROUND_TO_SLOT[code.toUpperCase()] ?? null;
+function hm(value: string | null | undefined, fallback: string): string {
+  if (!value?.trim()) return fallback;
+  const m = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!m?.[1] || !m[2]) return fallback;
+  return `${m[1].padStart(2, '0')}:${m[2]}`;
 }
 
-export function defaultSlotTimes(code: VisitPlanSlotCode): { start: string; end: string; sortOrder: number } {
-  const shiftName = SLOT_TO_SHIFT_NAME[code];
-  const shift = DEFAULT_DOM_CARE_SHIFT_DEFINITIONS.find((s) => s.name === shiftName);
-  if (!shift) {
-    return { start: '08:00', end: '09:00', sortOrder: VISIT_PLAN_SLOT_ORDER.indexOf(code) };
-  }
-  return {
-    start: shift.fromTime,
-    end: shift.endsNextDay ? '07:00' : shift.toTime,
-    sortOrder: shift.sortOrder,
-  };
+export function slotLabel(code: string, roundNameByCode?: Map<string, string>): string {
+  const normalized = normalizeVisitPlanSlotCode(code);
+  return roundNameByCode?.get(normalized) ?? roundNameByCode?.get(code) ?? code;
 }
 
-export function defaultVisitPlanSlots(): Array<{
-  slotCode: VisitPlanSlotCode;
+export function defaultVisitPlanSlotsFromRounds(
+  rounds: MedicationRoundCatalogRow[] = DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS,
+): Array<{
+  slotCode: string;
   daysOfWeek: number[];
   plannedStartTime: string;
   plannedEndTime: string;
@@ -63,22 +50,27 @@ export function defaultVisitPlanSlots(): Array<{
   sortOrder: number;
 } & typeof DEFAULT_SLOT_SCHEDULING_OPTIONS &
   typeof DEFAULT_SLOT_LINK_FIELDS> {
-  return VISIT_PLAN_SLOT_ORDER.map((slotCode) => {
-    const times = defaultSlotTimes(slotCode);
-    return {
-      slotCode,
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-      plannedStartTime: times.start,
-      plannedEndTime: times.end,
-      requiredCarers: 1,
-      isEnabled: false,
-      medicationRoundCode: null,
-      notes: '',
-      sortOrder: times.sortOrder,
-      ...DEFAULT_SLOT_LINK_FIELDS,
-      ...mergeSlotSchedulingOptions(null),
-    };
-  });
+  const sorted = [...rounds].sort(
+    (a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99) || a.name.localeCompare(b.name),
+  );
+
+  return sorted.map((round, index) => ({
+    slotCode: round.code,
+    daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+    plannedStartTime: hm(round.windowStart, round.time),
+    plannedEndTime: hm(round.windowEnd, round.time),
+    requiredCarers: 1,
+    isEnabled: false,
+    medicationRoundCode: round.code,
+    notes: '',
+    sortOrder: round.sortOrder ?? index,
+    ...DEFAULT_SLOT_LINK_FIELDS,
+    ...mergeSlotSchedulingOptions(null),
+  }));
+}
+
+export function defaultVisitPlanSlots() {
+  return defaultVisitPlanSlotsFromRounds();
 }
 
 export const ALL_WEEK_DAYS = [1, 2, 3, 4, 5, 6, 0] as const;

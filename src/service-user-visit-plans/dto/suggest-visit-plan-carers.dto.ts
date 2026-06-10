@@ -1,23 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { VisitPlanSlotCode } from '@prisma/client';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsEnum,
   IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
 export class SuggestVisitPlanCarersDto {
-  @ApiProperty({ enum: VisitPlanSlotCode })
-  @IsEnum(VisitPlanSlotCode)
-  slotCode!: VisitPlanSlotCode;
+  @ApiProperty({ example: 'MORNING' })
+  @IsString()
+  @MaxLength(64)
+  slotCode!: string;
 
   @ApiProperty({ type: [Number], description: '0=Sun … 6=Sat' })
   @IsArray()

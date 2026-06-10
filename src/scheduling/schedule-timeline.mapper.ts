@@ -1,6 +1,26 @@
-import type { Prisma } from '@prisma/client';
+import { AllocationStatus, type Prisma } from '@prisma/client';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { jobDurationMinutes } from './schedule-date-range.util';
+
+const ACTIVE_ALLOCATION: AllocationStatus[] = [
+  AllocationStatus.PENDING_CONFIRMATION,
+  AllocationStatus.ALLOCATED,
+  AllocationStatus.CONFIRMED,
+];
+
+export const timelineVisitSelect = {
+  id: true,
+  visitName: true,
+  visitPlanSlotId: true,
+  visitPlanSlot: {
+    select: {
+      id: true,
+      slotCode: true,
+      medicationRoundCode: true,
+      linkedCarePlanFormIds: true,
+    },
+  },
+} satisfies Prisma.ScheduledVisitSelect;
 
 export const timelineJobInclude = {
   serviceUser: {
@@ -27,11 +47,44 @@ export const timelineJobInclude = {
       },
     },
   },
+  visits: {
+    where: { deletedAt: null, isActive: true },
+    orderBy: { scheduledStartDateTime: 'asc' as const },
+    select: timelineVisitSelect,
+  },
 } satisfies Prisma.ScheduledJobInclude;
 
 export type TimelineJobRow = Prisma.ScheduledJobGetPayload<{ include: typeof timelineJobInclude }>;
 
+function mapVisitPlanContext(row: TimelineJobRow) {
+  const primaryVisit = row.visits[0];
+  const slot = primaryVisit?.visitPlanSlot ?? null;
+  const activeAllocations = row.allocations.filter((a) => ACTIVE_ALLOCATION.includes(a.status));
+  const allocatedCarers = activeAllocations.length;
+  const underAllocated = allocatedCarers < row.requiredCarers;
+
+  return {
+    allocatedCarers,
+    underAllocated,
+    visitPlan: slot
+      ? {
+          slotId: slot.id,
+          slotCode: slot.slotCode,
+          label: primaryVisit?.visitName ?? slot.slotCode,
+          linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
+        }
+      : null,
+    visits: row.visits.map((v) => ({
+      id: v.id,
+      visitName: v.visitName,
+      visitPlanSlotId: v.visitPlanSlotId,
+    })),
+  };
+}
+
 export function mapTimelineJob(row: TimelineJobRow) {
+  const visitPlanContext = mapVisitPlanContext(row);
+
   return {
     id: row.id,
     scheduleBatchId: row.scheduleBatchId,
@@ -62,8 +115,9 @@ export function mapTimelineJob(row: TimelineJobRow) {
       status: a.status,
       requiresConfirmation: a.requiresConfirmation,
       allocatedAt: a.allocatedAt.toISOString(),
-      employee: a.employee,
+      employee: mapEmployeeBrief(a.employee),
     })),
+    ...visitPlanContext,
   };
 }
 

@@ -13,7 +13,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
-import { mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
+import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
@@ -45,8 +45,7 @@ const housekeepingInclude = {
     where: { deletedAt: null, isActive: true },
     orderBy: { scheduledStartDateTime: 'asc' as const },
     select: {
-      id: true,
-      visitName: true,
+      ...timelineVisitSelect,
       status: true,
       scheduledStartDateTime: true,
       scheduledEndDateTime: true,

@@ -1,6 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateMedicationAdministrationRoundDto } from './dto/create-medication-administration-round.dto';
 import { UpdateMedicationAdministrationRoundDto } from './dto/update-medication-administration-round.dto';
+
+function slugRoundCode(name: string): string {
+  const base = name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return base || 'CUSTOM';
+}
 
 @Injectable()
 export class MedicationAdministrationRoundsService {
@@ -19,6 +29,41 @@ export class MedicationAdministrationRoundsService {
       where: { id, deletedAt: null },
     });
     if (!row) throw new NotFoundException('Medication time slot not found');
+    return { data: row };
+  }
+
+  async create(dto: CreateMedicationAdministrationRoundDto) {
+    const baseCode = dto.code?.trim() || slugRoundCode(dto.name);
+    let code = baseCode;
+    let suffix = 0;
+    while (
+      await this.prisma.medicationAdministrationRound.findFirst({
+        where: { code },
+      })
+    ) {
+      suffix += 1;
+      code = `${baseCode}_${suffix}`;
+      if (suffix > 99) {
+        throw new ConflictException('Could not generate a unique time slot code');
+      }
+    }
+
+    const maxSort = await this.prisma.medicationAdministrationRound.aggregate({
+      where: { deletedAt: null },
+      _max: { sortOrder: true },
+    });
+
+    const row = await this.prisma.medicationAdministrationRound.create({
+      data: {
+        name: dto.name.trim(),
+        code,
+        time: dto.time,
+        windowStart: dto.windowStart ?? null,
+        windowEnd: dto.windowEnd ?? null,
+        sortOrder: dto.sortOrder ?? (maxSort._max.sortOrder ?? 0) + 1,
+        isActive: true,
+      },
+    });
     return { data: row };
   }
 

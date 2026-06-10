@@ -2,12 +2,11 @@ import {
   VisitPlanMonthlyDayMode,
   VisitPlanMonthlyOrdinal,
   VisitPlanScheduleFrequency,
-  VisitPlanSlotCode,
 } from '@prisma/client';
 import { visitPlanSlotMatchesDay } from './visit-plan-schedule-match.util';
 
 const base = {
-  slotCode: VisitPlanSlotCode.MORNING,
+  slotCode: 'MORNING',
   daysOfWeek: [1, 2, 3, 4, 5],
   repeatEvery: 1,
 };

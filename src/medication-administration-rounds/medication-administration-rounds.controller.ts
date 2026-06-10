@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -11,6 +11,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission } from '../common/decorators/permissions.decorator';
 import { ApiMedicationStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { MedicationAdministrationRoundsService } from './medication-administration-rounds.service';
+import { CreateMedicationAdministrationRoundDto } from './dto/create-medication-administration-round.dto';
 import { UpdateMedicationAdministrationRoundDto } from './dto/update-medication-administration-round.dto';
 import {
   MedicationAdministrationRoundListResponseDto,
@@ -36,6 +37,15 @@ export class MedicationAdministrationRoundsController {
   @ApiMedicationStandardResponses()
   list() {
     return this.service.listForAdmin();
+  }
+
+  @Post()
+  @AnyPermission('lookups.manage', 'service_users.medications.update', 'service_users.update')
+  @ApiOperation({ summary: 'Create medication time slot' })
+  @ApiOkResponse({ type: MedicationAdministrationRoundSingleResponseDto })
+  @ApiMedicationStandardResponses()
+  create(@Body() dto: CreateMedicationAdministrationRoundDto) {
+    return this.service.create(dto);
   }
 
   @Get(':id')

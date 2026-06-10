@@ -5,7 +5,6 @@ import {
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
-  VisitPlanSlotCode,
   VisitPlanStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,14 +19,18 @@ import { UpdateVisitPlanDto } from './dto/update-visit-plan.dto';
 import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule.dto';
 import { VisitPlanSlotDto } from './dto/visit-plan-slot.dto';
 import {
-  defaultVisitPlanSlots,
+  defaultVisitPlanSlotsFromRounds,
+  normalizeVisitPlanSlotCode,
   slotLabel,
-  VISIT_PLAN_SLOT_ORDER,
+  type MedicationRoundCatalogRow,
 } from './visit-plan-slot-defaults';
 import { mergeSlotSchedulingOptions } from './visit-plan-slot-options.defaults';
 import { visitPlanSlotMatchesDay } from './visit-plan-schedule-match.util';
 import { buildSlotsFromPreferredVisitTimes } from './visit-plan-from-assessment.util';
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
+import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
+import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
+import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import {
   carerFitScore,
   evaluateCarerAvailability,
@@ -40,6 +43,33 @@ const planInclude = {
   amendments: { orderBy: { amendedAt: 'desc' as const }, take: 20 },
 } satisfies Prisma.ServiceUserVisitPlanInclude;
 
+const CALENDAR_VISIT_ACTIVE_ALLOCATION: AllocationStatus[] = [
+  AllocationStatus.PENDING_CONFIRMATION,
+  AllocationStatus.ALLOCATED,
+  AllocationStatus.CONFIRMED,
+];
+
+const calendarVisitInclude = {
+  scheduledJob: {
+    select: {
+      status: true,
+      requiredCarers: true,
+      allocations: {
+        where: { deletedAt: null, isActive: true },
+        select: { employeeId: true, status: true },
+      },
+    },
+  },
+  visitPlanSlot: {
+    select: {
+      slotCode: true,
+      linkedCarePlanFormIds: true,
+    },
+  },
+} satisfies Prisma.ScheduledVisitInclude;
+
+type CalendarVisitRow = Prisma.ScheduledVisitGetPayload<{ include: typeof calendarVisitInclude }>;
+
 type PlanRow = Prisma.ServiceUserVisitPlanGetPayload<{ include: typeof planInclude }>;
 
 @Injectable()
@@ -47,6 +77,7 @@ export class ServiceUserVisitPlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly scheduledJobsService: ScheduledJobsService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -66,7 +97,37 @@ export class ServiceUserVisitPlansService {
     return row;
   }
 
-  private mapPlan(row: PlanRow) {
+  private async loadMedicationRoundCatalog(): Promise<MedicationRoundCatalogRow[]> {
+    const rows = await this.prisma.medicationAdministrationRound.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    if (rows.length === 0) {
+      return defaultVisitPlanSlotsFromRounds().map((s) => ({
+        code: s.slotCode,
+        name: s.slotCode,
+        time: s.plannedStartTime,
+        windowStart: s.plannedStartTime,
+        windowEnd: s.plannedEndTime,
+        sortOrder: s.sortOrder,
+      }));
+    }
+    return rows.map((r) => ({
+      code: r.code,
+      name: r.name,
+      time: r.time,
+      windowStart: r.windowStart,
+      windowEnd: r.windowEnd,
+      sortOrder: r.sortOrder,
+    }));
+  }
+
+  private async loadRoundNameMap(): Promise<Map<string, string>> {
+    const rounds = await this.loadMedicationRoundCatalog();
+    return new Map(rounds.map((r) => [r.code, r.name]));
+  }
+
+  private mapPlan(row: PlanRow, roundNameByCode?: Map<string, string>) {
     return {
       id: row.id,
       serviceUserId: row.serviceUserId,
@@ -85,7 +146,7 @@ export class ServiceUserVisitPlansService {
       slots: (row.slots ?? []).map((s) => ({
         id: s.id,
         slotCode: s.slotCode,
-        label: slotLabel(s.slotCode),
+        label: slotLabel(s.medicationRoundCode ?? s.slotCode, roundNameByCode),
         daysOfWeek: s.daysOfWeek,
         plannedStartTime: s.plannedStartTime,
         plannedEndTime: s.plannedEndTime,
@@ -120,16 +181,30 @@ export class ServiceUserVisitPlansService {
     };
   }
 
-  private snapshot(plan: PlanRow) {
-    return this.mapPlan(plan);
+  private snapshot(plan: PlanRow, roundNameByCode?: Map<string, string>) {
+    return this.mapPlan(plan, roundNameByCode);
   }
 
-  private normalizeSlots(slots?: VisitPlanSlotDto[]) {
-    if (!slots?.length) return defaultVisitPlanSlots();
-    const byCode = new Map(slots.map((s) => [s.slotCode, s]));
-    return VISIT_PLAN_SLOT_ORDER.map((slotCode) => {
+  private normalizeSlots(slots: VisitPlanSlotDto[] | undefined, rounds: MedicationRoundCatalogRow[]) {
+    const catalogue = defaultVisitPlanSlotsFromRounds(rounds);
+    if (!slots?.length) return catalogue;
+
+    const byCode = new Map(
+      slots.map((s) => [normalizeVisitPlanSlotCode(s.slotCode), { ...s, slotCode: normalizeVisitPlanSlotCode(s.slotCode) }]),
+    );
+    const orderedCodes = [
+      ...catalogue.map((c) => c.slotCode),
+      ...[...byCode.keys()].filter((code) => !catalogue.some((c) => c.slotCode === code)),
+    ];
+
+    return orderedCodes.map((slotCode, index) => {
+      const defaults = catalogue.find((d) => d.slotCode === slotCode) ?? {
+        ...catalogue[0]!,
+        slotCode,
+        medicationRoundCode: slotCode,
+        sortOrder: index,
+      };
       const input = byCode.get(slotCode);
-      const defaults = defaultVisitPlanSlots().find((d) => d.slotCode === slotCode)!;
       return {
         slotCode,
         daysOfWeek: input?.daysOfWeek?.length ? [...new Set(input.daysOfWeek)].sort() : defaults.daysOfWeek,
@@ -137,9 +212,9 @@ export class ServiceUserVisitPlansService {
         plannedEndTime: input?.plannedEndTime ?? defaults.plannedEndTime,
         requiredCarers: input?.requiredCarers ?? defaults.requiredCarers,
         isEnabled: input?.isEnabled ?? defaults.isEnabled,
-        medicationRoundCode: input?.medicationRoundCode ?? null,
+        medicationRoundCode: input?.medicationRoundCode ?? defaults.medicationRoundCode,
         notes: input?.notes?.trim() ?? '',
-        sortOrder: defaults.sortOrder,
+        sortOrder: defaults.sortOrder ?? index,
         linkedCarePlanFormIds: input?.linkedCarePlanFormIds ?? [],
         assignedEmployeeIds: input?.assignedEmployeeIds ?? [],
         ...mergeSlotSchedulingOptions(input ?? null),
@@ -328,26 +403,29 @@ export class ServiceUserVisitPlansService {
 
   async list(serviceUserId: string) {
     await this.ensureServiceUser(serviceUserId);
+    const roundNameByCode = await this.loadRoundNameMap();
     const rows = await this.prisma.serviceUserVisitPlan.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
       include: planInclude,
       orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
     });
-    return { data: rows.map((r) => this.mapPlan(r)) };
+    return { data: rows.map((r) => this.mapPlan(r, roundNameByCode)) };
   }
 
   async getActive(serviceUserId: string) {
     await this.ensureServiceUser(serviceUserId);
+    const roundNameByCode = await this.loadRoundNameMap();
     const row = await this.prisma.serviceUserVisitPlan.findFirst({
       where: { serviceUserId, status: VisitPlanStatus.ACTIVE, deletedAt: null, isActive: true },
       include: planInclude,
     });
-    return { data: row ? this.mapPlan(row) : null };
+    return { data: row ? this.mapPlan(row, roundNameByCode) : null };
   }
 
   async getById(serviceUserId: string, planId: string) {
+    const roundNameByCode = await this.loadRoundNameMap();
     const row = await this.getPlanOrThrow(serviceUserId, planId);
-    return { data: this.mapPlan(row) };
+    return { data: this.mapPlan(row, roundNameByCode) };
   }
 
   async create(
@@ -357,7 +435,9 @@ export class ServiceUserVisitPlansService {
     meta?: RequestAuditMeta,
   ) {
     await this.ensureServiceUser(serviceUserId);
-    const slots = this.normalizeSlots(dto.slots);
+    const rounds = await this.loadMedicationRoundCatalog();
+    const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
+    const slots = this.normalizeSlots(dto.slots, rounds);
     const effectiveFrom = dto.effectiveFrom ? new Date(dto.effectiveFrom) : new Date();
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -401,7 +481,7 @@ export class ServiceUserVisitPlansService {
       return full;
     });
 
-    return { message: 'Visit plan created', data: this.mapPlan(created) };
+    return { message: 'Visit plan created', data: this.mapPlan(created, roundNameByCode) };
   }
 
   async update(
@@ -415,14 +495,26 @@ export class ServiceUserVisitPlansService {
     if (existing.status === VisitPlanStatus.ENDED) {
       throw new BadRequestException('Ended visit plans cannot be edited');
     }
+    const rounds = await this.loadMedicationRoundCatalog();
+    const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
 
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.slots?.length) {
-        for (const slot of this.normalizeSlots(dto.slots)) {
-          await tx.visitPlanSlot.updateMany({
+        for (const slot of this.normalizeSlots(dto.slots, rounds)) {
+          const result = await tx.visitPlanSlot.updateMany({
             where: { visitPlanId: planId, slotCode: slot.slotCode },
             data: this.slotPersistFields(slot),
           });
+          if (result.count === 0) {
+            await tx.visitPlanSlot.create({
+              data: {
+                visitPlanId: planId,
+                slotCode: slot.slotCode,
+                sortOrder: slot.sortOrder,
+                ...this.slotPersistFields(slot),
+              },
+            });
+          }
         }
       }
       await tx.serviceUserVisitPlan.update({
@@ -448,8 +540,8 @@ export class ServiceUserVisitPlansService {
         data: {
           visitPlanId: planId,
           reason: dto.amendmentReason.trim(),
-          snapshotBefore: this.snapshot(existing) as Prisma.InputJsonValue,
-          snapshotAfter: this.snapshot(after) as Prisma.InputJsonValue,
+          snapshotBefore: this.snapshot(existing, roundNameByCode) as Prisma.InputJsonValue,
+          snapshotAfter: this.snapshot(after, roundNameByCode) as Prisma.InputJsonValue,
           amendedById: userId,
         },
       });
@@ -469,7 +561,7 @@ export class ServiceUserVisitPlansService {
       return after;
     });
 
-    return { message: 'Visit plan updated', data: this.mapPlan(updated) };
+    return { message: 'Visit plan updated', data: this.mapPlan(updated, roundNameByCode) };
   }
 
   async activate(userId: string, serviceUserId: string, planId: string, meta?: RequestAuditMeta) {
@@ -519,7 +611,8 @@ export class ServiceUserVisitPlansService {
       return activated;
     });
 
-    return { message: 'Visit plan activated', data: this.mapPlan(result) };
+    const roundNameByCode = await this.loadRoundNameMap();
+    return { message: 'Visit plan activated', data: this.mapPlan(result, roundNameByCode) };
   }
 
   async suspend(
@@ -533,6 +626,7 @@ export class ServiceUserVisitPlansService {
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Only active visit plans can be suspended');
     }
+    const roundNameByCode = await this.loadRoundNameMap();
     const result = await this.prisma.serviceUserVisitPlan.update({
       where: { id: planId },
       data: { status: VisitPlanStatus.SUSPENDED, updatedById: userId },
@@ -542,8 +636,8 @@ export class ServiceUserVisitPlansService {
       data: {
         visitPlanId: planId,
         reason: reason.trim(),
-        snapshotBefore: this.snapshot(plan) as Prisma.InputJsonValue,
-        snapshotAfter: this.snapshot(result) as Prisma.InputJsonValue,
+        snapshotBefore: this.snapshot(plan, roundNameByCode) as Prisma.InputJsonValue,
+        snapshotAfter: this.snapshot(result, roundNameByCode) as Prisma.InputJsonValue,
         amendedById: userId,
       },
     });
@@ -557,7 +651,7 @@ export class ServiceUserVisitPlansService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    return { message: 'Visit plan suspended', data: this.mapPlan(result) };
+    return { message: 'Visit plan suspended', data: this.mapPlan(result, roundNameByCode) };
   }
 
   async end(userId: string, serviceUserId: string, planId: string, reason: string, meta?: RequestAuditMeta) {
@@ -565,6 +659,7 @@ export class ServiceUserVisitPlansService {
     if (plan.status === VisitPlanStatus.ENDED) {
       throw new BadRequestException('Visit plan is already ended');
     }
+    const roundNameByCode = await this.loadRoundNameMap();
     const result = await this.prisma.serviceUserVisitPlan.update({
       where: { id: planId },
       data: {
@@ -578,8 +673,8 @@ export class ServiceUserVisitPlansService {
       data: {
         visitPlanId: planId,
         reason: reason.trim(),
-        snapshotBefore: this.snapshot(plan) as Prisma.InputJsonValue,
-        snapshotAfter: this.snapshot(result) as Prisma.InputJsonValue,
+        snapshotBefore: this.snapshot(plan, roundNameByCode) as Prisma.InputJsonValue,
+        snapshotAfter: this.snapshot(result, roundNameByCode) as Prisma.InputJsonValue,
         amendedById: userId,
       },
     });
@@ -593,7 +688,7 @@ export class ServiceUserVisitPlansService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    return { message: 'Visit plan ended', data: this.mapPlan(result) };
+    return { message: 'Visit plan ended', data: this.mapPlan(result, roundNameByCode) };
   }
 
   async prefillFromDomCare(userId: string, serviceUserId: string, planId: string, meta?: RequestAuditMeta) {
@@ -634,15 +729,21 @@ export class ServiceUserVisitPlansService {
     });
     if (existing) {
       const full = await this.getPlanOrThrow(serviceUserId, existing.id);
-      return { message: 'Visit plan already exists for this assessment', data: this.mapPlan(full) };
+      const roundNameByCode = await this.loadRoundNameMap();
+      return { message: 'Visit plan already exists for this assessment', data: this.mapPlan(full, roundNameByCode) };
     }
 
+    const rounds = await this.loadMedicationRoundCatalog();
     const preferred = submission.answers.find((a) =>
       isPreferredVisitTimesFieldKey(a.question.metadata as Prisma.JsonValue),
     );
     const dom = await this.prisma.serviceUserDomCare.findUnique({ where: { serviceUserId } });
     const numberOfCarers = dom?.numberOfCarers ?? 1;
-    const slotSeeds = buildSlotsFromPreferredVisitTimes(preferred?.selectedOptions ?? null, numberOfCarers);
+    const slotSeeds = buildSlotsFromPreferredVisitTimes(
+      preferred?.selectedOptions ?? null,
+      numberOfCarers,
+      rounds,
+    );
 
     const reviewDueAt = new Date();
     reviewDueAt.setDate(reviewDueAt.getDate() + 42);
@@ -657,7 +758,7 @@ export class ServiceUserVisitPlansService {
         reviewDueAt: reviewDueAt.toISOString(),
         notes: 'Draft created from approved initial assessment',
         slots: slotSeeds.map((s) => ({
-          slotCode: s.slotCode as VisitPlanSlotCode,
+          slotCode: s.slotCode,
           daysOfWeek: s.daysOfWeek,
           plannedStartTime: s.plannedStartTime,
           plannedEndTime: s.plannedEndTime,
@@ -709,6 +810,7 @@ export class ServiceUserVisitPlansService {
       where: { id: serviceUserId },
       include: { address: true },
     });
+    const roundNameByCode = await this.loadRoundNameMap();
 
     let visitsCreated = 0;
     let visitsSkipped = 0;
@@ -761,7 +863,7 @@ export class ServiceUserVisitPlansService {
               scheduleBatchId: batch.id,
               scheduleAreaId: dto.scheduleAreaId ?? null,
               serviceUserId,
-              jobName: `${slotLabel(slot.slotCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
+              jobName: `${slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
               scheduledStartDateTime: start,
               scheduledEndDateTime: end,
               requiredCarers: slot.requiredCarers,
@@ -786,7 +888,7 @@ export class ServiceUserVisitPlansService {
             data: {
               scheduledJobId: job.id,
               serviceUserId,
-              visitName: slotLabel(slot.slotCode),
+              visitName: slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode),
               scheduledStartDateTime: start,
               scheduledEndDateTime: end,
               requiredCarers: slot.requiredCarers,
@@ -800,8 +902,8 @@ export class ServiceUserVisitPlansService {
           });
 
           const assignedCarers = slot.assignedEmployeeIds ?? [];
-          if (assignedCarers.length > 0) {
-            const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
+          const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
+          if (toAllocate.length > 0) {
             for (const employeeId of toAllocate) {
               await tx.jobAllocation.create({
                 data: {
@@ -814,14 +916,22 @@ export class ServiceUserVisitPlansService {
                 },
               });
             }
-            await tx.scheduledJob.update({
-              where: { id: job.id },
-              data: {
-                status:
-                  toAllocate.length >= slot.requiredCarers
-                    ? ScheduledJobStatus.ALLOCATED
-                    : ScheduledJobStatus.NEEDS_ATTENTION,
-              },
+          }
+
+          const jobStatus =
+            toAllocate.length >= slot.requiredCarers
+              ? ScheduledJobStatus.ALLOCATED
+              : ScheduledJobStatus.NEEDS_ATTENTION;
+
+          await tx.scheduledJob.update({
+            where: { id: job.id },
+            data: { status: jobStatus },
+          });
+
+          if (jobStatus === ScheduledJobStatus.NEEDS_ATTENTION) {
+            await tx.scheduledVisit.update({
+              where: { id: visit.id },
+              data: { status: ScheduledVisitStatus.NEEDS_ATTENTION },
             });
           }
 
@@ -851,6 +961,234 @@ export class ServiceUserVisitPlansService {
     return {
       message: 'Schedule generated from visit plan',
       data: { visitsCreated, visitsSkipped, fromDate: dto.fromDate, toDate: dto.toDate },
+    };
+  }
+
+  async listCalendarVisits(
+    serviceUserId: string,
+    planId: string,
+    query: VisitPlanCalendarVisitsQueryDto,
+  ) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const from = this.parseDateOnly(query.from, 'from');
+    const to = this.parseDateOnly(query.to, 'to');
+    if (to.getTime() < from.getTime()) {
+      throw new BadRequestException('to must be on or after from');
+    }
+
+    const slotIds = plan.slots.map((s) => s.id).filter(Boolean);
+    if (!slotIds.length) {
+      return { data: [] as ReturnType<ServiceUserVisitPlansService['mapCalendarVisit']>[] };
+    }
+
+    const endInclusive = new Date(to);
+    endInclusive.setUTCHours(23, 59, 59, 999);
+
+    const rows = await this.prisma.scheduledVisit.findMany({
+      where: {
+        serviceUserId,
+        visitPlanSlotId: { in: slotIds },
+        deletedAt: null,
+        isActive: true,
+        scheduledStartDateTime: { gte: from, lte: endInclusive },
+      },
+      orderBy: { scheduledStartDateTime: 'asc' },
+      include: calendarVisitInclude,
+    });
+
+    return { data: rows.map((row) => this.mapCalendarVisit(row)) };
+  }
+
+  async recordCalendarOutcome(
+    userId: string,
+    serviceUserId: string,
+    planId: string,
+    dto: RecordVisitPlanCalendarOutcomeDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const slot = plan.slots.find((s) => s.id === dto.visitPlanSlotId);
+    if (!slot) throw new BadRequestException('Visit plan slot not found on this plan');
+    if (!slot.isEnabled) throw new BadRequestException('Visit plan slot is not enabled');
+
+    const day = this.parseDateOnly(dto.date, 'date');
+    const scheduleAnchor = plan.effectiveFrom;
+    if (!visitPlanSlotMatchesDay(slot, day, scheduleAnchor)) {
+      throw new BadRequestException('This visit is not scheduled on the selected date');
+    }
+
+    const roundNameByCode = await this.loadRoundNameMap();
+    const su = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId },
+      include: { address: true },
+    });
+
+    const start = this.combineDateAndTime(day, slot.plannedStartTime);
+    let end = this.combineDateAndTime(day, slot.plannedEndTime);
+    if (end.getTime() <= start.getTime()) {
+      end = new Date(end.getTime() + 86400000);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let visit = await tx.scheduledVisit.findFirst({
+        where: {
+          visitPlanSlotId: slot.id,
+          deletedAt: null,
+          scheduledStartDateTime: start,
+        },
+      });
+
+      if (!visit) {
+        const dateStr = dto.date;
+        let batch = await tx.scheduleBatch.findFirst({
+          where: { scheduleDate: day, deletedAt: null, isActive: true },
+        });
+        if (!batch) {
+          batch = await tx.scheduleBatch.create({
+            data: {
+              scheduleDate: day,
+              status: 'BUILDING',
+              buildSource: 'MANUAL',
+              metadata: { visitPlanId: planId, calendarOutcome: true } as Prisma.InputJsonValue,
+              createdById: userId,
+            },
+          });
+        }
+
+        const job = await tx.scheduledJob.create({
+          data: {
+            scheduleBatchId: batch.id,
+            serviceUserId,
+            jobName: `${slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
+            scheduledStartDateTime: start,
+            scheduledEndDateTime: end,
+            requiredCarers: slot.requiredCarers,
+            status: ScheduledJobStatus.UNALLOCATED,
+            postcode: su?.address?.postcode ?? null,
+            address: su?.address
+              ? [su.address.addressLine1, su.address.addressLine2, su.address.town, su.address.postcode]
+                  .filter(Boolean)
+                  .join(', ')
+              : null,
+            metadata: { visitPlanId: planId, visitPlanSlotId: slot.id, date: dateStr } as Prisma.InputJsonValue,
+            createdById: userId,
+          },
+        });
+
+        visit = await tx.scheduledVisit.create({
+          data: {
+            scheduledJobId: job.id,
+            serviceUserId,
+            visitName: slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode),
+            scheduledStartDateTime: start,
+            scheduledEndDateTime: end,
+            requiredCarers: slot.requiredCarers,
+            status: ScheduledVisitStatus.PLANNED,
+            medicationRequired: Boolean(slot.medicationRoundCode),
+            notesRequired: slot.notesRequired,
+            photoRequired: slot.photoAllowed,
+            visitPlanSlotId: slot.id,
+            createdById: userId,
+          },
+        });
+
+        const assignedCarers = slot.assignedEmployeeIds ?? [];
+        if (assignedCarers.length > 0) {
+          const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
+          for (const employeeId of toAllocate) {
+            await tx.jobAllocation.create({
+              data: {
+                scheduledJobId: job.id,
+                scheduledVisitId: visit.id,
+                employeeId,
+                status: AllocationStatus.CONFIRMED,
+                requiresConfirmation: false,
+                allocatedById: userId,
+              },
+            });
+          }
+          await tx.scheduledJob.update({
+            where: { id: job.id },
+            data: {
+              status:
+                toAllocate.length >= slot.requiredCarers
+                  ? ScheduledJobStatus.ALLOCATED
+                  : ScheduledJobStatus.NEEDS_ATTENTION,
+            },
+          });
+        }
+      }
+
+      const updated = await tx.scheduledVisit.update({
+        where: { id: visit.id },
+        data: {
+          status: dto.status as ScheduledVisitStatus,
+          ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+          ...(dto.status === ScheduledVisitStatus.STARTED ? { actualStartDateTime: new Date() } : {}),
+          ...(dto.status === ScheduledVisitStatus.COMPLETED ? { actualEndDateTime: new Date() } : {}),
+          updatedById: userId,
+        },
+      });
+
+      await this.scheduledJobsService.syncJobStatusFromVisits(tx, updated.scheduledJobId, userId);
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.SCHEDULED_VISIT_STATUS_CHANGED,
+        recordType: 'ScheduledVisit',
+        recordId: updated.id,
+        metadata: { visitPlanId: planId, visitPlanSlotId: slot.id, date: dto.date },
+        newValues: auditSnapshot({ status: updated.status, notes: updated.notes }),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      const enriched = await tx.scheduledVisit.findFirstOrThrow({
+        where: { id: updated.id },
+        include: calendarVisitInclude,
+      });
+
+      return { message: 'Visit outcome recorded', data: this.mapCalendarVisit(enriched) };
+    });
+  }
+
+  private mapCalendarVisit(row: CalendarVisitRow) {
+    const activeAllocations = row.scheduledJob.allocations.filter((a) =>
+      CALENDAR_VISIT_ACTIVE_ALLOCATION.includes(a.status),
+    );
+    const allocatedCount = activeAllocations.length;
+    const underAllocated = allocatedCount < row.requiredCarers;
+    const jobNeedsAttention =
+      row.scheduledJob.status === ScheduledJobStatus.NEEDS_ATTENTION ||
+      row.scheduledJob.status === ScheduledJobStatus.UNALLOCATED ||
+      underAllocated;
+
+    let displayStatus: ScheduledVisitStatus = row.status;
+    if (
+      jobNeedsAttention &&
+      (row.status === ScheduledVisitStatus.PLANNED || row.status === ScheduledVisitStatus.NEEDS_ATTENTION)
+    ) {
+      displayStatus = ScheduledVisitStatus.NEEDS_ATTENTION;
+    }
+
+    return {
+      id: row.id,
+      visitPlanSlotId: row.visitPlanSlotId,
+      status: row.status,
+      displayStatus,
+      jobStatus: row.scheduledJob.status,
+      requiredCarers: row.requiredCarers,
+      allocatedCount,
+      allocatedEmployeeIds: activeAllocations.map((a) => a.employeeId),
+      slotLabel: row.visitName,
+      slotCode: row.visitPlanSlot?.slotCode ?? null,
+      linkedCarePlanFormIds: row.visitPlanSlot?.linkedCarePlanFormIds ?? [],
+      notes: row.notes,
+      scheduledStartDateTime: row.scheduledStartDateTime.toISOString(),
+      scheduledEndDateTime: row.scheduledEndDateTime?.toISOString() ?? null,
+      occurrenceDate: row.scheduledStartDateTime.toISOString().slice(0, 10),
     };
   }
 }

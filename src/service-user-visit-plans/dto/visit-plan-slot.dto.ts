@@ -4,7 +4,6 @@ import {
   VisitPlanMonthlyOrdinal,
   VisitPlanRepeatUnit,
   VisitPlanScheduleFrequency,
-  VisitPlanSlotCode,
 } from '@prisma/client';
 import {
   ArrayMaxSize,
@@ -23,9 +22,10 @@ import {
 } from 'class-validator';
 
 export class VisitPlanSlotDto {
-  @ApiProperty({ enum: VisitPlanSlotCode })
-  @IsEnum(VisitPlanSlotCode)
-  slotCode!: VisitPlanSlotCode;
+  @ApiProperty({ example: 'MORNING', description: 'Medication administration round code (Settings → Time slots)' })
+  @IsString()
+  @MaxLength(64)
+  slotCode!: string;
 
   @ApiProperty({ type: [Number], description: '0=Sun … 6=Sat' })
   @IsArray()
