@@ -14,8 +14,15 @@ import { seedInitialAssessmentCarePlanRules } from './seeds/initial-assessment-c
 import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
 import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
+import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
+import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
+import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
+import {
+  DEFAULT_SERVICE_USER_ETHNICITIES,
+  DEFAULT_SERVICE_USER_LANGUAGES,
+} from './seed-data/service-user-ethnicity-language.defaults';
 
 const prisma = new PrismaClient();
 
@@ -1144,18 +1151,22 @@ async function main() {
     });
   }
 
-  for (const row of [
-    ['Private', 'PRIVATE'],
-    ['Local Authority', 'LOCAL_AUTHORITY'],
-    ['NHS', 'NHS'],
-    ['Direct Payment', 'DIRECT_PAYMENT'],
-    ['Mixed Funding', 'MIXED'],
-    ['Unknown', 'FUNDING_UNKNOWN'],
-  ]) {
-    await prisma.serviceUserFundingType.upsert({
-      where: { code: row[1] },
-      update: { name: row[0], isActive: true },
-      create: { name: row[0], code: row[1] },
+  const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
+  console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
+
+  for (const row of DEFAULT_SERVICE_USER_ETHNICITIES) {
+    await prisma.serviceUserEthnicity.upsert({
+      where: { code: row.code },
+      update: { name: row.name, isActive: true },
+      create: { name: row.name, code: row.code },
+    });
+  }
+
+  for (const row of DEFAULT_SERVICE_USER_LANGUAGES) {
+    await prisma.serviceUserLanguage.upsert({
+      where: { code: row.code },
+      update: { name: row.name, isActive: true },
+      create: { name: row.name, code: row.code },
     });
   }
 
@@ -1199,42 +1210,11 @@ async function main() {
     });
   }
 
-  const allergyCatalogSeed: Array<[string, string]> = [
-    ['ADHESIVE TAPE', 'ADHESIVE_TAPE'],
-    ['Air', 'AIR'],
-    ['Aledronic Acid', 'ALEDRONIC_ACID'],
-    ['allergic to tramadol', 'ALLERGIC_TRAMADOL'],
-    ['allopurinol', 'ALLOPURINOL'],
-    ['Amlodipine', 'AMLODIPINE'],
-    ['Amoxicillin, Clarithromycin', 'AMOXICILLIN_CLARITHROMYCIN'],
-    ['Anadin', 'ANADIN'],
-    ['Angiotensin Converting Enzyme Inhibitors', 'ACE_INHIBITORS'],
-    ['Aspirin', 'ASPIRIN'],
-    ['Atorvastatin', 'ATORVASTATIN'],
-    ['Bee stings', 'BEE_STINGS'],
-    ['Codeine', 'CODEINE'],
-    ['Dairy', 'DAIRY'],
-    ['Eggs', 'EGGS'],
-    ['Ibuprofen', 'IBUPROFEN'],
-    ['Latex', 'LATEX'],
-    ['Metformin', 'METFORMIN'],
-    ['Penicillin', 'PENICILLIN'],
-    ['Peanuts', 'PEANUTS'],
-    ['Shellfish', 'SHELLFISH'],
-    ['Soy', 'SOY'],
-    ['Sulphur / Sulfa drugs', 'SULFA_DRUGS'],
-    ['Tramadol', 'TRAMADOL'],
-    ['Wheat / Gluten', 'WHEAT_GLUTEN'],
-    ['Other / not listed', 'OTHER_NOT_LISTED'],
-  ];
-  for (let i = 0; i < allergyCatalogSeed.length; i++) {
-    const [name, code] = allergyCatalogSeed[i]!;
-    await prisma.allergyCatalog.upsert({
-      where: { code },
-      update: { name, sortOrder: i, isActive: true },
-      create: { name, code, sortOrder: i },
-    });
-  }
+  const allergyCount = await seedAllergyCatalog(prisma);
+  console.log(`Allergy catalogue seeded (${allergyCount} entries).`);
+
+  const vitalRangeCount = await seedVitalAcceptedRanges(prisma);
+  console.log(`Vital accepted ranges seeded (${vitalRangeCount} entries).`);
 
   const absenceReasonCatalogSeed: Array<[string, string]> = [
     ['Hospital Visit', 'HOSPITAL_VISIT'],

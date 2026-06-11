@@ -16,13 +16,17 @@ import { UpdateInitialAssessmentSectionDto } from './dto/update-initial-assessme
 import { CreateInitialAssessmentQuestionDto } from './dto/create-initial-assessment-question.dto';
 import { UpdateInitialAssessmentQuestionDto } from './dto/update-initial-assessment-question.dto';
 import { getInitialAssessmentAgencySettings } from '../initial-assessments/initial-assessment-agency-settings.util';
+import { LookupsService } from '../lookups/lookups.service';
 
 @ApiTags('Initial Assessment Templates')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('initial-assessment-templates')
 export class InitialAssessmentTemplatesController {
-  constructor(private readonly service: InitialAssessmentTemplatesService) {}
+  constructor(
+    private readonly service: InitialAssessmentTemplatesService,
+    private readonly lookupsService: LookupsService,
+  ) {}
 
   @Get()
   @AnyPermission('initial_assessment_templates.read', 'service_users.initial_assessment.read')
@@ -43,6 +47,13 @@ export class InitialAssessmentTemplatesController {
   @ApiOperation({ summary: 'Agency thresholds and blocking rules for initial assessments' })
   getAgencySettings() {
     return { data: getInitialAssessmentAgencySettings() };
+  }
+
+  @Get('vital-accepted-ranges')
+  @AnyPermission('initial_assessment_templates.read', 'service_users.initial_assessment.read')
+  @ApiOperation({ summary: 'Guidance-only accepted vital sign ranges for §4 physical assessment' })
+  async getVitalAcceptedRanges() {
+    return { data: await this.lookupsService.listVitalAcceptedRanges() };
   }
 
   @Get(':id')

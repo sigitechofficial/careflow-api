@@ -27,7 +27,8 @@ import {
   CAR_PARKING_SEVERITY_OPTIONS,
   REVIEW_FREQUENCY_OPTIONS,
 } from './initial-assessment-enterprise-options';
-import { whenFieldYes } from './initial-assessment-enterprise-metadata';
+import { migrateSection31FireQuestions } from './initial-assessment-section-31-fire.seed';
+import { whenFieldYes, whenNo, whenYes } from './initial-assessment-enterprise-metadata';
 import {
   SECTION_5_QUESTIONS,
   SECTION_6_QUESTIONS,
@@ -354,11 +355,47 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
     carePlanArea: 'Environment',
     description: 'Spec Â§3 â€” fire, access, environment checklist, flooring, pets',
     questions: [
-      { questionText: 'Any fire safety risks identified?', questionType: YES_NO, isRequired: true, riskFlag: true, sortOrder: 1, metadata: { specRef: '3.1' } },
-      { questionText: 'London Fire Brigade informed?', questionType: YES_NO, isRequired: true, sortOrder: 2, metadata: { specRef: '3.2' } },
-      { questionText: 'London Fire Brigade contact details', questionType: TEXT, sortOrder: 3, metadata: { specRef: '3.2' } },
-      { questionText: 'Can Service User manage home environment safely?', questionType: YES_NO, isRequired: true, sortOrder: 4, metadata: { specRef: '3.3' } },
-      { questionText: 'Measures needed if home is unsafe', questionType: TEXTAREA, sortOrder: 5, metadata: { specRef: '3.4' } },
+      {
+        questionText: 'Any fire safety risks identified? (Please state)',
+        questionType: TEXTAREA,
+        isRequired: true,
+        riskFlag: true,
+        sortOrder: 1,
+        metadata: { specRef: '3.1', fieldKey: 'fireSafetyRisks' },
+      },
+      {
+        questionText: 'London Fire Brigade informed?',
+        questionType: YES_NO,
+        isRequired: true,
+        sortOrder: 2,
+        metadata: { specRef: '3.2', fieldKey: 'londonFireBrigadeInformed' },
+      },
+      {
+        questionText: 'Details',
+        questionType: TEXTAREA,
+        sortOrder: 3,
+        metadata: {
+          specRef: '3.2',
+          fieldKey: 'londonFireBrigadeDetails',
+        },
+      },
+      {
+        questionText: 'Can client manage home environment safely?',
+        questionType: YES_NO,
+        isRequired: true,
+        sortOrder: 4,
+        metadata: { specRef: '3.3', fieldKey: 'manageHomeEnvironmentSafely' },
+      },
+      {
+        questionText: 'If no, what measure should be taken?',
+        questionType: TEXTAREA,
+        sortOrder: 5,
+        metadata: {
+          specRef: '3.4',
+          fieldKey: 'homeEnvironmentSafetyMeasures',
+          ...whenNo('Can client manage home environment safely?'),
+        },
+      },
       { questionText: 'Access instructions for staff', questionType: TEXTAREA, isRequired: true, sortOrder: 6, metadata: { specRef: '3.5', fieldKey: 'accessInstructions', prefillKey: 'accessInstruction', syncKey: 'accessInstructions' } },
       { questionText: 'Key safe present?', questionType: YES_NO, sortOrder: 7, metadata: { specRef: '3.5', fieldKey: 'keySafePresent' } },
       { questionText: 'Door entry code (secure — from DOM Care)', questionType: TEXT, sortOrder: 8, metadata: { specRef: '3.5', fieldKey: 'doorCode', prefillKey: 'doorCode', secureField: true } },
@@ -671,6 +708,11 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
   const legacyCount = await seedInitialAssessmentLegacyCatalog(prisma);
   if (legacyCount > 0) {
     console.log(`[seed] Imported ${legacyCount} legacy catalog questions into enterprise template.`);
+  }
+
+  const migratedFire = await migrateSection31FireQuestions(prisma);
+  if (migratedFire > 0) {
+    console.log(`[seed] Migrated ${migratedFire} §3.1–3.4 fire / home-safety question(s).`);
   }
 
   const pruned311 = await pruneSection311ActiveExtras(prisma);

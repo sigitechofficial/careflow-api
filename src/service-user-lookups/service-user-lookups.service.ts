@@ -13,6 +13,8 @@ export class ServiceUserLookupsService {
       maritalStatuses,
       careTypes,
       fundingTypes,
+      ethnicities,
+      languages,
       riskLevels,
       relationshipTypes,
       allergies,
@@ -24,6 +26,8 @@ export class ServiceUserLookupsService {
       this.prisma.serviceUserMaritalStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserCareType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserFundingType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.serviceUserEthnicity.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.serviceUserLanguage.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserRiskLevel.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.relationshipType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.allergyCatalog.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
@@ -40,6 +44,8 @@ export class ServiceUserLookupsService {
         maritalStatuses,
         careTypes,
         fundingTypes,
+        ethnicities,
+        languages,
         riskLevels,
         relationshipTypes,
         allergies,
@@ -65,6 +71,12 @@ export class ServiceUserLookupsService {
   }
   fundingTypes() {
     return this.prisma.serviceUserFundingType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+  }
+  ethnicities() {
+    return this.prisma.serviceUserEthnicity.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+  }
+  languages() {
+    return this.prisma.serviceUserLanguage.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
   }
   riskLevels() {
     return this.prisma.serviceUserRiskLevel.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });

@@ -280,23 +280,27 @@ export async function seedDemoServiceUserData(
 
   // ─── Allergies ────────────────────────────────────────────────────────────
   const allergyCatalogEntries = await prisma.allergyCatalog.findMany({
-    where: { code: { in: ['PENICILLIN', 'IBUPROFEN', 'SHELLFISH'] } },
+    where: {
+      code: {
+        in: ['MEDICATION_PENICILLIN', 'MEDICATION_IBUPROFEN_NSAIDS', 'FOOD_SHELLFISH_GENERAL'],
+      },
+    },
   });
   const allergyCatalogMap = Object.fromEntries(allergyCatalogEntries.map(a => [a.code, a]));
 
   const allergies = [
     {
-      allergyCatalogId: allergyCatalogMap['PENICILLIN']?.id ?? null,
+      allergyCatalogId: allergyCatalogMap['MEDICATION_PENICILLIN']?.id ?? null,
       allergyName: 'Penicillin',
       comment: 'Causes anaphylactic reaction — adrenaline auto-injector to be kept on site at all times.',
     },
     {
-      allergyCatalogId: allergyCatalogMap['IBUPROFEN']?.id ?? null,
+      allergyCatalogId: allergyCatalogMap['MEDICATION_IBUPROFEN_NSAIDS']?.id ?? null,
       allergyName: 'Ibuprofen',
       comment: 'Causes gastric irritation and mild rash. NSAIDs to be avoided.',
     },
     {
-      allergyCatalogId: allergyCatalogMap['SHELLFISH']?.id ?? null,
+      allergyCatalogId: allergyCatalogMap['FOOD_SHELLFISH_GENERAL']?.id ?? null,
       allergyName: 'Shellfish',
       comment: 'Causes hives and breathing difficulty. No shellfish in diet plan.',
     },

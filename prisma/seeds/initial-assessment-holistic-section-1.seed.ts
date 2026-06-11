@@ -13,9 +13,22 @@ const MULTI_SELECT = InitialAssessmentQuestionType.MULTI_SELECT;
 
 /** Extra §1 fields for holistic assessment document parity (upserted by questionText). */
 export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
-  { questionText: 'Client legal name', questionType: TEXT, isRequired: true, sortOrder: 81, metadata: { specRef: '1.1', fieldKey: 'clientLegalName', prefillKey: 'legalName' } },
-  { questionText: 'Ethnicity', questionType: TEXT, sortOrder: 82, metadata: { specRef: '1.1', fieldKey: 'ethnicity', prefillKey: 'ethnicity' } },
-  { questionText: 'Languages spoken', questionType: TEXT, sortOrder: 83, metadata: { specRef: '1.1', fieldKey: 'languagesSpoken' } },
+  { questionText: 'First name', questionType: TEXT, isRequired: true, sortOrder: 76, metadata: { specRef: '1.1', fieldKey: 'firstName', prefillKey: 'firstName' } },
+  { questionText: 'Middle name', questionType: TEXT, sortOrder: 77, metadata: { specRef: '1.1', fieldKey: 'middleName', prefillKey: 'middleName' } },
+  { questionText: 'Last name', questionType: TEXT, isRequired: true, sortOrder: 78, metadata: { specRef: '1.1', fieldKey: 'lastName', prefillKey: 'lastName' } },
+  { questionText: 'NI number', questionType: TEXT, sortOrder: 79, metadata: { specRef: '1.1', fieldKey: 'nationalInsuranceNumber', prefillKey: 'nationalInsuranceNumber' } },
+  {
+    questionText: 'Ethnicity',
+    questionType: SINGLE_SELECT,
+    sortOrder: 82,
+    metadata: { specRef: '1.1', fieldKey: 'ethnicity', prefillKey: 'ethnicity', optionsLookup: 'service_user_ethnicities' },
+  },
+  {
+    questionText: 'Languages spoken',
+    questionType: SINGLE_SELECT,
+    sortOrder: 83,
+    metadata: { specRef: '1.1', fieldKey: 'languagesSpoken', prefillKey: 'language', optionsLookup: 'service_user_languages' },
+  },
   { questionText: 'NHS number', questionType: TEXT, sortOrder: 84, metadata: { specRef: '1.1', fieldKey: 'nhsNumber', prefillKey: 'nhsNumber' } },
   { questionText: 'Beliefs', questionType: TEXTAREA, sortOrder: 85, metadata: { specRef: '1.1', fieldKey: 'beliefs' } },
   { questionText: 'Communication needs', questionType: TEXTAREA, sortOrder: 86, metadata: { specRef: '1.1', fieldKey: 'communicationNeeds' } },

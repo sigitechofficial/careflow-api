@@ -1713,6 +1713,26 @@ model DocumentTag {
   @@schema("lookups")
 }
 
+/// Guidance ranges for §4 initial assessment vital signs (Settings → Accepted ranges).
+model VitalAcceptedRangeCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  fieldKey  String   @unique
+  label     String
+  unit      String
+  min       Float
+  max       Float
+  sortOrder Int      @default(0)
+  /// `left` or `right` — display column on the assessment guidance panel.
+  column    String   @db.VarChar(8)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("lookups")
+}
+
 // ---- Service Users (service_users schema) ----
 
 model ServiceUserStatus {
@@ -1785,6 +1805,28 @@ model ServiceUserFundingType {
   updatedAt DateTime @updatedAt
 
   serviceUsers ServiceUser[]
+  @@schema("service_users")
+}
+
+model ServiceUserEthnicity {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("service_users")
+}
+
+model ServiceUserLanguage {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@schema("service_users")
 }
 
@@ -2771,18 +2813,30 @@ model ServiceUserInventoryItem {
   @@schema("service_users")
 }
 
+enum AllergyCatalogCategory {
+  FOOD
+  DRINK
+  ENVIRONMENTAL
+  MEDICATION
+  OTHER
+
+  @@schema("service_users")
+}
+
 model AllergyCatalog {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String                 @id @default(uuid()) @db.Uuid
   name      String
-  code      String   @unique
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  code      String                 @unique
+  category  AllergyCatalogCategory @default(OTHER)
+  sortOrder Int                    @default(0)
+  isActive  Boolean                @default(true)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
 
   serviceUserAllergies ServiceUserAllergy[]
 
   @@index([isActive])
+  @@index([category])
   @@schema("service_users")
 }
 

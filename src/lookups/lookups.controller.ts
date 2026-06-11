@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { LookupsService } from './lookups.service';
 import { CreateLookupNameDto } from './dto/create-lookup-name.dto';
 import { CreateServiceUserCareTypeDto } from './dto/create-service-user-care-type.dto';
@@ -12,6 +12,9 @@ import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-typ
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
+import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
+import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
+import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
 
 @ApiTags('Lookups')
 @ApiBearerAuth()
@@ -264,6 +267,102 @@ export class LookupsController {
     return { message: 'Funding type deleted' };
   }
 
+  @Get('service-user-ethnicities')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user ethnicities (lookup data)' })
+  async serviceUserEthnicities() {
+    return { data: await this.service.listServiceUserEthnicities() };
+  }
+
+  @Post('service-user-ethnicities')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user ethnicity' })
+  async createServiceUserEthnicity(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserEthnicity(dto) };
+  }
+
+  @Patch('service-user-ethnicities/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user ethnicity' })
+  async updateServiceUserEthnicity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserEthnicity(id, dto) };
+  }
+
+  @Delete('service-user-ethnicities/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user ethnicity' })
+  async deleteServiceUserEthnicity(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserEthnicity(id);
+    return { message: 'Ethnicity deleted' };
+  }
+
+  @Get('service-user-languages')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user languages (lookup data)' })
+  async serviceUserLanguages() {
+    return { data: await this.service.listServiceUserLanguages() };
+  }
+
+  @Post('service-user-languages')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user language' })
+  async createServiceUserLanguage(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserLanguage(dto) };
+  }
+
+  @Patch('service-user-languages/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user language' })
+  async updateServiceUserLanguage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserLanguage(id, dto) };
+  }
+
+  @Delete('service-user-languages/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user language' })
+  async deleteServiceUserLanguage(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserLanguage(id);
+    return { message: 'Language deleted' };
+  }
+
+  @Get('allergy-catalog')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user allergy catalogue (lookup data)' })
+  async allergyCatalog() {
+    return { data: await this.service.listAllergyCatalog() };
+  }
+
+  @Post('allergy-catalog')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create allergy catalogue entry' })
+  async createAllergyCatalog(@Body() dto: CreateAllergyCatalogDto) {
+    return { data: await this.service.createAllergyCatalog(dto) };
+  }
+
+  @Patch('allergy-catalog/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update allergy catalogue entry' })
+  async updateAllergyCatalog(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateAllergyCatalogDto,
+  ) {
+    return { data: await this.service.updateAllergyCatalog(id, dto) };
+  }
+
+  @Delete('allergy-catalog/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate allergy catalogue entry' })
+  async deleteAllergyCatalog(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteAllergyCatalog(id);
+    return { message: 'Allergy deleted' };
+  }
+
   @Get('body-map-record-types')
   @Permissions('lookups.read')
   @ApiOperation({ summary: 'List body map record types and sub-types' })
@@ -294,6 +393,28 @@ export class LookupsController {
   async deleteBodyMapRecordType(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.deleteBodyMapRecordType(id);
     return { message: 'Record type deleted' };
+  }
+
+  @Get('vital-accepted-ranges')
+  @AnyPermission(
+    'lookups.read',
+    'lookups.manage',
+    'service_users.initial_assessment.read',
+    'service_users.read',
+  )
+  @ApiOperation({ summary: 'Guidance-only accepted vital sign ranges for initial assessment §4' })
+  async vitalAcceptedRanges() {
+    return { data: await this.service.listVitalAcceptedRanges() };
+  }
+
+  @Patch('vital-accepted-ranges/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update min/max for a vital accepted range lookup row' })
+  async updateVitalAcceptedRange(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateVitalAcceptedRangeDto,
+  ) {
+    return { data: await this.service.updateVitalAcceptedRange(id, dto) };
   }
 
   @Patch(':resource/:id')

@@ -19,6 +19,10 @@ import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-typ
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
+import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
+import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
+import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
+import { VITAL_ACCEPTED_RANGE_DEFAULTS } from './vital-accepted-ranges.defaults';
 
 @Injectable()
 export class LookupsService implements OnModuleInit {
@@ -37,8 +41,22 @@ export class LookupsService implements OnModuleInit {
         });
       }
       this.logger.log(`Job title lookups ensured (${DEFAULT_JOB_TITLES.length} titles).`);
+      for (const row of VITAL_ACCEPTED_RANGE_DEFAULTS) {
+        await this.prisma.vitalAcceptedRangeCatalog.upsert({
+          where: { fieldKey: row.fieldKey },
+          update: {
+            label: row.label,
+            unit: row.unit,
+            sortOrder: row.sortOrder,
+            column: row.column,
+            isActive: true,
+          },
+          create: { ...row },
+        });
+      }
+      this.logger.log(`Vital accepted range lookups ensured (${VITAL_ACCEPTED_RANGE_DEFAULTS.length} rows).`);
     } catch (e) {
-      this.logger.error('Failed to seed default job titles', e instanceof Error ? e.stack : e);
+      this.logger.error('Failed to seed default lookups', e instanceof Error ? e.stack : e);
     }
   }
 
@@ -659,6 +677,208 @@ export class LookupsService implements OnModuleInit {
     });
   }
 
+  async listServiceUserEthnicities() {
+    return this.prisma.serviceUserEthnicity.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserEthnicity(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserEthnicity.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'An ethnicity with this code already exists');
+    }
+  }
+
+  async updateServiceUserEthnicity(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserEthnicity.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Ethnicity not found');
+    const data: Prisma.ServiceUserEthnicityUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserEthnicity.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'An ethnicity with this code already exists');
+    }
+  }
+
+  async deleteServiceUserEthnicity(id: string) {
+    const existing = await this.prisma.serviceUserEthnicity.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Ethnicity not found');
+    await this.prisma.serviceUserEthnicity.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listServiceUserLanguages() {
+    return this.prisma.serviceUserLanguage.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserLanguage(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserLanguage.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A language with this code already exists');
+    }
+  }
+
+  async updateServiceUserLanguage(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserLanguage.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Language not found');
+    const data: Prisma.ServiceUserLanguageUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserLanguage.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A language with this code already exists');
+    }
+  }
+
+  async deleteServiceUserLanguage(id: string) {
+    const existing = await this.prisma.serviceUserLanguage.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Language not found');
+    await this.prisma.serviceUserLanguage.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listAllergyCatalog() {
+    return this.prisma.allergyCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        category: true,
+        sortOrder: true,
+        isActive: true,
+      },
+    });
+  }
+
+  async createAllergyCatalog(dto: CreateAllergyCatalogDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    const maxSort = await this.prisma.allergyCatalog.aggregate({ _max: { sortOrder: true } });
+    const sortOrder = dto.sortOrder ?? (maxSort._max.sortOrder ?? -1) + 1;
+    try {
+      return await this.prisma.allergyCatalog.create({
+        data: {
+          name,
+          code,
+          category: dto.category ?? 'OTHER',
+          sortOrder,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          category: true,
+          sortOrder: true,
+          isActive: true,
+        },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'An allergy with this code already exists');
+    }
+  }
+
+  async updateAllergyCatalog(id: string, dto: UpdateAllergyCatalogDto) {
+    const existing = await this.prisma.allergyCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Allergy not found');
+    const data: Prisma.AllergyCatalogUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.allergyCatalog.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          category: true,
+          sortOrder: true,
+          isActive: true,
+        },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'An allergy with this code already exists');
+    }
+  }
+
+  async deleteAllergyCatalog(id: string) {
+    const existing = await this.prisma.allergyCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Allergy not found');
+    await this.prisma.allergyCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
   async listBodyMapRecordTypes() {
     return this.prisma.bodyMapRecordTypeCatalog.findMany({
       where: { isActive: true },
@@ -835,6 +1055,29 @@ export class LookupsService implements OnModuleInit {
         nonCoreActivityReasons,
       },
     };
+  }
+
+  async listVitalAcceptedRanges() {
+    return this.prisma.vitalAcceptedRangeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+  }
+
+  async updateVitalAcceptedRange(id: string, dto: UpdateVitalAcceptedRangeDto) {
+    const existing = await this.prisma.vitalAcceptedRangeCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Vital accepted range not found');
+
+    const min = dto.min ?? existing.min;
+    const max = dto.max ?? existing.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+      throw new BadRequestException('Min must be lower than max');
+    }
+
+    return this.prisma.vitalAcceptedRangeCatalog.update({
+      where: { id },
+      data: { min, max },
+    });
   }
 }
 
