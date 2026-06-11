@@ -602,8 +602,8 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
     });
 
     let sectionQuestions = await prisma.initialAssessmentQuestion.findMany({
-      where: { sectionId: sectionRow.id, deletedAt: null },
-      select: { id: true, questionText: true, metadata: true },
+      where: { sectionId: sectionRow.id },
+      select: { id: true, questionText: true, metadata: true, deletedAt: true },
     });
 
     for (const q of section.questions) {
@@ -658,7 +658,7 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
       if (existing) {
         await prisma.initialAssessmentQuestion.update({
           where: { id: existing.id },
-          data,
+          data: { ...data, deletedAt: null },
         });
       } else {
         await prisma.initialAssessmentQuestion.create({

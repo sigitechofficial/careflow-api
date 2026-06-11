@@ -9,6 +9,7 @@ const TEXTAREA = InitialAssessmentQuestionType.TEXTAREA;
 const YES_NO = InitialAssessmentQuestionType.YES_NO;
 const DATE = InitialAssessmentQuestionType.DATE;
 const SINGLE_SELECT = InitialAssessmentQuestionType.SINGLE_SELECT;
+const MULTI_SELECT = InitialAssessmentQuestionType.MULTI_SELECT;
 
 /** Extra §1 fields for holistic assessment document parity (upserted by questionText). */
 export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
@@ -46,7 +47,7 @@ export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'Carer assessment referral date', questionType: DATE, sortOrder: 118, metadata: { specRef: '1.2', fieldKey: 'carerAssessmentReferralDate', showWhen: { gateTextIncludes: 'referral made', yes: true } } },
   {
     questionText: 'Type of living accommodation',
-    questionType: SINGLE_SELECT,
+    questionType: MULTI_SELECT,
     sortOrder: 119,
     options: ACCOMMODATION_TYPE_OPTIONS,
     metadata: { specRef: '1.2', fieldKey: 'accommodationType' },
