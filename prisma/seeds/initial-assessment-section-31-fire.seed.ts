@@ -18,19 +18,30 @@ type FireQuestionPatch = {
 const SECTION_31_FIRE_QUESTIONS: FireQuestionPatch[] = [
   {
     oldTexts: ['Any fire safety risks identified?', 'Any fire safety risks identified? (Please state)'],
-    questionText: 'Any fire safety risks identified? (Please state)',
-    questionType: TEXTAREA,
+    questionText: 'Any fire safety risks identified?',
+    questionType: YES_NO,
     isRequired: true,
     riskFlag: true,
     sortOrder: 1,
-    metadata: { specRef: '3.1', fieldKey: 'fireSafetyRisks' },
+    metadata: { specRef: '3.1', fieldKey: 'fireSafetyRisksIdentified' },
+  },
+  {
+    oldTexts: [],
+    questionText: 'Any fire safety risks identified? (Please state)',
+    questionType: TEXTAREA,
+    sortOrder: 2,
+    metadata: {
+      specRef: '3.1',
+      fieldKey: 'fireSafetyRisksDetails',
+      ...whenYes('Any fire safety risks identified?'),
+    },
   },
   {
     oldTexts: ['London Fire Brigade informed?'],
     questionText: 'London Fire Brigade informed?',
     questionType: YES_NO,
     isRequired: true,
-    sortOrder: 2,
+    sortOrder: 3,
     metadata: { specRef: '3.2', fieldKey: 'londonFireBrigadeInformed' },
   },
   {
@@ -40,7 +51,7 @@ const SECTION_31_FIRE_QUESTIONS: FireQuestionPatch[] = [
     ],
     questionText: 'Details',
     questionType: TEXTAREA,
-    sortOrder: 3,
+    sortOrder: 4,
     metadata: {
       specRef: '3.2',
       fieldKey: 'londonFireBrigadeDetails',
@@ -54,14 +65,14 @@ const SECTION_31_FIRE_QUESTIONS: FireQuestionPatch[] = [
     questionText: 'Can client manage home environment safely?',
     questionType: YES_NO,
     isRequired: true,
-    sortOrder: 4,
+    sortOrder: 5,
     metadata: { specRef: '3.3', fieldKey: 'manageHomeEnvironmentSafely' },
   },
   {
     oldTexts: ['Measures needed if home is unsafe', 'If no, what measure should be taken?'],
     questionText: 'If no, what measure should be taken?',
     questionType: TEXTAREA,
-    sortOrder: 5,
+    sortOrder: 6,
     metadata: {
       specRef: '3.4',
       fieldKey: 'homeEnvironmentSafetyMeasures',

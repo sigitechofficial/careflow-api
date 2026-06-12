@@ -21,4 +21,24 @@ export class RecordVisitPlanCalendarOutcomeDto {
   @IsString()
   @MaxLength(5000)
   notes?: string;
+
+  /** Carer who attended the visit (allocated on the job if not already). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  /** Actual visit start time on the visit date (HH:mm, UTC). */
+  @ApiPropertyOptional({ example: '09:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/)
+  actualStartTime?: string;
+
+  /** Actual visit end time on the visit date (HH:mm, UTC). */
+  @ApiPropertyOptional({ example: '09:45' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/)
+  actualEndTime?: string;
 }

@@ -47,6 +47,8 @@ export class LookupsService implements OnModuleInit {
           update: {
             label: row.label,
             unit: row.unit,
+            min: row.min,
+            max: row.max,
             sortOrder: row.sortOrder,
             column: row.column,
             isActive: true,

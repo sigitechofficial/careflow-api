@@ -10,7 +10,6 @@ import {
   FOOD_TEXTURE_OPTIONS,
   HEARING_IMPAIRMENT_OPTIONS,
   MEDICATION_AWARENESS_OPTIONS,
-  MEDICATION_SUPPORT_LEVEL_OPTIONS,
   NUTRITION_STATUS_OPTIONS,
   ORAL_HEALTH_OPTIONS,
   PAIN_DISTRESS_OPTIONS,
@@ -20,7 +19,7 @@ import {
   SWALLOWING_CONCERN_OPTIONS,
   YES_NO_UNKNOWN_OPTIONS,
 } from './initial-assessment-enterprise-options';
-import { iaMeta, whenFieldYes, whenNo, whenYes } from './initial-assessment-enterprise-metadata';
+import { iaMeta, whenNo, whenYes } from './initial-assessment-enterprise-metadata';
 
 const Y = InitialAssessmentQuestionType.YES_NO;
 const T = InitialAssessmentQuestionType.TEXT;
@@ -87,7 +86,6 @@ export const SECTION_6_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Adequately hydrated?', questionType: Y, isRequired: true, sortOrder: 9, metadata: iaMeta('6.3', { fieldKey: 'adequatelyHydrated' }) },
   { questionText: 'Hydration comment', questionType: A, sortOrder: 10, metadata: iaMeta('6.3', whenNo('adequately hydrated')) },
   { questionText: 'Daily fluid target (ml)', questionType: N, sortOrder: 11, metadata: iaMeta('6.3') },
-  { questionText: 'Fluid chart required?', questionType: Y, sortOrder: 12, metadata: iaMeta('6.6') },
   { questionText: 'Thickened fluids required?', questionType: Y, sortOrder: 13, metadata: iaMeta('6.3') },
   { questionText: 'Nutrition status', questionType: S, isRequired: true, sortOrder: 14, options: NUTRITION_STATUS_OPTIONS, metadata: iaMeta('6.4', { fieldKey: 'nutritionStatus' }) },
   { questionText: 'Malnourished or at nutrition risk?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 15, metadata: iaMeta('6.4') },
@@ -95,15 +93,9 @@ export const SECTION_6_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'BMI value', questionType: N, sortOrder: 17, metadata: iaMeta('6.8', whenYes('bmi completed')) },
   { questionText: 'MUST assessment completed?', questionType: Y, sortOrder: 18, metadata: iaMeta('6.9') },
   { questionText: 'MUST score', questionType: N, sortOrder: 19, metadata: iaMeta('6.9', whenYes('must assessment completed')) },
-  { questionText: 'Food likes', questionType: A, sortOrder: 20, metadata: iaMeta('6.5', { syncFromKey: 'foodLikes', syncMode: 'append-if-empty' }) },
-  { questionText: 'Food dislikes', questionType: A, sortOrder: 21, metadata: iaMeta('6.5') },
-  { questionText: 'Food allergies documented?', questionType: Y, isRequired: true, sortOrder: 22, metadata: iaMeta('6.5') },
-  { questionText: 'Food allergy details', questionType: A, sortOrder: 23, metadata: iaMeta('6.5', whenYes('food allergies documented')) },
-  { questionText: 'Dietary requirements (medical, cultural, religious)', questionType: A, sortOrder: 24, metadata: iaMeta('6.5', { syncFromKey: 'religiousDiet', syncMode: 'append-if-empty' }) },
   { questionText: 'Nutritional supplements prescribed?', questionType: Y, sortOrder: 25, metadata: iaMeta('6.6', { fieldKey: 'nutritionalSupplementsPrescribed' }) },
   { questionText: 'Dietitian referral made or required?', questionType: Y, carePlanTrigger: true, sortOrder: 26, metadata: iaMeta('6.4', { fieldKey: 'dietitianReferralRequired' }) },
   { questionText: 'Dietitian referral date', questionType: D, sortOrder: 27, metadata: iaMeta('6.10', whenYes('dietitian referral')) },
-  { questionText: 'Weight monitoring required?', questionType: Y, sortOrder: 28, metadata: iaMeta('6.6') },
   { questionText: 'Nutrition / hydration comments', questionType: A, sortOrder: 29, metadata: iaMeta('6.3') },
 ];
 
@@ -166,31 +158,6 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Knows why they take prescribed medication?', questionType: S, sortOrder: 2, options: MEDICATION_AWARENESS_OPTIONS, metadata: iaMeta('9.1', whenYes('taking prescribed medication')) },
   { questionText: 'Knows when to take prescribed medication?', questionType: S, sortOrder: 3, options: MEDICATION_AWARENESS_OPTIONS, metadata: iaMeta('9.1', whenYes('taking prescribed medication')) },
   { questionText: 'Knows how to take prescribed medication?', questionType: S, sortOrder: 4, options: MEDICATION_AWARENESS_OPTIONS, metadata: iaMeta('9.1', whenYes('taking prescribed medication')) },
-  { questionText: 'Recommended medication support level', questionType: S, sortOrder: 5, options: MEDICATION_SUPPORT_LEVEL_OPTIONS, metadata: iaMeta('9.2', { fieldKey: 'medicationSupportLevel' }) },
-  { questionText: 'Independent with self-administration of all prescribed medications?', questionType: Y, sortOrder: 6, metadata: iaMeta('9.2', { fieldKey: 'independentSelfAdmin' }) },
-  { questionText: 'Help removing medicines from packaging required?', questionType: Y, carePlanTrigger: true, sortOrder: 7, metadata: iaMeta('9.2', { fieldKey: 'packagingHelpRequired' }) },
-  { questionText: 'Prompting or reminding required?', questionType: Y, carePlanTrigger: true, sortOrder: 8, metadata: iaMeta('9.2') },
-  { questionText: 'Assistance administering medication?', questionType: Y, carePlanTrigger: true, sortOrder: 9, metadata: iaMeta('9.2') },
-  { questionText: 'Medication administered by', questionType: T, sortOrder: 10, metadata: iaMeta('9.2', whenYes('assistance administering medication')) },
-  { questionText: 'Prompting for insulin self-administration required?', questionType: Y, sortOrder: 11, metadata: iaMeta('9.3', { fieldKey: 'insulinPromptingRequired' }) },
-  { questionText: 'Supervision during insulin self-administration required?', questionType: Y, sortOrder: 12, metadata: iaMeta('9.3', { fieldKey: 'insulinSupervisionRequired' }) },
-  { questionText: 'Insulin administration required?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 13, metadata: iaMeta('9.3', { fieldKey: 'insulinAdministrationRequired' }) },
-  { questionText: 'Insulin administered by', questionType: T, sortOrder: 14, metadata: iaMeta('9.3', whenFieldYes('insulinAdministrationRequired')) },
-  { questionText: 'Blood glucose monitoring required?', questionType: Y, sortOrder: 15, metadata: iaMeta('9.3', { fieldKey: 'bloodGlucoseMonitoringRequired' }) },
-  { questionText: 'Controlled drugs in use?', questionType: Y, riskFlag: true, sortOrder: 16, metadata: iaMeta('9.3') },
-  { questionText: 'Covert medication required?', questionType: Y, riskFlag: true, sortOrder: 17, metadata: iaMeta('9.3') },
-  { questionText: 'PRN medication present?', questionType: S, sortOrder: 18, options: YES_NO_UNKNOWN_OPTIONS, metadata: iaMeta('9.5') },
-  { questionText: 'PRN protocol available?', questionType: S, sortOrder: 19, options: YES_NO_UNKNOWN_OPTIONS, metadata: iaMeta('9.5') },
-  { questionText: 'Allergies recorded?', questionType: S, isRequired: true, sortOrder: 20, options: YES_NO_UNKNOWN_OPTIONS, metadata: iaMeta('9.5') },
-  { questionText: 'Allergy details', questionType: A, sortOrder: 21, metadata: iaMeta('9.5', whenYes('allergies recorded')) },
-  { questionText: 'Medication storage safe?', questionType: S, sortOrder: 22, options: YES_NO_UNKNOWN_OPTIONS, metadata: iaMeta('9.5') },
-  { questionText: 'GP medication review requested?', questionType: Y, carePlanTrigger: true, sortOrder: 23, metadata: iaMeta('9.4') },
-  { questionText: 'Current medication list available?', questionType: Y, isRequired: true, sortOrder: 24, metadata: iaMeta('9.4') },
-  { questionText: 'Medication list verified?', questionType: Y, sortOrder: 25, metadata: iaMeta('9.4') },
-  { questionText: 'Date medication list verified', questionType: D, sortOrder: 26, metadata: iaMeta('9.4', whenYes('medication list verified')) },
-  { questionText: 'MAR / eMAR required?', questionType: Y, carePlanTrigger: true, sortOrder: 27, metadata: iaMeta('9.6', { emarModule: true, fieldKey: 'emarRequired' }) },
-  { questionText: 'Medication record start date', questionType: D, sortOrder: 28, metadata: iaMeta('9.6', whenYes('mar / emar required')) },
-  { questionText: 'Medication safety notes', questionType: A, sortOrder: 29, metadata: iaMeta('9.5') },
 ];
 
 export const SECTION_10_QUESTIONS: EnterpriseQuestionSeed[] = [

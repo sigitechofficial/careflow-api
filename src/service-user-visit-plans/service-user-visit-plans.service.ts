@@ -54,6 +54,7 @@ const calendarVisitInclude = {
     select: {
       status: true,
       requiredCarers: true,
+      metadata: true,
       allocations: {
         where: { deletedAt: null, isActive: true },
         select: { employeeId: true, status: true },
@@ -399,6 +400,101 @@ export class ServiceUserVisitPlansService {
     const dt = new Date(date);
     dt.setUTCHours(Number(m[1]), Number(m[2]), 0, 0);
     return dt;
+  }
+
+  private resolveActualVisitTimes(
+    day: Date,
+    dto: RecordVisitPlanCalendarOutcomeDto,
+  ): { actualStart?: Date; actualEnd?: Date } {
+    let actualStart: Date | undefined;
+    let actualEnd: Date | undefined;
+
+    if (dto.actualStartTime) {
+      actualStart = this.combineDateAndTime(day, dto.actualStartTime);
+    } else if (dto.status === ScheduledVisitStatus.STARTED) {
+      actualStart = new Date();
+    }
+
+    if (dto.actualEndTime) {
+      actualEnd = this.combineDateAndTime(day, dto.actualEndTime);
+      if (actualStart && actualEnd.getTime() <= actualStart.getTime()) {
+        actualEnd = new Date(actualEnd.getTime() + 86400000);
+      }
+    } else if (dto.status === ScheduledVisitStatus.COMPLETED && !dto.actualStartTime) {
+      actualEnd = new Date();
+    }
+
+    if (
+      dto.status === ScheduledVisitStatus.COMPLETED &&
+      dto.actualStartTime &&
+      dto.actualEndTime &&
+      !actualStart
+    ) {
+      actualStart = this.combineDateAndTime(day, dto.actualStartTime);
+    }
+
+    return { actualStart, actualEnd };
+  }
+
+  private async ensureVisitEmployeeAllocation(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    visit: { id: string; scheduledJobId: string },
+    employeeId: string,
+    requiredCarers: number,
+  ): Promise<void> {
+    const existing = await tx.jobAllocation.findFirst({
+      where: {
+        scheduledJobId: visit.scheduledJobId,
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+      },
+    });
+    if (!existing) {
+      await tx.jobAllocation.create({
+        data: {
+          scheduledJobId: visit.scheduledJobId,
+          scheduledVisitId: visit.id,
+          employeeId,
+          status: AllocationStatus.CONFIRMED,
+          requiresConfirmation: false,
+          allocatedById: userId,
+        },
+      });
+    }
+
+    const activeCount = await tx.jobAllocation.count({
+      where: {
+        scheduledJobId: visit.scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: CALENDAR_VISIT_ACTIVE_ALLOCATION },
+      },
+    });
+
+    const job = await tx.scheduledJob.findFirst({
+      where: { id: visit.scheduledJobId },
+      select: { metadata: true },
+    });
+    const prevMeta =
+      job?.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? (job.metadata as Record<string, unknown>)
+        : {};
+
+    await tx.scheduledJob.update({
+      where: { id: visit.scheduledJobId },
+      data: {
+        status:
+          activeCount >= requiredCarers
+            ? ScheduledJobStatus.ALLOCATED
+            : ScheduledJobStatus.NEEDS_ATTENTION,
+        metadata: {
+          ...prevMeta,
+          visitPlanAttendingEmployeeId: employeeId,
+        } as Prisma.InputJsonValue,
+      },
+    });
   }
 
   async list(serviceUserId: string) {
@@ -1119,13 +1215,28 @@ export class ServiceUserVisitPlansService {
         }
       }
 
+      const { actualStart, actualEnd } = this.resolveActualVisitTimes(day, dto);
+
+      if (dto.status === ScheduledVisitStatus.COMPLETED) {
+        if (!dto.employeeId) {
+          throw new BadRequestException('Select the carer who attended when completing a visit');
+        }
+        if (!dto.actualStartTime || !dto.actualEndTime) {
+          throw new BadRequestException('Actual start and end times are required when completing a visit');
+        }
+      }
+
+      if (dto.employeeId) {
+        await this.ensureVisitEmployeeAllocation(tx, userId, visit, dto.employeeId, slot.requiredCarers);
+      }
+
       const updated = await tx.scheduledVisit.update({
         where: { id: visit.id },
         data: {
           status: dto.status as ScheduledVisitStatus,
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
-          ...(dto.status === ScheduledVisitStatus.STARTED ? { actualStartDateTime: new Date() } : {}),
-          ...(dto.status === ScheduledVisitStatus.COMPLETED ? { actualEndDateTime: new Date() } : {}),
+          ...(actualStart ? { actualStartDateTime: actualStart } : {}),
+          ...(actualEnd ? { actualEndDateTime: actualEnd } : {}),
           updatedById: userId,
         },
       });
@@ -1140,7 +1251,13 @@ export class ServiceUserVisitPlansService {
         recordType: 'ScheduledVisit',
         recordId: updated.id,
         metadata: { visitPlanId: planId, visitPlanSlotId: slot.id, date: dto.date },
-        newValues: auditSnapshot({ status: updated.status, notes: updated.notes }),
+        newValues: auditSnapshot({
+          status: updated.status,
+          notes: updated.notes,
+          actualStartDateTime: updated.actualStartDateTime,
+          actualEndDateTime: updated.actualEndDateTime,
+          employeeId: dto.employeeId,
+        }),
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
@@ -1173,6 +1290,17 @@ export class ServiceUserVisitPlansService {
       displayStatus = ScheduledVisitStatus.NEEDS_ATTENTION;
     }
 
+    const jobMeta =
+      row.scheduledJob.metadata &&
+      typeof row.scheduledJob.metadata === 'object' &&
+      !Array.isArray(row.scheduledJob.metadata)
+        ? (row.scheduledJob.metadata as Record<string, unknown>)
+        : {};
+    const attendingEmployeeId =
+      typeof jobMeta.visitPlanAttendingEmployeeId === 'string'
+        ? jobMeta.visitPlanAttendingEmployeeId
+        : activeAllocations[0]?.employeeId ?? null;
+
     return {
       id: row.id,
       visitPlanSlotId: row.visitPlanSlotId,
@@ -1182,12 +1310,15 @@ export class ServiceUserVisitPlansService {
       requiredCarers: row.requiredCarers,
       allocatedCount,
       allocatedEmployeeIds: activeAllocations.map((a) => a.employeeId),
+      attendingEmployeeId,
       slotLabel: row.visitName,
       slotCode: row.visitPlanSlot?.slotCode ?? null,
       linkedCarePlanFormIds: row.visitPlanSlot?.linkedCarePlanFormIds ?? [],
       notes: row.notes,
       scheduledStartDateTime: row.scheduledStartDateTime.toISOString(),
       scheduledEndDateTime: row.scheduledEndDateTime?.toISOString() ?? null,
+      actualStartDateTime: row.actualStartDateTime?.toISOString() ?? null,
+      actualEndDateTime: row.actualEndDateTime?.toISOString() ?? null,
       occurrenceDate: row.scheduledStartDateTime.toISOString().slice(0, 10),
     };
   }

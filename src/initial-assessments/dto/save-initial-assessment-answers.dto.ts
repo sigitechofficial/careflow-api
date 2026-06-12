@@ -70,7 +70,7 @@ export class SaveInitialAssessmentAnswersDto {
 
   @ApiPropertyOptional({
     maxLength: 2000,
-    description: 'Required when saving corrections after a manager reopen',
+    description: 'Optional note recorded in audit when correcting answers after reopen',
   })
   @IsOptional()
   @IsString()

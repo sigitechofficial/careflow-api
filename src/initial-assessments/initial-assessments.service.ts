@@ -51,10 +51,7 @@ import { resolveCarePlanFormFromCatalogue } from './initial-assessment-care-plan
 import { ServiceUserVisitPlansService } from '../service-user-visit-plans/service-user-visit-plans.service';
 import { CarePlanRecommendationDecision } from './dto/initial-assessment-care-plan-decision.dto';
 import type { InitialAssessmentReviewQueueQueryDto } from './dto/initial-assessment-review-queue-query.dto';
-import {
-  batchHasAnswerCorrections,
-  comparableAnswerValue,
-} from './initial-assessment-answer-format.util';
+import { comparableAnswerValue } from './initial-assessment-answer-format.util';
 import { getInitialAssessmentAgencySettings } from './initial-assessment-agency-settings.util';
 import { syncEmergencyContactAnswerFromProfile } from './initial-assessment-contacts-sync.util';
 import {
@@ -579,17 +576,6 @@ export class InitialAssessmentsService {
       },
     });
     const existingAnswerMap = new Map(existingAnswers.map(a => [a.questionId, a]));
-
-    const hasCorrections = batchHasAnswerCorrections({
-      items: expandedAnswers,
-      questionMap,
-      existingAnswerMap,
-    });
-    if (correctionRequired && hasCorrections && correctionReason.length < 10) {
-      throw new BadRequestException(
-        'A correction reason (min 10 characters) is required when changing answers after reopen',
-      );
-    }
 
     const answerCorrections: Array<{
       questionId: string;
