@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { VITAL_ACCEPTED_RANGE_DEFAULTS } from '../../src/lookups/vital-accepted-ranges.defaults';
+import { VITAL_ACCEPTED_RANGE_DEFAULTS } from '../seed-data/vital-accepted-ranges.defaults';
 
 export async function seedVitalAcceptedRanges(prisma: PrismaClient): Promise<number> {
   let count = 0;

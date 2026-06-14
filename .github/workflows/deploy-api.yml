@@ -48,11 +48,13 @@ jobs:
           test -f prisma/seed-data/medication-status-codes.defaults.ts
           test -f prisma/seed-data/medication-administration-rounds.defaults.ts
           test -f prisma/seed-data/initial-assessment-catalog.json
+          test -f prisma/seed-data/vital-accepted-ranges.defaults.ts
           test -d prisma/migrations
           test -f package.json
           test -f package-lock.json
           echo "Backend build output verified."
           ! grep -q "from '../src/" prisma/seed.ts
+          ! grep -R "from '../../src/" prisma/seeds/ || (echo "prisma/seeds must not import from src/ (not deployed to VPS)" && exit 1)
           echo "prisma/seed.ts does not import from src/ (deploy artifact has no src)."
 
       - name: Create release metadata
