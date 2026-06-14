@@ -32,9 +32,17 @@ const CATALOG_SECTION_TO_ENTERPRISE: Record<string, number> = {
 };
 
 function catalogPath(): string {
-  return path.resolve(
+  const bundled = path.resolve(__dirname, '../seed-data/initial-assessment-catalog.json');
+  if (fs.existsSync(bundled)) return bundled;
+
+  const monorepo = path.resolve(
     __dirname,
     '../../../care-admin/src/features/service-users/initial-assessment-catalog.json',
+  );
+  if (fs.existsSync(monorepo)) return monorepo;
+
+  throw new Error(
+    `initial-assessment-catalog.json not found (checked ${bundled} and ${monorepo})`,
   );
 }
 

@@ -47,6 +47,7 @@ jobs:
           test -f prisma/seed.ts
           test -f prisma/seed-data/medication-status-codes.defaults.ts
           test -f prisma/seed-data/medication-administration-rounds.defaults.ts
+          test -f prisma/seed-data/initial-assessment-catalog.json
           test -d prisma/migrations
           test -f package.json
           test -f package-lock.json

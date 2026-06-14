@@ -1,0 +1,102 @@
+[
+  {
+    "id": "sec_skin_condition",
+    "title": "Skin Condition",
+    "items": []
+  },
+  {
+    "id": "sec_incontinence",
+    "title": "Incontinence",
+    "items": []
+  },
+  {
+    "id": "sec_build",
+    "title": "Build",
+    "items": []
+  },
+  {
+    "id": "sec_cognitive_ability",
+    "title": "Cognitive Ability",
+    "items": []
+  },
+  {
+    "id": "sec_hearing",
+    "title": "Hearing",
+    "items": []
+  },
+  {
+    "id": "sec_sight",
+    "title": "Sight",
+    "items": []
+  },
+  {
+    "id": "sec_environment",
+    "title": "Environment",
+    "items": []
+  },
+  {
+    "id": "sec_flooring",
+    "title": "Flooring",
+    "items": []
+  },
+  {
+    "id": "sec_pets",
+    "title": "Pets",
+    "items": []
+  },
+  {
+    "id": "sec_care_assistance_required",
+    "title": "Care Assistance Required",
+    "items": []
+  },
+  {
+    "id": "sec_additional_risks",
+    "title": "Additional Risks",
+    "items": []
+  },
+  {
+    "id": "sec_breathing_difficulties",
+    "title": "Breathing difficulties",
+    "items": []
+  },
+  {
+    "id": "sec_distress_pain_physical_state",
+    "title": "Distress / Pain (physical state)",
+    "items": []
+  },
+  {
+    "id": "sec_swallowing",
+    "title": "Swallowing",
+    "items": []
+  },
+  {
+    "id": "sec_appetite",
+    "title": "Appetite",
+    "items": []
+  },
+  {
+    "id": "sec_hydration",
+    "title": "Hydration",
+    "items": []
+  },
+  {
+    "id": "sec_nutrition",
+    "title": "Nutrition",
+    "items": []
+  },
+  {
+    "id": "sec_speech_impairment",
+    "title": "Speech impairment",
+    "items": []
+  },
+  {
+    "id": "sec_medication",
+    "title": "Medication",
+    "items": []
+  },
+  {
+    "id": "sec_emotional_well_being_client_states",
+    "title": "Emotional well being (client states)",
+    "items": []
+  }
+]
