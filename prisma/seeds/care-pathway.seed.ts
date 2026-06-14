@@ -8,6 +8,7 @@ import {
 import { CARE_PLAN_FORM_SEEDS } from './care-plan-forms.seed-data';
 import { carePlanPictureSlug, seedCarePlanForms } from './care-plan-forms.seed';
 import { resolveGalleryPictureUrl, seedCarePictureGallery } from './care-pathway-gallery.seed';
+import { seedDefaultAssessmentFormSelections } from './default-assessment-form-selection.seed';
 
 type ChecklistSeed = { name: string; icon?: string; items: string[] };
 
@@ -288,6 +289,7 @@ export async function seedCarePathway(prisma: PrismaClient): Promise<void> {
   }
 
   await seedCarePlanForms(prisma);
+  await seedDefaultAssessmentFormSelections(prisma);
 
   // Remove legacy empty care plans not in the catalogue (e.g. duplicate partial seeds)
   const catalogueNames = Object.keys(CARE_PLAN_FORM_SEEDS);

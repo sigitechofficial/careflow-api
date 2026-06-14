@@ -386,3 +386,12 @@ export const REVIEW_FREQUENCY_OPTIONS: OptionSet = {
     { value: 'on_change', label: 'On significant change only' },
   ],
 };
+
+/** §4.10 — MUAC nutritional risk band (BAPEN-style tape colours). */
+export const MUAC_NUTRITIONAL_RISK_OPTIONS: OptionSet = {
+  options: [
+    { value: 'green', label: 'Green — low risk (MUAC ≥23.5 cm)' },
+    { value: 'amber', label: 'Amber — medium risk (MUAC 23.0–23.4 cm)' },
+    { value: 'red', label: 'Red — high risk (MUAC <23.0 cm)' },
+  ],
+};

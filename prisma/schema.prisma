@@ -335,6 +335,21 @@ enum BodyMapPhotoConsentStatus {
   @@schema("service_users")
 }
 
+enum AssessmentCompletionSource {
+  INITIAL_ASSESSMENT
+  MANUAL
+  CARE_PLAN
+
+  @@schema("service_users")
+}
+
+enum ServiceUserCarePlanInstanceStatus {
+  DRAFT
+  PUBLISHED
+
+  @@schema("service_users")
+}
+
 model User {
   id                String   @id @default(uuid()) @db.Uuid
   email             String   @unique
@@ -385,6 +400,13 @@ model User {
   initialAssessmentActionsAssigned   InitialAssessmentAction[]         @relation("InitialAssessmentActionAssignee")
   initialAssessmentAttachmentsUploaded InitialAssessmentAttachment[]   @relation("InitialAssessmentAttachmentUploadedBy")
   initialAssessmentRisksResponsible  InitialAssessmentRiskRecord[]     @relation("InitialAssessmentRiskResponsible")
+  serviceUserAssessmentCompletions ServiceUserAssessmentCompletion[] @relation("ServiceUserAssessmentCompletedBy")
+  carePlanAssessmentLinksLinked    CarePlanAssessmentLink[]          @relation("CarePlanAssessmentLinkedBy")
+  carePlanInstancesCreated         ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceCreatedBy")
+  carePlanInstancesUpdated         ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceUpdatedBy")
+  carePlanInstancesLastReviewed    ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceLastReviewedBy")
+  carePlanDraftsUpdated            ServiceUserCarePlanDraft[]        @relation("CarePlanDraftUpdatedBy")
+  carePlanVersionsPublished        ServiceUserCarePlanPublishedVersion[] @relation("CarePlanVersionPublishedBy")
   scheduleAreasCreated               ScheduleArea[]                    @relation("ScheduleAreaCreatedBy")
   scheduleAreasUpdated               ScheduleArea[]                    @relation("ScheduleAreaUpdatedBy")
   scheduleAreasDeleted               ScheduleArea[]                    @relation("ScheduleAreaDeletedBy")
@@ -2039,6 +2061,8 @@ model ServiceUser {
   initialAssessmentAttachments InitialAssessmentAttachment[]
   initialAssessmentRiskRecords InitialAssessmentRiskRecord[]
   visitPlans                 ServiceUserVisitPlan[]
+  assessments                ServiceUserAssessment[]
+  carePlanInstances          ServiceUserCarePlanInstance[]
   scheduledJobs              ScheduledJob[]
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
@@ -2508,6 +2532,7 @@ model InitialAssessmentSubmission {
   attachments  InitialAssessmentAttachment[]
   riskRecords  InitialAssessmentRiskRecord[]
   visitPlans   ServiceUserVisitPlan[]
+  assessmentCompletions ServiceUserAssessmentCompletion[]
 
   @@index([serviceUserId])
   @@index([templateId])
@@ -2653,6 +2678,136 @@ model InitialAssessmentRiskRecord {
   @@index([serviceUserId])
   @@index([status])
   @@index([riskLevel])
+  @@schema("service_users")
+}
+
+model ServiceUserAssessment {
+  id                String   @id @default(uuid()) @db.Uuid
+  serviceUserId     String   @db.Uuid
+  assessmentKey     String
+  title             String
+  carePathwayFormId String?  @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+  completions ServiceUserAssessmentCompletion[]
+
+  @@unique([serviceUserId, assessmentKey])
+  @@index([serviceUserId])
+  @@schema("service_users")
+}
+
+model ServiceUserAssessmentCompletion {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  assessmentId        String                     @db.Uuid
+  source              AssessmentCompletionSource
+  sourceSubmissionId  String?                    @db.Uuid
+  sourceHolisticTabId Int?
+  carePathwayFormId   String?                    @db.Uuid
+  carePlanInstanceId  String?                    @db.Uuid
+  completedAt         DateTime
+  completedById       String?                    @db.Uuid
+  summary             String
+  snapshot            Json
+  promotionKey        String?                    @unique
+  createdAt           DateTime                   @default(now())
+
+  assessment       ServiceUserAssessment            @relation(fields: [assessmentId], references: [id])
+  completedBy      User?                            @relation("ServiceUserAssessmentCompletedBy", fields: [completedById], references: [id])
+  sourceSubmission InitialAssessmentSubmission?     @relation(fields: [sourceSubmissionId], references: [id])
+  carePlanInstance ServiceUserCarePlanInstance?     @relation(fields: [carePlanInstanceId], references: [id])
+  links            CarePlanAssessmentLink[]
+
+  @@index([assessmentId])
+  @@index([sourceSubmissionId])
+  @@index([carePlanInstanceId])
+  @@schema("service_users")
+}
+
+model CarePlanAssessmentLink {
+  id                 String    @id @default(uuid()) @db.Uuid
+  completionId       String    @db.Uuid
+  carePlanFormId     String    @db.Uuid
+  serviceUserId      String    @db.Uuid
+  carePlanInstanceId String?   @db.Uuid
+  linkedAt           DateTime  @default(now())
+  linkedById         String?   @db.Uuid
+  deletedAt          DateTime?
+
+  completion       ServiceUserAssessmentCompletion @relation(fields: [completionId], references: [id])
+  linkedBy         User?                           @relation("CarePlanAssessmentLinkedBy", fields: [linkedById], references: [id])
+  carePlanInstance ServiceUserCarePlanInstance?    @relation(fields: [carePlanInstanceId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([carePlanInstanceId])
+  @@schema("service_users")
+}
+
+model ServiceUserCarePlanInstance {
+  id                       String                            @id @default(uuid()) @db.Uuid
+  serviceUserId            String                            @db.Uuid
+  carePathwayFormId        String                            @db.Uuid
+  carePathwayFormVersionId String?                           @db.Uuid
+  status                   ServiceUserCarePlanInstanceStatus @default(DRAFT)
+  nextReviewDueAt          DateTime?
+  lastReviewedAt           DateTime?
+  lastReviewedById         String?                           @db.Uuid
+  createdAt                DateTime                          @default(now())
+  updatedAt                DateTime                          @updatedAt
+  createdById              String?                           @db.Uuid
+  updatedById              String?                           @db.Uuid
+
+  serviceUser            ServiceUser                         @relation(fields: [serviceUserId], references: [id])
+  carePathwayForm        CarePathwayForm                     @relation(fields: [carePathwayFormId], references: [id])
+  carePathwayFormVersion CarePathwayFormVersion?             @relation(fields: [carePathwayFormVersionId], references: [id])
+  createdBy              User?                               @relation("CarePlanInstanceCreatedBy", fields: [createdById], references: [id])
+  updatedBy              User?                               @relation("CarePlanInstanceUpdatedBy", fields: [updatedById], references: [id])
+  lastReviewedBy         User?                               @relation("CarePlanInstanceLastReviewedBy", fields: [lastReviewedById], references: [id])
+  draft                  ServiceUserCarePlanDraft?
+  publishedVersions      ServiceUserCarePlanPublishedVersion[]
+  assessmentCompletions  ServiceUserAssessmentCompletion[]
+  assessmentLinks        CarePlanAssessmentLink[]
+
+  @@unique([serviceUserId, carePathwayFormId])
+  @@index([serviceUserId])
+  @@index([carePathwayFormId])
+  @@schema("service_users")
+}
+
+model ServiceUserCarePlanDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  instanceId       String   @unique @db.Uuid
+  valuesJson       Json     @default("{}")
+  composedFromJson Json?
+  gapsJson         Json?
+  updatedAt        DateTime @updatedAt
+  updatedById      String?  @db.Uuid
+
+  instance  ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  updatedBy User?                       @relation("CarePlanDraftUpdatedBy", fields: [updatedById], references: [id])
+
+  @@schema("service_users")
+}
+
+model ServiceUserCarePlanPublishedVersion {
+  id               String    @id @default(uuid()) @db.Uuid
+  instanceId       String    @db.Uuid
+  versionNumber    Int
+  valuesJson       Json
+  composedFromJson Json?
+  summary          String?
+  signaturesJson   Json?
+  publishedAt      DateTime  @default(now())
+  publishedById    String?   @db.Uuid
+  supersededAt     DateTime?
+  createdAt        DateTime  @default(now())
+
+  instance    ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  publishedBy User?                       @relation("CarePlanVersionPublishedBy", fields: [publishedById], references: [id])
+
+  @@unique([instanceId, versionNumber])
+  @@index([instanceId])
   @@schema("service_users")
 }
 
@@ -4945,6 +5100,7 @@ model CarePathwayForm {
   publishLogs    CarePathwayFormPublishLog[]
   defaultSelections DefaultFormSelection[]
   textTemplates  CarePlanTextTemplate[]
+  carePlanInstances ServiceUserCarePlanInstance[]
 
   @@index([deletedAt])
   @@index([formType])
@@ -4968,6 +5124,7 @@ model CarePathwayFormVersion {
   currentFor  CarePathwayForm?             @relation("CurrentFormVersion")
   sections    CarePathwayFormSection[]
   publishLogs CarePathwayFormPublishLog[]
+  carePlanInstances ServiceUserCarePlanInstance[]
 
   @@unique([formId, versionNumber])
   @@index([formId])

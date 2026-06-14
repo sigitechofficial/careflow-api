@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { SECTION_1_QUESTIONS } from './initial-assessment-enterprise.seed';
 import { HOLISTIC_SECTION_1_EXTRA_QUESTIONS } from './initial-assessment-holistic-section-1.seed';
+import { ABOUT_ME_IA_QUESTION_TEXT } from './initial-assessment-about-me.seed';
 import { SECTION_4_QUESTIONS } from './initial-assessment-enterprise-section-4.seed';
 import {
   SECTION_7_QUESTIONS,
@@ -36,6 +37,7 @@ export async function pruneSection1ActiveExtras(prisma: PrismaClient): Promise<n
     [
       ...SECTION_1_QUESTIONS.map((q) => q.questionText),
       ...HOLISTIC_SECTION_1_EXTRA_QUESTIONS.map((q) => q.questionText),
+      ...ABOUT_ME_IA_QUESTION_TEXT,
     ],
     specRefStarts('1.'),
     SECTION_1_LEGACY,

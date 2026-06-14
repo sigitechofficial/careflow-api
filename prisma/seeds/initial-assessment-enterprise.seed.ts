@@ -39,6 +39,7 @@ import {
   type EnterpriseQuestionSeed,
 } from './initial-assessment-enterprise-sections-5-10.seed';
 import { HOLISTIC_SECTION_1_EXTRA_QUESTIONS } from './initial-assessment-holistic-section-1.seed';
+import { ABOUT_ME_IA_QUESTIONS } from './initial-assessment-about-me.seed';
 import { MCA_SCREENING_QUESTIONS } from './initial-assessment-mca-screening.seed';
 import {
   SECTION_11_QUESTIONS,
@@ -317,7 +318,7 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
     title: 'Personal Details & Preferences',
     carePlanArea: 'Person Centred',
     description: 'Â§1 â€” person first (1.1â†’1.8 then 1.0). Door codes in Â§3 only.',
-    questions: [...SECTION_1_QUESTIONS, ...HOLISTIC_SECTION_1_EXTRA_QUESTIONS],
+    questions: [...SECTION_1_QUESTIONS, ...asQuestionSeeds(ABOUT_ME_IA_QUESTIONS), ...HOLISTIC_SECTION_1_EXTRA_QUESTIONS],
   },
   {
     sectionNumber: 2,

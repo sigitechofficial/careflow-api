@@ -48,6 +48,8 @@ import { ServiceUserAbsencesModule } from './service-user-absences/service-user-
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
 import { ServiceUserVisitPlansModule } from './service-user-visit-plans/service-user-visit-plans.module';
 import { ServiceUserInitialAssessmentModule } from './service-user-initial-assessment/service-user-initial-assessment.module';
+import { ServiceUserAssessmentsModule } from './service-user-assessments/service-user-assessments.module';
+import { ServiceUserCarePlansModule } from './service-user-care-plans/service-user-care-plans.module';
 import { FundingTypesModule } from './funding-types/funding-types.module';
 import { FundersModule } from './funders/funders.module';
 import { ServiceUserFundingModule } from './service-user-funding/service-user-funding.module';
@@ -164,6 +166,8 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     ServiceUserDomCareModule,
     ServiceUserVisitPlansModule,
     ServiceUserInitialAssessmentModule,
+    ServiceUserAssessmentsModule,
+    ServiceUserCarePlansModule,
     InitialAssessmentTemplatesModule,
     InitialAssessmentsModule,
     FundingTypesModule,

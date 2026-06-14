@@ -1,5 +1,9 @@
 import { InitialAssessmentQuestionType } from '@prisma/client';
-import { GENERAL_PHYSICAL_WELLBEING_OPTIONS, PULSE_RHYTHM_OPTIONS } from './initial-assessment-enterprise-options';
+import {
+  GENERAL_PHYSICAL_WELLBEING_OPTIONS,
+  MUAC_NUTRITIONAL_RISK_OPTIONS,
+  PULSE_RHYTHM_OPTIONS,
+} from './initial-assessment-enterprise-options';
 import { iaMeta, whenFieldYes, whenYes } from './initial-assessment-enterprise-metadata';
 import type { EnterpriseQuestionSeed } from './initial-assessment-enterprise-sections-5-10.seed';
 
@@ -125,6 +129,47 @@ export const SECTION_4_QUESTIONS: EnterpriseQuestionSeed[] = [
     metadata: { specRef: '4.10' },
   },
   { questionText: 'Height band or height (cm)', questionType: TEXT, sortOrder: 27, metadata: { specRef: '4.10' } },
-  { questionText: 'Weight (kg)', questionType: NUMBER, sortOrder: 28, metadata: { specRef: '4.10', fieldKey: 'weightKg' } },
-  { questionText: 'Physical assessment additional comments', questionType: TEXTAREA, sortOrder: 29, metadata: { specRef: '4.7' } },
+  {
+    questionText: 'Unable to weigh using standard scales?',
+    questionType: YES_NO,
+    sortOrder: 28,
+    helpText: 'Select Yes when weight cannot be obtained on standing, chair, bed, or hoist scales.',
+    metadata: iaMeta('4.10', { fieldKey: 'unableToWeigh' }),
+  },
+  {
+    questionText: 'Weight (kg)',
+    questionType: NUMBER,
+    sortOrder: 29,
+    metadata: iaMeta('4.10', { fieldKey: 'weightKg' }),
+  },
+  {
+    questionText: 'Reason unable to weigh',
+    questionType: TEXTAREA,
+    sortOrder: 30,
+    metadata: iaMeta('4.10', { fieldKey: 'unableToWeighReason', ...whenFieldYes('unableToWeigh') }),
+  },
+  {
+    questionText: 'Mid upper arm circumference (MUAC) (cm)',
+    questionType: NUMBER,
+    sortOrder: 31,
+    helpText:
+      'Nutritional risk using MUAC — aligns with the optional pre-assessment MUAC form. Measure at mid-point between acromion and olecranon.',
+    metadata: iaMeta('4.10', {
+      fieldKey: 'muacCm',
+      preAssessmentFormKey: 'nutritional_risk_muac',
+      ...whenFieldYes('unableToWeigh'),
+    }),
+  },
+  {
+    questionText: 'MUAC nutritional risk band',
+    questionType: SINGLE_SELECT,
+    sortOrder: 32,
+    options: MUAC_NUTRITIONAL_RISK_OPTIONS,
+    metadata: iaMeta('4.10', {
+      fieldKey: 'muacNutritionalRisk',
+      preAssessmentFormKey: 'nutritional_risk_muac',
+      ...whenFieldYes('unableToWeigh'),
+    }),
+  },
+  { questionText: 'Physical assessment additional comments', questionType: TEXTAREA, sortOrder: 33, metadata: { specRef: '4.7' } },
 ];

@@ -1,0 +1,163 @@
+import { InitialAssessmentQuestionType } from '@prisma/client';
+import { iaMeta } from './initial-assessment-enterprise-metadata';
+import type { EnterpriseQuestionSeed } from './initial-assessment-enterprise-sections-5-10.seed';
+
+const A = InitialAssessmentQuestionType.TEXTAREA;
+const T = InitialAssessmentQuestionType.TEXT;
+
+/** About Me profile tabs mirrored as enterprise §1 IA questions (specRef 1.3a–1.3g). */
+export const ABOUT_ME_SPEC_REFS = [
+  '1.3a',
+  '1.3b',
+  '1.3c',
+  '1.3d',
+  '1.3e',
+  '1.3f',
+  '1.3g',
+] as const;
+
+export type AboutMeIaTabId =
+  | 'about-main'
+  | 'interests'
+  | 'history'
+  | 'routine'
+  | 'support'
+  | 'favourites'
+  | 'id-chars';
+
+const ROUTINE_DAYS = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] as const;
+
+const ROUTINE_SLOTS = ['getUp', 'breakfast', 'lunch', 'afternoon', 'teaTime', 'bedtime'] as const;
+
+const ROUTINE_DAY_LABEL: Record<(typeof ROUTINE_DAYS)[number], string> = {
+  sunday: 'Sunday',
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+};
+
+const ROUTINE_SLOT_LABEL: Record<(typeof ROUTINE_SLOTS)[number], string> = {
+  getUp: 'Get up',
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  afternoon: 'Afternoon',
+  teaTime: 'Tea time',
+  bedtime: 'Bedtime',
+};
+
+function aboutMeQuestion(
+  specRef: (typeof ABOUT_ME_SPEC_REFS)[number],
+  aboutMeTab: AboutMeIaTabId,
+  questionText: string,
+  sortOrder: number,
+  fieldKey: string,
+  questionType: InitialAssessmentQuestionType = A,
+): EnterpriseQuestionSeed {
+  return {
+    questionText,
+    questionType,
+    sortOrder,
+    metadata: iaMeta(specRef, {
+      fieldKey,
+      aboutMeTab,
+      aboutMeProfileField: true,
+      prefillKey: `aboutMe_${fieldKey}`,
+    }),
+  };
+}
+
+function routineQuestions(startSort: number): EnterpriseQuestionSeed[] {
+  const out: EnterpriseQuestionSeed[] = [];
+  let order = startSort;
+  for (const day of ROUTINE_DAYS) {
+    for (const slot of ROUTINE_SLOTS) {
+      const fieldKey = `routine${day[0]!.toUpperCase()}${day.slice(1)}${slot[0]!.toUpperCase()}${slot.slice(1)}`;
+      out.push({
+        questionText: `${ROUTINE_DAY_LABEL[day]} — ${ROUTINE_SLOT_LABEL[slot]}`,
+        questionType: A,
+        sortOrder: order++,
+        metadata: iaMeta('1.3d', {
+          fieldKey,
+          aboutMeTab: 'routine',
+          aboutMeProfileField: true,
+          aboutMeRoutineDay: day,
+          aboutMeRoutineSlot: slot,
+          prefillKey: `aboutMe_routine_${day}_${slot}`,
+        }),
+      });
+    }
+  }
+  return out;
+}
+
+/** All About Me tab fields as section 1 template questions (upserted by questionText). */
+export const ABOUT_ME_IA_QUESTIONS: EnterpriseQuestionSeed[] = [
+  // 1.3a — About Me
+  aboutMeQuestion('1.3a', 'about-main', 'What is most important to me', 200, 'whatIsMostImportantToMe'),
+  aboutMeQuestion('1.3a', 'about-main', 'People who are important to me', 201, 'peopleImportantToMe'),
+  aboutMeQuestion('1.3a', 'about-main', 'External About Me link', 202, 'externalAboutMeUrl', T),
+  aboutMeQuestion('1.3a', 'about-main', 'How I communicate and how to communicate with me', 203, 'howICommunicate'),
+  aboutMeQuestion('1.3a', 'about-main', 'My wellness', 204, 'myWellness'),
+  aboutMeQuestion('1.3a', 'about-main', 'What makes a good day', 205, 'whatMakesAGoodDay'),
+  aboutMeQuestion('1.3a', 'about-main', 'What makes me happy (please do!)', 206, 'whatMakesMeHappy'),
+  aboutMeQuestion('1.3a', 'about-main', "What makes me unhappy (please don't!)", 207, 'whatMakesMeUnhappy'),
+  aboutMeQuestion('1.3a', 'about-main', 'What makes a bad day', 208, 'whatMakesABadDay'),
+  aboutMeQuestion('1.3a', 'about-main', 'How and when to support me', 209, 'howAndWhenToSupportMe'),
+  aboutMeQuestion('1.3a', 'about-main', 'Also worth knowing about me', 210, 'alsoWorthKnowing'),
+  aboutMeQuestion('1.3a', 'about-main', 'Supported to write this by', 211, 'supportedToWriteThisBy'),
+  // 1.3b — Interests
+  aboutMeQuestion('1.3b', 'interests', 'Hobbies and interests', 220, 'hobbiesAndInterests'),
+  aboutMeQuestion('1.3b', 'interests', 'Religious and/or spiritual preferences', 221, 'religiousSpiritualPreferences'),
+  aboutMeQuestion('1.3b', 'interests', 'Where I am from', 222, 'whereIAmFrom'),
+  aboutMeQuestion('1.3b', 'interests', 'What I like to talk about', 223, 'whatILikeToTalkAbout'),
+  // 1.3c — My Life History
+  aboutMeQuestion('1.3c', 'history', 'Family and friends', 230, 'familyAndFriends'),
+  aboutMeQuestion('1.3c', 'history', 'My childhood', 231, 'myChildhood'),
+  aboutMeQuestion('1.3c', 'history', 'My education', 232, 'myEducation'),
+  aboutMeQuestion('1.3c', 'history', 'My occupation', 233, 'myOccupation'),
+  aboutMeQuestion('1.3c', 'history', 'My adulthood', 234, 'myAdulthood'),
+  aboutMeQuestion(
+    '1.3c',
+    'history',
+    'My favourite things (life history context)',
+    235,
+    'lifeHistoryFavourites',
+  ),
+  // 1.3d — My Daily Routine (weekly grid cells)
+  ...routineQuestions(240),
+  // 1.3e — Support I Need
+  aboutMeQuestion('1.3e', 'support', 'Personal hygiene', 300, 'personalHygiene'),
+  aboutMeQuestion('1.3e', 'support', 'Domestic support', 301, 'domesticSupport'),
+  aboutMeQuestion('1.3e', 'support', 'Shopping arrangements', 302, 'shoppingArrangements'),
+  aboutMeQuestion('1.3e', 'support', 'Night support', 303, 'nightSupport'),
+  aboutMeQuestion('1.3e', 'support', 'Other support needs', 304, 'supportOther'),
+  // 1.3f — My Favourite Things
+  aboutMeQuestion('1.3f', 'favourites', 'Food and drinks — I like', 310, 'foodDrinksLike'),
+  aboutMeQuestion('1.3f', 'favourites', "Food and drinks — I don't like", 311, 'foodDrinksDontLike'),
+  aboutMeQuestion('1.3f', 'favourites', 'Favourite items', 312, 'favouriteItems'),
+  aboutMeQuestion('1.3f', 'favourites', 'TV programmes', 313, 'tvProgrammes'),
+  aboutMeQuestion('1.3f', 'favourites', 'Activities', 314, 'favouriteActivities'),
+  aboutMeQuestion('1.3f', 'favourites', 'Rooms', 315, 'favouriteRooms'),
+  aboutMeQuestion('1.3f', 'favourites', 'Other favourite things', 316, 'favouriteOther'),
+  // 1.3g — Identification Characteristics
+  aboutMeQuestion(
+    '1.3g',
+    'id-chars',
+    'My identification characteristics — so people can recognise me',
+    320,
+    'identificationCharacteristics',
+  ),
+];
+
+export const ABOUT_ME_IA_QUESTION_TEXT = ABOUT_ME_IA_QUESTIONS.map((q) => q.questionText);

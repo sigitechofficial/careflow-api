@@ -303,6 +303,14 @@ export enum AuditAction {
   CARE_PLAN_TEXT_UPDATED = 'care_plan_text_updated',
   CARE_PLAN_TEXT_DELETED = 'care_plan_text_deleted',
   CARE_PLAN_TEXT_PREVIEWED = 'care_plan_text_previewed',
+  CARE_PLAN_DRAFT_SAVED = 'care_plan_draft_saved',
+  CARE_PLAN_PUBLISHED = 'care_plan_published',
+
+  ASSESSMENT_COMPLETED = 'assessment_completed',
+  ASSESSMENT_LINKED = 'assessment_linked',
+  ASSESSMENT_UNLINKED = 'assessment_unlinked',
+  ASSESSMENT_PROMOTED = 'assessment_promoted',
+  ASSESSMENT_REVIEW_REMINDER = 'assessment_review_reminder',
 
   PATHWAY_CHECKLIST_CREATED = 'pathway_checklist_created',
   PATHWAY_CHECKLIST_UPDATED = 'pathway_checklist_updated',

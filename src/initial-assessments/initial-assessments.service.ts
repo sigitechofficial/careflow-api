@@ -102,6 +102,7 @@ import {
 import { buildInitialAssessmentPdfData, type InitialAssessmentPdfData } from './initial-assessment-pdf-data.util';
 import { buildSignOffSnapshot } from './initial-assessment-sign-off.util';
 import { enrichWaterlowMetadata } from './initial-assessment-waterlow.util';
+import { promoteIaAssessmentsOnSubmit } from '../service-user-assessments/ia-assessment-promotion.util';
 
 const submissionUserSelect = {
   id: true,
@@ -1020,6 +1021,16 @@ export class InitialAssessmentsService {
         templateId: submission.templateId,
         metadata: submissionMetadata as Prisma.JsonValue,
         userId,
+      });
+      await promoteIaAssessmentsOnSubmit(tx, {
+        audit: this.audit,
+        serviceUserId,
+        submissionId,
+        submittedById: userId,
+        submittedAt: updated.submittedAt ?? new Date(),
+        metadata: submissionMetadata as Prisma.JsonValue,
+        questions,
+        answers,
       });
       return updated;
     });

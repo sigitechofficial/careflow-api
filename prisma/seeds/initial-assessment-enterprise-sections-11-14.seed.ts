@@ -16,23 +16,26 @@ const M = InitialAssessmentQuestionType.MULTI_SELECT;
 
 /** Paper Section 6 — Skin Integrity (single block; no 11.1a / 11.2 / 11.3 sub-panels). */
 export const SECTION_11_QUESTIONS: EnterpriseQuestionSeed[] = [
-  { questionText: 'Skin condition or concern?', questionType: Y, carePlanTrigger: true, sortOrder: 1, metadata: iaMeta('11.1', { fieldKey: 'skinCondition' }) },
+  { questionText: 'Skin condition or concern?', questionType: Y, carePlanTrigger: true, sortOrder: 1, metadata: iaMeta('11.1', { fieldKey: 'skinCondition', bodyMapModule: true }) },
   { questionText: 'Skin condition comment', questionType: A, sortOrder: 2, metadata: iaMeta('11.1') },
-  { questionText: 'Currently has ulcers or wounds?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 3, metadata: iaMeta('11.1', { fieldKey: 'hasWounds' }) },
+  { questionText: 'Currently has ulcers or wounds?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 3, metadata: iaMeta('11.1', { fieldKey: 'hasWounds', bodyMapModule: true }) },
   { questionText: 'Ulcers or wounds comment', questionType: A, sortOrder: 4, metadata: iaMeta('11.1') },
   {
     questionText: 'Pressure ulcer risk assessment completed (including photography)?',
     questionType: Y,
     isRequired: true,
     sortOrder: 5,
-    metadata: iaMeta('11.1'),
+    metadata: iaMeta('11.1', {
+      fieldKey: 'pressureUlcerRiskAssessmentCompleted',
+      bodyMapModule: true,
+    }),
   },
   { questionText: 'Pressure ulcer risk assessment comment', questionType: A, sortOrder: 6, metadata: iaMeta('11.1') },
   { questionText: 'Has wound assessment been completed?', questionType: Y, isRequired: true, sortOrder: 7, metadata: iaMeta('11.1') },
   { questionText: 'Wound assessment comment', questionType: A, sortOrder: 8, metadata: iaMeta('11.1') },
   { questionText: 'Skin / wound notes', questionType: A, sortOrder: 9, metadata: iaMeta('11.1', { fieldKey: 'skinIntegrityComments' }) },
   { questionText: 'Pressure relieving equipment in use?', questionType: Y, sortOrder: 10, metadata: iaMeta('11.1') },
-  { questionText: 'Pressure equipment details', questionType: A, sortOrder: 11, metadata: iaMeta('11.1', whenYes('pressure relieving equipment in use')) },
+  { questionText: 'Pressure equipment details', questionType: A, sortOrder: 11, metadata: iaMeta('11.1') },
   {
     questionText: 'Further pressure equipment required?',
     questionType: Y,
@@ -40,17 +43,18 @@ export const SECTION_11_QUESTIONS: EnterpriseQuestionSeed[] = [
     sortOrder: 12,
     metadata: iaMeta('11.1', { fieldKey: 'furtherPressureEquipmentRequired' }),
   },
-  { questionText: 'Equipment ordered?', questionType: Y, sortOrder: 13, metadata: iaMeta('11.1', whenYes('further pressure equipment required')) },
-  { questionText: 'Date equipment ordered', questionType: D, sortOrder: 14, metadata: iaMeta('11.1', whenYes('equipment ordered')) },
+  { questionText: 'Further pressure equipment comment', questionType: A, sortOrder: 13, metadata: iaMeta('11.1') },
+  { questionText: 'Equipment ordered?', questionType: Y, sortOrder: 14, metadata: iaMeta('11.1', whenYes('further pressure equipment required')) },
+  { questionText: 'Date equipment ordered', questionType: D, sortOrder: 15, metadata: iaMeta('11.1', whenYes('equipment ordered')) },
   {
     questionText: 'Pressure equipment order additional comments',
     questionType: A,
-    sortOrder: 15,
+    sortOrder: 16,
     metadata: iaMeta('11.1', whenYes('further pressure equipment required')),
   },
-  { questionText: 'Fluid chart required?', questionType: Y, sortOrder: 16, metadata: iaMeta('11.1') },
-  { questionText: 'Weight monitoring required?', questionType: Y, sortOrder: 17, metadata: iaMeta('11.1') },
-  { questionText: 'Waterlow assessment completed?', questionType: Y, sortOrder: 18, metadata: iaMeta('11.4') },
+  { questionText: 'Fluid chart required?', questionType: Y, sortOrder: 17, metadata: iaMeta('11.1') },
+  { questionText: 'Weight monitoring required?', questionType: Y, sortOrder: 18, metadata: iaMeta('11.1') },
+  { questionText: 'Waterlow assessment completed?', questionType: Y, sortOrder: 19, metadata: iaMeta('11.4') },
 ];
 
 export const SECTION_12_QUESTIONS: EnterpriseQuestionSeed[] = [
