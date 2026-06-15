@@ -50,4 +50,17 @@ export class SuggestVisitPlanCarersDto {
   @IsArray()
   @IsUUID('4', { each: true })
   linkedCarePlanFormIds?: string[];
+
+  /** When set (Schedule Jobs / calendar), exclude carers already on the rota at this time. */
+  @ApiPropertyOptional({ example: '2026-06-16' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  scheduledDate?: string;
+
+  /** Ignore allocations on this job when checking rota conflicts (reassign / same job). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID('4')
+  excludeScheduledJobId?: string;
 }

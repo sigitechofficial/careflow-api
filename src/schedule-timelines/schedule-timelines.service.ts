@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AllocationStatus, Prisma } from '@prisma/client';
+import { AllocationStatus, DayOfWeek, Prisma } from '@prisma/client';
 import { DataAccessType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -27,6 +27,37 @@ const ACTIVE_ALLOCATION = [
 ];
 
 const DOW_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+const JS_DAY_TO_DOW: Record<number, DayOfWeek> = {
+  0: DayOfWeek.SUNDAY,
+  1: DayOfWeek.MONDAY,
+  2: DayOfWeek.TUESDAY,
+  3: DayOfWeek.WEDNESDAY,
+  4: DayOfWeek.THURSDAY,
+  5: DayOfWeek.FRIDAY,
+  6: DayOfWeek.SATURDAY,
+};
+
+function mapEmployeeDayPattern(
+  patterns: Array<{
+    dayOfWeek: DayOfWeek;
+    startTime: string | null;
+    endTime: string | null;
+    isAvailable: boolean;
+    notes: string | null;
+  }>,
+  date: string,
+) {
+  const jsDow = new Date(`${date}T12:00:00`).getDay();
+  const pattern = patterns.find((row) => row.dayOfWeek === JS_DAY_TO_DOW[jsDow]);
+  if (!pattern) return null;
+  return {
+    isAvailable: pattern.isAvailable,
+    startTime: pattern.startTime,
+    endTime: pattern.endTime,
+    isPartial: pattern.notes === 'partial',
+  };
+}
 
 @Injectable()
 export class ScheduleTimelinesService {
@@ -219,7 +250,7 @@ export class ScheduleTimelinesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
+    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
     if (query.employeeIds?.length) empWhere.id = { in: query.employeeIds };
 
     const [total, employees] = await this.prisma.$transaction([
@@ -229,7 +260,11 @@ export class ScheduleTimelinesService {
         skip,
         take: limit,
         orderBy: { personalDetail: { lastName: 'asc' } },
-        include: { personalDetail: true, employment: { include: { role: true, jobTitle: true } } },
+        include: {
+          personalDetail: true,
+          employment: { include: { role: true, jobTitle: true } },
+          workingPatterns: { where: { deletedAt: null, isActive: true } },
+        },
       }),
     ]);
 
@@ -259,6 +294,7 @@ export class ScheduleTimelinesService {
             job: mapTimelineJob(a.scheduledJob),
           })),
           totalMinutes,
+          dayPattern: mapEmployeeDayPattern(emp.workingPatterns, query.date!),
         };
       }),
     );
@@ -349,7 +385,7 @@ export class ScheduleTimelinesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
     const skip = (page - 1) * limit;
-    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
+    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
     if (query.employeeIds?.length) empWhere.id = { in: query.employeeIds };
 
     const [total, employees] = await this.prisma.$transaction([

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DayOfWeek, EmployeeComplianceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { timeWindowsOverlap } from '../service-user-visit-plans/visit-plan-carer-suggest.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
@@ -97,6 +98,17 @@ export class AllocationChecksService {
         message: `Employee is marked unavailable on ${dow}`,
         severity: 'warning',
       });
+    } else if (pattern?.isAvailable && pattern.startTime && pattern.endTime) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const jobStartHm = `${pad(ctx.jobStart.getUTCHours())}:${pad(ctx.jobStart.getUTCMinutes())}`;
+      const jobEndHm = `${pad(ctx.jobEnd.getUTCHours())}:${pad(ctx.jobEnd.getUTCMinutes())}`;
+      if (!timeWindowsOverlap(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)) {
+        push({
+          type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
+          message: `Visit is outside employee working hours (${pattern.startTime}–${pattern.endTime})`,
+          severity: 'blocking',
+        });
+      }
     }
   }
 

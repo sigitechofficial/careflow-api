@@ -18,6 +18,10 @@ import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
+import {
+  addCarerToLinkedVisitPlanSlots,
+  removeCarerFromLinkedVisitPlanSlots,
+} from '../service-user-visit-plans/visit-plan-slot-carer-sync.util';
 const allocationInclude = {
   scheduledJob: {
     select: {
@@ -238,6 +242,12 @@ export class JobAllocationsService {
 
       const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
 
+      await addCarerToLinkedVisitPlanSlots(tx, {
+        scheduledJobId,
+        employeeId: dto.employeeId,
+        scheduledVisitId: dto.scheduledVisitId ?? created.scheduledVisitId,
+      });
+
       if (warnings.length) {
         await this.audit.logAudit({
           tx,
@@ -414,6 +424,12 @@ export class JobAllocationsService {
       });
 
       const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
+
+      await removeCarerFromLinkedVisitPlanSlots(tx, {
+        scheduledJobId,
+        employeeId: dto.employeeId,
+        scheduledVisitId: allocation.scheduledVisitId,
+      });
 
       await this.audit.logAudit({
         tx,

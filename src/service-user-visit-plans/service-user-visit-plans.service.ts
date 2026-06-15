@@ -36,7 +36,9 @@ import {
   evaluateCarerAvailability,
   matchEmployeeSkills,
   requiredSkillKeywords,
+  visitPlanSuggestJobWindow,
 } from './visit-plan-carer-suggest.util';
+import { syncVisitPlanSlotCarersToScheduledJobs } from './visit-plan-slot-carer-sync.util';
 
 const planInclude = {
   slots: { orderBy: { sortOrder: 'asc' as const } },
@@ -292,6 +294,10 @@ export class ServiceUserVisitPlansService {
     });
 
     const slotDays = [...new Set(dto.daysOfWeek)].sort();
+    const rotaConflictByEmployee = await this.loadRotaConflictJobNamesByEmployee(
+      employees.map((e) => e.id),
+      dto,
+    );
     const candidates = [];
 
     for (const emp of employees) {
@@ -299,6 +305,8 @@ export class ServiceUserVisitPlansService {
       const name = `${emp.personalDetail.firstName ?? ''} ${emp.personalDetail.lastName ?? ''}`.trim();
       const isBlocked = blockedIds.has(emp.id);
       const isPreferred = preferredIds.has(emp.id);
+      const rotaConflictJobs = rotaConflictByEmployee.get(emp.id) ?? [];
+      const hasRotaConflict = rotaConflictJobs.length > 0;
 
       const availability = evaluateCarerAvailability(
         emp.workingPatterns.map((p) => ({
@@ -338,12 +346,16 @@ export class ServiceUserVisitPlansService {
       const warnings: string[] = [];
       if (isBlocked) warnings.push('Blocked for this service user');
       if (isPreferred) warnings.push('Preferred carer');
+      if (hasRotaConflict) {
+        warnings.push(`Already booked: ${rotaConflictJobs.join(', ')}`);
+      }
       if (availability.unavailableDays.length) warnings.push(availability.summary);
       if (skills.missing.length) warnings.push(`Missing skills: ${skills.missing.join(', ')}`);
       if (complianceIssues > 0) warnings.push(`${complianceIssues} compliance item(s) need attention`);
 
       const fit = carerFitScore({
         isBlocked,
+        hasRotaConflict,
         unavailableDays: availability.unavailableDays,
         slotDaysCount: slotDays.length,
         missingSkills: skills.missing,
@@ -360,6 +372,8 @@ export class ServiceUserVisitPlansService {
         fit,
         isPreferred,
         isBlocked,
+        hasRotaConflict,
+        rotaConflictJobs,
         availability,
         skills,
         complianceIssues,
@@ -384,6 +398,67 @@ export class ServiceUserVisitPlansService {
         requiredCarers: dto.requiredCarers ?? 1,
       },
     };
+  }
+
+  private async loadRotaConflictJobNamesByEmployee(
+    employeeIds: string[],
+    dto: SuggestVisitPlanCarersDto,
+  ): Promise<Map<string, string[]>> {
+    const conflicts = new Map<string, string[]>();
+    if (!dto.scheduledDate || employeeIds.length === 0) return conflicts;
+
+    const window = visitPlanSuggestJobWindow(
+      dto.scheduledDate,
+      dto.plannedStartTime,
+      dto.plannedEndTime,
+    );
+    if (!window) return conflicts;
+
+    const { jobStart, jobEnd } = window;
+    const activeStatuses: AllocationStatus[] = [
+      AllocationStatus.PENDING_CONFIRMATION,
+      AllocationStatus.ALLOCATED,
+      AllocationStatus.CONFIRMED,
+    ];
+
+    const rows = await this.prisma.jobAllocation.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        deletedAt: null,
+        isActive: true,
+        status: { in: activeStatuses },
+        ...(dto.excludeScheduledJobId
+          ? { scheduledJobId: { not: dto.excludeScheduledJobId } }
+          : {}),
+        scheduledJob: {
+          deletedAt: null,
+          isActive: true,
+          AND: [
+            { scheduledStartDateTime: { lt: jobEnd } },
+            {
+              OR: [
+                { scheduledEndDateTime: { gt: jobStart } },
+                { scheduledEndDateTime: null },
+              ],
+            },
+          ],
+        },
+      },
+      select: {
+        employeeId: true,
+        scheduledJob: { select: { jobName: true } },
+      },
+      take: 500,
+    });
+
+    for (const row of rows) {
+      const jobName = row.scheduledJob.jobName;
+      const list = conflicts.get(row.employeeId) ?? [];
+      if (!list.includes(jobName)) list.push(jobName);
+      conflicts.set(row.employeeId, list);
+    }
+
+    return conflicts;
   }
 
   private parseDateOnly(value: string, field: string): Date {
@@ -654,6 +729,18 @@ export class ServiceUserVisitPlansService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
+
+      if (dto.slots?.length) {
+        for (const slot of after.slots) {
+          await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+            visitPlanSlotId: slot.id,
+            assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+            requiredCarers: slot.requiredCarers,
+            userId,
+          });
+        }
+      }
+
       return after;
     });
 
@@ -950,6 +1037,14 @@ export class ServiceUserVisitPlansService {
             },
           });
           if (existingVisit) {
+            await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+              visitPlanSlotId: slot.id,
+              assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+              requiredCarers: slot.requiredCarers,
+              userId,
+              scheduledVisitId: existingVisit.id,
+              fromDateTime: start,
+            });
             visitsSkipped += 1;
             continue;
           }

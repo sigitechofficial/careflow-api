@@ -185,8 +185,32 @@ export function evaluateCarerAvailability(
   };
 }
 
+export function combineUtcDateAndHm(dateIso: string, hm: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso.trim());
+  const t = /^(\d{2}):(\d{2})$/.exec(hm.trim());
+  if (!m || !t) return new Date(Number.NaN);
+  return new Date(
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(t[1]), Number(t[2]), 0, 0),
+  );
+}
+
+export function visitPlanSuggestJobWindow(
+  scheduledDate: string,
+  plannedStartTime: string,
+  plannedEndTime: string,
+): { jobStart: Date; jobEnd: Date } | null {
+  const jobStart = combineUtcDateAndHm(scheduledDate, plannedStartTime);
+  let jobEnd = combineUtcDateAndHm(scheduledDate, plannedEndTime);
+  if (Number.isNaN(jobStart.getTime()) || Number.isNaN(jobEnd.getTime())) return null;
+  if (jobEnd.getTime() <= jobStart.getTime()) {
+    jobEnd = new Date(jobEnd.getTime() + 86_400_000);
+  }
+  return { jobStart, jobEnd };
+}
+
 export function carerFitScore(input: {
   isBlocked: boolean;
+  hasRotaConflict?: boolean;
   unavailableDays: number[];
   slotDaysCount: number;
   missingSkills: string[];
@@ -194,7 +218,7 @@ export function carerFitScore(input: {
   complianceIssues: number;
   isPreferred: boolean;
 }): 'good' | 'partial' | 'poor' {
-  if (input.isBlocked) return 'poor';
+  if (input.isBlocked || input.hasRotaConflict) return 'poor';
   if (input.slotDaysCount > 0 && input.unavailableDays.length >= input.slotDaysCount) return 'poor';
   if (input.missingSkills.length > 0 && input.requiredSkillCount > 0) {
     if (input.missingSkills.length >= input.requiredSkillCount) return 'poor';
