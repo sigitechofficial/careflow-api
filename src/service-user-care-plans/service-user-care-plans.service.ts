@@ -117,6 +117,16 @@ export class ServiceUserCarePlansService {
     ).length;
   }
 
+  private hasPublishableValues(values: unknown): boolean {
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return false;
+    return Object.values(values as Record<string, unknown>).some((value) => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'boolean') return true;
+      if (typeof value === 'string') return value.trim().length > 0;
+      return true;
+    });
+  }
+
   async getOrCreateInstance(
     userId: string,
     serviceUserId: string,
@@ -275,7 +285,7 @@ export class ServiceUserCarePlansService {
     }
 
     const values = draft.valuesJson as Record<string, unknown>;
-    if (!values || typeof values !== 'object' || Object.keys(values).length === 0) {
+    if (!this.hasPublishableValues(values)) {
       throw new BadRequestException('Care plan draft has no values to publish.');
     }
 

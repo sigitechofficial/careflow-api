@@ -1,8 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsDate,
   IsEmail,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -72,12 +74,29 @@ export class UpdateEmployeePersonalDetailsDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  county?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   country?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   postcode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  latitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  longitude?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

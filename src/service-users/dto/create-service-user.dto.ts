@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { IsOnOrAfterDate } from '../../common/validators/date-order.validator';
 import { ServiceUserReferenceItemDto } from './service-user-reference-item.dto';
+import { UpdateServiceUserAddressDto } from '../../service-user-addresses/dto/update-service-user-address.dto';
 
 export class CreateServiceUserDto {
   @ApiProperty({ maxLength: 100 })
@@ -168,4 +169,10 @@ export class CreateServiceUserDto {
   @IsString()
   @MaxLength(64)
   residentGuid?: string;
+
+  @ApiPropertyOptional({ type: UpdateServiceUserAddressDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateServiceUserAddressDto)
+  address?: UpdateServiceUserAddressDto;
 }

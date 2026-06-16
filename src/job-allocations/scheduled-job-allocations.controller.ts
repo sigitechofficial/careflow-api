@@ -11,6 +11,7 @@ import { JobAllocationsService } from './job-allocations.service';
 import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
+import { SetLeadCarerDto } from './dto/set-lead-carer.dto';
 
 @ApiTags('Scheduled Jobs')
 @ApiBearerAuth()
@@ -48,6 +49,18 @@ export class ScheduledJobAllocationsController {
     @Req() req: Request,
   ) {
     return this.allocations.unallocate(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/lead-carer')
+  @Permissions('job_allocations.create')
+  @ApiOperation({ summary: 'Set lead carer for a multi-carer scheduled job' })
+  setLeadCarer(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetLeadCarerDto,
+    @Req() req: Request,
+  ) {
+    return this.allocations.setLeadCarer(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/allocations/:allocationId/confirm')

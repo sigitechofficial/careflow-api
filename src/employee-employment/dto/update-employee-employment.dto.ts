@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsNumber,
@@ -93,6 +94,12 @@ export class UpdateEmployeeEmploymentDto {
   @IsOptional()
   @IsUUID()
   baseLocationId?: string;
+
+  @ApiPropertyOptional({ type: [String], description: 'Multiple base/home sites for this employee' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  baseLocationIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

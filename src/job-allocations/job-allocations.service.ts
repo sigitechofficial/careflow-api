@@ -18,6 +18,7 @@ import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
+import { SetLeadCarerDto } from './dto/set-lead-carer.dto';
 import {
   addCarerToLinkedVisitPlanSlots,
   removeCarerFromLinkedVisitPlanSlots,
@@ -69,6 +70,85 @@ export class JobAllocationsService {
       job.scheduledEndDateTime ??
       new Date(start.getTime() + (job.estimatedDurationMinutes ?? 60) * 60_000);
     return { start, end };
+  }
+
+  private activeAllocationWhere(scheduledJobId: string): Prisma.JobAllocationWhereInput {
+    return {
+      scheduledJobId,
+      deletedAt: null,
+      isActive: true,
+      status: { in: ACTIVE_STATUSES },
+    };
+  }
+
+  private async clearLeadCarers(
+    tx: Prisma.TransactionClient,
+    scheduledJobId: string,
+  ): Promise<void> {
+    await tx.jobAllocation.updateMany({
+      where: { ...this.activeAllocationWhere(scheduledJobId), isLeadCarer: true },
+      data: { isLeadCarer: false },
+    });
+  }
+
+  private async promoteLeadCarerIfNeeded(
+    tx: Prisma.TransactionClient,
+    scheduledJobId: string,
+    requiredCarers: number,
+    excludeAllocationId?: string,
+  ): Promise<void> {
+    if (requiredCarers <= 1) return;
+
+    const existingLead = await tx.jobAllocation.findFirst({
+      where: {
+        ...this.activeAllocationWhere(scheduledJobId),
+        isLeadCarer: true,
+        ...(excludeAllocationId ? { id: { not: excludeAllocationId } } : {}),
+      },
+    });
+    if (existingLead) return;
+
+    const nextLead = await tx.jobAllocation.findFirst({
+      where: {
+        ...this.activeAllocationWhere(scheduledJobId),
+        ...(excludeAllocationId ? { id: { not: excludeAllocationId } } : {}),
+      },
+      orderBy: { allocatedAt: 'asc' },
+    });
+    if (!nextLead) return;
+
+    await tx.jobAllocation.update({
+      where: { id: nextLead.id },
+      data: { isLeadCarer: true },
+    });
+  }
+
+  private async applyLeadCarerOnAllocate(
+    tx: Prisma.TransactionClient,
+    job: { id: string; requiredCarers: number },
+    allocationId: string,
+    isLeadCarerRequested?: boolean,
+  ): Promise<void> {
+    if (job.requiredCarers <= 1) return;
+
+    if (isLeadCarerRequested) {
+      await this.clearLeadCarers(tx, job.id);
+      await tx.jobAllocation.update({
+        where: { id: allocationId },
+        data: { isLeadCarer: true },
+      });
+      return;
+    }
+
+    const existingLead = await tx.jobAllocation.findFirst({
+      where: { ...this.activeAllocationWhere(job.id), isLeadCarer: true },
+    });
+    if (!existingLead) {
+      await tx.jobAllocation.update({
+        where: { id: allocationId },
+        data: { isLeadCarer: true },
+      });
+    }
   }
 
   async list(query: AllocationQueryDto) {
@@ -240,6 +320,12 @@ export class JobAllocationsService {
         include: allocationInclude,
       });
 
+      await this.applyLeadCarerOnAllocate(tx, job, created.id, dto.isLeadCarer);
+      const createdWithLead = await tx.jobAllocation.findUniqueOrThrow({
+        where: { id: created.id },
+        include: allocationInclude,
+      });
+
       const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
 
       await addCarerToLinkedVisitPlanSlots(tx, {
@@ -276,7 +362,7 @@ export class JobAllocationsService {
           : AuditAction.JOB_ALLOCATED,
         recordType: 'JobAllocation',
         recordId: created.id,
-        newValues: auditSnapshot(created),
+        newValues: auditSnapshot(createdWithLead),
         metadata: {
           scheduledJobId,
           employeeId: dto.employeeId,
@@ -284,6 +370,7 @@ export class JobAllocationsService {
           warningTypes,
           previousJobStatus,
           newJobStatus,
+          isLeadCarer: createdWithLead.isLeadCarer,
         },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
@@ -315,8 +402,73 @@ export class JobAllocationsService {
           : 'Carer allocated to job',
         requiresConfirmation: needsConfirmation,
         warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
-        data: this.mapAllocation(created),
+        data: this.mapAllocation(createdWithLead),
         jobStatus: newJobStatus,
+      };
+    });
+  }
+
+  async setLeadCarer(
+    userId: string,
+    scheduledJobId: string,
+    dto: SetLeadCarerDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: scheduledJobId, deletedAt: null, isActive: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    if (job.requiredCarers <= 1) {
+      throw new BadRequestException('Lead carer applies only when more than one carer is required');
+    }
+
+    const allocation = await this.prisma.jobAllocation.findFirst({
+      where: {
+        ...this.activeAllocationWhere(scheduledJobId),
+        employeeId: dto.employeeId,
+      },
+      include: allocationInclude,
+    });
+    if (!allocation) {
+      throw new NotFoundException('Active allocation not found for this employee');
+    }
+    if (allocation.isLeadCarer) {
+      return {
+        message: 'Carer is already the lead',
+        data: this.mapAllocation(allocation),
+      };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.clearLeadCarers(tx, scheduledJobId);
+      const updated = await tx.jobAllocation.update({
+        where: { id: allocation.id },
+        data: { isLeadCarer: true },
+        include: allocationInclude,
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.JOB_ALLOCATED,
+        recordType: 'JobAllocation',
+        recordId: allocation.id,
+        oldValues: auditSnapshot(allocation),
+        newValues: auditSnapshot(updated),
+        metadata: {
+          scheduledJobId,
+          employeeId: dto.employeeId,
+          serviceUserId: job.serviceUserId,
+          leadCarerSet: true,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      return {
+        message: 'Lead carer updated',
+        data: this.mapAllocation(updated),
       };
     });
   }
@@ -425,6 +577,15 @@ export class JobAllocationsService {
 
       const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
 
+      if (allocation.isLeadCarer) {
+        await this.promoteLeadCarerIfNeeded(
+          tx,
+          scheduledJobId,
+          allocation.scheduledJob.requiredCarers,
+          allocation.id,
+        );
+      }
+
       await removeCarerFromLinkedVisitPlanSlots(tx, {
         scheduledJobId,
         employeeId: dto.employeeId,
@@ -467,6 +628,7 @@ export class JobAllocationsService {
       scheduledVisitId: row.scheduledVisitId,
       employeeId: row.employeeId,
       status: row.status,
+      isLeadCarer: row.isLeadCarer,
       requiresConfirmation: row.requiresConfirmation,
       confirmedAt: row.confirmedAt?.toISOString() ?? null,
       confirmedBy: row.confirmedBy,

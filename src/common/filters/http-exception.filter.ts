@@ -7,6 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  uniqueConstraintErrors,
+  uniqueConstraintMessage,
+} from '../utils/prisma-unique-constraint.util';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -97,8 +101,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       case 'P2002':
         return {
           status: HttpStatus.CONFLICT,
-          message: 'Unique constraint failed',
-          errors: [{ target: (e.meta as any)?.target }],
+          message: uniqueConstraintMessage(e.meta),
+          errors: uniqueConstraintErrors(e.meta),
         };
       case 'P2025':
         return {

@@ -798,8 +798,11 @@ model EmployeePersonalDetail {
   addressLine1     String?
   addressLine2     String?
   town             String?
+  county           String?
   country          String?
   postcode         String?
+  latitude         Decimal? @db.Decimal(10, 7)
+  longitude        Decimal? @db.Decimal(10, 7)
   homeTelephone    String?
   mobileTelephone  String?
   photoUrl         String?
@@ -907,6 +910,7 @@ model EmployeeEmployment {
   location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
   leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
   floorLocations        EmployeeEmploymentFloorLocation[]
+  baseLocations         EmployeeEmploymentBaseLocation[]
 
   @@index([employeeId])
   @@index([deletedAt])
@@ -916,6 +920,19 @@ model EmployeeEmployment {
 model EmployeeEmploymentFloorLocation {
   employmentId String @db.Uuid
   locationId   String @db.Uuid
+  createdAt    DateTime @default(now())
+
+  employment EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
+  location   Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([employmentId, locationId])
+  @@index([locationId])
+  @@schema("employees")
+}
+
+model EmployeeEmploymentBaseLocation {
+  employmentId String   @db.Uuid
+  locationId   String   @db.Uuid
   createdAt    DateTime @default(now())
 
   employment EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
@@ -1619,6 +1636,7 @@ model Location {
   serviceUserAssignments    ServiceUserAssignment[]
   scheduleAreas             ScheduleArea[]
   employmentFloorLocations  EmployeeEmploymentFloorLocation[]
+  employmentBaseLocations   EmployeeEmploymentBaseLocation[]
   @@schema("lookups")
 }
 
@@ -4952,6 +4970,7 @@ model JobAllocation {
   scheduledVisitId   String?          @db.Uuid
   employeeId         String           @db.Uuid
   status             AllocationStatus @default(PENDING_CONFIRMATION)
+  isLeadCarer        Boolean          @default(false)
   requiresConfirmation Boolean        @default(false)
   confirmedAt        DateTime?
   confirmedById      String?          @db.Uuid

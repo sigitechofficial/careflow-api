@@ -106,7 +106,7 @@ export class AllocationChecksService {
         push({
           type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
           message: `Visit is outside employee working hours (${pattern.startTime}–${pattern.endTime})`,
-          severity: 'blocking',
+          severity: 'warning',
         });
       }
     }

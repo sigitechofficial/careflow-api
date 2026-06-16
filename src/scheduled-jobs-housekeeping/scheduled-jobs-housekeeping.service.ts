@@ -332,6 +332,11 @@ export class ScheduledJobsHousekeepingService {
     }
 
     const actualEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : new Date();
+    const existingMeta =
+      existing.metadata && typeof existing.metadata === 'object' && !Array.isArray(existing.metadata)
+        ? (existing.metadata as Record<string, unknown>)
+        : {};
+    const deliveredCarePlanFormIds = dto.deliveredCarePlanFormIds ?? [];
 
     return this.prisma.$transaction(async (tx) => {
       await tx.scheduledVisit.updateMany({
@@ -348,6 +353,13 @@ export class ScheduledJobsHousekeepingService {
         data: {
           status: PrismaJobStatus.COMPLETED,
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+          metadata: {
+            ...existingMeta,
+            completion: {
+              deliveredCarePlanFormIds,
+              completedAt: actualEnd.toISOString(),
+            },
+          } as Prisma.InputJsonValue,
           updatedById: userId,
         },
         include: housekeepingInclude,

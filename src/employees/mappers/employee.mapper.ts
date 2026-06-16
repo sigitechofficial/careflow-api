@@ -18,6 +18,12 @@ export function mapEmployeeListRow(row: any) {
     contractType: emp?.contractType ?? null,
     visaTypeId: emp?.visaTypeId ?? null,
     isInCountry: emp?.isInCountry ?? true,
+    locationId: emp?.locationId ?? null,
+    location: emp?.location ?? null,
+    baseLocationIds:
+      emp?.baseLocations
+        ?.map((row: { locationId?: string }) => row.locationId)
+        .filter((id: string | undefined): id is string => Boolean(id)) ?? [],
   };
 }
 

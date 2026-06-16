@@ -18,9 +18,22 @@ export const timelineVisitSelect = {
       slotCode: true,
       medicationRoundCode: true,
       linkedCarePlanFormIds: true,
+      plannedStartTime: true,
+      plannedEndTime: true,
+      durationMinutes: true,
+      requiredCarers: true,
+      scheduleFrequency: true,
+      daysOfWeek: true,
+      isEnabled: true,
     },
   },
 } satisfies Prisma.ScheduledVisitSelect;
+
+function decimalToNumber(value: { toString(): string } | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value.toString());
+  return Number.isFinite(n) ? n : null;
+}
 
 export const timelineJobInclude = {
   serviceUser: {
@@ -30,6 +43,11 @@ export const timelineJobInclude = {
       lastName: true,
       preferredName: true,
       serviceUserNumber: true,
+      locationId: true,
+      location: { select: { id: true, name: true } },
+      address: {
+        select: { latitude: true, longitude: true },
+      },
     },
   },
   scheduleArea: { select: { id: true, name: true, code: true } },
@@ -70,8 +88,16 @@ function mapVisitPlanContext(row: TimelineJobRow) {
       ? {
           slotId: slot.id,
           slotCode: slot.slotCode,
-          label: primaryVisit?.visitName ?? slot.slotCode,
+          label: primaryVisit?.visitName ?? slot.medicationRoundCode ?? slot.slotCode,
           linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
+          plannedStartTime: slot.plannedStartTime,
+          plannedEndTime: slot.plannedEndTime,
+          durationMinutes: slot.durationMinutes,
+          requiredCarers: slot.requiredCarers,
+          scheduleFrequency: slot.scheduleFrequency,
+          daysOfWeek: slot.daysOfWeek ?? [],
+          medicationRoundCode: slot.medicationRoundCode,
+          isEnabled: slot.isEnabled,
         }
       : null,
     visits: row.visits.map((v) => ({
@@ -100,8 +126,21 @@ export function mapTimelineJob(row: TimelineJobRow) {
     durationMinutes: jobDurationMinutes(row),
     postcode: row.postcode,
     address: row.address,
+    notes: row.notes,
     timePeriodColor: row.timePeriodColor,
-    serviceUser: row.serviceUser,
+    serviceUser: {
+      id: row.serviceUser.id,
+      firstName: row.serviceUser.firstName,
+      lastName: row.serviceUser.lastName,
+      preferredName: row.serviceUser.preferredName,
+      serviceUserNumber: row.serviceUser.serviceUserNumber,
+      locationId: row.serviceUser.locationId,
+      location: row.serviceUser.location,
+      latitude:
+        decimalToNumber(row.serviceUser.address?.latitude) ?? decimalToNumber(row.latitude),
+      longitude:
+        decimalToNumber(row.serviceUser.address?.longitude) ?? decimalToNumber(row.longitude),
+    },
     scheduleArea: row.scheduleArea,
     scheduleRun: row.scheduleRun
       ? {
@@ -109,10 +148,14 @@ export function mapTimelineJob(row: TimelineJobRow) {
           runDate: formatScheduleDate(row.scheduleRun.runDate),
         }
       : null,
-    allocations: row.allocations.map((a) => ({
+    allocations: row.allocations
+      .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
+      .sort((a, b) => Number(b.isLeadCarer) - Number(a.isLeadCarer) || a.allocatedAt.getTime() - b.allocatedAt.getTime())
+      .map((a) => ({
       id: a.id,
       employeeId: a.employeeId,
       status: a.status,
+      isLeadCarer: a.isLeadCarer,
       requiresConfirmation: a.requiresConfirmation,
       allocatedAt: a.allocatedAt.toISOString(),
       employee: mapEmployeeBrief(a.employee),

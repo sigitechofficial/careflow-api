@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DataAccessType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -17,6 +17,44 @@ export class EmployeeEmploymentService {
     private readonly rbacEmploymentSync: RbacEmploymentSyncService,
   ) {}
 
+  private async assertLocations(locationIds: string[]) {
+    if (locationIds.length === 0) return;
+    const count = await this.prisma.location.count({
+      where: { id: { in: locationIds }, deletedAt: null, isActive: true },
+    });
+    if (count !== locationIds.length) {
+      throw new NotFoundException('One or more base locations were not found');
+    }
+  }
+
+  private async syncBaseLocations(
+    tx: Prisma.TransactionClient,
+    employmentId: string,
+    baseLocationIds: string[] | undefined,
+    userId: string,
+  ) {
+    if (baseLocationIds === undefined) return;
+
+    const uniqueIds = [...new Set(baseLocationIds.filter(Boolean))];
+    await this.assertLocations(uniqueIds);
+
+    await tx.employeeEmploymentBaseLocation.deleteMany({ where: { employmentId } });
+    if (uniqueIds.length > 0) {
+      await tx.employeeEmploymentBaseLocation.createMany({
+        data: uniqueIds.map((locationId) => ({ employmentId, locationId })),
+        skipDuplicates: true,
+      });
+    }
+
+    await tx.employeeEmployment.update({
+      where: { id: employmentId },
+      data: {
+        baseLocationId: uniqueIds[0] ?? null,
+        updatedById: userId,
+      },
+    });
+  }
+
   async get(employeeId: string, audit?: RequestAuditMeta & { actorUserId?: string }) {
     const employment = await this.prisma.employeeEmployment.findFirst({
       where: { employeeId, deletedAt: null },
@@ -31,6 +69,7 @@ export class EmployeeEmploymentService {
         baseLocation: true,
         location: true,
         leavingReason: true,
+        baseLocations: { include: { location: { select: { id: true, name: true } } } },
       },
     });
     if (!employment) throw new NotFoundException('Employment details not found');
@@ -41,7 +80,7 @@ export class EmployeeEmploymentService {
         module: AuditModule.EMPLOYEE,
         recordType: 'EmployeeEmployment',
         recordId: employment.id,
-        accessType: DataAccessType.VIEW,
+        accessType: 'VIEW',
         ipAddress: audit.ipAddress ?? undefined,
         userAgent: audit.userAgent ?? undefined,
         metadata: { employeeId },
@@ -57,6 +96,10 @@ export class EmployeeEmploymentService {
     });
     if (!exists) throw new NotFoundException('Employee not found');
 
+    const employmentDto = { ...dto };
+    const baseLocationIds = employmentDto.baseLocationIds;
+    delete employmentDto.baseLocationIds;
+
     const agencyClear =
       dto.isAgencyStaff === false
         ? {
@@ -70,22 +113,29 @@ export class EmployeeEmploymentService {
           }
         : {};
 
+    if (baseLocationIds !== undefined) {
+      const uniqueIds = [...new Set(baseLocationIds.filter(Boolean))];
+      employmentDto.baseLocationId = uniqueIds[0] ?? employmentDto.baseLocationId ?? undefined;
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const before = await tx.employeeEmployment.findUnique({ where: { employeeId } });
       const employment = await tx.employeeEmployment.upsert({
         where: { employeeId },
         update: {
-          ...dto,
+          ...employmentDto,
           ...agencyClear,
           updatedById: userId,
         },
         create: {
           employeeId,
-          ...dto,
+          ...employmentDto,
           ...agencyClear,
           createdById: userId,
         },
       });
+      await this.syncBaseLocations(tx, employment.id, baseLocationIds, userId);
+
       const oldS = auditSnapshot(before);
       const newS = auditSnapshot(employment);
       await this.audit.logAudit({

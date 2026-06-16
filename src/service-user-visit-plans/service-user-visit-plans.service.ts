@@ -27,6 +27,8 @@ import {
 import { mergeSlotSchedulingOptions } from './visit-plan-slot-options.defaults';
 import { visitPlanSlotMatchesDay } from './visit-plan-schedule-match.util';
 import { buildSlotsFromPreferredVisitTimes } from './visit-plan-from-assessment.util';
+import { applySuggestedCarePlanLinksToSlots } from './visit-plan-care-plan-slot-suggestions.util';
+import { readCarePlanDecisions } from '../initial-assessments/initial-assessment-care-plan-decisions.util';
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
 import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
@@ -928,6 +930,18 @@ export class ServiceUserVisitPlansService {
       rounds,
     );
 
+    const acceptedFromSubmission = Object.values(readCarePlanDecisions(submission.metadata))
+      .filter((d) => d.decision === 'accepted' && d.carePathwayFormId)
+      .map((d) => ({
+        formId: d.carePathwayFormId!,
+        formName: d.carePathwayFormName ?? d.title ?? 'Care plan',
+        carePlanArea: d.carePlanArea ?? d.carePathwayFormName ?? d.title ?? 'Care plan',
+      }));
+    const linkedSlotSeeds = applySuggestedCarePlanLinksToSlots(
+      slotSeeds.map((s) => ({ ...s, linkedCarePlanFormIds: [] as string[] })),
+      acceptedFromSubmission,
+    );
+
     const reviewDueAt = new Date();
     reviewDueAt.setDate(reviewDueAt.getDate() + 42);
 
@@ -940,7 +954,7 @@ export class ServiceUserVisitPlansService {
         numberOfCarers,
         reviewDueAt: reviewDueAt.toISOString(),
         notes: 'Draft created from approved initial assessment',
-        slots: slotSeeds.map((s) => ({
+        slots: linkedSlotSeeds.map((s) => ({
           slotCode: s.slotCode,
           daysOfWeek: s.daysOfWeek,
           plannedStartTime: s.plannedStartTime,
@@ -948,6 +962,7 @@ export class ServiceUserVisitPlansService {
           requiredCarers: s.requiredCarers,
           isEnabled: s.isEnabled,
           medicationRoundCode: s.medicationRoundCode,
+          linkedCarePlanFormIds: s.linkedCarePlanFormIds ?? [],
         })),
       },
       meta,
