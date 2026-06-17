@@ -331,7 +331,11 @@ export class ScheduledJobsHousekeepingService {
       throw new BadRequestException(`Cannot complete job in status ${existing.status}`);
     }
 
+    const actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : null;
     const actualEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : new Date();
+    if (actualStart && actualEnd <= actualStart) {
+      throw new BadRequestException('Actual end time must be after actual start time');
+    }
     const existingMeta =
       existing.metadata && typeof existing.metadata === 'object' && !Array.isArray(existing.metadata)
         ? (existing.metadata as Record<string, unknown>)
@@ -343,6 +347,7 @@ export class ScheduledJobsHousekeepingService {
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
         data: {
           status: PrismaVisitStatus.COMPLETED,
+          ...(actualStart ? { actualStartDateTime: actualStart } : {}),
           actualEndDateTime: actualEnd,
           updatedById: userId,
         },

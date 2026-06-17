@@ -17,7 +17,12 @@ export class CompleteJobDto {
   @IsUUID('4', { each: true })
   deliveredCarePlanFormIds?: string[];
 
-  @ApiPropertyOptional({ description: 'Actual end time (ISO 8601); defaults to now for visits' })
+  @ApiPropertyOptional({ description: 'Actual visit start time (ISO 8601)' })
+  @IsOptional()
+  @IsISO8601()
+  actualStartDateTime?: string;
+
+  @ApiPropertyOptional({ description: 'Actual visit end time (ISO 8601); defaults to now for visits' })
   @IsOptional()
   @IsISO8601()
   actualEndDateTime?: string;

@@ -12,6 +12,9 @@ export const timelineVisitSelect = {
   id: true,
   visitName: true,
   visitPlanSlotId: true,
+  status: true,
+  actualStartDateTime: true,
+  actualEndDateTime: true,
   visitPlanSlot: {
     select: {
       id: true,
@@ -52,7 +55,17 @@ export const timelineJobInclude = {
   },
   scheduleArea: { select: { id: true, name: true, code: true } },
   scheduleRun: {
-    select: { id: true, name: true, runDate: true, startTime: true, endTime: true, sortOrder: true },
+    select: {
+      id: true,
+      name: true,
+      runDate: true,
+      startTime: true,
+      endTime: true,
+      sortOrder: true,
+      status: true,
+      shiftType: true,
+      employeeId: true,
+    },
   },
   allocations: {
     where: { deletedAt: null, isActive: true },
@@ -104,18 +117,33 @@ function mapVisitPlanContext(row: TimelineJobRow) {
       id: v.id,
       visitName: v.visitName,
       visitPlanSlotId: v.visitPlanSlotId,
+      status: v.status,
+      actualStartDateTime: v.actualStartDateTime?.toISOString() ?? null,
+      actualEndDateTime: v.actualEndDateTime?.toISOString() ?? null,
     })),
+  };
+}
+
+function resolveJobActualTimes(row: TimelineJobRow) {
+  const visits = row.visits;
+  const actualStart = visits.find((v) => v.actualStartDateTime)?.actualStartDateTime ?? null;
+  const actualEnd = [...visits].reverse().find((v) => v.actualEndDateTime)?.actualEndDateTime ?? null;
+  return {
+    actualStartDateTime: actualStart?.toISOString() ?? null,
+    actualEndDateTime: actualEnd?.toISOString() ?? null,
   };
 }
 
 export function mapTimelineJob(row: TimelineJobRow) {
   const visitPlanContext = mapVisitPlanContext(row);
+  const actualTimes = resolveJobActualTimes(row);
 
   return {
     id: row.id,
     scheduleBatchId: row.scheduleBatchId,
     scheduleAreaId: row.scheduleAreaId,
     scheduleRunId: row.scheduleRunId,
+    runSequence: row.runSequence,
     serviceUserId: row.serviceUserId,
     jobName: row.jobName,
     status: row.status,
@@ -160,6 +188,7 @@ export function mapTimelineJob(row: TimelineJobRow) {
       allocatedAt: a.allocatedAt.toISOString(),
       employee: mapEmployeeBrief(a.employee),
     })),
+    ...actualTimes,
     ...visitPlanContext,
   };
 }

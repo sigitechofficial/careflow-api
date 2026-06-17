@@ -15,6 +15,7 @@ import {
   jobDurationMinutes,
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
+import { sortTimelineJobsByRunSequence } from '../schedule-runs/schedule-run-jobs.util';
 import { JobsDayTimelineQueryDto } from './dto/jobs-day-timeline-query.dto';
 import { EmployeeTimelineQueryDto } from './dto/employee-timeline-query.dto';
 import { ServiceUserTimelineQueryDto } from './dto/service-user-timeline-query.dto';
@@ -148,7 +149,10 @@ export class ScheduleTimelinesService {
     return {
       data: {
         date,
-        runs: [...runsMap.values()],
+        runs: [...runsMap.values()].map((entry) => ({
+          run: entry.run,
+          jobs: sortTimelineJobsByRunSequence(entry.jobs),
+        })),
         unassignedJobs,
       },
       meta: { totalJobs: jobs.length },

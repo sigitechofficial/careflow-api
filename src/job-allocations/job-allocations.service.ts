@@ -214,6 +214,22 @@ export class JobAllocationsService {
     }
   }
 
+  private async assertNotOverAllocated(scheduledJobId: string, requiredCarers: number) {
+    const count = await this.prisma.jobAllocation.count({
+      where: {
+        scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_STATUSES },
+      },
+    });
+    if (count >= requiredCarers) {
+      throw new BadRequestException(
+        `This visit already has the required ${requiredCarers} carer${requiredCarers === 1 ? '' : 's'} assigned. Remove a carer before assigning another.`,
+      );
+    }
+  }
+
   async syncJobAllocationStatus(
     tx: Prisma.TransactionClient,
     scheduledJobId: string,
@@ -261,6 +277,7 @@ export class JobAllocationsService {
     if (!job) throw new NotFoundException('Scheduled job not found');
     await ensureActiveEmployee(this.prisma, dto.employeeId);
     await this.assertNoDuplicateAllocation(scheduledJobId, dto.employeeId);
+    await this.assertNotOverAllocated(scheduledJobId, job.requiredCarers);
 
     if (dto.scheduledVisitId) {
       const visit = await this.prisma.scheduledVisit.findFirst({

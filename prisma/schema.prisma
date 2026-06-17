@@ -778,6 +778,7 @@ model Employee {
   visitActionsCompleted     VisitAction[]                   @relation("VisitActionCompletedBy")
   jobAllocations            JobAllocation[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
+  scheduleRuns              ScheduleRun[]                   @relation("ScheduleRunAssignedEmployee")
 
   @@index([deletedAt])
   @@schema("employees")
@@ -4639,6 +4640,16 @@ enum ScheduleStatus {
   @@schema("scheduling")
 }
 
+enum ScheduleRunStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@schema("scheduling")
+}
+
 enum ScheduleBuildSource {
   TEMPLATE
   WITHOUT_TEMPLATE
@@ -4781,25 +4792,29 @@ enum ScheduledVisitStatus {
 }
 
 model ScheduleRun {
-  id              String    @id @default(uuid()) @db.Uuid
-  scheduleBatchId String    @db.Uuid
-  scheduleAreaId  String?   @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
+  scheduleBatchId String            @db.Uuid
+  scheduleAreaId  String?           @db.Uuid
+  employeeId      String?           @db.Uuid
   name            String
   description     String?
-  runDate         DateTime  @db.Date
+  runDate         DateTime          @db.Date
   startTime       String?
   endTime         String?
-  sortOrder       Int       @default(0)
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  shiftType       String?
+  status          ScheduleRunStatus @default(DRAFT)
+  sortOrder       Int               @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   deletedAt       DateTime?
-  createdById     String?   @db.Uuid
-  updatedById     String?   @db.Uuid
-  deletedById     String?   @db.Uuid
+  createdById     String?           @db.Uuid
+  updatedById     String?           @db.Uuid
+  deletedById     String?           @db.Uuid
 
   scheduleBatch ScheduleBatch  @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
   scheduleArea  ScheduleArea?  @relation(fields: [scheduleAreaId], references: [id], onDelete: SetNull)
+  employee      Employee?      @relation("ScheduleRunAssignedEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
   createdBy     User?          @relation("ScheduleRunCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy     User?          @relation("ScheduleRunUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   deletedBy     User?          @relation("ScheduleRunDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -4807,7 +4822,9 @@ model ScheduleRun {
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
+  @@index([employeeId])
   @@index([runDate])
+  @@index([status])
   @@index([deletedAt])
   @@index([isActive])
   @@schema("scheduling")
@@ -4818,6 +4835,7 @@ model ScheduledJob {
   scheduleBatchId          String               @db.Uuid
   scheduleAreaId           String?              @db.Uuid
   scheduleRunId            String?              @db.Uuid
+  runSequence              Int?
   serviceUserId            String               @db.Uuid
   jobName                  String
   description              String?
@@ -4857,6 +4875,7 @@ model ScheduledJob {
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
   @@index([scheduleRunId])
+  @@index([scheduleRunId, runSequence])
   @@index([serviceUserId])
   @@index([status])
   @@index([priority])
