@@ -10,6 +10,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
@@ -19,7 +20,14 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { VisitPlanSlotKind } from '@prisma/client';
+import {
+  VisitPlanSlotCarerAssignmentDto,
+  VisitPlanSlotExceptionDto,
+} from './visit-plan-slot-enterprise.dto';
 
 export class VisitPlanSlotDto {
   @ApiProperty({ example: 'MORNING', description: 'Medication administration round code (Settings → Time slots)' })
@@ -167,4 +175,47 @@ export class VisitPlanSlotDto {
   @ArrayMaxSize(8)
   @IsUUID('4', { each: true })
   assignedEmployeeIds?: string[];
+
+  @ApiPropertyOptional({ enum: VisitPlanSlotKind })
+  @IsOptional()
+  @IsEnum(VisitPlanSlotKind)
+  slotKind?: VisitPlanSlotKind;
+
+  @ApiPropertyOptional({ description: 'First date this slot is active (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  slotEffectiveFrom?: string | null;
+
+  @ApiPropertyOptional({ description: 'Last date this slot is active (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  slotEffectiveTo?: string | null;
+
+  @ApiPropertyOptional({ description: 'For ONE_OFF slots — the single occurrence date' })
+  @IsOptional()
+  @IsDateString()
+  oneOffDate?: string | null;
+
+  @ApiPropertyOptional({ description: 'Max days back this slot allows when generating rota (0 = none)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(90)
+  allowBackfillDays?: number;
+
+  @ApiPropertyOptional({ type: [VisitPlanSlotCarerAssignmentDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(56)
+  @ValidateNested({ each: true })
+  @Type(() => VisitPlanSlotCarerAssignmentDto)
+  carerAssignments?: VisitPlanSlotCarerAssignmentDto[];
+
+  @ApiPropertyOptional({ type: [VisitPlanSlotExceptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(365)
+  @ValidateNested({ each: true })
+  @Type(() => VisitPlanSlotExceptionDto)
+  exceptions?: VisitPlanSlotExceptionDto[];
 }

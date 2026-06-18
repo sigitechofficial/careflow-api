@@ -29,11 +29,8 @@ function mapLegalRow(row: {
   id: string;
   serviceUserId: string;
   dnacprInPlace: boolean;
-  dnacprStatusConfirmation: string;
-  dnacprPhysicalLocation: string | null;
   dnacprCertificateUrl: string | null;
   dnacprStartDate: Date | null;
-  lpaStatusConfirmation: string;
   lpaHealthCertificateUrl: string | null;
   lpaFinanceCertificateUrl: string | null;
   updatedAt: Date;
@@ -42,11 +39,8 @@ function mapLegalRow(row: {
     id: row.id,
     serviceUserId: row.serviceUserId,
     dnacprInPlace: row.dnacprInPlace,
-    dnacprStatusConfirmation: row.dnacprStatusConfirmation,
-    dnacprPhysicalLocation: row.dnacprPhysicalLocation,
     dnacprCertificateUrl: row.dnacprCertificateUrl,
     dnacprStartDate: row.dnacprStartDate ? row.dnacprStartDate.toISOString().slice(0, 10) : null,
-    lpaStatusConfirmation: row.lpaStatusConfirmation,
     lpaHealthCertificateUrl: row.lpaHealthCertificateUrl,
     lpaFinanceCertificateUrl: row.lpaFinanceCertificateUrl,
     updatedAt: row.updatedAt.toISOString(),
@@ -58,11 +52,8 @@ function mapLegalVirtual(serviceUserId: string) {
     id: null as string | null,
     serviceUserId,
     dnacprInPlace: false,
-    dnacprStatusConfirmation: 'UNKNOWN',
-    dnacprPhysicalLocation: null as string | null,
     dnacprCertificateUrl: null as string | null,
     dnacprStartDate: null as string | null,
-    lpaStatusConfirmation: 'UNKNOWN',
     lpaHealthCertificateUrl: null as string | null,
     lpaFinanceCertificateUrl: null as string | null,
     updatedAt: null as string | null,
@@ -141,15 +132,6 @@ export class ServiceUserDocumentsService {
 
       const patch: Prisma.ServiceUserLegalDocumentUncheckedUpdateInput = {
         ...(dto.dnacprInPlace !== undefined ? { dnacprInPlace: dto.dnacprInPlace } : {}),
-        ...(dto.dnacprStatusConfirmation !== undefined
-          ? { dnacprStatusConfirmation: dto.dnacprStatusConfirmation }
-          : {}),
-        ...(dto.dnacprPhysicalLocation !== undefined
-          ? { dnacprPhysicalLocation: dto.dnacprPhysicalLocation?.trim() || null }
-          : {}),
-        ...(dto.lpaStatusConfirmation !== undefined
-          ? { lpaStatusConfirmation: dto.lpaStatusConfirmation }
-          : {}),
         ...(dnacprStartDate !== undefined ? { dnacprStartDate } : {}),
         updatedById: userId,
       };
@@ -163,9 +145,6 @@ export class ServiceUserDocumentsService {
             data: {
               serviceUserId,
               dnacprInPlace: dto.dnacprInPlace ?? false,
-              dnacprStatusConfirmation: dto.dnacprStatusConfirmation ?? 'UNKNOWN',
-              dnacprPhysicalLocation: dto.dnacprPhysicalLocation?.trim() || null,
-              lpaStatusConfirmation: dto.lpaStatusConfirmation ?? 'UNKNOWN',
               dnacprStartDate: dnacprStartDate !== undefined ? dnacprStartDate : null,
               createdById: userId,
             },

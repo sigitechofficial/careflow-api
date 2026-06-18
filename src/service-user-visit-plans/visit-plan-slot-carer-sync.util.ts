@@ -83,9 +83,7 @@ export type SyncVisitPlanSlotCarersParams = {
   assignedEmployeeIds: string[];
   requiredCarers: number;
   userId: string;
-  /** When set, only sync this visit (e.g. during rota generation skip). */
   scheduledVisitId?: string;
-  /** Only sync visits starting at or after this instant (default: now). */
   fromDateTime?: Date;
 };
 
@@ -193,7 +191,6 @@ async function linkedVisitPlanSlotIds(
   return [...new Set(ids)];
 }
 
-/** Remove a carer from visit-plan slot defaults when unallocated on the daily rota. */
 export async function removeCarerFromLinkedVisitPlanSlots(
   tx: Prisma.TransactionClient,
   params: VisitPlanSlotCarerSyncParams,
@@ -217,7 +214,6 @@ export async function removeCarerFromLinkedVisitPlanSlots(
   }
 }
 
-/** Add a carer to visit-plan slot defaults when allocated on the daily rota. */
 export async function addCarerToLinkedVisitPlanSlots(
   tx: Prisma.TransactionClient,
   params: VisitPlanSlotCarerSyncParams,

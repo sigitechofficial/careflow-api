@@ -11,9 +11,6 @@ type StandardResponse = {
   message: string;
   data?: unknown;
   meta?: unknown;
-  warnings?: unknown;
-  requiresConfirmation?: boolean;
-  jobStatus?: unknown;
 };
 
 @Injectable()
@@ -30,19 +27,12 @@ export class ResponseInterceptor implements NestInterceptor {
           typeof result === 'object' &&
           ('data' in result || 'meta' in result || 'message' in result)
         ) {
-          const payload = result as Record<string, unknown>;
-          const response: StandardResponse & Record<string, unknown> = {
+          return {
             success: true,
-            message: (payload.message as string | undefined) ?? 'Request successful',
-            data: payload.data ?? result,
-            meta: (payload.meta as unknown) ?? {},
+            message: result.message ?? 'Request successful',
+            data: result.data ?? result,
+            meta: result.meta ?? {},
           };
-          if (payload.warnings !== undefined) response.warnings = payload.warnings;
-          if (typeof payload.requiresConfirmation === 'boolean') {
-            response.requiresConfirmation = payload.requiresConfirmation;
-          }
-          if (payload.jobStatus !== undefined) response.jobStatus = payload.jobStatus;
-          return response;
         }
 
         return {

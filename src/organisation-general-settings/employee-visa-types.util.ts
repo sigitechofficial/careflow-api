@@ -1,118 +1,59 @@
-import {
-  defaultContractedHoursForStatus,
-  maxWeeklyHoursForStatus,
-  mergeEnterpriseImmigrationStatuses,
-} from '../../prisma/seed-data/employee-visa-catalog';
-import {
-  DEFAULT_EMPLOYEE_VISA_TYPES,
-  parseEmployeeVisaTypes,
-  serializeEmployeeVisaTypes,
-  type EmployeeVisaType,
-} from '../../prisma/seed-data/employee-visa-types.util';
+import { randomUUID } from 'crypto';
+import type { Prisma } from '@prisma/client';
 
-export type { EmployeeVisaType };
-export { DEFAULT_EMPLOYEE_VISA_TYPES, parseEmployeeVisaTypes, serializeEmployeeVisaTypes };
+export type EmployeeVisaType = {
+  id: string;
+  label: string;
+  weeklyHours: number;
+};
+
+export const DEFAULT_EMPLOYEE_VISA_TYPES: EmployeeVisaType[] = [
+  { id: 'full_time', label: 'Full time visa', weeklyHours: 40 },
+  { id: 'student', label: 'Student visa', weeklyHours: 20 },
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseVisaType(raw: unknown, index: number): EmployeeVisaType | null {
+  if (!isRecord(raw)) return null;
+  const label = typeof raw.label === 'string' ? raw.label.trim() : '';
+  const weeklyHours =
+    typeof raw.weeklyHours === 'number' && Number.isFinite(raw.weeklyHours)
+      ? raw.weeklyHours
+      : typeof raw.weeklyHours === 'string'
+        ? Number(raw.weeklyHours)
+        : NaN;
+  if (!label || !Number.isFinite(weeklyHours) || weeklyHours < 0 || weeklyHours > 168) return null;
+  let id = typeof raw.id === 'string' ? raw.id.trim() : '';
+  if (!id) id = `visa-${index}-${randomUUID().slice(0, 8)}`;
+  if (id.length > 64) return null;
+  return { id, label, weeklyHours };
+}
+
+export function parseEmployeeVisaTypes(value: unknown): EmployeeVisaType[] {
+  if (!Array.isArray(value)) return [...DEFAULT_EMPLOYEE_VISA_TYPES];
+  const parsed = value
+    .map((row, index) => parseVisaType(row, index))
+    .filter((row): row is EmployeeVisaType => row !== null);
+  return parsed.length > 0 ? parsed : [...DEFAULT_EMPLOYEE_VISA_TYPES];
+}
+
+export function serializeEmployeeVisaTypes(types: EmployeeVisaType[]): Prisma.InputJsonValue {
+  return types.map((t, index) => ({
+    id: t.id.trim(),
+    label: t.label.trim(),
+    weeklyHours: t.weeklyHours,
+    sortOrder: index,
+  })) as unknown as Prisma.InputJsonValue;
+}
 
 export function weeklyHoursForVisaTypeId(
   types: EmployeeVisaType[],
   visaTypeId: string | null | undefined,
 ): number | undefined {
-  return maxWeeklyHoursForStatus(types, visaTypeId);
-}
-
-export function labelForVisaTypeId(
-  types: EmployeeVisaType[],
-  visaTypeId: string | null | undefined,
-): string | undefined {
   if (!visaTypeId) return undefined;
-  return types.find((t) => t.id === visaTypeId)?.label;
-}
-
-export { defaultContractedHoursForStatus, maxWeeklyHoursForStatus, mergeEnterpriseImmigrationStatuses };
-
-export function visaTypeAutoFillsContractedHours(
-  types: EmployeeVisaType[],
-  visaTypeId: string | null | undefined,
-): boolean {
-  return defaultContractedHoursForStatus(types, visaTypeId) != null;
-}
-
-export type WeeklyHoursCapOverride = {
-  weeklyHoursCapOverride?: number | null;
-  weeklyHoursCapOverrideReason?: string | null;
-  weeklyHoursCapOverrideExpiresAt?: Date | string | null;
-};
-
-export function isWeeklyHoursCapOverrideActive(
-  override: WeeklyHoursCapOverride | null | undefined,
-  at: Date = new Date(),
-): boolean {
-  if (override?.weeklyHoursCapOverride == null || !Number.isFinite(override.weeklyHoursCapOverride)) {
-    return false;
-  }
-  const expires = override.weeklyHoursCapOverrideExpiresAt;
-  if (expires) {
-    const d = expires instanceof Date ? expires : new Date(expires);
-    if (!Number.isNaN(d.getTime()) && d < at) return false;
-  }
-  return true;
-}
-
-/** Immigration status cap, or per-employee approved override when active. */
-export function effectiveWeeklyHoursCap(
-  types: EmployeeVisaType[],
-  visaTypeId: string | null | undefined,
-  override?: WeeklyHoursCapOverride | null,
-  at: Date = new Date(),
-): number | undefined {
-  if (isWeeklyHoursCapOverrideActive(override, at)) {
-    return override!.weeklyHoursCapOverride!;
-  }
-  if (!visaTypeId) return undefined;
-  return maxWeeklyHoursForStatus(types, visaTypeId);
-}
-
-export function assertEmploymentHoursWithinVisaLimit(
-  types: EmployeeVisaType[],
-  visaTypeId: string | null | undefined,
-  hours: { contractedWeeklyHours?: number | null; maximumWeeklyHours?: number | null },
-  override?: WeeklyHoursCapOverride | null,
-  at: Date = new Date(),
-): string | null {
-  const cap = effectiveWeeklyHoursCap(types, visaTypeId, override, at);
-  if (cap == null || !visaTypeId) return null;
-  const statusLabel = labelForVisaTypeId(types, visaTypeId) ?? visaTypeId;
-  const overrideActive = isWeeklyHoursCapOverrideActive(override, at);
-  for (const [field, value] of [
-    ['Contracted weekly hours', hours.contractedWeeklyHours],
-    ['Maximum weekly hours', hours.maximumWeeklyHours],
-  ] as const) {
-    if (value != null && value > cap) {
-      const capNote = overrideActive
-        ? `${cap}h/week approved override`
-        : `${cap}h/week allowed limit for "${statusLabel}"`;
-      return `${field} (${value}h) exceeds the ${capNote}.`;
-    }
-  }
-  return null;
-}
-
-export function normalizeEmployeeVisaTypeInput(raw: {
-  id: string;
-  label: string;
-  maxWeeklyHours?: number;
-  weeklyHours?: number;
-  defaultContractedHours?: number | null;
-}): EmployeeVisaType {
-  const maxWeeklyHours = raw.maxWeeklyHours ?? raw.weeklyHours ?? 40;
-  let defaultContractedHours = raw.defaultContractedHours ?? null;
-  if (defaultContractedHours != null && defaultContractedHours > maxWeeklyHours) {
-    defaultContractedHours = maxWeeklyHours;
-  }
-  return {
-    id: raw.id.trim(),
-    label: raw.label.trim(),
-    maxWeeklyHours,
-    defaultContractedHours,
-  };
+  const match = types.find(t => t.id === visaTypeId);
+  return match?.weeklyHours;
 }

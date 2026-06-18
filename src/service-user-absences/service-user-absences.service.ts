@@ -5,6 +5,14 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import { ScheduleLifecycleNotificationHook } from '../schedule-lifecycle-impact/schedule-lifecycle-notification.hook';
+import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
+import { resolveServiceUserAbsenceJobOutcome } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
+import {
+  removeAutoSkipExceptionsForAbsence,
+  syncVisitPlanSkipExceptionsForAbsence,
+} from '../service-user-visit-plans/visit-plan-absence-sync.util';
 import { CreateServiceUserAbsenceDto, type ServiceUserAbsenceTypeApi } from './dto/create-service-user-absence.dto';
 import { UpdateServiceUserAbsenceDto } from './dto/update-service-user-absence.dto';
 
@@ -89,6 +97,8 @@ export class ServiceUserAbsencesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
+    private readonly scheduleNotifications: ScheduleLifecycleNotificationHook,
   ) {}
 
   /** New Prisma delegates; remove cast after `npx prisma generate` refreshes the client. */
@@ -118,6 +128,16 @@ export class ServiceUserAbsencesService {
       orderBy: { startDate: 'desc' },
     });
     return { data: rows.map(mapAbsence) };
+  }
+
+  async previewScheduleImpact(serviceUserId: string, query: { startDate: Date; endDate?: Date }) {
+    await this.ensureServiceUser(serviceUserId);
+    const scheduleImpact = await this.scheduleImpact.previewCancelServiceUserJobsInRange({
+      serviceUserId,
+      fromDate: query.startDate,
+      toDate: query.endDate ?? null,
+    });
+    return { data: scheduleImpact };
   }
 
   async create(userId: string, serviceUserId: string, dto: CreateServiceUserAbsenceDto, meta?: RequestAuditMeta) {
@@ -162,7 +182,56 @@ export class ServiceUserAbsencesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Absence recorded', data: mapAbsence(created) };
+
+      let scheduleImpact: ScheduleImpactResult | undefined;
+      let planSkipExceptionsAdded = 0;
+      if (dto.applyToSchedule !== false) {
+        const reasonLabel = created.absenceReasonCatalog?.name ?? 'Service user absence';
+        const outcome = resolveServiceUserAbsenceJobOutcome(absenceType, reasonLabel);
+        scheduleImpact = await this.scheduleImpact.cancelServiceUserJobsInRange(
+          userId,
+          {
+            serviceUserId,
+            fromDate: startDate,
+            toDate: endDate ?? null,
+            reason: `${reasonLabel}${notes ? `: ${notes}` : ''}`,
+            source: 'service_user_absence',
+            outcome,
+          },
+          meta,
+          tx,
+        );
+        const skipSync = await syncVisitPlanSkipExceptionsForAbsence(
+          tx,
+          serviceUserId,
+          startDate,
+          endDate ?? null,
+          created.id,
+          reasonLabel,
+        );
+        planSkipExceptionsAdded = skipSync.exceptionsAdded;
+        if (scheduleImpact) scheduleImpact.planSkipExceptionsAdded = planSkipExceptionsAdded;
+      }
+
+      const response = {
+        message: 'Absence recorded',
+        data: mapAbsence(created),
+        ...(scheduleImpact ? { scheduleImpact } : {}),
+      };
+
+      if (dto.applyToSchedule !== false && (scheduleImpact?.jobsCancelled || planSkipExceptionsAdded)) {
+        void this.scheduleNotifications.notifyBulkScheduleImpact({
+          source: 'service_user_absence',
+          reason: `${created.absenceReasonCatalog?.name ?? 'Service user absence'}${notes ? `: ${notes}` : ''}`,
+          jobsCancelled: scheduleImpact?.jobsCancelled ?? 0,
+          jobsUnallocated: 0,
+          planSkipExceptionsAdded,
+          serviceUserId,
+          actorUserId: userId,
+        });
+      }
+
+      return response;
     });
   }
 
@@ -229,7 +298,68 @@ export class ServiceUserAbsencesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Absence updated', data: mapAbsence(updated) };
+      const effectiveAbsenceType =
+        absenceType !== undefined ? absenceType : before.absenceType;
+      const reasonLabel =
+        updated.absenceReasonCatalog?.name ?? before.absenceReasonCatalog?.name ?? 'Service user absence';
+
+      let scheduleImpact: ScheduleImpactResult | undefined;
+      let planSkipExceptionsAdded = 0;
+      const shouldApplySchedule = dto.applyToSchedule !== false;
+      const datesChanged =
+        startDate !== undefined ||
+        endDate !== undefined ||
+        dto.absenceReasonCatalogId !== undefined ||
+        absenceType !== undefined;
+
+      if (shouldApplySchedule && (datesChanged || dto.applyToSchedule === true)) {
+        await removeAutoSkipExceptionsForAbsence(tx, absenceId);
+        const outcome = resolveServiceUserAbsenceJobOutcome(
+          effectiveAbsenceType as 'PLANNED' | 'UNPLANNED' | 'NOT_APPLICABLE',
+          reasonLabel,
+        );
+        scheduleImpact = await this.scheduleImpact.cancelServiceUserJobsInRange(
+          userId,
+          {
+            serviceUserId,
+            fromDate: effectiveStart,
+            toDate: effectiveEnd ?? null,
+            reason: `${reasonLabel}${(notes ?? before.notes) ? `: ${notes ?? before.notes}` : ''}`,
+            source: 'service_user_absence',
+            outcome,
+          },
+          meta,
+          tx,
+        );
+        const skipSync = await syncVisitPlanSkipExceptionsForAbsence(
+          tx,
+          serviceUserId,
+          effectiveStart,
+          effectiveEnd ?? null,
+          absenceId,
+          reasonLabel,
+        );
+        planSkipExceptionsAdded = skipSync.exceptionsAdded;
+        if (scheduleImpact) scheduleImpact.planSkipExceptionsAdded = planSkipExceptionsAdded;
+      }
+
+      if (shouldApplySchedule && (scheduleImpact?.jobsCancelled || planSkipExceptionsAdded)) {
+        void this.scheduleNotifications.notifyBulkScheduleImpact({
+          source: 'service_user_absence',
+          reason: reasonLabel,
+          jobsCancelled: scheduleImpact?.jobsCancelled ?? 0,
+          jobsUnallocated: 0,
+          planSkipExceptionsAdded,
+          serviceUserId,
+          actorUserId: userId,
+        });
+      }
+
+      return {
+        message: 'Absence updated',
+        data: mapAbsence(updated),
+        ...(scheduleImpact ? { scheduleImpact } : {}),
+      };
     });
   }
 
@@ -242,6 +372,7 @@ export class ServiceUserAbsencesService {
         include: { absenceReasonCatalog: true },
       });
       if (!before) throw new NotFoundException('Absence not found');
+      await removeAutoSkipExceptionsForAbsence(tx, absenceId);
       await abs.update({
         where: { id: absenceId },
         data: { deletedAt: new Date(), deletedById: userId },

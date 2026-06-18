@@ -11,9 +11,9 @@ import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
-import { labelForVisaTypeId } from '../organisation-general-settings/employee-visa-types.util';
-import { mapEmployeeListRow } from './mappers/employee.mapper';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
+import type { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
 
 export type EmployeeAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -22,7 +22,7 @@ export class EmployeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
-    private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
   ) {}
 
   async list(query: EmployeeQueryDto) {
@@ -81,8 +81,6 @@ export class EmployeesService {
               role: true,
               grade: true,
               contractType: true,
-              location: { select: { id: true, name: true } },
-              baseLocations: { include: { location: { select: { id: true, name: true } } } },
             },
           },
         },
@@ -95,16 +93,8 @@ export class EmployeesService {
       }),
     ]);
 
-    const visaTypes = (await this.orgSettings.get()).data.employeeVisaTypes;
-
     return {
-      data: rows.map(row => {
-        const mapped = mapEmployeeListRow(row);
-        return {
-          ...mapped,
-          visaTypeLabel: labelForVisaTypeId(visaTypes, mapped.visaTypeId) ?? null,
-        };
-      }),
+      data: rows,
       meta: buildPaginationMeta({ page, limit, total }),
     };
   }
@@ -126,7 +116,6 @@ export class EmployeesService {
             baseLocation: true,
             location: true,
             leavingReason: true,
-            baseLocations: { include: { location: { select: { id: true, name: true } } } },
           },
         },
       },
@@ -147,6 +136,17 @@ export class EmployeesService {
     }
 
     return { data: employee };
+  }
+
+  async previewScheduleImpact(employeeId: string, query: ScheduleImpactPreviewQueryDto) {
+    await this.ensureExists(employeeId);
+    const endDate = query.endDate ?? query.startDate;
+    const scheduleImpact = await this.scheduleImpact.previewUnallocateEmployeeJobsInRange({
+      employeeId,
+      fromDate: query.startDate,
+      toDate: endDate,
+    });
+    return { data: scheduleImpact };
   }
 
   async create(userId: string, dto: CreateEmployeeDto, meta?: RequestAuditMeta) {
@@ -218,13 +218,38 @@ export class EmployeesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Employee updated', data: updated };
+
+      let scheduleImpact: ScheduleImpactResult | undefined;
+      if (before?.isActive && dto.isActive === false) {
+        scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
+          userId,
+          id,
+          'Employee deactivated',
+          'employee_inactive',
+          meta,
+          tx,
+        );
+      }
+
+      return {
+        message: 'Employee updated',
+        data: updated,
+        ...(scheduleImpact ? { scheduleImpact } : {}),
+      };
     });
   }
 
   async softDelete(userId: string, id: string, meta?: RequestAuditMeta) {
     await this.ensureExists(id);
     return this.prisma.$transaction(async (tx) => {
+      const scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
+        userId,
+        id,
+        'Employee deleted',
+        'employee_inactive',
+        meta,
+        tx,
+      );
       const before = await tx.employee.findFirst({
         where: { id, deletedAt: null },
         include: { personalDetail: true, employment: true },
@@ -244,13 +269,34 @@ export class EmployeesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Employee deleted', data: {} };
+      return {
+        message: 'Employee deleted',
+        data: {},
+        ...(scheduleImpact.jobsUnallocated ? { scheduleImpact } : {}),
+      };
     });
   }
 
   async updateStatus(userId: string, id: string, dto: UpdateEmployeeStatusDto, meta?: RequestAuditMeta) {
     await this.ensureExists(id);
+    const inactiveStatus = await this.prisma.employeeStatus.findFirst({
+      where: { deletedAt: null, name: { equals: 'Inactive', mode: 'insensitive' } },
+      select: { id: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      let scheduleImpact: ScheduleImpactResult | undefined;
+      if (inactiveStatus && dto.statusId === inactiveStatus.id) {
+        scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
+          userId,
+          id,
+          'Employee status set to inactive',
+          'employee_inactive',
+          meta,
+          tx,
+        );
+      }
+
       const beforePd = await tx.employeePersonalDetail.findUnique({
         where: { employeeId: id },
       });
@@ -284,7 +330,12 @@ export class EmployeesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Employee status updated', data: {} };
+
+      return {
+        message: 'Employee status updated',
+        data: {},
+        ...(scheduleImpact?.jobsUnallocated ? { scheduleImpact } : {}),
+      };
     });
   }
 

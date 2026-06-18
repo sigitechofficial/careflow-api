@@ -46,21 +46,8 @@ const packInclude = {
 } as const;
 
 const memberMedicationInclude = {
-  serviceUserMedication: {
-    include: {
-      route: true,
-      schedules: {
-        where: { deletedAt: null, isActive: true },
-        orderBy: [{ dueTime: 'asc' as const }, { createdAt: 'asc' as const }],
-        select: {
-          id: true,
-          dueTime: true,
-          dose: true,
-        },
-      },
-    },
-  },
-} satisfies Prisma.MedicationPackMemberInclude;
+  serviceUserMedication: { include: { route: true } },
+} as const;
 
 type PackSetupPersist = {
   cycleDurationDays?: number;

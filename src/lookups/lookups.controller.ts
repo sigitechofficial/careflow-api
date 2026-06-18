@@ -15,9 +15,6 @@ import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dt
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
-import { UpdateSkillTypeDto } from './dto/update-skill-type.dto';
-import { UpdateCertificationTypeDto } from './dto/update-certification-type.dto';
-import { UpdateReviewTypeDto } from './dto/update-review-type.dto';
 
 @ApiTags('Lookups')
 @ApiBearerAuth()
@@ -418,30 +415,6 @@ export class LookupsController {
     @Body() dto: UpdateVitalAcceptedRangeDto,
   ) {
     return { data: await this.service.updateVitalAcceptedRange(id, dto) };
-  }
-
-  @Patch('skill-types/:id')
-  @Permissions('lookups.manage')
-  @ApiOperation({ summary: 'Update skill type name and default refresh interval' })
-  async updateSkillType(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSkillTypeDto) {
-    return { data: await this.service.updateSkillTypeLookup(id, dto) };
-  }
-
-  @Patch('certification-types/:id')
-  @Permissions('lookups.manage')
-  @ApiOperation({ summary: 'Update certification type name and default validity' })
-  async updateCertificationType(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateCertificationTypeDto,
-  ) {
-    return { data: await this.service.updateCertificationTypeLookup(id, dto) };
-  }
-
-  @Patch('review-types/:id')
-  @Permissions('lookups.manage')
-  @ApiOperation({ summary: 'Update review type name and default interval' })
-  async updateReviewType(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateReviewTypeDto) {
-    return { data: await this.service.updateReviewTypeLookup(id, dto) };
   }
 
   @Patch(':resource/:id')

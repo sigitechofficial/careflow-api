@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DayOfWeek, EmployeeComplianceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  effectiveWeeklyHoursCap,
-  isWeeklyHoursCapOverrideActive,
-  labelForVisaTypeId,
-  parseEmployeeVisaTypes,
-} from '../organisation-general-settings/employee-visa-types.util';
-import { timeWindowsOverlap } from '../service-user-visit-plans/visit-plan-carer-suggest.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
+import {
+  allocationRuleWarning,
+  parseDomCareAllocationRules,
+  type DomCareAllocationRule,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -29,7 +27,6 @@ export type AllocationCheckContext = {
 };
 
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
-const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: DayOfWeek.SUNDAY,
@@ -41,18 +38,36 @@ const DAY_MAP: Record<number, DayOfWeek> = {
   6: DayOfWeek.SATURDAY,
 };
 
+const ORG_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
+
 @Injectable()
 export class AllocationChecksService {
+  private allocationRulesCache: DomCareAllocationRule[] | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  private async loadAllocationRules(): Promise<DomCareAllocationRule[]> {
+    if (this.allocationRulesCache) return this.allocationRulesCache;
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: ORG_SETTINGS_ID },
+      select: { domCareAllocationRules: true },
+    });
+    this.allocationRulesCache = parseDomCareAllocationRules(
+      row?.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
+    );
+    return this.allocationRulesCache;
+  }
 
   async runAllChecks(ctx: AllocationCheckContext): Promise<AllocationWarning[]> {
     const results: AllocationWarning[] = [];
     const push = (w: AllocationWarning) => results.push(w);
+    const rules = await this.loadAllocationRules();
 
     await this.checkEmployeeAvailability(ctx, push);
+    await this.checkEmployeeHoliday(ctx, push, rules);
+    await this.checkEmployeeNca(ctx, push, rules);
     await this.checkTimeConflict(ctx, push);
     await this.checkCapacity(ctx, push);
-    await this.checkImmigrationWeeklyHours(ctx, push);
     await this.checkPreferredBlockedCarer(ctx, push);
     await this.checkRoleMismatch(ctx, push);
     await this.checkCompliance(ctx, push);
@@ -90,6 +105,21 @@ export class AllocationChecksService {
         message: 'Employee has no active personal details',
         severity: 'blocking',
       });
+      return;
+    }
+    const inactiveStatus = await this.prisma.employeeStatus.findFirst({
+      where: { deletedAt: null, name: { equals: 'Inactive', mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (
+      inactiveStatus &&
+      employee.personalDetail.statusId === inactiveStatus.id
+    ) {
+      push({
+        type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
+        message: 'Employee status is inactive',
+        severity: 'blocking',
+      });
     }
     if (!employee.employment || employee.employment.deletedAt) {
       push({
@@ -106,18 +136,60 @@ export class AllocationChecksService {
         message: `Employee is marked unavailable on ${dow}`,
         severity: 'warning',
       });
-    } else if (pattern?.isAvailable && pattern.startTime && pattern.endTime) {
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const jobStartHm = `${pad(ctx.jobStart.getUTCHours())}:${pad(ctx.jobStart.getUTCMinutes())}`;
-      const jobEndHm = `${pad(ctx.jobEnd.getUTCHours())}:${pad(ctx.jobEnd.getUTCMinutes())}`;
-      if (!timeWindowsOverlap(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)) {
-        push({
-          type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-          message: `Visit is outside employee working hours (${pattern.startTime}–${pattern.endTime})`,
-          severity: 'warning',
-        });
-      }
     }
+  }
+
+  async checkEmployeeHoliday(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+    rules: DomCareAllocationRule[],
+  ): Promise<void> {
+    const rule = allocationRuleWarning(rules, 'carer_on_holiday');
+    if (!rule.warn) return;
+
+    const jobDay = new Date(
+      Date.UTC(ctx.jobStart.getUTCFullYear(), ctx.jobStart.getUTCMonth(), ctx.jobStart.getUTCDate(), 12, 0, 0, 0),
+    );
+    const holiday = await this.prisma.employeeHoliday.findFirst({
+      where: {
+        employeeId: ctx.employeeId,
+        deletedAt: null,
+        isActive: true,
+        startDate: { lte: jobDay },
+        endDate: { gte: jobDay },
+      },
+    });
+    if (!holiday) return;
+    push({
+      type: AllocationWarningType.EMPLOYEE_ON_HOLIDAY,
+      message: 'Employee is on holiday for this visit date',
+      severity: rule.severity,
+    });
+  }
+
+  async checkEmployeeNca(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+    rules: DomCareAllocationRule[],
+  ): Promise<void> {
+    const rule = allocationRuleWarning(rules, 'carer_on_nca');
+    if (!rule.warn) return;
+
+    const nca = await this.prisma.employeeNonCoreActivity.findFirst({
+      where: {
+        employeeId: ctx.employeeId,
+        deletedAt: null,
+        isActive: true,
+        dateFrom: { lte: ctx.jobEnd },
+        dateTo: { gte: ctx.jobStart },
+      },
+    });
+    if (!nca) return;
+    push({
+      type: AllocationWarningType.EMPLOYEE_ON_NCA,
+      message: 'Employee has non-core activity during this visit',
+      severity: rule.severity,
+    });
   }
 
   async checkTimeConflict(
@@ -158,24 +230,25 @@ export class AllocationChecksService {
     }
   }
 
-  private weekBounds(jobStart: Date): { weekStart: Date; weekEnd: Date } {
-    const weekStart = new Date(jobStart);
+  async checkCapacity(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+  ): Promise<void> {
+    const employment = await this.prisma.employeeEmployment.findFirst({
+      where: { employeeId: ctx.employeeId, deletedAt: null },
+    });
+    const maxWeekly = employment?.maximumWeeklyHours ?? employment?.contractedWeeklyHours;
+    if (!maxWeekly || maxWeekly <= 0) return;
+
+    const weekStart = new Date(ctx.jobStart);
     weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
     weekStart.setUTCHours(0, 0, 0, 0);
     const weekEnd = new Date(weekStart);
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
-    return { weekStart, weekEnd };
-  }
 
-  private async estimatedWeeklyAllocatedHours(
-    employeeId: string,
-    weekStart: Date,
-    weekEnd: Date,
-    extraJob?: { start: Date; end: Date },
-  ): Promise<number> {
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {
-        employeeId,
+        employeeId: ctx.employeeId,
         deletedAt: null,
         isActive: true,
         status: { in: [...ACTIVE_ALLOCATION_STATUSES] },
@@ -198,72 +271,18 @@ export class AllocationChecksService {
     let totalHours = 0;
     for (const a of allocations) {
       const j = a.scheduledJob;
-      const end =
-        j.scheduledEndDateTime ??
-        new Date(j.scheduledStartDateTime.getTime() + (j.estimatedDurationMinutes ?? 60) * 60_000);
+      const end = j.scheduledEndDateTime ?? new Date(j.scheduledStartDateTime.getTime() + (j.estimatedDurationMinutes ?? 60) * 60_000);
       totalHours += (end.getTime() - j.scheduledStartDateTime.getTime()) / 3_600_000;
     }
-    if (extraJob) {
-      totalHours += (extraJob.end.getTime() - extraJob.start.getTime()) / 3_600_000 || 1;
-    }
-    return totalHours;
-  }
-
-  async checkCapacity(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-  ): Promise<void> {
-    const employment = await this.prisma.employeeEmployment.findFirst({
-      where: { employeeId: ctx.employeeId, deletedAt: null },
-    });
-    const maxWeekly = employment?.maximumWeeklyHours ?? employment?.contractedWeeklyHours;
-    if (!maxWeekly || maxWeekly <= 0) return;
-
-    const { weekStart, weekEnd } = this.weekBounds(ctx.jobStart);
-    const totalHours = await this.estimatedWeeklyAllocatedHours(ctx.employeeId, weekStart, weekEnd, {
-      start: ctx.jobStart,
-      end: ctx.jobEnd,
-    });
-    if (totalHours > maxWeekly) {
+    const jobHours =
+      (ctx.jobEnd.getTime() - ctx.jobStart.getTime()) / 3_600_000 || 1;
+    if (totalHours + jobHours > maxWeekly) {
       push({
         type: AllocationWarningType.CAPACITY_EXCEEDED,
-        message: `Allocating would exceed maximum weekly hours (${maxWeekly}h); estimated ${totalHours.toFixed(1)}h`,
+        message: `Allocating would exceed maximum weekly hours (${maxWeekly}h); estimated ${(totalHours + jobHours).toFixed(1)}h`,
         severity: 'warning',
       });
     }
-  }
-
-  async checkImmigrationWeeklyHours(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-  ): Promise<void> {
-    const employment = await this.prisma.employeeEmployment.findFirst({
-      where: { employeeId: ctx.employeeId, deletedAt: null },
-    });
-    if (!employment?.visaTypeId) return;
-
-    const settings = await this.prisma.organisationGeneralSettings.findFirst({
-      where: { id: DEFAULT_SETTINGS_ID },
-      select: { employeeVisaTypes: true },
-    });
-    const visaTypes = parseEmployeeVisaTypes(settings?.employeeVisaTypes);
-    const immigrationCap = effectiveWeeklyHoursCap(visaTypes, employment.visaTypeId, employment);
-    if (immigrationCap == null || immigrationCap <= 0) return;
-
-    const { weekStart, weekEnd } = this.weekBounds(ctx.jobStart);
-    const totalHours = await this.estimatedWeeklyAllocatedHours(ctx.employeeId, weekStart, weekEnd, {
-      start: ctx.jobStart,
-      end: ctx.jobEnd,
-    });
-    if (totalHours <= immigrationCap) return;
-
-    const statusLabel = labelForVisaTypeId(visaTypes, employment.visaTypeId) ?? employment.visaTypeId;
-    const overrideNote = isWeeklyHoursCapOverrideActive(employment) ? ' (approved override)' : '';
-    push({
-      type: AllocationWarningType.IMMIGRATION_HOURS_EXCEEDED,
-      message: `Allocating would exceed immigration weekly limit (${immigrationCap}h for ${statusLabel}${overrideNote}); estimated ${totalHours.toFixed(1)}h`,
-      severity: 'warning',
-    });
   }
 
   async checkPreferredBlockedCarer(

@@ -92,3 +92,17 @@ export function serializeDomCareAllocationRules(rules: DomCareAllocationRule[]):
 export function ruleSupportsMinutes(key: string): boolean {
   return RULES_WITH_MINUTES.has(key);
 }
+
+export type AllocationRuleWarningSeverity = 'blocking' | 'warning' | 'info';
+
+/** Whether an allocation rule should emit a warning and at what severity. */
+export function allocationRuleWarning(
+  rules: DomCareAllocationRule[],
+  ruleKey: string,
+): { warn: boolean; severity: AllocationRuleWarningSeverity } {
+  const rule = rules.find((r) => r.key === ruleKey);
+  const behavior = rule?.behavior ?? 'DONT_ALLOW';
+  if (behavior === 'ALWAYS_ALLOW') return { warn: false, severity: 'info' };
+  if (behavior === 'REQUEST_CONFIRMATION') return { warn: true, severity: 'warning' };
+  return { warn: true, severity: 'blocking' };
+}

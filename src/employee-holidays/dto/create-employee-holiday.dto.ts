@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDate,
   IsNotEmpty,
   IsOptional,
@@ -43,5 +44,13 @@ export class CreateEmployeeHolidayDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'When true (default), unallocate this employee from jobs in the holiday date range',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  applyToSchedule?: boolean;
 }
 

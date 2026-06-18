@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AllocationStatus, DayOfWeek, Prisma } from '@prisma/client';
+import { AllocationStatus, Prisma } from '@prisma/client';
 import { DataAccessType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -15,7 +15,7 @@ import {
   jobDurationMinutes,
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
-import { sortTimelineJobsByRunSequence } from '../schedule-runs/schedule-run-jobs.util';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import { JobsDayTimelineQueryDto } from './dto/jobs-day-timeline-query.dto';
 import { EmployeeTimelineQueryDto } from './dto/employee-timeline-query.dto';
 import { ServiceUserTimelineQueryDto } from './dto/service-user-timeline-query.dto';
@@ -29,42 +29,12 @@ const ACTIVE_ALLOCATION = [
 
 const DOW_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
-const JS_DAY_TO_DOW: Record<number, DayOfWeek> = {
-  0: DayOfWeek.SUNDAY,
-  1: DayOfWeek.MONDAY,
-  2: DayOfWeek.TUESDAY,
-  3: DayOfWeek.WEDNESDAY,
-  4: DayOfWeek.THURSDAY,
-  5: DayOfWeek.FRIDAY,
-  6: DayOfWeek.SATURDAY,
-};
-
-function mapEmployeeDayPattern(
-  patterns: Array<{
-    dayOfWeek: DayOfWeek;
-    startTime: string | null;
-    endTime: string | null;
-    isAvailable: boolean;
-    notes: string | null;
-  }>,
-  date: string,
-) {
-  const jsDow = new Date(`${date}T12:00:00`).getDay();
-  const pattern = patterns.find((row) => row.dayOfWeek === JS_DAY_TO_DOW[jsDow]);
-  if (!pattern) return null;
-  return {
-    isAvailable: pattern.isAvailable,
-    startTime: pattern.startTime,
-    endTime: pattern.endTime,
-    isPartial: pattern.notes === 'partial',
-  };
-}
-
 @Injectable()
 export class ScheduleTimelinesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
   ) {}
 
   private async logView(
@@ -108,10 +78,24 @@ export class ScheduleTimelinesService {
     return where;
   }
 
+  private async enrichTimelineJobs<T extends ReturnType<typeof mapTimelineJob>>(
+    jobs: T[],
+    day: string,
+  ): Promise<T[]> {
+    if (!jobs.length) return jobs;
+    const dayDate = utcDayBounds(day).start;
+    const flags = await this.scheduleImpact.loadTimelineOperationalFlags(jobs, dayDate);
+    return jobs.map((job) => {
+      const f = flags.get(job.id);
+      return f ? { ...job, ...f } : job;
+    });
+  }
+
   private async fetchJobs(
     where: Prisma.ScheduledJobWhereInput,
     page: number,
     limit: number,
+    enrichDay?: string,
   ) {
     const skip = (page - 1) * limit;
     const [total, rows] = await this.prisma.$transaction([
@@ -124,7 +108,11 @@ export class ScheduleTimelinesService {
         include: timelineJobInclude,
       }),
     ]);
-    return { jobs: rows.map(mapTimelineJob), meta: buildPaginationMeta({ page, limit, total }) };
+    let jobs = rows.map(mapTimelineJob);
+    if (enrichDay) {
+      jobs = await this.enrichTimelineJobs(jobs, enrichDay);
+    }
+    return { jobs, meta: buildPaginationMeta({ page, limit, total }) };
   }
 
   async jobsDayRuns(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
@@ -133,6 +121,7 @@ export class ScheduleTimelinesService {
       this.jobWhereForRange(start, end, query),
       query.page ?? 1,
       query.limit ?? 100,
+      date,
     );
     const runsMap = new Map<string, { run: NonNullable<(typeof jobs)[0]['scheduleRun']>; jobs: typeof jobs }>();
     const unassignedJobs: typeof jobs = [];
@@ -149,10 +138,7 @@ export class ScheduleTimelinesService {
     return {
       data: {
         date,
-        runs: [...runsMap.values()].map((entry) => ({
-          run: entry.run,
-          jobs: sortTimelineJobsByRunSequence(entry.jobs),
-        })),
+        runs: [...runsMap.values()],
         unassignedJobs,
       },
       meta: { totalJobs: jobs.length },
@@ -161,7 +147,7 @@ export class ScheduleTimelinesService {
 
   async jobsDayTimeline(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
     const { start, end, date } = utcDayBounds(query.date);
-    const result = await this.fetchJobs(this.jobWhereForRange(start, end, query), query.page ?? 1, query.limit ?? 100);
+    const result = await this.fetchJobs(this.jobWhereForRange(start, end, query), query.page ?? 1, query.limit ?? 100, date);
     await this.logView(userId, 'jobs_day_timeline', meta, { date });
     return { data: { date, jobs: result.jobs }, meta: result.meta };
   }
@@ -188,13 +174,17 @@ export class ScheduleTimelinesService {
       runs: Map<string, { run: unknown; jobs: ReturnType<typeof mapTimelineJob>[] }>;
     }>();
 
+    const mappedJobs = allocations.map((a) => mapTimelineJob(a.scheduledJob));
+    const enrichedJobs = await this.enrichTimelineJobs(mappedJobs, date);
+    const jobById = new Map(enrichedJobs.map((j) => [j.id, j]));
+
     for (const a of allocations) {
       const empId = a.employeeId;
       if (!byEmployee.has(empId)) {
         byEmployee.set(empId, { employee: mapEmployeeBrief(a.employee), runs: new Map() });
       }
       const bucket = byEmployee.get(empId)!;
-      const job = mapTimelineJob(a.scheduledJob);
+      const job = jobById.get(a.scheduledJob.id) ?? mapTimelineJob(a.scheduledJob);
       const runKey = job.scheduleRunId ?? '__none__';
       if (!bucket.runs.has(runKey)) {
         bucket.runs.set(runKey, { run: job.scheduleRun, jobs: [] });
@@ -231,6 +221,10 @@ export class ScheduleTimelinesService {
       take: query.limit ?? 200,
     });
 
+    const mappedJobs = allocations.map((a) => mapTimelineJob(a.scheduledJob));
+    const enrichedJobs = await this.enrichTimelineJobs(mappedJobs, date);
+    const jobById = new Map(enrichedJobs.map((j) => [j.id, j]));
+
     await this.logView(userId, 'job_carer_day_starts', meta, { date });
     return {
       data: {
@@ -240,7 +234,7 @@ export class ScheduleTimelinesService {
           allocationStatus: a.status,
           scheduledStartDateTime: a.scheduledJob.scheduledStartDateTime.toISOString(),
           employee: mapEmployeeBrief(a.employee),
-          job: mapTimelineJob(a.scheduledJob),
+          job: jobById.get(a.scheduledJob.id) ?? mapTimelineJob(a.scheduledJob),
         })),
       },
     };
@@ -254,7 +248,7 @@ export class ScheduleTimelinesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
+    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
     if (query.employeeIds?.length) empWhere.id = { in: query.employeeIds };
 
     const [total, employees] = await this.prisma.$transaction([
@@ -264,11 +258,7 @@ export class ScheduleTimelinesService {
         skip,
         take: limit,
         orderBy: { personalDetail: { lastName: 'asc' } },
-        include: {
-          personalDetail: true,
-          employment: { include: { role: true, jobTitle: true } },
-          workingPatterns: { where: { deletedAt: null, isActive: true } },
-        },
+        include: { personalDetail: true, employment: { include: { role: true, jobTitle: true } } },
       }),
     ]);
 
@@ -298,7 +288,6 @@ export class ScheduleTimelinesService {
             job: mapTimelineJob(a.scheduledJob),
           })),
           totalMinutes,
-          dayPattern: mapEmployeeDayPattern(emp.workingPatterns, query.date!),
         };
       }),
     );
@@ -347,6 +336,7 @@ export class ScheduleTimelinesService {
       }),
       page,
       limit,
+      query.date,
     );
 
     const bySu = new Map<string, { serviceUser: (typeof result.jobs)[0]['serviceUser']; jobs: typeof result.jobs }>();
@@ -389,7 +379,7 @@ export class ScheduleTimelinesService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
     const skip = (page - 1) * limit;
-    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
+    const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
     if (query.employeeIds?.length) empWhere.id = { in: query.employeeIds };
 
     const [total, employees] = await this.prisma.$transaction([

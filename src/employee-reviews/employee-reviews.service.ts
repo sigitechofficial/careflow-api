@@ -24,27 +24,6 @@ export class EmployeeReviewsService {
     return { data: items };
   }
 
-  async listOverview() {
-    const items = await this.prisma.employeeReview.findMany({
-      where: {
-        deletedAt: null,
-        employee: { deletedAt: null, isActive: true },
-      },
-      include: {
-        reviewType: true,
-        employee: {
-          include: {
-            personalDetail: {
-              select: { firstName: true, lastName: true, username: true },
-            },
-          },
-        },
-      },
-      orderBy: [{ nextDue: 'asc' }, { createdAt: 'desc' }],
-    });
-    return { data: items };
-  }
-
   async create(userId: string, employeeId: string, dto: CreateEmployeeReviewDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
     return this.prisma.$transaction(async (tx) => {

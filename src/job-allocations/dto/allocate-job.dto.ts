@@ -18,14 +18,6 @@ export class AllocateJobDto {
   @IsBoolean()
   force?: boolean;
 
-  @ApiPropertyOptional({
-    description: 'Mark this allocation as lead carer (multi-carer jobs only)',
-  })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  isLeadCarer?: boolean;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

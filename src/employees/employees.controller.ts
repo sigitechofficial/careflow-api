@@ -12,6 +12,8 @@ import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
+import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
+import { mapEmployeeListRow } from './mappers/employee.mapper';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -23,7 +25,11 @@ export class EmployeesController {
   @Get()
   @Permissions('employees.read')
   async list(@Query() query: EmployeeQueryDto) {
-    return this.employeesService.list(query);
+    const result = await this.employeesService.list(query);
+    return {
+      data: (result.data as Parameters<typeof mapEmployeeListRow>[0][]).map(mapEmployeeListRow),
+      meta: result.meta,
+    };
   }
 
   @Get('chart-summary')
@@ -48,6 +54,12 @@ export class EmployeesController {
   @Permissions('employees.read')
   nonCoreActivitiesRegistry() {
     return this.employeesService.nonCoreActivitiesRegistry();
+  }
+
+  @Get(':id/schedule-impact-preview')
+  @Permissions('employees.read')
+  previewScheduleImpact(@Param('id') id: string, @Query() query: ScheduleImpactPreviewQueryDto) {
+    return this.employeesService.previewScheduleImpact(id, query);
   }
 
   @Get(':id')

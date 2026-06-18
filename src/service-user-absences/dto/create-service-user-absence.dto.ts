@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, ValidateIf } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, ValidateIf } from 'class-validator';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
@@ -39,4 +39,9 @@ export class CreateServiceUserAbsenceDto {
   @IsString()
   @MaxLength(20000)
   contactInformation?: string;
+
+  /** When true (default), cancel scheduled visits for this service user in the absence date range. */
+  @IsOptional()
+  @IsBoolean()
+  applyToSchedule?: boolean;
 }

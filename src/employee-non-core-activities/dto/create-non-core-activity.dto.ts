@@ -60,5 +60,13 @@ export class CreateNonCoreActivityDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'When true (default), unallocate this employee from jobs during the NCA period',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  applyToSchedule?: boolean;
 }
 

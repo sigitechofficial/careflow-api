@@ -13,10 +13,6 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
-import {
-  deriveJobStatusFromVisits,
-  mapSingleVisitStatusToJobStatus,
-} from '../scheduling/scheduling-job-status.util';
 import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
@@ -321,15 +317,6 @@ export class ScheduledJobsHousekeepingService {
     };
   }
 
-  private allocationFallbackStatus(
-    requiredCarers: number,
-    activeAllocationCount: number,
-  ): PrismaJobStatus {
-    if (activeAllocationCount >= requiredCarers) return PrismaJobStatus.ALLOCATED;
-    if (activeAllocationCount > 0) return PrismaJobStatus.NEEDS_ATTENTION;
-    return PrismaJobStatus.UNALLOCATED;
-  }
-
   async completeJob(userId: string, id: string, dto: CompleteJobDto, meta?: RequestAuditMeta) {
     const existing = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null, isActive: true },
@@ -344,89 +331,23 @@ export class ScheduledJobsHousekeepingService {
       throw new BadRequestException(`Cannot complete job in status ${existing.status}`);
     }
 
-    const visitStatus = (dto.status ?? PrismaVisitStatus.COMPLETED) as PrismaVisitStatus;
-    let actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : null;
-    let actualEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : null;
-
-    if (
-      visitStatus === PrismaVisitStatus.COMPLETED ||
-      visitStatus === PrismaVisitStatus.PARTIALLY_COMPLETED
-    ) {
-      if (!actualStart || !actualEnd) {
-        throw new BadRequestException('Actual start and end times are required for completed visits');
-      }
-      if (actualEnd <= actualStart) {
-        throw new BadRequestException('Actual end time must be after actual start time');
-      }
-    } else if (visitStatus === PrismaVisitStatus.STARTED) {
-      if (!actualStart) actualStart = new Date();
-    } else if (actualStart && actualEnd && actualEnd <= actualStart) {
-      throw new BadRequestException('Actual end time must be after actual start time');
-    }
-
-    const existingMeta =
-      existing.metadata && typeof existing.metadata === 'object' && !Array.isArray(existing.metadata)
-        ? (existing.metadata as Record<string, unknown>)
-        : {};
-    const deliveredCarePlanFormIds = dto.deliveredCarePlanFormIds ?? [];
-    const activeAllocationCount = existing.allocations.filter((a) =>
-      ACTIVE_ALLOCATION.includes(a.status),
-    ).length;
-    const allocationFallback = this.allocationFallbackStatus(
-      existing.requiredCarers,
-      activeAllocationCount,
-    );
+    const actualEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : new Date();
 
     return this.prisma.$transaction(async (tx) => {
-      const visitUpdate: Prisma.ScheduledVisitUpdateManyMutationInput = {
-        status: visitStatus,
-      };
-      if (visitStatus === PrismaVisitStatus.PLANNED) {
-        visitUpdate.actualStartDateTime = null;
-        visitUpdate.actualEndDateTime = null;
-      } else {
-        if (actualStart) visitUpdate.actualStartDateTime = actualStart;
-        if (actualEnd) visitUpdate.actualEndDateTime = actualEnd;
-      }
-      if (dto.notes !== undefined) visitUpdate.notes = dto.notes.trim();
-
       await tx.scheduledVisit.updateMany({
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
-        data: visitUpdate,
+        data: {
+          status: PrismaVisitStatus.COMPLETED,
+          actualEndDateTime: actualEnd,
+          updatedById: userId,
+        },
       });
-
-      const visits = await tx.scheduledVisit.findMany({
-        where: { scheduledJobId: id, deletedAt: null, isActive: true },
-        select: { status: true },
-      });
-      const nextJobStatus =
-        visits.length === 1
-          ? mapSingleVisitStatusToJobStatus(visits[0]!.status, allocationFallback)
-          : deriveJobStatusFromVisits(visits, allocationFallback);
-
-      const completionMeta =
-        visitStatus === PrismaVisitStatus.COMPLETED ||
-        visitStatus === PrismaVisitStatus.PARTIALLY_COMPLETED
-          ? {
-              deliveredCarePlanFormIds,
-              completedAt: (actualEnd ?? new Date()).toISOString(),
-              visitStatus,
-            }
-          : undefined;
 
       const updated = await tx.scheduledJob.update({
         where: { id },
         data: {
-          status: nextJobStatus,
+          status: PrismaJobStatus.COMPLETED,
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
-          ...(completionMeta
-            ? {
-                metadata: {
-                  ...existingMeta,
-                  completion: completionMeta,
-                } as Prisma.InputJsonValue,
-              }
-            : {}),
           updatedById: userId,
         },
         include: housekeepingInclude,

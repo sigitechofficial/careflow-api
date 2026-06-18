@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
-import { seedWorkforceCatalog } from './seeds/workforce-catalog.seed';
+import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
 import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
@@ -14,10 +14,12 @@ import { seedInitialAssessmentCarePlanRules } from './seeds/initial-assessment-c
 import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
 import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
+import { seedServiceUserPersonas } from './seeds/service-user-personas.seed';
+import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
+import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
-import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 import {
@@ -930,15 +932,125 @@ async function main() {
   await assignPermKeys('Manager', carePathwayManageKeys);
   await assignPermKeys('Admin', carePathwayAdminKeys);
 
-  // --- Workforce catalog: compliance, skills, certifications, review types, requirements ---
-  const workforce = await seedWorkforceCatalog(prisma);
-  // eslint-disable-next-line no-console
-  console.log(
-    `[seed] Workforce catalog: ${workforce.complianceCount} compliance, ${workforce.skillCount} skills, ` +
-      `${workforce.certificationCount} certifications, ${workforce.reviewTypeCount} review types, ` +
-      `${workforce.requirementCount} new requirements, ${workforce.retiredComplianceCount} legacy types retired.`,
-  );
+  // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
+  const complianceTypeDefs = [
+    ...CARE_COMPLIANCE_CATALOG,
+    { name: 'Right to Work', code: 'RIGHT_TO_WORK', category: ComplianceCategory.RIGHT_TO_WORK, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Care Certificate', code: 'CARE_CERTIFICATE', category: ComplianceCategory.TRAINING, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Manual Handling', code: 'MANUAL_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Safeguarding Adults', code: 'SAFEGUARDING_ADULTS', category: ComplianceCategory.SAFEGUARDING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Medication Training', code: 'MEDICATION_TRAINING', category: ComplianceCategory.CLINICAL, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
+    { name: 'Driving Licence', code: 'DRIVING_LICENCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 120, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: false },
+    { name: 'Vehicle Insurance', code: 'VEHICLE_INSURANCE', category: ComplianceCategory.DRIVING, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: false },
+  ];
 
+  /** Upsert by stable `code` first — avoids P2002 when legacy rows used different display names. */
+  async function upsertComplianceType(t: (typeof complianceTypeDefs)[number]) {
+    const payload = {
+      name: t.name,
+      code: t.code,
+      category: t.category,
+      hasExpiry: t.hasExpiry,
+      defaultValidityMonths: t.defaultValidityMonths,
+      requiresDocument: t.requiresDocument,
+      requiresVerification: t.requiresVerification,
+      isMandatoryByDefault: t.isMandatoryByDefault ?? false,
+      isActive: true,
+      deletedAt: null as Date | null,
+    };
+
+    let row =
+      (t.code
+        ? await prisma.complianceType.findFirst({ where: { code: t.code } })
+        : null) ??
+      (await prisma.complianceType.findFirst({ where: { name: t.name } }));
+
+    if (row && t.code) {
+      const codeOwner = await prisma.complianceType.findFirst({ where: { code: t.code } });
+      if (codeOwner && codeOwner.id !== row.id) {
+        await prisma.complianceType.update({
+          where: { id: row.id },
+          data: { isActive: false, deletedAt: new Date() },
+        });
+        row = codeOwner;
+      }
+    }
+
+    if (row) {
+      return prisma.complianceType.update({ where: { id: row.id }, data: payload });
+    }
+    return prisma.complianceType.create({ data: payload });
+  }
+
+  const typeByCode: Record<string, string> = {};
+  for (const t of complianceTypeDefs) {
+    const row = await upsertComplianceType(t);
+    if (t.code) typeByCode[t.code] = row.id;
+  }
+
+  const carerRole = await prisma.employeeRoleLookup.findFirst({ where: { name: 'Carer' } });
+  const careArea = await prisma.workArea.findFirst({ where: { name: 'Care' } });
+  const kitchenArea = await prisma.workArea.findFirst({ where: { name: 'Kitchen' } });
+
+  async function ensureRequirement(
+    code: string,
+    filters: {
+      roleId?: string | null;
+      workAreaId?: string | null;
+      jobTitleId?: string | null;
+      isMandatory?: boolean;
+    },
+  ) {
+    const complianceTypeId = typeByCode[code];
+    if (!complianceTypeId) return;
+    const where = {
+      complianceTypeId,
+      roleId: filters.roleId ?? null,
+      workAreaId: filters.workAreaId ?? null,
+      jobTitleId: filters.jobTitleId ?? null,
+      contractTypeId: null as string | null,
+      locationId: null as string | null,
+      zoneId: null as string | null,
+      deletedAt: null,
+    };
+    const exists = await prisma.complianceRequirement.findFirst({ where });
+    if (!exists) {
+      await prisma.complianceRequirement.create({
+        data: {
+          complianceTypeId,
+          roleId: filters.roleId ?? undefined,
+          workAreaId: filters.workAreaId ?? undefined,
+          jobTitleId: filters.jobTitleId ?? undefined,
+          isMandatory: filters.isMandatory ?? true,
+        },
+      });
+    }
+  }
+
+  if (careArea) {
+    for (const t of CARE_COMPLIANCE_CATALOG) {
+      await ensureRequirement(t.code, {
+        workAreaId: careArea.id,
+        isMandatory: t.isMandatoryByDefault,
+      });
+    }
+    for (const code of ['RIGHT_TO_WORK', 'CARE_CERTIFICATE', 'MANUAL_HANDLING', 'SAFEGUARDING_ADULTS', 'MEDICATION_TRAINING']) {
+      if (typeByCode[code]) {
+        await ensureRequirement(code, { workAreaId: careArea.id, isMandatory: true });
+      }
+    }
+  }
+  if (carerRole && careArea) {
+    await ensureRequirement('MEDICATION_TRAINING', { roleId: carerRole.id, workAreaId: careArea.id });
+  }
+  if (carerRole) {
+    for (const code of ['DRIVING_LICENCE', 'VEHICLE_INSURANCE']) {
+      if (typeByCode[code]) await ensureRequirement(code, { roleId: carerRole.id, isMandatory: false });
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('[seed] Compliance types & requirements upserted.');
   const email = 'admin@careadmin.local';
   const password = 'Admin@12345';
   const passwordHash = await bcrypt.hash(password, 12);
@@ -1223,7 +1335,18 @@ async function main() {
     await upsertLookup(prisma.nationality, name);
   }
 
-  // Skills seeded in seedWorkforceCatalog; assign sample employee skills below.
+  for (const name of [
+    'Dementia Care',
+    'First Aid',
+    'Manual Handling',
+    'Safeguarding Adults',
+    'Medication Administration',
+    'Infection control',
+    'Epilepsy awareness',
+    'Food hygiene',
+  ]) {
+    await upsertLookup(prisma.skillType, name);
+  }
 
   const skillTypes = await prisma.skillType.findMany({
     where: { deletedAt: null, isActive: true },
@@ -1720,6 +1843,14 @@ async function main() {
     serviceUserId: demoSuId ?? undefined,
     includeSecondServiceUser: true,
   });
+
+  if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+    await seedServiceUserPersonas(prisma);
+  }
+
+  if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+    await seedPersonaSchedule(prisma);
+  }
 
   const scheduleOperatorPermKeys = [
     'schedules.read',

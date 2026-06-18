@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserAbsencesService } from './service-user-absences.service';
 import { CreateServiceUserAbsenceDto } from './dto/create-service-user-absence.dto';
 import { UpdateServiceUserAbsenceDto } from './dto/update-service-user-absence.dto';
+import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
 
 @ApiTags('Service User Absences')
 @ApiBearerAuth()
@@ -35,6 +37,16 @@ export class ServiceUserAbsencesController {
   @ApiOperation({ summary: 'List absences for a service user' })
   list(@Param('id') serviceUserId: string) {
     return this.service.list(serviceUserId);
+  }
+
+  @Get('schedule-impact-preview')
+  @AnyPermission('service_users.absences.read', 'service_users.read')
+  @ApiOperation({ summary: 'Preview how many scheduled visits would be cancelled for an absence date range' })
+  previewScheduleImpact(
+    @Param('id') serviceUserId: string,
+    @Query() query: ScheduleImpactPreviewQueryDto,
+  ) {
+    return this.service.previewScheduleImpact(serviceUserId, query);
   }
 
   @Post()

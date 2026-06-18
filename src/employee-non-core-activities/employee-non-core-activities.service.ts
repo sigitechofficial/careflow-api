@@ -7,12 +7,15 @@ import { UpdateNonCoreActivityDto } from './dto/update-non-core-activity.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 
 @Injectable()
 export class EmployeeNonCoreActivitiesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
   ) {}
 
   async list(employeeId: string) {
@@ -29,9 +32,10 @@ export class EmployeeNonCoreActivitiesService {
     if (dto.dateTo.getTime() <= dto.dateFrom.getTime()) {
       throw new BadRequestException('dateTo must be after dateFrom');
     }
+    const { applyToSchedule, ...activityData } = dto;
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeNonCoreActivity.create({
-        data: { employeeId, ...dto, createdById: userId },
+        data: { employeeId, ...activityData, createdById: userId },
       });
       await this.audit.logAudit({
         tx,
@@ -44,7 +48,28 @@ export class EmployeeNonCoreActivitiesService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'Non-core activity created', data: created };
+
+      let scheduleImpact: ScheduleImpactResult | undefined;
+      if (applyToSchedule !== false) {
+        scheduleImpact = await this.scheduleImpact.unallocateEmployeeJobsInRange(
+          userId,
+          {
+            employeeId,
+            fromDate: dto.dateFrom,
+            toDate: dto.dateTo,
+            reason: dto.notes?.trim() ? `Non-core activity: ${dto.notes.trim()}` : 'Non-core activity',
+            source: 'employee_non_core_activity',
+          },
+          meta,
+          tx,
+        );
+      }
+
+      return {
+        message: 'Non-core activity created',
+        data: created,
+        ...(scheduleImpact ? { scheduleImpact } : {}),
+      };
     });
   }
 

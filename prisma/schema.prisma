@@ -323,7 +323,6 @@ enum BodyMapLinkedModule {
   RISK_ASSESSMENT
   REFERRAL
   CARE_NOTE
-  SCHEDULED_VISIT
 
   @@schema("service_users")
 }
@@ -676,7 +675,6 @@ model OrganisationGeneralSettings {
   domFutureVisitsDays           Int               @default(14)
   domShowWeeklyHours            Boolean           @default(true)
   domShowServiceUserName        Boolean           @default(true)
-  domShowBlockedCarersInSchedule Boolean          @default(false)
   domLateVisitAlertRequired     Boolean           @default(true)
   domLateVisitAlertMinutes      Int               @default(20)
   domLateVisitAlertEmail        Boolean           @default(true)
@@ -780,8 +778,8 @@ model Employee {
   medicationStockRecords    MedicationStockRecord[]         @relation("MedStockRecordedBy")
   visitActionsCompleted     VisitAction[]                   @relation("VisitActionCompletedBy")
   jobAllocations            JobAllocation[]
+  visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
-  scheduleRuns              ScheduleRun[]                   @relation("ScheduleRunAssignedEmployee")
 
   @@index([deletedAt])
   @@schema("employees")
@@ -802,11 +800,8 @@ model EmployeePersonalDetail {
   addressLine1     String?
   addressLine2     String?
   town             String?
-  county           String?
   country          String?
   postcode         String?
-  latitude         Decimal? @db.Decimal(10, 7)
-  longitude        Decimal? @db.Decimal(10, 7)
   homeTelephone    String?
   mobileTelephone  String?
   photoUrl         String?
@@ -883,10 +878,6 @@ model EmployeeEmployment {
   minimumWeeklyHours    Float?
   visaTypeId            String?
   isInCountry           Boolean @default(true)
-  /// Approved weekly hours cap above immigration status default (requires reason + optional expiry).
-  weeklyHoursCapOverride          Float?
-  weeklyHoursCapOverrideReason    String?
-  weeklyHoursCapOverrideExpiresAt DateTime?
   optedOutOf48Hours     Boolean @default(false)
   isAgencyStaff         Boolean @default(false)
   agencyName            String?
@@ -918,7 +909,6 @@ model EmployeeEmployment {
   location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
   leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
   floorLocations        EmployeeEmploymentFloorLocation[]
-  baseLocations         EmployeeEmploymentBaseLocation[]
 
   @@index([employeeId])
   @@index([deletedAt])
@@ -928,19 +918,6 @@ model EmployeeEmployment {
 model EmployeeEmploymentFloorLocation {
   employmentId String @db.Uuid
   locationId   String @db.Uuid
-  createdAt    DateTime @default(now())
-
-  employment EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
-  location   Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  @@id([employmentId, locationId])
-  @@index([locationId])
-  @@schema("employees")
-}
-
-model EmployeeEmploymentBaseLocation {
-  employmentId String   @db.Uuid
-  locationId   String   @db.Uuid
   createdAt    DateTime @default(now())
 
   employment EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
@@ -1644,7 +1621,6 @@ model Location {
   serviceUserAssignments    ServiceUserAssignment[]
   scheduleAreas             ScheduleArea[]
   employmentFloorLocations  EmployeeEmploymentFloorLocation[]
-  employmentBaseLocations   EmployeeEmploymentBaseLocation[]
   @@schema("lookups")
 }
 
@@ -1675,26 +1651,24 @@ model LeavingReason {
 }
 
 model SkillType {
-  id                   String @id @default(uuid()) @db.Uuid
-  name                 String @unique
-  defaultRefreshMonths Int?
-  isActive             Boolean @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  deletedAt            DateTime?
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   skills EmployeeSkill[]
   @@schema("lookups")
 }
 
 model CertificationType {
-  id                    String @id @default(uuid()) @db.Uuid
-  name                  String @unique
-  defaultValidityMonths Int?
-  isActive              Boolean @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  deletedAt             DateTime?
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   certifications EmployeeWorkCertification[]
   @@schema("lookups")
@@ -1730,15 +1704,12 @@ model ComplianceType {
 }
 
 model ReviewType {
-  id                  String  @id @default(uuid()) @db.Uuid
-  name                String  @unique
-  code                String? @unique
-  description         String?
-  defaultIntervalDays Int?
-  isActive            Boolean @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  deletedAt           DateTime?
+  id        String @id @default(uuid()) @db.Uuid
+  name      String @unique
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   reviews EmployeeReview[]
   @@schema("lookups")
@@ -2161,8 +2132,6 @@ model BodyMapRecord {
   closedById              String?             @db.Uuid
   closureNote             String?             @db.Text
   isArchived              Boolean             @default(false)
-  scheduledJobId          String?             @db.Uuid
-  scheduledVisitId        String?             @db.Uuid
   createdById             String?             @db.Uuid
   updatedById             String?             @db.Uuid
   createdAt               DateTime            @default(now())
@@ -2190,8 +2159,6 @@ model BodyMapRecord {
   @@index([managerReviewRequired])
   @@index([safeguardingTriggered])
   @@index([createdAt])
-  @@index([scheduledJobId])
-  @@index([scheduledVisitId])
   @@schema("service_users")
 }
 
@@ -3078,21 +3045,21 @@ model ServiceUserAllergy {
 }
 
 model ServiceUserLegalDocument {
-  id                       String    @id @default(uuid()) @db.Uuid
-  serviceUserId            String    @unique @db.Uuid
-  dnacprInPlace            Boolean   @default(false)
+  id                       String                            @id @default(uuid()) @db.Uuid
+  serviceUserId            String                            @unique @db.Uuid
+  dnacprInPlace            Boolean                           @default(false)
   dnacprStatusConfirmation ServiceUserDnacprStatusConfirmation @default(UNKNOWN)
-  dnacprPhysicalLocation   String?   @db.Text
+  dnacprPhysicalLocation   String?                           @db.Text
   dnacprCertificateUrl     String?
   dnacprStartDate          DateTime?
-  lpaStatusConfirmation    ServiceUserLpaStatusConfirmation @default(UNKNOWN)
+  lpaStatusConfirmation    ServiceUserLpaStatusConfirmation  @default(UNKNOWN)
   lpaHealthCertificateUrl  String?
   lpaFinanceCertificateUrl String?
-  isActive                 Boolean   @default(true)
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
-  createdById              String?   @db.Uuid
-  updatedById              String?   @db.Uuid
+  isActive                 Boolean                           @default(true)
+  createdAt                DateTime                          @default(now())
+  updatedAt                DateTime                          @updatedAt
+  createdById              String?                           @db.Uuid
+  updatedById              String?                           @db.Uuid
 
   serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
 
@@ -3161,21 +3128,21 @@ enum ServiceUserLpaStatusConfirmation {
 }
 
 model ServiceUserDocumentTypeCatalog {
-  id                             String                        @id @default(uuid()) @db.Uuid
-  code                           String                        @unique
-  name                           String
-  physicalLocationInHomeRequired Boolean                       @default(false)
-  expiryTrackingRequired         Boolean                       @default(false)
-  defaultAccessLevel             ServiceUserDocumentAccessLevel
-  requiredBeforeFirstVisit       Boolean                       @default(false)
-  blocksCarePlanApprovalIfMissing Boolean                      @default(false)
-  expiryAlertDays                Int?
-  cqcLegalStandard               String?                       @db.Text
-  sortOrder                      Int                           @default(0)
-  isActive                       Boolean                       @default(true)
-  createdAt                      DateTime                      @default(now())
-  updatedAt                      DateTime                      @updatedAt
-  deletedAt                      DateTime?
+  id                              String                         @id @default(uuid()) @db.Uuid
+  code                            String                         @unique
+  name                            String
+  physicalLocationInHomeRequired  Boolean                        @default(false)
+  expiryTrackingRequired          Boolean                        @default(false)
+  defaultAccessLevel              ServiceUserDocumentAccessLevel
+  requiredBeforeFirstVisit        Boolean                        @default(false)
+  blocksCarePlanApprovalIfMissing Boolean                        @default(false)
+  expiryAlertDays                 Int?
+  cqcLegalStandard                String?                        @db.Text
+  sortOrder                       Int                            @default(0)
+  isActive                        Boolean                        @default(true)
+  createdAt                       DateTime                       @default(now())
+  updatedAt                       DateTime                       @updatedAt
+  deletedAt                       DateTime?
 
   documents ServiceUserDocumentRecord[]
 
@@ -3371,6 +3338,28 @@ enum VisitPlanMonthlyOrdinal {
   @@schema("service_users")
 }
 
+enum VisitPlanSlotKind {
+  STANDARD
+  OVERNIGHT
+  ONE_OFF
+
+  @@schema("service_users")
+}
+
+enum VisitPlanSlotCarerRole {
+  LEAD
+  SECONDARY
+
+  @@schema("service_users")
+}
+
+enum VisitPlanSlotExceptionType {
+  SKIP
+  EXTRA
+
+  @@schema("service_users")
+}
+
 model ServiceUserVisitPlan {
   id                    String           @id @default(uuid()) @db.Uuid
   serviceUserId         String           @db.Uuid
@@ -3432,16 +3421,68 @@ model VisitPlanSlot {
   monthlyPatternWeekday  Int?
   linkedCarePlanFormIds  String[]               @default([])
   assignedEmployeeIds    String[]               @default([])
+  slotKind               VisitPlanSlotKind      @default(STANDARD)
+  slotEffectiveFrom      DateTime?
+  slotEffectiveTo        DateTime?
+  oneOffDate             DateTime?
+  allowBackfillDays      Int                    @default(0)
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  visitPlan       ServiceUserVisitPlan @relation(fields: [visitPlanId], references: [id], onDelete: Cascade)
-  scheduledVisits ScheduledVisit[]
+  visitPlan        ServiceUserVisitPlan           @relation(fields: [visitPlanId], references: [id], onDelete: Cascade)
+  scheduledVisits  ScheduledVisit[]
+  carerAssignments VisitPlanSlotCarerAssignment[]
+  exceptions       VisitPlanSlotException[]
 
   @@unique([visitPlanId, slotCode])
   @@index([visitPlanId])
+  @@index([slotEffectiveFrom])
+  @@index([slotEffectiveTo])
+  @@schema("service_users")
+}
+
+model VisitPlanSlotCarerAssignment {
+  id               String                 @id @default(uuid()) @db.Uuid
+  visitPlanSlotId  String                 @db.Uuid
+  dayOfWeek        Int?
+  employeeId       String                 @db.Uuid
+  role             VisitPlanSlotCarerRole @default(SECONDARY)
+  durationMinutes  Int?
+  plannedStartTime String?
+  plannedEndTime   String?
+  sortOrder        Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  visitPlanSlot VisitPlanSlot @relation(fields: [visitPlanSlotId], references: [id], onDelete: Cascade)
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([visitPlanSlotId])
+  @@index([employeeId])
+  @@index([visitPlanSlotId, dayOfWeek])
+  @@schema("service_users")
+}
+
+model VisitPlanSlotException {
+  id               String                     @id @default(uuid()) @db.Uuid
+  visitPlanSlotId  String                     @db.Uuid
+  exceptionDate    DateTime
+  exceptionType    VisitPlanSlotExceptionType
+  plannedStartTime String?
+  plannedEndTime   String?
+  durationMinutes  Int?
+  requiredCarers   Int?
+  notes            String                     @default("") @db.Text
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  visitPlanSlot VisitPlanSlot @relation(fields: [visitPlanSlotId], references: [id], onDelete: Cascade)
+
+  @@unique([visitPlanSlotId, exceptionDate, exceptionType])
+  @@index([visitPlanSlotId])
+  @@index([exceptionDate])
   @@schema("service_users")
 }
 
@@ -4762,16 +4803,6 @@ enum ScheduleStatus {
   @@schema("scheduling")
 }
 
-enum ScheduleRunStatus {
-  DRAFT
-  PUBLISHED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-
-  @@schema("scheduling")
-}
-
 enum ScheduleBuildSource {
   TEMPLATE
   WITHOUT_TEMPLATE
@@ -4914,29 +4945,25 @@ enum ScheduledVisitStatus {
 }
 
 model ScheduleRun {
-  id              String            @id @default(uuid()) @db.Uuid
-  scheduleBatchId String            @db.Uuid
-  scheduleAreaId  String?           @db.Uuid
-  employeeId      String?           @db.Uuid
+  id              String    @id @default(uuid()) @db.Uuid
+  scheduleBatchId String    @db.Uuid
+  scheduleAreaId  String?   @db.Uuid
   name            String
   description     String?
-  runDate         DateTime          @db.Date
+  runDate         DateTime  @db.Date
   startTime       String?
   endTime         String?
-  shiftType       String?
-  status          ScheduleRunStatus @default(DRAFT)
-  sortOrder       Int               @default(0)
-  isActive        Boolean           @default(true)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
-  createdById     String?           @db.Uuid
-  updatedById     String?           @db.Uuid
-  deletedById     String?           @db.Uuid
+  createdById     String?   @db.Uuid
+  updatedById     String?   @db.Uuid
+  deletedById     String?   @db.Uuid
 
   scheduleBatch ScheduleBatch  @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
   scheduleArea  ScheduleArea?  @relation(fields: [scheduleAreaId], references: [id], onDelete: SetNull)
-  employee      Employee?      @relation("ScheduleRunAssignedEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
   createdBy     User?          @relation("ScheduleRunCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy     User?          @relation("ScheduleRunUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   deletedBy     User?          @relation("ScheduleRunDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -4944,9 +4971,7 @@ model ScheduleRun {
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
-  @@index([employeeId])
   @@index([runDate])
-  @@index([status])
   @@index([deletedAt])
   @@index([isActive])
   @@schema("scheduling")
@@ -4957,7 +4982,6 @@ model ScheduledJob {
   scheduleBatchId          String               @db.Uuid
   scheduleAreaId           String?              @db.Uuid
   scheduleRunId            String?              @db.Uuid
-  runSequence              Int?
   serviceUserId            String               @db.Uuid
   jobName                  String
   description              String?
@@ -4997,7 +5021,6 @@ model ScheduledJob {
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
   @@index([scheduleRunId])
-  @@index([scheduleRunId, runSequence])
   @@index([serviceUserId])
   @@index([status])
   @@index([priority])
@@ -5106,27 +5129,30 @@ enum AllocationStatus {
 }
 
 model JobAllocation {
-  id                 String           @id @default(uuid()) @db.Uuid
-  scheduledJobId     String           @db.Uuid
-  scheduledVisitId   String?          @db.Uuid
-  employeeId         String           @db.Uuid
-  status             AllocationStatus @default(PENDING_CONFIRMATION)
-  isLeadCarer        Boolean          @default(false)
-  requiresConfirmation Boolean        @default(false)
-  confirmedAt        DateTime?
-  confirmedById      String?          @db.Uuid
-  warningTypes       Json?
-  warningMessages    Json?
-  notes              String?
-  allocatedAt        DateTime         @default(now())
-  allocatedById      String?          @db.Uuid
-  unallocatedAt      DateTime?
-  unallocatedById    String?          @db.Uuid
-  unallocationReason String?
-  isActive           Boolean          @default(true)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  deletedAt          DateTime?
+  id                     String           @id @default(uuid()) @db.Uuid
+  scheduledJobId         String           @db.Uuid
+  scheduledVisitId       String?          @db.Uuid
+  employeeId             String           @db.Uuid
+  status                 AllocationStatus @default(PENDING_CONFIRMATION)
+  requiresConfirmation   Boolean          @default(false)
+  confirmedAt            DateTime?
+  confirmedById          String?          @db.Uuid
+  scheduledStartDateTime DateTime?
+  scheduledEndDateTime   DateTime?
+  durationMinutes        Int?
+  isLeadCarer            Boolean          @default(false)
+  warningTypes           Json?
+  warningMessages        Json?
+  notes                  String?
+  allocatedAt            DateTime         @default(now())
+  allocatedById          String?          @db.Uuid
+  unallocatedAt          DateTime?
+  unallocatedById        String?          @db.Uuid
+  unallocationReason     String?
+  isActive               Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  deletedAt              DateTime?
 
   scheduledJob   ScheduledJob    @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
   scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: SetNull)

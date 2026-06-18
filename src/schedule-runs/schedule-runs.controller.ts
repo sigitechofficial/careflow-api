@@ -11,8 +11,6 @@ import { ScheduleRunsService } from './schedule-runs.service';
 import { ScheduleRunQueryDto } from './dto/schedule-run-query.dto';
 import { CreateScheduleRunDto } from './dto/create-schedule-run.dto';
 import { UpdateScheduleRunDto } from './dto/update-schedule-run.dto';
-import { AddJobsToRunDto } from './dto/add-jobs-to-run.dto';
-import { ReorderRunJobsDto } from './dto/reorder-run-jobs.dto';
 
 @ApiTags('Schedule Runs')
 @ApiBearerAuth()
@@ -52,56 +50,6 @@ export class ScheduleRunsController {
     @Req() req: Request,
   ) {
     return this.service.update(user.id, id, dto, getRequestAuditMeta(req));
-  }
-
-  @Post(':id/jobs')
-  @Permissions('schedule_runs.update')
-  @ApiOperation({ summary: 'Add visits (scheduled jobs) to a run' })
-  addJobs(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: AddJobsToRunDto,
-    @Req() req: Request,
-  ) {
-    return this.service.addJobs(user.id, id, dto, getRequestAuditMeta(req));
-  }
-
-  @Patch(':id/jobs/reorder')
-  @Permissions('schedule_runs.update')
-  @ApiOperation({ summary: 'Reorder visits within a run' })
-  reorderJobs(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: ReorderRunJobsDto,
-    @Req() req: Request,
-  ) {
-    return this.service.reorderJobs(user.id, id, dto, getRequestAuditMeta(req));
-  }
-
-  @Delete(':id/jobs/:jobId')
-  @Permissions('schedule_runs.update')
-  @ApiOperation({ summary: 'Remove a visit from a run without deleting it' })
-  removeJob(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Param('jobId') jobId: string,
-    @Req() req: Request,
-  ) {
-    return this.service.removeJob(user.id, id, jobId, getRequestAuditMeta(req));
-  }
-
-  @Post(':id/cancel')
-  @Permissions('schedule_runs.update')
-  @ApiOperation({ summary: 'Cancel a run and detach its visits' })
-  cancel(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.cancel(user.id, id, getRequestAuditMeta(req));
-  }
-
-  @Post(':id/sync-carer')
-  @Permissions('schedule_runs.update')
-  @ApiOperation({ summary: 'Allocate the run carer to all visits in the run' })
-  syncCarer(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.syncCarer(user.id, id, getRequestAuditMeta(req));
   }
 
   @Delete(':id')

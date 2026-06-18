@@ -110,7 +110,14 @@ export class ServiceUserVisitPlansController {
     @Body() dto: VisitPlanStatusChangeDto,
     @Req() req: Request,
   ) {
-    return this.service.suspend(user.id, serviceUserId, planId, dto.reason, getRequestAuditMeta(req));
+    return this.service.suspend(
+      user.id,
+      serviceUserId,
+      planId,
+      dto.reason,
+      getRequestAuditMeta(req),
+      dto.cancelFutureVisits !== false,
+    );
   }
 
   @Post(':planId/end')
@@ -123,7 +130,14 @@ export class ServiceUserVisitPlansController {
     @Body() dto: VisitPlanStatusChangeDto,
     @Req() req: Request,
   ) {
-    return this.service.end(user.id, serviceUserId, planId, dto.reason, getRequestAuditMeta(req));
+    return this.service.end(
+      user.id,
+      serviceUserId,
+      planId,
+      dto.reason,
+      getRequestAuditMeta(req),
+      dto.cancelFutureVisits !== false,
+    );
   }
 
   @Post(':planId/prefill-dom-care')

@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { DataAccessType, Prisma as PrismaClient } from '@prisma/client';
+import { DataAccessType } from '@prisma/client';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -9,7 +9,6 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { CreateServiceUserDto } from './dto/create-service-user.dto';
-import { UpdateServiceUserAddressDto } from '../service-user-addresses/dto/update-service-user-address.dto';
 import { UpdateServiceUserDto } from './dto/update-service-user.dto';
 import { ServiceUserQueryDto } from './dto/service-user-query.dto';
 import { UpdateServiceUserStatusDto } from './dto/update-service-user-status.dto';
@@ -20,49 +19,6 @@ import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messag
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
-
-function addressCreateData(
-  serviceUserId: string,
-  userId: string,
-  dto: UpdateServiceUserAddressDto,
-): Prisma.ServiceUserAddressUncheckedCreateInput {
-  return {
-    serviceUserId,
-    addressLine1: dto.addressLine1 ?? null,
-    addressLine2: dto.addressLine2 ?? null,
-    town: dto.town ?? null,
-    county: dto.county ?? null,
-    country: dto.country ?? null,
-    postcode: dto.postcode ?? null,
-    accessInstructions: dto.accessInstructions ?? null,
-    keySafeNumber: dto.keySafeNumber ?? null,
-    latitude:
-      dto.latitude !== undefined && dto.latitude !== null
-        ? new PrismaClient.Decimal(dto.latitude)
-        : null,
-    longitude:
-      dto.longitude !== undefined && dto.longitude !== null
-        ? new PrismaClient.Decimal(dto.longitude)
-        : null,
-    createdById: userId,
-    updatedById: userId,
-  };
-}
-
-function hasAddressPayload(dto: UpdateServiceUserAddressDto): boolean {
-  return [
-    dto.addressLine1,
-    dto.addressLine2,
-    dto.town,
-    dto.county,
-    dto.country,
-    dto.postcode,
-    dto.accessInstructions,
-    dto.keySafeNumber,
-    dto.latitude,
-    dto.longitude,
-  ].some((v) => v !== undefined && v !== null && String(v).trim() !== '');
-}
 
 const detailInclude = {
   title: true,
@@ -308,23 +264,6 @@ export class ServiceUsersService {
             locationId: dto.locationId ?? null,
             createdById: userId,
           },
-        });
-      }
-
-      if (dto.address && hasAddressPayload(dto.address)) {
-        const addressRow = await tx.serviceUserAddress.create({
-          data: addressCreateData(created.id, userId, dto.address),
-        });
-        await this.audit.logAudit({
-          tx,
-          userId,
-          module: AuditModule.SERVICE_USER,
-          action: AuditAction.SERVICE_USER_ADDRESS_UPDATED,
-          recordType: 'ServiceUserAddress',
-          recordId: addressRow.id,
-          newValues: auditSnapshot(addressRow),
-          ipAddress: meta?.ipAddress ?? undefined,
-          userAgent: meta?.userAgent ?? undefined,
         });
       }
 

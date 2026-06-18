@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ComplianceCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class UpdateComplianceTypeDto {
   @ApiPropertyOptional({ maxLength: 150 })
@@ -34,7 +34,6 @@ export class UpdateComplianceTypeDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @ValidateIf((_, v) => v !== null && v !== undefined)
   @Type(() => Number)
   @IsInt()
   @Min(1)

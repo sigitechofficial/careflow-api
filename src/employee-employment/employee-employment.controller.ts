@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -19,11 +19,6 @@ export class EmployeeEmploymentController {
 
   @Get()
   @Permissions('employees.read')
-  @ApiOperation({
-    summary: 'Get employee employment',
-    description:
-      'Includes immigration status (visaTypeId), weekly hours, and optional weeklyHoursCapOverride fields.',
-  })
   get(@CurrentUser() user: RequestUser, @Param('id') employeeId: string, @Req() req: Request) {
     const m = getRequestAuditMeta(req);
     return this.service.get(employeeId, { actorUserId: user.id, ...m });
@@ -31,11 +26,6 @@ export class EmployeeEmploymentController {
 
   @Patch()
   @Permissions('employees.update')
-  @ApiOperation({
-    summary: 'Update employee employment',
-    description:
-      'Contracted/max weekly hours are validated against immigration status cap unless weeklyHoursCapOverride is set with a reason.',
-  })
   update(
     @CurrentUser() user: RequestUser,
     @Param('id') employeeId: string,

@@ -40,7 +40,6 @@ import { parseOrganisationPrivacySettings } from './privacy-settings.util';
 import {
   parseEmployeeVisaTypes,
   serializeEmployeeVisaTypes,
-  normalizeEmployeeVisaTypeInput,
   type EmployeeVisaType,
 } from './employee-visa-types.util';
 
@@ -102,7 +101,6 @@ type SettingsRow = {
   domFutureVisitsDays: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
-  domShowBlockedCarersInSchedule: boolean;
   domLateVisitAlertRequired: boolean;
   domLateVisitAlertMinutes: number;
   domLateVisitAlertEmail: boolean;
@@ -220,7 +218,6 @@ function mapRow(row: SettingsRow) {
     domFutureVisitsDays: row.domFutureVisitsDays,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
-    domShowBlockedCarersInSchedule: row.domShowBlockedCarersInSchedule,
     domLateVisitAlertRequired: row.domLateVisitAlertRequired,
     domLateVisitAlertMinutes: row.domLateVisitAlertMinutes,
     domLateVisitAlertEmail: row.domLateVisitAlertEmail,
@@ -293,10 +290,9 @@ function buildUpdateData(
   set('wellbeingLabel4', dto.wellbeingLabel4?.trim());
   set('wellbeingLabel5', dto.wellbeingLabel5?.trim());
   if (dto.employeeVisaTypes !== undefined) {
-    const normalized = (dto.employeeVisaTypes as EmployeeVisaType[]).map((row) =>
-      normalizeEmployeeVisaTypeInput(row as EmployeeVisaType & { weeklyHours?: number }),
+    data.employeeVisaTypes = serializeEmployeeVisaTypes(
+      dto.employeeVisaTypes as EmployeeVisaType[],
     );
-    data.employeeVisaTypes = serializeEmployeeVisaTypes(normalized);
   }
   set('enhancedRegularActionChecks', dto.enhancedRegularActionChecks);
   set('showRegularActionsInDailyList', dto.showRegularActionsInDailyList);
@@ -327,7 +323,6 @@ function buildUpdateData(
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
-  set('domShowBlockedCarersInSchedule', dto.domShowBlockedCarersInSchedule);
   set('domLateVisitAlertRequired', dto.domLateVisitAlertRequired);
   set('domLateVisitAlertMinutes', dto.domLateVisitAlertMinutes);
   set('domLateVisitAlertEmail', dto.domLateVisitAlertEmail);

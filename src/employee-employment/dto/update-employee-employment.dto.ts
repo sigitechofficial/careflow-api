@@ -1,7 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsArray,
   IsBoolean,
   IsDate,
   IsNumber,
@@ -95,12 +94,6 @@ export class UpdateEmployeeEmploymentDto {
   @IsUUID()
   baseLocationId?: string;
 
-  @ApiPropertyOptional({ type: [String], description: 'Multiple base/home sites for this employee' })
-  @IsOptional()
-  @IsArray()
-  @IsUUID('4', { each: true })
-  baseLocationIds?: string[];
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
@@ -147,44 +140,6 @@ export class UpdateEmployeeEmploymentDto {
   @IsNumber()
   @Min(0)
   minimumWeeklyHours?: number;
-
-  @ApiPropertyOptional({
-    description:
-      'Per-employee approved weekly hours cap above immigration status default. Requires weeklyHoursCapOverrideReason.',
-    type: Number,
-    nullable: true,
-    minimum: 0,
-    maximum: 168,
-    example: 30,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  weeklyHoursCapOverride?: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Documented reason for weekly hours cap override',
-    type: String,
-    nullable: true,
-    maxLength: 500,
-    example: 'Approved holiday cover — HR ticket #1234',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  weeklyHoursCapOverrideReason?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'When the hours cap override expires (optional)',
-    type: String,
-    format: 'date-time',
-    nullable: true,
-  })
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  weeklyHoursCapOverrideExpiresAt?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -5,6 +5,7 @@ import {
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
+  VisitPlanSlotKind,
   VisitPlanStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,14 +26,13 @@ import {
   type MedicationRoundCatalogRow,
 } from './visit-plan-slot-defaults';
 import { mergeSlotSchedulingOptions } from './visit-plan-slot-options.defaults';
-import { visitPlanSlotMatchesDay } from './visit-plan-schedule-match.util';
 import { buildSlotsFromPreferredVisitTimes } from './visit-plan-from-assessment.util';
-import { applySuggestedCarePlanLinksToSlots } from './visit-plan-care-plan-slot-suggestions.util';
-import { readCarePlanDecisions } from '../initial-assessments/initial-assessment-care-plan-decisions.util';
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
 import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import {
   carerFitScore,
   evaluateCarerAvailability,
@@ -40,10 +40,22 @@ import {
   requiredSkillKeywords,
   visitPlanSuggestJobWindow,
 } from './visit-plan-carer-suggest.util';
+import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
+import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
+import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
 import { syncVisitPlanSlotCarersToScheduledJobs } from './visit-plan-slot-carer-sync.util';
+import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
+import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
+import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
 
 const planInclude = {
-  slots: { orderBy: { sortOrder: 'asc' as const } },
+  slots: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: {
+      carerAssignments: { orderBy: [{ sortOrder: 'asc' as const }, { role: 'asc' as const }] },
+      exceptions: { orderBy: { exceptionDate: 'asc' as const } },
+    },
+  },
   amendments: { orderBy: { amendedAt: 'desc' as const }, take: 20 },
 } satisfies Prisma.ServiceUserVisitPlanInclude;
 
@@ -83,6 +95,7 @@ export class ServiceUserVisitPlansService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly scheduledJobsService: ScheduledJobsService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -176,6 +189,31 @@ export class ServiceUserVisitPlansService {
         monthlyPatternWeekday: s.monthlyPatternWeekday,
         linkedCarePlanFormIds: s.linkedCarePlanFormIds ?? [],
         assignedEmployeeIds: s.assignedEmployeeIds ?? [],
+        slotKind: s.slotKind,
+        slotEffectiveFrom: s.slotEffectiveFrom?.toISOString() ?? null,
+        slotEffectiveTo: s.slotEffectiveTo?.toISOString() ?? null,
+        oneOffDate: s.oneOffDate?.toISOString() ?? null,
+        allowBackfillDays: s.allowBackfillDays,
+        carerAssignments: (s.carerAssignments ?? []).map((a) => ({
+          id: a.id,
+          dayOfWeek: a.dayOfWeek,
+          employeeId: a.employeeId,
+          role: a.role,
+          durationMinutes: a.durationMinutes,
+          plannedStartTime: a.plannedStartTime,
+          plannedEndTime: a.plannedEndTime,
+          sortOrder: a.sortOrder,
+        })),
+        exceptions: (s.exceptions ?? []).map((ex) => ({
+          id: ex.id,
+          exceptionDate: ex.exceptionDate.toISOString().slice(0, 10),
+          exceptionType: ex.exceptionType,
+          plannedStartTime: ex.plannedStartTime,
+          plannedEndTime: ex.plannedEndTime,
+          durationMinutes: ex.durationMinutes,
+          requiredCarers: ex.requiredCarers,
+          notes: ex.notes,
+        })),
       })),
       amendments: (row.amendments ?? []).map((a) => ({
         id: a.id,
@@ -190,9 +228,24 @@ export class ServiceUserVisitPlansService {
     return this.mapPlan(plan, roundNameByCode);
   }
 
-  private normalizeSlots(slots: VisitPlanSlotDto[] | undefined, rounds: MedicationRoundCatalogRow[]) {
+  private normalizeSlots(slots: VisitPlanSlotDto[] | undefined, rounds: MedicationRoundCatalogRow[]): NormalizedVisitPlanSlot[] {
     const catalogue = defaultVisitPlanSlotsFromRounds(rounds);
-    if (!slots?.length) return catalogue;
+    const enterpriseDefaults = (row: (typeof catalogue)[number]): NormalizedVisitPlanSlot => {
+      const slotKind =
+        row.plannedEndTime <= row.plannedStartTime ? VisitPlanSlotKind.OVERNIGHT : VisitPlanSlotKind.STANDARD;
+      return {
+        ...row,
+        slotKind,
+        slotEffectiveFrom: null,
+        slotEffectiveTo: null,
+        oneOffDate: null,
+        allowBackfillDays: 0,
+        carerAssignments: [],
+        exceptions: [],
+        durationMinutes: row.durationMinutes ?? deriveDurationFromTimes(row.plannedStartTime, row.plannedEndTime, slotKind),
+      };
+    };
+    if (!slots?.length) return catalogue.map(enterpriseDefaults);
 
     const byCode = new Map(
       slots.map((s) => [normalizeVisitPlanSlotCode(s.slotCode), { ...s, slotCode: normalizeVisitPlanSlotCode(s.slotCode) }]),
@@ -202,7 +255,7 @@ export class ServiceUserVisitPlansService {
       ...[...byCode.keys()].filter((code) => !catalogue.some((c) => c.slotCode === code)),
     ];
 
-    return orderedCodes.map((slotCode, index) => {
+    return orderedCodes.map((slotCode, index): NormalizedVisitPlanSlot => {
       const defaults = catalogue.find((d) => d.slotCode === slotCode) ?? {
         ...catalogue[0]!,
         slotCode,
@@ -210,11 +263,21 @@ export class ServiceUserVisitPlansService {
         sortOrder: index,
       };
       const input = byCode.get(slotCode);
+      const plannedStart = input?.plannedStartTime ?? defaults.plannedStartTime;
+      const plannedEnd = input?.plannedEndTime ?? defaults.plannedEndTime;
+      const slotKind =
+        input?.slotKind ??
+        (plannedEnd <= plannedStart ? VisitPlanSlotKind.OVERNIGHT : VisitPlanSlotKind.STANDARD);
+      const durationMinutes =
+        input?.durationMinutes ??
+        defaults.durationMinutes ??
+        deriveDurationFromTimes(plannedStart, plannedEnd, slotKind);
+
       return {
         slotCode,
         daysOfWeek: input?.daysOfWeek?.length ? [...new Set(input.daysOfWeek)].sort() : defaults.daysOfWeek,
-        plannedStartTime: input?.plannedStartTime ?? defaults.plannedStartTime,
-        plannedEndTime: input?.plannedEndTime ?? defaults.plannedEndTime,
+        plannedStartTime: plannedStart,
+        plannedEndTime: plannedEnd,
         requiredCarers: input?.requiredCarers ?? defaults.requiredCarers,
         isEnabled: input?.isEnabled ?? defaults.isEnabled,
         medicationRoundCode: input?.medicationRoundCode ?? defaults.medicationRoundCode,
@@ -222,14 +285,20 @@ export class ServiceUserVisitPlansService {
         sortOrder: defaults.sortOrder ?? index,
         linkedCarePlanFormIds: input?.linkedCarePlanFormIds ?? [],
         assignedEmployeeIds: input?.assignedEmployeeIds ?? [],
+        slotKind: input?.slotKind ?? slotKind,
+        slotEffectiveFrom: input?.slotEffectiveFrom ?? null,
+        slotEffectiveTo: input?.slotEffectiveTo ?? null,
+        oneOffDate: input?.oneOffDate ?? null,
+        allowBackfillDays: input?.allowBackfillDays ?? 0,
+        carerAssignments: input?.carerAssignments ?? [],
+        exceptions: input?.exceptions ?? [],
         ...mergeSlotSchedulingOptions(input ?? null),
+        durationMinutes,
       };
     });
   }
 
-  private slotPersistFields(
-    slot: ReturnType<ServiceUserVisitPlansService['normalizeSlots']>[number],
-  ) {
+  private slotPersistFields(slot: NormalizedVisitPlanSlot) {
     return {
       daysOfWeek: slot.daysOfWeek,
       plannedStartTime: slot.plannedStartTime,
@@ -254,7 +323,83 @@ export class ServiceUserVisitPlansService {
       monthlyPatternWeekday: slot.monthlyPatternWeekday,
       linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
       assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+      slotKind: slot.slotKind ?? VisitPlanSlotKind.STANDARD,
+      slotEffectiveFrom: slot.slotEffectiveFrom ? new Date(slot.slotEffectiveFrom) : null,
+      slotEffectiveTo: slot.slotEffectiveTo ? new Date(slot.slotEffectiveTo) : null,
+      oneOffDate: slot.oneOffDate ? new Date(slot.oneOffDate) : null,
+      allowBackfillDays: slot.allowBackfillDays ?? 0,
     };
+  }
+
+  private async persistSlotRelations(
+    tx: Prisma.TransactionClient,
+    visitPlanSlotId: string,
+    carerAssignments: VisitPlanSlotCarerAssignmentDto[],
+    exceptions: VisitPlanSlotExceptionDto[],
+  ) {
+    await tx.visitPlanSlotCarerAssignment.deleteMany({ where: { visitPlanSlotId } });
+    if (carerAssignments.length) {
+      await tx.visitPlanSlotCarerAssignment.createMany({
+        data: carerAssignments.map((a, index) => ({
+          visitPlanSlotId,
+          dayOfWeek: a.dayOfWeek ?? null,
+          employeeId: a.employeeId,
+          role: a.role ?? 'SECONDARY',
+          durationMinutes: a.durationMinutes ?? null,
+          plannedStartTime: a.plannedStartTime ?? null,
+          plannedEndTime: a.plannedEndTime ?? null,
+          sortOrder: a.sortOrder ?? index,
+        })),
+      });
+    }
+
+    await tx.visitPlanSlotException.deleteMany({ where: { visitPlanSlotId } });
+    if (exceptions.length) {
+      await tx.visitPlanSlotException.createMany({
+        data: exceptions.map((ex) => ({
+          visitPlanSlotId,
+          exceptionDate: new Date(ex.exceptionDate),
+          exceptionType: ex.exceptionType,
+          plannedStartTime: ex.plannedStartTime ?? null,
+          plannedEndTime: ex.plannedEndTime ?? null,
+          durationMinutes: ex.durationMinutes ?? null,
+          requiredCarers: ex.requiredCarers ?? null,
+          notes: ex.notes?.trim() ?? '',
+        })),
+      });
+    }
+  }
+
+  private async upsertPlanSlot(tx: Prisma.TransactionClient, planId: string, slot: NormalizedVisitPlanSlot) {
+    const fields = this.slotPersistFields(slot);
+    const existing = await tx.visitPlanSlot.findFirst({
+      where: { visitPlanId: planId, slotCode: slot.slotCode },
+      select: { id: true },
+    });
+
+    let slotId: string;
+    if (existing) {
+      await tx.visitPlanSlot.update({ where: { id: existing.id }, data: fields });
+      slotId = existing.id;
+    } else {
+      const created = await tx.visitPlanSlot.create({
+        data: {
+          visitPlanId: planId,
+          slotCode: slot.slotCode,
+          sortOrder: slot.sortOrder,
+          ...fields,
+        },
+      });
+      slotId = created.id;
+    }
+
+    await this.persistSlotRelations(
+      tx,
+      slotId,
+      slot.carerAssignments ?? [],
+      slot.exceptions ?? [],
+    );
+    return slotId;
   }
 
   async suggestCarers(serviceUserId: string, dto: SuggestVisitPlanCarersDto) {
@@ -438,10 +583,7 @@ export class ServiceUserVisitPlansService {
           AND: [
             { scheduledStartDateTime: { lt: jobEnd } },
             {
-              OR: [
-                { scheduledEndDateTime: { gt: jobStart } },
-                { scheduledEndDateTime: null },
-              ],
+              OR: [{ scheduledEndDateTime: { gt: jobStart } }, { scheduledEndDateTime: null }],
             },
           ],
         },
@@ -635,6 +777,13 @@ export class ServiceUserVisitPlansService {
           ...this.slotPersistFields(s),
         })),
       });
+      for (const slot of slots) {
+        const row = await tx.visitPlanSlot.findFirstOrThrow({
+          where: { visitPlanId: plan.id, slotCode: slot.slotCode },
+          select: { id: true },
+        });
+        await this.persistSlotRelations(tx, row.id, slot.carerAssignments ?? [], slot.exceptions ?? []);
+      }
       const full = await tx.serviceUserVisitPlan.findUniqueOrThrow({
         where: { id: plan.id },
         include: planInclude,
@@ -674,18 +823,19 @@ export class ServiceUserVisitPlansService {
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.slots?.length) {
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
-          const result = await tx.visitPlanSlot.updateMany({
+          await this.upsertPlanSlot(tx, planId, slot);
+        }
+        for (const slot of this.normalizeSlots(dto.slots, rounds)) {
+          const row = await tx.visitPlanSlot.findFirst({
             where: { visitPlanId: planId, slotCode: slot.slotCode },
-            data: this.slotPersistFields(slot),
+            select: { id: true, assignedEmployeeIds: true, requiredCarers: true },
           });
-          if (result.count === 0) {
-            await tx.visitPlanSlot.create({
-              data: {
-                visitPlanId: planId,
-                slotCode: slot.slotCode,
-                sortOrder: slot.sortOrder,
-                ...this.slotPersistFields(slot),
-              },
+          if (row) {
+            await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+              visitPlanSlotId: row.id,
+              assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+              requiredCarers: slot.requiredCarers,
+              userId,
             });
           }
         }
@@ -731,18 +881,6 @@ export class ServiceUserVisitPlansService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
-
-      if (dto.slots?.length) {
-        for (const slot of after.slots) {
-          await syncVisitPlanSlotCarersToScheduledJobs(tx, {
-            visitPlanSlotId: slot.id,
-            assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
-            requiredCarers: slot.requiredCarers,
-            userId,
-          });
-        }
-      }
-
       return after;
     });
 
@@ -773,7 +911,7 @@ export class ServiceUserVisitPlansService {
         where: { id: planId },
         data: {
           status: VisitPlanStatus.ACTIVE,
-          effectiveFrom: new Date(),
+          ...(plan.status === VisitPlanStatus.DRAFT ? { effectiveFrom: new Date() } : {}),
           effectiveTo: null,
           approvedById: userId,
           approvedAt: new Date(),
@@ -806,6 +944,7 @@ export class ServiceUserVisitPlansService {
     planId: string,
     reason: string,
     meta?: RequestAuditMeta,
+    cancelFutureVisits = true,
   ) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.ACTIVE) {
@@ -836,10 +975,33 @@ export class ServiceUserVisitPlansService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    return { message: 'Visit plan suspended', data: this.mapPlan(result, roundNameByCode) };
+
+    let scheduleImpact: ScheduleImpactResult | undefined;
+    if (cancelFutureVisits) {
+      scheduleImpact = await this.scheduleImpact.cancelFutureServiceUserJobs(
+        userId,
+        serviceUserId,
+        `Visit plan suspended: ${reason.trim()}`,
+        'visit_plan_suspend',
+        meta,
+      );
+    }
+
+    return {
+      message: 'Visit plan suspended',
+      data: this.mapPlan(result, roundNameByCode),
+      ...(scheduleImpact ? { scheduleImpact } : {}),
+    };
   }
 
-  async end(userId: string, serviceUserId: string, planId: string, reason: string, meta?: RequestAuditMeta) {
+  async end(
+    userId: string,
+    serviceUserId: string,
+    planId: string,
+    reason: string,
+    meta?: RequestAuditMeta,
+    cancelFutureVisits = true,
+  ) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status === VisitPlanStatus.ENDED) {
       throw new BadRequestException('Visit plan is already ended');
@@ -873,7 +1035,23 @@ export class ServiceUserVisitPlansService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    return { message: 'Visit plan ended', data: this.mapPlan(result, roundNameByCode) };
+
+    let scheduleImpact: ScheduleImpactResult | undefined;
+    if (cancelFutureVisits) {
+      scheduleImpact = await this.scheduleImpact.cancelFutureServiceUserJobs(
+        userId,
+        serviceUserId,
+        `Visit plan ended: ${reason.trim()}`,
+        'visit_plan_end',
+        meta,
+      );
+    }
+
+    return {
+      message: 'Visit plan ended',
+      data: this.mapPlan(result, roundNameByCode),
+      ...(scheduleImpact ? { scheduleImpact } : {}),
+    };
   }
 
   async prefillFromDomCare(userId: string, serviceUserId: string, planId: string, meta?: RequestAuditMeta) {
@@ -930,18 +1108,6 @@ export class ServiceUserVisitPlansService {
       rounds,
     );
 
-    const acceptedFromSubmission = Object.values(readCarePlanDecisions(submission.metadata))
-      .filter((d) => d.decision === 'accepted' && d.carePathwayFormId)
-      .map((d) => ({
-        formId: d.carePathwayFormId!,
-        formName: d.carePathwayFormName ?? d.title ?? 'Care plan',
-        carePlanArea: d.carePlanArea ?? d.carePathwayFormName ?? d.title ?? 'Care plan',
-      }));
-    const linkedSlotSeeds = applySuggestedCarePlanLinksToSlots(
-      slotSeeds.map((s) => ({ ...s, linkedCarePlanFormIds: [] as string[] })),
-      acceptedFromSubmission,
-    );
-
     const reviewDueAt = new Date();
     reviewDueAt.setDate(reviewDueAt.getDate() + 42);
 
@@ -954,7 +1120,7 @@ export class ServiceUserVisitPlansService {
         numberOfCarers,
         reviewDueAt: reviewDueAt.toISOString(),
         notes: 'Draft created from approved initial assessment',
-        slots: linkedSlotSeeds.map((s) => ({
+        slots: slotSeeds.map((s) => ({
           slotCode: s.slotCode,
           daysOfWeek: s.daysOfWeek,
           plannedStartTime: s.plannedStartTime,
@@ -962,7 +1128,6 @@ export class ServiceUserVisitPlansService {
           requiredCarers: s.requiredCarers,
           isEnabled: s.isEnabled,
           medicationRoundCode: s.medicationRoundCode,
-          linkedCarePlanFormIds: s.linkedCarePlanFormIds ?? [],
         })),
       },
       meta,
@@ -992,6 +1157,12 @@ export class ServiceUserVisitPlansService {
       throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
     }
 
+    const backfillDays = dto.backfillDays ?? 0;
+    const rangeStart = new Date(from);
+    if (backfillDays > 0) {
+      rangeStart.setUTCDate(rangeStart.getUTCDate() - backfillDays);
+    }
+
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     if (!enabledSlots.length) {
       throw new BadRequestException('No enabled visit slots on this plan');
@@ -1014,11 +1185,27 @@ export class ServiceUserVisitPlansService {
     let visitsSkipped = 0;
 
     const scheduleAnchor = plan.effectiveFrom;
+    const planEffectiveTo = plan.effectiveTo;
 
     await this.prisma.$transaction(async (tx) => {
-      for (let t = from.getTime(); t <= to.getTime(); t += dayMs) {
+      for (let t = rangeStart.getTime(); t <= to.getTime(); t += dayMs) {
         const day = new Date(t);
         const dateStr = day.toISOString().slice(0, 10);
+
+        const absentOnDay = await tx.serviceUserAbsence.count({
+          where: { serviceUserId, ...activeServiceUserAbsenceWhere(calendarDayUtcNoon(day)) },
+        });
+        if (absentOnDay > 0) continue;
+
+        if (t < from.getTime()) {
+          const anySlotAllowsBackfill = enabledSlots.some((slot) => {
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            if (allowed <= 0) return false;
+            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom);
+            return day.getTime() >= slotStart.getTime();
+          });
+          if (!anySlotAllowsBackfill) continue;
+        }
 
         let batch = await tx.scheduleBatch.findFirst({
           where: { scheduleDate: day, deletedAt: null, isActive: true },
@@ -1029,20 +1216,24 @@ export class ServiceUserVisitPlansService {
               scheduleDate: day,
               status: 'BUILDING',
               buildSource: 'MANUAL',
-              metadata: { visitPlanId: planId, generated: true } as Prisma.InputJsonValue,
+              metadata: { visitPlanId: planId, generated: true, backfillDays } as Prisma.InputJsonValue,
               createdById: userId,
             },
           });
         }
 
         for (const slot of enabledSlots) {
-          if (!visitPlanSlotMatchesDay(slot, day, scheduleAnchor)) continue;
-
-          const start = this.combineDateAndTime(day, slot.plannedStartTime);
-          let end = this.combineDateAndTime(day, slot.plannedEndTime);
-          if (end.getTime() <= start.getTime()) {
-            end = new Date(end.getTime() + dayMs);
+          if (t < from.getTime()) {
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            if (allowed <= 0) continue;
+            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom);
+            if (day.getTime() < slotStart.getTime()) continue;
           }
+
+          const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, planEffectiveTo);
+          if (!occurrence) continue;
+
+          const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
 
           const existingVisit = await tx.scheduledVisit.findFirst({
             where: {
@@ -1054,11 +1245,10 @@ export class ServiceUserVisitPlansService {
           if (existingVisit) {
             await syncVisitPlanSlotCarersToScheduledJobs(tx, {
               visitPlanSlotId: slot.id,
-              assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
-              requiredCarers: slot.requiredCarers,
+              assignedEmployeeIds: carerWindows.map((c) => c.employeeId),
+              requiredCarers,
               userId,
               scheduledVisitId: existingVisit.id,
-              fromDateTime: start,
             });
             visitsSkipped += 1;
             continue;
@@ -1072,7 +1262,8 @@ export class ServiceUserVisitPlansService {
               jobName: `${slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
               scheduledStartDateTime: start,
               scheduledEndDateTime: end,
-              requiredCarers: slot.requiredCarers,
+              estimatedDurationMinutes: durationMinutes,
+              requiredCarers,
               status: ScheduledJobStatus.UNALLOCATED,
               postcode: su?.address?.postcode ?? null,
               address: su?.address
@@ -1085,7 +1276,12 @@ export class ServiceUserVisitPlansService {
                     .filter(Boolean)
                     .join(', ')
                 : null,
-              metadata: { visitPlanId: planId, visitPlanSlotId: slot.id, date: dateStr } as Prisma.InputJsonValue,
+              metadata: {
+                visitPlanId: planId,
+                visitPlanSlotId: slot.id,
+                date: dateStr,
+                isOvernight,
+              } as Prisma.InputJsonValue,
               createdById: userId,
             },
           });
@@ -1097,7 +1293,7 @@ export class ServiceUserVisitPlansService {
               visitName: slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode),
               scheduledStartDateTime: start,
               scheduledEndDateTime: end,
-              requiredCarers: slot.requiredCarers,
+              requiredCarers,
               status: ScheduledVisitStatus.PLANNED,
               medicationRequired: Boolean(slot.medicationRoundCode),
               notesRequired: slot.notesRequired,
@@ -1107,25 +1303,38 @@ export class ServiceUserVisitPlansService {
             },
           });
 
-          const assignedCarers = slot.assignedEmployeeIds ?? [];
-          const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
-          if (toAllocate.length > 0) {
-            for (const employeeId of toAllocate) {
+          const allocations = carerWindows.length
+            ? carerWindows
+            : (slot.assignedEmployeeIds ?? []).slice(0, requiredCarers).map((employeeId, index) => ({
+                employeeId,
+                start,
+                end,
+                durationMinutes,
+                isLeadCarer: index === 0,
+              }));
+
+          if (allocations.length > 0) {
+            for (const carer of allocations) {
               await tx.jobAllocation.create({
                 data: {
                   scheduledJobId: job.id,
                   scheduledVisitId: visit.id,
-                  employeeId,
+                  employeeId: carer.employeeId,
                   status: AllocationStatus.CONFIRMED,
                   requiresConfirmation: false,
                   allocatedById: userId,
+                  scheduledStartDateTime: carer.start,
+                  scheduledEndDateTime: carer.end,
+                  durationMinutes: carer.durationMinutes,
+                  isLeadCarer: carer.isLeadCarer,
                 },
               });
             }
           }
 
+          const allocatedCount = allocations.length;
           const jobStatus =
-            toAllocate.length >= slot.requiredCarers
+            allocatedCount >= requiredCarers
               ? ScheduledJobStatus.ALLOCATED
               : ScheduledJobStatus.NEEDS_ATTENTION;
 
@@ -1156,6 +1365,7 @@ export class ServiceUserVisitPlansService {
           serviceUserId,
           fromDate: dto.fromDate,
           toDate: dto.toDate,
+          backfillDays,
           visitsCreated,
           visitsSkipped,
         },
@@ -1166,7 +1376,7 @@ export class ServiceUserVisitPlansService {
 
     return {
       message: 'Schedule generated from visit plan',
-      data: { visitsCreated, visitsSkipped, fromDate: dto.fromDate, toDate: dto.toDate },
+      data: { visitsCreated, visitsSkipped, fromDate: dto.fromDate, toDate: dto.toDate, backfillDays },
     };
   }
 
@@ -1219,7 +1429,8 @@ export class ServiceUserVisitPlansService {
 
     const day = this.parseDateOnly(dto.date, 'date');
     const scheduleAnchor = plan.effectiveFrom;
-    if (!visitPlanSlotMatchesDay(slot, day, scheduleAnchor)) {
+    const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, plan.effectiveTo);
+    if (!occurrence) {
       throw new BadRequestException('This visit is not scheduled on the selected date');
     }
 
@@ -1229,11 +1440,7 @@ export class ServiceUserVisitPlansService {
       include: { address: true },
     });
 
-    const start = this.combineDateAndTime(day, slot.plannedStartTime);
-    let end = this.combineDateAndTime(day, slot.plannedEndTime);
-    if (end.getTime() <= start.getTime()) {
-      end = new Date(end.getTime() + 86400000);
-    }
+    const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
 
     return this.prisma.$transaction(async (tx) => {
       let visit = await tx.scheduledVisit.findFirst({
@@ -1268,7 +1475,8 @@ export class ServiceUserVisitPlansService {
             jobName: `${slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
             scheduledStartDateTime: start,
             scheduledEndDateTime: end,
-            requiredCarers: slot.requiredCarers,
+            estimatedDurationMinutes: durationMinutes,
+            requiredCarers,
             status: ScheduledJobStatus.UNALLOCATED,
             postcode: su?.address?.postcode ?? null,
             address: su?.address
@@ -1276,7 +1484,12 @@ export class ServiceUserVisitPlansService {
                   .filter(Boolean)
                   .join(', ')
               : null,
-            metadata: { visitPlanId: planId, visitPlanSlotId: slot.id, date: dateStr } as Prisma.InputJsonValue,
+            metadata: {
+              visitPlanId: planId,
+              visitPlanSlotId: slot.id,
+              date: dateStr,
+              isOvernight,
+            } as Prisma.InputJsonValue,
             createdById: userId,
           },
         });
@@ -1288,7 +1501,7 @@ export class ServiceUserVisitPlansService {
             visitName: slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode),
             scheduledStartDateTime: start,
             scheduledEndDateTime: end,
-            requiredCarers: slot.requiredCarers,
+            requiredCarers,
             status: ScheduledVisitStatus.PLANNED,
             medicationRequired: Boolean(slot.medicationRoundCode),
             notesRequired: slot.notesRequired,
@@ -1298,18 +1511,30 @@ export class ServiceUserVisitPlansService {
           },
         });
 
-        const assignedCarers = slot.assignedEmployeeIds ?? [];
-        if (assignedCarers.length > 0) {
-          const toAllocate = assignedCarers.slice(0, slot.requiredCarers);
-          for (const employeeId of toAllocate) {
+        const toAllocate = carerWindows.length
+          ? carerWindows
+          : (slot.assignedEmployeeIds ?? []).slice(0, requiredCarers).map((employeeId, index) => ({
+              employeeId,
+              start,
+              end,
+              durationMinutes,
+              isLeadCarer: index === 0,
+            }));
+
+        if (toAllocate.length > 0) {
+          for (const carer of toAllocate) {
             await tx.jobAllocation.create({
               data: {
                 scheduledJobId: job.id,
                 scheduledVisitId: visit.id,
-                employeeId,
+                employeeId: carer.employeeId,
                 status: AllocationStatus.CONFIRMED,
                 requiresConfirmation: false,
                 allocatedById: userId,
+                scheduledStartDateTime: carer.start,
+                scheduledEndDateTime: carer.end,
+                durationMinutes: carer.durationMinutes,
+                isLeadCarer: carer.isLeadCarer,
               },
             });
           }
@@ -1317,7 +1542,7 @@ export class ServiceUserVisitPlansService {
             where: { id: job.id },
             data: {
               status:
-                toAllocate.length >= slot.requiredCarers
+                toAllocate.length >= requiredCarers
                   ? ScheduledJobStatus.ALLOCATED
                   : ScheduledJobStatus.NEEDS_ATTENTION,
             },

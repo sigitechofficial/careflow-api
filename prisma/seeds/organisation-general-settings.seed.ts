@@ -1,24 +1,23 @@
 import type { PrismaClient } from '@prisma/client';
-import { ensureEnterpriseImmigrationStatusLookups } from './employee-immigration-statuses.seed';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
+const DEFAULT_EMPLOYEE_VISA_TYPES = [
+  { id: 'full_time', label: 'Full time visa', weeklyHours: 40 },
+  { id: 'student', label: 'Student visa', weeklyHours: 20 },
+];
+
 export async function seedOrganisationGeneralSettings(prisma: PrismaClient): Promise<void> {
-  const existing = await prisma.organisationGeneralSettings.findUnique({
+  await prisma.organisationGeneralSettings.upsert({
     where: { id: DEFAULT_SETTINGS_ID },
+    update: {},
+    create: {
+      id: DEFAULT_SETTINGS_ID,
+      reviewCarePlanAfterDays: 180,
+      handoverReportLastHours: 12,
+      archiveServiceUserAfterMonths: 3,
+      timeDisplayFormat: 'HH_MM',
+      employeeVisaTypes: DEFAULT_EMPLOYEE_VISA_TYPES,
+    },
   });
-
-  if (!existing) {
-    await prisma.organisationGeneralSettings.create({
-      data: {
-        id: DEFAULT_SETTINGS_ID,
-        reviewCarePlanAfterDays: 180,
-        handoverReportLastHours: 12,
-        archiveServiceUserAfterMonths: 3,
-        timeDisplayFormat: 'HH_MM',
-      },
-    });
-  }
-
-  await ensureEnterpriseImmigrationStatusLookups(prisma);
 }

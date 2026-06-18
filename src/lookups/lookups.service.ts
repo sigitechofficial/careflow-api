@@ -285,7 +285,7 @@ export class LookupsService implements OnModuleInit {
     }
   }
 
-  private   async softDeleteLookupRow(
+  private async softDeleteLookupRow(
     id: string,
     find: () => Promise<{ id: string } | null>,
     remove: () => Promise<void>,
@@ -293,78 +293,6 @@ export class LookupsService implements OnModuleInit {
     const existing = await find();
     if (!existing) throw new NotFoundException('Lookup item not found');
     await remove();
-  }
-
-  async updateSkillTypeLookup(id: string, dto: { name?: string; defaultRefreshMonths?: number | null }) {
-    const existing = await this.prisma.skillType.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw new NotFoundException('Skill type not found');
-    const name = dto.name?.trim();
-    if (dto.name !== undefined && !name) throw new BadRequestException('Name is required');
-    try {
-      return await this.prisma.skillType.update({
-        where: { id },
-        data: {
-          ...(name !== undefined ? { name } : {}),
-          ...(dto.defaultRefreshMonths !== undefined
-            ? { defaultRefreshMonths: dto.defaultRefreshMonths }
-            : {}),
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new ConflictException('An item with this name already exists');
-      }
-      throw e;
-    }
-  }
-
-  async updateCertificationTypeLookup(
-    id: string,
-    dto: { name?: string; defaultValidityMonths?: number | null },
-  ) {
-    const existing = await this.prisma.certificationType.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw new NotFoundException('Certification type not found');
-    const name = dto.name?.trim();
-    if (dto.name !== undefined && !name) throw new BadRequestException('Name is required');
-    try {
-      return await this.prisma.certificationType.update({
-        where: { id },
-        data: {
-          ...(name !== undefined ? { name } : {}),
-          ...(dto.defaultValidityMonths !== undefined
-            ? { defaultValidityMonths: dto.defaultValidityMonths }
-            : {}),
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new ConflictException('An item with this name already exists');
-      }
-      throw e;
-    }
-  }
-
-  async updateReviewTypeLookup(id: string, dto: { name?: string; defaultIntervalDays?: number | null }) {
-    const existing = await this.prisma.reviewType.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw new NotFoundException('Review type not found');
-    const name = dto.name?.trim();
-    if (dto.name !== undefined && !name) throw new BadRequestException('Name is required');
-    try {
-      return await this.prisma.reviewType.update({
-        where: { id },
-        data: {
-          ...(name !== undefined ? { name } : {}),
-          ...(dto.defaultIntervalDays !== undefined
-            ? { defaultIntervalDays: dto.defaultIntervalDays }
-            : {}),
-        },
-      });
-    } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new ConflictException('An item with this name already exists');
-      }
-      throw e;
-    }
   }
 
   async updateNamedLookup(resourceRaw: string, id: string, rawName: string) {

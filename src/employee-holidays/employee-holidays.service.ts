@@ -1,11 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import { CreateEmployeeHolidayDto } from './dto/create-employee-holiday.dto';
 import { UpdateEmployeeHolidayDto } from './dto/update-employee-holiday.dto';
 
 @Injectable()
 export class EmployeeHolidaysService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
+  ) {}
 
   async list(employeeId: string) {
     const items = await this.prisma.employeeHoliday.findMany({
@@ -20,10 +25,27 @@ export class EmployeeHolidaysService {
     if (dto.endDate.getTime() < dto.startDate.getTime()) {
       throw new BadRequestException('endDate must be on or after startDate');
     }
+    const { applyToSchedule, ...holidayData } = dto;
     const created = await this.prisma.employeeHoliday.create({
-      data: { employeeId, ...dto, createdById: userId },
+      data: { employeeId, ...holidayData, createdById: userId },
     });
-    return { message: 'Holiday created', data: created };
+
+    let scheduleImpact: ScheduleImpactResult | undefined;
+    if (applyToSchedule !== false) {
+      scheduleImpact = await this.scheduleImpact.unallocateEmployeeJobsInRange(userId, {
+        employeeId,
+        fromDate: dto.startDate,
+        toDate: dto.endDate,
+        reason: dto.notes?.trim() ? `Employee holiday: ${dto.notes.trim()}` : 'Employee holiday',
+        source: 'employee_holiday',
+      });
+    }
+
+    return {
+      message: 'Holiday created',
+      data: created,
+      ...(scheduleImpact ? { scheduleImpact } : {}),
+    };
   }
 
   async update(userId: string, employeeId: string, holidayId: string, dto: UpdateEmployeeHolidayDto) {
