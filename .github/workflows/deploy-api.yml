@@ -550,6 +550,17 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
           done
 
+          echo "Seeding workforce demo employees via API (idempotent; non-fatal)..."
+          export API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:3000}"
+          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-demo-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-demo-seed.log"; then
+            echo "WARN: workforce demo employee seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-demo-seed.log"
+          fi
+
+          echo "Seeding workforce compliance samples via API (idempotent; non-fatal)..."
+          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-compliance-samples-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"; then
+            echo "WARN: workforce compliance sample seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"
+          fi
+
           echo "Cleaning empty database backups if any..."
           find "$DEPLOY_ROOT/db-backups" \
             -type f \
