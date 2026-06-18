@@ -38,7 +38,7 @@ export class ResponseInterceptor implements NestInterceptor {
             meta: (payload.meta as unknown) ?? {},
           };
           if (payload.warnings !== undefined) response.warnings = payload.warnings;
-          if (payload.requiresConfirmation !== undefined) {
+          if (typeof payload.requiresConfirmation === 'boolean') {
             response.requiresConfirmation = payload.requiresConfirmation;
           }
           if (payload.jobStatus !== undefined) response.jobStatus = payload.jobStatus;
