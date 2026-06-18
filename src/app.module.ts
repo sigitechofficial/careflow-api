@@ -98,6 +98,8 @@ import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { WorkforceMaintenanceModule } from './workforce-maintenance/workforce-maintenance.module';
 
 @Module({
   imports: [
@@ -122,6 +124,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
         setHeaders: true,
       }),
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -138,6 +141,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     EmployeeNonCoreActivitiesModule,
     EmployeeWorkingPatternsModule,
     EmployeeComplianceModule,
+    WorkforceMaintenanceModule,
     ComplianceTypesModule,
     ComplianceRequirementsModule,
     ComplianceReportsModule,

@@ -11,6 +11,9 @@ import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { labelForVisaTypeId } from '../organisation-general-settings/employee-visa-types.util';
+import { mapEmployeeListRow } from './mappers/employee.mapper';
 
 export type EmployeeAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -19,6 +22,7 @@ export class EmployeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async list(query: EmployeeQueryDto) {
@@ -91,8 +95,16 @@ export class EmployeesService {
       }),
     ]);
 
+    const visaTypes = (await this.orgSettings.get()).data.employeeVisaTypes;
+
     return {
-      data: rows,
+      data: rows.map(row => {
+        const mapped = mapEmployeeListRow(row);
+        return {
+          ...mapped,
+          visaTypeLabel: labelForVisaTypeId(visaTypes, mapped.visaTypeId) ?? null,
+        };
+      }),
       meta: buildPaginationMeta({ page, limit, total }),
     };
   }

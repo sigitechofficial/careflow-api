@@ -40,6 +40,7 @@ import { parseOrganisationPrivacySettings } from './privacy-settings.util';
 import {
   parseEmployeeVisaTypes,
   serializeEmployeeVisaTypes,
+  normalizeEmployeeVisaTypeInput,
   type EmployeeVisaType,
 } from './employee-visa-types.util';
 
@@ -292,9 +293,10 @@ function buildUpdateData(
   set('wellbeingLabel4', dto.wellbeingLabel4?.trim());
   set('wellbeingLabel5', dto.wellbeingLabel5?.trim());
   if (dto.employeeVisaTypes !== undefined) {
-    data.employeeVisaTypes = serializeEmployeeVisaTypes(
-      dto.employeeVisaTypes as EmployeeVisaType[],
+    const normalized = (dto.employeeVisaTypes as EmployeeVisaType[]).map((row) =>
+      normalizeEmployeeVisaTypeInput(row as EmployeeVisaType & { weeklyHours?: number }),
     );
+    data.employeeVisaTypes = serializeEmployeeVisaTypes(normalized);
   }
   set('enhancedRegularActionChecks', dto.enhancedRegularActionChecks);
   set('showRegularActionsInDailyList', dto.showRegularActionsInDailyList);

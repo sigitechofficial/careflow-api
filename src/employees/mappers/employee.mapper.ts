@@ -17,6 +17,7 @@ export function mapEmployeeListRow(row: any) {
     grade: emp?.grade ?? null,
     contractType: emp?.contractType ?? null,
     visaTypeId: emp?.visaTypeId ?? null,
+    visaTypeLabel: null as string | null,
     isInCountry: emp?.isInCountry ?? true,
     locationId: emp?.locationId ?? null,
     location: emp?.location ?? null,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -8,6 +8,13 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { RbacEmploymentSyncService } from './rbac-employment-sync.service';
+import {
+  assertEmploymentHoursWithinVisaLimit,
+  parseEmployeeVisaTypes,
+  type WeeklyHoursCapOverride,
+} from '../organisation-general-settings/employee-visa-types.util';
+
+const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
 @Injectable()
 export class EmployeeEmploymentService {
@@ -16,6 +23,84 @@ export class EmployeeEmploymentService {
     private readonly audit: AuditLogsService,
     private readonly rbacEmploymentSync: RbacEmploymentSyncService,
   ) {}
+
+  private async loadImmigrationStatuses() {
+    const row = await this.prisma.organisationGeneralSettings.findFirst({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { employeeVisaTypes: true },
+    });
+    return parseEmployeeVisaTypes(row?.employeeVisaTypes);
+  }
+
+  private resolveCapOverride(
+    dto: UpdateEmployeeEmploymentDto,
+    existing?: {
+      weeklyHoursCapOverride: number | null;
+      weeklyHoursCapOverrideReason: string | null;
+      weeklyHoursCapOverrideExpiresAt: Date | null;
+    } | null,
+  ): WeeklyHoursCapOverride {
+    return {
+      weeklyHoursCapOverride:
+        dto.weeklyHoursCapOverride !== undefined
+          ? dto.weeklyHoursCapOverride
+          : (existing?.weeklyHoursCapOverride ?? null),
+      weeklyHoursCapOverrideReason:
+        dto.weeklyHoursCapOverrideReason !== undefined
+          ? dto.weeklyHoursCapOverrideReason
+          : (existing?.weeklyHoursCapOverrideReason ?? null),
+      weeklyHoursCapOverrideExpiresAt:
+        dto.weeklyHoursCapOverrideExpiresAt !== undefined
+          ? dto.weeklyHoursCapOverrideExpiresAt
+          : (existing?.weeklyHoursCapOverrideExpiresAt ?? null),
+    };
+  }
+
+  private assertWeeklyHoursCapOverride(dto: UpdateEmployeeEmploymentDto) {
+    if (dto.weeklyHoursCapOverride === undefined) return;
+    if (dto.weeklyHoursCapOverride === null) return;
+    const cap = dto.weeklyHoursCapOverride;
+    if (!Number.isFinite(cap) || cap < 0 || cap > 168) {
+      throw new BadRequestException('Weekly hours cap override must be between 0 and 168.');
+    }
+    const reason = dto.weeklyHoursCapOverrideReason?.trim();
+    if (!reason) {
+      throw new BadRequestException(
+        'A reason is required when setting a weekly hours cap override.',
+      );
+    }
+  }
+
+  private async assertVisaWeeklyHourLimits(
+    dto: UpdateEmployeeEmploymentDto,
+    existing?: {
+      visaTypeId: string | null;
+      contractedWeeklyHours: number | null;
+      maximumWeeklyHours: number | null;
+      weeklyHoursCapOverride: number | null;
+      weeklyHoursCapOverrideReason: string | null;
+      weeklyHoursCapOverrideExpiresAt: Date | null;
+    } | null,
+  ) {
+    const visaTypeId = dto.visaTypeId !== undefined ? dto.visaTypeId : (existing?.visaTypeId ?? null);
+    if (!visaTypeId) return;
+    const types = await this.loadImmigrationStatuses();
+    const override = this.resolveCapOverride(dto, existing);
+    const message = assertEmploymentHoursWithinVisaLimit(
+      types,
+      visaTypeId,
+      {
+        contractedWeeklyHours:
+          dto.contractedWeeklyHours !== undefined
+            ? dto.contractedWeeklyHours
+            : existing?.contractedWeeklyHours,
+        maximumWeeklyHours:
+          dto.maximumWeeklyHours !== undefined ? dto.maximumWeeklyHours : existing?.maximumWeeklyHours,
+      },
+      override,
+    );
+    if (message) throw new BadRequestException(message);
+  }
 
   private async assertLocations(locationIds: string[]) {
     if (locationIds.length === 0) return;
@@ -118,8 +203,16 @@ export class EmployeeEmploymentService {
       employmentDto.baseLocationId = uniqueIds[0] ?? employmentDto.baseLocationId ?? undefined;
     }
 
+    const existingEmployment = await this.prisma.employeeEmployment.findUnique({ where: { employeeId } });
+    this.assertWeeklyHoursCapOverride(employmentDto);
+    if (employmentDto.weeklyHoursCapOverride === null) {
+      employmentDto.weeklyHoursCapOverrideReason = null;
+      employmentDto.weeklyHoursCapOverrideExpiresAt = null;
+    }
+    await this.assertVisaWeeklyHourLimits(employmentDto, existingEmployment);
+
     return this.prisma.$transaction(async (tx) => {
-      const before = await tx.employeeEmployment.findUnique({ where: { employeeId } });
+      const before = existingEmployment ?? (await tx.employeeEmployment.findUnique({ where: { employeeId } }));
       const employment = await tx.employeeEmployment.upsert({
         where: { employeeId },
         update: {

@@ -34,23 +34,40 @@ export class HttpExceptionFilter implements ExceptionFilter {
   ): { status: number; body: unknown } {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const res = exception.getResponse() as any;
+      const res = exception.getResponse() as Record<string, unknown> | string;
+
+      if (typeof res === 'object' && res !== null && !Array.isArray(res)) {
+        const message =
+          typeof res.message === 'string'
+            ? res.message
+            : Array.isArray(res.message)
+              ? 'Validation failed'
+              : exception.message || fallbackMessage;
+        const errors = Array.isArray(res.message) ? res.message : undefined;
+        return {
+          status,
+          body: {
+            success: false,
+            message,
+            errors,
+            ...(Array.isArray(res.warnings) ? { warnings: res.warnings } : {}),
+            ...(res.requiresConfirmation !== undefined
+              ? { requiresConfirmation: res.requiresConfirmation }
+              : {}),
+          },
+        };
+      }
 
       const message =
-        typeof res?.message === 'string'
-          ? res.message
-          : Array.isArray(res?.message)
-            ? 'Validation failed'
-            : exception.message || fallbackMessage;
-
-      const errors = Array.isArray(res?.message) ? res.message : undefined;
+        typeof res === 'string'
+          ? res
+          : exception.message || fallbackMessage;
 
       return {
         status,
         body: {
           success: false,
           message,
-          errors,
         },
       };
     }

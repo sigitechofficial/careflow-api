@@ -747,7 +747,7 @@ export class EmployeeComplianceService {
       : { roleId: null, workAreaId: null, jobTitleId: null, contractTypeId: null, locationId: null };
 
     const allReqs = await this.prisma.complianceRequirement.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: { deletedAt: null, isActive: true, complianceType: { deletedAt: null, isActive: true } },
     });
     const matched = allReqs.filter((r) => requirementMatchesEmployment(r, dims));
     const best = pickBestRequirementsPerType(matched, dims);

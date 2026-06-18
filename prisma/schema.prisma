@@ -883,6 +883,10 @@ model EmployeeEmployment {
   minimumWeeklyHours    Float?
   visaTypeId            String?
   isInCountry           Boolean @default(true)
+  /// Approved weekly hours cap above immigration status default (requires reason + optional expiry).
+  weeklyHoursCapOverride          Float?
+  weeklyHoursCapOverrideReason    String?
+  weeklyHoursCapOverrideExpiresAt DateTime?
   optedOutOf48Hours     Boolean @default(false)
   isAgencyStaff         Boolean @default(false)
   agencyName            String?
@@ -1671,24 +1675,26 @@ model LeavingReason {
 }
 
 model SkillType {
-  id        String @id @default(uuid()) @db.Uuid
-  name      String @unique
-  isActive  Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                   String @id @default(uuid()) @db.Uuid
+  name                 String @unique
+  defaultRefreshMonths Int?
+  isActive             Boolean @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
 
   skills EmployeeSkill[]
   @@schema("lookups")
 }
 
 model CertificationType {
-  id        String @id @default(uuid()) @db.Uuid
-  name      String @unique
-  isActive  Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                    String @id @default(uuid()) @db.Uuid
+  name                  String @unique
+  defaultValidityMonths Int?
+  isActive              Boolean @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
 
   certifications EmployeeWorkCertification[]
   @@schema("lookups")
@@ -1724,12 +1730,15 @@ model ComplianceType {
 }
 
 model ReviewType {
-  id        String @id @default(uuid()) @db.Uuid
-  name      String @unique
-  isActive  Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                  String  @id @default(uuid()) @db.Uuid
+  name                String  @unique
+  code                String? @unique
+  description         String?
+  defaultIntervalDays Int?
+  isActive            Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
 
   reviews EmployeeReview[]
   @@schema("lookups")
