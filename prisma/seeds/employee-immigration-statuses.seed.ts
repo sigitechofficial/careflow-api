@@ -6,7 +6,7 @@ import {
 import {
   parseEmployeeVisaTypes,
   serializeEmployeeVisaTypes,
-} from '../../src/organisation-general-settings/employee-visa-types.util';
+} from '../seed-data/employee-visa-types.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
