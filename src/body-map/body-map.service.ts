@@ -159,6 +159,8 @@ function mapRecord(row: RecordRow) {
     closedAt: row.closedAt?.toISOString() ?? null,
     closureNote: row.closureNote,
     isArchived: row.isArchived,
+    scheduledJobId: row.scheduledJobId ?? null,
+    scheduledVisitId: row.scheduledVisitId ?? null,
     createdByName: userDisplayName(row.createdBy),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -306,6 +308,57 @@ export class BodyMapService {
       where: { id: serviceUserId, deletedAt: null },
     });
     if (!u) throw new NotFoundException('Service user not found');
+  }
+
+  private async resolveVisitContext(
+    serviceUserId: string,
+    scheduledJobId?: string,
+    scheduledVisitId?: string,
+  ): Promise<{
+    scheduledJobId: string | null
+    scheduledVisitId: string | null
+    visitLabel: string | null
+  }> {
+    if (!scheduledJobId && !scheduledVisitId) {
+      return { scheduledJobId: null, scheduledVisitId: null, visitLabel: null };
+    }
+
+    if (scheduledVisitId) {
+      const visit = await this.prisma.scheduledVisit.findFirst({
+        where: { id: scheduledVisitId, deletedAt: null, serviceUserId },
+      });
+      if (!visit) {
+        throw new BadRequestException('Scheduled visit not found for this service user');
+      }
+      if (scheduledJobId && visit.scheduledJobId !== scheduledJobId) {
+        throw new BadRequestException('Scheduled visit does not belong to this job');
+      }
+      return {
+        scheduledJobId: visit.scheduledJobId,
+        scheduledVisitId: visit.id,
+        visitLabel: visit.visitName,
+      };
+    }
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: scheduledJobId, deletedAt: null, serviceUserId },
+      include: {
+        visits: {
+          where: { deletedAt: null, isActive: true },
+          orderBy: { scheduledStartDateTime: 'asc' },
+          take: 1,
+        },
+      },
+    });
+    if (!job) {
+      throw new BadRequestException('Scheduled job not found for this service user');
+    }
+    const visit = job.visits[0];
+    return {
+      scheduledJobId: job.id,
+      scheduledVisitId: visit?.id ?? null,
+      visitLabel: visit?.visitName ?? job.jobName,
+    };
   }
 
   private async ensureRecord(recordId: string) {
@@ -540,6 +593,11 @@ export class BodyMapService {
 
   async createRecord(userId: string, dto: CreateBodyMapRecordDto) {
     await this.ensureServiceUser(dto.serviceUserId);
+    const visitContext = await this.resolveVisitContext(
+      dto.serviceUserId,
+      dto.scheduledJobId,
+      dto.scheduledVisitId,
+    );
     if (!dto.bodyPart?.trim()) {
       throw new BadRequestException('Body part is required');
     }
@@ -620,6 +678,8 @@ export class BodyMapService {
           nextReviewAt: dto.nextReviewAt ? new Date(dto.nextReviewAt) : null,
           safeguardingTriggered,
           managerReviewRequired,
+          scheduledJobId: visitContext.scheduledJobId,
+          scheduledVisitId: visitContext.scheduledVisitId,
           createdById: userId,
           updatedById: userId,
         },
@@ -744,6 +804,18 @@ export class BodyMapService {
           dto: dto.medicationSite,
           isCreate: true,
           auditAction: BodyMapAuditAction.MEDICATION_SITE_CREATE,
+        });
+      }
+
+      if (visitContext.scheduledVisitId) {
+        await tx.bodyMapLink.create({
+          data: {
+            bodyMapRecordId: record.id,
+            linkedModule: BodyMapLinkedModule.SCHEDULED_VISIT,
+            linkedRecordId: visitContext.scheduledVisitId,
+            label: visitContext.visitLabel ?? 'Scheduled visit',
+            createdById: userId,
+          },
         });
       }
 

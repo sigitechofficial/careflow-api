@@ -38,4 +38,31 @@ export function deriveJobStatusFromVisits(
   return fallback;
 }
 
+/** Map a single visit outcome to job status while preserving allocation state for planned visits. */
+export function mapSingleVisitStatusToJobStatus(
+  visitStatus: ScheduledVisitStatus,
+  fallback: PrismaJobStatus = PrismaJobStatus.UNALLOCATED,
+): PrismaJobStatus {
+  switch (visitStatus) {
+    case ScheduledVisitStatus.PLANNED:
+      return fallback;
+    case ScheduledVisitStatus.STARTED:
+      return PrismaJobStatus.IN_PROGRESS;
+    case ScheduledVisitStatus.COMPLETED:
+      return PrismaJobStatus.COMPLETED;
+    case ScheduledVisitStatus.PARTIALLY_COMPLETED:
+      return PrismaJobStatus.PARTIALLY_COMPLETED;
+    case ScheduledVisitStatus.MISSED:
+      return PrismaJobStatus.MISSED;
+    case ScheduledVisitStatus.CANCELLED:
+      return PrismaJobStatus.CANCELLED;
+    case ScheduledVisitStatus.CALLED_OFF:
+      return PrismaJobStatus.CALLED_OFF;
+    case ScheduledVisitStatus.NEEDS_ATTENTION:
+      return PrismaJobStatus.NEEDS_ATTENTION;
+    default:
+      return fallback;
+  }
+}
+
 export { ScheduledJobStatus };

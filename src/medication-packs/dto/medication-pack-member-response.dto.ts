@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MedicationPackMemberStatus } from '@prisma/client';
 
+export class MedicationPackMemberScheduleSummaryDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiPropertyOptional({ nullable: true, example: '08:00' })
+  dueTime!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: '1 tablet' })
+  dose!: string | null;
+}
+
 export class MedicationPackMemberMedicationSummaryDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -16,6 +27,9 @@ export class MedicationPackMemberMedicationSummaryDto {
 
   @ApiPropertyOptional({ nullable: true, example: 'Oral' })
   routeName!: string | null;
+
+  @ApiPropertyOptional({ type: [MedicationPackMemberScheduleSummaryDto] })
+  schedules?: MedicationPackMemberScheduleSummaryDto[];
 }
 
 export class MedicationPackMemberDto {

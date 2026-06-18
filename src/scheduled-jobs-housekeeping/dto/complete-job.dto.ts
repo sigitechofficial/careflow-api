@@ -1,7 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsISO8601, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsArray, IsEnum, IsISO8601, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ScheduledVisitStatus } from '../../scheduled-visits/enums/scheduled-visit-status.enum';
 
 export class CompleteJobDto {
+  @ApiPropertyOptional({
+    enum: ScheduledVisitStatus,
+    description: 'Visit outcome status (defaults to COMPLETED)',
+  })
+  @IsOptional()
+  @IsEnum(ScheduledVisitStatus)
+  status?: ScheduledVisitStatus;
+
   @ApiPropertyOptional({ description: 'Completion notes' })
   @IsOptional()
   @IsString()

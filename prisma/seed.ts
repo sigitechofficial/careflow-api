@@ -17,6 +17,7 @@ import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
+import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 import {
@@ -1818,6 +1819,7 @@ async function main() {
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
+  await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
   try {

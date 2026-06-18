@@ -15,6 +15,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -168,13 +169,21 @@ export class CreateBodyMapRecordDto {
   @Type(() => BodyMapPressureAssessmentDto)
   pressureAssessment?: BodyMapPressureAssessmentDto;
 
-  @ApiPropertyOptional({
-    description: 'Required for MEDICATION records when linking to MAR chart line',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @ValidateNested()
   @Type(() => BodyMapMedicationSiteDto)
   medicationSite?: BodyMapMedicationSiteDto;
+
+  @ApiPropertyOptional({ description: 'Scheduled job when recorded during a rota visit' })
+  @IsOptional()
+  @IsUUID('4')
+  scheduledJobId?: string;
+
+  @ApiPropertyOptional({ description: 'Scheduled visit when recorded during a rota visit' })
+  @IsOptional()
+  @IsUUID('4')
+  scheduledVisitId?: string;
 }
 
 export class UpdateBodyMapRecordDto {

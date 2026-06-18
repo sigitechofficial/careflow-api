@@ -314,6 +314,14 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsBoolean()
   domShowServiceUserName?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      'When true, carers blocked by a service user still appear in schedule carer pickers (marked as blocked). When false, they are hidden.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  domShowBlockedCarersInSchedule?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

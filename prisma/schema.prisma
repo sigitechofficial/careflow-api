@@ -323,6 +323,7 @@ enum BodyMapLinkedModule {
   RISK_ASSESSMENT
   REFERRAL
   CARE_NOTE
+  SCHEDULED_VISIT
 
   @@schema("service_users")
 }
@@ -390,6 +391,7 @@ model User {
   complianceVerificationsPerformed ComplianceVerification[]   @relation("ComplianceVerificationPerformedBy")
   approvedServiceUserFundings      ServiceUserFunding[]        @relation("ServiceUserFundingApprovedBy")
   uploadedLiveInContractDocuments    ServiceUserLiveInContractDocument[] @relation("LiveInContractUploadedBy")
+  uploadedServiceUserDocumentRecords ServiceUserDocumentRecord[]         @relation("ServiceUserDocumentRecordUploadedBy")
   notificationRecipients             NotificationRecipient[]
   notificationPreferences            NotificationPreference[]
   notificationsCreated               Notification[]                    @relation("NotificationCreatedBy")
@@ -674,6 +676,7 @@ model OrganisationGeneralSettings {
   domFutureVisitsDays           Int               @default(14)
   domShowWeeklyHours            Boolean           @default(true)
   domShowServiceUserName        Boolean           @default(true)
+  domShowBlockedCarersInSchedule Boolean          @default(false)
   domLateVisitAlertRequired     Boolean           @default(true)
   domLateVisitAlertMinutes      Int               @default(20)
   domLateVisitAlertEmail        Boolean           @default(true)
@@ -2060,6 +2063,7 @@ model ServiceUser {
   allergies       ServiceUserAllergy[]
   legalDocument   ServiceUserLegalDocument?
   dolsRecords     ServiceUserDolsRecord[]
+  documentRecords ServiceUserDocumentRecord[]
   absences          ServiceUserAbsence[]
   domCare           ServiceUserDomCare?
   initialAssessment ServiceUserInitialAssessment?
@@ -2148,6 +2152,8 @@ model BodyMapRecord {
   closedById              String?             @db.Uuid
   closureNote             String?             @db.Text
   isArchived              Boolean             @default(false)
+  scheduledJobId          String?             @db.Uuid
+  scheduledVisitId        String?             @db.Uuid
   createdById             String?             @db.Uuid
   updatedById             String?             @db.Uuid
   createdAt               DateTime            @default(now())
@@ -2175,6 +2181,8 @@ model BodyMapRecord {
   @@index([managerReviewRequired])
   @@index([safeguardingTriggered])
   @@index([createdAt])
+  @@index([scheduledJobId])
+  @@index([scheduledVisitId])
   @@schema("service_users")
 }
 
@@ -3064,8 +3072,11 @@ model ServiceUserLegalDocument {
   id                       String    @id @default(uuid()) @db.Uuid
   serviceUserId            String    @unique @db.Uuid
   dnacprInPlace            Boolean   @default(false)
+  dnacprStatusConfirmation ServiceUserDnacprStatusConfirmation @default(UNKNOWN)
+  dnacprPhysicalLocation   String?   @db.Text
   dnacprCertificateUrl     String?
   dnacprStartDate          DateTime?
+  lpaStatusConfirmation    ServiceUserLpaStatusConfirmation @default(UNKNOWN)
   lpaHealthCertificateUrl  String?
   lpaFinanceCertificateUrl String?
   isActive                 Boolean   @default(true)
@@ -3100,6 +3111,108 @@ model ServiceUserDolsRecord {
   serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
 
   @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum ServiceUserDocumentAccessLevel {
+  MANAGER_ONLY
+  COORDINATOR_MANAGER
+  CARER_SUMMARY
+  ALL_USERS
+
+  @@schema("service_users")
+}
+
+enum ServiceUserDocumentRecordStatus {
+  ACTIVE
+  SUPERSEDED
+  EXPIRED
+  REQUESTED
+  NOT_APPLICABLE
+
+  @@schema("service_users")
+}
+
+enum ServiceUserDnacprStatusConfirmation {
+  UNKNOWN
+  IN_PLACE
+  NOT_IN_PLACE
+
+  @@schema("service_users")
+}
+
+enum ServiceUserLpaStatusConfirmation {
+  UNKNOWN
+  IN_FORCE
+  NOT_IN_FORCE
+  NONE
+
+  @@schema("service_users")
+}
+
+model ServiceUserDocumentTypeCatalog {
+  id                             String                        @id @default(uuid()) @db.Uuid
+  code                           String                        @unique
+  name                           String
+  physicalLocationInHomeRequired Boolean                       @default(false)
+  expiryTrackingRequired         Boolean                       @default(false)
+  defaultAccessLevel             ServiceUserDocumentAccessLevel
+  requiredBeforeFirstVisit       Boolean                       @default(false)
+  blocksCarePlanApprovalIfMissing Boolean                      @default(false)
+  expiryAlertDays                Int?
+  cqcLegalStandard               String?                       @db.Text
+  sortOrder                      Int                           @default(0)
+  isActive                       Boolean                       @default(true)
+  createdAt                      DateTime                      @default(now())
+  updatedAt                      DateTime                      @updatedAt
+  deletedAt                      DateTime?
+
+  documents ServiceUserDocumentRecord[]
+
+  @@index([deletedAt])
+  @@index([sortOrder])
+  @@schema("lookups")
+}
+
+model ServiceUserDocumentRecord {
+  id                     String                          @id @default(uuid()) @db.Uuid
+  serviceUserId          String                          @db.Uuid
+  documentTypeId         String                          @db.Uuid
+  title                  String
+  documentDate           DateTime
+  uploadedAt             DateTime                        @default(now())
+  uploadedById           String?                         @db.Uuid
+  supersedesDocumentId   String?                         @unique @db.Uuid
+  expiryDate             DateTime?
+  physicalLocationInHome String?                         @db.Text
+  accessLevel            ServiceUserDocumentAccessLevel
+  status                 ServiceUserDocumentRecordStatus @default(ACTIVE)
+  linkedRecordType       String?
+  linkedRecordId         String?                         @db.Uuid
+  notes                  String?                         @db.Text
+  fileUrl                String?
+  fileName               String?
+  fileSize               Int?
+  mimeType               String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser  ServiceUser                    @relation(fields: [serviceUserId], references: [id])
+  documentType ServiceUserDocumentTypeCatalog @relation(fields: [documentTypeId], references: [id])
+  uploadedBy   User?                          @relation("ServiceUserDocumentRecordUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  supersedes   ServiceUserDocumentRecord?     @relation("DocumentSupersedes", fields: [supersedesDocumentId], references: [id], onDelete: SetNull)
+  supersededBy ServiceUserDocumentRecord?     @relation("DocumentSupersedes")
+
+  @@index([serviceUserId])
+  @@index([documentTypeId])
+  @@index([status])
   @@index([deletedAt])
   @@schema("service_users")
 }

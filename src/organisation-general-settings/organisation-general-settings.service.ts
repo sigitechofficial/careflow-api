@@ -101,6 +101,7 @@ type SettingsRow = {
   domFutureVisitsDays: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
+  domShowBlockedCarersInSchedule: boolean;
   domLateVisitAlertRequired: boolean;
   domLateVisitAlertMinutes: number;
   domLateVisitAlertEmail: boolean;
@@ -218,6 +219,7 @@ function mapRow(row: SettingsRow) {
     domFutureVisitsDays: row.domFutureVisitsDays,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
+    domShowBlockedCarersInSchedule: row.domShowBlockedCarersInSchedule,
     domLateVisitAlertRequired: row.domLateVisitAlertRequired,
     domLateVisitAlertMinutes: row.domLateVisitAlertMinutes,
     domLateVisitAlertEmail: row.domLateVisitAlertEmail,
@@ -323,6 +325,7 @@ function buildUpdateData(
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
+  set('domShowBlockedCarersInSchedule', dto.domShowBlockedCarersInSchedule);
   set('domLateVisitAlertRequired', dto.domLateVisitAlertRequired);
   set('domLateVisitAlertMinutes', dto.domLateVisitAlertMinutes);
   set('domLateVisitAlertEmail', dto.domLateVisitAlertEmail);
