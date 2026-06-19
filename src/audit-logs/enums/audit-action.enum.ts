@@ -276,6 +276,7 @@ export enum AuditAction {
   HOUSEKEEPING_DAY_JOBS_VIEWED = 'housekeeping_day_jobs_viewed',
   SCHEDULED_JOB_COMPLETED = 'scheduled_job_completed',
   SCHEDULED_JOB_CANCELLED = 'scheduled_job_cancelled',
+  SCHEDULED_JOB_REINSTATED = 'scheduled_job_reinstated',
   CALL_OFF_VISIT_CREATED = 'call_off_visit_created',
   CALL_OFF_VISIT_UPDATED = 'call_off_visit_updated',
   CALL_OFF_VISIT_DELETED = 'call_off_visit_deleted',

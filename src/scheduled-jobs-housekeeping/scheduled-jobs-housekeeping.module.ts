@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { ScheduledJobsModule } from '../scheduled-jobs/scheduled-jobs.module';
 import { ScheduledJobsHousekeepingController } from './scheduled-jobs-housekeeping.controller';
 import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.service';
 
 @Module({
-  imports: [PrismaModule, AuditLogsModule],
+  imports: [PrismaModule, AuditLogsModule, ScheduledJobsModule],
   controllers: [ScheduledJobsHousekeepingController],
   providers: [ScheduledJobsHousekeepingService],
   exports: [ScheduledJobsHousekeepingService],

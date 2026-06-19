@@ -430,6 +430,8 @@ model User {
   jobAllocationsUnallocated            JobAllocation[]                   @relation("JobAllocationUnallocatedBy")
   callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
   callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
+  scheduledJobCancellations            ScheduledJobCancellation[]        @relation("ScheduledJobCancellationBy")
+  scheduledJobReinstatements           ScheduledJobCancellation[]        @relation("ScheduledJobReinstatedBy")
   observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
   serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]         @relation("FlashMessageCreatedBy")
   bodyMapRecordsCreated                BodyMapRecord[]                   @relation("BodyMapRecordCreatedBy")
@@ -2069,6 +2071,7 @@ model ServiceUser {
   scheduledJobs              ScheduledJob[]
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
+  jobCancellations           ScheduledJobCancellation[]
   observations               ServiceUserObservation[]
   flashMessages              ServiceUserFlashMessage[]
   bodyMapRecords             BodyMapRecord[]
@@ -5017,6 +5020,7 @@ model ScheduledJob {
   actions       VisitAction[]
   allocations   JobAllocation[]
   callOffVisits CallOffVisit[]
+  cancellation  ScheduledJobCancellation?
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
@@ -5115,6 +5119,68 @@ model CallOffVisit {
   @@index([status])
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum VisitCancellationReasonCode {
+  CLIENT_HOSPITAL_ADMISSION
+  CLIENT_REQUEST
+  CLIENT_UNAVAILABLE
+  VISIT_PLAN_SUSPENDED
+  SERVICE_NOT_REQUIRED
+  PROVIDER_UNABLE_TO_STAFF
+  PROVIDER_ROTA_ERROR
+  WEATHER_OR_EMERGENCY
+  DUPLICATE_ENTRY
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum VisitChargeDecision {
+  CHARGE
+  NO_CHARGE
+  WAIVE
+  PENDING_REVIEW
+
+  @@schema("scheduling")
+}
+
+model ScheduledJobCancellation {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  scheduledJobId        String                      @unique @db.Uuid
+  scheduledVisitId      String?                     @db.Uuid
+  serviceUserId         String                      @db.Uuid
+  outcome               ScheduledJobStatus
+  reasonCode            VisitCancellationReasonCode
+  reasonNotes           String?
+  welfareChecked        Boolean                     @default(false)
+  familyNotified        Boolean                     @default(false)
+  commissionerNotified  Boolean                     @default(false)
+  chargeDecision        VisitChargeDecision
+  chargeDecisionNotes   String?
+  timeCriticalVisit     Boolean                     @default(false)
+  timeCriticalEscalated Boolean                     @default(false)
+  callOffVisitId        String?                     @db.Uuid
+  cancelledById         String?                     @db.Uuid
+  cancelledAt           DateTime                    @default(now())
+  reinstatedAt          DateTime?
+  reinstatedById        String?                     @db.Uuid
+  reinstateNotes        String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  scheduledJob   ScheduledJob   @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  serviceUser    ServiceUser    @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  cancelledBy    User?          @relation("ScheduledJobCancellationBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  reinstatedBy   User?          @relation("ScheduledJobReinstatedBy", fields: [reinstatedById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([outcome])
+  @@index([reasonCode])
+  @@index([chargeDecision])
+  @@index([cancelledAt])
+  @@index([reinstatedAt])
   @@schema("scheduling")
 }
 
