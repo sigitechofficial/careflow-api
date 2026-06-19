@@ -1,7 +1,6 @@
 -- Service user visit plans (authorised care package / call pattern)
 
 CREATE TYPE "service_users"."VisitPlanStatus" AS ENUM ('DRAFT', 'ACTIVE', 'SUSPENDED', 'ENDED');
-CREATE TYPE "service_users"."VisitPlanSlotCode" AS ENUM ('MORNING', 'LUNCH', 'TEA', 'EVENING', 'NIGHT');
 
 CREATE TABLE "service_users"."ServiceUserVisitPlan" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -29,7 +28,7 @@ CREATE TABLE "service_users"."ServiceUserVisitPlan" (
 CREATE TABLE "service_users"."VisitPlanSlot" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "visitPlanId" UUID NOT NULL,
-    "slotCode" "service_users"."VisitPlanSlotCode" NOT NULL,
+    "slotCode" TEXT NOT NULL,
     "daysOfWeek" INTEGER[] NOT NULL,
     "plannedStartTime" TEXT NOT NULL,
     "plannedEndTime" TEXT NOT NULL,

@@ -17,12 +17,6 @@ ALTER TYPE "notifications"."NotificationType" ADD VALUE 'MEDICATION_REVIEW_REMIN
 ALTER TYPE "notifications"."NotificationType" ADD VALUE 'ASSESSMENT_DUE_REMINDER';
 ALTER TYPE "notifications"."NotificationType" ADD VALUE 'BIRTHDAY_REMINDER';
 
--- DropIndex (IF EXISTS: indexes are re-created in 20260515120000_service_user_funding_enterprise)
-DROP INDEX IF EXISTS "service_users"."ServiceUserFunding_funderId_idx";
-
--- DropIndex
-DROP INDEX IF EXISTS "service_users"."ServiceUserFunding_fundingTypeId_idx";
-
 -- AlterTable
 ALTER TABLE "notifications"."Notification" ALTER COLUMN "id" DROP DEFAULT,
 ALTER COLUMN "updatedAt" DROP DEFAULT;
@@ -32,15 +26,6 @@ ALTER TABLE "notifications"."NotificationPreference" ALTER COLUMN "updatedAt" DR
 
 -- AlterTable
 ALTER TABLE "notifications"."NotificationRecipient" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "service_users"."Funder" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "service_users"."FundingType" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "service_users"."ServiceUserFunding" ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "service_users"."ServiceUserInitialAssessment" ALTER COLUMN "updatedAt" DROP DEFAULT;
@@ -118,18 +103,6 @@ CREATE INDEX "ServiceUserCalendarEvent_deletedAt_idx" ON "service_users"."Servic
 
 -- CreateIndex
 CREATE INDEX "NotificationPreference_type_idx" ON "notifications"."NotificationPreference"("type");
-
--- CreateIndex
-CREATE INDEX "FundingType_deletedAt_idx" ON "service_users"."FundingType"("deletedAt");
-
--- CreateIndex
-CREATE INDEX "LiveInLevelOfCare_deletedAt_idx" ON "service_users"."LiveInLevelOfCare"("deletedAt");
-
--- CreateIndex
-CREATE INDEX "LiveInScanType_deletedAt_idx" ON "service_users"."LiveInScanType"("deletedAt");
-
--- CreateIndex
-CREATE INDEX "LiveInServiceType_deletedAt_idx" ON "service_users"."LiveInServiceType"("deletedAt");
 
 -- AddForeignKey
 ALTER TABLE "service_users"."ServiceUserCalendarEvent" ADD CONSTRAINT "ServiceUserCalendarEvent_serviceUserId_fkey" FOREIGN KEY ("serviceUserId") REFERENCES "service_users"."ServiceUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

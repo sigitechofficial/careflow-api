@@ -33,6 +33,10 @@ ALTER TABLE "service_users"."ServiceUserLegalDocument"
   ADD COLUMN IF NOT EXISTS "dnacprPhysicalLocation" TEXT,
   ADD COLUMN IF NOT EXISTS "lpaStatusConfirmation" "service_users"."ServiceUserLpaStatusConfirmation" NOT NULL DEFAULT 'UNKNOWN';
 
+DROP TABLE IF EXISTS "service_users"."ServiceUserFolderDocument";
+DROP TABLE IF EXISTS "lookups"."ServiceUserDocumentRegularityType";
+DROP TABLE IF EXISTS "lookups"."ServiceUserDocumentType";
+
 CREATE TABLE IF NOT EXISTS "lookups"."ServiceUserDocumentTypeCatalog" (
     "id" UUID NOT NULL,
     "code" TEXT NOT NULL,

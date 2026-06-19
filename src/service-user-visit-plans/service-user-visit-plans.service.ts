@@ -1140,7 +1140,9 @@ export class ServiceUserVisitPlansService {
     planId: string,
     dto: GenerateVisitPlanScheduleDto,
     meta?: RequestAuditMeta,
+    options?: { assignCarers?: boolean },
   ) {
+    const assignCarers = options?.assignCarers !== false;
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Only active visit plans can generate scheduled visits');
@@ -1243,13 +1245,15 @@ export class ServiceUserVisitPlansService {
             },
           });
           if (existingVisit) {
-            await syncVisitPlanSlotCarersToScheduledJobs(tx, {
-              visitPlanSlotId: slot.id,
-              assignedEmployeeIds: carerWindows.map((c) => c.employeeId),
-              requiredCarers,
-              userId,
-              scheduledVisitId: existingVisit.id,
-            });
+            if (assignCarers) {
+              await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+                visitPlanSlotId: slot.id,
+                assignedEmployeeIds: carerWindows.map((c) => c.employeeId),
+                requiredCarers,
+                userId,
+                scheduledVisitId: existingVisit.id,
+              });
+            }
             visitsSkipped += 1;
             continue;
           }
@@ -1303,51 +1307,53 @@ export class ServiceUserVisitPlansService {
             },
           });
 
-          const allocations = carerWindows.length
-            ? carerWindows
-            : (slot.assignedEmployeeIds ?? []).slice(0, requiredCarers).map((employeeId, index) => ({
-                employeeId,
-                start,
-                end,
-                durationMinutes,
-                isLeadCarer: index === 0,
-              }));
+          if (assignCarers) {
+            const allocations = carerWindows.length
+              ? carerWindows
+              : (slot.assignedEmployeeIds ?? []).slice(0, requiredCarers).map((employeeId, index) => ({
+                  employeeId,
+                  start,
+                  end,
+                  durationMinutes,
+                  isLeadCarer: index === 0,
+                }));
 
-          if (allocations.length > 0) {
-            for (const carer of allocations) {
-              await tx.jobAllocation.create({
-                data: {
-                  scheduledJobId: job.id,
-                  scheduledVisitId: visit.id,
-                  employeeId: carer.employeeId,
-                  status: AllocationStatus.CONFIRMED,
-                  requiresConfirmation: false,
-                  allocatedById: userId,
-                  scheduledStartDateTime: carer.start,
-                  scheduledEndDateTime: carer.end,
-                  durationMinutes: carer.durationMinutes,
-                  isLeadCarer: carer.isLeadCarer,
-                },
+            if (allocations.length > 0) {
+              for (const carer of allocations) {
+                await tx.jobAllocation.create({
+                  data: {
+                    scheduledJobId: job.id,
+                    scheduledVisitId: visit.id,
+                    employeeId: carer.employeeId,
+                    status: AllocationStatus.CONFIRMED,
+                    requiresConfirmation: false,
+                    allocatedById: userId,
+                    scheduledStartDateTime: carer.start,
+                    scheduledEndDateTime: carer.end,
+                    durationMinutes: carer.durationMinutes,
+                    isLeadCarer: carer.isLeadCarer,
+                  },
+                });
+              }
+            }
+
+            const allocatedCount = allocations.length;
+            const jobStatus =
+              allocatedCount >= requiredCarers
+                ? ScheduledJobStatus.ALLOCATED
+                : ScheduledJobStatus.NEEDS_ATTENTION;
+
+            await tx.scheduledJob.update({
+              where: { id: job.id },
+              data: { status: jobStatus },
+            });
+
+            if (jobStatus === ScheduledJobStatus.NEEDS_ATTENTION) {
+              await tx.scheduledVisit.update({
+                where: { id: visit.id },
+                data: { status: ScheduledVisitStatus.NEEDS_ATTENTION },
               });
             }
-          }
-
-          const allocatedCount = allocations.length;
-          const jobStatus =
-            allocatedCount >= requiredCarers
-              ? ScheduledJobStatus.ALLOCATED
-              : ScheduledJobStatus.NEEDS_ATTENTION;
-
-          await tx.scheduledJob.update({
-            where: { id: job.id },
-            data: { status: jobStatus },
-          });
-
-          if (jobStatus === ScheduledJobStatus.NEEDS_ATTENTION) {
-            await tx.scheduledVisit.update({
-              where: { id: visit.id },
-              data: { status: ScheduledVisitStatus.NEEDS_ATTENTION },
-            });
           }
 
           visitsCreated += 1;

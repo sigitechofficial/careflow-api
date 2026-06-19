@@ -118,3 +118,9 @@ ALTER TABLE "service_users"."ServiceUserFunding" ADD CONSTRAINT "ServiceUserFund
 ALTER TABLE "service_users"."ServiceUser" ADD CONSTRAINT "ServiceUser_currentFundingId_fkey" FOREIGN KEY ("currentFundingId") REFERENCES "service_users"."ServiceUserFunding"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 CREATE UNIQUE INDEX "ServiceUser_currentFundingId_key" ON "service_users"."ServiceUser"("currentFundingId");
+
+CREATE INDEX "FundingType_deletedAt_idx" ON "service_users"."FundingType"("deletedAt");
+
+ALTER TABLE "service_users"."Funder" ALTER COLUMN "updatedAt" DROP DEFAULT;
+ALTER TABLE "service_users"."FundingType" ALTER COLUMN "updatedAt" DROP DEFAULT;
+ALTER TABLE "service_users"."ServiceUserFunding" ALTER COLUMN "updatedAt" DROP DEFAULT;

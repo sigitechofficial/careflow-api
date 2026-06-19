@@ -47,6 +47,10 @@ CREATE TABLE "service_users"."LiveInScanType" (
 
 CREATE UNIQUE INDEX "LiveInScanType_code_key" ON "service_users"."LiveInScanType"("code");
 
+CREATE INDEX "LiveInLevelOfCare_deletedAt_idx" ON "service_users"."LiveInLevelOfCare"("deletedAt");
+CREATE INDEX "LiveInScanType_deletedAt_idx" ON "service_users"."LiveInScanType"("deletedAt");
+CREATE INDEX "LiveInServiceType_deletedAt_idx" ON "service_users"."LiveInServiceType"("deletedAt");
+
 CREATE TABLE "service_users"."ServiceUserLiveInProfile" (
     "id" UUID NOT NULL,
     "serviceUserId" UUID NOT NULL,
