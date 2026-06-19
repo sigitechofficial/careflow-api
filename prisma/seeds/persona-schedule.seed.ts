@@ -11,8 +11,8 @@ import {
   VisitPlanStatus,
   type PrismaClient,
 } from '@prisma/client';
-import { buildVisitPlanOccurrence } from '../../src/service-user-visit-plans/visit-plan-generate-occurrence.util';
-import { slotLabel } from '../../src/service-user-visit-plans/visit-plan-slot-defaults';
+import { buildVisitPlanOccurrence } from '../seed-lib/visit-plan/visit-plan-generate-occurrence.util';
+import { slotLabel } from '../seed-lib/visit-plan/visit-plan-slot-label.util';
 
 const DAY_MS = 86400000;
 const PERSONA_PREFIX = 'SU-TEST-';
