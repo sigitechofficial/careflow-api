@@ -63,4 +63,13 @@ export class UpdateVisitPlanDto {
   @IsOptional()
   @IsBoolean()
   applyScheduleImpact?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'When syncing assigned carers onto scheduled visits, only allocate on days/times that match working patterns (default true)',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  respectWorkingPatternOnSync?: boolean;
 }

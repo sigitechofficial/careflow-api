@@ -22,6 +22,7 @@ import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
 import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
+import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
 
 @ApiTags('Service User Visit Plans')
 @ApiBearerAuth()
@@ -80,6 +81,17 @@ export class ServiceUserVisitPlansController {
     @Req() req: Request,
   ) {
     return this.service.createDraftFromAssessment(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Post(':planId/carer-sync-pattern-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview working-pattern conflicts before saving or generating rota' })
+  previewCarerSyncPattern(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Body() dto: VisitPlanCarerSyncPatternPreviewDto,
+  ) {
+    return this.service.previewCarerSyncPattern(serviceUserId, planId, dto);
   }
 
   @Post(':planId/amendment-impact-preview')

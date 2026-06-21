@@ -88,12 +88,15 @@ export function resolveCarerAssignmentsForDay(
   requiredCarers: number,
   legacyEmployeeIds: string[],
 ): VisitPlanSlotCarerAssignmentShape[] {
-  const daySpecific = assignments
+  const withEmployeeId = (rows: VisitPlanSlotCarerAssignmentShape[]) =>
+    rows.filter((a) => a.employeeId?.trim());
+
+  const daySpecific = withEmployeeId(assignments)
     .filter((a) => a.dayOfWeek === dayOfWeek)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.role.localeCompare(b.role));
   if (daySpecific.length > 0) return daySpecific.slice(0, requiredCarers);
 
-  const global = assignments
+  const global = withEmployeeId(assignments)
     .filter((a) => a.dayOfWeek == null)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.role.localeCompare(b.role));
   if (global.length > 0) return global.slice(0, requiredCarers);

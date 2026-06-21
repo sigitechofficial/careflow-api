@@ -55,7 +55,9 @@ import {
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
 import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
-import { syncVisitPlanSlotCarersToScheduledJobs, visitPlanCarerEmployeeIds, visitPlanCarerSyncFromDateTime } from './visit-plan-slot-carer-sync.util';
+import { syncVisitPlanSlotCarersToScheduledJobs, visitPlanCarerEmployeeIds, visitPlanCarerSyncFromDateTime, loadEmployeePatternContexts, targetEmployeeIdsForVisit, countVisitsSkippedIfRespecting } from './visit-plan-slot-carer-sync.util';
+import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
+import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
 import { resolveAssignedEmployeeIds, slotAssignedEmployeeIds } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
@@ -204,6 +206,7 @@ export class ServiceUserVisitPlansService {
       expectedResumeAt: row.expectedResumeAt?.toISOString() ?? null,
       suspensionReviewDueAt: row.suspensionReviewDueAt?.toISOString() ?? null,
       suspensionContingencyNotes: row.suspensionContingencyNotes ?? '',
+      respectWorkingPatternOnSync: row.respectWorkingPatternOnSync,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       slots: (row.slots ?? []).map((s) => ({
@@ -896,6 +899,9 @@ export class ServiceUserVisitPlansService {
 
     const snapshotBefore = this.snapshot(existing, roundNameByCode) as VisitPlanSnapshotShape;
 
+    const respectWorkingPattern =
+      dto.respectWorkingPatternOnSync ?? existing.respectWorkingPatternOnSync !== false;
+
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.slots?.length) {
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
@@ -918,6 +924,7 @@ export class ServiceUserVisitPlansService {
               requiredCarers: row.requiredCarers,
               userId,
               fromDateTime: visitPlanCarerSyncFromDateTime(),
+              respectWorkingPattern,
             });
           }
         }
@@ -934,6 +941,9 @@ export class ServiceUserVisitPlansService {
             ? { reviewDueAt: dto.reviewDueAt ? new Date(dto.reviewDueAt) : null }
             : {}),
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+          ...(dto.respectWorkingPatternOnSync !== undefined
+            ? { respectWorkingPatternOnSync: dto.respectWorkingPatternOnSync }
+            : {}),
           updatedById: userId,
         },
       });
@@ -1001,6 +1011,118 @@ export class ServiceUserVisitPlansService {
       after: snapshotAfter,
     });
     return { data: preview };
+  }
+
+  async previewCarerSyncPattern(
+    serviceUserId: string,
+    planId: string,
+    dto: VisitPlanCarerSyncPatternPreviewDto,
+  ) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const rounds = await this.loadMedicationRoundCatalog();
+    const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
+
+    const normalized = dto.slots?.length
+      ? this.normalizeSlots(dto.slots, rounds)
+      : this.normalizeSlots(
+          plan.slots.map((slot) => ({
+            slotCode: slot.slotCode,
+            daysOfWeek: slot.daysOfWeek,
+            plannedStartTime: slot.plannedStartTime,
+            plannedEndTime: slot.plannedEndTime,
+            requiredCarers: slot.requiredCarers,
+            isEnabled: slot.isEnabled,
+            medicationRoundCode: slot.medicationRoundCode,
+            assignedEmployeeIds: slot.assignedEmployeeIds,
+            carerAssignments: slot.carerAssignments?.map((a) => ({
+              employeeId: a.employeeId,
+              dayOfWeek: a.dayOfWeek,
+              plannedStartTime: a.plannedStartTime,
+              plannedEndTime: a.plannedEndTime,
+            })),
+          })),
+          rounds,
+        );
+
+    const patternSlots: SlotCarerPatternInput[] = normalized
+      .filter((slot) => slot.isEnabled)
+      .map((slot) => ({
+        slotCode: slot.slotCode,
+        slotLabel: slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode),
+        daysOfWeek: slot.daysOfWeek,
+        plannedStartTime: slot.plannedStartTime,
+        plannedEndTime: slot.plannedEndTime,
+        isEnabled: slot.isEnabled,
+        assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
+        carerAssignments: slot.carerAssignments ?? [],
+      }));
+
+    const employeeIds = [
+      ...new Set(
+        patternSlots.flatMap((slot) => {
+          if (slot.carerAssignments?.length) {
+            return slot.carerAssignments.map((a) => a.employeeId?.trim()).filter(Boolean) as string[];
+          }
+          return slot.assignedEmployeeIds.filter((id) => id.trim());
+        }),
+      ),
+    ];
+
+    const employees = employeeIds.length
+      ? await this.prisma.employee.findMany({
+          where: { id: { in: employeeIds }, deletedAt: null },
+          include: {
+            personalDetail: true,
+            employment: true,
+            workingPatterns: { where: { deletedAt: null, isActive: true } },
+          },
+        })
+      : [];
+
+    const contexts = employees.map(employmentToPatternContext);
+    const conflicts = collectCarerPatternConflicts(patternSlots, contexts);
+    const patternByEmployee = await loadEmployeePatternContexts(this.prisma, employeeIds);
+
+    const slotByCode = new Map(plan.slots.map((s) => [s.slotCode, s]));
+    const from = visitPlanCarerSyncFromDateTime();
+    let visitsSkippedIfRespecting = 0;
+
+    for (const slot of normalized) {
+      if (!slot.isEnabled) continue;
+      const row = slotByCode.get(slot.slotCode);
+      if (!row) continue;
+
+      const assignedEmployeeIds = visitPlanCarerEmployeeIds(
+        [],
+        slot.assignedEmployeeIds ?? [],
+        slot.requiredCarers ?? row.requiredCarers,
+      );
+      if (!assignedEmployeeIds.length) continue;
+
+      const visits = await this.prisma.scheduledVisit.findMany({
+        where: {
+          visitPlanSlotId: row.id,
+          deletedAt: null,
+          scheduledStartDateTime: { gte: from },
+          status: { in: [ScheduledVisitStatus.PLANNED, ScheduledVisitStatus.NEEDS_ATTENTION] },
+          scheduledJob: { deletedAt: null },
+        },
+        select: {
+          scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          requiredCarers: true,
+        },
+      });
+
+      visitsSkippedIfRespecting += countVisitsSkippedIfRespecting(
+        visits,
+        assignedEmployeeIds,
+        row.requiredCarers,
+        patternByEmployee,
+      );
+    }
+
+    return { data: { conflicts, visitsSkippedIfRespecting } };
   }
 
   private buildSimulatedAfterSnapshot(
@@ -1843,12 +1965,37 @@ export class ServiceUserVisitPlansService {
     let visitsCreated = 0;
     let visitsSkipped = 0;
 
+    const respectWorkingPattern =
+      dto.respectWorkingPatternOnSync ?? plan.respectWorkingPatternOnSync !== false;
+
+    if (
+      dto.respectWorkingPatternOnSync !== undefined &&
+      dto.respectWorkingPatternOnSync !== plan.respectWorkingPatternOnSync
+    ) {
+      await this.prisma.serviceUserVisitPlan.update({
+        where: { id: planId },
+        data: { respectWorkingPatternOnSync: dto.respectWorkingPatternOnSync },
+      });
+    }
+
     const scheduleAnchor = plan.effectiveFrom;
     const planEffectiveTo = plan.effectiveTo;
 
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
 
     await this.prisma.$transaction(async (tx) => {
+      let patternByEmployee = new Map<string, EmployeePatternContext>();
+      if (assignCarers && respectWorkingPattern) {
+        const allEmployeeIds = [
+          ...new Set(
+            enabledSlots.flatMap((slot) =>
+              visitPlanCarerEmployeeIds([], slotAssignedEmployeeIds(slot), slot.requiredCarers),
+            ),
+          ),
+        ];
+        patternByEmployee = await loadEmployeePatternContexts(tx, allEmployeeIds);
+      }
+
       for (let t = rangeStart.getTime(); t <= to.getTime(); t += dayMs) {
         const day = new Date(t);
         const dateStr = day.toISOString().slice(0, 10);
@@ -1906,6 +2053,69 @@ export class ServiceUserVisitPlansService {
             },
           });
           if (existingVisit) {
+            const liveJob = await tx.scheduledJob.findFirst({
+              where: { id: existingVisit.scheduledJobId, deletedAt: null },
+            });
+            if (liveJob) {
+              if (assignCarers) {
+                await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+                  visitPlanSlotId: slot.id,
+                  assignedEmployeeIds: visitPlanCarerEmployeeIds(
+                    carerWindows,
+                    slotAssignedEmployeeIds(slot),
+                    requiredCarers,
+                  ),
+                  requiredCarers,
+                  userId,
+                  scheduledVisitId: existingVisit.id,
+                  respectWorkingPattern,
+                });
+              }
+              visitsSkipped += 1;
+              continue;
+            }
+
+            const job = await tx.scheduledJob.create({
+              data: {
+                scheduleBatchId: batch.id,
+                scheduleAreaId: dto.scheduleAreaId ?? null,
+                serviceUserId,
+                jobName: `${slotLabel(slot.medicationRoundCode ?? slot.slotCode, roundNameByCode)} — ${su?.preferredName ?? su?.firstName ?? 'Client'}`,
+                scheduledStartDateTime: start,
+                scheduledEndDateTime: end,
+                estimatedDurationMinutes: durationMinutes,
+                requiredCarers,
+                status: ScheduledJobStatus.UNALLOCATED,
+                postcode: su?.address?.postcode ?? null,
+                address: su?.address
+                  ? [
+                      su.address.addressLine1,
+                      su.address.addressLine2,
+                      su.address.town,
+                      su.address.postcode,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')
+                  : null,
+                metadata: {
+                  visitPlanId: planId,
+                  visitPlanSlotId: slot.id,
+                  date: dateStr,
+                  isOvernight,
+                } as Prisma.InputJsonValue,
+                createdById: userId,
+              },
+            });
+            await tx.scheduledVisit.update({
+              where: { id: existingVisit.id },
+              data: {
+                scheduledJobId: job.id,
+                scheduledEndDateTime: end,
+                requiredCarers,
+                status: ScheduledVisitStatus.PLANNED,
+                updatedById: userId,
+              },
+            });
             if (assignCarers) {
               await syncVisitPlanSlotCarersToScheduledJobs(tx, {
                 visitPlanSlotId: slot.id,
@@ -1917,9 +2127,10 @@ export class ServiceUserVisitPlansService {
                 requiredCarers,
                 userId,
                 scheduledVisitId: existingVisit.id,
+                respectWorkingPattern,
               });
             }
-            visitsSkipped += 1;
+            visitsCreated += 1;
             continue;
           }
 
@@ -1973,12 +2184,29 @@ export class ServiceUserVisitPlansService {
           });
 
           if (assignCarers) {
-            const employeeIds = visitPlanCarerEmployeeIds(
+            let employeeIds = visitPlanCarerEmployeeIds(
               carerWindows,
               slotAssignedEmployeeIds(slot),
               requiredCarers,
             );
-            const allocations = employeeIds.map((employeeId, index) => ({
+            if (!employeeIds.length) {
+              employeeIds = slotAssignedEmployeeIds(slot).slice(0, Math.max(1, requiredCarers));
+            }
+            const visitRow = {
+              scheduledStartDateTime: start,
+              scheduledEndDateTime: end,
+              requiredCarers,
+            };
+            const allocEmployeeIds = respectWorkingPattern
+              ? targetEmployeeIdsForVisit(
+                  employeeIds,
+                  visitRow,
+                  requiredCarers,
+                  true,
+                  patternByEmployee,
+                )
+              : employeeIds;
+            const allocations = allocEmployeeIds.map((employeeId, index) => ({
               employeeId,
               start,
               end,
@@ -2042,6 +2270,7 @@ export class ServiceUserVisitPlansService {
             requiredCarers: slot.requiredCarers,
             userId,
             fromDateTime: rangeStart,
+            respectWorkingPattern,
           });
         }
       }

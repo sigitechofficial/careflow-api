@@ -39,6 +39,7 @@ export type BulkVisitPlanScheduleCandidate = {
   enabledSlotCount: number;
   ready: boolean;
   readinessIssues: string[];
+  respectWorkingPatternOnSync: boolean;
 };
 
 export type BulkVisitPlanScheduleResultItem = {
@@ -80,6 +81,7 @@ function mapPlanToCandidate(
       }>;
     };
     slots: VisitPlanSlotReadinessInput[];
+    respectWorkingPatternOnSync: boolean;
   },
   roundNameByCode: Map<string, string>,
   scheduleAreaByLocation: Map<string, ScheduleAreaBranchLookup>,
@@ -105,6 +107,7 @@ function mapPlanToCandidate(
     enabledSlotCount: readiness.enabledSlotCount,
     ready: readiness.ready,
     readinessIssues: readiness.issues,
+    respectWorkingPatternOnSync: plan.respectWorkingPatternOnSync,
   };
 }
 
@@ -271,7 +274,7 @@ export class VisitPlanBulkScheduleService {
       throw new BadRequestException('No active visit plans match the selected scope');
     }
 
-    const generateParams = {
+    const generateParamsBase = {
       fromDate: dto.fromDate,
       toDate: dto.toDate,
       scheduleAreaId: dto.scheduleAreaId,
@@ -306,13 +309,17 @@ export class VisitPlanBulkScheduleService {
       }
 
       try {
+        const respectWorkingPatternOnSync =
+          dto.respectWorkingPatternOnSync ?? plan.respectWorkingPatternOnSync;
         const response = await this.visitPlans.generateSchedule(
           userId,
           plan.serviceUserId,
           plan.id,
-          generateParams,
+          {
+            ...generateParamsBase,
+            respectWorkingPatternOnSync,
+          },
           meta,
-          { assignCarers: false },
         );
         const data = response.data;
         visitsCreated += data.visitsCreated;

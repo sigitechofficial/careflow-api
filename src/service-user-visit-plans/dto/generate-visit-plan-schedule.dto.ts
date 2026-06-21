@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export class GenerateVisitPlanScheduleDto {
   @ApiProperty({ example: '2026-07-08' })
@@ -25,4 +25,13 @@ export class GenerateVisitPlanScheduleDto {
   @Min(0)
   @Max(14)
   backfillDays?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Only allocate carers on visits that match their working pattern. When omitted, uses the visit plan stored preference (default true).',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  respectWorkingPatternOnSync?: boolean;
 }
