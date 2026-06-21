@@ -19,7 +19,7 @@ import {
 import {
   inferBranchFromAddress,
   loadBranchAreasForInference,
-} from '../../src/location-management/service-user-branch.util';
+} from './service-user-branch-inference.util';
 import { seedDemoServiceUserData } from './demo-service-user-data.seed';
 import { SERVICE_USER_PERSONAS, type ServiceUserPersona } from './service-user-personas.data';
 
