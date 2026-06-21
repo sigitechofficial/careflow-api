@@ -30,11 +30,31 @@ export const timelineJobInclude = {
       lastName: true,
       preferredName: true,
       serviceUserNumber: true,
+      locationId: true,
+      location: { select: { id: true, name: true } },
+      assignments: {
+        where: { deletedAt: null },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+        select: {
+          locationId: true,
+          location: { select: { id: true, name: true } },
+        },
+      },
     },
   },
-  scheduleArea: { select: { id: true, name: true, code: true } },
+  scheduleArea: { select: { id: true, name: true, code: true, locationId: true } },
   scheduleRun: {
-    select: { id: true, name: true, runDate: true, startTime: true, endTime: true, sortOrder: true },
+    select: {
+      id: true,
+      name: true,
+      runDate: true,
+      startTime: true,
+      endTime: true,
+      sortOrder: true,
+      employeeId: true,
+      status: true,
+    },
   },
   allocations: {
     where: { deletedAt: null, isActive: true },
@@ -55,6 +75,31 @@ export const timelineJobInclude = {
 } satisfies Prisma.ScheduledJobInclude;
 
 export type TimelineJobRow = Prisma.ScheduledJobGetPayload<{ include: typeof timelineJobInclude }>;
+
+function mapTimelineServiceUserBrief(
+  su: TimelineJobRow['serviceUser'],
+): {
+  id: string;
+  firstName: string;
+  lastName: string;
+  preferredName: string | null;
+  serviceUserNumber: string | null;
+  locationId: string | null;
+  location: { id: string; name: string } | null;
+} {
+  const assignment = su.assignments?.[0];
+  const locationId = su.locationId ?? assignment?.locationId ?? null;
+  const location = su.location ?? assignment?.location ?? null;
+  return {
+    id: su.id,
+    firstName: su.firstName,
+    lastName: su.lastName,
+    preferredName: su.preferredName,
+    serviceUserNumber: su.serviceUserNumber,
+    locationId,
+    location: location ? { id: location.id, name: location.name } : null,
+  };
+}
 
 function mapVisitPlanContext(row: TimelineJobRow) {
   const primaryVisit = row.visits[0];
@@ -90,6 +135,7 @@ export function mapTimelineJob(row: TimelineJobRow) {
     scheduleBatchId: row.scheduleBatchId,
     scheduleAreaId: row.scheduleAreaId,
     scheduleRunId: row.scheduleRunId,
+    runSequence: row.runSequence,
     serviceUserId: row.serviceUserId,
     jobName: row.jobName,
     status: row.status,
@@ -101,7 +147,7 @@ export function mapTimelineJob(row: TimelineJobRow) {
     postcode: row.postcode,
     address: row.address,
     timePeriodColor: row.timePeriodColor,
-    serviceUser: row.serviceUser,
+    serviceUser: mapTimelineServiceUserBrief(row.serviceUser),
     scheduleArea: row.scheduleArea,
     scheduleRun: row.scheduleRun
       ? {

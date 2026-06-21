@@ -430,6 +430,8 @@ model User {
   jobAllocationsUnallocated            JobAllocation[]                   @relation("JobAllocationUnallocatedBy")
   callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
   callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
+  scheduledJobCancellations            ScheduledJobCancellation[]        @relation("ScheduledJobCancellationBy")
+  scheduledJobReinstatements           ScheduledJobCancellation[]        @relation("ScheduledJobReinstatedBy")
   observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
   serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]         @relation("FlashMessageCreatedBy")
   bodyMapRecordsCreated                BodyMapRecord[]                   @relation("BodyMapRecordCreatedBy")
@@ -730,7 +732,7 @@ model OrganisationGeneralSettings {
   privacyNotifyInternalMessage  Boolean           @default(true)
   privacyNotifyEmail            Boolean           @default(false)
   privacySensitiveViewerRoles   Json              @default("[]")
-  employeeVisaTypes             Json              @default("[{\"id\":\"full_time\",\"label\":\"Full time visa\",\"weeklyHours\":40},{\"id\":\"student\",\"label\":\"Student visa\",\"weeklyHours\":20}]")
+  employeeVisaTypes             Json              @default("[]")
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
   updatedById                   String?           @db.Uuid
@@ -780,6 +782,7 @@ model Employee {
   jobAllocations            JobAllocation[]
   visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
+  scheduleRuns              ScheduleRun[]
 
   @@index([deletedAt])
   @@schema("employees")
@@ -888,6 +891,8 @@ model EmployeeEmployment {
   hourlyDayRate         Float?
   hourlyNightRate       Float?
   isBankStaff           Boolean @default(false)
+  workingPatternCycleWeeks Int @default(1)
+  workingPatternCycleAnchorDate DateTime?
 
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
@@ -1065,6 +1070,7 @@ model EmployeeNonCoreActivity {
 model EmployeeWorkingPattern {
   id         String @id @default(uuid()) @db.Uuid
   employeeId String @db.Uuid
+  weekInCycle Int @default(1)
   dayOfWeek  DayOfWeek
   startTime  String?
   endTime    String?
@@ -1082,6 +1088,7 @@ model EmployeeWorkingPattern {
   employee   Employee @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId])
+  @@index([employeeId, weekInCycle, dayOfWeek])
   @@index([dayOfWeek])
   @@index([deletedAt])
   @@schema("employees")
@@ -1479,6 +1486,20 @@ model Title {
   deletedAt DateTime?
 
   employeePersonalDetails EmployeePersonalDetail[]
+  @@schema("lookups")
+}
+
+model BankHoliday {
+  id          String   @id @default(uuid()) @db.Uuid
+  holidayDate DateTime @db.Date
+  name        String
+  region      String   @default("UK")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([holidayDate, region])
+  @@index([holidayDate])
   @@schema("lookups")
 }
 
@@ -2069,6 +2090,7 @@ model ServiceUser {
   scheduledJobs              ScheduledJob[]
   scheduledVisits            ScheduledVisit[]
   callOffVisits              CallOffVisit[]
+  jobCancellations           ScheduledJobCancellation[]
   observations               ServiceUserObservation[]
   flashMessages              ServiceUserFlashMessage[]
   bodyMapRecords             BodyMapRecord[]
@@ -3219,6 +3241,7 @@ model ServiceUserAbsence {
   absenceReasonCatalogId String                 @db.Uuid
   notes                  String                 @default("") @db.Text
   contactInformation     String                 @default("") @db.Text
+  retrospectiveReason  String                 @default("") @db.Text
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -3305,6 +3328,15 @@ enum VisitPlanStatus {
   @@schema("service_users")
 }
 
+enum VisitPlanStatusEventType {
+  SUSPENDED
+  REACTIVATED
+  ENDED
+  SCHEDULED_END
+
+  @@schema("service_users")
+}
+
 enum VisitPlanScheduleFrequency {
   DAILY
   WEEKLY
@@ -3360,6 +3392,23 @@ enum VisitPlanSlotExceptionType {
   @@schema("service_users")
 }
 
+model VisitPlanPauseReasonCatalog {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  code               String   @unique
+  sortOrder          Int      @default(0)
+  isActive           Boolean  @default(true)
+  suggestsUseAbsence Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  visitPlans     ServiceUserVisitPlan[]
+  statusEvents   VisitPlanStatusEvent[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
 model ServiceUserVisitPlan {
   id                    String           @id @default(uuid()) @db.Uuid
   serviceUserId         String           @db.Uuid
@@ -3372,6 +3421,13 @@ model ServiceUserVisitPlan {
   reviewDueAt           DateTime?
   notes                 String           @default("") @db.Text
 
+  suspendedAt              DateTime?
+  suspendedById            String?   @db.Uuid
+  pauseReasonCatalogId     String?   @db.Uuid
+  expectedResumeAt         DateTime?
+  suspensionReviewDueAt    DateTime?
+  suspensionContingencyNotes String  @default("") @db.Text
+
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -3383,13 +3439,40 @@ model ServiceUserVisitPlan {
 
   serviceUser      ServiceUser                 @relation(fields: [serviceUserId], references: [id])
   sourceSubmission InitialAssessmentSubmission? @relation(fields: [sourceSubmissionId], references: [id], onDelete: SetNull)
+  pauseReasonCatalog VisitPlanPauseReasonCatalog? @relation(fields: [pauseReasonCatalogId], references: [id], onDelete: SetNull)
   slots            VisitPlanSlot[]
   amendments       VisitPlanAmendment[]
+  statusEvents     VisitPlanStatusEvent[]
 
+  @@index([pauseReasonCatalogId])
   @@index([serviceUserId])
   @@index([status])
   @@index([sourceSubmissionId])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model VisitPlanStatusEvent {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  visitPlanId          String                   @db.Uuid
+  eventType            VisitPlanStatusEventType
+  reason               String                   @db.Text
+  pauseReasonCatalogId String?                  @db.Uuid
+  expectedResumeAt     DateTime?
+  reviewDueAt          DateTime?
+  contingencyNotes     String                   @default("") @db.Text
+  cancelFutureVisits   Boolean?
+  effectiveFrom        DateTime?
+  effectiveTo          DateTime?
+  retrospectiveReason  String                   @default("") @db.Text
+  createdAt            DateTime                 @default(now())
+  createdById          String?                  @db.Uuid
+
+  visitPlan          ServiceUserVisitPlan        @relation(fields: [visitPlanId], references: [id], onDelete: Cascade)
+  pauseReasonCatalog VisitPlanPauseReasonCatalog? @relation(fields: [pauseReasonCatalogId], references: [id], onDelete: SetNull)
+
+  @@index([visitPlanId])
+  @@index([createdAt])
   @@schema("service_users")
 }
 
@@ -4811,6 +4894,16 @@ enum ScheduleBuildSource {
   @@schema("scheduling")
 }
 
+enum ScheduleRunStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@schema("scheduling")
+}
+
 model ScheduleArea {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
@@ -4945,25 +5038,29 @@ enum ScheduledVisitStatus {
 }
 
 model ScheduleRun {
-  id              String    @id @default(uuid()) @db.Uuid
-  scheduleBatchId String    @db.Uuid
-  scheduleAreaId  String?   @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
+  scheduleBatchId String            @db.Uuid
+  scheduleAreaId  String?           @db.Uuid
+  employeeId      String?           @db.Uuid
   name            String
   description     String?
-  runDate         DateTime  @db.Date
+  runDate         DateTime          @db.Date
   startTime       String?
   endTime         String?
-  sortOrder       Int       @default(0)
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  shiftType       String?
+  status          ScheduleRunStatus @default(DRAFT)
+  sortOrder       Int               @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   deletedAt       DateTime?
-  createdById     String?   @db.Uuid
-  updatedById     String?   @db.Uuid
-  deletedById     String?   @db.Uuid
+  createdById     String?           @db.Uuid
+  updatedById     String?           @db.Uuid
+  deletedById     String?           @db.Uuid
 
   scheduleBatch ScheduleBatch  @relation(fields: [scheduleBatchId], references: [id], onDelete: Cascade)
   scheduleArea  ScheduleArea?  @relation(fields: [scheduleAreaId], references: [id], onDelete: SetNull)
+  employee      Employee?      @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   createdBy     User?          @relation("ScheduleRunCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy     User?          @relation("ScheduleRunUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   deletedBy     User?          @relation("ScheduleRunDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -4971,7 +5068,9 @@ model ScheduleRun {
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
+  @@index([employeeId])
   @@index([runDate])
+  @@index([status])
   @@index([deletedAt])
   @@index([isActive])
   @@schema("scheduling")
@@ -4982,6 +5081,7 @@ model ScheduledJob {
   scheduleBatchId          String               @db.Uuid
   scheduleAreaId           String?              @db.Uuid
   scheduleRunId            String?              @db.Uuid
+  runSequence              Int?
   serviceUserId            String               @db.Uuid
   jobName                  String
   description              String?
@@ -5017,10 +5117,12 @@ model ScheduledJob {
   actions       VisitAction[]
   allocations   JobAllocation[]
   callOffVisits CallOffVisit[]
+  cancellation  ScheduledJobCancellation?
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
   @@index([scheduleRunId])
+  @@index([scheduleRunId, runSequence])
   @@index([serviceUserId])
   @@index([status])
   @@index([priority])
@@ -5115,6 +5217,68 @@ model CallOffVisit {
   @@index([status])
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum VisitCancellationReasonCode {
+  CLIENT_HOSPITAL_ADMISSION
+  CLIENT_REQUEST
+  CLIENT_UNAVAILABLE
+  VISIT_PLAN_SUSPENDED
+  SERVICE_NOT_REQUIRED
+  PROVIDER_UNABLE_TO_STAFF
+  PROVIDER_ROTA_ERROR
+  WEATHER_OR_EMERGENCY
+  DUPLICATE_ENTRY
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum VisitChargeDecision {
+  CHARGE
+  NO_CHARGE
+  WAIVE
+  PENDING_REVIEW
+
+  @@schema("scheduling")
+}
+
+model ScheduledJobCancellation {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  scheduledJobId        String                      @unique @db.Uuid
+  scheduledVisitId      String?                     @db.Uuid
+  serviceUserId         String                      @db.Uuid
+  outcome               ScheduledJobStatus
+  reasonCode            VisitCancellationReasonCode
+  reasonNotes           String?
+  welfareChecked        Boolean                     @default(false)
+  familyNotified        Boolean                     @default(false)
+  commissionerNotified  Boolean                     @default(false)
+  chargeDecision        VisitChargeDecision
+  chargeDecisionNotes   String?
+  timeCriticalVisit     Boolean                     @default(false)
+  timeCriticalEscalated Boolean                     @default(false)
+  callOffVisitId        String?                     @db.Uuid
+  cancelledById         String?                     @db.Uuid
+  cancelledAt           DateTime                    @default(now())
+  reinstatedAt          DateTime?
+  reinstatedById        String?                     @db.Uuid
+  reinstateNotes        String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  scheduledJob   ScheduledJob   @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  serviceUser    ServiceUser    @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  cancelledBy    User?          @relation("ScheduledJobCancellationBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  reinstatedBy   User?          @relation("ScheduledJobReinstatedBy", fields: [reinstatedById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([outcome])
+  @@index([reasonCode])
+  @@index([chargeDecision])
+  @@index([cancelledAt])
+  @@index([reinstatedAt])
   @@schema("scheduling")
 }
 

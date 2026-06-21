@@ -42,11 +42,19 @@ function parseVisaType(raw: unknown, index: number): EmployeeVisaType | null {
 }
 
 export function parseEmployeeVisaTypes(value: unknown): EmployeeVisaType[] {
-  if (!Array.isArray(value)) return [...DEFAULT_EMPLOYEE_VISA_TYPES];
-  const parsed = value
-    .map((row, index) => parseVisaType(row, index))
-    .filter((row): row is EmployeeVisaType => row !== null);
-  return parsed.length > 0 ? parsed : [...DEFAULT_EMPLOYEE_VISA_TYPES];
+  const REMOVED_LEGACY = new Set(['full_time', 'student']);
+  const parsed = Array.isArray(value)
+    ? value
+        .map((row, index) => parseVisaType(row, index))
+        .filter((row): row is EmployeeVisaType => row !== null && !REMOVED_LEGACY.has(row.id))
+    : [];
+
+  const byId = new Map(DEFAULT_EMPLOYEE_VISA_TYPES.map((row) => [row.id, row]));
+  for (const row of parsed) {
+    if (byId.has(row.id)) continue;
+    byId.set(row.id, row);
+  }
+  return [...byId.values()];
 }
 
 export function serializeEmployeeVisaTypes(types: EmployeeVisaType[]): Prisma.InputJsonValue {

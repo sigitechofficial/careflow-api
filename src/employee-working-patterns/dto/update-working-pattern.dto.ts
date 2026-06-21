@@ -1,8 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { DayOfWeek } from '@prisma/client';
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateWorkingPatternDto {
+  @ApiPropertyOptional({ enum: [1, 2] })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(2)
+  weekInCycle?: number;
+
   @ApiPropertyOptional({ enum: DayOfWeek })
   @IsOptional()
   @IsEnum(DayOfWeek)

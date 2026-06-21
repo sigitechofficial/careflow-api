@@ -13,7 +13,6 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
 import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
-import { mapEmployeeListRow } from './mappers/employee.mapper';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -25,17 +24,19 @@ export class EmployeesController {
   @Get()
   @Permissions('employees.read')
   async list(@Query() query: EmployeeQueryDto) {
-    const result = await this.employeesService.list(query);
-    return {
-      data: (result.data as Parameters<typeof mapEmployeeListRow>[0][]).map(mapEmployeeListRow),
-      meta: result.meta,
-    };
+    return this.employeesService.list(query);
+  }
+
+  @Get('list-facets')
+  @Permissions('employees.read')
+  listFilterFacets(@Query() query: EmployeeQueryDto) {
+    return this.employeesService.listFilterFacets(query);
   }
 
   @Get('chart-summary')
   @Permissions('employees.read')
-  chartSummary() {
-    return this.employeesService.chartSummary();
+  chartSummary(@Query() query: EmployeeQueryDto) {
+    return this.employeesService.chartSummary(query);
   }
 
   @Get('documents-registry')

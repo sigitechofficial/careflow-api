@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -196,5 +197,19 @@ export class UpdateEmployeeEmploymentDto {
   @IsOptional()
   @IsBoolean()
   isBankStaff?: boolean;
+
+  @ApiPropertyOptional({ enum: [1, 2], description: '1 = standard week; 2 = fortnight working pattern' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(2)
+  workingPatternCycleWeeks?: number;
+
+  @ApiPropertyOptional({ description: 'ISO date — which calendar week is Week 1 of the cycle' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  workingPatternCycleAnchorDate?: Date | null;
 }
 

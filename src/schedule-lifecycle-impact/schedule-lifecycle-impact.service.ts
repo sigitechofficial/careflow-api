@@ -18,9 +18,12 @@ import {
   calendarDayUtc,
   CANCELLABLE_JOB_STATUSES,
   datesOverlap,
+  filterJobsByWeekdays,
   normalizeImpactStartDate,
   resolveImpactEndDate,
+  SCHEDULE_IMPACT_PREVIEW_MAX,
   type JobImpactOutcome,
+  type ScopedJobFilter,
   type ScheduleImpactResult,
   type ScheduleImpactSource,
 } from './schedule-lifecycle-impact.util';
@@ -83,17 +86,233 @@ export class ScheduleLifecycleImpactService {
     serviceUserId: string;
     fromDate: Date;
     toDate?: Date | null;
+    scope?: ScopedJobFilter;
   }): Promise<ScheduleImpactResult> {
     const from = normalizeImpactStartDate(params.fromDate);
     const to = resolveImpactEndDate(from, params.toDate ?? null);
     const jobs = await this.prisma.scheduledJob.findMany({
-      where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to),
-      select: { id: true },
+      where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, params.scope),
+      select: { id: true, scheduledStartDateTime: true },
       orderBy: { scheduledStartDateTime: 'asc' },
-      take: 500,
+      take: SCHEDULE_IMPACT_PREVIEW_MAX + 1,
     });
-    const jobIds = jobs.map((j) => j.id);
-    return { jobsCancelled: jobIds.length, jobsUnallocated: 0, jobIds };
+    const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays);
+    const truncated = filtered.length > SCHEDULE_IMPACT_PREVIEW_MAX;
+    const capped = truncated ? filtered.slice(0, SCHEDULE_IMPACT_PREVIEW_MAX) : filtered;
+    const jobIds = capped.map((j) => j.id);
+    return {
+      jobsCancelled: jobIds.length,
+      jobsUnallocated: 0,
+      jobIds,
+      truncated,
+    };
+  }
+
+  async previewCancelScopedServiceUserJobs(params: {
+    serviceUserId: string;
+    fromDate: Date;
+    toDate?: Date | null;
+    scope: ScopedJobFilter;
+  }): Promise<ScheduleImpactResult> {
+    return this.previewCancelServiceUserJobsInRange({
+      serviceUserId: params.serviceUserId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+      scope: params.scope,
+    });
+  }
+
+  async previewRescheduleSlotJobs(params: {
+    serviceUserId: string;
+    visitPlanSlotId: string;
+    fromDate: Date;
+    toDate?: Date | null;
+    weekdays?: number[];
+  }): Promise<ScheduleImpactResult> {
+    const from = normalizeImpactStartDate(params.fromDate);
+    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const jobs = await this.prisma.scheduledJob.findMany({
+      where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, {
+        visitPlanSlotId: params.visitPlanSlotId,
+        weekdays: params.weekdays,
+      }),
+      select: { id: true, scheduledStartDateTime: true },
+      orderBy: { scheduledStartDateTime: 'asc' },
+      take: SCHEDULE_IMPACT_PREVIEW_MAX + 1,
+    });
+    const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+    const truncated = filtered.length > SCHEDULE_IMPACT_PREVIEW_MAX;
+    const capped = truncated ? filtered.slice(0, SCHEDULE_IMPACT_PREVIEW_MAX) : filtered;
+    const jobIds = capped.map((j) => j.id);
+    return {
+      jobsCancelled: 0,
+      jobsUnallocated: 0,
+      jobsRescheduled: jobIds.length,
+      jobIds,
+      truncated,
+    };
+  }
+
+  async cancelScopedServiceUserJobs(
+    userId: string,
+    params: CancelServiceUserJobsParams & { scope?: ScopedJobFilter },
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ScheduleImpactResult> {
+    const from = normalizeImpactStartDate(params.fromDate);
+    const to = resolveImpactEndDate(from, params.toDate ?? null);
+
+    const run = async (client: Prisma.TransactionClient) => {
+      const jobs = await client.scheduledJob.findMany({
+        where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, params.scope),
+        select: { id: true, status: true, jobName: true, scheduledStartDateTime: true },
+        orderBy: { scheduledStartDateTime: 'asc' },
+        take: SCHEDULE_IMPACT_PREVIEW_MAX,
+      });
+      const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays);
+
+      const jobIds: string[] = [];
+      for (const job of filtered) {
+        await this.cancelJobInTransaction(client, userId, job.id, params.reason, params.outcome ?? 'CANCELLED');
+        jobIds.push(job.id);
+      }
+
+      if (jobIds.length) {
+        await this.audit.logAudit({
+          tx: client,
+          userId,
+          module: AuditModule.SCHEDULING,
+          action: AuditAction.SCHEDULED_JOB_CANCELLED,
+          recordType: 'ScheduleLifecycleImpact',
+          recordId: params.serviceUserId,
+          metadata: {
+            source: params.source,
+            reason: params.reason,
+            outcome: params.outcome ?? 'CANCELLED',
+            serviceUserId: params.serviceUserId,
+            from: from.toISOString(),
+            to: to.toISOString(),
+            scope: params.scope ?? null,
+            jobIds,
+            jobsCancelled: jobIds.length,
+          },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        });
+      }
+
+      const result = { jobsCancelled: jobIds.length, jobsUnallocated: 0, jobIds };
+      if (jobIds.length && !tx) {
+        void this.notifications.notifyBulkScheduleImpact({
+          source: params.source,
+          reason: params.reason,
+          jobsCancelled: result.jobsCancelled,
+          jobsUnallocated: 0,
+          serviceUserId: params.serviceUserId,
+          actorUserId: userId,
+        });
+      }
+      return result;
+    };
+
+    if (tx) return run(tx);
+    return this.prisma.$transaction(run);
+  }
+
+  async rescheduleSlotJobs(
+    userId: string,
+    params: {
+      serviceUserId: string;
+      visitPlanSlotId: string;
+      fromDate: Date;
+      toDate?: Date | null;
+      weekdays?: number[];
+      resolveNewTimes: (jobStart: Date) => { start: Date; end: Date | null } | null;
+      reason: string;
+      source: ScheduleImpactSource;
+    },
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ScheduleImpactResult> {
+    const from = normalizeImpactStartDate(params.fromDate);
+    const to = resolveImpactEndDate(from, params.toDate ?? null);
+
+    const run = async (client: Prisma.TransactionClient) => {
+      const jobs = await client.scheduledJob.findMany({
+        where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, {
+          visitPlanSlotId: params.visitPlanSlotId,
+          weekdays: params.weekdays,
+        }),
+        select: {
+          id: true,
+          scheduledStartDateTime: true,
+          visits: {
+            where: { deletedAt: null, isActive: true, visitPlanSlotId: params.visitPlanSlotId },
+            select: { id: true },
+            take: 1,
+          },
+        },
+        orderBy: { scheduledStartDateTime: 'asc' },
+        take: SCHEDULE_IMPACT_PREVIEW_MAX,
+      });
+      const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+
+      const jobIds: string[] = [];
+      for (const job of filtered) {
+        const newTimes = params.resolveNewTimes(job.scheduledStartDateTime);
+        if (!newTimes) continue;
+
+        await client.scheduledJob.update({
+          where: { id: job.id },
+          data: {
+            scheduledStartDateTime: newTimes.start,
+            scheduledEndDateTime: newTimes.end,
+            updatedById: userId,
+          },
+        });
+
+        const visitId = job.visits[0]?.id;
+        if (visitId) {
+          await client.scheduledVisit.update({
+            where: { id: visitId },
+            data: {
+              scheduledStartDateTime: newTimes.start,
+              scheduledEndDateTime: newTimes.end,
+              updatedById: userId,
+            },
+          });
+        }
+        jobIds.push(job.id);
+      }
+
+      if (jobIds.length) {
+        await this.audit.logAudit({
+          tx: client,
+          userId,
+          module: AuditModule.SCHEDULING,
+          action: AuditAction.SCHEDULED_JOB_UPDATED,
+          recordType: 'ScheduleLifecycleImpact',
+          recordId: params.visitPlanSlotId,
+          metadata: {
+            source: params.source,
+            reason: params.reason,
+            serviceUserId: params.serviceUserId,
+            visitPlanSlotId: params.visitPlanSlotId,
+            from: from.toISOString(),
+            to: to.toISOString(),
+            jobIds,
+            jobsRescheduled: jobIds.length,
+          },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        });
+      }
+
+      return { jobsCancelled: 0, jobsUnallocated: 0, jobsRescheduled: jobIds.length, jobIds };
+    };
+
+    if (tx) return run(tx);
+    return this.prisma.$transaction(run);
   }
 
   async previewUnallocateEmployeeJobsInRange(params: {

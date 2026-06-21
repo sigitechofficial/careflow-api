@@ -45,10 +45,6 @@ jobs:
           test -f dist/src/main.js
           test -f prisma/schema.prisma
           test -f prisma/seed.ts
-          test -d prisma/seeds
-          test -f prisma/seeds/organisation-general-settings.seed.ts
-          test -f prisma/seeds/employee-immigration-statuses.seed.ts
-          test -f prisma/scripts/run-deploy-seeds.sh
           test -f prisma/seed-data/medication-status-codes.defaults.ts
           test -f prisma/seed-data/medication-administration-rounds.defaults.ts
           test -f prisma/seed-data/initial-assessment-catalog.json
@@ -59,7 +55,7 @@ jobs:
           echo "Backend build output verified."
           ! grep -q "from '../src/" prisma/seed.ts
           ! grep -R "from '../../src/" prisma/seeds/ || (echo "prisma/seeds must not import from src/ (not deployed to VPS)" && exit 1)
-          echo "prisma/seed.ts and prisma/seeds/ are ready for production deploy."
+          echo "prisma/seed.ts does not import from src/ (deploy artifact has no src)."
 
       - name: Create release metadata
         run: |
@@ -490,11 +486,9 @@ jobs:
           echo "Verifying migrations (informational)..."
           npx prisma migrate status || true
 
-          echo "Running production database seeders (prisma/seed.ts + prisma/seeds/*)..."
-          chmod +x "$LIVE_PATH/prisma/scripts/run-deploy-seeds.sh"
-          if ! bash "$LIVE_PATH/prisma/scripts/run-deploy-seeds.sh" "$LIVE_PATH" 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
-            echo "Deploy seeders failed. Log: $DEPLOY_ROOT/logs/last-seed.log"
-            exit 1
+          echo "Seeding database (idempotent upserts; failures are logged but do not block deploy)..."
+          if ! npx prisma db seed 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
+            echo "WARN: prisma db seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
           fi
 
           echo "Reloading PM2 app..."

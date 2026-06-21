@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { ScheduleRunStatus } from '@prisma/client';
 
 export class ScheduleRunQueryDto {
   @ApiPropertyOptional()
@@ -13,6 +14,11 @@ export class ScheduleRunQueryDto {
   @IsUUID()
   scheduleAreaId?: string;
 
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD exact match' })
+  @IsOptional()
+  @IsString()
+  runDate?: string;
+
   @ApiPropertyOptional({ description: 'YYYY-MM-DD' })
   @IsOptional()
   @IsString()
@@ -22,6 +28,22 @@ export class ScheduleRunQueryDto {
   @IsOptional()
   @IsString()
   runDateTo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional({ enum: ScheduleRunStatus })
+  @IsOptional()
+  @IsEnum(ScheduleRunStatus)
+  status?: ScheduleRunStatus;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeJobs?: boolean;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

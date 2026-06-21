@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, ValidateIf } from 'class-validator';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
@@ -44,4 +45,12 @@ export class CreateServiceUserAbsenceDto {
   @IsOptional()
   @IsBoolean()
   applyToSchedule?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Required when startDate is before today — why the absence is being recorded retrospectively',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  retrospectiveReason?: string;
 }

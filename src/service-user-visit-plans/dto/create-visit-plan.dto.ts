@@ -1,9 +1,10 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -20,11 +21,11 @@ export class CreateVisitPlanDto {
   @IsDateString()
   effectiveFrom?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ description: 'Weekly contracted hours (required)' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(40)
-  weeklyContractedHours?: string | null;
+  weeklyContractedHours!: string;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 4 })
   @IsOptional()

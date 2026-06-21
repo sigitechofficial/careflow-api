@@ -25,8 +25,10 @@ export const OPEN_ENDED_IMPACT_MAX_DAYS = 365;
 export type ScheduleImpactResult = {
   jobsCancelled: number;
   jobsUnallocated: number;
+  jobsRescheduled?: number;
   jobIds: string[];
   planSkipExceptionsAdded?: number;
+  truncated?: boolean;
 };
 
 export type JobImpactOutcome = 'CANCELLED' | 'CALLED_OFF';
@@ -35,9 +37,21 @@ export type ScheduleImpactSource =
   | 'service_user_absence'
   | 'visit_plan_suspend'
   | 'visit_plan_end'
+  | 'visit_plan_amendment'
+  | 'visit_plan_activate'
+  | 'visit_plan_skip_exception'
   | 'employee_holiday'
   | 'employee_non_core_activity'
   | 'employee_inactive';
+
+export const SCHEDULE_IMPACT_PREVIEW_MAX = 500;
+
+export type ScopedJobFilter = {
+  visitPlanSlotId?: string;
+  visitPlanSlotIds?: string[];
+  visitPlanIds?: string[];
+  weekdays?: number[];
+};
 
 export function calendarDayUtc(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0));
@@ -61,14 +75,47 @@ export function buildCancellableServiceUserJobsWhere(
   serviceUserId: string,
   from: Date,
   to: Date,
+  scope?: ScopedJobFilter,
 ): Prisma.ScheduledJobWhereInput {
-  return {
+  const base: Prisma.ScheduledJobWhereInput = {
     serviceUserId,
     deletedAt: null,
     isActive: true,
     status: { in: CANCELLABLE_JOB_STATUSES },
     scheduledStartDateTime: jobScheduledTimeWhere(from, to),
   };
+
+  if (!scope) return base;
+
+  const visitClauses: Prisma.ScheduledVisitWhereInput[] = [];
+  if (scope.visitPlanSlotId) {
+    visitClauses.push({ visitPlanSlotId: scope.visitPlanSlotId });
+  } else if (scope.visitPlanSlotIds?.length) {
+    visitClauses.push({ visitPlanSlotId: { in: scope.visitPlanSlotIds } });
+  }
+  if (scope.visitPlanIds?.length) {
+    visitClauses.push({ visitPlanSlot: { visitPlanId: { in: scope.visitPlanIds } } });
+  }
+  if (visitClauses.length) {
+    base.visits = {
+      some: {
+        deletedAt: null,
+        isActive: true,
+        AND: visitClauses,
+      },
+    };
+  }
+
+  return base;
+}
+
+export function filterJobsByWeekdays<T extends { scheduledStartDateTime: Date }>(
+  jobs: T[],
+  weekdays: number[] | undefined,
+): T[] {
+  if (!weekdays?.length) return jobs;
+  const set = new Set(weekdays);
+  return jobs.filter((j) => set.has(j.scheduledStartDateTime.getUTCDay()));
 }
 
 export function buildUnallocateEmployeeJobsWhere(

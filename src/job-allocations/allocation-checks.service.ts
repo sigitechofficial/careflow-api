@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { DayOfWeek, EmployeeComplianceStatus, Prisma } from '@prisma/client';
+import { EmployeeComplianceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  employmentToCycleConfig,
+  resolvePatternForDateTime,
+  type WorkingPatternRow,
+} from '../employee-working-patterns/working-pattern-cycle.util';
+import { hmFromJobDate, timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import {
   allocationRuleWarning,
@@ -28,14 +34,14 @@ export type AllocationCheckContext = {
 
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
 
-const DAY_MAP: Record<number, DayOfWeek> = {
-  0: DayOfWeek.SUNDAY,
-  1: DayOfWeek.MONDAY,
-  2: DayOfWeek.TUESDAY,
-  3: DayOfWeek.WEDNESDAY,
-  4: DayOfWeek.THURSDAY,
-  5: DayOfWeek.FRIDAY,
-  6: DayOfWeek.SATURDAY,
+const DAY_LABEL: Record<number, string> = {
+  0: 'Sunday',
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
 };
 
 const ORG_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
@@ -128,14 +134,49 @@ export class AllocationChecksService {
         severity: 'warning',
       });
     }
-    const dow = DAY_MAP[ctx.jobStart.getUTCDay()];
-    const pattern = employee.workingPatterns.find((p) => p.dayOfWeek === dow);
+
+    const patternRows: WorkingPatternRow[] = employee.workingPatterns.map((p) => ({
+      weekInCycle: p.weekInCycle,
+      dayOfWeek: p.dayOfWeek,
+      startTime: p.startTime,
+      endTime: p.endTime,
+      isAvailable: p.isAvailable,
+      notes: p.notes,
+    }));
+    const cycleConfig = employmentToCycleConfig(employee.employment, employee.createdAt);
+    const pattern = resolvePatternForDateTime(patternRows, cycleConfig, ctx.jobStart);
+    const dowLabel = DAY_LABEL[ctx.jobStart.getUTCDay()] ?? 'this day';
+
     if (pattern && !pattern.isAvailable) {
       push({
         type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-        message: `Employee is marked unavailable on ${dow}`,
+        message: `Employee is marked unavailable on ${dowLabel}`,
         severity: 'warning',
       });
+      return;
+    }
+
+    if (pattern && pattern.notes === 'partial') {
+      push({
+        type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
+        message: `Employee has partial availability on ${dowLabel}`,
+        severity: 'warning',
+      });
+      return;
+    }
+
+    if (pattern) {
+      const jobStartHm = hmFromJobDate(ctx.jobStart);
+      const jobEndHm = hmFromJobDate(ctx.jobEnd);
+      if (
+        !timeWindowsOverlap(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)
+      ) {
+        push({
+          type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
+          message: 'Visit is outside employee working hours',
+          severity: 'warning',
+        });
+      }
     }
   }
 

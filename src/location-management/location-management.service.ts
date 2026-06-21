@@ -350,7 +350,7 @@ export class LocationManagementService {
   }
 
   async listServiceUserLocations() {
-    const [rows, locations] = await Promise.all([
+    const [rows, locations, scheduleAreas] = await Promise.all([
       this.prisma.serviceUser.findMany({
         where: { deletedAt: null },
         select: {
@@ -368,14 +368,38 @@ export class LocationManagementService {
         orderBy: { name: 'asc' },
         select: { id: true, name: true },
       }),
+      this.prisma.scheduleArea.findMany({
+        where: { deletedAt: null, isActive: true, locationId: { not: null } },
+        select: {
+          name: true,
+          locationId: true,
+          parentZoneName: true,
+          location: { select: { name: true } },
+          zone: { select: { name: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
     ]);
+
+    const areaByLocationId = new Map(
+      scheduleAreas
+        .filter((area) => area.locationId)
+        .map((area) => [area.locationId as string, area]),
+    );
 
     const zoneMap = new Map<string, { id: string; name: string; branches: { id: string; name: string }[] }>();
     for (const loc of locations) {
-      const { zoneName, roomName } = parseLocationName(loc.name);
+      const area = areaByLocationId.get(loc.id);
+      const parsed = parseLocationName(loc.name);
+      const zoneName =
+        area?.parentZoneName?.trim() ||
+        area?.zone?.name ||
+        parsed.zoneName ||
+        loc.name;
+      const branchName = area?.name || parsed.roomName || loc.name;
       const zoneKey = zoneName || loc.name;
       const zone = zoneMap.get(zoneKey) ?? { id: zoneKey, name: zoneKey, branches: [] };
-      zone.branches.push({ id: loc.id, name: roomName || loc.name });
+      zone.branches.push({ id: loc.id, name: branchName });
       zoneMap.set(zoneKey, zone);
     }
 
@@ -384,15 +408,22 @@ export class LocationManagementService {
         zones: [...zoneMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
         locations,
         members: rows.map((r) => {
+          const area = r.locationId ? areaByLocationId.get(r.locationId) : undefined;
           const parsed = parseLocationName(r.location?.name ?? null);
+          const zoneName =
+            area?.parentZoneName?.trim() ||
+            area?.zone?.name ||
+            parsed.zoneName ||
+            null;
+          const branchName = area?.name || parsed.roomName || null;
           return {
             id: r.id,
             fullName: formatPersonLabel(r.firstName, r.lastName, null),
             isActive: r.isActive,
             locationId: r.locationId,
             locationName: r.location?.name ?? null,
-            zoneName: parsed.zoneName || null,
-            roomName: parsed.roomName || null,
+            zoneName: zoneName || null,
+            roomName: branchName,
           };
         }),
       },
@@ -426,15 +457,55 @@ export class LocationManagementService {
       },
     });
 
+    const assignment = await this.prisma.serviceUserAssignment.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (assignment) {
+      await this.prisma.serviceUserAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          locationId: dto.locationId ?? null,
+          updatedById: userId,
+        },
+      });
+    } else if (dto.locationId) {
+      await this.prisma.serviceUserAssignment.create({
+        data: {
+          serviceUserId,
+          locationId: dto.locationId,
+          createdById: userId,
+        },
+      });
+    }
+
     const parsed = parseLocationName(updated.location?.name ?? null);
+    const area = updated.locationId
+      ? await this.prisma.scheduleArea.findFirst({
+          where: {
+            deletedAt: null,
+            isActive: true,
+            locationId: updated.locationId,
+          },
+          select: {
+            name: true,
+            parentZoneName: true,
+            zone: { select: { name: true } },
+          },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        })
+      : null;
+    const zoneName =
+      area?.parentZoneName?.trim() || area?.zone?.name || parsed.zoneName || null;
+    const branchName = area?.name || parsed.roomName || null;
     return {
       message: 'Service user location updated',
       data: {
         id: updated.id,
         locationId: updated.locationId,
         locationName: updated.location?.name ?? null,
-        zoneName: parsed.zoneName || null,
-        roomName: parsed.roomName || null,
+        zoneName,
+        roomName: branchName,
       },
     };
   }

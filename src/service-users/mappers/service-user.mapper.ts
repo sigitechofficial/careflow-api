@@ -1,4 +1,37 @@
+import type { ScheduleAreaBranchLookup } from '../../location-management/service-user-branch.util';
+import { resolveServiceUserBranch } from '../../location-management/service-user-branch.util';
+
 type LookupLite = { id: string; name: string; code: string } | null;
+
+type ServiceUserAssignmentSlice = {
+  locationId: string | null;
+  location: { id: string; name: string } | null;
+};
+
+type ServiceUserLocationSource = {
+  locationId: string | null;
+  location: { id: string; name: string } | null;
+  assignments?: ServiceUserAssignmentSlice[];
+};
+
+function mapServiceUserLocation(
+  user: ServiceUserLocationSource,
+  scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
+) {
+  if (!scheduleAreaByLocation) {
+    return user.location ? { id: user.location.id, name: user.location.name } : null;
+  }
+  const branch = resolveServiceUserBranch(user, scheduleAreaByLocation);
+  if (!branch.locationId) return null;
+  return {
+    id: branch.locationId,
+    name: branch.displayLabel || (branch.locationName ?? user.location?.name ?? ''),
+    zoneName: branch.zoneName,
+    branchName: branch.branchName,
+    branchLayers: branch.branchLayers,
+    displayLabel: branch.displayLabel,
+  };
+}
 
 function mapLookup(l: { id: string; name: string; code: string } | null | undefined): LookupLite {
   if (!l) return null;
@@ -26,7 +59,8 @@ function mapEmployeeBrief(
   };
 }
 
-export function mapServiceUserListRow(user: {
+export function mapServiceUserListRow(
+  user: {
   id: string;
   serviceUserNumber: string | null;
   firstName: string;
@@ -42,12 +76,16 @@ export function mapServiceUserListRow(user: {
   careType: { id: string; name: string; code: string } | null;
   fundingType: { id: string; name: string; code: string } | null;
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
+  locationId: string | null;
   location: { id: string; name: string } | null;
   keyWorker: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   namedNurse: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   absences?: { id: string }[];
   flashMessages?: { id: string }[];
-}) {
+  assignments?: ServiceUserAssignmentSlice[];
+},
+  scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
+) {
   return {
     id: user.id,
     serviceUserNumber: user.serviceUserNumber,
@@ -64,7 +102,7 @@ export function mapServiceUserListRow(user: {
     careType: mapLookup(user.careType),
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
-    location: user.location ? { id: user.location.id, name: user.location.name } : null,
+    location: mapServiceUserLocation(user, scheduleAreaByLocation),
     keyWorker: mapEmployeeBrief(user.keyWorker),
     namedNurse: mapEmployeeBrief(user.namedNurse),
     hasActiveAbsence: (user.absences?.length ?? 0) > 0,
@@ -72,7 +110,8 @@ export function mapServiceUserListRow(user: {
   };
 }
 
-export function mapServiceUserDetail(user: {
+export function mapServiceUserDetail(
+  user: {
   id: string;
   serviceUserNumber: string | null;
   residentId: string | null;
@@ -102,6 +141,7 @@ export function mapServiceUserDetail(user: {
   careType: { id: string; name: string; code: string } | null;
   fundingType: { id: string; name: string; code: string } | null;
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
+  locationId: string | null;
   location: { id: string; name: string } | null;
   keyWorker: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   namedNurse: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
@@ -161,9 +201,12 @@ export function mapServiceUserDetail(user: {
     isProfilePhoto: boolean;
     uploadedAt: Date;
   }>;
-}) {
+},
+  scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
+) {
   const assignment = user.assignments?.[0] ?? null;
   const profilePhoto = user.photos?.[0] ?? null;
+  const mappedLocation = mapServiceUserLocation(user, scheduleAreaByLocation);
   return {
     id: user.id,
     serviceUserNumber: user.serviceUserNumber,
@@ -194,7 +237,7 @@ export function mapServiceUserDetail(user: {
     careType: mapLookup(user.careType),
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
-    location: user.location ? { id: user.location.id, name: user.location.name } : null,
+    location: mappedLocation,
     keyWorker: mapEmployeeBrief(user.keyWorker),
     namedNurse: mapEmployeeBrief(user.namedNurse),
     address: user.address

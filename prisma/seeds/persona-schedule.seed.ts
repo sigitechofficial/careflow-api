@@ -466,12 +466,14 @@ export async function seedPersonaScheduleRuns(
           data: {
             scheduleBatchId: batch.id,
             scheduleAreaId: first.scheduleAreaId ?? defaultArea?.id ?? null,
+            employeeId,
             name: runName,
             description: marker,
             runDate: day,
             startTime: hmFromDate(first.scheduledStartDateTime),
             endTime: hmFromDate(last.scheduledEndDateTime ?? last.scheduledStartDateTime),
             sortOrder,
+            status: 'PUBLISHED',
             createdById: userId,
           },
         });
@@ -481,6 +483,7 @@ export async function seedPersonaScheduleRuns(
           where: { id: run.id },
           data: {
             name: runName,
+            employeeId,
             startTime: hmFromDate(first.scheduledStartDateTime),
             endTime: hmFromDate(last.scheduledEndDateTime ?? last.scheduledStartDateTime),
             sortOrder,
@@ -492,11 +495,11 @@ export async function seedPersonaScheduleRuns(
       }
       sortOrder += 1;
 
-      for (const job of runJobs) {
-        if (job.scheduleRunId === run.id) continue;
+      for (const [index, job] of runJobs.entries()) {
+        if (job.scheduleRunId === run.id && job.runSequence === index + 1) continue;
         await prisma.scheduledJob.update({
           where: { id: job.id },
-          data: { scheduleRunId: run.id },
+          data: { scheduleRunId: run.id, runSequence: index + 1 },
         });
         jobsLinked += 1;
       }

@@ -10,7 +10,14 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
 import { CreateVisitPlanDto } from './dto/create-visit-plan.dto';
 import { UpdateVisitPlanDto } from './dto/update-visit-plan.dto';
+import { SuspendVisitPlanDto, ActivateVisitPlanDto } from './dto/suspend-visit-plan.dto';
+import {
+  GenerateVisitPlanSchedulePreviewQueryDto,
+  VisitPlanReturnImpactPreviewQueryDto,
+  VisitPlanSkipImpactPreviewQueryDto,
+} from './dto/visit-plan-impact-preview.dto';
 import { VisitPlanStatusChangeDto } from './dto/visit-plan-status.dto';
+import { VisitPlanScheduleImpactPreviewQueryDto } from './dto/visit-plan-schedule-impact-preview-query.dto';
 import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule.dto';
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
@@ -75,6 +82,47 @@ export class ServiceUserVisitPlansController {
     return this.service.createDraftFromAssessment(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
   }
 
+  @Post(':planId/amendment-impact-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview rota impact of a live plan amendment without saving' })
+  previewAmendmentImpact(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Body() dto: UpdateVisitPlanDto,
+  ) {
+    return this.service.previewAmendmentScheduleImpact(serviceUserId, planId, dto);
+  }
+
+  @Get(':planId/activate-impact-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview rota cancellations when activating a plan that replaces another active package' })
+  previewActivateImpact(@Param('id') serviceUserId: string, @Param('planId') planId: string) {
+    return this.service.previewActivateScheduleImpact(serviceUserId, planId);
+  }
+
+  @Get(':planId/generate-schedule-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview visits that would be created by generate-schedule' })
+  previewGenerateSchedule(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Query() query: GenerateVisitPlanSchedulePreviewQueryDto,
+  ) {
+    return this.service.previewGenerateSchedule(serviceUserId, planId, query);
+  }
+
+  @Get(':planId/slots/:slotId/skip-impact-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview rota impact of adding a SKIP exception on a date' })
+  previewSkipImpact(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Param('slotId') slotId: string,
+    @Query() query: VisitPlanSkipImpactPreviewQueryDto,
+  ) {
+    return this.service.previewSkipScheduleImpact(serviceUserId, planId, slotId, query);
+  }
+
   @Patch(':planId')
   @AnyPermission('service_users.visit_plan.write', 'service_users.update')
   @ApiOperation({ summary: 'Update visit plan (records amendment)' })
@@ -95,9 +143,10 @@ export class ServiceUserVisitPlansController {
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,
     @Param('planId') planId: string,
+    @Body() dto: ActivateVisitPlanDto,
     @Req() req: Request,
   ) {
-    return this.service.activate(user.id, serviceUserId, planId, getRequestAuditMeta(req));
+    return this.service.activate(user.id, serviceUserId, planId, getRequestAuditMeta(req), dto);
   }
 
   @Post(':planId/suspend')
@@ -107,22 +156,37 @@ export class ServiceUserVisitPlansController {
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,
     @Param('planId') planId: string,
-    @Body() dto: VisitPlanStatusChangeDto,
+    @Body() dto: SuspendVisitPlanDto,
     @Req() req: Request,
   ) {
-    return this.service.suspend(
-      user.id,
-      serviceUserId,
-      planId,
-      dto.reason,
-      getRequestAuditMeta(req),
-      dto.cancelFutureVisits !== false,
-    );
+    return this.service.suspend(user.id, serviceUserId, planId, dto, getRequestAuditMeta(req));
+  }
+
+  @Get(':planId/end-impact-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview rota cancellations when ending a visit plan from a given date' })
+  previewEndImpact(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Query() query: VisitPlanScheduleImpactPreviewQueryDto,
+  ) {
+    return this.service.previewEndScheduleImpact(serviceUserId, planId, query);
+  }
+
+  @Get(':planId/suspend-impact-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview rota cancellations when suspending from a given date' })
+  previewSuspendImpact(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Query() query: VisitPlanScheduleImpactPreviewQueryDto,
+  ) {
+    return this.service.previewSuspendScheduleImpact(serviceUserId, planId, query);
   }
 
   @Post(':planId/end')
   @AnyPermission('service_users.visit_plan.activate', 'service_users.visit_plan.write')
-  @ApiOperation({ summary: 'End visit plan' })
+  @ApiOperation({ summary: 'End visit plan (immediate, retrospective, or scheduled future closure)' })
   end(
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,
@@ -130,14 +194,7 @@ export class ServiceUserVisitPlansController {
     @Body() dto: VisitPlanStatusChangeDto,
     @Req() req: Request,
   ) {
-    return this.service.end(
-      user.id,
-      serviceUserId,
-      planId,
-      dto.reason,
-      getRequestAuditMeta(req),
-      dto.cancelFutureVisits !== false,
-    );
+    return this.service.end(user.id, serviceUserId, planId, dto, getRequestAuditMeta(req));
   }
 
   @Post(':planId/prefill-dom-care')

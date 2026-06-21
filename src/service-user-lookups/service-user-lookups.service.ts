@@ -19,6 +19,7 @@ export class ServiceUserLookupsService {
       relationshipTypes,
       allergies,
       absenceReasons,
+      visitPlanPauseReasons,
     ] = await Promise.all([
       this.prisma.serviceUserStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
@@ -32,6 +33,10 @@ export class ServiceUserLookupsService {
       this.prisma.relationshipType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.allergyCatalog.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
       (this.prisma as unknown as { absenceReasonCatalog: { findMany: (args: object) => Promise<unknown[]> } }).absenceReasonCatalog.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.visitPlanPauseReasonCatalog.findMany({
         where: { isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       }),
@@ -50,6 +55,7 @@ export class ServiceUserLookupsService {
         relationshipTypes,
         allergies,
         absenceReasons,
+        visitPlanPauseReasons,
       },
     };
   }
@@ -94,6 +100,13 @@ export class ServiceUserLookupsService {
 
   absenceReasons() {
     return (this.prisma as unknown as { absenceReasonCatalog: { findMany: (args: object) => Promise<unknown[]> } }).absenceReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  visitPlanPauseReasons() {
+    return this.prisma.visitPlanPauseReasonCatalog.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });

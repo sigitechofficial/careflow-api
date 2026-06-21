@@ -7,11 +7,13 @@ import { ServiceUserVisitPlansController } from './service-user-visit-plans.cont
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
 import { VisitPlanBulkScheduleController } from './visit-plan-bulk-schedule.controller';
 import { VisitPlanBulkScheduleService } from './visit-plan-bulk-schedule.service';
+import { VisitPlanAmendmentImpactService } from './visit-plan-amendment-impact.service';
+import { VisitPlanGovernanceController } from './visit-plan-governance.controller';
 
 @Module({
   imports: [PrismaModule, AuditLogsModule, ScheduledJobsModule, ScheduleLifecycleImpactModule],
-  controllers: [ServiceUserVisitPlansController, VisitPlanBulkScheduleController],
-  providers: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService],
-  exports: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService],
+  controllers: [ServiceUserVisitPlansController, VisitPlanBulkScheduleController, VisitPlanGovernanceController],
+  providers: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
+  exports: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
 })
 export class ServiceUserVisitPlansModule {}

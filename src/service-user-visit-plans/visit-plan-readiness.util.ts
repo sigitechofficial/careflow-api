@@ -16,16 +16,23 @@ export type VisitPlanSlotReadinessInput = Pick<
   carerAssignments?: Pick<VisitPlanSlotCarerAssignment, 'employeeId'>[];
 };
 
-export function slotAssignedEmployeeIds(slot: VisitPlanSlotReadinessInput): string[] {
+export function resolveAssignedEmployeeIds(
+  assignedEmployeeIds?: string[] | null,
+  carerAssignments?: Pick<VisitPlanSlotCarerAssignment, 'employeeId'>[] | null,
+): string[] {
   const fromAssignments = [
     ...new Set(
-      (slot.carerAssignments ?? [])
+      (carerAssignments ?? [])
         .map((row) => row.employeeId?.trim())
         .filter((id): id is string => Boolean(id)),
     ),
   ];
   if (fromAssignments.length) return fromAssignments;
-  return (slot.assignedEmployeeIds ?? []).filter((id) => id.trim());
+  return (assignedEmployeeIds ?? []).filter((id) => id.trim());
+}
+
+export function slotAssignedEmployeeIds(slot: VisitPlanSlotReadinessInput): string[] {
+  return resolveAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments);
 }
 
 export function assessVisitPlanSlotReadiness(

@@ -7,6 +7,7 @@ import {
   ScheduledVisitStatus,
   VisitPlanSlotKind,
   VisitPlanStatus,
+  VisitPlanStatusEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -15,6 +16,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { isPreferredVisitTimesFieldKey } from '../initial-assessments/initial-assessment-preferred-visit-times.util';
+import { assertWeeklyContractedHoursForCreate } from './visit-plan-contracted-hours.util';
 import { CreateVisitPlanDto } from './dto/create-visit-plan.dto';
 import { UpdateVisitPlanDto } from './dto/update-visit-plan.dto';
 import { GenerateVisitPlanScheduleDto } from './dto/generate-visit-plan-schedule.dto';
@@ -30,6 +32,16 @@ import { buildSlotsFromPreferredVisitTimes } from './visit-plan-from-assessment.
 import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
 import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
+import { SuspendVisitPlanDto } from './dto/suspend-visit-plan.dto';
+import { VisitPlanStatusChangeDto } from './dto/visit-plan-status.dto';
+import { VisitPlanScheduleImpactPreviewQueryDto } from './dto/visit-plan-schedule-impact-preview-query.dto';
+import { defaultSuspensionReviewDueAt, parseVisitPlanDateOnly } from './visit-plan-pause.util';
+import {
+  assertRetrospectiveReasonWhenBackdated,
+  isCalendarDateAfter,
+  parseOptionalVisitPlanDateOnly,
+  visitPlanTodayUtc,
+} from './visit-plan-effective-dates.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
@@ -43,10 +55,22 @@ import {
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
 import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
-import { syncVisitPlanSlotCarersToScheduledJobs } from './visit-plan-slot-carer-sync.util';
+import { syncVisitPlanSlotCarersToScheduledJobs, visitPlanCarerEmployeeIds, visitPlanCarerSyncFromDateTime } from './visit-plan-slot-carer-sync.util';
+import { resolveAssignedEmployeeIds, slotAssignedEmployeeIds } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
 import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
+import { VisitPlanAmendmentImpactService } from './visit-plan-amendment-impact.service';
+import type { VisitPlanSnapshotShape } from './visit-plan-amendment-impact.util';
+import {
+  previewGenerateScheduleFromPlan,
+  slotAsWithRelations,
+} from './visit-plan-generate-preview.util';
+import type { ActivateVisitPlanDto } from './dto/suspend-visit-plan.dto';
+import type {
+  VisitPlanReturnImpactPreviewQueryDto,
+  VisitPlanSkipImpactPreviewQueryDto,
+} from './dto/visit-plan-impact-preview.dto';
 
 const planInclude = {
   slots: {
@@ -57,6 +81,12 @@ const planInclude = {
     },
   },
   amendments: { orderBy: { amendedAt: 'desc' as const }, take: 20 },
+  pauseReasonCatalog: { select: { id: true, name: true, code: true, suggestsUseAbsence: true } },
+  statusEvents: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 30,
+    include: { pauseReasonCatalog: { select: { id: true, name: true, code: true } } },
+  },
 } satisfies Prisma.ServiceUserVisitPlanInclude;
 
 const CALENDAR_VISIT_ACTIVE_ALLOCATION: AllocationStatus[] = [
@@ -96,6 +126,7 @@ export class ServiceUserVisitPlansService {
     private readonly audit: AuditLogsService,
     private readonly scheduledJobsService: ScheduledJobsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
+    private readonly amendmentImpact: VisitPlanAmendmentImpactService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -159,6 +190,20 @@ export class ServiceUserVisitPlansService {
       notes: row.notes,
       approvedAt: row.approvedAt?.toISOString() ?? null,
       approvedById: row.approvedById,
+      suspendedAt: row.suspendedAt?.toISOString() ?? null,
+      suspendedById: row.suspendedById,
+      pauseReasonCatalogId: row.pauseReasonCatalogId,
+      pauseReasonCatalog: row.pauseReasonCatalog
+        ? {
+            id: row.pauseReasonCatalog.id,
+            name: row.pauseReasonCatalog.name,
+            code: row.pauseReasonCatalog.code,
+            suggestsUseAbsence: row.pauseReasonCatalog.suggestsUseAbsence,
+          }
+        : null,
+      expectedResumeAt: row.expectedResumeAt?.toISOString() ?? null,
+      suspensionReviewDueAt: row.suspensionReviewDueAt?.toISOString() ?? null,
+      suspensionContingencyNotes: row.suspensionContingencyNotes ?? '',
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       slots: (row.slots ?? []).map((s) => ({
@@ -220,6 +265,24 @@ export class ServiceUserVisitPlansService {
         reason: a.reason,
         amendedAt: a.amendedAt.toISOString(),
         amendedById: a.amendedById,
+      })),
+      statusEvents: (row.statusEvents ?? []).map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        reason: e.reason,
+        pauseReasonCatalogId: e.pauseReasonCatalogId,
+        pauseReasonCatalog: e.pauseReasonCatalog
+          ? { id: e.pauseReasonCatalog.id, name: e.pauseReasonCatalog.name, code: e.pauseReasonCatalog.code }
+          : null,
+        expectedResumeAt: e.expectedResumeAt?.toISOString() ?? null,
+        reviewDueAt: e.reviewDueAt?.toISOString() ?? null,
+        contingencyNotes: e.contingencyNotes,
+        cancelFutureVisits: e.cancelFutureVisits,
+        effectiveFrom: e.effectiveFrom?.toISOString() ?? null,
+        effectiveTo: e.effectiveTo?.toISOString() ?? null,
+        retrospectiveReason: e.retrospectiveReason ?? '',
+        createdAt: e.createdAt.toISOString(),
+        createdById: e.createdById,
       })),
     };
   }
@@ -284,7 +347,10 @@ export class ServiceUserVisitPlansService {
         notes: input?.notes?.trim() ?? '',
         sortOrder: defaults.sortOrder ?? index,
         linkedCarePlanFormIds: input?.linkedCarePlanFormIds ?? [],
-        assignedEmployeeIds: input?.assignedEmployeeIds ?? [],
+        assignedEmployeeIds: resolveAssignedEmployeeIds(
+          input?.assignedEmployeeIds,
+          input?.carerAssignments,
+        ),
         slotKind: input?.slotKind ?? slotKind,
         slotEffectiveFrom: input?.slotEffectiveFrom ?? null,
         slotEffectiveTo: input?.slotEffectiveTo ?? null,
@@ -457,6 +523,7 @@ export class ServiceUserVisitPlansService {
 
       const availability = evaluateCarerAvailability(
         emp.workingPatterns.map((p) => ({
+          weekInCycle: p.weekInCycle,
           dayOfWeek: p.dayOfWeek,
           startTime: p.startTime,
           endTime: p.endTime,
@@ -466,6 +533,12 @@ export class ServiceUserVisitPlansService {
         slotDays,
         dto.plannedStartTime,
         dto.plannedEndTime,
+        {
+          workingPatternCycleWeeks: emp.employment?.workingPatternCycleWeeks ?? 1,
+          workingPatternCycleAnchorDate: emp.employment?.workingPatternCycleAnchorDate ?? null,
+          startDate: emp.employment?.startDate ?? null,
+          employeeCreatedAt: emp.createdAt,
+        },
       );
 
       const skillRows = emp.skills.map((s) => ({
@@ -750,6 +823,7 @@ export class ServiceUserVisitPlansService {
     meta?: RequestAuditMeta,
   ) {
     await this.ensureServiceUser(serviceUserId);
+    const weeklyContractedHours = assertWeeklyContractedHoursForCreate(dto.weeklyContractedHours);
     const rounds = await this.loadMedicationRoundCatalog();
     const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
     const slots = this.normalizeSlots(dto.slots, rounds);
@@ -761,7 +835,7 @@ export class ServiceUserVisitPlansService {
           serviceUserId,
           status: VisitPlanStatus.DRAFT,
           effectiveFrom,
-          weeklyContractedHours: dto.weeklyContractedHours?.trim() ?? null,
+          weeklyContractedHours,
           numberOfCarers: dto.numberOfCarers ?? 1,
           sourceSubmissionId: dto.sourceSubmissionId ?? null,
           reviewDueAt: dto.reviewDueAt ? new Date(dto.reviewDueAt) : null,
@@ -820,6 +894,8 @@ export class ServiceUserVisitPlansService {
     const rounds = await this.loadMedicationRoundCatalog();
     const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
 
+    const snapshotBefore = this.snapshot(existing, roundNameByCode) as VisitPlanSnapshotShape;
+
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.slots?.length) {
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
@@ -828,14 +904,20 @@ export class ServiceUserVisitPlansService {
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
           const row = await tx.visitPlanSlot.findFirst({
             where: { visitPlanId: planId, slotCode: slot.slotCode },
-            select: { id: true, assignedEmployeeIds: true, requiredCarers: true },
+            include: { carerAssignments: true },
           });
           if (row) {
+            const assignedEmployeeIds = visitPlanCarerEmployeeIds(
+              [],
+              slotAssignedEmployeeIds(row),
+              row.requiredCarers,
+            );
             await syncVisitPlanSlotCarersToScheduledJobs(tx, {
               visitPlanSlotId: row.id,
-              assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
-              requiredCarers: slot.requiredCarers,
+              assignedEmployeeIds,
+              requiredCarers: row.requiredCarers,
               userId,
+              fromDateTime: visitPlanCarerSyncFromDateTime(),
             });
           }
         }
@@ -884,10 +966,319 @@ export class ServiceUserVisitPlansService {
       return after;
     });
 
-    return { message: 'Visit plan updated', data: this.mapPlan(updated, roundNameByCode) };
+    const snapshotAfter = this.snapshot(updated, roundNameByCode) as VisitPlanSnapshotShape;
+    let scheduleImpact: ScheduleImpactResult | undefined;
+    if (existing.status === VisitPlanStatus.ACTIVE && dto.applyScheduleImpact) {
+      scheduleImpact = await this.amendmentImpact.applyAmendmentImpact(userId, {
+        serviceUserId,
+        amendmentReason: dto.amendmentReason.trim(),
+        before: snapshotBefore,
+        after: snapshotAfter,
+      }, meta);
+    }
+
+    return {
+      message: 'Visit plan updated',
+      data: this.mapPlan(updated, roundNameByCode),
+      ...(scheduleImpact ? { scheduleImpact } : {}),
+    };
   }
 
-  async activate(userId: string, serviceUserId: string, planId: string, meta?: RequestAuditMeta) {
+  async previewAmendmentScheduleImpact(
+    serviceUserId: string,
+    planId: string,
+    dto: UpdateVisitPlanDto,
+  ) {
+    const existing = await this.getPlanOrThrow(serviceUserId, planId);
+    const rounds = await this.loadMedicationRoundCatalog();
+    const roundNameByCode = new Map(rounds.map((r) => [r.code, r.name]));
+    const snapshotBefore = this.snapshot(existing, roundNameByCode) as VisitPlanSnapshotShape;
+    const snapshotAfter = this.buildSimulatedAfterSnapshot(existing, dto, rounds, roundNameByCode);
+    const preview = await this.amendmentImpact.previewAmendmentImpact({
+      serviceUserId,
+      planStatus: existing.status,
+      before: snapshotBefore,
+      after: snapshotAfter,
+    });
+    return { data: preview };
+  }
+
+  private buildSimulatedAfterSnapshot(
+    existing: PlanRow,
+    dto: UpdateVisitPlanDto,
+    rounds: MedicationRoundCatalogRow[],
+    roundNameByCode: Map<string, string>,
+  ): VisitPlanSnapshotShape {
+    if (!dto.slots?.length) {
+      return this.snapshot(existing, roundNameByCode) as VisitPlanSnapshotShape;
+    }
+    const normalized = this.normalizeSlots(dto.slots, rounds);
+    const byCode = new Map(normalized.map((s) => [s.slotCode, s]));
+    const merged: PlanRow = {
+      ...existing,
+      slots: existing.slots.map((slot) => {
+        const input = byCode.get(slot.slotCode);
+        if (!input) return slot;
+        return {
+          ...slot,
+          daysOfWeek: input.daysOfWeek,
+          plannedStartTime: input.plannedStartTime,
+          plannedEndTime: input.plannedEndTime,
+          isEnabled: input.isEnabled,
+          requiredCarers: input.requiredCarers,
+          durationMinutes: input.durationMinutes ?? slot.durationMinutes,
+          exceptions: (input.exceptions ?? []).map((ex, idx) => ({
+            id: `sim-${slot.slotCode}-${idx}`,
+            visitPlanSlotId: slot.id,
+            exceptionDate: new Date(`${ex.exceptionDate.slice(0, 10)}T12:00:00.000Z`),
+            exceptionType: ex.exceptionType,
+            plannedStartTime: ex.plannedStartTime ?? null,
+            plannedEndTime: ex.plannedEndTime ?? null,
+            durationMinutes: ex.durationMinutes ?? null,
+            requiredCarers: ex.requiredCarers ?? null,
+            notes: ex.notes ?? '',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })),
+        };
+      }),
+    };
+    return this.snapshot(merged, roundNameByCode) as VisitPlanSnapshotShape;
+  }
+
+  async previewActivateScheduleImpact(serviceUserId: string, planId: string) {
+    await this.ensureServiceUser(serviceUserId);
+    const otherActive = await this.prisma.serviceUserVisitPlan.findMany({
+      where: {
+        serviceUserId,
+        status: VisitPlanStatus.ACTIVE,
+        deletedAt: null,
+        id: { not: planId },
+      },
+      include: { slots: { where: { isEnabled: true }, select: { id: true, slotCode: true } } },
+    });
+    if (!otherActive.length) {
+      return {
+        data: {
+          otherActivePlans: [],
+          scheduleImpact: { jobsCancelled: 0, jobsUnallocated: 0, jobIds: [] },
+        },
+      };
+    }
+    const from = visitPlanTodayUtc();
+    const scheduleImpact = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
+      serviceUserId,
+      fromDate: from,
+      scope: { visitPlanIds: otherActive.map((p) => p.id) },
+    });
+    return {
+      data: {
+        otherActivePlans: otherActive.map((p) => ({
+          id: p.id,
+          effectiveFrom: p.effectiveFrom.toISOString(),
+          effectiveTo: p.effectiveTo?.toISOString() ?? null,
+          enabledSlotCount: p.slots.length,
+        })),
+        scheduleImpact,
+      },
+    };
+  }
+
+  async previewGenerateSchedule(
+    serviceUserId: string,
+    planId: string,
+    dto: GenerateVisitPlanScheduleDto,
+  ) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    if (plan.status !== VisitPlanStatus.ACTIVE) {
+      throw new BadRequestException('Only active visit plans can preview schedule generation');
+    }
+    const from = this.parseDateOnly(dto.fromDate, 'fromDate');
+    const to = this.parseDateOnly(dto.toDate, 'toDate');
+    if (to.getTime() < from.getTime()) {
+      throw new BadRequestException('toDate must be on or after fromDate');
+    }
+    const maxDays = 31;
+    const dayMs = 86400000;
+    if (to.getTime() - from.getTime() > maxDays * dayMs) {
+      throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
+    }
+    const backfillDays = dto.backfillDays ?? 0;
+    const enabledSlots = plan.slots.filter((s) => s.isEnabled);
+    const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
+    const preview = await previewGenerateScheduleFromPlan(this.prisma, {
+      serviceUserId,
+      planId,
+      fromDate: from,
+      toDate: to,
+      backfillDays,
+      enabledSlots: enabledSlots.map((s) => slotAsWithRelations(s)),
+      scheduleAnchor: plan.effectiveFrom,
+      planEffectiveTo: plan.effectiveTo,
+      bankHolidayDates,
+      absenceDays: new Set(),
+    });
+    return { data: preview };
+  }
+
+  async previewSkipScheduleImpact(
+    serviceUserId: string,
+    planId: string,
+    slotId: string,
+    query: VisitPlanSkipImpactPreviewQueryDto,
+  ) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const slot = plan.slots.find((s) => s.id === slotId);
+    if (!slot) throw new NotFoundException('Visit plan slot not found');
+    const day = this.parseDateOnly(query.date, 'date');
+    const dayStart = new Date(day);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+    const scheduleImpact = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
+      serviceUserId,
+      fromDate: dayStart,
+      toDate: dayEnd,
+      scope: { visitPlanSlotId: slotId },
+    });
+    return { data: { scheduleImpact, slotLabel: slotLabel(slot.medicationRoundCode ?? slot.slotCode) } };
+  }
+
+  async previewReturnScheduleImpact(
+    serviceUserId: string,
+    query: VisitPlanReturnImpactPreviewQueryDto,
+  ) {
+    await this.ensureServiceUser(serviceUserId);
+    const activePlan = await this.prisma.serviceUserVisitPlan.findFirst({
+      where: { serviceUserId, status: VisitPlanStatus.ACTIVE, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!activePlan) {
+      const suspendedPlan = await this.prisma.serviceUserVisitPlan.findFirst({
+        where: { serviceUserId, status: VisitPlanStatus.SUSPENDED, deletedAt: null, isActive: true },
+        select: { id: true },
+      });
+      if (suspendedPlan) {
+        return { data: { planSuspended: true, planId: suspendedPlan.id, generatePreview: null } };
+      }
+      return { data: { planSuspended: false, noActivePlan: true, generatePreview: null } };
+    }
+    const returnDate = this.parseDateOnly(query.returnDate, 'returnDate');
+    const daysAhead = query.daysAhead ?? 14;
+    const toDate = new Date(returnDate);
+    toDate.setUTCDate(toDate.getUTCDate() + daysAhead - 1);
+    const dto: GenerateVisitPlanScheduleDto = {
+      fromDate: query.returnDate,
+      toDate: toDate.toISOString().slice(0, 10),
+      backfillDays: 0,
+    };
+    const generatePreview = await this.previewGenerateSchedule(serviceUserId, activePlan.id, dto);
+    return {
+      data: {
+        planSuspended: false,
+        planId: activePlan.id,
+        returnDate: query.returnDate,
+        generatePreview: generatePreview.data,
+      },
+    };
+  }
+
+  async listSuspensionReviewsOverdue() {
+    const today = visitPlanTodayUtc();
+    const rows = await this.prisma.serviceUserVisitPlan.findMany({
+      where: {
+        status: VisitPlanStatus.SUSPENDED,
+        deletedAt: null,
+        isActive: true,
+        suspensionReviewDueAt: { lte: today },
+      },
+      include: {
+        serviceUser: {
+          select: { id: true, firstName: true, lastName: true, preferredName: true },
+        },
+        pauseReasonCatalog: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: { suspensionReviewDueAt: 'asc' },
+      take: 200,
+    });
+    return {
+      data: rows.map((r) => ({
+        planId: r.id,
+        serviceUserId: r.serviceUserId,
+        serviceUserName:
+          r.serviceUser.preferredName?.trim() ||
+          `${r.serviceUser.firstName} ${r.serviceUser.lastName}`.trim(),
+        suspendedAt: r.suspendedAt?.toISOString() ?? null,
+        suspensionReviewDueAt: r.suspensionReviewDueAt?.toISOString() ?? null,
+        expectedResumeAt: r.expectedResumeAt?.toISOString() ?? null,
+        pauseReason: r.pauseReasonCatalog
+          ? { id: r.pauseReasonCatalog.id, name: r.pauseReasonCatalog.name, code: r.pauseReasonCatalog.code }
+          : null,
+      })),
+    };
+  }
+
+  private async loadBankHolidayDateKeys(from: Date, to: Date, backfillDays: number): Promise<Set<string>> {
+    const rangeStart = new Date(from);
+    if (backfillDays > 0) {
+      rangeStart.setUTCDate(rangeStart.getUTCDate() - backfillDays);
+    }
+    const rows = await this.prisma.bankHoliday.findMany({
+      where: {
+        isActive: true,
+        region: 'UK',
+        holidayDate: { gte: rangeStart, lte: to },
+      },
+      select: { holidayDate: true },
+    });
+    return new Set(rows.map((r) => r.holidayDate.toISOString().slice(0, 10)));
+  }
+
+  async processScheduledEndPlans(userId: string): Promise<number> {
+    const today = visitPlanTodayUtc();
+    const plans = await this.prisma.serviceUserVisitPlan.findMany({
+      where: {
+        status: VisitPlanStatus.ACTIVE,
+        deletedAt: null,
+        effectiveTo: { lt: today },
+      },
+      select: { id: true, serviceUserId: true, effectiveTo: true },
+      take: 500,
+    });
+    let ended = 0;
+    for (const plan of plans) {
+      const hasScheduledEnd = await this.prisma.visitPlanStatusEvent.findFirst({
+        where: { visitPlanId: plan.id, eventType: VisitPlanStatusEventType.SCHEDULED_END },
+      });
+      if (!hasScheduledEnd) continue;
+      await this.prisma.serviceUserVisitPlan.update({
+        where: { id: plan.id },
+        data: { status: VisitPlanStatus.ENDED, updatedById: userId },
+      });
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_VISIT_PLAN_ENDED,
+        recordType: 'ServiceUserVisitPlan',
+        recordId: plan.id,
+        metadata: {
+          serviceUserId: plan.serviceUserId,
+          autoScheduledEnd: true,
+          effectiveTo: plan.effectiveTo?.toISOString(),
+        },
+      });
+      ended += 1;
+    }
+    return ended;
+  }
+
+  async activate(
+    userId: string,
+    serviceUserId: string,
+    planId: string,
+    meta?: RequestAuditMeta,
+    dto?: ActivateVisitPlanDto,
+  ) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.DRAFT && plan.status !== VisitPlanStatus.SUSPENDED) {
       throw new BadRequestException('Only draft or suspended plans can be activated');
@@ -896,6 +1287,18 @@ export class ServiceUserVisitPlansService {
     if (!enabledSlots.length) {
       throw new BadRequestException('Enable at least one visit slot before activation');
     }
+    const wasSuspended = plan.status === VisitPlanStatus.SUSPENDED;
+    const reactivationNote = dto?.reactivationReason?.trim() || '';
+
+    const otherActivePlans = await this.prisma.serviceUserVisitPlan.findMany({
+      where: {
+        serviceUserId,
+        status: VisitPlanStatus.ACTIVE,
+        deletedAt: null,
+        id: { not: planId },
+      },
+      select: { id: true },
+    });
 
     const result = await this.prisma.$transaction(async (tx) => {
       await tx.serviceUserVisitPlan.updateMany({
@@ -916,50 +1319,175 @@ export class ServiceUserVisitPlansService {
           approvedById: userId,
           approvedAt: new Date(),
           updatedById: userId,
+          ...(wasSuspended
+            ? {
+                suspendedAt: null,
+                suspendedById: null,
+                pauseReasonCatalogId: null,
+                expectedResumeAt: null,
+                suspensionReviewDueAt: null,
+                suspensionContingencyNotes: '',
+              }
+            : {}),
         },
         include: planInclude,
       });
+      if (wasSuspended) {
+        await tx.visitPlanStatusEvent.create({
+          data: {
+            visitPlanId: planId,
+            eventType: VisitPlanStatusEventType.REACTIVATED,
+            reason: reactivationNote || 'Package re-activated',
+            createdById: userId,
+          },
+        });
+      }
       await this.audit.logAudit({
         tx,
         userId,
         module: AuditModule.SERVICE_USER,
-        action: AuditAction.SERVICE_USER_VISIT_PLAN_ACTIVATED,
+        action: wasSuspended
+          ? AuditAction.SERVICE_USER_VISIT_PLAN_REACTIVATED
+          : AuditAction.SERVICE_USER_VISIT_PLAN_ACTIVATED,
         recordType: 'ServiceUserVisitPlan',
         recordId: planId,
         newValues: auditSnapshot(activated),
-        metadata: { serviceUserId },
+        metadata: {
+          serviceUserId,
+          ...(reactivationNote ? { reactivationReason: reactivationNote } : {}),
+        },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
       return activated;
     });
 
+    let scheduleImpact: ScheduleImpactResult | undefined;
+    if (dto?.cancelEndedPlanJobs && otherActivePlans.length) {
+      scheduleImpact = await this.scheduleImpact.cancelScopedServiceUserJobs(userId, {
+        serviceUserId,
+        fromDate: visitPlanTodayUtc(),
+        reason: 'Activating new visit plan package',
+        source: 'visit_plan_activate',
+        scope: { visitPlanIds: otherActivePlans.map((p) => p.id) },
+      }, meta);
+    }
+
     const roundNameByCode = await this.loadRoundNameMap();
-    return { message: 'Visit plan activated', data: this.mapPlan(result, roundNameByCode) };
+    return {
+      message: wasSuspended ? 'Visit plan re-activated' : 'Visit plan activated',
+      data: this.mapPlan(result, roundNameByCode),
+      ...(scheduleImpact ? { scheduleImpact } : {}),
+    };
   }
 
   async suspend(
     userId: string,
     serviceUserId: string,
     planId: string,
-    reason: string,
+    dto: SuspendVisitPlanDto,
     meta?: RequestAuditMeta,
-    cancelFutureVisits = true,
   ) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Only active visit plans can be suspended');
     }
+
+    const pauseReason = await this.prisma.visitPlanPauseReasonCatalog.findFirst({
+      where: { id: dto.pauseReasonCatalogId, isActive: true },
+    });
+    if (!pauseReason) {
+      throw new BadRequestException('Pause reason not found or inactive');
+    }
+
+    const reason = dto.reason.trim();
+    const contingencyNotes = dto.contingencyNotes?.trim() ?? '';
+    const cancelFutureVisits = dto.cancelFutureVisits !== false;
+    const now = new Date();
+    const today = visitPlanTodayUtc();
+
+    let effectiveFrom = today;
+    if (dto.effectiveFrom?.trim()) {
+      try {
+        effectiveFrom = parseVisitPlanDateOnly(dto.effectiveFrom, 'effectiveFrom');
+      } catch (e) {
+        throw new BadRequestException(e instanceof Error ? e.message : 'Invalid effectiveFrom');
+      }
+      if (isCalendarDateAfter(effectiveFrom, today)) {
+        throw new BadRequestException(
+          'effectiveFrom cannot be in the future — use Record Absences for future-dated visit pauses',
+        );
+      }
+    }
+
+    let retrospectiveReason = '';
+    try {
+      retrospectiveReason = assertRetrospectiveReasonWhenBackdated(
+        effectiveFrom,
+        today,
+        dto.retrospectiveReason,
+      );
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid retrospectiveReason');
+    }
+
+    let expectedResumeAt: Date | null = null;
+    if (dto.expectedResumeAt?.trim()) {
+      try {
+        expectedResumeAt = parseVisitPlanDateOnly(dto.expectedResumeAt, 'expectedResumeAt');
+      } catch (e) {
+        throw new BadRequestException(e instanceof Error ? e.message : 'Invalid expectedResumeAt');
+      }
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      if (expectedResumeAt.getTime() < today.getTime()) {
+        throw new BadRequestException('expectedResumeAt cannot be in the past');
+      }
+    }
+
+    let suspensionReviewDueAt: Date;
+    try {
+      suspensionReviewDueAt = dto.reviewDueAt?.trim()
+        ? parseVisitPlanDateOnly(dto.reviewDueAt, 'reviewDueAt')
+        : defaultSuspensionReviewDueAt(now);
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid reviewDueAt');
+    }
+
     const roundNameByCode = await this.loadRoundNameMap();
     const result = await this.prisma.serviceUserVisitPlan.update({
       where: { id: planId },
-      data: { status: VisitPlanStatus.SUSPENDED, updatedById: userId },
+      data: {
+        status: VisitPlanStatus.SUSPENDED,
+        suspendedAt: now,
+        suspendedById: userId,
+        pauseReasonCatalogId: pauseReason.id,
+        expectedResumeAt,
+        suspensionReviewDueAt,
+        suspensionContingencyNotes: contingencyNotes,
+        updatedById: userId,
+      },
       include: planInclude,
+    });
+    await this.prisma.visitPlanStatusEvent.create({
+      data: {
+        visitPlanId: planId,
+        eventType: VisitPlanStatusEventType.SUSPENDED,
+        reason,
+        pauseReasonCatalogId: pauseReason.id,
+        expectedResumeAt,
+        reviewDueAt: suspensionReviewDueAt,
+        contingencyNotes,
+        cancelFutureVisits,
+        effectiveFrom,
+        retrospectiveReason,
+        createdById: userId,
+      },
     });
     await this.prisma.visitPlanAmendment.create({
       data: {
         visitPlanId: planId,
-        reason: reason.trim(),
+        reason: `Suspended (${pauseReason.name}): ${reason}`,
         snapshotBefore: this.snapshot(plan, roundNameByCode) as Prisma.InputJsonValue,
         snapshotAfter: this.snapshot(result, roundNameByCode) as Prisma.InputJsonValue,
         amendedById: userId,
@@ -971,18 +1499,30 @@ export class ServiceUserVisitPlansService {
       action: AuditAction.SERVICE_USER_VISIT_PLAN_SUSPENDED,
       recordType: 'ServiceUserVisitPlan',
       recordId: planId,
-      metadata: { serviceUserId, reason: reason.trim() },
+      metadata: {
+        serviceUserId,
+        reason,
+        pauseReasonCode: pauseReason.code,
+        expectedResumeAt: expectedResumeAt?.toISOString() ?? null,
+        reviewDueAt: suspensionReviewDueAt.toISOString(),
+        effectiveFrom: effectiveFrom.toISOString(),
+        ...(retrospectiveReason ? { retrospectiveReason } : {}),
+      },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
 
     let scheduleImpact: ScheduleImpactResult | undefined;
     if (cancelFutureVisits) {
-      scheduleImpact = await this.scheduleImpact.cancelFutureServiceUserJobs(
+      scheduleImpact = await this.scheduleImpact.cancelServiceUserJobsInRange(
         userId,
-        serviceUserId,
-        `Visit plan suspended: ${reason.trim()}`,
-        'visit_plan_suspend',
+        {
+          serviceUserId,
+          fromDate: effectiveFrom,
+          toDate: null,
+          reason: `Visit plan suspended: ${reason}`,
+          source: 'visit_plan_suspend',
+        },
         meta,
       );
     }
@@ -994,32 +1534,130 @@ export class ServiceUserVisitPlansService {
     };
   }
 
+  async previewEndScheduleImpact(
+    serviceUserId: string,
+    planId: string,
+    query: VisitPlanScheduleImpactPreviewQueryDto,
+  ) {
+    await this.getPlanOrThrow(serviceUserId, planId);
+    let fromDate: Date;
+    try {
+      fromDate = parseVisitPlanDateOnly(query.fromDate, 'fromDate');
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid fromDate');
+    }
+    let toDate: Date | null = null;
+    if (query.toDate?.trim()) {
+      try {
+        toDate = parseVisitPlanDateOnly(query.toDate, 'toDate');
+      } catch (e) {
+        throw new BadRequestException(e instanceof Error ? e.message : 'Invalid toDate');
+      }
+    }
+    const data = await this.scheduleImpact.previewCancelServiceUserJobsInRange({
+      serviceUserId,
+      fromDate,
+      toDate,
+    });
+    return { data };
+  }
+
+  async previewSuspendScheduleImpact(
+    serviceUserId: string,
+    planId: string,
+    query: VisitPlanScheduleImpactPreviewQueryDto,
+  ) {
+    return this.previewEndScheduleImpact(serviceUserId, planId, query);
+  }
+
   async end(
     userId: string,
     serviceUserId: string,
     planId: string,
-    reason: string,
+    dto: VisitPlanStatusChangeDto,
     meta?: RequestAuditMeta,
-    cancelFutureVisits = true,
   ) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status === VisitPlanStatus.ENDED) {
       throw new BadRequestException('Visit plan is already ended');
     }
+
+    const reason = dto.reason.trim();
+    const cancelFutureVisits = dto.cancelFutureVisits !== false;
+    const today = visitPlanTodayUtc();
+    let effectiveTo: Date;
+    try {
+      effectiveTo = parseOptionalVisitPlanDateOnly(dto.effectiveTo, 'effectiveTo', today);
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid effectiveTo');
+    }
+
+    let retrospectiveReason = '';
+    try {
+      retrospectiveReason = assertRetrospectiveReasonWhenBackdated(
+        effectiveTo,
+        today,
+        dto.retrospectiveReason,
+      );
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid retrospectiveReason');
+    }
+
+    const isScheduledEnd = isCalendarDateAfter(effectiveTo, today);
     const roundNameByCode = await this.loadRoundNameMap();
+
     const result = await this.prisma.serviceUserVisitPlan.update({
       where: { id: planId },
-      data: {
-        status: VisitPlanStatus.ENDED,
-        effectiveTo: new Date(),
-        updatedById: userId,
-      },
+      data: isScheduledEnd
+        ? {
+            status: VisitPlanStatus.ACTIVE,
+            effectiveTo,
+            updatedById: userId,
+            suspendedAt: null,
+            suspendedById: null,
+            pauseReasonCatalogId: null,
+            expectedResumeAt: null,
+            suspensionReviewDueAt: null,
+            suspensionContingencyNotes: '',
+          }
+        : {
+            status: VisitPlanStatus.ENDED,
+            effectiveTo,
+            updatedById: userId,
+            suspendedAt: null,
+            suspendedById: null,
+            pauseReasonCatalogId: null,
+            expectedResumeAt: null,
+            suspensionReviewDueAt: null,
+            suspensionContingencyNotes: '',
+          },
       include: planInclude,
+    });
+
+    const eventType = isScheduledEnd
+      ? VisitPlanStatusEventType.SCHEDULED_END
+      : VisitPlanStatusEventType.ENDED;
+    const amendmentPrefix = isScheduledEnd
+      ? `Scheduled end (${effectiveTo.toISOString().slice(0, 10)})`
+      : retrospectiveReason
+        ? `Ended (${effectiveTo.toISOString().slice(0, 10)}, retrospective)`
+        : 'Ended';
+
+    await this.prisma.visitPlanStatusEvent.create({
+      data: {
+        visitPlanId: planId,
+        eventType,
+        reason,
+        effectiveTo,
+        retrospectiveReason,
+        cancelFutureVisits,
+        createdById: userId,
+      },
     });
     await this.prisma.visitPlanAmendment.create({
       data: {
         visitPlanId: planId,
-        reason: reason.trim(),
+        reason: `${amendmentPrefix}: ${reason}`,
         snapshotBefore: this.snapshot(plan, roundNameByCode) as Prisma.InputJsonValue,
         snapshotAfter: this.snapshot(result, roundNameByCode) as Prisma.InputJsonValue,
         amendedById: userId,
@@ -1031,24 +1669,36 @@ export class ServiceUserVisitPlansService {
       action: AuditAction.SERVICE_USER_VISIT_PLAN_ENDED,
       recordType: 'ServiceUserVisitPlan',
       recordId: planId,
-      metadata: { serviceUserId, reason: reason.trim() },
+      metadata: {
+        serviceUserId,
+        reason,
+        effectiveTo: effectiveTo.toISOString(),
+        scheduledEnd: isScheduledEnd,
+        ...(retrospectiveReason ? { retrospectiveReason } : {}),
+      },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
 
     let scheduleImpact: ScheduleImpactResult | undefined;
     if (cancelFutureVisits) {
-      scheduleImpact = await this.scheduleImpact.cancelFutureServiceUserJobs(
+      scheduleImpact = await this.scheduleImpact.cancelServiceUserJobsInRange(
         userId,
-        serviceUserId,
-        `Visit plan ended: ${reason.trim()}`,
-        'visit_plan_end',
+        {
+          serviceUserId,
+          fromDate: effectiveTo,
+          toDate: null,
+          reason: isScheduledEnd
+            ? `Visit plan scheduled to end: ${reason}`
+            : `Visit plan ended: ${reason}`,
+          source: 'visit_plan_end',
+        },
         meta,
       );
     }
 
     return {
-      message: 'Visit plan ended',
+      message: isScheduledEnd ? 'Visit plan scheduled to end' : 'Visit plan ended',
       data: this.mapPlan(result, roundNameByCode),
       ...(scheduleImpact ? { scheduleImpact } : {}),
     };
@@ -1101,6 +1751,13 @@ export class ServiceUserVisitPlansService {
       isPreferredVisitTimesFieldKey(a.question.metadata as Prisma.JsonValue),
     );
     const dom = await this.prisma.serviceUserDomCare.findUnique({ where: { serviceUserId } });
+    const weeklyContractedHours = dom?.weeklyContractedHours?.trim() ?? '';
+    if (!weeklyContractedHours) {
+      throw new BadRequestException(
+        'Weekly contracted hours must be set on the DOM Care profile before a visit plan can be created',
+      );
+    }
+    assertWeeklyContractedHoursForCreate(weeklyContractedHours);
     const numberOfCarers = dom?.numberOfCarers ?? 1;
     const slotSeeds = buildSlotsFromPreferredVisitTimes(
       preferred?.selectedOptions ?? null,
@@ -1116,7 +1773,7 @@ export class ServiceUserVisitPlansService {
       serviceUserId,
       {
         sourceSubmissionId: submissionId,
-        weeklyContractedHours: dom?.weeklyContractedHours ?? null,
+        weeklyContractedHours,
         numberOfCarers,
         reviewDueAt: reviewDueAt.toISOString(),
         notes: 'Draft created from approved initial assessment',
@@ -1189,10 +1846,14 @@ export class ServiceUserVisitPlansService {
     const scheduleAnchor = plan.effectiveFrom;
     const planEffectiveTo = plan.effectiveTo;
 
+    const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
+
     await this.prisma.$transaction(async (tx) => {
       for (let t = rangeStart.getTime(); t <= to.getTime(); t += dayMs) {
         const day = new Date(t);
         const dateStr = day.toISOString().slice(0, 10);
+
+        if (bankHolidayDates.has(dateStr)) continue;
 
         const absentOnDay = await tx.serviceUserAbsence.count({
           where: { serviceUserId, ...activeServiceUserAbsenceWhere(calendarDayUtcNoon(day)) },
@@ -1248,7 +1909,11 @@ export class ServiceUserVisitPlansService {
             if (assignCarers) {
               await syncVisitPlanSlotCarersToScheduledJobs(tx, {
                 visitPlanSlotId: slot.id,
-                assignedEmployeeIds: carerWindows.map((c) => c.employeeId),
+                assignedEmployeeIds: visitPlanCarerEmployeeIds(
+                  carerWindows,
+                  slotAssignedEmployeeIds(slot),
+                  requiredCarers,
+                ),
                 requiredCarers,
                 userId,
                 scheduledVisitId: existingVisit.id,
@@ -1308,15 +1973,18 @@ export class ServiceUserVisitPlansService {
           });
 
           if (assignCarers) {
-            const allocations = carerWindows.length
-              ? carerWindows
-              : (slot.assignedEmployeeIds ?? []).slice(0, requiredCarers).map((employeeId, index) => ({
-                  employeeId,
-                  start,
-                  end,
-                  durationMinutes,
-                  isLeadCarer: index === 0,
-                }));
+            const employeeIds = visitPlanCarerEmployeeIds(
+              carerWindows,
+              slotAssignedEmployeeIds(slot),
+              requiredCarers,
+            );
+            const allocations = employeeIds.map((employeeId, index) => ({
+              employeeId,
+              start,
+              end,
+              durationMinutes,
+              isLeadCarer: index === 0,
+            }));
 
             if (allocations.length > 0) {
               for (const carer of allocations) {
@@ -1357,6 +2025,24 @@ export class ServiceUserVisitPlansService {
           }
 
           visitsCreated += 1;
+        }
+      }
+
+      if (assignCarers) {
+        for (const slot of enabledSlots) {
+          const assignedEmployeeIds = visitPlanCarerEmployeeIds(
+            [],
+            slotAssignedEmployeeIds(slot),
+            slot.requiredCarers,
+          );
+          if (!assignedEmployeeIds.length) continue;
+          await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+            visitPlanSlotId: slot.id,
+            assignedEmployeeIds,
+            requiredCarers: slot.requiredCarers,
+            userId,
+            fromDateTime: rangeStart,
+          });
         }
       }
 

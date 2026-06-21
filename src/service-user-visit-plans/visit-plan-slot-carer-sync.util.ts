@@ -84,15 +84,35 @@ export type SyncVisitPlanSlotCarersParams = {
   requiredCarers: number;
   userId: string;
   scheduledVisitId?: string;
+  /** Lower bound for bulk sync; ignored when `scheduledVisitId` is set. Defaults to start of today (UTC). */
   fromDateTime?: Date;
 };
+
+export function visitPlanCarerEmployeeIds(
+  carerWindows: Array<{ employeeId: string }>,
+  assignedEmployeeIds: string[],
+  requiredCarers: number,
+): string[] {
+  if (carerWindows.length) return carerWindows.map((c) => c.employeeId);
+  return (assignedEmployeeIds ?? []).slice(0, Math.max(1, requiredCarers));
+}
+
+export function visitPlanCarerSyncFromDateTime(fromDate?: string): Date {
+  if (fromDate) {
+    const parsed = new Date(`${fromDate}T00:00:00.000Z`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  return start;
+}
 
 /** Push visit-plan slot carer defaults onto matching scheduled jobs. */
 export async function syncVisitPlanSlotCarersToScheduledJobs(
   tx: Prisma.TransactionClient,
   params: SyncVisitPlanSlotCarersParams,
 ): Promise<{ jobsUpdated: number }> {
-  const from = params.fromDateTime ?? new Date();
+  const from = params.fromDateTime ?? visitPlanCarerSyncFromDateTime();
   const required = Math.max(1, params.requiredCarers);
   const desired = (params.assignedEmployeeIds ?? []).slice(0, required);
 
@@ -100,10 +120,11 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
     where: {
       visitPlanSlotId: params.visitPlanSlotId,
       deletedAt: null,
-      scheduledStartDateTime: { gte: from },
+      ...(params.scheduledVisitId
+        ? { id: params.scheduledVisitId }
+        : { scheduledStartDateTime: { gte: from } }),
       status: { in: SYNCABLE_VISIT_STATUSES },
       scheduledJob: { deletedAt: null },
-      ...(params.scheduledVisitId ? { id: params.scheduledVisitId } : {}),
     },
     select: {
       id: true,

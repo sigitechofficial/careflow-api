@@ -24,6 +24,7 @@ import { ServiceUserAbsencesService } from './service-user-absences.service';
 import { CreateServiceUserAbsenceDto } from './dto/create-service-user-absence.dto';
 import { UpdateServiceUserAbsenceDto } from './dto/update-service-user-absence.dto';
 import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
+import { VisitPlanReturnImpactPreviewQueryDto } from '../service-user-visit-plans/dto/visit-plan-impact-preview.dto';
 
 @ApiTags('Service User Absences')
 @ApiBearerAuth()
@@ -47,6 +48,17 @@ export class ServiceUserAbsencesController {
     @Query() query: ScheduleImpactPreviewQueryDto,
   ) {
     return this.service.previewScheduleImpact(serviceUserId, query);
+  }
+
+  @Get(':absenceId/return-impact-preview')
+  @AnyPermission('service_users.absences.read', 'service_users.read', 'scheduling.read')
+  @ApiOperation({ summary: 'Preview generate-rota impact when client returns from absence' })
+  previewReturnImpact(
+    @Param('id') serviceUserId: string,
+    @Param('absenceId') absenceId: string,
+    @Query() query: VisitPlanReturnImpactPreviewQueryDto,
+  ) {
+    return this.service.previewReturnScheduleImpact(serviceUserId, absenceId, query);
   }
 
   @Post()

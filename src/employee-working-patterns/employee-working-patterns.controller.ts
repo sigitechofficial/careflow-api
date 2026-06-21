@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -6,6 +6,7 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { EmployeeWorkingPatternsService } from './employee-working-patterns.service';
+import { BulkReplaceWorkingPatternsDto } from './dto/bulk-replace-working-patterns.dto';
 import { CreateWorkingPatternDto } from './dto/create-working-pattern.dto';
 import { UpdateWorkingPatternDto } from './dto/update-working-pattern.dto';
 
@@ -26,6 +27,16 @@ export class EmployeeWorkingPatternsController {
   @Permissions('employees.update')
   create(@CurrentUser() user: RequestUser, @Param('id') employeeId: string, @Body() dto: CreateWorkingPatternDto) {
     return this.service.create(user.id, employeeId, dto);
+  }
+
+  @Put('bulk')
+  @Permissions('employees.update')
+  bulkReplace(
+    @CurrentUser() user: RequestUser,
+    @Param('id') employeeId: string,
+    @Body() dto: BulkReplaceWorkingPatternsDto,
+  ) {
+    return this.service.bulkReplace(user.id, employeeId, dto);
   }
 
   @Patch(':patternId')

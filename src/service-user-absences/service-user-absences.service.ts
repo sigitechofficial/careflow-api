@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -15,6 +15,12 @@ import {
 } from '../service-user-visit-plans/visit-plan-absence-sync.util';
 import { CreateServiceUserAbsenceDto, type ServiceUserAbsenceTypeApi } from './dto/create-service-user-absence.dto';
 import { UpdateServiceUserAbsenceDto } from './dto/update-service-user-absence.dto';
+import {
+  assertRetrospectiveReasonWhenBackdated,
+  visitPlanTodayUtc,
+} from '../service-user-visit-plans/visit-plan-effective-dates.util';
+import { ServiceUserVisitPlansService } from '../service-user-visit-plans/service-user-visit-plans.service';
+import type { VisitPlanReturnImpactPreviewQueryDto } from '../service-user-visit-plans/dto/visit-plan-impact-preview.dto';
 
 /** Aligns with Prisma `ServiceUserAbsenceType` (generated after `npx prisma generate`). */
 type StoredAbsenceType = 'PLANNED' | 'UNPLANNED' | 'NOT_APPLICABLE';
@@ -45,6 +51,21 @@ function normalizeOptionalTime(value: string | null | undefined): string | null 
   return m[0];
 }
 
+function absenceStartDayUtc(startDate: Date): Date {
+  return new Date(
+    Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0),
+  );
+}
+
+function validateAbsenceRetrospectiveReason(startDate: Date, retrospectiveReason?: string | null): string {
+  const today = visitPlanTodayUtc();
+  try {
+    return assertRetrospectiveReasonWhenBackdated(absenceStartDayUtc(startDate), today, retrospectiveReason);
+  } catch (e) {
+    throw new BadRequestException(e instanceof Error ? e.message : 'Invalid retrospectiveReason');
+  }
+}
+
 function toAbsenceType(v: ServiceUserAbsenceTypeApi | undefined): StoredAbsenceType {
   if (!v) return 'NOT_APPLICABLE';
   return v;
@@ -61,6 +82,7 @@ function mapAbsence(row: {
   absenceReasonCatalogId: string;
   notes: string;
   contactInformation: string;
+  retrospectiveReason: string;
   createdAt: Date;
   updatedAt: Date;
   absenceReasonCatalog: { id: string; name: string; code: string };
@@ -77,6 +99,7 @@ function mapAbsence(row: {
     reason: { id: row.absenceReasonCatalog.id, name: row.absenceReasonCatalog.name, code: row.absenceReasonCatalog.code },
     notes: row.notes,
     contactInformation: row.contactInformation,
+    retrospectiveReason: row.retrospectiveReason ?? '',
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -99,6 +122,8 @@ export class ServiceUserAbsencesService {
     private readonly audit: AuditLogsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
     private readonly scheduleNotifications: ScheduleLifecycleNotificationHook,
+    @Inject(forwardRef(() => ServiceUserVisitPlansService))
+    private readonly visitPlans: ServiceUserVisitPlansService,
   ) {}
 
   /** New Prisma delegates; remove cast after `npx prisma generate` refreshes the client. */
@@ -140,6 +165,19 @@ export class ServiceUserAbsencesService {
     return { data: scheduleImpact };
   }
 
+  async previewReturnScheduleImpact(
+    serviceUserId: string,
+    absenceId: string,
+    query: VisitPlanReturnImpactPreviewQueryDto,
+  ) {
+    await this.ensureServiceUser(serviceUserId);
+    const absence = await this.su().serviceUserAbsence.findFirst({
+      where: { id: absenceId, serviceUserId, deletedAt: null },
+    });
+    if (!absence) throw new NotFoundException('Absence not found');
+    return this.visitPlans.previewReturnScheduleImpact(serviceUserId, query);
+  }
+
   async create(userId: string, serviceUserId: string, dto: CreateServiceUserAbsenceDto, meta?: RequestAuditMeta) {
     await this.ensureServiceUser(serviceUserId);
     await this.ensureReasonCatalogId(dto.absenceReasonCatalogId);
@@ -153,6 +191,7 @@ export class ServiceUserAbsencesService {
     const absenceType = toAbsenceType(dto.absenceType);
     const notes = dto.notes?.trim() ?? '';
     const contactInformation = dto.contactInformation?.trim() ?? '';
+    const retrospectiveReason = validateAbsenceRetrospectiveReason(startDate, dto.retrospectiveReason);
 
     return this.prisma.$transaction(async (tx) => {
       const abs = this.txAbsence(tx);
@@ -167,6 +206,7 @@ export class ServiceUserAbsencesService {
           absenceReasonCatalogId: dto.absenceReasonCatalogId,
           notes,
           contactInformation,
+          retrospectiveReason,
           createdById: userId,
         },
         include: { absenceReasonCatalog: true },
@@ -268,6 +308,13 @@ export class ServiceUserAbsencesService {
       const absenceType =
         dto.absenceType !== undefined ? toAbsenceType(dto.absenceType as ServiceUserAbsenceTypeApi) : undefined;
 
+      let retrospectiveReason: string | undefined;
+      if (dto.retrospectiveReason !== undefined) {
+        retrospectiveReason = dto.retrospectiveReason.trim();
+      } else if (startDate !== undefined) {
+        retrospectiveReason = validateAbsenceRetrospectiveReason(effectiveStart, before.retrospectiveReason);
+      }
+
       const updated = await abs.update({
         where: { id: absenceId },
         data: {
@@ -279,6 +326,7 @@ export class ServiceUserAbsencesService {
           ...(dto.absenceReasonCatalogId !== undefined ? { absenceReasonCatalogId: dto.absenceReasonCatalogId } : {}),
           ...(notes !== undefined ? { notes } : {}),
           ...(contactInformation !== undefined ? { contactInformation } : {}),
+          ...(retrospectiveReason !== undefined ? { retrospectiveReason } : {}),
           updatedById: userId,
         },
         include: { absenceReasonCatalog: true },

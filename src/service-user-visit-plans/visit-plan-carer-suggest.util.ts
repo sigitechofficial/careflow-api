@@ -1,4 +1,6 @@
 import { DayOfWeek } from '@prisma/client';
+import type { WorkingPatternCycleConfig } from '../employee-working-patterns/working-pattern-cycle.util';
+import { timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
 
 export type CarerSkillRow = {
   skillTypeId: string | null;
@@ -7,6 +9,7 @@ export type CarerSkillRow = {
 };
 
 export type CarerPatternRow = {
+  weekInCycle?: number;
   dayOfWeek: DayOfWeek;
   startTime: string | null;
   endTime: string | null;
@@ -50,27 +53,7 @@ const CARE_PLAN_SKILL_KEYWORDS: Record<string, string[]> = {
   'Physical Health': ['clinical', 'health'],
 };
 
-export function parseHm(value: string): number {
-  const m = /^(\d{2}):(\d{2})$/.exec(value.trim());
-  if (!m) return 0;
-  return Number(m[1]) * 60 + Number(m[2]);
-}
-
-export function timeWindowsOverlap(
-  visitStart: string,
-  visitEnd: string,
-  patternStart: string | null,
-  patternEnd: string | null,
-): boolean {
-  if (!patternStart || !patternEnd) return true;
-  const vs = parseHm(visitStart);
-  let ve = parseHm(visitEnd);
-  let ps = parseHm(patternStart);
-  let pe = parseHm(patternEnd);
-  if (ve <= vs) ve += 24 * 60;
-  if (pe <= ps) pe += 24 * 60;
-  return vs < pe && ve > ps;
-}
+export { timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
 
 export function requiredSkillKeywords(
   carePlanAreas: string[],
@@ -129,38 +112,80 @@ export function matchEmployeeSkills(
   return { matched, missing };
 }
 
+type DayEval = 'ok' | 'unavailable' | 'partial' | 'time_fail';
+
+function evaluatePatternDay(
+  pattern: CarerPatternRow | undefined,
+  plannedStartTime: string,
+  plannedEndTime: string,
+): DayEval {
+  if (!pattern || !pattern.isAvailable) return 'unavailable';
+  if (pattern.notes === 'partial') return 'partial';
+  if (!timeWindowsOverlap(plannedStartTime, plannedEndTime, pattern.startTime, pattern.endTime)) {
+    return 'time_fail';
+  }
+  return 'ok';
+}
+
+function weekLabel(evalResult: DayEval): string {
+  if (evalResult === 'ok') return 'ok';
+  if (evalResult === 'partial') return 'partial';
+  return 'off';
+}
+
 export function evaluateCarerAvailability(
   patterns: CarerPatternRow[],
   slotDaysOfWeek: number[],
   plannedStartTime: string,
   plannedEndTime: string,
+  cycleConfig?: WorkingPatternCycleConfig,
 ): {
   availableDays: number[];
   unavailableDays: number[];
   timeWindowOk: boolean;
   summary: string;
 } {
+  const cycleWeeks = Math.max(1, cycleConfig?.workingPatternCycleWeeks ?? 1);
   const availableDays: number[] = [];
   const unavailableDays: number[] = [];
   let timeWindowOk = true;
+  const fortnightNotes: string[] = [];
 
   for (const jsDow of slotDaysOfWeek) {
     const prismaDow = JS_DOW_TO_PRISMA[jsDow];
-    const pattern = patterns.find((p) => p.dayOfWeek === prismaDow);
-    if (!pattern || !pattern.isAvailable) {
-      unavailableDays.push(jsDow);
+    const dayLabel = DAY_LABEL[jsDow];
+
+    if (cycleWeeks <= 1) {
+      const pattern =
+        patterns.find((p) => (p.weekInCycle ?? 1) === 1 && p.dayOfWeek === prismaDow) ??
+        patterns.find((p) => p.dayOfWeek === prismaDow);
+      const evalResult = evaluatePatternDay(pattern, plannedStartTime, plannedEndTime);
+      if (evalResult === 'ok' || evalResult === 'partial') {
+        availableDays.push(jsDow);
+      } else {
+        unavailableDays.push(jsDow);
+        if (evalResult === 'time_fail') timeWindowOk = false;
+      }
       continue;
     }
-    if (pattern.notes === 'partial') {
+
+    const w1 = patterns.find((p) => p.weekInCycle === 1 && p.dayOfWeek === prismaDow);
+    const w2 = patterns.find((p) => p.weekInCycle === 2 && p.dayOfWeek === prismaDow);
+    const w1Eval = evaluatePatternDay(w1, plannedStartTime, plannedEndTime);
+    const w2Eval = evaluatePatternDay(w2, plannedStartTime, plannedEndTime);
+
+    const w1Ok = w1Eval === 'ok' || w1Eval === 'partial';
+    const w2Ok = w2Eval === 'ok' || w2Eval === 'partial';
+
+    if (w1Ok && w2Ok) {
       availableDays.push(jsDow);
-      continue;
-    }
-    if (!timeWindowsOverlap(plannedStartTime, plannedEndTime, pattern.startTime, pattern.endTime)) {
+    } else {
       unavailableDays.push(jsDow);
-      timeWindowOk = false;
-      continue;
+      if (w1Eval === 'time_fail' || w2Eval === 'time_fail') timeWindowOk = false;
+      if (w1Eval !== w2Eval) {
+        fortnightNotes.push(`${dayLabel}: W1 ${weekLabel(w1Eval)}, W2 ${weekLabel(w2Eval)}`);
+      }
     }
-    availableDays.push(jsDow);
   }
 
   const parts: string[] = [];
@@ -169,6 +194,9 @@ export function evaluateCarerAvailability(
   }
   if (unavailableDays.length) {
     parts.push(`Unavailable ${unavailableDays.map((d) => DAY_LABEL[d]).join(', ')}`);
+  }
+  if (fortnightNotes.length) {
+    parts.push(fortnightNotes.join('; '));
   }
   if (!timeWindowOk) {
     parts.push('Visit time outside working hours on some days');

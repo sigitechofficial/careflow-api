@@ -11,6 +11,11 @@ import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
+import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import {
+  VISIT_CANCELLATION_REASONS,
+  VISIT_CHARGE_DECISION_OPTIONS,
+} from './visit-cancellation-reason.util';
 
 @ApiTags('Scheduled Jobs Housekeeping')
 @ApiBearerAuth()
@@ -64,9 +69,21 @@ export class ScheduledJobsHousekeepingController {
     return this.service.completeJob(user.id, id, dto, getRequestAuditMeta(req));
   }
 
+  @Get('cancellation-options')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({ summary: 'Reason codes and charge options for visit cancellation' })
+  cancellationOptions() {
+    return {
+      data: {
+        reasons: VISIT_CANCELLATION_REASONS,
+        chargeDecisions: VISIT_CHARGE_DECISION_OPTIONS,
+      },
+    };
+  }
+
   @Patch('jobs/:id/cancel')
   @Permissions('scheduled_jobs_housekeeping.cancel')
-  @ApiOperation({ summary: 'Cancel scheduled job, visits, and active allocations' })
+  @ApiOperation({ summary: 'Cancel or call off a scheduled job with CQC-compliant record' })
   cancel(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
@@ -74,5 +91,17 @@ export class ScheduledJobsHousekeepingController {
     @Req() req: Request,
   ) {
     return this.service.cancelJob(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('jobs/:id/reinstate')
+  @Permissions('scheduled_jobs_housekeeping.cancel')
+  @ApiOperation({ summary: 'Reinstate a cancelled or called-off job on the rota' })
+  reinstate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: ReinstateJobDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reinstateJob(user.id, id, dto, getRequestAuditMeta(req));
   }
 }

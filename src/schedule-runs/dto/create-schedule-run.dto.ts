@@ -1,16 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, IsUUID, Matches, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateScheduleRunDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Resolved from runDate when omitted' })
+  @IsOptional()
   @IsUUID()
-  scheduleBatchId!: string;
+  scheduleBatchId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   scheduleAreaId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
 
   @ApiProperty()
   @IsString()
@@ -40,10 +56,23 @@ export class CreateScheduleRunDto {
   @MaxLength(16)
   endTime?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  shiftType?: string;
+
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  visitIds?: string[];
 }

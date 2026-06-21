@@ -8,6 +8,11 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
+  loadScheduleAreaByLocationMap,
+  resolveBranchFromLocation,
+  type ScheduleAreaBranchLookup,
+} from '../location-management/service-user-branch.util';
+import {
   assertDateRangeMaxDays,
   utcDayBounds,
   utcMonthBounds,
@@ -16,6 +21,13 @@ import {
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import {
+  employmentToCycleConfig,
+  mapPatternToDayPattern,
+  resolvePatternForDate,
+  type WorkingPatternRow,
+} from '../employee-working-patterns/working-pattern-cycle.util';
+import { calendarDayUtc } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import { JobsDayTimelineQueryDto } from './dto/jobs-day-timeline-query.dto';
 import { EmployeeTimelineQueryDto } from './dto/employee-timeline-query.dto';
 import { ServiceUserTimelineQueryDto } from './dto/service-user-timeline-query.dto';
@@ -78,14 +90,47 @@ export class ScheduleTimelinesService {
     return where;
   }
 
+  private applyBranchLabelsToTimelineJobs<T extends ReturnType<typeof mapTimelineJob>>(
+    jobs: T[],
+    scheduleAreaByLocation: Map<string, ScheduleAreaBranchLookup>,
+  ): T[] {
+    return jobs.map((job) => {
+      const locationId = job.serviceUser.locationId ?? job.scheduleArea?.locationId ?? null;
+      const branch = resolveBranchFromLocation(
+        locationId,
+        job.serviceUser.location?.name ?? null,
+        scheduleAreaByLocation,
+      );
+      const resolvedLocationId = branch.locationId ?? job.serviceUser.locationId;
+      const locationName =
+        branch.displayLabel || branch.locationName || job.serviceUser.location?.name || '';
+      return {
+        ...job,
+        serviceUser: {
+          ...job.serviceUser,
+          locationId: resolvedLocationId,
+          zoneName: branch.zoneName,
+          branchName: branch.branchName,
+          branchLayers: branch.branchLayers,
+          displayLabel: branch.displayLabel,
+          location: resolvedLocationId
+            ? { id: resolvedLocationId, name: locationName }
+            : job.serviceUser.location,
+        },
+      };
+    });
+  }
+
   private async enrichTimelineJobs<T extends ReturnType<typeof mapTimelineJob>>(
     jobs: T[],
     day: string,
   ): Promise<T[]> {
     if (!jobs.length) return jobs;
+    const scheduleAreaByLocation = await loadScheduleAreaByLocationMap(this.prisma);
+    const withBranches = this.applyBranchLabelsToTimelineJobs(jobs, scheduleAreaByLocation);
     const dayDate = utcDayBounds(day).start;
-    const flags = await this.scheduleImpact.loadTimelineOperationalFlags(jobs, dayDate);
-    return jobs.map((job) => {
+    const flags = await this.scheduleImpact.loadTimelineOperationalFlags(withBranches, dayDate);
+    return withBranches.map((job) => {
       const f = flags.get(job.id);
       return f ? { ...job, ...f } : job;
     });
@@ -258,13 +303,36 @@ export class ScheduleTimelinesService {
         skip,
         take: limit,
         orderBy: { personalDetail: { lastName: 'asc' } },
-        include: { personalDetail: true, employment: { include: { role: true, jobTitle: true } } },
+        include: {
+          personalDetail: true,
+          employment: { include: { role: true, jobTitle: true } },
+          workingPatterns: { where: { deletedAt: null, isActive: true } },
+        },
       }),
     ]);
 
     const jobWhere = this.jobWhereForRange(start, end, {
       scheduleBatchId: query.scheduleBatchId,
     });
+
+    const timelineDate = query.date ?? query.weekStart ?? (query.month ? `${query.month}-01` : null);
+    const holidayEndByEmployeeId = new Map<string, string>();
+    if (timelineDate) {
+      const dayNoon = calendarDayUtc(new Date(`${timelineDate}T12:00:00.000Z`));
+      const holidayRows = await this.prisma.employeeHoliday.findMany({
+        where: {
+          employeeId: { in: employees.map((e) => e.id) },
+          deletedAt: null,
+          isActive: true,
+          startDate: { lte: dayNoon },
+          endDate: { gte: dayNoon },
+        },
+        select: { employeeId: true, endDate: true },
+      });
+      for (const holiday of holidayRows) {
+        holidayEndByEmployeeId.set(holiday.employeeId, holiday.endDate.toISOString());
+      }
+    }
 
     const rows = await Promise.all(
       employees.map(async (emp) => {
@@ -280,7 +348,15 @@ export class ScheduleTimelinesService {
         });
         const jobs = allocations.map((a) => mapTimelineJob(a.scheduledJob));
         const totalMinutes = jobs.reduce((s, j) => s + j.durationMinutes, 0);
-        return {
+        const holidayEndDate = holidayEndByEmployeeId.get(emp.id);
+        const row: {
+          employee: ReturnType<typeof mapEmployeeBrief>;
+          allocations: Array<{ id: string; status: AllocationStatus; job: ReturnType<typeof mapTimelineJob> }>;
+          totalMinutes: number;
+          dayPattern?: ReturnType<typeof mapPatternToDayPattern>;
+          onHoliday?: boolean;
+          holidayEndDate?: string;
+        } = {
           employee: mapEmployeeBrief(emp),
           allocations: allocations.map((a) => ({
             id: a.id,
@@ -288,9 +364,41 @@ export class ScheduleTimelinesService {
             job: mapTimelineJob(a.scheduledJob),
           })),
           totalMinutes,
+          ...(holidayEndDate
+            ? { onHoliday: true, holidayEndDate }
+            : {}),
         };
+
+        if (timelineDate) {
+          const patternRows: WorkingPatternRow[] = emp.workingPatterns.map((p) => ({
+            weekInCycle: p.weekInCycle,
+            dayOfWeek: p.dayOfWeek,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            isAvailable: p.isAvailable,
+            notes: p.notes,
+          }));
+          const cycleConfig = employmentToCycleConfig(emp.employment, emp.createdAt);
+          const resolved = resolvePatternForDate(patternRows, cycleConfig, timelineDate);
+          row.dayPattern = mapPatternToDayPattern(resolved);
+        }
+
+        return row;
       }),
     );
+
+    const enrichDay = query.date ?? query.weekStart ?? (query.month ? `${query.month}-01` : null);
+    if (enrichDay) {
+      const allJobs = rows.flatMap((row) => row.allocations.map((allocation) => allocation.job));
+      const enrichedJobs = await this.enrichTimelineJobs(allJobs, enrichDay);
+      const jobById = new Map(enrichedJobs.map((job) => [job.id, job]));
+      for (const row of rows) {
+        row.allocations = row.allocations.map((allocation) => ({
+          ...allocation,
+          job: jobById.get(allocation.job.id) ?? allocation.job,
+        }));
+      }
+    }
 
     return { employees: rows, meta: buildPaginationMeta({ page, limit, total }) };
   }

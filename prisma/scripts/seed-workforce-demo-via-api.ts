@@ -123,7 +123,7 @@ async function loadLookups() {
     careWorkAreaId: workAreas.find((w) => w.name === 'Care')?.id,
     locationByName: Object.fromEntries(locations.map((l) => [l.name, l.id])),
     skillByName: Object.fromEntries(skills.map((s) => [s.name, s.id])),
-    reviewByCode: Object.fromEntries(reviewTypes.filter((r) => r.code).map((r) => [r.code!, r])),
+    reviewByName: Object.fromEntries(reviewTypes.map((r) => [r.name, r])),
     activeStatusId: activeStatus?.id,
     jobTitleByName: Object.fromEntries(jobTitles.map((j) => [j.name, j.id])),
     gradeByName: Object.fromEntries(grades.map((g) => [g.name, g.id])),
@@ -285,8 +285,8 @@ async function seedPersona(token: string, p: Persona, lookups: Awaited<ReturnTyp
     });
   }
 
-  const supervision = lookups.reviewByCode['SUPERVISION'];
-  const appraisal = lookups.reviewByCode['ANNUAL_APPRAISAL'];
+  const supervision = lookups.reviewByName['Supervision'];
+  const appraisal = lookups.reviewByName['Annual Appraisal'];
   const today = new Date();
   if (supervision) {
     const lastDone = addDays(today, p.reviewOverdue ? -120 : -30);
@@ -321,7 +321,7 @@ async function seedPersona(token: string, p: Persona, lookups: Awaited<ReturnTyp
     const to = addDays(today, 21);
     await api(`/employees/${employeeId}/holidays`, token, {
       method: 'POST',
-      body: JSON.stringify({ dateFrom: from.toISOString(), dateTo: to.toISOString(), notes: 'Demo annual leave' }),
+      body: JSON.stringify({ startDate: from.toISOString(), endDate: to.toISOString(), notes: 'Demo annual leave' }),
     });
   }
 

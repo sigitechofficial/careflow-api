@@ -1,6 +1,7 @@
 import {
   assessVisitPlanReadiness,
   assessVisitPlanSlotReadiness,
+  resolveAssignedEmployeeIds,
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 
@@ -21,6 +22,12 @@ describe('visit-plan-readiness.util', () => {
       carerAssignments: [{ employeeId: 'assignment-id' }],
     });
     expect(ids).toEqual(['assignment-id']);
+  });
+
+  it('resolveAssignedEmployeeIds uses carer rows when legacy list is empty', () => {
+    expect(
+      resolveAssignedEmployeeIds([], [{ employeeId: 'from-row' }]),
+    ).toEqual(['from-row']);
   });
 
   it('flags missing times and carers on enabled slots', () => {

@@ -183,6 +183,7 @@ AllocationChecksService ◄── holiday / NCA checks
 
 ## 8. Related docs
 
+- [VISIT_PLAN_REAL_WORLD_SCENARIOS.md](./VISIT_PLAN_REAL_WORLD_SCENARIOS.md) — scenario playbook (rota, carers, CQC, stakeholders)
 - [VISIT_PLAN_ENTERPRISE_ROADMAP.md](./VISIT_PLAN_ENTERPRISE_ROADMAP.md) — visit plan ↔ rota
 - [phases/SCHEDULING_MANAGEMENT.md](./phases/SCHEDULING_MANAGEMENT.md) — scheduling phases
 - [phases/SERVICE_CARE_MANAGEMENT.md](./phases/SERVICE_CARE_MANAGEMENT.md) — absences CRUD (update: scheduling integration)

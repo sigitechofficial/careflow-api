@@ -30,7 +30,7 @@
 |------|----------------|
 | **Backend — reporting** | Rich **employee reports / analytics** beyond chart summary; dedicated **compliance report** pipelines if product wants more than current report GETs; **RBAC reporting** |
 | **Backend — operations** | **`@nestjs/schedule`** (or external cron) calling **`EmployeeComplianceService.runDailyComplianceCheck()`** daily |
-| **Frontend — patterns** | **Fortnight ↔ API**: second week of rotas if product needs true 2-week patterns in DB (today: standard Mon–Sun only is persisted; fortnight grid is preview) |
+| **Frontend — patterns** | ~~Fortnight ↔ API~~ **Done** — Week 1 + Week 2 persisted via bulk PUT; cycle anchor on employment |
 
 ---
 
@@ -162,7 +162,7 @@
 - [x] Banners for success / API errors; link back to staff list
 - [x] `.env.example` documents `VITE_API_BASE_URL`
 - [x] **Emergency contacts inline** on Personal tab — `EmployeeEmergencyContactsEditor` (`GET`/`POST`/`PATCH`/`DELETE` `/employees/:id/emergency-contacts`) after an employee id exists
-- [x] **Working pattern persistence** — `EmployeeWeeklyPatternEditor`: standard Mon–Sun week saved via `GET`/`POST`/`DELETE` `/employees/:id/working-patterns` (fortnight grid remains a local planning preview)
+- [x] **Working pattern persistence** — `EmployeeFortnightPatternEditor`: Week 1 + Week 2 saved via `PUT /employees/:id/working-patterns/bulk`; `workingPatternCycleWeeks` and `workingPatternCycleAnchorDate` on employment
 - [x] **UK postcode lookup** — postcodes.io from `lookupUkPostcode()`; fills town / default country when empty (search icon by Postcode)
 - [x] **Playwright E2E** — `tests/e2e/employee-flow.spec.ts` (login smoke always; add-employee path when `E2E_API_BASE_URL`, `E2E_LOGIN_EMAIL`, `E2E_LOGIN_PASSWORD` are set). `playwright.config.ts` passes `VITE_API_BASE_URL` from `E2E_API_BASE_URL` to the dev server for those runs
 - [x] **Route guards & nav** — TanStack routes use `employees.read` / `employees.create` / `employees.update`; sidebar employee links carry matching `permission`; `Permission` + `ROLE_PERMISSIONS` include Nest keys (`audit_logs.read`, etc.); audit menu accepts `audit.read` or `audit_logs.read`
@@ -177,7 +177,7 @@
 
 ### Pending — Frontend
 
-- [ ] **Fortnight ↔ API** — sync the second week of the UI grid to persisted `EmployeeWorkingPattern` rows (or a dedicated “week 2” model) if the product requires true **2-week rotas** in the database.
+- [x] **Fortnight ↔ API** — Week 1 and Week 2 grids persist via bulk PUT; rota day view and visit-plan suggest use date-aware cycle resolution.
 
 ---
 

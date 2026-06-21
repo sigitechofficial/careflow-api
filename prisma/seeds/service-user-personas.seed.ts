@@ -16,6 +16,10 @@ import {
   VisitPlanStatus,
   type PrismaClient,
 } from '@prisma/client';
+import {
+  inferBranchFromAddress,
+  loadBranchAreasForInference,
+} from '../../src/location-management/service-user-branch.util';
 import { seedDemoServiceUserData } from './demo-service-user-data.seed';
 import { SERVICE_USER_PERSONAS, type ServiceUserPersona } from './service-user-personas.data';
 
@@ -577,6 +581,39 @@ async function upsertLegal(prisma: PrismaClient, serviceUserId: string, dnacpr: 
   });
 }
 
+async function upsertBranchFromAddress(prisma: PrismaClient, serviceUserId: string, persona: ServiceUserPersona) {
+  const branchAreas = await loadBranchAreasForInference(prisma);
+  const match = inferBranchFromAddress(persona.address, branchAreas);
+  if (!match) return;
+
+  await prisma.serviceUser.update({
+    where: { id: serviceUserId },
+    data: { locationId: match.locationId },
+  });
+
+  const assignment = await prisma.serviceUserAssignment.findFirst({
+    where: { serviceUserId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+  });
+  if (assignment) {
+    await prisma.serviceUserAssignment.update({
+      where: { id: assignment.id },
+      data: { locationId: match.locationId },
+    });
+    return;
+  }
+
+  const su = await prisma.serviceUser.findUnique({ where: { id: serviceUserId } });
+  await prisma.serviceUserAssignment.create({
+    data: {
+      serviceUserId,
+      locationId: match.locationId,
+      keyWorkerId: su?.keyWorkerId ?? null,
+      namedNurseId: su?.namedNurseId ?? null,
+    },
+  });
+}
+
 async function seedOnePersona(
   prisma: PrismaClient,
   persona: ServiceUserPersona,
@@ -585,6 +622,7 @@ async function seedOnePersona(
 ): Promise<string> {
   const serviceUserId = await upsertCoreServiceUser(prisma, persona, lookups);
   await upsertAddress(prisma, serviceUserId, persona);
+  await upsertBranchFromAddress(prisma, serviceUserId, persona);
   await upsertContacts(prisma, serviceUserId, persona, lookups);
   await upsertDomCare(prisma, serviceUserId, persona);
   await upsertLiveIn(prisma, serviceUserId, persona, lookups);

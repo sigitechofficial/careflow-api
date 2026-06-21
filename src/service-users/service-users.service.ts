@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { DataAccessType } from '@prisma/client';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -17,6 +17,12 @@ import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding
 import { activeServiceUserAbsenceWhere } from '../service-user-absences/active-absence.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
+import {
+  inferBranchFromAddress,
+  loadBranchAreasForInference,
+  loadScheduleAreaByLocationMap,
+  pickDefaultBranchForIndex,
+} from '../location-management/service-user-branch.util';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -56,7 +62,9 @@ const detailInclude = {
 } satisfies Prisma.ServiceUserInclude;
 
 @Injectable()
-export class ServiceUsersService {
+export class ServiceUsersService implements OnModuleInit {
+  private readonly logger = new Logger(ServiceUsersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
@@ -88,6 +96,176 @@ export class ServiceUsersService {
     await this.ensureActiveLocation(dto.locationId);
   }
 
+  async onModuleInit() {
+    try {
+      const result = await this.backfillAllServiceUserBranchLinks();
+      if (result.synced > 0 || result.inferred > 0 || result.defaulted > 0) {
+        this.logger.log(
+          `Service user branches: synced ${result.synced}, inferred ${result.inferred}, defaulted ${result.defaulted} (${result.scanned} scanned)`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'Service user zone/branch backfill failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
+  /**
+   * Align ServiceUser.locationId with ServiceUserAssignment for every active record.
+   */
+  async backfillAllServiceUserBranchLinks(): Promise<{
+    synced: number;
+    inferred: number;
+    defaulted: number;
+    scanned: number;
+  }> {
+    const branchAreas = await loadBranchAreasForInference(this.prisma);
+    const users = await this.prisma.serviceUser.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        locationId: true,
+        keyWorkerId: true,
+        namedNurseId: true,
+        address: { select: { town: true, postcode: true, county: true } },
+        assignments: {
+          where: { deletedAt: null },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+          select: { id: true, locationId: true },
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+
+    let synced = 0;
+    let inferred = 0;
+    let defaulted = 0;
+    let defaultIndex = 0;
+    for (const su of users) {
+      const assignment = su.assignments[0] ?? null;
+      const assignmentLocationId = assignment?.locationId ?? null;
+      const needsSync =
+        (!su.locationId && assignmentLocationId) ||
+        (su.locationId && assignment && assignmentLocationId !== su.locationId) ||
+        (su.locationId && !assignment);
+
+      if (needsSync) {
+        await this.reconcileServiceUserBranchLinks(su.id);
+        synced += 1;
+        continue;
+      }
+
+      if (!su.locationId) {
+        const inferredMatch = inferBranchFromAddress(su.address, branchAreas);
+        const match =
+          inferredMatch ?? pickDefaultBranchForIndex(branchAreas, defaultIndex);
+        if (match) {
+          if (inferredMatch) inferred += 1;
+          else {
+            defaultIndex += 1;
+            defaulted += 1;
+          }
+          await this.assignServiceUserBranch(su.id, match.locationId);
+        }
+      }
+    }
+
+    return { synced, inferred, defaulted, scanned: users.length };
+  }
+
+  private async assignServiceUserBranch(serviceUserId: string, locationId: string): Promise<void> {
+    const su = await this.prisma.serviceUser.update({
+      where: { id: serviceUserId },
+      data: { locationId },
+      select: {
+        id: true,
+        keyWorkerId: true,
+        namedNurseId: true,
+      },
+    });
+
+    const assignment = await this.prisma.serviceUserAssignment.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (assignment) {
+      await this.prisma.serviceUserAssignment.update({
+        where: { id: assignment.id },
+        data: { locationId },
+      });
+      return;
+    }
+
+    await this.prisma.serviceUserAssignment.create({
+      data: {
+        serviceUserId,
+        locationId,
+        keyWorkerId: su.keyWorkerId,
+        namedNurseId: su.namedNurseId,
+      },
+    });
+  }
+
+  private async reconcileServiceUserBranchLinks(
+    serviceUserId: string,
+    userId?: string | null,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const db = tx ?? this.prisma;
+    const su = await db.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      include: {
+        assignments: {
+          where: { deletedAt: null },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+    if (!su) return;
+
+    const assignment = su.assignments[0] ?? null;
+    const assignmentLocationId = assignment?.locationId ?? null;
+
+    if (!su.locationId && assignmentLocationId) {
+      await db.serviceUser.update({
+        where: { id: serviceUserId },
+        data: {
+          locationId: assignmentLocationId,
+          ...(userId ? { updatedById: userId } : {}),
+        },
+      });
+      return;
+    }
+
+    if (su.locationId && assignment && assignmentLocationId !== su.locationId) {
+      await db.serviceUserAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          locationId: su.locationId,
+          ...(userId ? { updatedById: userId } : {}),
+        },
+      });
+      return;
+    }
+
+    if (su.locationId && !assignment) {
+      await db.serviceUserAssignment.create({
+        data: {
+          serviceUserId,
+          locationId: su.locationId,
+          keyWorkerId: su.keyWorkerId,
+          namedNurseId: su.namedNurseId,
+          ...(userId ? { createdById: userId } : {}),
+        },
+      });
+    }
+  }
+
   async list(query: ServiceUserQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -104,7 +282,17 @@ export class ServiceUsersService {
     if (query.careTypeId) where.careTypeId = query.careTypeId;
     if (query.fundingTypeId) where.fundingTypeId = query.fundingTypeId;
     if (query.riskLevelId) where.riskLevelId = query.riskLevelId;
-    if (query.locationId) where.locationId = query.locationId;
+    if (query.locationId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { locationId: query.locationId },
+            { assignments: { some: { deletedAt: null, locationId: query.locationId } } },
+          ],
+        },
+      ];
+    }
     if (query.keyWorkerId) where.keyWorkerId = query.keyWorkerId;
     if (query.namedNurseId) where.namedNurseId = query.namedNurseId;
     if (query.dateOfBirthFrom || query.dateOfBirthTo) {
@@ -135,6 +323,8 @@ export class ServiceUsersService {
     const sortOrder = query.sortOrder ?? 'desc';
     const orderBy: Prisma.ServiceUserOrderByWithRelationInput = { [sortBy]: sortOrder };
 
+    const scheduleAreaByLocation = await loadScheduleAreaByLocationMap(this.prisma);
+
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.serviceUser.count({ where }),
       this.prisma.serviceUser.findMany({
@@ -153,6 +343,12 @@ export class ServiceUsersService {
           location: true,
           keyWorker: { include: { personalDetail: true } },
           namedNurse: { include: { personalDetail: true } },
+          assignments: {
+            where: { deletedAt: null },
+            orderBy: { updatedAt: 'desc' },
+            take: 1,
+            include: { location: true },
+          },
           absences: {
             where: activeServiceUserAbsenceWhere(),
             take: 1,
@@ -168,12 +364,18 @@ export class ServiceUsersService {
     ]);
 
     return {
-      data: rows.map(mapServiceUserListRow),
+      data: rows.map((row) => mapServiceUserListRow(row, scheduleAreaByLocation)),
       meta: buildPaginationMeta({ page, limit, total }),
     };
   }
 
   async getById(id: string, audit?: ServiceUserAuditMeta) {
+    const actorId = audit?.actorUserId;
+    if (actorId) {
+      await this.reconcileServiceUserBranchLinks(id, actorId);
+    }
+
+    const scheduleAreaByLocation = await loadScheduleAreaByLocationMap(this.prisma);
     const user = await this.prisma.serviceUser.findFirst({
       where: { id, deletedAt: null },
       include: detailInclude,
@@ -203,7 +405,7 @@ export class ServiceUsersService {
       });
     }
 
-    return { data: mapServiceUserDetail(user) };
+    return { data: mapServiceUserDetail(user, scheduleAreaByLocation) };
   }
 
   async create(userId: string, dto: CreateServiceUserDto, meta?: RequestAuditMeta) {
@@ -421,6 +623,8 @@ export class ServiceUsersService {
           });
         }
       }
+
+      await this.reconcileServiceUserBranchLinks(id, userId, tx);
 
       const oldS = auditSnapshot(before);
       const newS = auditSnapshot(

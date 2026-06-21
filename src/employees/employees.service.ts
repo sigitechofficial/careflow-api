@@ -5,6 +5,12 @@ import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
+import { buildEmployeeListOrderBy } from './employee-list-order.util';
+import { buildEmployeeListWhere, hasEmployeeListCohortFilters } from './employee-list-where.util';
+import {
+  buildEmployeeListFacets,
+  loadEmployeeListFacetLocationIds,
+} from './employee-list-facets.util';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
@@ -14,6 +20,9 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import type { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
+import { mapEmployeeListRow } from './mappers/employee.mapper';
+import { loadEmployeeListHolidaySnapshots } from './employee-list-enrichment.util';
+import { parseEmployeeVisaTypes } from '../organisation-general-settings/employee-visa-types.util';
 
 export type EmployeeAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -30,44 +39,16 @@ export class EmployeesService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const wherePersonal: Record<string, unknown> = { deletedAt: null };
-    if (query.statusId) wherePersonal.statusId = query.statusId;
+    const { listWhere, isEmpty } = await buildEmployeeListWhere(this.prisma, query);
 
-    if (query.search) {
-      const s = query.search.trim();
-      wherePersonal.OR = [
-        { firstName: { contains: s, mode: 'insensitive' } },
-        { lastName: { contains: s, mode: 'insensitive' } },
-        { email: { contains: s, mode: 'insensitive' } },
-        { username: { contains: s, mode: 'insensitive' } },
-      ];
+    if (isEmpty) {
+      return {
+        data: [],
+        meta: buildPaginationMeta({ page, limit, total: 0 }),
+      };
     }
 
-    const whereEmployment: Record<string, unknown> = { deletedAt: null };
-    if (query.jobTitleId) whereEmployment.jobTitleId = query.jobTitleId;
-    if (query.roleId) whereEmployment.roleId = query.roleId;
-    if (query.gradeId) whereEmployment.gradeId = query.gradeId;
-    if (query.contractTypeId) whereEmployment.contractTypeId = query.contractTypeId;
-
-    const whereEmployee: Record<string, unknown> = { deletedAt: null };
-
-    /** Without employment filters, include rows that have not completed employment yet. */
-    const hasEmploymentFilters = Boolean(
-      query.jobTitleId || query.roleId || query.gradeId || query.contractTypeId,
-    );
-    const employmentWhere = hasEmploymentFilters
-      ? { employment: { is: whereEmployment } }
-      : {
-          OR: [{ employment: null }, { employment: { is: whereEmployment } }],
-        };
-
-    const listWhere = {
-      ...whereEmployee,
-      personalDetail: { is: wherePersonal },
-      ...employmentWhere,
-    };
-
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows, settings] = await this.prisma.$transaction([
       this.prisma.employee.count({
         where: listWhere,
       }),
@@ -81,22 +62,39 @@ export class EmployeesService {
               role: true,
               grade: true,
               contractType: true,
+              location: true,
+              leavingReason: true,
+              floorLocations: { include: { location: true } },
             },
           },
         },
         skip,
         take: limit,
-        orderBy:
-          query.sortBy === 'createdAt'
-            ? { createdAt: query.sortOrder ?? 'desc' }
-            : { updatedAt: query.sortOrder ?? 'desc' },
+        orderBy: buildEmployeeListOrderBy(query),
+      }),
+      this.prisma.organisationGeneralSettings.findFirst({
+        select: { employeeVisaTypes: true },
       }),
     ]);
 
+    const visaTypes = parseEmployeeVisaTypes(settings?.employeeVisaTypes);
+    const holidaySnapshots = await loadEmployeeListHolidaySnapshots(
+      this.prisma,
+      rows.map((row) => row.id),
+    );
+
     return {
-      data: rows,
+      data: rows.map((row) =>
+        mapEmployeeListRow(row, visaTypes, holidaySnapshots.get(row.id)),
+      ),
       meta: buildPaginationMeta({ page, limit, total }),
     };
+  }
+
+  async listFilterFacets(query: EmployeeQueryDto) {
+    const locationCatalogIds = await loadEmployeeListFacetLocationIds(this.prisma);
+    const data = await buildEmployeeListFacets(this.prisma, query, locationCatalogIds);
+    return { data };
   }
 
   async getById(id: string, audit?: EmployeeAuditMeta) {
@@ -412,7 +410,28 @@ export class EmployeesService {
   }
 
   /** Aggregates for employee management dashboard charts (staff list page). */
-  async chartSummary() {
+  async chartSummary(query: EmployeeQueryDto = {}) {
+    const cohortFiltered = hasEmployeeListCohortFilters(query);
+    const { listWhere, wherePersonal, isEmpty } = await buildEmployeeListWhere(
+      this.prisma,
+      query,
+    );
+
+    const emptySummary = {
+      staff: { total: 0, active: 0, inactive: 0 },
+      compliance: { upToDate: 0, needsAttention: 0 },
+      skills: [] as { name: string; value: number; color: string }[],
+      reviews: { reviewed: 0, outstanding: 0 },
+      meta: {
+        cohortTotal: 0,
+        scope: cohortFiltered ? 'filtered' as const : 'organisation' as const,
+      },
+    };
+
+    if (isEmpty) {
+      return { data: emptySummary };
+    }
+
     const [activeStatus, inactiveStatus] = await Promise.all([
       this.prisma.employeeStatus.findFirst({
         where: { deletedAt: null, name: { equals: 'Active', mode: 'insensitive' } },
@@ -422,23 +441,21 @@ export class EmployeesService {
       }),
     ]);
 
-    const employeeBase = { deletedAt: null, personalDetail: { deletedAt: null } };
-
     const [total, activeCount, inactiveCount] = await Promise.all([
-      this.prisma.employee.count({ where: employeeBase }),
+      this.prisma.employee.count({ where: listWhere }),
       activeStatus
         ? this.prisma.employee.count({
             where: {
-              deletedAt: null,
-              personalDetail: { deletedAt: null, statusId: activeStatus.id },
+              ...listWhere,
+              personalDetail: { is: { ...wherePersonal, statusId: activeStatus.id } },
             },
           })
         : Promise.resolve(0),
       inactiveStatus
         ? this.prisma.employee.count({
             where: {
-              deletedAt: null,
-              personalDetail: { deletedAt: null, statusId: inactiveStatus.id },
+              ...listWhere,
+              personalDetail: { is: { ...wherePersonal, statusId: inactiveStatus.id } },
             },
           })
         : Promise.resolve(0),
@@ -446,33 +463,37 @@ export class EmployeesService {
 
     const horizon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    // Use SQL for aggregates so PostgreSQL compares timestamps in-DB. Loading `expiryDate` into
-    // JS Dates can throw Prisma P2023 for values outside the JS Date range (e.g. distant years).
-    const [complianceAgg] = await this.prisma.$queryRaw<
-      { up_to_date: bigint; needs_attention: bigint }[]
-    >(Prisma.sql`
-      SELECT
-        COUNT(*) FILTER (
-          WHERE c."expiryDate" IS NULL OR c."expiryDate" > ${horizon}
-        ) AS up_to_date,
-        COUNT(*) FILTER (
-          WHERE c."expiryDate" IS NOT NULL AND c."expiryDate" <= ${horizon}
-        ) AS needs_attention
-      FROM "employees"."EmployeeCompliance" c
-      WHERE c."deletedAt" IS NULL
-        AND COALESCE(c."isNoLongerRequired", false) = false
-    `);
-    const complianceUpToDate = Number(complianceAgg?.up_to_date ?? 0);
-    const complianceNeedsAttention = Number(complianceAgg?.needs_attention ?? 0);
+    const complianceUpToDate = await this.prisma.employeeCompliance.count({
+      where: {
+        deletedAt: null,
+        isNoLongerRequired: false,
+        OR: [{ expiryDate: null }, { expiryDate: { gt: horizon } }],
+        employee: listWhere,
+      },
+    });
+    const complianceNeedsAttention = await this.prisma.employeeCompliance.count({
+      where: {
+        deletedAt: null,
+        isNoLongerRequired: false,
+        expiryDate: { lte: horizon },
+        employee: listWhere,
+      },
+    });
 
-    type SkillAggRow = { skillTypeId: string | null; cnt: bigint };
-    const skillAggRows = await this.prisma.$queryRaw<SkillAggRow[]>(Prisma.sql`
-      SELECT s."skillTypeId", COUNT(*)::bigint AS cnt
-      FROM "employees"."EmployeeSkill" s
-      WHERE s."deletedAt" IS NULL
-      GROUP BY s."skillTypeId"
-    `);
-    const skillTypeIds = skillAggRows.map(r => r.skillTypeId).filter((id): id is string => id !== null);
+    type SkillAggRow = { skillTypeId: string | null; cnt: number };
+    const skillGroups = await this.prisma.employeeSkill.groupBy({
+      by: ['skillTypeId'],
+      where: { deletedAt: null, employee: listWhere },
+      _count: { _all: true },
+    });
+    const skillAggRows: SkillAggRow[] = skillGroups.map((row) => ({
+      skillTypeId: row.skillTypeId,
+      cnt: row._count._all,
+    }));
+
+    const skillTypeIds = skillAggRows
+      .map((r) => r.skillTypeId)
+      .filter((id): id is string => id !== null);
     const skillTypes =
       skillTypeIds.length > 0
         ? await this.prisma.skillType.findMany({
@@ -480,28 +501,26 @@ export class EmployeesService {
             select: { id: true, name: true },
           })
         : [];
-    const skillNameById = Object.fromEntries(skillTypes.map(t => [t.id, t.name]));
+    const skillNameById = Object.fromEntries(skillTypes.map((t) => [t.id, t.name]));
     const skillsPie = [...skillAggRows]
-      .sort((a, b) => Number(b.cnt) - Number(a.cnt))
+      .sort((a, b) => b.cnt - a.cnt)
       .slice(0, 12)
       .map((g, i) => ({
         name: g.skillTypeId ? skillNameById[g.skillTypeId] ?? 'Unknown' : 'Unspecified',
-        value: Number(g.cnt),
+        value: g.cnt,
         color: `hsl(${(i * 29) % 360}, 58%, 48%)`,
       }));
 
-    type ReviewStatusRow = { status: string | null };
-    const reviewStatusRows = await this.prisma.$queryRaw<ReviewStatusRow[]>(Prisma.sql`
-      SELECT r."status" AS status
-      FROM "employees"."EmployeeReview" r
-      WHERE r."deletedAt" IS NULL
-    `);
+    const reviewStatusRows = await this.prisma.employeeReview.findMany({
+      where: { deletedAt: null, employee: listWhere },
+      select: { status: true },
+    });
     let reviewsReviewed = 0;
     let reviewsOutstanding = 0;
     const doneTokens = ['published', 'complete', 'completed', 'reviewed', 'signed'];
     for (const r of reviewStatusRows) {
       const s = (r.status ?? '').toLowerCase();
-      if (doneTokens.some(t => s.includes(t))) {
+      if (doneTokens.some((t) => s.includes(t))) {
         reviewsReviewed += 1;
       } else {
         reviewsOutstanding += 1;
@@ -523,6 +542,10 @@ export class EmployeesService {
         reviews: {
           reviewed: reviewsReviewed,
           outstanding: reviewsOutstanding,
+        },
+        meta: {
+          cohortTotal: total,
+          scope: cohortFiltered ? 'filtered' : 'organisation',
         },
       },
     };

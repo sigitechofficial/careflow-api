@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -54,4 +55,12 @@ export class UpdateVisitPlanDto {
   @ValidateNested({ each: true })
   @Type(() => VisitPlanSlotDto)
   slots?: VisitPlanSlotDto[];
+
+  @ApiPropertyOptional({
+    description: 'When true on an ACTIVE plan, apply rota cancellations/reschedules for pattern changes',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  applyScheduleImpact?: boolean;
 }
