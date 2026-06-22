@@ -1,6 +1,11 @@
 import { DayOfWeek } from '@prisma/client';
 import type { WorkingPatternCycleConfig } from '../employee-working-patterns/working-pattern-cycle.util';
-import { timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
+import {
+  timeWindowsOverlap,
+  visitTimeFitsWithinPattern,
+  visitPatternTimeMismatch,
+  formatVisitPatternTimeMismatchMessage,
+} from '../employee-working-patterns/working-pattern-time.util';
 
 export type CarerSkillRow = {
   skillTypeId: string | null;
@@ -53,7 +58,7 @@ const CARE_PLAN_SKILL_KEYWORDS: Record<string, string[]> = {
   'Physical Health': ['clinical', 'health'],
 };
 
-export { timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
+export { timeWindowsOverlap, visitTimeFitsWithinPattern } from '../employee-working-patterns/working-pattern-time.util';
 
 export function requiredSkillKeywords(
   carePlanAreas: string[],
@@ -112,25 +117,114 @@ export function matchEmployeeSkills(
   return { matched, missing };
 }
 
-type DayEval = 'ok' | 'unavailable' | 'partial' | 'time_fail';
+export type VisitPlanPatternDayEval = 'ok' | 'unavailable' | 'partial' | 'time_fail';
 
-function evaluatePatternDay(
+export function evaluateVisitPlanPatternDay(
   pattern: CarerPatternRow | undefined,
   plannedStartTime: string,
   plannedEndTime: string,
-): DayEval {
+): VisitPlanPatternDayEval {
   if (!pattern || !pattern.isAvailable) return 'unavailable';
   if (pattern.notes === 'partial') return 'partial';
-  if (!timeWindowsOverlap(plannedStartTime, plannedEndTime, pattern.startTime, pattern.endTime)) {
-    return 'time_fail';
+  if (pattern.startTime && pattern.endTime) {
+    if (
+      !timeWindowsOverlap(
+        plannedStartTime,
+        plannedEndTime,
+        pattern.startTime,
+        pattern.endTime,
+      )
+    ) {
+      return 'time_fail';
+    }
+    if (
+      !visitTimeFitsWithinPattern(
+        plannedStartTime,
+        plannedEndTime,
+        pattern.startTime,
+        pattern.endTime,
+      )
+    ) {
+      return 'partial';
+    }
+    return 'ok';
   }
   return 'ok';
 }
 
-function weekLabel(evalResult: DayEval): string {
+function weekLabel(evalResult: VisitPlanPatternDayEval): string {
   if (evalResult === 'ok') return 'ok';
   if (evalResult === 'partial') return 'partial';
   return 'off';
+}
+
+function appendTimeMismatchMessage(
+  messages: string[],
+  jsDow: number,
+  pattern: CarerPatternRow | undefined,
+  plannedStartTime: string,
+  plannedEndTime: string,
+  weekSuffix = '',
+): void {
+  if (!pattern?.startTime || !pattern?.endTime) return;
+  const mismatch = visitPatternTimeMismatch(
+    plannedStartTime,
+    plannedEndTime,
+    pattern.startTime,
+    pattern.endTime,
+  );
+  if (!mismatch) return;
+  messages.push(
+    formatVisitPatternTimeMismatchMessage(
+      `${DAY_LABEL[jsDow]}${weekSuffix}`,
+      mismatch,
+      pattern.startTime,
+      pattern.endTime,
+    ),
+  );
+}
+
+function recordPartialOverlapTimeNotice(
+  jsDow: number,
+  pattern: CarerPatternRow | undefined,
+  plannedStartTime: string,
+  plannedEndTime: string,
+  timeMismatchDays: number[],
+  timeMismatchMessages: string[],
+  weekSuffix = '',
+): void {
+  if (!pattern?.startTime || !pattern?.endTime) return;
+  if (
+    visitTimeFitsWithinPattern(
+      plannedStartTime,
+      plannedEndTime,
+      pattern.startTime,
+      pattern.endTime,
+    )
+  ) {
+    return;
+  }
+  if (
+    !timeWindowsOverlap(
+      plannedStartTime,
+      plannedEndTime,
+      pattern.startTime,
+      pattern.endTime,
+    )
+  ) {
+    return;
+  }
+  if (!timeMismatchDays.includes(jsDow)) {
+    timeMismatchDays.push(jsDow);
+  }
+  appendTimeMismatchMessage(
+    timeMismatchMessages,
+    jsDow,
+    pattern,
+    plannedStartTime,
+    plannedEndTime,
+    weekSuffix,
+  );
 }
 
 export function evaluateCarerAvailability(
@@ -142,12 +236,17 @@ export function evaluateCarerAvailability(
 ): {
   availableDays: number[];
   unavailableDays: number[];
+  timeMismatchDays: number[];
+  timeMismatchMessages: string[];
   timeWindowOk: boolean;
   summary: string;
 } {
   const cycleWeeks = Math.max(1, cycleConfig?.workingPatternCycleWeeks ?? 1);
   const availableDays: number[] = [];
   const unavailableDays: number[] = [];
+  const patternUnavailableDays: number[] = [];
+  const timeMismatchDays: number[] = [];
+  const timeMismatchMessages: string[] = [];
   let timeWindowOk = true;
   const fortnightNotes: string[] = [];
 
@@ -159,29 +258,100 @@ export function evaluateCarerAvailability(
       const pattern =
         patterns.find((p) => (p.weekInCycle ?? 1) === 1 && p.dayOfWeek === prismaDow) ??
         patterns.find((p) => p.dayOfWeek === prismaDow);
-      const evalResult = evaluatePatternDay(pattern, plannedStartTime, plannedEndTime);
+      const evalResult = evaluateVisitPlanPatternDay(pattern, plannedStartTime, plannedEndTime);
       if (evalResult === 'ok' || evalResult === 'partial') {
         availableDays.push(jsDow);
+        if (evalResult === 'partial') {
+          timeWindowOk = false;
+          recordPartialOverlapTimeNotice(
+            jsDow,
+            pattern,
+            plannedStartTime,
+            plannedEndTime,
+            timeMismatchDays,
+            timeMismatchMessages,
+          );
+        }
+      } else if (evalResult === 'time_fail') {
+        unavailableDays.push(jsDow);
+        timeMismatchDays.push(jsDow);
+        timeWindowOk = false;
+        appendTimeMismatchMessage(
+          timeMismatchMessages,
+          jsDow,
+          pattern,
+          plannedStartTime,
+          plannedEndTime,
+        );
       } else {
         unavailableDays.push(jsDow);
-        if (evalResult === 'time_fail') timeWindowOk = false;
+        patternUnavailableDays.push(jsDow);
       }
       continue;
     }
 
     const w1 = patterns.find((p) => p.weekInCycle === 1 && p.dayOfWeek === prismaDow);
     const w2 = patterns.find((p) => p.weekInCycle === 2 && p.dayOfWeek === prismaDow);
-    const w1Eval = evaluatePatternDay(w1, plannedStartTime, plannedEndTime);
-    const w2Eval = evaluatePatternDay(w2, plannedStartTime, plannedEndTime);
+    const w1Eval = evaluateVisitPlanPatternDay(w1, plannedStartTime, plannedEndTime);
+    const w2Eval = evaluateVisitPlanPatternDay(w2, plannedStartTime, plannedEndTime);
 
     const w1Ok = w1Eval === 'ok' || w1Eval === 'partial';
     const w2Ok = w2Eval === 'ok' || w2Eval === 'partial';
 
     if (w1Ok && w2Ok) {
       availableDays.push(jsDow);
+      if (w1Eval === 'partial') {
+        timeWindowOk = false;
+        recordPartialOverlapTimeNotice(
+          jsDow,
+          w1,
+          plannedStartTime,
+          plannedEndTime,
+          timeMismatchDays,
+          timeMismatchMessages,
+          ' (W1)',
+        );
+      }
+      if (w2Eval === 'partial') {
+        timeWindowOk = false;
+        recordPartialOverlapTimeNotice(
+          jsDow,
+          w2,
+          plannedStartTime,
+          plannedEndTime,
+          timeMismatchDays,
+          timeMismatchMessages,
+          ' (W2)',
+        );
+      }
     } else {
       unavailableDays.push(jsDow);
-      if (w1Eval === 'time_fail' || w2Eval === 'time_fail') timeWindowOk = false;
+      if (w1Eval === 'time_fail' || w2Eval === 'time_fail') {
+        timeMismatchDays.push(jsDow);
+        timeWindowOk = false;
+        if (w1Eval === 'time_fail') {
+          appendTimeMismatchMessage(
+            timeMismatchMessages,
+            jsDow,
+            w1,
+            plannedStartTime,
+            plannedEndTime,
+            ' (W1)',
+          );
+        }
+        if (w2Eval === 'time_fail') {
+          appendTimeMismatchMessage(
+            timeMismatchMessages,
+            jsDow,
+            w2,
+            plannedStartTime,
+            plannedEndTime,
+            ' (W2)',
+          );
+        }
+      } else {
+        patternUnavailableDays.push(jsDow);
+      }
       if (w1Eval !== w2Eval) {
         fortnightNotes.push(`${dayLabel}: W1 ${weekLabel(w1Eval)}, W2 ${weekLabel(w2Eval)}`);
       }
@@ -192,14 +362,14 @@ export function evaluateCarerAvailability(
   if (availableDays.length) {
     parts.push(`Available ${availableDays.map((d) => DAY_LABEL[d]).join(', ')}`);
   }
-  if (unavailableDays.length) {
-    parts.push(`Unavailable ${unavailableDays.map((d) => DAY_LABEL[d]).join(', ')}`);
+  if (patternUnavailableDays.length) {
+    parts.push(`Unavailable ${patternUnavailableDays.map((d) => DAY_LABEL[d]).join(', ')}`);
   }
   if (fortnightNotes.length) {
     parts.push(fortnightNotes.join('; '));
   }
-  if (!timeWindowOk) {
-    parts.push('Visit time outside working hours on some days');
+  if (timeMismatchMessages.length) {
+    parts.push(...timeMismatchMessages);
   }
   if (!slotDaysOfWeek.length) {
     parts.push('No weekdays selected on visit');
@@ -208,6 +378,8 @@ export function evaluateCarerAvailability(
   return {
     availableDays,
     unavailableDays,
+    timeMismatchDays,
+    timeMismatchMessages,
     timeWindowOk,
     summary: parts.join(' · ') || 'No pattern data',
   };
@@ -236,6 +408,53 @@ export function visitPlanSuggestJobWindow(
   return { jobStart, jobEnd };
 }
 
+/** How far ahead visit-plan carer suggest scans the rota for double bookings. */
+export const VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS = 8;
+
+export function visitPlanPatternRotaLookaheadEnd(from: Date): Date {
+  const end = new Date(from);
+  end.setUTCHours(0, 0, 0, 0);
+  end.setUTCDate(end.getUTCDate() + VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS * 7);
+  return end;
+}
+
+export function visitTimesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+  return aStart.getTime() < bEnd.getTime() && bStart.getTime() < aEnd.getTime();
+}
+
+export function scheduledJobEndTime(jobStart: Date, jobEnd: Date | null): Date {
+  if (jobEnd && jobEnd.getTime() > jobStart.getTime()) return jobEnd;
+  return new Date(jobStart.getTime() + 60 * 60 * 1000);
+}
+
+/** True when an existing scheduled job overlaps this visit-plan slot on a matching weekday. */
+export function scheduledJobOverlapsVisitPlanSlot(input: {
+  jobStart: Date;
+  jobEnd: Date | null;
+  slotDaysOfWeek: Iterable<number>;
+  plannedStartTime: string;
+  plannedEndTime: string;
+}): boolean {
+  const slotDays = new Set(input.slotDaysOfWeek);
+  if (!slotDays.size) return false;
+  if (!slotDays.has(input.jobStart.getUTCDay())) return false;
+
+  const slotWindow = visitPlanSuggestJobWindow(
+    input.jobStart.toISOString().slice(0, 10),
+    input.plannedStartTime,
+    input.plannedEndTime,
+  );
+  if (!slotWindow) return false;
+
+  const existingEnd = scheduledJobEndTime(input.jobStart, input.jobEnd);
+  return visitTimesOverlap(
+    input.jobStart,
+    existingEnd,
+    slotWindow.jobStart,
+    slotWindow.jobEnd,
+  );
+}
+
 export function carerFitScore(input: {
   isBlocked: boolean;
   hasRotaConflict?: boolean;
@@ -245,6 +464,7 @@ export function carerFitScore(input: {
   requiredSkillCount: number;
   complianceIssues: number;
   isPreferred: boolean;
+  timeOutsidePattern?: boolean;
 }): 'good' | 'partial' | 'poor' {
   if (input.isBlocked || input.hasRotaConflict) return 'poor';
   if (input.slotDaysCount > 0 && input.unavailableDays.length >= input.slotDaysCount) return 'poor';
@@ -252,7 +472,9 @@ export function carerFitScore(input: {
     if (input.missingSkills.length >= input.requiredSkillCount) return 'poor';
     return 'partial';
   }
-  if (input.unavailableDays.length > 0 || input.complianceIssues > 0) return 'partial';
+  if (input.unavailableDays.length > 0 || input.complianceIssues > 0 || input.timeOutsidePattern) {
+    return 'partial';
+  }
   if (input.isPreferred) return 'good';
   if (input.slotDaysCount > 0 && input.unavailableDays.length === 0) return 'good';
   return 'partial';

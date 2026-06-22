@@ -63,4 +63,11 @@ export class SuggestVisitPlanCarersDto {
   @IsOptional()
   @IsUUID('4')
   excludeScheduledJobId?: string;
+
+  /** Always evaluate these employees (e.g. already assigned on the visit plan). */
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  includeEmployeeIds?: string[];
 }

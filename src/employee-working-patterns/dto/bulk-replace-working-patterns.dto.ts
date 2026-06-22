@@ -66,4 +66,20 @@ export class BulkReplaceWorkingPatternsDto {
   @ValidateNested({ each: true })
   @Type(() => BulkWorkingPatternWeekDto)
   weeks!: BulkWorkingPatternWeekDto[];
+
+  @ApiPropertyOptional({
+    description: 'When true, apply rota assignment changes after saving the pattern',
+  })
+  @IsOptional()
+  @IsBoolean()
+  syncAssignments?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'When syncAssignments is true: true = unassign future visits outside the new pattern; false = keep all assignments',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  respectWorkingPatternOnSync?: boolean;
 }

@@ -6,7 +6,13 @@ import {
   resolvePatternForDateTime,
   type WorkingPatternRow,
 } from '../employee-working-patterns/working-pattern-cycle.util';
-import { hmFromJobDate, timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
+import {
+  hmFromJobDate,
+  visitTimeFitsWithinPattern,
+  visitPatternTimeMismatch,
+  formatVisitPatternTimeMismatchMessage,
+} from '../employee-working-patterns/working-pattern-time.util';
+import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import {
   allocationRuleWarning,
@@ -83,6 +89,16 @@ export class AllocationChecksService {
 
   hasBlockingWarnings(warnings: AllocationWarning[]): boolean {
     return warnings.some((w) => w.severity === 'blocking');
+  }
+
+  /** Blocking warnings that must never be bypassed with force=true (e.g. rota double-booking). */
+  hasNonOverridableBlockingWarnings(warnings: AllocationWarning[]): boolean {
+    return warnings.some(
+      (w) =>
+        w.severity === 'blocking' &&
+        (w.type === AllocationWarningType.TIME_CONFLICT ||
+          w.type === AllocationWarningType.BLOCKED_CARER),
+    );
   }
 
   async checkEmployeeAvailability(
@@ -169,11 +185,26 @@ export class AllocationChecksService {
       const jobStartHm = hmFromJobDate(ctx.jobStart);
       const jobEndHm = hmFromJobDate(ctx.jobEnd);
       if (
-        !timeWindowsOverlap(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)
+        !visitTimeFitsWithinPattern(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)
       ) {
+        const mismatch = visitPatternTimeMismatch(
+          jobStartHm,
+          jobEndHm,
+          pattern.startTime,
+          pattern.endTime,
+        );
+        const message =
+          mismatch && pattern.startTime && pattern.endTime
+            ? formatVisitPatternTimeMismatchMessage(
+                dowLabel,
+                mismatch,
+                pattern.startTime,
+                pattern.endTime,
+              )
+            : 'Visit is outside employee working hours';
         push({
           type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-          message: 'Visit is outside employee working hours',
+          message,
           severity: 'warning',
         });
       }
@@ -262,10 +293,9 @@ export class AllocationChecksService {
       take: 5,
     });
     if (overlapping.length) {
-      const names = overlapping.map((o) => o.scheduledJob.jobName).join(', ');
       push({
         type: AllocationWarningType.TIME_CONFLICT,
-        message: `Employee already allocated to overlapping job(s): ${names}`,
+        message: CARER_ROTA_CONFLICT_MESSAGE,
         severity: 'blocking',
       });
     }

@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsNumber,
@@ -95,6 +96,12 @@ export class UpdateEmployeeEmploymentDto {
   @IsUUID()
   baseLocationId?: string;
 
+  @ApiPropertyOptional({ description: 'Multiple base/home sites for this employee' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  baseLocationIds?: string[];
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
@@ -141,6 +148,36 @@ export class UpdateEmployeeEmploymentDto {
   @IsNumber()
   @Min(0)
   minimumWeeklyHours?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Per-employee approved weekly hours cap above immigration status default. Requires weeklyHoursCapOverrideReason.',
+    nullable: true,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(168)
+  weeklyHoursCapOverride?: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Documented reason for weekly hours cap override',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  weeklyHoursCapOverrideReason?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'When the hours cap override expires (optional)',
+    nullable: true,
+  })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  weeklyHoursCapOverrideExpiresAt?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()

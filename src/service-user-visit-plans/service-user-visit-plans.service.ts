@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocationStatus,
   EmployeeComplianceStatus,
@@ -50,14 +50,25 @@ import {
   evaluateCarerAvailability,
   matchEmployeeSkills,
   requiredSkillKeywords,
+  scheduledJobOverlapsVisitPlanSlot,
+  visitPlanPatternRotaLookaheadEnd,
   visitPlanSuggestJobWindow,
 } from './visit-plan-carer-suggest.util';
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
 import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
-import { syncVisitPlanSlotCarersToScheduledJobs, visitPlanCarerEmployeeIds, visitPlanCarerSyncFromDateTime, loadEmployeePatternContexts, targetEmployeeIdsForVisit, countVisitsSkippedIfRespecting } from './visit-plan-slot-carer-sync.util';
+import { CARER_ROTA_CONFLICT_MESSAGE } from './visit-carer-rota-conflict.util';
+import {
+  syncVisitPlanSlotCarersToScheduledJobs,
+  visitPlanCarerEmployeeIds,
+  visitPlanCarerSyncFromDateTime,
+  loadEmployeePatternContexts,
+  resolveVisitCarerAssignment,
+  countVisitsSkippedIfRespecting,
+} from './visit-plan-slot-carer-sync.util';
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
+import { clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
 import { resolveAssignedEmployeeIds, slotAssignedEmployeeIds } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
@@ -494,20 +505,33 @@ export class ServiceUserVisitPlansService {
         : [];
     const skillKeywords = requiredSkillKeywords([], careForms.map((f) => f.name));
 
-    const employees = await this.prisma.employee.findMany({
-      where: { deletedAt: null, isActive: true },
-      include: {
-        personalDetail: true,
-        employment: { include: { role: true, jobTitle: true } },
-        workingPatterns: { where: { deletedAt: null, isActive: true } },
-        skills: {
-          where: { deletedAt: null, isActive: true },
-          include: { skillType: { select: { id: true, name: true } } },
-        },
+    const employeeInclude = {
+      personalDetail: true,
+      employment: { include: { role: true, jobTitle: true } },
+      workingPatterns: { where: { deletedAt: null, isActive: true } },
+      skills: {
+        where: { deletedAt: null, isActive: true },
+        include: { skillType: { select: { id: true, name: true } } },
       },
+    } as const;
+
+    const baseEmployees = await this.prisma.employee.findMany({
+      where: { deletedAt: null, isActive: true },
+      include: employeeInclude,
       orderBy: { createdAt: 'asc' },
       take: 200,
     });
+
+    const includeIds = [...new Set((dto.includeEmployeeIds ?? []).filter((id) => id.trim()))];
+    const knownIds = new Set(baseEmployees.map((row) => row.id));
+    const missingIds = includeIds.filter((id) => !knownIds.has(id));
+    const extraEmployees = missingIds.length
+      ? await this.prisma.employee.findMany({
+          where: { id: { in: missingIds }, deletedAt: null, isActive: true },
+          include: employeeInclude,
+        })
+      : [];
+    const employees = [...baseEmployees, ...extraEmployees];
 
     const slotDays = [...new Set(dto.daysOfWeek)].sort();
     const rotaConflictByEmployee = await this.loadRotaConflictJobNamesByEmployee(
@@ -570,9 +594,14 @@ export class ServiceUserVisitPlansService {
       if (isBlocked) warnings.push('Blocked for this service user');
       if (isPreferred) warnings.push('Preferred carer');
       if (hasRotaConflict) {
-        warnings.push(`Already booked: ${rotaConflictJobs.join(', ')}`);
+        warnings.push(CARER_ROTA_CONFLICT_MESSAGE);
       }
       if (availability.unavailableDays.length) warnings.push(availability.summary);
+      if (availability.timeMismatchMessages.length) {
+        warnings.push(...availability.timeMismatchMessages);
+      } else if (!availability.timeWindowOk) {
+        warnings.push('Visit time outside working hours on some days');
+      }
       if (skills.missing.length) warnings.push(`Missing skills: ${skills.missing.join(', ')}`);
       if (complianceIssues > 0) warnings.push(`${complianceIssues} compliance item(s) need attention`);
 
@@ -585,6 +614,7 @@ export class ServiceUserVisitPlansService {
         requiredSkillCount: skillKeywords.length,
         complianceIssues,
         isPreferred,
+        timeOutsidePattern: !availability.timeWindowOk,
       });
 
       candidates.push({
@@ -628,21 +658,66 @@ export class ServiceUserVisitPlansService {
     dto: SuggestVisitPlanCarersDto,
   ): Promise<Map<string, string[]>> {
     const conflicts = new Map<string, string[]>();
-    if (!dto.scheduledDate || employeeIds.length === 0) return conflicts;
+    if (!employeeIds.length) return conflicts;
 
-    const window = visitPlanSuggestJobWindow(
-      dto.scheduledDate,
-      dto.plannedStartTime,
-      dto.plannedEndTime,
-    );
-    if (!window) return conflicts;
-
-    const { jobStart, jobEnd } = window;
     const activeStatuses: AllocationStatus[] = [
       AllocationStatus.PENDING_CONFIRMATION,
       AllocationStatus.ALLOCATED,
       AllocationStatus.CONFIRMED,
     ];
+
+    if (dto.scheduledDate) {
+      const window = visitPlanSuggestJobWindow(
+        dto.scheduledDate,
+        dto.plannedStartTime,
+        dto.plannedEndTime,
+      );
+      if (!window) return conflicts;
+
+      const { jobStart, jobEnd } = window;
+      const rows = await this.prisma.jobAllocation.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          deletedAt: null,
+          isActive: true,
+          status: { in: activeStatuses },
+          ...(dto.excludeScheduledJobId
+            ? { scheduledJobId: { not: dto.excludeScheduledJobId } }
+            : {}),
+          scheduledJob: {
+            deletedAt: null,
+            isActive: true,
+            AND: [
+              { scheduledStartDateTime: { lt: jobEnd } },
+              {
+                OR: [{ scheduledEndDateTime: { gt: jobStart } }, { scheduledEndDateTime: null }],
+              },
+            ],
+          },
+        },
+        select: {
+          employeeId: true,
+          scheduledJob: { select: { jobName: true } },
+        },
+        take: 500,
+      });
+
+      for (const row of rows) {
+        const jobName = row.scheduledJob.jobName;
+        const list = conflicts.get(row.employeeId) ?? [];
+        if (!list.includes(jobName)) list.push(jobName);
+        conflicts.set(row.employeeId, list);
+      }
+
+      return conflicts;
+    }
+
+    const slotDays = [...new Set(dto.daysOfWeek ?? [])];
+    if (!slotDays.length) return conflicts;
+
+    const rangeStart = new Date();
+    rangeStart.setUTCHours(0, 0, 0, 0);
+    const rangeEnd = visitPlanPatternRotaLookaheadEnd(rangeStart);
 
     const rows = await this.prisma.jobAllocation.findMany({
       where: {
@@ -656,25 +731,38 @@ export class ServiceUserVisitPlansService {
         scheduledJob: {
           deletedAt: null,
           isActive: true,
-          AND: [
-            { scheduledStartDateTime: { lt: jobEnd } },
-            {
-              OR: [{ scheduledEndDateTime: { gt: jobStart } }, { scheduledEndDateTime: null }],
-            },
-          ],
+          scheduledStartDateTime: { gte: rangeStart, lt: rangeEnd },
         },
       },
       select: {
         employeeId: true,
-        scheduledJob: { select: { jobName: true } },
+        scheduledJob: {
+          select: {
+            jobName: true,
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
+          },
+        },
       },
       take: 500,
     });
 
     for (const row of rows) {
-      const jobName = row.scheduledJob.jobName;
+      const job = row.scheduledJob;
+      if (
+        !scheduledJobOverlapsVisitPlanSlot({
+          jobStart: job.scheduledStartDateTime,
+          jobEnd: job.scheduledEndDateTime,
+          slotDaysOfWeek: slotDays,
+          plannedStartTime: dto.plannedStartTime,
+          plannedEndTime: dto.plannedEndTime,
+        })
+      ) {
+        continue;
+      }
+
       const list = conflicts.get(row.employeeId) ?? [];
-      if (!list.includes(jobName)) list.push(jobName);
+      if (!list.includes(job.jobName)) list.push(job.jobName);
       conflicts.set(row.employeeId, list);
     }
 
@@ -1340,6 +1428,24 @@ export class ServiceUserVisitPlansService {
     };
   }
 
+  async clearAllVisitPlansAndRota(dryRun: boolean) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Clear visit plans and rota is not available in production');
+    }
+
+    const result = await clearVisitPlansAndRota(this.prisma, { dryRun });
+    return {
+      data: {
+        dryRun,
+        counts: result.counts,
+        deleted: result.deleted ?? null,
+      },
+      message: dryRun
+        ? 'Dry run — visit plans and rota counts only'
+        : 'Visit plans and rota cleared for all service users',
+    };
+  }
+
   private async loadBankHolidayDateKeys(from: Date, to: Date, backfillDays: number): Promise<Set<string>> {
     const rangeStart = new Date(from);
     if (backfillDays > 0) {
@@ -1964,6 +2070,10 @@ export class ServiceUserVisitPlansService {
 
     let visitsCreated = 0;
     let visitsSkipped = 0;
+    let visitsWithPatternWarnings = 0;
+    const patternWarnings: string[] = [];
+    let visitsWithRotaConflicts = 0;
+    const rotaConflictWarnings: string[] = [];
 
     const respectWorkingPattern =
       dto.respectWorkingPatternOnSync ?? plan.respectWorkingPatternOnSync !== false;
@@ -1985,7 +2095,7 @@ export class ServiceUserVisitPlansService {
 
     await this.prisma.$transaction(async (tx) => {
       let patternByEmployee = new Map<string, EmployeePatternContext>();
-      if (assignCarers && respectWorkingPattern) {
+      if (assignCarers) {
         const allEmployeeIds = [
           ...new Set(
             enabledSlots.flatMap((slot) =>
@@ -2058,18 +2168,42 @@ export class ServiceUserVisitPlansService {
             });
             if (liveJob) {
               if (assignCarers) {
+                const syncEmployeeIds = visitPlanCarerEmployeeIds(
+                  carerWindows,
+                  slotAssignedEmployeeIds(slot),
+                  requiredCarers,
+                );
                 await syncVisitPlanSlotCarersToScheduledJobs(tx, {
                   visitPlanSlotId: slot.id,
-                  assignedEmployeeIds: visitPlanCarerEmployeeIds(
-                    carerWindows,
-                    slotAssignedEmployeeIds(slot),
-                    requiredCarers,
-                  ),
+                  assignedEmployeeIds: syncEmployeeIds,
                   requiredCarers,
                   userId,
                   scheduledVisitId: existingVisit.id,
                   respectWorkingPattern,
                 });
+                const resolved = await resolveVisitCarerAssignment(
+                  tx,
+                  syncEmployeeIds,
+                  {
+                    scheduledStartDateTime: existingVisit.scheduledStartDateTime,
+                    scheduledEndDateTime: existingVisit.scheduledEndDateTime,
+                    requiredCarers: existingVisit.requiredCarers,
+                  },
+                  requiredCarers,
+                  {
+                    respectWorkingPattern,
+                    patternByEmployee,
+                    excludeScheduledJobId: liveJob.id,
+                  },
+                );
+                if (resolved.patternWarnings.length) {
+                  visitsWithPatternWarnings += 1;
+                  patternWarnings.push(...resolved.patternWarnings);
+                }
+                if (resolved.rotaConflictWarnings.length) {
+                  visitsWithRotaConflicts += 1;
+                  rotaConflictWarnings.push(...resolved.rotaConflictWarnings);
+                }
               }
               visitsSkipped += 1;
               continue;
@@ -2197,16 +2331,26 @@ export class ServiceUserVisitPlansService {
               scheduledEndDateTime: end,
               requiredCarers,
             };
-            const allocEmployeeIds = respectWorkingPattern
-              ? targetEmployeeIdsForVisit(
-                  employeeIds,
-                  visitRow,
-                  requiredCarers,
-                  true,
-                  patternByEmployee,
-                )
-              : employeeIds;
-            const allocations = allocEmployeeIds.map((employeeId, index) => ({
+            const resolved = await resolveVisitCarerAssignment(
+              tx,
+              employeeIds,
+              visitRow,
+              requiredCarers,
+              {
+                respectWorkingPattern,
+                patternByEmployee,
+                excludeScheduledJobId: job.id,
+              },
+            );
+            if (resolved.patternWarnings.length) {
+              visitsWithPatternWarnings += 1;
+              patternWarnings.push(...resolved.patternWarnings);
+            }
+            if (resolved.rotaConflictWarnings.length) {
+              visitsWithRotaConflicts += 1;
+              rotaConflictWarnings.push(...resolved.rotaConflictWarnings);
+            }
+            const allocations = resolved.employeeIds.map((employeeId, index) => ({
               employeeId,
               start,
               end,
@@ -2289,6 +2433,7 @@ export class ServiceUserVisitPlansService {
           backfillDays,
           visitsCreated,
           visitsSkipped,
+          visitsWithPatternWarnings,
         },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
@@ -2297,7 +2442,17 @@ export class ServiceUserVisitPlansService {
 
     return {
       message: 'Schedule generated from visit plan',
-      data: { visitsCreated, visitsSkipped, fromDate: dto.fromDate, toDate: dto.toDate, backfillDays },
+      data: {
+        visitsCreated,
+        visitsSkipped,
+        visitsWithPatternWarnings,
+        visitsWithRotaConflicts,
+        patternWarnings: [...new Set(patternWarnings)],
+        rotaConflictWarnings: [...new Set(rotaConflictWarnings)],
+        fromDate: dto.fromDate,
+        toDate: dto.toDate,
+        backfillDays,
+      },
     };
   }
 

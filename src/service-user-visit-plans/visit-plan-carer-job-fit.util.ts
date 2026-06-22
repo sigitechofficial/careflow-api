@@ -4,10 +4,11 @@ import {
   type WorkingPatternCycleConfig,
   type WorkingPatternRow,
 } from '../employee-working-patterns/working-pattern-cycle.util';
-import { hmFromJobDate, timeWindowsOverlap } from '../employee-working-patterns/working-pattern-time.util';
+import { hmFromJobDate } from '../employee-working-patterns/working-pattern-time.util';
 import {
   DAY_LABEL,
   evaluateCarerAvailability,
+  evaluateVisitPlanPatternDay,
   type CarerPatternRow,
 } from './visit-plan-carer-suggest.util';
 
@@ -18,6 +19,7 @@ export type CarerPatternConflict = {
   slotLabel: string;
   unavailableDayLabels: string[];
   timeOutsidePattern: boolean;
+  timeMismatchMessages: string[];
   summary: string;
 };
 
@@ -51,19 +53,7 @@ function evaluatePatternDay(
   plannedStartTime: string,
   plannedEndTime: string,
 ): DayEval {
-  if (!pattern || !pattern.isAvailable) return 'unavailable';
-  if (pattern.notes === 'partial') return 'partial';
-  if (
-    !timeWindowsOverlap(
-      plannedStartTime,
-      plannedEndTime,
-      pattern.startTime,
-      pattern.endTime,
-    )
-  ) {
-    return 'time_fail';
-  }
-  return 'ok';
+  return evaluateVisitPlanPatternDay(pattern, plannedStartTime, plannedEndTime);
 }
 
 function toWorkingPatternRows(patterns: CarerPatternRow[]): WorkingPatternRow[] {
@@ -180,21 +170,33 @@ export function collectCarerPatternConflicts(
         employee.cycleConfig,
       );
 
-      const unavailableOnAssignment = row.days.filter((day) =>
-        availability.unavailableDays.includes(day),
+      const unavailableOnAssignment = row.days.filter(
+        (day) =>
+          availability.unavailableDays.includes(day) &&
+          !availability.timeMismatchDays.includes(day),
       );
       const hasUnavailableDays = unavailableOnAssignment.length > 0;
-      const timeOutside = !availability.timeWindowOk;
+      const timeOutside = row.days.some(
+        (day) =>
+          availability.unavailableDays.includes(day) &&
+          availability.timeMismatchDays.includes(day),
+      );
 
       if (!hasUnavailableDays && !timeOutside) continue;
 
       const unavailableDayLabels = unavailableOnAssignment.map((d) => DAY_LABEL[d]);
+      const timeMismatchMessages =
+        availability.timeMismatchMessages.length > 0
+          ? availability.timeMismatchMessages
+          : timeOutside
+            ? ['Visit time outside working hours on some days']
+            : [];
       const parts: string[] = [];
       if (unavailableDayLabels.length) {
         parts.push(`Not available on ${unavailableDayLabels.join(', ')}`);
       }
-      if (timeOutside) {
-        parts.push('Visit time outside working hours on some days');
+      if (timeMismatchMessages.length) {
+        parts.push(...timeMismatchMessages);
       }
 
       conflicts.push({
@@ -204,6 +206,7 @@ export function collectCarerPatternConflicts(
         slotLabel: slot.slotLabel,
         unavailableDayLabels,
         timeOutsidePattern: timeOutside,
+        timeMismatchMessages,
         summary: parts.join(' · ') || availability.summary,
       });
     }

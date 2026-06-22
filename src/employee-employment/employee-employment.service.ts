@@ -31,6 +31,9 @@ export class EmployeeEmploymentService {
         baseLocation: true,
         location: true,
         leavingReason: true,
+        floorLocations: {
+          include: { location: true },
+        },
       },
     });
     if (!employment) throw new NotFoundException('Employment details not found');
@@ -57,6 +60,8 @@ export class EmployeeEmploymentService {
     });
     if (!exists) throw new NotFoundException('Employee not found');
 
+    const { baseLocationIds, ...employmentScalars } = dto
+
     const agencyClear =
       dto.isAgencyStaff === false
         ? {
@@ -75,17 +80,41 @@ export class EmployeeEmploymentService {
       const employment = await tx.employeeEmployment.upsert({
         where: { employeeId },
         update: {
-          ...dto,
+          ...employmentScalars,
           ...agencyClear,
           updatedById: userId,
         },
         create: {
           employeeId,
-          ...dto,
+          ...employmentScalars,
           ...agencyClear,
           createdById: userId,
         },
       });
+
+      if (baseLocationIds !== undefined) {
+        const floorIds = [...baseLocationIds];
+        const primaryLocationId = employmentScalars.locationId ?? employment.locationId ?? null;
+        if (primaryLocationId && !floorIds.includes(primaryLocationId)) {
+          floorIds.unshift(primaryLocationId);
+        }
+
+        await tx.employeeEmploymentFloorLocation.deleteMany({
+          where: { employmentId: employment.id },
+        });
+
+        const extraFloorIds = floorIds.filter((id) => id !== primaryLocationId);
+        if (extraFloorIds.length > 0) {
+          await tx.employeeEmploymentFloorLocation.createMany({
+            data: extraFloorIds.map((locationId) => ({
+              employmentId: employment.id,
+              locationId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
       const oldS = auditSnapshot(before);
       const newS = auditSnapshot(employment);
       await this.audit.logAudit({

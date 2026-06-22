@@ -3,6 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BulkReplaceWorkingPatternsDto } from './dto/bulk-replace-working-patterns.dto';
 import { CreateWorkingPatternDto } from './dto/create-working-pattern.dto';
 import { UpdateWorkingPatternDto } from './dto/update-working-pattern.dto';
+import {
+  previewEmployeeWorkingPatternVisitSlotImpacts,
+  patternContextFromBulkDto,
+} from './employee-working-pattern-impact.util';
+import {
+  countScheduledVisitsToUnassignForPattern,
+  syncEmployeeJobAllocationsAfterPatternChange,
+} from './employee-working-pattern-assignment-sync.util';
 import { parseIsoDateOnly } from './working-pattern-cycle.util';
 
 @Injectable()
@@ -104,6 +112,7 @@ export class EmployeeWorkingPatternsService {
     }
 
     const now = new Date();
+    let assignmentSync: { visitsUpdated: number; allocationsRemoved: number } | null = null;
     const created = await this.prisma.$transaction(async (tx) => {
       await tx.employeeWorkingPattern.updateMany({
         where: { employeeId, deletedAt: null },
@@ -148,10 +157,41 @@ export class EmployeeWorkingPatternsService {
         });
         rows.push(row);
       }
+
+      if (dto.syncAssignments) {
+        assignmentSync = await syncEmployeeJobAllocationsAfterPatternChange(tx, {
+          employeeId,
+          userId,
+          respectWorkingPattern: dto.respectWorkingPatternOnSync !== false,
+        });
+      }
+
       return rows;
     });
 
-    return { message: 'Working patterns replaced', data: created };
+    return {
+      message: 'Working patterns replaced',
+      data: created,
+      assignmentSync,
+    };
+  }
+
+  async previewImpact(employeeId: string, dto: BulkReplaceWorkingPatternsDto) {
+    await this.ensureEmployee(employeeId);
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      include: { personalDetail: true, employment: true },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const visitSlots = await previewEmployeeWorkingPatternVisitSlotImpacts(this.prisma, employeeId, dto);
+    const proposedContext = patternContextFromBulkDto(employee, dto);
+    const scheduledVisitsUnassigned =
+      dto.syncAssignments && dto.respectWorkingPatternOnSync !== false
+        ? await countScheduledVisitsToUnassignForPattern(this.prisma, employeeId, proposedContext)
+        : 0;
+
+    return { data: { visitSlots, scheduledVisitsUnassigned } };
   }
 
   private async ensureEmployee(employeeId: string) {

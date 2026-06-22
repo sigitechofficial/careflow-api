@@ -114,6 +114,9 @@ export class EmployeesService {
             baseLocation: true,
             location: true,
             leavingReason: true,
+            floorLocations: {
+              include: { location: true },
+            },
           },
         },
       },

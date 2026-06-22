@@ -13,6 +13,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { ensureActiveEmployee } from '../scheduling/scheduling-validation.util';
 import { AllocationChecksService } from './allocation-checks.service';
+import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
 import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
@@ -195,6 +196,14 @@ export class JobAllocationsService {
       jobEnd: end,
       jobMetadata: job.metadata,
     });
+
+    if (this.checks.hasNonOverridableBlockingWarnings(warnings)) {
+      throw new BadRequestException({
+        message: warnings.find((w) => w.severity === 'blocking')?.message ?? CARER_ROTA_CONFLICT_MESSAGE,
+        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        requiresConfirmation: false,
+      });
+    }
 
     const hasBlocking = this.checks.hasBlockingWarnings(warnings);
     if (hasBlocking && !dto.force) {

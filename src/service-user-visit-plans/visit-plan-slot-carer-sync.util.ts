@@ -9,6 +9,22 @@ import {
   isEmployeeAvailableForVisit,
   type EmployeePatternContext,
 } from './visit-plan-carer-job-fit.util';
+import {
+  resolvePatternForDateTime,
+  type WorkingPatternRow,
+} from '../employee-working-patterns/working-pattern-cycle.util';
+import {
+  hmFromJobDate,
+  visitPatternTimeMismatch,
+  formatVisitPatternTimeMismatchMessage,
+} from '../employee-working-patterns/working-pattern-time.util';
+import {
+  findRotaConflictsByEmployee,
+  filterEmployeeIdsWithoutRotaConflict,
+  visitWindowFromSchedule,
+  CARER_ROTA_CONFLICT_MESSAGE,
+} from './visit-carer-rota-conflict.util';
+import { DAY_LABEL, type CarerPatternRow } from './visit-plan-carer-suggest.util';
 
 type VisitPlanSlotCarerSyncParams = {
   scheduledJobId: string;
@@ -27,7 +43,7 @@ const SYNCABLE_VISIT_STATUSES: ScheduledVisitStatus[] = [
   ScheduledVisitStatus.NEEDS_ATTENTION,
 ];
 
-async function syncJobAllocationStatus(
+export async function syncJobAllocationStatus(
   tx: Prisma.TransactionClient,
   scheduledJobId: string,
   userId: string,
@@ -91,7 +107,7 @@ export type SyncVisitPlanSlotCarersParams = {
   scheduledVisitId?: string;
   /** Lower bound for bulk sync; ignored when `scheduledVisitId` is set. Defaults to start of today (UTC). */
   fromDateTime?: Date;
-  /** When true (default), skip allocating carers on visits outside their working pattern. */
+  /** When true (default), only assign carers on days/times that match their working pattern. */
   respectWorkingPattern?: boolean;
 };
 
@@ -119,27 +135,150 @@ function visitEndDateTime(start: Date, end: Date | null): Date {
   return new Date(start.getTime() + 60 * 60 * 1000);
 }
 
+function toWorkingPatternRows(patterns: CarerPatternRow[]): WorkingPatternRow[] {
+  return patterns.map((p) => ({
+    weekInCycle: p.weekInCycle ?? 1,
+    dayOfWeek: p.dayOfWeek,
+    startTime: p.startTime,
+    endTime: p.endTime,
+    isAvailable: p.isAvailable,
+    notes: p.notes,
+  }));
+}
+
+/** Human-readable warnings when assigned carers are outside their working pattern. */
+export function visitCarerPatternMismatchWarnings(
+  employeeIds: string[],
+  visit: { scheduledStartDateTime: Date; scheduledEndDateTime: Date | null },
+  patternByEmployee: Map<string, EmployeePatternContext>,
+): string[] {
+  const visitStart = visit.scheduledStartDateTime;
+  const visitEnd = visitEndDateTime(visitStart, visit.scheduledEndDateTime);
+  const startHm = hmFromJobDate(visitStart);
+  const endHm = hmFromJobDate(visitEnd);
+  const dayLabel = DAY_LABEL[visitStart.getUTCDay()] ?? 'this day';
+  const messages: string[] = [];
+
+  for (const employeeId of employeeIds) {
+    const ctx = patternByEmployee.get(employeeId);
+    if (!ctx) continue;
+    if (isEmployeeAvailableForVisit(ctx.patterns, ctx.cycleConfig, visitStart, visitEnd)) continue;
+
+    const resolved = resolvePatternForDateTime(
+      toWorkingPatternRows(ctx.patterns),
+      ctx.cycleConfig,
+      visitStart,
+    );
+
+    if (!resolved || !resolved.isAvailable) {
+      messages.push(`${ctx.employeeName}: not available on ${dayLabel} — assigned with warning`);
+      continue;
+    }
+
+    if (resolved.notes === 'partial') {
+      messages.push(`${ctx.employeeName}: partial availability on ${dayLabel} — assigned with warning`);
+      continue;
+    }
+
+    if (resolved.startTime && resolved.endTime) {
+      const mismatch = visitPatternTimeMismatch(startHm, endHm, resolved.startTime, resolved.endTime);
+      if (mismatch) {
+        const detail = formatVisitPatternTimeMismatchMessage(
+          dayLabel,
+          mismatch,
+          resolved.startTime,
+          resolved.endTime,
+        );
+        messages.push(`${ctx.employeeName}: ${detail} — assigned with warning`);
+        continue;
+      }
+    }
+
+    messages.push(`${ctx.employeeName}: visit is outside working pattern on ${dayLabel} — assigned with warning`);
+  }
+
+  return messages;
+}
+
+/** Planned carers to allocate on a visit, optionally filtered by working pattern. */
 export function targetEmployeeIdsForVisit(
   desired: string[],
   visit: { requiredCarers: number | null; scheduledStartDateTime: Date; scheduledEndDateTime: Date | null },
   required: number,
-  respectWorkingPattern: boolean,
-  patternByEmployee: Map<string, EmployeePatternContext>,
+  respectWorkingPattern?: boolean,
+  patternByEmployee?: Map<string, EmployeePatternContext>,
 ): string[] {
   const cap = Math.max(1, visit.requiredCarers || required);
-  if (!respectWorkingPattern) {
-    return desired.slice(0, cap);
+  const base = desired.slice(0, cap);
+
+  if (!respectWorkingPattern || !patternByEmployee?.size) {
+    return base;
   }
 
-  const visitStart = visit.scheduledStartDateTime;
-  const visitEnd = visitEndDateTime(visitStart, visit.scheduledEndDateTime);
-  const filtered = desired.filter((employeeId) => {
-    const ctx = patternByEmployee.get(employeeId);
-    if (!ctx) return true;
-    return isEmployeeAvailableForVisit(ctx.patterns, ctx.cycleConfig, visitStart, visitEnd);
-  });
-  return filtered.slice(0, cap);
+  return base.filter(
+    (employeeId) =>
+      visitCarerPatternMismatchWarnings([employeeId], visit, patternByEmployee).length === 0,
+  );
 }
+
+export async function resolveVisitCarerAssignment(
+  tx: Prisma.TransactionClient,
+  desired: string[],
+  visit: {
+    scheduledStartDateTime: Date;
+    scheduledEndDateTime: Date | null;
+    requiredCarers: number | null;
+  },
+  required: number,
+  options: {
+    respectWorkingPattern: boolean;
+    patternByEmployee: Map<string, EmployeePatternContext>;
+    excludeScheduledJobId?: string;
+  },
+): Promise<{
+  employeeIds: string[];
+  patternWarnings: string[];
+  rotaConflictWarnings: string[];
+}> {
+  const employeeIds = targetEmployeeIdsForVisit(
+    desired,
+    visit,
+    required,
+    options.respectWorkingPattern,
+    options.patternByEmployee,
+  );
+  const patternWarnings: string[] = [];
+
+  if (!options.respectWorkingPattern && options.patternByEmployee.size) {
+    patternWarnings.push(
+      ...visitCarerPatternMismatchWarnings(employeeIds, visit, options.patternByEmployee),
+    );
+  }
+
+  const { jobStart, jobEnd } = visitWindowFromSchedule(
+    visit.scheduledStartDateTime,
+    visit.scheduledEndDateTime,
+  );
+  const conflicts = await findRotaConflictsByEmployee(
+    tx,
+    employeeIds,
+    jobStart,
+    jobEnd,
+    options.excludeScheduledJobId,
+  );
+  const nameById = new Map(
+    [...options.patternByEmployee.entries()].map(([id, ctx]) => [id, ctx.employeeName]),
+  );
+  const withoutConflict = filterEmployeeIdsWithoutRotaConflict(employeeIds, conflicts, nameById);
+
+  return {
+    employeeIds: withoutConflict.employeeIds,
+    patternWarnings,
+    rotaConflictWarnings: withoutConflict.warnings,
+  };
+}
+
+export { CARER_ROTA_CONFLICT_MESSAGE };
 
 export function countVisitsSkippedIfRespecting(
   visits: Array<{
@@ -156,8 +295,10 @@ export function countVisitsSkippedIfRespecting(
   let skipped = 0;
   for (const visit of visits) {
     const cap = Math.max(1, visit.requiredCarers || required);
-    const target = targetEmployeeIdsForVisit(desired, visit, required, true, patternByEmployee);
-    if (target.length < cap) skipped += 1;
+    const ids = desired.slice(0, cap);
+    if (visitCarerPatternMismatchWarnings(ids, visit, patternByEmployee).length > 0) {
+      skipped += 1;
+    }
   }
   return skipped;
 }
@@ -199,9 +340,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   const desired = (params.assignedEmployeeIds ?? []).slice(0, required);
   const respectWorkingPattern = params.respectWorkingPattern !== false;
 
-  const patternByEmployee = respectWorkingPattern
-    ? await loadEmployeePatternContexts(tx, desired)
-    : new Map<string, EmployeePatternContext>();
+  const patternByEmployee = await loadEmployeePatternContexts(tx, desired);
 
   const visits = await tx.scheduledVisit.findMany({
     where: {
@@ -226,13 +365,12 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
 
   for (const visit of visits) {
     const jobId = visit.scheduledJobId;
-    const target = targetEmployeeIdsForVisit(
-      desired,
-      visit,
-      required,
+    const resolved = await resolveVisitCarerAssignment(tx, desired, visit, required, {
       respectWorkingPattern,
       patternByEmployee,
-    );
+      excludeScheduledJobId: jobId,
+    });
+    const target = resolved.employeeIds;
 
     const activeAllocations = await tx.jobAllocation.findMany({
       where: {

@@ -49,6 +49,10 @@ export type BulkVisitPlanScheduleResultItem = {
   status: 'success' | 'failed' | 'skipped';
   visitsCreated?: number;
   visitsSkipped?: number;
+  visitsWithPatternWarnings?: number;
+  visitsWithRotaConflicts?: number;
+  patternWarnings?: string[];
+  rotaConflictWarnings?: string[];
   error?: string;
   skipReason?: string;
 };
@@ -284,6 +288,10 @@ export class VisitPlanBulkScheduleService {
     const results: BulkVisitPlanScheduleResultItem[] = [];
     let visitsCreated = 0;
     let visitsSkipped = 0;
+    let visitsWithPatternWarnings = 0;
+    let visitsWithRotaConflicts = 0;
+    const patternWarnings: string[] = [];
+    const rotaConflictWarnings: string[] = [];
     let succeeded = 0;
     let failed = 0;
     let skipped = 0;
@@ -324,6 +332,14 @@ export class VisitPlanBulkScheduleService {
         const data = response.data;
         visitsCreated += data.visitsCreated;
         visitsSkipped += data.visitsSkipped;
+        visitsWithPatternWarnings += data.visitsWithPatternWarnings ?? 0;
+        visitsWithRotaConflicts += data.visitsWithRotaConflicts ?? 0;
+        if (data.patternWarnings?.length) {
+          patternWarnings.push(...data.patternWarnings);
+        }
+        if (data.rotaConflictWarnings?.length) {
+          rotaConflictWarnings.push(...data.rotaConflictWarnings);
+        }
         succeeded += 1;
         results.push({
           serviceUserId: plan.serviceUserId,
@@ -332,6 +348,10 @@ export class VisitPlanBulkScheduleService {
           status: 'success',
           visitsCreated: data.visitsCreated,
           visitsSkipped: data.visitsSkipped,
+          visitsWithPatternWarnings: data.visitsWithPatternWarnings ?? 0,
+          visitsWithRotaConflicts: data.visitsWithRotaConflicts ?? 0,
+          patternWarnings: data.patternWarnings ?? [],
+          rotaConflictWarnings: data.rotaConflictWarnings ?? [],
         });
       } catch (error) {
         failed += 1;
@@ -364,6 +384,10 @@ export class VisitPlanBulkScheduleService {
           skipped,
           visitsCreated,
           visitsSkipped,
+          visitsWithPatternWarnings,
+          visitsWithRotaConflicts,
+          patternWarnings: [...new Set(patternWarnings)],
+          rotaConflictWarnings: [...new Set(rotaConflictWarnings)],
         },
         results,
       },

@@ -881,6 +881,9 @@ model EmployeeEmployment {
   minimumWeeklyHours    Float?
   visaTypeId            String?
   isInCountry           Boolean @default(true)
+  weeklyHoursCapOverride Float?
+  weeklyHoursCapOverrideReason String?
+  weeklyHoursCapOverrideExpiresAt DateTime?
   optedOutOf48Hours     Boolean @default(false)
   isAgencyStaff         Boolean @default(false)
   agencyName            String?
