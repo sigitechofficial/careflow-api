@@ -1429,10 +1429,6 @@ export class ServiceUserVisitPlansService {
   }
 
   async clearAllVisitPlansAndRota(dryRun: boolean) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new ForbiddenException('Clear visit plans and rota is not available in production');
-    }
-
     const result = await clearVisitPlansAndRota(this.prisma, { dryRun });
     return {
       data: {
