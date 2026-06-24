@@ -576,6 +576,14 @@ enum TimeDisplayFormat {
   @@schema("identity")
 }
 
+enum DateDisplayFormat {
+  DD_MM_YYYY
+  MM_DD_YYYY
+  YYYY_MM_DD
+
+  @@schema("identity")
+}
+
 enum DefaultCarerStatus {
   ACTIVE
   INACTIVE
@@ -635,6 +643,7 @@ model OrganisationGeneralSettings {
   handoverReportLastHours       Int               @default(12)
   archiveServiceUserAfterMonths Int               @default(3)
   timeDisplayFormat             TimeDisplayFormat @default(HH_MM)
+  dateDisplayFormat             DateDisplayFormat @default(DD_MM_YYYY)
   defaultCarerStatus            DefaultCarerStatus @default(ACTIVE)
   sendEmailWhenEmployeeActive   Boolean           @default(true)
   allowMultipleRoles            Boolean           @default(true)
@@ -675,6 +684,10 @@ model OrganisationGeneralSettings {
   domGeofenceToleranceMeters    Int               @default(150)
   domDownloadAllServiceUsers    Boolean           @default(false)
   domFutureVisitsDays           Int               @default(14)
+  domAutoExtendRotaEnabled      Boolean           @default(true)
+  domRotaHorizonDays            Int               @default(28)
+  domRotaHorizonMode            String            @default("FIXED_DAYS")
+  domAutoExtendRotaRunHour      Int               @default(12)
   domShowWeeklyHours            Boolean           @default(true)
   domShowServiceUserName        Boolean           @default(true)
   domLateVisitAlertRequired     Boolean           @default(true)

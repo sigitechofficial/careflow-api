@@ -152,12 +152,12 @@ function serviceUserDisplayName(input: {
   lastName: string;
   serviceUserNumber?: string | null;
 }): string {
-  const name =
-    input.preferredName?.trim() ||
-    [input.firstName, input.lastName].filter(Boolean).join(' ').trim() ||
-    'Service user';
-  const num = input.serviceUserNumber?.trim();
-  return num ? `${name} (${num})` : name;
+  const legal = [input.firstName, input.lastName].filter(Boolean).join(' ').trim();
+  if (input.preferredName?.trim()) {
+    return legal ? `${legal} (${input.preferredName.trim()})` : input.preferredName.trim();
+  }
+  if (legal) return legal;
+  return input.serviceUserNumber?.trim() || 'Service user';
 }
 
 @Injectable()

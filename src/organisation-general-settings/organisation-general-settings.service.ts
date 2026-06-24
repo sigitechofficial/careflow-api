@@ -42,6 +42,7 @@ import {
   serializeEmployeeVisaTypes,
   type EmployeeVisaType,
 } from './employee-visa-types.util';
+import { parseRotaHorizonMode } from '../service-user-visit-plans/visit-plan-rolling-rota.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
@@ -51,6 +52,7 @@ const CREATE_DEFAULTS = {
   handoverReportLastHours: 12,
   archiveServiceUserAfterMonths: 3,
   timeDisplayFormat: 'HH_MM' as const,
+  dateDisplayFormat: 'DD_MM_YYYY' as const,
 };
 
 type SettingsRow = {
@@ -59,6 +61,7 @@ type SettingsRow = {
   handoverReportLastHours: number;
   archiveServiceUserAfterMonths: number;
   timeDisplayFormat: string;
+  dateDisplayFormat: string;
   defaultCarerStatus: string;
   sendEmailWhenEmployeeActive: boolean;
   allowMultipleRoles: boolean;
@@ -99,6 +102,10 @@ type SettingsRow = {
   domGeofenceToleranceMeters: number;
   domDownloadAllServiceUsers: boolean;
   domFutureVisitsDays: number;
+  domAutoExtendRotaEnabled: boolean;
+  domRotaHorizonDays: number;
+  domRotaHorizonMode: string;
+  domAutoExtendRotaRunHour: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
   domLateVisitAlertRequired: boolean;
@@ -172,6 +179,7 @@ function mapRow(row: SettingsRow) {
     handoverReportLastHours: row.handoverReportLastHours,
     archiveServiceUserAfterMonths: row.archiveServiceUserAfterMonths,
     timeDisplayFormat: row.timeDisplayFormat,
+    dateDisplayFormat: row.dateDisplayFormat,
     defaultCarerStatus: row.defaultCarerStatus,
     sendEmailWhenEmployeeActive: row.sendEmailWhenEmployeeActive,
     allowMultipleRoles: row.allowMultipleRoles,
@@ -216,6 +224,10 @@ function mapRow(row: SettingsRow) {
     domGeofenceToleranceMeters: row.domGeofenceToleranceMeters,
     domDownloadAllServiceUsers: row.domDownloadAllServiceUsers,
     domFutureVisitsDays: row.domFutureVisitsDays,
+    domAutoExtendRotaEnabled: row.domAutoExtendRotaEnabled,
+    domRotaHorizonDays: row.domRotaHorizonDays,
+    domRotaHorizonMode: parseRotaHorizonMode(row.domRotaHorizonMode),
+    domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
     domLateVisitAlertRequired: row.domLateVisitAlertRequired,
@@ -271,6 +283,7 @@ function buildUpdateData(
   set('handoverReportLastHours', dto.handoverReportLastHours);
   set('archiveServiceUserAfterMonths', dto.archiveServiceUserAfterMonths);
   set('timeDisplayFormat', dto.timeDisplayFormat);
+  set('dateDisplayFormat', dto.dateDisplayFormat);
   set('defaultCarerStatus', dto.defaultCarerStatus);
   set('sendEmailWhenEmployeeActive', dto.sendEmailWhenEmployeeActive);
   set('allowMultipleRoles', dto.allowMultipleRoles);
@@ -321,6 +334,10 @@ function buildUpdateData(
   set('domGeofenceToleranceMeters', dto.domGeofenceToleranceMeters);
   set('domDownloadAllServiceUsers', dto.domDownloadAllServiceUsers);
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
+  set('domAutoExtendRotaEnabled', dto.domAutoExtendRotaEnabled);
+  set('domRotaHorizonDays', dto.domRotaHorizonDays);
+  set('domRotaHorizonMode', dto.domRotaHorizonMode);
+  set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
   set('domLateVisitAlertRequired', dto.domLateVisitAlertRequired);

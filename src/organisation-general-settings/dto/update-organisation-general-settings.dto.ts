@@ -28,6 +28,7 @@ import { PreAssessmentChecklistItemDto } from './pre-assessment-settings.dto';
 import { EmployeeVisaTypeDto } from './employee-visa-types.dto';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
+const DATE_DISPLAY_FORMATS = ['DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'] as const;
 const DEFAULT_CARER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
 const HOLIDAY_UNITS = ['HOURS', 'DAYS'] as const;
 const COMPLIANCE_REQUIRED_BY = ['ROLE_WORK_AREA', 'CITIZENSHIP'] as const;
@@ -65,6 +66,11 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsIn(TIME_DISPLAY_FORMATS)
   timeDisplayFormat?: (typeof TIME_DISPLAY_FORMATS)[number];
+
+  @ApiPropertyOptional({ enum: DATE_DISPLAY_FORMATS })
+  @IsOptional()
+  @IsIn(DATE_DISPLAY_FORMATS)
+  dateDisplayFormat?: (typeof DATE_DISPLAY_FORMATS)[number];
 
   @ApiPropertyOptional({ enum: DEFAULT_CARER_STATUSES })
   @IsOptional()
@@ -303,6 +309,32 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Min(0)
   @Max(365)
   domFutureVisitsDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domAutoExtendRotaEnabled?: boolean;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 90 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  domRotaHorizonDays?: number;
+
+  @ApiPropertyOptional({ enum: ['FIXED_DAYS', 'CALENDAR_MONTH'] })
+  @IsOptional()
+  @IsIn(['FIXED_DAYS', 'CALENDAR_MONTH'])
+  domRotaHorizonMode?: 'FIXED_DAYS' | 'CALENDAR_MONTH';
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 23 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  domAutoExtendRotaRunHour?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
