@@ -816,8 +816,11 @@ model EmployeePersonalDetail {
   addressLine1     String?
   addressLine2     String?
   town             String?
+  county           String?
   country          String?
   postcode         String?
+  latitude         Decimal? @db.Decimal(10, 7)
+  longitude        Decimal? @db.Decimal(10, 7)
   homeTelephone    String?
   mobileTelephone  String?
   photoUrl         String?

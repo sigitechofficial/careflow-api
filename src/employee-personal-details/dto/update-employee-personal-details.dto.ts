@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -72,12 +73,30 @@ export class UpdateEmployeePersonalDetailsDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(200)
+  county?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   country?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   postcode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  latitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  longitude?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
