@@ -8,6 +8,12 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.CONFIRMED,
 ];
 
+function decimalToNumber(value: { toString(): string } | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value.toString());
+  return Number.isFinite(n) ? n : null;
+}
+
 export const timelineVisitSelect = {
   id: true,
   visitName: true,
@@ -39,6 +45,13 @@ export const timelineJobInclude = {
         select: {
           locationId: true,
           location: { select: { id: true, name: true } },
+        },
+      },
+      address: {
+        where: { deletedAt: null },
+        select: {
+          latitude: true,
+          longitude: true,
         },
       },
     },
@@ -86,6 +99,8 @@ function mapTimelineServiceUserBrief(
   serviceUserNumber: string | null;
   locationId: string | null;
   location: { id: string; name: string } | null;
+  latitude: number | null;
+  longitude: number | null;
 } {
   const assignment = su.assignments?.[0];
   const locationId = su.locationId ?? assignment?.locationId ?? null;
@@ -98,6 +113,8 @@ function mapTimelineServiceUserBrief(
     serviceUserNumber: su.serviceUserNumber,
     locationId,
     location: location ? { id: location.id, name: location.name } : null,
+    latitude: decimalToNumber(su.address?.latitude),
+    longitude: decimalToNumber(su.address?.longitude),
   };
 }
 
@@ -146,6 +163,8 @@ export function mapTimelineJob(row: TimelineJobRow) {
     durationMinutes: jobDurationMinutes(row),
     postcode: row.postcode,
     address: row.address,
+    latitude: decimalToNumber(row.latitude),
+    longitude: decimalToNumber(row.longitude),
     timePeriodColor: row.timePeriodColor,
     serviceUser: mapTimelineServiceUserBrief(row.serviceUser),
     scheduleArea: row.scheduleArea,
