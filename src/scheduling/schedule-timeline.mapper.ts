@@ -50,6 +50,11 @@ export const timelineJobInclude = {
       address: {
         where: { deletedAt: null },
         select: {
+          addressLine1: true,
+          addressLine2: true,
+          town: true,
+          county: true,
+          postcode: true,
           latitude: true,
           longitude: true,
         },
@@ -99,12 +104,20 @@ function mapTimelineServiceUserBrief(
   serviceUserNumber: string | null;
   locationId: string | null;
   location: { id: string; name: string } | null;
+  address: {
+    addressLine1: string | null;
+    addressLine2: string | null;
+    town: string | null;
+    county: string | null;
+    postcode: string | null;
+  } | null;
   latitude: number | null;
   longitude: number | null;
 } {
   const assignment = su.assignments?.[0];
   const locationId = su.locationId ?? assignment?.locationId ?? null;
   const location = su.location ?? assignment?.location ?? null;
+  const addr = su.address;
   return {
     id: su.id,
     firstName: su.firstName,
@@ -113,6 +126,15 @@ function mapTimelineServiceUserBrief(
     serviceUserNumber: su.serviceUserNumber,
     locationId,
     location: location ? { id: location.id, name: location.name } : null,
+    address: addr
+      ? {
+          addressLine1: addr.addressLine1,
+          addressLine2: addr.addressLine2,
+          town: addr.town,
+          county: addr.county,
+          postcode: addr.postcode,
+        }
+      : null,
     latitude: decimalToNumber(su.address?.latitude),
     longitude: decimalToNumber(su.address?.longitude),
   };
