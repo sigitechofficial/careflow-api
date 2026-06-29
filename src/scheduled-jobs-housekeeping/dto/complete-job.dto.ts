@@ -1,6 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsISO8601, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { ScheduledVisitStatus } from '../../scheduled-visits/enums/scheduled-visit-status.enum';
+import { DeliveredCarePlanDetailDto } from './delivered-care-plan-detail.dto';
 
 export class CompleteJobDto {
   @ApiPropertyOptional({
@@ -22,6 +33,22 @@ export class CompleteJobDto {
   @IsArray()
   @IsUUID('4', { each: true })
   deliveredCarePlanFormIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [DeliveredCarePlanDetailDto],
+    description: 'Per-care-plan task delivery outcomes',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DeliveredCarePlanDetailDto)
+  deliveredCarePlanDetails?: DeliveredCarePlanDetailDto[];
+
+  @ApiPropertyOptional({ description: 'Visit-level extra care not covered by any care plan' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  extraCareNotes?: string;
 
   @ApiPropertyOptional({ description: 'Actual visit start time (ISO 8601)' })
   @IsOptional()

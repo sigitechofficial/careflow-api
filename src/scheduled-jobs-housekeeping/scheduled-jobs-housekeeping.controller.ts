@@ -57,6 +57,29 @@ export class ScheduledJobsHousekeepingController {
     return this.service.dayJobs(user.id, query, getRequestAuditMeta(req));
   }
 
+  @Get('jobs/:id/care-plan-delivery-tasks')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({ summary: 'Care plan delivery tasks for completing a scheduled job visit' })
+  carePlanDeliveryTasks(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('formIds') formIds?: string,
+  ) {
+    const parsedFormIds = formIds
+      ? formIds
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      : undefined;
+    return this.service.getCarePlanDeliveryTasks(
+      user.id,
+      id,
+      parsedFormIds?.length ? { formIds: parsedFormIds } : undefined,
+      getRequestAuditMeta(req),
+    );
+  }
+
   @Patch('jobs/:id/complete')
   @Permissions('scheduled_jobs_housekeeping.complete')
   @ApiOperation({ summary: 'Mark scheduled job and visits as completed' })

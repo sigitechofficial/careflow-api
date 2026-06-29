@@ -27,6 +27,15 @@ import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import { loadCarePlanFormFields } from '../service-user-care-plans/compose/compose-context.loader';
+import {
+  buildCarePlanDeliveryTasks,
+  deriveDeliveredCarePlanFormIds,
+  parsePublishedValuesJson,
+  validateDeliveredCarePlanDetails,
+  type CarePlanDeliveryPlanTemplate,
+  type DeliveredCarePlanDetailPayload,
+} from './visit-care-plan-delivery.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -328,6 +337,131 @@ export class ScheduledJobsHousekeepingService {
     };
   }
 
+  private resolveLinkedCarePlanFormIds(job: HousekeepingJobRow): string[] {
+    const ids = new Set<string>();
+    for (const visit of job.visits) {
+      for (const formId of visit.visitPlanSlot?.linkedCarePlanFormIds ?? []) {
+        if (formId?.trim()) ids.add(formId.trim());
+      }
+    }
+    return [...ids];
+  }
+
+  private parseJobMetadata(raw: unknown): Record<string, unknown> {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return raw as Record<string, unknown>;
+    }
+    return {};
+  }
+
+  async getCarePlanDeliveryTasks(
+    userId: string,
+    jobId: string,
+    options?: { formIds?: string[] },
+    meta?: RequestAuditMeta,
+  ) {
+    void userId;
+    void meta;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null, isActive: true },
+      include: housekeepingInclude,
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const linkedFormIds = this.resolveLinkedCarePlanFormIds(job);
+    const existingMeta = this.parseJobMetadata(job.metadata);
+    const savedDelivery = Array.isArray(existingMeta.deliveredCarePlanDetails)
+      ? (existingMeta.deliveredCarePlanDetails as DeliveredCarePlanDetailPayload[])
+      : undefined;
+
+    const requestedFormIds = (options?.formIds ?? []).filter(Boolean);
+    const formIds = [
+      ...new Set([
+        ...linkedFormIds,
+        ...requestedFormIds,
+        ...(savedDelivery?.map((entry) => entry.carePathwayFormId) ?? []),
+      ]),
+    ];
+
+    const plans: CarePlanDeliveryPlanTemplate[] = [];
+
+    for (const formId of formIds) {
+      const { formName, fields } = await loadCarePlanFormFields(this.prisma, formId);
+      const form = await this.prisma.carePathwayForm.findFirst({
+        where: { id: formId, deletedAt: null },
+        select: { id: true, name: true, pictureUrl: true },
+      });
+      const instance = await this.prisma.serviceUserCarePlanInstance.findUnique({
+        where: {
+          serviceUserId_carePathwayFormId: {
+            serviceUserId: job.serviceUserId,
+            carePathwayFormId: formId,
+          },
+        },
+        include: {
+          publishedVersions: {
+            where: { supersededAt: null },
+            orderBy: { versionNumber: 'desc' },
+            take: 1,
+            select: { id: true, versionNumber: true, valuesJson: true },
+          },
+        },
+      });
+
+      const published = instance?.publishedVersions[0] ?? null;
+      const publishedValues = parsePublishedValuesJson(published?.valuesJson);
+      const tasks = buildCarePlanDeliveryTasks(fields, publishedValues);
+
+      plans.push({
+        carePathwayFormId: formId,
+        formName: form?.name ?? formName,
+        pictureUrl: form?.pictureUrl ?? null,
+        instanceId: instance?.id ?? null,
+        publishedVersionId: published?.id ?? null,
+        publishedVersionNumber: published?.versionNumber ?? null,
+        isPublished: Boolean(published),
+        tasks,
+      });
+    }
+
+    return {
+      data: {
+        linkedCarePlanFormIds: linkedFormIds,
+        plans,
+        savedDelivery,
+        savedExtraCareNotes:
+          typeof existingMeta.extraCareNotes === 'string' ? existingMeta.extraCareNotes : undefined,
+      },
+    };
+  }
+
+  private async buildAllowedFieldKeysByFormId(
+    serviceUserId: string,
+    formIds: string[],
+  ): Promise<Map<string, Set<string>>> {
+    const map = new Map<string, Set<string>>();
+    for (const formId of formIds) {
+      const { fields } = await loadCarePlanFormFields(this.prisma, formId);
+      const instance = await this.prisma.serviceUserCarePlanInstance.findUnique({
+        where: {
+          serviceUserId_carePathwayFormId: { serviceUserId, carePathwayFormId: formId },
+        },
+        include: {
+          publishedVersions: {
+            where: { supersededAt: null },
+            orderBy: { versionNumber: 'desc' },
+            take: 1,
+            select: { valuesJson: true },
+          },
+        },
+      });
+      const publishedValues = parsePublishedValuesJson(instance?.publishedVersions[0]?.valuesJson);
+      const tasks = buildCarePlanDeliveryTasks(fields, publishedValues);
+      map.set(formId, new Set(tasks.map((task) => task.fieldKey)));
+    }
+    return map;
+  }
+
   async completeJob(userId: string, id: string, dto: CompleteJobDto, meta?: RequestAuditMeta) {
     const existing = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null, isActive: true },
@@ -365,6 +499,34 @@ export class ScheduledJobsHousekeepingService {
       throw new BadRequestException('Invalid actualEndDateTime');
     }
 
+    const linkedFormIds = this.resolveLinkedCarePlanFormIds(existing);
+    const deliveryFormIds = [
+      ...new Set([
+        ...linkedFormIds,
+        ...(dto.deliveredCarePlanFormIds ?? []),
+        ...(dto.deliveredCarePlanDetails?.map((plan) => plan.carePathwayFormId) ?? []),
+      ]),
+    ];
+
+    if (dto.deliveredCarePlanDetails?.length) {
+      const allowedKeys = await this.buildAllowedFieldKeysByFormId(
+        existing.serviceUserId,
+        deliveryFormIds,
+      );
+      const validationError = validateDeliveredCarePlanDetails(
+        dto.deliveredCarePlanDetails,
+        deliveryFormIds,
+        allowedKeys,
+      );
+      if (validationError) throw new BadRequestException(validationError);
+    }
+
+    const resolvedDeliveredFormIds =
+      dto.deliveredCarePlanFormIds ??
+      (dto.deliveredCarePlanDetails?.length
+        ? deriveDeliveredCarePlanFormIds(dto.deliveredCarePlanDetails)
+        : undefined);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.scheduledVisit.updateMany({
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
@@ -379,15 +541,26 @@ export class ScheduledJobsHousekeepingService {
 
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId);
 
-      const metadata =
-        dto.deliveredCarePlanFormIds?.length && existing.metadata && typeof existing.metadata === 'object'
-          ? {
-              ...(existing.metadata as Record<string, unknown>),
-              deliveredCarePlanFormIds: dto.deliveredCarePlanFormIds,
-            }
-          : dto.deliveredCarePlanFormIds?.length
-            ? { deliveredCarePlanFormIds: dto.deliveredCarePlanFormIds }
-            : undefined;
+      const previousMeta = this.parseJobMetadata(existing.metadata);
+      const metadataPatch: Record<string, unknown> = { ...previousMeta };
+      let metadataChanged = false;
+
+      if (resolvedDeliveredFormIds?.length) {
+        metadataPatch.deliveredCarePlanFormIds = resolvedDeliveredFormIds;
+        metadataChanged = true;
+      }
+      if (dto.deliveredCarePlanDetails?.length) {
+        metadataPatch.deliveredCarePlanDetails = dto.deliveredCarePlanDetails;
+        metadataChanged = true;
+      }
+      if (dto.extraCareNotes !== undefined) {
+        const trimmed = dto.extraCareNotes.trim();
+        if (trimmed) metadataPatch.extraCareNotes = trimmed;
+        else delete metadataPatch.extraCareNotes;
+        metadataChanged = true;
+      }
+
+      const metadata = metadataChanged ? metadataPatch : undefined;
 
       const updated = await tx.scheduledJob.update({
         where: { id },
