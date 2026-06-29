@@ -1,8 +1,10 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseUUIDPipe, Query, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
+import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
 import { AuditLogsService } from './audit-logs.service';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 import { LoginHistoryQueryDto } from './dto/login-history-query.dto';
@@ -24,6 +26,16 @@ export class AuditLogsController {
   @ApiOperation({ summary: 'List immutable audit log entries' })
   async list(@Query() query: AuditLogQueryDto) {
     return this.auditLogsService.findAuditLogs(query);
+  }
+
+  @Delete()
+  @Permissions('audit_logs.delete')
+  @ApiOperation({ summary: 'Delete all audit log entries' })
+  async clearAll(@CurrentUser() user: RequestUser, @Req() req: Request) {
+    return this.auditLogsService.clearAuditLogs(
+      user.id,
+      this.auditLogsService.getRequestMeta(req),
+    );
   }
 
   @Get('login-history')

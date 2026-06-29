@@ -464,6 +464,14 @@ export class AuditLogsService {
     return { data: row };
   }
 
+  async clearAuditLogs(_userId: string, _meta?: RequestAuditMeta) {
+    const result = await this.prisma.auditLog.deleteMany({});
+    return {
+      message: 'Audit log cleared',
+      data: { deletedCount: result.count },
+    };
+  }
+
   async findLoginHistory(query: LoginHistoryQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;

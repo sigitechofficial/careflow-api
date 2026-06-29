@@ -179,6 +179,7 @@ async function main() {
     'roles.manage',
     'permissions.manage',
     'audit_logs.read',
+    'audit_logs.delete',
     'temporary_inspector.session',
     'service_users.read',
     'service_users.create',
@@ -781,6 +782,16 @@ async function main() {
       },
       update: {},
       create: { roleId: adminRole.id, permissionId: auditReadPerm.id },
+    });
+  }
+  const auditDeletePerm = await prisma.permission.findFirst({ where: { key: 'audit_logs.delete' } });
+  if (auditDeletePerm && adminRole) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: { roleId: adminRole.id, permissionId: auditDeletePerm.id },
+      },
+      update: {},
+      create: { roleId: adminRole.id, permissionId: auditDeletePerm.id },
     });
   }
 

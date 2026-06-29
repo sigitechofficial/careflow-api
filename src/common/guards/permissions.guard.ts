@@ -4,6 +4,8 @@ import { ANY_PERMISSIONS_KEY, PERMISSIONS_KEY } from '../decorators/permissions.
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RequestUser } from '../decorators/current-user.decorator';
 
+const SUPER_ADMIN_ROLE_NAME = 'Super Admin';
+
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -24,9 +26,17 @@ export class PermissionsGuard implements CanActivate {
       context.getClass(),
     ]);
 
+    if (!requiredAny?.length && !requiredAll?.length) {
+      return true;
+    }
+
     const req = context.switchToHttp().getRequest();
     const user = req.user as RequestUser | undefined;
     if (!user) throw new ForbiddenException('Not authenticated');
+
+    if (user.roles?.includes(SUPER_ADMIN_ROLE_NAME)) {
+      return true;
+    }
 
     const perms = user.permissions ?? [];
 
