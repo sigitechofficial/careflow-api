@@ -27,6 +27,12 @@ import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
+import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
+import {
+  resolveVisitTaskCompletionInput,
+  visitTaskCompletionInputMissing,
+} from '../visit-tasks/visit-task-completion-input.util';
 import { loadCarePlanFormFields } from '../service-user-care-plans/compose/compose-context.loader';
 import {
   buildCarePlanDeliveryTasks,
@@ -889,5 +895,332 @@ export class ScheduledJobsHousekeepingService {
         data: this.mapDayJob(updated),
       };
     });
+  }
+
+  async getVisitJobTasks(userId: string, jobId: string, meta?: RequestAuditMeta) {
+    void userId;
+    void meta;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null, isActive: true },
+      include: housekeepingInclude,
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const medicationRoundCode = resolveJobMedicationRoundCode(job.visits);
+    if (!medicationRoundCode) {
+      return {
+        data: {
+          medicationRoundCode: null,
+          roundLabel: null,
+          windowStart: null,
+          windowEnd: null,
+          tasks: [],
+        },
+      };
+    }
+
+    const round = await this.prisma.medicationAdministrationRound.findFirst({
+      where: { code: medicationRoundCode, deletedAt: null, isActive: true },
+      select: { name: true, code: true, windowStart: true, windowEnd: true },
+    });
+
+    const [assignments, completions] = await Promise.all([
+      this.prisma.serviceUserVisitTaskAssignment.findMany({
+        where: {
+          serviceUserId: job.serviceUserId,
+          medicationRoundCode,
+          deletedAt: null,
+          isActive: true,
+        },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          task: {
+            include: {
+              category: { include: { group: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.scheduledVisitTaskCompletion.findMany({
+        where: { scheduledJobId: job.id },
+      }),
+    ]);
+
+    const completionByAssignment = new Map(
+      completions.filter((row) => row.assignmentId).map((row) => [row.assignmentId!, row]),
+    );
+    const adHocCompletions = completions.filter((row) => !row.assignmentId);
+
+    const plannedTasks = assignments.map((assignment) => {
+      const completion = completionByAssignment.get(assignment.id);
+      const flagsJson =
+        assignment.task.flagsJson && typeof assignment.task.flagsJson === 'object'
+          ? (assignment.task.flagsJson as Record<string, unknown>)
+          : null;
+      const completionInput = resolveVisitTaskCompletionInput({
+        name: assignment.task.name,
+        flagsJson,
+      });
+      return {
+        assignmentId: assignment.id,
+        taskCatalogueTaskId: assignment.taskCatalogueTaskId,
+        name: assignment.task.name,
+        categoryName: assignment.task.category.name,
+        groupCode: assignment.task.category.group.code,
+        consentRequired: assignment.task.consentRequired,
+        supportLevelApplicable: assignment.task.supportLevelApplicable,
+        completionInput,
+        carerInstructions: assignment.carerInstructions,
+        isExtra: false,
+        isCompleted: completion?.isCompleted ?? false,
+        recordedValue: completion?.recordedValue ?? null,
+        notes: completion?.notes ?? null,
+        completedAt: completion?.completedAt?.toISOString() ?? null,
+      };
+    });
+
+    const adHocTaskIds = [...new Set(adHocCompletions.map((row) => row.taskCatalogueTaskId))];
+    const adHocCatalogueTasks =
+      adHocTaskIds.length > 0
+        ? await this.prisma.taskCatalogueTask.findMany({
+            where: { id: { in: adHocTaskIds }, deletedAt: null, isActive: true },
+            include: { category: { include: { group: true } } },
+          })
+        : [];
+    const adHocTaskById = new Map(adHocCatalogueTasks.map((task) => [task.id, task]));
+
+    const extraTasks = adHocCompletions
+      .map((completion) => {
+        const task = adHocTaskById.get(completion.taskCatalogueTaskId);
+        if (!task) return null;
+        const flagsJson =
+          task.flagsJson && typeof task.flagsJson === 'object'
+            ? (task.flagsJson as Record<string, unknown>)
+            : null;
+        const completionInput = resolveVisitTaskCompletionInput({
+          name: task.name,
+          flagsJson,
+        });
+        return {
+          assignmentId: `extra-${completion.taskCatalogueTaskId}`,
+          taskCatalogueTaskId: completion.taskCatalogueTaskId,
+          name: task.name,
+          categoryName: task.category.name,
+          groupCode: task.category.group.code,
+          consentRequired: task.consentRequired,
+          supportLevelApplicable: task.supportLevelApplicable,
+          completionInput,
+          carerInstructions: null,
+          isExtra: true,
+          isCompleted: completion.isCompleted,
+          recordedValue: completion.recordedValue ?? null,
+          notes: completion.notes ?? null,
+          completedAt: completion.completedAt?.toISOString() ?? null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
+
+    return {
+      data: {
+        medicationRoundCode,
+        roundLabel: round?.name ?? medicationRoundCode,
+        windowStart: round?.windowStart ?? null,
+        windowEnd: round?.windowEnd ?? null,
+        tasks: [...plannedTasks, ...extraTasks],
+      },
+    };
+  }
+
+  async saveVisitJobTasks(
+    userId: string,
+    jobId: string,
+    dto: SaveVisitJobTasksDto,
+    meta?: RequestAuditMeta,
+  ) {
+    void meta;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null, isActive: true },
+      include: housekeepingInclude,
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const medicationRoundCode = resolveJobMedicationRoundCode(job.visits);
+    if (!medicationRoundCode) {
+      throw new BadRequestException('This visit is not linked to a medication administration round');
+    }
+
+    const plannedItems = dto.tasks.filter((task) => !task.isExtra && task.assignmentId);
+    const extraItems = dto.tasks.filter((task) => task.isExtra && task.taskCatalogueTaskId);
+
+    for (const item of dto.tasks) {
+      const hasAssignment = Boolean(item.assignmentId);
+      const hasExtra = Boolean(item.isExtra && item.taskCatalogueTaskId);
+      if (!hasAssignment && !hasExtra) {
+        throw new BadRequestException('Each task must include assignmentId or taskCatalogueTaskId with isExtra');
+      }
+      if (hasAssignment && hasExtra) {
+        throw new BadRequestException('Task cannot be both a planned assignment and an extra task');
+      }
+    }
+
+    const assignmentIds = plannedItems.map((task) => task.assignmentId!);
+    const assignments =
+      assignmentIds.length > 0
+        ? await this.prisma.serviceUserVisitTaskAssignment.findMany({
+            where: {
+              id: { in: assignmentIds },
+              serviceUserId: job.serviceUserId,
+              medicationRoundCode,
+              deletedAt: null,
+              isActive: true,
+            },
+            include: {
+              task: true,
+            },
+          })
+        : [];
+    if (assignments.length !== assignmentIds.length) {
+      throw new BadRequestException('One or more visit tasks are invalid for this job');
+    }
+
+    const extraTaskIds = [...new Set(extraItems.map((task) => task.taskCatalogueTaskId!))];
+    const extraCatalogueTasks =
+      extraTaskIds.length > 0
+        ? await this.prisma.taskCatalogueTask.findMany({
+            where: { id: { in: extraTaskIds }, deletedAt: null, isActive: true },
+          })
+        : [];
+    if (extraCatalogueTasks.length !== extraTaskIds.length) {
+      throw new BadRequestException('One or more extra tasks are invalid');
+    }
+
+    const plannedAssignmentIds = new Set(assignments.map((row) => row.taskCatalogueTaskId));
+    for (const taskId of extraTaskIds) {
+      if (plannedAssignmentIds.has(taskId)) {
+        throw new BadRequestException('Extra task is already planned for this visit round');
+      }
+    }
+
+    for (const item of dto.tasks) {
+      if (!item.isCompleted) continue;
+      if (item.isExtra && item.taskCatalogueTaskId) {
+        const task = extraCatalogueTasks.find((row) => row.id === item.taskCatalogueTaskId);
+        if (!task) continue;
+        const flagsJson =
+          task.flagsJson && typeof task.flagsJson === 'object'
+            ? (task.flagsJson as Record<string, unknown>)
+            : null;
+        const spec = resolveVisitTaskCompletionInput({ name: task.name, flagsJson });
+        const missing = visitTaskCompletionInputMissing(spec, true, item.recordedValue, item.notes);
+        if (missing) throw new BadRequestException(`${task.name}: ${missing}`);
+        continue;
+      }
+      const assignment = assignments.find((row) => row.id === item.assignmentId);
+      if (!assignment) continue;
+      const flagsJson =
+        assignment.task.flagsJson && typeof assignment.task.flagsJson === 'object'
+          ? (assignment.task.flagsJson as Record<string, unknown>)
+          : null;
+      const spec = resolveVisitTaskCompletionInput({
+        name: assignment.task.name,
+        flagsJson,
+      });
+      const missing = visitTaskCompletionInputMissing(
+        spec,
+        true,
+        item.recordedValue,
+        item.notes,
+      );
+      if (missing) {
+        throw new BadRequestException(`${assignment.task.name}: ${missing}`);
+      }
+    }
+
+    const assignmentById = new Map(assignments.map((row) => [row.id, row]));
+    const extraTaskById = new Map(extraCatalogueTasks.map((row) => [row.id, row]));
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of plannedItems) {
+        const assignment = assignmentById.get(item.assignmentId!);
+        if (!assignment) continue;
+        await tx.scheduledVisitTaskCompletion.upsert({
+          where: {
+            scheduledJobId_assignmentId: {
+              scheduledJobId: job.id,
+              assignmentId: assignment.id,
+            },
+          },
+          create: {
+            scheduledJobId: job.id,
+            assignmentId: assignment.id,
+            taskCatalogueTaskId: assignment.taskCatalogueTaskId,
+            medicationRoundCode,
+            isAdHoc: false,
+            isCompleted: item.isCompleted,
+            recordedValue: item.recordedValue?.trim() ?? null,
+            notes: item.notes?.trim() ?? null,
+            completedAt: item.isCompleted ? now : null,
+          },
+          update: {
+            isCompleted: item.isCompleted,
+            recordedValue: item.isCompleted ? item.recordedValue?.trim() ?? null : null,
+            notes: item.isCompleted ? item.notes?.trim() ?? null : null,
+            completedAt: item.isCompleted ? now : null,
+          },
+        });
+      }
+
+      for (const item of extraItems) {
+        const task = extraTaskById.get(item.taskCatalogueTaskId!);
+        if (!task) continue;
+        const existing = await tx.scheduledVisitTaskCompletion.findFirst({
+          where: {
+            scheduledJobId: job.id,
+            taskCatalogueTaskId: task.id,
+            assignmentId: null,
+          },
+        });
+        if (existing) {
+          await tx.scheduledVisitTaskCompletion.update({
+            where: { id: existing.id },
+            data: {
+              isCompleted: item.isCompleted,
+              recordedValue: item.isCompleted ? item.recordedValue?.trim() ?? null : null,
+              notes: item.isCompleted ? item.notes?.trim() ?? null : null,
+              completedAt: item.isCompleted ? now : null,
+            },
+          });
+        } else if (item.isCompleted) {
+          await tx.scheduledVisitTaskCompletion.create({
+            data: {
+              scheduledJobId: job.id,
+              assignmentId: null,
+              taskCatalogueTaskId: task.id,
+              medicationRoundCode,
+              isAdHoc: true,
+              isCompleted: true,
+              recordedValue: item.recordedValue?.trim() ?? null,
+              notes: item.notes?.trim() ?? null,
+              completedAt: now,
+            },
+          });
+        }
+      }
+
+      const retainedExtraTaskIds = extraItems.map((item) => item.taskCatalogueTaskId!);
+      await tx.scheduledVisitTaskCompletion.deleteMany({
+        where: {
+          scheduledJobId: job.id,
+          assignmentId: null,
+          ...(retainedExtraTaskIds.length > 0
+            ? { taskCatalogueTaskId: { notIn: retainedExtraTaskIds } }
+            : {}),
+        },
+      });
+    });
+
+    void userId;
+    return this.getVisitJobTasks(userId, jobId, meta);
   }
 }

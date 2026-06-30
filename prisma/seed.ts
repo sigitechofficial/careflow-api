@@ -10,6 +10,7 @@ import { seedServiceUserObservations } from './seeds/service-user-observations.s
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 import { seedCarePathway } from './seeds/care-pathway.seed';
+import { seedTaskCatalogue } from './seeds/task-catalogue.seed';
 import { seedInitialAssessmentCarePlanRules } from './seeds/initial-assessment-care-plan-rules.seed';
 import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
@@ -227,6 +228,10 @@ async function main() {
     'service_users.visit_plan.read',
     'service_users.visit_plan.write',
     'service_users.visit_plan.activate',
+    'task_catalogue.read',
+    'task_catalogue.manage',
+    'service_users.visit_tasks.read',
+    'service_users.visit_tasks.write',
     'scheduling.generate_from_visit_plan',
     'service_users.initial_assessment.read',
     'service_users.initial_assessment.create',
@@ -488,6 +493,10 @@ async function main() {
     'service_users.visit_plan.read',
     'service_users.visit_plan.write',
     'service_users.visit_plan.activate',
+    'task_catalogue.read',
+    'task_catalogue.manage',
+    'service_users.visit_tasks.read',
+    'service_users.visit_tasks.write',
     'scheduling.generate_from_visit_plan',
     'service_users.initial_assessment.read',
     'service_users.initial_assessment.create',
@@ -886,6 +895,25 @@ async function main() {
         create: { roleId: r.id, permissionId: p.id },
       });
     }
+  }
+
+  const taskCatalogueManage = await prisma.permission.findFirst({
+    where: { key: 'task_catalogue.manage' },
+  });
+  for (const r of [
+    roles.find((x) => x.name === 'Admin'),
+    roles.find((x) => x.name === 'Manager'),
+    roles.find((x) => x.name === 'HR'),
+    privacyOfficerRole,
+  ]) {
+    if (!r || !taskCatalogueManage) continue;
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: { roleId: r.id, permissionId: taskCatalogueManage.id },
+      },
+      update: {},
+      create: { roleId: r.id, permissionId: taskCatalogueManage.id },
+    });
   }
 
   const carePathwayReadKeys = [
@@ -1835,6 +1863,7 @@ async function main() {
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
+  await seedTaskCatalogue(prisma);
   try {
     await seedInitialAssessmentCarePlanRules(prisma);
   } catch (err) {

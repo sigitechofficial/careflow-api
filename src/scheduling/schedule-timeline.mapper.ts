@@ -154,6 +154,7 @@ function mapVisitPlanContext(row: TimelineJobRow) {
       ? {
           slotId: slot.id,
           slotCode: slot.slotCode,
+          medicationRoundCode: slot.medicationRoundCode ?? slot.slotCode,
           label: primaryVisit?.visitName ?? slot.slotCode,
           linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
         }

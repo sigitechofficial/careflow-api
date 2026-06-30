@@ -12,6 +12,7 @@ import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import {
   VISIT_CANCELLATION_REASONS,
   VISIT_CHARGE_DECISION_OPTIONS,
@@ -78,6 +79,29 @@ export class ScheduledJobsHousekeepingController {
       parsedFormIds?.length ? { formIds: parsedFormIds } : undefined,
       getRequestAuditMeta(req),
     );
+  }
+
+  @Get('jobs/:id/visit-tasks')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({ summary: 'Visit tasks assigned to this job for the linked medication round' })
+  visitJobTasks(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.getVisitJobTasks(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Patch('jobs/:id/visit-tasks')
+  @Permissions('scheduled_jobs_housekeeping.complete')
+  @ApiOperation({ summary: 'Save visit task completion checkboxes for a scheduled job' })
+  saveVisitJobTasks(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SaveVisitJobTasksDto,
+    @Req() req: Request,
+  ) {
+    return this.service.saveVisitJobTasks(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Patch('jobs/:id/complete')

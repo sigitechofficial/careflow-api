@@ -1,0 +1,228 @@
+{
+  "$comment": "Predefined task / planner catalogue derived from Carer Mobile App Functional Spec v3.4 (sections 17, 17.1, 19, 19a, 20, 26). This is a CONFIGURABLE MASTER LIST: the per-person task set is drawn from their care plan, not the whole catalogue. Medication (eMAR, section 18) is intentionally excluded - it uses a separate supportAction x doseOutcome model, not the task outcome enum below.",
+
+  "enums": {
+    "supportLevels": ["prompt", "supervise", "assist", "fully_support"],
+    "taskOutcomes": ["pending", "done", "partial", "not_done", "declined_by_person", "unable"],
+    "jobHorizons": ["today", "week", "month", "overdue"],
+    "evidenceTypes": ["tick", "note", "photo", "form"],
+    "$note": "taskOutcomes: a refusal MUST record as 'declined_by_person', never 'done' (AC-17.8). 'not_done' and 'unable' require a reason. Outcome events are attributed & append-only - a correction is a new event, never a silent overwrite (section 14.5 / 32)."
+  },
+
+  "taskFlagSchema": {
+    "$comment": "Every task instance should support these fields per AC-17.5/17.6/17.7.",
+    "supportLevelApplicable": "bool - does this task carry a prompt/supervise/assist/fully_support level?",
+    "consentRequired": "bool - intimate / MCA-relevant; refusal routes to declined_by_person (section 16)",
+    "competencyGated": "bool - hidden / blocked for a carer lacking the named competency (section 28)",
+    "competency": "string|null - the required competency name when gated",
+    "outOfScope": "bool - shown as not-for-carer (e.g. diabetic nail care = podiatry); configurable per provider",
+    "feedsObservation": "array - observation/record sections this task feeds (section 19/20)",
+    "method": "string|null - the 'how' (technique / preference), linked to care-plan need/outcome",
+    "evidenceRequired": "array of evidenceTypes - cannot complete without it"
+  },
+
+  "categories": [
+    {
+      "group": "personal_care",
+      "source": "§17.1 Personal-care taxonomy",
+      "categories": [
+        {
+          "category": "Washing & bathing",
+          "tasks": [
+            { "name": "Bed bath", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity"] },
+            { "name": "Assisted wash", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity"] },
+            { "name": "Strip wash", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity"] },
+            { "name": "Shower", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity"] },
+            { "name": "Bath", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity"] }
+          ]
+        },
+        {
+          "category": "Oral / mouth care",
+          "tasks": [
+            { "name": "Teeth / denture cleaning", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Mouth care", "supportLevelApplicable": true, "consentRequired": true }
+          ]
+        },
+        {
+          "category": "Grooming",
+          "tasks": [
+            { "name": "Hair wash / styling", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Shaving", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Nail care", "supportLevelApplicable": true, "consentRequired": true, "outOfScope": "conditional", "$note": "Diabetic / high-risk nail care = podiatry, OUT OF SCOPE for carer. Provider-configurable." }
+          ]
+        },
+        {
+          "category": "Toileting & continence",
+          "tasks": [
+            { "name": "Toilet / commode assist", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["continence"] },
+            { "name": "Pad / continence-product change", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["continence"] },
+            { "name": "Catheter care", "supportLevelApplicable": true, "consentRequired": true, "competencyGated": true, "competency": "catheter_care", "feedsObservation": ["continence"] },
+            { "name": "Stoma care", "supportLevelApplicable": true, "consentRequired": true, "competencyGated": true, "competency": "stoma_care" },
+            { "name": "Bowel care", "supportLevelApplicable": true, "consentRequired": true, "competencyGated": true, "competency": "bowel_care", "feedsObservation": ["continence", "bowel"] }
+          ]
+        },
+        {
+          "category": "Dressing & appearance",
+          "tasks": [
+            { "name": "Dress / undress", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Choose clothing", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Glasses / hearing aids / dentures", "supportLevelApplicable": true, "consentRequired": true }
+          ]
+        },
+        {
+          "category": "Skin & pressure care",
+          "tasks": [
+            { "name": "Apply emollient / barrier cream", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["skin_integrity", "body_map"] },
+            { "name": "Repositioning / turning", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["repositioning_chart", "skin_integrity"], "$note": "Scheduled chart task - tracks last-turned, position, next-due, overdue across carers (§19)." },
+            { "name": "Check pressure areas", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["body_map", "skin_integrity"] }
+          ]
+        },
+        {
+          "category": "Mobility & transfers",
+          "tasks": [
+            { "name": "Assist to move", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Transfer (bed <-> chair)", "supportLevelApplicable": true, "consentRequired": true, "competencyGated": true, "competency": "moving_and_handling" },
+            { "name": "Hoist use", "supportLevelApplicable": true, "consentRequired": true, "competencyGated": true, "competency": "hoist_loler", "$note": "Two-person task where required - blocked if only one required carer present (AC-14.24)." },
+            { "name": "Walking / steadying", "supportLevelApplicable": true, "consentRequired": true },
+            { "name": "Falls assistance", "supportLevelApplicable": true, "consentRequired": true }
+          ]
+        },
+        {
+          "category": "Eating & drinking",
+          "tasks": [
+            { "name": "Meal prep", "supportLevelApplicable": true, "consentRequired": false },
+            { "name": "Assist to eat", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["food_intake"] },
+            { "name": "Feeding", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["food_intake"] },
+            { "name": "Encourage fluids", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["fluid_intake"] },
+            { "name": "Specialist / texture-modified diet (IDDSI)", "supportLevelApplicable": true, "consentRequired": true, "feedsObservation": ["food_intake"], "$note": "Check allergies; IDDSI level per care plan." }
+          ]
+        },
+        {
+          "category": "Comfort & wellbeing",
+          "tasks": [
+            { "name": "Companionship", "supportLevelApplicable": false, "consentRequired": false },
+            { "name": "Reassurance", "supportLevelApplicable": false, "consentRequired": false },
+            { "name": "Orientation", "supportLevelApplicable": false, "consentRequired": false },
+            { "name": "Emotional support", "supportLevelApplicable": false, "consentRequired": false }
+          ]
+        },
+        {
+          "category": "Domestic linked to care",
+          "tasks": [
+            { "name": "Bed-making", "supportLevelApplicable": false, "consentRequired": false },
+            { "name": "Light tidying of care environment", "supportLevelApplicable": false, "consentRequired": false },
+            { "name": "Laundry (where in package)", "supportLevelApplicable": false, "consentRequired": false }
+          ]
+        }
+      ]
+    },
+
+    {
+      "group": "non_visit_jobs",
+      "source": "§17 Jobs view (Today / Week / Month / Overdue)",
+      "$note": "Recurring jobs regenerate on completion (AC-17.2). Evidence-required jobs cannot complete without evidence (AC-17.3). Overdue mandatory jobs escalate (AC-17.4).",
+      "categories": [
+        {
+          "category": "Jobs & duties",
+          "tasks": [
+            { "name": "Stock check", "recurring": true, "defaultHorizon": "week", "evidenceRequired": ["tick", "note"] },
+            { "name": "Supply restock", "recurring": true, "defaultHorizon": "week", "evidenceRequired": ["tick"] },
+            { "name": "Spot check (senior only)", "seniorOnly": true, "evidenceRequired": ["form"] },
+            { "name": "Supervision / sign-off", "seniorOnly": true, "evidenceRequired": ["form"] },
+            { "name": "Policy read", "mandatory": true, "evidenceRequired": ["tick"] },
+            { "name": "Training due", "mandatory": true, "evidenceRequired": ["form"], "$note": "Lapsed mandatory training blocks gated work + rostering (AC-28.7)." },
+            { "name": "Client errand", "evidenceRequired": ["note"] },
+            { "name": "Vehicle check", "recurring": true, "defaultHorizon": "week", "evidenceRequired": ["tick"] },
+            { "name": "PPE check", "recurring": true, "defaultHorizon": "today", "evidenceRequired": ["tick"] },
+            { "name": "Timesheet submission", "recurring": true, "defaultHorizon": "week", "evidenceRequired": ["form"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "group": "observations_monitoring",
+      "source": "§19 Observations, vitals, deterioration",
+      "$note": "Schedulable, recordable tasks. Monitoring schedules show what is due, by whom requested, end date (AC-19.14). These feed the deterioration pathway.",
+      "categories": [
+        {
+          "category": "Observations & vitals",
+          "tasks": [
+            { "name": "Weight", "feedsObservation": ["vitals", "must"] },
+            { "name": "Temperature", "feedsObservation": ["vitals"] },
+            { "name": "Blood pressure", "feedsObservation": ["vitals"] },
+            { "name": "Pulse", "feedsObservation": ["vitals"] },
+            { "name": "SpO2", "feedsObservation": ["vitals"] },
+            { "name": "NEWS2 vitals set", "feedsObservation": ["vitals", "news2"], "$note": "Raised score launches deterioration pathway (AC-19.3)." },
+            { "name": "Fluid intake recording", "feedsObservation": ["fluid_intake"] },
+            { "name": "Food / nutrition recording", "feedsObservation": ["food_intake", "must"] },
+            { "name": "Bowel / continence recording", "feedsObservation": ["continence", "bowel"] },
+            { "name": "Repositioning (scheduled)", "feedsObservation": ["repositioning_chart"] },
+            { "name": "Sleep", "feedsObservation": ["wellbeing"] },
+            { "name": "Mood", "feedsObservation": ["wellbeing"] },
+            { "name": "Pain scale", "feedsObservation": ["pain"] },
+            { "name": "Behaviour log (PBS-linked)", "feedsObservation": ["pbs"] },
+            { "name": "Seizure log", "feedsObservation": ["epilepsy"] },
+            { "name": "Body map / skin check", "feedsObservation": ["body_map", "skin_integrity"], "evidenceRequired": ["photo"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "group": "condition_specific",
+      "source": "§19a Condition-specific care records",
+      "$note": "PLAN-DRIVEN: only the conditions the person has appear (AC-19.7). Most are competency-gated and tend to the 'complex' visit type.",
+      "categories": [
+        {
+          "category": "Condition-specific care",
+          "tasks": [
+            { "name": "Blood glucose reading", "competencyGated": false, "feedsObservation": ["diabetes"], "$note": "Insulin = gated; hypo/hyper thresholds trigger protocol." },
+            { "name": "Insulin administration", "competencyGated": true, "competency": "insulin", "$note": "Records units + injection site rotation (AC-19.11)." },
+            { "name": "Catheter care record", "competencyGated": true, "competency": "catheter_care", "feedsObservation": ["continence"] },
+            { "name": "Stoma care record", "competencyGated": true, "competency": "stoma_care", "feedsObservation": ["body_map"] },
+            { "name": "PEG / enteral feeding", "competencyGated": true, "competency": "peg_enteral" },
+            { "name": "Respiratory / oxygen", "competencyGated": true, "competency": "oxygen", "feedsObservation": ["vitals"], "$note": "Trach/vent = complex-gated." },
+            { "name": "Epilepsy / seizure record", "competencyGated": false, "feedsObservation": ["epilepsy"], "$note": "Rescue med = gated, links PRN protocol (§18)." },
+            { "name": "Bowel care record (Bristol)", "competencyGated": false, "feedsObservation": ["bowel"], "$note": "Gated for interventions." },
+            { "name": "Fluid balance chart", "competencyGated": false, "feedsObservation": ["fluid_intake"] },
+            { "name": "Structured pain (e.g. Abbey)", "competencyGated": false, "feedsObservation": ["pain"] },
+            { "name": "Wound care", "competencyGated": true, "competency": "wound_dressing", "feedsObservation": ["body_map"], "evidenceRequired": ["photo"], "$note": "Gated for dressings." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "group": "equipment_ipc",
+      "source": "§20 Equipment, consumables, LOLER & infection control",
+      "categories": [
+        {
+          "category": "Equipment & IPC",
+          "tasks": [
+            { "name": "Record moving-and-handling equipment in use", "$note": "Surfaces LOLER inspection due/expired flag (AC-20.1)." },
+            { "name": "Consumable supply check (in-stock / low / out)", "$note": "Stoma bags, catheter kits, pads, gloves, dressings, thickener, feed (AC-20.5)." },
+            { "name": "Record PPE use", "feedsObservation": ["ipc"] },
+            { "name": "Hand hygiene", "feedsObservation": ["ipc"] },
+            { "name": "Safe waste disposal", "feedsObservation": ["ipc"] },
+            { "name": "Flag faulty / unsafe equipment", "evidenceRequired": ["note", "photo"], "$note": "Creates office task / incident (§23)." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "group": "shopping_errands",
+      "source": "§26 Shopping support",
+      "categories": [
+        {
+          "category": "Shopping & money",
+          "tasks": [
+            { "name": "Shopping support", "evidenceRequired": ["photo"], "$note": "Records list, money given, receipted spend, change returned; reconciliation mismatch flags a financial concern (AC-26.5)." },
+            { "name": "Food safety / expiry check", "$note": "Where the task requires storing items safely and recording use-by checks." }
+          ]
+        }
+      ]
+    }
+  ]
+}

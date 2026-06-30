@@ -47,6 +47,8 @@ import { ServiceUserDocumentsModule } from './service-user-documents/service-use
 import { ServiceUserAbsencesModule } from './service-user-absences/service-user-absences.module';
 import { ServiceUserDomCareModule } from './service-user-dom-care/service-user-dom-care.module';
 import { ServiceUserVisitPlansModule } from './service-user-visit-plans/service-user-visit-plans.module';
+import { ServiceUserVisitTasksModule } from './service-user-visit-tasks/service-user-visit-tasks.module';
+import { TaskCatalogueModule } from './task-catalogue/task-catalogue.module';
 import { VisitPlanJobsModule } from './visit-plan-jobs/visit-plan-jobs.module';
 import { ServiceUserInitialAssessmentModule } from './service-user-initial-assessment/service-user-initial-assessment.module';
 import { ServiceUserAssessmentsModule } from './service-user-assessments/service-user-assessments.module';
@@ -166,6 +168,8 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     ServiceUserCalendarModule,
     ServiceUserDomCareModule,
     ServiceUserVisitPlansModule,
+    ServiceUserVisitTasksModule,
+    TaskCatalogueModule,
     VisitPlanJobsModule,
     ServiceUserInitialAssessmentModule,
     ServiceUserAssessmentsModule,
