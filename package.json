@@ -20,6 +20,7 @@
     "prisma:seed": "prisma db seed",
     "seed": "prisma db seed",
     "seed:deploy": "bash prisma/scripts/run-deploy-seeds.sh .",
+    "seed:task-catalogue": "ts-node --transpile-only prisma/scripts/seed-task-catalogue.ts",
     "import:gallery-urls": "node scripts/import-gallery-from-urls.mjs",
     "probe:gallery-urls": "node scripts/probe-gallery-blob-urls.mjs",
     "sync:gallery-public": "node scripts/sync-gallery-from-public.mjs",

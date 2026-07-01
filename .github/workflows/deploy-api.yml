@@ -49,6 +49,7 @@ jobs:
           test -f prisma/seed-data/medication-administration-rounds.defaults.ts
           test -f prisma/seed-data/initial-assessment-catalog.json
           test -f prisma/seed-data/vital-accepted-ranges.defaults.ts
+          test -f prisma/seed-data/task-catalogue-seed.json
           test -d prisma/migrations
           test -f package.json
           test -f package-lock.json
@@ -487,8 +488,8 @@ jobs:
           npx prisma migrate status || true
 
           echo "Seeding database (idempotent upserts; failures are logged but do not block deploy)..."
-          if ! npx prisma db seed 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
-            echo "WARN: prisma db seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
+          if ! bash prisma/scripts/run-deploy-seeds.sh "$LIVE_PATH" 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
+            echo "WARN: deploy seeders failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
           fi
 
           echo "Reloading PM2 app..."

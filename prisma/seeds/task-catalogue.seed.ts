@@ -58,7 +58,7 @@ function buildFlagsJson(task: SeedTask): Record<string, unknown> | null {
 }
 
 export async function seedTaskCatalogue(prisma: PrismaClient): Promise<void> {
-  const seedPath = join(process.cwd(), 'task-catalogue-seed.json');
+  const seedPath = join(process.cwd(), 'prisma', 'seed-data', 'task-catalogue-seed.json');
   const raw = readFileSync(seedPath, 'utf8');
   const parsed = JSON.parse(raw) as TaskCatalogueSeedFile;
 
@@ -145,4 +145,12 @@ export async function seedTaskCatalogue(prisma: PrismaClient): Promise<void> {
       categoryOrder += 1;
     }
   }
+
+  const taskCount = parsed.categories.reduce(
+    (sum, g) => sum + g.categories.reduce((s, c) => s + c.tasks.length, 0),
+    0,
+  );
+  console.log(
+    `[task-catalogue] Seeded ${parsed.categories.length} group(s), ${taskCount} task(s) from ${seedPath}.`,
+  );
 }
