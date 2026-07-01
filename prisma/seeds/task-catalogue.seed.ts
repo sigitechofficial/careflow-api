@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
-import { resolveVisitTaskCompletionInput } from '../../src/visit-tasks/visit-task-completion-input.util';
+import { resolveVisitTaskCompletionInput } from '../seed-data/visit-task-completion-input.util';
 
 type SeedTask = {
   name: string;
