@@ -2118,6 +2118,7 @@ model ServiceUser {
   flashMessages              ServiceUserFlashMessage[]
   bodyMapRecords             BodyMapRecord[]
   bodyMapAlerts              BodyMapAlert[]
+  portalAccount              ServiceUserPortalAccount?
 
   @@index([deletedAt])
   @@index([statusId])
@@ -2128,6 +2129,27 @@ model ServiceUser {
   @@index([keyWorkerId])
   @@index([namedNurseId])
   @@index([lastName, firstName])
+  @@schema("service_users")
+}
+
+model ServiceUserPortalAccount {
+  id               String    @id @default(uuid()) @db.Uuid
+  serviceUserId    String    @unique @db.Uuid
+  email            String    @unique
+  passwordHash     String
+  isEnabled        Boolean   @default(false)
+  refreshTokenHash String?
+  lastLoginAt      DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
   @@schema("service_users")
 }
 

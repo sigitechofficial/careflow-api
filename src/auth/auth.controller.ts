@@ -15,6 +15,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TemporaryInspectorLoginDto } from './dto/temporary-inspector-login.dto';
+import { ServiceUserPortalLoginDto } from './dto/service-user-portal-login.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,6 +34,13 @@ export class AuthController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   temporaryInspectorLogin(@Body() dto: TemporaryInspectorLoginDto, @Req() req: Request) {
     return this.authService.temporaryInspectorLogin(dto, req);
+  }
+
+  @Public()
+  @Post('service-user/login')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  serviceUserPortalLogin(@Body() dto: ServiceUserPortalLoginDto, @Req() req: Request) {
+    return this.authService.serviceUserPortalLogin(dto, req);
   }
 
   @Public()
@@ -67,8 +75,8 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto, @Req() req: Request) {
-    if (user.accountKind === 'temporary_inspector') {
-      throw new ForbiddenException('Password change is not available for temporary inspector accounts');
+    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user') {
+      throw new ForbiddenException('Password change is not available for this account type');
     }
     return this.authService.changePassword(user.id, dto, req);
   }
@@ -91,8 +99,8 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   updateMe(@CurrentUser() user: RequestUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
-    if (user.accountKind === 'temporary_inspector') {
-      throw new ForbiddenException('Profile update is not available for temporary inspector accounts');
+    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user') {
+      throw new ForbiddenException('Profile update is not available for this account type');
     }
     return this.authService.updateProfile(user.id, dto, req);
   }
@@ -101,6 +109,9 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   myLoginHistory(@CurrentUser() user: RequestUser) {
+    if (user.accountKind === 'service_user') {
+      throw new ForbiddenException('Login history is not available for service user accounts');
+    }
     return this.authService.getMyLoginHistory(user.id);
   }
 }

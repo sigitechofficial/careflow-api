@@ -205,7 +205,7 @@ export function mapServiceUserDetail(
   scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
 ) {
   const assignment = user.assignments?.[0] ?? null;
-  const profilePhoto = user.photos?.[0] ?? null;
+  const profilePhoto = user.photos?.find((p) => p.isProfilePhoto) ?? null;
   const mappedLocation = mapServiceUserLocation(user, scheduleAreaByLocation);
   return {
     id: user.id,
@@ -300,5 +300,14 @@ export function mapServiceUserDetail(
           uploadedAt: profilePhoto.uploadedAt,
         }
       : null,
+    photos: (user.photos ?? []).map((p) => ({
+      id: p.id,
+      fileName: p.fileName,
+      originalName: p.originalName,
+      fileUrl: p.fileUrl,
+      mimeType: p.mimeType,
+      isProfilePhoto: p.isProfilePhoto,
+      uploadedAt: p.uploadedAt,
+    })),
   };
 }

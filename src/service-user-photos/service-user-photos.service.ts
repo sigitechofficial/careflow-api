@@ -49,6 +49,16 @@ export class ServiceUserPhotosService {
     file: Express.Multer.File,
     meta?: RequestAuditMeta,
   ) {
+    return this.upload(userId, serviceUserId, file, { setAsProfile: true }, meta);
+  }
+
+  async upload(
+    userId: string | null,
+    serviceUserId: string,
+    file: Express.Multer.File,
+    options: { setAsProfile?: boolean } = {},
+    meta?: RequestAuditMeta,
+  ) {
     await this.ensureServiceUser(serviceUserId);
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     if (!allowed.has(file.mimetype)) {
@@ -57,13 +67,17 @@ export class ServiceUserPhotosService {
     if (file.size > this.maxFileSize()) {
       throw new BadRequestException('File exceeds maximum allowed size');
     }
+
+    const setAsProfile = options.setAsProfile ?? false;
     const fileUrl = this.filePublicUrl(file.filename);
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.serviceUserPhoto.updateMany({
-        where: { serviceUserId, deletedAt: null, isProfilePhoto: true },
-        data: { deletedAt: new Date(), isProfilePhoto: false },
-      });
+      if (setAsProfile) {
+        await tx.serviceUserPhoto.updateMany({
+          where: { serviceUserId, deletedAt: null, isProfilePhoto: true },
+          data: { deletedAt: new Date(), isProfilePhoto: false },
+        });
+      }
 
       const created = await tx.serviceUserPhoto.create({
         data: {
@@ -74,18 +88,20 @@ export class ServiceUserPhotosService {
           fileSize: file.size,
           mimeType: file.mimetype,
           uploadedById: userId,
-          isProfilePhoto: true,
+          isProfilePhoto: setAsProfile,
         },
       });
 
-      await tx.serviceUser.update({
-        where: { id: serviceUserId },
-        data: { profilePhotoUrl: fileUrl, updatedById: userId },
-      });
+      if (setAsProfile) {
+        await tx.serviceUser.update({
+          where: { id: serviceUserId },
+          data: { profilePhotoUrl: fileUrl, ...(userId ? { updatedById: userId } : {}) },
+        });
+      }
 
       await this.audit.logAudit({
         tx,
-        userId,
+        userId: userId ?? undefined,
         module: AuditModule.SERVICE_USER,
         action: AuditAction.SERVICE_USER_PHOTO_UPLOADED,
         recordType: 'ServiceUserPhoto',
@@ -96,12 +112,23 @@ export class ServiceUserPhotosService {
           mimeType: created.mimeType,
           fileSize: created.fileSize,
           fileUrl: created.fileUrl,
+          isProfilePhoto: setAsProfile,
+          uploadedViaPortal: userId == null,
         }),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
 
-      return { message: 'Photo uploaded', data: created };
+      return {
+        message: 'Photo uploaded',
+        data: {
+          id: created.id,
+          fileUrl: created.fileUrl,
+          originalName: created.originalName,
+          isProfilePhoto: created.isProfilePhoto,
+          uploadedAt: created.uploadedAt.toISOString(),
+        },
+      };
     });
   }
 

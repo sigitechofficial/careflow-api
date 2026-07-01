@@ -33,6 +33,7 @@ import { EmployeeHolidaysModule } from './employee-holidays/employee-holidays.mo
 import { EmployeeLeavingRecordsModule } from './employee-leaving-records/employee-leaving-records.module';
 import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-inspectors.module';
 import { ServiceUsersModule } from './service-users/service-users.module';
+import { ServiceUserPortalModule } from './service-user-portal/service-user-portal.module';
 import { ServiceUserContactsModule } from './service-user-contacts/service-user-contacts.module';
 import { ServiceUserAddressesModule } from './service-user-addresses/service-user-addresses.module';
 import { ServiceUserAssignmentsModule } from './service-user-assignments/service-user-assignments.module';
@@ -152,6 +153,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     LookupsModule,
     TemporaryInspectorsModule,
     ServiceUsersModule,
+    ServiceUserPortalModule,
     ServiceUserContactsModule,
     ServiceUserAddressesModule,
     ServiceUserAssignmentsModule,

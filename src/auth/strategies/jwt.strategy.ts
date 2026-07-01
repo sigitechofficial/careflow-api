@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 import { TemporaryInspectorsService } from '../../temporary-inspectors/temporary-inspectors.service';
+import { ServiceUserPortalAccountsService } from '../../service-user-portal/service-user-portal-accounts.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,6 +12,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly config: ConfigService,
     private readonly usersService: UsersService,
     private readonly temporaryInspectorsService: TemporaryInspectorsService,
+    private readonly serviceUserPortalAccountsService: ServiceUserPortalAccountsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -22,6 +24,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string; typ?: string }) {
     if (payload.typ === 'ti') {
       const ctx = await this.temporaryInspectorsService.getAuthContextForJwt(payload.sub);
+      if (!ctx) throw new UnauthorizedException('Invalid token');
+      return ctx;
+    }
+    if (payload.typ === 'su') {
+      const ctx = await this.serviceUserPortalAccountsService.getAuthContextForJwt(payload.sub);
       if (!ctx) throw new UnauthorizedException('Invalid token');
       return ctx;
     }

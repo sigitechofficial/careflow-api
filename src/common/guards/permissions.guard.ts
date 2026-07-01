@@ -34,6 +34,10 @@ export class PermissionsGuard implements CanActivate {
     const user = req.user as RequestUser | undefined;
     if (!user) throw new ForbiddenException('Not authenticated');
 
+    if (user.accountKind === 'service_user') {
+      throw new ForbiddenException('Staff access required');
+    }
+
     if (user.roles?.includes(SUPER_ADMIN_ROLE_NAME)) {
       return true;
     }

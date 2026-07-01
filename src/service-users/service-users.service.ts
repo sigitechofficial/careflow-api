@@ -53,9 +53,8 @@ const detailInclude = {
     },
   },
   photos: {
-    where: { deletedAt: null, isProfilePhoto: true },
+    where: { deletedAt: null },
     orderBy: { uploadedAt: 'desc' as const },
-    take: 1,
   },
   keyWorker: { include: { personalDetail: true } },
   namedNurse: { include: { personalDetail: true } },

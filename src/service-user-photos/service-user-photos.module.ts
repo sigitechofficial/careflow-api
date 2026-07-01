@@ -9,5 +9,6 @@ import { ServiceUserPhotosService } from './service-user-photos.service';
   imports: [PrismaModule, AuditLogsModule, ConfigModule],
   controllers: [ServiceUserPhotosController],
   providers: [ServiceUserPhotosService],
+  exports: [ServiceUserPhotosService],
 })
 export class ServiceUserPhotosModule {}

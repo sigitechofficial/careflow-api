@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -13,13 +13,21 @@ import { CreateServiceUserDto } from './dto/create-service-user.dto';
 import { UpdateServiceUserDto } from './dto/update-service-user.dto';
 import { UpdateServiceUserStatusDto } from './dto/update-service-user-status.dto';
 import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding-refs.dto';
+import { ServiceUserPortalAccountsService } from '../service-user-portal/service-user-portal-accounts.service';
+import {
+  SetServiceUserPortalPasswordDto,
+  UpsertServiceUserPortalAccountDto,
+} from '../service-user-portal/dto/service-user-portal.dto';
 
 @ApiTags('Service Users')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('service-users')
 export class ServiceUsersController {
-  constructor(private readonly serviceUsersService: ServiceUsersService) {}
+  constructor(
+    private readonly serviceUsersService: ServiceUsersService,
+    private readonly portalAccountsService: ServiceUserPortalAccountsService,
+  ) {}
 
   @Get()
   @Permissions('service_users.read')
@@ -38,6 +46,36 @@ export class ServiceUsersController {
     @Req() req: Request,
   ) {
     return this.serviceUsersService.patchFundingRefs(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get(':id/portal-account')
+  @Permissions('service_users.portal.read')
+  @ApiOperation({ summary: 'Portal account status for a service user' })
+  getPortalAccount(@Param('id') id: string) {
+    return this.portalAccountsService.getAdminStatus(id);
+  }
+
+  @Put(':id/portal-account')
+  @Permissions('service_users.portal.manage')
+  @ApiOperation({ summary: 'Enable/disable portal access and set portal email' })
+  upsertPortalAccount(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpsertServiceUserPortalAccountDto,
+  ) {
+    return this.portalAccountsService.upsertAdmin(user.id, id, dto);
+  }
+
+  @Post(':id/portal-account/set-password')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('service_users.portal.manage')
+  @ApiOperation({ summary: 'Set or reset portal password (admin)' })
+  setPortalPassword(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetServiceUserPortalPasswordDto,
+  ) {
+    return this.portalAccountsService.setPassword(user.id, id, dto.password);
   }
 
   @Get(':id')

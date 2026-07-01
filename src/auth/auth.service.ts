@@ -17,7 +17,9 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TemporaryInspectorLoginDto } from './dto/temporary-inspector-login.dto';
+import { ServiceUserPortalLoginDto } from './dto/service-user-portal-login.dto';
 import { TemporaryInspectorsService } from '../temporary-inspectors/temporary-inspectors.service';
+import { ServiceUserPortalAccountsService } from '../service-user-portal/service-user-portal-accounts.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -28,6 +30,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly auditLogs: AuditLogsService,
     private readonly temporaryInspectorsService: TemporaryInspectorsService,
+    private readonly serviceUserPortalAccountsService: ServiceUserPortalAccountsService,
   ) {}
 
   async login(dto: LoginDto, req: Request) {
@@ -183,6 +186,82 @@ export class AuthService {
     };
   }
 
+  async serviceUserPortalLogin(dto: ServiceUserPortalLoginDto, req: Request) {
+    const meta = this.auditLogs.getRequestMeta(req);
+    const row = await this.serviceUserPortalAccountsService.findByEmailForLogin(dto.email);
+    if (!row) {
+      await this.auditLogs.logSecurityEvent({
+        eventType: SecurityEventType.FAILED_LOGIN,
+        severity: SecuritySeverity.MEDIUM,
+        description: 'Failed service user portal login — unknown email',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        metadata: { email: dto.email.trim().toLowerCase() },
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    try {
+      this.serviceUserPortalAccountsService.assertLoginable(row);
+    } catch {
+      await this.auditLogs.logSecurityEvent({
+        eventType: SecurityEventType.FAILED_LOGIN,
+        severity: SecuritySeverity.MEDIUM,
+        description: 'Failed service user portal login — disabled or inactive',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        metadata: { portalAccountId: row.id },
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const ok = await this.serviceUserPortalAccountsService.verifyPassword(row, dto.password);
+    if (!ok) {
+      await this.auditLogs.logSecurityEvent({
+        eventType: SecurityEventType.FAILED_LOGIN,
+        severity: SecuritySeverity.MEDIUM,
+        description: 'Failed service user portal login — bad password',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        metadata: { portalAccountId: row.id },
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const tokens = await this.issueServiceUserPortalTokens(row.id);
+    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    await this.serviceUserPortalAccountsService.setRefreshTokenHash(row.id, refreshTokenHash);
+    await this.serviceUserPortalAccountsService.touchLastLogin(row.id);
+
+    await this.auditLogs.logLogin({
+      userId: undefined,
+      email: row.email,
+      event: 'login_success',
+      status: AuditStatus.SUCCESS,
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+    await this.auditLogs.logAudit({
+      userId: undefined,
+      module: AuditModule.AUTH,
+      action: AuditAction.LOGIN_SUCCESS,
+      recordType: 'ServiceUserPortalAccount',
+      recordId: row.id,
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+      status: AuditStatus.SUCCESS,
+      metadata: { portalAccountId: row.id, serviceUserId: row.serviceUserId },
+    });
+
+    return {
+      message: 'Login successful',
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+    };
+  }
+
   async register(dto: RegisterDto, req: Request) {
     const meta = this.auditLogs.getRequestMeta(req);
     const existing = await this.usersService.findByEmail(dto.email);
@@ -240,6 +319,44 @@ export class AuthService {
         module: AuditModule.AUTH,
         action: AuditAction.REFRESH_TOKEN_USED,
         recordType: 'TemporaryInspector',
+        recordId: row.id,
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
+
+      return {
+        message: 'Token refreshed',
+        data: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+      };
+    }
+
+    if (payload.typ === 'su') {
+      const row = await this.serviceUserPortalAccountsService.findForRefresh(payload.sub);
+      if (!row?.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
+      const ok = await bcrypt.compare(dto.refreshToken, row.refreshTokenHash);
+      if (!ok) throw new UnauthorizedException('Invalid refresh token');
+      this.serviceUserPortalAccountsService.assertLoginable(row);
+
+      const tokens = await this.issueServiceUserPortalTokens(row.id);
+      const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+      await this.serviceUserPortalAccountsService.setRefreshTokenHash(row.id, refreshTokenHash);
+
+      await this.auditLogs.logLogin({
+        userId: undefined,
+        email: row.email,
+        event: 'refresh_token_used',
+        status: AuditStatus.SUCCESS,
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
+      await this.auditLogs.logAudit({
+        userId: undefined,
+        module: AuditModule.AUTH,
+        action: AuditAction.REFRESH_TOKEN_USED,
+        recordType: 'ServiceUserPortalAccount',
         recordId: row.id,
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -409,6 +526,29 @@ export class AuthService {
       return { message: 'Logout successful', data: {} };
     }
 
+    if (user.accountKind === 'service_user') {
+      await this.serviceUserPortalAccountsService.clearRefreshToken(user.id);
+      await this.auditLogs.logLogin({
+        userId: undefined,
+        email: user.email,
+        event: 'logout',
+        status: AuditStatus.SUCCESS,
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
+      await this.auditLogs.logAudit({
+        userId: undefined,
+        module: AuditModule.AUTH,
+        action: AuditAction.LOGOUT,
+        recordType: 'ServiceUserPortalAccount',
+        recordId: user.id,
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        metadata: { serviceUserId: user.serviceUserId },
+      });
+      return { message: 'Logout successful', data: {} };
+    }
+
     const dbUser = await this.usersService.findById(user.id);
     await this.usersService.clearRefreshToken(user.id);
     await this.auditLogs.logLogin({
@@ -453,6 +593,19 @@ export class AuthService {
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync({ sub: inspectorId, typ: 'ti' }, refreshSignOptions);
+
+    return { accessToken, refreshToken };
+  }
+
+  private async issueServiceUserPortalTokens(accountId: string) {
+    const accessToken = await this.jwtService.signAsync({ sub: accountId, typ: 'su' });
+
+    const refreshSignOptions = {
+      secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      expiresIn: this.config.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN', '7d'),
+    } as JwtSignOptions;
+
+    const refreshToken = await this.jwtService.signAsync({ sub: accountId, typ: 'su' }, refreshSignOptions);
 
     return { accessToken, refreshToken };
   }

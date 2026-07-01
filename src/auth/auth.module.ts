@@ -8,11 +8,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { TemporaryInspectorsModule } from '../temporary-inspectors/temporary-inspectors.module';
+import { ServiceUserPortalModule } from '../service-user-portal/service-user-portal.module';
 
 @Module({
   imports: [
     UsersModule,
     TemporaryInspectorsModule,
+    ServiceUserPortalModule,
     AuditLogsModule,
     PassportModule,
     JwtModule.registerAsync({
