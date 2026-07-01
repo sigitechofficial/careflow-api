@@ -3663,6 +3663,7 @@ model ServiceUserVisitTaskAssignment {
   taskCatalogueTaskId String    @db.Uuid
   sortOrder           Int       @default(0)
   carerInstructions   String?   @db.Text
+  priority            String    @default("routine")
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

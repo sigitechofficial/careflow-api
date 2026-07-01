@@ -21,6 +21,13 @@ function normalizeInstructions(value: string | null | undefined): string | null 
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const VISIT_TASK_PRIORITY_CODES = new Set(['routine', 'important', 'critical']);
+
+function normalizePriority(value: string | null | undefined): string {
+  const code = value?.trim().toLowerCase() ?? 'routine';
+  return VISIT_TASK_PRIORITY_CODES.has(code) ? code : 'routine';
+}
+
 @Injectable()
 export class ServiceUserVisitTasksService {
   constructor(private readonly prisma: PrismaService) {}
@@ -88,19 +95,28 @@ export class ServiceUserVisitTasksService {
 
     const desired = new Map<
       string,
-      Array<{ taskCatalogueTaskId: string; carerInstructions: string | null }>
+      Array<{
+        taskCatalogueTaskId: string;
+        carerInstructions: string | null;
+        priority: string;
+      }>
     >();
     for (const round of dto.rounds) {
       const code = round.medicationRoundCode.trim().toUpperCase();
       if (!code) continue;
       const seen = new Set<string>();
-      const items: Array<{ taskCatalogueTaskId: string; carerInstructions: string | null }> = [];
+      const items: Array<{
+        taskCatalogueTaskId: string;
+        carerInstructions: string | null;
+        priority: string;
+      }> = [];
       for (const task of round.tasks) {
         if (seen.has(task.taskCatalogueTaskId)) continue;
         seen.add(task.taskCatalogueTaskId);
         items.push({
           taskCatalogueTaskId: task.taskCatalogueTaskId,
           carerInstructions: normalizeInstructions(task.carerInstructions),
+          priority: normalizePriority(task.priority),
         });
       }
       desired.set(code, items);
@@ -144,6 +160,7 @@ export class ServiceUserVisitTasksService {
                 deletedAt: null,
                 sortOrder,
                 carerInstructions: item.carerInstructions,
+                priority: item.priority,
                 updatedById: userId,
               },
             });
@@ -156,6 +173,7 @@ export class ServiceUserVisitTasksService {
                 taskCatalogueTaskId: item.taskCatalogueTaskId,
                 sortOrder,
                 carerInstructions: item.carerInstructions,
+                priority: item.priority,
                 createdById: userId,
                 updatedById: userId,
               },
@@ -190,6 +208,7 @@ export class ServiceUserVisitTasksService {
       medicationRoundCode: row.medicationRoundCode,
       sortOrder: row.sortOrder,
       carerInstructions: row.carerInstructions,
+      priority: row.priority,
       task: {
         id: row.task.id,
         name: row.task.name,
