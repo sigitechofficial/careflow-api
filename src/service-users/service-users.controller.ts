@@ -18,6 +18,7 @@ import {
   SetServiceUserPortalPasswordDto,
   UpsertServiceUserPortalAccountDto,
 } from '../service-user-portal/dto/service-user-portal.dto';
+import { ServiceUserPortalAccountQueryDto } from '../service-user-portal/dto/service-user-portal-account-query.dto';
 
 @ApiTags('Service Users')
 @ApiBearerAuth()
@@ -34,6 +35,13 @@ export class ServiceUsersController {
   @ApiOperation({ summary: 'List service users' })
   list(@Query() query: ServiceUserQueryDto) {
     return this.serviceUsersService.list(query);
+  }
+
+  @Get('portal-accounts')
+  @Permissions('service_users.portal.read')
+  @ApiOperation({ summary: 'List service user portal accounts for admin management' })
+  listPortalAccounts(@Query() query: ServiceUserPortalAccountQueryDto) {
+    return this.portalAccountsService.listAdmin(query);
   }
 
   @Patch(':id/funding')

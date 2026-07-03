@@ -8,5 +8,6 @@ import { ServiceUserAllergiesService } from './service-user-allergies.service';
   imports: [PrismaModule, AuditLogsModule],
   controllers: [ServiceUserAllergiesController],
   providers: [ServiceUserAllergiesService],
+  exports: [ServiceUserAllergiesService],
 })
 export class ServiceUserAllergiesModule {}

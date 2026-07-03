@@ -101,7 +101,7 @@ export class EmployeesService {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
-        personalDetail: { include: { title: true, gender: true, nationality: true, status: true } },
+        personalDetail: { include: { title: true, gender: true, nationality: true, ethnicity: true, status: true } },
         employment: {
           include: {
             workArea: true,
@@ -164,6 +164,7 @@ export class EmployeesService {
               email: dto.email,
               username: dto.username,
               nationalityId: dto.nationalityId,
+              ethnicityId: dto.ethnicityId,
               statusId: dto.statusId,
               createdById: userId,
             },

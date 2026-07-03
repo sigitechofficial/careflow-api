@@ -1,9 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { VisitPlanStatus, ScheduledVisitStatus, type Prisma } from '@prisma/client';
+import { VisitPlanStatus, ScheduledVisitStatus, MedicationRecordStatus, type Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserPhotosService } from '../service-user-photos/service-user-photos.service';
-import type { PatchPortalAboutMeDto, PatchPortalProfileDto, CreatePortalContactDto } from './dto/service-user-portal.dto';
+import { ServiceUserAllergiesService } from '../service-user-allergies/service-user-allergies.service';
+import type {
+  PatchPortalAboutMeDto,
+  PatchPortalProfileDto,
+  CreatePortalContactDto,
+  CreatePortalAllergyDto,
+} from './dto/service-user-portal.dto';
 import {
   PORTAL_PROFILE_REF,
   parsePortalProfileExtras,
@@ -18,6 +24,12 @@ import {
   employeeDisplayName as portalEmployeeDisplayName,
   resolveVisitMedicationRoundCode,
 } from './portal-dashboard.util';
+import {
+  portalMedicationCarerName,
+  portalMedicationRecordStatusLabel,
+  portalMedicationRoundLabel,
+  portalMedicationStatusLabel,
+} from './portal-medications.util';
 
 const ABOUT_ME_REF_TYPE = 'SU_ABOUT_ME_V1';
 
@@ -47,6 +59,7 @@ export class ServiceUserPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly photosService: ServiceUserPhotosService,
+    private readonly allergiesService: ServiceUserAllergiesService,
   ) {}
 
   private async loadScopedUser(serviceUserId: string): Promise<PortalUserRow> {
@@ -133,7 +146,7 @@ export class ServiceUserPortalService {
   }
 
   async getLookups() {
-    const [titles, genders, maritalStatuses, relationshipTypes] = await Promise.all([
+    const [titles, genders, maritalStatuses, relationshipTypes, allergies] = await Promise.all([
       this.prisma.serviceUserTitle.findMany({
         where: { isActive: true },
         orderBy: { name: 'asc' },
@@ -154,8 +167,13 @@ export class ServiceUserPortalService {
         orderBy: { name: 'asc' },
         select: { id: true, name: true },
       }),
+      this.prisma.allergyCatalog.findMany({
+        where: { isActive: true },
+        orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+        select: { id: true, name: true, code: true, category: true },
+      }),
     ]);
-    return { data: { titles, genders, maritalStatuses, relationshipTypes } };
+    return { data: { titles, genders, maritalStatuses, relationshipTypes, allergies } };
   }
 
   async getDashboard(serviceUserId: string) {
@@ -163,9 +181,16 @@ export class ServiceUserPortalService {
     const now = new Date();
     const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const [allergiesCount, contacts, upcomingEvents, carePlanInstances, aboutMeRef, upcomingVisits] =
+    const [allergiesCount, activeMedicationsCount, contacts, upcomingEvents, carePlanInstances, aboutMeRef, upcomingVisits] =
       await Promise.all([
       this.prisma.serviceUserAllergy.count({ where: { serviceUserId, deletedAt: null } }),
+      this.prisma.serviceUserMedication.count({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          status: { in: [MedicationRecordStatus.ACTIVE, MedicationRecordStatus.PAUSED] },
+        },
+      }),
       this.prisma.serviceUserContact.findMany({
         where: { serviceUserId, deletedAt: null },
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
@@ -210,6 +235,7 @@ export class ServiceUserPortalService {
           careType: mapped.careType,
         },
         allergiesCount,
+        activeMedicationsCount,
         contacts: contacts.map(c => ({
           id: c.id,
           name: [c.firstName, c.lastName].filter(Boolean).join(' '),
@@ -604,6 +630,137 @@ export class ServiceUserPortalService {
         allergyName: a.allergyName,
         comment: a.comment,
       })),
+    };
+  }
+
+  async createAllergy(serviceUserId: string, dto: CreatePortalAllergyDto, meta?: RequestAuditMeta) {
+    await this.loadScopedUser(serviceUserId);
+    const result = await this.allergiesService.create(null, serviceUserId, dto, meta);
+    return {
+      message: result.message,
+      data: {
+        id: result.data.id,
+        allergyName: result.data.allergyName,
+        comment: result.data.comment,
+      },
+    };
+  }
+
+  async getMedications(serviceUserId: string) {
+    await this.loadScopedUser(serviceUserId);
+
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 30);
+
+    const [activeMedications, events] = await Promise.all([
+      this.prisma.serviceUserMedication.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          status: { in: [MedicationRecordStatus.ACTIVE, MedicationRecordStatus.PAUSED] },
+        },
+        orderBy: { medicationName: 'asc' },
+        select: {
+          id: true,
+          medicationName: true,
+          dose: true,
+          strength: true,
+          status: true,
+          route: { select: { name: true } },
+          schedules: {
+            where: { deletedAt: null, isActive: true },
+            orderBy: { dueTime: 'asc' },
+            select: {
+              dueTime: true,
+              dueVisitName: true,
+              dose: true,
+              round: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.medicationAdministrationEvent.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          status: { not: 'PENDING' },
+          OR: [
+            { actualDateTime: { gte: since } },
+            { scheduledDateTime: { gte: since } },
+            { createdAt: { gte: since } },
+          ],
+        },
+        orderBy: [
+          { actualDateTime: 'desc' },
+          { scheduledDateTime: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+        select: {
+          id: true,
+          status: true,
+          statusCode: true,
+          scheduledDateTime: true,
+          actualDateTime: true,
+          createdAt: true,
+          doseGiven: true,
+          doseSnapshot: true,
+          isPrn: true,
+          reason: true,
+          notes: true,
+          medicationNameSnapshot: true,
+          medication: { select: { medicationName: true } },
+          schedule: { select: { dueTime: true, dueVisitName: true, dose: true } },
+          round: { select: { name: true } },
+          notGivenReason: { select: { name: true } },
+          administeredBy: {
+            select: {
+              personalDetail: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data: {
+        activeMedications: activeMedications.map(m => ({
+          id: m.id,
+          name: m.medicationName,
+          dose: m.dose,
+          strength: m.strength,
+          routeName: m.route?.name ?? null,
+          status: m.status,
+          statusLabel: portalMedicationRecordStatusLabel(m.status),
+          schedules: m.schedules.map(s => ({
+            dueTime: s.dueTime,
+            dueVisitName: s.dueVisitName,
+            dose: s.dose,
+            roundName: s.round?.name ?? null,
+          })),
+        })),
+        timeline: events.map(ev => {
+          const medicationName =
+            ev.medication?.medicationName ?? ev.medicationNameSnapshot ?? 'Medication';
+          const reason = ev.notGivenReason?.name ?? ev.reason ?? ev.notes ?? null;
+          const carerName = portalMedicationCarerName(ev.administeredBy);
+          return {
+            id: ev.id,
+            medicationName,
+            status: ev.status,
+            statusLabel: portalMedicationStatusLabel(ev.status, ev.statusCode),
+            statusCode: ev.statusCode,
+            scheduledAt: ev.scheduledDateTime?.toISOString() ?? null,
+            recordedAt: (ev.actualDateTime ?? ev.createdAt).toISOString(),
+            dose: ev.doseGiven ?? ev.doseSnapshot ?? ev.schedule?.dose ?? null,
+            roundLabel: portalMedicationRoundLabel(ev.round, ev.schedule),
+            reason,
+            isPrn: ev.isPrn,
+            carerName,
+          };
+        }),
+      },
     };
   }
 

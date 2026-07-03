@@ -816,6 +816,7 @@ model EmployeePersonalDetail {
   username         String?  @unique
   dateOfBirth      DateTime?
   nationalityId    String?  @db.Uuid
+  ethnicityId      String?  @db.Uuid
   addressLine1     String?
   addressLine2     String?
   town             String?
@@ -842,6 +843,7 @@ model EmployeePersonalDetail {
   title            Title?       @relation(fields: [titleId], references: [id])
   gender           Gender?      @relation(fields: [genderId], references: [id])
   nationality      Nationality? @relation(fields: [nationalityId], references: [id])
+  ethnicity        ServiceUserEthnicity? @relation(fields: [ethnicityId], references: [id])
   status           EmployeeStatus? @relation(fields: [statusId], references: [id])
 
   @@index([employeeId])
@@ -1882,6 +1884,8 @@ model ServiceUserEthnicity {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  employeePersonalDetails EmployeePersonalDetail[]
 
   @@schema("service_users")
 }

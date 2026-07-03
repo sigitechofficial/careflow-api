@@ -53,6 +53,8 @@ import {
   scheduledJobOverlapsVisitPlanSlot,
   visitPlanPatternRotaLookaheadEnd,
   visitPlanSuggestJobWindow,
+  resolveServiceUserLocationIds,
+  buildEmployeeEmploymentLocationWhere,
 } from './visit-plan-carer-suggest.util';
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
 import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
@@ -483,7 +485,21 @@ export class ServiceUserVisitPlansService {
   }
 
   async suggestCarers(serviceUserId: string, dto: SuggestVisitPlanCarersDto) {
-    await this.ensureServiceUser(serviceUserId);
+    const serviceUser = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      select: {
+        id: true,
+        locationId: true,
+        assignments: {
+          where: { deletedAt: null },
+          select: { locationId: true },
+        },
+      },
+    });
+    if (!serviceUser) throw new NotFoundException('Service user not found');
+
+    const serviceUserLocationIds = resolveServiceUserLocationIds(serviceUser);
+    const employmentLocationWhere = buildEmployeeEmploymentLocationWhere(serviceUserLocationIds);
 
     const domCare = await this.prisma.serviceUserDomCare.findFirst({
       where: { serviceUserId, deletedAt: null },
@@ -516,7 +532,11 @@ export class ServiceUserVisitPlansService {
     } as const;
 
     const baseEmployees = await this.prisma.employee.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: {
+        deletedAt: null,
+        isActive: true,
+        ...(employmentLocationWhere ? { employment: employmentLocationWhere } : {}),
+      },
       include: employeeInclude,
       orderBy: { createdAt: 'asc' },
       take: 200,
@@ -649,6 +669,8 @@ export class ServiceUserVisitPlansService {
         blockedCarerIds: [...blockedIds],
         requiredSkillKeywords: skillKeywords,
         requiredCarers: dto.requiredCarers ?? 1,
+        locationFilterApplied: serviceUserLocationIds.length > 0,
+        serviceUserLocationIds,
       },
     };
   }

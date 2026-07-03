@@ -40,6 +40,11 @@ export class CreateEmployeeDto {
   @IsUUID()
   nationalityId?: string;
 
+  @ApiPropertyOptional({ description: 'Service user ethnicity lookup id (Settings → Ethnicities).' })
+  @IsOptional()
+  @IsUUID()
+  ethnicityId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

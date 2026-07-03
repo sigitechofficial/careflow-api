@@ -1012,6 +1012,7 @@ export class LookupsService implements OnModuleInit {
       nonCoreActivityReasons,
       employeeStatuses,
       roles,
+      ethnicities,
     ] = await this.prisma.$transaction([
       this.prisma.title.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.gender.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
@@ -1032,6 +1033,7 @@ export class LookupsService implements OnModuleInit {
       this.prisma.nonCoreActivityReason.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.employeeStatus.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.employeeRoleLookup.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.serviceUserEthnicity.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
     ]);
 
     return {
@@ -1055,6 +1057,7 @@ export class LookupsService implements OnModuleInit {
         complianceTypes,
         reviewTypes,
         nonCoreActivityReasons,
+        ethnicities,
       },
     };
   }

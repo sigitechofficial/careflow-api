@@ -19,7 +19,7 @@ export class EmployeePersonalDetailsService {
   async get(employeeId: string, audit?: RequestAuditMeta & { actorUserId?: string }) {
     const pd = await this.prisma.employeePersonalDetail.findFirst({
       where: { employeeId, deletedAt: null },
-      include: { title: true, gender: true, nationality: true, status: true },
+      include: { title: true, gender: true, nationality: true, ethnicity: true, status: true },
     });
     if (!pd) throw new NotFoundException('Personal details not found');
 
@@ -51,6 +51,7 @@ export class EmployeePersonalDetailsService {
     if (dto.username !== undefined) data.username = dto.username;
     if (dto.dateOfBirth !== undefined) data.dateOfBirth = dto.dateOfBirth;
     if (dto.nationalityId !== undefined) data.nationalityId = dto.nationalityId;
+    if (dto.ethnicityId !== undefined) data.ethnicityId = dto.ethnicityId;
     if (dto.addressLine1 !== undefined) data.addressLine1 = dto.addressLine1;
     if (dto.addressLine2 !== undefined) data.addressLine2 = dto.addressLine2;
     if (dto.town !== undefined) data.town = dto.town;
@@ -90,6 +91,7 @@ export class EmployeePersonalDetailsService {
           titleId: dto.titleId,
           genderId: dto.genderId,
           nationalityId: dto.nationalityId,
+          ethnicityId: dto.ethnicityId,
           statusId: dto.statusId,
           addressLine1: dto.addressLine1,
           addressLine2: dto.addressLine2,

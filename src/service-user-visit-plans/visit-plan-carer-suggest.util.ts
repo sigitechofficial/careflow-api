@@ -481,3 +481,29 @@ export function carerFitScore(input: {
 }
 
 export { PRISMA_DOW_TO_JS, JS_DOW_TO_PRISMA, DAY_LABEL };
+
+export function resolveServiceUserLocationIds(su: {
+  locationId: string | null;
+  assignments?: Array<{ locationId: string | null }> | null;
+}): string[] {
+  const ids = new Set<string>();
+  if (su.locationId) ids.add(su.locationId);
+  for (const row of su.assignments ?? []) {
+    if (row.locationId) ids.add(row.locationId);
+  }
+  return [...ids];
+}
+
+export function buildEmployeeEmploymentLocationWhere(
+  locationIds: string[],
+): { deletedAt: null; OR: Array<Record<string, unknown>> } | null {
+  if (!locationIds.length) return null;
+  return {
+    deletedAt: null,
+    OR: [
+      { accessAllZones: true },
+      { locationId: { in: locationIds } },
+      { floorLocations: { some: { locationId: { in: locationIds } } } },
+    ],
+  };
+}

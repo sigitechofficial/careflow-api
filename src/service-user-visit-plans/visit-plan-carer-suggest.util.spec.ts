@@ -1,6 +1,8 @@
 import { DayOfWeek } from '@prisma/client';
 import {
+  buildEmployeeEmploymentLocationWhere,
   evaluateCarerAvailability,
+  resolveServiceUserLocationIds,
   scheduledJobOverlapsVisitPlanSlot,
 } from './visit-plan-carer-suggest.util';
 
@@ -154,5 +156,33 @@ describe('scheduledJobOverlapsVisitPlanSlot', () => {
         plannedEndTime: '10:00',
       }),
     ).toBe(false);
+  });
+});
+
+describe('resolveServiceUserLocationIds', () => {
+  it('collects primary and assignment locations', () => {
+    expect(
+      resolveServiceUserLocationIds({
+        locationId: 'loc-primary',
+        assignments: [{ locationId: 'loc-assignment' }, { locationId: null }],
+      }),
+    ).toEqual(['loc-primary', 'loc-assignment']);
+  });
+});
+
+describe('buildEmployeeEmploymentLocationWhere', () => {
+  it('returns null when no locations are set', () => {
+    expect(buildEmployeeEmploymentLocationWhere([])).toBeNull();
+  });
+
+  it('matches all-zones, primary, and floor locations', () => {
+    expect(buildEmployeeEmploymentLocationWhere(['loc-a'])).toEqual({
+      deletedAt: null,
+      OR: [
+        { accessAllZones: true },
+        { locationId: { in: ['loc-a'] } },
+        { floorLocations: { some: { locationId: { in: ['loc-a'] } } } },
+      ],
+    });
   });
 });

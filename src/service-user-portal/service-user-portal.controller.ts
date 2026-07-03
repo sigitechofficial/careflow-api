@@ -22,7 +22,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { serviceUserPhotoUploadOptions } from '../service-user-photos/photo-upload.config';
 import { PortalAuthGuard } from './guards/portal-auth.guard';
 import { ServiceUserPortalService } from './service-user-portal.service';
-import { PatchPortalAboutMeDto, PatchPortalProfileDto, CreatePortalContactDto } from './dto/service-user-portal.dto';
+import { PatchPortalAboutMeDto, PatchPortalProfileDto, CreatePortalContactDto, CreatePortalAllergyDto } from './dto/service-user-portal.dto';
 
 @ApiTags('Service User Portal')
 @ApiBearerAuth()
@@ -81,9 +81,26 @@ export class ServiceUserPortalController {
   }
 
   @Get('allergies')
-  @ApiOperation({ summary: 'Read-only allergies summary' })
+  @ApiOperation({ summary: 'Allergies on care record' })
   allergies(@CurrentUser() user: RequestUser) {
     return this.portalService.getAllergies(user.serviceUserId!);
+  }
+
+  @Post('allergies')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add an allergy to your care record' })
+  createAllergy(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreatePortalAllergyDto,
+    @Req() req: Request,
+  ) {
+    return this.portalService.createAllergy(user.serviceUserId!, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('medications')
+  @ApiOperation({ summary: 'Active medications and recent administration timeline' })
+  medications(@CurrentUser() user: RequestUser) {
+    return this.portalService.getMedications(user.serviceUserId!);
   }
 
   @Get('calendar')

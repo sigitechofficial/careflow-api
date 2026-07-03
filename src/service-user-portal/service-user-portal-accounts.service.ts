@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../common/utils/password.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import type { ServiceUserPortalAccountQueryDto } from './dto/service-user-portal-account-query.dto';
 
 export const SU_PORTAL_SESSION_PERMISSION = 'service_user.portal.session' as const;
 
@@ -130,6 +131,122 @@ export class ServiceUserPortalAccountsService {
       lastName: row.serviceUser.lastName,
       preferredName: row.serviceUser.preferredName,
       profilePhotoUrl: row.serviceUser.profilePhotoUrl,
+    };
+  }
+
+  async listAdmin(query: ServiceUserPortalAccountQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const portalStatus = query.portalStatus ?? 'all';
+
+    const baseWhere = {
+      deletedAt: null,
+      isActive: true,
+    };
+
+    const where: Prisma.ServiceUserWhereInput = { ...baseWhere };
+
+    if (portalStatus === 'not_configured') {
+      where.portalAccount = { is: null };
+    } else if (portalStatus === 'configured') {
+      where.portalAccount = { is: { deletedAt: null } };
+    } else if (portalStatus === 'enabled') {
+      where.portalAccount = { is: { deletedAt: null, isEnabled: true } };
+    } else if (portalStatus === 'disabled') {
+      where.portalAccount = { is: { deletedAt: null, isEnabled: false } };
+    }
+
+    const search = query.search?.trim();
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { preferredName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        {
+          portalAccount: {
+            is: {
+              deletedAt: null,
+              email: { contains: search, mode: 'insensitive' },
+            },
+          },
+        },
+      ];
+    }
+
+    const [total, rows, summaryConfigured, summaryEnabled, summaryNeverLoggedIn, totalActive] =
+      await this.prisma.$transaction([
+        this.prisma.serviceUser.count({ where }),
+        this.prisma.serviceUser.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            preferredName: true,
+            email: true,
+            isActive: true,
+            portalAccount: {
+              where: { deletedAt: null },
+              select: {
+                email: true,
+                isEnabled: true,
+                lastLoginAt: true,
+              },
+            },
+          },
+        }),
+        this.prisma.serviceUserPortalAccount.count({
+          where: { deletedAt: null, serviceUser: baseWhere },
+        }),
+        this.prisma.serviceUserPortalAccount.count({
+          where: { deletedAt: null, isEnabled: true, serviceUser: baseWhere },
+        }),
+        this.prisma.serviceUserPortalAccount.count({
+          where: {
+            deletedAt: null,
+            lastLoginAt: null,
+            serviceUser: baseWhere,
+          },
+        }),
+        this.prisma.serviceUser.count({ where: baseWhere }),
+      ]);
+
+    const data = rows.map((row) => {
+      const account = row.portalAccount;
+      return {
+        serviceUserId: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        preferredName: row.preferredName,
+        serviceUserEmail: row.email,
+        isActive: row.isActive,
+        configured: Boolean(account),
+        isEnabled: account?.isEnabled ?? false,
+        portalEmail: account?.email ?? null,
+        lastLoginAt: account?.lastLoginAt?.toISOString() ?? null,
+      };
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+        summary: {
+          totalActive,
+          configured: summaryConfigured,
+          enabled: summaryEnabled,
+          neverLoggedIn: summaryNeverLoggedIn,
+        },
+      },
     };
   }
 

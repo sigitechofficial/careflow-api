@@ -157,6 +157,30 @@ describePortal('Service user portal (e2e)', () => {
     expect(res.body.data.lastName).toBe('Friend');
   });
 
+  it('portal can add an allergy', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/portal/allergies')
+      .set('Authorization', `Bearer ${portalToken}`)
+      .send({
+        allergyName: 'Peanuts',
+        comment: 'Mild rash when exposed',
+      })
+      .expect(201);
+    expect(res.body.data.allergyName).toBe('Peanuts');
+    expect(res.body.data.comment).toBe('Mild rash when exposed');
+  });
+
+  it('portal token loads medications timeline', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/portal/medications')
+      .set('Authorization', `Bearer ${portalToken}`)
+      .expect(200);
+    expect(res.body.data).toHaveProperty('activeMedications');
+    expect(res.body.data).toHaveProperty('timeline');
+    expect(Array.isArray(res.body.data.activeMedications)).toBe(true);
+    expect(Array.isArray(res.body.data.timeline)).toBe(true);
+  });
+
   it('portal token loads completed visits', async () => {
     const res = await request(app.getHttpServer())
       .get('/portal/completed-visits')

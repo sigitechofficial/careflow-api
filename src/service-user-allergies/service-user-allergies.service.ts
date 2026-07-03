@@ -67,7 +67,12 @@ export class ServiceUserAllergiesService {
     throw new BadRequestException('Select an allergy from the list or enter an allergy name');
   }
 
-  async create(userId: string, serviceUserId: string, dto: CreateServiceUserAllergyDto, meta?: RequestAuditMeta) {
+  async create(
+    userId: string | null,
+    serviceUserId: string,
+    dto: CreateServiceUserAllergyDto,
+    meta?: RequestAuditMeta,
+  ) {
     await this.ensureServiceUser(serviceUserId);
     const { allergyCatalogId, allergyName } = await this.resolveAllergyFields(dto);
     const comment = dto.comment.trim();
@@ -80,12 +85,12 @@ export class ServiceUserAllergiesService {
           allergyCatalogId,
           allergyName,
           comment,
-          createdById: userId,
+          createdById: userId ?? undefined,
         },
       });
       await this.audit.logAudit({
         tx,
-        userId,
+        userId: userId ?? undefined,
         module: AuditModule.SERVICE_USER,
         action: AuditAction.SERVICE_USER_ALLERGY_ADDED,
         recordType: 'ServiceUserAllergy',
