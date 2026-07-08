@@ -17,6 +17,7 @@ import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding
 import { activeServiceUserAbsenceWhere } from '../service-user-absences/active-absence.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
+import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
 import {
   inferBranchFromAddress,
   loadBranchAreasForInference,
@@ -58,6 +59,7 @@ const detailInclude = {
   },
   keyWorker: { include: { personalDetail: true } },
   namedNurse: { include: { personalDetail: true } },
+  defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
 } satisfies Prisma.ServiceUserInclude;
 
 @Injectable()
@@ -545,6 +547,9 @@ export class ServiceUsersService implements OnModuleInit {
       locationId: dto.locationId,
     });
     return this.prisma.$transaction(async (tx) => {
+      if (dto.defaultChargeCardId !== undefined) {
+        await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
+      }
       const before = await tx.serviceUser.findFirst({
         where: { id, deletedAt: null },
         include: { references: { where: { deletedAt: null } } },
@@ -588,6 +593,11 @@ export class ServiceUsersService implements OnModuleInit {
         data.keyWorker = dto.keyWorkerId ? { connect: { id: dto.keyWorkerId } } : { disconnect: true };
       if (dto.namedNurseId !== undefined)
         data.namedNurse = dto.namedNurseId ? { connect: { id: dto.namedNurseId } } : { disconnect: true };
+      if (dto.defaultChargeCardId !== undefined) {
+        data.defaultChargeCard = dto.defaultChargeCardId
+          ? { connect: { id: dto.defaultChargeCardId } }
+          : { disconnect: true };
+      }
 
       const updated = await tx.serviceUser.update({ where: { id }, data });
 

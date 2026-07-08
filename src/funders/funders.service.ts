@@ -10,6 +10,8 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { FunderQueryDto } from './dto/funder-query.dto';
 import { CreateFunderDto } from './dto/create-funder.dto';
 import { UpdateFunderDto } from './dto/update-funder.dto';
+import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
+import { assertDefaultInvoiceTemplate } from '../billing/invoice-template.util';
 
 @Injectable()
 export class FundersService {
@@ -69,6 +71,10 @@ export class FundersService {
     await this.assertFundingType(dto.fundingTypeId);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (dto.defaultChargeCardId) await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
+        if (dto.defaultInvoiceTemplateId) {
+          await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
+        }
         const created = await tx.funder.create({
           data: {
             name: dto.name.trim(),
@@ -84,6 +90,8 @@ export class FundersService {
             country: dto.country?.trim() ?? null,
             postcode: dto.postcode?.trim() ?? null,
             notes: dto.notes?.trim() ?? null,
+            defaultChargeCardId: dto.defaultChargeCardId ?? null,
+            defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId ?? null,
             createdById: userId,
           },
           include: { fundingType: { select: { id: true, name: true, code: true } } },
@@ -118,6 +126,12 @@ export class FundersService {
     if (dto.fundingTypeId !== undefined) await this.assertFundingType(dto.fundingTypeId ?? undefined);
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (dto.defaultChargeCardId !== undefined) {
+          await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
+        }
+        if (dto.defaultInvoiceTemplateId !== undefined) {
+          await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
+        }
         const updated = await tx.funder.update({
           where: { id },
           data: {
@@ -134,6 +148,10 @@ export class FundersService {
             ...(dto.country !== undefined ? { country: dto.country?.trim() ?? null } : {}),
             ...(dto.postcode !== undefined ? { postcode: dto.postcode?.trim() ?? null } : {}),
             ...(dto.notes !== undefined ? { notes: dto.notes?.trim() ?? null } : {}),
+            ...(dto.defaultChargeCardId !== undefined ? { defaultChargeCardId: dto.defaultChargeCardId } : {}),
+            ...(dto.defaultInvoiceTemplateId !== undefined
+              ? { defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId }
+              : {}),
             updatedById: userId,
           },
           include: { fundingType: { select: { id: true, name: true, code: true } } },

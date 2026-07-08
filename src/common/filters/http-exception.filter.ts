@@ -118,6 +118,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
             'A required database table is missing. From careadmin-backend run: pnpm exec prisma migrate deploy (or prisma migrate dev in development), then restart the API.',
           errors: [{ code: e.code, meta: e.meta }],
         };
+      case 'P2022':
+        return {
+          status: HttpStatus.FAILED_DEPENDENCY,
+          message:
+            'A required database column is missing or out of sync. From careadmin-backend run: pnpm exec prisma migrate deploy && pnpm exec prisma generate, then restart the API.',
+          errors: [{ code: e.code, meta: e.meta }],
+        };
       default:
         return {
           status: HttpStatus.BAD_REQUEST,

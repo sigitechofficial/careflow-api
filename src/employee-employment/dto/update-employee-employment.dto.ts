@@ -91,6 +91,11 @@ export class UpdateEmployeeEmploymentDto {
   @IsString()
   payrollNumber?: string;
 
+  @ApiPropertyOptional({ description: 'Default pay card for this carer' })
+  @IsOptional()
+  @IsUUID()
+  defaultPayCardId?: string | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

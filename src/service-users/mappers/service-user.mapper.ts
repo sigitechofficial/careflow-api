@@ -131,6 +131,8 @@ export function mapServiceUserDetail(
   serviceEndDate: Date | null;
   profilePhotoUrl: string | null;
   notes: string | null;
+  defaultChargeCardId: string | null;
+  defaultChargeCard: { id: string; name: string; code: string; status: string } | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -227,6 +229,8 @@ export function mapServiceUserDetail(
     serviceEndDate: user.serviceEndDate,
     profilePhotoUrl: user.profilePhotoUrl,
     notes: user.notes,
+    defaultChargeCardId: user.defaultChargeCardId,
+    defaultChargeCard: user.defaultChargeCard,
     isActive: user.isActive,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

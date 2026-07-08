@@ -21,6 +21,7 @@ import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
+import { seedBillingCards } from './seeds/billing-cards.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 import {
@@ -266,6 +267,13 @@ async function main() {
     'funders.create',
     'funders.update',
     'funders.delete',
+    'billing.pay_cards.read',
+    'billing.pay_cards.manage',
+    'billing.charge_cards.read',
+    'billing.charge_cards.manage',
+    'billing.funding_contracts.read',
+    'billing.invoice_templates.read',
+    'billing.invoice_templates.manage',
     'service_users.live_in_profile.read',
     'service_users.live_in_profile.create',
     'service_users.live_in_profile.update',
@@ -408,6 +416,14 @@ async function main() {
     'picture_gallery.upload',
     'picture_gallery.update',
     'picture_gallery.delete',
+
+    'billing.pay_cards.read',
+    'billing.pay_cards.manage',
+    'billing.charge_cards.read',
+    'billing.charge_cards.manage',
+    'billing.funding_contracts.read',
+    'billing.invoice_templates.read',
+    'billing.invoice_templates.manage',
   ];
 
   for (const key of permissionKeys) {
@@ -554,6 +570,13 @@ async function main() {
     'funders.read',
     'funders.create',
     'funders.update',
+    'billing.pay_cards.read',
+    'billing.pay_cards.manage',
+    'billing.charge_cards.read',
+    'billing.charge_cards.manage',
+    'billing.funding_contracts.read',
+    'billing.invoice_templates.read',
+    'billing.invoice_templates.manage',
 
     'service_users.flash_message.read',
     'service_users.flash_message.update',
@@ -1203,6 +1226,7 @@ async function main() {
   }
 
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
+  await seedBillingCards(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
 
   for (const row of DEFAULT_SERVICE_USER_ETHNICITIES) {

@@ -17,11 +17,38 @@ import { UpdateServiceUserFundingDto } from './dto/update-service-user-funding.d
 import { UpdateServiceUserFundingStatusDto } from './dto/update-service-user-funding-status.dto';
 import { ApproveServiceUserFundingDto } from './dto/approve-service-user-funding.dto';
 import { EndServiceUserFundingDto } from './dto/end-service-user-funding.dto';
+import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
+import { assertFundingSplitPercentages } from '../billing/funding-contract.util';
+import { assertDefaultInvoiceTemplate } from '../billing/invoice-template.util';
 
 const fundingInclude = {
   fundingType: { select: { id: true, name: true, code: true } },
-  funder: { select: { id: true, name: true, code: true } },
+  funder: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      defaultChargeCardId: true,
+      defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
+      defaultInvoiceTemplateId: true,
+      defaultInvoiceTemplate: { select: { id: true, name: true, code: true, status: true, templateType: true } },
+    },
+  },
   approvedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+  defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
+  defaultInvoiceTemplate: {
+    select: { id: true, name: true, code: true, status: true, templateType: true, version: true },
+  },
+  serviceUser: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      preferredName: true,
+      serviceUserNumber: true,
+      isActive: true,
+    },
+  },
 } as const;
 
 type Tx = Prisma.TransactionClient;
@@ -114,9 +141,32 @@ export class ServiceUserFundingService {
     if (dto.contributionAmount !== undefined)
       data.contributionAmount =
         dto.contributionAmount == null ? null : new Prisma.Decimal(dto.contributionAmount);
+    if (dto.splitPercent !== undefined)
+      data.splitPercent = dto.splitPercent == null ? null : new Prisma.Decimal(dto.splitPercent);
+    if (dto.splitPriority !== undefined) data.splitPriority = dto.splitPriority;
+    if (dto.purchaseOrderNumber !== undefined)
+      data.purchaseOrderNumber = dto.purchaseOrderNumber?.trim() || null;
+    if (dto.purchaseOrderExpiresAt !== undefined)
+      data.purchaseOrderExpiresAt = dto.purchaseOrderExpiresAt
+        ? this.parseDay(dto.purchaseOrderExpiresAt)
+        : null;
+    if (dto.authorisedWeeklyHours !== undefined)
+      data.authorisedWeeklyHours = dto.authorisedWeeklyHours ?? null;
+    if (dto.billingContactName !== undefined)
+      data.billingContactName = dto.billingContactName?.trim() || null;
+    if (dto.billingContactEmail !== undefined)
+      data.billingContactEmail = dto.billingContactEmail?.trim() || null;
+    if (dto.billingContactPhone !== undefined)
+      data.billingContactPhone = dto.billingContactPhone?.trim() || null;
+    if (dto.invoiceGroupingRule !== undefined)
+      data.invoiceGroupingRule = dto.invoiceGroupingRule?.trim() || null;
     if (dto.isPrimary !== undefined) data.isPrimary = dto.isPrimary;
     if (dto.reviewDate !== undefined) data.reviewDate = dto.reviewDate ? this.parseDay(dto.reviewDate) : null;
     if (dto.notes !== undefined) data.notes = dto.notes?.trim() ?? null;
+    if (dto.defaultChargeCardId !== undefined) data.defaultChargeCardId = dto.defaultChargeCardId;
+    if (dto.defaultInvoiceTemplateId !== undefined) {
+      data.defaultInvoiceTemplateId = dto.defaultInvoiceTemplateId;
+    }
     return data;
   }
 
@@ -180,6 +230,13 @@ export class ServiceUserFundingService {
     const status = (dto.status as FundingStatus | undefined) ?? FundingStatus.UNKNOWN;
 
     return this.prisma.$transaction(async (tx) => {
+      if (dto.defaultChargeCardId !== undefined) {
+        await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
+      }
+      if (dto.defaultInvoiceTemplateId !== undefined) {
+        await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
+      }
+      await assertFundingSplitPercentages(tx, serviceUserId, dto.splitPercent);
       if (isPrimary) {
         await tx.serviceUserFunding.updateMany({
           where: { serviceUserId, deletedAt: null, isPrimary: true },
@@ -201,9 +258,22 @@ export class ServiceUserFundingService {
           hourlyRate: dto.hourlyRate != null ? new Prisma.Decimal(dto.hourlyRate) : null,
           contributionAmount:
             dto.contributionAmount != null ? new Prisma.Decimal(dto.contributionAmount) : null,
+          splitPercent: dto.splitPercent != null ? new Prisma.Decimal(dto.splitPercent) : null,
+          splitPriority: dto.splitPriority ?? 1,
+          purchaseOrderNumber: dto.purchaseOrderNumber?.trim() ?? null,
+          purchaseOrderExpiresAt: dto.purchaseOrderExpiresAt
+            ? this.parseDay(dto.purchaseOrderExpiresAt)
+            : null,
+          authorisedWeeklyHours: dto.authorisedWeeklyHours ?? null,
+          billingContactName: dto.billingContactName?.trim() ?? null,
+          billingContactEmail: dto.billingContactEmail?.trim() ?? null,
+          billingContactPhone: dto.billingContactPhone?.trim() ?? null,
+          invoiceGroupingRule: dto.invoiceGroupingRule?.trim() ?? null,
           isPrimary,
           reviewDate: dto.reviewDate ? this.parseDay(dto.reviewDate) : null,
           notes: dto.notes?.trim() ?? null,
+          defaultChargeCardId: dto.defaultChargeCardId ?? null,
+          defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId ?? null,
           createdById: userId,
           updatedById: userId,
         },
@@ -246,6 +316,15 @@ export class ServiceUserFundingService {
     const demotePrimary = dto.isPrimary === false && existing.isPrimary;
 
     return this.prisma.$transaction(async (tx) => {
+      if (dto.defaultChargeCardId !== undefined) {
+        await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
+      }
+      if (dto.defaultInvoiceTemplateId !== undefined) {
+        await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
+      }
+      if (dto.splitPercent !== undefined) {
+        await assertFundingSplitPercentages(tx, serviceUserId, dto.splitPercent, fundingId);
+      }
       if (wantPrimary) {
         await this.unsetOtherPrimaries(tx, serviceUserId, fundingId, userId);
       }

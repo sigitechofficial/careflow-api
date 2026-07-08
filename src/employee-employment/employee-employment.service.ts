@@ -8,6 +8,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { RbacEmploymentSyncService } from './rbac-employment-sync.service';
+import { assertEmployeeDefaultPayCard } from '../billing/pay-card-assignment.util';
 
 @Injectable()
 export class EmployeeEmploymentService {
@@ -33,6 +34,9 @@ export class EmployeeEmploymentService {
         leavingReason: true,
         floorLocations: {
           include: { location: true },
+        },
+        defaultPayCard: {
+          select: { id: true, name: true, code: true, status: true },
         },
       },
     });
@@ -60,7 +64,7 @@ export class EmployeeEmploymentService {
     });
     if (!exists) throw new NotFoundException('Employee not found');
 
-    const { baseLocationIds, ...employmentScalars } = dto
+    const { baseLocationIds, defaultPayCardId, ...employmentScalars } = dto
 
     const agencyClear =
       dto.isAgencyStaff === false
@@ -81,16 +85,22 @@ export class EmployeeEmploymentService {
         where: { employeeId },
         update: {
           ...employmentScalars,
+          ...(defaultPayCardId !== undefined ? { defaultPayCardId } : {}),
           ...agencyClear,
           updatedById: userId,
         },
         create: {
           employeeId,
           ...employmentScalars,
+          ...(defaultPayCardId !== undefined ? { defaultPayCardId } : {}),
           ...agencyClear,
           createdById: userId,
         },
       });
+
+      if (defaultPayCardId !== undefined) {
+        await assertEmployeeDefaultPayCard(tx, defaultPayCardId);
+      }
 
       if (baseLocationIds !== undefined) {
         const floorIds = [...baseLocationIds];

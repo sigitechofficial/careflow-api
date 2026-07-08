@@ -144,6 +144,11 @@ export class CreateServiceUserDto {
   @MaxLength(5000)
   notes?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  defaultChargeCardId?: string | null;
+
   @ApiPropertyOptional({ type: [ServiceUserReferenceItemDto] })
   @IsOptional()
   @IsArray()

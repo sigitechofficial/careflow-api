@@ -117,6 +117,9 @@ export class EmployeesService {
             floorLocations: {
               include: { location: true },
             },
+            defaultPayCard: {
+              select: { id: true, name: true, code: true, status: true },
+            },
           },
         },
       },

@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing"]
 }
 
 enum DayOfWeek {
@@ -917,6 +917,7 @@ model EmployeeEmployment {
   isBankStaff           Boolean @default(false)
   workingPatternCycleWeeks Int @default(1)
   workingPatternCycleAnchorDate DateTime?
+  defaultPayCardId      String? @db.Uuid
 
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
@@ -938,8 +939,10 @@ model EmployeeEmployment {
   location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
   leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
   floorLocations        EmployeeEmploymentFloorLocation[]
+  defaultPayCard        PayCard? @relation("EmployeeDefaultPayCard", fields: [defaultPayCardId], references: [id], onDelete: SetNull)
 
   @@index([employeeId])
+  @@index([defaultPayCardId])
   @@index([deletedAt])
   @@schema("employees")
 }
@@ -1949,6 +1952,8 @@ model Funder {
   country       String?
   postcode      String?
   notes         String?
+  defaultChargeCardId String? @db.Uuid
+  defaultInvoiceTemplateId String? @db.Uuid
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -1959,8 +1964,13 @@ model Funder {
 
   fundingType         FundingType?           @relation(fields: [fundingTypeId], references: [id])
   serviceUserFundings ServiceUserFunding[]
+  defaultChargeCard   ChargeCard?            @relation("FunderDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
+  defaultInvoiceTemplate InvoiceTemplate?    @relation("FunderDefaultInvoiceTemplate", fields: [defaultInvoiceTemplateId], references: [id], onDelete: SetNull)
+  invoiceTemplates    InvoiceTemplate[]      @relation("FunderScopedInvoiceTemplate")
 
   @@index([fundingTypeId])
+  @@index([defaultChargeCardId])
+  @@index([defaultInvoiceTemplateId])
   @@index([deletedAt])
   @@schema("service_users")
 }
@@ -1979,12 +1989,23 @@ model ServiceUserFunding {
   weeklyBudget       Decimal?       @db.Decimal(12, 2)
   hourlyRate         Decimal?       @db.Decimal(12, 2)
   contributionAmount Decimal?       @db.Decimal(12, 2)
+  splitPercent       Decimal?        @db.Decimal(5, 2)
+  splitPriority      Int             @default(1)
+  purchaseOrderNumber String?
+  purchaseOrderExpiresAt DateTime?    @db.Date
+  authorisedWeeklyHours Float?
+  billingContactName String?
+  billingContactEmail String?
+  billingContactPhone String?
+  invoiceGroupingRule String?
   isPrimary          Boolean        @default(false)
   isActive           Boolean        @default(true)
   approvedAt         DateTime?
   approvedById       String?        @db.Uuid
   reviewDate         DateTime?
   notes              String?
+  defaultChargeCardId String?        @db.Uuid
+  defaultInvoiceTemplateId String?   @db.Uuid
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   deletedAt          DateTime?
@@ -1997,8 +2018,13 @@ model ServiceUserFunding {
   funder             Funder?      @relation(fields: [funderId], references: [id])
   approvedBy         User?        @relation("ServiceUserFundingApprovedBy", fields: [approvedById], references: [id])
   markedCurrentFor   ServiceUser? @relation("FundingAsCurrent")
+  defaultChargeCard  ChargeCard?  @relation("FundingDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
+  defaultInvoiceTemplate InvoiceTemplate? @relation("FundingDefaultInvoiceTemplate", fields: [defaultInvoiceTemplateId], references: [id], onDelete: SetNull)
+  invoiceTemplateProfiles InvoiceTemplate[] @relation("FundingInvoiceTemplateScope")
 
   @@index([serviceUserId])
+  @@index([defaultChargeCardId])
+  @@index([defaultInvoiceTemplateId])
   @@index([deletedAt])
   @@index([status])
   @@schema("service_users")
@@ -2061,6 +2087,7 @@ model ServiceUser {
   notes                    String?
 
   currentFundingId       String?   @unique @db.Uuid
+  defaultChargeCardId    String?   @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -2097,6 +2124,7 @@ model ServiceUser {
   fundings          ServiceUserFunding[] @relation("FundingLines")
   currentFunding    ServiceUserFunding?  @relation("FundingAsCurrent", fields: [currentFundingId], references: [id])
   liveInProfile     ServiceUserLiveInProfile?
+  defaultChargeCard ChargeCard?          @relation("ServiceUserDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
 
   medicationPacks              MedicationPack[]
   medicationAllergies          MedicationAllergy[]
@@ -2130,6 +2158,7 @@ model ServiceUser {
   @@index([fundingTypeId])
   @@index([riskLevelId])
   @@index([locationId])
+  @@index([defaultChargeCardId])
   @@index([keyWorkerId])
   @@index([namedNurseId])
   @@index([lastName, firstName])
@@ -5910,4 +5939,272 @@ model CarePicture {
   @@index([name])
   @@index([type])
   @@schema("care_pathway")
+}
+
+// ─── Billing (pay cards & charge cards) ─────────────────────────────────────
+
+enum BillingCardStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  SCHEDULED
+  EXPIRED
+  ARCHIVED
+  SUSPENDED
+  REPLACED
+
+  @@schema("billing")
+}
+
+enum PayCardAssignmentLevel {
+  ROLE
+  BRANCH
+  EMPLOYMENT_TYPE
+  WORKER_TYPE
+  ORGANISATION_DEFAULT
+
+  @@schema("billing")
+}
+
+enum ChargeCardAssignmentLevel {
+  SERVICE_USER
+  FUNDER
+  FUNDING_CONTRACT
+  CARE_PACKAGE
+  SERVICE_TYPE
+  BRANCH_REGION
+  GROUP_HOUSEHOLD
+  ORGANISATION_DEFAULT
+
+  @@schema("billing")
+}
+
+enum BillingRateType {
+  HOURLY
+  FIXED
+  BANDED
+  MILEAGE
+  TRAVEL_TIME
+  WAITING_TIME
+  PER_VISIT_FEE
+  SUBSCRIPTION
+  UPLIFT
+  PREMIUM
+  DEDUCTION
+
+  @@schema("billing")
+}
+
+enum BillingDayType {
+  WEEKDAY
+  SATURDAY
+  SUNDAY
+  BANK_HOLIDAY
+  ANY
+
+  @@schema("billing")
+}
+
+enum BillingFrequency {
+  WEEKLY
+  FOUR_WEEKLY
+  MONTHLY
+  CUSTOM
+
+  @@schema("billing")
+}
+
+enum BillingChargeMethod {
+  HOURLY_PRO_RATA
+  FIXED_VISIT
+  BANDED_DURATION
+  DAILY_RATE
+  WEEKLY_PACKAGE
+  MONTHLY_PACKAGE
+  SLEEP_IN
+  WAKING_NIGHT
+  NON_CHARGEABLE
+
+  @@schema("billing")
+}
+
+enum InvoiceTemplateType {
+  PDF
+  XLSX
+  CSV
+  XML
+  JSON
+  API
+
+  @@schema("billing")
+}
+
+enum InvoiceTemplateScope {
+  ORGANISATION_DEFAULT
+  FUNDER
+  FUNDING_CONTRACT
+
+  @@schema("billing")
+}
+
+model PayCard {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  name                String
+  code                String                 @unique
+  assignmentLevel     PayCardAssignmentLevel @default(ORGANISATION_DEFAULT)
+  assignmentTargetId  String?                @db.Uuid
+  assignmentTargetKey String?
+  assignmentLabel     String?
+  currency            String                 @default("GBP")
+  status           BillingCardStatus      @default(DRAFT)
+  effectiveFrom    DateTime               @db.Date
+  effectiveTo      DateTime?              @db.Date
+  notes            String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  deletedAt        DateTime?
+  createdById      String?                @db.Uuid
+  updatedById      String?                @db.Uuid
+
+  rules              PayCardRule[]
+  defaultEmployments EmployeeEmployment[] @relation("EmployeeDefaultPayCard")
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([assignmentLevel, assignmentTargetId])
+  @@index([assignmentLevel, assignmentTargetKey])
+  @@schema("billing")
+}
+
+model PayCardRule {
+  id             String          @id @default(uuid()) @db.Uuid
+  payCardId      String          @db.Uuid
+  label          String?
+  serviceType    String?
+  dayType        BillingDayType  @default(ANY)
+  startTime      String?
+  endTime        String?
+  rateType       BillingRateType @default(HOURLY)
+  amount         Decimal         @db.Decimal(12, 4)
+  multiplier     Decimal?        @db.Decimal(8, 4)
+  minimumMinutes Int?
+  roundingRule   String?
+  priority       Int             @default(0)
+  sortOrder      Int             @default(0)
+
+  payCard PayCard @relation(fields: [payCardId], references: [id], onDelete: Cascade)
+
+  @@index([payCardId])
+  @@schema("billing")
+}
+
+model ChargeCard {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  name                String
+  code                String                    @unique
+  assignmentLevel     ChargeCardAssignmentLevel @default(ORGANISATION_DEFAULT)
+  assignmentTargetId  String?                   @db.Uuid
+  assignmentTargetKey String?
+  assignmentLabel     String?
+  currency            String                    @default("GBP")
+  billingFrequency    BillingFrequency          @default(WEEKLY)
+  paymentTerms        String?
+  taxTreatment        String?
+  invoiceGroupingRule String?
+  defaultChargeMethod BillingChargeMethod       @default(HOURLY_PRO_RATA)
+  status              BillingCardStatus         @default(DRAFT)
+  effectiveFrom       DateTime                  @db.Date
+  effectiveTo         DateTime?                 @db.Date
+  notes               String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  deletedAt           DateTime?
+  createdById         String?                   @db.Uuid
+  updatedById         String?                   @db.Uuid
+
+  rules               ChargeCardRule[]
+  defaultFunders      Funder[]             @relation("FunderDefaultChargeCard")
+  defaultServiceUsers ServiceUser[]        @relation("ServiceUserDefaultChargeCard")
+  defaultFundings     ServiceUserFunding[] @relation("FundingDefaultChargeCard")
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([assignmentLevel, assignmentTargetId])
+  @@index([assignmentLevel, assignmentTargetKey])
+  @@schema("billing")
+}
+
+model ChargeCardRule {
+  id               String               @id @default(uuid()) @db.Uuid
+  chargeCardId     String               @db.Uuid
+  label            String?
+  serviceType      String?
+  dayType          BillingDayType       @default(ANY)
+  startTime        String?
+  endTime          String?
+  chargeMethod     BillingChargeMethod  @default(HOURLY_PRO_RATA)
+  rateType         BillingRateType      @default(HOURLY)
+  amount           Decimal              @db.Decimal(12, 4)
+  multiplier       Decimal?             @db.Decimal(8, 4)
+  minimumMinutes   Int?
+  roundingRule     String?
+  chargeableFlag   Boolean              @default(true)
+  priority         Int                  @default(0)
+  sortOrder        Int                  @default(0)
+
+  chargeCard ChargeCard @relation(fields: [chargeCardId], references: [id], onDelete: Cascade)
+
+  @@index([chargeCardId])
+  @@schema("billing")
+}
+
+model InvoiceTemplate {
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  code                String               @unique
+  templateType        InvoiceTemplateType
+  version             String               @default("1.0")
+  scope               InvoiceTemplateScope @default(FUNDER)
+  funderId            String?              @db.Uuid
+  serviceUserFundingId String?             @db.Uuid
+  deliveryMethod      String?
+  groupingRule        String?
+  fileNamePattern     String?
+  billingFrequency    BillingFrequency     @default(WEEKLY)
+  status              BillingCardStatus    @default(DRAFT)
+  effectiveFrom       DateTime             @db.Date
+  effectiveTo         DateTime?            @db.Date
+  notes               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
+  createdById         String?              @db.Uuid
+  updatedById         String?              @db.Uuid
+
+  funder              Funder?              @relation("FunderScopedInvoiceTemplate", fields: [funderId], references: [id], onDelete: SetNull)
+  serviceUserFunding  ServiceUserFunding?  @relation("FundingInvoiceTemplateScope", fields: [serviceUserFundingId], references: [id], onDelete: SetNull)
+  fields              InvoiceTemplateField[]
+  defaultFunders      Funder[]             @relation("FunderDefaultInvoiceTemplate")
+  defaultFundings     ServiceUserFunding[] @relation("FundingDefaultInvoiceTemplate")
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([funderId])
+  @@index([serviceUserFundingId])
+  @@index([scope])
+  @@schema("billing")
+}
+
+model InvoiceTemplateField {
+  id                String @id @default(uuid()) @db.Uuid
+  invoiceTemplateId String @db.Uuid
+  label             String
+  systemFieldKey    String
+  isRequired        Boolean @default(false)
+  sortOrder         Int     @default(0)
+
+  invoiceTemplate InvoiceTemplate @relation(fields: [invoiceTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceTemplateId])
+  @@schema("billing")
 }

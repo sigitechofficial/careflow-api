@@ -102,6 +102,7 @@ import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -222,6 +223,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
     PictureGalleryModule,
     BodyMapModule,
     DevToolsModule,
+    BillingModule,
   ],
   providers: [
     {

@@ -77,4 +77,14 @@ export class CreateFunderDto {
   @IsString()
   @MaxLength(5000)
   notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  defaultChargeCardId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  defaultInvoiceTemplateId?: string | null;
 }
