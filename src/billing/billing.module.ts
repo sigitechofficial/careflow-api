@@ -4,9 +4,17 @@ import { PayCardsController } from './pay-cards.controller';
 import { ChargeCardsController } from './charge-cards.controller';
 import { FundingContractsController } from './funding-contracts.controller';
 import { InvoiceTemplatesController } from './invoice-templates.controller';
+import { VisitReconciliationsController } from './visit-reconciliations.controller';
+import { PayrollRunsController } from './payroll-runs.controller';
+import { InvoiceRunsController } from './invoice-runs.controller';
+import { PaymentsController } from './payments.controller';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
 import { FundingContractsService } from './funding-contracts.service';
 import { InvoiceTemplatesService } from './invoice-templates.service';
+import { VisitReconciliationsService } from './visit-reconciliations.service';
+import { PayrollRunsService } from './payroll-runs.service';
+import { InvoiceRunsService } from './invoice-runs.service';
+import { PaymentsService } from './payments.service';
 
 @Module({
   imports: [PrismaModule],
@@ -15,8 +23,30 @@ import { InvoiceTemplatesService } from './invoice-templates.service';
     ChargeCardsController,
     FundingContractsController,
     InvoiceTemplatesController,
+    VisitReconciliationsController,
+    PayrollRunsController,
+    InvoiceRunsController,
+    PaymentsController,
   ],
-  providers: [PayCardsService, ChargeCardsService, FundingContractsService, InvoiceTemplatesService],
-  exports: [PayCardsService, ChargeCardsService, FundingContractsService, InvoiceTemplatesService],
+  providers: [
+    PayCardsService,
+    ChargeCardsService,
+    FundingContractsService,
+    InvoiceTemplatesService,
+    VisitReconciliationsService,
+    PayrollRunsService,
+    InvoiceRunsService,
+    PaymentsService,
+  ],
+  exports: [
+    PayCardsService,
+    ChargeCardsService,
+    FundingContractsService,
+    InvoiceTemplatesService,
+    VisitReconciliationsService,
+    PayrollRunsService,
+    InvoiceRunsService,
+    PaymentsService,
+  ],
 })
 export class BillingModule {}

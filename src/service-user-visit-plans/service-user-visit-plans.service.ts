@@ -43,6 +43,7 @@ import {
   visitPlanTodayUtc,
 } from './visit-plan-effective-dates.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import {
@@ -142,6 +143,7 @@ export class ServiceUserVisitPlansService {
     private readonly scheduledJobsService: ScheduledJobsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
     private readonly amendmentImpact: VisitPlanAmendmentImpactService,
+    private readonly visitReconciliationsService: VisitReconciliationsService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -2536,7 +2538,7 @@ export class ServiceUserVisitPlansService {
 
     const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       let visit = await tx.scheduledVisit.findFirst({
         where: {
           visitPlanSlotId: slot.id,
@@ -2698,6 +2700,13 @@ export class ServiceUserVisitPlansService {
 
       return { message: 'Visit outcome recorded', data: this.mapCalendarVisit(enriched) };
     });
+
+    const visitId = (result.data as { id?: string }).id;
+    if (visitId) {
+      void this.visitReconciliationsService.ensureForVisit(visitId).catch(() => undefined);
+    }
+
+    return result;
   }
 
   private mapCalendarVisit(row: CalendarVisitRow) {

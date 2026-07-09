@@ -6208,3 +6208,339 @@ model InvoiceTemplateField {
   @@index([invoiceTemplateId])
   @@schema("billing")
 }
+
+enum VisitReconciliationStatus {
+  PENDING_REVIEW
+  APPROVED_FOR_PAY
+  APPROVED_FOR_INVOICE
+  APPROVED_FOR_BOTH
+  REJECTED_FOR_PAY
+  REJECTED_FOR_INVOICE
+  REQUIRES_MANAGER_APPROVAL
+  LOCKED
+
+  @@schema("billing")
+}
+
+enum FinanceExceptionCode {
+  MISSING_CHECK_IN
+  MISSING_CHECK_OUT
+  OVERRUN
+  UNDERRUN
+  GPS_MISMATCH
+  RATE_MISSING
+  CHARGE_CARD_MISSING
+  PAY_CARD_MISSING
+  TASKS_INCOMPLETE
+  FUNDING_SETUP_INCOMPLETE
+  PO_EXPIRED
+  PO_MISSING
+
+  @@schema("billing")
+}
+
+model VisitReconciliation {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  scheduledVisitId     String                    @unique @db.Uuid
+  scheduledJobId       String                    @db.Uuid
+  serviceUserId        String                    @db.Uuid
+  employeeId           String?                   @db.Uuid
+  jobAllocationId      String?                   @db.Uuid
+  visitRef             String
+  plannedStartDateTime DateTime
+  plannedEndDateTime   DateTime?
+  actualStartDateTime  DateTime?
+  actualEndDateTime    DateTime?
+  approvedPayStart     DateTime?
+  approvedPayEnd       DateTime?
+  approvedBillStart    DateTime?
+  approvedBillEnd      DateTime?
+  payableMinutes       Int?
+  billableMinutes      Int?
+  payableAmount        Decimal?                  @db.Decimal(12, 2)
+  billableAmount       Decimal?                  @db.Decimal(12, 2)
+  currency             String                    @default("GBP")
+  status               VisitReconciliationStatus @default(PENDING_REVIEW)
+  payCardId            String?                   @db.Uuid
+  chargeCardId         String?                   @db.Uuid
+  payCardSource        String?
+  chargeCardSource     String?
+  approvedById         String?                   @db.Uuid
+  approvedAt           DateTime?
+  approvalNotes        String?
+  lockedAt             DateTime?
+  lastEvaluatedAt      DateTime?
+  includedInPayrollRunId String?               @db.Uuid
+  includedInInvoiceRunId String?               @db.Uuid
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  exceptions           FinanceException[]
+  payrollRunLines      PayrollRunLine[]
+  invoiceRunLines      InvoiceRunLine[]
+  includedInPayrollRun PayrollRun?               @relation("ReconciliationPayrollRun", fields: [includedInPayrollRunId], references: [id], onDelete: SetNull)
+  includedInInvoiceRun InvoiceRun?               @relation("ReconciliationInvoiceRun", fields: [includedInInvoiceRunId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId])
+  @@index([serviceUserId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([plannedStartDateTime])
+  @@index([includedInPayrollRunId])
+  @@index([includedInInvoiceRunId])
+  @@schema("billing")
+}
+
+model FinanceException {
+  id                    String               @id @default(uuid()) @db.Uuid
+  visitReconciliationId String               @db.Uuid
+  code                  FinanceExceptionCode
+  message               String?
+  resolvedAt            DateTime?
+  resolvedById          String?              @db.Uuid
+  createdAt             DateTime             @default(now())
+
+  visitReconciliation VisitReconciliation @relation(fields: [visitReconciliationId], references: [id], onDelete: Cascade)
+
+  @@index([visitReconciliationId])
+  @@index([code])
+  @@schema("billing")
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  CALCULATING
+  EXCEPTION_FOUND
+  READY_FOR_REVIEW
+  APPROVED
+  LOCKED
+  EXPORTED
+
+  @@schema("billing")
+}
+
+enum PayrollRunLineType {
+  VISIT_PAY
+  NMW_TOP_UP
+  ADJUSTMENT
+
+  @@schema("billing")
+}
+
+enum InvoiceRunStatus {
+  DRAFT
+  CALCULATING
+  EXCEPTION_FOUND
+  READY_FOR_REVIEW
+  APPROVED
+  LOCKED
+  SENT
+  PART_PAID
+  PAID
+  DISPUTED
+
+  @@schema("billing")
+}
+
+enum InvoiceRunLineType {
+  VISIT_CHARGE
+  ADJUSTMENT
+
+  @@schema("billing")
+}
+
+enum BillingRunExportStatus {
+  NOT_STARTED
+  TEMPLATE_MISSING
+  TEMPLATE_VALIDATION_FAILED
+  READY_TO_RENDER
+  RENDERED
+  EXPORTED
+  SENT
+
+  @@schema("billing")
+}
+
+model PayrollRun {
+  id              String           @id @default(uuid()) @db.Uuid
+  periodLabel     String
+  periodStart     DateTime         @db.Date
+  periodEnd       DateTime         @db.Date
+  status          PayrollRunStatus @default(DRAFT)
+  carerCount      Int              @default(0)
+  visitLineCount  Int              @default(0)
+  grossPay        Decimal          @default(0) @db.Decimal(12, 2)
+  nmwTopUp        Decimal          @default(0) @db.Decimal(12, 2)
+  exceptionCount  Int              @default(0)
+  currency        String           @default("GBP")
+  approvedAt      DateTime?
+  approvedById    String?          @db.Uuid
+  lockedAt        DateTime?
+  exportedAt      DateTime?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdById     String?          @db.Uuid
+
+  lines                    PayrollRunLine[]
+  lockedReconciliations    VisitReconciliation[] @relation("ReconciliationPayrollRun")
+
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+model PayrollRunLine {
+  id                    String             @id @default(uuid()) @db.Uuid
+  payrollRunId          String             @db.Uuid
+  visitReconciliationId String             @db.Uuid
+  employeeId            String?            @db.Uuid
+  lineType              PayrollRunLineType @default(VISIT_PAY)
+  description           String
+  minutes               Int?
+  unitAmount            Decimal?           @db.Decimal(12, 4)
+  amount                Decimal            @db.Decimal(12, 2)
+  currency              String             @default("GBP")
+  payCardId             String?            @db.Uuid
+  visitRef              String?
+  exceptionMessage      String?
+  createdAt             DateTime           @default(now())
+
+  payrollRun          PayrollRun          @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  visitReconciliation VisitReconciliation @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+
+  @@unique([payrollRunId, visitReconciliationId, lineType])
+  @@index([payrollRunId])
+  @@index([visitReconciliationId])
+  @@index([employeeId])
+  @@schema("billing")
+}
+
+model InvoiceRun {
+  id                String                 @id @default(uuid()) @db.Uuid
+  periodLabel       String
+  periodStart       DateTime               @db.Date
+  periodEnd         DateTime               @db.Date
+  status            InvoiceRunStatus       @default(DRAFT)
+  serviceUserCount  Int                    @default(0)
+  funderCount       Int                    @default(0)
+  netTotal          Decimal                @default(0) @db.Decimal(12, 2)
+  exceptionCount    Int                    @default(0)
+  exportStatus      BillingRunExportStatus @default(NOT_STARTED)
+  currency          String                 @default("GBP")
+  approvedAt        DateTime?
+  approvedById      String?                @db.Uuid
+  lockedAt          DateTime?
+  sentAt            DateTime?
+  notes             String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  createdById       String?                @db.Uuid
+
+  lines                    InvoiceRunLine[]
+  lockedReconciliations    VisitReconciliation[] @relation("ReconciliationInvoiceRun")
+  paymentAllocations       PaymentAllocation[]
+
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+model InvoiceRunLine {
+  id                    String             @id @default(uuid()) @db.Uuid
+  invoiceRunId          String             @db.Uuid
+  visitReconciliationId String             @db.Uuid
+  serviceUserId         String             @db.Uuid
+  funderId              String?            @db.Uuid
+  serviceUserFundingId  String?            @db.Uuid
+  lineType              InvoiceRunLineType @default(VISIT_CHARGE)
+  description           String
+  minutes               Int?
+  splitPercent          Decimal?           @db.Decimal(5, 2)
+  unitAmount            Decimal?           @db.Decimal(12, 4)
+  amount                Decimal            @db.Decimal(12, 2)
+  currency              String             @default("GBP")
+  chargeCardId          String?            @db.Uuid
+  visitRef              String?
+  exceptionMessage      String?
+  createdAt             DateTime           @default(now())
+
+  invoiceRun          InvoiceRun          @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
+  visitReconciliation VisitReconciliation @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+
+  @@unique([invoiceRunId, visitReconciliationId, serviceUserFundingId, lineType])
+  @@index([invoiceRunId])
+  @@index([visitReconciliationId])
+  @@index([serviceUserId])
+  @@index([funderId])
+  @@schema("billing")
+}
+
+enum PaymentType {
+  COUNCIL_REMITTANCE
+  BANK_TRANSFER
+  DIRECT_DEBIT
+  CARD
+  OTHER
+
+  @@schema("billing")
+}
+
+enum PaymentRecordStatus {
+  RECEIVED
+  FAILED
+  REFUNDED
+
+  @@schema("billing")
+}
+
+enum PaymentMatchStatus {
+  UNMATCHED
+  PARTIALLY_MATCHED
+  FULLY_MATCHED
+
+  @@schema("billing")
+}
+
+model Payment {
+  id            String              @id @default(uuid()) @db.Uuid
+  reference     String
+  paymentType   PaymentType
+  amount        Decimal             @db.Decimal(12, 2)
+  receivedDate  DateTime?           @db.Date
+  recordStatus  PaymentRecordStatus @default(RECEIVED)
+  matchStatus   PaymentMatchStatus  @default(UNMATCHED)
+  matchedAmount Decimal             @default(0) @db.Decimal(12, 2)
+  currency      String              @default("GBP")
+  funderId      String?             @db.Uuid
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdById   String?             @db.Uuid
+
+  allocations PaymentAllocation[]
+
+  @@index([receivedDate])
+  @@index([matchStatus])
+  @@index([recordStatus])
+  @@index([funderId])
+  @@schema("billing")
+}
+
+model PaymentAllocation {
+  id           String   @id @default(uuid()) @db.Uuid
+  paymentId    String   @db.Uuid
+  invoiceRunId String   @db.Uuid
+  amount       Decimal  @db.Decimal(12, 2)
+  notes        String?
+  createdAt    DateTime @default(now())
+  createdById  String?  @db.Uuid
+
+  payment    Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceRun InvoiceRun @relation(fields: [invoiceRunId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, invoiceRunId])
+  @@index([paymentId])
+  @@index([invoiceRunId])
+  @@schema("billing")
+}

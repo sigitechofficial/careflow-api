@@ -22,6 +22,7 @@ import {
 } from './visit-cancellation-reason.util';
 import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduledVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
@@ -88,6 +89,7 @@ export class ScheduledJobsHousekeepingService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly scheduledJobsService: ScheduledJobsService,
+    private readonly visitReconciliationsService: VisitReconciliationsService,
   ) {}
 
   private buildBaseWhere(query: HousekeepingQueryDto): Prisma.ScheduledJobWhereInput {
@@ -533,7 +535,7 @@ export class ScheduledJobsHousekeepingService {
         ? deriveDeliveredCarePlanFormIds(dto.deliveredCarePlanDetails)
         : undefined);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.scheduledVisit.updateMany({
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
         data: {
@@ -601,6 +603,12 @@ export class ScheduledJobsHousekeepingService {
         data: this.mapDayJob(updated),
       };
     });
+
+    if (completing) {
+      void this.visitReconciliationsService.ensureForCompletedJob(id).catch(() => undefined);
+    }
+
+    return result;
   }
 
   async cancelJob(userId: string, id: string, dto: CancelJobDto, meta?: RequestAuditMeta) {
