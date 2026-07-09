@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { pickBestMatchingPayCard } from '../../src/billing/pay-card-assignment.util';
-import { pickBestMatchingChargeCard } from '../../src/billing/charge-card-assignment.util';
+import {
+  pickBestMatchingChargeCard,
+  pickBestMatchingPayCard,
+} from './billing-card-assignment.util';
 import { seedBillingCards } from './billing-cards.seed';
 
 const FALLBACK_PAY_CARD_CODE = 'PAY-LON-2026';
