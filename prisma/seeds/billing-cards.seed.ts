@@ -62,7 +62,13 @@ export async function seedBillingCards(prisma: PrismaClient) {
     const { rules, ...data } = card;
     await prisma.payCard.upsert({
       where: { code: data.code },
-      update: {},
+      update: {
+        name: data.name,
+        assignmentLevel: data.assignmentLevel,
+        assignmentLabel: data.assignmentLabel,
+        status: data.status,
+        effectiveFrom: data.effectiveFrom,
+      },
       create: {
         ...data,
         rules: { create: rules },
@@ -126,7 +132,15 @@ export async function seedBillingCards(prisma: PrismaClient) {
     const { rules, ...data } = card;
     await prisma.chargeCard.upsert({
       where: { code: data.code },
-      update: {},
+      update: {
+        name: data.name,
+        assignmentLevel: data.assignmentLevel,
+        assignmentLabel: data.assignmentLabel,
+        billingFrequency: data.billingFrequency,
+        status: data.status,
+        effectiveFrom: data.effectiveFrom,
+        effectiveTo: data.effectiveTo ?? null,
+      },
       create: {
         ...data,
         rules: { create: rules },
