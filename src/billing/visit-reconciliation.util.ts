@@ -264,6 +264,7 @@ export type PayCardRuleLike = {
   rateType: string;
   amount: Prisma.Decimal | number;
   dayType: string;
+  minimumMinutes?: number | null;
   priority: number;
   sortOrder: number;
 };
@@ -274,34 +275,59 @@ export type ChargeCardRuleLike = {
   rateType: string;
   amount: Prisma.Decimal | number;
   dayType: string;
+  minimumMinutes?: number | null;
   priority: number;
   sortOrder: number;
 };
 
-function pickBestRule<T extends { dayType: string; priority: number; sortOrder: number }>(
+export function resolveCalendarDayType(visitDate: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
+  const day = visitDate.getUTCDay();
+  if (day === 0) return 'SUNDAY';
+  if (day === 6) return 'SATURDAY';
+  return 'WEEKDAY';
+}
+
+function dayTypeMatches(ruleDayType: string, visitDate: Date, isBankHoliday: boolean): boolean {
+  if (ruleDayType === 'ANY') return true;
+  if (isBankHoliday) return ruleDayType === 'BANK_HOLIDAY';
+  if (ruleDayType === 'BANK_HOLIDAY') return false;
+  return ruleDayType === resolveCalendarDayType(visitDate);
+}
+
+function pickBestRule<T extends PayCardRuleLike>(
   rules: T[],
   visitDate: Date,
+  visitMinutes: number,
+  isBankHoliday = false,
 ): T | null {
-  if (!rules.length) return null;
-  const day = visitDate.getUTCDay();
-  const dayType =
-    day === 0 ? 'SUNDAY' : day === 6 ? 'SATURDAY' : 'WEEKDAY';
-  const ranked = [...rules].sort((a, b) => {
-    const aMatch = a.dayType === 'ANY' || a.dayType === dayType ? 1 : 0;
-    const bMatch = b.dayType === 'ANY' || b.dayType === dayType ? 1 : 0;
-    if (bMatch !== aMatch) return bMatch - aMatch;
-    if (b.priority !== a.priority) return b.priority - a.priority;
+  if (!rules.length || visitMinutes <= 0) return null;
+
+  const dayMatches = rules.filter((rule) => dayTypeMatches(rule.dayType, visitDate, isBankHoliday));
+  if (!dayMatches.length) return null;
+
+  const exactDuration = dayMatches.filter(
+    (rule) => rule.minimumMinutes != null && rule.minimumMinutes > 0 && rule.minimumMinutes === visitMinutes,
+  );
+  const anyDuration = dayMatches.filter(
+    (rule) => rule.minimumMinutes == null || rule.minimumMinutes <= 0,
+  );
+
+  const pool = exactDuration.length ? exactDuration : anyDuration;
+  if (!pool.length) return null;
+
+  return [...pool].sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority;
     return a.sortOrder - b.sortOrder;
-  });
-  return ranked[0] ?? null;
+  })[0] ?? null;
 }
 
 export function calculatePayableAmount(
   rules: PayCardRuleLike[],
   visitDate: Date,
   minutes: number,
+  isBankHoliday = false,
 ): { amount: number; label: string } | null {
-  const rule = pickBestRule(rules, visitDate);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
   if (!rule || minutes <= 0) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
@@ -316,8 +342,9 @@ export function calculateBillableAmount(
   visitDate: Date,
   minutes: number,
   defaultChargeMethod: string,
+  isBankHoliday = false,
 ): { amount: number; label: string } | null {
-  const rule = pickBestRule(rules, visitDate);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
   if (!rule || minutes <= 0) return null;
   const amount = Number(rule.amount);
   const method = rule.chargeMethod || defaultChargeMethod;
@@ -362,13 +389,14 @@ export function buildPayRateBreakdown(
     cardSource?: string | null;
     currency?: string;
   },
+  isBankHoliday = false,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
-  const rule = pickBestRule(rules, visitDate);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);
-  const calc = calculatePayableAmount(rules, visitDate, minutes);
+  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday);
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
@@ -414,13 +442,14 @@ export function buildChargeRateBreakdown(
     cardCode?: string | null;
     cardSource?: string | null;
   },
+  isBankHoliday = false,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
-  const rule = pickBestRule(rules, visitDate);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);
-  const calc = calculateBillableAmount(rules, visitDate, minutes, defaultChargeMethod);
+  const calc = calculateBillableAmount(rules, visitDate, minutes, defaultChargeMethod, isBankHoliday);
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);

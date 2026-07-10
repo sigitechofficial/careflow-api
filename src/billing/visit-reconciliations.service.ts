@@ -102,6 +102,15 @@ export type VisitReconciliationListRow = {
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
+async function isVisitOnBankHoliday(db: DbClient, date: Date): Promise<boolean> {
+  const holidayDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const row = await db.bankHoliday.findFirst({
+    where: { holidayDate, isActive: true },
+    select: { id: true },
+  });
+  return Boolean(row);
+}
+
 @Injectable()
 export class VisitReconciliationsService {
   constructor(
@@ -685,9 +694,11 @@ export class VisitReconciliationsService {
     let payableAmount: number | null = null;
     let billableAmount: number | null = null;
 
+    const isBankHoliday = await isVisitOnBankHoliday(db, row.plannedStartDateTime);
+
     if (payCard && payMinutes) {
       const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
-      const calc = calculatePayableAmount(payRules, row.plannedStartDateTime, payMinutes);
+      const calc = calculatePayableAmount(payRules, row.plannedStartDateTime, payMinutes, isBankHoliday);
       payableAmount = calc?.amount ?? null;
     }
     if (chargeCard && billMinutes) {
@@ -703,6 +714,7 @@ export class VisitReconciliationsService {
         row.plannedStartDateTime,
         billMinutes,
         card?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
+        isBankHoliday,
       );
       billableAmount = calc?.amount ?? null;
     }
@@ -866,6 +878,8 @@ export class VisitReconciliationsService {
     let carerPay = null;
     let clientCharge = null;
 
+    const isBankHoliday = await isVisitOnBankHoliday(this.prisma, row.plannedStartDateTime);
+
     if (row.payCardId && payMinutes > 0) {
       const [payCard, payRules] = await Promise.all([
         this.prisma.payCard.findUnique({
@@ -878,7 +892,7 @@ export class VisitReconciliationsService {
         cardName: payCard?.name ?? null,
         cardCode: payCard?.code ?? null,
         cardSource: row.payCardSource,
-      });
+      }, isBankHoliday);
     }
 
     if (row.chargeCardId && billMinutes > 0) {
@@ -899,6 +913,7 @@ export class VisitReconciliationsService {
           cardCode: chargeCard?.code ?? null,
           cardSource: row.chargeCardSource,
         },
+        isBankHoliday,
       );
     }
 

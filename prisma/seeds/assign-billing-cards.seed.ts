@@ -5,9 +5,9 @@ import {
 } from './billing-card-assignment.util';
 import { seedBillingCards } from './billing-cards.seed';
 
-const FALLBACK_PAY_CARD_CODE = 'PAY-LON-2026';
+const FALLBACK_PAY_CARD_CODE = 'PAY-STD-UK-2026';
 const FALLBACK_AGENCY_PAY_CARD_CODE = 'PAY-AGY-2026';
-const FALLBACK_CHARGE_CARD_CODE = 'CHG-PVT-DEF';
+const FALLBACK_CHARGE_CARD_CODE = 'CHG-STD-UK-2026';
 
 export type AssignMissingBillingCardsResult = {
   payAssigned: number;
@@ -21,14 +21,22 @@ async function ensureBillingCardsActive(prisma: PrismaClient) {
   await prisma.payCard.updateMany({
     where: {
       deletedAt: null,
-      code: { in: [FALLBACK_PAY_CARD_CODE, FALLBACK_AGENCY_PAY_CARD_CODE] },
+      code: {
+        in: [
+          FALLBACK_PAY_CARD_CODE,
+          FALLBACK_AGENCY_PAY_CARD_CODE,
+          'PAY-LON-2026',
+          'PAY-INT-2026',
+          'PAY-BNK-2026',
+        ],
+      },
     },
     data: { status: 'ACTIVE' },
   });
   await prisma.chargeCard.updateMany({
     where: {
       deletedAt: null,
-      code: { in: [FALLBACK_CHARGE_CARD_CODE, 'CHG-LA-LON-26'] },
+      code: { in: [FALLBACK_CHARGE_CARD_CODE, 'CHG-LA-CROY-2026', 'CHG-NHS-CHC-2026'] },
     },
     data: { status: 'ACTIVE' },
   });
