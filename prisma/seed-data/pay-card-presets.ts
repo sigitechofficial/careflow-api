@@ -4,64 +4,26 @@
  * vs waking night, travel/mileage supplements).
  */
 
-export type PayCardPresetRule = {
-  label: string
-  serviceType?: string | null
-  dayType: 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' | 'BANK_HOLIDAY' | 'ANY'
-  startTime?: string | null
-  endTime?: string | null
-  rateType:
-    | 'HOURLY'
-    | 'FIXED'
-    | 'MILEAGE'
-    | 'TRAVEL_TIME'
-    | 'WAITING_TIME'
-    | 'PER_VISIT_FEE'
-    | 'PREMIUM'
-  amount: number
-  minimumMinutes?: number | null
-  sortOrder: number
-}
+import { buildStandardFixedPayRules } from './pay-card-fixed-rates.util'
+import { PAY_CARD_COMPLETE_UK_2026 } from './pay-card-complete-preset'
+import type { PayCardPreset, PayCardPresetRule } from './pay-card-preset.types'
 
-export type PayCardPreset = {
-  name: string
-  code: string
-  assignmentLevel:
-    | 'ORGANISATION_DEFAULT'
-    | 'BRANCH'
-    | 'WORKER_TYPE'
-    | 'ROLE'
-    | 'EMPLOYMENT_TYPE'
-  assignmentTargetKey?: 'INTERNAL' | 'AGENCY' | 'BANK' | null
-  assignmentLabel?: string
-  /** When set, seed tries to match a branch/location by name (case-insensitive contains). */
-  branchNameHint?: string
-  status: 'ACTIVE'
-  effectiveFrom: string
-  effectiveTo?: string | null
-  notes?: string
-  rules: PayCardPresetRule[]
-}
+export type { PayCardPreset, PayCardPresetRule } from './pay-card-preset.types'
 
 /** Birdie / HCA baseline — NLW £12.21 (2025–26), weekend and bank holiday uplifts. */
 export const PAY_CARD_PRESETS: PayCardPreset[] = [
+  PAY_CARD_COMPLETE_UK_2026,
   {
-    name: 'Standard Carer Pay — UK (NLW)',
+    name: 'Standard Carer Pay — Fixed Visit Rates',
     code: 'PAY-STD-UK-2026',
     assignmentLevel: 'ORGANISATION_DEFAULT',
     assignmentLabel: 'Organisation default',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
-    notes:
-      'Birdie / Access Group style default. Based on NLW £12.21 (Apr 2025) with typical weekend premiums.',
-    rules: [
-      { label: 'Weekday hourly', dayType: 'WEEKDAY', rateType: 'HOURLY', amount: 12.21, sortOrder: 0 },
-      { label: 'Saturday', dayType: 'SATURDAY', rateType: 'HOURLY', amount: 14.0, sortOrder: 1 },
-      { label: 'Sunday', dayType: 'SUNDAY', rateType: 'HOURLY', amount: 15.0, sortOrder: 2 },
-      { label: 'Bank holiday', dayType: 'BANK_HOLIDAY', rateType: 'HOURLY', amount: 17.0, sortOrder: 3 },
-      { label: 'Travel time', dayType: 'ANY', rateType: 'TRAVEL_TIME', amount: 12.21, sortOrder: 4 },
-      { label: 'Mileage', dayType: 'ANY', rateType: 'MILEAGE', amount: 0.45, sortOrder: 5 },
-    ],
+    notes: `Fixed pay per visit up to 60 min; hourly for longer visits.
+Weekday: 15m £14 · 30m £17 · 45m £19 · 60m £22 · over 1 hr £20/hr.
+Example — 4 × 15 min = £56 carer pay; 6 hr visit = £120.`,
+    rules: buildStandardFixedPayRules(),
   },
   {
     name: 'Standard Carer Pay — London',

@@ -63,7 +63,9 @@ async function upsertPayCard(prisma: PrismaClient, preset: PayCardPreset, branch
         endTime: rule.endTime ?? null,
         rateType: rule.rateType,
         amount: rule.amount,
+        multiplier: rule.multiplier ?? null,
         minimumMinutes: rule.minimumMinutes ?? null,
+        priority: rule.priority ?? 0,
         sortOrder: rule.sortOrder ?? index,
       })),
     });

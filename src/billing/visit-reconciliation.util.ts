@@ -294,7 +294,49 @@ function dayTypeMatches(ruleDayType: string, visitDate: Date, isBankHoliday: boo
   return ruleDayType === resolveCalendarDayType(visitDate);
 }
 
-function pickBestRule<T extends PayCardRuleLike>(
+/** Visits up to 60 minutes use fixed duration slots; longer visits use hourly rules. */
+export const MAX_FIXED_VISIT_MINUTES = 60;
+
+const NON_VISIT_RATE_TYPES = new Set([
+  'MILEAGE',
+  'TRAVEL_TIME',
+  'WAITING_TIME',
+  'PREMIUM',
+  'UPLIFT',
+  'DEDUCTION',
+  'PER_VISIT_FEE',
+]);
+
+type RuleWithOptionalTime = PayCardRuleLike & {
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+function isFixedVisitSlotRule(rule: PayCardRuleLike): boolean {
+  return (
+    rule.rateType === 'FIXED'
+    && rule.minimumMinutes != null
+    && rule.minimumMinutes > 0
+    && rule.minimumMinutes <= MAX_FIXED_VISIT_MINUTES
+  );
+}
+
+function isHourlyLongVisitRule(rule: RuleWithOptionalTime): boolean {
+  if (NON_VISIT_RATE_TYPES.has(rule.rateType)) return false;
+  if (rule.startTime || rule.endTime) return false;
+  if (
+    rule.minimumMinutes != null
+    && rule.minimumMinutes > 0
+    && rule.minimumMinutes <= MAX_FIXED_VISIT_MINUTES
+  ) {
+    return false;
+  }
+  if (rule.rateType === 'HOURLY') return true;
+  const chargeRule = rule as ChargeCardRuleLike;
+  return chargeRule.chargeMethod === 'HOURLY_PRO_RATA';
+}
+
+function pickBestRule<T extends RuleWithOptionalTime>(
   rules: T[],
   visitDate: Date,
   visitMinutes: number,
@@ -305,17 +347,16 @@ function pickBestRule<T extends PayCardRuleLike>(
   const dayMatches = rules.filter((rule) => dayTypeMatches(rule.dayType, visitDate, isBankHoliday));
   if (!dayMatches.length) return null;
 
-  const exactDuration = dayMatches.filter(
-    (rule) => rule.minimumMinutes != null && rule.minimumMinutes > 0 && rule.minimumMinutes === visitMinutes,
-  );
-  const anyDuration = dayMatches.filter(
-    (rule) => rule.minimumMinutes == null || rule.minimumMinutes <= 0,
-  );
+  const candidates =
+    visitMinutes <= MAX_FIXED_VISIT_MINUTES
+      ? dayMatches.filter(
+          (rule) => isFixedVisitSlotRule(rule) && rule.minimumMinutes === visitMinutes,
+        )
+      : dayMatches.filter((rule) => isHourlyLongVisitRule(rule));
 
-  const pool = exactDuration.length ? exactDuration : anyDuration;
-  if (!pool.length) return null;
+  if (!candidates.length) return null;
 
-  return [...pool].sort((a, b) => {
+  return [...candidates].sort((a, b) => {
     if (a.priority !== b.priority) return b.priority - a.priority;
     return a.sortOrder - b.sortOrder;
   })[0] ?? null;
@@ -403,13 +444,17 @@ export function buildPayRateBreakdown(
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED' || calc.label === 'PER_VISIT_FEE') {
+    const durationSuffix =
+      rule.minimumMinutes != null && rule.minimumMinutes > 0
+        ? ` for ${rule.minimumMinutes}-minute visit`
+        : ' per visit';
     return {
       minutes,
       hoursLabel,
       rateType: calc.label,
       unitRate: formatGbp(unitAmount),
       amount: formatGbp(calc.amount),
-      formula: `${formatGbp(unitAmount)} per visit`,
+      formula: `${formatGbp(unitAmount)}${durationSuffix}`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
@@ -456,13 +501,17 @@ export function buildChargeRateBreakdown(
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED_VISIT' || calc.label === 'FIXED') {
+    const durationSuffix =
+      rule.minimumMinutes != null && rule.minimumMinutes > 0
+        ? ` for ${rule.minimumMinutes}-minute visit`
+        : ' per visit';
     return {
       minutes,
       hoursLabel,
       rateType: calc.label,
       unitRate: formatGbp(unitAmount),
       amount: formatGbp(calc.amount),
-      formula: `${formatGbp(unitAmount)} per visit`,
+      formula: `${formatGbp(unitAmount)}${durationSuffix}`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
@@ -470,6 +519,7 @@ export function buildChargeRateBreakdown(
     };
   }
 
+  const hrs = minutes / 60;
   return {
     minutes,
     hoursLabel,

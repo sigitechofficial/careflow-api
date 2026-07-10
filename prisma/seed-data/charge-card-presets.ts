@@ -1,143 +1,71 @@
 /**
- * UK domiciliary care charge card presets aligned with Birdie, Nourish Empower, and
- * typical LA / NHS / private-pay billing (hourly pro-rata, 15/30/45/60 min slots).
+ * UK domiciliary care charge card presets — fixed rates up to 60 minutes,
+ * hourly rate × hours for visits longer than 1 hour.
  */
 
-export type ChargeCardPresetRule = {
-  label: string
-  serviceType?: string | null
-  dayType: 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' | 'BANK_HOLIDAY' | 'ANY'
-  rateType: 'HOURLY'
-  chargeMethod: 'HOURLY_PRO_RATA'
-  amount: number
-  minimumMinutes?: number | null
-  sortOrder: number
+import {
+  fixedChargeDurationRules,
+  hourlyChargeVisitRule,
+  buildStandardFixedChargeRules,
+} from './charge-card-fixed-rates.util'
+import type { ChargeCardPreset, ChargeCardPresetRule } from './charge-card-preset.types'
+import type { FixedVisitAmounts } from './fixed-visit-rates.seed-data'
+
+export type { ChargeCardPreset, ChargeCardPresetRule } from './charge-card-preset.types'
+
+type VisitChargeDayConfig = {
+  fixed: FixedVisitAmounts
+  hourly: number
 }
 
-export type ChargeCardPreset = {
-  name: string
-  code: string
-  assignmentLevel:
-    | 'ORGANISATION_DEFAULT'
-    | 'FUNDER'
-    | 'BRANCH_REGION'
-    | 'SERVICE_TYPE'
-    | 'CARE_PACKAGE'
-  assignmentLabel?: string
-  /** Match funder by unique code (e.g. CROYDON_COUNCIL). */
-  funderCodeHint?: string
-  /** Match funder by name (case-insensitive contains). */
-  funderNameHint?: string
-  /** Match branch/location by name (case-insensitive contains). */
-  branchNameHint?: string
-  assignmentTargetKey?: string | null
-  billingFrequency: 'WEEKLY' | 'FOUR_WEEKLY' | 'MONTHLY'
-  paymentTerms?: string | null
-  taxTreatment?: string | null
-  defaultChargeMethod: 'HOURLY_PRO_RATA'
-  status: 'ACTIVE'
-  effectiveFrom: string
-  effectiveTo?: string | null
-  notes?: string
-  rules: ChargeCardPresetRule[]
+function buildVisitChargeRules(config: {
+  weekday: VisitChargeDayConfig
+  saturday?: VisitChargeDayConfig
+  sunday?: VisitChargeDayConfig
+  bankHoliday?: VisitChargeDayConfig
+}): ChargeCardPresetRule[] {
+  const rules: ChargeCardPresetRule[] = [
+    ...fixedChargeDurationRules('Weekday charge', config.weekday.fixed, 0),
+    hourlyChargeVisitRule('Weekday charge', config.weekday.hourly, 5),
+  ]
+  if (config.saturday) {
+    rules.push(
+      ...fixedChargeDurationRules('Saturday charge', config.saturday.fixed, 10, 'SATURDAY'),
+      hourlyChargeVisitRule('Saturday charge', config.saturday.hourly, 15, 'SATURDAY'),
+    )
+  }
+  if (config.sunday) {
+    rules.push(
+      ...fixedChargeDurationRules('Sunday charge', config.sunday.fixed, 20, 'SUNDAY'),
+      hourlyChargeVisitRule('Sunday charge', config.sunday.hourly, 25, 'SUNDAY'),
+    )
+  }
+  if (config.bankHoliday) {
+    rules.push(
+      ...fixedChargeDurationRules('Bank holiday charge', config.bankHoliday.fixed, 30, 'BANK_HOLIDAY'),
+      hourlyChargeVisitRule('Bank holiday charge', config.bankHoliday.hourly, 35, 'BANK_HOLIDAY'),
+    )
+  }
+  return rules
 }
-
-const weekdayDurationRules = (
-  prefix: string,
-  amount15: number,
-  amount30: number,
-  amount45: number,
-  amount60: number,
-  startOrder: number,
-): ChargeCardPresetRule[] => [
-  {
-    label: `${prefix} — 15 minutes`,
-    dayType: 'WEEKDAY',
-    rateType: 'HOURLY',
-    chargeMethod: 'HOURLY_PRO_RATA',
-    amount: amount15,
-    minimumMinutes: 15,
-    sortOrder: startOrder,
-  },
-  {
-    label: `${prefix} — 30 minutes`,
-    dayType: 'WEEKDAY',
-    rateType: 'HOURLY',
-    chargeMethod: 'HOURLY_PRO_RATA',
-    amount: amount30,
-    minimumMinutes: 30,
-    sortOrder: startOrder + 1,
-  },
-  {
-    label: `${prefix} — 45 minutes`,
-    dayType: 'WEEKDAY',
-    rateType: 'HOURLY',
-    chargeMethod: 'HOURLY_PRO_RATA',
-    amount: amount45,
-    minimumMinutes: 45,
-    sortOrder: startOrder + 2,
-  },
-  {
-    label: `${prefix} — 60 minutes`,
-    dayType: 'WEEKDAY',
-    rateType: 'HOURLY',
-    chargeMethod: 'HOURLY_PRO_RATA',
-    amount: amount60,
-    minimumMinutes: 60,
-    sortOrder: startOrder + 3,
-  },
-]
 
 /** Birdie / Nourish-style charge cards for LA, NHS, direct payment, and private pay. */
 export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
   {
-    name: 'Private Client — Standard Rates',
+    name: 'Private Client — Fixed Visit Rates',
     code: 'CHG-STD-UK-2026',
     assignmentLevel: 'ORGANISATION_DEFAULT',
     assignmentLabel: 'Organisation default',
     billingFrequency: 'WEEKLY',
     paymentTerms: 'Due on receipt',
     taxTreatment: 'VAT exempt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
-    notes: 'Birdie / Access Group style default private-pay hourly rates with visit duration bands.',
-    rules: [
-      ...weekdayDurationRules('Weekday', 29.5, 28.5, 28.0, 27.5, 0),
-      {
-        label: 'Saturday — any duration',
-        dayType: 'SATURDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 31.0,
-        sortOrder: 4,
-      },
-      {
-        label: 'Sunday — any duration',
-        dayType: 'SUNDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 33.0,
-        sortOrder: 5,
-      },
-      {
-        label: 'Bank holiday — 30 minutes',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 36.0,
-        minimumMinutes: 30,
-        sortOrder: 6,
-      },
-      {
-        label: 'Bank holiday — any duration',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 35.0,
-        sortOrder: 7,
-      },
-    ],
+    notes: `Fixed charge up to 60 min; hourly for longer visits.
+Weekday: 15m £21 · 30m £26 · 45m £29 · 60m £32 · over 1 hr £24/hr.
+Example — 4 × 15 min = £84 billed; 6 hr visit = £144.`,
+    rules: buildStandardFixedChargeRules(),
   },
   {
     name: 'Local Authority — Croydon Council',
@@ -148,38 +76,29 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     billingFrequency: 'FOUR_WEEKLY',
     paymentTerms: 'Net 30',
     taxTreatment: 'VAT exempt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-04-01',
     effectiveTo: '2027-03-31',
-    notes: 'Typical London borough LA schedule — 4-weekly invoicing, duration-banded weekday rates.',
-    rules: [
-      ...weekdayDurationRules('Personal care weekday', 25.5, 25.0, 24.75, 24.5, 0),
-      {
-        label: 'Saturday',
-        dayType: 'SATURDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 27.0,
-        sortOrder: 4,
+    notes: 'Typical London borough LA schedule — fixed slots up to 60 min, hourly beyond.',
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 6.5, m30: 12.5, m45: 18.75, m60: 24.5 },
+        hourly: 24.5,
       },
-      {
-        label: 'Sunday',
-        dayType: 'SUNDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 29.0,
-        sortOrder: 5,
+      saturday: {
+        fixed: { m15: 6.75, m30: 13.5, m45: 20.25, m60: 27.0 },
+        hourly: 27.0,
       },
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 32.0,
-        sortOrder: 6,
+      sunday: {
+        fixed: { m15: 7.25, m30: 14.5, m45: 21.75, m60: 29.0 },
+        hourly: 29.0,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 8.0, m30: 16.0, m45: 24.0, m60: 32.0 },
+        hourly: 32.0,
+      },
+    }),
   },
   {
     name: 'NHS Continuing Healthcare',
@@ -190,21 +109,20 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     billingFrequency: 'MONTHLY',
     paymentTerms: 'Net 30',
     taxTreatment: 'VAT exempt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
-    notes: 'NHS CHC block contract style — monthly billing, standard visit durations.',
-    rules: [
-      ...weekdayDurationRules('CHC weekday', 26.0, 25.5, 25.25, 25.0, 0),
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 31.5,
-        sortOrder: 4,
+    notes: 'NHS CHC — fixed slots up to 60 min, hourly for longer visits.',
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 6.5, m30: 12.75, m45: 18.94, m60: 25.0 },
+        hourly: 25.0,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 7.88, m30: 15.75, m45: 23.63, m60: 31.5 },
+        hourly: 31.5,
+      },
+    }),
   },
   {
     name: 'Direct Payment — Standard',
@@ -214,37 +132,28 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     assignmentLabel: 'Funder: Direct Payment',
     billingFrequency: 'FOUR_WEEKLY',
     paymentTerms: 'Due on receipt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
     notes: 'Direct payment clients — mirrors LA rate card with self-pay invoicing.',
-    rules: [
-      ...weekdayDurationRules('Direct payment weekday', 24.5, 24.0, 23.75, 23.5, 0),
-      {
-        label: 'Saturday',
-        dayType: 'SATURDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 26.5,
-        sortOrder: 4,
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 6.13, m30: 12.0, m45: 17.81, m60: 23.5 },
+        hourly: 23.5,
       },
-      {
-        label: 'Sunday',
-        dayType: 'SUNDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 28.5,
-        sortOrder: 5,
+      saturday: {
+        fixed: { m15: 6.63, m30: 13.25, m45: 19.88, m60: 26.5 },
+        hourly: 26.5,
       },
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 30.0,
-        sortOrder: 6,
+      sunday: {
+        fixed: { m15: 7.13, m30: 14.25, m45: 21.38, m60: 28.5 },
+        hourly: 28.5,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 7.5, m30: 15.0, m45: 22.5, m60: 30.0 },
+        hourly: 30.0,
+      },
+    }),
   },
   {
     name: 'Private Client — Premium',
@@ -254,37 +163,28 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     billingFrequency: 'WEEKLY',
     paymentTerms: 'Due on receipt',
     taxTreatment: 'VAT exempt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
     notes: 'Higher-rate private clients — assign explicitly on service user or funding record.',
-    rules: [
-      ...weekdayDurationRules('Premium weekday', 34.0, 33.0, 32.5, 32.0, 0),
-      {
-        label: 'Saturday',
-        dayType: 'SATURDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 36.0,
-        sortOrder: 4,
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 8.5, m30: 16.5, m45: 24.38, m60: 32.0 },
+        hourly: 32.0,
       },
-      {
-        label: 'Sunday',
-        dayType: 'SUNDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 38.0,
-        sortOrder: 5,
+      saturday: {
+        fixed: { m15: 9.0, m30: 18.0, m45: 27.0, m60: 36.0 },
+        hourly: 36.0,
       },
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 42.0,
-        sortOrder: 6,
+      sunday: {
+        fixed: { m15: 9.5, m30: 19.0, m45: 28.5, m60: 38.0 },
+        hourly: 38.0,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 10.5, m30: 21.0, m45: 31.5, m60: 42.0 },
+        hourly: 42.0,
+      },
+    }),
   },
   {
     name: 'Complex Care — Service Type',
@@ -293,21 +193,20 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     assignmentTargetKey: 'Complex care',
     assignmentLabel: 'Service type: Complex care',
     billingFrequency: 'WEEKLY',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
-    notes: 'Complex / double-up care visits — Nourish-style service-type charge card.',
-    rules: [
-      ...weekdayDurationRules('Complex care weekday', 32.0, 31.0, 30.5, 30.0, 0),
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 38.0,
-        sortOrder: 4,
+    notes: 'Complex / double-up care — fixed up to 60 min; £20/hr for visits over 1 hour (e.g. 6 hr = £120).',
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 8.0, m30: 15.5, m45: 22.88, m60: 30.0 },
+        hourly: 20.0,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 9.5, m30: 19.0, m45: 28.5, m60: 38.0 },
+        hourly: 24.0,
+      },
+    }),
   },
   {
     name: 'London Branch — LA Uplift',
@@ -317,21 +216,20 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     assignmentLabel: 'Branch: London',
     billingFrequency: 'FOUR_WEEKLY',
     paymentTerms: 'Net 30',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-04-01',
     notes: 'London borough uplift when branch is set on the service user record.',
-    rules: [
-      ...weekdayDurationRules('London weekday', 26.5, 26.0, 25.75, 25.5, 0),
-      {
-        label: 'Bank holiday',
-        dayType: 'BANK_HOLIDAY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 33.0,
-        sortOrder: 4,
+    rules: buildVisitChargeRules({
+      weekday: {
+        fixed: { m15: 6.63, m30: 13.0, m45: 19.31, m60: 25.5 },
+        hourly: 25.5,
       },
-    ],
+      bankHoliday: {
+        fixed: { m15: 8.25, m30: 16.5, m45: 24.75, m60: 33.0 },
+        hourly: 33.0,
+      },
+    }),
   },
   {
     name: 'Live-in Care Package',
@@ -341,28 +239,13 @@ export const CHARGE_CARD_PRESETS: ChargeCardPreset[] = [
     assignmentLabel: 'Care package: Live-in',
     billingFrequency: 'WEEKLY',
     paymentTerms: 'Due on receipt',
-    defaultChargeMethod: 'HOURLY_PRO_RATA',
+    defaultChargeMethod: 'FIXED_VISIT',
     status: 'ACTIVE',
     effectiveFrom: '2026-01-01',
-    notes: 'Live-in weekly package billing — hourly rate for day-off cover visits.',
+    notes: 'Live-in day-off cover — fixed up to 60 min, hourly for longer cover visits.',
     rules: [
-      {
-        label: 'Day-off cover — 60 minutes',
-        dayType: 'ANY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 30.0,
-        minimumMinutes: 60,
-        sortOrder: 0,
-      },
-      {
-        label: 'Day-off cover — any duration',
-        dayType: 'ANY',
-        rateType: 'HOURLY',
-        chargeMethod: 'HOURLY_PRO_RATA',
-        amount: 29.0,
-        sortOrder: 1,
-      },
+      ...fixedChargeDurationRules('Day-off cover', { m15: 7.5, m30: 15.0, m45: 22.5, m60: 30.0 }, 0),
+      hourlyChargeVisitRule('Day-off cover', 20.0, 5),
     ],
   },
 ]
