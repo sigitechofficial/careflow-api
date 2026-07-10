@@ -1,29 +1,62 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-export const INVOICE_TEMPLATE_SYSTEM_FIELDS = [
-  { key: 'SERVICE_USER_FULL_NAME', label: 'Service user full name' },
-  { key: 'SERVICE_USER_NUMBER', label: 'Service user number' },
-  { key: 'SERVICE_USER_DOB', label: 'Date of birth' },
-  { key: 'SERVICE_USER_NHS_NUMBER', label: 'NHS number' },
-  { key: 'SERVICE_USER_FUNDER_REF', label: 'Funder / council reference' },
-  { key: 'FUNDING_REFERENCE', label: 'Funding reference' },
-  { key: 'PACKAGE_NAME', label: 'Care package name' },
-  { key: 'PO_NUMBER', label: 'Purchase order number' },
-  { key: 'VISIT_DATE', label: 'Visit date' },
-  { key: 'VISIT_START_TIME', label: 'Visit start time' },
-  { key: 'VISIT_END_TIME', label: 'Visit end time' },
-  { key: 'VISIT_DURATION_UNITS', label: 'Duration / units' },
-  { key: 'SERVICE_CODE', label: 'Service code' },
-  { key: 'SERVICE_TYPE', label: 'Service type' },
-  { key: 'RATE_AMOUNT', label: 'Rate amount' },
-  { key: 'LINE_TOTAL', label: 'Line total' },
-  { key: 'BILLING_CONTACT_NAME', label: 'Billing contact name' },
-  { key: 'BILLING_CONTACT_EMAIL', label: 'Billing contact email' },
-  { key: 'BILL_TO_ADDRESS', label: 'Bill-to address' },
-  { key: 'PAYMENT_TERMS', label: 'Payment terms' },
-  { key: 'FUNDER_NAME', label: 'Funder name' },
+export const INVOICE_TEMPLATE_FIELD_GROUPS = [
+  { id: 'PROVIDER', label: 'Care provider (letterhead)' },
+  { id: 'INVOICE', label: 'Invoice details' },
+  { id: 'CLIENT', label: 'Client / service user' },
+  { id: 'FUNDER', label: 'Funder / bill-to' },
+  { id: 'VISIT', label: 'Visit lines' },
+  { id: 'TOTALS', label: 'Totals & payment' },
 ] as const;
+
+export type InvoiceTemplateFieldGroupId =
+  (typeof INVOICE_TEMPLATE_FIELD_GROUPS)[number]['id'];
+
+export const INVOICE_TEMPLATE_SYSTEM_FIELDS: Array<{
+  key: string;
+  label: string;
+  group: InvoiceTemplateFieldGroupId;
+}> = [
+  { key: 'PROVIDER_NAME', label: 'Provider / agency name', group: 'PROVIDER' },
+  { key: 'PROVIDER_ADDRESS', label: 'Provider address', group: 'PROVIDER' },
+  { key: 'PROVIDER_PHONE', label: 'Provider telephone', group: 'PROVIDER' },
+  { key: 'PROVIDER_EMAIL', label: 'Provider email', group: 'PROVIDER' },
+  { key: 'PROVIDER_VAT_NUMBER', label: 'VAT registration number', group: 'PROVIDER' },
+  { key: 'PROVIDER_COMPANY_NUMBER', label: 'Company registration number', group: 'PROVIDER' },
+  { key: 'INVOICE_NUMBER', label: 'Invoice number', group: 'INVOICE' },
+  { key: 'INVOICE_DATE', label: 'Invoice date', group: 'INVOICE' },
+  { key: 'INVOICE_PERIOD_START', label: 'Billing period start', group: 'INVOICE' },
+  { key: 'INVOICE_PERIOD_END', label: 'Billing period end', group: 'INVOICE' },
+  { key: 'INVOICE_DUE_DATE', label: 'Payment due date', group: 'INVOICE' },
+  { key: 'SERVICE_USER_FULL_NAME', label: 'Service user full name', group: 'CLIENT' },
+  { key: 'SERVICE_USER_NUMBER', label: 'Service user number', group: 'CLIENT' },
+  { key: 'SERVICE_USER_DOB', label: 'Date of birth', group: 'CLIENT' },
+  { key: 'SERVICE_USER_NHS_NUMBER', label: 'NHS number', group: 'CLIENT' },
+  { key: 'SERVICE_USER_FUNDER_REF', label: 'Funder / council reference', group: 'CLIENT' },
+  { key: 'FUNDING_REFERENCE', label: 'Funding reference', group: 'CLIENT' },
+  { key: 'PACKAGE_NAME', label: 'Care package name', group: 'CLIENT' },
+  { key: 'PO_NUMBER', label: 'Purchase order number', group: 'CLIENT' },
+  { key: 'CONTRACT_REFERENCE', label: 'Contract reference', group: 'CLIENT' },
+  { key: 'COST_CENTRE', label: 'Cost centre', group: 'CLIENT' },
+  { key: 'FUNDER_NAME', label: 'Funder name', group: 'FUNDER' },
+  { key: 'BILLING_CONTACT_NAME', label: 'Billing contact name', group: 'FUNDER' },
+  { key: 'BILLING_CONTACT_EMAIL', label: 'Billing contact email', group: 'FUNDER' },
+  { key: 'BILL_TO_ADDRESS', label: 'Bill-to address', group: 'FUNDER' },
+  { key: 'VISIT_DATE', label: 'Visit date', group: 'VISIT' },
+  { key: 'VISIT_START_TIME', label: 'Visit start time', group: 'VISIT' },
+  { key: 'VISIT_END_TIME', label: 'Visit end time', group: 'VISIT' },
+  { key: 'VISIT_DURATION_UNITS', label: 'Duration / hours', group: 'VISIT' },
+  { key: 'SERVICE_CODE', label: 'Service code', group: 'VISIT' },
+  { key: 'SERVICE_TYPE', label: 'Service type', group: 'VISIT' },
+  { key: 'RATE_AMOUNT', label: 'Rate amount', group: 'VISIT' },
+  { key: 'LINE_TOTAL', label: 'Line total', group: 'VISIT' },
+  { key: 'SUBTOTAL', label: 'Subtotal', group: 'TOTALS' },
+  { key: 'VAT_AMOUNT', label: 'VAT amount', group: 'TOTALS' },
+  { key: 'INVOICE_TOTAL', label: 'Invoice total', group: 'TOTALS' },
+  { key: 'PAYMENT_TERMS', label: 'Payment terms', group: 'TOTALS' },
+  { key: 'REMITTANCE_NOTE', label: 'Remittance / payment instructions', group: 'TOTALS' },
+];
 
 export type InvoiceTemplateSystemFieldKey =
   (typeof INVOICE_TEMPLATE_SYSTEM_FIELDS)[number]['key'];
@@ -57,6 +90,9 @@ export function validateInvoiceTemplateFields(input: {
     billingContactName?: string | null;
     billingContactEmail?: string | null;
     funderName?: string | null;
+    billToAddress?: string | null;
+    contractReference?: string | null;
+    costCentre?: string | null;
   };
 }): { isValid: boolean; issues: InvoiceTemplateValidationIssue[] } {
   const issues: InvoiceTemplateValidationIssue[] = [];
@@ -71,9 +107,12 @@ export function validateInvoiceTemplateFields(input: {
     FUNDING_REFERENCE: () => ctx.fundingReference,
     PACKAGE_NAME: () => ctx.packageName,
     PO_NUMBER: () => ctx.purchaseOrderNumber,
+    CONTRACT_REFERENCE: () => ctx.contractReference,
+    COST_CENTRE: () => ctx.costCentre,
     BILLING_CONTACT_NAME: () => ctx.billingContactName,
     BILLING_CONTACT_EMAIL: () => ctx.billingContactEmail,
     FUNDER_NAME: () => ctx.funderName,
+    BILL_TO_ADDRESS: () => ctx.billToAddress,
   };
 
   for (const field of input.fields) {

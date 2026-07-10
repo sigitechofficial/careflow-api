@@ -29,6 +29,13 @@ export class InvoiceTemplatesController {
     return this.service.listSystemFields();
   }
 
+  @Get('layout-presets')
+  @Permissions('billing.invoice_templates.read')
+  @ApiOperation({ summary: 'Industry invoice layout presets (Birdie, Nourish, Access style)' })
+  listLayoutPresets() {
+    return this.service.listLayoutPresets();
+  }
+
   @Get('funding-contract-options')
   @Permissions('billing.invoice_templates.read')
   @ApiOperation({ summary: 'List funding contracts for template attachment' })

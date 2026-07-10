@@ -125,15 +125,21 @@ export class CompanyProfileService {
     return this.toResponse(row);
   }
 
-  /** Public branding for login shell (no sensitive fields). */
+  /** Public branding for login shell and documents (no sensitive fields). */
   async getBranding() {
     const row = await this.getOrCreate();
     return {
       data: {
+        companyName: row.companyName,
         displayName: row.displayName,
         groupName: row.groupName,
         displayLogoUrl: row.displayLogoUrl,
         companyLogoUrl: row.companyLogoUrl,
+        companyWebsite: row.companyWebsite,
+        email: row.email,
+        phoneNumber: row.phoneNumber,
+        vatNumber: row.vatNumber,
+        companyNumber: row.companyNumber,
         updatedAt: row.updatedAt.toISOString(),
       },
     };

@@ -22,6 +22,7 @@ import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { seedBillingCards } from './seeds/billing-cards.seed';
+import { seedInvoiceTemplates } from './seeds/invoice-templates.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 import {
@@ -1251,6 +1252,7 @@ async function main() {
 
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
   await seedBillingCards(prisma);
+  await seedInvoiceTemplates(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
 
   for (const row of DEFAULT_SERVICE_USER_ETHNICITIES) {

@@ -16,6 +16,7 @@ import {
   UpdateInvoiceTemplateDto,
 } from './dto/invoice-templates.dto';
 import {
+  INVOICE_TEMPLATE_FIELD_GROUPS,
   INVOICE_TEMPLATE_SYSTEM_FIELDS,
   isValidSystemFieldKey,
   pickOrganisationDefaultTemplate,
@@ -23,6 +24,7 @@ import {
   validateInvoiceTemplateFields,
   type InvoiceTemplateResolveSource,
 } from './invoice-template.util';
+import { INVOICE_TEMPLATE_LAYOUT_PRESETS } from './invoice-template-presets.util';
 
 function parseDateOnly(value: string): Date {
   return new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
@@ -99,7 +101,16 @@ export class InvoiceTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
 
   listSystemFields() {
-    return { data: INVOICE_TEMPLATE_SYSTEM_FIELDS };
+    return {
+      data: {
+        fields: INVOICE_TEMPLATE_SYSTEM_FIELDS,
+        groups: INVOICE_TEMPLATE_FIELD_GROUPS,
+      },
+    };
+  }
+
+  listLayoutPresets() {
+    return { data: INVOICE_TEMPLATE_LAYOUT_PRESETS };
   }
 
   async list(query: InvoiceTemplatesQueryDto) {
@@ -153,6 +164,8 @@ export class InvoiceTemplatesService {
             groupingRule: dto.groupingRule?.trim() || null,
             fileNamePattern: dto.fileNamePattern?.trim() || null,
             billingFrequency: dto.billingFrequency ?? 'WEEKLY',
+            layoutPreset: dto.layoutPreset ?? 'STANDARD',
+            includeRemittance: dto.includeRemittance ?? false,
             status: dto.status ?? 'DRAFT',
             effectiveFrom: parseDateOnly(dto.effectiveFrom),
             effectiveTo: dto.effectiveTo ? parseDateOnly(dto.effectiveTo) : null,
@@ -211,6 +224,10 @@ export class InvoiceTemplatesService {
               ? { fileNamePattern: dto.fileNamePattern?.trim() || null }
               : {}),
             ...(dto.billingFrequency !== undefined ? { billingFrequency: dto.billingFrequency } : {}),
+            ...(dto.layoutPreset !== undefined ? { layoutPreset: dto.layoutPreset } : {}),
+            ...(dto.includeRemittance !== undefined
+              ? { includeRemittance: dto.includeRemittance }
+              : {}),
             ...(dto.status !== undefined ? { status: dto.status } : {}),
             ...(dto.effectiveFrom !== undefined
               ? { effectiveFrom: parseDateOnly(dto.effectiveFrom) }

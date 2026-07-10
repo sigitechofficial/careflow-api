@@ -16,6 +16,7 @@ import {
 import {
   BillingCardStatus,
   BillingFrequency,
+  InvoiceTemplateLayoutPreset,
   InvoiceTemplateScope,
   InvoiceTemplateType,
 } from '@prisma/client';
@@ -124,6 +125,16 @@ export class CreateInvoiceTemplateDto {
   @MaxLength(5000)
   notes?: string | null;
 
+  @ApiPropertyOptional({ enum: InvoiceTemplateLayoutPreset, default: 'STANDARD' })
+  @IsOptional()
+  @IsEnum(InvoiceTemplateLayoutPreset)
+  layoutPreset?: InvoiceTemplateLayoutPreset;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  includeRemittance?: boolean;
+
   @ApiPropertyOptional({ type: [InvoiceTemplateFieldDto] })
   @IsOptional()
   @IsArray()
@@ -214,6 +225,16 @@ export class UpdateInvoiceTemplateDto {
   @IsString()
   @MaxLength(5000)
   notes?: string | null;
+
+  @ApiPropertyOptional({ enum: InvoiceTemplateLayoutPreset, default: 'STANDARD' })
+  @IsOptional()
+  @IsEnum(InvoiceTemplateLayoutPreset)
+  layoutPreset?: InvoiceTemplateLayoutPreset;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  includeRemittance?: boolean;
 
   @ApiPropertyOptional({ type: [InvoiceTemplateFieldDto] })
   @IsOptional()
