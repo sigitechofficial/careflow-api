@@ -70,6 +70,7 @@ type VisitSnapshot = {
   plannedEndDateTime: Date | null;
   actualStartDateTime: Date | null;
   actualEndDateTime: Date | null;
+  overrunReason?: string | null;
 };
 
 type CardSnapshot = {
@@ -121,10 +122,14 @@ export function detectVisitExceptions(input: {
   if (visit.plannedEndDateTime && visit.actualStartDateTime && visit.actualEndDateTime) {
     const plannedMinutes = minutesBetween(visit.plannedStartDateTime, visit.plannedEndDateTime);
     const actualMinutes = minutesBetween(visit.actualStartDateTime, visit.actualEndDateTime);
-    if (actualMinutes > plannedMinutes + 5) {
+    if (actualMinutes > plannedMinutes) {
+      const overrunMinutes = actualMinutes - plannedMinutes;
+      const reason = visit.overrunReason?.trim();
       exceptions.push({
         code: FinanceExceptionCode.OVERRUN,
-        message: `Actual duration (${actualMinutes} min) exceeds planned (${plannedMinutes} min)`,
+        message: reason
+          ? `${overrunMinutes} min overrun (${actualMinutes} vs ${plannedMinutes} planned). Reason: ${reason}`
+          : `${overrunMinutes} min overrun (${actualMinutes} vs ${plannedMinutes} planned). No reason provided.`,
       });
     } else if (actualMinutes < plannedMinutes - 15 && actualMinutes > 0) {
       exceptions.push({
@@ -244,18 +249,26 @@ export function resolveDefaultApprovedWindows(input: {
     plannedEndDateTime ??
     new Date(plannedStartDateTime.getTime() + 30 * 60_000);
 
+  const hasOverrun = exceptions.some((e) => e.code === FinanceExceptionCode.OVERRUN);
+
+  // Overrun: pay and bill use planned visit length. Extra minutes are flagged for admin only.
+  if (hasOverrun) {
+    return {
+      approvedPayStart: plannedStartDateTime,
+      approvedPayEnd: plannedEnd,
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: plannedEnd,
+    };
+  }
+
   const payStart = actualStartDateTime ?? plannedStartDateTime;
   const payEnd = actualEndDateTime ?? plannedEnd;
-
-  const hasOverrun = exceptions.some((e) => e.code === FinanceExceptionCode.OVERRUN);
-  const billStart = plannedStartDateTime;
-  const billEnd = hasOverrun ? plannedEnd : (actualEndDateTime ?? plannedEnd);
 
   return {
     approvedPayStart: payStart,
     approvedPayEnd: payEnd,
-    approvedBillStart: billStart,
-    approvedBillEnd: billEnd,
+    approvedBillStart: plannedStartDateTime,
+    approvedBillEnd: actualEndDateTime ?? plannedEnd,
   };
 }
 
@@ -324,16 +337,42 @@ function isFixedVisitSlotRule(rule: PayCardRuleLike): boolean {
 function isHourlyLongVisitRule(rule: RuleWithOptionalTime): boolean {
   if (NON_VISIT_RATE_TYPES.has(rule.rateType)) return false;
   if (rule.startTime || rule.endTime) return false;
-  if (
-    rule.minimumMinutes != null
-    && rule.minimumMinutes > 0
-    && rule.minimumMinutes <= MAX_FIXED_VISIT_MINUTES
-  ) {
-    return false;
-  }
+  // Hourly / pro-rata rules bill by the hour for long visits (ignore leftover minimumMinutes).
   if (rule.rateType === 'HOURLY') return true;
   const chargeRule = rule as ChargeCardRuleLike;
   return chargeRule.chargeMethod === 'HOURLY_PRO_RATA';
+}
+
+function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T | null {
+  return [...candidates].sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority;
+    return a.sortOrder - b.sortOrder;
+  })[0] ?? null;
+}
+
+/** Prefer exact slot; otherwise nearest duration (ties break to the higher slot). */
+function pickNearestFixedSlot<T extends RuleWithOptionalTime>(
+  fixedRules: T[],
+  visitMinutes: number,
+): T | null {
+  if (!fixedRules.length) return null;
+
+  let bestDiff = Number.POSITIVE_INFINITY;
+  const nearest: T[] = [];
+  for (const rule of fixedRules) {
+    const slot = rule.minimumMinutes!;
+    const diff = Math.abs(slot - visitMinutes);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      nearest.length = 0;
+      nearest.push(rule);
+    } else if (diff === bestDiff) {
+      nearest.push(rule);
+    }
+  }
+
+  const highestSlot = Math.max(...nearest.map((rule) => rule.minimumMinutes!));
+  return sortRuleCandidates(nearest.filter((rule) => rule.minimumMinutes === highestSlot));
 }
 
 function pickBestRule<T extends RuleWithOptionalTime>(
@@ -347,19 +386,18 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   const dayMatches = rules.filter((rule) => dayTypeMatches(rule.dayType, visitDate, isBankHoliday));
   if (!dayMatches.length) return null;
 
-  const candidates =
-    visitMinutes <= MAX_FIXED_VISIT_MINUTES
-      ? dayMatches.filter(
-          (rule) => isFixedVisitSlotRule(rule) && rule.minimumMinutes === visitMinutes,
-        )
-      : dayMatches.filter((rule) => isHourlyLongVisitRule(rule));
+  if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
+    const fixedSlots = dayMatches.filter((rule) => isFixedVisitSlotRule(rule));
+    const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
+    if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
-  if (!candidates.length) return null;
+    const nearestFixed = pickNearestFixedSlot(fixedSlots, visitMinutes);
+    if (nearestFixed) return nearestFixed;
 
-  return [...candidates].sort((a, b) => {
-    if (a.priority !== b.priority) return b.priority - a.priority;
-    return a.sortOrder - b.sortOrder;
-  })[0] ?? null;
+    return sortRuleCandidates(dayMatches.filter((rule) => isHourlyLongVisitRule(rule)));
+  }
+
+  return sortRuleCandidates(dayMatches.filter((rule) => isHourlyLongVisitRule(rule)));
 }
 
 export function calculatePayableAmount(
@@ -403,6 +441,56 @@ export function formatMinutesAsHours(minutes: number): string {
   return `${hrs.toFixed(2)} hrs`;
 }
 
+function pickSupplementRule<T extends PayCardRuleLike>(
+  rules: T[],
+  rateType: 'MILEAGE' | 'TRAVEL_TIME',
+  visitDate: Date,
+  isBankHoliday = false,
+): T | null {
+  const matches = rules.filter(
+    (rule) => rule.rateType === rateType && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+  );
+  if (!matches.length) return null;
+  return [...matches].sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority;
+    return a.sortOrder - b.sortOrder;
+  })[0] ?? null;
+}
+
+export function calculateMileageAmount(
+  rules: PayCardRuleLike[],
+  visitDate: Date,
+  miles: number,
+  isBankHoliday = false,
+): { amount: number; unitRate: number; ruleLabel: string | null } | null {
+  if (miles <= 0) return null;
+  const rule = pickSupplementRule(rules, 'MILEAGE', visitDate, isBankHoliday);
+  if (!rule) return null;
+  const unitRate = Number(rule.amount);
+  return {
+    amount: Math.round(unitRate * miles * 100) / 100,
+    unitRate,
+    ruleLabel: rule.label ?? null,
+  };
+}
+
+export function calculateTravelTimeAmount(
+  rules: PayCardRuleLike[],
+  visitDate: Date,
+  travelMinutes: number,
+  isBankHoliday = false,
+): { amount: number; unitRate: number; ruleLabel: string | null } | null {
+  if (travelMinutes <= 0) return null;
+  const rule = pickSupplementRule(rules, 'TRAVEL_TIME', visitDate, isBankHoliday);
+  if (!rule) return null;
+  const unitRate = Number(rule.amount);
+  return {
+    amount: Math.round(unitRate * (travelMinutes / 60) * 100) / 100,
+    unitRate,
+    ruleLabel: rule.label ?? null,
+  };
+}
+
 export type RateBreakdown = {
   minutes: number;
   hoursLabel: string;
@@ -444,9 +532,12 @@ export function buildPayRateBreakdown(
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED' || calc.label === 'PER_VISIT_FEE') {
+    const slotMinutes = rule.minimumMinutes;
     const durationSuffix =
-      rule.minimumMinutes != null && rule.minimumMinutes > 0
-        ? ` for ${rule.minimumMinutes}-minute visit`
+      slotMinutes != null && slotMinutes > 0
+        ? slotMinutes === minutes
+          ? ` for ${slotMinutes}-minute visit`
+          : ` nearest ${slotMinutes}-minute slot (visit ${minutes} min)`
         : ' per visit';
     return {
       minutes,
@@ -501,9 +592,12 @@ export function buildChargeRateBreakdown(
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED_VISIT' || calc.label === 'FIXED') {
+    const slotMinutes = rule.minimumMinutes;
     const durationSuffix =
-      rule.minimumMinutes != null && rule.minimumMinutes > 0
-        ? ` for ${rule.minimumMinutes}-minute visit`
+      slotMinutes != null && slotMinutes > 0
+        ? slotMinutes === minutes
+          ? ` for ${slotMinutes}-minute visit`
+          : ` nearest ${slotMinutes}-minute slot (visit ${minutes} min)`
         : ' per visit';
     return {
       minutes,

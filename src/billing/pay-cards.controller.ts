@@ -13,6 +13,7 @@ import {
   CreatePayCardDto,
   UpdatePayCardDto,
   AssignPayCardMatchingDto,
+  UnassignPayCardEmployeeDto,
 } from './dto/billing-cards.dto';
 
 @ApiTags('Billing — Pay cards')
@@ -53,6 +54,18 @@ export class PayCardsController {
     @Req() req: Request,
   ) {
     return this.service.assignToMatchingEmployees(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/unassign')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Unassign a single carer from this pay card' })
+  unassignEmployee(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UnassignPayCardEmployeeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.unassignEmployee(user.id, id, dto.employeeId, getRequestAuditMeta(req));
   }
 
   @Get(':id')

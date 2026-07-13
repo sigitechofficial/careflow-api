@@ -55,10 +55,16 @@ export class CompleteJobDto {
   @IsISO8601()
   actualStartDateTime?: string;
 
-  @ApiPropertyOptional({
-    description: 'Actual visit end time (ISO 8601); defaults to now when completing without an end time',
-  })
+  @ApiPropertyOptional({ description: 'Actual visit end time (ISO 8601); defaults to now when completing without an end time' })
   @IsOptional()
   @IsISO8601()
   actualEndDateTime?: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when actual duration exceeds planned duration — why the visit ran longer',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  overrunReason?: string;
 }

@@ -272,6 +272,57 @@ export class InvoiceTemplatesService {
     return { message: 'Invoice template deleted', data: { id } };
   }
 
+  async ensureOrganisationDefaultTemplate() {
+    const existing = await this.prisma.invoiceTemplate.findFirst({
+      where: {
+        deletedAt: null,
+        status: 'ACTIVE',
+        scope: InvoiceTemplateScope.ORGANISATION_DEFAULT,
+      },
+      include: templateInclude,
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    if (existing) return existing;
+
+    const preset =
+      INVOICE_TEMPLATE_LAYOUT_PRESETS.find((p) => p.key === 'STANDARD') ??
+      INVOICE_TEMPLATE_LAYOUT_PRESETS[0];
+    if (!preset) {
+      throw new BadRequestException('No invoice template layout preset available');
+    }
+
+    const code = 'INV-ORG-DEFAULT';
+    const created = await this.prisma.invoiceTemplate.create({
+      data: {
+        name: 'Organisation default invoice',
+        code,
+        templateType: preset.templateType,
+        version: '1.0',
+        scope: InvoiceTemplateScope.ORGANISATION_DEFAULT,
+        deliveryMethod: preset.deliveryMethod,
+        groupingRule: preset.groupingRule,
+        fileNamePattern: preset.fileNamePattern,
+        billingFrequency: preset.billingFrequency,
+        layoutPreset: preset.key,
+        includeRemittance: preset.includeRemittance,
+        status: 'ACTIVE',
+        effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
+        notes:
+          'Auto-created organisation default. Applied when a funder or funding contract has no invoice template.',
+        fields: {
+          create: preset.fields.map((field, index) => ({
+            label: field.label,
+            systemFieldKey: field.systemFieldKey,
+            isRequired: field.isRequired,
+            sortOrder: index,
+          })),
+        },
+      },
+      include: templateInclude,
+    });
+    return created;
+  }
+
   async resolveForServiceUser(serviceUserId: string, fundingId?: string) {
     const serviceUser = await this.prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
@@ -360,7 +411,16 @@ export class InvoiceTemplatesService {
       } else if (orgDefault) {
         source = 'ORGANISATION_DEFAULT';
         template = orgDefault;
+      } else {
+        // No funder/funding/org template — create and use organisation default.
+        template = await this.ensureOrganisationDefaultTemplate();
+        source = 'ORGANISATION_DEFAULT';
       }
+    }
+
+    if (!template) {
+      template = await this.ensureOrganisationDefaultTemplate();
+      source = 'ORGANISATION_DEFAULT';
     }
 
     return {

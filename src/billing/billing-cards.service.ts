@@ -294,6 +294,38 @@ export class PayCardsService {
     };
   }
 
+  async unassignEmployee(
+    userId: string,
+    id: string,
+    employeeId: string,
+    _meta?: RequestAuditMeta,
+  ) {
+    const card = await this.prisma.payCard.findFirst({ where: { id, deletedAt: null } });
+    if (!card) throw new NotFoundException('Pay card not found');
+
+    const employment = await this.prisma.employeeEmployment.findFirst({
+      where: {
+        employeeId,
+        deletedAt: null,
+        employee: { deletedAt: null },
+        defaultPayCardId: id,
+      },
+    });
+    if (!employment) {
+      throw new NotFoundException('Carer is not assigned to this pay card');
+    }
+
+    await this.prisma.employeeEmployment.update({
+      where: { id: employment.id },
+      data: { defaultPayCardId: null, updatedById: userId },
+    });
+
+    return {
+      message: 'Carer unassigned from pay card',
+      data: { employeeId },
+    };
+  }
+
   async resolveForEmployee(employeeId: string) {
     const employment = await this.prisma.employeeEmployment.findFirst({
       where: { employeeId, deletedAt: null, employee: { deletedAt: null } },

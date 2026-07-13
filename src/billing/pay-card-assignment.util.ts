@@ -14,9 +14,36 @@ export const PAY_CARD_ASSIGNMENT_LEVEL_PRIORITY: Record<PayCardAssignmentLevel, 
   ORGANISATION_DEFAULT: 5,
 };
 
+const activeAssignedEmploymentWhere = {
+  deletedAt: null,
+  isActive: true,
+  employee: { deletedAt: null, isActive: true },
+} as const
+
 export const payCardListInclude = {
   rules: { orderBy: { sortOrder: 'asc' as const } },
-  _count: { select: { defaultEmployments: true } },
+  _count: {
+    select: {
+      defaultEmployments: { where: activeAssignedEmploymentWhere },
+    },
+  },
+  defaultEmployments: {
+    where: activeAssignedEmploymentWhere,
+    orderBy: { updatedAt: 'desc' as const },
+    take: 200,
+    select: {
+      employeeId: true,
+      employeeNumber: true,
+      employee: {
+        select: {
+          id: true,
+          personalDetail: {
+            select: { firstName: true, lastName: true },
+          },
+        },
+      },
+    },
+  },
 } as const;
 
 export type EmploymentPayCardMatchInput = {

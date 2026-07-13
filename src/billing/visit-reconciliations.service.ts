@@ -8,6 +8,7 @@ import {
   FinanceExceptionCode,
   Prisma,
   ScheduledVisitStatus,
+  VisitOverrunDecision,
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,6 +18,7 @@ import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
   BulkApproveVisitReconciliationsDto,
+  DecideVisitOverrunDto,
   RejectVisitReconciliationDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
@@ -95,9 +97,15 @@ export type VisitReconciliationListRow = {
   approvedBillable: string;
   payableAmount: string | null;
   billableAmount: string | null;
+  travelMiles: number | null;
+  travelMinutes: number | null;
   currency: string;
   status: VisitReconciliationStatus;
   exceptions: FinanceExceptionCode[];
+  overrunMinutes: number | null;
+  overrunReason: string | null;
+  overrunDecision: VisitOverrunDecision | null;
+  approvalNotes: string | null;
 };
 
 type DbClient = PrismaService | Prisma.TransactionClient;
@@ -123,7 +131,11 @@ export class VisitReconciliationsService {
     return tx ?? this.prisma;
   }
 
-  async ensureForCompletedJob(jobId: string, tx?: Prisma.TransactionClient) {
+  async ensureForCompletedJob(
+    jobId: string,
+    tx?: Prisma.TransactionClient,
+    options?: { overrunReason?: string | null },
+  ) {
     const db = this.client(tx);
     const visits = await db.scheduledVisit.findMany({
       where: {
@@ -135,13 +147,17 @@ export class VisitReconciliationsService {
 
     const results: string[] = [];
     for (const visit of visits) {
-      const id = await this.ensureForVisit(visit.id, tx);
+      const id = await this.ensureForVisit(visit.id, tx, options);
       if (id) results.push(id);
     }
     return results;
   }
 
-  async ensureForVisit(scheduledVisitId: string, tx?: Prisma.TransactionClient): Promise<string | null> {
+  async ensureForVisit(
+    scheduledVisitId: string,
+    tx?: Prisma.TransactionClient,
+    options?: { overrunReason?: string | null },
+  ): Promise<string | null> {
     const db = this.client(tx);
     const visit = await db.scheduledVisit.findFirst({
       where: {
@@ -154,6 +170,18 @@ export class VisitReconciliationsService {
 
     const allocation = await this.resolveLeadAllocation(db, visit.scheduledJobId, visit.id);
     const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
+
+    let overrunReason = options?.overrunReason?.trim() || null;
+    if (overrunReason == null) {
+      const job = await db.scheduledJob.findFirst({
+        where: { id: visit.scheduledJobId },
+        select: { metadata: true },
+      });
+      const meta = (job?.metadata ?? null) as Record<string, unknown> | null;
+      if (typeof meta?.overrunReason === 'string' && meta.overrunReason.trim()) {
+        overrunReason = meta.overrunReason.trim();
+      }
+    }
 
     const existing = await db.visitReconciliation.findUnique({
       where: { scheduledVisitId: visit.id },
@@ -169,6 +197,7 @@ export class VisitReconciliationsService {
           actualEndDateTime: visit.actualEndDateTime,
           employeeId: allocation?.employeeId ?? existing.employeeId,
           jobAllocationId: allocation?.id ?? existing.jobAllocationId,
+          ...(overrunReason != null ? { overrunReason } : {}),
         },
       });
       await this.safeEvaluate(db, updated.id);
@@ -187,6 +216,7 @@ export class VisitReconciliationsService {
         plannedEndDateTime: visit.scheduledEndDateTime,
         actualStartDateTime: visit.actualStartDateTime,
         actualEndDateTime: visit.actualEndDateTime,
+        overrunReason,
       },
     });
 
@@ -335,6 +365,12 @@ export class VisitReconciliationsService {
     if (dto.approvalNotes !== undefined) {
       data.approvalNotes = dto.approvalNotes.trim() || null;
     }
+    if (dto.travelMiles !== undefined) {
+      data.travelMiles = dto.travelMiles != null ? dto.travelMiles : null;
+    }
+    if (dto.travelMinutes !== undefined) {
+      data.travelMinutes = dto.travelMinutes != null ? dto.travelMinutes : null;
+    }
 
     await this.prisma.visitReconciliation.update({ where: { id }, data });
     await this.evaluateInternal(this.prisma, id);
@@ -358,6 +394,16 @@ export class VisitReconciliationsService {
     if (hasUnresolvedBlockingExceptions(exceptions) && !dto.managerOverride) {
       throw new BadRequestException(
         'Blocking exceptions must be resolved before approval, or use manager override',
+      );
+    }
+
+    if (
+      row.overrunDecision === VisitOverrunDecision.PENDING &&
+      (row.overrunMinutes ?? 0) > 0 &&
+      !dto.managerOverride
+    ) {
+      throw new BadRequestException(
+        'Review the overrun flag first (acknowledge or reject). Gross pay uses planned visit time.',
       );
     }
 
@@ -435,6 +481,86 @@ export class VisitReconciliationsService {
       },
     });
 
+    return this.getById(id);
+  }
+
+  async approveOverrun(userId: string, id: string, dto: DecideVisitOverrunDto) {
+    const row = await this.prisma.visitReconciliation.findUnique({
+      where: { id },
+      include: reconciliationInclude,
+    });
+    if (!row) throw new NotFoundException('Visit reconciliation not found');
+    if (row.status === VisitReconciliationStatus.LOCKED) {
+      throw new BadRequestException('Reconciliation is locked');
+    }
+    if (!row.overrunMinutes || row.overrunMinutes <= 0) {
+      throw new BadRequestException('This visit has no overrun to approve');
+    }
+
+    const defaults = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+    });
+
+    const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
+
+    await this.prisma.visitReconciliation.update({
+      where: { id },
+      data: {
+        overrunDecision: VisitOverrunDecision.APPROVED,
+        approvedPayStart: defaults.approvedPayStart,
+        approvedPayEnd: defaults.approvedPayEnd,
+        approvedBillStart: defaults.approvedBillStart,
+        approvedBillEnd: defaults.approvedBillEnd,
+        approvalNotes: notes,
+        approvedById: userId,
+        approvedAt: new Date(),
+        status: VisitReconciliationStatus.PENDING_REVIEW,
+      },
+    });
+
+    await this.evaluateInternal(this.prisma, id);
+    return this.getById(id);
+  }
+
+  async rejectOverrun(userId: string, id: string, dto: DecideVisitOverrunDto) {
+    const row = await this.prisma.visitReconciliation.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Visit reconciliation not found');
+    if (row.status === VisitReconciliationStatus.LOCKED) {
+      throw new BadRequestException('Reconciliation is locked');
+    }
+    if (!row.overrunMinutes || row.overrunMinutes <= 0) {
+      throw new BadRequestException('This visit has no overrun to reject');
+    }
+
+    const defaults = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+    });
+    const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
+
+    await this.prisma.visitReconciliation.update({
+      where: { id },
+      data: {
+        overrunDecision: VisitOverrunDecision.REJECTED,
+        approvedPayStart: defaults.approvedPayStart,
+        approvedPayEnd: defaults.approvedPayEnd,
+        approvedBillStart: defaults.approvedBillStart,
+        approvedBillEnd: defaults.approvedBillEnd,
+        approvalNotes: notes,
+        approvedById: userId,
+        approvedAt: new Date(),
+        status: VisitReconciliationStatus.PENDING_REVIEW,
+      },
+    });
+
+    await this.evaluateInternal(this.prisma, id);
     return this.getById(id);
   }
 
@@ -653,6 +779,7 @@ export class VisitReconciliationsService {
         plannedEndDateTime: row.plannedEndDateTime,
         actualStartDateTime: row.actualStartDateTime,
         actualEndDateTime: row.actualEndDateTime,
+        overrunReason: row.overrunReason,
       },
       payCard: payCard
         ? {
@@ -672,6 +799,32 @@ export class VisitReconciliationsService {
       funding,
     });
 
+    const plannedMinutes = row.plannedEndDateTime
+      ? minutesBetween(row.plannedStartDateTime, row.plannedEndDateTime)
+      : 0;
+    const actualMinutes =
+      row.actualStartDateTime && row.actualEndDateTime
+        ? minutesBetween(row.actualStartDateTime, row.actualEndDateTime)
+        : 0;
+    const computedOverrun =
+      actualMinutes > plannedMinutes && plannedMinutes > 0
+        ? actualMinutes - plannedMinutes
+        : null;
+
+    const overrunDecision =
+      computedOverrun == null
+        ? null
+        : row.overrunDecision === VisitOverrunDecision.APPROVED ||
+            row.overrunDecision === VisitOverrunDecision.REJECTED
+          ? row.overrunDecision
+          : VisitOverrunDecision.PENDING;
+
+    const activeExceptions =
+      overrunDecision === VisitOverrunDecision.APPROVED ||
+      overrunDecision === VisitOverrunDecision.REJECTED
+        ? exceptions.filter((e) => e.code !== FinanceExceptionCode.OVERRUN)
+        : exceptions;
+
     const status =
       row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
       row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
@@ -680,16 +833,38 @@ export class VisitReconciliationsService {
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE
         ? row.status
-        : deriveReconciliationStatus(exceptions, row.status);
+        : deriveReconciliationStatus(activeExceptions, row.status);
 
-    const payMinutes =
-      row.approvedPayStart && row.approvedPayEnd
-        ? minutesBetween(row.approvedPayStart, row.approvedPayEnd)
-        : null;
-    const billMinutes =
-      row.approvedBillStart && row.approvedBillEnd
-        ? minutesBetween(row.approvedBillStart, row.approvedBillEnd)
-        : null;
+    // Overrun: always calculate gross pay / charge from planned visit length (extra time is flagged only).
+    const defaultWindows = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: computedOverrun
+        ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
+        : activeExceptions,
+    });
+
+    const approvedPayStart =
+      computedOverrun != null
+        ? defaultWindows.approvedPayStart
+        : (row.approvedPayStart ?? defaultWindows.approvedPayStart);
+    const approvedPayEnd =
+      computedOverrun != null
+        ? defaultWindows.approvedPayEnd
+        : (row.approvedPayEnd ?? defaultWindows.approvedPayEnd);
+    const approvedBillStart =
+      computedOverrun != null
+        ? defaultWindows.approvedBillStart
+        : (row.approvedBillStart ?? defaultWindows.approvedBillStart);
+    const approvedBillEnd =
+      computedOverrun != null
+        ? defaultWindows.approvedBillEnd
+        : (row.approvedBillEnd ?? defaultWindows.approvedBillEnd);
+
+    const payMinutes = minutesBetween(approvedPayStart, approvedPayEnd);
+    const billMinutes = minutesBetween(approvedBillStart, approvedBillEnd);
 
     let payableAmount: number | null = null;
     let billableAmount: number | null = null;
@@ -720,9 +895,9 @@ export class VisitReconciliationsService {
     }
 
     await db.financeException.deleteMany({ where: { visitReconciliationId: id } });
-    if (exceptions.length) {
+    if (activeExceptions.length) {
       await db.financeException.createMany({
-        data: exceptions.map((ex) => ({
+        data: activeExceptions.map((ex) => ({
           visitReconciliationId: id,
           code: ex.code,
           message: ex.message,
@@ -738,10 +913,16 @@ export class VisitReconciliationsService {
         chargeCardId: chargeCard?.id ?? null,
         payCardSource,
         chargeCardSource,
+        approvedPayStart,
+        approvedPayEnd,
+        approvedBillStart,
+        approvedBillEnd,
         payableMinutes: payMinutes,
         billableMinutes: billMinutes,
         payableAmount: payableAmount != null ? payableAmount : null,
         billableAmount: billableAmount != null ? billableAmount : null,
+        overrunMinutes: computedOverrun,
+        overrunDecision,
         lastEvaluatedAt: new Date(),
       },
     });
@@ -839,9 +1020,15 @@ export class VisitReconciliationsService {
         row.payableAmount != null ? `£${Number(row.payableAmount).toFixed(2)}` : null,
       billableAmount:
         row.billableAmount != null ? `£${Number(row.billableAmount).toFixed(2)}` : null,
+      travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
+      travelMinutes: row.travelMinutes ?? null,
       currency: row.currency,
       status: row.status,
       exceptions: row.exceptions.map((e) => e.code),
+      overrunMinutes: row.overrunMinutes ?? null,
+      overrunReason: row.overrunReason ?? null,
+      overrunDecision: row.overrunDecision ?? null,
+      approvalNotes: row.approvalNotes ?? null,
     }));
   }
 

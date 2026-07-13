@@ -20,6 +20,7 @@ import {
   parseBillingDateOnly,
   splitAmount,
 } from './billing-run.util';
+import { InvoiceTemplatesService } from './invoice-templates.service';
 
 const MUTABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.DRAFT,
@@ -47,7 +48,10 @@ export type InvoiceRunRow = {
 
 @Injectable()
 export class InvoiceRunsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly invoiceTemplates: InvoiceTemplatesService,
+  ) {}
 
   async list() {
     const rows = await this.prisma.invoiceRun.findMany({
@@ -216,8 +220,12 @@ export class InvoiceRunsService {
 
     const lineData: Prisma.InvoiceRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
+    let templateMissingCount = 0;
     const serviceUserIds = new Set<string>();
     const funderIds = new Set<string>();
+
+    // Ensure an organisation-wide default exists for funders/contracts with no template.
+    await this.invoiceTemplates.ensureOrganisationDefaultTemplate();
 
     for (const recon of reconciliations) {
       const issues: string[] = [];
@@ -261,6 +269,18 @@ export class InvoiceRunsService {
       const allocated = splitAmount(issues.length ? 0 : total, splits);
       for (const split of allocated) {
         if (split.funderId) funderIds.add(split.funderId);
+
+        const lineIssues = [...issues];
+        const resolved = await this.invoiceTemplates.resolveForServiceUser(
+          recon.serviceUserId,
+          split.id,
+        );
+        if (!resolved.data.invoiceTemplate) {
+          templateMissingCount += 1;
+          lineIssues.push('Invoice template missing');
+          if (!issues.length) exceptionCount += 1;
+        }
+
         lineData.push({
           invoiceRunId: id,
           visitReconciliationId: recon.id,
@@ -276,16 +296,16 @@ export class InvoiceRunsService {
           amount: split.amount,
           chargeCardId: recon.chargeCardId,
           visitRef: recon.visitRef,
-          exceptionMessage: issues.length ? issues.join('; ') : null,
+          exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
         });
       }
     }
 
     const netTotal = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
     let exportStatus: BillingRunExportStatus = BillingRunExportStatus.NOT_STARTED;
-    if (exceptionCount > 0) {
-      exportStatus = BillingRunExportStatus.TEMPLATE_VALIDATION_FAILED;
-    } else if (lineData.length > 0) {
+    if (templateMissingCount > 0) {
+      exportStatus = BillingRunExportStatus.TEMPLATE_MISSING;
+    } else if (lineData.length > 0 && exceptionCount === 0) {
       exportStatus = BillingRunExportStatus.READY_TO_RENDER;
     }
 

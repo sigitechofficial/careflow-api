@@ -6270,6 +6270,8 @@ model VisitReconciliation {
   billableMinutes      Int?
   payableAmount        Decimal?                  @db.Decimal(12, 2)
   billableAmount       Decimal?                  @db.Decimal(12, 2)
+  travelMiles          Decimal?                  @db.Decimal(10, 2)
+  travelMinutes        Int?
   currency             String                    @default("GBP")
   status               VisitReconciliationStatus @default(PENDING_REVIEW)
   payCardId            String?                   @db.Uuid
@@ -6279,6 +6281,12 @@ model VisitReconciliation {
   approvedById         String?                   @db.Uuid
   approvedAt           DateTime?
   approvalNotes        String?
+  /** Minutes actual exceeded planned (null when no overrun). */
+  overrunMinutes       Int?
+  /** Required from carer/recorder when actual time exceeds planned. */
+  overrunReason        String?
+  /** Admin decision on whether to pay the overrun minutes. */
+  overrunDecision      VisitOverrunDecision?
   lockedAt             DateTime?
   lastEvaluatedAt      DateTime?
   includedInPayrollRunId String?               @db.Uuid
@@ -6297,8 +6305,17 @@ model VisitReconciliation {
   @@index([employeeId])
   @@index([status])
   @@index([plannedStartDateTime])
+  @@index([overrunDecision])
   @@index([includedInPayrollRunId])
   @@index([includedInInvoiceRunId])
+  @@schema("billing")
+}
+
+enum VisitOverrunDecision {
+  PENDING
+  APPROVED
+  REJECTED
+
   @@schema("billing")
 }
 
@@ -6332,6 +6349,8 @@ enum PayrollRunStatus {
 
 enum PayrollRunLineType {
   VISIT_PAY
+  MILEAGE
+  TRAVEL_TIME
   NMW_TOP_UP
   ADJUSTMENT
 

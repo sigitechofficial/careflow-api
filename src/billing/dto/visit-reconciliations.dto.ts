@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -94,6 +95,20 @@ export class UpdateVisitReconciliationDto {
   @IsString()
   @MaxLength(2000)
   approvalNotes?: string;
+
+  @ApiPropertyOptional({ description: 'Approved travel distance in miles' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  travelMiles?: number | null;
+
+  @ApiPropertyOptional({ description: 'Approved travel time in minutes' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  travelMinutes?: number | null;
 }
 
 export class ApproveVisitReconciliationDto {
@@ -124,6 +139,14 @@ export class RejectVisitReconciliationDto {
   @IsString()
   @MaxLength(2000)
   approvalNotes?: string;
+}
+
+export class DecideVisitOverrunDto {
+  @ApiPropertyOptional({ description: 'Optional notes for the overrun decision' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }
 
 export class BulkApproveVisitReconciliationsDto {

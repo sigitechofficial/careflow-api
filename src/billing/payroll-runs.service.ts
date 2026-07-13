@@ -18,6 +18,8 @@ import {
   parseBillingDateOnly,
 } from './billing-run.util';
 import {
+  calculateMileageAmount,
+  calculateTravelTimeAmount,
   formatMinutesAsHours,
   formatTimeRange,
 } from './visit-reconciliation.util';
@@ -162,17 +164,54 @@ export class PayrollRunsService {
 
     const lines = row.lines.map((l) => {
       const recon = l.visitReconciliation;
-      const minutes = l.minutes ?? recon?.payableMinutes ?? 0;
       const amount = Number(l.amount);
+      const lineType = l.lineType;
+      const isVisitPay = lineType === PayrollRunLineType.VISIT_PAY;
+      const minutes = isVisitPay
+        ? (l.minutes ?? recon?.payableMinutes ?? 0)
+        : (l.minutes ?? 0);
       const hoursLabel = minutes > 0 ? formatMinutesAsHours(minutes) : null;
       const payableTime =
-        recon?.approvedPayStart && recon?.approvedPayEnd
+        isVisitPay && recon?.approvedPayStart && recon?.approvedPayEnd
           ? formatTimeRange(recon.approvedPayStart, recon.approvedPayEnd)
-          : '—';
+          : lineType === PayrollRunLineType.MILEAGE
+            ? 'Mileage'
+            : lineType === PayrollRunLineType.TRAVEL_TIME
+              ? 'Travel time'
+              : '—';
 
       let unitRate: string | null = null;
       let formula: string | null = null;
-      if (minutes > 0 && amount > 0) {
+      const storedUnit = l.unitAmount != null ? Number(l.unitAmount) : null;
+
+      if (lineType === PayrollRunLineType.MILEAGE && storedUnit != null && storedUnit > 0 && amount > 0) {
+        const miles = Math.round((amount / storedUnit) * 100) / 100;
+        unitRate = `${formatMoney(storedUnit)}/mile`;
+        formula = `${miles.toFixed(2)} mi × ${formatMoney(storedUnit)}/mile = ${formatMoney(amount)}`;
+        return {
+          id: l.id,
+          lineType,
+          visitRef: l.visitRef,
+          employeeId: l.employeeId,
+          carerName: l.employeeId ? (empMap.get(l.employeeId) ?? 'Unknown carer') : '—',
+          serviceUserName: recon?.serviceUserId
+            ? (suMap.get(recon.serviceUserId) ?? 'Unknown')
+            : '—',
+          payableTime: 'Mileage',
+          hoursLabel: `${miles.toFixed(2)} mi`,
+          minutes: 0,
+          unitRate,
+          formula,
+          amount: formatMoney(amount),
+          description: l.description,
+          exceptionMessage: l.exceptionMessage,
+        };
+      }
+
+      if (lineType === PayrollRunLineType.TRAVEL_TIME && storedUnit != null && minutes > 0) {
+        unitRate = `${formatMoney(storedUnit)}/hr`;
+        formula = `${hoursLabel} × ${formatMoney(storedUnit)}/hr = ${formatMoney(amount)}`;
+      } else if (isVisitPay && minutes > 0 && amount > 0) {
         const hourly = amount / (minutes / 60);
         unitRate = `${formatMoney(hourly)}/hr`;
         formula = `${hoursLabel} × ${formatMoney(hourly)}/hr = ${formatMoney(amount)}`;
@@ -182,6 +221,7 @@ export class PayrollRunsService {
 
       return {
         id: l.id,
+        lineType,
         visitRef: l.visitRef,
         employeeId: l.employeeId,
         carerName: l.employeeId ? (empMap.get(l.employeeId) ?? 'Unknown carer') : '—',
@@ -189,8 +229,8 @@ export class PayrollRunsService {
           ? (suMap.get(recon.serviceUserId) ?? 'Unknown')
           : '—',
         payableTime,
-        hoursLabel,
-        minutes,
+        hoursLabel: isVisitPay || lineType === PayrollRunLineType.TRAVEL_TIME ? hoursLabel : null,
+        minutes: isVisitPay || lineType === PayrollRunLineType.TRAVEL_TIME ? minutes : 0,
         unitRate,
         formula,
         amount: formatMoney(amount),
@@ -201,42 +241,46 @@ export class PayrollRunsService {
 
     const carerTotals = new Map<
       string,
-      { name: string; minutes: number; amount: number; visits: number }
+      { name: string; minutes: number; amount: number; visits: Set<string> }
     >();
     for (const l of row.lines) {
       if (!l.employeeId) continue;
-      const minutes = l.minutes ?? l.visitReconciliation?.payableMinutes ?? 0;
       const amount = Number(l.amount);
       const name = empMap.get(l.employeeId) ?? 'Unknown carer';
-      const existing = carerTotals.get(l.employeeId);
-      if (existing) {
+      const existing = carerTotals.get(l.employeeId) ?? {
+        name,
+        minutes: 0,
+        amount: 0,
+        visits: new Set<string>(),
+      };
+      existing.amount += amount;
+      if (l.lineType === PayrollRunLineType.VISIT_PAY) {
+        const minutes = l.minutes ?? l.visitReconciliation?.payableMinutes ?? 0;
         existing.minutes += minutes;
-        existing.amount += amount;
-        existing.visits += 1;
-      } else {
-        carerTotals.set(l.employeeId, {
-          name,
-          minutes,
-          amount,
-          visits: 1,
-        });
+        if (l.visitRef) existing.visits.add(l.visitRef);
+        else existing.visits.add(l.id);
       }
+      carerTotals.set(l.employeeId, existing);
     }
 
     const carerSummaries = [...carerTotals.entries()]
       .map(([employeeId, totals]) => ({
         employeeId,
         carerName: totals.name,
-        visitCount: totals.visits,
+        visitCount: totals.visits.size,
         totalMinutes: totals.minutes,
         totalHours: formatMinutesAsHours(totals.minutes),
         grossPay: formatMoney(totals.amount),
       }))
       .sort((a, b) => a.carerName.localeCompare(b.carerName));
 
+    const visitLineCount = row.lines.filter(
+      (l) => l.lineType === PayrollRunLineType.VISIT_PAY,
+    ).length;
+
     return {
       data: {
-        ...this.mapRow(row),
+        ...this.mapRow({ ...row, visitLineCount }),
         notes: row.notes,
         carerSummaries,
         lines,
@@ -314,6 +358,50 @@ export class PayrollRunsService {
         visitRef: recon.visitRef,
         exceptionMessage: issues.length ? issues.join('; ') : null,
       });
+
+      // Mileage / travel time supplements from pay card rates × approved journey values.
+      if (recon.payCardId && recon.employeeId && !issues.length) {
+        const payRules = await this.prisma.payCardRule.findMany({
+          where: { payCardId: recon.payCardId },
+        });
+        const visitDate = recon.plannedStartDateTime;
+        const miles = recon.travelMiles != null ? Number(recon.travelMiles) : 0;
+        const travelMins = recon.travelMinutes ?? 0;
+
+        const mileage = calculateMileageAmount(payRules, visitDate, miles);
+        if (mileage) {
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: recon.id,
+            employeeId: recon.employeeId,
+            lineType: PayrollRunLineType.MILEAGE,
+            description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
+            minutes: null,
+            unitAmount: mileage.unitRate,
+            amount: mileage.amount,
+            payCardId: recon.payCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: null,
+          });
+        }
+
+        const travel = calculateTravelTimeAmount(payRules, visitDate, travelMins);
+        if (travel) {
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: recon.id,
+            employeeId: recon.employeeId,
+            lineType: PayrollRunLineType.TRAVEL_TIME,
+            description: `Travel time — ${recon.visitRef} (${travelMins} min)`,
+            minutes: travelMins,
+            unitAmount: travel.unitRate,
+            amount: travel.amount,
+            payCardId: recon.payCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: null,
+          });
+        }
+      }
     }
 
     const grossPay = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
@@ -333,7 +421,7 @@ export class PayrollRunsService {
                 ? PayrollRunStatus.READY_FOR_REVIEW
                 : PayrollRunStatus.DRAFT,
           carerCount: employeeIds.size,
-          visitLineCount: lineData.length,
+          visitLineCount: lineData.filter((l) => l.lineType === PayrollRunLineType.VISIT_PAY).length,
           grossPay,
           nmwTopUp: 0,
           exceptionCount,

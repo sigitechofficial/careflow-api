@@ -442,6 +442,12 @@ export class AssignPayCardMatchingDto {
   onlyUnassigned?: boolean;
 }
 
+export class UnassignPayCardEmployeeDto {
+  @ApiProperty({ description: 'Employee to remove from this pay card' })
+  @IsString()
+  employeeId!: string;
+}
+
 export class AssignChargeCardMatchingDto {
   @ApiPropertyOptional({
     default: true,

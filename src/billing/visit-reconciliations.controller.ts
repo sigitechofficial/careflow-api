@@ -10,6 +10,7 @@ import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
   BulkApproveVisitReconciliationsDto,
+  DecideVisitOverrunDto,
   RejectVisitReconciliationDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
@@ -88,6 +89,32 @@ export class VisitReconciliationsController {
     @Body() dto: ApproveVisitReconciliationDto,
   ) {
     return this.service.approve(user.id, id, dto);
+  }
+
+  @Post(':id/overrun/approve')
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({
+    summary: 'Acknowledge overrun as accepted (gross pay stays on planned duration)',
+  })
+  approveOverrun(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: DecideVisitOverrunDto,
+  ) {
+    return this.service.approveOverrun(user.id, id, dto);
+  }
+
+  @Post(':id/overrun/reject')
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({
+    summary: 'Acknowledge overrun as rejected (gross pay stays on planned duration)',
+  })
+  rejectOverrun(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: DecideVisitOverrunDto,
+  ) {
+    return this.service.rejectOverrun(user.id, id, dto);
   }
 
   @Post(':id/reject')

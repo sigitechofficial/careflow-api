@@ -4,7 +4,7 @@
  * vs waking night, travel/mileage supplements).
  */
 
-import { buildStandardFixedPayRules } from './pay-card-fixed-rates.util'
+import { buildStandardFixedPayRules, fixedPayDurationRules, hourlyPayVisitRule } from './pay-card-fixed-rates.util'
 import { PAY_CARD_COMPLETE_UK_2026 } from './pay-card-complete-preset'
 import type { PayCardPreset, PayCardPresetRule } from './pay-card-preset.types'
 
@@ -33,38 +33,17 @@ Example — 4 × 15 min = £56 carer pay; 6 hr visit = £120.`,
     assignmentLabel: 'Branch: London',
     status: 'ACTIVE',
     effectiveFrom: '2026-04-01',
-    notes: 'Birdie London LW benchmark £13.85/hr with time-of-day bands (Nourish-style).',
+    notes: `London Living Wage style. Fixed up to 60 min; hourly for longer visits.
+Weekday: 15m £15 · 30m £18 · 45m £21 · 60m £24 · over 1 hr £20/hr.`,
     rules: [
-      {
-        label: 'Weekday day',
-        dayType: 'WEEKDAY',
-        startTime: '07:00',
-        endTime: '19:00',
-        rateType: 'HOURLY',
-        amount: 13.85,
-        sortOrder: 0,
-      },
-      {
-        label: 'Weekday evening',
-        dayType: 'WEEKDAY',
-        startTime: '19:00',
-        endTime: '22:00',
-        rateType: 'HOURLY',
-        amount: 14.5,
-        sortOrder: 1,
-      },
-      {
-        label: 'Night (waking)',
-        dayType: 'ANY',
-        startTime: '22:00',
-        endTime: '07:00',
-        rateType: 'HOURLY',
-        amount: 15.5,
-        sortOrder: 2,
-      },
-      { label: 'Saturday', dayType: 'SATURDAY', rateType: 'HOURLY', amount: 15.5, sortOrder: 3 },
-      { label: 'Sunday', dayType: 'SUNDAY', rateType: 'HOURLY', amount: 16.5, sortOrder: 4 },
-      { label: 'Bank holiday', dayType: 'BANK_HOLIDAY', rateType: 'HOURLY', amount: 18.0, sortOrder: 5 },
+      ...fixedPayDurationRules('Weekday visit', { m15: 15, m30: 18, m45: 21, m60: 24 }, 0),
+      hourlyPayVisitRule('Weekday visit', 20, 5),
+      ...fixedPayDurationRules('Saturday visit', { m15: 16, m30: 20, m45: 23, m60: 26 }, 10, 'SATURDAY'),
+      hourlyPayVisitRule('Saturday visit', 22, 15, 'SATURDAY'),
+      ...fixedPayDurationRules('Sunday visit', { m15: 17, m30: 21, m45: 24, m60: 28 }, 20, 'SUNDAY'),
+      hourlyPayVisitRule('Sunday visit', 24, 25, 'SUNDAY'),
+      ...fixedPayDurationRules('Bank holiday visit', { m15: 19, m30: 23, m45: 26, m60: 30 }, 30, 'BANK_HOLIDAY'),
+      hourlyPayVisitRule('Bank holiday visit', 28, 35, 'BANK_HOLIDAY'),
     ],
   },
   {

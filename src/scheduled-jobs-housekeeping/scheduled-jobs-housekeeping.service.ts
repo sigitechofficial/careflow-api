@@ -507,6 +507,36 @@ export class ScheduledJobsHousekeepingService {
       throw new BadRequestException('Invalid actualEndDateTime');
     }
 
+    let overrunReason: string | null = null;
+    if (completing && actualStart && actualEnd) {
+      const plannedStart = existing.scheduledStartDateTime;
+      const plannedEnd =
+        existing.scheduledEndDateTime ??
+        existing.visits?.[0]?.scheduledEndDateTime ??
+        (existing.estimatedDurationMinutes
+          ? new Date(plannedStart.getTime() + existing.estimatedDurationMinutes * 60_000)
+          : null);
+      if (plannedStart && plannedEnd) {
+        const plannedMinutes = Math.max(
+          0,
+          Math.round((plannedEnd.getTime() - plannedStart.getTime()) / 60_000),
+        );
+        const actualMinutes = Math.max(
+          0,
+          Math.round((actualEnd.getTime() - actualStart.getTime()) / 60_000),
+        );
+        if (actualMinutes > plannedMinutes) {
+          const trimmed = dto.overrunReason?.trim() ?? '';
+          if (!trimmed) {
+            throw new BadRequestException(
+              `Actual time (${actualMinutes} min) exceeds planned (${plannedMinutes} min). Provide a reason for the ${actualMinutes - plannedMinutes} min overrun.`,
+            );
+          }
+          overrunReason = trimmed;
+        }
+      }
+    }
+
     const linkedFormIds = this.resolveLinkedCarePlanFormIds(existing);
     const deliveryFormIds = [
       ...new Set([
@@ -567,6 +597,16 @@ export class ScheduledJobsHousekeepingService {
         else delete metadataPatch.extraCareNotes;
         metadataChanged = true;
       }
+      if (overrunReason) {
+        metadataPatch.overrunReason = overrunReason;
+        metadataChanged = true;
+      } else if (completing && 'overrunReason' in metadataPatch) {
+        delete metadataPatch.overrunReason;
+        metadataChanged = true;
+      } else if (completing && previousMeta.overrunReason && !overrunReason) {
+        delete metadataPatch.overrunReason;
+        metadataChanged = true;
+      }
 
       const metadata = metadataChanged ? metadataPatch : undefined;
 
@@ -605,7 +645,9 @@ export class ScheduledJobsHousekeepingService {
     });
 
     if (completing) {
-      void this.visitReconciliationsService.ensureForCompletedJob(id).catch(() => undefined);
+      void this.visitReconciliationsService
+        .ensureForCompletedJob(id, undefined, { overrunReason })
+        .catch(() => undefined);
     }
 
     return result;
