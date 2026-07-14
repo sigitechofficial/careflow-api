@@ -16,6 +16,36 @@ Or re-run the GitHub Actions job and expand the **Deploy backend release** step 
 
 ## Common causes
 
+### 0. SSH drops during file backup (`exit code 255`)
+
+**Typical log:**
+
+```
+Creating backup of current backend files...
++ tar ... -czf .../file-before-release-....tar.gz -C <live-path> .
+Connection to <host> closed by remote host.
+Error: Process completed with exit code 255.
+```
+
+This is **not** an app / Prisma error. The remote SSH session died while tarring the live site (idle timeout, disk/quota, or hosting resource kill).
+
+**On the VPS, check:**
+
+```bash
+df -h /home/sigisolutions
+du -sh /home/sigisolutions/careflowbackend.sigisolutions.net
+du -sh /home/sigisolutions/deployments/careflow-api/backups
+ls -lhS /home/sigisolutions/deployments/careflow-api/backups | head
+```
+
+**Fix:**
+
+1. Free disk / quota (delete old `file-before-release-*.tar.gz` and `db-before-release-*.dump` you no longer need).
+2. Confirm large junk is not under the live path (`node_modules`, old zips, left-over `uploads` copies).
+3. Re-run the GitHub Actions deploy (workflow now uses SSH keepalives + backup progress heartbeats).
+
+The live site is **unchanged** if failure happens at this step — extract of the new release already happened under `deployments/careflow-api/releases/`, but it was not promoted to live yet.
+
 ### 1. `prisma migrate deploy` failed (P3009)
 
 **Typical log:**

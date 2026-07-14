@@ -104,6 +104,8 @@ jobs:
       BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
       BACKEND_APP_URL: ${{ secrets.BACKEND_APP_URL }}
       BACKEND_PM2_APP_NAME: ${{ secrets.BACKEND_PM2_APP_NAME }}
+      # Keep SSH alive during long remote tar / pg_dump (idle sessions often drop on cPanel).
+      SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=30
 
     steps:
       - name: Download backend release artifact
@@ -143,9 +145,10 @@ jobs:
 
           VPS_PORT="${VPS_PORT:-22}"
 
+          # shellcheck disable=SC2086
           ssh -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
-            -o StrictHostKeyChecking=yes \
+            $SSH_OPTS \
             "$VPS_USER@$VPS_HOST" \
             "whoami && pwd && ls -ld '$BACKEND_DEPLOY_PATH'"
 
@@ -155,9 +158,10 @@ jobs:
 
           VPS_PORT="${VPS_PORT:-22}"
 
+          # shellcheck disable=SC2086
           ssh -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
-            -o StrictHostKeyChecking=yes \
+            $SSH_OPTS \
             "$VPS_USER@$VPS_HOST" \
             "
               mkdir -p /home/sigisolutions/deployments/careflow-api/incoming
@@ -173,9 +177,10 @@ jobs:
 
           VPS_PORT="${VPS_PORT:-22}"
 
+          # shellcheck disable=SC2086
           scp -i ~/.ssh/deploy_key \
             -P "$VPS_PORT" \
-            -o StrictHostKeyChecking=yes \
+            $SSH_OPTS \
             careflow-api-release.tar.gz \
             "$VPS_USER@$VPS_HOST:/home/sigisolutions/deployments/careflow-api/incoming/${{ github.sha }}.tar.gz"
 
@@ -185,9 +190,10 @@ jobs:
 
           VPS_PORT="${VPS_PORT:-22}"
 
+          # shellcheck disable=SC2086
           ssh -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
-            -o StrictHostKeyChecking=yes \
+            $SSH_OPTS \
             "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
           set -euo pipefail
 
@@ -351,19 +357,61 @@ jobs:
           $RELEASE_NAME
           EOF
 
+          echo "Checking disk space before file backup..."
+          df -h "$LIVE_PATH" "$DEPLOY_ROOT/backups" || df -h
+          echo "Live path size (approximate):"
+          du -sh "$LIVE_PATH" 2>/dev/null || true
+          du -sh \
+            --exclude=node_modules \
+            --exclude=uploads \
+            --exclude=.git \
+            "$LIVE_PATH" 2>/dev/null || true
+
+          FREE_KB="$(df -Pk "$DEPLOY_ROOT/backups" | awk 'NR==2 {print $4}')"
+          if [ -n "$FREE_KB" ] && [ "$FREE_KB" -lt 1048576 ]; then
+            echo "Less than 1GB free on backup volume (${FREE_KB}KB). Free disk space, then re-run deploy."
+            exit 1
+          fi
+
           echo "Creating backup of current backend files..."
-          tar \
-            --exclude=".env" \
-            --exclude=".env.*" \
-            --exclude=".htaccess" \
-            --exclude=".well-known" \
-            --exclude="uploads" \
-            --exclude="node_modules" \
-            --exclude="careadmin-backend.zip" \
-            --exclude="*.pem" \
-            --exclude="*.key" \
-            -czf "$BACKUP_FILE" \
-            -C "$LIVE_PATH" .
+          # Heartbeat keeps the SSH channel active while tar runs (cPanel often drops idle SSH).
+          rm -f "$BACKUP_FILE"
+          (
+            tar \
+              --exclude=".env" \
+              --exclude=".env.*" \
+              --exclude=".htaccess" \
+              --exclude=".well-known" \
+              --exclude="uploads" \
+              --exclude="node_modules" \
+              --exclude=".git" \
+              --exclude="coverage" \
+              --exclude="tmp" \
+              --exclude="temp" \
+              --exclude="logs" \
+              --exclude="*.log" \
+              --exclude="careadmin-backend.zip" \
+              --exclude="*.tar.gz" \
+              --exclude="*.zip" \
+              --exclude="*.pem" \
+              --exclude="*.key" \
+              -czf "$BACKUP_FILE" \
+              -C "$LIVE_PATH" .
+          ) &
+          TAR_PID=$!
+          while kill -0 "$TAR_PID" 2>/dev/null; do
+            echo "File backup still running... $(date -u +%H:%M:%S)"
+            sleep 20
+          done
+          set +e
+          wait "$TAR_PID"
+          TAR_EXIT=$?
+          set -e
+          if [ "$TAR_EXIT" -ne 0 ]; then
+            echo "File backup tar failed with exit code $TAR_EXIT (often disk full or quota)."
+            rm -f "$BACKUP_FILE"
+            exit "$TAR_EXIT"
+          fi
 
           if [ ! -s "$BACKUP_FILE" ]; then
             echo "File backup was not created or is empty."
