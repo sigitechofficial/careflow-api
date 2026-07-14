@@ -24,3 +24,15 @@ export class BillingRunsQueryDto {
   @IsString()
   status?: string;
 }
+
+export class EmployeeEarningsQueryDto {
+  @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD) — filter by visit planned start' })
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD) — filter by visit planned start' })
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
+}

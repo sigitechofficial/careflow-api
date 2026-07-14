@@ -38,6 +38,17 @@ import {
   minutesBetween,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
+import {
+  formatTimeHhMmSs,
+  formatTimeHhMmSsOrZero,
+  formatVisitDateMmDdYy,
+  resolveCareTypeExportCode,
+  resolveEmonitored,
+} from './payroll-run-export-csv.util';
+import {
+  detectInterVisitTravel,
+  summariseTravelForDestination,
+} from './pay-inter-visit-travel.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -106,17 +117,48 @@ export type VisitReconciliationListRow = {
   overrunReason: string | null;
   overrunDecision: VisitOverrunDecision | null;
   approvalNotes: string | null;
+  /** Visit-log style columns (client-centric export format). */
+  emonitored: 'LOGGED' | 'NOT LOG';
+  clientId: string;
+  clientFirstName: string;
+  clientSecondName: string;
+  clientAddress: string;
+  clientPostCode: string;
+  visitDate: string;
+  careType: string;
+  plannedArrival: string;
+  plannedDeparture: string;
+  actualArrival: string;
+  actualDeparture: string;
 };
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
 async function isVisitOnBankHoliday(db: DbClient, date: Date): Promise<boolean> {
-  const holidayDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const row = await db.bankHoliday.findFirst({
-    where: { holidayDate, isActive: true },
-    select: { id: true },
+  const set = await loadBankHolidayDateSet(db, date, date);
+  return set.has(utcDateKey(date));
+}
+
+function utcDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/** Load active bank-holiday UTC date keys covering [from, to] inclusive. */
+async function loadBankHolidayDateSet(
+  db: DbClient,
+  from: Date,
+  to: Date,
+): Promise<Set<string>> {
+  const start = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  const end = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()));
+  const rows = await db.bankHoliday.findMany({
+    where: {
+      isActive: true,
+      holidayDate: { gte: start, lte: end },
+    },
+    select: { holidayDate: true },
   });
-  return Boolean(row);
+  return new Set(rows.map((r) => utcDateKey(r.holidayDate)));
 }
 
 @Injectable()
@@ -168,9 +210,6 @@ export class VisitReconciliationsService {
     });
     if (!visit || !isBillingEligibleVisit(visit)) return null;
 
-    const allocation = await this.resolveLeadAllocation(db, visit.scheduledJobId, visit.id);
-    const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-
     let overrunReason = options?.overrunReason?.trim() || null;
     if (overrunReason == null) {
       const job = await db.scheduledJob.findFirst({
@@ -183,45 +222,67 @@ export class VisitReconciliationsService {
       }
     }
 
-    const existing = await db.visitReconciliation.findUnique({
-      where: { scheduledVisitId: visit.id },
-    });
+    const allocations = await this.resolveAllAllocations(db, visit.scheduledJobId, visit.id);
+    const targets =
+      allocations.length > 0
+        ? allocations
+        : [{ id: null as string | null, employeeId: null as string | null }];
 
-    if (existing) {
-      const updated = await db.visitReconciliation.update({
-        where: { id: existing.id },
+    let firstId: string | null = null;
+    for (const allocation of targets) {
+      const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
+      const suffix =
+        targets.length > 1 && allocation.employeeId
+          ? `-${allocation.employeeId.replace(/-/g, '').slice(0, 4).toUpperCase()}`
+          : '';
+
+      const existing = allocation.id
+        ? await db.visitReconciliation.findFirst({
+            where: { scheduledVisitId: visit.id, jobAllocationId: allocation.id },
+          })
+        : await db.visitReconciliation.findFirst({
+            where: { scheduledVisitId: visit.id, jobAllocationId: null },
+          });
+
+      if (existing) {
+        const updated = await db.visitReconciliation.update({
+          where: { id: existing.id },
+          data: {
+            plannedStartDateTime: visit.scheduledStartDateTime,
+            plannedEndDateTime: visit.scheduledEndDateTime,
+            actualStartDateTime: visit.actualStartDateTime,
+            actualEndDateTime: visit.actualEndDateTime,
+            employeeId: allocation.employeeId ?? existing.employeeId,
+            jobAllocationId: allocation.id ?? existing.jobAllocationId,
+            visitRef: `${visitRef}${suffix}`,
+            ...(overrunReason != null ? { overrunReason } : {}),
+          },
+        });
+        await this.safeEvaluate(db, updated.id);
+        firstId ??= updated.id;
+        continue;
+      }
+
+      const created = await db.visitReconciliation.create({
         data: {
+          scheduledVisitId: visit.id,
+          scheduledJobId: visit.scheduledJobId,
+          serviceUserId: visit.serviceUserId,
+          employeeId: allocation.employeeId,
+          jobAllocationId: allocation.id,
+          visitRef: `${visitRef}${suffix}`,
           plannedStartDateTime: visit.scheduledStartDateTime,
           plannedEndDateTime: visit.scheduledEndDateTime,
           actualStartDateTime: visit.actualStartDateTime,
           actualEndDateTime: visit.actualEndDateTime,
-          employeeId: allocation?.employeeId ?? existing.employeeId,
-          jobAllocationId: allocation?.id ?? existing.jobAllocationId,
-          ...(overrunReason != null ? { overrunReason } : {}),
+          overrunReason,
         },
       });
-      await this.safeEvaluate(db, updated.id);
-      return updated.id;
+      await this.safeEvaluate(db, created.id);
+      firstId ??= created.id;
     }
 
-    const created = await db.visitReconciliation.create({
-      data: {
-        scheduledVisitId: visit.id,
-        scheduledJobId: visit.scheduledJobId,
-        serviceUserId: visit.serviceUserId,
-        employeeId: allocation?.employeeId ?? null,
-        jobAllocationId: allocation?.id ?? null,
-        visitRef,
-        plannedStartDateTime: visit.scheduledStartDateTime,
-        plannedEndDateTime: visit.scheduledEndDateTime,
-        actualStartDateTime: visit.actualStartDateTime,
-        actualEndDateTime: visit.actualEndDateTime,
-        overrunReason,
-      },
-    });
-
-    await this.safeEvaluate(db, created.id);
-    return created.id;
+    return firstId;
   }
 
   private async safeEvaluate(db: DbClient, id: string) {
@@ -232,12 +293,12 @@ export class VisitReconciliationsService {
     }
   }
 
-  private async resolveLeadAllocation(
+  private async resolveAllAllocations(
     db: DbClient,
     jobId: string,
     visitId: string,
-  ): Promise<{ id: string; employeeId: string } | null> {
-    const visitAllocation = await db.jobAllocation.findFirst({
+  ): Promise<Array<{ id: string; employeeId: string }>> {
+    const visitAllocations = await db.jobAllocation.findMany({
       where: {
         scheduledVisitId: visitId,
         deletedAt: null,
@@ -247,9 +308,9 @@ export class VisitReconciliationsService {
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
       select: { id: true, employeeId: true },
     });
-    if (visitAllocation) return visitAllocation;
+    if (visitAllocations.length) return visitAllocations;
 
-    return db.jobAllocation.findFirst({
+    return db.jobAllocation.findMany({
       where: {
         scheduledJobId: jobId,
         deletedAt: null,
@@ -259,6 +320,15 @@ export class VisitReconciliationsService {
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
       select: { id: true, employeeId: true },
     });
+  }
+
+  private async resolveLeadAllocation(
+    db: DbClient,
+    jobId: string,
+    visitId: string,
+  ): Promise<{ id: string; employeeId: string } | null> {
+    const all = await this.resolveAllAllocations(db, jobId, visitId);
+    return all[0] ?? null;
   }
 
   async list(query: VisitReconciliationsQueryDto) {
@@ -370,6 +440,14 @@ export class VisitReconciliationsService {
     }
     if (dto.travelMinutes !== undefined) {
       data.travelMinutes = dto.travelMinutes != null ? dto.travelMinutes : null;
+    }
+    if (dto.unpaidTravelMinutes !== undefined) {
+      (data as Record<string, unknown>).unpaidTravelMinutes =
+        dto.unpaidTravelMinutes != null ? dto.unpaidTravelMinutes : null;
+    }
+    if (dto.passengerMiles !== undefined) {
+      (data as Record<string, unknown>).passengerMiles =
+        dto.passengerMiles != null ? dto.passengerMiles : null;
     }
 
     await this.prisma.visitReconciliation.update({ where: { id }, data });
@@ -503,6 +581,7 @@ export class VisitReconciliationsService {
       actualStartDateTime: row.actualStartDateTime,
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+      overrunDecision: VisitOverrunDecision.APPROVED,
     });
 
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
@@ -542,6 +621,7 @@ export class VisitReconciliationsService {
       actualStartDateTime: row.actualStartDateTime,
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+      overrunDecision: VisitOverrunDecision.REJECTED,
     });
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
@@ -647,6 +727,37 @@ export class VisitReconciliationsService {
     };
   }
 
+  /**
+   * Delete every visit reconciliation (and dependent finance lines).
+   * Does not reset scheduled visits — use Sync completed visits to recreate.
+   */
+  async clearAll() {
+    const before = await this.prisma.visitReconciliation.count();
+    const result = await this.prisma.$transaction(async (tx) => {
+      const payrollRunLines = await tx.payrollRunLine.deleteMany();
+      const invoiceRunLines = await tx.invoiceRunLine.deleteMany();
+      await tx.payComponent.deleteMany({
+        where: { visitReconciliationId: { not: null } },
+      });
+      const financeExceptions = await tx.financeException.deleteMany();
+      const visitReconciliations = await tx.visitReconciliation.deleteMany();
+      return {
+        payrollRunLines: payrollRunLines.count,
+        invoiceRunLines: invoiceRunLines.count,
+        financeExceptions: financeExceptions.count,
+        visitReconciliations: visitReconciliations.count,
+      };
+    });
+
+    return {
+      message:
+        result.visitReconciliations === 0
+          ? 'No visit reconciliations to delete'
+          : `Deleted ${result.visitReconciliations} visit reconciliation(s)`,
+      data: { before, ...result },
+    };
+  }
+
   async getSummary() {
     const [pending, withExceptions, approved, requiresManager] = await this.prisma.$transaction([
       this.prisma.visitReconciliation.count({
@@ -747,16 +858,27 @@ export class VisitReconciliationsService {
     const tasksIncomplete = await this.hasIncompleteTasks(db, row.scheduledJobId);
     const funding = await this.loadFundingSnapshot(db, row.serviceUserId);
 
-    let payCard: { id: string; status: string; rulesCount: number } | null = null;
+    let payCard: {
+      id: string;
+      status: string;
+      rulesCount: number;
+      stackingPolicy?: string;
+      version?: number;
+    } | null = null;
     let payCardSource: string | null = null;
     if (row.employeeId) {
-      const resolved = await this.payCardsService.resolveForEmployee(row.employeeId);
+      const resolved = await this.payCardsService.resolveForEmployee(
+        row.employeeId,
+        row.plannedStartDateTime,
+      );
       payCardSource = resolved.data.source;
       if (resolved.data.payCard) {
         payCard = {
           id: resolved.data.payCard.id,
           status: resolved.data.payCard.status,
           rulesCount: resolved.data.payCard.rules?.length ?? 0,
+          stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
+          version: (resolved.data.payCard as { version?: number }).version,
         };
       }
     }
@@ -835,7 +957,7 @@ export class VisitReconciliationsService {
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
-    // Overrun: always calculate gross pay / charge from planned visit length (extra time is flagged only).
+    // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
     const defaultWindows = resolveDefaultApprovedWindows({
       plannedStartDateTime: row.plannedStartDateTime,
       plannedEndDateTime: row.plannedEndDateTime,
@@ -844,6 +966,7 @@ export class VisitReconciliationsService {
       exceptions: computedOverrun
         ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
         : activeExceptions,
+      overrunDecision,
     });
 
     const approvedPayStart =
@@ -869,11 +992,33 @@ export class VisitReconciliationsService {
     let payableAmount: number | null = null;
     let billableAmount: number | null = null;
 
-    const isBankHoliday = await isVisitOnBankHoliday(db, row.plannedStartDateTime);
+    const bankHolidayDates = await loadBankHolidayDateSet(
+      db,
+      approvedPayStart,
+      approvedPayEnd ?? approvedPayStart,
+    );
+    const isBankHoliday = bankHolidayDates.has(utcDateKey(row.plannedStartDateTime));
 
     if (payCard && payMinutes) {
       const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
-      const calc = calculatePayableAmount(payRules, row.plannedStartDateTime, payMinutes, isBankHoliday);
+      const stackingPolicy =
+        ((payCard as { stackingPolicy?: string }).stackingPolicy as
+          | 'PRIORITY'
+          | 'HIGHEST'
+          | 'STACK'
+          | undefined) ?? 'PRIORITY';
+      const calc = calculatePayableAmount(
+        payRules,
+        row.plannedStartDateTime,
+        payMinutes,
+        isBankHoliday,
+        {
+          start: approvedPayStart,
+          end: approvedPayEnd,
+          stackingPolicy,
+          isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+        },
+      );
       payableAmount = calc?.amount ?? null;
     }
     if (chargeCard && billMinutes) {
@@ -892,6 +1037,69 @@ export class VisitReconciliationsService {
         isBankHoliday,
       );
       billableAmount = calc?.amount ?? null;
+    }
+
+    // Suggest inter-visit travel when not manually recorded (NMW working time between assignments).
+    let suggestedTravelMinutes: number | null | undefined;
+    let suggestedUnpaidTravelMinutes: number | null | undefined;
+    if (
+      row.employeeId &&
+      approvedPayStart &&
+      approvedPayEnd &&
+      !(row.travelMinutes != null && row.travelMinutes > 0) &&
+      !((row as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes != null &&
+        ((row as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0) > 0)
+    ) {
+      const prev = await db.visitReconciliation.findFirst({
+        where: {
+          employeeId: row.employeeId,
+          id: { not: id },
+          approvedPayEnd: { not: null, lte: approvedPayStart },
+          approvedPayStart: { not: null },
+        },
+        orderBy: { approvedPayEnd: 'desc' },
+        select: {
+          id: true,
+          visitRef: true,
+          employeeId: true,
+          serviceUserId: true,
+          approvedPayStart: true,
+          approvedPayEnd: true,
+          travelMinutes: true,
+        },
+      });
+      if (prev?.employeeId && prev.approvedPayStart && prev.approvedPayEnd) {
+        const journeys = detectInterVisitTravel([
+          {
+            reconciliationId: prev.id,
+            employeeId: prev.employeeId,
+            visitRef: prev.visitRef,
+            payStart: prev.approvedPayStart,
+            payEnd: prev.approvedPayEnd,
+            serviceUserId: prev.serviceUserId,
+          },
+          {
+            reconciliationId: id,
+            employeeId: row.employeeId,
+            visitRef: row.visitRef,
+            payStart: approvedPayStart,
+            payEnd: approvedPayEnd,
+            serviceUserId: row.serviceUserId,
+            manualTravelMinutes: row.travelMinutes,
+            manualUnpaidTravelMinutes:
+              (row as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? null,
+          },
+        ]);
+        const auto = summariseTravelForDestination(journeys, id);
+        if (auto.payableTravelMinutes > 0 || auto.payableWaitingMinutes > 0) {
+          suggestedTravelMinutes =
+            auto.payableTravelMinutes > 0
+              ? auto.payableTravelMinutes
+              : auto.payableWaitingMinutes;
+        } else if (auto.nmwMinutes > 0) {
+          suggestedUnpaidTravelMinutes = auto.nmwMinutes;
+        }
+      }
     }
 
     await db.financeException.deleteMany({ where: { visitReconciliationId: id } });
@@ -923,7 +1131,14 @@ export class VisitReconciliationsService {
         billableAmount: billableAmount != null ? billableAmount : null,
         overrunMinutes: computedOverrun,
         overrunDecision,
+        payCardVersion: payCard
+          ? ((payCard as { version?: number }).version ?? null)
+          : null,
         lastEvaluatedAt: new Date(),
+        ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
+        ...(suggestedUnpaidTravelMinutes != null
+          ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
+          : {}),
       },
     });
   }
@@ -977,7 +1192,21 @@ export class VisitReconciliationsService {
       suIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: suIds } },
-            select: { id: true, firstName: true, lastName: true, preferredName: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+              serviceUserNumber: true,
+              careType: { select: { code: true } },
+              address: {
+                select: {
+                  addressLine1: true,
+                  addressLine2: true,
+                  postcode: true,
+                },
+              },
+            },
           })
         : [],
       empIds.length
@@ -991,7 +1220,7 @@ export class VisitReconciliationsService {
         : [],
     ]);
 
-    const suMap = new Map(serviceUsers.map((su) => [su.id, formatPersonName(su)]));
+    const suById = new Map(serviceUsers.map((su) => [su.id, su]));
     const empMap = new Map(
       employees.map((e) => [
         e.id,
@@ -1002,34 +1231,61 @@ export class VisitReconciliationsService {
       ]),
     );
 
-    return rows.map((row) => ({
-      id: row.id,
-      visitRef: row.visitRef,
-      scheduledVisitId: row.scheduledVisitId,
-      scheduledJobId: row.scheduledJobId,
-      serviceUserId: row.serviceUserId,
-      serviceUserName: suMap.get(row.serviceUserId) ?? 'Unknown',
-      employeeId: row.employeeId,
-      carerName: row.employeeId ? (empMap.get(row.employeeId) ?? null) : null,
-      date: formatDateOnly(row.plannedStartDateTime),
-      planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime),
-      actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime),
-      approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd),
-      approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd),
-      payableAmount:
-        row.payableAmount != null ? `£${Number(row.payableAmount).toFixed(2)}` : null,
-      billableAmount:
-        row.billableAmount != null ? `£${Number(row.billableAmount).toFixed(2)}` : null,
-      travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
-      travelMinutes: row.travelMinutes ?? null,
-      currency: row.currency,
-      status: row.status,
-      exceptions: row.exceptions.map((e) => e.code),
-      overrunMinutes: row.overrunMinutes ?? null,
-      overrunReason: row.overrunReason ?? null,
-      overrunDecision: row.overrunDecision ?? null,
-      approvalNotes: row.approvalNotes ?? null,
-    }));
+    return rows.map((row) => {
+      const su = suById.get(row.serviceUserId);
+      const emonitored = resolveEmonitored(row.actualStartDateTime, row.actualEndDateTime);
+      const clientAddress = [su?.address?.addressLine1, su?.address?.addressLine2]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      return {
+        id: row.id,
+        visitRef: row.visitRef,
+        scheduledVisitId: row.scheduledVisitId,
+        scheduledJobId: row.scheduledJobId,
+        serviceUserId: row.serviceUserId,
+        serviceUserName: su ? formatPersonName(su) : 'Unknown',
+        employeeId: row.employeeId,
+        carerName: row.employeeId ? (empMap.get(row.employeeId) ?? null) : null,
+        date: formatDateOnly(row.plannedStartDateTime),
+        planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime),
+        actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime),
+        approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd),
+        approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd),
+        payableAmount:
+          row.payableAmount != null ? `£${Number(row.payableAmount).toFixed(2)}` : null,
+        billableAmount:
+          row.billableAmount != null ? `£${Number(row.billableAmount).toFixed(2)}` : null,
+        travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
+        travelMinutes: row.travelMinutes ?? null,
+        currency: row.currency,
+        status: row.status,
+        exceptions: row.exceptions.map((e) => e.code),
+        overrunMinutes: row.overrunMinutes ?? null,
+        overrunReason: row.overrunReason ?? null,
+        overrunDecision: row.overrunDecision ?? null,
+        approvalNotes: row.approvalNotes ?? null,
+        emonitored,
+        clientId: su?.serviceUserNumber?.trim() || '',
+        clientFirstName: su?.firstName ?? '',
+        clientSecondName: su?.lastName ?? '',
+        clientAddress,
+        clientPostCode: su?.address?.postcode?.trim() || '',
+        visitDate: formatVisitDateMmDdYy(row.plannedStartDateTime),
+        careType: resolveCareTypeExportCode(su?.careType?.code),
+        plannedArrival: formatTimeHhMmSs(row.plannedStartDateTime),
+        plannedDeparture: formatTimeHhMmSsOrZero(row.plannedEndDateTime),
+        actualArrival:
+          emonitored === 'LOGGED'
+            ? formatTimeHhMmSs(row.actualStartDateTime!)
+            : '00:00:00',
+        actualDeparture:
+          emonitored === 'LOGGED'
+            ? formatTimeHhMmSs(row.actualEndDateTime!)
+            : '00:00:00',
+      };
+    });
   }
 
   private async buildCalculationPreview(row: ReconciliationRow) {
@@ -1075,11 +1331,18 @@ export class VisitReconciliationsService {
         }),
         this.prisma.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
       ]);
-      carerPay = buildPayRateBreakdown(payRules, row.plannedStartDateTime, payMinutes, {
-        cardName: payCard?.name ?? null,
-        cardCode: payCard?.code ?? null,
-        cardSource: row.payCardSource,
-      }, isBankHoliday);
+      carerPay = buildPayRateBreakdown(
+        payRules,
+        row.plannedStartDateTime,
+        payMinutes,
+        {
+          cardName: payCard?.name ?? null,
+          cardCode: payCard?.code ?? null,
+          cardSource: row.payCardSource,
+        },
+        isBankHoliday,
+        { start: payStart, end: payEnd },
+      );
     }
 
     if (row.chargeCardId && billMinutes > 0) {

@@ -15,6 +15,7 @@ import {
 } from './dto/billing-cards.dto';
 import {
   buildEmploymentWhereForPayCard,
+  isPayCardEffective,
   normalizePayCardAssignmentInput,
   payCardListInclude,
   pickBestMatchingPayCard,
@@ -104,10 +105,17 @@ function mapPayRules(rules?: PayCardRuleDto[]) {
     rateType: rule.rateType ?? 'HOURLY',
     amount: rule.amount,
     multiplier: rule.multiplier ?? null,
+    additionalAmount: rule.additionalAmount ?? null,
+    percentageUplift: rule.percentageUplift ?? null,
+    enhancementMethod: rule.enhancementMethod ?? null,
     minimumMinutes: rule.minimumMinutes ?? null,
     roundingRule: rule.roundingRule?.trim() || null,
     priority: rule.priority ?? 0,
     sortOrder: rule.sortOrder ?? index,
+    appliesToVisit: rule.appliesToVisit ?? true,
+    appliesToTravel: rule.appliesToTravel ?? false,
+    appliesToWaiting: rule.appliesToWaiting ?? false,
+    appliesToTraining: rule.appliesToTraining ?? false,
   }));
 }
 
@@ -173,12 +181,30 @@ export class PayCardsService {
             ...assignment,
             currency: dto.currency?.trim() || 'GBP',
             status: dto.status ?? 'DRAFT',
+            stackingPolicy: (dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK') ?? 'PRIORITY',
+            nation: dto.nation?.trim() || 'ENG',
+            payFrequency: dto.payFrequency ?? 'WEEKLY',
+            holidayPayMethod: (dto.holidayPayMethod as
+              | 'ACCRUAL_WHEN_TAKEN'
+              | 'ROLLED_UP_12_07'
+              | 'REFERENCE_52_WEEK'
+              | 'CONTRACTUAL_ABOVE_STATUTORY'
+              | undefined) ?? null,
+            travelInheritsTimeBands: dto.travelInheritsTimeBands ?? false,
+            useUkMileageRates: dto.useUkMileageRates ?? true,
+            mileageVehicleType: (dto.mileageVehicleType as
+              | 'CAR_VAN'
+              | 'MOTORCYCLE'
+              | 'BICYCLE'
+              | 'COMPANY_VEHICLE'
+              | 'PUBLIC_TRANSPORT'
+              | undefined) ?? 'CAR_VAN',
             effectiveFrom: parseDateOnly(dto.effectiveFrom),
             effectiveTo: dto.effectiveTo ? parseDateOnly(dto.effectiveTo) : null,
             notes: dto.notes?.trim() || null,
             createdById: userId,
-            rules: { create: mapPayRules(dto.rules) },
-          },
+            rules: { create: mapPayRules(dto.rules) as Prisma.PayCardRuleCreateWithoutPayCardInput[] },
+          } as Prisma.PayCardCreateInput,
           include: payCardListInclude,
         });
       });
@@ -229,14 +255,43 @@ export class PayCardsService {
             ...(assignment ?? {}),
             ...(dto.currency !== undefined ? { currency: dto.currency.trim() } : {}),
             ...(dto.status !== undefined ? { status: dto.status } : {}),
+            ...(dto.stackingPolicy !== undefined
+              ? { stackingPolicy: dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' }
+              : {}),
+            ...(dto.nation !== undefined ? { nation: dto.nation.trim() || null } : {}),
+            ...(dto.payFrequency !== undefined ? { payFrequency: dto.payFrequency } : {}),
+            ...(dto.holidayPayMethod !== undefined
+              ? {
+                  holidayPayMethod: (dto.holidayPayMethod as
+                    | 'ACCRUAL_WHEN_TAKEN'
+                    | 'ROLLED_UP_12_07'
+                    | 'REFERENCE_52_WEEK'
+                    | 'CONTRACTUAL_ABOVE_STATUTORY'
+                    | null) ?? null,
+                }
+              : {}),
+            ...(dto.travelInheritsTimeBands !== undefined
+              ? { travelInheritsTimeBands: dto.travelInheritsTimeBands }
+              : {}),
+            ...(dto.useUkMileageRates !== undefined ? { useUkMileageRates: dto.useUkMileageRates } : {}),
+            ...(dto.mileageVehicleType !== undefined
+              ? {
+                  mileageVehicleType: dto.mileageVehicleType as
+                    | 'CAR_VAN'
+                    | 'MOTORCYCLE'
+                    | 'BICYCLE'
+                    | 'COMPANY_VEHICLE'
+                    | 'PUBLIC_TRANSPORT',
+                }
+              : {}),
             ...(dto.effectiveFrom !== undefined ? { effectiveFrom: parseDateOnly(dto.effectiveFrom) } : {}),
             ...(dto.effectiveTo !== undefined
               ? { effectiveTo: dto.effectiveTo ? parseDateOnly(dto.effectiveTo) : null }
               : {}),
             ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
             updatedById: userId,
-            ...(dto.rules ? { rules: { create: mapPayRules(dto.rules) } } : {}),
-          },
+            ...(dto.rules ? { rules: { create: mapPayRules(dto.rules) as Prisma.PayCardRuleCreateWithoutPayCardInput[] } } : {}),
+          } as Prisma.PayCardUpdateInput,
           include: payCardListInclude,
         });
       });
@@ -326,7 +381,8 @@ export class PayCardsService {
     };
   }
 
-  async resolveForEmployee(employeeId: string) {
+  async resolveForEmployee(employeeId: string, at?: Date) {
+    const asOf = at ?? new Date();
     const employment = await this.prisma.employeeEmployment.findFirst({
       where: { employeeId, deletedAt: null, employee: { deletedAt: null } },
       include: {
@@ -336,13 +392,22 @@ export class PayCardsService {
     if (!employment) throw new NotFoundException('Employee employment record not found');
 
     if (employment.defaultPayCard) {
-      return {
-        data: {
-          source: 'EXPLICIT' as const,
-          payCard: employment.defaultPayCard,
-          matchedLevel: null,
-        },
-      };
+      const card = employment.defaultPayCard;
+      if (card.deletedAt) {
+        // fall through to matching
+      } else if (
+        card.status === 'ACTIVE' &&
+        isPayCardEffective(card, asOf)
+      ) {
+        return {
+          data: {
+            source: 'EXPLICIT' as const,
+            payCard: card,
+            matchedLevel: null,
+          },
+        };
+      }
+      // Expired / inactive explicit card: fall back to hierarchy rather than silently use it.
     }
 
     const cards = await this.prisma.payCard.findMany({
@@ -351,6 +416,7 @@ export class PayCardsService {
     });
     const matched = pickBestMatchingPayCard(
       {
+        employeeId,
         roleId: employment.roleId,
         locationId: employment.locationId,
         baseLocationId: employment.baseLocationId,
@@ -359,6 +425,7 @@ export class PayCardsService {
         isBankStaff: employment.isBankStaff,
       },
       cards,
+      { at: asOf },
     );
 
     if (!matched) {

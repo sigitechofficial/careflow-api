@@ -10,7 +10,7 @@ import {
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBillingRunDto } from './dto/billing-runs.dto';
+import { CreateBillingRunDto, EmployeeEarningsQueryDto } from './dto/billing-runs.dto';
 import {
   endOfBillingDate,
   formatMoney,
@@ -20,9 +20,22 @@ import {
 import {
   calculateMileageAmount,
   calculateTravelTimeAmount,
+  calculateWaitingTimeAmount,
   formatMinutesAsHours,
   formatTimeRange,
 } from './visit-reconciliation.util';
+import { calculateUkMileage } from './pay-mileage.util';
+import {
+  detectInterVisitTravel,
+  summariseTravelForDestination,
+} from './pay-inter-visit-travel.util';
+import {
+  estimateEmployerCost,
+  resolveNmwCategory,
+  validateMinimumWage,
+  ageInFullYears,
+  type NmwPayComponent,
+} from './pay-compliance.util';
 import {
   buildPayrollRunVisitLogCsv,
   formatPayAmount,
@@ -329,9 +342,34 @@ export class PayrollRunsService {
       orderBy: { approvedPayStart: 'asc' },
     });
 
+    // Auto inter-visit travel (HMRC: travel between assignments is NMW working time).
+    const autoJourneys = detectInterVisitTravel(
+      reconciliations
+        .filter((r) => r.employeeId && r.approvedPayStart && r.approvedPayEnd)
+        .map((r) => ({
+          reconciliationId: r.id,
+          employeeId: r.employeeId!,
+          visitRef: r.visitRef,
+          payStart: r.approvedPayStart!,
+          payEnd: r.approvedPayEnd!,
+          manualTravelMinutes: r.travelMinutes,
+          manualUnpaidTravelMinutes:
+            (r as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? null,
+          serviceUserId: r.serviceUserId,
+        })),
+    );
+    const autoByDestination = new Map(
+      [...new Set(autoJourneys.map((j) => j.toReconciliationId))].map((id) => [
+        id,
+        summariseTravelForDestination(autoJourneys, id),
+      ]),
+    );
+
     const lineData: Prisma.PayrollRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
     const employeeIds = new Set<string>();
+    /** Auto unpaid NMW travel minutes not covered by paid TRAVEL_TIME / WAITING_TIME lines. */
+    const autoUnpaidNmwByEmployee = new Map<string, number>();
 
     for (const recon of reconciliations) {
       const issues: string[] = [];
@@ -359,17 +397,76 @@ export class PayrollRunsService {
         exceptionMessage: issues.length ? issues.join('; ') : null,
       });
 
-      // Mileage / travel time supplements from pay card rates × approved journey values.
+      const auto = autoByDestination.get(recon.id);
+      if (auto?.requiresManagerReview && recon.employeeId && !issues.length) {
+        exceptionCount += 1;
+      }
+
+      // Mileage / travel / waiting supplements.
       if (recon.payCardId && recon.employeeId && !issues.length) {
+        const payCard = await this.prisma.payCard.findUnique({
+          where: { id: recon.payCardId },
+          select: {
+            mileageVehicleType: true,
+            useUkMileageRates: true,
+            version: true,
+          },
+        });
         const payRules = await this.prisma.payCardRule.findMany({
           where: { payCardId: recon.payCardId },
         });
         const visitDate = recon.plannedStartDateTime;
         const miles = recon.travelMiles != null ? Number(recon.travelMiles) : 0;
-        const travelMins = recon.travelMinutes ?? 0;
+        const manualTravelMins = recon.travelMinutes ?? 0;
+        const autoTravelMins = auto?.payableTravelMinutes ?? 0;
+        const autoWaitingMins = auto?.payableWaitingMinutes ?? 0;
+        // Prefer explicit manual minutes; otherwise use auto inter-visit detection.
+        const travelMins = manualTravelMins > 0 ? manualTravelMins : autoTravelMins;
+        const waitingMins = manualTravelMins > 0 ? 0 : autoWaitingMins;
+        const passengerMiles =
+          (recon as { passengerMiles?: unknown }).passengerMiles != null
+            ? Number((recon as { passengerMiles?: unknown }).passengerMiles)
+            : 0;
 
-        const mileage = calculateMileageAmount(payRules, visitDate, miles);
-        if (mileage) {
+        const taxYearStart = new Date(
+          Date.UTC(
+            visitDate.getUTCMonth() >= 3 ? visitDate.getUTCFullYear() : visitDate.getUTCFullYear() - 1,
+            3,
+            6,
+          ),
+        );
+        const priorMileage = await this.prisma.payrollRunLine.aggregate({
+          where: {
+            employeeId: recon.employeeId,
+            lineType: PayrollRunLineType.MILEAGE,
+            payrollRun: {
+              status: {
+                in: [PayrollRunStatus.APPROVED, PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED],
+              },
+              periodEnd: { gte: taxYearStart, lt: run.periodStart },
+            },
+          },
+          _sum: { amount: true },
+        });
+        const cardMileageRate = calculateMileageAmount(payRules, visitDate, 1)?.unitRate ?? 0.55;
+        const priorAmount = Number(priorMileage._sum.amount ?? 0);
+        const ytdBusinessMiles =
+          cardMileageRate > 0 ? Math.max(0, priorAmount / cardMileageRate) : 0;
+
+        const cardMileage = calculateMileageAmount(payRules, visitDate, miles);
+        const ukMileage =
+          miles > 0
+            ? calculateUkMileage({
+                miles,
+                vehicleType: (payCard?.mileageVehicleType as 'CAR_VAN') ?? 'CAR_VAN',
+                cardRatePerMile: cardMileage?.unitRate ?? null,
+                useUkApprovedRates: payCard?.useUkMileageRates ?? true,
+                ytdBusinessMiles,
+                passengerMiles,
+              })
+            : null;
+
+        if (ukMileage) {
           lineData.push({
             payrollRunId: id,
             visitReconciliationId: recon.id,
@@ -377,22 +474,57 @@ export class PayrollRunsService {
             lineType: PayrollRunLineType.MILEAGE,
             description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
             minutes: null,
-            unitAmount: mileage.unitRate,
-            amount: mileage.amount,
+            unitAmount: ukMileage.unitRate,
+            amount: ukMileage.amount,
+            payCardId: recon.payCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: null,
+          });
+          if (ukMileage.passengerAmount > 0) {
+            lineData.push({
+              payrollRunId: id,
+              visitReconciliationId: recon.id,
+              employeeId: recon.employeeId,
+              lineType: 'PASSENGER_MILEAGE' as PayrollRunLineType,
+              description: `Passenger mileage — ${recon.visitRef}`,
+              minutes: null,
+              unitAmount: 0.05,
+              amount: ukMileage.passengerAmount,
+              payCardId: recon.payCardId,
+              visitRef: recon.visitRef,
+              exceptionMessage: null,
+            });
+          }
+        } else if (cardMileage) {
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: recon.id,
+            employeeId: recon.employeeId,
+            lineType: PayrollRunLineType.MILEAGE,
+            description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
+            minutes: null,
+            unitAmount: cardMileage.unitRate,
+            amount: cardMileage.amount,
             payCardId: recon.payCardId,
             visitRef: recon.visitRef,
             exceptionMessage: null,
           });
         }
 
+        let paidTravelMins = 0;
         const travel = calculateTravelTimeAmount(payRules, visitDate, travelMins);
         if (travel) {
+          paidTravelMins = travelMins;
+          const autoNote =
+            manualTravelMins <= 0 && autoTravelMins > 0
+              ? ` [auto inter-visit: ${(auto?.explanations ?? []).join('; ')}]`
+              : '';
           lineData.push({
             payrollRunId: id,
             visitReconciliationId: recon.id,
             employeeId: recon.employeeId,
             lineType: PayrollRunLineType.TRAVEL_TIME,
-            description: `Travel time — ${recon.visitRef} (${travelMins} min)`,
+            description: `Travel time — ${recon.visitRef} (${travelMins} min)${autoNote}`,
             minutes: travelMins,
             unitAmount: travel.unitRate,
             amount: travel.amount,
@@ -401,31 +533,227 @@ export class PayrollRunsService {
             exceptionMessage: null,
           });
         }
+
+        let paidWaitingMins = 0;
+        const waiting = calculateWaitingTimeAmount(payRules, visitDate, waitingMins);
+        if (waiting) {
+          paidWaitingMins = waitingMins;
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: recon.id,
+            employeeId: recon.employeeId,
+            lineType: 'WAITING_TIME' as PayrollRunLineType,
+            description: `Waiting time — ${recon.visitRef} (${waitingMins} min) [auto inter-visit]`,
+            minutes: waitingMins,
+            unitAmount: waiting.unitRate,
+            amount: waiting.amount,
+            payCardId: recon.payCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: null,
+          });
+        }
+
+        // NMW: remaining auto travel/wait hours that were not paid as wages still count as hours.
+        const manualUnpaid =
+          (recon as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0;
+        const autoNmw = auto?.nmwMinutes ?? 0;
+        const unpaidForNmw = Math.max(
+          manualUnpaid,
+          Math.max(0, autoNmw - paidTravelMins - paidWaitingMins),
+        );
+        if (unpaidForNmw > 0) {
+          autoUnpaidNmwByEmployee.set(
+            recon.employeeId,
+            (autoUnpaidNmwByEmployee.get(recon.employeeId) ?? 0) + unpaidForNmw,
+          );
+        }
+      } else if (recon.employeeId && !issues.length) {
+        // No pay card — still surface auto travel as unpaid NMW hours.
+        const auto = autoByDestination.get(recon.id);
+        const unpaid =
+          Math.max(
+            (recon as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0,
+            auto?.nmwMinutes ?? 0,
+          );
+        if (unpaid > 0) {
+          autoUnpaidNmwByEmployee.set(
+            recon.employeeId,
+            (autoUnpaidNmwByEmployee.get(recon.employeeId) ?? 0) + unpaid,
+          );
+        }
       }
     }
 
-    const grossPay = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
+    // Pay-reference-period NMW validation per worker (DOB-derived age; unpaid travel hours included).
+    const nmwByEmployee = new Map<string, NmwPayComponent[]>();
+    for (const line of lineData) {
+      if (!line.employeeId) continue;
+      const isExpense =
+        line.lineType === PayrollRunLineType.MILEAGE ||
+        line.lineType === ('PASSENGER_MILEAGE' as PayrollRunLineType) ||
+        line.lineType === ('EXPENSE' as PayrollRunLineType);
+      const list = nmwByEmployee.get(line.employeeId) ?? [];
+      list.push({
+        amount: Number(line.amount),
+        includesInNmwPay: !isExpense && line.lineType !== PayrollRunLineType.NMW_TOP_UP,
+        countsAsNmwHours:
+          line.lineType === PayrollRunLineType.VISIT_PAY ||
+          line.lineType === PayrollRunLineType.TRAVEL_TIME ||
+          line.lineType === ('WAITING_TIME' as PayrollRunLineType),
+        hours: line.minutes != null ? line.minutes / 60 : 0,
+      });
+      nmwByEmployee.set(line.employeeId, list);
+    }
+
+    for (const [employeeId, unpaidMins] of autoUnpaidNmwByEmployee) {
+      if (unpaidMins <= 0) continue;
+      const list = nmwByEmployee.get(employeeId) ?? [];
+      list.push({
+        amount: 0,
+        includesInNmwPay: true,
+        countsAsNmwHours: true,
+        hours: unpaidMins / 60,
+      });
+      nmwByEmployee.set(employeeId, list);
+    }
+
+    let nmwTopUpTotal = 0;
+    let nmwExceptionBump = 0;
+    for (const [employeeId, components] of nmwByEmployee) {
+      const employment = await this.prisma.employeeEmployment.findFirst({
+        where: { employeeId, deletedAt: null },
+        select: {
+          contractType: { select: { name: true } },
+          employee: { select: { personalDetail: { select: { dateOfBirth: true } } } },
+        },
+      });
+      const dob = employment?.employee?.personalDetail?.dateOfBirth ?? null;
+      const ageOnPayPeriodEnd = dob
+        ? ageInFullYears(dob, run.periodEnd)
+        : 21;
+      const isApprentice = /apprentice/i.test(employment?.contractType?.name ?? '');
+      const category = resolveNmwCategory({
+        ageOnPayPeriodEnd,
+        isApprentice,
+        apprenticeEligible: isApprentice,
+      });
+      const nmw = validateMinimumWage({
+        category,
+        components,
+        asOf: run.periodEnd,
+      });
+      if (!nmw.compliant && nmw.topUp > 0) {
+        nmwTopUpTotal += nmw.topUp;
+        nmwExceptionBump += 1;
+        const anyRecon = lineData.find((l) => l.employeeId === employeeId);
+        if (anyRecon) {
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: anyRecon.visitReconciliationId,
+            employeeId,
+            lineType: PayrollRunLineType.NMW_TOP_UP,
+            description: `NMW top-up — ${nmw.explanation}`,
+            minutes: null,
+            amount: nmw.topUp,
+            payCardId: anyRecon.payCardId ?? null,
+            visitRef: anyRecon.visitRef ?? null,
+            exceptionMessage: null,
+          });
+        }
+      }
+    }
+
+    const grossPay = lineData
+      .filter(
+        (l) =>
+          l.lineType !== PayrollRunLineType.MILEAGE &&
+          l.lineType !== ('PASSENGER_MILEAGE' as PayrollRunLineType) &&
+          l.lineType !== ('EXPENSE' as PayrollRunLineType),
+      )
+      .reduce((sum, l) => sum + Number(l.amount), 0);
+    const expenseTotal = lineData
+      .filter(
+        (l) =>
+          l.lineType === PayrollRunLineType.MILEAGE ||
+          l.lineType === ('PASSENGER_MILEAGE' as PayrollRunLineType) ||
+          l.lineType === ('EXPENSE' as PayrollRunLineType),
+      )
+      .reduce((sum, l) => sum + Number(l.amount), 0);
+
+    const employer = estimateEmployerCost({
+      grossPay,
+      mileageAndExpenses: expenseTotal,
+      payFrequency: 'WEEKLY',
+    });
+
+    const totalExceptions = exceptionCount + nmwExceptionBump;
+
+    const componentRows = lineData
+      .filter((l) => l.employeeId && Number(l.amount) !== 0)
+      .map((l) => ({
+        workerId: l.employeeId!,
+        visitReconciliationId: l.visitReconciliationId,
+        payrollRunId: id,
+        componentType: String(l.lineType),
+        sourceDurationMinutes: l.minutes ?? null,
+        approvedDurationMinutes: l.minutes ?? null,
+        appliedRate: l.unitAmount != null ? Number(l.unitAmount) : null,
+        amount: Number(l.amount),
+        taxable:
+          l.lineType !== PayrollRunLineType.MILEAGE &&
+          l.lineType !== ('PASSENGER_MILEAGE' as PayrollRunLineType),
+        pensionable:
+          l.lineType !== PayrollRunLineType.MILEAGE &&
+          l.lineType !== ('PASSENGER_MILEAGE' as PayrollRunLineType),
+        nmwInclusion:
+          l.lineType !== PayrollRunLineType.MILEAGE &&
+          l.lineType !== ('PASSENGER_MILEAGE' as PayrollRunLineType),
+        approvalStatus: 'AUTO',
+        calculationExplanation: l.description,
+        rateCardId: l.payCardId ?? null,
+        rateCardVersion: null as number | null,
+      }));
 
     await this.prisma.$transaction(async (tx) => {
       await tx.payrollRunLine.deleteMany({ where: { payrollRunId: id } });
+      try {
+        await (tx as { payComponent?: { deleteMany: Function } }).payComponent?.deleteMany({
+          where: { payrollRunId: id },
+        });
+      } catch {
+        // PayComponent table may not exist until migrate.
+      }
       if (lineData.length) {
         await tx.payrollRunLine.createMany({ data: lineData });
+      }
+      if (componentRows.length) {
+        try {
+          await (tx as { payComponent: { createMany: Function } }).payComponent.createMany({
+            data: componentRows,
+          });
+        } catch {
+          // Ignore if migration not applied yet.
+        }
       }
       await tx.payrollRun.update({
         where: { id },
         data: {
           status:
-            exceptionCount > 0
+            totalExceptions > 0
               ? PayrollRunStatus.EXCEPTION_FOUND
               : lineData.length
                 ? PayrollRunStatus.READY_FOR_REVIEW
                 : PayrollRunStatus.DRAFT,
           carerCount: employeeIds.size,
           visitLineCount: lineData.filter((l) => l.lineType === PayrollRunLineType.VISIT_PAY).length,
-          grossPay,
-          nmwTopUp: 0,
-          exceptionCount,
-        },
+          grossPay: grossPay + nmwTopUpTotal,
+          nmwTopUp: nmwTopUpTotal,
+          expenseTotal,
+          estimatedEmployerNi: employer.employerNi,
+          estimatedEmployerPension: employer.employerPension,
+          estimatedEmployerCost: employer.totalEmploymentCost,
+          exceptionCount: totalExceptions,
+        } as Prisma.PayrollRunUpdateInput,
       });
     });
 
@@ -677,6 +1005,225 @@ export class PayrollRunsService {
         grossPay: formatPayAmount(totals?.pay ?? 0),
       };
     });
+  }
+
+  /**
+   * Employee earnings summary for the HR profile Earnings tab.
+   * Paid = included in a LOCKED/EXPORTED payroll run.
+   * Remaining = approved for pay but not yet in a locked payroll run.
+   */
+  async getEmployeeEarnings(employeeId: string, query: EmployeeEarningsQueryDto) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const plannedDateFilter: Prisma.DateTimeFilter | undefined =
+      query.dateFrom || query.dateTo
+        ? {
+            ...(query.dateFrom ? { gte: parseBillingDateOnly(query.dateFrom) } : {}),
+            ...(query.dateTo ? { lte: endOfBillingDate(query.dateTo) } : {}),
+          }
+        : undefined;
+
+    const visitDateWhere: Prisma.VisitReconciliationWhereInput = {
+      employeeId,
+      ...(plannedDateFilter ? { plannedStartDateTime: plannedDateFilter } : {}),
+    };
+
+    const paidStatuses: PayrollRunStatus[] = [
+      PayrollRunStatus.LOCKED,
+      PayrollRunStatus.EXPORTED,
+    ];
+
+    const paidLineWhere: Prisma.PayrollRunLineWhereInput = {
+      employeeId,
+      payrollRun: { status: { in: paidStatuses } },
+      ...(plannedDateFilter
+        ? { visitReconciliation: { plannedStartDateTime: plannedDateFilter } }
+        : {}),
+    };
+
+    const remainingWhere: Prisma.VisitReconciliationWhereInput = {
+      ...visitDateWhere,
+      includedInPayrollRunId: null,
+      status: { in: PAYROLL_ELIGIBLE_RECON },
+    };
+
+    const pendingWhere: Prisma.VisitReconciliationWhereInput = {
+      ...visitDateWhere,
+      includedInPayrollRunId: null,
+      status: {
+        in: [
+          VisitReconciliationStatus.PENDING_REVIEW,
+          VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+        ],
+      },
+    };
+
+    const [
+      paidAggregate,
+      paidVisitGroups,
+      remainingAmountAgg,
+      remainingVisitCount,
+      pendingCount,
+      visitRows,
+    ] = await Promise.all([
+      this.prisma.payrollRunLine.aggregate({
+        where: paidLineWhere,
+        _sum: { amount: true },
+      }),
+      this.prisma.payrollRunLine.groupBy({
+        by: ['visitReconciliationId'],
+        where: {
+          ...paidLineWhere,
+          lineType: PayrollRunLineType.VISIT_PAY,
+        },
+      }),
+      this.prisma.visitReconciliation.aggregate({
+        where: remainingWhere,
+        _sum: { payableAmount: true },
+      }),
+      this.prisma.visitReconciliation.count({ where: remainingWhere }),
+      this.prisma.visitReconciliation.count({ where: pendingWhere }),
+      this.prisma.visitReconciliation.findMany({
+        where: {
+          employeeId,
+          ...(plannedDateFilter ? { plannedStartDateTime: plannedDateFilter } : {}),
+          OR: [
+            { includedInPayrollRunId: { not: null } },
+            { status: { in: PAYROLL_ELIGIBLE_RECON } },
+            {
+              status: {
+                in: [
+                  VisitReconciliationStatus.PENDING_REVIEW,
+                  VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+                ],
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          visitRef: true,
+          serviceUserId: true,
+          plannedStartDateTime: true,
+          plannedEndDateTime: true,
+          approvedPayStart: true,
+          approvedPayEnd: true,
+          payableAmount: true,
+          payableMinutes: true,
+          status: true,
+          includedInPayrollRunId: true,
+          includedInPayrollRun: {
+            select: {
+              id: true,
+              periodLabel: true,
+              periodStart: true,
+              periodEnd: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: { plannedStartDateTime: 'desc' },
+        take: 100,
+      }),
+    ]);
+
+    const totalEarned = Number(paidAggregate._sum.amount ?? 0);
+    const remainingAmount = Number(remainingAmountAgg._sum.payableAmount ?? 0);
+
+    const serviceUserIds = [...new Set(visitRows.map((r) => r.serviceUserId))];
+    const serviceUsers = serviceUserIds.length
+      ? await this.prisma.serviceUser.findMany({
+          where: { id: { in: serviceUserIds } },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            preferredName: true,
+            serviceUserNumber: true,
+          },
+        })
+      : [];
+    const suMap = new Map(
+      serviceUsers.map((su) => {
+        const name =
+          su.preferredName?.trim() ||
+          `${su.firstName} ${su.lastName}`.trim() ||
+          'Unknown';
+        const label = su.serviceUserNumber ? `${name} (${su.serviceUserNumber})` : name;
+        return [su.id, label] as const;
+      }),
+    );
+
+    const formatHm = (d: Date | null | undefined) => {
+      if (!d) return null;
+      return new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC',
+      }).format(d);
+    };
+
+    const visits = visitRows.map((row) => {
+      const paid = Boolean(row.includedInPayrollRunId);
+      const remaining =
+        !paid &&
+        (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+          row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
+      const paymentState = paid ? 'PAID' : remaining ? 'REMAINING' : 'PENDING';
+      const hours =
+        row.payableMinutes != null
+          ? formatMinutesAsHours(row.payableMinutes)
+          : null;
+
+      return {
+        id: row.id,
+        visitRef: row.visitRef,
+        serviceUserName: suMap.get(row.serviceUserId) ?? 'Unknown',
+        plannedStart: row.plannedStartDateTime.toISOString(),
+        plannedEnd: row.plannedEndDateTime?.toISOString() ?? null,
+        plannedTime:
+          row.plannedEndDateTime
+            ? `${formatHm(row.plannedStartDateTime)}–${formatHm(row.plannedEndDateTime)}`
+            : formatHm(row.plannedStartDateTime),
+        approvedPayStart: row.approvedPayStart?.toISOString() ?? null,
+        approvedPayEnd: row.approvedPayEnd?.toISOString() ?? null,
+        approvedPayTime:
+          row.approvedPayStart && row.approvedPayEnd
+            ? `${formatHm(row.approvedPayStart)}–${formatHm(row.approvedPayEnd)}`
+            : null,
+        payableAmount: formatMoney(Number(row.payableAmount ?? 0)),
+        payableMinutes: row.payableMinutes,
+        payableHours: hours,
+        status: row.status,
+        paymentState,
+        paid,
+        payrollRunId: row.includedInPayrollRun?.id ?? null,
+        payrollPeriod: row.includedInPayrollRun?.periodLabel ?? null,
+        payrollRunStatus: row.includedInPayrollRun?.status ?? null,
+      };
+    });
+
+    return {
+      data: {
+        employeeId,
+        dateFrom: query.dateFrom ?? null,
+        dateTo: query.dateTo ?? null,
+        currency: 'GBP',
+        totalEarned: formatMoney(totalEarned),
+        totalEarnedAmount: Math.round(totalEarned * 100) / 100,
+        paidVisitCount: paidVisitGroups.length,
+        remainingVisitCount,
+        remainingAmount: formatMoney(remainingAmount),
+        remainingAmountValue: Math.round(remainingAmount * 100) / 100,
+        pendingReviewCount: pendingCount,
+        visits,
+      },
+    };
   }
 
   private mapRow(row: {

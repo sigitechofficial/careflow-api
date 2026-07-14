@@ -59,6 +59,15 @@ export class VisitReconciliationsController {
     return this.service.backfill(dto);
   }
 
+  @Post('clear-all')
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({
+    summary: 'Delete all visit reconciliations (and dependent payroll/invoice lines)',
+  })
+  clearAll() {
+    return this.service.clearAll();
+  }
+
   @Post('bulk-approve')
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Bulk approve visit reconciliations without blocking exceptions' })

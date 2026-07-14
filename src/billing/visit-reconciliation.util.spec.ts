@@ -84,3 +84,44 @@ describe('pickBestRule nearest fixed slot', () => {
     expect(breakdown?.amount).toBe('£4.00');
   });
 });
+
+describe('calculatePayableAmount prefer banded over short fixed', () => {
+  it('uses banding when base hourly + evening premium exist even for 30-min visits', () => {
+    const start = new Date('2026-07-13T19:00:00.000Z');
+    const end = new Date('2026-07-13T19:30:00.000Z');
+    const rules = [
+      {
+        dayType: 'ANY',
+        rateType: 'HOURLY' as const,
+        amount: 14,
+        minimumMinutes: null,
+        priority: 0,
+        sortOrder: 0,
+        label: 'Base',
+      },
+      {
+        dayType: 'WEEKDAY' as const,
+        rateType: 'FIXED' as const,
+        amount: 7,
+        minimumMinutes: 30,
+        priority: 0,
+        sortOrder: 1,
+        label: '30m fixed',
+      },
+      {
+        dayType: 'WEEKDAY' as const,
+        startTime: '19:00',
+        endTime: '22:00',
+        rateType: 'HOURLY' as const,
+        amount: 16,
+        enhancementMethod: 'ABSOLUTE_HOURLY' as const,
+        priority: 5,
+        sortOrder: 2,
+        label: 'Evening',
+      },
+    ];
+    const result = calculatePayableAmount(rules, start, 30, false, { start, end });
+    expect(result?.label).toBe('BANDED_HOURLY');
+    expect(result?.amount).toBe(8); // 0.5h × £16
+  });
+});

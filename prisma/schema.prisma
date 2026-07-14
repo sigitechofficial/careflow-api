@@ -918,6 +918,10 @@ model EmployeeEmployment {
   workingPatternCycleWeeks Int @default(1)
   workingPatternCycleAnchorDate DateTime?
   defaultPayCardId      String? @db.Uuid
+  /** HolidayPayMethod enum value stored as string for cross-schema safety. */
+  holidayPayMethod      String?
+  guaranteedWeeklyHours Float?
+  individualBaseRate    Float?
 
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
@@ -928,6 +932,7 @@ model EmployeeEmployment {
   deletedById           String?  @db.Uuid
 
   employee              Employee @relation(fields: [employeeId], references: [id])
+
   workArea              WorkArea? @relation(fields: [workAreaId], references: [id])
   role                  EmployeeRoleLookup? @relation(fields: [roleId], references: [id])
   jobTitle              JobTitle? @relation(fields: [jobTitleId], references: [id])
@@ -5957,6 +5962,8 @@ enum BillingCardStatus {
 }
 
 enum PayCardAssignmentLevel {
+  INDIVIDUAL
+  CLIENT_FUNDER
   ROLE
   BRANCH
   EMPLOYMENT_TYPE
@@ -5965,6 +5972,7 @@ enum PayCardAssignmentLevel {
 
   @@schema("billing")
 }
+
 
 enum ChargeCardAssignmentLevel {
   SERVICE_USER
@@ -6000,10 +6008,53 @@ enum BillingDayType {
   SATURDAY
   SUNDAY
   BANK_HOLIDAY
+  CHRISTMAS
+  BOXING_DAY
+  NEW_YEAR
+  EASTER
+  SPECIAL
   ANY
 
   @@schema("billing")
 }
+
+enum PayStackingPolicy {
+  PRIORITY
+  HIGHEST
+  STACK
+
+  @@schema("billing")
+}
+
+enum PayEnhancementMethod {
+  ABSOLUTE_HOURLY
+  ADDITIONAL_PER_HOUR
+  PERCENTAGE_UPLIFT
+  MULTIPLIER
+  FIXED_SHIFT_ALLOWANCE
+
+  @@schema("billing")
+}
+
+enum HolidayPayMethod {
+  ACCRUAL_WHEN_TAKEN
+  ROLLED_UP_12_07
+  REFERENCE_52_WEEK
+  CONTRACTUAL_ABOVE_STATUTORY
+
+  @@schema("billing")
+}
+
+enum MileageVehicleType {
+  CAR_VAN
+  MOTORCYCLE
+  BICYCLE
+  COMPANY_VEHICLE
+  PUBLIC_TRANSPORT
+
+  @@schema("billing")
+}
+
 
 enum BillingFrequency {
   WEEKLY
@@ -6057,55 +6108,105 @@ enum InvoiceTemplateLayoutPreset {
 }
 
 model PayCard {
-  id                  String                 @id @default(uuid()) @db.Uuid
-  name                String
-  code                String                 @unique
-  assignmentLevel     PayCardAssignmentLevel @default(ORGANISATION_DEFAULT)
-  assignmentTargetId  String?                @db.Uuid
-  assignmentTargetKey String?
-  assignmentLabel     String?
-  currency            String                 @default("GBP")
-  status           BillingCardStatus      @default(DRAFT)
-  effectiveFrom    DateTime               @db.Date
-  effectiveTo      DateTime?              @db.Date
-  notes            String?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  deletedAt        DateTime?
-  createdById      String?                @db.Uuid
-  updatedById      String?                @db.Uuid
+  id                     String                 @id @default(uuid()) @db.Uuid
+  name                   String
+  code                   String
+
+  assignmentLevel        PayCardAssignmentLevel @default(ORGANISATION_DEFAULT)
+  assignmentTargetId     String?                @db.Uuid
+  assignmentTargetKey    String?
+  assignmentLabel        String?
+  currency               String                 @default("GBP")
+  nation                 String?                @default("ENG")
+  payFrequency           BillingFrequency       @default(WEEKLY)
+  version                Int                    @default(1)
+  stackingPolicy         PayStackingPolicy      @default(PRIORITY)
+  holidayPayMethod       HolidayPayMethod?
+  travelInheritsTimeBands Boolean               @default(false)
+  mileageVehicleType     MileageVehicleType     @default(CAR_VAN)
+  useUkMileageRates      Boolean                @default(true)
+  status                 BillingCardStatus      @default(DRAFT)
+  effectiveFrom          DateTime               @db.Date
+  effectiveTo            DateTime?              @db.Date
+  notes                  String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  deletedAt              DateTime?
+  createdById            String?                @db.Uuid
+  updatedById            String?                @db.Uuid
+  replacedById           String?                @db.Uuid
 
   rules              PayCardRule[]
   defaultEmployments EmployeeEmployment[] @relation("EmployeeDefaultPayCard")
+  payComponents      PayComponent[]
 
   @@index([deletedAt])
   @@index([status])
   @@index([assignmentLevel, assignmentTargetId])
   @@index([assignmentLevel, assignmentTargetKey])
+  @@unique([code, version])
   @@schema("billing")
 }
 
 model PayCardRule {
-  id             String          @id @default(uuid()) @db.Uuid
-  payCardId      String          @db.Uuid
-  label          String?
-  serviceType    String?
-  dayType        BillingDayType  @default(ANY)
-  startTime      String?
-  endTime        String?
-  rateType       BillingRateType @default(HOURLY)
-  amount         Decimal         @db.Decimal(12, 4)
-  multiplier     Decimal?        @db.Decimal(8, 4)
-  minimumMinutes Int?
-  roundingRule   String?
-  priority       Int             @default(0)
-  sortOrder      Int             @default(0)
+  id               String                @id @default(uuid()) @db.Uuid
+  payCardId        String                @db.Uuid
+  label            String?
+  serviceType      String?
+  dayType          BillingDayType        @default(ANY)
+  startTime        String?
+  endTime          String?
+  rateType         BillingRateType       @default(HOURLY)
+  amount           Decimal               @db.Decimal(12, 4)
+  multiplier       Decimal?              @db.Decimal(8, 4)
+  additionalAmount Decimal?              @db.Decimal(12, 4)
+  percentageUplift Decimal?              @db.Decimal(8, 4)
+  enhancementMethod PayEnhancementMethod?
+  minimumMinutes   Int?
+  roundingRule     String?
+  priority         Int                   @default(0)
+  sortOrder        Int                   @default(0)
+  appliesToVisit   Boolean               @default(true)
+  appliesToTravel  Boolean               @default(false)
+  appliesToWaiting Boolean               @default(false)
+  appliesToTraining Boolean              @default(false)
 
   payCard PayCard @relation(fields: [payCardId], references: [id], onDelete: Cascade)
 
   @@index([payCardId])
   @@schema("billing")
 }
+
+model PayComponent {
+  id                       String   @id @default(uuid()) @db.Uuid
+  workerId                 String   @db.Uuid
+  shiftOrVisitId           String?  @db.Uuid
+  payrollRunId             String?  @db.Uuid
+  visitReconciliationId    String?  @db.Uuid
+  componentType            String
+  sourceDurationMinutes    Int?
+  approvedDurationMinutes  Int?
+  appliedRate              Decimal? @db.Decimal(12, 4)
+  multiplier               Decimal? @db.Decimal(8, 4)
+  amount                   Decimal  @db.Decimal(12, 2)
+  taxable                  Boolean  @default(true)
+  pensionable              Boolean  @default(true)
+  nmwInclusion             Boolean  @default(true)
+  approvalStatus           String   @default("AUTO")
+  calculationExplanation   String
+  rateCardId               String?  @db.Uuid
+  rateCardVersion          Int?
+  createdAt                DateTime @default(now())
+
+  rateCard PayCard? @relation(fields: [rateCardId], references: [id], onDelete: SetNull)
+
+  @@index([workerId])
+  @@index([payrollRunId])
+  @@index([visitReconciliationId])
+  @@index([componentType])
+  @@schema("billing")
+}
+
 
 model ChargeCard {
   id                  String                    @id @default(uuid()) @db.Uuid
@@ -6252,7 +6353,7 @@ enum FinanceExceptionCode {
 
 model VisitReconciliation {
   id                   String                    @id @default(uuid()) @db.Uuid
-  scheduledVisitId     String                    @unique @db.Uuid
+  scheduledVisitId     String                    @db.Uuid
   scheduledJobId       String                    @db.Uuid
   serviceUserId        String                    @db.Uuid
   employeeId           String?                   @db.Uuid
@@ -6272,6 +6373,12 @@ model VisitReconciliation {
   billableAmount       Decimal?                  @db.Decimal(12, 2)
   travelMiles          Decimal?                  @db.Decimal(10, 2)
   travelMinutes        Int?
+  /** Qualifying unpaid travel minutes (NMW hours) not paid as TRAVEL_TIME wages. */
+  unpaidTravelMinutes  Int?
+  /** Passenger miles for AMAP passenger supplement (driver only). */
+  passengerMiles       Decimal?                  @db.Decimal(10, 2)
+  /** Snapshot of pay card version used when last evaluated. */
+  payCardVersion       Int?
   currency             String                    @default("GBP")
   status               VisitReconciliationStatus @default(PENDING_REVIEW)
   payCardId            String?                   @db.Uuid
@@ -6300,6 +6407,8 @@ model VisitReconciliation {
   includedInPayrollRun PayrollRun?               @relation("ReconciliationPayrollRun", fields: [includedInPayrollRunId], references: [id], onDelete: SetNull)
   includedInInvoiceRun InvoiceRun?               @relation("ReconciliationInvoiceRun", fields: [includedInInvoiceRunId], references: [id], onDelete: SetNull)
 
+  @@unique([scheduledVisitId, jobAllocationId])
+  @@index([scheduledVisitId])
   @@index([scheduledJobId])
   @@index([serviceUserId])
   @@index([employeeId])
@@ -6351,11 +6460,26 @@ enum PayrollRunLineType {
   VISIT_PAY
   MILEAGE
   TRAVEL_TIME
+  WAITING_TIME
   NMW_TOP_UP
+  SLEEP_IN
+  WAKING_NIGHT
+  ON_CALL_STANDBY
+  CALL_OUT
+  OVERTIME
+  NON_VISIT_ACTIVITY
+  CANCELLATION
+  DOUBLE_UP_SUPPLEMENT
+  HOLIDAY_PAY
+  ALLOWANCE
+  EXPENSE
+  PASSENGER_MILEAGE
+  EMPLOYER_COST_NOTE
   ADJUSTMENT
 
   @@schema("billing")
 }
+
 
 enum InvoiceRunStatus {
   DRAFT
@@ -6392,25 +6516,29 @@ enum BillingRunExportStatus {
 }
 
 model PayrollRun {
-  id              String           @id @default(uuid()) @db.Uuid
-  periodLabel     String
-  periodStart     DateTime         @db.Date
-  periodEnd       DateTime         @db.Date
-  status          PayrollRunStatus @default(DRAFT)
-  carerCount      Int              @default(0)
-  visitLineCount  Int              @default(0)
-  grossPay        Decimal          @default(0) @db.Decimal(12, 2)
-  nmwTopUp        Decimal          @default(0) @db.Decimal(12, 2)
-  exceptionCount  Int              @default(0)
-  currency        String           @default("GBP")
-  approvedAt      DateTime?
-  approvedById    String?          @db.Uuid
-  lockedAt        DateTime?
-  exportedAt      DateTime?
-  notes           String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  createdById     String?          @db.Uuid
+  id                       String           @id @default(uuid()) @db.Uuid
+  periodLabel              String
+  periodStart              DateTime         @db.Date
+  periodEnd                DateTime         @db.Date
+  status                   PayrollRunStatus @default(DRAFT)
+  carerCount               Int              @default(0)
+  visitLineCount           Int              @default(0)
+  grossPay                 Decimal          @default(0) @db.Decimal(12, 2)
+  nmwTopUp                 Decimal          @default(0) @db.Decimal(12, 2)
+  expenseTotal             Decimal          @default(0) @db.Decimal(12, 2)
+  estimatedEmployerNi      Decimal          @default(0) @db.Decimal(12, 2)
+  estimatedEmployerPension Decimal          @default(0) @db.Decimal(12, 2)
+  estimatedEmployerCost    Decimal          @default(0) @db.Decimal(12, 2)
+  exceptionCount           Int              @default(0)
+  currency                 String           @default("GBP")
+  approvedAt               DateTime?
+  approvedById             String?          @db.Uuid
+  lockedAt                 DateTime?
+  exportedAt               DateTime?
+  notes                    String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  createdById              String?          @db.Uuid
 
   lines                    PayrollRunLine[]
   lockedReconciliations    VisitReconciliation[] @relation("ReconciliationPayrollRun")

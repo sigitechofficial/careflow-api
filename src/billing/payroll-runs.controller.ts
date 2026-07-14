@@ -1,13 +1,13 @@
-import { Body, Controller, Get, Param, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { PayrollRunsService } from './payroll-runs.service';
-import { CreateBillingRunDto } from './dto/billing-runs.dto';
+import { CreateBillingRunDto, EmployeeEarningsQueryDto } from './dto/billing-runs.dto';
 
 @ApiTags('Billing — Payroll runs')
 @ApiBearerAuth()
@@ -21,6 +21,16 @@ export class PayrollRunsController {
   @ApiOperation({ summary: 'Payroll run draft summary for dashboard' })
   summary() {
     return this.service.getSummary();
+  }
+
+  @Get('employee/:employeeId/earnings')
+  @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
+  @ApiOperation({ summary: 'Employee earnings summary for profile Earnings tab' })
+  employeeEarnings(
+    @Param('employeeId') employeeId: string,
+    @Query() query: EmployeeEarningsQueryDto,
+  ) {
+    return this.service.getEmployeeEarnings(employeeId, query);
   }
 
   @Get()

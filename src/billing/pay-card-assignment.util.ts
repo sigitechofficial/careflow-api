@@ -7,11 +7,13 @@ export const PAY_CARD_WORKER_TYPE_KEYS = ['AGENCY', 'BANK', 'INTERNAL'] as const
 export type PayCardWorkerTypeKey = (typeof PAY_CARD_WORKER_TYPE_KEYS)[number];
 
 export const PAY_CARD_ASSIGNMENT_LEVEL_PRIORITY: Record<PayCardAssignmentLevel, number> = {
-  ROLE: 1,
-  BRANCH: 2,
-  EMPLOYMENT_TYPE: 3,
-  WORKER_TYPE: 4,
-  ORGANISATION_DEFAULT: 5,
+  INDIVIDUAL: 0,
+  CLIENT_FUNDER: 1,
+  ROLE: 2,
+  BRANCH: 3,
+  EMPLOYMENT_TYPE: 4,
+  WORKER_TYPE: 5,
+  ORGANISATION_DEFAULT: 6,
 };
 
 const activeAssignedEmploymentWhere = {
@@ -47,6 +49,7 @@ export const payCardListInclude = {
 } as const;
 
 export type EmploymentPayCardMatchInput = {
+  employeeId?: string | null;
   roleId: string | null;
   locationId: string | null;
   baseLocationId: string | null;
@@ -94,6 +97,7 @@ export function normalizePayCardAssignmentInput(input: {
     }
     return { assignmentTargetId: null, assignmentTargetKey: key };
   }
+  // INDIVIDUAL / CLIENT_FUNDER / ROLE / BRANCH / EMPLOYMENT_TYPE all need a target id
   const targetId = input.assignmentTargetId?.trim() || null;
   if (!targetId) {
     throw new BadRequestException('Assignment target is required for this pay card type');
@@ -138,6 +142,10 @@ export async function resolveAssignmentLabel(
       if (assignmentTargetKey === 'BANK') return 'Bank staff';
       return 'Internal staff';
     }
+    case 'INDIVIDUAL':
+      return assignmentTargetId ? `Individual worker` : 'Individual worker';
+    case 'CLIENT_FUNDER':
+      return assignmentTargetId ? 'Client / funder pay rate' : 'Client / funder';
     case 'ORGANISATION_DEFAULT':
       return 'Organisation default';
     default:
@@ -165,6 +173,11 @@ export function employmentMatchesPayCard(
       if (card.assignmentTargetKey === 'AGENCY') return employment.isAgencyStaff;
       if (card.assignmentTargetKey === 'BANK') return employment.isBankStaff;
       return !employment.isAgencyStaff && !employment.isBankStaff;
+    case 'INDIVIDUAL':
+      return !!card.assignmentTargetId && employment.employeeId === card.assignmentTargetId;
+    case 'CLIENT_FUNDER':
+      // Resolved at visit/funding level, not employment match alone.
+      return false;
     case 'ORGANISATION_DEFAULT':
       return true;
     default:
@@ -204,11 +217,21 @@ export function buildEmploymentWhereForPayCard(
   }
 }
 
-function isPayCardEffective(card: Pick<PayCard, 'effectiveFrom' | 'effectiveTo'>, at = new Date()) {
+export function isPayCardEffective(
+  card: Pick<{ effectiveFrom: Date; effectiveTo: Date | null }, 'effectiveFrom' | 'effectiveTo'>,
+  at = new Date(),
+) {
   const day = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
   if (card.effectiveFrom > day) return false;
   if (card.effectiveTo && card.effectiveTo < day) return false;
   return true;
+}
+
+function isPayCardEffectiveInternal(
+  card: Pick<PayCard, 'effectiveFrom' | 'effectiveTo'>,
+  at = new Date(),
+) {
+  return isPayCardEffective(card, at);
 }
 
 export function pickBestMatchingPayCard<T extends PayCard>(
@@ -220,7 +243,7 @@ export function pickBestMatchingPayCard<T extends PayCard>(
   const at = options?.at ?? new Date();
   const eligible = cards
     .filter(card => statuses.includes(card.status))
-    .filter(card => isPayCardEffective(card, at))
+    .filter(card => isPayCardEffectiveInternal(card, at))
     .filter(card => employmentMatchesPayCard(employment, card))
     .sort((a, b) => {
       const priorityDiff =

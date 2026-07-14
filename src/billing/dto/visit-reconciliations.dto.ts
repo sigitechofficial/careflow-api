@@ -109,6 +109,22 @@ export class UpdateVisitReconciliationDto {
   @IsInt()
   @Min(0)
   travelMinutes?: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Unpaid qualifying travel minutes (counts toward NMW hours, not wages)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  unpaidTravelMinutes?: number | null;
+
+  @ApiPropertyOptional({ description: 'Passenger miles for AMAP passenger supplement' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  passengerMiles?: number | null;
 }
 
 export class ApproveVisitReconciliationDto {

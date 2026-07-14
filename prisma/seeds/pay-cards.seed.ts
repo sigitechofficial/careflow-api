@@ -43,10 +43,11 @@ async function upsertPayCard(prisma: PrismaClient, preset: PayCardPreset, branch
   };
 
   const template = await prisma.payCard.upsert({
-    where: { code: preset.code },
+    where: { code_version: { code: preset.code, version: 1 } },
     update: data,
     create: {
       code: preset.code,
+      version: 1,
       ...data,
     },
   });

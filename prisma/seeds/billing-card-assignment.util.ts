@@ -6,11 +6,13 @@ import {
 } from '@prisma/client';
 
 const PAY_CARD_ASSIGNMENT_LEVEL_PRIORITY: Record<PayCardAssignmentLevel, number> = {
-  ROLE: 1,
-  BRANCH: 2,
-  EMPLOYMENT_TYPE: 3,
-  WORKER_TYPE: 4,
-  ORGANISATION_DEFAULT: 5,
+  INDIVIDUAL: 0,
+  CLIENT_FUNDER: 1,
+  ROLE: 2,
+  BRANCH: 3,
+  EMPLOYMENT_TYPE: 4,
+  WORKER_TYPE: 5,
+  ORGANISATION_DEFAULT: 6,
 };
 
 const CHARGE_CARD_ASSIGNMENT_LEVEL_PRIORITY: Record<ChargeCardAssignmentLevel, number> = {
@@ -83,6 +85,9 @@ function employmentMatchesPayCard(
       if (card.assignmentTargetKey === 'AGENCY') return employment.isAgencyStaff;
       if (card.assignmentTargetKey === 'BANK') return employment.isBankStaff;
       return !employment.isAgencyStaff && !employment.isBankStaff;
+    case 'INDIVIDUAL':
+    case 'CLIENT_FUNDER':
+      return false;
     case 'ORGANISATION_DEFAULT':
       return true;
     default:

@@ -66,6 +66,29 @@ export class PayCardRuleDto {
   @IsNumber()
   multiplier?: number;
 
+  @ApiPropertyOptional({ example: 1.0, description: '£/hr added to base (ADDITIONAL_PER_HOUR)' })
+  @IsOptional()
+  @IsNumber()
+  additionalAmount?: number;
+
+  @ApiPropertyOptional({ example: 25, description: 'Percentage uplift e.g. 25 = +25%' })
+  @IsOptional()
+  @IsNumber()
+  percentageUplift?: number;
+
+  @ApiPropertyOptional({
+    enum: [
+      'ABSOLUTE_HOURLY',
+      'ADDITIONAL_PER_HOUR',
+      'PERCENTAGE_UPLIFT',
+      'MULTIPLIER',
+      'FIXED_SHIFT_ALLOWANCE',
+    ],
+  })
+  @IsOptional()
+  @IsString()
+  enhancementMethod?: string;
+
   @ApiPropertyOptional({ example: 30 })
   @IsOptional()
   @IsInt()
@@ -86,6 +109,26 @@ export class PayCardRuleDto {
   @IsOptional()
   @IsInt()
   sortOrder?: number;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  appliesToVisit?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  appliesToTravel?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  appliesToWaiting?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  appliesToTraining?: boolean;
 }
 
 export class ChargeCardRuleDto extends PayCardRuleDto {
@@ -138,6 +181,46 @@ export class CreatePayCardDto {
   @IsString()
   @MaxLength(8)
   currency?: string;
+
+  @ApiPropertyOptional({ enum: ['PRIORITY', 'HIGHEST', 'STACK'], default: 'PRIORITY' })
+  @IsOptional()
+  @IsString()
+  stackingPolicy?: string;
+
+  @ApiPropertyOptional({ description: 'UK nation code e.g. ENG, SCT, WLS, NIR' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8)
+  nation?: string;
+
+  @ApiPropertyOptional({ enum: BillingFrequency })
+  @IsOptional()
+  @IsEnum(BillingFrequency)
+  payFrequency?: BillingFrequency;
+
+  @ApiPropertyOptional({
+    enum: ['ACCRUAL_WHEN_TAKEN', 'ROLLED_UP_12_07', 'REFERENCE_52_WEEK', 'CONTRACTUAL_ABOVE_STATUTORY'],
+  })
+  @IsOptional()
+  @IsString()
+  holidayPayMethod?: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  travelInheritsTimeBands?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  useUkMileageRates?: boolean;
+
+  @ApiPropertyOptional({
+    enum: ['CAR_VAN', 'MOTORCYCLE', 'BICYCLE', 'COMPANY_VEHICLE', 'PUBLIC_TRANSPORT'],
+  })
+  @IsOptional()
+  @IsString()
+  mileageVehicleType?: string;
 
   @ApiPropertyOptional({ enum: BillingCardStatus })
   @IsOptional()
@@ -206,6 +289,42 @@ export class UpdatePayCardDto {
   @IsString()
   @MaxLength(8)
   currency?: string;
+
+  @ApiPropertyOptional({ enum: ['PRIORITY', 'HIGHEST', 'STACK'] })
+  @IsOptional()
+  @IsString()
+  stackingPolicy?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(8)
+  nation?: string;
+
+  @ApiPropertyOptional({ enum: BillingFrequency })
+  @IsOptional()
+  @IsEnum(BillingFrequency)
+  payFrequency?: BillingFrequency;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  holidayPayMethod?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  travelInheritsTimeBands?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  useUkMileageRates?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mileageVehicleType?: string;
 
   @ApiPropertyOptional({ enum: BillingCardStatus })
   @IsOptional()

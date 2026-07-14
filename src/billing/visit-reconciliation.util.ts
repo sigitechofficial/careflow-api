@@ -6,6 +6,14 @@ import {
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { assessFundingBillingReadiness } from './funding-contract.util';
+import {
+  calculateBandedPay,
+  formatHhMmUtc,
+  hasTimeBandedHourlyRules,
+  shouldPreferBandedOverFixed,
+  type PayStackingPolicy,
+  type TimeBandRule,
+} from './pay-time-band.util';
 
 export type DetectedException = {
   code: FinanceExceptionCode;
@@ -237,27 +245,48 @@ export function resolveDefaultApprovedWindows(input: {
   actualStartDateTime: Date | null;
   actualEndDateTime: Date | null;
   exceptions: DetectedException[];
+  /** When overrun is APPROVED, pay uses actual clock times; otherwise planned (extra time unpaid until approved). */
+  overrunDecision?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
 }): {
   approvedPayStart: Date;
   approvedPayEnd: Date;
   approvedBillStart: Date;
   approvedBillEnd: Date;
 } {
-  const { plannedStartDateTime, plannedEndDateTime, actualStartDateTime, actualEndDateTime, exceptions } =
-    input;
+  const {
+    plannedStartDateTime,
+    plannedEndDateTime,
+    actualStartDateTime,
+    actualEndDateTime,
+    exceptions,
+    overrunDecision,
+  } = input;
   const plannedEnd =
     plannedEndDateTime ??
     new Date(plannedStartDateTime.getTime() + 30 * 60_000);
 
   const hasOverrun = exceptions.some((e) => e.code === FinanceExceptionCode.OVERRUN);
+  const payActualApproved =
+    overrunDecision === 'APPROVED' &&
+    actualStartDateTime != null &&
+    actualEndDateTime != null;
 
-  // Overrun: pay and bill use planned visit length. Extra minutes are flagged for admin only.
-  if (hasOverrun) {
+  // Overrun pending/rejected: pay planned length. Approved: pay actual clock times.
+  if (hasOverrun && !payActualApproved) {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
       approvedBillStart: plannedStartDateTime,
       approvedBillEnd: plannedEnd,
+    };
+  }
+
+  if (hasOverrun && payActualApproved) {
+    return {
+      approvedPayStart: actualStartDateTime!,
+      approvedPayEnd: actualEndDateTime!,
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: actualEndDateTime!,
     };
   }
 
@@ -277,9 +306,18 @@ export type PayCardRuleLike = {
   rateType: string;
   amount: Prisma.Decimal | number;
   dayType: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  /** Prisma Decimal or number — callers normalize via Number() */
+  multiplier?: Prisma.Decimal | number | null;
+  additionalAmount?: Prisma.Decimal | number | null;
+  percentageUplift?: Prisma.Decimal | number | null;
+  enhancementMethod?: string | null;
   minimumMinutes?: number | null;
   priority: number;
   sortOrder: number;
+  appliesToVisit?: boolean | null;
+  appliesToTravel?: boolean | null;
 };
 
 export type ChargeCardRuleLike = {
@@ -336,11 +374,31 @@ function isFixedVisitSlotRule(rule: PayCardRuleLike): boolean {
 
 function isHourlyLongVisitRule(rule: RuleWithOptionalTime): boolean {
   if (NON_VISIT_RATE_TYPES.has(rule.rateType)) return false;
+  // Windowed bands are applied via calculateBandedPay — exclude from single-rule picker.
   if (rule.startTime || rule.endTime) return false;
-  // Hourly / pro-rata rules bill by the hour for long visits (ignore leftover minimumMinutes).
-  if (rule.rateType === 'HOURLY') return true;
+  if (rule.rateType === 'HOURLY' || rule.rateType === 'BANDED') return true;
   const chargeRule = rule as ChargeCardRuleLike;
   return chargeRule.chargeMethod === 'HOURLY_PRO_RATA';
+}
+
+function toTimeBandRules(rules: PayCardRuleLike[]): TimeBandRule[] {
+  return rules.map((rule) => ({
+    label: rule.label,
+    dayType: rule.dayType,
+    startTime: rule.startTime,
+    endTime: rule.endTime,
+    rateType: rule.rateType,
+    amount: Number(rule.amount),
+    multiplier: rule.multiplier != null ? Number(rule.multiplier) : null,
+    additionalAmount: rule.additionalAmount != null ? Number(rule.additionalAmount) : null,
+    percentageUplift: rule.percentageUplift != null ? Number(rule.percentageUplift) : null,
+    enhancementMethod: rule.enhancementMethod as TimeBandRule['enhancementMethod'],
+    minimumMinutes: rule.minimumMinutes,
+    priority: rule.priority,
+    sortOrder: rule.sortOrder,
+    appliesToVisit: rule.appliesToVisit ?? true,
+    appliesToTravel: rule.appliesToTravel ?? false,
+  }));
 }
 
 function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T | null {
@@ -400,14 +458,108 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   return sortRuleCandidates(dayMatches.filter((rule) => isHourlyLongVisitRule(rule)));
 }
 
+export type PayableAmountResult = {
+  amount: number;
+  label: string;
+  explanation?: string;
+  segments?: Array<{
+    minutes: number;
+    rate: number;
+    amount: number;
+    explanation: string;
+    startLabel?: string;
+    endLabel?: string;
+    ruleLabel?: string | null;
+    hoursLabel?: string;
+    lineFormula?: string;
+  }>;
+};
+
+/**
+ * Calculate visit pay. When `window` is provided and the card has time-banded hourly rules,
+ * the activity is split across bands; otherwise a single day-type rule is used (legacy path).
+ */
 export function calculatePayableAmount(
   rules: PayCardRuleLike[],
   visitDate: Date,
   minutes: number,
   isBankHoliday = false,
-): { amount: number; label: string } | null {
+  window?: {
+    start: Date;
+    end: Date;
+    stackingPolicy?: PayStackingPolicy;
+    isBankHolidayFn?: (d: Date) => boolean;
+  },
+): PayableAmountResult | null {
+  if (minutes <= 0) return null;
+
+  const bandRules = toTimeBandRules(rules);
+  const preferBanded =
+    Boolean(window) && shouldPreferBandedOverFixed(bandRules);
+
+  // Short fixed-slot visits keep exact/nearest fixed matching only when day/time
+  // premiums (with a base hourly) are not configured — otherwise banding would be ignored.
+  if (!preferBanded && minutes <= MAX_FIXED_VISIT_MINUTES) {
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
+      return { amount: Number(fixed.amount), label: fixed.rateType };
+    }
+  }
+
+  if (window && (preferBanded || hasTimeBandedHourlyRules(bandRules))) {
+    const end =
+      window.end.getTime() > window.start.getTime()
+        ? window.end
+        : new Date(window.start.getTime() + minutes * 60_000);
+    const banded = calculateBandedPay({
+      start: window.start,
+      end,
+      rules: bandRules,
+      stackingPolicy: window.stackingPolicy ?? 'PRIORITY',
+      isBankHolidayFn:
+        window.isBankHolidayFn ??
+        ((d) => {
+          if (!isBankHoliday) return false;
+          return (
+            d.getUTCFullYear() === visitDate.getUTCFullYear() &&
+            d.getUTCMonth() === visitDate.getUTCMonth() &&
+            d.getUTCDate() === visitDate.getUTCDate()
+          );
+        }),
+    });
+    if (banded) {
+      return {
+        amount: banded.totalAmount,
+        label: 'BANDED_HOURLY',
+        explanation: banded.explanation,
+        segments: banded.segments.map((s) => {
+          const hoursLabel = formatMinutesAsHours(s.segment.minutes);
+          const rateLabel = formatGbp(s.appliedHourlyRate);
+          return {
+            minutes: s.segment.minutes,
+            rate: s.appliedHourlyRate,
+            amount: s.amount,
+            explanation: s.explanation,
+            startLabel: formatHhMmUtc(s.segment.start),
+            endLabel: formatHhMmUtc(s.segment.end),
+            ruleLabel: s.ruleLabel,
+            hoursLabel,
+            lineFormula: `${hoursLabel} × ${rateLabel}/hr = ${formatGbp(s.amount)}`,
+          };
+        }),
+      };
+    }
+  }
+
+  if (minutes <= MAX_FIXED_VISIT_MINUTES) {
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
+      return { amount: Number(fixed.amount), label: fixed.rateType };
+    }
+  }
+
   const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
-  if (!rule || minutes <= 0) return null;
+  if (!rule) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
     return { amount, label: rule.rateType };
@@ -443,7 +595,7 @@ export function formatMinutesAsHours(minutes: number): string {
 
 function pickSupplementRule<T extends PayCardRuleLike>(
   rules: T[],
-  rateType: 'MILEAGE' | 'TRAVEL_TIME',
+  rateType: 'MILEAGE' | 'TRAVEL_TIME' | 'WAITING_TIME',
   visitDate: Date,
   isBankHoliday = false,
 ): T | null {
@@ -491,6 +643,23 @@ export function calculateTravelTimeAmount(
   };
 }
 
+export function calculateWaitingTimeAmount(
+  rules: PayCardRuleLike[],
+  visitDate: Date,
+  waitingMinutes: number,
+  isBankHoliday = false,
+): { amount: number; unitRate: number; ruleLabel: string | null } | null {
+  if (waitingMinutes <= 0) return null;
+  const rule = pickSupplementRule(rules, 'WAITING_TIME', visitDate, isBankHoliday);
+  if (!rule) return null;
+  const unitRate = Number(rule.amount);
+  return {
+    amount: Math.round(unitRate * (waitingMinutes / 60) * 100) / 100,
+    unitRate,
+    ruleLabel: rule.label ?? null,
+  };
+}
+
 export type RateBreakdown = {
   minutes: number;
   hoursLabel: string;
@@ -502,6 +671,16 @@ export type RateBreakdown = {
   cardCode: string | null;
   cardSource: string | null;
   ruleLabel: string | null;
+  segments?: Array<{
+    startLabel: string;
+    endLabel: string;
+    hoursLabel: string;
+    minutes: number;
+    unitRate: string;
+    ruleLabel: string | null;
+    lineFormula: string;
+    amount: string;
+  }>;
 };
 
 function formatGbp(amount: number): string {
@@ -519,16 +698,50 @@ export function buildPayRateBreakdown(
     currency?: string;
   },
   isBankHoliday = false,
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
+
+  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window);
+  if (!calc) return null;
+
+  const hoursLabel = formatMinutesAsHours(minutes);
+
+  if (calc.label === 'BANDED_HOURLY' && calc.segments?.length) {
+    const rates = [...new Set(calc.segments.map((s) => s.rate))];
+    const unitRate =
+      rates.length === 1 ? formatGbp(rates[0]) + '/hr' : 'Varies by time band';
+    const bandCount = calc.segments.length;
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'BANDED_HOURLY',
+      unitRate,
+      amount: formatGbp(calc.amount),
+      formula: `${hoursLabel} across ${bandCount} time band${bandCount === 1 ? '' : 's'} = ${formatGbp(calc.amount)}`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: 'Time-band split',
+      segments: calc.segments.map((s) => ({
+        startLabel: s.startLabel ?? '',
+        endLabel: s.endLabel ?? '',
+        hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
+        minutes: s.minutes,
+        unitRate: `${formatGbp(s.rate)}/hr`,
+        ruleLabel: s.ruleLabel ?? null,
+        lineFormula:
+          s.lineFormula ??
+          `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
+        amount: formatGbp(s.amount),
+      })),
+    };
+  }
+
   const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);
-  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday);
-  if (!calc) return null;
-
-  const hoursLabel = formatMinutesAsHours(minutes);
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED' || calc.label === 'PER_VISIT_FEE') {
@@ -553,7 +766,6 @@ export function buildPayRateBreakdown(
     };
   }
 
-  const hrs = minutes / 60;
   return {
     minutes,
     hoursLabel,
