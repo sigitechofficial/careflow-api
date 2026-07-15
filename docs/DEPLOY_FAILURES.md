@@ -16,6 +16,51 @@ Or re-run the GitHub Actions job and expand the **Deploy backend release** step 
 
 ## Common causes
 
+### 0a. Wrong Node on VPS (`EBADENGINE` / Prisma requires Node 20+)
+
+**Typical log:**
+
+```
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'prisma@7.8.0',
+npm WARN EBADENGINE   required: { node: '^20.19 || ^22.12 || >=24.0' },
+npm WARN EBADENGINE   current: { node: 'v16.20.2', npm: '8.19.4' }
+npm WARN EBADENGINE }
+...
+Backend file rollback completed.
+Error: Process completed with exit code 1.
+```
+
+GitHub Actions builds with **Node 20**, but the VPS SSH/cPanel shell often defaults to **Node 16**. `npm ci` / Prisma then fail and deploy rolls files back.
+
+**Fix on the VPS (once):**
+
+```bash
+# Install nvm + Node 20 for the deploy user
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.nvm/nvm.sh
+nvm install 20
+nvm alias default 20
+hash -r
+node -v    # must be v20.x
+npm -v
+
+# Point PM2 at the same Node (restart after deploy uses this interpreter)
+cd /home/sigisolutions/careflowbackend.sigisolutions.net
+pm2 delete main   # use your BACKEND_PM2_APP_NAME if different
+pm2 start dist/src/main.js --name main --interpreter "$(which node)"
+pm2 save
+```
+
+If cPanel provides EasyApache Node:
+
+```bash
+export PATH="/opt/cpanel/ea-nodejs20/bin:$PATH"
+node -v
+```
+
+Then re-run the GitHub Actions deploy. The workflow now calls `ensure_node20` before `npm ci` and fails early with this same guidance if Node &lt; 20.
+
 ### 0. SSH drops during file backup (`exit code 255`)
 
 **Typical log:**
