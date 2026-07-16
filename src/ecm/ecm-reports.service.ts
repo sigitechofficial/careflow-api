@@ -86,6 +86,10 @@ export class EcmReportsService {
     const verified = rows.filter(
       (r) => r.confidence === EcmAttendanceConfidence.VERIFIED,
     ).length;
+    const geofenceBreaches = rows.filter((r) =>
+      r.operationalExceptionCodes.includes('OUTSIDE_GEOFENCE'),
+    ).length;
+    const electronic = Math.max(0, total - manual);
 
     const exclusions = {
       confirmedMissed,
@@ -121,6 +125,8 @@ export class EcmReportsService {
           potentialMissed,
           confirmedMissed,
           manualAttendance: manual,
+          electronicAttendance: electronic,
+          geofenceBreaches,
           verifiedConfidence: verified,
           totalVisits: total,
         },
@@ -140,6 +146,7 @@ export class EcmReportsService {
           criticality: r.criticality,
           startVarianceMinutes: r.startVarianceMinutes,
           durationVarianceMinutes: r.durationVarianceMinutes,
+          operationalExceptionCodes: r.operationalExceptionCodes,
         })),
       },
     };

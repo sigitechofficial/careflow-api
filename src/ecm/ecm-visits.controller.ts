@@ -24,6 +24,7 @@ import { EcmScheduleVersionService } from './ecm-schedule-version.service';
 import { EcmManualAttendanceService } from './ecm-manual-attendance.service';
 import { EcmNotificationEvidenceService } from './ecm-notification-evidence.service';
 import { EcmReportsService } from './ecm-reports.service';
+import { EcmGraphAnalyticsService } from './ecm-graph-analytics.service';
 import { EcmHealthService } from './ecm-health.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
@@ -41,6 +42,7 @@ export class EcmVisitsController {
     private readonly manualAttendance: EcmManualAttendanceService,
     private readonly notifications: EcmNotificationEvidenceService,
     private readonly reports: EcmReportsService,
+    private readonly graphAnalytics: EcmGraphAnalyticsService,
     private readonly health: EcmHealthService,
     private readonly audit: EcmAuditService,
     private readonly missedTriage: EcmMissedTriageService,
@@ -53,8 +55,21 @@ export class EcmVisitsController {
     return this.health.getHealth();
   }
 
+  @Get('reports/graph-dashboard')
+  @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.reports.export')
+  @ApiOperation({
+    summary: 'Graph-first ECM analytics aggregates (first-8 charts + drill-down visits)',
+  })
+  graphDashboard(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('scheduleAreaId') scheduleAreaId?: string,
+  ) {
+    return this.graphAnalytics.graphDashboard({ dateFrom, dateTo, scheduleAreaId });
+  }
+
   @Get('reports/daily-operations')
-  @AnyPermission('ecm.read', 'ecm.reports.export')
+  @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.reports.export')
   @ApiOperation({ summary: 'Daily ECM operations report with KPI numerator/denominator' })
   dailyOps(
     @Query('date') date?: string,

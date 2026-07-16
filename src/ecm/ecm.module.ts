@@ -13,6 +13,7 @@ import { EcmAlertService } from './ecm-alert.service';
 import { EcmManualAttendanceService } from './ecm-manual-attendance.service';
 import { EcmNotificationEvidenceService } from './ecm-notification-evidence.service';
 import { EcmReportsService } from './ecm-reports.service';
+import { EcmGraphAnalyticsService } from './ecm-graph-analytics.service';
 import { EcmHealthService } from './ecm-health.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
 import { EcmMissedVisitDetectionJob } from './ecm-missed-visit.job';
@@ -35,6 +36,7 @@ import { EcmMissedVisitDetectionJob } from './ecm-missed-visit.job';
     EcmManualAttendanceService,
     EcmNotificationEvidenceService,
     EcmReportsService,
+    EcmGraphAnalyticsService,
     EcmHealthService,
     EcmMissedTriageService,
     EcmMissedVisitDetectionJob,
