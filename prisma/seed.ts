@@ -283,6 +283,12 @@ async function main() {
     'billing.invoice_runs.manage',
     'billing.payments.read',
     'billing.payments.manage',
+    'ecm.read',
+    'ecm.monitor',
+    'ecm.exceptions.manage',
+    'ecm.attendance.amend',
+    'ecm.reports.export',
+    'ecm.settings.manage',
     'service_users.live_in_profile.read',
     'service_users.live_in_profile.create',
     'service_users.live_in_profile.update',
@@ -626,6 +632,43 @@ async function main() {
     const r = roles.find((x) => x.name === roleName);
     if (!r) continue;
     for (const p of suCoordPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // ECM monitoring for Admin / Manager / Care Coordinator
+  const ecmCoordPermKeys = [
+    'ecm.read',
+    'ecm.monitor',
+    'ecm.exceptions.manage',
+    'ecm.attendance.amend',
+    'ecm.reports.export',
+  ];
+  const ecmCoordPerms = await prisma.permission.findMany({
+    where: { key: { in: ecmCoordPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Care Coordinator']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of ecmCoordPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+  const ecmSettingsPerms = await prisma.permission.findMany({
+    where: { key: { in: ['ecm.settings.manage'] }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of ecmSettingsPerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},

@@ -1,6 +1,7 @@
 import { AllocationStatus, type Prisma } from '@prisma/client';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { jobDurationMinutes } from './schedule-date-range.util';
+import { assessVisitDeliveryFromJobLike } from './visit-delivery-assessment.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -18,12 +19,19 @@ export const timelineVisitSelect = {
   id: true,
   visitName: true,
   visitPlanSlotId: true,
+  status: true,
+  scheduledStartDateTime: true,
+  scheduledEndDateTime: true,
+  actualStartDateTime: true,
+  actualEndDateTime: true,
   visitPlanSlot: {
     select: {
       id: true,
       slotCode: true,
       medicationRoundCode: true,
       linkedCarePlanFormIds: true,
+      timeCritical: true,
+      timeToleranceMinutes: true,
     },
   },
 } satisfies Prisma.ScheduledVisitSelect;
@@ -157,20 +165,38 @@ function mapVisitPlanContext(row: TimelineJobRow) {
           medicationRoundCode: slot.medicationRoundCode ?? slot.slotCode,
           label: primaryVisit?.visitName ?? slot.slotCode,
           linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
+          timeCritical: slot.timeCritical,
+          timeToleranceMinutes: slot.timeToleranceMinutes,
         }
       : null,
     visits: row.visits.map((v) => ({
       id: v.id,
       visitName: v.visitName,
       visitPlanSlotId: v.visitPlanSlotId,
+      status: v.status,
+      scheduledStartDateTime: v.scheduledStartDateTime.toISOString(),
+      scheduledEndDateTime: v.scheduledEndDateTime?.toISOString() ?? null,
+      actualStartDateTime: v.actualStartDateTime?.toISOString() ?? null,
+      actualEndDateTime: v.actualEndDateTime?.toISOString() ?? null,
     })),
   };
 }
 
 export function mapTimelineJob(row: TimelineJobRow) {
   const visitPlanContext = mapVisitPlanContext(row);
+  const primaryVisit = row.visits[0];
+  const actualStartDateTime = primaryVisit?.actualStartDateTime?.toISOString() ?? null;
+  const actualEndDateTime = primaryVisit?.actualEndDateTime?.toISOString() ?? null;
+  const allocations = row.allocations.map((a) => ({
+    id: a.id,
+    employeeId: a.employeeId,
+    status: a.status,
+    requiresConfirmation: a.requiresConfirmation,
+    allocatedAt: a.allocatedAt.toISOString(),
+    employee: mapEmployeeBrief(a.employee),
+  }));
 
-  return {
+  const mapped = {
     id: row.id,
     scheduleBatchId: row.scheduleBatchId,
     scheduleAreaId: row.scheduleAreaId,
@@ -184,6 +210,8 @@ export function mapTimelineJob(row: TimelineJobRow) {
     scheduledStartDateTime: row.scheduledStartDateTime.toISOString(),
     scheduledEndDateTime: row.scheduledEndDateTime?.toISOString() ?? null,
     durationMinutes: jobDurationMinutes(row),
+    actualStartDateTime,
+    actualEndDateTime,
     postcode: row.postcode,
     address: row.address,
     latitude: decimalToNumber(row.latitude),
@@ -197,15 +225,23 @@ export function mapTimelineJob(row: TimelineJobRow) {
           runDate: formatScheduleDate(row.scheduleRun.runDate),
         }
       : null,
-    allocations: row.allocations.map((a) => ({
-      id: a.id,
-      employeeId: a.employeeId,
-      status: a.status,
-      requiresConfirmation: a.requiresConfirmation,
-      allocatedAt: a.allocatedAt.toISOString(),
-      employee: mapEmployeeBrief(a.employee),
-    })),
+    allocations,
     ...visitPlanContext,
+  };
+
+  return {
+    ...mapped,
+    deliveryAssessment: assessVisitDeliveryFromJobLike({
+      status: mapped.status,
+      requiredCarers: mapped.requiredCarers,
+      allocatedCarers: visitPlanContext.allocatedCarers,
+      scheduledStartDateTime: mapped.scheduledStartDateTime,
+      scheduledEndDateTime: mapped.scheduledEndDateTime,
+      actualStartDateTime,
+      actualEndDateTime,
+      visitPlan: mapped.visitPlan,
+      visits: mapped.visits,
+    }),
   };
 }
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -7,7 +7,11 @@ import { AnyPermission, Permissions } from '../common/decorators/permissions.dec
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { PayrollRunsService } from './payroll-runs.service';
-import { CreateBillingRunDto, EmployeeEarningsQueryDto } from './dto/billing-runs.dto';
+import {
+  CreateBillingRunDto,
+  CreateEmployeeSalaryDeductionDto,
+  EmployeeEarningsQueryDto,
+} from './dto/billing-runs.dto';
 
 @ApiTags('Billing — Payroll runs')
 @ApiBearerAuth()
@@ -23,14 +27,53 @@ export class PayrollRunsController {
     return this.service.getSummary();
   }
 
+  @Get('employee-salaries')
+  @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
+  @ApiOperation({ summary: 'Organisation employee salary overview for a period' })
+  employeeSalaries(@Query() query: EmployeeEarningsQueryDto) {
+    return this.service.listEmployeeSalaries(query);
+  }
+
   @Get('employee/:employeeId/earnings')
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
-  @ApiOperation({ summary: 'Employee earnings summary for profile Earnings tab' })
+  @ApiOperation({ summary: 'Employee earnings / monthly salary summary' })
   employeeEarnings(
     @Param('employeeId') employeeId: string,
     @Query() query: EmployeeEarningsQueryDto,
   ) {
     return this.service.getEmployeeEarnings(employeeId, query);
+  }
+
+  @Get('employee/:employeeId/salary-deductions')
+  @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
+  @ApiOperation({ summary: 'List fines and penalties for an employee' })
+  listDeductions(
+    @Param('employeeId') employeeId: string,
+    @Query('salaryMonth') salaryMonth?: string,
+  ) {
+    return this.service.listEmployeeSalaryDeductions(employeeId, salaryMonth);
+  }
+
+  @Post('employee/:employeeId/salary-deductions')
+  @AnyPermission('billing.payroll_runs.manage', 'employees.update')
+  @ApiOperation({ summary: 'Add a fine or penalty to an employee monthly salary' })
+  createDeduction(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: CreateEmployeeSalaryDeductionDto,
+  ) {
+    return this.service.createEmployeeSalaryDeduction(user.id, employeeId, dto);
+  }
+
+  @Delete('employee/:employeeId/salary-deductions/:deductionId')
+  @AnyPermission('billing.payroll_runs.manage', 'employees.update')
+  @ApiOperation({ summary: 'Remove a fine or penalty from employee salary' })
+  deleteDeduction(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Param('deductionId') deductionId: string,
+  ) {
+    return this.service.deleteEmployeeSalaryDeduction(user.id, employeeId, deductionId);
   }
 
   @Get()

@@ -600,6 +600,13 @@ enum HolidayUnit {
   @@schema("identity")
 }
 
+enum SalaryCalculationBasis {
+  MONTHLY
+  WEEKLY
+
+  @@schema("identity")
+}
+
 enum ComplianceRequiredBy {
   ROLE_WORK_AREA
   CITIZENSHIP
@@ -652,6 +659,8 @@ model OrganisationGeneralSettings {
   allowWeekendDaysInHoliday     Boolean           @default(true)
   mandateComplianceForNewEmployees Boolean        @default(false)
   defaultHolidaysUnit           HolidayUnit       @default(DAYS)
+  /// How employee salary is periodised in admin (visit pay + fines/penalties).
+  salaryCalculationBasis        SalaryCalculationBasis @default(MONTHLY)
   recruitmentFunctionalityRequired Boolean        @default(true)
   complianceRequiredBy          ComplianceRequiredBy @default(ROLE_WORK_AREA)
   complianceApprovalForNewEmployee ComplianceApprovalType @default(MANAGER_APPROVAL)
@@ -796,9 +805,32 @@ model Employee {
   visitActionsCompleted     VisitAction[]                   @relation("VisitActionCompletedBy")
   visitTaskCompletions      ScheduledVisitTaskCompletion[]  @relation("VisitTaskCompletedBy")
   jobAllocations            JobAllocation[]
+  visitAttendanceEvents     VisitAttendanceEvent[]
   visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
   scheduleRuns              ScheduleRun[]
+  portalAccount             EmployeePortalAccount?
+
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model EmployeePortalAccount {
+  id               String    @id @default(uuid()) @db.Uuid
+  employeeId       String    @unique @db.Uuid
+  email            String    @unique
+  passwordHash     String
+  isEnabled        Boolean   @default(false)
+  refreshTokenHash String?
+  lastLoginAt      DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
   @@schema("employees")
@@ -5294,6 +5326,12 @@ model ScheduledJob {
   callOffVisits CallOffVisit[]
   cancellation  ScheduledJobCancellation?
   visitTaskCompletions ScheduledVisitTaskCompletion[]
+  attendanceEvents VisitAttendanceEvent[]
+  lateVisitAlerts  LateVisitAlertLog[]
+  ecmEvaluation    EcmVisitEvaluation?
+  ecmExceptions    EcmException[]
+  ecmScheduleVersions EcmScheduleVersion[]
+  ecmNotificationEvidence EcmNotificationEvidence[]
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
@@ -5343,6 +5381,8 @@ model ScheduledVisit {
   actions      VisitAction[]
   allocations  JobAllocation[]
   callOffVisits CallOffVisit[]
+  attendanceEvents VisitAttendanceEvent[]
+  ecmEvaluations EcmVisitEvaluation[]
 
   @@index([scheduledJobId])
   @@index([serviceUserId])
@@ -5500,6 +5540,7 @@ model JobAllocation {
   allocatedBy    User?           @relation("JobAllocationAllocatedBy", fields: [allocatedById], references: [id], onDelete: SetNull)
   confirmedBy    User?           @relation("JobAllocationConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
   unallocatedBy  User?           @relation("JobAllocationUnallocatedBy", fields: [unallocatedById], references: [id], onDelete: SetNull)
+  attendanceEvents VisitAttendanceEvent[]
 
   @@index([scheduledJobId])
   @@index([scheduledVisitId])
@@ -5536,6 +5577,484 @@ model VisitAction {
   @@index([scheduledVisitId])
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum VisitAttendanceEventType {
+  CHECK_IN
+  CHECK_OUT
+  EN_ROUTE
+
+  @@schema("scheduling")
+}
+
+enum VisitAttendanceVerificationMethod {
+  MOBILE_GPS
+  MANUAL_OFFICE
+  NFC
+  QR
+  TELEPHONE
+  OTHER
+
+  @@schema("scheduling")
+}
+
+/**
+ * Append-only Electronic Call Monitoring (ECM) evidence.
+ * Do not update rows after insert — corrections are new events + audit.
+ */
+model VisitAttendanceEvent {
+  id                 String                           @id @default(uuid()) @db.Uuid
+  scheduledJobId     String                           @db.Uuid
+  scheduledVisitId   String?                          @db.Uuid
+  jobAllocationId    String?                          @db.Uuid
+  employeeId         String                           @db.Uuid
+  eventType          VisitAttendanceEventType
+  verificationMethod VisitAttendanceVerificationMethod @default(MOBILE_GPS)
+  occurredAt         DateTime
+  deviceCapturedAt   DateTime?
+  clientEventId      String?
+  latitude           Decimal?                         @db.Decimal(10, 7)
+  longitude          Decimal?                         @db.Decimal(10, 7)
+  accuracyMeters     Decimal?                         @db.Decimal(10, 2)
+  isMockLocation     Boolean                          @default(false)
+  outsideGeofence    Boolean                          @default(false)
+  outsideGeofenceReason String?
+  distanceMeters     Int?
+  identityConfirmed  Boolean                          @default(false)
+  notes              String?
+  createdAt          DateTime                         @default(now())
+
+  scheduledJob   ScheduledJob    @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: SetNull)
+  jobAllocation  JobAllocation?  @relation(fields: [jobAllocationId], references: [id], onDelete: SetNull)
+  employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@index([scheduledJobId, employeeId, eventType])
+  @@index([clientEventId])
+  @@index([scheduledJobId])
+  @@index([scheduledVisitId])
+  @@index([employeeId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@index([outsideGeofence])
+  @@index([isMockLocation])
+  @@schema("scheduling")
+}
+
+enum LateVisitAlertKind {
+  LATE_START
+  NOT_STARTED_PAST_END
+
+  @@schema("scheduling")
+}
+
+/** Dedupes late-visit ECM alerts so cron does not spam. */
+model LateVisitAlertLog {
+  id             String            @id @default(uuid()) @db.Uuid
+  scheduledJobId String            @db.Uuid
+  alertKind      LateVisitAlertKind
+  thresholdMinutes Int
+  scheduledStart DateTime
+  alertedAt      DateTime          @default(now())
+  channels       Json?
+  recipientCount Int               @default(0)
+  message        String?
+
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledJobId, alertKind])
+  @@index([alertedAt])
+  @@schema("scheduling")
+}
+
+/**
+ * ECM lifecycle is parallel to ScheduledJobStatus — do not replace rota statuses.
+ * Plan: Draft → … → Completed / CompletedWithException → Closed
+ */
+enum EcmLifecycleStatus {
+  DRAFT
+  SCHEDULED
+  UNASSIGNED
+  ASSIGNED
+  EN_ROUTE
+  DUE
+  CHECKED_IN
+  IN_PROGRESS
+  CHECKED_OUT
+  COMPLETED
+  COMPLETED_WITH_EXCEPTION
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+enum EcmCriticality {
+  STANDARD
+  PRIORITY
+  TIME_CRITICAL
+
+  @@schema("scheduling")
+}
+
+/** Which settings level supplied the applied timing rule (most-specific wins). */
+enum EcmSettingsLevel {
+  PLATFORM
+  ORGANISATION
+  BRANCH
+  CONTRACT
+  SERVICE_USER
+  VISIT_TEMPLATE
+  VISIT
+
+  @@schema("scheduling")
+}
+
+enum EcmArrivalClassification {
+  EARLY_ARRIVAL
+  ON_TIME
+  LATE_ARRIVAL
+  VERY_LATE_ARRIVAL
+  NOT_ASSESSED
+
+  @@schema("scheduling")
+}
+
+enum EcmDepartureClassification {
+  EARLY_DEPARTURE
+  ON_TIME
+  LATE_DEPARTURE
+  NOT_ASSESSED
+
+  @@schema("scheduling")
+}
+
+enum EcmDurationClassification {
+  SHORT_VISIT
+  ON_TIME
+  LONG_VISIT
+  EXCESSIVE_OVERRUN
+  NOT_ASSESSED
+
+  @@schema("scheduling")
+}
+
+/**
+ * Missed-care triage — never collapse with cancelled / no-access.
+ * POTENTIAL ≠ CONFIRMED; FALSE_ECM_ALERT = mechanism failed but care occurred.
+ */
+enum EcmMissedClassification {
+  NONE
+  POTENTIAL_MISSED
+  ATTENDANCE_VERIFICATION_PENDING
+  CONFIRMED_MISSED
+  FALSE_ECM_ALERT
+  DISPUTED
+
+  @@schema("scheduling")
+}
+
+enum EcmAttendanceConfidence {
+  VERIFIED
+  PARTIALLY_VERIFIED
+  MANUALLY_VERIFIED
+  UNVERIFIED
+  DISPUTED
+  REJECTED
+
+  @@schema("scheduling")
+}
+
+/**
+ * Persisted ECM evaluation for a scheduled job (BE1.1–BE1.4).
+ * Attendance evidence remains VisitAttendanceEvent (append-only).
+ * Timing uses four independent measurements; classifications are separate.
+ */
+model EcmVisitEvaluation {
+  id                 String @id @default(uuid()) @db.Uuid
+  scheduledJobId     String @unique @db.Uuid
+  scheduledVisitId   String? @db.Uuid
+
+  /// Communicated / current planned times (punctuality baseline).
+  plannedStartDateTime DateTime
+  plannedEndDateTime   DateTime?
+  plannedDurationMinutes Int?
+  earliestPermittedStart DateTime?
+  latestPermittedStart   DateTime?
+  minPermittedDurationMinutes Int?
+  maxPermittedDurationMinutes Int?
+  criticality        EcmCriticality @default(STANDARD)
+  requiredCarers     Int            @default(1)
+  /// Calendar date used for operational reporting (local timezone).
+  localVisitDate     DateTime       @db.Date
+  timezone           String         @default("Europe/London")
+
+  actualCheckInAt        DateTime?
+  actualCheckOutAt       DateTime?
+  actualDurationMinutes  Int?
+
+  startVarianceMinutes     Int?
+  endVarianceMinutes       Int?
+  durationVarianceMinutes  Int?
+
+  arrivalClassification   EcmArrivalClassification   @default(NOT_ASSESSED)
+  departureClassification EcmDepartureClassification @default(NOT_ASSESSED)
+  durationClassification  EcmDurationClassification  @default(NOT_ASSESSED)
+  lifecycleStatus         EcmLifecycleStatus         @default(SCHEDULED)
+  missedClassification    EcmMissedClassification    @default(NONE)
+  /// Operational exception codes (NO_ACCESS, OUTSIDE_GEOFENCE, …) — never collapsed.
+  operationalExceptionCodes String[] @default([])
+  confidence              EcmAttendanceConfidence    @default(UNVERIFIED)
+
+  appliedSettingsLevel          EcmSettingsLevel @default(ORGANISATION)
+  lateArrivalToleranceMinutes   Int
+  veryLateThresholdMinutes      Int
+  shortVisitToleranceMinutes    Int
+  longVisitToleranceMinutes     Int
+  excessiveOverrunMinutes       Int
+  missedVisitThresholdMinutes   Int
+  geofenceRadiusMeters          Int?
+  /// Frozen rule id/version for historical KPI stability (GAP15 foundation).
+  thresholdRuleVersion          String?
+
+  evaluatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  scheduledJob   ScheduledJob    @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  scheduledVisit ScheduledVisit? @relation(fields: [scheduledVisitId], references: [id], onDelete: SetNull)
+  exceptions     EcmException[]
+
+  @@index([lifecycleStatus])
+  @@index([arrivalClassification])
+  @@index([missedClassification])
+  @@index([confidence])
+  @@index([localVisitDate])
+  @@index([evaluatedAt])
+  @@index([criticality])
+  @@schema("scheduling")
+}
+
+enum EcmExceptionKind {
+  LATE_ARRIVAL
+  VERY_LATE_ARRIVAL
+  EARLY_ARRIVAL
+  EARLY_DEPARTURE
+  SHORT_VISIT
+  LONG_VISIT
+  EXCESSIVE_OVERRUN
+  POTENTIAL_MISSED
+  CONFIRMED_MISSED
+  MISSING_CHECKOUT
+  OUTSIDE_GEOFENCE
+  MANUAL_ATTENDANCE
+  MOCK_LOCATION
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum EcmExceptionLifecycle {
+  DETECTED
+  ALERT_GENERATED
+  ASSIGNED
+  ACKNOWLEDGED
+  INVESTIGATING
+  ACTION_TAKEN
+  RESOLVED
+  MANAGER_REVIEWED
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+/**
+ * Operational ECM exception with accountable follow-up lifecycle (BE1.11 / GAP2 foundation).
+ */
+model EcmException {
+  id                   String               @id @default(uuid()) @db.Uuid
+  scheduledJobId       String               @db.Uuid
+  ecmVisitEvaluationId String?              @db.Uuid
+  kind                 EcmExceptionKind
+  lifecycle            EcmExceptionLifecycle @default(DETECTED)
+  title                String
+  detail               String?
+  reasonCode           String?
+  resolutionNote       String?
+  ownerUserId          String?              @db.Uuid
+  acknowledgedAt       DateTime?
+  acknowledgedById     String?              @db.Uuid
+  firstActionAt        DateTime?
+  resolvedAt           DateTime?
+  resolvedById         String?              @db.Uuid
+  closedAt             DateTime?
+  closedById           String?              @db.Uuid
+  responseTargetMinutes Int?
+  escalationDeadlineAt DateTime?
+  overdue              Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  scheduledJob       ScheduledJob        @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  ecmVisitEvaluation EcmVisitEvaluation? @relation(fields: [ecmVisitEvaluationId], references: [id], onDelete: SetNull)
+  notificationEvidence EcmNotificationEvidence[]
+
+  @@index([scheduledJobId])
+  @@index([lifecycle])
+  @@index([kind])
+  @@index([overdue])
+  @@index([createdAt])
+  @@schema("scheduling")
+}
+
+/**
+ * Append-only original + revised planned times for a visit (GAP1 / BE1.25–27).
+ * Never overwrite; version 1 is always the original schedule.
+ */
+enum EcmScheduleChangeClass {
+  ORIGINAL
+  PLANNED
+  SERVICE_USER_REQUESTED
+  PROVIDER_REQUESTED
+  EMERGENCY
+  SAME_DAY
+  LATE_NOTICE
+  RETROSPECTIVE
+  UNAUTHORISED
+
+  @@schema("scheduling")
+}
+
+model EcmScheduleVersion {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  scheduledJobId         String                 @db.Uuid
+  versionNumber          Int
+  isOriginal             Boolean                @default(false)
+  changeClass            EcmScheduleChangeClass @default(ORIGINAL)
+  plannedStartDateTime   DateTime
+  plannedEndDateTime     DateTime?
+  previousStartDateTime  DateTime?
+  previousEndDateTime    DateTime?
+  reasonCode             String?
+  reasonNote             String?
+  changedById            String?                @db.Uuid
+  changedAt              DateTime               @default(now())
+  serviceUserAgreed      Boolean?
+  serviceUserInformed    Boolean?
+  informedAt             DateTime?
+  agreedAt               DateTime?
+  beforeDueTime          Boolean                @default(true)
+  lateNotice             Boolean                @default(false)
+  retrospective          Boolean                @default(false)
+  managerApproved        Boolean?
+  managerApprovedById    String?                @db.Uuid
+  managerApprovedAt      DateTime?
+  commissionerAuthorised Boolean?
+  createdAt              DateTime               @default(now())
+
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledJobId, versionNumber])
+  @@index([scheduledJobId, changedAt])
+  @@index([changeClass])
+  @@index([retrospective])
+  @@index([lateNotice])
+  @@schema("scheduling")
+}
+
+/**
+ * Immutable ECM operational audit trail (BE1.14 / Reg 17).
+ * Append-only — no updates or soft-deletes.
+ */
+enum EcmAuditEventType {
+  SCHEDULE_VERSION_CREATED
+  EVALUATION_UPSERTED
+  EXCEPTION_DETECTED
+  EXCEPTION_ACKNOWLEDGED
+  EXCEPTION_RESOLVED
+  EXCEPTION_CLOSED
+  ATTENDANCE_AMENDED
+  ALERT_GENERATED
+  NOTIFICATION_RECORDED
+  SETTINGS_CHANGED
+  MANUAL_OVERRIDE
+  OTHER
+
+  @@schema("scheduling")
+}
+
+model EcmAuditEvent {
+  id             String            @id @default(uuid()) @db.Uuid
+  scheduledJobId String?           @db.Uuid
+  ecmExceptionId String?           @db.Uuid
+  eventType      EcmAuditEventType
+  actorUserId    String?           @db.Uuid
+  summary        String
+  detail         Json?
+  createdAt      DateTime          @default(now())
+
+  @@index([scheduledJobId, createdAt])
+  @@index([ecmExceptionId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@schema("scheduling")
+}
+
+/**
+ * Proof of service-user / family contact for ECM exceptions (GAP3 / BE1.30).
+ * Never collapse to a boolean serviceUserNotified flag.
+ */
+enum EcmNotificationMethod {
+  PHONE
+  SMS
+  EMAIL
+  IN_APP
+  IN_PERSON
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum EcmNotificationOutcome {
+  ATTEMPTED
+  ANSWERED
+  DELIVERED
+  READ
+  NO_ANSWER
+  FAILED
+  ACCEPTED
+  DECLINED
+
+  @@schema("scheduling")
+}
+
+model EcmNotificationEvidence {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  scheduledJobId     String                 @db.Uuid
+  ecmExceptionId     String?                @db.Uuid
+  contactedByUserId  String?                @db.Uuid
+  contactName        String?
+  contactRole        String?
+  method             EcmNotificationMethod
+  outcome            EcmNotificationOutcome @default(ATTEMPTED)
+  attemptedAt        DateTime               @default(now())
+  answeredAt         DateTime?
+  deliveredAt        DateTime?
+  readAt             DateTime?
+  etaGiven           String?
+  reasonGiven        String?
+  replacementDetails String?
+  acceptedDeclined   String?
+  proofUrl           String?
+  notes              String?
+  createdAt          DateTime               @default(now())
+
+  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId, attemptedAt])
+  @@index([ecmExceptionId])
+  @@index([outcome])
   @@schema("scheduling")
 }
 
@@ -6571,6 +7090,37 @@ model PayrollRunLine {
   @@index([payrollRunId])
   @@index([visitReconciliationId])
   @@index([employeeId])
+  @@schema("billing")
+}
+
+enum SalaryDeductionType {
+  FINE
+  PENALTY
+
+  @@schema("billing")
+}
+
+/// Manual fine / penalty deducted from a carer's monthly salary (visit pay − deductions).
+model EmployeeSalaryDeduction {
+  id          String              @id @default(uuid()) @db.Uuid
+  employeeId  String              @db.Uuid
+  type        SalaryDeductionType
+  /// Positive amount in GBP; always subtracted from monthly salary.
+  amount      Decimal             @db.Decimal(12, 2)
+  reason      String
+  notes       String?
+  /// Calendar month this deduction applies to (YYYY-MM, UTC).
+  salaryMonth String
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+  createdById String?             @db.Uuid
+  updatedById String?             @db.Uuid
+
+  @@index([employeeId, salaryMonth])
+  @@index([type])
+  @@index([deletedAt])
   @@schema("billing")
 }
 

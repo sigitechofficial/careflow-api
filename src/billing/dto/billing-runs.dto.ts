@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateBillingRunDto {
   @ApiProperty({ description: 'ISO date (YYYY-MM-DD)' })
@@ -35,4 +35,37 @@ export class EmployeeEarningsQueryDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+}
+
+export class CreateEmployeeSalaryDeductionDto {
+  @ApiProperty({ enum: ['FINE', 'PENALTY'] })
+  @IsString()
+  @Matches(/^(FINE|PENALTY)$/)
+  type!: 'FINE' | 'PENALTY';
+
+  @ApiProperty({ example: 25.0, description: 'Positive GBP amount to deduct' })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(100000)
+  amount!: number;
+
+  @ApiProperty({ example: 'Late arrival without notice' })
+  @IsString()
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+
+  @ApiProperty({
+    example: '2026-07',
+    description: 'Salary period: YYYY-MM (monthly) or YYYY-Www (ISO week, weekly)',
+  })
+  @IsString()
+  @Matches(/^\d{4}-\d{2}$|^\d{4}-W\d{2}$/)
+  salaryMonth!: string;
 }

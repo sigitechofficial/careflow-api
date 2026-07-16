@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -8,10 +22,15 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeesService } from './employees.service';
+import { EmployeePortalAccountsService } from './employee-portal-accounts.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
+import {
+  SetEmployeePortalPasswordDto,
+  UpsertEmployeePortalAccountDto,
+} from './dto/employee-portal-account.dto';
 import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
 
 @ApiTags('Employees')
@@ -19,7 +38,10 @@ import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('employees')
 export class EmployeesController {
-  constructor(private readonly employeesService: EmployeesService) {}
+  constructor(
+    private readonly employeesService: EmployeesService,
+    private readonly portalAccountsService: EmployeePortalAccountsService,
+  ) {}
 
   @Get()
   @Permissions('employees.read')
@@ -61,6 +83,36 @@ export class EmployeesController {
   @Permissions('employees.read')
   previewScheduleImpact(@Param('id') id: string, @Query() query: ScheduleImpactPreviewQueryDto) {
     return this.employeesService.previewScheduleImpact(id, query);
+  }
+
+  @Get(':id/portal-account')
+  @Permissions('employees.read')
+  @ApiOperation({ summary: 'Employee app portal account status' })
+  getPortalAccount(@Param('id') id: string) {
+    return this.portalAccountsService.getAdminStatus(id);
+  }
+
+  @Put(':id/portal-account')
+  @Permissions('employees.update')
+  @ApiOperation({ summary: 'Enable/disable employee app access and set login email' })
+  upsertPortalAccount(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpsertEmployeePortalAccountDto,
+  ) {
+    return this.portalAccountsService.upsertAdmin(user.id, id, dto);
+  }
+
+  @Post(':id/portal-account/set-password')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('employees.update')
+  @ApiOperation({ summary: 'Set or reset employee app password (admin)' })
+  setPortalPassword(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetEmployeePortalPasswordDto,
+  ) {
+    return this.portalAccountsService.setPassword(user.id, id, dto.password);
   }
 
   @Get(':id')

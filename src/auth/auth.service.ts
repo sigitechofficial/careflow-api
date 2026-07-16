@@ -371,6 +371,10 @@ export class AuthService {
       };
     }
 
+    if (payload.typ === 'emp') {
+      throw new UnauthorizedException('Use /employee-app/auth/refresh for employee app tokens');
+    }
+
     const user = await this.usersService.findById(payload.sub);
     if (!user || !user.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
 
@@ -547,6 +551,10 @@ export class AuthService {
         metadata: { serviceUserId: user.serviceUserId },
       });
       return { message: 'Logout successful', data: {} };
+    }
+
+    if (user.accountKind === 'employee') {
+      throw new UnauthorizedException('Use /employee-app/auth/logout for employee app sessions');
     }
 
     const dbUser = await this.usersService.findById(user.id);

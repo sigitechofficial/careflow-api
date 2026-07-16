@@ -76,6 +76,138 @@ export class InvoiceRunsService {
     return { data: { invoiceDrafts: drafts } };
   }
 
+  /**
+   * Invoice history for one service user — runs that include their lines,
+   * with funder rollups and ready-to-invoice visit count.
+   */
+  async getForServiceUser(serviceUserId: string) {
+    const serviceUser = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        serviceUserNumber: true,
+      },
+    });
+    if (!serviceUser) throw new NotFoundException('Service user not found');
+
+    const lines = await this.prisma.invoiceRunLine.findMany({
+      where: { serviceUserId },
+      include: {
+        invoiceRun: true,
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 500,
+    });
+
+    const funderIds = [
+      ...new Set(lines.map((l) => l.funderId).filter((id): id is string => Boolean(id))),
+    ];
+    const funders = funderIds.length
+      ? await this.prisma.funder.findMany({
+          where: { id: { in: funderIds } },
+          select: { id: true, name: true, code: true },
+        })
+      : [];
+    const funderMap = new Map(funders.map((f) => [f.id, f]));
+
+    const byRun = new Map<
+      string,
+      {
+        run: (typeof lines)[number]['invoiceRun'];
+        lines: typeof lines;
+      }
+    >();
+    for (const line of lines) {
+      const existing = byRun.get(line.invoiceRunId);
+      if (existing) existing.lines.push(line);
+      else byRun.set(line.invoiceRunId, { run: line.invoiceRun, lines: [line] });
+    }
+
+    const runs = [...byRun.values()]
+      .sort((a, b) => b.run.periodEnd.getTime() - a.run.periodEnd.getTime())
+      .map(({ run, lines: runLines }) => {
+        const mappedLines = runLines.map((l) => {
+          const funder = l.funderId ? funderMap.get(l.funderId) : null;
+          return {
+            id: l.id,
+            visitRef: l.visitRef,
+            serviceUserId: l.serviceUserId,
+            serviceUserName:
+              serviceUser.preferredName?.trim() ||
+              `${serviceUser.firstName} ${serviceUser.lastName}`.trim(),
+            serviceUserNumber: serviceUser.serviceUserNumber,
+            funderId: l.funderId,
+            funderName: funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
+            funderCode: funder?.code ?? null,
+            description: l.description,
+            minutes: l.minutes,
+            splitPercent: l.splitPercent != null ? Number(l.splitPercent) : null,
+            amount: formatMoney(Number(l.amount)),
+            amountValue: Number(l.amount),
+            exceptionMessage: l.exceptionMessage,
+          };
+        });
+        const funderSummaries = this.buildFunderSummaries(mappedLines);
+        const subtotal = mappedLines.reduce((sum, l) => sum + l.amountValue, 0);
+        const exceptionCount = mappedLines.filter((l) => l.exceptionMessage).length;
+        return {
+          id: run.id,
+          period: run.periodLabel,
+          periodStart: run.periodStart.toISOString().slice(0, 10),
+          periodEnd: run.periodEnd.toISOString().slice(0, 10),
+          status: run.status,
+          exportStatus: run.exportStatus,
+          sentAt: run.sentAt?.toISOString() ?? null,
+          lockedAt: run.lockedAt?.toISOString() ?? null,
+          lineCount: mappedLines.length,
+          subtotal: formatMoney(subtotal),
+          subtotalValue: Math.round(subtotal * 100) / 100,
+          exceptions: exceptionCount,
+          funders: funderSummaries.length,
+          funderSummaries,
+          lines: mappedLines,
+          canSend:
+            run.status === InvoiceRunStatus.LOCKED || run.status === InvoiceRunStatus.APPROVED,
+        };
+      });
+
+    const readyToInvoiceCount = await this.prisma.visitReconciliation.count({
+      where: {
+        serviceUserId,
+        includedInInvoiceRunId: null,
+        status: { in: INVOICE_ELIGIBLE_RECON },
+      },
+    });
+
+    const invoicedStatuses: InvoiceRunStatus[] = [
+      InvoiceRunStatus.LOCKED,
+      InvoiceRunStatus.SENT,
+      InvoiceRunStatus.PART_PAID,
+      InvoiceRunStatus.PAID,
+    ];
+    const totalInvoiced = runs
+      .filter((r) => invoicedStatuses.includes(r.status))
+      .reduce((sum, r) => sum + r.subtotalValue, 0);
+
+    return {
+      data: {
+        serviceUserId,
+        serviceUserName:
+          serviceUser.preferredName?.trim() ||
+          `${serviceUser.firstName} ${serviceUser.lastName}`.trim(),
+        serviceUserNumber: serviceUser.serviceUserNumber,
+        readyToInvoiceCount,
+        totalInvoiced: formatMoney(totalInvoiced),
+        totalInvoicedValue: Math.round(totalInvoiced * 100) / 100,
+        runCount: runs.length,
+        runs,
+      },
+    };
+  }
+
   async getById(id: string) {
     const row = await this.prisma.invoiceRun.findUnique({
       where: { id },

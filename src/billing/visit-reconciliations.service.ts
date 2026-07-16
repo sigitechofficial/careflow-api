@@ -20,6 +20,7 @@ import {
   BulkApproveVisitReconciliationsDto,
   DecideVisitOverrunDto,
   RejectVisitReconciliationDto,
+  SetVisitPayableAmountDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
@@ -452,6 +453,59 @@ export class VisitReconciliationsService {
 
     await this.prisma.visitReconciliation.update({ where: { id }, data });
     await this.evaluateInternal(this.prisma, id);
+    return this.getById(id);
+  }
+
+  /**
+   * Manually set payable amount for salary. Optionally accept the visit for pay
+   * so the amount is included in employee salary totals.
+   */
+  async setPayableAmount(userId: string, id: string, dto: SetVisitPayableAmountDto) {
+    const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Visit reconciliation not found');
+    if (existing.status === VisitReconciliationStatus.LOCKED) {
+      throw new BadRequestException('Reconciliation is locked');
+    }
+    if (existing.includedInPayrollRunId) {
+      throw new BadRequestException(
+        'Visit is already included in a payroll run — unlock or remove it before changing the amount',
+      );
+    }
+
+    const amount = Math.round(Number(dto.payableAmount) * 100) / 100;
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new BadRequestException('Payable amount must be a valid non-negative number');
+    }
+
+    const approveForPay = dto.approveForPay !== false;
+    const note = dto.notes?.trim() || null;
+    const existingNote = existing.approvalNotes?.trim() || '';
+    const amountNote = `Payable amount set to £${amount.toFixed(2)}`;
+    const combinedNotes = [existingNote, note ? `${amountNote}: ${note}` : amountNote]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 2000);
+
+    const data: Prisma.VisitReconciliationUpdateInput = {
+      payableAmount: amount,
+      approvalNotes: combinedNotes || null,
+    };
+
+    if (approveForPay) {
+      const payApproved =
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      if (!payApproved) {
+        data.status =
+          existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
+            ? VisitReconciliationStatus.APPROVED_FOR_BOTH
+            : VisitReconciliationStatus.APPROVED_FOR_PAY;
+        data.approvedById = userId;
+        data.approvedAt = new Date();
+      }
+    }
+
+    await this.prisma.visitReconciliation.update({ where: { id }, data });
     return this.getById(id);
   }
 
@@ -1135,6 +1189,11 @@ export class VisitReconciliationsService {
           ? ((payCard as { version?: number }).version ?? null)
           : null,
         lastEvaluatedAt: new Date(),
+        ...(status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        row.status !== VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        !row.approvedAt
+          ? { approvedAt: new Date() }
+          : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }

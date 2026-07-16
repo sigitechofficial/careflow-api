@@ -232,7 +232,8 @@ export function deriveReconciliationStatus(
   if (exceptions.some((e) => MANAGER_REVIEW_CODES.has(e.code))) {
     return VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL;
   }
-  return VisitReconciliationStatus.PENDING_REVIEW;
+  // Clean completed visits are accepted for pay by default (salary includes payable amount).
+  return VisitReconciliationStatus.APPROVED_FOR_PAY;
 }
 
 export function hasUnresolvedBlockingExceptions(exceptions: DetectedException[]): boolean {

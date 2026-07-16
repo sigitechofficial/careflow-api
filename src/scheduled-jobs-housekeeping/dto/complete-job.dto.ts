@@ -67,4 +67,21 @@ export class CompleteJobDto {
   @IsString()
   @MaxLength(2000)
   overrunReason?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Structured reason code required for late/early/short/overrun timing exceptions (see VISIT_TIMING_EXCEPTION_REASON_CODES)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  timingExceptionReasonCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Notes for the timing/delivery exception (required when reason is OTHER)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  timingExceptionNotes?: string;
 }

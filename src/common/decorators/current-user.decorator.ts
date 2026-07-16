@@ -1,6 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-export type AccountKind = 'user' | 'temporary_inspector' | 'service_user';
+export type AccountKind = 'user' | 'temporary_inspector' | 'service_user' | 'employee';
 
 export type RequestUser = {
   id: string;
@@ -14,6 +14,8 @@ export type RequestUser = {
   username?: string;
   /** Populated for `service_user` portal sessions. */
   serviceUserId?: string;
+  /** Populated for `employee` app sessions. */
+  employeeId?: string;
   preferredName?: string | null;
   profilePhotoUrl?: string | null;
 };

@@ -1,0 +1,732 @@
+{
+  "info": {
+    "_postman_id": "a8c3e2f1-7b4d-4e9a-9c21-employee-app-carer",
+    "name": "Care — Carer Mobile App",
+    "description": "Employee / carer mobile app APIs (separate from web admin).\n\nBase URL uses your LAN IP so a phone or emulator on the same network can reach the API.\n\n1. Set `email` / `password` (must match Employee app access on the web admin employee edit page).\n2. Run **Login** — tokens are saved to collection variables automatically.\n3. Call **Home**, **Schedule**, **Clients**, then client-detail endpoints with `{{clientId}}`.\n4. Use **Me**, **Refresh**, **Logout** as needed.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://192.168.18.54:3000"
+    },
+    {
+      "key": "email",
+      "value": "carer@example.com"
+    },
+    {
+      "key": "password",
+      "value": "YourPassword1"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "employeeId",
+      "value": ""
+    },
+    {
+      "key": "date",
+      "value": ""
+    },
+    {
+      "key": "clientId",
+      "value": ""
+    },
+    {
+      "key": "jobId",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Carer mobile authentication under `/employee-app/auth/*`",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "if (data && data.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "}",
+                  "if (data && data.refreshToken) {",
+                  "  pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                  "}",
+                  "if (data && data.employeeId) {",
+                  "  pm.collectionVariables.set('employeeId', data.employeeId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "auth", "login"]
+            },
+            "description": "Sign in with the email/password set under Employee app access on the admin employee edit page.\n\nSaves `accessToken`, `refreshToken`, and `employeeId` to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "if (data && data.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "}",
+                  "if (data && data.refreshToken) {",
+                  "  pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "auth", "refresh"]
+            },
+            "description": "Rotate access/refresh tokens for the carer app. Do not use web `/auth/refresh` for these tokens."
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "auth", "me"]
+            },
+            "description": "Current carer session profile. Uses collection Bearer `{{accessToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', '');",
+                  "pm.collectionVariables.set('refreshToken', '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "auth", "logout"]
+            },
+            "description": "Clears the carer refresh token server-side and empties local token variables."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Today",
+      "description": "Home / Today screen for the carer app (`GET /employee-app/home`).",
+      "item": [
+        {
+          "name": "Home (Today)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "pm.test('Has greeting and visits', function () {",
+                  "  pm.expect(data).to.have.property('greeting');",
+                  "  pm.expect(data).to.have.property('progress');",
+                  "  pm.expect(data).to.have.property('visits');",
+                  "  pm.expect(data.visits).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "home"]
+            },
+            "description": "Today home payload for the authenticated carer:\n- greeting (GOOD MORNING, name)\n- sync pending count (placeholder)\n- notifications unread (placeholder)\n- quick actions (Incident / Message / Safety)\n- daily progress (x of y visits done)\n- activeVisit (in-progress card with allergies + directions)\n- visits list (status, tags, task progress)\n\nUses Bearer `{{accessToken}}`. Defaults to today's UTC date."
+          },
+          "response": []
+        },
+        {
+          "name": "Home (by date)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/home?date={{date}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "home"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "description": "YYYY-MM-DD (UTC schedule day)"
+                }
+              ]
+            },
+            "description": "Same as Home (Today) but for a specific schedule day. Set collection variable `date` (e.g. `2026-07-15`)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Schedule",
+      "description": "Schedule screen for the carer app (`GET /employee-app/schedule`).",
+      "item": [
+        {
+          "name": "Schedule (selected day)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "pm.test('Has date strip, totals, visits', function () {",
+                  "  pm.expect(data).to.have.property('dateStrip');",
+                  "  pm.expect(data).to.have.property('totals');",
+                  "  pm.expect(data).to.have.property('visits');",
+                  "  pm.expect(data.visits).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "schedule"]
+            },
+            "description": "Schedule screen payload:\n- dateStrip (horizontal dates + hasVisits dots)\n- selectedDateLabel (Today · Tue 30/06/2026)\n- totals (visits / planned hours / miles)\n- visits list (period · time range + statusTag)\n\nUses Bearer `{{accessToken}}`. Defaults to today (UTC)."
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule (by date)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/schedule?date={{date}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "schedule"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}",
+                  "description": "Selected day YYYY-MM-DD"
+                }
+              ]
+            },
+            "description": "Schedule for a specific day. Set collection variable `date` (e.g. `2026-06-30`)."
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule (date + strip range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/schedule?date={{date}}&from=2026-06-16&to=2026-07-21",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "schedule"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{date}}"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-06-16",
+                  "description": "Date strip start"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-21",
+                  "description": "Date strip end"
+                }
+              ]
+            },
+            "description": "Optional `from`/`to` control the horizontal date strip window (defaults: selected-14 … selected+21)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "description": "Clients on your round (`GET /employee-app/clients`).",
+      "item": [
+        {
+          "name": "Clients list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "pm.test('Has totalCount and clients', function () {",
+                  "  pm.expect(data).to.have.property('totalCount');",
+                  "  pm.expect(data).to.have.property('clients');",
+                  "  pm.expect(data.clients).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients"]
+            },
+            "description": "Clients on the carer round:\n- totalCountLabel (e.g. 4 people on your round)\n- clients with initials, summary (age · care type — N visits/day)\n- tags (allergies danger, risk warnings)\n\nUses Bearer `{{accessToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Clients search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients?search=Mary",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Mary",
+                  "description": "Name filter"
+                }
+              ]
+            },
+            "description": "Filter clients by first/last/preferred name."
+          },
+          "response": []
+        },
+        {
+          "name": "Client profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "const data = body && body.data ? body.data : body;",
+                  "if (data && data.client && data.client.clientId) {",
+                  "  pm.collectionVariables.set('clientId', data.client.clientId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}"]
+            },
+            "description": "Client profile: allergies, CPR/conditions, today's visits, care plan essentials."
+          },
+          "response": []
+        },
+        {
+          "name": "Client documents",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "documents"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Client medications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/medications",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "medications"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Client assessments & continuity",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/assessments",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "assessments"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Client history & trends",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/history-trends",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "history-trends"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Client consent & capacity",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/consent-capacity",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "consent-capacity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Client care plan",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/clients/{{clientId}}/care-plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "clients", "{{clientId}}", "care-plan"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Visit workspace",
+      "item": [
+        {
+          "name": "Visit overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}"]
+            },
+            "description": "Visit workspace shell + overview tab: client header, allergies, progress, summary widgets, care plan essentials."
+          },
+          "response": []
+        },
+        {
+          "name": "Check in",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identityConfirmed\": true,\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"accuracyMeters\": 12.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/check-in",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "check-in"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tasks",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "tasks"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "MAR",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/medication",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "medication"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Observations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "observations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/log",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "log"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete visit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Visit completed — all tasks done.\",\n  \"handoverNote\": \"Client well, fluids encouraged.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "complete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

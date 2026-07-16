@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { InvoiceRunsService } from './invoice-runs.service';
@@ -20,6 +20,13 @@ export class InvoiceRunsController {
   @ApiOperation({ summary: 'Invoice run draft summary for dashboard' })
   summary() {
     return this.service.getSummary();
+  }
+
+  @Get('service-user/:serviceUserId')
+  @AnyPermission('billing.invoice_runs.read', 'service_users.read', 'service_users.update')
+  @ApiOperation({ summary: 'Invoice runs and funder totals for one service user' })
+  forServiceUser(@Param('serviceUserId') serviceUserId: string) {
+    return this.service.getForServiceUser(serviceUserId);
   }
 
   @Get()

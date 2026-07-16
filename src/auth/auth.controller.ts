@@ -75,7 +75,7 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto, @Req() req: Request) {
-    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user') {
+    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user' || user.accountKind === 'employee') {
       throw new ForbiddenException('Password change is not available for this account type');
     }
     return this.authService.changePassword(user.id, dto, req);
@@ -99,7 +99,7 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   updateMe(@CurrentUser() user: RequestUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
-    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user') {
+    if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user' || user.accountKind === 'employee') {
       throw new ForbiddenException('Profile update is not available for this account type');
     }
     return this.authService.updateProfile(user.id, dto, req);
@@ -109,8 +109,8 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   myLoginHistory(@CurrentUser() user: RequestUser) {
-    if (user.accountKind === 'service_user') {
-      throw new ForbiddenException('Login history is not available for service user accounts');
+    if (user.accountKind === 'service_user' || user.accountKind === 'employee') {
+      throw new ForbiddenException('Login history is not available for this account type');
     }
     return this.authService.getMyLoginHistory(user.id);
   }

@@ -103,6 +103,8 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
+import { EmployeeAppModule } from './employee-app/employee-app.module';
+import { EcmModule } from './ecm/ecm.module';
 
 @Module({
   imports: [
@@ -224,6 +226,8 @@ import { BillingModule } from './billing/billing.module';
     BodyMapModule,
     DevToolsModule,
     BillingModule,
+    EmployeeAppModule,
+    EcmModule,
   ],
   providers: [
     {

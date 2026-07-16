@@ -7,10 +7,15 @@ import {
   PayrollRunLineType,
   PayrollRunStatus,
   Prisma,
+  SalaryDeductionType,
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBillingRunDto, EmployeeEarningsQueryDto } from './dto/billing-runs.dto';
+import {
+  CreateBillingRunDto,
+  CreateEmployeeSalaryDeductionDto,
+  EmployeeEarningsQueryDto,
+} from './dto/billing-runs.dto';
 import {
   endOfBillingDate,
   formatMoney,
@@ -61,6 +66,56 @@ const PAYROLL_ELIGIBLE_RECON: VisitReconciliationStatus[] = [
   VisitReconciliationStatus.APPROVED_FOR_PAY,
   VisitReconciliationStatus.APPROVED_FOR_BOTH,
 ];
+
+/** Period keys (YYYY-MM or YYYY-Www) covered by an earnings date filter; null = all. */
+function salaryMonthsForEarningsQuery(dateFrom?: string, dateTo?: string): string[] | null {
+  if (!dateFrom && !dateTo) return null;
+  const fromStr = (dateFrom ?? dateTo)!;
+  const toStr = (dateTo ?? dateFrom)!;
+  const from = parseUtcDateOnly(fromStr);
+  const to = parseUtcDateOnly(toStr);
+  if (from && to) {
+    const daySpan = Math.round((to.getTime() - from.getTime()) / 86_400_000);
+    const weekFrom = isoWeekPeriodKey(from);
+    const weekTo = isoWeekPeriodKey(to);
+    if (daySpan >= 0 && daySpan <= 6 && weekFrom === weekTo) {
+      return [weekFrom];
+    }
+  }
+  const start = fromStr.slice(0, 7);
+  const end = toStr.slice(0, 7);
+  if (start === end) return [start];
+  const months: string[] = [];
+  let [y, m] = start.split('-').map(Number);
+  const [ey, em] = end.split('-').map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    months.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+    if (months.length > 36) break;
+  }
+  return months;
+}
+
+function parseUtcDateOnly(isoDate: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** ISO week period key YYYY-Www (UTC, week starts Monday). */
+function isoWeekPeriodKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  // Thursday in current week decides the year
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
 
 export type PayrollRunRow = {
   id: string;
@@ -1012,6 +1067,268 @@ export class PayrollRunsService {
    * Paid = included in a LOCKED/EXPORTED payroll run.
    * Remaining = approved for pay but not yet in a locked payroll run.
    */
+  /**
+   * Org-wide salary overview for a period (visit pay, paid, rejected, fines, penalties, net).
+   */
+  async listEmployeeSalaries(query: EmployeeEarningsQueryDto) {
+    const plannedDateFilter: Prisma.DateTimeFilter | undefined =
+      query.dateFrom || query.dateTo
+        ? {
+            ...(query.dateFrom ? { gte: parseBillingDateOnly(query.dateFrom) } : {}),
+            ...(query.dateTo ? { lte: endOfBillingDate(query.dateTo) } : {}),
+          }
+        : undefined;
+
+    const paidStatuses: PayrollRunStatus[] = [
+      PayrollRunStatus.LOCKED,
+      PayrollRunStatus.EXPORTED,
+    ];
+
+    const dateOnVisit: Prisma.VisitReconciliationWhereInput = plannedDateFilter
+      ? { plannedStartDateTime: plannedDateFilter }
+      : {};
+
+    const [
+      salaryGroups,
+      paidGroups,
+      remainingGroups,
+      rejectedGroups,
+      pendingGroups,
+    ] = await Promise.all([
+      this.prisma.visitReconciliation.groupBy({
+        by: ['employeeId'],
+        where: {
+          ...dateOnVisit,
+          OR: [
+            { includedInPayrollRunId: { not: null } },
+            { status: { in: PAYROLL_ELIGIBLE_RECON } },
+            { status: VisitReconciliationStatus.LOCKED },
+          ],
+        },
+        _sum: { payableAmount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.payrollRunLine.groupBy({
+        by: ['employeeId'],
+        where: {
+          employeeId: { not: null },
+          payrollRun: { status: { in: paidStatuses } },
+          ...(plannedDateFilter
+            ? { visitReconciliation: { plannedStartDateTime: plannedDateFilter } }
+            : {}),
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.visitReconciliation.groupBy({
+        by: ['employeeId'],
+        where: {
+          ...dateOnVisit,
+          includedInPayrollRunId: null,
+          status: { in: PAYROLL_ELIGIBLE_RECON },
+        },
+        _sum: { payableAmount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.visitReconciliation.groupBy({
+        by: ['employeeId'],
+        where: {
+          ...dateOnVisit,
+          status: VisitReconciliationStatus.REJECTED_FOR_PAY,
+        },
+        _sum: { payableAmount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.visitReconciliation.groupBy({
+        by: ['employeeId'],
+        where: {
+          ...dateOnVisit,
+          includedInPayrollRunId: null,
+          status: {
+            in: [
+              VisitReconciliationStatus.PENDING_REVIEW,
+              VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+            ],
+          },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const salaryMonths = salaryMonthsForEarningsQuery(query.dateFrom, query.dateTo);
+    const deductions = await this.prisma.employeeSalaryDeduction.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        ...(salaryMonths ? { salaryMonth: { in: salaryMonths } } : {}),
+      },
+      select: {
+        employeeId: true,
+        type: true,
+        amount: true,
+      },
+    });
+
+    type Acc = {
+      salaryAmount: number;
+      salaryVisitCount: number;
+      paidAmount: number;
+      paidLineCount: number;
+      remainingAmount: number;
+      remainingVisitCount: number;
+      rejectedAmount: number;
+      rejectedVisitCount: number;
+      pendingReviewCount: number;
+      fineTotal: number;
+      penaltyTotal: number;
+    };
+
+    const byEmployee = new Map<string, Acc>();
+    const ensure = (id: string): Acc => {
+      let row = byEmployee.get(id);
+      if (!row) {
+        row = {
+          salaryAmount: 0,
+          salaryVisitCount: 0,
+          paidAmount: 0,
+          paidLineCount: 0,
+          remainingAmount: 0,
+          remainingVisitCount: 0,
+          rejectedAmount: 0,
+          rejectedVisitCount: 0,
+          pendingReviewCount: 0,
+          fineTotal: 0,
+          penaltyTotal: 0,
+        };
+        byEmployee.set(id, row);
+      }
+      return row;
+    };
+
+    for (const g of salaryGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.salaryAmount = Number(g._sum.payableAmount ?? 0);
+      row.salaryVisitCount = g._count._all;
+    }
+    for (const g of paidGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.paidAmount = Number(g._sum.amount ?? 0);
+      row.paidLineCount = g._count._all;
+    }
+    for (const g of remainingGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.remainingAmount = Number(g._sum.payableAmount ?? 0);
+      row.remainingVisitCount = g._count._all;
+    }
+    for (const g of rejectedGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.rejectedAmount = Number(g._sum.payableAmount ?? 0);
+      row.rejectedVisitCount = g._count._all;
+    }
+    for (const g of pendingGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.pendingReviewCount = g._count._all;
+    }
+    for (const d of deductions) {
+      const row = ensure(d.employeeId);
+      const amount = Number(d.amount);
+      if (d.type === SalaryDeductionType.FINE) row.fineTotal += amount;
+      else row.penaltyTotal += amount;
+    }
+
+    const employeeIds = [...byEmployee.keys()];
+    const employees = employeeIds.length
+      ? await this.prisma.employee.findMany({
+          where: { id: { in: employeeIds }, deletedAt: null },
+          select: {
+            id: true,
+            isActive: true,
+            personalDetail: { select: { firstName: true, lastName: true } },
+            employment: { select: { employeeNumber: true } },
+          },
+        })
+      : [];
+
+    const empMeta = new Map(
+      employees.map((e) => {
+        const name =
+          [e.personalDetail?.firstName, e.personalDetail?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || 'Unknown';
+        return [
+          e.id,
+          {
+            name,
+            employeeNumber: e.employment?.employeeNumber ?? null,
+            isActive: e.isActive,
+          },
+        ] as const;
+      }),
+    );
+
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    const rows = employeeIds
+      .map((id) => {
+        const meta = empMeta.get(id);
+        if (!meta) return null;
+        const a = byEmployee.get(id)!;
+        const fineTotal = round2(a.fineTotal);
+        const penaltyTotal = round2(a.penaltyTotal);
+        const deductionsTotal = round2(fineTotal + penaltyTotal);
+        const salaryAmount = round2(a.salaryAmount);
+        const netSalary = round2(salaryAmount - deductionsTotal);
+        const paidAmount = round2(a.paidAmount);
+        const remainingAmount = round2(a.remainingAmount);
+        const rejectedAmount = round2(a.rejectedAmount);
+        return {
+          employeeId: id,
+          employeeName: meta.name,
+          employeeNumber: meta.employeeNumber,
+          isActive: meta.isActive,
+          salaryAmount: formatMoney(salaryAmount),
+          salaryAmountValue: salaryAmount,
+          salaryVisitCount: a.salaryVisitCount,
+          paidAmount: formatMoney(paidAmount),
+          paidAmountValue: paidAmount,
+          paidLineCount: a.paidLineCount,
+          remainingAmount: formatMoney(remainingAmount),
+          remainingAmountValue: remainingAmount,
+          remainingVisitCount: a.remainingVisitCount,
+          rejectedAmount: formatMoney(rejectedAmount),
+          rejectedAmountValue: rejectedAmount,
+          rejectedVisitCount: a.rejectedVisitCount,
+          pendingReviewCount: a.pendingReviewCount,
+          fineTotal: formatMoney(fineTotal),
+          fineTotalValue: fineTotal,
+          penaltyTotal: formatMoney(penaltyTotal),
+          penaltyTotalValue: penaltyTotal,
+          deductionsTotal: formatMoney(deductionsTotal),
+          deductionsTotalValue: deductionsTotal,
+          netSalaryAmount: formatMoney(netSalary),
+          netSalaryAmountValue: netSalary,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null)
+      .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+
+    return {
+      data: {
+        dateFrom: query.dateFrom ?? null,
+        dateTo: query.dateTo ?? null,
+        currency: 'GBP',
+        employeeCount: rows.length,
+        rows,
+      },
+    };
+  }
+
   async getEmployeeEarnings(employeeId: string, query: EmployeeEarningsQueryDto) {
     const employee = await this.prisma.employee.findFirst({
       where: { id: employeeId, deletedAt: null },
@@ -1099,6 +1416,7 @@ export class PayrollRunsService {
                 in: [
                   VisitReconciliationStatus.PENDING_REVIEW,
                   VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+                  VisitReconciliationStatus.REJECTED_FOR_PAY,
                 ],
               },
             },
@@ -1127,9 +1445,26 @@ export class PayrollRunsService {
           },
         },
         orderBy: { plannedStartDateTime: 'desc' },
-        take: 100,
+        take: plannedDateFilter ? 500 : 100,
       }),
     ]);
+
+    const salaryWhere: Prisma.VisitReconciliationWhereInput = {
+      ...visitDateWhere,
+      OR: [
+        { includedInPayrollRunId: { not: null } },
+        { status: { in: PAYROLL_ELIGIBLE_RECON } },
+        { status: VisitReconciliationStatus.LOCKED },
+      ],
+    };
+    const [salaryAmountAgg, salaryVisitCount] = await Promise.all([
+      this.prisma.visitReconciliation.aggregate({
+        where: salaryWhere,
+        _sum: { payableAmount: true },
+      }),
+      this.prisma.visitReconciliation.count({ where: salaryWhere }),
+    ]);
+    const salaryAmount = Number(salaryAmountAgg._sum.payableAmount ?? 0);
 
     const totalEarned = Number(paidAggregate._sum.amount ?? 0);
     const remainingAmount = Number(remainingAmountAgg._sum.payableAmount ?? 0);
@@ -1170,11 +1505,20 @@ export class PayrollRunsService {
 
     const visits = visitRows.map((row) => {
       const paid = Boolean(row.includedInPayrollRunId);
+      const rejected = row.status === VisitReconciliationStatus.REJECTED_FOR_PAY;
       const remaining =
         !paid &&
+        !rejected &&
         (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-          row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
-      const paymentState = paid ? 'PAID' : remaining ? 'REMAINING' : 'PENDING';
+          row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+          row.status === VisitReconciliationStatus.LOCKED);
+      const paymentState = paid
+        ? 'PAID'
+        : remaining
+          ? 'REMAINING'
+          : rejected
+            ? 'REJECTED'
+            : 'PENDING';
       const hours =
         row.payableMinutes != null
           ? formatMinutesAsHours(row.payableMinutes)
@@ -1197,16 +1541,52 @@ export class PayrollRunsService {
             ? `${formatHm(row.approvedPayStart)}–${formatHm(row.approvedPayEnd)}`
             : null,
         payableAmount: formatMoney(Number(row.payableAmount ?? 0)),
+        payableAmountValue: Math.round(Number(row.payableAmount ?? 0) * 100) / 100,
         payableMinutes: row.payableMinutes,
         payableHours: hours,
         status: row.status,
         paymentState,
         paid,
+        countsTowardSalary: paid || remaining,
         payrollRunId: row.includedInPayrollRun?.id ?? null,
         payrollPeriod: row.includedInPayrollRun?.periodLabel ?? null,
         payrollRunStatus: row.includedInPayrollRun?.status ?? null,
       };
     });
+
+    const salaryMonths = salaryMonthsForEarningsQuery(query.dateFrom, query.dateTo);
+    const deductions = await this.prisma.employeeSalaryDeduction.findMany({
+      where: {
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+        ...(salaryMonths ? { salaryMonth: { in: salaryMonths } } : {}),
+      },
+      orderBy: [{ salaryMonth: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    let fineTotal = 0;
+    let penaltyTotal = 0;
+    const mappedDeductions = deductions.map((d) => {
+      const amount = Number(d.amount);
+      if (d.type === SalaryDeductionType.FINE) fineTotal += amount;
+      else penaltyTotal += amount;
+      return {
+        id: d.id,
+        type: d.type,
+        amount: formatMoney(amount),
+        amountValue: Math.round(amount * 100) / 100,
+        reason: d.reason,
+        notes: d.notes,
+        salaryMonth: d.salaryMonth,
+        createdAt: d.createdAt.toISOString(),
+      };
+    });
+    fineTotal = Math.round(fineTotal * 100) / 100;
+    penaltyTotal = Math.round(penaltyTotal * 100) / 100;
+    const deductionsTotal = Math.round((fineTotal + penaltyTotal) * 100) / 100;
+    const visitSalary = Math.round(salaryAmount * 100) / 100;
+    const netSalary = Math.round((visitSalary - deductionsTotal) * 100) / 100;
 
     return {
       data: {
@@ -1214,6 +1594,20 @@ export class PayrollRunsService {
         dateFrom: query.dateFrom ?? null,
         dateTo: query.dateTo ?? null,
         currency: 'GBP',
+        /** Gross monthly salary from accepted visits (before fines/penalties). */
+        salaryAmount: formatMoney(visitSalary),
+        salaryAmountValue: visitSalary,
+        salaryVisitCount,
+        /** Net = visit salary − fines − penalties. */
+        netSalaryAmount: formatMoney(netSalary),
+        netSalaryAmountValue: netSalary,
+        fineTotal: formatMoney(fineTotal),
+        fineTotalValue: fineTotal,
+        penaltyTotal: formatMoney(penaltyTotal),
+        penaltyTotalValue: penaltyTotal,
+        deductionsTotal: formatMoney(deductionsTotal),
+        deductionsTotalValue: deductionsTotal,
+        deductions: mappedDeductions,
         totalEarned: formatMoney(totalEarned),
         totalEarnedAmount: Math.round(totalEarned * 100) / 100,
         paidVisitCount: paidVisitGroups.length,
@@ -1224,6 +1618,92 @@ export class PayrollRunsService {
         visits,
       },
     };
+  }
+
+  async listEmployeeSalaryDeductions(employeeId: string, salaryMonth?: string) {
+    await this.ensureEmployee(employeeId);
+    const rows = await this.prisma.employeeSalaryDeduction.findMany({
+      where: {
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+        ...(salaryMonth ? { salaryMonth } : {}),
+      },
+      orderBy: [{ salaryMonth: 'desc' }, { createdAt: 'desc' }],
+    });
+    return {
+      data: rows.map((d) => ({
+        id: d.id,
+        type: d.type,
+        amount: formatMoney(Number(d.amount)),
+        amountValue: Math.round(Number(d.amount) * 100) / 100,
+        reason: d.reason,
+        notes: d.notes,
+        salaryMonth: d.salaryMonth,
+        createdAt: d.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async createEmployeeSalaryDeduction(
+    userId: string,
+    employeeId: string,
+    dto: CreateEmployeeSalaryDeductionDto,
+  ) {
+    await this.ensureEmployee(employeeId);
+    const amount = Math.round(Number(dto.amount) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Deduction amount must be greater than zero');
+    }
+    const created = await this.prisma.employeeSalaryDeduction.create({
+      data: {
+        employeeId,
+        type: dto.type as SalaryDeductionType,
+        amount,
+        reason: dto.reason.trim(),
+        notes: dto.notes?.trim() || null,
+        salaryMonth: dto.salaryMonth,
+        createdById: userId,
+        updatedById: userId,
+      },
+    });
+    return {
+      data: {
+        id: created.id,
+        type: created.type,
+        amount: formatMoney(Number(created.amount)),
+        amountValue: Math.round(Number(created.amount) * 100) / 100,
+        reason: created.reason,
+        notes: created.notes,
+        salaryMonth: created.salaryMonth,
+        createdAt: created.createdAt.toISOString(),
+      },
+    };
+  }
+
+  async deleteEmployeeSalaryDeduction(userId: string, employeeId: string, deductionId: string) {
+    await this.ensureEmployee(employeeId);
+    const row = await this.prisma.employeeSalaryDeduction.findFirst({
+      where: { id: deductionId, employeeId, deletedAt: null },
+    });
+    if (!row) throw new NotFoundException('Salary deduction not found');
+    await this.prisma.employeeSalaryDeduction.update({
+      where: { id: row.id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        updatedById: userId,
+      },
+    });
+    return { data: { id: row.id, deleted: true } };
+  }
+
+  private async ensureEmployee(employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
   }
 
   private mapRow(row: {

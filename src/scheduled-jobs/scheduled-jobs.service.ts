@@ -12,6 +12,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { EcmScheduleVersionService } from '../ecm/ecm-schedule-version.service';
 import {
   assertDateRange,
   assertRequiredCarers,
@@ -27,6 +28,12 @@ import { CreateScheduledJobDto } from './dto/create-scheduled-job.dto';
 import { UpdateScheduledJobDto } from './dto/update-scheduled-job.dto';
 import { UpdateScheduledJobStatusDto } from './dto/update-scheduled-job-status.dto';
 import type { BuildScheduleJobDto } from '../schedules/dto/build-schedule-job.dto';
+import {
+  mapTimelineJob,
+  timelineJobInclude,
+} from '../scheduling/schedule-timeline.mapper';
+import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
+import { visitTimingExceptionReasonLabel } from '../scheduling/visit-timing-exception-reason.util';
 
 const jobInclude = {
   serviceUser: {
@@ -44,11 +51,41 @@ const jobInclude = {
   visits: { where: { deletedAt: null }, orderBy: { scheduledStartDateTime: 'asc' as const } },
 } satisfies Prisma.ScheduledJobInclude;
 
+const jobDetailInclude = {
+  ...timelineJobInclude,
+  cancellation: {
+    select: {
+      id: true,
+      outcome: true,
+      reasonCode: true,
+      reasonNotes: true,
+      chargeDecision: true,
+      timeCriticalVisit: true,
+      timeCriticalEscalated: true,
+      cancelledAt: true,
+    },
+  },
+  attendanceEvents: {
+    orderBy: { occurredAt: 'desc' as const },
+    take: 20,
+    select: {
+      id: true,
+      eventType: true,
+      occurredAt: true,
+      verificationMethod: true,
+      outsideGeofence: true,
+      outsideGeofenceReason: true,
+      distanceMeters: true,
+    },
+  },
+} satisfies Prisma.ScheduledJobInclude;
+
 @Injectable()
 export class ScheduledJobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly ecmScheduleVersions: EcmScheduleVersionService,
   ) {}
 
   async list(query: ScheduledJobQueryDto) {
@@ -91,10 +128,10 @@ export class ScheduledJobsService {
   async getById(id: string) {
     const row = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null },
-      include: jobInclude,
+      include: jobDetailInclude,
     });
     if (!row) throw new NotFoundException('Scheduled job not found');
-    return { data: this.mapJob(row) };
+    return { data: this.mapJobDetail(row) };
   }
 
   private jobDataFromDto(
@@ -188,6 +225,13 @@ export class ScheduledJobsService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
+      await this.ecmScheduleVersions.ensureOriginal({
+        tx,
+        scheduledJobId: created.id,
+        plannedStartDateTime: created.scheduledStartDateTime,
+        plannedEndDateTime: created.scheduledEndDateTime,
+        changedById: userId,
+      });
       return { message: 'Scheduled job created', data: this.mapJob(created) };
     });
   }
@@ -237,6 +281,21 @@ export class ScheduledJobsService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
+      if (
+        dto.scheduledStartDateTime !== undefined ||
+        dto.scheduledEndDateTime !== undefined
+      ) {
+        await this.ecmScheduleVersions.recordTimeChange({
+          tx,
+          scheduledJobId: id,
+          plannedStartDateTime: updated.scheduledStartDateTime,
+          plannedEndDateTime: updated.scheduledEndDateTime,
+          previousStartDateTime: existing.scheduledStartDateTime,
+          previousEndDateTime: existing.scheduledEndDateTime,
+          changedById: userId,
+          reasonNote: dto.notes?.trim() || null,
+        });
+      }
       return { message: 'Scheduled job updated', data: this.mapJob(updated) };
     });
   }
@@ -310,7 +369,7 @@ export class ScheduledJobsService {
   async syncJobStatusFromVisits(
     tx: Prisma.TransactionClient,
     scheduledJobId: string,
-    userId: string,
+    userId?: string | null,
   ): Promise<void> {
     const visits = await tx.scheduledVisit.findMany({
       where: { scheduledJobId, deletedAt: null, isActive: true },
@@ -322,7 +381,10 @@ export class ScheduledJobsService {
     if (nextStatus !== job.status) {
       await tx.scheduledJob.update({
         where: { id: scheduledJobId },
-        data: { status: nextStatus, updatedById: userId },
+        data: {
+          status: nextStatus,
+          ...(userId ? { updatedById: userId } : {}),
+        },
       });
     }
   }
@@ -461,7 +523,18 @@ export class ScheduledJobsService {
   }
 
   mapJob(row: Prisma.ScheduledJobGetPayload<{ include: typeof jobInclude }>) {
-    return {
+    const visits = row.visits?.map((v) => ({
+      id: v.id,
+      visitName: v.visitName,
+      visitPlanSlotId: v.visitPlanSlotId,
+      status: v.status,
+      scheduledStartDateTime: v.scheduledStartDateTime.toISOString(),
+      scheduledEndDateTime: v.scheduledEndDateTime?.toISOString() ?? null,
+      actualStartDateTime: v.actualStartDateTime?.toISOString() ?? null,
+      actualEndDateTime: v.actualEndDateTime?.toISOString() ?? null,
+    }));
+    const primaryVisit = visits?.[0];
+    const mapped = {
       id: row.id,
       scheduleBatchId: row.scheduleBatchId,
       scheduleAreaId: row.scheduleAreaId,
@@ -496,13 +569,90 @@ export class ScheduledJobsService {
       scheduleRun: row.scheduleRun
         ? { ...row.scheduleRun, runDate: row.scheduleRun.runDate.toISOString().slice(0, 10) }
         : null,
-      visits: row.visits?.map((v) => ({
-        id: v.id,
-        visitName: v.visitName,
-        status: v.status,
-        scheduledStartDateTime: v.scheduledStartDateTime.toISOString(),
-        scheduledEndDateTime: v.scheduledEndDateTime?.toISOString() ?? null,
+      visits,
+      actualStartDateTime: primaryVisit?.actualStartDateTime ?? null,
+      actualEndDateTime: primaryVisit?.actualEndDateTime ?? null,
+    };
+    return {
+      ...mapped,
+      deliveryAssessment: assessVisitDeliveryFromJobLike({
+        status: mapped.status,
+        requiredCarers: mapped.requiredCarers,
+        scheduledStartDateTime: mapped.scheduledStartDateTime,
+        scheduledEndDateTime: mapped.scheduledEndDateTime,
+        actualStartDateTime: mapped.actualStartDateTime,
+        actualEndDateTime: mapped.actualEndDateTime,
+        visits,
+      }),
+    };
+  }
+
+  private mapJobDetail(row: Prisma.ScheduledJobGetPayload<{ include: typeof jobDetailInclude }>) {
+    const timeline = mapTimelineJob(row);
+    const latestAttendance = row.attendanceEvents[0] ?? null;
+    const meta =
+      row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+    const timingExceptionReasonCode =
+      typeof meta.timingExceptionReasonCode === 'string'
+        ? meta.timingExceptionReasonCode
+        : null;
+    const timingExceptionNotes =
+      typeof meta.timingExceptionNotes === 'string' ? meta.timingExceptionNotes : null;
+    const overrunReason =
+      typeof meta.overrunReason === 'string' ? meta.overrunReason : null;
+
+    const deliveryAssessment = assessVisitDeliveryFromJobLike({
+      status: timeline.status,
+      requiredCarers: timeline.requiredCarers,
+      allocatedCarers: timeline.allocatedCarers,
+      scheduledStartDateTime: timeline.scheduledStartDateTime,
+      scheduledEndDateTime: timeline.scheduledEndDateTime,
+      actualStartDateTime: timeline.actualStartDateTime,
+      actualEndDateTime: timeline.actualEndDateTime,
+      visitPlan: timeline.visitPlan,
+      visits: timeline.visits,
+      latestAttendanceEventType: latestAttendance?.eventType ?? null,
+    });
+
+    return {
+      ...timeline,
+      notes: row.notes,
+      metadata: row.metadata,
+      description: row.description,
+      estimatedDurationMinutes: row.estimatedDurationMinutes,
+      deliveryAssessment,
+      cancellation: row.cancellation
+        ? {
+            ...row.cancellation,
+            cancelledAt: row.cancellation.cancelledAt.toISOString(),
+          }
+        : null,
+      attendanceEvents: row.attendanceEvents.map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        occurredAt: e.occurredAt.toISOString(),
+        verificationMethod: e.verificationMethod,
+        outsideGeofence: e.outsideGeofence,
+        outsideGeofenceReason: e.outsideGeofenceReason,
+        distanceMeters: e.distanceMeters,
       })),
+      timingException: timingExceptionReasonCode
+        ? {
+            reasonCode: timingExceptionReasonCode,
+            reasonLabel: visitTimingExceptionReasonLabel(timingExceptionReasonCode),
+            notes: timingExceptionNotes,
+            overrunReason,
+          }
+        : overrunReason
+          ? {
+              reasonCode: null,
+              reasonLabel: null,
+              notes: timingExceptionNotes,
+              overrunReason,
+            }
+          : null,
     };
   }
 }

@@ -9,12 +9,14 @@ import { UsersModule } from '../users/users.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { TemporaryInspectorsModule } from '../temporary-inspectors/temporary-inspectors.module';
 import { ServiceUserPortalModule } from '../service-user-portal/service-user-portal.module';
+import { EmployeesModule } from '../employees/employees.module';
 
 @Module({
   imports: [
     UsersModule,
     TemporaryInspectorsModule,
     ServiceUserPortalModule,
+    EmployeesModule,
     AuditLogsModule,
     PassportModule,
     JwtModule.registerAsync({

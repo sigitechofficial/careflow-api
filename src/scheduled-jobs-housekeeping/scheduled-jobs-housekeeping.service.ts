@@ -21,6 +21,11 @@ import {
   visitCancellationReasonMeta,
 } from './visit-cancellation-reason.util';
 import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
+import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
+import {
+  isVisitTimingExceptionReasonCode,
+  VISIT_TIMING_EXCEPTION_REASONS,
+} from '../scheduling/visit-timing-exception-reason.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduledVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
@@ -508,6 +513,9 @@ export class ScheduledJobsHousekeepingService {
     }
 
     let overrunReason: string | null = null;
+    let timingExceptionReasonCode: string | null = null;
+    let timingExceptionNotes: string | null = null;
+
     if (completing && actualStart && actualEnd) {
       const plannedStart = existing.scheduledStartDateTime;
       const plannedEnd =
@@ -533,6 +541,61 @@ export class ScheduledJobsHousekeepingService {
             );
           }
           overrunReason = trimmed;
+        }
+      }
+
+      const slot = existing.visits?.[0]?.visitPlanSlot;
+      const deliveryAssessment = assessVisitDeliveryFromJobLike({
+        status: visitStatus,
+        requiredCarers: existing.requiredCarers,
+        allocatedCarers: existing.allocations?.filter((a) =>
+          ACTIVE_ALLOCATION.includes(a.status),
+        ).length,
+        scheduledStartDateTime: existing.scheduledStartDateTime.toISOString(),
+        scheduledEndDateTime:
+          existing.scheduledEndDateTime?.toISOString() ??
+          existing.visits?.[0]?.scheduledEndDateTime?.toISOString() ??
+          null,
+        actualStartDateTime: actualStart.toISOString(),
+        actualEndDateTime: actualEnd.toISOString(),
+        visitPlan: slot
+          ? {
+              slotId: slot.id,
+              timeCritical: slot.timeCritical,
+              timeToleranceMinutes: slot.timeToleranceMinutes,
+            }
+          : null,
+        visits: existing.visits?.map((v) => ({
+          status: visitStatus,
+          visitPlanSlotId: v.visitPlanSlotId,
+          scheduledStartDateTime: v.scheduledStartDateTime.toISOString(),
+          scheduledEndDateTime: v.scheduledEndDateTime?.toISOString() ?? null,
+          actualStartDateTime: actualStart.toISOString(),
+          actualEndDateTime: actualEnd.toISOString(),
+        })),
+      });
+
+      if (deliveryAssessment.requiresExceptionReason) {
+        const code = dto.timingExceptionReasonCode?.trim() ?? '';
+        if (!isVisitTimingExceptionReasonCode(code)) {
+          throw new BadRequestException(
+            `A structured timing exception reason is required for ${deliveryAssessment.timingLabel}${
+              deliveryAssessment.durationExceptions.length
+                ? ` / ${deliveryAssessment.durationExceptions.join(', ')}`
+                : ''
+            }.`,
+          );
+        }
+        timingExceptionReasonCode = code;
+        timingExceptionNotes = dto.timingExceptionNotes?.trim() || null;
+        const reasonMeta = VISIT_TIMING_EXCEPTION_REASONS.find((r) => r.code === code);
+        if (reasonMeta?.requiresNotes && !timingExceptionNotes) {
+          throw new BadRequestException('Notes are required when the timing exception reason is Other.');
+        }
+        if (!overrunReason && timingExceptionNotes) {
+          overrunReason = timingExceptionNotes;
+        } else if (!overrunReason && deliveryAssessment.durationExceptions.includes('OVERRUN')) {
+          overrunReason = reasonMeta?.label ?? code;
         }
       }
     }
@@ -573,11 +636,11 @@ export class ScheduledJobsHousekeepingService {
           ...(actualStart ? { actualStartDateTime: actualStart } : {}),
           ...(actualEnd ? { actualEndDateTime: actualEnd } : {}),
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
-          updatedById: userId,
+          ...(userId ? { updatedById: userId } : {}),
         },
       });
 
-      await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId);
+      await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
 
       const previousMeta = this.parseJobMetadata(existing.metadata);
       const metadataPatch: Record<string, unknown> = { ...previousMeta };
@@ -608,6 +671,22 @@ export class ScheduledJobsHousekeepingService {
         metadataChanged = true;
       }
 
+      if (timingExceptionReasonCode) {
+        metadataPatch.timingExceptionReasonCode = timingExceptionReasonCode;
+        if (timingExceptionNotes) metadataPatch.timingExceptionNotes = timingExceptionNotes;
+        else delete metadataPatch.timingExceptionNotes;
+        metadataChanged = true;
+      } else if (completing) {
+        if ('timingExceptionReasonCode' in metadataPatch) {
+          delete metadataPatch.timingExceptionReasonCode;
+          metadataChanged = true;
+        }
+        if ('timingExceptionNotes' in metadataPatch) {
+          delete metadataPatch.timingExceptionNotes;
+          metadataChanged = true;
+        }
+      }
+
       const metadata = metadataChanged ? metadataPatch : undefined;
 
       const updated = await tx.scheduledJob.update({
@@ -615,14 +694,14 @@ export class ScheduledJobsHousekeepingService {
         data: {
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
           ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-          updatedById: userId,
+          ...(userId ? { updatedById: userId } : {}),
         },
         include: housekeepingInclude,
       });
 
       await this.audit.logAudit({
         tx,
-        userId,
+        userId: userId || undefined,
         module: AuditModule.SCHEDULING,
         action: completing ? AuditAction.SCHEDULED_JOB_COMPLETED : AuditAction.SCHEDULED_VISIT_STATUS_CHANGED,
         recordType: 'ScheduledJob',

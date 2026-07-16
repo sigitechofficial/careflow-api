@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@ne
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { Permissions, AnyPermission } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { VisitReconciliationsService } from './visit-reconciliations.service';
@@ -12,6 +12,7 @@ import {
   BulkApproveVisitReconciliationsDto,
   DecideVisitOverrunDto,
   RejectVisitReconciliationDto,
+  SetVisitPayableAmountDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
@@ -87,6 +88,19 @@ export class VisitReconciliationsController {
   @ApiOperation({ summary: 'Update approved payable/billable windows' })
   update(@Param('id') id: string, @Body() dto: UpdateVisitReconciliationDto) {
     return this.service.update(id, dto);
+  }
+
+  @Post(':id/payable-amount')
+  @AnyPermission('billing.visit_reconciliations.manage', 'employees.update')
+  @ApiOperation({
+    summary: 'Set visit payable amount (counts toward employee salary when accepted for pay)',
+  })
+  setPayableAmount(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetVisitPayableAmountDto,
+  ) {
+    return this.service.setPayableAmount(user.id, id, dto);
   }
 
   @Post(':id/approve')

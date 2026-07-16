@@ -68,6 +68,7 @@ type SettingsRow = {
   allowWeekendDaysInHoliday: boolean;
   mandateComplianceForNewEmployees: boolean;
   defaultHolidaysUnit: string;
+  salaryCalculationBasis: string;
   recruitmentFunctionalityRequired: boolean;
   complianceRequiredBy: string;
   complianceApprovalForNewEmployee: string;
@@ -186,6 +187,7 @@ function mapRow(row: SettingsRow) {
     allowWeekendDaysInHoliday: row.allowWeekendDaysInHoliday,
     mandateComplianceForNewEmployees: row.mandateComplianceForNewEmployees,
     defaultHolidaysUnit: row.defaultHolidaysUnit,
+    salaryCalculationBasis: row.salaryCalculationBasis,
     recruitmentFunctionalityRequired: row.recruitmentFunctionalityRequired,
     complianceRequiredBy: row.complianceRequiredBy,
     complianceApprovalForNewEmployee: row.complianceApprovalForNewEmployee,
@@ -290,6 +292,7 @@ function buildUpdateData(
   set('allowWeekendDaysInHoliday', dto.allowWeekendDaysInHoliday);
   set('mandateComplianceForNewEmployees', dto.mandateComplianceForNewEmployees);
   set('defaultHolidaysUnit', dto.defaultHolidaysUnit);
+  set('salaryCalculationBasis', dto.salaryCalculationBasis);
   set('recruitmentFunctionalityRequired', dto.recruitmentFunctionalityRequired);
   set('complianceRequiredBy', dto.complianceRequiredBy);
   set('complianceApprovalForNewEmployee', dto.complianceApprovalForNewEmployee);

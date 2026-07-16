@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsArray, IsOptional, IsString, IsUUID, Matches, Max, Min } from 'class-validator';
 
 export class EmployeeTimelineQueryDto {
@@ -23,6 +23,10 @@ export class EmployeeTimelineQueryDto {
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value == null || value === '') return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   @IsArray()
   @IsUUID('4', { each: true })
   employeeIds?: string[];

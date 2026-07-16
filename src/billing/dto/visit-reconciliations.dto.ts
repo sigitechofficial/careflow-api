@@ -127,6 +127,30 @@ export class UpdateVisitReconciliationDto {
   passengerMiles?: number | null;
 }
 
+export class SetVisitPayableAmountDto {
+  @ApiProperty({ example: 28.5, description: 'Manual payable amount in GBP' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  payableAmount!: number;
+
+  @ApiPropertyOptional({ description: 'Optional note explaining the amount change' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'When true (default), accept the visit for pay so the amount counts toward salary',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  approveForPay?: boolean;
+}
+
 export class ApproveVisitReconciliationDto {
   @ApiProperty({ enum: ['PAY', 'INVOICE', 'BOTH'] })
   @IsEnum(['PAY', 'INVOICE', 'BOTH'])
