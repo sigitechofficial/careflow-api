@@ -37,19 +37,27 @@ export type EcmLiveVisitRow = {
   scheduledJobId: string;
   scheduledVisitId: string | null;
   jobName: string;
+  /** Call-slot label (Morning / Midday / …) when known. */
+  slotLabel: string | null;
   serviceUserId: string;
   serviceUserName: string;
+  address: string | null;
+  postcode: string | null;
   plannedStartDateTime: string;
   plannedEndDateTime: string | null;
   actualCheckInAt: string | null;
   actualCheckOutAt: string | null;
+  plannedDurationMinutes: number | null;
+  actualDurationMinutes: number | null;
   lifecycleStatus: string;
   arrivalClassification: string;
+  departureClassification: string;
   durationClassification: string;
   missedClassification: string;
   confidence: string;
   criticality: string;
   startVarianceMinutes: number | null;
+  endVarianceMinutes: number | null;
   durationVarianceMinutes: number | null;
   appliedSettingsLevel: string;
   operationalExceptionCodes: string[];
@@ -116,6 +124,8 @@ export class EcmVisitsService {
             jobName: true,
             serviceUserId: true,
             status: true,
+            address: true,
+            postcode: true,
             scheduledStartDateTime: true,
             scheduledEndDateTime: true,
             serviceUser: {
@@ -124,6 +134,17 @@ export class EcmVisitsService {
                 firstName: true,
                 lastName: true,
                 preferredName: true,
+              },
+            },
+            visits: {
+              where: { deletedAt: null, isActive: true },
+              orderBy: { scheduledStartDateTime: 'asc' as const },
+              take: 1,
+              select: {
+                visitName: true,
+                visitPlanSlot: {
+                  select: { slotCode: true, medicationRoundCode: true },
+                },
               },
             },
           },
@@ -166,6 +187,8 @@ export class EcmVisitsService {
                   jobName: true,
                   serviceUserId: true,
                   status: true,
+                  address: true,
+                  postcode: true,
                   scheduledStartDateTime: true,
                   scheduledEndDateTime: true,
                   serviceUser: {
@@ -174,6 +197,17 @@ export class EcmVisitsService {
                       firstName: true,
                       lastName: true,
                       preferredName: true,
+                    },
+                  },
+                  visits: {
+                    where: { deletedAt: null, isActive: true },
+                    orderBy: { scheduledStartDateTime: 'asc' as const },
+                    take: 1,
+                    select: {
+                      visitName: true,
+                      visitPlanSlot: {
+                        select: { slotCode: true, medicationRoundCode: true },
+                      },
                     },
                   },
                 },
@@ -190,24 +224,45 @@ export class EcmVisitsService {
         'Service user';
 
       const buckets = this.classifyBuckets(ev, now, soonMs, dueWindowMs);
+      const primaryVisit = ev.scheduledJob.visits?.[0];
+      const slotFromPlan =
+        primaryVisit?.visitPlanSlot?.medicationRoundCode ??
+        primaryVisit?.visitPlanSlot?.slotCode ??
+        null;
+      const slotLabel =
+        primaryVisit?.visitName?.trim() ||
+        (slotFromPlan
+          ? slotFromPlan
+              .replace(/_/g, ' ')
+              .toLowerCase()
+              .replace(/\b\w/g, (c) => c.toUpperCase())
+          : null) ||
+        this.slotLabelFromJobName(ev.scheduledJob.jobName);
 
       return {
         scheduledJobId: ev.scheduledJobId,
         scheduledVisitId: ev.scheduledVisitId,
         jobName: ev.scheduledJob.jobName,
+        slotLabel,
         serviceUserId: ev.scheduledJob.serviceUserId,
         serviceUserName: name,
+        address: ev.scheduledJob.address ?? null,
+        postcode: ev.scheduledJob.postcode ?? null,
         plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
         plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
         actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
         actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
+        plannedDurationMinutes: ev.plannedDurationMinutes ?? null,
+        actualDurationMinutes: ev.actualDurationMinutes ?? null,
         lifecycleStatus: ev.lifecycleStatus,
         arrivalClassification: ev.arrivalClassification,
+        departureClassification: ev.departureClassification,
         durationClassification: ev.durationClassification,
         missedClassification: ev.missedClassification,
         confidence: ev.confidence,
         criticality: ev.criticality,
         startVarianceMinutes: ev.startVarianceMinutes,
+        endVarianceMinutes: ev.endVarianceMinutes,
         durationVarianceMinutes: ev.durationVarianceMinutes,
         appliedSettingsLevel: ev.appliedSettingsLevel,
         operationalExceptionCodes: ev.operationalExceptionCodes,
@@ -558,6 +613,19 @@ export class EcmVisitsService {
         })),
       },
     };
+  }
+
+  /** Prefer left side of "Morning — Name" job titles when visit-plan slot is missing. */
+  private slotLabelFromJobName(jobName: string | null | undefined): string | null {
+    const raw = (jobName ?? '').trim();
+    if (!raw) return null;
+    const sep = ' — ';
+    const idx = raw.indexOf(sep);
+    if (idx > 0) {
+      const left = raw.slice(0, idx).trim();
+      if (left) return left;
+    }
+    return null;
   }
 
   private classifyBuckets(
