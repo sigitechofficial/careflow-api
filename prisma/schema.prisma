@@ -810,8 +810,95 @@ model Employee {
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
   scheduleRuns              ScheduleRun[]
   portalAccount             EmployeePortalAccount?
+  hoursMonthlyReviews       EmployeeHoursMonthlyReview[]
+  absenceRecords            EmployeeAbsenceRecord[]
 
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// UKVI-aware absence tracker record (holidays, days off, sickness, non-working time).
+/// Duration, month keys, sponsorship, SMS triggers and risk ratings are derived on read.
+model EmployeeAbsenceRecord {
+  id         String @id @default(uuid()) @db.Uuid
+  /// Sequential number rendered as ABS-0001.
+  recordNo   Int    @unique @default(autoincrement())
+  employeeId String @db.Uuid
+  /// Set when this record was auto-created from a holiday booking; kept in sync with it.
+  holidayId  String? @unique @db.Uuid
+
+  absenceType    String
+  fromDateTime   DateTime
+  toDateTime     DateTime
+  sicknessFlag   Boolean @default(false)
+  lastMinuteFlag Boolean @default(false)
+  notes          String?
+  countryVisited String?
+  trackerStatus  String?
+
+  returnToWorkCompleted Boolean @default(false)
+  evidenceNotesStatus   String?
+  managerAction         String?
+  comments              String?
+
+  cosWorkerRef     String?
+  /// Free text: a date or e.g. "British Passport".
+  visaRtwExpiry    String?
+  permissionStatus String  @default("Authorised")
+
+  evidenceTypeRequired String?
+  evidenceHeld         Boolean   @default(false)
+  evidenceReceivedDate DateTime?
+
+  /// Manual override; null = derived from the absence span.
+  continuousWorkingDaysAbsent Int?
+
+  /// null = N/A (no SMS report applicable).
+  smsReported   Boolean?
+  smsReportDate DateTime?
+
+  responsiblePerson String?
+  nextReviewDate    DateTime?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  holiday  EmployeeHoliday? @relation(fields: [holidayId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, fromDateTime])
+  @@index([fromDateTime])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// Monthly sponsor-compliance review record for the employee hours report
+/// (CoS hours vs worked hours). Stores the manually maintained fields.
+model EmployeeHoursMonthlyReview {
+  id         String  @id @default(uuid()) @db.Uuid
+  employeeId String  @db.Uuid
+  year       Int
+  month      Int
+
+  reviewCompleted          Boolean  @default(false)
+  /// Manual override; null = derive from worked hours vs CoS hours.
+  smsReportingRequired     Boolean?
+  /// Manual override; null = derive. Values: compliant | action_required | breach.
+  complianceStatusOverride String?
+  comments                 String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  updatedById String?   @db.Uuid
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, year, month])
+  @@index([year, month])
   @@schema("employees")
 }
 
@@ -1324,6 +1411,7 @@ model EmployeeHoliday {
   deletedById String? @db.Uuid
 
   employee   Employee @relation(fields: [employeeId], references: [id])
+  absenceRecord EmployeeAbsenceRecord?
 
   @@index([employeeId])
   @@index([deletedAt])

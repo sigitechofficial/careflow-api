@@ -23,6 +23,28 @@ export const LEGACY_VISA_TYPE_ID_MAP: Record<string, string> = {
   student: 'student_visa',
 };
 
+/** Visa routes that carry UKVI sponsor (SMS) reporting duties. */
+export const SPONSORED_VISA_TYPE_IDS = new Set(['skilled_worker', 'health_care_worker']);
+
+/** Canonical visa metadata (legacy ids remapped), or null when unknown. */
+export function resolveEnterpriseVisaMeta(
+  visaTypeId: string | null | undefined,
+): { id: string; label: string; maxWeeklyHours: number; sponsored: boolean } | null {
+  if (!visaTypeId) return null;
+  const canonical = ENTERPRISE_EMPLOYEE_VISA_TYPES.some((row) => row.id === visaTypeId)
+    ? visaTypeId
+    : LEGACY_VISA_TYPE_ID_MAP[visaTypeId] ?? null;
+  if (!canonical) return null;
+  const entry = ENTERPRISE_EMPLOYEE_VISA_TYPES.find((row) => row.id === canonical);
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    label: entry.label,
+    maxWeeklyHours: entry.maxWeeklyHours,
+    sponsored: SPONSORED_VISA_TYPE_IDS.has(entry.id),
+  };
+}
+
 export function enterpriseVisaLabel(visaTypeId: string): string | null {
   const direct = ENTERPRISE_EMPLOYEE_VISA_TYPES.find((row) => row.id === visaTypeId);
   if (direct) return direct.label;

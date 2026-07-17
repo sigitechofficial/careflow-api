@@ -144,6 +144,38 @@ export class EmployeeAppVisitsService {
     };
   }
 
+  /**
+   * Bootstrap snapshot for the complete visit workspace. Tab-specific endpoints
+   * remain available for lightweight refreshes after the initial load.
+   */
+  async getVisitDetails(employeeId: string, jobId: string) {
+    const [workspace, tasks, medication, observations, log, bodyMap] =
+      await Promise.all([
+        this.getWorkspace(employeeId, jobId),
+        this.getTasks(employeeId, jobId),
+        this.getMedication(employeeId, jobId),
+        this.getObservations(employeeId, jobId),
+        this.getLog(employeeId, jobId),
+        this.getBodyMap(employeeId, jobId),
+      ]);
+
+    return {
+      data: {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        jobId,
+        shell: workspace.data.shell,
+        tabs: workspace.data.tabs,
+        overview: workspace.data.overview,
+        tasks: tasks.data,
+        medication: medication.data,
+        observations: observations.data,
+        log: log.data,
+        bodyMap: bodyMap.data,
+      },
+    };
+  }
+
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const visit = ctx.primaryVisit;

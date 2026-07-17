@@ -34,6 +34,16 @@ export class EmployeeAppVisitsController {
     return this.visitsService.getWorkspace(user.employeeId!, jobId);
   }
 
+  @Get(':jobId/details')
+  @ApiOperation({
+    summary: 'Complete visit details bootstrap',
+    description:
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot.',
+  })
+  details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    return this.visitsService.getVisitDetails(user.employeeId!, jobId);
+  }
+
   @Post(':jobId/check-in')
   @ApiOperation({ summary: 'Check in to visit (GPS + identity confirmation)' })
   checkIn(

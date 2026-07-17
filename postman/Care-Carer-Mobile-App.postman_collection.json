@@ -635,6 +635,20 @@
           "response": []
         },
         {
+          "name": "Complete visit details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/details",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "details"]
+            },
+            "description": "Single bootstrap snapshot containing the visit shell, overview, tasks, MAR, observations, visit log, and body-map handover."
+          },
+          "response": []
+        },
+        {
           "name": "Check in",
           "request": {
             "method": "POST",
