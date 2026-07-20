@@ -17,12 +17,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeesService } from './employees.service';
 import { EmployeePortalAccountsService } from './employee-portal-accounts.service';
+import { EmployeeVisitsService } from './employee-visits.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -31,6 +32,7 @@ import {
   SetEmployeePortalPasswordDto,
   UpsertEmployeePortalAccountDto,
 } from './dto/employee-portal-account.dto';
+import { EmployeeVisitsQueryDto } from './dto/employee-visits-query.dto';
 import { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact/dto/schedule-impact-preview-query.dto';
 
 @ApiTags('Employees')
@@ -41,6 +43,7 @@ export class EmployeesController {
   constructor(
     private readonly employeesService: EmployeesService,
     private readonly portalAccountsService: EmployeePortalAccountsService,
+    private readonly employeeVisitsService: EmployeeVisitsService,
   ) {}
 
   @Get()
@@ -83,6 +86,15 @@ export class EmployeesController {
   @Permissions('employees.read')
   previewScheduleImpact(@Param('id') id: string, @Query() query: ScheduleImpactPreviewQueryDto) {
     return this.employeesService.previewScheduleImpact(id, query);
+  }
+
+  @Get(':id/visits')
+  @AnyPermission('employees.read', 'employees.update', 'schedule_timelines.read')
+  @ApiOperation({
+    summary: 'Employee Visits tab — monthly allocated visits with delivery assessment',
+  })
+  visits(@Param('id') id: string, @Query() query: EmployeeVisitsQueryDto) {
+    return this.employeeVisitsService.getVisitsForMonth(id, query.month);
   }
 
   @Get(':id/portal-account')

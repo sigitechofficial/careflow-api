@@ -41,6 +41,10 @@
     {
       "key": "jobId",
       "value": ""
+    },
+    {
+      "key": "month",
+      "value": "2026-07"
     }
   ],
   "auth": {
@@ -320,8 +324,44 @@
     },
     {
       "name": "Schedule",
-      "description": "Schedule screen for the carer app (`GET /employee-app/schedule`).",
+      "description": "Schedule screen for the carer app (`GET /employee-app/schedule`) and monthly visit history (`GET /employee-app/me/visits`).",
       "item": [
+        {
+          "name": "My visits (month)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/me/visits?month={{month}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "me", "visits"],
+              "query": [{ "key": "month", "value": "{{month}}" }]
+            },
+            "description": "Read-only monthly visit history for the authenticated carer: summary buckets + planned/actual times + delivery assessment. Open a visit with GET /employee-app/visits/{{jobId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "My salary (period)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/me/salary?period={{month}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "me", "salary"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "{{month}}",
+                  "description": "YYYY-MM (month) or YYYY-Www (ISO week). Defaults from org salaryCalculationBasis."
+                }
+              ]
+            },
+            "description": "Read-only salary for the authenticated carer (same maths as admin Employee → Salary tab): visit pay − fines − penalties, visit lines, deductions, assigned pay card. Cannot mutate deductions or visit amounts."
+          },
+          "response": []
+        },
         {
           "name": "Schedule (selected day)",
           "event": [
