@@ -67,6 +67,46 @@ const PAYROLL_ELIGIBLE_RECON: VisitReconciliationStatus[] = [
   VisitReconciliationStatus.APPROVED_FOR_BOTH,
 ];
 
+/** Visits that may still be pending review but already have a calculated payable amount. */
+const PRICED_PENDING_RECON: VisitReconciliationStatus[] = [
+  VisitReconciliationStatus.PENDING_REVIEW,
+  VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+];
+
+function earningsRemainingWhere(
+  base: Prisma.VisitReconciliationWhereInput,
+): Prisma.VisitReconciliationWhereInput {
+  return {
+    ...base,
+    includedInPayrollRunId: null,
+    OR: [
+      { status: { in: PAYROLL_ELIGIBLE_RECON } },
+      {
+        status: { in: PRICED_PENDING_RECON },
+        payableAmount: { not: null },
+      },
+    ],
+  };
+}
+
+function isEarningsRemainingStatus(
+  status: VisitReconciliationStatus,
+  payableAmount: unknown,
+): boolean {
+  if (
+    status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+    status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+    status === VisitReconciliationStatus.LOCKED
+  ) {
+    return true;
+  }
+  return (
+    (status === VisitReconciliationStatus.PENDING_REVIEW ||
+      status === VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL) &&
+    payableAmount != null
+  );
+}
+
 /** Period keys (YYYY-MM or YYYY-Www) covered by an earnings date filter; null = all. */
 function salaryMonthsForEarningsQuery(dateFrom?: string, dateTo?: string): string[] | null {
   if (!dateFrom && !dateTo) return null;
@@ -1103,6 +1143,10 @@ export class PayrollRunsService {
             { includedInPayrollRunId: { not: null } },
             { status: { in: PAYROLL_ELIGIBLE_RECON } },
             { status: VisitReconciliationStatus.LOCKED },
+            {
+              status: { in: PRICED_PENDING_RECON },
+              payableAmount: { not: null },
+            },
           ],
         },
         _sum: { payableAmount: true },
@@ -1122,11 +1166,7 @@ export class PayrollRunsService {
       }),
       this.prisma.visitReconciliation.groupBy({
         by: ['employeeId'],
-        where: {
-          ...dateOnVisit,
-          includedInPayrollRunId: null,
-          status: { in: PAYROLL_ELIGIBLE_RECON },
-        },
+        where: earningsRemainingWhere(dateOnVisit),
         _sum: { payableAmount: true },
         _count: { _all: true },
       }),
@@ -1362,21 +1402,15 @@ export class PayrollRunsService {
         : {}),
     };
 
-    const remainingWhere: Prisma.VisitReconciliationWhereInput = {
-      ...visitDateWhere,
-      includedInPayrollRunId: null,
-      status: { in: PAYROLL_ELIGIBLE_RECON },
-    };
+    const remainingWhere = earningsRemainingWhere(visitDateWhere);
 
     const pendingWhere: Prisma.VisitReconciliationWhereInput = {
       ...visitDateWhere,
       includedInPayrollRunId: null,
       status: {
-        in: [
-          VisitReconciliationStatus.PENDING_REVIEW,
-          VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
-        ],
+        in: PRICED_PENDING_RECON,
       },
+      payableAmount: null,
     };
 
     const [
@@ -1455,6 +1489,10 @@ export class PayrollRunsService {
         { includedInPayrollRunId: { not: null } },
         { status: { in: PAYROLL_ELIGIBLE_RECON } },
         { status: VisitReconciliationStatus.LOCKED },
+        {
+          status: { in: PRICED_PENDING_RECON },
+          payableAmount: { not: null },
+        },
       ],
     };
     const [salaryAmountAgg, salaryVisitCount] = await Promise.all([
@@ -1509,9 +1547,7 @@ export class PayrollRunsService {
       const remaining =
         !paid &&
         !rejected &&
-        (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-          row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
-          row.status === VisitReconciliationStatus.LOCKED);
+        isEarningsRemainingStatus(row.status, row.payableAmount);
       const paymentState = paid
         ? 'PAID'
         : remaining

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a8c3e2f1-7b4d-4e9a-9c21-employee-app-carer",
     "name": "Care — Carer Mobile App",
-    "description": "Employee / carer mobile app APIs (separate from web admin).\n\nBase URL uses your LAN IP so a phone or emulator on the same network can reach the API.\n\n1. Set `email` / `password` (must match Employee app access on the web admin employee edit page).\n2. Run **Login** — tokens are saved to collection variables automatically.\n3. Call **Home**, **Schedule**, **Clients**, then client-detail endpoints with `{{clientId}}`.\n4. Use **Me**, **Refresh**, **Logout** as needed.",
+    "description": "Employee / carer mobile app APIs (separate from web admin).\n\nBase URL uses your LAN IP so a phone or emulator on the same network can reach the API.\n\n1. Set `email` / `password` (must match Employee app access on the web admin employee edit page).\n2. Run **Login** — tokens are saved to collection variables automatically.\n3. Call **Home**, **Schedule**, **My visits**, **My salary**, **Clients**, then client-detail endpoints with `{{clientId}}`.\n4. Use **Me**, **Refresh**, **Logout** as needed.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -324,7 +324,7 @@
     },
     {
       "name": "Schedule",
-      "description": "Schedule screen for the carer app (`GET /employee-app/schedule`) and monthly visit history (`GET /employee-app/me/visits`).",
+      "description": "Schedule screen (`GET /employee-app/schedule`), monthly visits (`GET /employee-app/me/visits`), and salary (`GET /employee-app/me/salary`).",
       "item": [
         {
           "name": "My visits (month)",
@@ -337,7 +337,25 @@
               "path": ["employee-app", "me", "visits"],
               "query": [{ "key": "month", "value": "{{month}}" }]
             },
-            "description": "Read-only monthly visit history for the authenticated carer: summary buckets + planned/actual times + delivery assessment. Open a visit with GET /employee-app/visits/{{jobId}}."
+            "description": "Read-only visit history for the authenticated carer (same as admin Employee → Visits): summary buckets + planned/actual times + delivery assessment. Defaults to current UTC month. Open a visit with GET /employee-app/visits/{{jobId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "My visits (date range)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/me/visits?dateFrom=2026-01-01&dateTo=2026-07-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "me", "visits"],
+              "query": [
+                { "key": "dateFrom", "value": "2026-01-01", "description": "YYYY-MM-DD" },
+                { "key": "dateTo", "value": "2026-07-31", "description": "YYYY-MM-DD (max 366 days from dateFrom)" }
+              ]
+            },
+            "description": "Same as My visits (month) but for a custom inclusive UTC date range (max 366 days). Use this to load a wider history than a single month."
           },
           "response": []
         },

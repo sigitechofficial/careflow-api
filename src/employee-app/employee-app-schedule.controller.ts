@@ -46,13 +46,31 @@ class EmployeeAppScheduleQueryDto {
 
 class EmployeeAppMyVisitsQueryDto {
   @ApiPropertyOptional({
-    description: 'UTC calendar month (YYYY-MM). Defaults to current UTC month.',
+    description: 'UTC calendar month (YYYY-MM). Defaults to current UTC month when no date range is set.',
     example: '2026-07',
   })
   @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: 'month must be YYYY-MM' })
   month?: string;
+
+  @ApiPropertyOptional({
+    description: 'Custom range start (YYYY-MM-DD). Must be paired with dateTo. Max 366 days.',
+    example: '2026-01-01',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateFrom must be YYYY-MM-DD' })
+  dateFrom?: string;
+
+  @ApiPropertyOptional({
+    description: 'Custom range end (YYYY-MM-DD). Must be paired with dateFrom. Max 366 days.',
+    example: '2026-07-31',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateTo must be YYYY-MM-DD' })
+  dateTo?: string;
 }
 
 /**
@@ -87,25 +105,30 @@ export class EmployeeAppScheduleController {
 
   @Get('me/visits')
   @ApiOperation({
-    summary: 'My visits history (monthly, read-only)',
+    summary: 'My visits history (read-only)',
     description:
-      'Allocated visits for the authenticated carer in a UTC month — summary buckets, planned/actual times, and delivery assessment. Scoped to the logged-in employee only.',
+      'All allocated visits for the authenticated carer in a UTC month (or custom dateFrom/dateTo, max 366 days) — summary buckets, planned/actual times, and delivery assessment. Same data as admin Employee → Visits tab. Scoped to the logged-in employee only. Open a visit via GET /employee-app/visits/:jobId.',
   })
   @ApiQuery({ name: 'month', required: false, example: '2026-07' })
+  @ApiQuery({ name: 'dateFrom', required: false, example: '2026-01-01' })
+  @ApiQuery({ name: 'dateTo', required: false, example: '2026-07-31' })
   async myVisits(@CurrentUser() user: RequestUser, @Query() query: EmployeeAppMyVisitsQueryDto) {
-    const month =
-      query.month?.trim() ||
-      (() => {
-        const now = new Date();
-        return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-      })();
+    const resolved = this.employeeVisitsService.resolveVisitQuery({
+      month: query.month,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
 
-    const result = await this.employeeVisitsService.getVisitsForMonth(user.employeeId!, month);
+    const result = await this.employeeVisitsService.getVisitsInRange(user.employeeId!, resolved);
 
     return {
       data: {
         employeeId: result.data.employeeId,
         month: result.data.month,
+        period: result.data.period,
+        periodType: result.data.periodType,
+        dateFrom: result.data.dateFrom,
+        dateTo: result.data.dateTo,
         generatedAt: new Date().toISOString(),
         asOfDate: formatScheduleDate(new Date()),
         summary: result.data.summary,

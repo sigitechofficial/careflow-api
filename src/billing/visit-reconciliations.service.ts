@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -167,6 +168,8 @@ async function loadBankHolidayDateSet(
 
 @Injectable()
 export class VisitReconciliationsService {
+  private readonly logger = new Logger(VisitReconciliationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly payCardsService: PayCardsService,
@@ -292,8 +295,12 @@ export class VisitReconciliationsService {
   private async safeEvaluate(db: DbClient, id: string) {
     try {
       await this.evaluateInternal(db, id);
-    } catch {
-      // Keep reconciliation row even if card resolution fails.
+    } catch (err) {
+      this.logger.warn(
+        `Visit reconciliation evaluate failed for ${id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
@@ -314,12 +321,25 @@ export class VisitReconciliationsService {
     });
     if (visitAllocations.length) return visitAllocations;
 
-    return db.jobAllocation.findMany({
+    const jobAllocations = await db.jobAllocation.findMany({
       where: {
         scheduledJobId: jobId,
         deletedAt: null,
         isActive: true,
         status: { in: ACTIVE_ALLOCATION },
+      },
+      orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
+      select: { id: true, employeeId: true },
+    });
+    if (jobAllocations.length) return jobAllocations;
+
+    // Last resort: any non-cancelled allocation on the job (completed visits must still pay).
+    return db.jobAllocation.findMany({
+      where: {
+        scheduledJobId: jobId,
+        deletedAt: null,
+        isActive: true,
+        status: { notIn: [AllocationStatus.CANCELLED, AllocationStatus.UNALLOCATED] },
       },
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
       select: { id: true, employeeId: true },
@@ -912,6 +932,8 @@ export class VisitReconciliationsService {
             id: true,
             visitRef: true,
             serviceUserId: true,
+            employeeId: true,
+            scheduledJobId: true,
           },
         },
       },
@@ -934,7 +956,10 @@ export class VisitReconciliationsService {
         code: row.code,
         visitRef: row.visitReconciliation.visitRef,
         reconciliationId: row.visitReconciliation.id,
+        serviceUserId: row.visitReconciliation.serviceUserId,
         serviceUser: suMap.get(row.visitReconciliation.serviceUserId) ?? 'Unknown',
+        employeeId: row.visitReconciliation.employeeId,
+        scheduledJobId: row.visitReconciliation.scheduledJobId,
         message: row.message ?? row.code,
       })),
     };
@@ -1223,10 +1248,33 @@ export class VisitReconciliationsService {
       });
     }
 
+    // Once a visit is priced from the pay card, accept it for carer pay immediately.
+    // Invoice / overrun / funding exceptions stay on the row for finance review, but
+    // earnings and salary must not wait on a visit-reconciliation approve click.
+    const lockedOrRejected =
+      row.status === VisitReconciliationStatus.LOCKED ||
+      row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
+      row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE;
+
+    let finalStatus = promotedStatus;
+    if (!lockedOrRejected && payableAmount != null && payMinutes > 0) {
+      if (
+        promotedStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
+      ) {
+        finalStatus = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      } else if (
+        promotedStatus !== VisitReconciliationStatus.APPROVED_FOR_BOTH &&
+        row.status !== VisitReconciliationStatus.APPROVED_FOR_BOTH
+      ) {
+        finalStatus = VisitReconciliationStatus.APPROVED_FOR_PAY;
+      }
+    }
+
     await db.visitReconciliation.update({
       where: { id },
       data: {
-        status: promotedStatus,
+        status: finalStatus,
         payCardId: payCard?.id ?? null,
         chargeCardId: chargeCard?.id ?? null,
         payCardSource,
@@ -1245,9 +1293,9 @@ export class VisitReconciliationsService {
           ? ((payCard as { version?: number }).version ?? null)
           : null,
         lastEvaluatedAt: new Date(),
-        ...((promotedStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-          promotedStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
-        row.status !== promotedStatus &&
+        ...((finalStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+          finalStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
+        row.status !== finalStatus &&
         !row.approvedAt
           ? { approvedAt: new Date() }
           : {}),
