@@ -730,7 +730,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"notes\": \"Visit completed — all tasks done.\",\n  \"handoverNote\": \"Client well, fluids encouraged.\"\n}"
+              "raw": "{\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:41:53.210Z\",\n  \"notes\": \"Visit completed\",\n  \"timingExceptionReasonCode\": \"CLIENT_REQUEST_OR_NEED\",\n  \"timingExceptionNotes\": \"Client needed a few extra minutes.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",

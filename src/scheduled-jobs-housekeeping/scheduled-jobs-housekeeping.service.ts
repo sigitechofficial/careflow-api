@@ -524,25 +524,6 @@ export class ScheduledJobsHousekeepingService {
         (existing.estimatedDurationMinutes
           ? new Date(plannedStart.getTime() + existing.estimatedDurationMinutes * 60_000)
           : null);
-      if (plannedStart && plannedEnd) {
-        const plannedMinutes = Math.max(
-          0,
-          Math.round((plannedEnd.getTime() - plannedStart.getTime()) / 60_000),
-        );
-        const actualMinutes = Math.max(
-          0,
-          Math.round((actualEnd.getTime() - actualStart.getTime()) / 60_000),
-        );
-        if (actualMinutes > plannedMinutes) {
-          const trimmed = dto.overrunReason?.trim() ?? '';
-          if (!trimmed) {
-            throw new BadRequestException(
-              `Actual time (${actualMinutes} min) exceeds planned (${plannedMinutes} min). Provide a reason for the ${actualMinutes - plannedMinutes} min overrun.`,
-            );
-          }
-          overrunReason = trimmed;
-        }
-      }
 
       const slot = existing.visits?.[0]?.visitPlanSlot;
       const deliveryAssessment = assessVisitDeliveryFromJobLike({
@@ -592,10 +573,33 @@ export class ScheduledJobsHousekeepingService {
         if (reasonMeta?.requiresNotes && !timingExceptionNotes) {
           throw new BadRequestException('Notes are required when the timing exception reason is Other.');
         }
-        if (!overrunReason && timingExceptionNotes) {
-          overrunReason = timingExceptionNotes;
-        } else if (!overrunReason && deliveryAssessment.durationExceptions.includes('OVERRUN')) {
-          overrunReason = reasonMeta?.label ?? code;
+      }
+
+      if (plannedStart && plannedEnd) {
+        const plannedMinutes = Math.max(
+          0,
+          Math.round((plannedEnd.getTime() - plannedStart.getTime()) / 60_000),
+        );
+        const actualMinutes = Math.max(
+          0,
+          Math.round((actualEnd.getTime() - actualStart.getTime()) / 60_000),
+        );
+        if (actualMinutes > plannedMinutes) {
+          // Prefer explicit overrunReason; otherwise accept structured timing exception
+          // (mobile apps should not need two near-duplicate reason fields).
+          const fromDto = dto.overrunReason?.trim() ?? '';
+          const fromTimingNotes = timingExceptionNotes?.trim() ?? '';
+          const fromTimingCode = timingExceptionReasonCode
+            ? VISIT_TIMING_EXCEPTION_REASONS.find((r) => r.code === timingExceptionReasonCode)
+                ?.label ?? timingExceptionReasonCode
+            : '';
+          const resolved = fromDto || fromTimingNotes || fromTimingCode;
+          if (!resolved) {
+            throw new BadRequestException(
+              `Actual time (${actualMinutes} min) exceeds planned (${plannedMinutes} min). Provide overrunReason or timingExceptionReasonCode for the ${actualMinutes - plannedMinutes} min overrun.`,
+            );
+          }
+          overrunReason = resolved;
         }
       }
     }

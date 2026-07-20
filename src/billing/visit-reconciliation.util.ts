@@ -240,6 +240,14 @@ export function hasUnresolvedBlockingExceptions(exceptions: DetectedException[])
   return exceptions.some((e) => BLOCKING_EXCEPTION_CODES.has(e.code));
 }
 
+export function listUnresolvedBlockingCodes(exceptions: DetectedException[]): FinanceExceptionCode[] {
+  return [
+    ...new Set(
+      exceptions.filter((e) => BLOCKING_EXCEPTION_CODES.has(e.code)).map((e) => e.code),
+    ),
+  ];
+}
+
 export function resolveDefaultApprovedWindows(input: {
   plannedStartDateTime: Date;
   plannedEndDateTime: Date | null;

@@ -66,6 +66,24 @@ export class EmployeeAppVisitCompleteDto {
   @MaxLength(2000)
   overrunReason?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'Required when actual times are early/late/short/overrun vs planned (e.g. CLIENT_REQUEST_OR_NEED, CLINICAL_COMPLEXITY). Use OTHER with timingExceptionNotes.',
+    example: 'CLIENT_REQUEST_OR_NEED',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  timingExceptionReasonCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Free-text notes for the timing exception (required when reason is OTHER)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  timingExceptionNotes?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)

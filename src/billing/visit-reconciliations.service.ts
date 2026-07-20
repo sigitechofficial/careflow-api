@@ -36,6 +36,7 @@ import {
   formatVisitRef,
   formatMinutesAsHours,
   hasUnresolvedBlockingExceptions,
+  listUnresolvedBlockingCodes,
   minutesBetween,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
@@ -524,8 +525,9 @@ export class VisitReconciliationsService {
       .map((e) => ({ code: e.code, message: e.message ?? '' }));
 
     if (hasUnresolvedBlockingExceptions(exceptions) && !dto.managerOverride) {
+      const blocking = listUnresolvedBlockingCodes(exceptions);
       throw new BadRequestException(
-        'Blocking exceptions must be resolved before approval, or use manager override',
+        `Blocking exceptions must be resolved before approval, or use manager override. Unresolved: ${blocking.join(', ')}`,
       );
     }
 
@@ -721,7 +723,11 @@ export class VisitReconciliationsService {
       }
 
       if (hasUnresolvedBlockingExceptions(exceptions)) {
-        skipped.push({ id: row.id, reason: 'Blocking exceptions present' });
+        const blocking = listUnresolvedBlockingCodes(exceptions);
+        skipped.push({
+          id: row.id,
+          reason: `Blocking exceptions present: ${blocking.join(', ')}`,
+        });
         continue;
       }
 

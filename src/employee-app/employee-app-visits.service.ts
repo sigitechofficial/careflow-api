@@ -529,6 +529,8 @@ export class EmployeeAppVisitsService {
       actualStartDateTime: dto.actualStartDateTime,
       actualEndDateTime: dto.actualEndDateTime,
       overrunReason: dto.overrunReason,
+      timingExceptionReasonCode: dto.timingExceptionReasonCode,
+      timingExceptionNotes: dto.timingExceptionNotes,
     });
 
     const now = new Date();
