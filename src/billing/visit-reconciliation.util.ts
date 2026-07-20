@@ -20,6 +20,7 @@ export type DetectedException = {
   message: string;
 };
 
+/** Blocks invoice approval (and approve scope BOTH) unless managerOverride. */
 const BLOCKING_EXCEPTION_CODES = new Set<FinanceExceptionCode>([
   FinanceExceptionCode.MISSING_CHECK_IN,
   FinanceExceptionCode.MISSING_CHECK_OUT,
@@ -32,11 +33,23 @@ const BLOCKING_EXCEPTION_CODES = new Set<FinanceExceptionCode>([
   FinanceExceptionCode.TASKS_INCOMPLETE,
 ]);
 
-const MANAGER_REVIEW_CODES = new Set<FinanceExceptionCode>([
-  FinanceExceptionCode.OVERRUN,
-  FinanceExceptionCode.UNDERRUN,
-  FinanceExceptionCode.GPS_MISMATCH,
+/** Only these prevent auto-accepting carer pay on visit complete / evaluate. */
+const PAY_BLOCKING_EXCEPTION_CODES = new Set<FinanceExceptionCode>([
+  FinanceExceptionCode.PAY_CARD_MISSING,
 ]);
+
+export function isPayBlockingException(exception: DetectedException): boolean {
+  if (PAY_BLOCKING_EXCEPTION_CODES.has(exception.code)) return true;
+  // RATE_MISSING is shared for pay + charge cards; only pay-card messages block earnings.
+  if (exception.code === FinanceExceptionCode.RATE_MISSING) {
+    return /pay card/i.test(exception.message ?? '');
+  }
+  return false;
+}
+
+export function hasPayBlockingExceptions(exceptions: DetectedException[]): boolean {
+  return exceptions.some(isPayBlockingException);
+}
 
 export function minutesBetween(start: Date, end: Date): number {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000));
@@ -226,13 +239,13 @@ export function deriveReconciliationStatus(
     return currentStatus;
   }
 
-  if (exceptions.some((e) => BLOCKING_EXCEPTION_CODES.has(e.code))) {
+  // Carer pay is accepted as soon as the visit can be priced from the pay card.
+  // Invoice / funding / overrun / GPS issues remain as exceptions for finance review,
+  // but must not withhold earnings until a separate reconciliation click.
+  if (hasPayBlockingExceptions(exceptions)) {
     return VisitReconciliationStatus.PENDING_REVIEW;
   }
-  if (exceptions.some((e) => MANAGER_REVIEW_CODES.has(e.code))) {
-    return VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL;
-  }
-  // Clean completed visits are accepted for pay by default (salary includes payable amount).
+
   return VisitReconciliationStatus.APPROVED_FOR_PAY;
 }
 
@@ -246,6 +259,10 @@ export function listUnresolvedBlockingCodes(exceptions: DetectedException[]): Fi
       exceptions.filter((e) => BLOCKING_EXCEPTION_CODES.has(e.code)).map((e) => e.code),
     ),
   ];
+}
+
+export function listPayBlockingCodes(exceptions: DetectedException[]): FinanceExceptionCode[] {
+  return [...new Set(exceptions.filter(isPayBlockingException).map((e) => e.code))];
 }
 
 export function resolveDefaultApprovedWindows(input: {

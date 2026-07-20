@@ -1,7 +1,10 @@
 import {
   calculatePayableAmount,
   buildPayRateBreakdown,
+  deriveReconciliationStatus,
+  hasPayBlockingExceptions,
 } from './visit-reconciliation.util';
+import { FinanceExceptionCode, VisitReconciliationStatus } from '@prisma/client';
 
 const weekday = new Date('2026-07-13T10:00:00.000Z'); // Monday
 
@@ -123,5 +126,39 @@ describe('calculatePayableAmount prefer banded over short fixed', () => {
     const result = calculatePayableAmount(rules, start, 30, false, { start, end });
     expect(result?.label).toBe('BANDED_HOURLY');
     expect(result?.amount).toBe(8); // 0.5h × £16
+  });
+});
+
+describe('deriveReconciliationStatus — auto pay on complete', () => {
+  it('auto-approves pay when only invoice / overrun exceptions exist', () => {
+    const status = deriveReconciliationStatus([
+      { code: FinanceExceptionCode.CHARGE_CARD_MISSING, message: 'No charge card' },
+      { code: FinanceExceptionCode.OVERRUN, message: '10 min overrun' },
+      { code: FinanceExceptionCode.FUNDING_SETUP_INCOMPLETE, message: 'Funding incomplete' },
+    ]);
+    expect(status).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
+  });
+
+  it('stays pending when pay card is missing', () => {
+    const exceptions = [
+      { code: FinanceExceptionCode.PAY_CARD_MISSING, message: 'No pay card' },
+    ];
+    expect(hasPayBlockingExceptions(exceptions)).toBe(true);
+    expect(deriveReconciliationStatus(exceptions)).toBe(
+      VisitReconciliationStatus.PENDING_REVIEW,
+    );
+  });
+
+  it('treats pay-card RATE_MISSING as pay blocking, not charge-card', () => {
+    expect(
+      hasPayBlockingExceptions([
+        { code: FinanceExceptionCode.RATE_MISSING, message: 'Pay card has no rate rules configured' },
+      ]),
+    ).toBe(true);
+    expect(
+      hasPayBlockingExceptions([
+        { code: FinanceExceptionCode.RATE_MISSING, message: 'Charge card has no charge rules configured' },
+      ]),
+    ).toBe(false);
   });
 });

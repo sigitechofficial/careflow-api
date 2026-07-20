@@ -2703,7 +2703,11 @@ export class ServiceUserVisitPlansService {
 
     const visitId = (result.data as { id?: string }).id;
     if (visitId) {
-      void this.visitReconciliationsService.ensureForVisit(visitId).catch(() => undefined);
+      try {
+        await this.visitReconciliationsService.ensureForVisit(visitId);
+      } catch {
+        // Outcome already saved; finance sync can be retried via backfill.
+      }
     }
 
     return result;

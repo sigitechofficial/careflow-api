@@ -728,9 +728,13 @@ export class ScheduledJobsHousekeepingService {
     });
 
     if (completing) {
-      void this.visitReconciliationsService
-        .ensureForCompletedJob(id, undefined, { overrunReason })
-        .catch(() => undefined);
+      try {
+        await this.visitReconciliationsService.ensureForCompletedJob(id, undefined, {
+          overrunReason,
+        });
+      } catch {
+        // Visit completion must succeed even if finance evaluate fails; ops can Sync later.
+      }
     }
 
     return result;

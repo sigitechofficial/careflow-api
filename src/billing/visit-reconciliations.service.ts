@@ -37,6 +37,8 @@ import {
   formatMinutesAsHours,
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
+  hasPayBlockingExceptions,
+  listPayBlockingCodes,
   minutesBetween,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
@@ -524,14 +526,26 @@ export class VisitReconciliationsService {
       .filter((e) => !e.resolvedAt)
       .map((e) => ({ code: e.code, message: e.message ?? '' }));
 
-    if (hasUnresolvedBlockingExceptions(exceptions) && !dto.managerOverride) {
-      const blocking = listUnresolvedBlockingCodes(exceptions);
-      throw new BadRequestException(
-        `Blocking exceptions must be resolved before approval, or use manager override. Unresolved: ${blocking.join(', ')}`,
-      );
+    const scope = dto.scope;
+    const payOnly = scope === 'PAY';
+    const invoiceOnly = scope === 'INVOICE';
+
+    if (!dto.managerOverride) {
+      if (payOnly && hasPayBlockingExceptions(exceptions)) {
+        throw new BadRequestException(
+          `Pay cannot be approved until pay setup is fixed. Unresolved: ${listPayBlockingCodes(exceptions).join(', ')}`,
+        );
+      }
+      if (!payOnly && hasUnresolvedBlockingExceptions(exceptions)) {
+        const blocking = listUnresolvedBlockingCodes(exceptions);
+        throw new BadRequestException(
+          `Blocking exceptions must be resolved before approval, or use manager override. Unresolved: ${blocking.join(', ')}`,
+        );
+      }
     }
 
     if (
+      !invoiceOnly &&
       row.overrunDecision === VisitOverrunDecision.PENDING &&
       (row.overrunMinutes ?? 0) > 0 &&
       !dto.managerOverride
@@ -781,9 +795,39 @@ export class VisitReconciliationsService {
       if (id) created.push(id);
     }
 
+    // Re-evaluate pending rows so pay-eligible visits become APPROVED_FOR_PAY
+    // (earnings) without a manual approve click after policy changes / card fixes.
+    const pending = await this.prisma.visitReconciliation.findMany({
+      where: {
+        status: {
+          in: [
+            VisitReconciliationStatus.PENDING_REVIEW,
+            VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+          ],
+        },
+        ...(dto.dateFrom || dto.dateTo
+          ? {
+              plannedStartDateTime: {
+                ...(dto.dateFrom
+                  ? { gte: new Date(`${dto.dateFrom}T00:00:00.000Z`) }
+                  : {}),
+                ...(dto.dateTo
+                  ? { lte: new Date(`${dto.dateTo}T23:59:59.999Z`) }
+                  : {}),
+              },
+            }
+          : {}),
+      },
+      select: { id: true },
+      take: 500,
+    });
+    for (const row of pending) {
+      await this.safeEvaluate(this.prisma, row.id);
+    }
+
     return {
-      message: `Processed ${visits.length} completed visit(s)`,
-      data: { count: created.length, ids: created },
+      message: `Processed ${visits.length} completed visit(s); re-evaluated ${pending.length} pending`,
+      data: { count: created.length, ids: created, reEvaluated: pending.length },
     };
   }
 
@@ -1017,6 +1061,12 @@ export class VisitReconciliationsService {
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
+    const promotedStatus =
+      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
+      !hasPayBlockingExceptions(activeExceptions)
+        ? VisitReconciliationStatus.APPROVED_FOR_BOTH
+        : status;
+
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
     const defaultWindows = resolveDefaultApprovedWindows({
       plannedStartDateTime: row.plannedStartDateTime,
@@ -1176,7 +1226,7 @@ export class VisitReconciliationsService {
     await db.visitReconciliation.update({
       where: { id },
       data: {
-        status,
+        status: promotedStatus,
         payCardId: payCard?.id ?? null,
         chargeCardId: chargeCard?.id ?? null,
         payCardSource,
@@ -1195,8 +1245,9 @@ export class VisitReconciliationsService {
           ? ((payCard as { version?: number }).version ?? null)
           : null,
         lastEvaluatedAt: new Date(),
-        ...(status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
-        row.status !== VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        ...((promotedStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+          promotedStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
+        row.status !== promotedStatus &&
         !row.approvedAt
           ? { approvedAt: new Date() }
           : {}),
