@@ -135,6 +135,7 @@ export type VisitReconciliationListRow = {
   plannedDeparture: string;
   actualArrival: string;
   actualDeparture: string;
+  createdAt: string;
 };
 
 type DbClient = PrismaService | Prisma.TransactionClient;
@@ -407,7 +408,8 @@ export class VisitReconciliationsService {
       this.prisma.visitReconciliation.findMany({
         where,
         include: reconciliationInclude,
-        orderBy: [{ plannedStartDateTime: 'desc' }, { createdAt: 'desc' }],
+        // Newest reconciliation entries first (just completed/synced), then visit time.
+        orderBy: [{ createdAt: 'desc' }, { plannedStartDateTime: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -1448,6 +1450,7 @@ export class VisitReconciliationsService {
           emonitored === 'LOGGED'
             ? formatTimeHhMmSs(row.actualEndDateTime!)
             : '00:00:00',
+        createdAt: row.createdAt.toISOString(),
       };
     });
   }

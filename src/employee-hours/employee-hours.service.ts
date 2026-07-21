@@ -568,24 +568,55 @@ export class EmployeeHoursService {
     const employeeIds = employees.map((e) => e.id);
     /** employeeId -> worked minutes per week-of-month block (5 buckets). */
     const weekMinutes = new Map<string, number[]>();
+    const assignedMinutes = new Map<string, number>();
 
     if (employeeIds.length > 0) {
-      const reconciliations = await this.prisma.visitReconciliation.findMany({
-        where: {
-          employeeId: { in: employeeIds },
-          plannedStartDateTime: { gte: monthStart, lte: monthEnd },
-          status: { notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY] },
-        },
-        select: {
-          employeeId: true,
-          payableMinutes: true,
-          plannedStartDateTime: true,
-          actualStartDateTime: true,
-          actualEndDateTime: true,
-          approvedPayStart: true,
-          approvedPayEnd: true,
-        },
-      });
+      const [reconciliations, allocations] = await Promise.all([
+        this.prisma.visitReconciliation.findMany({
+          where: {
+            employeeId: { in: employeeIds },
+            plannedStartDateTime: { gte: monthStart, lte: monthEnd },
+            status: { notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY] },
+          },
+          select: {
+            employeeId: true,
+            payableMinutes: true,
+            plannedStartDateTime: true,
+            actualStartDateTime: true,
+            actualEndDateTime: true,
+            approvedPayStart: true,
+            approvedPayEnd: true,
+          },
+        }),
+        this.prisma.jobAllocation.findMany({
+          where: {
+            deletedAt: null,
+            isActive: true,
+            employeeId: { in: employeeIds },
+            status: { in: ACTIVE_ALLOCATION },
+            scheduledJob: {
+              deletedAt: null,
+              scheduledStartDateTime: { gte: monthStart, lte: monthEnd },
+            },
+          },
+          select: {
+            employeeId: true,
+            scheduledJob: {
+              select: {
+                scheduledStartDateTime: true,
+                scheduledEndDateTime: true,
+                estimatedDurationMinutes: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      for (const a of allocations) {
+        if (!a.employeeId) continue;
+        const mins = jobDurationMinutes(a.scheduledJob);
+        assignedMinutes.set(a.employeeId, (assignedMinutes.get(a.employeeId) ?? 0) + mins);
+      }
 
       for (const r of reconciliations) {
         if (!r.employeeId) continue;
@@ -658,6 +689,19 @@ export class EmployeeHoursService {
         round2(mins / 60),
       );
       const totalMonthlyHours = round2(weeks.reduce((a, b) => a + b, 0));
+      const assignedHours = round2((assignedMinutes.get(emp.id) ?? 0) / 60);
+      const monthWeeks = daysInMonth / 7;
+      const expectedContractHours =
+        cosWeeklyHours != null ? round2(cosWeeklyHours * monthWeeks) : null;
+      const expectedCapHours =
+        effectiveCapHours != null ? round2(effectiveCapHours * monthWeeks) : null;
+      const overAssignedVsContract =
+        expectedContractHours != null
+          ? round2(Math.max(0, assignedHours - expectedContractHours))
+          : 0;
+      const overAssignedVsCap =
+        expectedCapHours != null ? round2(Math.max(0, assignedHours - expectedCapHours)) : 0;
+      const overAssignedHours = Math.max(overAssignedVsContract, overAssignedVsCap);
 
       const anyWeekOverCap =
         effectiveCapHours != null && weeks.some((h) => h > effectiveCapHours);
@@ -703,6 +747,8 @@ export class EmployeeHoursService {
         effectiveCapHours,
         weekHours: weeks,
         totalMonthlyHours,
+        assignedHours,
+        overAssignedHours,
         smsReportingRequired,
         smsOverridden: review?.smsReportingRequired != null,
         reviewCompleted: review?.reviewCompleted ?? false,
@@ -733,6 +779,9 @@ export class EmployeeHoursService {
     const totals = rows.reduce(
       (acc, r) => {
         acc.totalMonthlyHours += r.totalMonthlyHours;
+        acc.assignedHours += r.assignedHours;
+        acc.overAssignedHours += r.overAssignedHours;
+        if (r.overAssignedHours > 0) acc.overAssignedCount += 1;
         if (r.smsReportingRequired) acc.smsRequiredCount += 1;
         if (r.reviewCompleted) acc.reviewsCompletedCount += 1;
         if (r.sponsored) acc.sponsoredCount += 1;
@@ -741,6 +790,9 @@ export class EmployeeHoursService {
       },
       {
         totalMonthlyHours: 0,
+        assignedHours: 0,
+        overAssignedHours: 0,
+        overAssignedCount: 0,
         smsRequiredCount: 0,
         reviewsCompletedCount: 0,
         sponsoredCount: 0,
@@ -761,6 +813,9 @@ export class EmployeeHoursService {
         employeeCount: rows.length,
         totals: {
           totalMonthlyHours: round2(totals.totalMonthlyHours),
+          assignedHours: round2(totals.assignedHours),
+          overAssignedHours: round2(totals.overAssignedHours),
+          overAssignedCount: totals.overAssignedCount,
           smsRequiredCount: totals.smsRequiredCount,
           reviewsCompletedCount: totals.reviewsCompletedCount,
           reviewsPendingCount: rows.length - totals.reviewsCompletedCount,
