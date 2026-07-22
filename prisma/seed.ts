@@ -289,6 +289,14 @@ async function main() {
     'ecm.attendance.amend',
     'ecm.reports.export',
     'ecm.settings.manage',
+    'payroll.settings.read',
+    'payroll.settings.manage',
+    'payroll.employees.read',
+    'payroll.employees.manage',
+    'payroll.periods.read',
+    'payroll.periods.manage',
+    'payroll.runs.read',
+    'payroll.runs.manage',
     'service_users.live_in_profile.read',
     'service_users.live_in_profile.create',
     'service_users.live_in_profile.update',
@@ -669,6 +677,32 @@ async function main() {
     const r = roles.find((x) => x.name === roleName);
     if (!r) continue;
     for (const p of ecmSettingsPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // Native UK Payroll foundation — Admin / Manager (distinct from billing.payroll_runs.*)
+  const payrollPermKeys = [
+    'payroll.settings.read',
+    'payroll.settings.manage',
+    'payroll.employees.read',
+    'payroll.employees.manage',
+    'payroll.periods.read',
+    'payroll.periods.manage',
+    'payroll.runs.read',
+    'payroll.runs.manage',
+  ];
+  const payrollPerms = await prisma.permission.findMany({
+    where: { key: { in: payrollPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of payrollPerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},

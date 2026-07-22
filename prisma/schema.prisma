@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll"]
 }
 
 enum DayOfWeek {
@@ -7339,4 +7339,421 @@ model PaymentAllocation {
   @@index([paymentId])
   @@index([invoiceRunId])
   @@schema("billing")
+}
+
+// =============================================================================
+// Native UK Payroll foundation (schema: payroll)
+// Distinct from billing.PayrollRun (visit-pay aggregation). No PAYE/NI engine here.
+// =============================================================================
+
+enum PayrollTaxYearStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+
+  @@schema("payroll")
+}
+
+enum PayrollPayFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  FOUR_WEEKLY
+  MONTHLY
+
+  @@schema("payroll")
+}
+
+enum PayrollScheduleStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+
+  @@schema("payroll")
+}
+
+enum PayrollPeriodStatus {
+  OPEN
+  IN_RUN
+  CLOSED
+
+  @@schema("payroll")
+}
+
+enum EmployeePayrollProfileStatus {
+  DRAFT
+  READY
+  SUSPENDED
+
+  @@schema("payroll")
+}
+
+enum PayrollStarterDeclaration {
+  UNKNOWN
+  A_FIRST_JOB
+  B_ONLY_JOB_THIS_YEAR
+  C_HAS_ANOTHER_JOB_OR_PENSION
+
+  @@schema("payroll")
+}
+
+enum PayrollNiCategory {
+  A
+  B
+  C
+  F
+  H
+  I
+  J
+  L
+  M
+  S
+  V
+  Z
+  X
+
+  @@schema("payroll")
+}
+
+enum EmployeePayAgreementBasis {
+  HOURLY_CARE
+  SALARIED
+  HYBRID
+
+  @@schema("payroll")
+}
+
+enum EmployeePayAgreementStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+  TERMINATED
+
+  @@schema("payroll")
+}
+
+enum UkPayrollRunStatus {
+  DRAFT
+  EMPLOYEES_ENROLLED
+  GROSS_CALCULATED
+  STATUTORY_CALCULATED
+  CLOSED
+  CANCELLED
+
+  @@schema("payroll")
+}
+
+enum UkPayrollInputSourceType {
+  BILLING_PAYROLL_LINE
+  VISIT_RECONCILIATION
+  PAY_AGREEMENT_SALARY
+  SALARY_DEDUCTION
+
+  @@schema("payroll")
+}
+
+/// UK tax year versioning shell (e.g. 2025-26). Statutory rate tables arrive in later phases.
+model PayrollTaxYear {
+  id          String               @id @default(uuid()) @db.Uuid
+  code        String               @unique
+  label       String
+  startDate   DateTime             @db.Date
+  endDate     DateTime             @db.Date
+  isCurrent   Boolean              @default(false)
+  status      PayrollTaxYearStatus @default(DRAFT)
+  notes       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdById String?              @db.Uuid
+  updatedById String?              @db.Uuid
+  deletedAt   DateTime?
+
+  periods PayrollPeriod[]
+  runs    UkPayrollRun[]
+  statutoryRateSets PayrollStatutoryRateSet[]
+
+  @@index([status])
+  @@index([isCurrent])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Tax-year versioned HMRC rates (England/NI/Wales PAYE + Class 1 NI). Source documented in notes.
+model PayrollStatutoryRateSet {
+  id          String   @id @default(uuid()) @db.Uuid
+  taxYearId   String   @db.Uuid
+  /// ENG | WLS | NIR (SCO deferred).
+  nation      String   @default("ENG")
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  /// Personal allowance annual GBP.
+  personalAllowanceAnnual Decimal @db.Decimal(12, 2)
+  /// Basic rate band width above free pay (annual), e.g. 37700.
+  basicRateBandAnnual     Decimal @db.Decimal(12, 2)
+  higherRateThresholdAnnual Decimal @db.Decimal(12, 2)
+  additionalRateThresholdAnnual Decimal @db.Decimal(12, 2)
+  basicRatePercent        Decimal @db.Decimal(5, 2)
+  higherRatePercent       Decimal @db.Decimal(5, 2)
+  additionalRatePercent   Decimal @db.Decimal(5, 2)
+  /// Class 1 thresholds (weekly / monthly / annual).
+  niLelWeekly             Decimal @db.Decimal(12, 2)
+  niPtWeekly              Decimal @db.Decimal(12, 2)
+  niStWeekly              Decimal @db.Decimal(12, 2)
+  niUelWeekly             Decimal @db.Decimal(12, 2)
+  niLelMonthly            Decimal @db.Decimal(12, 2)
+  niPtMonthly             Decimal @db.Decimal(12, 2)
+  niStMonthly             Decimal @db.Decimal(12, 2)
+  niUelMonthly            Decimal @db.Decimal(12, 2)
+  /// Category A primary (employee) rates.
+  niEmployeeRateMainPercent Decimal @db.Decimal(5, 2)
+  niEmployeeRateUpperPercent Decimal @db.Decimal(5, 2)
+  /// Category A secondary (employer) rate above ST.
+  niEmployerRatePercent   Decimal @db.Decimal(5, 2)
+  sourceNote              String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  taxYear PayrollTaxYear @relation(fields: [taxYearId], references: [id], onDelete: Cascade)
+
+  @@unique([taxYearId, nation, version])
+  @@index([taxYearId, isActive])
+  @@schema("payroll")
+}
+
+model PayrollSchedule {
+  id              String                @id @default(uuid()) @db.Uuid
+  name            String
+  code            String                @unique
+  frequency       PayrollPayFrequency
+  /// 1–7 = Mon–Sun for weekly-style; 1–28 for monthly pay day (clamped to month length).
+  anchorDay       Int                   @default(1)
+  description     String?
+  status          PayrollScheduleStatus @default(DRAFT)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdById     String?               @db.Uuid
+  updatedById     String?               @db.Uuid
+  deletedAt       DateTime?
+
+  periods PayrollPeriod[]
+  profiles EmployeePayrollProfile[]
+  agreements EmployeePayAgreement[]
+  runs    UkPayrollRun[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+model PayrollPeriod {
+  id           String              @id @default(uuid()) @db.Uuid
+  scheduleId   String              @db.Uuid
+  taxYearId    String              @db.Uuid
+  sequence     Int
+  label        String
+  periodStart  DateTime            @db.Date
+  periodEnd    DateTime            @db.Date
+  paymentDate  DateTime            @db.Date
+  status       PayrollPeriodStatus @default(OPEN)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  createdById  String?             @db.Uuid
+  updatedById  String?             @db.Uuid
+  deletedAt    DateTime?
+
+  schedule PayrollSchedule @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  taxYear  PayrollTaxYear  @relation(fields: [taxYearId], references: [id], onDelete: Restrict)
+  runs     UkPayrollRun[]
+
+  @@unique([scheduleId, taxYearId, sequence])
+  @@index([scheduleId, periodStart, periodEnd])
+  @@index([taxYearId])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Statutory payroll setup for an employee. Does not calculate tax — stores configuration only.
+model EmployeePayrollProfile {
+  id                    String                       @id @default(uuid()) @db.Uuid
+  employeeId            String                       @unique @db.Uuid
+  scheduleId            String?                      @db.Uuid
+  status                EmployeePayrollProfileStatus @default(DRAFT)
+  taxCode               String?
+  taxCodeWeek1Month1    Boolean                      @default(false)
+  niCategory            PayrollNiCategory?
+  starterDeclaration    PayrollStarterDeclaration    @default(UNKNOWN)
+  studentLoanPlan1      Boolean                      @default(false)
+  studentLoanPlan2      Boolean                      @default(false)
+  studentLoanPlan4      Boolean                      @default(false)
+  postgraduateLoan      Boolean                      @default(false)
+  pensionOptedIn        Boolean                      @default(false)
+  pensionSchemeRef      String?
+  bankSortCode          String?
+  bankAccountNumber     String?
+  bankAccountName       String?
+  notes                 String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  createdById           String?                      @db.Uuid
+  updatedById           String?                      @db.Uuid
+  deletedAt             DateTime?
+
+  schedule PayrollSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([scheduleId])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Effective-dated pay agreement. Optional link to billing pay-card UUID (no cross-schema FK required).
+model EmployeePayAgreement {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  employeeId         String                     @db.Uuid
+  scheduleId         String?                    @db.Uuid
+  basis              EmployeePayAgreementBasis  @default(HOURLY_CARE)
+  status             EmployeePayAgreementStatus @default(DRAFT)
+  effectiveFrom      DateTime                   @db.Date
+  effectiveTo        DateTime?                  @db.Date
+  /// Billing PayCard id when basis uses care hourly rates (stored UUID; billing owns the card).
+  payCardId          String?                    @db.Uuid
+  annualSalary       Decimal?                   @db.Decimal(12, 2)
+  contractedHours    Decimal?                   @db.Decimal(8, 2)
+  hourlyRateOverride Decimal?                   @db.Decimal(12, 4)
+  currency           String                     @default("GBP")
+  notes              String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  createdById        String?                    @db.Uuid
+  updatedById        String?                    @db.Uuid
+  deletedAt          DateTime?
+
+  schedule PayrollSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, effectiveFrom])
+  @@index([employeeId, status])
+  @@index([payCardId])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Statutory UK payroll run shell — distinct from billing.PayrollRun visit-pay aggregation.
+model UkPayrollRun {
+  id           String             @id @default(uuid()) @db.Uuid
+  periodId     String             @db.Uuid
+  taxYearId    String             @db.Uuid
+  scheduleId   String             @db.Uuid
+  runNumber    Int
+  label        String
+  status       UkPayrollRunStatus @default(DRAFT)
+  employeeCount Int               @default(0)
+  /// Phase 2: sum of employee totalGross after calculate-gross.
+  totalGross   Decimal            @default(0) @db.Decimal(12, 2)
+  /// Phase 2: sum of expense-class amounts (mileage etc.).
+  totalExpenses Decimal           @default(0) @db.Decimal(12, 2)
+  grossCalculatedAt DateTime?
+  /// Phase 3 statutory totals.
+  totalIncomeTax   Decimal        @default(0) @db.Decimal(12, 2)
+  totalEmployeeNi  Decimal        @default(0) @db.Decimal(12, 2)
+  totalEmployerNi  Decimal        @default(0) @db.Decimal(12, 2)
+  totalNetPay      Decimal        @default(0) @db.Decimal(12, 2)
+  statutoryCalculatedAt DateTime?
+  statutoryBasis   String?        /// e.g. WEEK1_MONTH1_NON_CUMULATIVE
+  currency     String             @default("GBP")
+  notes        String?
+  closedAt     DateTime?
+  closedById   String?            @db.Uuid
+  cancelledAt  DateTime?
+  cancelledById String?           @db.Uuid
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  createdById  String?            @db.Uuid
+  updatedById  String?            @db.Uuid
+  deletedAt    DateTime?
+
+  period   PayrollPeriod   @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  taxYear  PayrollTaxYear  @relation(fields: [taxYearId], references: [id], onDelete: Restrict)
+  schedule PayrollSchedule @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  employees UkPayrollRunEmployee[]
+  inputLines UkPayrollInputLine[]
+
+  @@unique([scheduleId, periodId, runNumber])
+  @@index([status])
+  @@index([taxYearId])
+  @@index([periodId])
+  @@index([deletedAt])
+  @@schema("payroll")
+}
+
+model UkPayrollRunEmployee {
+  id           String   @id @default(uuid()) @db.Uuid
+  runId        String   @db.Uuid
+  employeeId   String   @db.Uuid
+  /// Snapshot of agreement id at enrolment.
+  payAgreementId String? @db.Uuid
+  enrolledAt   DateTime @default(now())
+  notes        String?
+  /// Phase 2 gross breakdown (GBP).
+  visitPay     Decimal  @default(0) @db.Decimal(12, 2)
+  salaryPay    Decimal  @default(0) @db.Decimal(12, 2)
+  travelPay    Decimal  @default(0) @db.Decimal(12, 2)
+  nmwTopUp     Decimal  @default(0) @db.Decimal(12, 2)
+  otherPay     Decimal  @default(0) @db.Decimal(12, 2)
+  expenseTotal Decimal  @default(0) @db.Decimal(12, 2)
+  deductionTotal Decimal @default(0) @db.Decimal(12, 2)
+  /// visit + salary + travel + nmw + other − deductions (expenses tracked separately).
+  totalGross   Decimal  @default(0) @db.Decimal(12, 2)
+  inputLineCount Int    @default(0)
+  hasProvisionalInputs Boolean @default(false)
+  grossCalculatedAt DateTime?
+  /// Phase 3 statutory results (GBP).
+  taxablePay       Decimal  @default(0) @db.Decimal(12, 2)
+  incomeTax        Decimal  @default(0) @db.Decimal(12, 2)
+  employeeNi       Decimal  @default(0) @db.Decimal(12, 2)
+  employerNi       Decimal  @default(0) @db.Decimal(12, 2)
+  netPay           Decimal  @default(0) @db.Decimal(12, 2)
+  taxCodeApplied   String?
+  niCategoryApplied String?
+  statutoryExplanation String?
+  statutoryCalculatedAt DateTime?
+  createdAt    DateTime @default(now())
+  createdById  String?  @db.Uuid
+
+  run UkPayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  inputLines UkPayrollInputLine[]
+
+  @@unique([runId, employeeId])
+  @@index([employeeId])
+  @@index([runId])
+  @@schema("payroll")
+}
+
+/// Immutable Phase 2 snapshot of a gross-pay input for a run employee.
+model UkPayrollInputLine {
+  id                         String                   @id @default(uuid()) @db.Uuid
+  runId                      String                   @db.Uuid
+  runEmployeeId              String                   @db.Uuid
+  employeeId                 String                   @db.Uuid
+  sourceType                 UkPayrollInputSourceType
+  sourcePayrollRunId         String?                  @db.Uuid
+  sourcePayrollRunLineId     String?                  @db.Uuid
+  sourceVisitReconciliationId String?                 @db.Uuid
+  sourceSalaryDeductionId    String?                  @db.Uuid
+  lineType                   String
+  description                String
+  minutes                    Int?
+  amount                     Decimal                  @db.Decimal(12, 2)
+  isExpense                  Boolean                  @default(false)
+  isProvisional              Boolean                  @default(false)
+  createdAt                  DateTime                 @default(now())
+
+  run         UkPayrollRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runEmployee UkPayrollRunEmployee @relation(fields: [runEmployeeId], references: [id], onDelete: Cascade)
+
+  @@unique([sourcePayrollRunLineId])
+  @@index([runId])
+  @@index([runEmployeeId])
+  @@index([employeeId])
+  @@index([sourceVisitReconciliationId])
+  @@schema("payroll")
 }

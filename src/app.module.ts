@@ -107,6 +107,7 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
 import { EcmModule } from './ecm/ecm.module';
+import { PayrollModule } from './payroll/payroll.module';
 
 @Module({
   imports: [
@@ -232,6 +233,7 @@ import { EcmModule } from './ecm/ecm.module';
     BillingModule,
     EmployeeAppModule,
     EcmModule,
+    PayrollModule,
   ],
   providers: [
     {
