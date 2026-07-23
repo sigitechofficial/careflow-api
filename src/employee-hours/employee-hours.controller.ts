@@ -10,6 +10,7 @@ import {
   EmployeeHoursMonthlyQueryDto,
   UpsertEmployeeHoursMonthlyReviewDto,
 } from './dto/employee-hours-monthly.dto';
+import { EmployeeHoursMonthlyDetailQueryDto } from './dto/employee-hours-monthly-detail.dto';
 
 @ApiTags('Employee Hours')
 @ApiBearerAuth()
@@ -36,6 +37,16 @@ export class EmployeeHoursController {
   })
   monthlySummary(@Query() query: EmployeeHoursMonthlyQueryDto) {
     return this.service.monthlySummary(query);
+  }
+
+  @Get('monthly-detail')
+  @AnyPermission('employees.read', 'employees.reports.read')
+  @ApiOperation({
+    summary:
+      'Per-employee monthly hours detail — calendar week blocks with contracted, assigned, and worked hours',
+  })
+  monthlyDetail(@Query() query: EmployeeHoursMonthlyDetailQueryDto) {
+    return this.service.monthlyDetail(query);
   }
 
   @Patch('monthly-review')

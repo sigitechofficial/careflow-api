@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AllocationStatus, Prisma, VisitReconciliationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { jobDurationMinutes } from '../scheduling/schedule-date-range.util';
@@ -16,6 +16,7 @@ import type {
   EmployeeHoursMonthlyQueryDto,
   UpsertEmployeeHoursMonthlyReviewDto,
 } from './dto/employee-hours-monthly.dto';
+import type { EmployeeHoursMonthlyDetailQueryDto } from './dto/employee-hours-monthly-detail.dto';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -110,6 +111,75 @@ function pushFacet(map: Map<string, FacetOption>, id: string | null | undefined,
 
 function sortedFacet(map: Map<string, FacetOption>): FacetOption[] {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Calendar month week blocks: W1=1–7, W2=8–14, W3=15–21, W4=22–28, W5=29–end. */
+function calendarMonthWeekBlocks(year: number, month: number): Array<{
+  weekNumber: number;
+  dayFrom: number;
+  dayTo: number;
+  weekStart: Date;
+  weekEnd: Date;
+  weekStartIso: string;
+  weekEndIso: string;
+  dayLabels: string[];
+}> {
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const blocks: Array<{ dayFrom: number; dayTo: number }> = [
+    { dayFrom: 1, dayTo: Math.min(7, daysInMonth) },
+    { dayFrom: 8, dayTo: Math.min(14, daysInMonth) },
+    { dayFrom: 15, dayTo: Math.min(21, daysInMonth) },
+    { dayFrom: 22, dayTo: Math.min(28, daysInMonth) },
+  ];
+  if (daysInMonth >= 29) {
+    blocks.push({ dayFrom: 29, dayTo: daysInMonth });
+  }
+
+  return blocks
+    .filter((b) => b.dayFrom <= daysInMonth && b.dayFrom <= b.dayTo)
+    .map((b, index) => {
+      const weekStart = new Date(Date.UTC(year, month - 1, b.dayFrom, 0, 0, 0, 0));
+      const weekEnd = endOfUtcDay(new Date(Date.UTC(year, month - 1, b.dayTo)));
+      const dayLabels: string[] = [];
+      for (let d = b.dayFrom; d <= b.dayTo; d += 1) {
+        dayLabels.push(String(d));
+      }
+      return {
+        weekNumber: index + 1,
+        dayFrom: b.dayFrom,
+        dayTo: b.dayTo,
+        weekStart,
+        weekEnd,
+        weekStartIso: weekStart.toISOString().slice(0, 10),
+        weekEndIso: weekEnd.toISOString().slice(0, 10),
+        dayLabels,
+      };
+    });
+}
+
+function reconciliationPayableMinutes(r: {
+  payableMinutes: number | null;
+  approvedPayStart: Date | null;
+  approvedPayEnd: Date | null;
+  actualStartDateTime: Date | null;
+  actualEndDateTime: Date | null;
+}): number {
+  if (r.payableMinutes != null && r.payableMinutes > 0) return r.payableMinutes;
+  if (r.approvedPayStart && r.approvedPayEnd) {
+    return Math.max(
+      0,
+      Math.round((r.approvedPayEnd.getTime() - r.approvedPayStart.getTime()) / 60_000),
+    );
+  }
+  if (r.actualStartDateTime && r.actualEndDateTime) {
+    return Math.max(
+      0,
+      Math.round(
+        (r.actualEndDateTime.getTime() - r.actualStartDateTime.getTime()) / 60_000,
+      ),
+    );
+  }
+  return 0;
 }
 
 @Injectable()
@@ -824,6 +894,255 @@ export class EmployeeHoursService {
         },
         facets: { locations: sortedFacet(locationFacets) },
         rows,
+      },
+    };
+  }
+
+  /**
+   * Monthly detail for one employee — calendar week blocks within the month
+   * (1–7, 8–14, 15–21, 22–28, 29–end), with contracted / assigned / worked hours.
+   */
+  async monthlyDetail(query: EmployeeHoursMonthlyDetailQueryDto) {
+    const now = new Date();
+    const m = query.month ? /^(\d{4})-(\d{2})$/.exec(query.month) : null;
+    const year = m ? Number(m[1]) : now.getUTCFullYear();
+    const month = m ? Number(m[2]) : now.getUTCMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const monthStart = new Date(Date.UTC(year, month - 1, 1));
+    const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const monthName = new Intl.DateTimeFormat('en-GB', {
+      month: 'long',
+      timeZone: 'UTC',
+    }).format(monthStart);
+
+    const emp = await this.prisma.employee.findFirst({
+      where: { id: query.employeeId, deletedAt: null },
+      select: {
+        id: true,
+        isActive: true,
+        personalDetail: { select: { firstName: true, lastName: true } },
+        employment: {
+          select: {
+            employeeNumber: true,
+            contractedWeeklyHours: true,
+            maximumWeeklyHours: true,
+            visaTypeId: true,
+            weeklyHoursCapOverride: true,
+            weeklyHoursCapOverrideExpiresAt: true,
+            role: { select: { id: true, name: true } },
+            jobTitle: { select: { id: true, name: true } },
+            baseLocation: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!emp) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    const employment = emp.employment;
+    const displayName =
+      [emp.personalDetail?.firstName, emp.personalDetail?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || 'Unknown';
+    const weeklyHours =
+      employment?.contractedWeeklyHours != null
+        ? round2(Number(employment.contractedWeeklyHours))
+        : null;
+    const visa = resolveVisa(employment?.visaTypeId);
+    const overrideActive =
+      employment?.weeklyHoursCapOverride != null &&
+      (employment.weeklyHoursCapOverrideExpiresAt == null ||
+        employment.weeklyHoursCapOverrideExpiresAt.getTime() >= monthStart.getTime());
+    const effectiveCapHours = overrideActive
+      ? round2(Number(employment!.weeklyHoursCapOverride))
+      : (visa?.capHours ?? null);
+    const branch = employment?.baseLocation ?? employment?.location ?? null;
+    const weeksMeta = calendarMonthWeekBlocks(year, month);
+
+    const [allocations, reconciliations] = await Promise.all([
+      this.prisma.jobAllocation.findMany({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          status: { in: ACTIVE_ALLOCATION },
+          employeeId: emp.id,
+          scheduledJob: {
+            deletedAt: null,
+            scheduledStartDateTime: { gte: monthStart, lte: monthEnd },
+          },
+        },
+        select: {
+          scheduledJob: {
+            select: {
+              scheduledStartDateTime: true,
+              scheduledEndDateTime: true,
+              estimatedDurationMinutes: true,
+            },
+          },
+        },
+      }),
+      this.prisma.visitReconciliation.findMany({
+        where: {
+          employeeId: emp.id,
+          plannedStartDateTime: { gte: monthStart, lte: monthEnd },
+          status: { notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY] },
+        },
+        select: {
+          payableMinutes: true,
+          plannedStartDateTime: true,
+          actualStartDateTime: true,
+          actualEndDateTime: true,
+          approvedPayStart: true,
+          approvedPayEnd: true,
+        },
+      }),
+    ]);
+
+    const weeks = weeksMeta.map((week) => {
+      let assignedMins = 0;
+      let assignedVisits = 0;
+      for (const a of allocations) {
+        const t = a.scheduledJob.scheduledStartDateTime.getTime();
+        if (t >= week.weekStart.getTime() && t <= week.weekEnd.getTime()) {
+          assignedMins += jobDurationMinutes(a.scheduledJob);
+          assignedVisits += 1;
+        }
+      }
+
+      const dayMins = week.dayLabels.map(() => 0);
+      let workedMins = 0;
+      let workedVisits = 0;
+      for (const r of reconciliations) {
+        const t = r.plannedStartDateTime.getTime();
+        if (t < week.weekStart.getTime() || t > week.weekEnd.getTime()) continue;
+        const mins = reconciliationPayableMinutes(r);
+        if (mins <= 0) continue;
+        workedMins += mins;
+        workedVisits += 1;
+        const dayOfMonth = r.plannedStartDateTime.getUTCDate();
+        const dayIdx = dayOfMonth - week.dayFrom;
+        if (dayIdx >= 0 && dayIdx < dayMins.length) {
+          dayMins[dayIdx] += mins;
+        }
+      }
+
+      const assignedHours = round2(assignedMins / 60);
+      const hoursWorked = round2(workedMins / 60);
+      const hoursOverContract =
+        weeklyHours != null ? round2(Math.max(0, hoursWorked - weeklyHours)) : 0;
+      const hoursOverCap =
+        effectiveCapHours != null ? round2(Math.max(0, hoursWorked - effectiveCapHours)) : 0;
+      const hoursOverAssigned =
+        weeklyHours != null ? round2(Math.max(0, assignedHours - weeklyHours)) : 0;
+      const utilisationPct =
+        weeklyHours != null && weeklyHours > 0
+          ? round2((hoursWorked / weeklyHours) * 100)
+          : null;
+      const assignedUtilisationPct =
+        weeklyHours != null && weeklyHours > 0
+          ? round2((assignedHours / weeklyHours) * 100)
+          : null;
+
+      const dayRangeLabel =
+        week.dayFrom === week.dayTo
+          ? `${week.dayFrom}`
+          : `${week.dayFrom}–${week.dayTo}`;
+
+      return {
+        weekNumber: week.weekNumber,
+        weekStart: week.weekStartIso,
+        weekEnd: week.weekEndIso,
+        dayFrom: week.dayFrom,
+        dayTo: week.dayTo,
+        label: `Week ${week.weekNumber}`,
+        dayRangeLabel,
+        partialMonth: false,
+        weeklyHours,
+        effectiveCapHours,
+        assignedHours,
+        hoursWorked,
+        hoursOverContract,
+        hoursOverCap,
+        hoursOverAssigned,
+        assignedUtilisationPct,
+        utilisationPct,
+        assignedVisits,
+        workedVisits,
+        dayLabels: week.dayLabels,
+        dayHours: dayMins.map((mins) => round2(mins / 60)),
+      };
+    });
+
+    const monthTotals = weeks.reduce(
+      (acc, w) => {
+        acc.assignedHours += w.assignedHours;
+        acc.hoursWorked += w.hoursWorked;
+        acc.hoursOverContract += w.hoursOverContract;
+        acc.hoursOverCap += w.hoursOverCap;
+        acc.hoursOverAssigned += w.hoursOverAssigned;
+        acc.assignedVisits += w.assignedVisits;
+        acc.workedVisits += w.workedVisits;
+        if (w.hoursOverContract > 0) acc.overContractWeekCount += 1;
+        if (w.hoursOverCap > 0) acc.overCapWeekCount += 1;
+        if (w.hoursOverAssigned > 0) acc.overAssignedWeekCount += 1;
+        return acc;
+      },
+      {
+        assignedHours: 0,
+        hoursWorked: 0,
+        hoursOverContract: 0,
+        hoursOverCap: 0,
+        hoursOverAssigned: 0,
+        assignedVisits: 0,
+        workedVisits: 0,
+        overContractWeekCount: 0,
+        overCapWeekCount: 0,
+        overAssignedWeekCount: 0,
+      },
+    );
+
+    const expectedContractHours =
+      weeklyHours != null ? round2(weeklyHours * (daysInMonth / 7)) : null;
+
+    return {
+      data: {
+        month: monthKey,
+        monthName,
+        year,
+        daysInMonth,
+        weekScheme: '1–7 · 8–14 · 15–21 · 22–28 · 29+',
+        employee: {
+          employeeId: emp.id,
+          employeeName: displayName,
+          employeeNumber: employment?.employeeNumber ?? null,
+          isActive: emp.isActive,
+          branchName: branch?.name ?? null,
+          roleName: employment?.role?.name ?? null,
+          jobTitleName: employment?.jobTitle?.name ?? null,
+        },
+        weeklyHours,
+        effectiveCapHours,
+        immigration: visa,
+        expectedContractHours,
+        totals: {
+          assignedHours: round2(monthTotals.assignedHours),
+          hoursWorked: round2(monthTotals.hoursWorked),
+          hoursOverContract: round2(monthTotals.hoursOverContract),
+          hoursOverCap: round2(monthTotals.hoursOverCap),
+          hoursOverAssigned: round2(monthTotals.hoursOverAssigned),
+          assignedVisits: monthTotals.assignedVisits,
+          workedVisits: monthTotals.workedVisits,
+          overContractWeekCount: monthTotals.overContractWeekCount,
+          overCapWeekCount: monthTotals.overCapWeekCount,
+          overAssignedWeekCount: monthTotals.overAssignedWeekCount,
+          weekCount: weeks.length,
+        },
+        weeks,
       },
     };
   }
