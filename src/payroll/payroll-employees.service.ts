@@ -16,6 +16,10 @@ import {
 } from './dto/payroll.dto';
 import { mapAgreement, mapProfile } from './payroll-mapper.util';
 import { parsePayrollDateOnly } from './payroll-period.util';
+import {
+  loanFlagsFromElections,
+  sanitizeDeductionElections,
+} from './uk-deduction-elections.util';
 
 @Injectable()
 export class PayrollEmployeesService {
@@ -98,6 +102,14 @@ export class PayrollEmployeesService {
       where: { employeeId, deletedAt: null },
     });
 
+    const hasElections = dto.deductionElections !== undefined;
+    const sanitizedElections = hasElections
+      ? sanitizeDeductionElections(dto.deductionElections)
+      : undefined;
+    const syncedFlags = sanitizedElections
+      ? loanFlagsFromElections(sanitizedElections)
+      : null;
+
     const data = {
       scheduleId: dto.scheduleId === undefined ? undefined : dto.scheduleId,
       status: dto.status,
@@ -105,11 +117,13 @@ export class PayrollEmployeesService {
       taxCodeWeek1Month1: dto.taxCodeWeek1Month1,
       niCategory: dto.niCategory === undefined ? undefined : dto.niCategory,
       starterDeclaration: dto.starterDeclaration,
-      studentLoanPlan1: dto.studentLoanPlan1,
-      studentLoanPlan2: dto.studentLoanPlan2,
-      studentLoanPlan4: dto.studentLoanPlan4,
-      postgraduateLoan: dto.postgraduateLoan,
-      pensionOptedIn: dto.pensionOptedIn,
+      studentLoanPlan1: syncedFlags?.studentLoanPlan1 ?? dto.studentLoanPlan1,
+      studentLoanPlan2: syncedFlags?.studentLoanPlan2 ?? dto.studentLoanPlan2,
+      studentLoanPlan4: syncedFlags?.studentLoanPlan4 ?? dto.studentLoanPlan4,
+      studentLoanPlan5: syncedFlags?.studentLoanPlan5 ?? dto.studentLoanPlan5,
+      postgraduateLoan: syncedFlags?.postgraduateLoan ?? dto.postgraduateLoan,
+      pensionOptedIn: syncedFlags?.pensionOptedIn ?? dto.pensionOptedIn,
+      deductionElections: sanitizedElections === undefined ? undefined : sanitizedElections,
       pensionSchemeRef:
         dto.pensionSchemeRef === undefined ? undefined : dto.pensionSchemeRef?.trim() || null,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
@@ -120,6 +134,9 @@ export class PayrollEmployeesService {
       notes: dto.notes === undefined ? undefined : dto.notes?.trim() || null,
       updatedById: userId,
     };
+
+    const createElections = sanitizedElections ?? [];
+    const createFlags = loanFlagsFromElections(createElections);
 
     const row = existing
       ? await this.prisma.employeePayrollProfile.update({
@@ -135,11 +152,13 @@ export class PayrollEmployeesService {
             taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
             niCategory: dto.niCategory ?? null,
             starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
-            studentLoanPlan1: dto.studentLoanPlan1 ?? false,
-            studentLoanPlan2: dto.studentLoanPlan2 ?? false,
-            studentLoanPlan4: dto.studentLoanPlan4 ?? false,
-            postgraduateLoan: dto.postgraduateLoan ?? false,
-            pensionOptedIn: dto.pensionOptedIn ?? false,
+            studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
+            studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
+            studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),
+            studentLoanPlan5: createFlags.studentLoanPlan5 || (dto.studentLoanPlan5 ?? false),
+            postgraduateLoan: createFlags.postgraduateLoan || (dto.postgraduateLoan ?? false),
+            pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
+            deductionElections: createElections,
             pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
             bankSortCode: dto.bankSortCode?.trim() || null,
             bankAccountNumber: dto.bankAccountNumber?.trim() || null,

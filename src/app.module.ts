@@ -25,6 +25,7 @@ import { EmployeeComplianceModule } from './employee-compliance/employee-complia
 import { EmployeeReportsModule } from './employee-reports/employee-reports.module';
 import { EmployeeHoursModule } from './employee-hours/employee-hours.module';
 import { EmployeeAbsencesModule } from './employee-absences/employee-absences.module';
+import { ServiceUserHoursModule } from './service-user-hours/service-user-hours.module';
 import { ComplianceTypesModule } from './compliance-types/compliance-types.module';
 import { ComplianceRequirementsModule } from './compliance-requirements/compliance-requirements.module';
 import { ComplianceReportsModule } from './compliance-reports/compliance-reports.module';
@@ -161,6 +162,7 @@ import { PayrollModule } from './payroll/payroll.module';
     LookupsModule,
     TemporaryInspectorsModule,
     ServiceUsersModule,
+    ServiceUserHoursModule,
     ServiceUserPortalModule,
     ServiceUserContactsModule,
     ServiceUserAddressesModule,

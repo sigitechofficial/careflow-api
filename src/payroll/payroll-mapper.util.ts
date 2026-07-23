@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { electionsFromLegacyFlags } from './uk-deduction-elections.util';
 
 export function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -104,9 +105,11 @@ export function mapProfile(row: {
   studentLoanPlan1: boolean;
   studentLoanPlan2: boolean;
   studentLoanPlan4: boolean;
+  studentLoanPlan5?: boolean;
   postgraduateLoan: boolean;
   pensionOptedIn: boolean;
   pensionSchemeRef: string | null;
+  deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
@@ -114,6 +117,15 @@ export function mapProfile(row: {
   createdAt: Date;
   updatedAt: Date;
 }) {
+  const deductionElections = electionsFromLegacyFlags({
+    studentLoanPlan1: row.studentLoanPlan1,
+    studentLoanPlan2: row.studentLoanPlan2,
+    studentLoanPlan4: row.studentLoanPlan4,
+    studentLoanPlan5: row.studentLoanPlan5,
+    postgraduateLoan: row.postgraduateLoan,
+    pensionOptedIn: row.pensionOptedIn,
+    deductionElections: row.deductionElections,
+  });
   return {
     id: row.id,
     employeeId: row.employeeId,
@@ -126,9 +138,11 @@ export function mapProfile(row: {
     studentLoanPlan1: row.studentLoanPlan1,
     studentLoanPlan2: row.studentLoanPlan2,
     studentLoanPlan4: row.studentLoanPlan4,
+    studentLoanPlan5: row.studentLoanPlan5 ?? false,
     postgraduateLoan: row.postgraduateLoan,
     pensionOptedIn: row.pensionOptedIn,
     pensionSchemeRef: row.pensionSchemeRef,
+    deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,
     bankAccountName: row.bankAccountName,

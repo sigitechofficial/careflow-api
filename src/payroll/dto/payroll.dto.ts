@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -205,12 +206,26 @@ export class UpsertEmployeePayrollProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
+  studentLoanPlan5?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   postgraduateLoan?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   pensionOptedIn?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'UK 2026/27 configurable deduction catalogue codes',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deductionElections?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
