@@ -49,6 +49,24 @@ describe('pickBestRule nearest fixed slot', () => {
     expect(result).toEqual({ amount: 10, label: 'FIXED' });
   });
 
+  it('prefers fixed slot whose From/Until covers the visit clock', () => {
+    const daytime = {
+      ...fixedRule(30, 12),
+      startTime: '07:00',
+      endTime: '19:00',
+      label: '30m daytime',
+    };
+    const evening = {
+      ...fixedRule(30, 18),
+      startTime: '19:00',
+      endTime: '22:00',
+      label: '30m evening',
+    };
+    const eveningVisit = new Date('2026-07-13T20:00:00.000Z');
+    const result = calculatePayableAmount([daytime, evening], eveningVisit, 30);
+    expect(result).toEqual({ amount: 18, label: 'FIXED' });
+  });
+
   it('breaks equal distance toward the higher slot', () => {
     const result = calculatePayableAmount(
       [fixedRule(30, 6), fixedRule(45, 10)],

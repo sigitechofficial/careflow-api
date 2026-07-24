@@ -10,7 +10,12 @@ import {
   calculateBandedPay,
   formatHhMmUtc,
   hasTimeBandedHourlyRules,
+  minuteInTimeBand,
+  resolveCalendarDayType as resolveBandCalendarDayType,
+  resolveSpecialDay,
   shouldPreferBandedOverFixed,
+  SPECIAL_DAY_PRIORITY,
+  type PaySpecialDay,
   type PayStackingPolicy,
   type TimeBandRule,
 } from './pay-time-band.util';
@@ -358,17 +363,36 @@ export type ChargeCardRuleLike = {
 };
 
 export function resolveCalendarDayType(visitDate: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
-  const day = visitDate.getUTCDay();
-  if (day === 0) return 'SUNDAY';
-  if (day === 6) return 'SATURDAY';
-  return 'WEEKDAY';
+  return resolveBandCalendarDayType(visitDate);
 }
 
+const SPECIAL_DAY_RULE_TYPES = new Set(
+  SPECIAL_DAY_PRIORITY.filter((d): d is Exclude<PaySpecialDay, 'NONE'> => d !== 'NONE'),
+);
+
+/**
+ * Special days (bank holiday, Boxing Day, org day, …) are paid like normal £/hr periods.
+ * When that calendar day occurs, matching special-day rules win; if none are configured,
+ * weekday / Saturday / Sunday rules still apply as fallback.
+ */
 function dayTypeMatches(ruleDayType: string, visitDate: Date, isBankHoliday: boolean): boolean {
   if (ruleDayType === 'ANY') return true;
-  if (isBankHoliday) return ruleDayType === 'BANK_HOLIDAY';
-  if (ruleDayType === 'BANK_HOLIDAY') return false;
-  return ruleDayType === resolveCalendarDayType(visitDate);
+
+  const special = resolveSpecialDay(visitDate, { isBankHoliday });
+  const calendar = resolveCalendarDayType(visitDate);
+
+  if (special !== 'NONE') {
+    if (ruleDayType === special) return true;
+    // Named public holidays can fall back to a generic bank-holiday rate.
+    if (ruleDayType === 'BANK_HOLIDAY' && special !== 'SPECIAL') return true;
+    // Other special-day-only rules do not apply on this date.
+    if (SPECIAL_DAY_RULE_TYPES.has(ruleDayType as Exclude<PaySpecialDay, 'NONE'>)) return false;
+    // Fall back to the underlying weekday / weekend rate when no holiday rate is set.
+    return ruleDayType === calendar;
+  }
+
+  if (SPECIAL_DAY_RULE_TYPES.has(ruleDayType as Exclude<PaySpecialDay, 'NONE'>)) return false;
+  return ruleDayType === calendar;
 }
 
 /** Visits up to 60 minutes use fixed duration slots; longer visits use hourly rules. */
@@ -429,9 +453,20 @@ function toTimeBandRules(rules: PayCardRuleLike[]): TimeBandRule[] {
 
 function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T | null {
   return [...candidates].sort((a, b) => {
+    const aWindow = a.startTime?.trim() || a.endTime?.trim() ? 1 : 0;
+    const bWindow = b.startTime?.trim() || b.endTime?.trim() ? 1 : 0;
+    if (aWindow !== bWindow) return bWindow - aWindow;
     if (a.priority !== b.priority) return b.priority - a.priority;
     return a.sortOrder - b.sortOrder;
   })[0] ?? null;
+}
+
+function ruleMatchesVisitClock(rule: RuleWithOptionalTime, visitDate: Date): boolean {
+  const start = rule.startTime?.trim() || null;
+  const end = rule.endTime?.trim() || null;
+  if (!start && !end) return true;
+  const minuteOfDay = visitDate.getUTCHours() * 60 + visitDate.getUTCMinutes();
+  return minuteInTimeBand(minuteOfDay, start, end);
 }
 
 /** Prefer exact slot; otherwise nearest duration (ties break to the higher slot). */
@@ -471,7 +506,9 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   if (!dayMatches.length) return null;
 
   if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixedSlots = dayMatches.filter((rule) => isFixedVisitSlotRule(rule));
+    const fixedSlots = dayMatches
+      .filter((rule) => isFixedVisitSlotRule(rule))
+      .filter((rule) => ruleMatchesVisitClock(rule, visitDate));
     const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
     if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
