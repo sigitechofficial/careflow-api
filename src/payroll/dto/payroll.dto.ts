@@ -128,12 +128,12 @@ export class CreatePayrollScheduleDto {
   @IsEnum(PayrollPayFrequencyDto)
   frequency!: PayrollPayFrequencyDto;
 
-  @ApiPropertyOptional({ description: '1–7 weekdays for weekly-style; 1–28 for monthly pay day' })
+  @ApiPropertyOptional({ description: '1–7 weekdays for weekly-style; 1–31 for monthly pay day (clamped to month length)' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(28)
+  @Max(31)
   anchorDay?: number;
 
   @ApiPropertyOptional()

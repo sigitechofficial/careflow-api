@@ -339,6 +339,7 @@ export class PayrollSettingsService {
           frequency: dto.frequency,
           anchorDay: dto.anchorDay ?? 1,
           description: dto.description?.trim() || null,
+          status: 'ACTIVE',
           createdById: userId,
           updatedById: userId,
         },
@@ -402,6 +403,9 @@ export class PayrollSettingsService {
     meta?: RequestAuditMeta,
   ) {
     const schedule = await this.requireSchedule(scheduleId);
+    if (schedule.status === 'ARCHIVED') {
+      throw new BadRequestException('Cannot generate periods for an archived pay schedule');
+    }
     const taxYear = await this.requireTaxYear(dto.taxYearId);
 
     const existingCount = await this.prisma.payrollPeriod.count({

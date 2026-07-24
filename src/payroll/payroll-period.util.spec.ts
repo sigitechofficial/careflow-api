@@ -30,6 +30,20 @@ describe('payroll-period.util', () => {
     expect(periods[periods.length - 1].periodEnd).toBe('2026-04-05');
   });
 
+  it('accepts monthly anchor day 31 when generating periods', () => {
+    const periods = generatePayrollPeriods({
+      frequency: 'MONTHLY',
+      anchorDay: 31,
+      taxYearStart: '2025-04-06',
+      taxYearEnd: '2026-04-05',
+    });
+    expect(periods.length).toBe(12);
+    // Payment stays within each period (end is always the 5th for UK tax months).
+    for (const period of periods) {
+      expect(period.paymentDate <= period.periodEnd).toBe(true);
+    }
+  });
+
   it('generates weekly periods covering the tax year', () => {
     const periods = generatePayrollPeriods({
       frequency: 'WEEKLY',

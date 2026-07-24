@@ -351,6 +351,7 @@ export enum AuditAction {
   PAYROLL_RUN_EMPLOYEES_ENROLLED = 'payroll_run_employees_enrolled',
   PAYROLL_RUN_CLOSED = 'payroll_run_closed',
   PAYROLL_RUN_CANCELLED = 'payroll_run_cancelled',
+  PAYROLL_RUN_REACTIVATED = 'payroll_run_reactivated',
   PAYROLL_RUN_GROSS_CALCULATED = 'payroll_run_gross_calculated',
   PAYROLL_RUN_STATUTORY_CALCULATED = 'payroll_run_statutory_calculated',
   PAYROLL_DATA_PURGED = 'payroll_data_purged',

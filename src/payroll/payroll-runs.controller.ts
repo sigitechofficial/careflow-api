@@ -103,4 +103,15 @@ export class PayrollRunsController {
   ) {
     return this.service.cancel(user.id, id, getRequestAuditMeta(req));
   }
+
+  @Post(':id/reactivate')
+  @Permissions('payroll.runs.manage')
+  @ApiOperation({ summary: 'Reactivate a closed or cancelled UK payroll run' })
+  reactivate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.reactivate(user.id, id, getRequestAuditMeta(req));
+  }
 }

@@ -990,6 +990,73 @@ export class PayrollRunsService {
     return { message: 'UK payroll run cancelled', data: mapRun(row) };
   }
 
+  async reactivate(userId: string, runId: string, meta?: RequestAuditMeta) {
+    const run = await this.requireRun(runId);
+    if (run.status !== 'CLOSED' && run.status !== 'CANCELLED') {
+      throw new BadRequestException('Only closed or cancelled runs can be reactivated');
+    }
+
+    const openConflict = await this.prisma.ukPayrollRun.findFirst({
+      where: {
+        periodId: run.periodId,
+        deletedAt: null,
+        status: { in: [...OPEN_RUN_STATUSES] },
+        id: { not: runId },
+      },
+    });
+    if (openConflict) {
+      throw new ConflictException(
+        'Another open UK payroll run already exists for this period. Close or cancel it first.',
+      );
+    }
+
+    const nextStatus = this.resolveReactivateStatus(run);
+
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.ukPayrollRun.update({
+        where: { id: runId },
+        data: {
+          status: nextStatus,
+          closedAt: null,
+          closedById: null,
+          cancelledAt: null,
+          cancelledById: null,
+          updatedById: userId,
+        },
+      });
+      await tx.payrollPeriod.update({
+        where: { id: run.periodId },
+        data: { status: 'IN_RUN', updatedById: userId },
+      });
+      return updated;
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_RUN_REACTIVATED,
+      recordType: 'UkPayrollRun',
+      recordId: runId,
+      oldValues: mapRun(run),
+      newValues: mapRun(row),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'UK payroll run reactivated', data: mapRun(row) };
+  }
+
+  private resolveReactivateStatus(run: {
+    statutoryCalculatedAt: Date | null;
+    grossCalculatedAt: Date | null;
+    employeeCount: number;
+  }): (typeof OPEN_RUN_STATUSES)[number] {
+    if (run.statutoryCalculatedAt) return 'STATUTORY_CALCULATED';
+    if (run.grossCalculatedAt) return 'GROSS_CALCULATED';
+    if (run.employeeCount > 0) return 'EMPLOYEES_ENROLLED';
+    return 'DRAFT';
+  }
+
   private async requireRun(id: string) {
     const row = await this.prisma.ukPayrollRun.findFirst({
       where: { id, deletedAt: null },
