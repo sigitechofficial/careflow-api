@@ -520,17 +520,17 @@ export function calculatePayableAmount(
   if (minutes <= 0) return null;
 
   const bandRules = toTimeBandRules(rules);
-  const preferBanded =
-    Boolean(window) && shouldPreferBandedOverFixed(bandRules);
 
-  // Short fixed-slot visits keep exact/nearest fixed matching only when day/time
-  // premiums (with a base hourly) are not configured — otherwise banding would be ignored.
-  if (!preferBanded && minutes <= MAX_FIXED_VISIT_MINUTES) {
+  // Both (fixed + hourly): visits ≤ 1 hour use exact/nearest fixed duration slots.
+  // Day/time hourly bands apply to longer visits (or when no fixed slot exists).
+  if (minutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
+
+  const preferBanded = Boolean(window) && shouldPreferBandedOverFixed(bandRules);
 
   if (window && (preferBanded || hasTimeBandedHourlyRules(bandRules))) {
     const end =
