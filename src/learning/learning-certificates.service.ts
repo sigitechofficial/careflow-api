@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { LearningCertificateStatus, Prisma } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { LearningCertificateStatus, LearningCourseStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -7,6 +7,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import {
+  IssueManualCertificateDto,
   LearningCertificateQueryDto,
   RevokeCertificateDto,
   VerifyCertificateDto,
@@ -48,6 +49,8 @@ export class LearningCertificatesService {
       status: row.status,
       revokedAt: row.revokedAt?.toISOString() ?? null,
       revocationReason: row.revocationReason,
+      issuedById: row.issuedById ?? null,
+      issueNotes: row.issueNotes ?? null,
     };
   }
 
@@ -184,6 +187,111 @@ export class LearningCertificatesService {
 
     if (tx) return create(tx);
     return this.prisma.$transaction(create);
+  }
+
+  /**
+   * Manually issue a certificate for an employee + course without requiring LMS completion.
+   * Uses the course's current/published version and optional expiry override.
+   */
+  async issueManual(
+    userId: string,
+    dto: IssueManualCertificateDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: dto.employeeId },
+      include: { personalDetail: { select: { firstName: true, lastName: true } } },
+    });
+    if (!employee || employee.deletedAt) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    const course = await this.prisma.learningCourse.findUnique({
+      where: { id: dto.courseId },
+    });
+    if (!course || course.deletedAt) {
+      throw new NotFoundException('Course not found');
+    }
+    if (course.status !== LearningCourseStatus.PUBLISHED && course.status !== LearningCourseStatus.ARCHIVED) {
+      throw new BadRequestException('Certificate can only be issued for a published or archived course');
+    }
+
+    let courseVersionId = course.currentVersionId;
+    if (!courseVersionId) {
+      const version = await this.prisma.learningCourseVersion.findFirst({
+        where: {
+          courseId: course.id,
+          status: { in: [LearningCourseStatus.PUBLISHED, LearningCourseStatus.ARCHIVED] },
+        },
+        orderBy: { versionNumber: 'desc' },
+      });
+      courseVersionId = version?.id ?? null;
+    }
+    if (!courseVersionId) {
+      throw new BadRequestException('Course has no published version to attach to the certificate');
+    }
+
+    const existingActive = await this.prisma.learningCertificate.findFirst({
+      where: {
+        employeeId: dto.employeeId,
+        courseId: dto.courseId,
+        status: LearningCertificateStatus.ACTIVE,
+      },
+    });
+    if (existingActive) {
+      throw new BadRequestException(
+        'This employee already has an active certificate for this course. Revoke it first if you need to re-issue.',
+      );
+    }
+
+    const settings = await this.settings.getOrCreate();
+    let expiresAt: Date | null = null;
+    if (dto.expiresAt?.trim()) {
+      expiresAt = new Date(dto.expiresAt);
+      if (Number.isNaN(expiresAt.getTime())) {
+        throw new BadRequestException('Invalid expiresAt date');
+      }
+    } else {
+      const validityDays =
+        course.certificateValidityDays ?? settings.defaultCertificateValidityDays;
+      expiresAt = validityDays ? new Date(Date.now() + validityDays * 86_400_000) : null;
+    }
+
+    const employeeName =
+      [employee.personalDetail?.firstName, employee.personalDetail?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || employee.id;
+
+    const row = await this.prisma.learningCertificate.create({
+      data: {
+        employeeId: dto.employeeId,
+        assignmentId: null,
+        courseId: dto.courseId,
+        courseVersionId,
+        certificateNumber: this.generateCertificateNumber(),
+        verificationCode: randomUUID(),
+        expiresAt,
+        status: LearningCertificateStatus.ACTIVE,
+        issuedById: userId,
+        issueNotes: dto.issueNotes?.trim() || null,
+      },
+      include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+    });
+
+    const mapped = this.map(row, { employeeName });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.LEARNING,
+      action: 'learning_certificate_issued_manual',
+      recordType: 'LearningCertificate',
+      recordId: row.id,
+      newValues: mapped,
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return mapped;
   }
 
   async revoke(id: string, userId: string, dto: RevokeCertificateDto, meta?: RequestAuditMeta) {

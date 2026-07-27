@@ -8553,7 +8553,7 @@ model LearningCompetencyCriterionResult {
 model LearningCertificate {
   id                String                    @id @default(uuid()) @db.Uuid
   employeeId        String                    @db.Uuid
-  assignmentId      String                    @db.Uuid
+  assignmentId      String?                   @db.Uuid
   courseId          String                    @db.Uuid
   courseVersionId   String                    @db.Uuid
   certificateNumber String
@@ -8567,10 +8567,11 @@ model LearningCertificate {
   revokedById       String?                   @db.Uuid
   revocationReason  String?
   supersededById    String?                   @db.Uuid
+  issueNotes        String?
   createdAt         DateTime                  @default(now())
   updatedAt         DateTime                  @updatedAt
 
-  assignment    LearningAssignment    @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  assignment    LearningAssignment?   @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
   course        LearningCourse        @relation(fields: [courseId], references: [id], onDelete: Restrict)
   courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict)
   eventAttendees LearningTrainingEventAttendee[]

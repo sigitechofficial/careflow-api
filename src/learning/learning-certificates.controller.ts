@@ -7,8 +7,7 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { LearningCertificateQueryDto, RevokeCertificateDto, VerifyCertificateDto } from './dto/learning.dto';
+import { LearningCertificateQueryDto, IssueManualCertificateDto, RevokeCertificateDto, VerifyCertificateDto } from './dto/learning.dto';
 import { LearningCertificatesService } from './learning-certificates.service';
 
 @ApiTags('Learning — Certificates')
@@ -25,11 +24,15 @@ export class LearningCertificatesController {
     return this.service.list(query);
   }
 
-  @Get(':id')
-  @Permissions('learning.certificates.read')
-  @ApiOperation({ summary: 'Get certificate' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  @Post('issue')
+  @Permissions('learning.certificates.manage')
+  @ApiOperation({ summary: 'Manually issue a certificate to an employee for a course' })
+  issue(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: IssueManualCertificateDto,
+    @Req() req: Request,
+  ) {
+    return this.service.issueManual(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post('verify')
@@ -37,6 +40,13 @@ export class LearningCertificatesController {
   @ApiOperation({ summary: 'Verify certificate by code' })
   verify(@Body() dto: VerifyCertificateDto) {
     return this.service.verify(dto);
+  }
+
+  @Get(':id')
+  @Permissions('learning.certificates.read')
+  @ApiOperation({ summary: 'Get certificate' })
+  getById(@Param('id') id: string) {
+    return this.service.getById(id);
   }
 
   @Post(':id/revoke')

@@ -797,6 +797,27 @@ export class RevokeCertificateDto {
   revocationReason!: string;
 }
 
+export class IssueManualCertificateDto {
+  @ApiProperty()
+  @IsUUID()
+  employeeId!: string;
+
+  @ApiProperty({ description: 'Course to issue the certificate for' })
+  @IsUUID()
+  courseId!: string;
+
+  @ApiPropertyOptional({ description: 'Override expiry date (ISO). Leave blank to use course/settings validity.' })
+  @IsOptional()
+  @Transform(emptyToUndefined)
+  @IsDateString()
+  expiresAt?: string;
+
+  @ApiPropertyOptional({ description: 'Optional note explaining why this was issued manually' })
+  @IsOptional()
+  @IsString()
+  issueNotes?: string;
+}
+
 export class VerifyCertificateDto {
   @ApiProperty()
   @IsString()
