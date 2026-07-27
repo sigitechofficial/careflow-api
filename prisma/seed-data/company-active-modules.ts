@@ -36,6 +36,11 @@ export const COMPANY_MODULE_CATALOG: readonly CompanyModuleDefinition[] = [
     label: 'Care Form Builder',
     description: 'Custom assessment and care forms for your organisation.',
   },
+  {
+    id: 'learning',
+    label: 'Learning',
+    description: 'Courses, assignments, compliance matrix, competencies, and certificates.',
+  },
 ] as const;
 
 export const COMPANY_ACTIVE_MODULES = COMPANY_MODULE_CATALOG.map((m) => m.label);

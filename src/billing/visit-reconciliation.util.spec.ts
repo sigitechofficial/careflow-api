@@ -21,7 +21,7 @@ function fixedRule(minutes: number, amount: number, priority = 0, sortOrder = 0)
   };
 }
 
-describe('pickBestRule nearest fixed slot', () => {
+describe('pickBestRule exact fixed slot then hourly', () => {
   it('uses exact fixed slot when present', () => {
     const result = calculatePayableAmount(
       [fixedRule(30, 6), fixedRule(45, 10), fixedRule(60, 12)],
@@ -31,22 +31,51 @@ describe('pickBestRule nearest fixed slot', () => {
     expect(result).toEqual({ amount: 12, label: 'FIXED' });
   });
 
-  it('uses nearest fixed slot when no exact match (10 min → 15)', () => {
+  it('uses hourly pro-rata when no exact fixed slot (10 min with 15/30/45 fixed)', () => {
     const result = calculatePayableAmount(
-      [fixedRule(15, 4), fixedRule(30, 6), fixedRule(45, 10)],
+      [
+        fixedRule(15, 4),
+        fixedRule(30, 6),
+        fixedRule(45, 10),
+        {
+          dayType: 'WEEKDAY',
+          rateType: 'HOURLY',
+          amount: 12,
+          multiplier: 1,
+          minimumMinutes: null,
+          priority: 0,
+          sortOrder: 0,
+          label: 'Hourly',
+        },
+      ],
       weekday,
       10,
     );
-    expect(result).toEqual({ amount: 4, label: 'FIXED' });
+    // 10/60 × £12 = £2
+    expect(result).toEqual({ amount: 2, label: 'HOURLY' });
   });
 
-  it('uses nearest fixed slot for 60 min when only 30 and 45 exist', () => {
+  it('uses hourly pro-rata for 45 min when only 15 and 30 fixed slots exist', () => {
     const result = calculatePayableAmount(
-      [fixedRule(30, 6), fixedRule(45, 10)],
+      [
+        fixedRule(15, 4),
+        fixedRule(30, 6),
+        {
+          dayType: 'WEEKDAY',
+          rateType: 'HOURLY',
+          amount: 20,
+          multiplier: 1,
+          minimumMinutes: null,
+          priority: 0,
+          sortOrder: 0,
+          label: 'Hourly',
+        },
+      ],
       weekday,
-      60,
+      45,
     );
-    expect(result).toEqual({ amount: 10, label: 'FIXED' });
+    // 45/60 × £20 = £15
+    expect(result).toEqual({ amount: 15, label: 'HOURLY' });
   });
 
   it('prefers fixed slot whose From/Until covers the visit clock', () => {
@@ -67,16 +96,6 @@ describe('pickBestRule nearest fixed slot', () => {
     expect(result).toEqual({ amount: 18, label: 'FIXED' });
   });
 
-  it('breaks equal distance toward the higher slot', () => {
-    const result = calculatePayableAmount(
-      [fixedRule(30, 6), fixedRule(45, 10)],
-      weekday,
-      37.5,
-    );
-    // 37.5 is equidistant; prefer 45
-    expect(result).toEqual({ amount: 10, label: 'FIXED' });
-  });
-
   it('falls back to hourly when no fixed slots exist', () => {
     const result = calculatePayableAmount(
       [{
@@ -95,13 +114,13 @@ describe('pickBestRule nearest fixed slot', () => {
     expect(result).toEqual({ amount: 2, label: 'HOURLY' });
   });
 
-  it('labels nearby slot in pay breakdown', () => {
+  it('labels exact slot in pay breakdown', () => {
     const breakdown = buildPayRateBreakdown(
       [fixedRule(15, 4), fixedRule(30, 6)],
       weekday,
-      10,
+      15,
     );
-    expect(breakdown?.formula).toContain('nearest 15-minute slot');
+    expect(breakdown?.formula).toContain('for 15-minute visit');
     expect(breakdown?.amount).toBe('£4.00');
   });
 });
@@ -145,6 +164,14 @@ describe('calculatePayableAmount fixed slots vs day/time hourly', () => {
     const result = calculatePayableAmount(rules, start, 30, false, { start, end });
     expect(result?.label).toBe('FIXED');
     expect(result?.amount).toBe(20);
+  });
+
+  it('uses day/time hourly banding for 45 min when only a 30-min fixed slot exists', () => {
+    const start = new Date('2026-07-13T10:00:00.000Z');
+    const end = new Date('2026-07-13T10:45:00.000Z');
+    const result = calculatePayableAmount(rules, start, 45, false, { start, end });
+    expect(result?.label).toBe('BANDED_HOURLY');
+    expect(result?.amount).toBe(22.5); // 0.75h × £30
   });
 
   it('uses day/time hourly banding for visits over 1 hour', () => {

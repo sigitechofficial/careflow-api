@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning"]
 }
 
 enum DayOfWeek {
@@ -7759,4 +7759,1010 @@ model UkPayrollInputLine {
   @@index([employeeId])
   @@index([sourceVisitReconciliationId])
   @@schema("payroll")
+}
+
+
+// --- Learning & Training module (schema: learning) ---
+
+enum LearningCourseStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  SUPERSEDED
+  ARCHIVED
+
+  @@schema("learning")
+}
+
+enum LearningCourseType {
+  COURSE
+  POLICY
+  ASSESSMENT
+  PRACTICAL_COMPETENCY
+  EXTERNAL_TRAINING
+  CLASSROOM
+  WEBINAR
+  BLENDED
+
+  @@schema("learning")
+}
+
+enum LearningDeliveryMethod {
+  ONLINE
+  FACE_TO_FACE
+  VIRTUAL
+  WORKPLACE
+  BLENDED
+
+  @@schema("learning")
+}
+
+enum LearningDifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+
+  @@schema("learning")
+}
+
+enum LearningContentType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  PDF
+  DOCUMENT
+  EXTERNAL_LINK
+  CHECKLIST
+  SCENARIO
+  ACKNOWLEDGEMENT
+  DOWNLOAD
+
+  @@schema("learning")
+}
+
+enum LearningCompletionRule {
+  OPEN
+  VIEW
+  ACKNOWLEDGE
+  DOWNLOAD
+  TIME_SPENT
+
+  @@schema("learning")
+}
+
+enum LearningQuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_TEXT
+  LONG_TEXT
+
+  @@schema("learning")
+}
+
+enum LearningPathwayStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("learning")
+}
+
+enum LearningAssignmentType {
+  INDIVIDUAL
+  BULK
+  ROLE_BASED
+  LOCATION_BASED
+  WORK_AREA_BASED
+  PATHWAY
+  AUTOMATIC
+  REFRESHER
+  INCIDENT_REMEDIAL
+
+  @@schema("learning")
+}
+
+enum LearningAssignmentStatus {
+  ASSIGNED
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_ASSESSMENT
+  AWAITING_APPROVAL
+  COMPLETED
+  PASSED
+  FAILED
+  OVERDUE
+  EXPIRED
+  CANCELLED
+  EXEMPT
+
+  @@schema("learning")
+}
+
+enum LearningAssignmentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@schema("learning")
+}
+
+enum LearningProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_ASSESSMENT
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+
+  @@schema("learning")
+}
+
+enum LearningAssessmentResult {
+  IN_PROGRESS
+  SUBMITTED
+  PASSED
+  FAILED
+  AWAITING_MANUAL_REVIEW
+  INVALIDATED
+
+  @@schema("learning")
+}
+
+enum LearningCompetencyOutcome {
+  COMPETENT
+  COMPETENT_WITH_SUPERVISION
+  FURTHER_TRAINING_REQUIRED
+  NOT_COMPETENT
+  REASSESSMENT_REQUIRED
+
+  @@schema("learning")
+}
+
+enum LearningCompetencyAssessmentStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SUPERSEDED
+
+  @@schema("learning")
+}
+
+enum LearningCertificateStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  SUPERSEDED
+
+  @@schema("learning")
+}
+
+enum LearningExternalVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+
+  @@schema("learning")
+}
+
+enum LearningTrainingEventStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@schema("learning")
+}
+
+enum LearningBookingStatus {
+  INVITED
+  BOOKED
+  WAITLISTED
+  CANCELLED
+
+  @@schema("learning")
+}
+
+enum LearningAttendanceStatus {
+  INVITED
+  BOOKED
+  WAITLISTED
+  ATTENDED
+  PARTIALLY_ATTENDED
+  ABSENT
+  CANCELLED
+
+  @@schema("learning")
+}
+
+enum LearningNotificationEventType {
+  ASSIGNMENT_CREATED
+  DUE_SOON
+  OVERDUE
+  CERTIFICATE_EXPIRING
+  CERTIFICATE_EXPIRED
+  ASSESSMENT_FAILED
+  COMPETENCY_REQUIRED
+  MANAGER_APPROVAL_REQUIRED
+  TRAINING_EVENT_REMINDER
+
+  @@schema("learning")
+}
+
+enum LearningNotificationRecipientType {
+  EMPLOYEE
+  LINE_MANAGER
+  BRANCH_MANAGER
+  COMPLIANCE_MANAGER
+  ASSIGNER
+
+  @@schema("learning")
+}
+
+enum LearningNotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  SMS
+
+  @@schema("learning")
+}
+
+enum LearningComplianceStatus {
+  NOT_ASSIGNED
+  ASSIGNED
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_ASSESSMENT
+  COMPLIANT
+  EXPIRING_SOON
+  EXPIRED
+  OVERDUE
+  EXEMPT
+  EXTERNAL_EVIDENCE
+
+  @@schema("learning")
+}
+
+model LearningCategory {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  code         String
+  description  String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdById  String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  deletedById  String?   @db.Uuid
+
+  courses      LearningCourse[]
+  competencies LearningCompetency[]
+
+  @@unique([code])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningCourse {
+  id                           String                 @id @default(uuid()) @db.Uuid
+  categoryId                   String?                @db.Uuid
+  title                        String
+  code                         String
+  shortDescription             String?
+  description                  String?
+  thumbnailFileId              String?                @db.Uuid
+  courseType                   LearningCourseType     @default(COURSE)
+  deliveryMethod               LearningDeliveryMethod @default(ONLINE)
+  difficultyLevel              LearningDifficultyLevel @default(BEGINNER)
+  estimatedDurationMinutes     Int?
+  cpdMinutes                   Int?
+  isMandatory                  Boolean                @default(false)
+  requiresAssessment           Boolean                @default(false)
+  requiresPracticalAssessment  Boolean                @default(false)
+  requiresManagerApproval      Boolean                @default(false)
+  requiresTrainingEvent        Boolean                @default(false)
+  passingScore                 Int?
+  maximumAttempts              Int?
+  certificateEnabled           Boolean                @default(false)
+  certificateValidityDays      Int?
+  refresherFrequencyDays       Int?
+  effectiveFrom                DateTime?              @db.Date
+  reviewDate                   DateTime?              @db.Date
+  status                       LearningCourseStatus   @default(DRAFT)
+  /// Plain UUID pointer to the active published version (no FK to avoid version/course cycles).
+  currentVersionId             String?                @db.Uuid
+  archivedAt                   DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  deletedAt                    DateTime?
+  createdById                  String?                @db.Uuid
+  updatedById                  String?                @db.Uuid
+  deletedById                  String?                @db.Uuid
+
+  category              LearningCategory?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  versions              LearningCourseVersion[]
+  assignments           LearningAssignment[]
+  pathwayItems          LearningPathwayItem[]
+  certificates          LearningCertificate[]
+  complianceSnapshots   LearningComplianceSnapshot[]
+  assignmentRules       LearningAssignmentRule[]
+  trainingEvents        LearningTrainingEvent[]
+
+  @@unique([code])
+  @@index([categoryId])
+  @@index([status])
+  @@index([courseType])
+  @@index([deliveryMethod])
+  @@index([isMandatory])
+  @@index([reviewDate])
+  @@index([deletedAt])
+  @@index([archivedAt])
+  @@schema("learning")
+}
+
+model LearningCourseVersion {
+  id                       String               @id @default(uuid()) @db.Uuid
+  courseId                 String               @db.Uuid
+  versionNumber            Int
+  versionLabel             String?
+  titleSnapshot            String
+  descriptionSnapshot      String?
+  passingScore             Int?
+  maximumAttempts          Int?
+  estimatedDurationMinutes Int?
+  cpdMinutes               Int?
+  certificateValidityDays  Int?
+  refresherFrequencyDays   Int?
+  publishedAt              DateTime?
+  publishedById            String?              @db.Uuid
+  changeSummary            String?
+  status                   LearningCourseStatus @default(DRAFT)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+
+  course         LearningCourse          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sections       LearningCourseSection[]
+  assessments    LearningAssessment[]
+  assignments    LearningAssignment[]
+  pathwayItems   LearningPathwayItem[]
+  progressRecords LearningEmployeeProgress[]
+  certificates   LearningCertificate[]
+  trainingEvents LearningTrainingEvent[]
+
+  @@unique([courseId, versionNumber])
+  @@index([courseId])
+  @@index([status])
+  @@index([publishedAt])
+  @@schema("learning")
+}
+
+model LearningCourseSection {
+  id                       String   @id @default(uuid()) @db.Uuid
+  courseVersionId          String   @db.Uuid
+  title                    String
+  description              String?
+  displayOrder             Int      @default(0)
+  isRequired               Boolean  @default(true)
+  estimatedDurationMinutes Int?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  contentItems  LearningContentItem[]
+
+  @@index([courseVersionId])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningContentItem {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  courseSectionId          String                 @db.Uuid
+  contentType              LearningContentType
+  title                    String
+  description              String?
+  contentBody              String?
+  fileId                   String?                @db.Uuid
+  videoUrl                 String?
+  externalUrl              String?
+  displayOrder             Int                    @default(0)
+  estimatedDurationMinutes Int?
+  isRequired               Boolean                @default(true)
+  completionRule           LearningCompletionRule @default(VIEW)
+  minimumTimeSpentSeconds  Int?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  courseSection LearningCourseSection         @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
+  completions   LearningContentItemCompletion[]
+
+  @@index([courseSectionId])
+  @@index([contentType])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningAssessment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  courseVersionId    String   @db.Uuid
+  title              String
+  instructions       String?
+  passingScore       Int
+  maximumAttempts    Int?
+  timeLimitMinutes   Int?
+  randomiseQuestions Boolean  @default(false)
+  randomiseAnswers   Boolean  @default(false)
+  showCorrectAnswers Boolean  @default(false)
+  allowReview        Boolean  @default(true)
+  retakeDelayMinutes Int?
+  isRequired         Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  courseVersion LearningCourseVersion      @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  questions     LearningAssessmentQuestion[]
+  attempts      LearningAssessmentAttempt[]
+
+  @@index([courseVersionId])
+  @@schema("learning")
+}
+
+model LearningAssessmentQuestion {
+  id           String               @id @default(uuid()) @db.Uuid
+  assessmentId String               @db.Uuid
+  questionType LearningQuestionType
+  questionText String
+  explanation  String?
+  points       Int                  @default(1)
+  displayOrder Int                  @default(0)
+  isRequired   Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  assessment LearningAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  options    LearningAssessmentOption[]
+  answers    LearningAssessmentAnswer[]
+
+  @@index([assessmentId])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningAssessmentOption {
+  id           String   @id @default(uuid()) @db.Uuid
+  questionId   String   @db.Uuid
+  optionText   String
+  isCorrect    Boolean  @default(false)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  question LearningAssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningPathway {
+  id                     String                @id @default(uuid()) @db.Uuid
+  name                   String
+  code                   String
+  description            String?
+  targetRoleId           String?               @db.Uuid
+  targetWorkAreaId       String?               @db.Uuid
+  targetLocationId       String?               @db.Uuid
+  isMandatory            Boolean               @default(false)
+  completionValidityDays Int?
+  status                 LearningPathwayStatus @default(DRAFT)
+  archivedAt             DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  deletedAt              DateTime?
+  createdById            String?               @db.Uuid
+  updatedById            String?               @db.Uuid
+  deletedById            String?               @db.Uuid
+
+  items         LearningPathwayItem[]
+  assignments   LearningAssignment[]
+  assignmentRules LearningAssignmentRule[]
+
+  @@unique([code])
+  @@index([status])
+  @@index([targetRoleId])
+  @@index([targetWorkAreaId])
+  @@index([targetLocationId])
+  @@index([deletedAt])
+  @@index([archivedAt])
+  @@schema("learning")
+}
+
+model LearningPathwayItem {
+  id                    String   @id @default(uuid()) @db.Uuid
+  pathwayId             String   @db.Uuid
+  courseId              String   @db.Uuid
+  courseVersionId       String?  @db.Uuid
+  displayOrder          Int      @default(0)
+  isRequired            Boolean  @default(true)
+  dueDaysFromAssignment Int?
+  prerequisiteItemId    String?  @db.Uuid
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  pathway          LearningPathway       @relation(fields: [pathwayId], references: [id], onDelete: Cascade)
+  course           LearningCourse        @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  courseVersion    LearningCourseVersion? @relation(fields: [courseVersionId], references: [id], onDelete: SetNull)
+  prerequisiteItem LearningPathwayItem?  @relation("PathwayPrereq", fields: [prerequisiteItemId], references: [id], onDelete: SetNull)
+  dependentItems   LearningPathwayItem[] @relation("PathwayPrereq")
+
+  @@index([pathwayId])
+  @@index([courseId])
+  @@index([courseVersionId])
+  @@index([prerequisiteItemId])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningAssignment {
+  id                   String                     @id @default(uuid()) @db.Uuid
+  assignmentType       LearningAssignmentType
+  courseId             String                     @db.Uuid
+  courseVersionId      String?                    @db.Uuid
+  pathwayId            String?                    @db.Uuid
+  employeeId           String?                    @db.Uuid
+  locationId           String?                    @db.Uuid
+  workAreaId           String?                    @db.Uuid
+  roleId               String?                    @db.Uuid
+  parentAssignmentId   String?                    @db.Uuid
+  refresherOfAssignmentId String?                 @db.Uuid
+  sourceEntityType     String?
+  sourceEntityId       String?                    @db.Uuid
+  assignedById         String?                    @db.Uuid
+  assignedAt           DateTime                   @default(now())
+  availableFrom        DateTime?
+  dueAt                DateTime?
+  priority             LearningAssignmentPriority @default(NORMAL)
+  isMandatory          Boolean                    @default(true)
+  assignmentReason     String?
+  status               LearningAssignmentStatus   @default(ASSIGNED)
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  cancelledById        String?                    @db.Uuid
+  cancellationReason   String?
+  exemptAt             DateTime?
+  exemptById           String?                    @db.Uuid
+  exemptionReason      String?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  course              LearningCourse               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  courseVersion       LearningCourseVersion?       @relation(fields: [courseVersionId], references: [id], onDelete: SetNull)
+  pathway             LearningPathway?             @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+  parentAssignment    LearningAssignment?          @relation("AssignmentCampaign", fields: [parentAssignmentId], references: [id], onDelete: SetNull)
+  childAssignments    LearningAssignment[]         @relation("AssignmentCampaign")
+  progress            LearningEmployeeProgress?
+  contentCompletions  LearningContentItemCompletion[]
+  assessmentAttempts  LearningAssessmentAttempt[]
+  certificates        LearningCertificate[]
+  competencyAssessments LearningCompetencyAssessment[]
+
+  @@index([courseId])
+  @@index([courseVersionId])
+  @@index([pathwayId])
+  @@index([employeeId])
+  @@index([locationId])
+  @@index([workAreaId])
+  @@index([roleId])
+  @@index([assignmentType])
+  @@index([status])
+  @@index([dueAt])
+  @@index([assignedAt])
+  @@index([parentAssignmentId])
+  @@index([sourceEntityType, sourceEntityId])
+  @@schema("learning")
+}
+
+model LearningEmployeeProgress {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  assignmentId               String                 @unique @db.Uuid
+  employeeId                 String                 @db.Uuid
+  courseVersionId            String                 @db.Uuid
+  progressPercentage         Decimal                @default(0) @db.Decimal(5, 2)
+  startedAt                  DateTime?
+  lastAccessedAt             DateTime?
+  completedContentItems      Int                    @default(0)
+  totalRequiredContentItems  Int                    @default(0)
+  assessmentStatus           LearningProgressStatus @default(NOT_STARTED)
+  practicalAssessmentStatus  LearningProgressStatus @default(NOT_STARTED)
+  managerApprovalStatus      LearningProgressStatus @default(NOT_STARTED)
+  courseCompletionStatus     LearningProgressStatus @default(NOT_STARTED)
+  completedAt                DateTime?
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+
+  assignment    LearningAssignment    @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([courseVersionId])
+  @@index([courseCompletionStatus])
+  @@schema("learning")
+}
+
+model LearningContentItemCompletion {
+  id                  String    @id @default(uuid()) @db.Uuid
+  assignmentId        String    @db.Uuid
+  employeeId          String    @db.Uuid
+  contentItemId       String    @db.Uuid
+  startedAt           DateTime?
+  completedAt         DateTime?
+  timeSpentSeconds    Int       @default(0)
+  acknowledgementText String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  assignment  LearningAssignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  contentItem LearningContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, contentItemId])
+  @@index([employeeId])
+  @@index([contentItemId])
+  @@index([completedAt])
+  @@schema("learning")
+}
+
+model LearningAssessmentAttempt {
+  id               String                   @id @default(uuid()) @db.Uuid
+  assessmentId     String                   @db.Uuid
+  assignmentId     String                   @db.Uuid
+  employeeId       String                   @db.Uuid
+  attemptNumber    Int
+  startedAt        DateTime                 @default(now())
+  submittedAt      DateTime?
+  score            Int?
+  percentage       Decimal?                 @db.Decimal(5, 2)
+  result           LearningAssessmentResult @default(IN_PROGRESS)
+  timeSpentSeconds Int                      @default(0)
+  reviewedById     String?                  @db.Uuid
+  reviewedAt       DateTime?
+  reviewNotes      String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  assessment LearningAssessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assignment LearningAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  answers    LearningAssessmentAnswer[]
+
+  @@unique([assessmentId, assignmentId, attemptNumber])
+  @@index([employeeId])
+  @@index([result])
+  @@index([submittedAt])
+  @@schema("learning")
+}
+
+model LearningAssessmentAnswer {
+  id                   String   @id @default(uuid()) @db.Uuid
+  assessmentAttemptId  String   @db.Uuid
+  questionId           String   @db.Uuid
+  selectedOptionIds    String[] @db.Uuid
+  textAnswer           String?
+  isCorrect            Boolean?
+  pointsAwarded        Int?
+  reviewedById         String?  @db.Uuid
+  reviewedAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  attempt  LearningAssessmentAttempt  @relation(fields: [assessmentAttemptId], references: [id], onDelete: Cascade)
+  question LearningAssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentAttemptId, questionId])
+  @@index([questionId])
+  @@schema("learning")
+}
+
+model LearningCompetency {
+  id                 String    @id @default(uuid()) @db.Uuid
+  categoryId         String?   @db.Uuid
+  name               String
+  code               String
+  description        String?
+  validityDays       Int?
+  assessmentCriteria Json?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  createdById        String?   @db.Uuid
+  updatedById        String?   @db.Uuid
+  deletedById        String?   @db.Uuid
+
+  category    LearningCategory?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  assessments LearningCompetencyAssessment[]
+
+  @@unique([code])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@schema("learning")
+}
+
+model LearningCompetencyAssessment {
+  id                  String                           @id @default(uuid()) @db.Uuid
+  employeeId          String                           @db.Uuid
+  competencyId        String                           @db.Uuid
+  assignmentId        String?                          @db.Uuid
+  assessorEmployeeId  String?                          @db.Uuid
+  assessorUserId      String?                          @db.Uuid
+  assessmentDate      DateTime                         @db.Date
+  location            String?
+  assessmentMethod    String?
+  outcome             LearningCompetencyOutcome?
+  validFrom           DateTime?                        @db.Date
+  validUntil          DateTime?                        @db.Date
+  employeeComments    String?
+  assessorComments    String?
+  improvementActions  String?
+  reassessmentDate    DateTime?                        @db.Date
+  evidenceFileId      String?                          @db.Uuid
+  status              LearningCompetencyAssessmentStatus @default(DRAFT)
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+
+  competency      LearningCompetency                 @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+  assignment      LearningAssignment?                @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  criterionResults LearningCompetencyCriterionResult[]
+
+  @@index([employeeId])
+  @@index([competencyId])
+  @@index([assignmentId])
+  @@index([assessorEmployeeId])
+  @@index([status])
+  @@index([validUntil])
+  @@index([assessmentDate])
+  @@schema("learning")
+}
+
+model LearningCompetencyCriterionResult {
+  id                     String   @id @default(uuid()) @db.Uuid
+  competencyAssessmentId String   @db.Uuid
+  criterion              String
+  result                 String
+  comments               String?
+  displayOrder           Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  competencyAssessment LearningCompetencyAssessment @relation(fields: [competencyAssessmentId], references: [id], onDelete: Cascade)
+
+  @@index([competencyAssessmentId])
+  @@index([displayOrder])
+  @@schema("learning")
+}
+
+model LearningCertificate {
+  id                String                    @id @default(uuid()) @db.Uuid
+  employeeId        String                    @db.Uuid
+  assignmentId      String                    @db.Uuid
+  courseId          String                    @db.Uuid
+  courseVersionId   String                    @db.Uuid
+  certificateNumber String
+  issuedAt          DateTime                  @default(now())
+  expiresAt         DateTime?
+  fileId            String?                   @db.Uuid
+  verificationCode  String
+  status            LearningCertificateStatus @default(ACTIVE)
+  issuedById        String?                   @db.Uuid
+  revokedAt         DateTime?
+  revokedById       String?                   @db.Uuid
+  revocationReason  String?
+  supersededById    String?                   @db.Uuid
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  assignment    LearningAssignment    @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  course        LearningCourse        @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict)
+  eventAttendees LearningTrainingEventAttendee[]
+
+  @@unique([certificateNumber])
+  @@unique([verificationCode])
+  @@index([employeeId])
+  @@index([courseId])
+  @@index([courseVersionId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([issuedAt])
+  @@schema("learning")
+}
+
+model LearningExternalTraining {
+  id                  String                           @id @default(uuid()) @db.Uuid
+  employeeId          String                           @db.Uuid
+  courseName          String
+  trainingProvider    String?
+  qualificationName   String?
+  certificateNumber   String?
+  completedAt         DateTime                         @db.Date
+  expiresAt           DateTime?                        @db.Date
+  cpdMinutes          Int?
+  certificateFileId   String?                          @db.Uuid
+  verificationStatus  LearningExternalVerificationStatus @default(PENDING)
+  verifiedById        String?                          @db.Uuid
+  verifiedAt          DateTime?
+  verificationNotes   String?
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+  deletedAt           DateTime?
+  createdById         String?                          @db.Uuid
+  updatedById         String?                          @db.Uuid
+  deletedById         String?                          @db.Uuid
+
+  @@index([employeeId])
+  @@index([verificationStatus])
+  @@index([expiresAt])
+  @@index([completedAt])
+  @@index([deletedAt])
+  @@schema("learning")
+}
+
+model LearningTrainingEvent {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  courseId              String?                     @db.Uuid
+  courseVersionId       String?                     @db.Uuid
+  title                 String
+  trainerName           String?
+  trainerEmployeeId     String?                     @db.Uuid
+  deliveryMethod        LearningDeliveryMethod      @default(FACE_TO_FACE)
+  location              String?
+  virtualMeetingUrl     String?
+  startAt               DateTime
+  endAt                 DateTime
+  registrationDeadline  DateTime?
+  capacity              Int?
+  status                LearningTrainingEventStatus @default(DRAFT)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  createdById           String?                     @db.Uuid
+  updatedById           String?                     @db.Uuid
+
+  course        LearningCourse?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  courseVersion LearningCourseVersion?  @relation(fields: [courseVersionId], references: [id], onDelete: SetNull)
+  attendees     LearningTrainingEventAttendee[]
+
+  @@index([courseId])
+  @@index([courseVersionId])
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
+  @@schema("learning")
+}
+
+model LearningTrainingEventAttendee {
+  id               String                   @id @default(uuid()) @db.Uuid
+  trainingEventId  String                   @db.Uuid
+  employeeId       String                   @db.Uuid
+  bookingStatus    LearningBookingStatus    @default(INVITED)
+  attendanceStatus LearningAttendanceStatus @default(INVITED)
+  assessmentResult LearningAssessmentResult?
+  completedAt      DateTime?
+  certificateId    String?                  @db.Uuid
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  trainingEvent LearningTrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
+  certificate   LearningCertificate?  @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+
+  @@unique([trainingEventId, employeeId])
+  @@index([employeeId])
+  @@index([bookingStatus])
+  @@index([attendanceStatus])
+  @@schema("learning")
+}
+
+model LearningAssignmentRule {
+  id                           String                  @id @default(uuid()) @db.Uuid
+  name                         String
+  ruleType                     LearningAssignmentType
+  courseId                     String?                 @db.Uuid
+  pathwayId                    String?                 @db.Uuid
+  roleId                       String?                 @db.Uuid
+  locationId                   String?                 @db.Uuid
+  workAreaId                   String?                 @db.Uuid
+  employmentType               String?
+  employeeStartDateTrigger       Boolean               @default(false)
+  serviceCapabilityRequirement String?
+  dueDays                      Int?
+  isActive                     Boolean               @default(true)
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime              @updatedAt
+  createdById                  String?               @db.Uuid
+
+  course  LearningCourse?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  pathway LearningPathway? @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+
+  @@index([ruleType])
+  @@index([courseId])
+  @@index([pathwayId])
+  @@index([roleId])
+  @@index([locationId])
+  @@index([workAreaId])
+  @@index([isActive])
+  @@schema("learning")
+}
+
+model LearningNotificationRule {
+  id            String                          @id @default(uuid()) @db.Uuid
+  eventType     LearningNotificationEventType
+  daysBeforeDue Int?
+  daysAfterDue  Int?
+  recipientType LearningNotificationRecipientType
+  channel       LearningNotificationChannel     @default(IN_APP)
+  isActive      Boolean                         @default(true)
+  createdAt     DateTime                        @default(now())
+  updatedAt     DateTime                        @updatedAt
+
+  @@index([eventType])
+  @@index([recipientType])
+  @@index([isActive])
+  @@schema("learning")
+}
+
+model LearningSettings {
+  id                                      String                          @id @default(uuid()) @db.Uuid
+  defaultExpiryWarningDays                Int                             @default(30)
+  defaultAssignmentDueDays                Int                             @default(14)
+  allowEmployeeExternalTrainingSubmission Boolean                         @default(true)
+  requireManagerApprovalForExternalTraining Boolean                       @default(false)
+  automaticRefresherAssignment            Boolean                         @default(true)
+  automaticOverdueEscalation              Boolean                         @default(true)
+  defaultCertificateValidityDays          Int                             @default(365)
+  allowCourseAccessAfterExpiry            Boolean                         @default(false)
+  allowCourseRetakeAfterPass              Boolean                         @default(false)
+  complianceCalculationMode               String                          @default("HYBRID")
+  createdAt                               DateTime                        @default(now())
+  updatedAt                               DateTime                        @updatedAt
+  updatedById                             String?                         @db.Uuid
+
+  @@schema("learning")
+}
+
+model LearningComplianceSnapshot {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  employeeId             String                   @db.Uuid
+  courseId               String                   @db.Uuid
+  complianceStatus       LearningComplianceStatus @default(NOT_ASSIGNED)
+  assignmentId           String?                  @db.Uuid
+  courseVersionId        String?                  @db.Uuid
+  certificateId          String?                  @db.Uuid
+  externalTrainingId     String?                  @db.Uuid
+  competencyAssessmentId String?                  @db.Uuid
+  dueAt                  DateTime?
+  expiresAt              DateTime?
+  lastCalculatedAt       DateTime                 @default(now())
+  statusReason           String?
+  isExempt               Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  course LearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, courseId])
+  @@index([employeeId])
+  @@index([courseId])
+  @@index([complianceStatus])
+  @@index([expiresAt])
+  @@index([dueAt])
+  @@index([lastCalculatedAt])
+  @@schema("learning")
 }

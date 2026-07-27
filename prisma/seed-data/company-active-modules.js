@@ -32,6 +32,11 @@ exports.COMPANY_MODULE_CATALOG = [
         label: 'Care Form Builder',
         description: 'Custom assessment and care forms for your organisation.',
     },
+    {
+        id: 'learning',
+        label: 'Learning',
+        description: 'Courses, assignments, compliance matrix, competencies, and certificates.',
+    },
 ];
 exports.COMPANY_ACTIVE_MODULES = exports.COMPANY_MODULE_CATALOG.map((m) => m.label);
 //# sourceMappingURL=company-active-modules.js.map

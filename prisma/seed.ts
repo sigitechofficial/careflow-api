@@ -23,6 +23,7 @@ import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { seedBillingCards } from './seeds/billing-cards.seed';
 import { seedInvoiceTemplates } from './seeds/invoice-templates.seed';
+import { seedLearningCatalog } from './seeds/learning.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
 import { DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS } from './seed-data/medication-administration-rounds.defaults';
 import {
@@ -297,6 +298,28 @@ async function main() {
     'payroll.periods.manage',
     'payroll.runs.read',
     'payroll.runs.manage',
+    'learning.dashboard.read',
+    'learning.categories.read',
+    'learning.categories.manage',
+    'learning.courses.read',
+    'learning.courses.manage',
+    'learning.assignments.read',
+    'learning.assignments.manage',
+    'learning.compliance.read',
+    'learning.compliance.export',
+    'learning.competencies.read',
+    'learning.competencies.manage',
+    'learning.training_events.read',
+    'learning.training_events.manage',
+    'learning.certificates.read',
+    'learning.certificates.manage',
+    'learning.external_training.read',
+    'learning.external_training.manage',
+    'learning.reports.read',
+    'learning.reports.export',
+    'learning.settings.manage',
+    'learning.me.read',
+    'learning.me.progress',
     'service_users.live_in_profile.read',
     'service_users.live_in_profile.create',
     'service_users.live_in_profile.update',
@@ -684,6 +707,33 @@ async function main() {
       });
     }
   }
+
+  // Learning module — Admin only (Super Admin already receives all permissions)
+  const learningAdminKeys = [
+    'learning.dashboard.read',
+    'learning.categories.read',
+    'learning.categories.manage',
+    'learning.courses.read',
+    'learning.courses.manage',
+    'learning.assignments.read',
+    'learning.assignments.manage',
+    'learning.compliance.read',
+    'learning.compliance.export',
+    'learning.competencies.read',
+    'learning.competencies.manage',
+    'learning.training_events.read',
+    'learning.training_events.manage',
+    'learning.certificates.read',
+    'learning.certificates.manage',
+    'learning.external_training.read',
+    'learning.external_training.manage',
+    'learning.reports.read',
+    'learning.reports.export',
+    'learning.settings.manage',
+    'learning.me.read',
+    'learning.me.progress',
+  ];
+  await assignPermKeys('Admin', learningAdminKeys);
 
   // Native UK Payroll foundation — Admin / Manager (distinct from billing.payroll_runs.*)
   const payrollPermKeys = [
@@ -1330,6 +1380,7 @@ async function main() {
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
   await seedBillingCards(prisma);
   await seedInvoiceTemplates(prisma);
+  await seedLearningCatalog(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
 
   for (const row of DEFAULT_SERVICE_USER_ETHNICITIES) {

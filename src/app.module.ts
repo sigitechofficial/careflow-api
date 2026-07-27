@@ -109,6 +109,7 @@ import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
 import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
+import { LearningModule } from './learning/learning.module';
 
 @Module({
   imports: [
@@ -236,6 +237,7 @@ import { PayrollModule } from './payroll/payroll.module';
     EmployeeAppModule,
     EcmModule,
     PayrollModule,
+    LearningModule,
   ],
   providers: [
     {

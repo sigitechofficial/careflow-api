@@ -469,31 +469,7 @@ function ruleMatchesVisitClock(rule: RuleWithOptionalTime, visitDate: Date): boo
   return minuteInTimeBand(minuteOfDay, start, end);
 }
 
-/** Prefer exact slot; otherwise nearest duration (ties break to the higher slot). */
-function pickNearestFixedSlot<T extends RuleWithOptionalTime>(
-  fixedRules: T[],
-  visitMinutes: number,
-): T | null {
-  if (!fixedRules.length) return null;
-
-  let bestDiff = Number.POSITIVE_INFINITY;
-  const nearest: T[] = [];
-  for (const rule of fixedRules) {
-    const slot = rule.minimumMinutes!;
-    const diff = Math.abs(slot - visitMinutes);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      nearest.length = 0;
-      nearest.push(rule);
-    } else if (diff === bestDiff) {
-      nearest.push(rule);
-    }
-  }
-
-  const highestSlot = Math.max(...nearest.map((rule) => rule.minimumMinutes!));
-  return sortRuleCandidates(nearest.filter((rule) => rule.minimumMinutes === highestSlot));
-}
-
+/** Exact fixed duration slot only — no nearest-slot fallback (use hourly pro-rata instead). */
 function pickBestRule<T extends RuleWithOptionalTime>(
   rules: T[],
   visitDate: Date,
@@ -512,9 +488,7 @@ function pickBestRule<T extends RuleWithOptionalTime>(
     const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
     if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
-    const nearestFixed = pickNearestFixedSlot(fixedSlots, visitMinutes);
-    if (nearestFixed) return nearestFixed;
-
+    // No exact fixed slot — fall back to hourly (banded pro-rata when a time window is provided).
     return sortRuleCandidates(dayMatches.filter((rule) => isHourlyLongVisitRule(rule)));
   }
 
@@ -558,8 +532,8 @@ export function calculatePayableAmount(
 
   const bandRules = toTimeBandRules(rules);
 
-  // Both (fixed + hourly): visits ≤ 1 hour use exact/nearest fixed duration slots.
-  // Day/time hourly bands apply to longer visits (or when no fixed slot exists).
+  // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
+  // Otherwise use hourly pro-rata (time-banded when a window is provided).
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
@@ -811,9 +785,7 @@ export function buildPayRateBreakdown(
     const slotMinutes = rule.minimumMinutes;
     const durationSuffix =
       slotMinutes != null && slotMinutes > 0
-        ? slotMinutes === minutes
-          ? ` for ${slotMinutes}-minute visit`
-          : ` nearest ${slotMinutes}-minute slot (visit ${minutes} min)`
+        ? ` for ${slotMinutes}-minute visit`
         : ' per visit';
     return {
       minutes,
@@ -870,9 +842,7 @@ export function buildChargeRateBreakdown(
     const slotMinutes = rule.minimumMinutes;
     const durationSuffix =
       slotMinutes != null && slotMinutes > 0
-        ? slotMinutes === minutes
-          ? ` for ${slotMinutes}-minute visit`
-          : ` nearest ${slotMinutes}-minute slot (visit ${minutes} min)`
+        ? ` for ${slotMinutes}-minute visit`
         : ' per visit';
     return {
       minutes,

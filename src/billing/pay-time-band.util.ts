@@ -559,7 +559,8 @@ export function hasTimeBandedHourlyRules(rules: TimeBandRule[]): boolean {
 /**
  * Prefer banded/premium engine when a base hourly exists and day/time premiums are configured.
  * Used for visits over 1 hour (or when no fixed duration slot matches). Short visits still
- * take exact/nearest fixed slots first in calculatePayableAmount.
+ * Fixed duration slots (≤ 60 minutes) take exact matches only in calculatePayableAmount;
+ * otherwise hourly / banded pro-rata is used.
  */
 export function shouldPreferBandedOverFixed(rules: TimeBandRule[]): boolean {
   return hasTimeBandedHourlyRules(rules) && pickBaseHourlyRate(rules) > 0;
