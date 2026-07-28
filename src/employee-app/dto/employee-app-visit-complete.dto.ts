@@ -14,7 +14,17 @@ import { ScheduledVisitStatus } from '../../scheduled-visits/enums/scheduled-vis
 import { DeliveredCarePlanDetailDto } from '../../scheduled-jobs-housekeeping/dto/delivered-care-plan-detail.dto';
 
 export class EmployeeAppVisitCompleteDto {
-  @ApiPropertyOptional({ enum: ScheduledVisitStatus })
+  @ApiPropertyOptional({
+    enum: [
+      ScheduledVisitStatus.COMPLETED,
+      ScheduledVisitStatus.PARTIALLY_COMPLETED,
+      ScheduledVisitStatus.MISSED,
+      ScheduledVisitStatus.NEEDS_ATTENTION,
+    ],
+    description:
+      'Visit outcome (defaults to COMPLETED). Cancel/call-off are not allowed on the carer app.',
+    example: ScheduledVisitStatus.COMPLETED,
+  })
   @IsOptional()
   @IsEnum(ScheduledVisitStatus)
   status?: ScheduledVisitStatus;

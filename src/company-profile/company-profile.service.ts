@@ -195,7 +195,8 @@ export class CompanyProfileService {
 
   private filePathFromUrl(url: string | null | undefined): string | null {
     if (!url?.startsWith('/uploads/')) return null;
-    return join(process.cwd(), url.replace(/^\//, ''));
+    const rel = url.replace(/^\/uploads\//, '');
+    return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', rel);
   }
 
   private async removeFile(url: string | null | undefined) {

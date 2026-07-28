@@ -38,7 +38,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot.',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Shell includes service-user lat/lng for navigation (`shell.client.latitude` / `longitude`).',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);
@@ -104,8 +104,22 @@ export class EmployeeAppVisitsController {
     return this.visitsService.getBodyMap(user.employeeId!, jobId);
   }
 
+  @Get(':jobId/completion-options')
+  @ApiOperation({
+    summary: 'Visit completion options (outcomes + checklist + timing reasons)',
+    description:
+      'Bootstrap for the carer Record visit screen — allowed outcomes, timing exception reasons, planned/actual times, and whether this visit has tasks / medications / observations / body-map items (with completion progress).',
+  })
+  completionOptions(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    return this.visitsService.getCompletionOptions(user.employeeId!, jobId);
+  }
+
   @Post(':jobId/complete')
-  @ApiOperation({ summary: 'Complete / check out of visit' })
+  @ApiOperation({
+    summary: 'Complete / partially complete / miss visit',
+    description:
+      'Same core flow as admin schedule-jobs Record visit. Set `status` to COMPLETED (default), PARTIALLY_COMPLETED, MISSED, or NEEDS_ATTENTION. COMPLETED and PARTIALLY_COMPLETED require actualStartDateTime + actualEndDateTime; early/late/short/overrun need timingExceptionReasonCode. Cancel/call-off remain office-only.',
+  })
   complete(
     @CurrentUser() user: RequestUser,
     @Param('jobId') jobId: string,

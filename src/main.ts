@@ -14,7 +14,24 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useWebSocketAdapter(new IoAdapter(app));
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
-  app.useStaticAssets(uploadPath, { prefix: '/uploads/' });
+  // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
+  // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads
+  // before the Node app, which breaks <img> after deploy while local Vite /api proxy works.
+  const uploadStaticHeaders = (
+    res: { setHeader: (name: string, value: string) => void },
+  ) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  };
+  app.useStaticAssets(uploadPath, {
+    prefix: '/uploads/',
+    setHeaders: uploadStaticHeaders,
+  });
+  app.useStaticAssets(uploadPath, {
+    prefix: '/files/uploads/',
+    setHeaders: uploadStaticHeaders,
+  });
 
   app.enableCors({
     origin: true,

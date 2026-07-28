@@ -702,7 +702,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "details"]
             },
-            "description": "Single bootstrap snapshot containing the visit shell, overview, tasks, MAR, observations, visit log, and body-map handover."
+            "description": "Single bootstrap snapshot containing the visit shell, overview, tasks, MAR, observations, visit log, and body-map handover.\n\n`shell.client.latitude` / `shell.client.longitude` are the service-user address coordinates for maps/navigation. `shell.location.latitude` / `longitude` are the visit destination (job pin if set, otherwise service-user address)."
           },
           "response": []
         },
@@ -779,6 +779,20 @@
           "response": []
         },
         {
+          "name": "Completion options",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/completion-options",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "completion-options"]
+            },
+            "description": "Allowed carer outcomes, timing exception reasons, planned/actual times, plus checklist (tasks / medications / observations / body map) with hasAny flags and progress counts."
+          },
+          "response": []
+        },
+        {
           "name": "Complete visit",
           "request": {
             "method": "POST",
@@ -788,13 +802,77 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:41:53.210Z\",\n  \"notes\": \"Visit completed\",\n  \"timingExceptionReasonCode\": \"CLIENT_REQUEST_OR_NEED\",\n  \"timingExceptionNotes\": \"Client needed a few extra minutes.\"\n}"
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:41:53.210Z\",\n  \"notes\": \"Visit completed\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"timingExceptionReasonCode\": \"CLIENT_REQUEST_OR_NEED\",\n  \"timingExceptionNotes\": \"Client needed a few extra minutes.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "complete"]
-            }
+            },
+            "description": "Fully complete the visit (same rules as admin schedule-jobs). Requires actual start/end. Early/late/short/overrun need timingExceptionReasonCode."
+          },
+          "response": []
+        },
+        {
+          "name": "Partially complete visit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PARTIALLY_COMPLETED\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:10:00.000Z\",\n  \"notes\": \"Client declined personal care; medication and wellbeing completed.\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "complete"]
+            },
+            "description": "Partial completion — requires actual times + notes."
+          },
+          "response": []
+        },
+        {
+          "name": "Miss visit (did not attend)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"MISSED\",\n  \"notes\": \"No answer at door after waiting; office informed.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "complete"]
+            },
+            "description": "Mark visit as missed / did not attend. Notes required. Actual times not required."
+          },
+          "response": []
+        },
+        {
+          "name": "Needs attention",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"NEEDS_ATTENTION\",\n  \"notes\": \"Client unwell — escalate to office for clinical review.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "complete"]
+            },
+            "description": "Flag visit for office follow-up. Notes required."
           },
           "response": []
         }

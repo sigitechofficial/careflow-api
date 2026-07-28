@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  StreamableFile,
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 
@@ -17,7 +18,12 @@ type StandardResponse = {
 export class ResponseInterceptor implements NestInterceptor {
   intercept(_context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      map((result: any): StandardResponse => {
+      map((result: any): StandardResponse | StreamableFile => {
+        // Binary downloads / media streams must not be JSON-wrapped.
+        if (result instanceof StreamableFile) {
+          return result;
+        }
+
         if (result && typeof result === 'object' && 'success' in result) {
           return result as StandardResponse;
         }
@@ -45,4 +51,3 @@ export class ResponseInterceptor implements NestInterceptor {
     );
   }
 }
-

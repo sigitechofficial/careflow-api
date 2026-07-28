@@ -32,6 +32,11 @@ import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.u
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
+import {
+  EMPLOYEE_APP_COMPLETION_OUTCOMES,
+  employeeAppTimingExceptionReasons,
+  isEmployeeAppCompletionStatus,
+} from './employee-app-visit-completion.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -519,9 +524,21 @@ export class EmployeeAppVisitsService {
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
 
+    const status = (dto.status ?? ScheduledVisitStatus.COMPLETED) as ScheduledVisitStatus;
+    if (!isEmployeeAppCompletionStatus(status)) {
+      throw new BadRequestException(
+        `Carer app cannot set status ${status}. Allowed: COMPLETED, PARTIALLY_COMPLETED, MISSED, NEEDS_ATTENTION. Use office schedule-jobs for cancel/call-off.`,
+      );
+    }
+
+    const outcome = EMPLOYEE_APP_COMPLETION_OUTCOMES.find((o) => o.status === status)!;
     const notes = dto.handoverNote?.trim() || dto.notes?.trim() || undefined;
+    if (outcome.requiresNotes && !notes) {
+      throw new BadRequestException(`Notes are required when status is ${status}`);
+    }
+
     const result = await this.housekeeping.completeJob('', jobId, {
-      status: dto.status,
+      status,
       notes,
       deliveredCarePlanFormIds: dto.deliveredCarePlanFormIds,
       deliveredCarePlanDetails: dto.deliveredCarePlanDetails,
@@ -555,6 +572,7 @@ export class EmployeeAppVisitsService {
           accuracyMeters: dto.accuracyMeters ?? null,
           completedAt: now.toISOString(),
           employeeId,
+          status,
           outsideGeofence: !geofence.withinArea,
           distanceMeters: geofence.distanceMeters,
         },
@@ -587,7 +605,222 @@ export class EmployeeAppVisitsService {
     return {
       data: {
         message: result.message,
+        status,
         job: result.data,
+      },
+    };
+  }
+
+  /**
+   * Metadata for the mobile “Record visit outcome” screen — mirrors schedule-jobs
+   * Complete dialog outcomes carers are allowed to set.
+   */
+  async getCompletionOptions(employeeId: string, jobId: string) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const job = ctx.job;
+
+    const closed =
+      job.status === ScheduledJobStatus.COMPLETED ||
+      job.status === ScheduledJobStatus.CANCELLED ||
+      job.status === ScheduledJobStatus.CALLED_OFF ||
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF;
+
+    const plannedEnd =
+      visit.scheduledEndDateTime ??
+      job.scheduledEndDateTime ??
+      (job.estimatedDurationMinutes
+        ? new Date(
+            visit.scheduledStartDateTime.getTime() + job.estimatedDurationMinutes * 60_000,
+          )
+        : null);
+
+    const defaultStatus = isEmployeeAppCompletionStatus(visit.status)
+      ? visit.status
+      : ScheduledVisitStatus.COMPLETED;
+
+    const [taskRaw, medProgress, obsCount, bodyMapHandover, prnCount] = await Promise.all([
+      this.housekeeping.getVisitJobTasks('', jobId).catch(() => ({
+        data: {
+          tasks: [] as Array<Record<string, unknown>>,
+          medicationRoundCode: null as string | null,
+          roundLabel: null as string | null,
+        },
+      })),
+      this.resolveMedicationProgress(ctx),
+      this.countVisitObservations(
+        job.serviceUserId,
+        visit.actualStartDateTime ?? visit.scheduledStartDateTime,
+      ),
+      this.bodyMap.handoverPreview(job.serviceUserId).catch(() => null),
+      this.prisma.serviceUserMedication.count({
+        where: {
+          serviceUserId: job.serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          status: MedicationRecordStatus.ACTIVE,
+          medicationKind: MedicationKind.PRN,
+        },
+      }),
+    ]);
+
+    const taskRows = (taskRaw.data.tasks as Array<Record<string, unknown>>) ?? [];
+    const tasks = taskRows.map((task) => {
+      const priority = String(task.priority ?? 'routine');
+      const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
+      const isCompleted = Boolean(task.isCompleted);
+      return {
+        assignmentId: (task.assignmentId as string | null) ?? null,
+        taskCatalogueTaskId: String(task.taskCatalogueTaskId ?? ''),
+        name: String(task.name ?? ''),
+        isRequired,
+        isExtra: Boolean(task.isExtra),
+        isCompleted,
+      };
+    });
+    const requiredTasks = tasks.filter((t) => t.isRequired);
+    const optionalTasks = tasks.filter((t) => !t.isRequired);
+    const requiredDone = requiredTasks.filter((t) => t.isCompleted).length;
+    const tasksDone = tasks.filter((t) => t.isCompleted).length;
+    const incompleteRequired = requiredTasks
+      .filter((t) => !t.isCompleted)
+      .map((t) => ({
+        assignmentId: t.assignmentId,
+        taskCatalogueTaskId: t.taskCatalogueTaskId,
+        name: t.name,
+      }));
+
+    const medsDue = medProgress.dueCount;
+    const medsGiven = medProgress.givenCount;
+    const medsRemaining = Math.max(0, medsDue - medsGiven);
+    const hasScheduledMeds = medsDue > 0;
+    const hasPrnMeds = prnCount > 0;
+    const hasMedications = hasScheduledMeds || hasPrnMeds || Boolean(visit.medicationRequired);
+    const hasTasks = tasks.length > 0;
+    const hasObservations = obsCount > 0;
+    const bodyMapActive = bodyMapHandover?.activeCount ?? 0;
+    const bodyMapHighRisk = bodyMapHandover?.highRiskCount ?? 0;
+    const hasBodyMap = bodyMapActive > 0;
+
+    const checklist = {
+      tasks: {
+        hasAny: hasTasks,
+        total: tasks.length,
+        done: tasksDone,
+        remaining: Math.max(0, tasks.length - tasksDone),
+        requiredTotal: requiredTasks.length,
+        requiredDone,
+        requiredRemaining: Math.max(0, requiredTasks.length - requiredDone),
+        optionalTotal: optionalTasks.length,
+        incompleteRequired,
+        allRequiredComplete: requiredTasks.length === 0 || requiredDone === requiredTasks.length,
+      },
+      medications: {
+        hasAny: hasMedications,
+        medicationRequiredOnVisit: Boolean(visit.medicationRequired),
+        roundCode: ctx.medicationRoundCode ?? taskRaw.data.medicationRoundCode ?? null,
+        roundLabel: taskRaw.data.roundLabel ?? null,
+        scheduledDue: medsDue,
+        scheduledGiven: medsGiven,
+        scheduledRemaining: medsRemaining,
+        prnAvailable: prnCount,
+        allScheduledGiven: medsDue === 0 || medsGiven >= medsDue,
+      },
+      observations: {
+        hasAny: hasObservations,
+        recordedCount: obsCount,
+      },
+      bodyMap: {
+        hasAny: hasBodyMap,
+        activeCount: bodyMapActive,
+        highRiskCount: bodyMapHighRisk,
+      },
+      summary: {
+        hasTasks,
+        hasMedications,
+        hasObservations,
+        hasBodyMap,
+        pendingRequiredTasks: Math.max(0, requiredTasks.length - requiredDone),
+        pendingScheduledMeds: medsRemaining,
+        readyForComplete:
+          (requiredTasks.length === 0 || requiredDone === requiredTasks.length) &&
+          (medsDue === 0 || medsGiven >= medsDue),
+      },
+      tabs: [
+        {
+          id: 'tasks',
+          label: 'Tasks',
+          hasContent: hasTasks,
+          incomplete: Math.max(0, requiredTasks.length - requiredDone) > 0,
+          countLabel: hasTasks ? `${tasksDone}/${tasks.length}` : null,
+        },
+        {
+          id: 'mar',
+          label: 'MAR',
+          hasContent: hasMedications,
+          incomplete: medsRemaining > 0,
+          countLabel: hasScheduledMeds
+            ? `${medsGiven}/${medsDue}`
+            : hasPrnMeds
+              ? `${prnCount} PRN`
+              : null,
+        },
+        {
+          id: 'obs',
+          label: 'Obs',
+          hasContent: hasObservations,
+          incomplete: false,
+          countLabel: hasObservations ? String(obsCount) : null,
+        },
+        {
+          id: 'body-map',
+          label: 'Body map',
+          hasContent: hasBodyMap,
+          incomplete: bodyMapHighRisk > 0,
+          countLabel: hasBodyMap ? String(bodyMapActive) : null,
+        },
+      ],
+    };
+
+    return {
+      data: {
+        jobId: job.id,
+        visitId: visit.id,
+        canComplete: !closed,
+        closedReason: closed ? `Visit is already ${visit.status}` : null,
+        currentStatus: visit.status,
+        jobStatus: job.status,
+        defaultStatus,
+        outcomes: EMPLOYEE_APP_COMPLETION_OUTCOMES,
+        timingExceptionReasons: employeeAppTimingExceptionReasons(),
+        planned: {
+          startIso: visit.scheduledStartDateTime.toISOString(),
+          endIso: plannedEnd?.toISOString() ?? null,
+          startLabel: formatHmUtc(visit.scheduledStartDateTime),
+          endLabel: plannedEnd ? formatHmUtc(plannedEnd) : null,
+        },
+        actual: {
+          startIso: visit.actualStartDateTime?.toISOString() ?? null,
+          endIso: visit.actualEndDateTime?.toISOString() ?? null,
+          startLabel: visit.actualStartDateTime
+            ? formatHmUtc(visit.actualStartDateTime)
+            : null,
+          endLabel: visit.actualEndDateTime ? formatHmUtc(visit.actualEndDateTime) : null,
+        },
+        checklist,
+        hints: {
+          useCheckInFirst: !visit.actualStartDateTime && visit.status === ScheduledVisitStatus.PLANNED,
+          requiresActualTimesFor: ['COMPLETED', 'PARTIALLY_COMPLETED'],
+          cancelCallOffViaOffice: true,
+          completeIncompleteTasksVia: hasTasks
+            ? 'PATCH /employee-app/visits/{jobId}/tasks'
+            : null,
+          completeMedicationsVia: hasMedications
+            ? 'GET /employee-app/visits/{jobId}/medication'
+            : null,
+        },
       },
     };
   }
@@ -738,6 +971,29 @@ export class EmployeeAppVisitsService {
       Boolean(visit.actualStartDateTime);
 
     const geofence = this.evaluateGeofenceFromMeta(ctx);
+    const address =
+      su.address && !su.address.deletedAt
+        ? {
+            line1: su.address.addressLine1 ?? null,
+            line2: su.address.addressLine2 ?? null,
+            town: su.address.town ?? null,
+            county: su.address.county ?? null,
+            postcode: su.address.postcode ?? null,
+            latitude:
+              su.address.latitude != null ? Number(su.address.latitude) : null,
+            longitude:
+              su.address.longitude != null ? Number(su.address.longitude) : null,
+          }
+        : null;
+    const serviceUserLatitude = address?.latitude ?? null;
+    const serviceUserLongitude = address?.longitude ?? null;
+    const jobLatitude =
+      ctx.job.latitude != null ? Number(ctx.job.latitude) : null;
+    const jobLongitude =
+      ctx.job.longitude != null ? Number(ctx.job.longitude) : null;
+    /** Prefer job pin when set; otherwise service-user address (same rule as geofence). */
+    const destinationLatitude = jobLatitude ?? serviceUserLatitude;
+    const destinationLongitude = jobLongitude ?? serviceUserLongitude;
 
     return {
       jobId: ctx.job.id,
@@ -748,6 +1004,9 @@ export class EmployeeAppVisitsService {
         initials: initialsFromName(su.firstName, su.lastName),
         dateOfBirth: su.dateOfBirth ? formatDob(su.dateOfBirth) : null,
         dateOfBirthIso: su.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+        latitude: serviceUserLatitude,
+        longitude: serviceUserLongitude,
+        address,
       },
       visitWindow: {
         scheduledStart,
@@ -765,7 +1024,26 @@ export class EmployeeAppVisitsService {
       checkedInAt: checkedInAt?.toISOString() ?? null,
       checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
       progress: this.buildProgress(progress, medProgress),
-      location: geofence,
+      location: {
+        ...geofence,
+        /** Coordinates to navigate to for this visit. */
+        latitude: destinationLatitude,
+        longitude: destinationLongitude,
+        source:
+          jobLatitude != null && jobLongitude != null
+            ? ('job' as const)
+            : serviceUserLatitude != null && serviceUserLongitude != null
+              ? ('service_user' as const)
+              : null,
+        serviceUser: {
+          latitude: serviceUserLatitude,
+          longitude: serviceUserLongitude,
+        },
+        job: {
+          latitude: jobLatitude,
+          longitude: jobLongitude,
+        },
+      },
       coCarers: ctx.job.allocations
         .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
         .map((a) => ({
