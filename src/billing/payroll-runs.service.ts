@@ -9,6 +9,8 @@ import {
   Prisma,
   SalaryDeductionType,
   VisitReconciliationStatus,
+  EmployeePayoutBatchStatus,
+  EmployeePayoutLineStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -42,6 +44,9 @@ import {
   ageInFullYears,
   type NmwPayComponent,
 } from './pay-compliance.util';
+import {
+  derivePeriodKeyFromRange,
+} from './employee-payout-period.util';
 import {
   buildPayrollRunVisitLogCsv,
   formatPayAmount,
@@ -1349,6 +1354,38 @@ export class PayrollRunsService {
       }),
     );
 
+    const periodKey = derivePeriodKeyFromRange(query.dateFrom, query.dateTo);
+    const paidOutByEmployee = new Map<string, number>();
+    const committedByEmployee = new Map<string, number>();
+    if (periodKey && employeeIds.length) {
+      const payoutLines = await this.prisma.employeePayoutLine.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          batch: {
+            periodKey,
+            status: { not: EmployeePayoutBatchStatus.CANCELLED },
+          },
+          status: {
+            in: [EmployeePayoutLineStatus.PAID, EmployeePayoutLineStatus.PENDING],
+          },
+        },
+        select: { employeeId: true, amount: true, status: true },
+      });
+      for (const line of payoutLines) {
+        const amount = Number(line.amount);
+        committedByEmployee.set(
+          line.employeeId,
+          (committedByEmployee.get(line.employeeId) ?? 0) + amount,
+        );
+        if (line.status === EmployeePayoutLineStatus.PAID) {
+          paidOutByEmployee.set(
+            line.employeeId,
+            (paidOutByEmployee.get(line.employeeId) ?? 0) + amount,
+          );
+        }
+      }
+    }
+
     const round2 = (n: number) => Math.round(n * 100) / 100;
 
     const rows = employeeIds
@@ -1364,6 +1401,9 @@ export class PayrollRunsService {
         const paidAmount = round2(a.paidAmount);
         const remainingAmount = round2(a.remainingAmount);
         const rejectedAmount = round2(a.rejectedAmount);
+        const paidOutAmount = round2(paidOutByEmployee.get(id) ?? 0);
+        const committed = round2(committedByEmployee.get(id) ?? 0);
+        const outstandingPayoutAmount = round2(Math.max(0, netSalary - committed));
         return {
           employeeId: id,
           employeeName: meta.name,
@@ -1390,6 +1430,10 @@ export class PayrollRunsService {
           deductionsTotalValue: deductionsTotal,
           netSalaryAmount: formatMoney(netSalary),
           netSalaryAmountValue: netSalary,
+          paidOutAmount: formatMoney(paidOutAmount),
+          paidOutAmountValue: paidOutAmount,
+          outstandingPayoutAmount: formatMoney(outstandingPayoutAmount),
+          outstandingPayoutAmountValue: outstandingPayoutAmount,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r != null)
@@ -1399,6 +1443,7 @@ export class PayrollRunsService {
       data: {
         dateFrom: query.dateFrom ?? null,
         dateTo: query.dateTo ?? null,
+        periodKey,
         currency: 'GBP',
         employeeCount: rows.length,
         rows,

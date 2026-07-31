@@ -7230,6 +7230,70 @@ model EmployeeSalaryDeduction {
   @@schema("billing")
 }
 
+enum EmployeePayoutBatchStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+
+  @@schema("billing")
+}
+
+enum EmployeePayoutLineStatus {
+  PENDING
+  PAID
+  SKIPPED
+
+  @@schema("billing")
+}
+
+/// Bank / cash payout batch for visit-pay net salaries (before PAYE/NI).
+model EmployeePayoutBatch {
+  id           String                    @id @default(uuid()) @db.Uuid
+  /// Period key matching salary overview: YYYY-MM or YYYY-Www
+  periodKey    String
+  periodStart  DateTime                  @db.Date
+  periodEnd    DateTime                  @db.Date
+  status       EmployeePayoutBatchStatus @default(DRAFT)
+  currency     String                    @default("GBP")
+  totalAmount  Decimal                   @default(0) @db.Decimal(12, 2)
+  notes        String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  createdById  String?                   @db.Uuid
+  approvedById String?                   @db.Uuid
+  approvedAt   DateTime?
+  paidById     String?                   @db.Uuid
+  paidAt       DateTime?
+
+  lines EmployeePayoutLine[]
+
+  @@index([periodKey])
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+model EmployeePayoutLine {
+  id         String                   @id @default(uuid()) @db.Uuid
+  batchId    String                   @db.Uuid
+  employeeId String                   @db.Uuid
+  /// Snapshot of net salary outstanding at create time.
+  amount     Decimal                  @db.Decimal(12, 2)
+  status     EmployeePayoutLineStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+
+  batch EmployeePayoutBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, employeeId])
+  @@index([batchId])
+  @@index([employeeId])
+  @@index([status])
+  @@schema("billing")
+}
+
 model InvoiceRun {
   id                String                 @id @default(uuid()) @db.Uuid
   periodLabel       String

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PayCardsController } from './pay-cards.controller';
 import { ChargeCardsController } from './charge-cards.controller';
@@ -8,6 +9,7 @@ import { VisitReconciliationsController } from './visit-reconciliations.controll
 import { PayrollRunsController } from './payroll-runs.controller';
 import { InvoiceRunsController } from './invoice-runs.controller';
 import { PaymentsController } from './payments.controller';
+import { EmployeePayoutsController } from './employee-payouts.controller';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
 import { FundingContractsService } from './funding-contracts.service';
 import { InvoiceTemplatesService } from './invoice-templates.service';
@@ -15,9 +17,11 @@ import { VisitReconciliationsService } from './visit-reconciliations.service';
 import { PayrollRunsService } from './payroll-runs.service';
 import { InvoiceRunsService } from './invoice-runs.service';
 import { PaymentsService } from './payments.service';
+import { EmployeePayoutsService } from './employee-payouts.service';
+import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ScheduleModule],
   controllers: [
     PayCardsController,
     ChargeCardsController,
@@ -27,6 +31,7 @@ import { PaymentsService } from './payments.service';
     PayrollRunsController,
     InvoiceRunsController,
     PaymentsController,
+    EmployeePayoutsController,
   ],
   providers: [
     PayCardsService,
@@ -37,6 +42,8 @@ import { PaymentsService } from './payments.service';
     PayrollRunsService,
     InvoiceRunsService,
     PaymentsService,
+    EmployeePayoutsService,
+    EmployeePayoutAutoJob,
   ],
   exports: [
     PayCardsService,
@@ -47,6 +54,7 @@ import { PaymentsService } from './payments.service';
     PayrollRunsService,
     InvoiceRunsService,
     PaymentsService,
+    EmployeePayoutsService,
   ],
 })
 export class BillingModule {}
