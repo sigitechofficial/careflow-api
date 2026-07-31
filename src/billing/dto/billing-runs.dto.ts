@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBillingRunDto {
   @ApiProperty({ description: 'ISO date (YYYY-MM-DD)' })
@@ -23,6 +33,14 @@ export class BillingRunsQueryDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Scope runs that include lines for service users (invoice) or visit reconciliations (payroll) at this location',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
 export class EmployeeEarningsQueryDto {

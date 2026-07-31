@@ -93,6 +93,9 @@ export class EcmVisitsService {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
+        ...(query.locationId
+          ? { scheduleArea: { locationId: query.locationId } }
+          : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
         ...(query.search?.trim()
           ? {
@@ -164,6 +167,9 @@ export class EcmVisitsService {
         scheduledStartDateTime: { gte: dayStart, lte: dayEnd },
         id: { notIn: [...evaluatedJobIds] },
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
+        ...(query.locationId
+          ? { scheduleArea: { locationId: query.locationId } }
+          : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
       },
       take: Math.min(40, Math.max(0, limit - evaluations.length)),

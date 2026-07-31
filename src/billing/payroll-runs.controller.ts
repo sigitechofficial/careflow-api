@@ -11,6 +11,7 @@ import {
   CreateBillingRunDto,
   CreateEmployeeSalaryDeductionDto,
   EmployeeEarningsQueryDto,
+  BillingRunsQueryDto,
 } from './dto/billing-runs.dto';
 
 @ApiTags('Billing — Payroll runs')
@@ -23,8 +24,8 @@ export class PayrollRunsController {
   @Get('summary')
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'Payroll run draft summary for dashboard' })
-  summary() {
-    return this.service.getSummary();
+  summary(@Query('locationId') locationId?: string) {
+    return this.service.getSummary(locationId);
   }
 
   @Get('employee-salaries')
@@ -79,8 +80,8 @@ export class PayrollRunsController {
   @Get()
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'List payroll runs' })
-  list() {
-    return this.service.list();
+  list(@Query() query: BillingRunsQueryDto) {
+    return this.service.list(query);
   }
 
   @Get(':id')

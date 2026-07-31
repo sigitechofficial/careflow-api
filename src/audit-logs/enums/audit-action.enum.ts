@@ -263,6 +263,7 @@ export enum AuditAction {
   JOB_ALLOCATED = 'job_allocated',
   JOB_ALLOCATION_REQUIRES_CONFIRMATION = 'job_allocation_requires_confirmation',
   JOB_ALLOCATION_CONFIRMED = 'job_allocation_confirmed',
+  JOB_ALLOCATION_UPDATED = 'job_allocation_updated',
   JOB_UNALLOCATED = 'job_unallocated',
   ALLOCATION_WARNING_GENERATED = 'allocation_warning_generated',
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
+  AllocationStatus,
   LateVisitAlertKind,
   NotificationModule,
   NotificationSeverity,
@@ -11,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const CLOSED_JOB: ScheduledJobStatus[] = [
   ScheduledJobStatus.COMPLETED,
@@ -83,8 +85,28 @@ export class LateVisitAlertJob {
         id: true,
         jobName: true,
         scheduledStartDateTime: true,
+        scheduledEndDateTime: true,
+        estimatedDurationMinutes: true,
         serviceUser: {
           select: { firstName: true, lastName: true, preferredName: true },
+        },
+        allocations: {
+          where: {
+            deletedAt: null,
+            isActive: true,
+            status: {
+              in: [
+                AllocationStatus.PENDING_CONFIRMATION,
+                AllocationStatus.ALLOCATED,
+                AllocationStatus.CONFIRMED,
+              ],
+            },
+          },
+          select: {
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
+            durationMinutes: true,
+          },
         },
       },
     });
@@ -97,11 +119,24 @@ export class LateVisitAlertJob {
 
     let alerted = 0;
     for (const job of candidates) {
+      const plannedStarts = job.allocations.length
+        ? job.allocations.map(
+            (a) =>
+              resolveAllocationWindow(a, {
+                scheduledStartDateTime: job.scheduledStartDateTime,
+                scheduledEndDateTime: job.scheduledEndDateTime,
+                estimatedDurationMinutes: job.estimatedDurationMinutes,
+              }).start,
+          )
+        : [job.scheduledStartDateTime];
+      const effectiveStart = new Date(Math.min(...plannedStarts.map((d) => d.getTime())));
+      if (effectiveStart.getTime() > cutoff.getTime()) continue;
+
       const suName =
         job.serviceUser.preferredName?.trim() ||
         [job.serviceUser.firstName, job.serviceUser.lastName].filter(Boolean).join(' ') ||
         'Service user';
-      const message = `Visit "${job.jobName}" for ${suName} has not started ${thresholdMinutes}+ minutes after planned start (${job.scheduledStartDateTime.toISOString()}).`;
+      const message = `Visit "${job.jobName}" for ${suName} has not started ${thresholdMinutes}+ minutes after planned start (${effectiveStart.toISOString()}).`;
 
       let recipientCount = 0;
       if (settings.domLateVisitAlertNotification && this.notifications && recipients.length) {
@@ -118,7 +153,7 @@ export class LateVisitAlertJob {
             metadata: {
               kind: 'LATE_START',
               thresholdMinutes,
-              scheduledStart: job.scheduledStartDateTime.toISOString(),
+              scheduledStart: effectiveStart.toISOString(),
             },
           });
           recipientCount = recipients.length;
@@ -140,7 +175,7 @@ export class LateVisitAlertJob {
             scheduledJobId: job.id,
             alertKind: LateVisitAlertKind.LATE_START,
             thresholdMinutes,
-            scheduledStart: job.scheduledStartDateTime,
+            scheduledStart: effectiveStart,
             channels: {
               notification: Boolean(settings.domLateVisitAlertNotification),
               email: Boolean(settings.domLateVisitAlertEmail),

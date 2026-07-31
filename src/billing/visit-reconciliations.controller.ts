@@ -27,8 +27,8 @@ export class VisitReconciliationsController {
   @Get('summary')
   @Permissions('billing.visit_reconciliations.read')
   @ApiOperation({ summary: 'Visit reconciliation summary for billing dashboard' })
-  summary() {
-    return this.service.getSummary();
+  summary(@Query('locationId') locationId?: string) {
+    return this.service.getSummary(locationId);
   }
 
   @Get('exception-queue')

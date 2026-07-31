@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -125,10 +126,15 @@ export class EmployeeAppScheduleService {
       const clientName =
         [su.firstName, su.lastName].filter(Boolean).join(' ').trim() || 'Service user';
       const initials = initialsFromName(su.firstName, su.lastName);
-      const startAt = primaryVisit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
-      const endAt = primaryVisit?.scheduledEndDateTime ?? job.scheduledEndDateTime ?? null;
+      const resolved = resolveAllocationWindow(allocation, {
+        scheduledStartDateTime: job.scheduledStartDateTime,
+        scheduledEndDateTime: job.scheduledEndDateTime,
+        estimatedDurationMinutes: job.estimatedDurationMinutes,
+      });
+      const startAt = resolved.start;
+      const endAt = resolved.end;
       const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = endAt ? formatHmUtc(endAt) : null;
+      const scheduledEnd = formatHmUtc(endAt);
       const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
       const periodLabel = resolvePeriodLabel({
         visitName: primaryVisit?.visitName ?? job.jobName,

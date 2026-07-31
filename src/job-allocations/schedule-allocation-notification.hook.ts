@@ -41,20 +41,31 @@ export class ScheduleAllocationNotificationHook {
     scheduledJobId: string;
     jobName: string;
     serviceUserId: string;
+    scheduledStartDateTime?: Date;
+    scheduledEndDateTime?: Date;
   }): Promise<void> {
     if (!this.notifications) return;
     try {
       const userId = await this.userIdForEmployee(params.employeeId);
       if (userId) {
+        const timeSuffix =
+          params.scheduledStartDateTime && params.scheduledEndDateTime
+            ? ` (${params.scheduledStartDateTime.toISOString().slice(11, 16)}–${params.scheduledEndDateTime.toISOString().slice(11, 16)} UTC)`
+            : '';
         await this.notifications.notifyUsers({
           recipientUserIds: [userId],
           type: NotificationType.SYSTEM_MESSAGE,
           title: 'New schedule allocation',
-          message: `You have been allocated to "${params.jobName}".`,
+          message: `You have been allocated to "${params.jobName}"${timeSuffix}.`,
           module: NotificationModule.SCHEDULING,
           recordType: 'ScheduledJob',
           recordId: params.scheduledJobId,
-          metadata: { serviceUserId: params.serviceUserId, employeeId: params.employeeId },
+          metadata: {
+            serviceUserId: params.serviceUserId,
+            employeeId: params.employeeId,
+            scheduledStartDateTime: params.scheduledStartDateTime?.toISOString() ?? null,
+            scheduledEndDateTime: params.scheduledEndDateTime?.toISOString() ?? null,
+          },
         });
       }
     } catch (err) {

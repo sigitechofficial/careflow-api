@@ -43,6 +43,13 @@ export class VisitReconciliationsQueryDto {
   @IsUUID()
   employeeId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Scope to service users at this location (branch)',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
   @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD)' })
   @IsOptional()
   @IsDateString()

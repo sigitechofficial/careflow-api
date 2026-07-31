@@ -4,9 +4,15 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { ScheduledJobsController } from './scheduled-jobs.controller';
 import { ScheduledJobsService } from './scheduled-jobs.service';
 import { EcmModule } from '../ecm/ecm.module';
+import { JobAllocationsModule } from '../job-allocations/job-allocations.module';
 
 @Module({
-  imports: [PrismaModule, AuditLogsModule, forwardRef(() => EcmModule)],
+  imports: [
+    PrismaModule,
+    AuditLogsModule,
+    forwardRef(() => EcmModule),
+    forwardRef(() => JobAllocationsModule),
+  ],
   controllers: [ScheduledJobsController],
   providers: [ScheduledJobsService],
   exports: [ScheduledJobsService],

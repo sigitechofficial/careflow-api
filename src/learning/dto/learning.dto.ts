@@ -62,6 +62,14 @@ export class LearningListQueryDto extends PaginationQueryDto {
   @IsBoolean()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Scope assignments to this location (assignment.locationId or employee employment locations)',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
 export class CreateLearningCategoryDto {

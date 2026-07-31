@@ -607,6 +607,16 @@ enum SalaryCalculationBasis {
   @@schema("identity")
 }
 
+/// How multi-carer (double-up) visits are charged to the service-user funder.
+/// COMBINED = sum each carer's billable hours (default).
+/// FIXED = charge the visit window once (envelope duration).
+enum MultiCarerFunderChargeMode {
+  COMBINED
+  FIXED
+
+  @@schema("identity")
+}
+
 enum ComplianceRequiredBy {
   ROLE_WORK_AREA
   CITIZENSHIP
@@ -661,6 +671,8 @@ model OrganisationGeneralSettings {
   defaultHolidaysUnit           HolidayUnit       @default(DAYS)
   /// How employee salary is periodised in admin (visit pay + fines/penalties).
   salaryCalculationBasis        SalaryCalculationBasis @default(MONTHLY)
+  /// Multi-carer visits: charge funder for combined carer hours or fixed visit length.
+  multiCarerFunderChargeMode    MultiCarerFunderChargeMode @default(COMBINED)
   recruitmentFunctionalityRequired Boolean        @default(true)
   complianceRequiredBy          ComplianceRequiredBy @default(ROLE_WORK_AREA)
   complianceApprovalForNewEmployee ComplianceApprovalType @default(MANAGER_APPROVAL)
@@ -701,6 +713,8 @@ model OrganisationGeneralSettings {
   domAutoExtendRotaRunHour      Int               @default(12)
   domShowWeeklyHours            Boolean           @default(true)
   domShowServiceUserName        Boolean           @default(true)
+  /// When true, carers blocked by a service user still appear in schedule pickers (marked, not assignable).
+  domShowBlockedCarersInSchedule Boolean          @default(false)
   domLateVisitAlertRequired     Boolean           @default(true)
   domLateVisitAlertMinutes      Int               @default(20)
   domLateVisitAlertEmail        Boolean           @default(true)
@@ -5608,6 +5622,10 @@ model JobAllocation {
   scheduledStartDateTime DateTime?
   scheduledEndDateTime   DateTime?
   durationMinutes        Int?
+  /** Carer-specific actual clock-in (null = fall back to visit actual). */
+  actualStartDateTime    DateTime?
+  /** Carer-specific actual clock-out (null = fall back to visit actual). */
+  actualEndDateTime      DateTime?
   isLeadCarer            Boolean          @default(false)
   warningTypes           Json?
   warningMessages        Json?

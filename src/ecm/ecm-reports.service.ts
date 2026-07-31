@@ -12,6 +12,7 @@ export type EcmReportsQuery = {
   dateFrom?: string;
   dateTo?: string;
   scheduleAreaId?: string;
+  locationId?: string;
   serviceUserId?: string;
   criticality?: string;
 };
@@ -30,6 +31,9 @@ export class EcmReportsService {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
+        ...(query.locationId
+          ? { scheduleArea: { locationId: query.locationId } }
+          : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
       },
       ...(query.criticality

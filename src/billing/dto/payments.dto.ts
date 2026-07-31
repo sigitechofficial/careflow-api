@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -13,6 +14,16 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PaymentRecordStatus, PaymentType } from '@prisma/client';
+
+export class PaymentsQueryDto {
+  @ApiPropertyOptional({
+    description:
+      'Scope to payments allocated to invoice runs that include service users at this location; unmatched payments remain visible',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+}
 
 export class PaymentAllocationInputDto {
   @IsUUID()

@@ -95,6 +95,11 @@ export class UsersService {
       ),
     );
 
+    const assignedLocationIds = await this.resolveAssignedLocationIds(
+      user.email,
+      roles,
+    );
+
     return {
       id: user.id,
       email: user.email,
@@ -104,7 +109,52 @@ export class UsersService {
       roles,
       permissions,
       accountKind: 'user' as const,
+      /** null = unrestricted (all locations). Array = header picker ACL. */
+      assignedLocationIds,
     };
+  }
+
+  /**
+   * Super Admin: unrestricted (null).
+   * Users whose email matches an employee personal detail: employment branch locations.
+   * Everyone else: unrestricted (null) until explicit UserLocation assignments exist.
+   */
+  private async resolveAssignedLocationIds(
+    email: string,
+    roles: string[],
+  ): Promise<string[] | null> {
+    if (roles.includes('Super Admin')) return null;
+
+    const personal = await this.prisma.employeePersonalDetail.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        employee: { deletedAt: null },
+      },
+      select: {
+        employee: {
+          select: {
+            employment: {
+              select: {
+                locationId: true,
+                baseLocationId: true,
+                floorLocations: { select: { locationId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const employment = personal?.employee?.employment;
+    if (!employment) return null;
+
+    const ids = new Set<string>();
+    if (employment.locationId) ids.add(employment.locationId);
+    if (employment.baseLocationId) ids.add(employment.baseLocationId);
+    for (const floor of employment.floorLocations) {
+      ids.add(floor.locationId);
+    }
+    return ids.size ? [...ids] : null;
   }
 }
 

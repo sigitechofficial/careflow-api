@@ -25,6 +25,7 @@ import {
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
+import { serviceUserIdsForLocation } from './billing-location-scope.util';
 import {
   calculateBillableAmount,
   calculatePayableAmount,
@@ -54,6 +55,7 @@ import {
   detectInterVisitTravel,
   summariseTravelForDestination,
 } from './pay-inter-visit-travel.util';
+import { resolveAllocationWindow, resolveAllocationActualWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -234,7 +236,17 @@ export class VisitReconciliationsService {
     const targets =
       allocations.length > 0
         ? allocations
-        : [{ id: null as string | null, employeeId: null as string | null }];
+        : [
+            {
+              id: null as string | null,
+              employeeId: null as string | null,
+              scheduledStartDateTime: null as Date | null,
+              scheduledEndDateTime: null as Date | null,
+              durationMinutes: null as number | null,
+              actualStartDateTime: null as Date | null,
+              actualEndDateTime: null as Date | null,
+            },
+          ];
 
     let firstId: string | null = null;
     for (const allocation of targets) {
@@ -243,6 +255,28 @@ export class VisitReconciliationsService {
         targets.length > 1 && allocation.employeeId
           ? `-${allocation.employeeId.replace(/-/g, '').slice(0, 4).toUpperCase()}`
           : '';
+
+      const planned = resolveAllocationWindow(
+        {
+          scheduledStartDateTime: allocation.scheduledStartDateTime,
+          scheduledEndDateTime: allocation.scheduledEndDateTime,
+          durationMinutes: allocation.durationMinutes,
+        },
+        {
+          scheduledStartDateTime: visit.scheduledStartDateTime,
+          scheduledEndDateTime: visit.scheduledEndDateTime,
+        },
+      );
+      const actual = resolveAllocationActualWindow(
+        {
+          actualStartDateTime: allocation.actualStartDateTime ?? null,
+          actualEndDateTime: allocation.actualEndDateTime ?? null,
+        },
+        {
+          actualStartDateTime: visit.actualStartDateTime,
+          actualEndDateTime: visit.actualEndDateTime,
+        },
+      );
 
       const existing = allocation.id
         ? await db.visitReconciliation.findFirst({
@@ -256,10 +290,10 @@ export class VisitReconciliationsService {
         const updated = await db.visitReconciliation.update({
           where: { id: existing.id },
           data: {
-            plannedStartDateTime: visit.scheduledStartDateTime,
-            plannedEndDateTime: visit.scheduledEndDateTime,
-            actualStartDateTime: visit.actualStartDateTime,
-            actualEndDateTime: visit.actualEndDateTime,
+            plannedStartDateTime: planned.start,
+            plannedEndDateTime: planned.end,
+            actualStartDateTime: actual.start,
+            actualEndDateTime: actual.end,
             employeeId: allocation.employeeId ?? existing.employeeId,
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
             visitRef: `${visitRef}${suffix}`,
@@ -279,10 +313,10 @@ export class VisitReconciliationsService {
           employeeId: allocation.employeeId,
           jobAllocationId: allocation.id,
           visitRef: `${visitRef}${suffix}`,
-          plannedStartDateTime: visit.scheduledStartDateTime,
-          plannedEndDateTime: visit.scheduledEndDateTime,
-          actualStartDateTime: visit.actualStartDateTime,
-          actualEndDateTime: visit.actualEndDateTime,
+          plannedStartDateTime: planned.start,
+          plannedEndDateTime: planned.end,
+          actualStartDateTime: actual.start,
+          actualEndDateTime: actual.end,
           overrunReason,
         },
       });
@@ -309,7 +343,26 @@ export class VisitReconciliationsService {
     db: DbClient,
     jobId: string,
     visitId: string,
-  ): Promise<Array<{ id: string; employeeId: string }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      employeeId: string;
+      scheduledStartDateTime: Date | null;
+      scheduledEndDateTime: Date | null;
+      durationMinutes: number | null;
+      actualStartDateTime: Date | null;
+      actualEndDateTime: Date | null;
+    }>
+  > {
+    const select = {
+      id: true,
+      employeeId: true,
+      scheduledStartDateTime: true,
+      scheduledEndDateTime: true,
+      durationMinutes: true,
+      actualStartDateTime: true,
+      actualEndDateTime: true,
+    } as const;
     const visitAllocations = await db.jobAllocation.findMany({
       where: {
         scheduledVisitId: visitId,
@@ -318,7 +371,7 @@ export class VisitReconciliationsService {
         status: { in: ACTIVE_ALLOCATION },
       },
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
-      select: { id: true, employeeId: true },
+      select,
     });
     if (visitAllocations.length) return visitAllocations;
 
@@ -330,7 +383,7 @@ export class VisitReconciliationsService {
         status: { in: ACTIVE_ALLOCATION },
       },
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
-      select: { id: true, employeeId: true },
+      select,
     });
     if (jobAllocations.length) return jobAllocations;
 
@@ -343,7 +396,7 @@ export class VisitReconciliationsService {
         status: { notIn: [AllocationStatus.CANCELLED, AllocationStatus.UNALLOCATED] },
       },
       orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
-      select: { id: true, employeeId: true },
+      select,
     });
   }
 
@@ -364,6 +417,25 @@ export class VisitReconciliationsService {
     if (query.status) where.status = query.status;
     if (query.serviceUserId) where.serviceUserId = query.serviceUserId;
     if (query.employeeId) where.employeeId = query.employeeId;
+
+    if (query.locationId) {
+      const locationSuIds = await serviceUserIdsForLocation(this.prisma, query.locationId);
+      if (query.serviceUserId) {
+        if (!locationSuIds.includes(query.serviceUserId)) {
+          return {
+            data: [],
+            meta: buildPaginationMeta({ total: 0, page, limit }),
+          };
+        }
+      } else if (!locationSuIds.length) {
+        return {
+          data: [],
+          meta: buildPaginationMeta({ total: 0, page, limit }),
+        };
+      } else {
+        where.serviceUserId = { in: locationSuIds };
+      }
+    }
 
     if (query.dateFrom || query.dateTo) {
       where.plannedStartDateTime = {};
@@ -423,6 +495,16 @@ export class VisitReconciliationsService {
   }
 
   async getById(id: string) {
+    const existing = await this.prisma.visitReconciliation.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundException('Visit reconciliation not found');
+    // Refresh pay/bill figures (e.g. after multi-carer funder charge mode change).
+    if (existing.status !== VisitReconciliationStatus.LOCKED) {
+      await this.safeEvaluate(this.prisma, id);
+    }
+
     const row = await this.prisma.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
@@ -817,16 +899,11 @@ export class VisitReconciliationsService {
       if (id) created.push(id);
     }
 
-    // Re-evaluate pending rows so pay-eligible visits become APPROVED_FOR_PAY
-    // (earnings) without a manual approve click after policy changes / card fixes.
+    // Re-evaluate unlocked rows so org billing policy changes (e.g. COMBINED vs FIXED
+    // multi-carer funder charge) refresh stored pay/bill amounts.
     const pending = await this.prisma.visitReconciliation.findMany({
       where: {
-        status: {
-          in: [
-            VisitReconciliationStatus.PENDING_REVIEW,
-            VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
-          ],
-        },
+        status: { not: VisitReconciliationStatus.LOCKED },
         ...(dto.dateFrom || dto.dateTo
           ? {
               plannedStartDateTime: {
@@ -841,14 +918,14 @@ export class VisitReconciliationsService {
           : {}),
       },
       select: { id: true },
-      take: 500,
+      take: 1000,
     });
     for (const row of pending) {
       await this.safeEvaluate(this.prisma, row.id);
     }
 
     return {
-      message: `Processed ${visits.length} completed visit(s); re-evaluated ${pending.length} pending`,
+      message: `Processed ${visits.length} completed visit(s); re-evaluated ${pending.length} reconciliation(s)`,
       data: { count: created.length, ids: created, reEvaluated: pending.length },
     };
   }
@@ -884,10 +961,27 @@ export class VisitReconciliationsService {
     };
   }
 
-  async getSummary() {
+  async getSummary(locationId?: string) {
+    const locationScope: Prisma.VisitReconciliationWhereInput = {};
+    if (locationId) {
+      const locationSuIds = await serviceUserIdsForLocation(this.prisma, locationId);
+      if (!locationSuIds.length) {
+        return {
+          data: {
+            pendingReview: 0,
+            visitsWithExceptions: 0,
+            visitsReady: 0,
+            requiresManagerApproval: 0,
+          },
+        };
+      }
+      locationScope.serviceUserId = { in: locationSuIds };
+    }
+
     const [pending, withExceptions, approved, requiresManager] = await this.prisma.$transaction([
       this.prisma.visitReconciliation.count({
         where: {
+          ...locationScope,
           status: {
             in: [
               VisitReconciliationStatus.PENDING_REVIEW,
@@ -897,10 +991,11 @@ export class VisitReconciliationsService {
         },
       }),
       this.prisma.visitReconciliation.count({
-        where: { exceptions: { some: { resolvedAt: null } } },
+        where: { ...locationScope, exceptions: { some: { resolvedAt: null } } },
       }),
       this.prisma.visitReconciliation.count({
         where: {
+          ...locationScope,
           status: {
             in: [
               VisitReconciliationStatus.APPROVED_FOR_PAY,
@@ -911,7 +1006,10 @@ export class VisitReconciliationsService {
         },
       }),
       this.prisma.visitReconciliation.count({
-        where: { status: VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL },
+        where: {
+          ...locationScope,
+          status: VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+        },
       }),
     ]);
 
@@ -1114,17 +1212,75 @@ export class VisitReconciliationsService {
       computedOverrun != null
         ? defaultWindows.approvedPayEnd
         : (row.approvedPayEnd ?? defaultWindows.approvedPayEnd);
-    const approvedBillStart =
-      computedOverrun != null
-        ? defaultWindows.approvedBillStart
-        : (row.approvedBillStart ?? defaultWindows.approvedBillStart);
-    const approvedBillEnd =
-      computedOverrun != null
-        ? defaultWindows.approvedBillEnd
-        : (row.approvedBillEnd ?? defaultWindows.approvedBillEnd);
+
+    const orgChargeMode = await db.organisationGeneralSettings.findFirst({
+      select: { multiCarerFunderChargeMode: true },
+    });
+    const multiCarerMode =
+      orgChargeMode?.multiCarerFunderChargeMode === 'FIXED' ? 'FIXED' : 'COMBINED';
+
+    const siblingRecons = await db.visitReconciliation.findMany({
+      where: { scheduledVisitId: row.scheduledVisitId },
+      select: { id: true, jobAllocationId: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let isFunderBillingRow = true;
+    if (multiCarerMode === 'FIXED' && siblingRecons.length > 1) {
+      const allocationIds = siblingRecons
+        .map((s) => s.jobAllocationId)
+        .filter((aid): aid is string => Boolean(aid));
+      let carrierAllocationId: string | null = null;
+      if (allocationIds.length) {
+        const leadFirst = await db.jobAllocation.findMany({
+          where: { id: { in: allocationIds } },
+          select: { id: true, isLeadCarer: true, allocatedAt: true },
+          orderBy: [{ isLeadCarer: 'desc' }, { allocatedAt: 'asc' }],
+        });
+        carrierAllocationId = leadFirst[0]?.id ?? null;
+      }
+      const carrierRecon =
+        (carrierAllocationId
+          ? siblingRecons.find((s) => s.jobAllocationId === carrierAllocationId)
+          : null) ?? siblingRecons[0];
+      isFunderBillingRow = carrierRecon?.id === id;
+    }
+
+    let approvedBillStart: Date | null;
+    let approvedBillEnd: Date | null;
+    if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
+      approvedBillStart = null;
+      approvedBillEnd = null;
+    } else if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && isFunderBillingRow) {
+      // Always use the visit envelope for FIXED — ignore stale per-carer approved bill windows.
+      const visitBillWindows = resolveDefaultApprovedWindows({
+        plannedStartDateTime: visit.scheduledStartDateTime,
+        plannedEndDateTime: visit.scheduledEndDateTime,
+        actualStartDateTime: visit.actualStartDateTime,
+        actualEndDateTime: visit.actualEndDateTime,
+        exceptions: computedOverrun
+          ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
+          : activeExceptions,
+        overrunDecision,
+      });
+      approvedBillStart = visitBillWindows.approvedBillStart;
+      approvedBillEnd = visitBillWindows.approvedBillEnd;
+    } else {
+      approvedBillStart =
+        computedOverrun != null
+          ? defaultWindows.approvedBillStart
+          : (row.approvedBillStart ?? defaultWindows.approvedBillStart);
+      approvedBillEnd =
+        computedOverrun != null
+          ? defaultWindows.approvedBillEnd
+          : (row.approvedBillEnd ?? defaultWindows.approvedBillEnd);
+    }
 
     const payMinutes = minutesBetween(approvedPayStart, approvedPayEnd);
-    const billMinutes = minutesBetween(approvedBillStart, approvedBillEnd);
+    const billMinutes =
+      approvedBillStart && approvedBillEnd
+        ? minutesBetween(approvedBillStart, approvedBillEnd)
+        : 0;
 
     let payableAmount: number | null = null;
     let billableAmount: number | null = null;
@@ -1166,14 +1322,20 @@ export class VisitReconciliationsService {
         where: { id: chargeCard.id },
         select: { defaultChargeMethod: true },
       });
+      const billRateAnchor =
+        multiCarerMode === 'FIXED' && siblingRecons.length > 1 && isFunderBillingRow
+          ? visit.scheduledStartDateTime
+          : row.plannedStartDateTime;
       const calc = calculateBillableAmount(
         chargeRules,
-        row.plannedStartDateTime,
+        billRateAnchor,
         billMinutes,
         card?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
         isBankHoliday,
       );
       billableAmount = calc?.amount ?? null;
+    } else if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
+      billableAmount = 0;
     }
 
     // Suggest inter-visit travel when not manually recorded (NMW working time between assignments).
@@ -1470,8 +1632,29 @@ export class VisitReconciliationsService {
 
     const payStart = row.approvedPayStart ?? defaults.approvedPayStart;
     const payEnd = row.approvedPayEnd ?? defaults.approvedPayEnd;
-    const billStart = row.approvedBillStart ?? defaults.approvedBillStart;
-    const billEnd = row.approvedBillEnd ?? defaults.approvedBillEnd;
+    const billStart = row.approvedBillStart;
+    const billEnd = row.approvedBillEnd;
+
+    const orgChargeMode = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { multiCarerFunderChargeMode: true },
+    });
+    const multiCarerMode =
+      orgChargeMode?.multiCarerFunderChargeMode === 'FIXED' ? 'FIXED' : 'COMBINED';
+
+    const siblingCount = await this.prisma.visitReconciliation.count({
+      where: { scheduledVisitId: row.scheduledVisitId },
+    });
+    const isMultiCarer = siblingCount > 1;
+    const isFunderBillingRow = Boolean(billStart && billEnd && (row.billableMinutes ?? 0) > 0);
+    let funderChargeNote: string | null = null;
+    if (isMultiCarer && multiCarerMode === 'FIXED') {
+      funderChargeNote = isFunderBillingRow
+        ? 'Fixed visit pay — client charge uses the full visit window (not this carer’s assignment alone).'
+        : 'Fixed visit pay — funder is charged once on the visit window (this carer has £0 client charge).';
+    } else if (isMultiCarer && multiCarerMode === 'COMBINED') {
+      funderChargeNote =
+        'Combined visit pay — client charge is this carer’s hours; sibling carers are charged separately.';
+    }
 
     const plannedMinutes =
       row.plannedEndDateTime != null
@@ -1482,8 +1665,11 @@ export class VisitReconciliationsService {
         ? minutesBetween(row.actualStartDateTime, row.actualEndDateTime)
         : null;
 
-    const payMinutes = minutesBetween(payStart, payEnd);
-    const billMinutes = minutesBetween(billStart, billEnd);
+    const payMinutes =
+      row.payableMinutes ?? minutesBetween(payStart, payEnd);
+    const billMinutes =
+      row.billableMinutes ??
+      (billStart && billEnd ? minutesBetween(billStart, billEnd) : 0);
 
     let carerPay = null;
     let clientCharge = null;
@@ -1512,7 +1698,7 @@ export class VisitReconciliationsService {
       );
     }
 
-    if (row.chargeCardId && billMinutes > 0) {
+    if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
       const [chargeCard, chargeRules] = await Promise.all([
         this.prisma.chargeCard.findUnique({
           where: { id: row.chargeCardId },
@@ -1522,7 +1708,7 @@ export class VisitReconciliationsService {
       ]);
       clientCharge = buildChargeRateBreakdown(
         chargeRules,
-        row.plannedStartDateTime,
+        billStart,
         billMinutes,
         chargeCard?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
         {
@@ -1543,11 +1729,17 @@ export class VisitReconciliationsService {
       billableMinutes: billMinutes,
       payableHours: payMinutes > 0 ? formatMinutesAsHours(payMinutes) : null,
       billableHours: billMinutes > 0 ? formatMinutesAsHours(billMinutes) : null,
+      multiCarerFunderChargeMode: multiCarerMode,
+      isFunderBillingRow,
+      funderChargeNote,
       timeWindows: {
         planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime),
         actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime),
         approvedPayable: formatTimeRange(payStart, payEnd),
-        approvedBillable: formatTimeRange(billStart, billEnd),
+        approvedBillable:
+          billStart && billEnd && billMinutes > 0
+            ? formatTimeRange(billStart, billEnd)
+            : '— (not charged)',
       },
       carerPay,
       clientCharge,

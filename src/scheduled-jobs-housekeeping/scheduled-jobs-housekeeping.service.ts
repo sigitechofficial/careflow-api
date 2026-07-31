@@ -495,15 +495,53 @@ export class ScheduledJobsHousekeepingService {
       visitStatus === ScheduledVisitStatus.PARTIALLY_COMPLETED;
 
     if (completing && (!dto.actualStartDateTime || !dto.actualEndDateTime)) {
-      throw new BadRequestException('Actual start and end times are required when completing a visit');
+      if (!dto.carerActuals?.length) {
+        throw new BadRequestException('Actual start and end times are required when completing a visit');
+      }
     }
 
-    const actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : undefined;
-    const actualEnd = dto.actualEndDateTime
+    let actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : undefined;
+    let actualEnd = dto.actualEndDateTime
       ? new Date(dto.actualEndDateTime)
       : completing && !dto.status
         ? new Date()
         : undefined;
+
+    const carerActualRows: Array<{
+      allocationId: string;
+      start: Date;
+      end: Date;
+    }> = [];
+
+    if (dto.carerActuals?.length) {
+      const activeAllocationIds = new Set(
+        (existing.allocations ?? [])
+          .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
+          .map((a) => a.id),
+      );
+      for (const row of dto.carerActuals) {
+        if (!activeAllocationIds.has(row.allocationId)) {
+          throw new BadRequestException(
+            `Allocation ${row.allocationId} is not an active carer on this visit`,
+          );
+        }
+        const start = new Date(row.actualStartDateTime);
+        const end = new Date(row.actualEndDateTime);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+          throw new BadRequestException('Invalid carer actual start/end time');
+        }
+        if (end.getTime() <= start.getTime()) {
+          throw new BadRequestException(
+            'Each carer actual end time must be later than their start time',
+          );
+        }
+        carerActualRows.push({ allocationId: row.allocationId, start, end });
+      }
+      if (carerActualRows.length) {
+        actualStart = new Date(Math.min(...carerActualRows.map((r) => r.start.getTime())));
+        actualEnd = new Date(Math.max(...carerActualRows.map((r) => r.end.getTime())));
+      }
+    }
 
     if (actualStart && Number.isNaN(actualStart.getTime())) {
       throw new BadRequestException('Invalid actualStartDateTime');
@@ -643,6 +681,16 @@ export class ScheduledJobsHousekeepingService {
           ...(userId ? { updatedById: userId } : {}),
         },
       });
+
+      for (const row of carerActualRows) {
+        await tx.jobAllocation.update({
+          where: { id: row.allocationId },
+          data: {
+            actualStartDateTime: row.start,
+            actualEndDateTime: row.end,
+          },
+        });
+      }
 
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
 

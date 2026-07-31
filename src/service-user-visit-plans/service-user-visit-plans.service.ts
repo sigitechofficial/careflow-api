@@ -2200,6 +2200,7 @@ export class ServiceUserVisitPlansService {
                   userId,
                   scheduledVisitId: existingVisit.id,
                   respectWorkingPattern,
+                  carerWindows,
                 });
                 const resolved = await resolveVisitCarerAssignment(
                   tx,
@@ -2282,6 +2283,7 @@ export class ServiceUserVisitPlansService {
                 userId,
                 scheduledVisitId: existingVisit.id,
                 respectWorkingPattern,
+                carerWindows,
               });
             }
             visitsCreated += 1;
@@ -2370,13 +2372,19 @@ export class ServiceUserVisitPlansService {
               visitsWithRotaConflicts += 1;
               rotaConflictWarnings.push(...resolved.rotaConflictWarnings);
             }
-            const allocations = resolved.employeeIds.map((employeeId, index) => ({
-              employeeId,
-              start,
-              end,
-              durationMinutes,
-              isLeadCarer: index === 0,
-            }));
+            const windowByEmployee = new Map(
+              carerWindows.map((c) => [c.employeeId, c] as const),
+            );
+            const allocations = resolved.employeeIds.map((employeeId, index) => {
+              const carer = windowByEmployee.get(employeeId);
+              return {
+                employeeId,
+                start: carer?.start ?? start,
+                end: carer?.end ?? end,
+                durationMinutes: carer?.durationMinutes ?? durationMinutes,
+                isLeadCarer: carer?.isLeadCarer ?? index === 0,
+              };
+            });
 
             if (allocations.length > 0) {
               for (const carer of allocations) {

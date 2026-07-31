@@ -109,6 +109,14 @@ export type SyncVisitPlanSlotCarersParams = {
   fromDateTime?: Date;
   /** When true (default), only assign carers on days/times that match their working pattern. */
   respectWorkingPattern?: boolean;
+  /** Optional per-carer windows; when present, new allocations inherit these times. */
+  carerWindows?: Array<{
+    employeeId: string;
+    start: Date;
+    end: Date;
+    durationMinutes: number;
+    isLeadCarer?: boolean;
+  }>;
 };
 
 export async function loadEmployeePatternContexts(
@@ -403,6 +411,14 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
     }
 
     for (const employeeId of toAdd) {
+      const carerWindow = params.carerWindows?.find((c) => c.employeeId === employeeId);
+      const start = carerWindow?.start ?? visit.scheduledStartDateTime;
+      const end =
+        carerWindow?.end ??
+        visitEndDateTime(visit.scheduledStartDateTime, visit.scheduledEndDateTime);
+      const durationMinutes =
+        carerWindow?.durationMinutes ??
+        Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
       await tx.jobAllocation.create({
         data: {
           scheduledJobId: jobId,
@@ -413,6 +429,10 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
           allocatedById: params.userId,
           confirmedAt: new Date(),
           confirmedById: params.userId,
+          scheduledStartDateTime: start,
+          scheduledEndDateTime: end,
+          durationMinutes,
+          isLeadCarer: carerWindow?.isLeadCarer ?? false,
         },
       });
     }

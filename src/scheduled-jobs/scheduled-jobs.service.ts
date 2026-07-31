@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import {
   Prisma,
   ScheduledJobPriority as PrismaPriority,
@@ -13,6 +13,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { EcmScheduleVersionService } from '../ecm/ecm-schedule-version.service';
+import { JobAllocationsService } from '../job-allocations/job-allocations.service';
 import {
   assertDateRange,
   assertRequiredCarers,
@@ -86,6 +87,8 @@ export class ScheduledJobsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly ecmScheduleVersions: EcmScheduleVersionService,
+    @Inject(forwardRef(() => JobAllocationsService))
+    private readonly jobAllocations: JobAllocationsService,
   ) {}
 
   async list(query: ScheduledJobQueryDto) {
@@ -269,6 +272,18 @@ export class ScheduledJobsService {
         data: this.jobDataFromDto(dto, userId, false),
         include: jobInclude,
       });
+      if (
+        dto.scheduledStartDateTime !== undefined ||
+        dto.scheduledEndDateTime !== undefined
+      ) {
+        await this.jobAllocations.syncAllocationTimingsToJobWindow(tx, {
+          scheduledJobId: id,
+          previousJob: existing,
+          nextJob: updated,
+          userId,
+          meta,
+        });
+      }
       await this.audit.logAudit({
         tx,
         userId,

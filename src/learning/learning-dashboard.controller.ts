@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -15,7 +15,7 @@ export class LearningDashboardController {
   @Get('summary')
   @Permissions('learning.dashboard.read')
   @ApiOperation({ summary: 'Learning dashboard KPI summary' })
-  summary() {
-    return this.service.summary();
+  summary(@Query('locationId') locationId?: string) {
+    return this.service.summary(locationId);
   }
 }

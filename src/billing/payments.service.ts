@@ -14,8 +14,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   AddPaymentAllocationDto,
   CreatePaymentDto,
+  PaymentsQueryDto,
 } from './dto/payments.dto';
 import { formatMoney, parseBillingDateOnly } from './billing-run.util';
+import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const RECEIVABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.LOCKED,
@@ -76,8 +78,29 @@ export type OutstandingInvoiceRun = {
 export class PaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list() {
+  async list(query?: PaymentsQueryDto) {
+    const where: Prisma.PaymentWhereInput = {};
+    if (query?.locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, query.locationId);
+      where.OR = [
+        { allocations: { none: {} } },
+        ...(suIds.length
+          ? [
+              {
+                allocations: {
+                  some: {
+                    invoiceRun: {
+                      lines: { some: { serviceUserId: { in: suIds } } },
+                    },
+                  },
+                },
+              },
+            ]
+          : []),
+      ];
+    }
     const rows = await this.prisma.payment.findMany({
+      where,
       orderBy: [{ receivedDate: 'desc' }, { createdAt: 'desc' }],
     });
     return { data: rows.map((r) => this.mapRow(r)) };
@@ -116,8 +139,8 @@ export class PaymentsService {
     };
   }
 
-  async listOutstandingInvoiceRuns() {
-    const rows = await this.loadReceivableInvoiceRuns();
+  async listOutstandingInvoiceRuns(locationId?: string) {
+    const rows = await this.loadReceivableInvoiceRuns(locationId);
     return {
       data: rows
         .map((row) => this.mapOutstandingInvoiceRun(row))
@@ -399,9 +422,21 @@ export class PaymentsService {
     });
   }
 
-  private async loadReceivableInvoiceRuns() {
+  private async loadReceivableInvoiceRuns(locationId?: string) {
+    const where: Prisma.InvoiceRunWhereInput = {
+      status: { in: RECEIVABLE_STATUSES },
+    };
+    if (locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, locationId);
+      where.OR = [
+        { lines: { none: {} } },
+        ...(suIds.length
+          ? [{ lines: { some: { serviceUserId: { in: suIds } } } }]
+          : []),
+      ];
+    }
     const invoiceRuns = await this.prisma.invoiceRun.findMany({
-      where: { status: { in: RECEIVABLE_STATUSES } },
+      where,
       include: { paymentAllocations: true },
       orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
     });

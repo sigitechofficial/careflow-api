@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -120,7 +121,8 @@ export class EmployeeAppHomeService {
     ]);
 
     const now = new Date();
-    const visitRows = jobs.map((job) => {
+    const visitRows = allocations.map((allocation) => {
+      const job = allocation.scheduledJob;
       const primaryVisit = job.visits[0] ?? null;
       const su = job.serviceUser;
       const clientName =
@@ -130,10 +132,15 @@ export class EmployeeAppHomeService {
       const medicationCount = medCounts.get(job.serviceUserId) ?? 0;
       const taskProgress = taskProgressByJobId.get(job.id) ?? { completed: 0, total: 0 };
       const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
-      const startAt = primaryVisit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
-      const endAt = primaryVisit?.scheduledEndDateTime ?? job.scheduledEndDateTime ?? null;
+      const resolved = resolveAllocationWindow(allocation, {
+        scheduledStartDateTime: job.scheduledStartDateTime,
+        scheduledEndDateTime: job.scheduledEndDateTime,
+        estimatedDurationMinutes: job.estimatedDurationMinutes,
+      });
+      const startAt = resolved.start;
+      const endAt = resolved.end;
       const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = endAt ? formatHmUtc(endAt) : null;
+      const scheduledEnd = formatHmUtc(endAt);
       const visitTypeLong =
         primaryVisit?.visitName?.trim() ||
         su.careType?.name?.trim() ||

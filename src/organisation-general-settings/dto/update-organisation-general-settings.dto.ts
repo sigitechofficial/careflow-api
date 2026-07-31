@@ -32,6 +32,7 @@ const DATE_DISPLAY_FORMATS = ['DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'] as const
 const DEFAULT_CARER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
 const HOLIDAY_UNITS = ['HOURS', 'DAYS'] as const;
 const SALARY_CALCULATION_BASES = ['MONTHLY', 'WEEKLY'] as const;
+const MULTI_CARER_FUNDER_CHARGE_MODES = ['COMBINED', 'FIXED'] as const;
 const COMPLIANCE_REQUIRED_BY = ['ROLE_WORK_AREA', 'CITIZENSHIP'] as const;
 const COMPLIANCE_APPROVAL_TYPES = ['MANAGER_APPROVAL', 'HR_APPROVAL'] as const;
 const WELLBEING_REGULARITIES = ['DAILY', 'WEEKLY', 'MONTHLY'] as const;
@@ -107,6 +108,15 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsIn(SALARY_CALCULATION_BASES)
   salaryCalculationBasis?: (typeof SALARY_CALCULATION_BASES)[number];
+
+  @ApiPropertyOptional({
+    enum: MULTI_CARER_FUNDER_CHARGE_MODES,
+    description:
+      'COMBINED (default): funder charged for each carer hour sum. FIXED: funder charged once for visit window length.',
+  })
+  @IsOptional()
+  @IsIn(MULTI_CARER_FUNDER_CHARGE_MODES)
+  multiCarerFunderChargeMode?: (typeof MULTI_CARER_FUNDER_CHARGE_MODES)[number];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -351,6 +361,11 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsBoolean()
   domShowServiceUserName?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  domShowBlockedCarersInSchedule?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

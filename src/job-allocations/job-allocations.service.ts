@@ -11,7 +11,10 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { ensureActiveEmployee } from '../scheduling/scheduling-validation.util';
+import {
+  ensureActiveEmployee,
+  parseIsoDateTime,
+} from '../scheduling/scheduling-validation.util';
 import { AllocationChecksService } from './allocation-checks.service';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
@@ -19,6 +22,15 @@ import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
+import { UpdateAllocationTimingDto } from './dto/update-allocation-timing.dto';
+import {
+  durationMinutesBetween,
+  isInheritedAllocationTiming,
+  resolveAllocationWindow,
+  resolveVisitWindow,
+  validateAllocationTimingWithinVisit,
+} from './allocation-window.util';
+
 const allocationInclude = {
   scheduledJob: {
     select: {
@@ -28,6 +40,8 @@ const allocationInclude = {
       requiredCarers: true,
       status: true,
       scheduledStartDateTime: true,
+      scheduledEndDateTime: true,
+      estimatedDurationMinutes: true,
     },
   },
   scheduledVisit: { select: { id: true, visitName: true } },
@@ -61,11 +75,145 @@ export class JobAllocationsService {
     scheduledEndDateTime: Date | null;
     estimatedDurationMinutes: number | null;
   }): { start: Date; end: Date } {
-    const start = job.scheduledStartDateTime;
-    const end =
-      job.scheduledEndDateTime ??
-      new Date(start.getTime() + (job.estimatedDurationMinutes ?? 60) * 60_000);
-    return { start, end };
+    return resolveVisitWindow(job);
+  }
+
+  private resolveAssignmentTimesFromDto(
+    job: {
+      scheduledStartDateTime: Date;
+      scheduledEndDateTime: Date | null;
+      estimatedDurationMinutes: number | null;
+    },
+    dto: {
+      scheduledStartDateTime?: string;
+      scheduledEndDateTime?: string;
+    },
+    carerLabel?: string,
+  ): { start: Date; end: Date; durationMinutes: number } {
+    const envelope = this.jobWindow(job);
+    const hasStart = dto.scheduledStartDateTime != null && dto.scheduledStartDateTime !== '';
+    const hasEnd = dto.scheduledEndDateTime != null && dto.scheduledEndDateTime !== '';
+    if (hasStart !== hasEnd) {
+      throw new BadRequestException(
+        'Both scheduledStartDateTime and scheduledEndDateTime are required when setting assignment timing',
+      );
+    }
+    const start = hasStart
+      ? parseIsoDateTime(dto.scheduledStartDateTime!, 'scheduledStartDateTime')
+      : envelope.start;
+    const end = hasEnd
+      ? parseIsoDateTime(dto.scheduledEndDateTime!, 'scheduledEndDateTime')
+      : envelope.end;
+    const errors = validateAllocationTimingWithinVisit({
+      assignmentStart: start,
+      assignmentEnd: end,
+      visitStart: envelope.start,
+      visitEnd: envelope.end,
+      carerLabel,
+    });
+    if (errors.length) {
+      throw new BadRequestException({
+        message: errors[0]!.message,
+        errors: errors.map((e) => ({ property: e.field, message: e.message })),
+      });
+    }
+    return { start, end, durationMinutes: durationMinutesBetween(start, end) };
+  }
+
+  /**
+   * When the job visit window changes: update inherited allocations to the new
+   * window; reject if a customized assignment falls outside the new window.
+   */
+  async syncAllocationTimingsToJobWindow(
+    tx: Prisma.TransactionClient,
+    params: {
+      scheduledJobId: string;
+      previousJob: {
+        scheduledStartDateTime: Date;
+        scheduledEndDateTime: Date | null;
+        estimatedDurationMinutes: number | null;
+      };
+      nextJob: {
+        scheduledStartDateTime: Date;
+        scheduledEndDateTime: Date | null;
+        estimatedDurationMinutes: number | null;
+      };
+      userId: string;
+      meta?: RequestAuditMeta;
+    },
+  ): Promise<void> {
+    const allocations = await tx.jobAllocation.findMany({
+      where: {
+        scheduledJobId: params.scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_STATUSES },
+      },
+    });
+    if (!allocations.length) return;
+
+    const nextWindow = resolveVisitWindow(params.nextJob);
+    const outside: string[] = [];
+
+    for (const allocation of allocations) {
+      const inherited = isInheritedAllocationTiming(allocation, params.previousJob);
+      if (inherited) {
+        const updated = await tx.jobAllocation.update({
+          where: { id: allocation.id },
+          data: {
+            scheduledStartDateTime: nextWindow.start,
+            scheduledEndDateTime: nextWindow.end,
+            durationMinutes: durationMinutesBetween(nextWindow.start, nextWindow.end),
+          },
+        });
+        await this.audit.logAudit({
+          tx,
+          userId: params.userId,
+          module: AuditModule.SCHEDULING,
+          action: AuditAction.JOB_ALLOCATION_UPDATED,
+          recordType: 'JobAllocation',
+          recordId: allocation.id,
+          oldValues: auditSnapshot({
+            scheduledStartDateTime: allocation.scheduledStartDateTime,
+            scheduledEndDateTime: allocation.scheduledEndDateTime,
+          }),
+          newValues: auditSnapshot({
+            scheduledStartDateTime: updated.scheduledStartDateTime,
+            scheduledEndDateTime: updated.scheduledEndDateTime,
+          }),
+          metadata: {
+            scheduledJobId: params.scheduledJobId,
+            reason: 'inherited_from_job_window',
+          },
+          ipAddress: params.meta?.ipAddress,
+          userAgent: params.meta?.userAgent,
+        });
+        continue;
+      }
+
+      const resolved = resolveAllocationWindow(allocation, params.nextJob);
+      const errors = validateAllocationTimingWithinVisit({
+        assignmentStart: resolved.start,
+        assignmentEnd: resolved.end,
+        visitStart: nextWindow.start,
+        visitEnd: nextWindow.end,
+      });
+      if (errors.length) {
+        outside.push(allocation.employeeId);
+      }
+    }
+
+    if (outside.length) {
+      throw new BadRequestException({
+        message:
+          'One or more carer assignment times fall outside the new visit window. Correct assignment timings before saving.',
+        errors: outside.map((employeeId) => ({
+          property: 'allocations',
+          employeeId,
+          message: 'Assignment timing is outside the updated visit window',
+        })),
+      });
+    }
   }
 
   async list(query: AllocationQueryDto) {
@@ -186,14 +334,14 @@ export class JobAllocationsService {
       if (!visit) throw new BadRequestException('Scheduled visit not found for this job');
     }
 
-    const { start, end } = this.jobWindow(job);
+    const assignment = this.resolveAssignmentTimesFromDto(job, dto);
     const warnings = await this.checks.runAllChecks({
       scheduledJobId,
       scheduledVisitId: dto.scheduledVisitId,
       employeeId: dto.employeeId,
       serviceUserId: job.serviceUserId,
-      jobStart: start,
-      jobEnd: end,
+      jobStart: assignment.start,
+      jobEnd: assignment.end,
       jobMetadata: job.metadata,
     });
 
@@ -228,6 +376,19 @@ export class JobAllocationsService {
     const warningMessages = warnings.map((w) => w.message);
 
     return this.prisma.$transaction(async (tx) => {
+      if (dto.isLeadCarer) {
+        await tx.jobAllocation.updateMany({
+          where: {
+            scheduledJobId,
+            deletedAt: null,
+            isActive: true,
+            status: { in: ACTIVE_STATUSES },
+            isLeadCarer: true,
+          },
+          data: { isLeadCarer: false },
+        });
+      }
+
       const created = await tx.jobAllocation.create({
         data: {
           scheduledJobId,
@@ -241,6 +402,10 @@ export class JobAllocationsService {
           allocatedById: userId,
           confirmedAt: status === PrismaAllocationStatus.CONFIRMED ? new Date() : null,
           confirmedById: status === PrismaAllocationStatus.CONFIRMED ? userId : null,
+          scheduledStartDateTime: assignment.start,
+          scheduledEndDateTime: assignment.end,
+          durationMinutes: assignment.durationMinutes,
+          isLeadCarer: Boolean(dto.isLeadCarer),
         },
         include: allocationInclude,
       });
@@ -305,6 +470,8 @@ export class JobAllocationsService {
           scheduledJobId,
           jobName: job.jobName,
           serviceUserId: job.serviceUserId,
+          scheduledStartDateTime: assignment.start,
+          scheduledEndDateTime: assignment.end,
         });
       }
 
@@ -374,11 +541,14 @@ export class JobAllocationsService {
         userAgent: meta?.userAgent,
       });
 
+      const resolved = resolveAllocationWindow(allocation, allocation.scheduledJob);
       void this.notifications.notifyAllocated({
         employeeId: allocation.employeeId,
         scheduledJobId,
         jobName: allocation.scheduledJob.jobName,
         serviceUserId: allocation.scheduledJob.serviceUserId,
+        scheduledStartDateTime: resolved.start,
+        scheduledEndDateTime: resolved.end,
       });
 
       return {
@@ -453,7 +623,145 @@ export class JobAllocationsService {
     });
   }
 
+  async updateTiming(
+    userId: string,
+    scheduledJobId: string,
+    allocationId: string,
+    dto: UpdateAllocationTimingDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const allocation = await this.prisma.jobAllocation.findFirst({
+      where: { id: allocationId, scheduledJobId, deletedAt: null, isActive: true },
+      include: allocationInclude,
+    });
+    if (!allocation) throw new NotFoundException('Job allocation not found');
+    if (!ACTIVE_STATUSES.includes(allocation.status)) {
+      throw new BadRequestException('Only active allocations can be updated');
+    }
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: scheduledJobId, deletedAt: null },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const timingTouched =
+      dto.scheduledStartDateTime !== undefined || dto.scheduledEndDateTime !== undefined;
+    const assignment = timingTouched
+      ? this.resolveAssignmentTimesFromDto(
+          job,
+          {
+            scheduledStartDateTime:
+              dto.scheduledStartDateTime ??
+              allocation.scheduledStartDateTime?.toISOString() ??
+              undefined,
+            scheduledEndDateTime:
+              dto.scheduledEndDateTime ??
+              allocation.scheduledEndDateTime?.toISOString() ??
+              undefined,
+          },
+          allocation.employee.personalDetail
+            ? `${allocation.employee.personalDetail.firstName} ${allocation.employee.personalDetail.lastName}`.trim()
+            : undefined,
+        )
+      : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.isLeadCarer === true) {
+        await tx.jobAllocation.updateMany({
+          where: {
+            scheduledJobId,
+            deletedAt: null,
+            isActive: true,
+            status: { in: ACTIVE_STATUSES },
+            isLeadCarer: true,
+            id: { not: allocationId },
+          },
+          data: { isLeadCarer: false },
+        });
+      }
+
+      const updated = await tx.jobAllocation.update({
+        where: { id: allocationId },
+        data: {
+          ...(assignment
+            ? {
+                scheduledStartDateTime: assignment.start,
+                scheduledEndDateTime: assignment.end,
+                durationMinutes: assignment.durationMinutes,
+              }
+            : {}),
+          ...(dto.isLeadCarer !== undefined ? { isLeadCarer: dto.isLeadCarer } : {}),
+          ...(dto.notes !== undefined ? { notes: dto.notes.trim() || null } : {}),
+        },
+        include: allocationInclude,
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.JOB_ALLOCATION_UPDATED,
+        recordType: 'JobAllocation',
+        recordId: allocationId,
+        oldValues: auditSnapshot({
+          scheduledStartDateTime: allocation.scheduledStartDateTime,
+          scheduledEndDateTime: allocation.scheduledEndDateTime,
+          durationMinutes: allocation.durationMinutes,
+          isLeadCarer: allocation.isLeadCarer,
+          notes: allocation.notes,
+        }),
+        newValues: auditSnapshot({
+          scheduledStartDateTime: updated.scheduledStartDateTime,
+          scheduledEndDateTime: updated.scheduledEndDateTime,
+          durationMinutes: updated.durationMinutes,
+          isLeadCarer: updated.isLeadCarer,
+          notes: updated.notes,
+        }),
+        metadata: {
+          scheduledJobId,
+          employeeId: allocation.employeeId,
+          serviceUserId: job.serviceUserId,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      return {
+        message: 'Allocation updated',
+        data: this.mapAllocation(updated),
+      };
+    });
+  }
+
+  async setLeadCarer(
+    userId: string,
+    scheduledJobId: string,
+    employeeId: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const allocation = await this.prisma.jobAllocation.findFirst({
+      where: {
+        scheduledJobId,
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_STATUSES },
+      },
+      include: allocationInclude,
+    });
+    if (!allocation) throw new NotFoundException('Active allocation not found for this employee');
+
+    return this.updateTiming(
+      userId,
+      scheduledJobId,
+      allocation.id,
+      { isLeadCarer: true },
+      meta,
+    );
+  }
+
   mapAllocation(row: Prisma.JobAllocationGetPayload<{ include: typeof allocationInclude }>) {
+    const resolved = resolveAllocationWindow(row, row.scheduledJob);
     return {
       id: row.id,
       scheduledJobId: row.scheduledJobId,
@@ -471,6 +779,14 @@ export class JobAllocationsService {
       unallocatedAt: row.unallocatedAt?.toISOString() ?? null,
       unallocationReason: row.unallocationReason,
       isActive: row.isActive,
+      isLeadCarer: row.isLeadCarer,
+      scheduledStartDateTime: row.scheduledStartDateTime?.toISOString() ?? null,
+      scheduledEndDateTime: row.scheduledEndDateTime?.toISOString() ?? null,
+      durationMinutes: row.durationMinutes,
+      resolvedStartDateTime: resolved.start.toISOString(),
+      resolvedEndDateTime: resolved.end.toISOString(),
+      resolvedDurationMinutes: resolved.durationMinutes,
+      hasExplicitTiming: resolved.hasExplicitTiming,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       scheduledJob: row.scheduledJob,

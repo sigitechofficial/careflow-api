@@ -15,6 +15,7 @@ import {
   CreateBillingRunDto,
   CreateEmployeeSalaryDeductionDto,
   EmployeeEarningsQueryDto,
+  BillingRunsQueryDto,
 } from './dto/billing-runs.dto';
 import {
   endOfBillingDate,
@@ -55,6 +56,7 @@ import {
   resolveEmonitored,
   type PayrollVisitExportRow,
 } from './payroll-run-export-csv.util';
+import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const MUTABLE_STATUSES: PayrollRunStatus[] = [
   PayrollRunStatus.DRAFT,
@@ -174,26 +176,61 @@ export type PayrollRunRow = {
 export class PayrollRunsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list() {
+  async list(query?: BillingRunsQueryDto) {
+    const where: Prisma.PayrollRunWhereInput = {};
+    if (query?.locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, query.locationId);
+      where.OR = [
+        { lines: { none: {} } },
+        ...(suIds.length
+          ? [
+              {
+                lines: {
+                  some: {
+                    visitReconciliation: { serviceUserId: { in: suIds } },
+                  },
+                },
+              },
+            ]
+          : []),
+      ];
+    }
     const rows = await this.prisma.payrollRun.findMany({
+      where,
       orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
     });
     return { data: rows.map((r) => this.mapRow(r)) };
   }
 
-  async getSummary() {
-    const drafts = await this.prisma.payrollRun.count({
-      where: {
-        status: {
-          in: [
-            PayrollRunStatus.DRAFT,
-            PayrollRunStatus.CALCULATING,
-            PayrollRunStatus.EXCEPTION_FOUND,
-            PayrollRunStatus.READY_FOR_REVIEW,
-          ],
-        },
+  async getSummary(locationId?: string) {
+    const where: Prisma.PayrollRunWhereInput = {
+      status: {
+        in: [
+          PayrollRunStatus.DRAFT,
+          PayrollRunStatus.CALCULATING,
+          PayrollRunStatus.EXCEPTION_FOUND,
+          PayrollRunStatus.READY_FOR_REVIEW,
+        ],
       },
-    });
+    };
+    if (locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, locationId);
+      where.OR = [
+        { lines: { none: {} } },
+        ...(suIds.length
+          ? [
+              {
+                lines: {
+                  some: {
+                    visitReconciliation: { serviceUserId: { in: suIds } },
+                  },
+                },
+              },
+            ]
+          : []),
+      ];
+    }
+    const drafts = await this.prisma.payrollRun.count({ where });
     return { data: { payrollDrafts: drafts } };
   }
 

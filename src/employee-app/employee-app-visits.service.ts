@@ -30,6 +30,7 @@ import { validateObservationCreate } from '../service-user-observations/observat
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import {
@@ -107,6 +108,9 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         id: true;
         status: true;
         employeeId: true;
+        scheduledStartDateTime: true;
+        scheduledEndDateTime: true;
+        durationMinutes: true;
         employee: {
           select: {
             id: true;
@@ -903,6 +907,9 @@ export class EmployeeAppVisitsService {
             id: true,
             status: true,
             employeeId: true,
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
+            durationMinutes: true,
             employee: {
               select: {
                 id: true,
@@ -959,10 +966,25 @@ export class EmployeeAppVisitsService {
     const su = ctx.job.serviceUser;
     const visit = ctx.primaryVisit;
     const fullName = displayName(su.firstName, su.lastName);
-    const scheduledStart = formatHmUtc(visit.scheduledStartDateTime);
-    const scheduledEnd = visit.scheduledEndDateTime
-      ? formatHmUtc(visit.scheduledEndDateTime)
+    const myAllocation = employeeId
+      ? ctx.job.allocations.find((a) => a.employeeId === employeeId)
       : null;
+    const resolved = resolveAllocationWindow(
+      myAllocation
+        ? {
+            scheduledStartDateTime: myAllocation.scheduledStartDateTime ?? null,
+            scheduledEndDateTime: myAllocation.scheduledEndDateTime ?? null,
+            durationMinutes: myAllocation.durationMinutes ?? null,
+          }
+        : null,
+      {
+        scheduledStartDateTime: visit.scheduledStartDateTime,
+        scheduledEndDateTime: visit.scheduledEndDateTime,
+        estimatedDurationMinutes: ctx.job.estimatedDurationMinutes,
+      },
+    );
+    const scheduledStart = formatHmUtc(resolved.start);
+    const scheduledEnd = formatHmUtc(resolved.end);
     const checkedInAt =
       visit.actualStartDateTime ??
       (ctx.checkIn?.checkedInAt ? new Date(String(ctx.checkIn.checkedInAt)) : null);

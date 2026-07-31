@@ -13,6 +13,20 @@ import {
 import { ScheduledVisitStatus } from '../../scheduled-visits/enums/scheduled-visit-status.enum';
 import { DeliveredCarePlanDetailDto } from './delivered-care-plan-detail.dto';
 
+export class CompleteJobCarerActualDto {
+  @ApiPropertyOptional({ description: 'Job allocation id for this carer' })
+  @IsUUID()
+  allocationId!: string;
+
+  @ApiPropertyOptional({ description: 'Carer actual start (ISO 8601)' })
+  @IsISO8601()
+  actualStartDateTime!: string;
+
+  @ApiPropertyOptional({ description: 'Carer actual end (ISO 8601)' })
+  @IsISO8601()
+  actualEndDateTime!: string;
+}
+
 export class CompleteJobDto {
   @ApiPropertyOptional({
     enum: ScheduledVisitStatus,
@@ -55,10 +69,24 @@ export class CompleteJobDto {
   @IsISO8601()
   actualStartDateTime?: string;
 
-  @ApiPropertyOptional({ description: 'Actual visit end time (ISO 8601); defaults to now when completing without an end time' })
+  @ApiPropertyOptional({
+    description:
+      'Actual visit end time (ISO 8601); defaults to now when completing without an end time',
+  })
   @IsOptional()
   @IsISO8601()
   actualEndDateTime?: string;
+
+  @ApiPropertyOptional({
+    type: [CompleteJobCarerActualDto],
+    description:
+      'Optional per-carer actual times for multi-carer visits. Visit-level actuals become the envelope (earliest start / latest end).',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CompleteJobCarerActualDto)
+  carerActuals?: CompleteJobCarerActualDto[];
 
   @ApiPropertyOptional({
     description: 'Required when actual duration exceeds planned duration — why the visit ran longer',

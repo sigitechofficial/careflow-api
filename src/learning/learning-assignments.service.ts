@@ -156,12 +156,41 @@ export class LearningAssignmentsService {
     return { skipped: false as const, assignment };
   }
 
+  private async employeeIdsForLocation(locationId: string): Promise<string[]> {
+    const rows = await this.prisma.employeeEmployment.findMany({
+      where: {
+        OR: [
+          { locationId },
+          { baseLocationId: locationId },
+          { floorLocations: { some: { locationId } } },
+        ],
+      },
+      select: { employeeId: true },
+    });
+    return [...new Set(rows.map((r) => r.employeeId))];
+  }
+
   async list(query: LearningListQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
+    const where: Prisma.LearningAssignmentWhereInput = {
+      employeeId: { not: null },
+    };
+
+    if (query.locationId) {
+      where.OR = [
+        { locationId: query.locationId },
+        {
+          employeeId: {
+            in: await this.employeeIdsForLocation(query.locationId),
+          },
+        },
+      ];
+    }
+
     const [rows, total] = await Promise.all([
       this.prisma.learningAssignment.findMany({
-        where: { employeeId: { not: null } },
+        where,
         include: {
           course: { select: { title: true, code: true } },
         },
@@ -169,7 +198,7 @@ export class LearningAssignmentsService {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.learningAssignment.count({ where: { employeeId: { not: null } } }),
+      this.prisma.learningAssignment.count({ where }),
     ]);
 
     const employeeIds = [...new Set(rows.map((r) => r.employeeId).filter(Boolean))] as string[];

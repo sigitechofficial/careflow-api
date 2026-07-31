@@ -19,6 +19,10 @@ import {
   parseDomCareAllocationRules,
   type DomCareAllocationRule,
 } from '../organisation-general-settings/dom-care-allocation-rules.util';
+import {
+  intervalsOverlap,
+  resolveAllocationWindow,
+} from './allocation-window.util';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -268,7 +272,9 @@ export class AllocationChecksService {
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
   ): Promise<void> {
-    const overlapping = await this.prisma.jobAllocation.findMany({
+    // Broad job-window query, then filter by each allocation's resolved timing
+    // so staggered multi-carer visits do not falsely block.
+    const candidates = await this.prisma.jobAllocation.findMany({
       where: {
         employeeId: ctx.employeeId,
         deletedAt: null,
@@ -289,9 +295,25 @@ export class AllocationChecksService {
           ],
         },
       },
-      include: { scheduledJob: { select: { id: true, jobName: true, scheduledStartDateTime: true } } },
-      take: 5,
+      include: {
+        scheduledJob: {
+          select: {
+            id: true,
+            jobName: true,
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
+            estimatedDurationMinutes: true,
+          },
+        },
+      },
+      take: 20,
     });
+
+    const overlapping = candidates.filter((row) => {
+      const other = resolveAllocationWindow(row, row.scheduledJob);
+      return intervalsOverlap(ctx.jobStart, ctx.jobEnd, other.start, other.end);
+    });
+
     if (overlapping.length) {
       push({
         type: AllocationWarningType.TIME_CONFLICT,
@@ -341,9 +363,8 @@ export class AllocationChecksService {
 
     let totalHours = 0;
     for (const a of allocations) {
-      const j = a.scheduledJob;
-      const end = j.scheduledEndDateTime ?? new Date(j.scheduledStartDateTime.getTime() + (j.estimatedDurationMinutes ?? 60) * 60_000);
-      totalHours += (end.getTime() - j.scheduledStartDateTime.getTime()) / 3_600_000;
+      const window = resolveAllocationWindow(a, a.scheduledJob);
+      totalHours += (window.end.getTime() - window.start.getTime()) / 3_600_000;
     }
     const jobHours =
       (ctx.jobEnd.getTime() - ctx.jobStart.getTime()) / 3_600_000 || 1;

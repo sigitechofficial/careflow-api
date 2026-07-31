@@ -14,6 +14,7 @@ export type EcmGraphDashboardQuery = {
   dateFrom?: string;
   dateTo?: string;
   scheduleAreaId?: string;
+  locationId?: string;
 };
 
 type DrillVisit = {
@@ -216,6 +217,9 @@ export class EcmGraphAnalyticsService {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
+        ...(query.locationId
+          ? { scheduleArea: { locationId: query.locationId } }
+          : {}),
       },
     };
 

@@ -64,8 +64,14 @@ export class EcmVisitsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('scheduleAreaId') scheduleAreaId?: string,
+    @Query('locationId') locationId?: string,
   ) {
-    return this.graphAnalytics.graphDashboard({ dateFrom, dateTo, scheduleAreaId });
+    return this.graphAnalytics.graphDashboard({
+      dateFrom,
+      dateTo,
+      scheduleAreaId,
+      locationId,
+    });
   }
 
   @Get('reports/daily-operations')
@@ -74,12 +80,14 @@ export class EcmVisitsController {
   dailyOps(
     @Query('date') date?: string,
     @Query('scheduleAreaId') scheduleAreaId?: string,
+    @Query('locationId') locationId?: string,
     @Query('serviceUserId') serviceUserId?: string,
     @Query('criticality') criticality?: string,
   ) {
     return this.reports.dailyOperations({
       dateFrom: date,
       scheduleAreaId,
+      locationId,
       serviceUserId,
       criticality,
     });

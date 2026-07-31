@@ -27,6 +27,13 @@ export class EcmLiveDashboardQueryDto {
   @IsUUID()
   scheduleAreaId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Organisation location id — filters jobs whose schedule area belongs to this location',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

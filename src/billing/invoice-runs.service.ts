@@ -21,6 +21,8 @@ import {
   splitAmount,
 } from './billing-run.util';
 import { InvoiceTemplatesService } from './invoice-templates.service';
+import { BillingRunsQueryDto } from './dto/billing-runs.dto';
+import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const MUTABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.DRAFT,
@@ -53,26 +55,45 @@ export class InvoiceRunsService {
     private readonly invoiceTemplates: InvoiceTemplatesService,
   ) {}
 
-  async list() {
+  async list(query?: BillingRunsQueryDto) {
+    const where: Prisma.InvoiceRunWhereInput = {};
+    if (query?.locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, query.locationId);
+      where.OR = [
+        { lines: { none: {} } },
+        ...(suIds.length
+          ? [{ lines: { some: { serviceUserId: { in: suIds } } } }]
+          : []),
+      ];
+    }
     const rows = await this.prisma.invoiceRun.findMany({
+      where,
       orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
     });
     return { data: rows.map((r) => this.mapRow(r)) };
   }
 
-  async getSummary() {
-    const drafts = await this.prisma.invoiceRun.count({
-      where: {
-        status: {
-          in: [
-            InvoiceRunStatus.DRAFT,
-            InvoiceRunStatus.CALCULATING,
-            InvoiceRunStatus.EXCEPTION_FOUND,
-            InvoiceRunStatus.READY_FOR_REVIEW,
-          ],
-        },
+  async getSummary(locationId?: string) {
+    const where: Prisma.InvoiceRunWhereInput = {
+      status: {
+        in: [
+          InvoiceRunStatus.DRAFT,
+          InvoiceRunStatus.CALCULATING,
+          InvoiceRunStatus.EXCEPTION_FOUND,
+          InvoiceRunStatus.READY_FOR_REVIEW,
+        ],
       },
-    });
+    };
+    if (locationId) {
+      const suIds = await serviceUserIdsForLocation(this.prisma, locationId);
+      where.OR = [
+        { lines: { none: {} } },
+        ...(suIds.length
+          ? [{ lines: { some: { serviceUserId: { in: suIds } } } }]
+          : []),
+      ];
+    }
+    const drafts = await this.prisma.invoiceRun.count({ where });
     return { data: { invoiceDrafts: drafts } };
   }
 
@@ -360,6 +381,13 @@ export class InvoiceRunsService {
     await this.invoiceTemplates.ensureOrganisationDefaultTemplate();
 
     for (const recon of reconciliations) {
+      const billMins = recon.billableMinutes ?? 0;
+      const billAmt = recon.billableAmount != null ? Number(recon.billableAmount) : 0;
+      // FIXED multi-carer mode zeroes secondary carers — skip empty charge lines.
+      if (billMins <= 0 && billAmt <= 0) {
+        continue;
+      }
+
       const issues: string[] = [];
       if (recon.billableAmount == null) issues.push('Billable amount not calculated');
       if (!recon.approvedBillStart || !recon.approvedBillEnd) {

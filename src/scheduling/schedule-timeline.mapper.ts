@@ -2,6 +2,7 @@ import { AllocationStatus, type Prisma } from '@prisma/client';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { jobDurationMinutes } from './schedule-date-range.util';
 import { assessVisitDeliveryFromJobLike } from './visit-delivery-assessment.util';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -187,14 +188,31 @@ export function mapTimelineJob(row: TimelineJobRow) {
   const primaryVisit = row.visits[0];
   const actualStartDateTime = primaryVisit?.actualStartDateTime?.toISOString() ?? null;
   const actualEndDateTime = primaryVisit?.actualEndDateTime?.toISOString() ?? null;
-  const allocations = row.allocations.map((a) => ({
-    id: a.id,
-    employeeId: a.employeeId,
-    status: a.status,
-    requiresConfirmation: a.requiresConfirmation,
-    allocatedAt: a.allocatedAt.toISOString(),
-    employee: mapEmployeeBrief(a.employee),
-  }));
+  const allocations = row.allocations.map((a) => {
+    const resolved = resolveAllocationWindow(a, {
+      scheduledStartDateTime: row.scheduledStartDateTime,
+      scheduledEndDateTime: row.scheduledEndDateTime,
+      estimatedDurationMinutes: row.estimatedDurationMinutes,
+    });
+    return {
+      id: a.id,
+      employeeId: a.employeeId,
+      status: a.status,
+      requiresConfirmation: a.requiresConfirmation,
+      isLeadCarer: a.isLeadCarer,
+      allocatedAt: a.allocatedAt.toISOString(),
+      scheduledStartDateTime: a.scheduledStartDateTime?.toISOString() ?? null,
+      scheduledEndDateTime: a.scheduledEndDateTime?.toISOString() ?? null,
+      durationMinutes: a.durationMinutes,
+      actualStartDateTime: a.actualStartDateTime?.toISOString() ?? null,
+      actualEndDateTime: a.actualEndDateTime?.toISOString() ?? null,
+      resolvedStartDateTime: resolved.start.toISOString(),
+      resolvedEndDateTime: resolved.end.toISOString(),
+      resolvedDurationMinutes: resolved.durationMinutes,
+      hasExplicitTiming: resolved.hasExplicitTiming,
+      employee: mapEmployeeBrief(a.employee),
+    };
+  });
 
   const mapped = {
     id: row.id,

@@ -69,6 +69,7 @@ type SettingsRow = {
   mandateComplianceForNewEmployees: boolean;
   defaultHolidaysUnit: string;
   salaryCalculationBasis: string;
+  multiCarerFunderChargeMode: string;
   recruitmentFunctionalityRequired: boolean;
   complianceRequiredBy: string;
   complianceApprovalForNewEmployee: string;
@@ -109,6 +110,7 @@ type SettingsRow = {
   domAutoExtendRotaRunHour: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
+  domShowBlockedCarersInSchedule: boolean;
   domLateVisitAlertRequired: boolean;
   domLateVisitAlertMinutes: number;
   domLateVisitAlertEmail: boolean;
@@ -188,6 +190,7 @@ function mapRow(row: SettingsRow) {
     mandateComplianceForNewEmployees: row.mandateComplianceForNewEmployees,
     defaultHolidaysUnit: row.defaultHolidaysUnit,
     salaryCalculationBasis: row.salaryCalculationBasis,
+    multiCarerFunderChargeMode: row.multiCarerFunderChargeMode,
     recruitmentFunctionalityRequired: row.recruitmentFunctionalityRequired,
     complianceRequiredBy: row.complianceRequiredBy,
     complianceApprovalForNewEmployee: row.complianceApprovalForNewEmployee,
@@ -232,6 +235,7 @@ function mapRow(row: SettingsRow) {
     domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
+    domShowBlockedCarersInSchedule: row.domShowBlockedCarersInSchedule,
     domLateVisitAlertRequired: row.domLateVisitAlertRequired,
     domLateVisitAlertMinutes: row.domLateVisitAlertMinutes,
     domLateVisitAlertEmail: row.domLateVisitAlertEmail,
@@ -293,6 +297,7 @@ function buildUpdateData(
   set('mandateComplianceForNewEmployees', dto.mandateComplianceForNewEmployees);
   set('defaultHolidaysUnit', dto.defaultHolidaysUnit);
   set('salaryCalculationBasis', dto.salaryCalculationBasis);
+  set('multiCarerFunderChargeMode', dto.multiCarerFunderChargeMode);
   set('recruitmentFunctionalityRequired', dto.recruitmentFunctionalityRequired);
   set('complianceRequiredBy', dto.complianceRequiredBy);
   set('complianceApprovalForNewEmployee', dto.complianceApprovalForNewEmployee);
@@ -343,6 +348,7 @@ function buildUpdateData(
   set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
+  set('domShowBlockedCarersInSchedule', dto.domShowBlockedCarersInSchedule);
   set('domLateVisitAlertRequired', dto.domLateVisitAlertRequired);
   set('domLateVisitAlertMinutes', dto.domLateVisitAlertMinutes);
   set('domLateVisitAlertEmail', dto.domLateVisitAlertEmail);

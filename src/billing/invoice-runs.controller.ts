@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -6,7 +6,7 @@ import { AnyPermission, Permissions } from '../common/decorators/permissions.dec
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { InvoiceRunsService } from './invoice-runs.service';
-import { CreateBillingRunDto } from './dto/billing-runs.dto';
+import { CreateBillingRunDto, BillingRunsQueryDto } from './dto/billing-runs.dto';
 
 @ApiTags('Billing — Invoice runs')
 @ApiBearerAuth()
@@ -18,8 +18,8 @@ export class InvoiceRunsController {
   @Get('summary')
   @Permissions('billing.invoice_runs.read')
   @ApiOperation({ summary: 'Invoice run draft summary for dashboard' })
-  summary() {
-    return this.service.getSummary();
+  summary(@Query('locationId') locationId?: string) {
+    return this.service.getSummary(locationId);
   }
 
   @Get('service-user/:serviceUserId')
@@ -32,8 +32,8 @@ export class InvoiceRunsController {
   @Get()
   @Permissions('billing.invoice_runs.read')
   @ApiOperation({ summary: 'List invoice runs' })
-  list() {
-    return this.service.list();
+  list(@Query() query: BillingRunsQueryDto) {
+    return this.service.list(query);
   }
 
   @Get(':id')

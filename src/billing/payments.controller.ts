@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -6,7 +6,7 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { PaymentsService } from './payments.service';
-import { AddPaymentAllocationDto, CreatePaymentDto } from './dto/payments.dto';
+import { AddPaymentAllocationDto, CreatePaymentDto, PaymentsQueryDto } from './dto/payments.dto';
 
 @ApiTags('Billing — Payments')
 @ApiBearerAuth()
@@ -32,15 +32,15 @@ export class PaymentsController {
   @Get('outstanding-invoices')
   @Permissions('billing.payments.read')
   @ApiOperation({ summary: 'Locked/sent invoice runs with outstanding balance' })
-  outstandingInvoices() {
-    return this.service.listOutstandingInvoiceRuns();
+  outstandingInvoices(@Query('locationId') locationId?: string) {
+    return this.service.listOutstandingInvoiceRuns(locationId);
   }
 
   @Get()
   @Permissions('billing.payments.read')
   @ApiOperation({ summary: 'List payments' })
-  list() {
-    return this.service.list();
+  list(@Query() query: PaymentsQueryDto) {
+    return this.service.list(query);
   }
 
   @Get(':id')

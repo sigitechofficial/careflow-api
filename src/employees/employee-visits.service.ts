@@ -8,6 +8,7 @@ import {
 import { parseScheduleDate, formatScheduleDate } from '../schedules/schedules-date.util';
 import { mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
+import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -103,13 +104,18 @@ export class EmployeeVisitsService {
 
     const visits = allocations.map((allocation) => {
       const baseJob = mapTimelineJob(allocation.scheduledJob);
+      const resolved = resolveAllocationWindow(allocation, allocation.scheduledJob);
+      const scheduledStartDateTime = resolved.start.toISOString();
+      const scheduledEndDateTime = resolved.end.toISOString();
+      const plannedMinutes = resolved.durationMinutes;
+
       const deliveryAssessment = assessVisitDeliveryFromJobLike({
         status: baseJob.status,
         requiredCarers: baseJob.requiredCarers,
         allocatedCarers: baseJob.allocatedCarers,
         allocations: baseJob.allocations,
-        scheduledStartDateTime: baseJob.scheduledStartDateTime,
-        scheduledEndDateTime: baseJob.scheduledEndDateTime,
+        scheduledStartDateTime,
+        scheduledEndDateTime,
         actualStartDateTime: baseJob.actualStartDateTime,
         actualEndDateTime: baseJob.actualEndDateTime,
         visitPlan: baseJob.visitPlan,
@@ -119,10 +125,18 @@ export class EmployeeVisitsService {
         now,
       });
 
-      const job = { ...baseJob, deliveryAssessment };
+      // Overlay this carer's assignment window onto the job payload so admin
+      // Employee → Visits (and carer me/visits) show assignment times, not the
+      // full multi-carer visit envelope / visit-plan slot window.
+      const job = {
+        ...baseJob,
+        scheduledStartDateTime,
+        scheduledEndDateTime,
+        durationMinutes: plannedMinutes,
+        deliveryAssessment,
+      };
       const primaryVisit = job.visits[0] ?? null;
       const bucket = classifyEmployeeVisit(job, now);
-      const plannedMinutes = job.durationMinutes;
       const actualMinutes = minutesBetweenIso(job.actualStartDateTime, job.actualEndDateTime);
       const su = job.serviceUser;
       const serviceUserName =
@@ -147,12 +161,13 @@ export class EmployeeVisitsService {
           firstName: su.firstName,
           lastName: su.lastName,
         },
-        scheduledStartDateTime: job.scheduledStartDateTime,
-        scheduledEndDateTime: job.scheduledEndDateTime,
+        scheduledStartDateTime,
+        scheduledEndDateTime,
         actualStartDateTime: job.actualStartDateTime,
         actualEndDateTime: job.actualEndDateTime,
         plannedMinutes,
         actualMinutes,
+        hasExplicitTiming: resolved.hasExplicitTiming,
         deliveryAssessment,
         job,
       };

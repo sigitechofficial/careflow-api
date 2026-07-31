@@ -18,6 +18,11 @@ export type RequestUser = {
   employeeId?: string;
   preferredName?: string | null;
   profilePhotoUrl?: string | null;
+  /**
+   * null/undefined = unrestricted header locations.
+   * string[] = restrict picker (and force a scoped selection).
+   */
+  assignedLocationIds?: string[] | null;
 };
 
 export const CurrentUser = createParamDecorator(
