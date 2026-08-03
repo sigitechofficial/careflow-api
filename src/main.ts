@@ -72,8 +72,12 @@ async function bootstrap() {
   SwaggerModule.setup(swaggerPath, app, document);
 
   const port = config.get<number>('app.port', 3000);
+  // Bind all interfaces so phones/emulators can reach the API via LAN IP (not only localhost).
+  const host = config.get<string>('app.host', '0.0.0.0');
   const httpRequestTimeoutMs = config.get<number>('app.httpRequestTimeoutMs', 120_000);
-  await app.listen(port);
+  await app.listen(port, host);
+  // eslint-disable-next-line no-console
+  console.log(`CareAdmin API listening on http://${host}:${port} (use LAN IP from another device)`);
   const server = app.getHttpServer() as Server;
   server.requestTimeout = httpRequestTimeoutMs;
   server.headersTimeout = Math.min(httpRequestTimeoutMs + 10_000, 190_000);
