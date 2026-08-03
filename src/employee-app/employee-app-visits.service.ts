@@ -4,6 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import {
   AllocationStatus,
   InitialAssessmentRiskStatus,
@@ -31,13 +34,34 @@ import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
+import type {
+  EmployeeAppHandoverAcknowledgeDto,
+  EmployeeAppIdentityDto,
+  EmployeeAppIncidentDto,
+  EmployeeAppLogConcernDto,
+  EmployeeAppLogHandoverDto,
+  EmployeeAppLogNoteDto,
+  EmployeeAppMedicationAdminDto,
+  EmployeeAppObservationWriteDto,
+  EmployeeAppSaveTaskDto,
+  EmployeeAppUnableToStartDto,
+} from './dto/employee-app-visit-writes.dto';
 import {
   EMPLOYEE_APP_COMPLETION_OUTCOMES,
   employeeAppTimingExceptionReasons,
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
+import {
+  contractError,
+  mapMarOutcomeCode,
+  mapVisitOutcomeToStatus,
+  newAuditRecordId,
+  statusToContractLabel,
+  validationError,
+} from './employee-app-contract.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -72,6 +96,7 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         lastName: true;
         preferredName: true;
         dateOfBirth: true;
+        nhsNumber: true;
         address: {
           select: {
             addressLine1: true;
@@ -81,6 +106,8 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
             postcode: true;
             latitude: true;
             longitude: true;
+            accessInstructions: true;
+            keySafeNumber: true;
             deletedAt: true;
           };
         };
@@ -134,21 +161,29 @@ export class EmployeeAppVisitsService {
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress] = await Promise.all([
+    const [progress, overviewExtras, medProgress, geofenceSettings] = await Promise.all([
       this.resolveProgress(ctx),
       this.loadOverviewExtras(ctx),
       this.resolveMedicationProgress(ctx),
+      this.loadGeofenceSettings(),
     ]);
 
     return {
       data: {
         shell: {
-          ...this.buildShell(ctx, progress, medProgress, employeeId),
+          ...this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings),
           allergies: overviewExtras.allergies,
           flags: overviewExtras.flags,
         },
         tabs: this.workspaceTabs(),
         overview: overviewExtras,
+        clockInSettings: {
+          enabledMethods: ['GPS', 'MANUAL'] as string[],
+          maxLocationAccuracyMeters: 50,
+          timingGraceMinutes: 15,
+          allowManualOverride: true,
+          allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
+        },
       },
     };
   }
@@ -181,6 +216,7 @@ export class EmployeeAppVisitsService {
         observations: observations.data,
         log: log.data,
         bodyMap: bodyMap.data,
+        clockInSettings: workspace.data.clockInSettings,
       },
     };
   }
@@ -191,31 +227,55 @@ export class EmployeeAppVisitsService {
 
     if (
       visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
       visit.status === ScheduledVisitStatus.CANCELLED ||
       visit.status === ScheduledVisitStatus.CALLED_OFF
     ) {
-      throw new BadRequestException('Visit is already closed');
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const alreadyCheckedIn =
+      Boolean(visit.actualStartDateTime) ||
+      visit.status === ScheduledVisitStatus.STARTED ||
+      Boolean(ctx.checkIn);
+    if (alreadyCheckedIn) {
+      contractError('ALREADY_CHECKED_IN', 'Visit is already checked in');
     }
 
     const now = new Date();
+    const deviceRecordedAt = dto.deviceRecordedAt ?? dto.deviceCapturedAt ?? now.toISOString();
+    const idempotencyKey = dto.idempotencyKey ?? dto.clientEventId ?? null;
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
 
     await this.attendance.assertGeofencePolicy({
       outsideGeofence: !geofence.withinArea,
-      outsideGeofenceReason: dto.outsideGeofenceReason,
+      outsideGeofenceReason: dto.outsideGeofenceReason ?? dto.manualOverrideNotes,
       restrictOutside: geofence.restrictOutside,
     });
 
     const checkInPayload = {
       clientEventId: dto.clientEventId ?? null,
-      deviceCapturedAt: dto.deviceCapturedAt ?? now.toISOString(),
+      idempotencyKey,
+      deviceCapturedAt: deviceRecordedAt,
+      deviceRecordedAt,
+      locationCapturedAt: dto.locationCapturedAt ?? null,
       latitude: dto.latitude ?? null,
       longitude: dto.longitude ?? null,
       accuracyMeters: dto.accuracyMeters ?? null,
-      isMockLocation: dto.isMockLocation ?? false,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       outsideGeofence: !geofence.withinArea,
       outsideGeofenceReason: dto.outsideGeofenceReason?.trim() ?? null,
       identityConfirmed: dto.identityConfirmed ?? false,
+      method: dto.method ?? 'GPS',
+      timingStatus: dto.timingStatus ?? null,
+      timingExceptionReasonCode: dto.timingExceptionReasonCode ?? null,
+      timingExceptionNotes: dto.timingExceptionNotes ?? null,
+      manualOverrideReasonCode: dto.manualOverrideReasonCode ?? null,
+      manualOverrideNotes: dto.manualOverrideNotes ?? null,
+      welfareOutcomeId: dto.welfareOutcomeId ?? null,
+      personSeen: dto.personSeen ?? null,
+      accessViaKeySafe: dto.accessViaKeySafe ?? null,
+      requiresManagerReview: dto.requiresManagerReview ?? false,
       checkedInAt: now.toISOString(),
       employeeId,
       distanceMeters: geofence.distanceMeters,
@@ -268,12 +328,12 @@ export class EmployeeAppVisitsService {
       eventType: VisitAttendanceEventType.CHECK_IN,
       verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
       occurredAt: now,
-      deviceCapturedAt: dto.deviceCapturedAt ? new Date(dto.deviceCapturedAt) : now,
-      clientEventId: dto.clientEventId,
+      deviceCapturedAt: new Date(deviceRecordedAt),
+      clientEventId: idempotencyKey ?? undefined,
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
-      isMockLocation: dto.isMockLocation ?? false,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       outsideGeofence: !geofence.withinArea,
       outsideGeofenceReason: dto.outsideGeofenceReason,
       distanceMeters: geofence.distanceMeters,
@@ -285,10 +345,20 @@ export class EmployeeAppVisitsService {
     const refreshed = await this.loadJobForEmployee(employeeId, jobId);
     const progress = await this.resolveProgress(refreshed);
 
+    const geofenceSettings = await this.loadGeofenceSettings();
     return {
       data: {
         message: 'Checked in to visit',
-        shell: this.buildShell(refreshed, progress, undefined, employeeId),
+        jobId,
+        visitId: visit.id,
+        isCheckedIn: true,
+        checkedInAt: now.toISOString(),
+        checkedInLabel: formatHmUtc(now),
+        method: dto.method ?? 'GPS',
+        withinArea: geofence.withinArea,
+        distanceMeters: geofence.distanceMeters,
+        serverReceivedAt: now.toISOString(),
+        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
       },
     };
   }
@@ -321,24 +391,35 @@ export class EmployeeAppVisitsService {
       }
 
       return {
+        id: String(task.assignmentId ?? task.taskCatalogueTaskId ?? ''),
         assignmentId: task.assignmentId,
         taskCatalogueTaskId: task.taskCatalogueTaskId,
+        title: name,
         name,
+        subtitle: subtext,
+        subtext,
+        category: task.categoryName != null ? String(task.categoryName) : null,
         categoryName: task.categoryName,
         groupCode: task.groupCode,
         priority,
         isRequired,
         isExtra: Boolean(task.isExtra),
+        done: isCompleted,
         isCompleted,
         completedAt,
         completedLabel: completedAt ? `Completed · ${formatHmUtc(new Date(completedAt))}` : null,
         recordedValue: task.recordedValue ?? null,
         notes: task.notes ?? null,
         completionInput: task.completionInput,
+        instruction:
+          task.carerInstructions != null ? String(task.carerInstructions) : null,
         carerInstructions: task.carerInstructions ?? null,
         iconType: iconForTaskGroup(String(task.groupCode ?? '')),
+        badge: moduleLink?.label ?? null,
+        badgeTone: moduleLink?.tone ?? null,
+        linkTab:
+          moduleLink?.id === 'emar' ? 'mar' : moduleLink?.id === 'obs' ? 'obs' : null,
         moduleLink,
-        subtext,
       };
     });
 
@@ -406,9 +487,20 @@ export class EmployeeAppVisitsService {
       this.loadVisitObservations(ctx.job.serviceUserId, since),
     ]);
 
+    const optional = SUGGESTED_OBSERVATIONS.map((s) => ({
+      id: s.id,
+      typeCode: s.observationTypeCode.toLowerCase(),
+      label: s.label,
+      isRequired: false,
+      observationTypeCode: s.observationTypeCode,
+      allowsUnableToRecord: true,
+    }));
+
     return {
       data: {
         progress: this.buildProgress(progress, medProgress),
+        required: [] as typeof optional,
+        optional,
         suggested: SUGGESTED_OBSERVATIONS.map((s) => ({ ...s })),
         emergencyProtocol: {
           id: 'medical_emergency',
@@ -497,6 +589,15 @@ export class EmployeeAppVisitsService {
       this.resolveHandoverNote(ctx),
     ]);
 
+    const meta = this.parseMetadata(ctx.job.metadata);
+    const employeeApp =
+      typeof meta.employeeApp === 'object' && meta.employeeApp
+        ? (meta.employeeApp as Record<string, unknown>)
+        : {};
+    const storedIncidents = Array.isArray(employeeApp.incidents)
+      ? (employeeApp.incidents as Array<Record<string, unknown>>)
+      : [];
+
     return {
       data: {
         progress: this.buildProgress(progress, medProgress),
@@ -505,6 +606,14 @@ export class EmployeeAppVisitsService {
           title: 'INCIDENTS',
           reportLabel: 'Report an incident',
           description: 'Falls, medication errors, safeguarding concerns.',
+          items: storedIncidents.map((inc) => ({
+            id: String(inc.id ?? ''),
+            incidentType: String(inc.incidentType ?? ''),
+            body: String(inc.body ?? ''),
+            severity: inc.severity != null ? String(inc.severity) : null,
+            isDraft: Boolean(inc.isDraft),
+            recordedAt: inc.recordedAt != null ? String(inc.recordedAt) : null,
+          })),
         },
         handoverNote,
       },
@@ -528,11 +637,23 @@ export class EmployeeAppVisitsService {
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
 
-    const status = (dto.status ?? ScheduledVisitStatus.COMPLETED) as ScheduledVisitStatus;
+    const status = mapVisitOutcomeToStatus(
+      dto.visitOutcome,
+      dto.status as LocalVisitStatus | undefined,
+    );
     if (!isEmployeeAppCompletionStatus(status)) {
       throw new BadRequestException(
         `Carer app cannot set status ${status}. Allowed: COMPLETED, PARTIALLY_COMPLETED, MISSED, NEEDS_ATTENTION. Use office schedule-jobs for cancel/call-off.`,
       );
+    }
+
+    // Enforce clinical gates only for explicit contract full-delivery / leaving-safe flows.
+    // Legacy COMPLETED without visitOutcome/leavingSafeChecks stays permissive for one release.
+    const enforceGates =
+      dto.visitOutcome === 'fully_delivered' ||
+      (status === LocalVisitStatus.COMPLETED && dto.leavingSafeChecks != null);
+    if (enforceGates) {
+      await this.assertFullDeliveryGates(ctx, dto);
     }
 
     const outcome = EMPLOYEE_APP_COMPLETION_OUTCOMES.find((o) => o.status === status)!;
@@ -560,34 +681,36 @@ export class EmployeeAppVisitsService {
       ? await this.evaluateGeofence(ctx, dto.latitude, dto.longitude)
       : { withinArea: true, distanceMeters: null as number | null };
 
-    if (hasGps) {
-      const job = await this.prisma.scheduledJob.findUnique({
-        where: { id: jobId },
-        select: { metadata: true },
-      });
-      const previousMeta = this.parseMetadata(job?.metadata);
-      const employeeApp = {
-        ...(typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
-          ? (previousMeta.employeeApp as Record<string, unknown>)
-          : {}),
-        checkOut: {
-          latitude: dto.latitude,
-          longitude: dto.longitude,
-          accuracyMeters: dto.accuracyMeters ?? null,
-          completedAt: now.toISOString(),
-          employeeId,
-          status,
-          outsideGeofence: !geofence.withinArea,
-          distanceMeters: geofence.distanceMeters,
-        },
-      };
-      await this.prisma.scheduledJob.update({
-        where: { id: jobId },
-        data: {
-          metadata: { ...previousMeta, employeeApp } as Prisma.InputJsonValue,
-        },
-      });
-    }
+    const previousMeta = this.parseMetadata(
+      (await this.prisma.scheduledJob.findUnique({ where: { id: jobId }, select: { metadata: true } }))
+        ?.metadata,
+    );
+    const employeeApp = {
+      ...(typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+        ? (previousMeta.employeeApp as Record<string, unknown>)
+        : {}),
+      checkOut: {
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
+        accuracyMeters: dto.accuracyMeters ?? null,
+        withinArea: dto.withinArea ?? geofence.withinArea,
+        distanceMeters: dto.distanceMeters ?? geofence.distanceMeters,
+        completedAt: now.toISOString(),
+        deviceRecordedAt: dto.deviceRecordedAt ?? null,
+        idempotencyKey: dto.idempotencyKey ?? null,
+        employeeId,
+        status,
+        visitOutcome: dto.visitOutcome ?? null,
+        leavingSafeChecks: dto.leavingSafeChecks ?? null,
+        outsideGeofence: !geofence.withinArea,
+      },
+    };
+    await this.prisma.scheduledJob.update({
+      where: { id: jobId },
+      data: {
+        metadata: { ...previousMeta, employeeApp } as Prisma.InputJsonValue,
+      },
+    });
 
     await this.attendance.recordEvent({
       scheduledJobId: jobId,
@@ -606,13 +729,790 @@ export class EmployeeAppVisitsService {
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
+    const refreshed = await this.loadJobForEmployee(employeeId, jobId);
+    const [progress, medProgress] = await Promise.all([
+      this.resolveProgress(refreshed),
+      this.resolveMedicationProgress(refreshed),
+    ]);
+
+    const start = dto.actualStartDateTime
+      ? new Date(dto.actualStartDateTime)
+      : refreshed.primaryVisit.actualStartDateTime;
+    const end = dto.actualEndDateTime
+      ? new Date(dto.actualEndDateTime)
+      : refreshed.primaryVisit.actualEndDateTime ?? now;
+    const durationMinutes =
+      start && end ? Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000)) : null;
+
     return {
       data: {
         message: result.message,
-        status,
+        jobId,
+        status: statusToContractLabel(status),
+        completedAt: (end ?? now).toISOString(),
+        durationMinutes,
+        tasksDone: progress.tasksDone,
+        tasksTotal: progress.tasksTotal,
+        medsDone: medProgress.givenCount,
+        medsTotal: medProgress.dueCount,
+        obsCount: progress.obsCount,
+        summaryLabel: `${progress.tasksDone}/${progress.tasksTotal} tasks · ${medProgress.givenCount}/${medProgress.dueCount} meds · ${progress.obsCount} obs`,
         job: result.data,
       },
     };
+  }
+
+  async unableToStart(employeeId: string, jobId: string, dto: EmployeeAppUnableToStartDto) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (
+      ctx.primaryVisit.status === ScheduledVisitStatus.STARTED ||
+      ctx.primaryVisit.actualStartDateTime ||
+      ctx.checkIn
+    ) {
+      contractError('ALREADY_CHECKED_IN', 'Cannot mark unable-to-start after check-in');
+    }
+    if (dto.reasonCode === 'OTHER' && !dto.notes?.trim()) {
+      validationError('notes are required when reasonCode is OTHER');
+    }
+
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const notes =
+      `[Unable to start: ${dto.reasonCode}] ${dto.notes?.trim() ?? ''}`.trim() ||
+      `Unable to start — ${dto.reasonCode}`;
+
+    await this.housekeeping.completeJob('', jobId, {
+      status: LocalVisitStatus.MISSED,
+      notes,
+      actualStartDateTime: undefined,
+      actualEndDateTime: undefined,
+    });
+
+    const now = new Date();
+    const auditRecordId = newAuditRecordId();
+    const response = {
+      jobId,
+      status: 'unable_to_start',
+      recordedAt: now.toISOString(),
+      auditRecordId,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      unableToStart: {
+        ...dto,
+        employeeId,
+        recordedAt: now.toISOString(),
+        auditRecordId,
+        // Explicitly do not set checked-in
+        isCheckedIn: false,
+      },
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    await this.ecmEvaluation.evaluateJobSafe(jobId);
+    return { data: response };
+  }
+
+  async saveTask(
+    employeeId: string,
+    jobId: string,
+    taskId: string,
+    dto: EmployeeAppSaveTaskDto,
+  ) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const outcome = dto.outcome.toUpperCase();
+    if (!['COMPLETED', 'PARTIAL', 'DECLINED'].includes(outcome)) {
+      validationError('outcome must be COMPLETED, PARTIAL, or DECLINED');
+    }
+    if ((outcome === 'PARTIAL' || outcome === 'DECLINED') && !dto.notes?.trim() && !dto.outcomeReasonCode) {
+      validationError('notes or outcomeReasonCode required for PARTIAL/DECLINED');
+    }
+
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const raw = await this.housekeeping.getVisitJobTasks('', jobId);
+    const tasks = (raw.data.tasks as Array<Record<string, unknown>>) ?? [];
+    const match = tasks.find(
+      (t) =>
+        String(t.assignmentId ?? '') === taskId ||
+        String(t.taskCatalogueTaskId ?? '') === taskId ||
+        String(t.assignmentId ?? t.taskCatalogueTaskId ?? '') === taskId,
+    );
+    if (!match) throw new NotFoundException(`Task ${taskId} not found on this visit`);
+
+    const isCompleted = outcome === 'COMPLETED';
+    const notesParts = [
+      outcome !== 'COMPLETED' ? `Outcome: ${outcome}` : null,
+      dto.outcomeReasonCode ? `Reason: ${dto.outcomeReasonCode}` : null,
+      dto.notes?.trim() || null,
+      dto.checklist?.length
+        ? `Checklist: ${dto.checklist.map((c) => `${c.label ?? c.itemId}=${c.checked}`).join(', ')}`
+        : null,
+    ].filter(Boolean);
+
+    await this.housekeeping.saveVisitJobTasks('', jobId, {
+      tasks: [
+        {
+          assignmentId: match.assignmentId ? String(match.assignmentId) : undefined,
+          taskCatalogueTaskId: match.taskCatalogueTaskId
+            ? String(match.taskCatalogueTaskId)
+            : undefined,
+          isExtra: Boolean(match.isExtra),
+          isCompleted,
+          notes: notesParts.join(' · ') || undefined,
+          recordedValue: outcome === 'PARTIAL' ? 'PARTIAL' : outcome === 'DECLINED' ? 'DECLINED' : undefined,
+        },
+      ],
+    });
+
+    await this.prisma.scheduledVisitTaskCompletion.updateMany({
+      where: { scheduledJobId: jobId, isCompleted: true },
+      data: { completedById: employeeId },
+    });
+
+    const now = new Date().toISOString();
+    const auditRecordId = newAuditRecordId();
+    const progress = await this.resolveProgress(await this.loadJobForEmployee(employeeId, jobId));
+    const response = {
+      taskId,
+      auditRecordId,
+      serverConfirmedAt: now,
+      taskVersion: dto.taskVersion ?? null,
+      syncStatus: 'confirmed',
+      progress: this.buildProgress(
+        progress,
+        await this.resolveMedicationProgress(await this.loadJobForEmployee(employeeId, jobId)),
+      ),
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
+  }
+
+  async recordMedicationAdministration(
+    employeeId: string,
+    jobId: string,
+    medicationKey: string,
+    dto: EmployeeAppMedicationAdminDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const [medId, doseKey] = medicationKey.split(':');
+    if (!medId) validationError('Invalid medicationKey');
+
+    const med = await this.prisma.serviceUserMedication.findFirst({
+      where: {
+        id: medId,
+        serviceUserId: ctx.job.serviceUserId,
+        deletedAt: null,
+      },
+      include: {
+        route: { select: { name: true } },
+        schedules: {
+          where: { deletedAt: null, isActive: true },
+          select: { id: true, dueTime: true },
+          take: 5,
+        },
+      },
+    });
+    if (!med) throw new NotFoundException('Medication not found for this visit');
+
+    const allergies = await this.loadAllergies(ctx.job.serviceUserId);
+    const allergyHit = allergies.some((a) =>
+      med.medicationName.toLowerCase().includes(a.toLowerCase()),
+    );
+    if (allergyHit && !dto.allergyAcknowledged) {
+      validationError('allergyAcknowledged is required when allergy warning applies');
+    }
+    if (!dto.identityConfirmed) {
+      validationError('identityConfirmed must be true to record administration');
+    }
+
+    const mapped = mapMarOutcomeCode(dto.outcomeCode);
+    const isPrn = doseKey === 'prn' || med.medicationKind === MedicationKind.PRN;
+    const schedule =
+      !isPrn && doseKey && doseKey !== 'dose'
+        ? med.schedules.find((s) => String(s.dueTime) === doseKey) ?? med.schedules[0]
+        : med.schedules[0];
+
+    const recordedAt = new Date(dto.deviceRecordedAt);
+    const created = await this.prisma.medicationAdministrationEvent.create({
+      data: {
+        serviceUserId: ctx.job.serviceUserId,
+        serviceUserMedicationId: med.id,
+        medicationScheduleId: schedule?.id,
+        administeredById: employeeId,
+        scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
+        actualDateTime: recordedAt,
+        status: mapped.status,
+        statusCode: mapped.statusCode,
+        reason: dto.reasonCode ?? null,
+        notes: [
+          dto.outcomeLabel,
+          dto.supportLevel ? `Support: ${dto.supportLevel}` : null,
+          dto.notes,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null,
+        visitId: ctx.primaryVisit.id,
+        isPrn,
+        prnReason: dto.prnIndication ?? null,
+        prnOutcome: dto.prnEffectiveness ?? null,
+        medicationNameSnapshot: med.medicationName,
+        doseSnapshot: med.dose,
+        strengthSnapshot: med.strength,
+        routeNameSnapshot: med.route?.name ?? null,
+      },
+    });
+
+    const auditRecordId = newAuditRecordId();
+    const progress = await this.resolveProgress(ctx);
+    const medProgress = await this.resolveMedicationProgress(ctx);
+    const response = {
+      administrationId: created.id,
+      medicationKey,
+      outcomeCode: dto.outcomeCode,
+      serverConfirmedAt: new Date().toISOString(),
+      auditRecordId,
+      progress: this.buildProgress(progress, medProgress),
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
+  }
+
+  async createObservationContract(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppObservationWriteDto,
+  ) {
+    // Legacy path: admin CreateServiceUserObservationDto shape
+    if (dto.observationTypeCode && dto.recordedAt && !dto.typeCode && !dto.definitionId) {
+      return this.createObservation(employeeId, jobId, dto as CreateServiceUserObservationDto);
+    }
+
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (dto.idempotencyKey) {
+      const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+      if (replay) return { data: replay };
+    }
+
+    const typeCode = (dto.typeCode ?? dto.observationTypeCode ?? '').toUpperCase();
+    if (!typeCode) validationError('typeCode (or observationTypeCode) is required');
+    if (!dto.outcome) validationError('outcome is required');
+    if (dto.outcome === 'recorded' && dto.value == null && dto.numericValue == null) {
+      validationError('value is required when outcome is recorded');
+    }
+    if (dto.outcome === 'unable' && !dto.unableReasonCode) {
+      validationError('unableReasonCode is required when outcome is unable');
+    }
+
+    const type = await this.prisma.observationType.findFirst({
+      where: { code: typeCode, isActive: true },
+    });
+    if (!type) throw new BadRequestException('Invalid observation type');
+
+    const recordedAt = new Date(dto.deviceRecordedAt ?? dto.recordedAt ?? new Date().toISOString());
+    const numericValue =
+      dto.numericValue ??
+      (typeof dto.value === 'number'
+        ? dto.value
+        : typeof dto.value === 'string' && dto.value.trim() !== '' && !Number.isNaN(Number(dto.value))
+          ? Number(dto.value)
+          : null);
+
+    const row = await this.prisma.serviceUserObservation.create({
+      data: {
+        serviceUserId: ctx.job.serviceUserId,
+        observationTypeId: type.id,
+        recordedAt,
+        notes:
+          [
+            dto.notes?.trim(),
+            dto.outcome === 'unable' ? `Unable: ${dto.unableReasonCode}` : null,
+            dto.escalationAction ? `Escalation: ${dto.escalationAction}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || null,
+        numericValue,
+        unit: dto.unit?.trim() ?? type.unitLabel ?? null,
+        payload: {
+          ...(dto.payload ?? {}),
+          definitionId: dto.definitionId ?? null,
+          outcome: dto.outcome,
+          value: dto.value ?? null,
+          secondaryValue: dto.secondaryValue ?? null,
+          abnormal: dto.abnormal ?? false,
+          critical: dto.critical ?? false,
+          emergencyProtocolOpened: dto.emergencyProtocolOpened ?? false,
+          scheduledJobId: jobId,
+          scheduledVisitId: ctx.primaryVisit.id,
+          recordedByEmployeeId: employeeId,
+        } as Prisma.InputJsonValue,
+        recordedByEmployeeId: employeeId,
+      },
+    });
+
+    const auditRecordId = newAuditRecordId();
+    const response = {
+      observationId: row.id,
+      definitionId: dto.definitionId ?? type.code.toLowerCase(),
+      outcome: dto.outcome,
+      serverConfirmedAt: new Date().toISOString(),
+      auditRecordId,
+      abnormal: dto.abnormal ?? false,
+      critical: dto.critical ?? false,
+    };
+
+    if (dto.idempotencyKey) {
+      await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+        ...ea,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey!]: response,
+        },
+      }));
+    }
+
+    return { data: response };
+  }
+
+  async updateObservationContract(
+    employeeId: string,
+    jobId: string,
+    observationId: string,
+    dto: EmployeeAppObservationWriteDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (dto.idempotencyKey) {
+      const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+      if (replay) return { data: replay };
+    }
+
+    const existing = await this.prisma.serviceUserObservation.findFirst({
+      where: {
+        id: observationId,
+        serviceUserId: ctx.job.serviceUserId,
+        deletedAt: null,
+      },
+      include: { observationType: true },
+    });
+    if (!existing) throw new NotFoundException('Observation not found');
+
+    const prevPayload =
+      existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload)
+        ? (existing.payload as Record<string, unknown>)
+        : {};
+
+    const numericValue =
+      dto.numericValue ??
+      (typeof dto.value === 'number'
+        ? dto.value
+        : typeof dto.value === 'string' && !Number.isNaN(Number(dto.value))
+          ? Number(dto.value)
+          : undefined);
+
+    const updated = await this.prisma.serviceUserObservation.update({
+      where: { id: observationId },
+      data: {
+        notes: dto.notes !== undefined ? dto.notes : existing.notes,
+        numericValue: numericValue !== undefined ? numericValue : existing.numericValue,
+        unit: dto.unit !== undefined ? dto.unit : existing.unit,
+        payload: {
+          ...prevPayload,
+          ...(dto.payload ?? {}),
+          definitionId: dto.definitionId ?? prevPayload.definitionId ?? null,
+          outcome: dto.outcome ?? prevPayload.outcome ?? null,
+          value: dto.value ?? prevPayload.value ?? null,
+          secondaryValue: dto.secondaryValue ?? prevPayload.secondaryValue ?? null,
+          abnormal: dto.abnormal ?? prevPayload.abnormal ?? false,
+          critical: dto.critical ?? prevPayload.critical ?? false,
+          correctionReason: dto.correctionReason ?? null,
+          correctedByEmployeeId: employeeId,
+          correctedAt: new Date().toISOString(),
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    const auditRecordId = newAuditRecordId();
+    const response = {
+      observationId: updated.id,
+      definitionId: dto.definitionId ?? String(prevPayload.definitionId ?? existing.observationType.code.toLowerCase()),
+      outcome: dto.outcome ?? String(prevPayload.outcome ?? 'recorded'),
+      serverConfirmedAt: new Date().toISOString(),
+      auditRecordId,
+      abnormal: Boolean(dto.abnormal ?? prevPayload.abnormal),
+      critical: Boolean(dto.critical ?? prevPayload.critical),
+    };
+
+    if (dto.idempotencyKey) {
+      await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+        ...ea,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey!]: response,
+        },
+      }));
+    }
+
+    return { data: response };
+  }
+
+  async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const entryId = dto.clientEntryId ?? randomUUID();
+    const now = new Date().toISOString();
+    const timelineItem = {
+      id: `note-${entryId}`,
+      at: now,
+      time: formatHmUtc(new Date(dto.deviceRecordedAt)),
+      timeLabel: formatHmUtc(new Date(dto.deviceRecordedAt)),
+      title: dto.title?.trim() || 'Visit note',
+      detail: dto.body,
+      subtitle: dto.body,
+      tone: 'neutral' as Tone,
+    };
+    const response = {
+      entryId,
+      entryType: 'note',
+      isDraft: Boolean(dto.isDraft),
+      serverConfirmedAt: now,
+      timelineItem,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => {
+      const notes = Array.isArray(ea.notes) ? [...(ea.notes as unknown[])] : [];
+      const entry = {
+        id: entryId,
+        entryType: 'note',
+        body: dto.body,
+        title: dto.title ?? null,
+        isDraft: Boolean(dto.isDraft),
+        deviceRecordedAt: dto.deviceRecordedAt,
+        recordedByEmployeeId: employeeId,
+        recordedAt: now,
+      };
+      const idx = notes.findIndex((n) => (n as { id?: string }).id === entryId);
+      if (idx >= 0) notes[idx] = entry;
+      else notes.push(entry);
+      return {
+        ...ea,
+        notes,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey]: response,
+        },
+      };
+    });
+
+    return { data: response };
+  }
+
+  async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const entryId = dto.clientEntryId ?? randomUUID();
+    const now = new Date().toISOString();
+    const timelineItem = {
+      id: `handover-${entryId}`,
+      at: now,
+      time: formatHmUtc(new Date(dto.deviceRecordedAt)),
+      timeLabel: formatHmUtc(new Date(dto.deviceRecordedAt)),
+      title: 'Handover note',
+      detail: dto.body,
+      subtitle: dto.body,
+      tone: 'primary' as Tone,
+    };
+    const response = {
+      entryId,
+      entryType: 'handover',
+      isDraft: Boolean(dto.isDraft),
+      serverConfirmedAt: now,
+      timelineItem,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      handoverNote: {
+        id: entryId,
+        body: dto.body,
+        priority: dto.priority ?? 'normal',
+        outstandingAction: dto.outstandingAction ?? null,
+        isDraft: Boolean(dto.isDraft),
+        deviceRecordedAt: dto.deviceRecordedAt,
+        recordedByEmployeeId: employeeId,
+        recordedAt: now,
+      },
+      lastHandover: {
+        message: dto.body,
+        body: dto.body,
+        requiresAck: true,
+        badgeLabel: dto.priority === 'high' ? 'High priority' : 'Temporary note',
+        acknowledged: false,
+        priority: dto.priority ?? 'normal',
+        outstandingAction: dto.outstandingAction ?? null,
+      },
+      handoverAcknowledged: false,
+      handoverAcknowledgedAt: null,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
+  }
+
+  async createLogConcern(employeeId: string, jobId: string, dto: EmployeeAppLogConcernDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const entryId = dto.clientEntryId ?? randomUUID();
+    const now = new Date().toISOString();
+    const officeNotified = !dto.isDraft;
+    const response = {
+      entryId,
+      entryType: 'concern',
+      isDraft: Boolean(dto.isDraft),
+      serverConfirmedAt: now,
+      officeNotified,
+      auditRecordId: newAuditRecordId(),
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => {
+      const concerns = Array.isArray(ea.concerns) ? [...(ea.concerns as unknown[])] : [];
+      concerns.push({
+        id: entryId,
+        ...dto,
+        recordedByEmployeeId: employeeId,
+        recordedAt: now,
+        officeNotified,
+      });
+      return {
+        ...ea,
+        concerns,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey]: response,
+        },
+      };
+    });
+
+    return { data: response };
+  }
+
+  async createIncident(employeeId: string, jobId: string, dto: EmployeeAppIncidentDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const incidentId = dto.clientEntryId ?? randomUUID();
+    const now = new Date().toISOString();
+    const auditRecordId = newAuditRecordId();
+    const officeNotified = !dto.isDraft;
+    const response = {
+      incidentId,
+      entryType: 'incident',
+      isDraft: Boolean(dto.isDraft),
+      serverConfirmedAt: now,
+      auditRecordId,
+      officeNotified,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => {
+      const incidents = Array.isArray(ea.incidents) ? [...(ea.incidents as unknown[])] : [];
+      incidents.push({
+        id: incidentId,
+        ...dto,
+        attachments: [],
+        recordedByEmployeeId: employeeId,
+        recordedAt: now,
+        auditRecordId,
+        officeNotified,
+      });
+      return {
+        ...ea,
+        incidents,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey]: response,
+        },
+      };
+    });
+
+    return { data: response };
+  }
+
+  async addIncidentAttachment(
+    employeeId: string,
+    jobId: string,
+    incidentId: string,
+    file: Express.Multer.File | undefined,
+    idempotencyKey: string,
+    clientAttachmentId?: string,
+    capturedAt?: string,
+  ) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    if (!file) validationError('file is required');
+    if (!idempotencyKey) validationError('idempotencyKey is required');
+
+    const replay = await this.findIdempotentReplay(jobId, idempotencyKey);
+    if (replay) return { data: replay };
+
+    const ea = await this.readEmployeeAppMeta(jobId);
+    const incidents = Array.isArray(ea.incidents) ? (ea.incidents as Array<Record<string, unknown>>) : [];
+    const incident = incidents.find((i) => String(i.id) === incidentId);
+    if (!incident) throw new NotFoundException('Incident not found');
+
+    const attachmentId = clientAttachmentId ?? randomUUID();
+    const dir = path.join(process.cwd(), 'uploads', 'employee-app-incidents', jobId);
+    await fs.mkdir(dir, { recursive: true });
+    const ext = path.extname(file.originalname) || '.jpg';
+    const filename = `${attachmentId}${ext}`;
+    const abs = path.join(dir, filename);
+    await fs.writeFile(abs, file.buffer);
+    const url = `/uploads/employee-app-incidents/${jobId}/${filename}`;
+    const now = new Date().toISOString();
+    const response = {
+      attachmentId,
+      url,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      serverConfirmedAt: now,
+      capturedAt: capturedAt ?? null,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (current) => {
+      const list = Array.isArray(current.incidents)
+        ? [...(current.incidents as Array<Record<string, unknown>>)]
+        : [];
+      const idx = list.findIndex((i) => String(i.id) === incidentId);
+      if (idx >= 0) {
+        const attachments = Array.isArray(list[idx].attachments)
+          ? [...(list[idx].attachments as unknown[])]
+          : [];
+        attachments.push({ ...response, recordedByEmployeeId: employeeId });
+        list[idx] = { ...list[idx], attachments };
+      }
+      return {
+        ...current,
+        incidents: list,
+        idempotency: {
+          ...((current.idempotency as Record<string, unknown>) ?? {}),
+          [idempotencyKey]: response,
+        },
+      };
+    });
+
+    return { data: response };
+  }
+
+  async recordIdentity(employeeId: string, jobId: string, dto: EmployeeAppIdentityDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    if (!['confirmed', 'mismatch'].includes(dto.result)) {
+      validationError('result must be confirmed or mismatch');
+    }
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const now = new Date().toISOString();
+    const auditRecordId = newAuditRecordId();
+    const identityConfirmed = dto.result === 'confirmed';
+    const identityMismatch = dto.result === 'mismatch';
+    const response = {
+      identityConfirmed,
+      identityMismatch,
+      recordedAt: now,
+      auditRecordId,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      identityConfirmed,
+      identityMismatch,
+      identity: {
+        result: dto.result,
+        method: dto.method ?? null,
+        notes: dto.notes ?? null,
+        deviceRecordedAt: dto.deviceRecordedAt,
+        recordedByEmployeeId: employeeId,
+        recordedAt: now,
+        auditRecordId,
+        officeAlerted: identityMismatch,
+      },
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
+  }
+
+  async acknowledgeHandover(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppHandoverAcknowledgeDto,
+  ) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const auditRecordId = newAuditRecordId();
+    const response = {
+      acknowledged: true,
+      acknowledgedAt: dto.acknowledgedAt,
+      auditRecordId,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      handoverAcknowledged: true,
+      handoverAcknowledgedAt: dto.acknowledgedAt,
+      handoverAcknowledgedByEmployeeId: employeeId,
+      lastHandover:
+        typeof ea.lastHandover === 'object' && ea.lastHandover
+          ? {
+              ...(ea.lastHandover as Record<string, unknown>),
+              acknowledged: true,
+              acknowledgedAt: dto.acknowledgedAt,
+            }
+          : ea.lastHandover,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
   }
 
   /**
@@ -871,6 +1771,7 @@ export class EmployeeAppVisitsService {
             lastName: true,
             preferredName: true,
             dateOfBirth: true,
+            nhsNumber: true,
             address: {
               select: {
                 addressLine1: true,
@@ -880,6 +1781,8 @@ export class EmployeeAppVisitsService {
                 postcode: true,
                 latitude: true,
                 longitude: true,
+                accessInstructions: true,
+                keySafeNumber: true,
                 deletedAt: true,
               },
             },
@@ -962,6 +1865,7 @@ export class EmployeeAppVisitsService {
     progress: Awaited<ReturnType<typeof this.resolveProgress>>,
     medProgress?: { dueCount: number; givenCount: number },
     employeeId?: string,
+    geofenceSettings?: { allowedRadiusMeters: number },
   ) {
     const su = ctx.job.serviceUser;
     const visit = ctx.primaryVisit;
@@ -1016,6 +1920,7 @@ export class EmployeeAppVisitsService {
     /** Prefer job pin when set; otherwise service-user address (same rule as geofence). */
     const destinationLatitude = jobLatitude ?? serviceUserLatitude;
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
+    const allowedRadiusMeters = geofenceSettings?.allowedRadiusMeters ?? 100;
 
     return {
       jobId: ctx.job.id,
@@ -1026,6 +1931,7 @@ export class EmployeeAppVisitsService {
         initials: initialsFromName(su.firstName, su.lastName),
         dateOfBirth: su.dateOfBirth ? formatDob(su.dateOfBirth) : null,
         dateOfBirthIso: su.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+        nhsNumber: su.nhsNumber ?? null,
         latitude: serviceUserLatitude,
         longitude: serviceUserLongitude,
         address,
@@ -1048,9 +1954,9 @@ export class EmployeeAppVisitsService {
       progress: this.buildProgress(progress, medProgress),
       location: {
         ...geofence,
-        /** Coordinates to navigate to for this visit. */
         latitude: destinationLatitude,
         longitude: destinationLongitude,
+        allowedRadiusMeters,
         source:
           jobLatitude != null && jobLongitude != null
             ? ('job' as const)
@@ -1078,6 +1984,19 @@ export class EmployeeAppVisitsService {
         })),
       requiredCarers: ctx.job.requiredCarers,
     };
+  }
+
+  private async loadGeofenceSettings() {
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: {
+        domGeofenceDistanceMeters: true,
+        domGeofenceToleranceMeters: true,
+      },
+    });
+    const allowedRadiusMeters =
+      (settings?.domGeofenceDistanceMeters ?? 100) +
+      (settings?.domGeofenceToleranceMeters ?? 0);
+    return { allowedRadiusMeters };
   }
 
   private buildProgress(
@@ -1238,11 +2157,30 @@ export class EmployeeAppVisitsService {
           id: plan.id,
           title: plan.carePathwayForm.name,
           description,
+          subtitle: description,
           iconType: iconForCarePlan(plan.carePathwayForm.name),
+          iconKey: iconForCarePlan(plan.carePathwayForm.name),
         };
       })
       .filter((x): x is NonNullable<typeof x> => x != null)
       .slice(0, 4);
+
+    const addr = ctx.job.serviceUser.address;
+    const keySafe =
+      addr && !addr.deletedAt
+        ? {
+            address: [addr.addressLine1, addr.addressLine2, addr.town, addr.postcode]
+              .filter(Boolean)
+              .join(', ') || null,
+            code: addr.keySafeNumber ?? null,
+            accessNote: addr.accessInstructions ?? null,
+          }
+        : null;
+
+    const lastHandoverMeta =
+      typeof ctx.employeeAppMeta.lastHandover === 'object' && ctx.employeeAppMeta.lastHandover
+        ? (ctx.employeeAppMeta.lastHandover as Record<string, unknown>)
+        : null;
 
     return {
       allergies: {
@@ -1254,8 +2192,25 @@ export class EmployeeAppVisitsService {
       flags: {
         extraCount: extraFlags.length,
         extraCountLabel: extraFlags.length > 0 ? `+${extraFlags.length} flags` : null,
-        items: riskTags,
+        items: extraFlags.map((t) => t.label),
+        chipItems: riskTags,
       },
+      keySafe,
+      lastHandover: lastHandoverMeta
+        ? {
+            message: String(lastHandoverMeta.message ?? lastHandoverMeta.body ?? ''),
+            requiresAck: lastHandoverMeta.requiresAck !== false,
+            badgeLabel: String(lastHandoverMeta.badgeLabel ?? 'Temporary note'),
+            acknowledged: Boolean(lastHandoverMeta.acknowledged),
+          }
+        : flash
+          ? {
+              message: flash.message,
+              requiresAck: true,
+              badgeLabel: 'Temporary note',
+              acknowledged: false,
+            }
+          : null,
       flashMessage: flash
         ? { id: flash.id, message: flash.message, displayUntil: flash.displayUntil.toISOString() }
         : null,
@@ -1278,7 +2233,7 @@ export class EmployeeAppVisitsService {
       ],
       safetyBriefing: {
         title: 'Pre-visit safety briefing',
-        risks: riskTags,
+        risks: riskTags.map((t) => t.label),
         loneWorkerNote: 'Lone-worker & SOS',
       },
       communication: {
@@ -1418,17 +2373,39 @@ export class EmployeeAppVisitsService {
       }
 
       const evt = eventByMed.get(m.id);
-      const isRecorded = evt?.status === MedicationAdministrationStatus.GIVEN;
+      const isRecorded = evt != null;
+      const dueTime =
+        'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;
+      const scheduledDoseId = isPrn ? `${m.id}:prn` : `${m.id}:${dueTime ?? 'dose'}`;
+      const relatedAllergy = allergyHit
+        ? allergyLower.find((a) => m.medicationName.toLowerCase().includes(a)) ?? null
+        : null;
 
       return {
         id: m.id,
+        scheduledDoseId,
         name: m.medicationName,
-        dose,
+        strength: m.strength ?? null,
+        dose: m.dose ?? null,
         route,
+        form: null as string | null,
+        detailLine: detailParts.join(' · '),
         detail: detailParts.join(' · '),
         isPrn,
+        done: isRecorded,
         isRecorded,
+        resolved: isRecorded,
+        controlled: Boolean(m.isControlledMedication),
+        timeCritical: Boolean(adminRules.timeCritical),
+        allergyWarning: Boolean(allergyHit),
+        allergyWarningMessage: relatedAllergy ? `Related allergy: ${relatedAllergy}` : null,
+        relatedAllergy,
         administrationEventId: evt?.id ?? null,
+        outcomeCode: evt?.status ?? null,
+        dueStatus: isPrn ? 'prn' : isRecorded ? 'recorded' : 'due',
+        countsTowardScheduledProgress: !isPrn,
+        instructions: m.instructions ?? null,
+        scheduledLabel: dueTime,
         tags,
       };
     };
@@ -1436,22 +2413,31 @@ export class EmployeeAppVisitsService {
     const sections: Array<{
       id: string;
       title: string;
+      label: string;
       medicines: ReturnType<typeof mapMed>[];
+      items: ReturnType<typeof mapMed>[];
     }> = [];
 
     if (scheduledMeds.length > 0) {
+      const medicines = scheduledMeds.map((m) => mapMed(m, false));
+      const title = round ? `SCHEDULED · ${round.name.toUpperCase()}` : 'SCHEDULED';
       sections.push({
         id: 'scheduled',
-        title: round ? `SCHEDULED · ${round.name.toUpperCase()}` : 'SCHEDULED',
-        medicines: scheduledMeds.map((m) => mapMed(m, false)),
+        title,
+        label: title,
+        medicines,
+        items: medicines,
       });
     }
 
     if (prnMeds.length > 0) {
+      const medicines = prnMeds.map((m) => mapMed(m, true));
       sections.push({
         id: 'prn',
         title: 'PRN · AS REQUIRED',
-        medicines: prnMeds.map((m) => mapMed(m, true)),
+        label: 'PRN · AS REQUIRED',
+        medicines,
+        items: medicines,
       });
     }
 
@@ -1472,11 +2458,17 @@ export class EmployeeAppVisitsService {
 
     return rows.map((row) => ({
       id: row.id,
+      type: row.observationType.name,
       title: row.observationType.name,
+      typeCode: row.observationType.code,
+      value: formatObservationValue(row),
       valueLabel: formatObservationValue(row),
       recordedAt: row.recordedAt.toISOString(),
+      time: formatHmUtc(row.recordedAt),
       timeLabel: formatHmUtc(row.recordedAt),
+      status: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
       statusLabel: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
+      statusTone: 'success' as Tone,
       tone: 'success' as Tone,
     }));
   }
@@ -1589,18 +2581,45 @@ export class EmployeeAppVisitsService {
     }
 
     entries.sort((a, b) => b.sortAt - a.sortAt);
-    return entries.map(({ sortAt: _sortAt, ...rest }) => rest);
+    return entries.map(({ sortAt: _sortAt, timeLabel, subtitle, ...rest }) => ({
+      ...rest,
+      timeLabel,
+      subtitle,
+      time: timeLabel,
+      detail: subtitle,
+    }));
   }
 
   private resolveHandoverNote(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
     const meta = this.parseMetadata(ctx.job.metadata);
+    const employeeApp =
+      typeof meta.employeeApp === 'object' && meta.employeeApp
+        ? (meta.employeeApp as Record<string, unknown>)
+        : {};
+    const handover =
+      typeof employeeApp.handoverNote === 'object' && employeeApp.handoverNote
+        ? (employeeApp.handoverNote as Record<string, unknown>)
+        : null;
     const extra =
       typeof meta.extraCareNotes === 'string' ? meta.extraCareNotes.trim() : '';
     const visitNotes = ctx.primaryVisit.notes?.trim() ?? '';
-    const value = extra || visitNotes || null;
+    const value =
+      (handover?.body != null ? String(handover.body).trim() : '') ||
+      extra ||
+      visitNotes ||
+      null;
     return {
       title: 'VISIT NOTE / HANDOVER',
       value,
+      body: value,
+      priority: handover?.priority != null ? String(handover.priority) : null,
+      outstandingAction:
+        handover?.outstandingAction != null ? String(handover.outstandingAction) : null,
+      acknowledged: Boolean(employeeApp.handoverAcknowledged),
+      acknowledgedAt:
+        employeeApp.handoverAcknowledgedAt != null
+          ? String(employeeApp.handoverAcknowledgedAt)
+          : null,
       placeholder: 'Add handover notes for the next carer or office…',
     };
   }
@@ -1619,6 +2638,99 @@ export class EmployeeAppVisitsService {
       return { ...(raw as Record<string, unknown>) };
     }
     return {};
+  }
+
+  private async readEmployeeAppMeta(jobId: string): Promise<Record<string, unknown>> {
+    const job = await this.prisma.scheduledJob.findUnique({
+      where: { id: jobId },
+      select: { metadata: true },
+    });
+    const meta = this.parseMetadata(job?.metadata);
+    if (meta.employeeApp && typeof meta.employeeApp === 'object' && !Array.isArray(meta.employeeApp)) {
+      return { ...(meta.employeeApp as Record<string, unknown>) };
+    }
+    return {};
+  }
+
+  private async mergeEmployeeAppMeta(
+    jobId: string,
+    mutator: (employeeApp: Record<string, unknown>) => Record<string, unknown>,
+  ) {
+    const job = await this.prisma.scheduledJob.findUnique({
+      where: { id: jobId },
+      select: { metadata: true },
+    });
+    const previousMeta = this.parseMetadata(job?.metadata);
+    const previousEa =
+      typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+        ? (previousMeta.employeeApp as Record<string, unknown>)
+        : {};
+    const employeeApp = mutator({ ...previousEa });
+    await this.prisma.scheduledJob.update({
+      where: { id: jobId },
+      data: {
+        metadata: { ...previousMeta, employeeApp } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  private async findIdempotentReplay(
+    jobId: string,
+    idempotencyKey: string | null | undefined,
+  ): Promise<Record<string, unknown> | null> {
+    if (!idempotencyKey) return null;
+    const ea = await this.readEmployeeAppMeta(jobId);
+    const map =
+      ea.idempotency && typeof ea.idempotency === 'object' && !Array.isArray(ea.idempotency)
+        ? (ea.idempotency as Record<string, unknown>)
+        : {};
+    const hit = map[idempotencyKey];
+    if (hit && typeof hit === 'object' && !Array.isArray(hit)) {
+      return hit as Record<string, unknown>;
+    }
+    return null;
+  }
+
+  private async assertFullDeliveryGates(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppVisitCompleteDto,
+  ) {
+    const [progress, medProgress] = await Promise.all([
+      this.resolveProgress(ctx),
+      this.resolveMedicationProgress(ctx),
+    ]);
+
+    if (progress.tasksTotal > 0 && progress.tasksDone < progress.tasksTotal) {
+      contractError(
+        'REQUIRED_TASKS_INCOMPLETE',
+        `Required tasks incomplete (${progress.tasksDone}/${progress.tasksTotal})`,
+      );
+    }
+
+    if (medProgress.dueCount > 0 && medProgress.givenCount < medProgress.dueCount) {
+      contractError(
+        'OUTSTANDING_MEDICATION',
+        `Outstanding medication (${medProgress.givenCount}/${medProgress.dueCount})`,
+      );
+    }
+
+    void dto;
+
+    const ea = this.parseMetadata(ctx.job.metadata).employeeApp as
+      | Record<string, unknown>
+      | undefined;
+    const handover =
+      ea && typeof ea.handoverNote === 'object' && ea.handoverNote
+        ? (ea.handoverNote as Record<string, unknown>)
+        : null;
+    if (
+      handover &&
+      String(handover.priority) === 'high' &&
+      !Boolean(ea?.handoverAcknowledged) &&
+      !String(handover.body ?? '').trim()
+    ) {
+      contractError('HANDOVER_REQUIRED', 'High-priority handover note is required');
+    }
   }
 
   private async evaluateGeofence(

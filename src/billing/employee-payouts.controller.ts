@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -25,6 +25,24 @@ export class EmployeePayoutsController {
     return this.service.list(query);
   }
 
+  @Get('eligible-uk-runs')
+  @Permissions('billing.employee_payouts.read')
+  @ApiOperation({
+    summary: 'List UK payroll runs eligible for payout (STATUTORY_CALCULATED or CLOSED)',
+  })
+  listEligibleUkRuns() {
+    return this.service.listPayoutEligibleUkRuns();
+  }
+
+  @Delete()
+  @Permissions('billing.employee_payouts.manage')
+  @ApiOperation({
+    summary: 'Delete all payout batches (test reset). Optional periodKey limits scope.',
+  })
+  deleteAll(@Query() query: EmployeePayoutsQueryDto) {
+    return this.service.deleteAll(query.periodKey);
+  }
+
   @Get(':id')
   @Permissions('billing.employee_payouts.read')
   @ApiOperation({ summary: 'Get payout batch with lines' })
@@ -34,7 +52,7 @@ export class EmployeePayoutsController {
 
   @Post()
   @Permissions('billing.employee_payouts.manage')
-  @ApiOperation({ summary: 'Create DRAFT payout batch from salary overview net' })
+  @ApiOperation({ summary: 'Create DRAFT payout batch from UK payroll run net pay' })
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateEmployeePayoutBatchDto) {
     return this.service.create(user.id, dto);
   }

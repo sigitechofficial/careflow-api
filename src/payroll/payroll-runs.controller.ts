@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -22,6 +22,16 @@ export class PayrollRunsController {
   @ApiOperation({ summary: 'List UK payroll runs (shell)' })
   list() {
     return this.service.list();
+  }
+
+  @Delete()
+  @Permissions('payroll.runs.manage')
+  @ApiOperation({
+    summary:
+      'Delete all UK payroll runs (test/ops). Also removes linked employee payout batches. Does not delete tax years, schedules, or employee payroll profiles.',
+  })
+  deleteAll(@CurrentUser() user: RequestUser, @Req() req: Request) {
+    return this.service.deleteAll(user.id, getRequestAuditMeta(req));
   }
 
   @Get(':id')

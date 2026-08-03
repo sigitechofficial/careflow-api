@@ -7247,50 +7247,58 @@ enum EmployeePayoutLineStatus {
   @@schema("billing")
 }
 
-/// Bank / cash payout batch for visit-pay net salaries (before PAYE/NI).
+/// Bank / cash payout batch for UK Payroll net pay (after W1/M1 PAYE/NI).
 model EmployeePayoutBatch {
-  id           String                    @id @default(uuid()) @db.Uuid
-  /// Period key matching salary overview: YYYY-MM or YYYY-Www
-  periodKey    String
-  periodStart  DateTime                  @db.Date
-  periodEnd    DateTime                  @db.Date
-  status       EmployeePayoutBatchStatus @default(DRAFT)
-  currency     String                    @default("GBP")
-  totalAmount  Decimal                   @default(0) @db.Decimal(12, 2)
-  notes        String?
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  createdById  String?                   @db.Uuid
-  approvedById String?                   @db.Uuid
-  approvedAt   DateTime?
-  paidById     String?                   @db.Uuid
-  paidAt       DateTime?
+  id             String                    @id @default(uuid()) @db.Uuid
+  /// Display period key: YYYY-MM or YYYY-Www (derived from UK run period)
+  periodKey      String
+  periodStart    DateTime                  @db.Date
+  periodEnd      DateTime                  @db.Date
+  /// Source UK payroll run (net pay). Required for new batches.
+  ukPayrollRunId String                    @db.Uuid
+  status         EmployeePayoutBatchStatus @default(DRAFT)
+  currency       String                    @default("GBP")
+  totalAmount    Decimal                   @default(0) @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  createdById    String?                   @db.Uuid
+  approvedById   String?                   @db.Uuid
+  approvedAt     DateTime?
+  paidById       String?                   @db.Uuid
+  paidAt         DateTime?
 
-  lines EmployeePayoutLine[]
+  lines        EmployeePayoutLine[]
+  ukPayrollRun UkPayrollRun         @relation(fields: [ukPayrollRunId], references: [id], onDelete: Restrict)
 
   @@index([periodKey])
   @@index([status])
   @@index([periodStart, periodEnd])
+  @@index([ukPayrollRunId])
   @@schema("billing")
 }
 
 model EmployeePayoutLine {
-  id         String                   @id @default(uuid()) @db.Uuid
-  batchId    String                   @db.Uuid
-  employeeId String                   @db.Uuid
-  /// Snapshot of net salary outstanding at create time.
-  amount     Decimal                  @db.Decimal(12, 2)
-  status     EmployeePayoutLineStatus @default(PENDING)
-  notes      String?
-  createdAt  DateTime                 @default(now())
-  updatedAt  DateTime                 @updatedAt
+  id                     String                   @id @default(uuid()) @db.Uuid
+  batchId                String                   @db.Uuid
+  employeeId             String                   @db.Uuid
+  /// Snapshot of UK net pay outstanding at create time.
+  amount                 Decimal                  @db.Decimal(12, 2)
+  /// Source UK run employee row (netPay snapshot origin).
+  ukPayrollRunEmployeeId String                   @db.Uuid
+  status                 EmployeePayoutLineStatus @default(PENDING)
+  notes                  String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 
-  batch EmployeePayoutBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch                EmployeePayoutBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  ukPayrollRunEmployee UkPayrollRunEmployee @relation(fields: [ukPayrollRunEmployeeId], references: [id], onDelete: Restrict)
 
   @@unique([batchId, employeeId])
   @@index([batchId])
   @@index([employeeId])
   @@index([status])
+  @@index([ukPayrollRunEmployeeId])
   @@schema("billing")
 }
 
@@ -7761,6 +7769,7 @@ model UkPayrollRun {
   schedule PayrollSchedule @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
   employees UkPayrollRunEmployee[]
   inputLines UkPayrollInputLine[]
+  payoutBatches EmployeePayoutBatch[]
 
   @@unique([scheduleId, periodId, runNumber])
   @@index([status])
@@ -7806,6 +7815,7 @@ model UkPayrollRunEmployee {
 
   run UkPayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   inputLines UkPayrollInputLine[]
+  payoutLines EmployeePayoutLine[]
 
   @@unique([runId, employeeId])
   @@index([employeeId])

@@ -77,6 +77,23 @@ export class PayrollRunsController {
     return this.service.deleteEmployeeSalaryDeduction(user.id, employeeId, deductionId);
   }
 
+  @Post('employee/:employeeId/reset-earnings')
+  @AnyPermission(
+    'billing.payroll_runs.manage',
+    'billing.employee_payouts.manage',
+    'employees.update',
+  )
+  @ApiOperation({
+    summary:
+      'Reset employee earnings display to £0: clear payouts, fines, ready visit payable amounts, and remove from UK payroll runs. Test/ops helper.',
+  })
+  resetEarnings(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+  ) {
+    return this.service.resetEmployeeEarnings(user.id, employeeId);
+  }
+
   @Get()
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'List payroll runs' })

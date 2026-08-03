@@ -18,15 +18,24 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.CONFIRMED,
 ];
 
-const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
-  ScheduledJobStatus.CANCELLED,
-  ScheduledJobStatus.CALLED_OFF,
-  ScheduledJobStatus.DRAFT,
-];
+/** Draft jobs stay hidden; cancelled/called-off appear as read-only list cards. */
+const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [ScheduledJobStatus.DRAFT];
 
-type HomeVisitUiStatus = 'in_progress' | 'upcoming' | 'completed' | 'missed' | 'needs_attention';
+type HomeVisitUiStatus =
+  | 'in_progress'
+  | 'upcoming'
+  | 'completed'
+  | 'missed'
+  | 'needs_attention'
+  | 'cancelled';
 
-type HomeTag = { id: string; label: string; tone: 'danger' | 'primary' | 'success' | 'warning' | 'neutral' };
+type HomeTag = {
+  id: string;
+  label: string;
+  tone: 'danger' | 'primary' | 'success' | 'warning' | 'neutral' | 'teal';
+};
+
+const AVG_URBAN_SPEED_MPH = 20;
 
 @Injectable()
 export class EmployeeAppHomeService {
@@ -167,13 +176,15 @@ export class EmployeeAppHomeService {
             ? Math.max(0, Math.round((now.getTime() - startAt.getTime()) / 60_000))
             : null;
 
-      const showTaskProgress = uiStatus === 'in_progress' || uiStatus === 'completed';
+      const showTaskProgress =
+        uiStatus === 'in_progress' || uiStatus === 'completed' || taskProgress.total > 0;
       const tasksDone = showTaskProgress ? taskProgress.completed : null;
       const tasksTotal = showTaskProgress ? taskProgress.total : null;
+      const identityConfirmed = readIdentityConfirmed(job.metadata);
 
       return {
         jobId: job.id,
-        visitId: primaryVisit?.id ?? job.id,
+        visitId: primaryVisit?.id ?? null,
         clientId: su.id,
         status: uiStatus,
         scheduledStart,
@@ -182,6 +193,7 @@ export class EmployeeAppHomeService {
         endAt,
         visitTypeLong,
         visitTypeShort,
+        careTypeName: su.careType?.name?.trim() || null,
         clientName,
         initials,
         firstName: su.firstName,
@@ -191,16 +203,23 @@ export class EmployeeAppHomeService {
         medicationRequired: primaryVisit?.medicationRequired ?? false,
         requiredCarers,
         alreadyClockedIn,
+        identityConfirmed,
         elapsedMinutes,
         tasksDone,
         tasksTotal,
         taskProgress,
         address,
         durationMinutes: durationMinutes(startAt, endAt, job.estimatedDurationMinutes),
+        travelMinutes: null as number | null,
+        distanceMiles: null as number | null,
       };
     });
 
-    const countable = visitRows.filter((v) => v.status !== 'missed');
+    applyTravelBetweenVisits(visitRows);
+
+    const countable = visitRows.filter(
+      (v) => v.status !== 'missed' && v.status !== 'cancelled',
+    );
     const completedCount = countable.filter((v) => v.status === 'completed').length;
     const totalCount = countable.length;
     const remainingCount = Math.max(0, totalCount - completedCount);
@@ -215,11 +234,15 @@ export class EmployeeAppHomeService {
         client: {
           name: row.clientName,
           initials: row.initials,
+          firstName: row.firstName,
+          lastName: row.lastName,
         },
         visitType: row.visitTypeShort,
         scheduledStart: row.scheduledStart,
         scheduledEnd: row.scheduledEnd,
-        subtitle: `${row.visitTypeShort} · ${row.scheduledStart}`,
+        subtitle: buildVisitSubtitle(row),
+        travelMinutes: row.travelMinutes,
+        distanceMiles: row.distanceMiles,
         status: row.status,
         statusLabel: listStatusLabel(row.status, row.scheduledStart),
         statusTone: statusTone(row.status),
@@ -227,7 +250,9 @@ export class EmployeeAppHomeService {
         tasksDone: row.tasksDone,
         tasksTotal: row.tasksTotal,
         taskProgressLabel:
-          row.tasksDone != null && row.tasksTotal != null ? `${row.tasksDone}/${row.tasksTotal}` : null,
+          row.tasksDone != null && row.tasksTotal != null
+            ? `${row.tasksDone}/${row.tasksTotal}`
+            : null,
       };
     });
 
@@ -239,10 +264,18 @@ export class EmployeeAppHomeService {
     const greeting = buildGreeting(firstName, lastName);
 
     const totalMinutes = visitRows
-      .filter((v) => v.status !== 'missed' && v.status !== 'needs_attention')
+      .filter(
+        (v) =>
+          v.status !== 'missed' &&
+          v.status !== 'needs_attention' &&
+          v.status !== 'cancelled',
+      )
       .reduce((sum, v) => sum + v.durationMinutes, 0);
     const outstandingCount = visitRows.filter(
-      (v) => v.status === 'upcoming' || v.status === 'in_progress' || v.status === 'needs_attention',
+      (v) =>
+        v.status === 'upcoming' ||
+        v.status === 'in_progress' ||
+        v.status === 'needs_attention',
     ).length;
     const estimatedPay =
       hourlyRate != null ? Math.round(hourlyRate * (totalMinutes / 60) * 100) / 100 : null;
@@ -447,13 +480,16 @@ export class EmployeeAppHomeService {
 
 type VisitRow = {
   jobId: string;
-  visitId: string;
+  visitId: string | null;
   clientId: string;
   status: HomeVisitUiStatus;
   scheduledStart: string;
   scheduledEnd: string | null;
+  startAt: Date;
+  endAt: Date | null;
   visitTypeLong: string;
   visitTypeShort: string;
+  careTypeName: string | null;
   clientName: string;
   initials: string;
   firstName: string;
@@ -463,20 +499,24 @@ type VisitRow = {
   medicationRequired: boolean;
   requiredCarers: number;
   alreadyClockedIn: boolean;
+  identityConfirmed: boolean;
   elapsedMinutes: number | null;
   tasksDone: number | null;
   tasksTotal: number | null;
+  taskProgress: { completed: number; total: number };
   address: ReturnType<typeof resolveAddress>;
   durationMinutes: number;
+  travelMinutes: number | null;
+  distanceMiles: number | null;
 };
 
 function buildActiveVisit(row: VisitRow) {
   const allergiesLabel =
     row.allergyNames.length > 0 ? `Allergies: ${row.allergyNames.join(', ')}` : null;
-  const distanceMiles: number | null = null;
   const subtitleParts = [row.visitTypeLong];
   if (row.elapsedMinutes != null) subtitleParts.push(`${row.elapsedMinutes} min`);
-  if (distanceMiles != null) subtitleParts.push(`${distanceMiles} mi`);
+  else if (row.travelMinutes != null) subtitleParts.push(`${row.travelMinutes} min`);
+  if (row.distanceMiles != null) subtitleParts.push(`${row.distanceMiles} mi`);
 
   const mapsUrl =
     row.address.latitude != null && row.address.longitude != null
@@ -504,14 +544,15 @@ function buildActiveVisit(row: VisitRow) {
     visitType: row.visitTypeLong,
     visitTitle: row.visitTypeLong,
     elapsedMinutes: row.elapsedMinutes,
-    distanceMiles,
+    travelMinutes: row.travelMinutes,
+    distanceMiles: row.distanceMiles,
     subtitle: subtitleParts.join(' · '),
     allergies: row.allergyNames,
     allergiesLabel,
     tasksDone: row.tasksDone ?? 0,
     tasksTotal: row.tasksTotal ?? 0,
     alreadyClockedIn: row.alreadyClockedIn,
-    identityConfirmed: row.alreadyClockedIn,
+    identityConfirmed: row.identityConfirmed,
     primaryAction: {
       id: 'resume',
       label: 'Resume visit',
@@ -526,6 +567,39 @@ function buildActiveVisit(row: VisitRow) {
   };
 }
 
+function buildVisitSubtitle(row: VisitRow): string {
+  const parts = [row.visitTypeShort];
+  if (row.travelMinutes != null) parts.push(`${row.travelMinutes} min`);
+  if (row.distanceMiles != null) parts.push(`${row.distanceMiles} mi`);
+  if (parts.length === 1) parts.push(row.scheduledStart);
+  return parts.join(' · ');
+}
+
+function applyTravelBetweenVisits(rows: VisitRow[]) {
+  for (let i = 1; i < rows.length; i += 1) {
+    const prev = rows[i - 1];
+    const cur = rows[i];
+    if (
+      prev.address.latitude == null ||
+      prev.address.longitude == null ||
+      cur.address.latitude == null ||
+      cur.address.longitude == null
+    ) {
+      continue;
+    }
+    const meters = haversineMeters(
+      prev.address.latitude,
+      prev.address.longitude,
+      cur.address.latitude,
+      cur.address.longitude,
+    );
+    const miles = Math.round((meters / 1609.344) * 10) / 10;
+    const minutes = Math.max(1, Math.round((miles / AVG_URBAN_SPEED_MPH) * 60));
+    cur.distanceMiles = miles;
+    cur.travelMinutes = minutes;
+  }
+}
+
 function buildVisitTags(row: VisitRow): HomeTag[] {
   const tags: HomeTag[] = [];
   if (row.allergyNames.length > 0) {
@@ -538,6 +612,12 @@ function buildVisitTags(row: VisitRow): HomeTag[] {
       label: n != null ? `${n} med${n === 1 ? '' : 's'}` : 'Meds',
       tone: 'primary',
     });
+    if (row.medicationRequired) {
+      tags.push({ id: 'mar', label: 'MAR', tone: 'teal' });
+    }
+  }
+  if (row.careTypeName) {
+    tags.push({ id: 'care', label: row.careTypeName, tone: 'primary' });
   }
   if (row.requiredCarers >= 2) {
     tags.push({
@@ -574,6 +654,14 @@ function mapUiStatus(
   jobStatus: ScheduledJobStatus,
   visitStatus: ScheduledVisitStatus | null,
 ): HomeVisitUiStatus {
+  if (
+    jobStatus === ScheduledJobStatus.CANCELLED ||
+    jobStatus === ScheduledJobStatus.CALLED_OFF ||
+    visitStatus === ScheduledVisitStatus.CANCELLED ||
+    visitStatus === ScheduledVisitStatus.CALLED_OFF
+  ) {
+    return 'cancelled';
+  }
   if (jobStatus === ScheduledJobStatus.IN_PROGRESS || visitStatus === ScheduledVisitStatus.STARTED) {
     return 'in_progress';
   }
@@ -601,14 +689,19 @@ function listStatusLabel(status: HomeVisitUiStatus, scheduledStart: string): str
   if (status === 'in_progress') return 'In progress';
   if (status === 'completed') return 'Done';
   if (status === 'missed') return 'Missed';
+  if (status === 'cancelled') return 'Cancelled';
   if (status === 'needs_attention') return 'Needs attention';
   return scheduledStart;
 }
 
-function statusTone(status: HomeVisitUiStatus): 'warning' | 'neutral' | 'success' | 'danger' {
+function statusTone(
+  status: HomeVisitUiStatus,
+): 'warning' | 'neutral' | 'success' | 'danger' | 'primary' | 'teal' {
   if (status === 'in_progress') return 'warning';
   if (status === 'completed') return 'success';
-  if (status === 'missed' || status === 'needs_attention') return 'danger';
+  if (status === 'missed' || status === 'needs_attention' || status === 'cancelled') {
+    return 'danger';
+  }
   return 'neutral';
 }
 
@@ -701,4 +794,22 @@ function resolveAddress(
     longitude,
     formatted,
   };
+}
+
+function readIdentityConfirmed(metadata: Prisma.JsonValue | null | undefined): boolean {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false;
+  const employeeApp = (metadata as Record<string, unknown>).employeeApp;
+  if (!employeeApp || typeof employeeApp !== 'object' || Array.isArray(employeeApp)) return false;
+  return Boolean((employeeApp as Record<string, unknown>).identityConfirmed);
+}
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
 }

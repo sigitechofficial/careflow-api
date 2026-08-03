@@ -43,6 +43,22 @@
       "value": ""
     },
     {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "medicationKey",
+      "value": ""
+    },
+    {
+      "key": "observationId",
+      "value": ""
+    },
+    {
+      "key": "incidentId",
+      "value": ""
+    },
+    {
       "key": "month",
       "value": "2026-07"
     }
@@ -716,13 +732,35 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identityConfirmed\": true,\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"accuracyMeters\": 12.5\n}"
+              "raw": "{\n  \"identityConfirmed\": true,\n  \"method\": \"GPS\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"accuracyMeters\": 12.4,\n  \"locationCapturedAt\": \"2026-08-03T08:01:12.345Z\",\n  \"deviceRecordedAt\": \"2026-08-03T08:01:13.000Z\",\n  \"isMockedLocation\": false,\n  \"withinArea\": true,\n  \"distanceMeters\": 18,\n  \"timingStatus\": \"late\",\n  \"timingExceptionReasonCode\": \"TRAVEL_OR_TRAFFIC\",\n  \"timingExceptionNotes\": \"Traffic on A-road\",\n  \"welfareOutcomeId\": \"seen-ok\",\n  \"personSeen\": true,\n  \"accessViaKeySafe\": false,\n  \"idempotencyKey\": \"visit-checkin-{{jobId}}-demo\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/check-in",
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "check-in"]
-            }
+            },
+            "description": "API-08 check-in. Accepts expanded contract body; returns flat data (jobId, isCheckedIn, checkedInAt, method, withinArea, distanceMeters)."
+          },
+          "response": []
+        },
+        {
+          "name": "Unable to start",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reasonCode\": \"NO_ANSWER\",\n  \"notes\": \"Knocked twice, no response\",\n  \"attemptedAt\": \"2026-08-03T08:05:00.000Z\",\n  \"contactAttemptCount\": 2,\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"accuracyMeters\": 15,\n  \"idempotencyKey\": \"unable-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/unable-to-start",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "unable-to-start"]
+            },
+            "description": "API-10 — must NOT set isCheckedIn. Marks visit missed/unable without clock-in."
           },
           "response": []
         },
@@ -740,6 +778,27 @@
           "response": []
         },
         {
+          "name": "Save task (API-11)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskId\": \"{{taskId}}\",\n  \"outcome\": \"COMPLETED\",\n  \"deviceRecordedAt\": \"2026-08-03T08:20:00.000Z\",\n  \"idempotencyKey\": \"task-{{taskId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "tasks", "{{taskId}}"]
+            },
+            "description": "API-11 — outcome COMPLETED | PARTIAL | DECLINED."
+          },
+          "response": []
+        },
+        {
           "name": "MAR",
           "request": {
             "method": "GET",
@@ -749,6 +808,27 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "medication"]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Record MAR administration (API-12)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outcomeCode\": \"G\",\n  \"outcomeLabel\": \"Given\",\n  \"supportLevel\": \"Administered\",\n  \"identityConfirmed\": true,\n  \"allergyAcknowledged\": true,\n  \"deviceRecordedAt\": \"2026-08-03T08:25:00.000Z\",\n  \"idempotencyKey\": \"mar-{{medicationKey}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/medication/{{medicationKey}}/administrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "medication", "{{medicationKey}}", "administrations"]
+            },
+            "description": "API-12 — medicationKey = scheduledDoseId from MAR GET."
           },
           "response": []
         },
@@ -766,6 +846,47 @@
           "response": []
         },
         {
+          "name": "Create observation (API-13)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"definitionId\": \"blood_glucose\",\n  \"typeCode\": \"BLOOD_SUGAR\",\n  \"outcome\": \"recorded\",\n  \"value\": 6.2,\n  \"unit\": \"mmol/L\",\n  \"deviceRecordedAt\": \"2026-08-03T08:30:00.000Z\",\n  \"idempotencyKey\": \"obs-bg-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "observations"]
+            },
+            "description": "API-13 contract shape (also accepts legacy observationTypeCode + recordedAt)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update observation (API-14)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 6.4,\n  \"correctionReason\": \"Typo on first entry\",\n  \"deviceRecordedAt\": \"2026-08-03T08:32:00.000Z\",\n  \"idempotencyKey\": \"obs-fix-{{observationId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/observations/{{observationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "observations", "{{observationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Log",
           "request": {
             "method": "GET",
@@ -774,6 +895,149 @@
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/log",
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "log"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log note (API-15)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Client in good spirits this morning.\",\n  \"title\": \"Visit note\",\n  \"deviceRecordedAt\": \"2026-08-03T08:35:00.000Z\",\n  \"idempotencyKey\": \"note-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/log/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "log", "notes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log handover (API-16)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Please check fluid balance chart this afternoon.\",\n  \"priority\": \"high\",\n  \"outstandingAction\": \"Review fluid chart\",\n  \"deviceRecordedAt\": \"2026-08-03T08:36:00.000Z\",\n  \"idempotencyKey\": \"handover-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/log/handover",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "log", "handover"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log concern (API-17)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Slight redness on left heel — monitor.\",\n  \"concernType\": \"skin\",\n  \"severity\": \"medium\",\n  \"officeContactPlanned\": true,\n  \"deviceRecordedAt\": \"2026-08-03T08:37:00.000Z\",\n  \"idempotencyKey\": \"concern-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/log/concerns",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "log", "concerns"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Report incident (API-18)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incidentType\": \"Near miss\",\n  \"body\": \"Almost slipped on wet kitchen floor; floor dried and sign placed.\",\n  \"severity\": \"low\",\n  \"immediateAction\": \"Dried floor, warning sign\",\n  \"deviceRecordedAt\": \"2026-08-03T08:40:00.000Z\",\n  \"idempotencyKey\": \"incident-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/incidents",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "incidents"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Incident attachment (API-19)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "idempotencyKey", "type": "text", "value": "incident-att-{{incidentId}}-demo" },
+                { "key": "clientAttachmentId", "type": "text", "value": "" },
+                { "key": "capturedAt", "type": "text", "value": "2026-08-03T08:41:00.000Z" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/incidents/{{incidentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "incidents", "{{incidentId}}", "attachments"]
+            },
+            "description": "API-19 multipart photo upload. Set {{incidentId}} from API-18 response."
+          },
+          "response": []
+        },
+        {
+          "name": "Identity audit (API-20)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"result\": \"confirmed\",\n  \"method\": \"visual\",\n  \"deviceRecordedAt\": \"2026-08-03T08:02:00.000Z\",\n  \"idempotencyKey\": \"identity-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/identity",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "identity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Acknowledge handover (API-21)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acknowledgedAt\": \"2026-08-03T08:03:00.000Z\",\n  \"idempotencyKey\": \"handover-ack-{{jobId}}-demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/handover/acknowledge",
+              "host": ["{{baseUrl}}"],
+              "path": ["employee-app", "visits", "{{jobId}}", "handover", "acknowledge"]
             }
           },
           "response": []
@@ -802,14 +1066,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:41:53.210Z\",\n  \"notes\": \"Visit completed\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"timingExceptionReasonCode\": \"CLIENT_REQUEST_OR_NEED\",\n  \"timingExceptionNotes\": \"Client needed a few extra minutes.\"\n}"
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"visitOutcome\": \"fully_delivered\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:41:53.210Z\",\n  \"notes\": \"Visit completed\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"leavingSafeChecks\": {\n    \"requiredTasksComplete\": true,\n    \"medicationRecorded\": true,\n    \"personSafeComfortable\": true,\n    \"homeSecure\": true\n  },\n  \"timingExceptionReasonCode\": \"CLIENT_REQUEST_OR_NEED\",\n  \"timingExceptionNotes\": \"Client needed a few extra minutes.\",\n  \"idempotencyKey\": \"complete-{{jobId}}-demo\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "complete"]
             },
-            "description": "Fully complete the visit (same rules as admin schedule-jobs). Requires actual start/end. Early/late/short/overrun need timingExceptionReasonCode."
+            "description": "API-09 — fully complete. With visitOutcome=fully_delivered + leavingSafeChecks, server gates apply."
           },
           "response": []
         },
@@ -823,7 +1087,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"PARTIALLY_COMPLETED\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:10:00.000Z\",\n  \"notes\": \"Client declined personal care; medication and wellbeing completed.\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278\n}"
+              "raw": "{\n  \"status\": \"PARTIALLY_COMPLETED\",\n  \"visitOutcome\": \"partially_met\",\n  \"actualStartDateTime\": \"2026-07-20T06:38:44.455Z\",\n  \"actualEndDateTime\": \"2026-07-20T07:10:00.000Z\",\n  \"notes\": \"Client declined personal care; medication and wellbeing completed.\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",
@@ -844,7 +1108,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"MISSED\",\n  \"notes\": \"No answer at door after waiting; office informed.\"\n}"
+              "raw": "{\n  \"status\": \"MISSED\",\n  \"visitOutcome\": \"not_met\",\n  \"notes\": \"No answer at door after waiting; office informed.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/complete",

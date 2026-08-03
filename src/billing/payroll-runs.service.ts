@@ -9,10 +9,9 @@ import {
   Prisma,
   SalaryDeductionType,
   VisitReconciliationStatus,
-  EmployeePayoutBatchStatus,
-  EmployeePayoutLineStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmployeePayoutsService } from './employee-payouts.service';
 import {
   CreateBillingRunDto,
   CreateEmployeeSalaryDeductionDto,
@@ -179,7 +178,10 @@ export type PayrollRunRow = {
 
 @Injectable()
 export class PayrollRunsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly employeePayouts: EmployeePayoutsService,
+  ) {}
 
   async list(query?: BillingRunsQueryDto) {
     const where: Prisma.PayrollRunWhereInput = {};
@@ -1355,36 +1357,15 @@ export class PayrollRunsService {
     );
 
     const periodKey = derivePeriodKeyFromRange(query.dateFrom, query.dateTo);
-    const paidOutByEmployee = new Map<string, number>();
-    const committedByEmployee = new Map<string, number>();
-    if (periodKey && employeeIds.length) {
-      const payoutLines = await this.prisma.employeePayoutLine.findMany({
-        where: {
-          employeeId: { in: employeeIds },
-          batch: {
-            periodKey,
-            status: { not: EmployeePayoutBatchStatus.CANCELLED },
-          },
-          status: {
-            in: [EmployeePayoutLineStatus.PAID, EmployeePayoutLineStatus.PENDING],
-          },
-        },
-        select: { employeeId: true, amount: true, status: true },
-      });
-      for (const line of payoutLines) {
-        const amount = Number(line.amount);
-        committedByEmployee.set(
-          line.employeeId,
-          (committedByEmployee.get(line.employeeId) ?? 0) + amount,
-        );
-        if (line.status === EmployeePayoutLineStatus.PAID) {
-          paidOutByEmployee.set(
-            line.employeeId,
-            (paidOutByEmployee.get(line.employeeId) ?? 0) + amount,
-          );
-        }
-      }
-    }
+    const {
+      ukNetByEmployee,
+      paidOutByEmployee,
+      committedByEmployee,
+      hasEligibleUkRun,
+    } = await this.employeePayouts.ukNetAndPaidOutForDateRange(
+      query.dateFrom,
+      query.dateTo,
+    );
 
     const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -1401,9 +1382,12 @@ export class PayrollRunsService {
         const paidAmount = round2(a.paidAmount);
         const remainingAmount = round2(a.remainingAmount);
         const rejectedAmount = round2(a.rejectedAmount);
+        const ukNetPay = round2(ukNetByEmployee.get(id) ?? 0);
         const paidOutAmount = round2(paidOutByEmployee.get(id) ?? 0);
         const committed = round2(committedByEmployee.get(id) ?? 0);
-        const outstandingPayoutAmount = round2(Math.max(0, netSalary - committed));
+        const outstandingPayoutAmount = hasEligibleUkRun
+          ? round2(Math.max(0, ukNetPay - committed))
+          : 0;
         return {
           employeeId: id,
           employeeName: meta.name,
@@ -1430,6 +1414,9 @@ export class PayrollRunsService {
           deductionsTotalValue: deductionsTotal,
           netSalaryAmount: formatMoney(netSalary),
           netSalaryAmountValue: netSalary,
+          ukNetPayAmount: formatMoney(ukNetPay),
+          ukNetPayAmountValue: ukNetPay,
+          hasEligibleUkRun,
           paidOutAmount: formatMoney(paidOutAmount),
           paidOutAmountValue: paidOutAmount,
           outstandingPayoutAmount: formatMoney(outstandingPayoutAmount),
@@ -1444,6 +1431,7 @@ export class PayrollRunsService {
         dateFrom: query.dateFrom ?? null,
         dateTo: query.dateTo ?? null,
         periodKey,
+        hasEligibleUkRun,
         currency: 'GBP',
         employeeCount: rows.length,
         rows,
@@ -1484,7 +1472,31 @@ export class PayrollRunsService {
         : {}),
     };
 
-    const remainingWhere = earningsRemainingWhere(visitDateWhere);
+    const remainingWhereBase = earningsRemainingWhere(visitDateWhere);
+
+    const ukInputsForEmployee = await this.prisma.ukPayrollInputLine.findMany({
+      where: {
+        employeeId,
+        sourceVisitReconciliationId: { not: null },
+      },
+      select: {
+        sourceVisitReconciliationId: true,
+        runEmployeeId: true,
+        runId: true,
+        run: { select: { id: true, label: true, status: true } },
+      },
+    });
+    const ukCoveredReconIds = [
+      ...new Set(
+        ukInputsForEmployee
+          .map((l) => l.sourceVisitReconciliationId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const remainingWhere: Prisma.VisitReconciliationWhereInput = {
+      ...remainingWhereBase,
+      ...(ukCoveredReconIds.length ? { id: { notIn: ukCoveredReconIds } } : {}),
+    };
 
     const pendingWhere: Prisma.VisitReconciliationWhereInput = {
       ...visitDateWhere,
@@ -1565,6 +1577,44 @@ export class PayrollRunsService {
       }),
     ]);
 
+    const visitIdSet = new Set(visitRows.map((r) => r.id));
+    const ukByReconId = new Map<
+      string,
+      { runId: string; runLabel: string; runStatus: string; runEmployeeId: string }
+    >();
+    for (const line of ukInputsForEmployee) {
+      if (!line.sourceVisitReconciliationId || !visitIdSet.has(line.sourceVisitReconciliationId)) {
+        continue;
+      }
+      ukByReconId.set(line.sourceVisitReconciliationId, {
+        runId: line.runId,
+        runLabel: line.run.label,
+        runStatus: line.run.status,
+        runEmployeeId: line.runEmployeeId,
+      });
+    }
+
+    const ukRunEmployeeIds = [
+      ...new Set([...ukByReconId.values()].map((v) => v.runEmployeeId)),
+    ];
+    const paidUkRunEmployeeIds = new Set<string>();
+    if (ukRunEmployeeIds.length) {
+      const paidLines = await this.prisma.employeePayoutLine.findMany({
+        where: {
+          employeeId,
+          ukPayrollRunEmployeeId: { in: ukRunEmployeeIds },
+          status: 'PAID',
+          batch: { status: 'PAID' },
+        },
+        select: { ukPayrollRunEmployeeId: true },
+      });
+      for (const line of paidLines) {
+        if (line.ukPayrollRunEmployeeId) {
+          paidUkRunEmployeeIds.add(line.ukPayrollRunEmployeeId);
+        }
+      }
+    }
+
     const salaryWhere: Prisma.VisitReconciliationWhereInput = {
       ...visitDateWhere,
       OR: [
@@ -1624,19 +1674,27 @@ export class PayrollRunsService {
     };
 
     const visits = visitRows.map((row) => {
-      const paid = Boolean(row.includedInPayrollRunId);
+      const inVisitPayRun = Boolean(row.includedInPayrollRunId);
       const rejected = row.status === VisitReconciliationStatus.REJECTED_FOR_PAY;
+      const uk = ukByReconId.get(row.id);
+      const bankPaid = Boolean(uk && paidUkRunEmployeeIds.has(uk.runEmployeeId));
+      const inUkPayroll = Boolean(uk);
       const remaining =
-        !paid &&
+        !inVisitPayRun &&
+        !inUkPayroll &&
         !rejected &&
         isEarningsRemainingStatus(row.status, row.payableAmount);
-      const paymentState = paid
-        ? 'PAID'
-        : remaining
-          ? 'REMAINING'
-          : rejected
-            ? 'REJECTED'
-            : 'PENDING';
+      const paymentState = bankPaid
+        ? 'BANK_PAID'
+        : inVisitPayRun
+          ? 'PAID'
+          : inUkPayroll
+            ? 'IN_UK_PAYROLL'
+            : remaining
+              ? 'REMAINING'
+              : rejected
+                ? 'REJECTED'
+                : 'PENDING';
       const hours =
         row.payableMinutes != null
           ? formatMinutesAsHours(row.payableMinutes)
@@ -1664,11 +1722,13 @@ export class PayrollRunsService {
         payableHours: hours,
         status: row.status,
         paymentState,
-        paid,
-        countsTowardSalary: paid || remaining,
-        payrollRunId: row.includedInPayrollRun?.id ?? null,
-        payrollPeriod: row.includedInPayrollRun?.periodLabel ?? null,
-        payrollRunStatus: row.includedInPayrollRun?.status ?? null,
+        paid: inVisitPayRun || bankPaid,
+        countsTowardSalary: inVisitPayRun || remaining || inUkPayroll,
+        payrollRunId: row.includedInPayrollRun?.id ?? uk?.runId ?? null,
+        payrollPeriod: uk?.runLabel ?? row.includedInPayrollRun?.periodLabel ?? null,
+        payrollRunStatus: uk?.runStatus ?? row.includedInPayrollRun?.status ?? null,
+        ukPayrollRunId: uk?.runId ?? null,
+        ukPayrollRunLabel: uk?.runLabel ?? null,
       };
     });
 
@@ -1706,6 +1766,22 @@ export class PayrollRunsService {
     const visitSalary = Math.round(salaryAmount * 100) / 100;
     const netSalary = Math.round((visitSalary - deductionsTotal) * 100) / 100;
 
+    const {
+      ukNetByEmployee,
+      paidOutByEmployee,
+      committedByEmployee,
+      hasEligibleUkRun,
+    } = await this.employeePayouts.ukNetAndPaidOutForDateRange(
+      query.dateFrom,
+      query.dateTo,
+    );
+    const ukNetPay = Math.round((ukNetByEmployee.get(employeeId) ?? 0) * 100) / 100;
+    const paidOutAmount = Math.round((paidOutByEmployee.get(employeeId) ?? 0) * 100) / 100;
+    const committed = Math.round((committedByEmployee.get(employeeId) ?? 0) * 100) / 100;
+    const outstandingPayoutAmount = hasEligibleUkRun
+      ? Math.round(Math.max(0, ukNetPay - committed) * 100) / 100
+      : 0;
+
     return {
       data: {
         employeeId,
@@ -1733,6 +1809,14 @@ export class PayrollRunsService {
         remainingAmount: formatMoney(remainingAmount),
         remainingAmountValue: Math.round(remainingAmount * 100) / 100,
         pendingReviewCount: pendingCount,
+        ukNetPayAmount: formatMoney(ukNetPay),
+        ukNetPayAmountValue: ukNetPay,
+        hasEligibleUkRun,
+        /** Bank payout of UK net (PAID batches). */
+        paidOutAmount: formatMoney(paidOutAmount),
+        paidOutAmountValue: paidOutAmount,
+        outstandingPayoutAmount: formatMoney(outstandingPayoutAmount),
+        outstandingPayoutAmountValue: outstandingPayoutAmount,
         visits,
       },
     };
@@ -1814,6 +1898,109 @@ export class PayrollRunsService {
       },
     });
     return { data: { id: row.id, deleted: true } };
+  }
+
+  /**
+   * Test/ops helper: wipe this employee’s earnings display to £0.
+   * - Deletes payout lines (Bank paid → £0)
+   * - Clears fines/penalties
+   * - Zeros payable amounts on visits not yet in a locked visit-pay run (Ready → £0)
+   * - Removes them from UK payroll runs and retotals those runs (UK net / Outstanding → £0)
+   * Does not delete locked/exported visit-pay run history lines.
+   */
+  async resetEmployeeEarnings(userId: string, employeeId: string) {
+    await this.ensureEmployee(employeeId);
+
+    const payout = await this.employeePayouts.deleteLinesForEmployee(employeeId);
+
+    const deductions = await this.prisma.employeeSalaryDeduction.updateMany({
+      where: { employeeId, deletedAt: null, isActive: true },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        updatedById: userId,
+      },
+    });
+
+    const readyVisits = await this.prisma.visitReconciliation.updateMany({
+      where: {
+        employeeId,
+        includedInPayrollRunId: null,
+        payableAmount: { not: null },
+      },
+      data: {
+        payableAmount: 0,
+        updatedAt: new Date(),
+      },
+    });
+
+    const ukRunEmployees = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: { employeeId },
+      select: {
+        id: true,
+        runId: true,
+        netPay: true,
+        totalGross: true,
+        incomeTax: true,
+        employeeNi: true,
+        employerNi: true,
+        expenseTotal: true,
+      },
+    });
+
+    const affectedRunIds = [...new Set(ukRunEmployees.map((e) => e.runId))];
+
+    if (ukRunEmployees.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.ukPayrollInputLine.deleteMany({ where: { employeeId } });
+        await tx.ukPayrollRunEmployee.deleteMany({ where: { employeeId } });
+
+        for (const runId of affectedRunIds) {
+          const remaining = await tx.ukPayrollRunEmployee.findMany({
+            where: { runId },
+            select: {
+              totalGross: true,
+              expenseTotal: true,
+              incomeTax: true,
+              employeeNi: true,
+              employerNi: true,
+              netPay: true,
+            },
+          });
+
+          const sum = (pick: (r: (typeof remaining)[number]) => unknown) =>
+            Math.round(
+              remaining.reduce((s, r) => s + Number(pick(r) ?? 0), 0) * 100,
+            ) / 100;
+
+          await tx.ukPayrollRun.update({
+            where: { id: runId },
+            data: {
+              employeeCount: remaining.length,
+              totalGross: sum((r) => r.totalGross),
+              totalExpenses: sum((r) => r.expenseTotal),
+              totalIncomeTax: sum((r) => r.incomeTax),
+              totalEmployeeNi: sum((r) => r.employeeNi),
+              totalEmployerNi: sum((r) => r.employerNi),
+              totalNetPay: sum((r) => r.netPay),
+              updatedById: userId,
+            },
+          });
+        }
+      });
+    }
+
+    return {
+      data: {
+        deletedPayoutLines: payout.deletedLines,
+        deletedPayoutBatches: payout.deletedBatches,
+        updatedPayoutBatches: payout.updatedBatches,
+        clearedDeductions: deductions.count,
+        zeroedReadyVisits: readyVisits.count,
+        removedUkRunEmployees: ukRunEmployees.length,
+        updatedUkRuns: affectedRunIds.length,
+      },
+    };
   }
 
   private async ensureEmployee(employeeId: string) {

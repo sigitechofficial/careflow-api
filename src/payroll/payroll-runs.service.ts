@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -155,6 +156,8 @@ type DraftInputLine = {
 
 @Injectable()
 export class PayrollRunsService {
+  private readonly logger = new Logger(PayrollRunsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
@@ -178,6 +181,62 @@ export class PayrollRunsService {
         schedule: mapSchedule(r.schedule),
         taxYear: mapTaxYear(r.taxYear),
       })),
+    };
+  }
+
+  /**
+   * Test/ops: hard-delete all UK payroll runs and dependent rows.
+   * Also removes employee payout batches that reference those runs (FK Restrict).
+   * Reopens pay periods (IN_RUN / CLOSED → OPEN) so they can be selected again.
+   * Leaves tax years, schedules, and employee payroll profiles intact.
+   */
+  async deleteAll(userId: string, meta?: RequestAuditMeta) {
+    const counts = await this.prisma.$transaction(async (tx) => {
+      // Payout batches FK → UkPayrollRun (Restrict)
+      const payoutLines = await tx.employeePayoutLine.deleteMany({});
+      const payoutBatches = await tx.employeePayoutBatch.deleteMany({});
+      const inputLines = await tx.ukPayrollInputLine.deleteMany({});
+      const runEmployees = await tx.ukPayrollRunEmployee.deleteMany({});
+      const runs = await tx.ukPayrollRun.deleteMany({});
+      const periodsReopened = await tx.payrollPeriod.updateMany({
+        where: {
+          deletedAt: null,
+          status: { in: ['IN_RUN', 'CLOSED'] },
+        },
+        data: {
+          status: 'OPEN',
+          updatedById: userId,
+        },
+      });
+      return {
+        payoutLines: payoutLines.count,
+        payoutBatches: payoutBatches.count,
+        inputLines: inputLines.count,
+        runEmployees: runEmployees.count,
+        runs: runs.count,
+        periodsReopened: periodsReopened.count,
+      };
+    });
+
+    this.logger.warn(
+      `Deleted all UK payroll runs: ${counts.runs} run(s), ${counts.payoutBatches} payout batch(es), ` +
+        `${counts.periodsReopened} period(s) reopened`,
+    );
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_RUNS_DELETED,
+      recordType: 'UkPayrollRun',
+      recordId: 'all',
+      newValues: counts,
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return {
+      message: 'All UK payroll runs deleted',
+      data: counts,
     };
   }
 
@@ -621,6 +680,17 @@ export class PayrollRunsService {
         isExpense: false,
         isProvisional: false,
       });
+    }
+
+    const hasPayInput = draftLines.some((l) => l.amount > 0);
+    if (!hasPayInput) {
+      const from = dateToIsoDate(periodStart);
+      const to = dateToIsoDate(periodEnd);
+      throw new BadRequestException(
+        `No visit-pay or salary inputs found for this UK period (${from} – ${to}). ` +
+          `UK tax months run 6th–5th: a visit dated before ${from} belongs in the previous period. ` +
+          `Use the period that covers the visit’s pay date, or ensure the visit is approved for pay with a payable amount.`,
+      );
     }
 
     const now = new Date();

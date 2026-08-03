@@ -2,8 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsISO8601,
+  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -12,6 +15,28 @@ import {
 } from 'class-validator';
 import { ScheduledVisitStatus } from '../../scheduled-visits/enums/scheduled-visit-status.enum';
 import { DeliveredCarePlanDetailDto } from '../../scheduled-jobs-housekeeping/dto/delivered-care-plan-detail.dto';
+
+export class EmployeeAppLeavingSafeChecksDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  requiredTasksComplete?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  medicationRecorded?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  personSafeComfortable?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  homeSecure?: boolean;
+}
 
 export class EmployeeAppVisitCompleteDto {
   @ApiPropertyOptional({
@@ -28,6 +53,15 @@ export class EmployeeAppVisitCompleteDto {
   @IsOptional()
   @IsEnum(ScheduledVisitStatus)
   status?: ScheduledVisitStatus;
+
+  @ApiPropertyOptional({
+    description: 'Contract visit outcome alias',
+    enum: ['fully_delivered', 'partially_met', 'not_met'],
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  visitOutcome?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -78,7 +112,7 @@ export class EmployeeAppVisitCompleteDto {
 
   @ApiPropertyOptional({
     description:
-      'Required when actual times are early/late/short/overrun vs planned (e.g. CLIENT_REQUEST_OR_NEED, CLINICAL_COMPLEXITY). Use OTHER with timingExceptionNotes.',
+      'Required when actual times are early/late/short/overrun vs planned (e..g. CLIENT_REQUEST_OR_NEED).',
     example: 'CLIENT_REQUEST_OR_NEED',
   })
   @IsOptional()
@@ -94,18 +128,50 @@ export class EmployeeAppVisitCompleteDto {
   @MaxLength(2000)
   timingExceptionNotes?: string;
 
+  @ApiPropertyOptional({ type: EmployeeAppLeavingSafeChecksDto })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => EmployeeAppLeavingSafeChecksDto)
+  leavingSafeChecks?: EmployeeAppLeavingSafeChecksDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsISO8601()
+  deviceRecordedAt?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  idempotencyKey?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
   latitude?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
   longitude?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
   accuracyMeters?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  withinArea?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  distanceMeters?: number;
 }
