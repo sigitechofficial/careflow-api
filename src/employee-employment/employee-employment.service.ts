@@ -99,7 +99,15 @@ export class EmployeeEmploymentService {
       });
 
       if (defaultPayCardId !== undefined) {
-        await assertEmployeeDefaultPayCard(tx, defaultPayCardId);
+        await assertEmployeeDefaultPayCard(tx, defaultPayCardId, {
+          employeeId,
+          roleId: employment.roleId,
+          locationId: employment.locationId,
+          baseLocationId: employment.baseLocationId,
+          contractTypeId: employment.contractTypeId,
+          isAgencyStaff: employment.isAgencyStaff,
+          isBankStaff: employment.isBankStaff,
+        });
       }
 
       if (baseLocationIds !== undefined) {

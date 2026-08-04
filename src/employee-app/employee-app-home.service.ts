@@ -45,11 +45,7 @@ export class EmployeeAppHomeService {
     const date = this.resolveDate(dateParam);
     const { start, end } = utcDayBounds(date);
 
-    const [personal, allocations, hourlyRate] = await Promise.all([
-      this.prisma.employeePersonalDetail.findFirst({
-        where: { employeeId, deletedAt: null },
-        select: { firstName: true, lastName: true },
-      }),
+    const [allocations, hourlyRate] = await Promise.all([
       this.prisma.jobAllocation.findMany({
         where: {
           employeeId,
@@ -220,10 +216,7 @@ export class EmployeeAppHomeService {
     const countable = visitRows.filter(
       (v) => v.status !== 'missed' && v.status !== 'cancelled',
     );
-    const completedCount = countable.filter((v) => v.status === 'completed').length;
     const totalCount = countable.length;
-    const remainingCount = Math.max(0, totalCount - completedCount);
-    const percent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
     const visits = visitRows.map((row) => {
       const tags = buildVisitTags(row);
@@ -259,10 +252,6 @@ export class EmployeeAppHomeService {
     const activeRow = visitRows.find((v) => v.status === 'in_progress') ?? null;
     const activeVisit = activeRow ? buildActiveVisit(activeRow) : null;
 
-    const firstName = personal?.firstName?.trim() || 'Carer';
-    const lastName = personal?.lastName?.trim() || '';
-    const greeting = buildGreeting(firstName, lastName);
-
     const totalMinutes = visitRows
       .filter(
         (v) =>
@@ -281,29 +270,8 @@ export class EmployeeAppHomeService {
       hourlyRate != null ? Math.round(hourlyRate * (totalMinutes / 60) * 100) / 100 : null;
 
     return {
-      data: {
+      data: buildEmployeeAppHomeData({
         date,
-        greeting,
-        sync: {
-          pendingCount: 0,
-        },
-        notifications: {
-          hasUnread: false,
-          unreadCount: 0,
-        },
-        quickActions: [
-          { id: 'incident', label: 'Incident', enabled: true, tone: 'danger' },
-          { id: 'message', label: 'Message', enabled: true, tone: 'primary' },
-          { id: 'safety', label: 'Safety', enabled: true, tone: 'success' },
-        ],
-        progress: {
-          completedCount,
-          totalCount,
-          remainingCount,
-          percent,
-          label: `${completedCount} of ${totalCount} visits done`,
-          remainingLabel: `${remainingCount} remaining today`,
-        },
         activeVisit,
         visits,
         endOfShift: {
@@ -315,7 +283,7 @@ export class EmployeeAppHomeService {
           outstandingCount,
           subtitle: buildEndOfShiftSubtitle(totalMinutes, estimatedPay, outstandingCount),
         },
-      },
+      }),
     };
   }
 
@@ -629,24 +597,27 @@ function buildVisitTags(row: VisitRow): HomeTag[] {
   return tags;
 }
 
-function buildGreeting(firstName: string, lastName: string) {
-  const hour = new Date().getUTCHours();
-  let period: 'morning' | 'afternoon' | 'evening' = 'evening';
-  let label = 'GOOD EVENING';
-  if (hour < 12) {
-    period = 'morning';
-    label = 'GOOD MORNING';
-  } else if (hour < 17) {
-    period = 'afternoon';
-    label = 'GOOD AFTERNOON';
-  }
-  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+/** Keys removed from Home `data` (mobile no longer consumes them). */
+export const EMPLOYEE_APP_HOME_REMOVED_DATA_KEYS = [
+  'greeting',
+  'sync',
+  'notifications',
+  'quickActions',
+  'progress',
+] as const;
+
+/** Assemble the trimmed Home / Today `data` object (API-01). */
+export function buildEmployeeAppHomeData(input: {
+  date: string;
+  activeVisit: ReturnType<typeof buildActiveVisit> | null;
+  visits: Array<Record<string, unknown>>;
+  endOfShift: Record<string, unknown>;
+}) {
   return {
-    period,
-    label,
-    firstName,
-    fullName,
-    text: `${label}, ${fullName}`,
+    date: input.date,
+    activeVisit: input.activeVisit,
+    visits: input.visits,
+    endOfShift: input.endOfShift,
   };
 }
 

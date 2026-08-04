@@ -33,7 +33,7 @@ export class EmployeeAppHomeController {
   @ApiOperation({
     summary: 'Today / home screen for the carer app',
     description:
-      'Greeting, daily progress, active visit card, and ordered visit list for the authenticated carer.',
+      'Schedule day payload for the authenticated carer: date, activeVisit, visits list, and endOfShift.',
   })
   @ApiQuery({ name: 'date', required: false, example: '2026-07-15' })
   home(@CurrentUser() user: RequestUser, @Query() query: EmployeeAppHomeQueryDto) {

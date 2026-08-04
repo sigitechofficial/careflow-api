@@ -107,6 +107,18 @@ export class EmployeeAppSaveTaskDto {
   @MaxLength(4000)
   notes?: string;
 
+  /** Recorded measurement for value-input tasks (e.g. blood glucose). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  recordedValue?: string;
+
+  /** Alias for recordedValue (mobile may send `value`). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  value?: string | number;
+
   @ApiPropertyOptional({ type: [EmployeeAppTaskChecklistItemDto] })
   @IsOptional()
   @IsArray()

@@ -68,13 +68,60 @@ export type PayCardResolveSource = 'EXPLICIT' | 'MATCHED' | 'NONE';
 export async function assertEmployeeDefaultPayCard(
   tx: Tx,
   defaultPayCardId: string | null | undefined,
+  employment?: EmploymentPayCardMatchInput | null,
 ) {
   if (!defaultPayCardId) return;
   const card = await tx.payCard.findFirst({
     where: { id: defaultPayCardId, deletedAt: null },
-    select: { id: true },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      assignmentLevel: true,
+      assignmentTargetId: true,
+      assignmentTargetKey: true,
+    },
   });
   if (!card) throw new BadRequestException('Selected pay card was not found');
+
+  if (!employment) return;
+
+  if (card.assignmentLevel === 'CLIENT_FUNDER') {
+    throw new BadRequestException(
+      'Client/funder pay cards cannot be assigned as an employee default',
+    );
+  }
+
+  if (!employmentMatchesPayCard(employment, card)) {
+    if (card.assignmentLevel === 'BRANCH') {
+      throw new BadRequestException(
+        `Pay card "${card.code}" belongs to a different branch than this carer`,
+      );
+    }
+    if (card.assignmentLevel === 'ROLE') {
+      throw new BadRequestException(
+        `Pay card "${card.code}" is for a different role than this carer`,
+      );
+    }
+    if (card.assignmentLevel === 'EMPLOYMENT_TYPE') {
+      throw new BadRequestException(
+        `Pay card "${card.code}" is for a different employment type than this carer`,
+      );
+    }
+    if (card.assignmentLevel === 'WORKER_TYPE') {
+      throw new BadRequestException(
+        `Pay card "${card.code}" is for a different worker type than this carer`,
+      );
+    }
+    if (card.assignmentLevel === 'INDIVIDUAL') {
+      throw new BadRequestException(
+        `Pay card "${card.code}" is assigned to a different individual worker`,
+      );
+    }
+    throw new BadRequestException(
+      `Pay card "${card.code}" does not match this carer's employment details`,
+    );
+  }
 }
 
 export function isPayCardWorkerTypeKey(value: string): value is PayCardWorkerTypeKey {

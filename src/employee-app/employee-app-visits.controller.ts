@@ -60,7 +60,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Shell includes service-user lat/lng for navigation (`shell.client.latitude` / `longitude`).',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Shell includes service-user lat/lng for navigation (`shell.client.latitude` / `longitude`). `shell.location` is destination lat/lng + `allowedRadiusMeters` only (no tabs array).',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);

@@ -77,6 +77,33 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
 
 const OPTIONAL_TASK_PRIORITIES = new Set(['optional', 'low', 'nice_to_have']);
 
+/** Carer-app check-in / shell geofence radius (meters). */
+const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 1000;
+
+/** Keys removed from `shell.location` (client computes geofence from lat/lng/radius only). */
+export const EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS = [
+  'label',
+  'tone',
+  'withinArea',
+  'serviceUser',
+  'source',
+  'job',
+  'distanceMeters',
+] as const;
+
+/** Trimmed visit destination for shell / details (API-02). */
+export function buildShellLocation(input: {
+  latitude: number | null;
+  longitude: number | null;
+  allowedRadiusMeters: number;
+}) {
+  return {
+    latitude: input.latitude,
+    longitude: input.longitude,
+    allowedRadiusMeters: input.allowedRadiusMeters,
+  };
+}
+
 const SUGGESTED_OBSERVATIONS = [
   { id: 'blood_glucose', label: 'Blood glucose', observationTypeCode: 'BLOOD_SUGAR' },
   { id: 'fluid_intake', label: 'Fluid intake', observationTypeCode: 'FLUID_MONITOR' },
@@ -175,7 +202,6 @@ export class EmployeeAppVisitsService {
           allergies: overviewExtras.allergies,
           flags: overviewExtras.flags,
         },
-        tabs: this.workspaceTabs(),
         overview: overviewExtras,
         clockInSettings: {
           enabledMethods: ['GPS', 'MANUAL'] as string[],
@@ -209,7 +235,6 @@ export class EmployeeAppVisitsService {
         generatedAt: new Date().toISOString(),
         jobId,
         shell: workspace.data.shell,
-        tabs: workspace.data.tabs,
         overview: workspace.data.overview,
         tasks: tasks.data,
         medication: medication.data,
@@ -647,6 +672,19 @@ export class EmployeeAppVisitsService {
       );
     }
 
+    // Idempotent: already completed + client asks COMPLETED → 200, not 400.
+    const visitAlreadyCompleted =
+      ctx.primaryVisit.status === ScheduledVisitStatus.COMPLETED ||
+      ctx.job.status === ScheduledJobStatus.COMPLETED;
+    if (status === LocalVisitStatus.COMPLETED && visitAlreadyCompleted) {
+      return this.buildCompleteResponse(employeeId, jobId, ctx, {
+        status: LocalVisitStatus.COMPLETED,
+        message: 'Visit already completed',
+        actualStartDateTime: dto.actualStartDateTime,
+        actualEndDateTime: dto.actualEndDateTime,
+      });
+    }
+
     // Enforce clinical gates only for explicit contract full-delivery / leaving-safe flows.
     // Legacy COMPLETED without visitOutcome/leavingSafeChecks stays permissive for one release.
     const enforceGates =
@@ -729,26 +767,48 @@ export class EmployeeAppVisitsService {
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
-    const refreshed = await this.loadJobForEmployee(employeeId, jobId);
+    return this.buildCompleteResponse(employeeId, jobId, ctx, {
+      status,
+      message: result.message,
+      actualStartDateTime: dto.actualStartDateTime,
+      actualEndDateTime: dto.actualEndDateTime,
+      job: result.data,
+    });
+  }
+
+  private async buildCompleteResponse(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    opts: {
+      status: LocalVisitStatus;
+      message: string;
+      actualStartDateTime?: string;
+      actualEndDateTime?: string;
+      job?: unknown;
+    },
+  ) {
+    const refreshed = await this.loadJobForEmployee(employeeId, jobId).catch(() => ctx);
     const [progress, medProgress] = await Promise.all([
       this.resolveProgress(refreshed),
       this.resolveMedicationProgress(refreshed),
     ]);
 
-    const start = dto.actualStartDateTime
-      ? new Date(dto.actualStartDateTime)
+    const now = new Date();
+    const start = opts.actualStartDateTime
+      ? new Date(opts.actualStartDateTime)
       : refreshed.primaryVisit.actualStartDateTime;
-    const end = dto.actualEndDateTime
-      ? new Date(dto.actualEndDateTime)
+    const end = opts.actualEndDateTime
+      ? new Date(opts.actualEndDateTime)
       : refreshed.primaryVisit.actualEndDateTime ?? now;
     const durationMinutes =
       start && end ? Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000)) : null;
 
     return {
       data: {
-        message: result.message,
+        message: opts.message,
         jobId,
-        status: statusToContractLabel(status),
+        status: statusToContractLabel(opts.status),
         completedAt: (end ?? now).toISOString(),
         durationMinutes,
         tasksDone: progress.tasksDone,
@@ -757,7 +817,8 @@ export class EmployeeAppVisitsService {
         medsTotal: medProgress.dueCount,
         obsCount: progress.obsCount,
         summaryLabel: `${progress.tasksDone}/${progress.tasksTotal} tasks · ${medProgress.givenCount}/${medProgress.dueCount} meds · ${progress.obsCount} obs`,
-        job: result.data,
+        alreadyCompleted: opts.message === 'Visit already completed',
+        ...(opts.job !== undefined ? { job: opts.job } : {}),
       },
     };
   }
@@ -856,6 +917,29 @@ export class EmployeeAppVisitsService {
         : null,
     ].filter(Boolean);
 
+    const completionInput =
+      match.completionInput && typeof match.completionInput === 'object'
+        ? (match.completionInput as { inputMode?: string })
+        : null;
+    const inputMode = completionInput?.inputMode ?? 'tick';
+    const needsRecordedValue = inputMode === 'value' || inputMode === 'value_and_note';
+
+    let recordedValue: string | undefined =
+      dto.recordedValue?.trim() ||
+      (dto.value != null && String(dto.value).trim() !== '' ? String(dto.value).trim() : undefined);
+
+    // Mobile often puts the reading in `notes` (e.g. "5 mmol/L") for value-input tasks.
+    if (!recordedValue && isCompleted && needsRecordedValue && dto.notes?.trim()) {
+      recordedValue = dto.notes.trim();
+    }
+
+    if (outcome === 'PARTIAL') recordedValue = recordedValue || 'PARTIAL';
+    if (outcome === 'DECLINED') recordedValue = recordedValue || 'DECLINED';
+
+    if (isCompleted && needsRecordedValue && !recordedValue) {
+      validationError('recordedValue (or notes with the reading) is required for this task');
+    }
+
     await this.housekeeping.saveVisitJobTasks('', jobId, {
       tasks: [
         {
@@ -866,7 +950,7 @@ export class EmployeeAppVisitsService {
           isExtra: Boolean(match.isExtra),
           isCompleted,
           notes: notesParts.join(' · ') || undefined,
-          recordedValue: outcome === 'PARTIAL' ? 'PARTIAL' : outcome === 'DECLINED' ? 'DECLINED' : undefined,
+          recordedValue,
         },
       ],
     });
@@ -1729,16 +1813,6 @@ export class EmployeeAppVisitsService {
     };
   }
 
-  private workspaceTabs() {
-    return [
-      { id: 'overview', label: 'Overview' },
-      { id: 'tasks', label: 'Tasks' },
-      { id: 'mar', label: 'MAR' },
-      { id: 'obs', label: 'Obs' },
-      { id: 'log', label: 'Log' },
-    ];
-  }
-
   private async loadJobForEmployee(employeeId: string, jobId: string): Promise<{
     job: VisitJobRow;
     primaryVisit: VisitJobRow['visits'][number];
@@ -1896,7 +1970,6 @@ export class EmployeeAppVisitsService {
       visit.status === ScheduledVisitStatus.STARTED ||
       Boolean(visit.actualStartDateTime);
 
-    const geofence = this.evaluateGeofenceFromMeta(ctx);
     const address =
       su.address && !su.address.deletedAt
         ? {
@@ -1920,7 +1993,8 @@ export class EmployeeAppVisitsService {
     /** Prefer job pin when set; otherwise service-user address (same rule as geofence). */
     const destinationLatitude = jobLatitude ?? serviceUserLatitude;
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
-    const allowedRadiusMeters = geofenceSettings?.allowedRadiusMeters ?? 100;
+    const allowedRadiusMeters =
+      geofenceSettings?.allowedRadiusMeters ?? EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
 
     return {
       jobId: ctx.job.id,
@@ -1952,26 +2026,11 @@ export class EmployeeAppVisitsService {
       checkedInAt: checkedInAt?.toISOString() ?? null,
       checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
       progress: this.buildProgress(progress, medProgress),
-      location: {
-        ...geofence,
+      location: buildShellLocation({
         latitude: destinationLatitude,
         longitude: destinationLongitude,
         allowedRadiusMeters,
-        source:
-          jobLatitude != null && jobLongitude != null
-            ? ('job' as const)
-            : serviceUserLatitude != null && serviceUserLongitude != null
-              ? ('service_user' as const)
-              : null,
-        serviceUser: {
-          latitude: serviceUserLatitude,
-          longitude: serviceUserLongitude,
-        },
-        job: {
-          latitude: jobLatitude,
-          longitude: jobLongitude,
-        },
-      },
+      }),
       coCarers: ctx.job.allocations
         .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
         .map((a) => ({
@@ -1987,16 +2046,7 @@ export class EmployeeAppVisitsService {
   }
 
   private async loadGeofenceSettings() {
-    const settings = await this.prisma.organisationGeneralSettings.findFirst({
-      select: {
-        domGeofenceDistanceMeters: true,
-        domGeofenceToleranceMeters: true,
-      },
-    });
-    const allowedRadiusMeters =
-      (settings?.domGeofenceDistanceMeters ?? 100) +
-      (settings?.domGeofenceToleranceMeters ?? 0);
-    return { allowedRadiusMeters };
+    return { allowedRadiusMeters: EMPLOYEE_APP_ALLOWED_RADIUS_METERS };
   }
 
   private buildProgress(
@@ -2777,9 +2827,7 @@ export class EmployeeAppVisitsService {
       };
     }
 
-    const radius =
-      (settings?.domGeofenceDistanceMeters ?? 100) +
-      (settings?.domGeofenceToleranceMeters ?? 0);
+    const radius = EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
     const distanceMeters = haversineMeters(latitude, longitude, targetLat, targetLng);
     const withinArea = distanceMeters <= radius;
 

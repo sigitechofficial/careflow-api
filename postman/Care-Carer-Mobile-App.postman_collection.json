@@ -270,11 +270,17 @@
                   "});",
                   "const body = pm.response.json();",
                   "const data = body && body.data ? body.data : body;",
-                  "pm.test('Has greeting and visits', function () {",
-                  "  pm.expect(data).to.have.property('greeting');",
-                  "  pm.expect(data).to.have.property('progress');",
+                  "pm.test('Has date, visits, activeVisit, endOfShift; trimmed keys absent', function () {",
+                  "  pm.expect(data).to.have.property('date');",
                   "  pm.expect(data).to.have.property('visits');",
                   "  pm.expect(data.visits).to.be.an('array');",
+                  "  pm.expect(data).to.have.property('activeVisit');",
+                  "  pm.expect(data).to.have.property('endOfShift');",
+                  "  pm.expect(data).to.not.have.property('greeting');",
+                  "  pm.expect(data).to.not.have.property('sync');",
+                  "  pm.expect(data).to.not.have.property('notifications');",
+                  "  pm.expect(data).to.not.have.property('quickActions');",
+                  "  pm.expect(data).to.not.have.property('progress');",
                   "});"
                 ]
               }
@@ -293,7 +299,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "home"]
             },
-            "description": "Today home payload for the authenticated carer:\n- greeting (GOOD MORNING, name)\n- sync pending count (placeholder)\n- notifications unread (placeholder)\n- quick actions (Incident / Message / Safety)\n- daily progress (x of y visits done)\n- activeVisit (in-progress card with allergies + directions)\n- visits list (status, tags, task progress)\n\nUses Bearer `{{accessToken}}`. Defaults to today's UTC date."
+            "description": "Today home payload for the authenticated carer:\n- `date` (schedule day)\n- `activeVisit` (in-progress card with allergies + directions, or null)\n- `visits` list (status, tags, task progress)\n- `endOfShift` summary\n\nTrimmed: greeting / sync / notifications / quickActions / progress are **not** returned.\n\nUses Bearer `{{accessToken}}`. Defaults to today's UTC date."
           },
           "response": []
         },
@@ -718,7 +724,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "details"]
             },
-            "description": "Single bootstrap snapshot containing the visit shell, overview, tasks, MAR, observations, visit log, and body-map handover.\n\n`shell.client.latitude` / `shell.client.longitude` are the service-user address coordinates for maps/navigation. `shell.location.latitude` / `longitude` are the visit destination (job pin if set, otherwise service-user address)."
+            "description": "Single bootstrap snapshot: shell, overview, tasks, MAR, observations, log, body-map.\n\nNo `tabs` array (mobile tab bar is hardcoded).\n\n`shell.location` is only `{ latitude, longitude, allowedRadiusMeters }` for client geofence. Service-user coords for maps remain on `shell.client.latitude` / `longitude`."
           },
           "response": []
         },
@@ -787,14 +793,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"taskId\": \"{{taskId}}\",\n  \"outcome\": \"COMPLETED\",\n  \"deviceRecordedAt\": \"2026-08-03T08:20:00.000Z\",\n  \"idempotencyKey\": \"task-{{taskId}}-demo\"\n}"
+              "raw": "{\n  \"taskId\": \"{{taskId}}\",\n  \"outcome\": \"COMPLETED\",\n  \"recordedValue\": \"5\",\n  \"notes\": \"5 mmol/L\",\n  \"deviceRecordedAt\": \"2026-08-03T08:20:00.000Z\",\n  \"idempotencyKey\": \"task-{{taskId}}-demo\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/employee-app/visits/{{jobId}}/tasks/{{taskId}}",
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "tasks", "{{taskId}}"]
             },
-            "description": "API-11 — outcome COMPLETED | PARTIAL | DECLINED."
+            "description": "API-11 — outcome COMPLETED | PARTIAL | DECLINED. Value-input tasks (e.g. blood glucose) need `recordedValue` (or the reading in `notes`)."
           },
           "response": []
         },
