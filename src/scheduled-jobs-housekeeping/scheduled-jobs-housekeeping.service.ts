@@ -1131,9 +1131,15 @@ export class ScheduledJobsHousekeepingService {
       }),
     ]);
 
-    const completionByAssignment = new Map(
-      completions.filter((row) => row.assignmentId).map((row) => [row.assignmentId!, row]),
-    );
+    const completionByAssignment = new Map<string, (typeof completions)[number]>();
+    for (const row of completions) {
+      if (!row.assignmentId) continue;
+      const existing = completionByAssignment.get(row.assignmentId);
+      // Prefer a completed row if duplicates ever exist.
+      if (!existing || (!existing.isCompleted && row.isCompleted)) {
+        completionByAssignment.set(row.assignmentId, row);
+      }
+    }
     const adHocCompletions = completions.filter((row) => !row.assignmentId);
 
     const plannedTasks = assignments.map((assignment) => {
@@ -1223,6 +1229,7 @@ export class ScheduledJobsHousekeepingService {
     jobId: string,
     dto: SaveVisitJobTasksDto,
     meta?: RequestAuditMeta,
+    options?: { pruneMissingExtras?: boolean },
   ) {
     void meta;
     const job = await this.prisma.scheduledJob.findFirst({
@@ -1396,15 +1403,19 @@ export class ScheduledJobsHousekeepingService {
       }
 
       const retainedExtraTaskIds = extraItems.map((item) => item.taskCatalogueTaskId!);
-      await tx.scheduledVisitTaskCompletion.deleteMany({
-        where: {
-          scheduledJobId: job.id,
-          assignmentId: null,
-          ...(retainedExtraTaskIds.length > 0
-            ? { taskCatalogueTaskId: { notIn: retainedExtraTaskIds } }
-            : {}),
-        },
-      });
+      // Partial carer-app saves (single planned task) must not wipe other ad-hoc rows.
+      // Admin full checklist saves keep pruneMissingExtras=true (default).
+      if (options?.pruneMissingExtras !== false) {
+        await tx.scheduledVisitTaskCompletion.deleteMany({
+          where: {
+            scheduledJobId: job.id,
+            assignmentId: null,
+            ...(retainedExtraTaskIds.length > 0
+              ? { taskCatalogueTaskId: { notIn: retainedExtraTaskIds } }
+              : {}),
+          },
+        });
+      }
     });
 
     void userId;

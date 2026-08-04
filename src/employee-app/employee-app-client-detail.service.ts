@@ -15,6 +15,7 @@ import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
+import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -940,8 +941,7 @@ export class EmployeeAppClientDetailService {
       }>;
     }>,
   ) {
-    const result = new Map<string, { completed: number; total: number }>();
-    if (!jobs.length) return result;
+    if (!jobs.length) return new Map<string, { completed: number; total: number }>();
     const jobRound = new Map<string, string | null>();
     for (const job of jobs) jobRound.set(job.id, resolveJobMedicationRoundCode(job.visits));
     const rounds = [...new Set([...jobRound.values()].filter((r): r is string => Boolean(r)))];
@@ -965,38 +965,7 @@ export class EmployeeAppClientDetailService {
       }),
     ]);
 
-    const byKey = new Map<string, string[]>();
-    for (const a of assignments) {
-      const key = `${a.serviceUserId}|${a.medicationRoundCode}`;
-      const list = byKey.get(key) ?? [];
-      list.push(a.id);
-      byKey.set(key, list);
-    }
-    const byJob = new Map<string, typeof completions>();
-    for (const c of completions) {
-      const list = byJob.get(c.scheduledJobId) ?? [];
-      list.push(c);
-      byJob.set(c.scheduledJobId, list);
-    }
-
-    for (const job of jobs) {
-      const round = jobRound.get(job.id);
-      if (!round) {
-        result.set(job.id, { completed: 0, total: 0 });
-        continue;
-      }
-      const planned = byKey.get(`${job.serviceUserId}|${round}`) ?? [];
-      const comps = byJob.get(job.id) ?? [];
-      const doneIds = new Set(
-        comps.filter((c) => c.assignmentId && c.isCompleted).map((c) => c.assignmentId!),
-      );
-      const adHoc = comps.filter((c) => !c.assignmentId && c.isCompleted).length;
-      result.set(job.id, {
-        completed: planned.filter((id) => doneIds.has(id)).length + adHoc,
-        total: planned.length + adHoc,
-      });
-    }
-    return result;
+    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
   }
 }
 

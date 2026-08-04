@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
+import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
@@ -375,8 +376,7 @@ export class EmployeeAppHomeService {
       }>;
     }>,
   ) {
-    const result = new Map<string, { completed: number; total: number }>();
-    if (jobs.length === 0) return result;
+    if (jobs.length === 0) return new Map<string, { completed: number; total: number }>();
 
     const jobRound = new Map<string, string | null>();
     for (const job of jobs) {
@@ -408,41 +408,7 @@ export class EmployeeAppHomeService {
       }),
     ]);
 
-    const assignmentsByKey = new Map<string, string[]>();
-    for (const a of assignments) {
-      const key = `${a.serviceUserId}|${a.medicationRoundCode}`;
-      const list = assignmentsByKey.get(key) ?? [];
-      list.push(a.id);
-      assignmentsByKey.set(key, list);
-    }
-
-    const completionsByJob = new Map<string, typeof completions>();
-    for (const c of completions) {
-      const list = completionsByJob.get(c.scheduledJobId) ?? [];
-      list.push(c);
-      completionsByJob.set(c.scheduledJobId, list);
-    }
-
-    for (const job of jobs) {
-      const round = jobRound.get(job.id);
-      if (!round) {
-        result.set(job.id, { completed: 0, total: 0 });
-        continue;
-      }
-      const plannedIds = assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [];
-      const jobCompletions = completionsByJob.get(job.id) ?? [];
-      const completedAssignmentIds = new Set(
-        jobCompletions.filter((c) => c.assignmentId && c.isCompleted).map((c) => c.assignmentId!),
-      );
-      const adHocCompleted = jobCompletions.filter((c) => !c.assignmentId && c.isCompleted).length;
-      const plannedCompleted = plannedIds.filter((id) => completedAssignmentIds.has(id)).length;
-      result.set(job.id, {
-        completed: plannedCompleted + adHocCompleted,
-        total: plannedIds.length + adHocCompleted,
-      });
-    }
-
-    return result;
+    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
   }
 }
 

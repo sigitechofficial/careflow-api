@@ -55,6 +55,16 @@ import {
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
 import {
+  EMPLOYEE_APP_UNABLE_REASONS,
+  OBS_TYPE_CODE_ALIASES,
+  VITAL_RANGE_TO_OBS_CODE,
+  buildCatalogSections,
+  buildObsBounds,
+  buildObsFormForType,
+  mobileTypeCode,
+  resolveObservationTypeCode,
+} from './employee-app-observations.catalog';
+import {
   contractError,
   mapMarOutcomeCode,
   mapVisitOutcomeToStatus,
@@ -62,6 +72,7 @@ import {
   statusToContractLabel,
   validationError,
 } from './employee-app-contract.util';
+import { computeVisitTaskProgress } from './visit-task-progress.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -103,14 +114,6 @@ export function buildShellLocation(input: {
     allowedRadiusMeters: input.allowedRadiusMeters,
   };
 }
-
-const SUGGESTED_OBSERVATIONS = [
-  { id: 'blood_glucose', label: 'Blood glucose', observationTypeCode: 'BLOOD_SUGAR' },
-  { id: 'fluid_intake', label: 'Fluid intake', observationTypeCode: 'FLUID_MONITOR' },
-  { id: 'repositioning', label: 'Repositioning', observationTypeCode: 'REPOSITIONING' },
-  { id: 'mood_wellbeing', label: 'Mood & wellbeing', observationTypeCode: 'WELLBEING' },
-  { id: 'skin_body_map', label: 'Skin / body map', observationTypeCode: 'INFECTION' },
-] as const;
 
 type Tone = 'danger' | 'warning' | 'primary' | 'success' | 'neutral';
 
@@ -391,8 +394,11 @@ export class EmployeeAppVisitsService {
   async getTasks(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const raw = await this.housekeeping.getVisitJobTasks('', jobId);
-    const progress = await this.resolveProgress(ctx);
     const medProgress = await this.resolveMedicationProgress(ctx);
+    const obsCount = await this.countVisitObservations(
+      ctx.job.serviceUserId,
+      ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime,
+    );
 
     const tasks = (raw.data.tasks as Array<Record<string, unknown>>).map((task) => {
       const name = String(task.name ?? '');
@@ -450,10 +456,16 @@ export class EmployeeAppVisitsService {
 
     const required = tasks.filter((t) => t.isRequired);
     const optional = tasks.filter((t) => !t.isRequired);
+    // Progress must match this payload's task list (same source as Home).
+    const tasksDone = tasks.filter((t) => t.isCompleted).length;
+    const progress = this.buildProgress(
+      { tasksDone, tasksTotal: tasks.length, obsCount },
+      medProgress,
+    );
 
     return {
       data: {
-        progress: this.buildProgress(progress, medProgress),
+        progress,
         medicationRoundCode: raw.data.medicationRoundCode,
         roundLabel: raw.data.roundLabel,
         windowStart: raw.data.windowStart,
@@ -506,37 +518,260 @@ export class EmployeeAppVisitsService {
   async getObservations(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const since = ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
-    const [progress, medProgress, recorded] = await Promise.all([
+    const [progress, medProgress, recorded, payload] = await Promise.all([
       this.resolveProgress(ctx),
       this.resolveMedicationProgress(ctx),
       this.loadVisitObservations(ctx.job.serviceUserId, since),
+      this.buildObservationsCatalogPayload(ctx.job.serviceUserId),
     ]);
-
-    const optional = SUGGESTED_OBSERVATIONS.map((s) => ({
-      id: s.id,
-      typeCode: s.observationTypeCode.toLowerCase(),
-      label: s.label,
-      isRequired: false,
-      observationTypeCode: s.observationTypeCode,
-      allowsUnableToRecord: true,
-    }));
 
     return {
       data: {
         progress: this.buildProgress(progress, medProgress),
-        required: [] as typeof optional,
-        optional,
-        suggested: SUGGESTED_OBSERVATIONS.map((s) => ({ ...s })),
-        emergencyProtocol: {
-          id: 'medical_emergency',
-          title: 'Medical emergency — launch protocol',
-          description: 'Collapse, choking or acute deterioration.',
-          tone: 'danger' as Tone,
-        },
+        ...payload,
         recordedThisVisit: recorded,
         recordedCount: recorded.length,
       },
     };
+  }
+
+  /**
+   * Backend-owned Obs picker + detail forms (units, ranges, unable reasons).
+   * Shared by details bootstrap and GET …/observations refresh.
+   */
+  private async buildObservationsCatalogPayload(serviceUserId: string) {
+    const [types, vitalRanges, wellbeingDimensions, previousByType] = await Promise.all([
+      this.prisma.observationType.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.vitalAcceptedRangeCatalog.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.wellbeingDimension.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { levelLabels: { orderBy: { level: 'asc' } } },
+      }),
+      this.loadLatestObservationsByType(serviceUserId),
+    ]);
+
+    type VitalRangeEntry = {
+      min: number | null;
+      max: number | null;
+      unit: string;
+      diastolic?: { min: number; max: number; unit: string };
+    };
+    const rangeByObsCode = new Map<string, VitalRangeEntry>();
+    for (const row of vitalRanges) {
+      const obsCode = VITAL_RANGE_TO_OBS_CODE[row.fieldKey];
+      if (!obsCode) continue;
+      if (row.fieldKey === 'bpDiastolic') {
+        const existing = rangeByObsCode.get(obsCode) ?? {
+          min: null,
+          max: null,
+          unit: row.unit,
+        };
+        existing.diastolic = { min: row.min, max: row.max, unit: row.unit };
+        rangeByObsCode.set(obsCode, existing);
+        continue;
+      }
+      const existing = rangeByObsCode.get(obsCode);
+      rangeByObsCode.set(obsCode, {
+        min: row.min,
+        max: row.max,
+        unit: row.unit,
+        diastolic: existing?.diastolic,
+      });
+    }
+
+    const wellbeingForForm = wellbeingDimensions.map((d) => ({
+      code: d.code,
+      name: d.name,
+      levels: d.levelLabels.map((l) => ({ level: l.level, label: l.label })),
+    }));
+
+    const definitionsByTypeCode: Record<string, Record<string, unknown>> = {};
+    const optional: Array<Record<string, unknown>> = [];
+
+    for (const type of types) {
+      const code = type.code.toUpperCase();
+      const typeCode = mobileTypeCode(code);
+      const range = rangeByObsCode.get(code);
+      const unit = range?.unit ?? type.unitLabel ?? null;
+      const bounds = buildObsBounds({
+        unit,
+        minAccepted: range?.min ?? null,
+        maxAccepted: range?.max ?? null,
+        secondary:
+          code === 'BLOOD_PRESSURE' && range?.diastolic
+            ? {
+                key: 'diastolic',
+                label: 'Diastolic',
+                unit: range.diastolic.unit,
+                minAccepted: range.diastolic.min,
+                maxAccepted: range.diastolic.max,
+                ...(() => {
+                  const b = buildObsBounds({
+                    unit: range.diastolic.unit,
+                    minAccepted: range.diastolic.min,
+                    maxAccepted: range.diastolic.max,
+                  });
+                  return {
+                    warningMin: b.warningMin,
+                    warningMax: b.warningMax,
+                    criticalMin: b.criticalMin,
+                    criticalMax: b.criticalMax,
+                    normalRangeLabel: b.normalRangeLabel,
+                  };
+                })(),
+              }
+            : null,
+      });
+
+      const form = buildObsFormForType({
+        code,
+        name: type.name,
+        unitLabel: type.unitLabel,
+        valueKind: type.valueKind,
+        bounds,
+        wellbeingDimensions: code === 'WELLBEING' ? wellbeingForForm : undefined,
+      });
+
+      const previous = previousByType.get(code);
+      const definition = {
+        id: typeCode,
+        definitionId: typeCode,
+        typeCode,
+        observationTypeCode: code,
+        observationTypeId: type.id,
+        label: type.name,
+        description: form.subtitle,
+        category: type.usesNews2 ? 'vitals' : 'clinical',
+        isRequired: false,
+        unit: bounds.unit,
+        inputType: form.fields[0]?.inputType ?? 'number',
+        normalRangeLabel: bounds.normalRangeLabel,
+        minAccepted: bounds.minAccepted,
+        maxAccepted: bounds.maxAccepted,
+        warningMin: bounds.warningMin,
+        warningMax: bounds.warningMax,
+        criticalMin: bounds.criticalMin,
+        criticalMax: bounds.criticalMax,
+        instructions: form.subtitle,
+        previousValue: previous?.valueLabel ?? null,
+        previousRecordedAt: previous?.recordedAt ?? null,
+        allowsUnableToRecord: true,
+        allowsMultipleReadings: true,
+        requiresNotesWhenAbnormal: form.requiresNotesWhenAbnormal,
+        requiresNotesWhenCritical: form.requiresNotesWhenCritical,
+        isOutstanding: false,
+        isDue: false,
+        isOverdue: false,
+        done: false,
+        bounds,
+        form,
+        valueKind: type.valueKind,
+        usesNews2: type.usesNews2,
+      };
+
+      definitionsByTypeCode[typeCode] = definition;
+      // Also index by DB code for clients that still use BLOOD_SUGAR etc.
+      definitionsByTypeCode[code.toLowerCase()] = definition;
+      if (OBS_TYPE_CODE_ALIASES[code]) {
+        definitionsByTypeCode[OBS_TYPE_CODE_ALIASES[code]] = definition;
+      }
+
+      optional.push({
+        id: typeCode,
+        typeCode,
+        observationTypeCode: code,
+        label: type.name,
+        description: form.subtitle,
+        category: definition.category,
+        isRequired: false,
+        unit: bounds.unit,
+        normalRangeLabel: bounds.normalRangeLabel,
+        minAccepted: bounds.minAccepted,
+        maxAccepted: bounds.maxAccepted,
+        warningMin: bounds.warningMin,
+        warningMax: bounds.warningMax,
+        criticalMin: bounds.criticalMin,
+        criticalMax: bounds.criticalMax,
+        allowsUnableToRecord: true,
+        allowsMultipleReadings: true,
+        done: false,
+      });
+    }
+
+    const suggestedCodes = [
+      'BLOOD_SUGAR',
+      'FLUID_MONITOR',
+      'REPOSITIONING',
+      'WELLBEING',
+      'INFECTION',
+      'BLOOD_PRESSURE',
+      'PULSE',
+      'OXYGEN_SATURATION',
+      'TEMPERATURE',
+    ];
+    const suggested = suggestedCodes
+      .map((code) => types.find((t) => t.code.toUpperCase() === code))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t))
+      .map((t) => ({
+        id: mobileTypeCode(t.code),
+        typeCode: mobileTypeCode(t.code),
+        label: t.name,
+        observationTypeCode: t.code,
+      }));
+
+    const catalogSections = buildCatalogSections(
+      types.map((t) => ({
+        code: t.code,
+        name: t.name,
+        unitLabel: t.unitLabel,
+      })),
+    );
+
+    return {
+      unableReasons: EMPLOYEE_APP_UNABLE_REASONS,
+      catalog: {
+        title: 'Record observation',
+        anotherTitle: 'Record another observation',
+        searchPlaceholder: 'Search observations',
+        sections: catalogSections,
+      },
+      definitionsByTypeCode,
+      required: [] as typeof optional,
+      optional,
+      suggested,
+      emergencyProtocol: {
+        id: 'medical_emergency',
+        title: 'Medical emergency — launch protocol',
+        description: 'Collapse, choking or acute deterioration.',
+        tone: 'danger' as Tone,
+      },
+    };
+  }
+
+  private async loadLatestObservationsByType(serviceUserId: string) {
+    const rows = await this.prisma.serviceUserObservation.findMany({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { recordedAt: 'desc' },
+      include: { observationType: true },
+      take: 80,
+    });
+    const map = new Map<string, { valueLabel: string | null; recordedAt: string }>();
+    for (const row of rows) {
+      const code = row.observationType.code.toUpperCase();
+      if (map.has(code)) continue;
+      map.set(code, {
+        valueLabel: formatObservationValue(row),
+        recordedAt: row.recordedAt.toISOString(),
+      });
+    }
+    return map;
   }
 
   async createObservation(
@@ -546,7 +781,10 @@ export class EmployeeAppVisitsService {
   ) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const type = await this.prisma.observationType.findFirst({
-      where: { code: dto.observationTypeCode.toUpperCase(), isActive: true },
+      where: {
+        code: resolveObservationTypeCode(dto.observationTypeCode),
+        isActive: true,
+      },
     });
     if (!type) throw new BadRequestException('Invalid observation type');
     validateObservationCreate(type.code, type.valueKind, dto);
@@ -940,20 +1178,26 @@ export class EmployeeAppVisitsService {
       validationError('recordedValue (or notes with the reading) is required for this task');
     }
 
-    await this.housekeeping.saveVisitJobTasks('', jobId, {
-      tasks: [
-        {
-          assignmentId: match.assignmentId ? String(match.assignmentId) : undefined,
-          taskCatalogueTaskId: match.taskCatalogueTaskId
-            ? String(match.taskCatalogueTaskId)
-            : undefined,
-          isExtra: Boolean(match.isExtra),
-          isCompleted,
-          notes: notesParts.join(' · ') || undefined,
-          recordedValue,
-        },
-      ],
-    });
+    await this.housekeeping.saveVisitJobTasks(
+      '',
+      jobId,
+      {
+        tasks: [
+          {
+            assignmentId: match.assignmentId ? String(match.assignmentId) : undefined,
+            taskCatalogueTaskId: match.taskCatalogueTaskId
+              ? String(match.taskCatalogueTaskId)
+              : undefined,
+            isExtra: Boolean(match.isExtra),
+            isCompleted,
+            notes: notesParts.join(' · ') || undefined,
+            recordedValue,
+          },
+        ],
+      },
+      undefined,
+      { pruneMissingExtras: false },
+    );
 
     await this.prisma.scheduledVisitTaskCompletion.updateMany({
       where: { scheduledJobId: jobId, isCompleted: true },
@@ -1103,7 +1347,8 @@ export class EmployeeAppVisitsService {
       if (replay) return { data: replay };
     }
 
-    const typeCode = (dto.typeCode ?? dto.observationTypeCode ?? '').toUpperCase();
+    const rawType = dto.typeCode ?? dto.definitionId ?? dto.observationTypeCode ?? '';
+    const typeCode = resolveObservationTypeCode(rawType);
     if (!typeCode) validationError('typeCode (or observationTypeCode) is required');
     if (!dto.outcome) validationError('outcome is required');
     if (dto.outcome === 'recorded' && dto.value == null && dto.numericValue == null) {
@@ -2073,21 +2318,39 @@ export class EmployeeAppVisitsService {
   }
 
   private async resolveProgress(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
-    const [taskRaw, obsCount] = await Promise.all([
-      this.housekeeping.getVisitJobTasks('', ctx.job.id).catch(() => ({
-        data: { tasks: [] as unknown[] },
-      })),
-      this.countVisitObservations(
-        ctx.job.serviceUserId,
-        ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime,
-      ),
+    const roundCode = resolveJobMedicationRoundCode(ctx.job.visits);
+    const since =
+      ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
+
+    const [assignments, completions, obsCount] = await Promise.all([
+      roundCode
+        ? this.prisma.serviceUserVisitTaskAssignment.findMany({
+            where: {
+              serviceUserId: ctx.job.serviceUserId,
+              medicationRoundCode: roundCode,
+              deletedAt: null,
+              isActive: true,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve([] as Array<{ id: string }>),
+      this.prisma.scheduledVisitTaskCompletion.findMany({
+        where: { scheduledJobId: ctx.job.id },
+        select: { assignmentId: true, isCompleted: true },
+      }),
+      this.countVisitObservations(ctx.job.serviceUserId, since),
     ]);
 
-    const tasks = (taskRaw.data.tasks as Array<{ isCompleted?: boolean }>) ?? [];
-    const tasksDone = tasks.filter((t) => t.isCompleted).length;
-    const tasksTotal = tasks.length;
+    const progress = computeVisitTaskProgress({
+      plannedAssignmentIds: assignments.map((a) => a.id),
+      completions,
+    });
 
-    return { tasksDone, tasksTotal, obsCount };
+    return {
+      tasksDone: progress.completed,
+      tasksTotal: progress.total,
+      obsCount,
+    };
   }
 
   private async resolveMedicationProgress(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
@@ -2506,21 +2769,27 @@ export class EmployeeAppVisitsService {
       take: 20,
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.observationType.name,
-      title: row.observationType.name,
-      typeCode: row.observationType.code,
-      value: formatObservationValue(row),
-      valueLabel: formatObservationValue(row),
-      recordedAt: row.recordedAt.toISOString(),
-      time: formatHmUtc(row.recordedAt),
-      timeLabel: formatHmUtc(row.recordedAt),
-      status: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
-      statusLabel: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
-      statusTone: 'success' as Tone,
-      tone: 'success' as Tone,
-    }));
+    return rows.map((row) => {
+      const typeCode = mobileTypeCode(row.observationType.code);
+      return {
+        id: row.id,
+        definitionId: typeCode,
+        type: row.observationType.name,
+        title: row.observationType.name,
+        typeCode,
+        observationTypeCode: row.observationType.code,
+        value: formatObservationValue(row),
+        valueLabel: formatObservationValue(row),
+        unit: row.unit ?? row.observationType.unitLabel ?? null,
+        recordedAt: row.recordedAt.toISOString(),
+        time: formatHmUtc(row.recordedAt),
+        timeLabel: formatHmUtc(row.recordedAt),
+        status: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
+        statusLabel: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
+        statusTone: 'success' as Tone,
+        tone: 'success' as Tone,
+      };
+    });
   }
 
   private async countVisitObservations(serviceUserId: string, since: Date) {

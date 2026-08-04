@@ -724,7 +724,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "details"]
             },
-            "description": "Single bootstrap snapshot: shell, overview, tasks, MAR, observations, log, body-map.\n\nNo `tabs` array (mobile tab bar is hardcoded).\n\n`shell.location` is only `{ latitude, longitude, allowedRadiusMeters }` for client geofence. Service-user coords for maps remain on `shell.client.latitude` / `longitude`."
+            "description": "Single bootstrap snapshot: shell, overview, tasks, MAR, observations, log, body-map.\n\nNo `tabs` array (mobile tab bar is hardcoded).\n\n`shell.location` is only `{ latitude, longitude, allowedRadiusMeters }` for client geofence. Service-user coords for maps remain on `shell.client.latitude` / `longitude`.\n\n`data.observations` is backend-owned: `catalog` (picker), `definitionsByTypeCode` (forms/ranges), `unableReasons`, plus required/optional/suggested/recorded lists."
           },
           "response": []
         },
@@ -848,6 +848,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "visits", "{{jobId}}", "observations"]
             }
+            "description": "API-06 — Obs tab refresh. Same shape as `data.observations` on visit details.\n\nIncludes backend-owned picker (`catalog`), forms/ranges (`definitionsByTypeCode`), shared `unableReasons`, plus `required` / `optional` / `suggested` / `recordedThisVisit`."
           },
           "response": []
         },

@@ -250,11 +250,8 @@ export class VisitReconciliationsService {
 
     let firstId: string | null = null;
     for (const allocation of targets) {
+      // Same scheduled visit → same visitRef for every carer (double-up / multi-allocation).
       const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-      const suffix =
-        targets.length > 1 && allocation.employeeId
-          ? `-${allocation.employeeId.replace(/-/g, '').slice(0, 4).toUpperCase()}`
-          : '';
 
       const planned = resolveAllocationWindow(
         {
@@ -296,7 +293,7 @@ export class VisitReconciliationsService {
             actualEndDateTime: actual.end,
             employeeId: allocation.employeeId ?? existing.employeeId,
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
-            visitRef: `${visitRef}${suffix}`,
+            visitRef,
             ...(overrunReason != null ? { overrunReason } : {}),
           },
         });
@@ -312,7 +309,7 @@ export class VisitReconciliationsService {
           serviceUserId: visit.serviceUserId,
           employeeId: allocation.employeeId,
           jobAllocationId: allocation.id,
-          visitRef: `${visitRef}${suffix}`,
+          visitRef,
           plannedStartDateTime: planned.start,
           plannedEndDateTime: planned.end,
           actualStartDateTime: actual.start,
@@ -323,6 +320,16 @@ export class VisitReconciliationsService {
       await this.safeEvaluate(db, created.id);
       firstId ??= created.id;
     }
+
+    // Keep every carer's reconciliation on the same shared visit id for this scheduled visit.
+    const sharedVisitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
+    await db.visitReconciliation.updateMany({
+      where: {
+        scheduledVisitId: visit.id,
+        NOT: { visitRef: sharedVisitRef },
+      },
+      data: { visitRef: sharedVisitRef },
+    });
 
     return firstId;
   }
