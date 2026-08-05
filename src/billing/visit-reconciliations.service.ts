@@ -119,7 +119,7 @@ export type VisitReconciliationListRow = {
   travelMinutes: number | null;
   currency: string;
   status: VisitReconciliationStatus;
-  exceptions: FinanceExceptionCode[];
+  exceptions: Array<{ code: FinanceExceptionCode; message: string }>;
   overrunMinutes: number | null;
   overrunReason: string | null;
   overrunDecision: VisitOverrunDecision | null;
@@ -1612,7 +1612,10 @@ export class VisitReconciliationsService {
         travelMinutes: row.travelMinutes ?? null,
         currency: row.currency,
         status: row.status,
-        exceptions: row.exceptions.map((e) => e.code),
+        exceptions: row.exceptions.map((e) => ({
+          code: e.code,
+          message: e.message?.trim() || e.code,
+        })),
         overrunMinutes: row.overrunMinutes ?? null,
         overrunReason: row.overrunReason ?? null,
         overrunDecision: row.overrunDecision ?? null,
