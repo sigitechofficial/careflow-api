@@ -527,6 +527,25 @@ export class VisitReconciliationsService {
     return this.getById(id);
   }
 
+  /**
+   * Re-run exception detection for unlocked reconciliations of a service user.
+   * Call after funding / charge-card setup changes so stale exceptions clear without a full sync.
+   */
+  async reEvaluateForServiceUser(serviceUserId: string): Promise<{ reEvaluated: number }> {
+    const pending = await this.prisma.visitReconciliation.findMany({
+      where: {
+        serviceUserId,
+        status: { not: VisitReconciliationStatus.LOCKED },
+      },
+      select: { id: true },
+      take: 1000,
+    });
+    for (const row of pending) {
+      await this.safeEvaluate(this.prisma, row.id);
+    }
+    return { reEvaluated: pending.length };
+  }
+
   async update(id: string, dto: UpdateVisitReconciliationDto) {
     const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Visit reconciliation not found');

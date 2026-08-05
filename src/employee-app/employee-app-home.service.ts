@@ -147,6 +147,9 @@ export class EmployeeAppHomeService {
       const endAt = resolved.end;
       const scheduledStart = formatHmUtc(startAt);
       const scheduledEnd = formatHmUtc(endAt);
+      // UTC ISO must match Visit Details `shell.visitWindow.scheduled*Iso` (primary visit).
+      const scheduledStartIso = primaryVisit?.scheduledStartDateTime?.toISOString() ?? null;
+      const scheduledEndIso = primaryVisit?.scheduledEndDateTime?.toISOString() ?? null;
       const visitTypeLong =
         primaryVisit?.visitName?.trim() ||
         su.careType?.name?.trim() ||
@@ -186,6 +189,8 @@ export class EmployeeAppHomeService {
         status: uiStatus,
         scheduledStart,
         scheduledEnd,
+        scheduledStartIso,
+        scheduledEndIso,
         startAt,
         endAt,
         visitTypeLong,
@@ -234,6 +239,8 @@ export class EmployeeAppHomeService {
         visitType: row.visitTypeShort,
         scheduledStart: row.scheduledStart,
         scheduledEnd: row.scheduledEnd,
+        scheduledStartIso: row.scheduledStartIso,
+        scheduledEndIso: row.scheduledEndIso,
         subtitle: buildVisitSubtitle(row),
         travelMinutes: row.travelMinutes,
         distanceMiles: row.distanceMiles,
@@ -419,6 +426,8 @@ type VisitRow = {
   status: HomeVisitUiStatus;
   scheduledStart: string;
   scheduledEnd: string | null;
+  scheduledStartIso: string | null;
+  scheduledEndIso: string | null;
   startAt: Date;
   endAt: Date | null;
   visitTypeLong: string;
@@ -467,6 +476,8 @@ function buildActiveVisit(row: VisitRow) {
     statusLabel: 'IN PROGRESS',
     scheduledStart: row.scheduledStart,
     scheduledEnd: row.scheduledEnd,
+    scheduledStartIso: row.scheduledStartIso,
+    scheduledEndIso: row.scheduledEndIso,
     timeWindow:
       row.scheduledEnd != null ? `${row.scheduledStart}–${row.scheduledEnd}` : row.scheduledStart,
     client: {

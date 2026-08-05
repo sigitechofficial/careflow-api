@@ -16,6 +16,10 @@ describe('buildEmployeeAppHomeData', () => {
           status: 'upcoming',
           statusLabel: '08:00',
           statusTone: 'neutral',
+          scheduledStart: '08:00',
+          scheduledEnd: '09:00',
+          scheduledStartIso: '2026-08-04T08:00:00.000Z',
+          scheduledEndIso: '2026-08-04T09:00:00.000Z',
           tags: [],
         },
       ],
@@ -37,6 +41,12 @@ describe('buildEmployeeAppHomeData', () => {
       ['activeVisit', 'date', 'endOfShift', 'visits'].sort(),
     );
 
+    expect(data.visits[0]).toEqual(
+      expect.objectContaining({
+        scheduledStartIso: '2026-08-04T08:00:00.000Z',
+        scheduledEndIso: '2026-08-04T09:00:00.000Z',
+      }),
+    );
     for (const key of EMPLOYEE_APP_HOME_REMOVED_DATA_KEYS) {
       expect(data).not.toHaveProperty(key);
     }
@@ -48,6 +58,8 @@ describe('buildEmployeeAppHomeData', () => {
       clientId: 'su-1',
       alreadyClockedIn: true,
       identityConfirmed: false,
+      scheduledStartIso: '2026-08-04T10:00:00.000Z',
+      scheduledEndIso: '2026-08-04T10:30:00.000Z',
       directions: { label: 'Directions', latitude: 51.5, longitude: -0.1 },
     };
     const data = buildEmployeeAppHomeData({
@@ -58,6 +70,12 @@ describe('buildEmployeeAppHomeData', () => {
     });
 
     expect(data.activeVisit).toBe(activeVisit);
+    expect(data.activeVisit).toEqual(
+      expect.objectContaining({
+        scheduledStartIso: '2026-08-04T10:00:00.000Z',
+        scheduledEndIso: '2026-08-04T10:30:00.000Z',
+      }),
+    );
     expect(data.visits).toEqual([]);
     expect(data).not.toHaveProperty('greeting');
     expect(data).not.toHaveProperty('progress');

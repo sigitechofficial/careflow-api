@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { FundingStatus, Prisma } from '@prisma/client';
@@ -20,6 +21,7 @@ import { EndServiceUserFundingDto } from './dto/end-service-user-funding.dto';
 import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
 import { assertFundingSplitPercentages } from '../billing/funding-contract.util';
 import { assertDefaultInvoiceTemplate } from '../billing/invoice-template.util';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 
 const fundingInclude = {
   fundingType: { select: { id: true, name: true, code: true } },
@@ -55,10 +57,29 @@ type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class ServiceUserFundingService {
+  private readonly logger = new Logger(ServiceUserFundingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly visitReconciliations: VisitReconciliationsService,
   ) {}
+
+  /**
+   * Funding readiness drives visit-reconciliation exceptions. Refresh unlocked
+   * rows after setup changes so "Billing contact missing" etc. clear without a manual sync.
+   */
+  private async refreshVisitReconciliations(serviceUserId: string) {
+    try {
+      await this.visitReconciliations.reEvaluateForServiceUser(serviceUserId);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to refresh visit reconciliations after funding change for ${serviceUserId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 
   private assertStartBeforeEnd(start?: Date | null, end?: Date | null) {
     if (start && end && end.getTime() < start.getTime()) {
@@ -229,7 +250,7 @@ export class ServiceUserFundingService {
     const isPrimary = dto.isPrimary === true;
     const status = (dto.status as FundingStatus | undefined) ?? FundingStatus.UNKNOWN;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (dto.defaultChargeCardId !== undefined) {
         await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
       }
@@ -294,6 +315,8 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding created', data: created };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async updateForServiceUser(
@@ -315,7 +338,7 @@ export class ServiceUserFundingService {
     const wantPrimary = dto.isPrimary === true;
     const demotePrimary = dto.isPrimary === false && existing.isPrimary;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (dto.defaultChargeCardId !== undefined) {
         await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
       }
@@ -357,12 +380,14 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding updated', data: updated };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async softDeleteForServiceUser(userId: string, serviceUserId: string, fundingId: string, meta?: RequestAuditMeta) {
     const existing = await this.loadFundingOrThrow(serviceUserId, fundingId);
     const now = new Date();
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.serviceUserFunding.update({
         where: { id: fundingId },
         data: {
@@ -389,6 +414,8 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding deleted', data: {} };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async updateStatus(
@@ -399,7 +426,7 @@ export class ServiceUserFundingService {
     meta?: RequestAuditMeta,
   ) {
     const existing = await this.loadFundingOrThrow(serviceUserId, fundingId);
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const notePatch =
         dto.notes !== undefined && dto.notes.trim()
           ? existing.notes
@@ -430,11 +457,13 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding status updated', data: updated };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async setPrimary(userId: string, serviceUserId: string, fundingId: string, meta?: RequestAuditMeta) {
     await this.loadFundingOrThrow(serviceUserId, fundingId);
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await this.unsetOtherPrimaries(tx, serviceUserId, fundingId, userId);
       const updated = await tx.serviceUserFunding.update({
         where: { id: fundingId },
@@ -456,6 +485,8 @@ export class ServiceUserFundingService {
       });
       return { message: 'Primary funding set', data: updated };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async approveFunding(
@@ -471,7 +502,7 @@ export class ServiceUserFundingService {
     const newStatus =
       start && start.getTime() > now.getTime() ? FundingStatus.APPROVED : FundingStatus.ACTIVE;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const approvalRef =
         dto.approvalReference !== undefined ? dto.approvalReference?.trim() || null : existing.approvalReference;
       const notePatch =
@@ -507,6 +538,8 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding approved', data: updated };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   async endFunding(
@@ -520,7 +553,7 @@ export class ServiceUserFundingService {
     const end = this.parseDay(dto.endDate);
     this.assertStartBeforeEnd(existing.startDate, end);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       let notePatch: string | undefined;
       if (dto.notes !== undefined && dto.notes.trim()) {
         notePatch = existing.notes ? `${existing.notes}\n${dto.notes.trim()}` : dto.notes.trim();
@@ -556,6 +589,8 @@ export class ServiceUserFundingService {
       });
       return { message: 'Funding ended', data: updated };
     });
+    await this.refreshVisitReconciliations(serviceUserId);
+    return result;
   }
 
   /** Reporting helper: current pointer on ServiceUser, if set. */

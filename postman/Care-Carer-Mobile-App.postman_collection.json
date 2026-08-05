@@ -299,7 +299,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["employee-app", "home"]
             },
-            "description": "Today home payload for the authenticated carer:\n- `date` (schedule day)\n- `activeVisit` (in-progress card with allergies + directions, or null)\n- `visits` list (status, tags, task progress)\n- `endOfShift` summary\n\nTrimmed: greeting / sync / notifications / quickActions / progress are **not** returned.\n\nUses Bearer `{{accessToken}}`. Defaults to today's UTC date."
+            "description": "Today home payload for the authenticated carer:\n- `date` (schedule day)\n- `activeVisit` (in-progress card with allergies + directions, or null)\n- `visits` list (status, tags, task progress, `scheduledStartIso` / `scheduledEndIso` UTC matching visit details)\n- `endOfShift` summary\n\nTrimmed: greeting / sync / notifications / quickActions / progress are **not** returned.\n\nUses Bearer `{{accessToken}}`. Defaults to today's UTC date."
           },
           "response": []
         },
