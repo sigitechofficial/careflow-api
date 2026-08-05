@@ -17,7 +17,7 @@ describe('payroll-period.util', () => {
     expect(years.find((y) => y.code === '2026-27')?.isCurrent).toBe(true);
   });
 
-  it('generates monthly periods within a tax year', () => {
+  it('generates full calendar-month periods within a tax year', () => {
     const periods = generatePayrollPeriods({
       frequency: 'MONTHLY',
       anchorDay: 28,
@@ -25,23 +25,31 @@ describe('payroll-period.util', () => {
       taxYearEnd: '2026-04-05',
     });
     expect(periods.length).toBe(12);
-    expect(periods[0].periodStart).toBe('2025-04-06');
-    expect(periods[0].periodEnd).toBe('2025-05-05');
-    expect(periods[periods.length - 1].periodEnd).toBe('2026-04-05');
+    expect(periods[0].periodStart).toBe('2025-04-01');
+    expect(periods[0].periodEnd).toBe('2025-04-30');
+    expect(periods[0].paymentDate).toBe('2025-04-30');
+    expect(periods[0].label).toBe('Apr 2025');
+    expect(periods[1].periodStart).toBe('2025-05-01');
+    expect(periods[1].periodEnd).toBe('2025-05-31');
+    expect(periods[periods.length - 1].periodStart).toBe('2026-03-01');
+    expect(periods[periods.length - 1].periodEnd).toBe('2026-03-31');
+    expect(periods[periods.length - 1].paymentDate).toBe('2026-03-31');
   });
 
-  it('accepts monthly anchor day 31 when generating periods', () => {
+  it('sets monthly payment date to the last day of each month', () => {
     const periods = generatePayrollPeriods({
       frequency: 'MONTHLY',
-      anchorDay: 31,
+      anchorDay: 1,
       taxYearStart: '2025-04-06',
       taxYearEnd: '2026-04-05',
     });
     expect(periods.length).toBe(12);
-    // Payment stays within each period (end is always the 5th for UK tax months).
     for (const period of periods) {
-      expect(period.paymentDate <= period.periodEnd).toBe(true);
+      expect(period.paymentDate).toBe(period.periodEnd);
     }
+    expect(periods[0].paymentDate).toBe('2025-04-30');
+    expect(periods[1].paymentDate).toBe('2025-05-31');
+    expect(periods[10].paymentDate).toBe('2026-02-28'); // Feb 2026
   });
 
   it('generates weekly periods covering the tax year', () => {
@@ -53,6 +61,6 @@ describe('payroll-period.util', () => {
     });
     expect(periods.length).toBe(4);
     expect(periods[0].label).toContain('P1');
-    expect(periods[0].paymentDate).toBe('2025-04-10');
+    expect(periods[0].paymentDate).toBe(periods[0].periodEnd);
   });
 });

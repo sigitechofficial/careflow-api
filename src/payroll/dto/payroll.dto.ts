@@ -154,6 +154,14 @@ export class GeneratePayrollPeriodsDto {
   @ApiProperty({ description: 'PayrollTaxYear id' })
   @IsUUID()
   taxYearId!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, replace existing periods for this schedule and tax year if none have payroll runs attached.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  replaceExisting?: boolean;
 }
 
 export class UpsertEmployeePayrollProfileDto {
@@ -352,6 +360,16 @@ export class PayrollPeriodsQueryDto {
   @IsOptional()
   @IsUUID()
   taxYearId?: string;
+}
+
+export class DeletePayrollPeriodsDto {
+  @ApiProperty({ description: 'Pay schedule id — required with taxYearId to delete a set of periods' })
+  @IsUUID()
+  scheduleId!: string;
+
+  @ApiProperty({ description: 'Tax year id — required with scheduleId to delete a set of periods' })
+  @IsUUID()
+  taxYearId!: string;
 }
 
 export class PurgePayrollDataDto {

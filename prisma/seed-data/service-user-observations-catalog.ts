@@ -34,6 +34,7 @@ export const OBSERVATION_TYPES: ObservationTypeSeed[] = [
   { code: 'SEIZURE_CHART', name: 'Seizure Chart', sortOrder: 150, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'URINALYSIS', name: 'Urinalysis', sortOrder: 160, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'INFECTION', name: 'Infection', sortOrder: 170, valueKind: 'COMPOSITE', usesNews2: false },
+  { code: 'PAIN', name: 'Pain score', sortOrder: 175, valueKind: 'NUMERIC', usesNews2: false, unitLabel: '0-10' },
 ];
 
 export type WellbeingDimensionSeed = {

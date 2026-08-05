@@ -4,16 +4,16 @@ import {
 } from './employee-app-visits.service';
 
 describe('buildShellLocation', () => {
-  it('serializes only latitude, longitude, allowedRadiusMeters', () => {
+  it('serializes lat/lng as 4dp strings plus allowedRadiusMeters', () => {
     const location = buildShellLocation({
-      latitude: 51.5074,
-      longitude: -0.1278,
+      latitude: 31.439,
+      longitude: 74.228,
       allowedRadiusMeters: 1000,
     });
 
     expect(location).toEqual({
-      latitude: 51.5074,
-      longitude: -0.1278,
+      latitude: '31.4390',
+      longitude: '74.2280',
       allowedRadiusMeters: 1000,
     });
     expect(Object.keys(location).sort()).toEqual(
@@ -63,5 +63,7 @@ describe('visit details payload keys', () => {
     expect(detailsData).not.toHaveProperty('tabs');
     expect(detailsData.shell.location).not.toHaveProperty('withinArea');
     expect(detailsData.shell.location).not.toHaveProperty('serviceUser');
+    expect(detailsData.shell.location.latitude).toBe('51.5000');
+    expect(detailsData.shell.location.longitude).toBe('-0.1000');
   });
 });

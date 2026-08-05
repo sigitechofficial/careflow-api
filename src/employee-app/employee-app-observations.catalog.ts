@@ -125,6 +125,7 @@ export const OBS_TYPE_CODE_ALIASES: Record<string, string> = {
   FLUID_MONITOR: 'fluid_intake',
   REPOSITIONING: 'repositioning',
   INFECTION: 'skin_body_map',
+  PAIN: 'pain_score',
   FALLS: 'falls',
   BOWEL_MOVEMENT: 'bowel',
   MEALS: 'meals',
@@ -168,7 +169,7 @@ export const OBS_CATALOG_SECTIONS: CatalogSectionDef[] = [
   {
     id: 'wellbeing_care',
     label: 'Wellbeing & care',
-    typeCodes: ['WELLBEING', 'FLUID_MONITOR', 'MEALS', 'BOWEL_MOVEMENT', 'REPOSITIONING'],
+    typeCodes: ['WELLBEING', 'PAIN', 'FLUID_MONITOR', 'MEALS', 'BOWEL_MOVEMENT', 'REPOSITIONING'],
   },
   {
     id: 'clinical_charts',
@@ -320,6 +321,28 @@ export function buildObsFormForType(input: {
       ...base,
       subtitle: 'Rate each dimension from 1 (most concern) to 5 (best)',
       fields: [...scoreFields, notesField()],
+    };
+  }
+
+  if (code === 'PAIN') {
+    return {
+      ...base,
+      subtitle: 'Ask the person to rate pain from 0 (none) to 10 (worst imaginable)',
+      fields: [
+        {
+          key: 'value',
+          label: 'Pain score',
+          inputType: 'score',
+          required: true,
+          min: 0,
+          max: 10,
+          step: 1,
+          unit: '0–10',
+          placeholder: '0–10',
+          helperText: '0 = no pain · 10 = worst pain',
+        },
+        notesField(),
+      ],
     };
   }
 

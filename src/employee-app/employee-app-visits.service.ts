@@ -72,7 +72,11 @@ import {
   statusToContractLabel,
   validationError,
 } from './employee-app-contract.util';
-import { computeVisitTaskProgress } from './visit-task-progress.util';
+import {
+  computeVisitTaskProgress,
+  inferVisitTaskOutcome,
+  isVisitTaskAddressed,
+} from './visit-task-progress.util';
 import {
   parseObservationNumeric,
   resolveTaskObsLink,
@@ -93,7 +97,7 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
 const OPTIONAL_TASK_PRIORITIES = new Set(['optional', 'low', 'nice_to_have']);
 
 /** Carer-app check-in / shell geofence radius (meters). */
-const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 1000;
+const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 10000;
 
 /** Keys removed from `shell.location` (client computes geofence from lat/lng/radius only). */
 export const EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS = [
@@ -106,17 +110,32 @@ export const EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS = [
   'distanceMeters',
 ] as const;
 
-/** Trimmed visit destination for shell / details (API-02). */
+/** Trimmed visit destination for shell / details (API-02). Coords as 4dp strings. */
 export function buildShellLocation(input: {
   latitude: number | null;
   longitude: number | null;
   allowedRadiusMeters: number;
 }) {
   return {
-    latitude: input.latitude,
-    longitude: input.longitude,
+    latitude: formatCoord4(input.latitude),
+    longitude: formatCoord4(input.longitude),
     allowedRadiusMeters: input.allowedRadiusMeters,
   };
+}
+
+/** Round to 4 decimal places (numeric, for geofence math). */
+export function roundCoord4(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return Math.round(value * 10_000) / 10_000;
+}
+
+/**
+ * Serialize lat/lng for API responses with exactly 4 digits after the decimal
+ * (e.g. "31.4390"). JSON numbers drop trailing zeros, so these are strings.
+ */
+export function formatCoord4(value: number | null | undefined): string | null {
+  const rounded = roundCoord4(value);
+  return rounded == null ? null : rounded.toFixed(4);
 }
 
 type Tone = 'danger' | 'warning' | 'primary' | 'success' | 'neutral';
@@ -397,34 +416,57 @@ export class EmployeeAppVisitsService {
 
   async getTasks(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    // Heal eMAR-linked tasks if the MAR round is already complete (Home reads completions).
+    await this.syncEmarLinkedTasksIfRoundComplete({
+      employeeId,
+      jobId,
+      serviceUserId: ctx.job.serviceUserId,
+      medicationRoundCode: ctx.medicationRoundCode,
+      visitStart: ctx.primaryVisit.scheduledStartDateTime,
+    });
+
     const since =
       ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
-    const [raw, medProgress, obsCount] = await Promise.all([
+    const [raw, medProgress, obsCount, progress] = await Promise.all([
       this.housekeeping.getVisitJobTasks('', jobId),
       this.resolveMedicationProgress(ctx),
       this.countVisitObservations(ctx.job.serviceUserId, since),
+      this.resolveProgress(ctx),
     ]);
 
     const tasks = (raw.data.tasks as Array<Record<string, unknown>>).map((task) => {
       const name = String(task.name ?? '');
       const groupCode = String(task.groupCode ?? '');
-      const obsLink = resolveTaskObsLink({ name, groupCode });
+      const obsLink = resolveTaskObsLink({
+        name,
+        groupCode,
+        flagsJson: task.flagsJson,
+      });
       const emarLink = resolveTaskModuleLink(
         name,
         groupCode,
         ctx.primaryVisit.medicationRequired,
       );
+      // Obs badge only when a concrete observation type is resolved (never catalog-only).
       const moduleLink =
         emarLink?.id === 'emar'
           ? emarLink
           : obsLink
             ? { id: 'obs' as const, label: 'Obs', tone: 'success' as Tone }
-            : emarLink;
+            : null;
       const priority = String(task.priority ?? 'routine');
       const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
-      // Visit-task completion is the single source of truth for Tasks progress
-      // (Home + Details). Do not override from Obs presence — carers can reopen a task.
-      const isCompleted = Boolean(task.isCompleted);
+      // COMPLETED / PARTIAL / DECLINED all count as addressed for progress.
+      const isCompleted = isVisitTaskAddressed({
+        isCompleted: Boolean(task.isCompleted),
+        recordedValue: task.recordedValue != null ? String(task.recordedValue) : null,
+        notes: task.notes != null ? String(task.notes) : null,
+      });
+      const outcome = inferVisitTaskOutcome({
+        isCompleted: Boolean(task.isCompleted),
+        recordedValue: task.recordedValue != null ? String(task.recordedValue) : null,
+        notes: task.notes != null ? String(task.notes) : null,
+      });
       const completedAt = task.completedAt ? String(task.completedAt) : null;
 
       let subtext: string | null = null;
@@ -452,6 +494,7 @@ export class EmployeeAppVisitsService {
         isExtra: Boolean(task.isExtra),
         done: isCompleted,
         isCompleted,
+        outcome,
         completedAt,
         completedLabel: completedAt ? `Completed · ${formatHmUtc(new Date(completedAt))}` : null,
         recordedValue: task.recordedValue ?? null,
@@ -490,15 +533,15 @@ export class EmployeeAppVisitsService {
 
     const required = tasks.filter((t) => t.isRequired);
     const optional = tasks.filter((t) => !t.isRequired);
-    const tasksDone = tasks.filter((t) => t.isCompleted).length;
-    const progress = this.buildProgress(
-      { tasksDone, tasksTotal: tasks.length, obsCount },
+    // Same progress source as Home / shell (not a second count from the mapped list).
+    const builtProgress = this.buildProgress(
+      { tasksDone: progress.tasksDone, tasksTotal: progress.tasksTotal, obsCount },
       medProgress,
     );
 
     return {
       data: {
-        progress,
+        progress: builtProgress,
         medicationRoundCode: raw.data.medicationRoundCode,
         roundLabel: raw.data.roundLabel,
         windowStart: raw.data.windowStart,
@@ -1178,7 +1221,9 @@ export class EmployeeAppVisitsService {
     );
     if (!match) throw new NotFoundException(`Task ${taskId} not found on this visit`);
 
-    const isCompleted = outcome === 'COMPLETED';
+    const isFullyCompleted = outcome === 'COMPLETED';
+    // Carer addressed the task (progress). PARTIAL / DECLINED count toward tasksDone.
+    const isAddressed = outcome === 'COMPLETED' || outcome === 'PARTIAL' || outcome === 'DECLINED';
     const notesParts = [
       outcome !== 'COMPLETED' ? `Outcome: ${outcome}` : null,
       dto.outcomeReasonCode ? `Reason: ${dto.outcomeReasonCode}` : null,
@@ -1200,14 +1245,14 @@ export class EmployeeAppVisitsService {
       (dto.value != null && String(dto.value).trim() !== '' ? String(dto.value).trim() : undefined);
 
     // Mobile often puts the reading in `notes` (e.g. "5 mmol/L") for value-input tasks.
-    if (!recordedValue && isCompleted && needsRecordedValue && dto.notes?.trim()) {
+    if (!recordedValue && isFullyCompleted && needsRecordedValue && dto.notes?.trim()) {
       recordedValue = dto.notes.trim();
     }
 
     if (outcome === 'PARTIAL') recordedValue = recordedValue || 'PARTIAL';
     if (outcome === 'DECLINED') recordedValue = recordedValue || 'DECLINED';
 
-    if (isCompleted && needsRecordedValue && !recordedValue) {
+    if (isFullyCompleted && needsRecordedValue && !recordedValue) {
       validationError('recordedValue (or notes with the reading) is required for this task');
     }
 
@@ -1222,7 +1267,7 @@ export class EmployeeAppVisitsService {
               ? String(match.taskCatalogueTaskId)
               : undefined,
             isExtra: Boolean(match.isExtra),
-            isCompleted,
+            isCompleted: isAddressed,
             notes: notesParts.join(' · ') || undefined,
             recordedValue,
           },
@@ -1237,7 +1282,8 @@ export class EmployeeAppVisitsService {
       data: { completedById: employeeId },
     });
 
-    if (isCompleted) {
+    // Only fully completed clinical readings sync into Obs (not decline/partial).
+    if (isFullyCompleted) {
       const ctx = await this.loadJobForEmployee(employeeId, jobId);
       await this.syncObservationFromCompletedTask({
         employeeId,
@@ -1326,11 +1372,19 @@ export class EmployeeAppVisitsService {
         : med.schedules[0];
 
     const recordedAt = new Date(dto.deviceRecordedAt);
+    const roundRow = ctx.medicationRoundCode
+      ? await this.prisma.medicationAdministrationRound.findFirst({
+          where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
+          select: { id: true },
+        })
+      : null;
+
     const created = await this.prisma.medicationAdministrationEvent.create({
       data: {
         serviceUserId: ctx.job.serviceUserId,
         serviceUserMedicationId: med.id,
         medicationScheduleId: schedule?.id,
+        roundId: roundRow?.id ?? null,
         administeredById: employeeId,
         scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
         actualDateTime: recordedAt,
@@ -1353,6 +1407,16 @@ export class EmployeeAppVisitsService {
         strengthSnapshot: med.strength,
         routeNameSnapshot: med.route?.name ?? null,
       },
+    });
+
+    // When the scheduled MAR round is fully recorded, close eMAR-linked visit tasks
+    // (e.g. "Medication prompt") so Home + Details task progress stay aligned.
+    await this.syncEmarLinkedTasksIfRoundComplete({
+      employeeId,
+      jobId,
+      serviceUserId: ctx.job.serviceUserId,
+      medicationRoundCode: ctx.medicationRoundCode,
+      visitStart: ctx.primaryVisit.scheduledStartDateTime,
     });
 
     const auditRecordId = newAuditRecordId();
@@ -1964,7 +2028,11 @@ export class EmployeeAppVisitsService {
     const tasks = taskRows.map((task) => {
       const priority = String(task.priority ?? 'routine');
       const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
-      const isCompleted = Boolean(task.isCompleted);
+      const isCompleted = isVisitTaskAddressed({
+        isCompleted: Boolean(task.isCompleted),
+        recordedValue: task.recordedValue != null ? String(task.recordedValue) : null,
+        notes: task.notes != null ? String(task.notes) : null,
+      });
       return {
         assignmentId: (task.assignmentId as string | null) ?? null,
         taskCatalogueTaskId: String(task.taskCatalogueTaskId ?? ''),
@@ -2284,18 +2352,26 @@ export class EmployeeAppVisitsService {
             town: su.address.town ?? null,
             county: su.address.county ?? null,
             postcode: su.address.postcode ?? null,
-            latitude:
+            latitude: formatCoord4(
               su.address.latitude != null ? Number(su.address.latitude) : null,
-            longitude:
+            ),
+            longitude: formatCoord4(
               su.address.longitude != null ? Number(su.address.longitude) : null,
+            ),
           }
         : null;
-    const serviceUserLatitude = address?.latitude ?? null;
-    const serviceUserLongitude = address?.longitude ?? null;
+    const serviceUserLatitude =
+      su.address && !su.address.deletedAt && su.address.latitude != null
+        ? roundCoord4(Number(su.address.latitude))
+        : null;
+    const serviceUserLongitude =
+      su.address && !su.address.deletedAt && su.address.longitude != null
+        ? roundCoord4(Number(su.address.longitude))
+        : null;
     const jobLatitude =
-      ctx.job.latitude != null ? Number(ctx.job.latitude) : null;
+      ctx.job.latitude != null ? roundCoord4(Number(ctx.job.latitude)) : null;
     const jobLongitude =
-      ctx.job.longitude != null ? Number(ctx.job.longitude) : null;
+      ctx.job.longitude != null ? roundCoord4(Number(ctx.job.longitude)) : null;
     /** Prefer job pin when set; otherwise service-user address (same rule as geofence). */
     const destinationLatitude = jobLatitude ?? serviceUserLatitude;
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
@@ -2312,8 +2388,8 @@ export class EmployeeAppVisitsService {
         dateOfBirth: su.dateOfBirth ? formatDob(su.dateOfBirth) : null,
         dateOfBirthIso: su.dateOfBirth?.toISOString().slice(0, 10) ?? null,
         nhsNumber: su.nhsNumber ?? null,
-        latitude: serviceUserLatitude,
-        longitude: serviceUserLongitude,
+        latitude: formatCoord4(serviceUserLatitude),
+        longitude: formatCoord4(serviceUserLongitude),
         address,
       },
       visitWindow: {
@@ -2397,7 +2473,12 @@ export class EmployeeAppVisitsService {
         : Promise.resolve([] as Array<{ id: string }>),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: ctx.job.id },
-        select: { assignmentId: true, isCompleted: true },
+        select: {
+          assignmentId: true,
+          isCompleted: true,
+          recordedValue: true,
+          notes: true,
+        },
       }),
       this.countVisitObservations(ctx.job.serviceUserId, since),
     ]);
@@ -2499,6 +2580,130 @@ export class EmployeeAppVisitsService {
         recordedByEmployeeId: input.employeeId,
       },
     });
+  }
+
+  /**
+   * When every scheduled (non-PRN) dose for the visit round has been recorded,
+   * mark eMAR-linked planned tasks (e.g. "Medication prompt") complete so Home
+   * and Details share the same tasksDone count.
+   */
+  private async syncEmarLinkedTasksIfRoundComplete(input: {
+    employeeId: string;
+    jobId: string;
+    serviceUserId: string;
+    medicationRoundCode: string | null;
+    visitStart: Date;
+  }) {
+    if (!input.medicationRoundCode) return;
+
+    const visitDate = formatScheduleDate(input.visitStart);
+    const { start, end } = utcDayBounds(visitDate);
+    const round = await this.prisma.medicationAdministrationRound.findFirst({
+      where: { code: input.medicationRoundCode, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!round) return;
+
+    const meds = await this.prisma.serviceUserMedication.findMany({
+      where: {
+        serviceUserId: input.serviceUserId,
+        deletedAt: null,
+        isActive: true,
+        status: MedicationRecordStatus.ACTIVE,
+        medicationKind: { not: MedicationKind.PRN },
+        schedules: {
+          some: {
+            deletedAt: null,
+            isActive: true,
+            round: { code: input.medicationRoundCode },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    const dueCount = meds.length;
+    if (dueCount === 0) return;
+
+    const givenCount = await this.prisma.medicationAdministrationEvent.count({
+      where: {
+        serviceUserId: input.serviceUserId,
+        deletedAt: null,
+        roundId: round.id,
+        status: MedicationAdministrationStatus.GIVEN,
+        OR: [
+          { scheduledDateTime: { gte: start, lte: end } },
+          { actualDateTime: { gte: start, lte: end } },
+        ],
+        serviceUserMedicationId: { in: meds.map((m) => m.id) },
+      },
+    });
+    if (givenCount < dueCount) return;
+
+    const assignments = await this.prisma.serviceUserVisitTaskAssignment.findMany({
+      where: {
+        serviceUserId: input.serviceUserId,
+        medicationRoundCode: input.medicationRoundCode,
+        deletedAt: null,
+        isActive: true,
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            name: true,
+            category: { select: { group: { select: { code: true } } } },
+          },
+        },
+      },
+    });
+
+    const emarAssignments = assignments.filter((a) => {
+      const link = resolveTaskModuleLink(
+        a.task.name,
+        a.task.category.group.code,
+        true,
+      );
+      return link?.id === 'emar';
+    });
+    if (emarAssignments.length === 0) return;
+
+    const now = new Date();
+    for (const match of emarAssignments) {
+      const existing = await this.prisma.scheduledVisitTaskCompletion.findFirst({
+        where: { scheduledJobId: input.jobId, assignmentId: match.id },
+      });
+      if (existing?.isCompleted) continue;
+
+      const note = `Auto-completed: scheduled MAR round complete (${givenCount}/${dueCount})`;
+      if (existing) {
+        await this.prisma.scheduledVisitTaskCompletion.update({
+          where: { id: existing.id },
+          data: {
+            isCompleted: true,
+            recordedValue: existing.recordedValue ?? 'COMPLETED',
+            notes: existing.notes?.trim() || note,
+            completedAt: now,
+            completedById: input.employeeId,
+          },
+        });
+        continue;
+      }
+
+      await this.prisma.scheduledVisitTaskCompletion.create({
+        data: {
+          scheduledJobId: input.jobId,
+          assignmentId: match.id,
+          taskCatalogueTaskId: match.task.id,
+          medicationRoundCode: input.medicationRoundCode,
+          isAdHoc: false,
+          isCompleted: true,
+          recordedValue: 'COMPLETED',
+          notes: note,
+          completedAt: now,
+          completedById: input.employeeId,
+        },
+      });
+    }
   }
 
   /** When an observation is recorded, complete the matching planned visit task if any. */

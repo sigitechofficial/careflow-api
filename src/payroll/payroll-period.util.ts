@@ -26,16 +26,6 @@ function addUtcDays(d: Date, days: number): Date {
   return next;
 }
 
-function clampDayOfMonth(year: number, monthIndex: number, day: number): Date {
-  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-  const safeDay = Math.min(Math.max(1, day), lastDay);
-  return new Date(Date.UTC(year, monthIndex, safeDay));
-}
-
-function minDate(a: Date, b: Date): Date {
-  return a.getTime() <= b.getTime() ? a : b;
-}
-
 const MONTH_LABELS = [
   'Jan',
   'Feb',
@@ -58,7 +48,8 @@ const MONTH_LABELS = [
  */
 export function generatePayrollPeriods(params: {
   frequency: PayrollPayFrequencyCode;
-  anchorDay: number;
+  /** @deprecated Payment dates use period end; kept for caller compatibility. */
+  anchorDay?: number;
   taxYearStart: string;
   taxYearEnd: string;
 }): GeneratedPayrollPeriod[] {
@@ -71,32 +62,26 @@ export function generatePayrollPeriods(params: {
   const periods: GeneratedPayrollPeriod[] = [];
 
   if (params.frequency === 'MONTHLY') {
-    // UK monthly tax months: 6th → 5th of following month (12 periods per tax year).
-    let periodStart = start;
-    let sequence = 1;
-    while (periodStart.getTime() <= end.getTime()) {
-      const nextStart = new Date(
-        Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 6),
-      );
-      // If we started mid-month after the 6th, next boundary is still next calendar month's 6th.
-      const candidateEnd = addUtcDays(nextStart, -1);
-      const periodEnd = candidateEnd.getTime() > end.getTime() ? end : candidateEnd;
-      if (periodStart.getTime() > periodEnd.getTime()) break;
-
-      const paymentDate = clampDayOfMonth(
-        periodEnd.getUTCFullYear(),
-        periodEnd.getUTCMonth(),
-        params.anchorDay,
-      );
+    // Full calendar months: 1st → last day. Twelve months from the calendar month
+    // of taxYearStart (e.g. Apr–Mar for a standard UK tax year). Payment date is
+    // the last day of each month.
+    let year = start.getUTCFullYear();
+    let monthIndex = start.getUTCMonth();
+    for (let sequence = 1; sequence <= 12; sequence += 1) {
+      const periodStart = new Date(Date.UTC(year, monthIndex, 1));
+      const periodEnd = new Date(Date.UTC(year, monthIndex + 1, 0));
       periods.push({
         sequence,
-        label: `${MONTH_LABELS[periodStart.getUTCMonth()]} ${periodStart.getUTCFullYear()}`,
+        label: `${MONTH_LABELS[monthIndex]} ${year}`,
         periodStart: toDateOnly(periodStart),
         periodEnd: toDateOnly(periodEnd),
-        paymentDate: toDateOnly(minDate(paymentDate, periodEnd)),
+        paymentDate: toDateOnly(periodEnd),
       });
-      sequence += 1;
-      periodStart = addUtcDays(periodEnd, 1);
+      monthIndex += 1;
+      if (monthIndex > 11) {
+        monthIndex = 0;
+        year += 1;
+      }
     }
     return periods;
   }
@@ -109,8 +94,8 @@ export function generatePayrollPeriods(params: {
   while (periodStart.getTime() <= end.getTime()) {
     const rawEnd = addUtcDays(periodStart, stepDays - 1);
     const periodEnd = rawEnd.getTime() > end.getTime() ? end : rawEnd;
-    const paymentOffset = Math.min(Math.max(params.anchorDay, 1), stepDays) - 1;
-    const paymentDate = minDate(addUtcDays(periodStart, paymentOffset), periodEnd);
+    // Payment on the last day of each weekly-style cycle.
+    const paymentDate = periodEnd;
     periods.push({
       sequence,
       label: `P${sequence} ${toDateOnly(periodStart)} – ${toDateOnly(periodEnd)}`,

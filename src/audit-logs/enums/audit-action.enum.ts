@@ -344,6 +344,7 @@ export enum AuditAction {
   PAYROLL_SCHEDULE_CREATED = 'payroll_schedule_created',
   PAYROLL_SCHEDULE_UPDATED = 'payroll_schedule_updated',
   PAYROLL_PERIODS_GENERATED = 'payroll_periods_generated',
+  PAYROLL_PERIODS_DELETED = 'payroll_periods_deleted',
   PAYROLL_EMPLOYEE_PROFILE_CREATED = 'payroll_employee_profile_created',
   PAYROLL_EMPLOYEE_PROFILE_UPDATED = 'payroll_employee_profile_updated',
   PAYROLL_PAY_AGREEMENT_CREATED = 'payroll_pay_agreement_created',

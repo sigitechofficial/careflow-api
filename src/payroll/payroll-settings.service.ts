@@ -13,6 +13,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreatePayrollScheduleDto,
   CreatePayrollTaxYearDto,
+  DeletePayrollPeriodsDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
@@ -337,7 +338,7 @@ export class PayrollSettingsService {
           name: dto.name.trim(),
           code: dto.code.trim().toUpperCase(),
           frequency: dto.frequency,
-          anchorDay: dto.anchorDay ?? 1,
+          anchorDay: dto.anchorDay ?? 31,
           description: dto.description?.trim() || null,
           status: 'ACTIVE',
           createdById: userId,
@@ -408,13 +409,26 @@ export class PayrollSettingsService {
     }
     const taxYear = await this.requireTaxYear(dto.taxYearId);
 
-    const existingCount = await this.prisma.payrollPeriod.count({
+    const existing = await this.prisma.payrollPeriod.findMany({
       where: { scheduleId, taxYearId: taxYear.id, deletedAt: null },
+      include: { _count: { select: { runs: true } } },
     });
-    if (existingCount > 0) {
-      throw new ConflictException(
-        'Periods already exist for this schedule and tax year. Soft-delete them before regenerating.',
-      );
+    if (existing.length > 0) {
+      if (!dto.replaceExisting) {
+        throw new ConflictException(
+          'Periods already exist for this schedule and tax year. Regenerate with replace, or remove runs first.',
+        );
+      }
+      const blocked = existing.filter((p) => p._count.runs > 0);
+      if (blocked.length > 0) {
+        throw new ConflictException(
+          `Cannot replace periods: ${blocked.length} period(s) still have UK payroll runs. Delete those runs first.`,
+        );
+      }
+      // Hard-delete so unique (scheduleId, taxYearId, sequence) can be reused.
+      await this.prisma.payrollPeriod.deleteMany({
+        where: { scheduleId, taxYearId: taxYear.id },
+      });
     }
 
     const generated = generatePayrollPeriods({
@@ -473,6 +487,95 @@ export class PayrollSettingsService {
       orderBy: [{ scheduleId: 'asc' }, { sequence: 'asc' }],
     });
     return { message: 'Pay periods', data: rows.map(mapPeriod) };
+  }
+
+  async deletePeriod(userId: string, periodId: string, meta?: RequestAuditMeta) {
+    const period = await this.prisma.payrollPeriod.findFirst({
+      where: { id: periodId, deletedAt: null },
+      include: { _count: { select: { runs: true } } },
+    });
+    if (!period) throw new NotFoundException('Pay period not found');
+    if (period._count.runs > 0) {
+      throw new ConflictException(
+        'Cannot delete this period: it has UK payroll runs linked. Delete those runs first.',
+      );
+    }
+
+    await this.prisma.payrollPeriod.delete({ where: { id: period.id } });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_PERIODS_DELETED,
+      recordType: 'PayrollPeriod',
+      recordId: period.id,
+      oldValues: {
+        scheduleId: period.scheduleId,
+        taxYearId: period.taxYearId,
+        sequence: period.sequence,
+        label: period.label,
+      },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Pay period deleted', data: { id: period.id } };
+  }
+
+  async deletePeriods(
+    userId: string,
+    dto: DeletePayrollPeriodsDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.requireSchedule(dto.scheduleId);
+    await this.requireTaxYear(dto.taxYearId);
+
+    const existing = await this.prisma.payrollPeriod.findMany({
+      where: {
+        scheduleId: dto.scheduleId,
+        taxYearId: dto.taxYearId,
+        deletedAt: null,
+      },
+      include: { _count: { select: { runs: true } } },
+    });
+    if (existing.length === 0) {
+      throw new NotFoundException('No pay periods found for this schedule and tax year');
+    }
+
+    const blocked = existing.filter((p) => p._count.runs > 0);
+    if (blocked.length > 0) {
+      throw new ConflictException(
+        `Cannot delete periods: ${blocked.length} period(s) still have UK payroll runs. Delete those runs first.`,
+      );
+    }
+
+    const result = await this.prisma.payrollPeriod.deleteMany({
+      where: {
+        scheduleId: dto.scheduleId,
+        taxYearId: dto.taxYearId,
+        deletedAt: null,
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_PERIODS_DELETED,
+      recordType: 'PayrollPeriod',
+      recordId: dto.scheduleId,
+      oldValues: {
+        scheduleId: dto.scheduleId,
+        taxYearId: dto.taxYearId,
+        count: result.count,
+      },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return {
+      message: `Deleted ${result.count} pay period${result.count === 1 ? '' : 's'}`,
+      data: { deleted: result.count },
+    };
   }
 
   private async requireTaxYear(id: string) {

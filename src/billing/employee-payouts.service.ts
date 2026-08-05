@@ -45,10 +45,16 @@ export function previousMonthPeriodKey(asOf: Date = new Date()): string {
 function periodKeyFromDates(periodStart: Date, periodEnd: Date): string {
   const dateFrom = periodStart.toISOString().slice(0, 10);
   const dateTo = periodEnd.toISOString().slice(0, 10);
-  return (
-    derivePeriodKeyFromRange(dateFrom, dateTo) ??
-    `${periodEnd.getUTCFullYear()}-${pad2(periodEnd.getUTCMonth() + 1)}`
-  );
+  const derived = derivePeriodKeyFromRange(dateFrom, dateTo);
+  if (derived) return derived;
+  // Tax-year-clipped calendar months (e.g. 6–30 Apr) still map to YYYY-MM.
+  if (
+    periodStart.getUTCFullYear() === periodEnd.getUTCFullYear() &&
+    periodStart.getUTCMonth() === periodEnd.getUTCMonth()
+  ) {
+    return `${periodStart.getUTCFullYear()}-${pad2(periodStart.getUTCMonth() + 1)}`;
+  }
+  return `${periodEnd.getUTCFullYear()}-${pad2(periodEnd.getUTCMonth() + 1)}`;
 }
 
 @Injectable()

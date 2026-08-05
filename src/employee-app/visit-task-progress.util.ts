@@ -23,7 +23,44 @@ type CompletionRow = {
   scheduledJobId: string;
   assignmentId: string | null;
   isCompleted: boolean;
+  recordedValue?: string | null;
+  notes?: string | null;
 };
+
+export type VisitTaskOutcome = 'completed' | 'partial' | 'declined';
+
+/**
+ * Carer has finished the task from their side: COMPLETED, PARTIAL, or DECLINED.
+ * Progress (Home / Details) counts addressed tasks, not only fully completed.
+ */
+export function isVisitTaskAddressed(input: {
+  isCompleted?: boolean | null;
+  recordedValue?: string | null;
+  notes?: string | null;
+}): boolean {
+  if (input.isCompleted) return true;
+  const rv = String(input.recordedValue ?? '')
+    .trim()
+    .toUpperCase();
+  if (rv === 'PARTIAL' || rv === 'DECLINED') return true;
+  if (/Outcome:\s*(PARTIAL|DECLINED)\b/i.test(String(input.notes ?? ''))) return true;
+  return false;
+}
+
+export function inferVisitTaskOutcome(input: {
+  isCompleted?: boolean | null;
+  recordedValue?: string | null;
+  notes?: string | null;
+}): VisitTaskOutcome | null {
+  const notes = String(input.notes ?? '');
+  const rv = String(input.recordedValue ?? '')
+    .trim()
+    .toUpperCase();
+  if (/Outcome:\s*DECLINED\b/i.test(notes) || rv === 'DECLINED') return 'declined';
+  if (/Outcome:\s*PARTIAL\b/i.test(notes) || rv === 'PARTIAL') return 'partial';
+  if (input.isCompleted) return 'completed';
+  return null;
+}
 
 /**
  * Shared Home / Details / client-detail task progress.
@@ -31,21 +68,26 @@ type CompletionRow = {
  */
 export function computeVisitTaskProgress(input: {
   plannedAssignmentIds: string[];
-  completions: Array<{ assignmentId: string | null; isCompleted: boolean }>;
+  completions: Array<{
+    assignmentId: string | null;
+    isCompleted: boolean;
+    recordedValue?: string | null;
+    notes?: string | null;
+  }>;
 }): VisitTaskProgress {
-  const completedAssignmentIds = new Set(
+  const addressedAssignmentIds = new Set(
     input.completions
-      .filter((c) => c.assignmentId && c.isCompleted)
+      .filter((c) => c.assignmentId && isVisitTaskAddressed(c))
       .map((c) => c.assignmentId as string),
   );
   const adHoc = input.completions.filter((c) => !c.assignmentId);
-  const adHocCompleted = adHoc.filter((c) => c.isCompleted).length;
-  const plannedCompleted = input.plannedAssignmentIds.filter((id) =>
-    completedAssignmentIds.has(id),
+  const adHocAddressed = adHoc.filter((c) => isVisitTaskAddressed(c)).length;
+  const plannedAddressed = input.plannedAssignmentIds.filter((id) =>
+    addressedAssignmentIds.has(id),
   ).length;
 
   return {
-    completed: plannedCompleted + adHocCompleted,
+    completed: plannedAddressed + adHocAddressed,
     /** Include incomplete ad-hoc rows so total matches the tasks list length. */
     total: input.plannedAssignmentIds.length + adHoc.length,
   };

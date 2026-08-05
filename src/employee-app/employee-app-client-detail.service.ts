@@ -961,7 +961,13 @@ export class EmployeeAppClientDetailService {
           }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: { in: jobs.map((j) => j.id) } },
-        select: { scheduledJobId: true, assignmentId: true, isCompleted: true },
+        select: {
+          scheduledJobId: true,
+          assignmentId: true,
+          isCompleted: true,
+          recordedValue: true,
+          notes: true,
+        },
       }),
     ]);
 

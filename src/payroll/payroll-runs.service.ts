@@ -688,7 +688,7 @@ export class PayrollRunsService {
       const to = dateToIsoDate(periodEnd);
       throw new BadRequestException(
         `No visit-pay or salary inputs found for this UK period (${from} – ${to}). ` +
-          `UK tax months run 6th–5th: a visit dated before ${from} belongs in the previous period. ` +
+          `Monthly periods run from the start to the end of each calendar month. ` +
           `Use the period that covers the visit’s pay date, or ensure the visit is approved for pay with a payable amount.`,
       );
     }

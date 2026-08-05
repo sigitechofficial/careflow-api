@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -10,6 +21,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreatePayrollScheduleDto,
   CreatePayrollTaxYearDto,
+  DeletePayrollPeriodsDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
@@ -144,5 +156,32 @@ export class PayrollSettingsController {
   @ApiOperation({ summary: 'List pay periods' })
   listPeriods(@Query() query: PayrollPeriodsQueryDto) {
     return this.service.listPeriods(query);
+  }
+
+  @Delete('periods/:id')
+  @Permissions('payroll.periods.manage')
+  @ApiOperation({
+    summary: 'Delete a pay period (blocked if any UK payroll run is linked)',
+  })
+  deletePeriod(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deletePeriod(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Post('periods/delete')
+  @Permissions('payroll.periods.manage')
+  @ApiOperation({
+    summary:
+      'Delete all pay periods for a schedule + tax year (blocked if any period has a UK payroll run)',
+  })
+  deletePeriods(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: DeletePayrollPeriodsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.deletePeriods(user.id, dto, getRequestAuditMeta(req));
   }
 }

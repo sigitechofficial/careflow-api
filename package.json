@@ -41,6 +41,7 @@
     "seed:persona-schedule": "ts-node --transpile-only prisma/scripts/seed-persona-schedule.ts",
     "seed:persona-runs": "ts-node --transpile-only prisma/scripts/seed-persona-schedule-runs.ts",
     "seed:ecm-demo": "ts-node --transpile-only prisma/scripts/seed-ecm-demo-visits.ts",
+    "seed:employee-app-qa": "ts-node --transpile-only prisma/scripts/seed-employee-app-qa-visits.ts",
     "seed:mar-30-api": "ts-node --transpile-only prisma/scripts/seed-mar-30-days-via-api.ts",
     "seed:medication-realistic": "ts-node --transpile-only prisma/scripts/reset-and-seed-realistic-medication-via-api.ts",
     "seed:section-311-flooring": "ts-node --transpile-only prisma/scripts/resync-section-311-flooring.ts",

@@ -411,6 +411,8 @@ export class EmployeeAppHomeService {
           scheduledJobId: true,
           assignmentId: true,
           isCompleted: true,
+          recordedValue: true,
+          notes: true,
         },
       }),
     ]);
@@ -504,8 +506,8 @@ function buildActiveVisit(row: VisitRow) {
     },
     directions: {
       label: 'Directions',
-      latitude: row.address.latitude,
-      longitude: row.address.longitude,
+      latitude: formatHomeCoord4(row.address.latitude),
+      longitude: formatHomeCoord4(row.address.longitude),
       address: row.address.formatted,
       mapsUrl,
     },
@@ -703,7 +705,14 @@ function buildEndOfShiftSubtitle(
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
   const n = typeof value === 'number' ? value : Number(value.toString());
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 10_000) / 10_000;
+}
+
+/** API lat/lng with exactly 4 digits after the decimal (JSON-safe string). */
+function formatHomeCoord4(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return (Math.round(value * 10_000) / 10_000).toFixed(4);
 }
 
 function resolveAddress(
