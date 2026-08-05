@@ -1320,6 +1320,13 @@ export class VisitReconciliationsService {
         },
       );
       payableAmount = calc?.amount ?? null;
+      if (payableAmount == null && payMinutes > 0) {
+        activeExceptions.push({
+          code: FinanceExceptionCode.RATE_MISSING,
+          message:
+            'No pay card rate matches this visit’s day or time. Add a matching rule (e.g. weekday) or check Saturday/Sunday bands.',
+        });
+      }
     }
     if (chargeCard && billMinutes) {
       const chargeRules = await db.chargeCardRule.findMany({
@@ -1440,6 +1447,15 @@ export class VisitReconciliationsService {
       ) {
         finalStatus = VisitReconciliationStatus.APPROVED_FOR_PAY;
       }
+    } else if (
+      !lockedOrRejected &&
+      payCard &&
+      payMinutes > 0 &&
+      payableAmount == null &&
+      activeExceptions.some((e) => e.code === FinanceExceptionCode.RATE_MISSING)
+    ) {
+      // Clear a previously auto-approved pay status when no matching rate applies.
+      finalStatus = deriveReconciliationStatus(activeExceptions, row.status);
     }
 
     await db.visitReconciliation.update({

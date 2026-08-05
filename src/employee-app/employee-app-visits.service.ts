@@ -73,6 +73,10 @@ import {
   validationError,
 } from './employee-app-contract.util';
 import { computeVisitTaskProgress } from './visit-task-progress.util';
+import {
+  parseObservationNumeric,
+  resolveTaskObsLink,
+} from './visit-task-obs-link.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -393,22 +397,33 @@ export class EmployeeAppVisitsService {
 
   async getTasks(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const raw = await this.housekeeping.getVisitJobTasks('', jobId);
-    const medProgress = await this.resolveMedicationProgress(ctx);
-    const obsCount = await this.countVisitObservations(
-      ctx.job.serviceUserId,
-      ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime,
-    );
+    const since =
+      ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
+    const [raw, medProgress, obsCount] = await Promise.all([
+      this.housekeeping.getVisitJobTasks('', jobId),
+      this.resolveMedicationProgress(ctx),
+      this.countVisitObservations(ctx.job.serviceUserId, since),
+    ]);
 
     const tasks = (raw.data.tasks as Array<Record<string, unknown>>).map((task) => {
       const name = String(task.name ?? '');
-      const moduleLink = resolveTaskModuleLink(
+      const groupCode = String(task.groupCode ?? '');
+      const obsLink = resolveTaskObsLink({ name, groupCode });
+      const emarLink = resolveTaskModuleLink(
         name,
-        String(task.groupCode ?? ''),
+        groupCode,
         ctx.primaryVisit.medicationRequired,
       );
+      const moduleLink =
+        emarLink?.id === 'emar'
+          ? emarLink
+          : obsLink
+            ? { id: 'obs' as const, label: 'Obs', tone: 'success' as Tone }
+            : emarLink;
       const priority = String(task.priority ?? 'routine');
       const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
+      // Visit-task completion is the single source of truth for Tasks progress
+      // (Home + Details). Do not override from Obs presence — carers can reopen a task.
       const isCompleted = Boolean(task.isCompleted);
       const completedAt = task.completedAt ? String(task.completedAt) : null;
 
@@ -445,18 +460,36 @@ export class EmployeeAppVisitsService {
         instruction:
           task.carerInstructions != null ? String(task.carerInstructions) : null,
         carerInstructions: task.carerInstructions ?? null,
-        iconType: iconForTaskGroup(String(task.groupCode ?? '')),
+        iconType: iconForTaskGroup(groupCode),
         badge: moduleLink?.label ?? null,
         badgeTone: moduleLink?.tone ?? null,
         linkTab:
           moduleLink?.id === 'emar' ? 'mar' : moduleLink?.id === 'obs' ? 'obs' : null,
+        linkedTypeCode: obsLink?.linkedTypeCode ?? null,
+        observationTypeCode: obsLink?.observationTypeCode ?? null,
         moduleLink,
       };
     });
 
+    // One-way heal only: completed Obs-linked tasks mirror into observations.
+    // Never re-complete a task from Obs on GET (that fought Home after reopen).
+    for (const task of tasks) {
+      if (!task.isCompleted || !task.observationTypeCode) continue;
+      if (!task.recordedValue && !task.notes) continue;
+      await this.syncObservationFromCompletedTask({
+        employeeId,
+        jobId,
+        serviceUserId: ctx.job.serviceUserId,
+        visitId: ctx.primaryVisit.id,
+        taskName: String(task.name ?? ''),
+        groupCode: task.groupCode != null ? String(task.groupCode) : null,
+        recordedValue: task.recordedValue != null ? String(task.recordedValue) : null,
+        notes: task.notes != null ? String(task.notes) : null,
+      });
+    }
+
     const required = tasks.filter((t) => t.isRequired);
     const optional = tasks.filter((t) => !t.isRequired);
-    // Progress must match this payload's task list (same source as Home).
     const tasksDone = tasks.filter((t) => t.isCompleted).length;
     const progress = this.buildProgress(
       { tasksDone, tasksTotal: tasks.length, obsCount },
@@ -1204,6 +1237,20 @@ export class EmployeeAppVisitsService {
       data: { completedById: employeeId },
     });
 
+    if (isCompleted) {
+      const ctx = await this.loadJobForEmployee(employeeId, jobId);
+      await this.syncObservationFromCompletedTask({
+        employeeId,
+        jobId,
+        serviceUserId: ctx.job.serviceUserId,
+        visitId: ctx.primaryVisit.id,
+        taskName: String(match.name ?? ''),
+        groupCode: match.groupCode != null ? String(match.groupCode) : null,
+        recordedValue: recordedValue ?? null,
+        notes: notesParts.join(' · ') || null,
+      });
+    }
+
     const now = new Date().toISOString();
     const auditRecordId = newAuditRecordId();
     const progress = await this.resolveProgress(await this.loadJobForEmployee(employeeId, jobId));
@@ -1366,11 +1413,8 @@ export class EmployeeAppVisitsService {
     const recordedAt = new Date(dto.deviceRecordedAt ?? dto.recordedAt ?? new Date().toISOString());
     const numericValue =
       dto.numericValue ??
-      (typeof dto.value === 'number'
-        ? dto.value
-        : typeof dto.value === 'string' && dto.value.trim() !== '' && !Number.isNaN(Number(dto.value))
-          ? Number(dto.value)
-          : null);
+      parseObservationNumeric(dto.value) ??
+      parseObservationNumeric(dto.notes);
 
     const row = await this.prisma.serviceUserObservation.create({
       data: {
@@ -1391,7 +1435,7 @@ export class EmployeeAppVisitsService {
           ...(dto.payload ?? {}),
           definitionId: dto.definitionId ?? null,
           outcome: dto.outcome,
-          value: dto.value ?? null,
+          value: dto.value ?? numericValue ?? null,
           secondaryValue: dto.secondaryValue ?? null,
           abnormal: dto.abnormal ?? false,
           critical: dto.critical ?? false,
@@ -1403,6 +1447,23 @@ export class EmployeeAppVisitsService {
         recordedByEmployeeId: employeeId,
       },
     });
+
+    if (dto.outcome === 'recorded' || dto.outcome === 'unable') {
+      await this.syncVisitTaskFromObservation({
+        employeeId,
+        jobId,
+        serviceUserId: ctx.job.serviceUserId,
+        medicationRoundCode: ctx.medicationRoundCode,
+        observationTypeCode: type.code,
+        valueLabel:
+          numericValue != null
+            ? String(numericValue)
+            : dto.value != null
+              ? String(dto.value)
+              : null,
+        notes: dto.notes ?? null,
+      });
+    }
 
     const auditRecordId = newAuditRecordId();
     const response = {
@@ -2341,6 +2402,7 @@ export class EmployeeAppVisitsService {
       this.countVisitObservations(ctx.job.serviceUserId, since),
     ]);
 
+    // Same formula as Home (`buildVisitTaskProgressByJobId`) — completion rows only.
     const progress = computeVisitTaskProgress({
       plannedAssignmentIds: assignments.map((a) => a.id),
       completions,
@@ -2351,6 +2413,168 @@ export class EmployeeAppVisitsService {
       tasksTotal: progress.total,
       obsCount,
     };
+  }
+
+  /**
+   * When an Obs-linked visit task is completed with a reading, mirror it into observations
+   * so Tasks + Obs tabs stay consistent.
+   */
+  private async syncObservationFromCompletedTask(input: {
+    employeeId: string;
+    jobId: string;
+    serviceUserId: string;
+    visitId: string;
+    taskName: string;
+    groupCode?: string | null;
+    flagsJson?: unknown;
+    recordedValue?: string | null;
+    notes?: string | null;
+  }) {
+    const link = resolveTaskObsLink({
+      name: input.taskName,
+      groupCode: input.groupCode,
+      flagsJson: input.flagsJson,
+    });
+    if (!link) return;
+
+    const type = await this.prisma.observationType.findFirst({
+      where: { code: link.observationTypeCode, isActive: true },
+      select: { id: true, unitLabel: true, code: true },
+    });
+    if (!type) return;
+
+    const numericValue =
+      parseObservationNumeric(input.recordedValue) ?? parseObservationNumeric(input.notes);
+    const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
+    const existing = await this.prisma.serviceUserObservation.findFirst({
+      where: {
+        serviceUserId: input.serviceUserId,
+        observationTypeId: type.id,
+        deletedAt: null,
+        recordedAt: { gte: since },
+        recordedByEmployeeId: input.employeeId,
+      },
+      orderBy: { recordedAt: 'desc' },
+    });
+
+    const payloadBase = {
+      definitionId: link.linkedTypeCode,
+      outcome: 'recorded',
+      value: numericValue ?? input.recordedValue ?? null,
+      scheduledJobId: input.jobId,
+      scheduledVisitId: input.visitId,
+      recordedByEmployeeId: input.employeeId,
+      source: 'visit_task',
+    };
+
+    if (existing) {
+      await this.prisma.serviceUserObservation.update({
+        where: { id: existing.id },
+        data: {
+          numericValue: numericValue ?? existing.numericValue,
+          notes: input.notes?.trim() || existing.notes,
+          unit: type.unitLabel ?? existing.unit,
+          payload: {
+            ...(typeof existing.payload === 'object' &&
+            existing.payload &&
+            !Array.isArray(existing.payload)
+              ? (existing.payload as Record<string, unknown>)
+              : {}),
+            ...payloadBase,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return;
+    }
+
+    await this.prisma.serviceUserObservation.create({
+      data: {
+        serviceUserId: input.serviceUserId,
+        observationTypeId: type.id,
+        recordedAt: new Date(),
+        numericValue,
+        notes: input.notes?.trim() || null,
+        unit: type.unitLabel ?? null,
+        payload: payloadBase as Prisma.InputJsonValue,
+        recordedByEmployeeId: input.employeeId,
+      },
+    });
+  }
+
+  /** When an observation is recorded, complete the matching planned visit task if any. */
+  private async syncVisitTaskFromObservation(input: {
+    employeeId: string;
+    jobId: string;
+    serviceUserId: string;
+    medicationRoundCode: string | null;
+    observationTypeCode: string;
+    valueLabel?: string | null;
+    notes?: string | null;
+  }) {
+    if (!input.medicationRoundCode) return;
+    const assignments = await this.prisma.serviceUserVisitTaskAssignment.findMany({
+      where: {
+        serviceUserId: input.serviceUserId,
+        medicationRoundCode: input.medicationRoundCode,
+        deletedAt: null,
+        isActive: true,
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            name: true,
+            flagsJson: true,
+            category: { select: { group: { select: { code: true } } } },
+          },
+        },
+      },
+    });
+
+    const match = assignments.find((a) => {
+      const link = resolveTaskObsLink({
+        name: a.task.name,
+        groupCode: a.task.category.group.code,
+        flagsJson: a.task.flagsJson,
+      });
+      return link?.observationTypeCode === input.observationTypeCode.toUpperCase();
+    });
+    if (!match) return;
+
+    const existing = await this.prisma.scheduledVisitTaskCompletion.findFirst({
+      where: { scheduledJobId: input.jobId, assignmentId: match.id },
+    });
+    if (existing?.isCompleted) return;
+
+    const now = new Date();
+    if (existing) {
+      await this.prisma.scheduledVisitTaskCompletion.update({
+        where: { id: existing.id },
+        data: {
+          isCompleted: true,
+          recordedValue: input.valueLabel?.trim() || existing.recordedValue,
+          notes: input.notes?.trim() || existing.notes,
+          completedAt: now,
+          completedById: input.employeeId,
+        },
+      });
+      return;
+    }
+
+    await this.prisma.scheduledVisitTaskCompletion.create({
+      data: {
+        scheduledJobId: input.jobId,
+        assignmentId: match.id,
+        taskCatalogueTaskId: match.task.id,
+        medicationRoundCode: input.medicationRoundCode,
+        isAdHoc: false,
+        isCompleted: true,
+        recordedValue: input.valueLabel?.trim() || null,
+        notes: input.notes?.trim() || null,
+        completedAt: now,
+        completedById: input.employeeId,
+      },
+    });
   }
 
   private async resolveMedicationProgress(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {

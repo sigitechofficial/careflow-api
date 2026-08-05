@@ -304,7 +304,7 @@ function isVisitHourlyRule(rule: TimeBandRule): boolean {
 }
 
 export function pickBaseHourlyRate(rules: TimeBandRule[]): number {
-  // 1) Explicit all-day base (no clock window)
+  // 1) Explicit all-day base (no clock window) — weekday / any only
   const openBases = rules.filter(
     (r) =>
       (r.rateType === 'HOURLY' || r.rateType === 'BANDED') &&
@@ -320,7 +320,7 @@ export function pickBaseHourlyRate(rules: TimeBandRule[]): number {
     return Number(openBases[0].amount);
   }
 
-  // 2) Weekday daytime window (07:00–19:00) as natural base when every rate is period-scoped
+  // 2) Weekday / any daytime window as natural base when every rate is period-scoped
   const daytime = rules.filter(
     (r) =>
       (r.rateType === 'HOURLY' || r.rateType === 'BANDED') &&
@@ -340,13 +340,8 @@ export function pickBaseHourlyRate(rules: TimeBandRule[]): number {
     return Number(daytime[0].amount);
   }
 
-  // 3) Any absolute hourly
-  const anyHourly = rules.find(
-    (r) =>
-      r.rateType === 'HOURLY' &&
-      (r.enhancementMethod == null || r.enhancementMethod === 'ABSOLUTE_HOURLY'),
-  );
-  return anyHourly ? Number(anyHourly.amount) : 0;
+  // Never fall back to Saturday/Sunday-only (or other day-scoped) rates as a silent weekday base.
+  return 0;
 }
 
 function resolveEnhancementMethod(rule: TimeBandRule): PayEnhancementMethod {
@@ -472,18 +467,21 @@ export function calculateBandedPay(input: {
 
   const baseRate = baseRateOverride ?? pickBaseHourlyRate(rules);
   const segmentResults: SegmentPayResult[] = [];
+  let unmatchedSegments = 0;
 
   for (const segment of segments) {
     const matches = matchingHourlyRulesForSegment(rules, segment);
     const chosen = chooseRulesByPolicy(matches, stackingPolicy);
 
-    let rate = baseRate;
+    let rate = 0;
     let label: string | null = null;
     let shiftAllowance = 0;
     const parts: string[] = [];
 
     if (!chosen.length) {
-      parts.push(`base £${baseRate.toFixed(2)}/hr`);
+      // No day/time rule covers this slice — do not silently reuse another day's base rate.
+      unmatchedSegments += 1;
+      parts.push('no matching rate for day/time');
     } else if (stackingPolicy === 'STACK' && chosen.length > 1) {
       let current = baseRate;
       for (const rule of chosen) {
@@ -527,6 +525,9 @@ export function calculateBandedPay(input: {
       } [${parts.join('; ')}]`,
     });
   }
+
+  // Entire activity unpaid when any slice has no matching rule (missing rate, not £0 from wrong day).
+  if (unmatchedSegments > 0) return null;
 
   const totalAmount = Math.round(segmentResults.reduce((s, r) => s + r.amount, 0) * 100) / 100;
   const totalMinutes = segmentResults.reduce((s, r) => s + r.segment.minutes, 0);
