@@ -30,6 +30,15 @@ export class UpdateMedicationSupportProfileDto {
   @IsBoolean()
   familyMemberOrCarerSupportsMedication?: boolean;
 
+  @ApiPropertyOptional({
+    maxLength: 2000,
+    description: 'Where medicines are kept in the property (shown on carer visit overview).',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  storageLocation?: string | null;
+
   @ApiPropertyOptional({ maxLength: 2000 })
   @IsOptional()
   @IsString()

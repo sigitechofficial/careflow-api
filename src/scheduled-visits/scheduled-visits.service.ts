@@ -44,7 +44,16 @@ export class ScheduledVisitsService {
     const where: Prisma.ScheduledVisitWhereInput = { deletedAt: null, isActive: true };
     if (query.scheduledJobId) where.scheduledJobId = query.scheduledJobId;
     if (query.serviceUserId) where.serviceUserId = query.serviceUserId;
-    if (query.status) where.status = query.status as PrismaVisitStatus;
+    const allowedStatuses = new Set(Object.values(ScheduledVisitStatus));
+    const statusList = (query.statuses ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s): s is PrismaVisitStatus => allowedStatuses.has(s as ScheduledVisitStatus));
+    if (statusList.length > 0) {
+      where.status = { in: statusList };
+    } else if (query.status) {
+      where.status = query.status as PrismaVisitStatus;
+    }
     if (query.dateFrom || query.dateTo) {
       where.scheduledStartDateTime = {};
       if (query.dateFrom) where.scheduledStartDateTime.gte = parseIsoDateTime(query.dateFrom, 'dateFrom');

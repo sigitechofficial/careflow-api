@@ -26,9 +26,18 @@ import {
 import { ensureEnglandStatutoryRateSet } from './payroll-statutory-rates.seed';
 import {
   calculatePeriodStatutory,
+  taxYearPeriodNumber,
   type PayFrequencyCode,
   type StatutoryRateSnapshot,
 } from './payroll-statutory.util';
+import {
+  assessRtiIdentityCompleteness,
+} from './payroll-rti-identity.util';
+import {
+  mapYtdLedger,
+  postRunEmployeesToYtd,
+  reverseRunEmployeesFromYtd,
+} from './payroll-ytd.util';
 
 const OPEN_RUN_STATUSES = [
   'DRAFT',
@@ -271,6 +280,16 @@ export class PayrollRunsService {
       linesByEmployee.set(line.runEmployeeId, list);
     }
 
+    const ytdRows = employeeIds.length
+      ? await this.prisma.employeePayrollYtdLedger.findMany({
+          where: {
+            taxYearId: row.taxYearId,
+            employeeId: { in: employeeIds },
+          },
+        })
+      : [];
+    const ytdByEmployee = new Map(ytdRows.map((y) => [y.employeeId, mapYtdLedger(y)]));
+
     return {
       message: 'UK payroll run',
       data: {
@@ -311,6 +330,7 @@ export class PayrollRunsService {
             niCategoryApplied: e.niCategoryApplied,
             statutoryExplanation: e.statutoryExplanation,
             statutoryCalculatedAt: e.statutoryCalculatedAt?.toISOString() ?? null,
+            ytd: ytdByEmployee.get(e.employeeId) ?? null,
             inputLines: lines.map((l) => ({
               id: l.id,
               sourceType: l.sourceType,
@@ -327,7 +347,7 @@ export class PayrollRunsService {
           };
         }),
         phaseNote:
-          'Phase 3 calculates Income Tax and Class 1 NI using Week 1 / Month 1 (non-cumulative) with GOV.UK England/NI/Wales rates. Cumulative YTD PAYE, Scotland, student loans, pensions, and FPS are not included.',
+          'Cumulative PAYE by default using YTD ledgers (T06/T07). Week 1/Month 1 when the employee flag is set (or BR/D0/D1). Closing posts YTD. Scotland, student loans, pensions, and FPS are not included.',
       },
     };
   }
@@ -424,12 +444,69 @@ export class PayrollRunsService {
 
     const validEmployees = await this.prisma.employee.findMany({
       where: { id: { in: employeeIds }, deletedAt: null },
-      select: { id: true },
+      select: {
+        id: true,
+        personalDetail: {
+          select: {
+            firstName: true,
+            lastName: true,
+            dateOfBirth: true,
+            addressLine1: true,
+            town: true,
+            postcode: true,
+            gender: { select: { name: true } },
+          },
+        },
+        employment: {
+          select: {
+            payrollNumber: true,
+            nationalInsuranceNo: true,
+          },
+        },
+      },
     });
     const validIds = new Set(validEmployees.map((e) => e.id));
     const missing = employeeIds.filter((id) => !validIds.has(id));
     if (missing.length) {
       throw new BadRequestException(`Unknown employee IDs: ${missing.slice(0, 5).join(', ')}`);
+    }
+
+    const profilesForEnrol = await this.prisma.employeePayrollProfile.findMany({
+      where: { employeeId: { in: employeeIds }, deletedAt: null },
+      select: { employeeId: true, taxCode: true, niCategory: true, status: true },
+    });
+    const profileByEmployee = new Map(profilesForEnrol.map((p) => [p.employeeId, p]));
+    const rtiBlocked: string[] = [];
+    for (const emp of validEmployees) {
+      const profile = profileByEmployee.get(emp.id);
+      const assessment = assessRtiIdentityCompleteness({
+        firstName: emp.personalDetail?.firstName,
+        lastName: emp.personalDetail?.lastName,
+        dateOfBirth: emp.personalDetail?.dateOfBirth,
+        genderName: emp.personalDetail?.gender?.name,
+        addressLine1: emp.personalDetail?.addressLine1,
+        town: emp.personalDetail?.town,
+        postcode: emp.personalDetail?.postcode,
+        nationalInsuranceNo: emp.employment?.nationalInsuranceNo,
+        payrollNumber: emp.employment?.payrollNumber,
+        taxCode: profile?.taxCode,
+        niCategory: profile?.niCategory,
+      });
+      if (!assessment.isComplete) {
+        const name =
+          `${emp.personalDetail?.firstName ?? ''} ${emp.personalDetail?.lastName ?? ''}`.trim() ||
+          emp.id;
+        rtiBlocked.push(`${name}: ${assessment.issues[0] ?? 'incomplete identity'}`);
+      }
+    }
+    if (rtiBlocked.length) {
+      throw new BadRequestException(
+        [
+          'Cannot enrol until HMRC identity fields are complete for every selected employee:',
+          ...rtiBlocked.slice(0, 8).map((line) => `- ${line}`),
+          ...(rtiBlocked.length > 8 ? [`- …and ${rtiBlocked.length - 8} more`] : []),
+        ].join('\n'),
+      );
     }
 
     const periodEnd = dateToIsoDate(run.period.periodEnd)!;
@@ -503,11 +580,13 @@ export class PayrollRunsService {
    */
   async calculateGross(userId: string, runId: string, meta?: RequestAuditMeta) {
     const run = await this.requireRun(runId);
-    const canCalculate =
-      OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number]) ||
-      run.status === 'CLOSED';
-    if (!canCalculate) {
-      throw new BadRequestException('Gross can only be calculated on an open or closed run');
+    if (run.status === 'CLOSED') {
+      throw new BadRequestException(
+        'Reactivate this closed run before recalculating gross (YTD was posted on close)',
+      );
+    }
+    if (!OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number])) {
+      throw new BadRequestException('Gross can only be calculated on an open run');
     }
     if (run.status === 'CANCELLED') {
       throw new BadRequestException('Cannot calculate gross on a cancelled run');
@@ -779,7 +858,7 @@ export class PayrollRunsService {
       await tx.ukPayrollRun.update({
         where: { id: runId },
         data: {
-          status: run.status === 'CLOSED' ? 'CLOSED' : 'GROSS_CALCULATED',
+          status: 'GROSS_CALCULATED',
           totalGross: toDecimal(runTotalGross),
           totalExpenses: toDecimal(runTotalExpenses),
           grossCalculatedAt: now,
@@ -814,18 +893,21 @@ export class PayrollRunsService {
   }
 
   /**
-   * Phase 3: Week 1 / Month 1 PAYE + Class 1 NI on Phase 2 totalGross.
-   * Uses tax-year rate set (GOV.UK England/NI/Wales). Not cumulative YTD.
+   * PAYE Income Tax + Class 1 NI on Phase 2 totalGross.
+   * Default cumulative using YTD ledgers; Week 1 / Month 1 when profile flag (or BR/D0/D1) applies.
    */
   async calculateStatutory(userId: string, runId: string, meta?: RequestAuditMeta) {
     const run = await this.requireRun(runId);
+    if (run.status === 'CLOSED') {
+      throw new BadRequestException(
+        'Reactivate this closed run before recalculating tax/NI (YTD was posted on close)',
+      );
+    }
     const canCalculate =
-      run.status === 'GROSS_CALCULATED' ||
-      run.status === 'STATUTORY_CALCULATED' ||
-      run.status === 'CLOSED';
+      run.status === 'GROSS_CALCULATED' || run.status === 'STATUTORY_CALCULATED';
     if (!canCalculate) {
       throw new BadRequestException(
-        'Calculate gross before statutory tax/NI (allowed on gross, statutory, or closed runs)',
+        'Calculate gross before statutory tax/NI (allowed on gross or statutory runs)',
       );
     }
     if (!run.grossCalculatedAt) {
@@ -849,20 +931,31 @@ export class PayrollRunsService {
     }
     const rates = rateSetToSnapshot(rateRow);
     const frequency = run.schedule.frequency as PayFrequencyCode;
+    const periodNumber = taxYearPeriodNumber(
+      run.taxYear.startDate,
+      run.period.periodStart,
+      frequency,
+    );
 
-    const profiles = await this.prisma.employeePayrollProfile.findMany({
-      where: {
-        employeeId: { in: runEmployees.map((e) => e.employeeId) },
-        deletedAt: null,
-      },
-    });
+    const employeeIds = runEmployees.map((e) => e.employeeId);
+    const [profiles, ytdLedgers] = await Promise.all([
+      this.prisma.employeePayrollProfile.findMany({
+        where: { employeeId: { in: employeeIds }, deletedAt: null },
+      }),
+      this.prisma.employeePayrollYtdLedger.findMany({
+        where: { taxYearId: run.taxYearId, employeeId: { in: employeeIds } },
+      }),
+    ]);
     const profileByEmployeeId = new Map(profiles.map((p) => [p.employeeId, p]));
+    const ytdByEmployeeId = new Map(ytdLedgers.map((y) => [y.employeeId, y]));
 
     const now = new Date();
     let totalIncomeTax = 0;
     let totalEmployeeNi = 0;
     let totalEmployerNi = 0;
     let totalNetPay = 0;
+    let usedCumulative = 0;
+    let usedNonCumulative = 0;
     const perEmployee: Array<{
       id: string;
       taxablePay: number;
@@ -877,13 +970,20 @@ export class PayrollRunsService {
 
     for (const re of runEmployees) {
       const profile = profileByEmployeeId.get(re.employeeId);
+      const ytd = ytdByEmployeeId.get(re.employeeId);
       const result = calculatePeriodStatutory({
         periodGross: decimalNum(re.totalGross),
         taxCode: profile?.taxCode ?? '1257L',
         niCategory: profile?.niCategory ?? 'A',
         frequency,
         rates,
+        week1Month1: profile?.taxCodeWeek1Month1 ?? false,
+        periodNumber,
+        ytdGrossBefore: ytd ? decimalNum(ytd.grossPayYtd) : 0,
+        ytdTaxBefore: ytd ? decimalNum(ytd.incomeTaxYtd) : 0,
       });
+      if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
+      else usedNonCumulative += 1;
       totalIncomeTax += result.incomeTax;
       totalEmployeeNi += result.employeeNi;
       totalEmployerNi += result.employerNi;
@@ -906,6 +1006,13 @@ export class PayrollRunsService {
     totalEmployerNi = Math.round(totalEmployerNi * 100) / 100;
     totalNetPay = Math.round(totalNetPay * 100) / 100;
 
+    const statutoryBasis =
+      usedCumulative > 0 && usedNonCumulative > 0
+        ? 'MIXED_CUMULATIVE_AND_W1M1'
+        : usedCumulative > 0
+          ? 'CUMULATIVE'
+          : 'WEEK1_MONTH1_NON_CUMULATIVE';
+
     await this.prisma.$transaction(async (tx) => {
       for (const row of perEmployee) {
         await tx.ukPayrollRunEmployee.update({
@@ -927,13 +1034,13 @@ export class PayrollRunsService {
       await tx.ukPayrollRun.update({
         where: { id: runId },
         data: {
-          status: run.status === 'CLOSED' ? 'CLOSED' : 'STATUTORY_CALCULATED',
+          status: 'STATUTORY_CALCULATED',
           totalIncomeTax: toDecimal(totalIncomeTax),
           totalEmployeeNi: toDecimal(totalEmployeeNi),
           totalEmployerNi: toDecimal(totalEmployerNi),
           totalNetPay: toDecimal(totalNetPay),
           statutoryCalculatedAt: now,
-          statutoryBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+          statutoryBasis,
           updatedById: userId,
         },
       });
@@ -951,7 +1058,8 @@ export class PayrollRunsService {
         totalEmployeeNi,
         totalEmployerNi,
         totalNetPay,
-        statutoryBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+        statutoryBasis,
+        periodNumber,
         rateSetId: rateRow.id,
       },
       ipAddress: meta?.ipAddress,
@@ -966,11 +1074,35 @@ export class PayrollRunsService {
     if (!OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number])) {
       throw new BadRequestException('Only open runs can be closed');
     }
-    if (run.employeeCount < 1 && run.status === 'DRAFT') {
+    if (run.status !== 'STATUTORY_CALCULATED' || !run.statutoryCalculatedAt) {
+      throw new BadRequestException(
+        'Calculate tax & NI before closing — close posts year-to-date (YTD) figures',
+      );
+    }
+    if (run.employeeCount < 1) {
       throw new BadRequestException('Enrol at least one employee before closing, or cancel the run');
     }
 
+    const runEmployees = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: { runId },
+    });
+
     const row = await this.prisma.$transaction(async (tx) => {
+      const ytd = await postRunEmployeesToYtd(tx, {
+        runId,
+        taxYearId: run.taxYearId,
+        userId,
+        employees: runEmployees.map((e) => ({
+          employeeId: e.employeeId,
+          grossPay: decimalNum(e.totalGross) ?? 0,
+          taxablePay: decimalNum(e.taxablePay) ?? 0,
+          incomeTax: decimalNum(e.incomeTax) ?? 0,
+          employeeNi: decimalNum(e.employeeNi) ?? 0,
+          employerNi: decimalNum(e.employerNi) ?? 0,
+          netPay: decimalNum(e.netPay) ?? 0,
+        })),
+      });
+
       const updated = await tx.ukPayrollRun.update({
         where: { id: runId },
         data: {
@@ -994,7 +1126,7 @@ export class PayrollRunsService {
           data: { status: 'CLOSED', updatedById: userId },
         });
       }
-      return updated;
+      return { updated, ytd };
     });
 
     await this.audit.logAudit({
@@ -1004,12 +1136,19 @@ export class PayrollRunsService {
       recordType: 'UkPayrollRun',
       recordId: runId,
       oldValues: mapRun(run),
-      newValues: mapRun(row),
+      newValues: {
+        ...mapRun(row.updated),
+        ytdPosted: row.ytd.posted,
+        ytdSkipped: row.ytd.skipped,
+      },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
 
-    return { message: 'UK payroll run closed', data: mapRun(row) };
+    return {
+      message: `UK payroll run closed (YTD posted for ${row.ytd.posted} employee(s))`,
+      data: mapRun(row.updated),
+    };
   }
 
   async cancel(userId: string, runId: string, meta?: RequestAuditMeta) {
@@ -1080,9 +1219,15 @@ export class PayrollRunsService {
       );
     }
 
+    const wasClosed = run.status === 'CLOSED';
     const nextStatus = this.resolveReactivateStatus(run);
 
     const row = await this.prisma.$transaction(async (tx) => {
+      const ytd =
+        wasClosed
+          ? await reverseRunEmployeesFromYtd(tx, { runId, userId })
+          : { reversed: 0 };
+
       const updated = await tx.ukPayrollRun.update({
         where: { id: runId },
         data: {
@@ -1098,7 +1243,7 @@ export class PayrollRunsService {
         where: { id: run.periodId },
         data: { status: 'IN_RUN', updatedById: userId },
       });
-      return updated;
+      return { updated, ytd };
     });
 
     await this.audit.logAudit({
@@ -1108,12 +1253,20 @@ export class PayrollRunsService {
       recordType: 'UkPayrollRun',
       recordId: runId,
       oldValues: mapRun(run),
-      newValues: mapRun(row),
+      newValues: {
+        ...mapRun(row.updated),
+        ytdReversed: row.ytd.reversed,
+      },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
 
-    return { message: 'UK payroll run reactivated', data: mapRun(row) };
+    return {
+      message: wasClosed
+        ? `UK payroll run reactivated (YTD reversed for ${row.ytd.reversed} employee(s))`
+        : 'UK payroll run reactivated',
+      data: mapRun(row.updated),
+    };
   }
 
   private resolveReactivateStatus(run: {

@@ -24,6 +24,7 @@
     "seed": "prisma db seed",
     "seed:deploy": "bash prisma/scripts/run-deploy-seeds.sh .",
     "setup:payroll-employees-ready": "node prisma/scripts/setup-payroll-employees-ready.mjs",
+    "seed:payroll-tax-codes": "node prisma/scripts/seed-payroll-tax-codes.mjs",
     "seed:task-catalogue": "ts-node --transpile-only prisma/scripts/seed-task-catalogue.ts",
     "import:gallery-urls": "node scripts/import-gallery-from-urls.mjs",
     "probe:gallery-urls": "node scripts/probe-gallery-blob-urls.mjs",

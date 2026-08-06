@@ -4,9 +4,11 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -29,6 +31,22 @@ export class SaveVisitJobTaskItemDto {
   @ApiProperty()
   @IsBoolean()
   isCompleted!: boolean;
+
+  /**
+   * Same outcomes as carer mobile save-task API.
+   * When set, encodes notes/recordedValue markers and treats PARTIAL/DECLINED as addressed.
+   */
+  @ApiPropertyOptional({ enum: ['COMPLETED', 'PARTIAL', 'DECLINED', 'completed', 'partial', 'declined'] })
+  @IsOptional()
+  @IsString()
+  @IsIn(['COMPLETED', 'PARTIAL', 'DECLINED', 'completed', 'partial', 'declined'])
+  outcome?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  outcomeReasonCode?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

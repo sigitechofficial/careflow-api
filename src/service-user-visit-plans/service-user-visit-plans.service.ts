@@ -42,6 +42,10 @@ import {
   parseOptionalVisitPlanDateOnly,
   visitPlanTodayUtc,
 } from './visit-plan-effective-dates.util';
+import {
+  loadRoundsWithScheduledMedication,
+  resolveMedicationRequiredForSlot,
+} from './visit-medication-required.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
@@ -1338,6 +1342,10 @@ export class ServiceUserVisitPlansService {
       throw new BadRequestException(`Date range cannot exceed ${maxDays} days`);
     }
     const backfillDays = dto.backfillDays ?? 0;
+    const backfillOnly = dto.backfillOnly === true;
+    if (backfillOnly && backfillDays < 1) {
+      throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
+    }
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
     const preview = await previewGenerateScheduleFromPlan(this.prisma, {
@@ -1346,6 +1354,7 @@ export class ServiceUserVisitPlansService {
       fromDate: from,
       toDate: to,
       backfillDays,
+      backfillOnly,
       enabledSlots: enabledSlots.map((s) => slotAsWithRelations(s)),
       scheduleAnchor: plan.effectiveFrom,
       planEffectiveTo: plan.effectiveTo,
@@ -2065,9 +2074,18 @@ export class ServiceUserVisitPlansService {
     }
 
     const backfillDays = dto.backfillDays ?? 0;
+    const backfillOnly = dto.backfillOnly === true;
+    if (backfillOnly && backfillDays < 1) {
+      throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
+    }
+    const clampToSlot = !backfillOnly;
     const rangeStart = new Date(from);
     if (backfillDays > 0) {
       rangeStart.setUTCDate(rangeStart.getUTCDate() - backfillDays);
+    }
+    const rangeEnd = backfillOnly ? new Date(from.getTime() - dayMs) : to;
+    if (rangeEnd.getTime() < rangeStart.getTime()) {
+      throw new BadRequestException('Backfill window is empty — increase backfillDays');
     }
 
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
@@ -2087,6 +2105,10 @@ export class ServiceUserVisitPlansService {
       include: { address: true },
     });
     const roundNameByCode = await this.loadRoundNameMap();
+    const roundsWithScheduledMedication = await loadRoundsWithScheduledMedication(
+      this.prisma,
+      serviceUserId,
+    );
 
     let visitsCreated = 0;
     let visitsSkipped = 0;
@@ -2126,9 +2148,10 @@ export class ServiceUserVisitPlansService {
         patternByEmployee = await loadEmployeePatternContexts(tx, allEmployeeIds);
       }
 
-      for (let t = rangeStart.getTime(); t <= to.getTime(); t += dayMs) {
+      for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += dayMs) {
         const day = new Date(t);
         const dateStr = day.toISOString().slice(0, 10);
+        const isBackfillDay = backfillOnly || t < from.getTime();
 
         if (bankHolidayDates.has(dateStr)) continue;
 
@@ -2137,11 +2160,13 @@ export class ServiceUserVisitPlansService {
         });
         if (absentOnDay > 0) continue;
 
-        if (t < from.getTime()) {
+        if (isBackfillDay) {
           const anySlotAllowsBackfill = enabledSlots.some((slot) => {
             const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
             if (allowed <= 0) return false;
-            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom);
+            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
+              clampToSlotEffectiveFrom: clampToSlot,
+            });
             return day.getTime() >= slotStart.getTime();
           });
           if (!anySlotAllowsBackfill) continue;
@@ -2156,21 +2181,27 @@ export class ServiceUserVisitPlansService {
               scheduleDate: day,
               status: 'BUILDING',
               buildSource: 'MANUAL',
-              metadata: { visitPlanId: planId, generated: true, backfillDays } as Prisma.InputJsonValue,
+              metadata: { visitPlanId: planId, generated: true, backfillDays, backfillOnly } as Prisma.InputJsonValue,
               createdById: userId,
             },
           });
         }
 
         for (const slot of enabledSlots) {
-          if (t < from.getTime()) {
+          let extendBefore = 0;
+          if (isBackfillDay) {
             const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
             if (allowed <= 0) continue;
-            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom);
+            const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
+              clampToSlotEffectiveFrom: clampToSlot,
+            });
             if (day.getTime() < slotStart.getTime()) continue;
+            extendBefore = allowed;
           }
 
-          const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, planEffectiveTo);
+          const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, planEffectiveTo, {
+            extendBeforeEffectiveFromDays: extendBefore,
+          });
           if (!occurrence) continue;
 
           const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
@@ -2331,7 +2362,11 @@ export class ServiceUserVisitPlansService {
               scheduledEndDateTime: end,
               requiredCarers,
               status: ScheduledVisitStatus.PLANNED,
-              medicationRequired: Boolean(slot.medicationRoundCode),
+              medicationRequired: resolveMedicationRequiredForSlot({
+                medicationRoundCode: slot.medicationRoundCode,
+                slotCode: slot.slotCode,
+                roundsWithScheduledMedication,
+              }),
               notesRequired: slot.notesRequired,
               photoRequired: slot.photoAllowed,
               visitPlanSlotId: slot.id,
@@ -2539,6 +2574,10 @@ export class ServiceUserVisitPlansService {
     }
 
     const roundNameByCode = await this.loadRoundNameMap();
+    const roundsWithScheduledMedication = await loadRoundsWithScheduledMedication(
+      this.prisma,
+      serviceUserId,
+    );
     const su = await this.prisma.serviceUser.findFirst({
       where: { id: serviceUserId },
       include: { address: true },
@@ -2607,7 +2646,11 @@ export class ServiceUserVisitPlansService {
             scheduledEndDateTime: end,
             requiredCarers,
             status: ScheduledVisitStatus.PLANNED,
-            medicationRequired: Boolean(slot.medicationRoundCode),
+            medicationRequired: resolveMedicationRequiredForSlot({
+              medicationRoundCode: slot.medicationRoundCode,
+              slotCode: slot.slotCode,
+              roundsWithScheduledMedication,
+            }),
             notesRequired: slot.notesRequired,
             photoRequired: slot.photoAllowed,
             visitPlanSlotId: slot.id,

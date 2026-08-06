@@ -88,13 +88,16 @@ export function visitPlanSlotMatchesDay(
     const anchorWeek = Math.floor(anchor.getTime() / DAY_MS / 7);
     const dayWeek = Math.floor(day.getTime() / DAY_MS / 7);
     const weekDiff = dayWeek - anchorWeek;
-    return weekDiff >= 0 && weekDiff % every === 0;
+    if (weekDiff >= 0) return weekDiff % every === 0;
+    return (-weekDiff) % every === 0;
   }
 
   // DAILY (default): optional repeat-every-N-days + days-of-week filter
   if (!slot.daysOfWeek.includes(dow)) return false;
-  const every = Math.max(1, slot.repeatEvery);
-  if (every === 1) return true;
+  const everyDaily = Math.max(1, slot.repeatEvery);
+  if (everyDaily === 1) return true;
   const daysDiff = Math.floor((day.getTime() - anchor.getTime()) / DAY_MS);
-  return daysDiff >= 0 && daysDiff % every === 0;
+  // Allow days before anchor (backfill) when they align to the every-N grid.
+  if (daysDiff >= 0) return daysDiff % everyDaily === 0;
+  return (-daysDiff) % everyDaily === 0;
 }

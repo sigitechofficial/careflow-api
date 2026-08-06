@@ -11,14 +11,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
+import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 import type { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
+import { plannedStartOnOperationalDate } from './ecm-evaluation.mapper';
 
-const CLOSED_JOB: ScheduledJobStatus[] = [
-  ScheduledJobStatus.COMPLETED,
+/** Jobs excluded from ECM live-dashboard backfill (not operational visits). */
+const SKIP_BACKFILL_JOB: ScheduledJobStatus[] = [
+  ScheduledJobStatus.DRAFT,
   ScheduledJobStatus.CANCELLED,
   ScheduledJobStatus.CALLED_OFF,
-  ScheduledJobStatus.MISSED,
-  ScheduledJobStatus.DRAFT,
 ];
 
 type DashboardBucket =
@@ -70,6 +71,7 @@ export class EcmVisitsService {
     private readonly prisma: PrismaService,
     private readonly evaluation: EcmEvaluationService,
     private readonly scheduleVersions: EcmScheduleVersionService,
+    private readonly thresholdLookups: EcmThresholdLookupsService,
   ) {}
 
   async getLiveDashboard(query: EcmLiveDashboardQueryDto) {
@@ -77,8 +79,9 @@ export class EcmVisitsService {
     const localDate = new Date(`${date}T00:00:00.000Z`);
     const limit = query.limit ?? 100;
     const now = new Date();
-    const soonMs = 30 * 60_000;
-    const dueWindowMs = 15 * 60_000;
+    const windows = await this.thresholdLookups.getDashboardWindows();
+    const soonMs = windows.startingSoonMinutes * 60_000;
+    const dueWindowMs = windows.dueNowWindowMinutes * 60_000;
 
     const where: Prisma.EcmVisitEvaluationWhereInput = {
       localVisitDate: localDate,
@@ -155,33 +158,75 @@ export class EcmVisitsService {
       },
     });
 
-    // Backfill: due jobs today without an evaluation yet (so dashboard is not empty on day 1).
+    // Backfill + refresh: ensure every operational job for this local day has a
+    // current evaluation (including MISSED / past ALLOCATED visits). Previously
+    // MISSED/COMPLETED were skipped and stale NONE-missed rows were never refreshed.
     const evaluatedJobIds = new Set(evaluations.map((e) => e.scheduledJobId));
     const dayStart = new Date(`${date}T00:00:00.000Z`);
-    const dayEnd = new Date(`${date}T23:59:59.999Z`);
-    const missingJobs = await this.prisma.scheduledJob.findMany({
+    // Pad ±1 day in UTC so London-local morning visits near midnight still match.
+    const padStart = new Date(dayStart);
+    padStart.setUTCDate(padStart.getUTCDate() - 1);
+    const padEnd = new Date(`${date}T23:59:59.999Z`);
+    padEnd.setUTCDate(padEnd.getUTCDate() + 1);
+
+    const candidateJobs = await this.prisma.scheduledJob.findMany({
       where: {
         deletedAt: null,
         isActive: true,
-        status: { notIn: CLOSED_JOB },
-        scheduledStartDateTime: { gte: dayStart, lte: dayEnd },
-        id: { notIn: [...evaluatedJobIds] },
+        status: { notIn: SKIP_BACKFILL_JOB },
+        scheduledStartDateTime: { gte: padStart, lte: padEnd },
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
         ...(query.locationId
           ? { scheduleArea: { locationId: query.locationId } }
           : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
       },
-      take: Math.min(40, Math.max(0, limit - evaluations.length)),
-      select: { id: true },
+      take: Math.min(120, Math.max(40, limit * 2)),
+      select: {
+        id: true,
+        scheduledStartDateTime: true,
+        visits: {
+          where: { deletedAt: null, isActive: true },
+          orderBy: { scheduledStartDateTime: 'asc' },
+          take: 1,
+          select: { scheduledStartDateTime: true },
+        },
+      },
     });
 
-    for (const job of missingJobs) {
-      await this.evaluation.evaluateJobSafe(job.id, { now });
+    const jobsForOperationalDay = candidateJobs.filter((job) => {
+      const plannedStart = job.visits[0]?.scheduledStartDateTime ?? job.scheduledStartDateTime;
+      return plannedStartOnOperationalDate(plannedStart, date, 'Europe/London');
+    });
+
+    const missingJobs = jobsForOperationalDay
+      .filter((job) => !evaluatedJobIds.has(job.id))
+      .slice(0, Math.min(60, Math.max(0, limit)));
+
+    // Refresh stale open / missed classifications for the selected day.
+    const staleEvaluations = evaluations
+      .filter(
+        (ev) =>
+          !ev.actualCheckInAt &&
+          ev.plannedStartDateTime.getTime() < now.getTime() &&
+          (ev.missedClassification === EcmMissedClassification.NONE ||
+            ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED),
+      )
+      .slice(0, 60);
+
+    const jobIdsToEvaluate = [
+      ...new Set([
+        ...missingJobs.map((j) => j.id),
+        ...staleEvaluations.map((e) => e.scheduledJobId),
+      ]),
+    ];
+
+    for (const jobId of jobIdsToEvaluate) {
+      await this.evaluation.evaluateJobSafe(jobId, { now });
     }
 
     const refreshed =
-      missingJobs.length > 0
+      jobIdsToEvaluate.length > 0
         ? await this.prisma.ecmVisitEvaluation.findMany({
             where,
             take: limit,
@@ -299,6 +344,7 @@ export class EcmVisitsService {
       data: {
         date,
         refreshedAt: now.toISOString(),
+        windows,
         counts,
         visits: rows,
       },

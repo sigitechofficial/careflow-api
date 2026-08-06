@@ -19,6 +19,15 @@ export class ScheduledVisitQueryDto {
   @IsEnum(ScheduledVisitStatus)
   status?: ScheduledVisitStatus;
 
+  /** Comma-separated statuses, e.g. COMPLETED,PARTIALLY_COMPLETED */
+  @ApiPropertyOptional({
+    description: 'Comma-separated visit statuses (takes precedence over status when set)',
+    example: 'COMPLETED,PARTIALLY_COMPLETED',
+  })
+  @IsOptional()
+  @IsString()
+  statuses?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

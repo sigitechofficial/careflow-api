@@ -28,6 +28,8 @@ import { EcmGraphAnalyticsService } from './ecm-graph-analytics.service';
 import { EcmHealthService } from './ecm-health.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
+import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
+import { UpdateEcmThresholdLookupDto } from './dto/update-ecm-threshold-lookup.dto';
 
 @ApiTags('ECM')
 @ApiBearerAuth()
@@ -46,6 +48,7 @@ export class EcmVisitsController {
     private readonly health: EcmHealthService,
     private readonly audit: EcmAuditService,
     private readonly missedTriage: EcmMissedTriageService,
+    private readonly thresholdLookups: EcmThresholdLookupsService,
   ) {}
 
   @Get('health')
@@ -53,6 +56,25 @@ export class EcmVisitsController {
   @ApiOperation({ summary: 'ECM monitoring health (GAP6) — quiet ≠ healthy' })
   getHealth() {
     return this.health.getHealth();
+  }
+
+  @Get('threshold-lookups')
+  @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.settings.manage', 'lookups.read', 'lookups.manage')
+  @ApiOperation({
+    summary: 'ECM categorization threshold lookups (Due now, Late, Missed, geofence, …)',
+  })
+  async listThresholdLookups() {
+    return { data: await this.thresholdLookups.list() };
+  }
+
+  @Patch('threshold-lookups/:id')
+  @AnyPermission('ecm.settings.manage', 'lookups.manage')
+  @ApiOperation({ summary: 'Update an ECM threshold lookup value' })
+  async updateThresholdLookup(
+    @Param('id') id: string,
+    @Body() dto: UpdateEcmThresholdLookupDto,
+  ) {
+    return { data: await this.thresholdLookups.update(id, dto.valueInt) };
   }
 
   @Get('reports/graph-dashboard')
@@ -228,8 +250,14 @@ export class EcmVisitsController {
   @Get('exceptions')
   @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
   @ApiOperation({ summary: 'Open ECM exception queue' })
-  listExceptions(@Query('limit') limit?: string) {
-    return this.exceptions.listOpen(limit ? Number(limit) : 50);
+  listExceptions(
+    @Query('limit') limit?: string,
+    @Query('serviceUserId') serviceUserId?: string,
+  ) {
+    return this.exceptions.listOpen(
+      limit ? Number(limit) : 50,
+      serviceUserId?.trim() || undefined,
+    );
   }
 
   @Patch('exceptions/:id/acknowledge')

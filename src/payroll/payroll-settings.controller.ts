@@ -20,12 +20,16 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreatePayrollScheduleDto,
+  CreatePayrollTaxCodeDto,
   CreatePayrollTaxYearDto,
   DeletePayrollPeriodsDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
+  UpdatePayrollEmployerSettingsDto,
   UpdatePayrollScheduleDto,
+  UpdatePayrollStatutoryRatesDto,
+  UpdatePayrollTaxCodeDto,
   UpdatePayrollTaxYearDto,
 } from './dto/payroll.dto';
 import { PayrollSettingsService } from './payroll-settings.service';
@@ -44,11 +48,32 @@ export class PayrollSettingsController {
     return this.service.getOverview();
   }
 
+  @Get('employer-settings')
+  @Permissions('payroll.settings.read')
+  @ApiOperation({
+    summary:
+      'Get org HMRC employer PAYE identity (office number, PAYE ref, Accounts Office ref). Auto-creates empty singleton.',
+  })
+  getEmployerSettings() {
+    return this.service.getEmployerSettings();
+  }
+
+  @Patch('employer-settings')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Update org HMRC employer PAYE identity for future FPS/EPS' })
+  updateEmployerSettings(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdatePayrollEmployerSettingsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateEmployerSettings(user.id, dto, getRequestAuditMeta(req));
+  }
+
   @Post('purge-all')
   @Permissions('payroll.settings.manage')
   @ApiOperation({
     summary:
-      'Delete all UK payroll foundation data (tax years, schedules, periods, profiles, agreements, runs). Does not touch billing or employees.',
+      'Delete UK payroll transactional data (tax years, schedules, periods, profiles, agreements, runs). Keeps employer PAYE settings. Does not touch billing or employees.',
   })
   purgeAll(
     @CurrentUser() user: RequestUser,
@@ -107,6 +132,70 @@ export class PayrollSettingsController {
     @Req() req: Request,
   ) {
     return this.service.activateTaxYear(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Get('tax-codes')
+  @AnyPermission('payroll.settings.read', 'payroll.employees.read')
+  @ApiOperation({ summary: 'List PAYE tax codes (catalogue for employee setup)' })
+  listTaxCodes(@Query('includeInactive') includeInactive?: string) {
+    return this.service.listTaxCodes({
+      includeInactive: includeInactive === '1' || includeInactive === 'true',
+    });
+  }
+
+  @Post('tax-codes')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Create a PAYE tax code' })
+  createTaxCode(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreatePayrollTaxCodeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createTaxCode(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('tax-codes/:id')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Update a PAYE tax code' })
+  updateTaxCode(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdatePayrollTaxCodeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateTaxCode(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('tax-codes/:id')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Soft-delete a PAYE tax code' })
+  deleteTaxCode(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteTaxCode(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Get('statutory-rates')
+  @AnyPermission('payroll.settings.read', 'payroll.employees.read')
+  @ApiOperation({
+    summary: 'List active PAYE / NI statutory rate sets (auto-seeds current tax year if missing)',
+  })
+  listStatutoryRates(@Query('taxYearId') taxYearId?: string) {
+    return this.service.listStatutoryRates({ taxYearId: taxYearId || undefined });
+  }
+
+  @Patch('statutory-rates/:id')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Update PAYE / NI statutory rates for a tax year' })
+  updateStatutoryRates(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdatePayrollStatutoryRatesDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateStatutoryRates(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Get('schedules')

@@ -378,8 +378,10 @@ export class EmployeeAppHomeService {
     jobs: Array<{
       id: string;
       serviceUserId: string;
+      scheduledStartDateTime?: Date | null;
       visits: Array<{
         visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
+        scheduledStartDateTime?: Date | null;
       }>;
     }>,
   ) {
@@ -403,7 +405,21 @@ export class EmployeeAppHomeService {
               deletedAt: null,
               isActive: true,
             },
-            select: { id: true, serviceUserId: true, medicationRoundCode: true },
+            select: {
+              id: true,
+              serviceUserId: true,
+              medicationRoundCode: true,
+              daysOfWeek: true,
+              scheduleFrequency: true,
+              repeatEvery: true,
+              repeatUnit: true,
+              timeCritical: true,
+              timeToleranceMinutes: true,
+              monthlyDayMode: true,
+              monthlyDaysOfMonth: true,
+              monthlyPatternOrdinal: true,
+              monthlyPatternWeekday: true,
+            },
           }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: { in: jobs.map((j) => j.id) } },
@@ -552,16 +568,14 @@ function buildVisitTags(row: VisitRow): HomeTag[] {
   if (row.allergyNames.length > 0) {
     tags.push({ id: 'allergy', label: 'Allergy', tone: 'danger' });
   }
-  if (row.medicationCount > 0 || row.medicationRequired) {
+  if (row.medicationRequired) {
     const n = row.medicationCount > 0 ? row.medicationCount : null;
     tags.push({
       id: 'meds',
       label: n != null ? `${n} med${n === 1 ? '' : 's'}` : 'Meds',
       tone: 'primary',
     });
-    if (row.medicationRequired) {
-      tags.push({ id: 'mar', label: 'MAR', tone: 'teal' });
-    }
+    tags.push({ id: 'mar', label: 'MAR', tone: 'teal' });
   }
   if (row.careTypeName) {
     tags.push({ id: 'care', label: row.careTypeName, tone: 'primary' });

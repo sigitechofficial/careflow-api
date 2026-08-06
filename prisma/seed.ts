@@ -20,6 +20,7 @@ import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-documen
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
+import { seedEcmThresholdLookups } from './seeds/ecm-threshold-lookups.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { seedBillingCards } from './seeds/billing-cards.seed';
 import { seedInvoiceTemplates } from './seeds/invoice-templates.seed';
@@ -1450,6 +1451,8 @@ async function main() {
 
   const vitalRangeCount = await seedVitalAcceptedRanges(prisma);
   console.log(`Vital accepted ranges seeded (${vitalRangeCount} entries).`);
+  const ecmThresholdCount = await seedEcmThresholdLookups(prisma);
+  console.log(`ECM threshold lookups seeded (${ecmThresholdCount} entries).`);
 
   const absenceReasonCatalogSeed: Array<[string, string]> = [
     ['Hospital Visit', 'HOSPITAL_VISIT'],

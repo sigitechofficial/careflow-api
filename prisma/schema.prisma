@@ -1944,6 +1944,33 @@ model VitalAcceptedRangeCatalog {
   @@schema("lookups")
 }
 
+/**
+ * Fixed-key ECM categorization thresholds (Due now window, late/missed tolerances, geofence, etc.).
+ * Closed catalog — codes are seeded; admins edit values, not free-form rows.
+ */
+model EcmThresholdLookup {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(64)
+  label       String
+  description String?
+  /// TIMING | DASHBOARD | GEOFENCE | DURATION
+  groupCode   String   @db.VarChar(32)
+  /// Optional live-dashboard tile id this threshold primarily drives (e.g. dueNow, lateArrival).
+  relatedTile String?  @db.VarChar(32)
+  valueInt    Int
+  /// minutes | meters | percent
+  unit        String   @db.VarChar(16)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([groupCode])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("lookups")
+}
+
 // ---- Service Users (service_users schema) ----
 
 model ServiceUserStatus {
@@ -3858,6 +3885,17 @@ model ServiceUserVisitTaskAssignment {
   sortOrder           Int       @default(0)
   carerInstructions   String?   @db.Text
   priority            String    @default("routine")
+  /// Per-task recurrence (same rules as visit-plan call slots). Defaults = every day.
+  daysOfWeek             Int[]                       @default([0, 1, 2, 3, 4, 5, 6])
+  scheduleFrequency      VisitPlanScheduleFrequency  @default(DAILY)
+  repeatEvery            Int                         @default(1)
+  repeatUnit             VisitPlanRepeatUnit         @default(DAYS)
+  timeCritical           Boolean                     @default(false)
+  timeToleranceMinutes   Int                         @default(30)
+  monthlyDayMode         VisitPlanMonthlyDayMode     @default(BY_DATE)
+  monthlyDaysOfMonth     Int[]                       @default([])
+  monthlyPatternOrdinal  VisitPlanMonthlyOrdinal?
+  monthlyPatternWeekday  Int?
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -4869,6 +4907,8 @@ model MedicationSupportProfile {
   requiresSupervision          Boolean   @default(false)
   requiresCarerAdministration  Boolean   @default(false)
   familyMemberOrCarerSupportsMedication Boolean @default(false)
+  /// Where medicines are kept in the property (carer visit overview).
+  storageLocation              String?   @db.Text
   notes                        String?
   isActive                     Boolean   @default(true)
   createdAt                    DateTime  @default(now())
@@ -5434,6 +5474,7 @@ model ScheduledJob {
   ecmExceptions    EcmException[]
   ecmScheduleVersions EcmScheduleVersion[]
   ecmNotificationEvidence EcmNotificationEvidence[]
+  timelineEvents   VisitTimelineEvent[]
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
@@ -5446,6 +5487,37 @@ model ScheduledJob {
   @@index([postcode])
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("scheduling")
+}
+
+/// Durable carer-app visit activity timeline (GET details → data.log.timeline).
+model VisitTimelineEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  scheduledJobId   String   @db.Uuid
+  scheduledVisitId String?  @db.Uuid
+  /// clock_in | clock_out | task | medication | observation | visit_note | handover | concern | incident
+  eventType        String   @db.VarChar(32)
+  occurredAt       DateTime
+  timeLabel        String?  @db.VarChar(8)
+  title            String
+  detail           String?  @db.Text
+  /// primary | success | danger | warning | teal | ink
+  tone             String?  @db.VarChar(16)
+  /// check_in | task | medication | observation | log_note | handover | concern | incident | complete
+  sourceType       String   @db.VarChar(32)
+  sourceId         String   @db.VarChar(128)
+  logEntryId       String?  @db.VarChar(128)
+  isDraft          Boolean  @default(false)
+  idempotencyKey   String?  @unique @db.VarChar(128)
+  createdByEmployeeId String? @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledJobId, sourceType, sourceId, eventType])
+  @@index([scheduledJobId, occurredAt])
+  @@index([scheduledJobId, isDraft])
   @@schema("scheduling")
 }
 
@@ -7504,6 +7576,15 @@ enum PayrollNiCategory {
   @@schema("payroll")
 }
 
+enum PayrollTaxCodeGroup {
+  STANDARD
+  SPECIAL
+  SCOTLAND
+  WALES
+
+  @@schema("payroll")
+}
+
 enum EmployeePayAgreementBasis {
   HOURLY_CARE
   SALARIED
@@ -7541,6 +7622,82 @@ enum UkPayrollInputSourceType {
   @@schema("payroll")
 }
 
+/// Per employee + tax year cumulative totals (posted on run close; reversed on reactivate).
+model EmployeePayrollYtdLedger {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  taxYearId       String   @db.Uuid
+  grossPayYtd     Decimal  @default(0) @db.Decimal(12, 2)
+  taxablePayYtd   Decimal  @default(0) @db.Decimal(12, 2)
+  incomeTaxYtd    Decimal  @default(0) @db.Decimal(12, 2)
+  employeeNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
+  employerNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
+  netPayYtd       Decimal  @default(0) @db.Decimal(12, 2)
+  lastClosedRunId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String?  @db.Uuid
+  updatedById     String?  @db.Uuid
+
+  taxYear        PayrollTaxYear                   @relation(fields: [taxYearId], references: [id], onDelete: Restrict)
+  contributions  EmployeePayrollYtdContribution[]
+
+  @@unique([employeeId, taxYearId])
+  @@index([taxYearId])
+  @@index([employeeId])
+  @@schema("payroll")
+}
+
+/// Idempotent period contribution to a YTD ledger (one row per run employee; reversible).
+model EmployeePayrollYtdContribution {
+  id             String   @id @default(uuid()) @db.Uuid
+  ledgerId       String   @db.Uuid
+  ukPayrollRunId String   @db.Uuid
+  employeeId     String   @db.Uuid
+  taxYearId      String   @db.Uuid
+  grossPay       Decimal  @db.Decimal(12, 2)
+  taxablePay     Decimal  @db.Decimal(12, 2)
+  incomeTax      Decimal  @db.Decimal(12, 2)
+  employeeNi     Decimal  @db.Decimal(12, 2)
+  employerNi     Decimal  @db.Decimal(12, 2)
+  netPay         Decimal  @db.Decimal(12, 2)
+  isReversed     Boolean  @default(false)
+  postedAt       DateTime @default(now())
+  reversedAt     DateTime?
+  createdById    String?  @db.Uuid
+  reversedById   String?  @db.Uuid
+
+  ledger EmployeePayrollYtdLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+
+  @@unique([ukPayrollRunId, employeeId])
+  @@index([ledgerId])
+  @@index([taxYearId])
+  @@index([employeeId])
+  @@schema("payroll")
+}
+
+/// Singleton HMRC employer identity for FPS/EPS (one row per deployment). Survives payroll purge.
+model PayrollEmployerSettings {
+  id                       String   @id @db.Uuid
+  /// First 3 digits of the Employer PAYE reference (HMRC office number).
+  hmrcOfficeNumber         String?
+  /// PAYE reference after the slash (e.g. AB45678). Full form is {office}/{this}.
+  employerPayeReference    String?
+  /// Accounts Office reference from HMRC registration letter (e.g. 123PA00012345).
+  accountsOfficeReference  String?
+  /// Optional tax district / office name for ops display.
+  taxDistrict              String?
+  /// Legal / trading name to show on payroll filings (optional until FPS).
+  employerTradingName      String?
+  notes                    String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  createdById              String?  @db.Uuid
+  updatedById              String?  @db.Uuid
+
+  @@schema("payroll")
+}
+
 /// UK tax year versioning shell (e.g. 2025-26). Statutory rate tables arrive in later phases.
 model PayrollTaxYear {
   id          String               @id @default(uuid()) @db.Uuid
@@ -7560,6 +7717,7 @@ model PayrollTaxYear {
   periods PayrollPeriod[]
   runs    UkPayrollRun[]
   statutoryRateSets PayrollStatutoryRateSet[]
+  ytdLedgers EmployeePayrollYtdLedger[]
 
   @@index([status])
   @@index([isCurrent])
@@ -7606,6 +7764,27 @@ model PayrollStatutoryRateSet {
 
   @@unique([taxYearId, nation, version])
   @@index([taxYearId, isActive])
+  @@schema("payroll")
+}
+
+/// Admin catalogue of HMRC PAYE tax codes shown in employee payroll setup.
+model PayrollTaxCode {
+  id          String              @id @default(uuid()) @db.Uuid
+  code        String              @unique
+  label       String
+  description String?
+  group       PayrollTaxCodeGroup @default(STANDARD)
+  sortOrder   Int                 @default(0)
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?             @db.Uuid
+  updatedById String?             @db.Uuid
+  deletedAt   DateTime?
+
+  @@index([isActive, sortOrder])
+  @@index([group])
+  @@index([deletedAt])
   @@schema("payroll")
 }
 

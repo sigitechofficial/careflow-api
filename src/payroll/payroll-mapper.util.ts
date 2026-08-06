@@ -65,6 +65,101 @@ export function mapSchedule(row: {
   };
 }
 
+export function mapTaxCode(row: {
+  id: string;
+  code: string;
+  label: string;
+  description: string | null;
+  group: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    code: row.code,
+    label: row.label,
+    description: row.description,
+    group: row.group,
+    sortOrder: row.sortOrder,
+    isActive: row.isActive,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function decimalNum(value: Prisma.Decimal | number): number {
+  return typeof value === 'number' ? value : Number(value);
+}
+
+export function mapStatutoryRateSet(row: {
+  id: string;
+  taxYearId: string;
+  nation: string;
+  version: number;
+  isActive: boolean;
+  personalAllowanceAnnual: Prisma.Decimal | number;
+  basicRateBandAnnual: Prisma.Decimal | number;
+  higherRateThresholdAnnual: Prisma.Decimal | number;
+  additionalRateThresholdAnnual: Prisma.Decimal | number;
+  basicRatePercent: Prisma.Decimal | number;
+  higherRatePercent: Prisma.Decimal | number;
+  additionalRatePercent: Prisma.Decimal | number;
+  niLelWeekly: Prisma.Decimal | number;
+  niPtWeekly: Prisma.Decimal | number;
+  niStWeekly: Prisma.Decimal | number;
+  niUelWeekly: Prisma.Decimal | number;
+  niLelMonthly: Prisma.Decimal | number;
+  niPtMonthly: Prisma.Decimal | number;
+  niStMonthly: Prisma.Decimal | number;
+  niUelMonthly: Prisma.Decimal | number;
+  niEmployeeRateMainPercent: Prisma.Decimal | number;
+  niEmployeeRateUpperPercent: Prisma.Decimal | number;
+  niEmployerRatePercent: Prisma.Decimal | number;
+  sourceNote: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  taxYear?: { id: string; code: string; label: string; isCurrent: boolean } | null;
+}) {
+  return {
+    id: row.id,
+    taxYearId: row.taxYearId,
+    nation: row.nation,
+    version: row.version,
+    isActive: row.isActive,
+    personalAllowanceAnnual: decimalNum(row.personalAllowanceAnnual),
+    basicRateBandAnnual: decimalNum(row.basicRateBandAnnual),
+    higherRateThresholdAnnual: decimalNum(row.higherRateThresholdAnnual),
+    additionalRateThresholdAnnual: decimalNum(row.additionalRateThresholdAnnual),
+    basicRatePercent: decimalNum(row.basicRatePercent),
+    higherRatePercent: decimalNum(row.higherRatePercent),
+    additionalRatePercent: decimalNum(row.additionalRatePercent),
+    niLelWeekly: decimalNum(row.niLelWeekly),
+    niPtWeekly: decimalNum(row.niPtWeekly),
+    niStWeekly: decimalNum(row.niStWeekly),
+    niUelWeekly: decimalNum(row.niUelWeekly),
+    niLelMonthly: decimalNum(row.niLelMonthly),
+    niPtMonthly: decimalNum(row.niPtMonthly),
+    niStMonthly: decimalNum(row.niStMonthly),
+    niUelMonthly: decimalNum(row.niUelMonthly),
+    niEmployeeRateMainPercent: decimalNum(row.niEmployeeRateMainPercent),
+    niEmployeeRateUpperPercent: decimalNum(row.niEmployeeRateUpperPercent),
+    niEmployerRatePercent: decimalNum(row.niEmployerRatePercent),
+    sourceNote: row.sourceNote,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    taxYear: row.taxYear
+      ? {
+          id: row.taxYear.id,
+          code: row.taxYear.code,
+          label: row.taxYear.label,
+          isCurrent: row.taxYear.isCurrent,
+        }
+      : null,
+  };
+}
+
 export function mapPeriod(row: {
   id: string;
   scheduleId: string;
@@ -183,6 +278,34 @@ export function mapAgreement(row: {
     hourlyRateOverride: decimalToNumber(row.hourlyRateOverride),
     currency: row.currency,
     notes: row.notes,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function mapEmployerSettings(row: {
+  id: string;
+  hmrcOfficeNumber: string | null;
+  employerPayeReference: string | null;
+  accountsOfficeReference: string | null;
+  taxDistrict: string | null;
+  employerTradingName: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  const office = row.hmrcOfficeNumber?.trim() || null;
+  const paye = row.employerPayeReference?.trim() || null;
+  return {
+    id: row.id,
+    hmrcOfficeNumber: office,
+    employerPayeReference: paye,
+    accountsOfficeReference: row.accountsOfficeReference?.trim() || null,
+    taxDistrict: row.taxDistrict?.trim() || null,
+    employerTradingName: row.employerTradingName?.trim() || null,
+    notes: row.notes?.trim() || null,
+    fullPayeReference: office && paye ? `${office}/${paye}` : null,
+    isComplete: Boolean(office && paye && row.accountsOfficeReference?.trim()),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

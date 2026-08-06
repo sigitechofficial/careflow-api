@@ -92,6 +92,19 @@ export class ScheduledJobsHousekeepingController {
     return this.service.getVisitJobTasks(user.id, id, getRequestAuditMeta(req));
   }
 
+  @Get('jobs/:id/visit-observations')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({
+    summary:
+      'Visit observations catalog for admin workspace (same catalog as carer details /observations)',
+  })
+  visitJobObservations(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.getVisitObservations(user.id, id);
+  }
+
   @Patch('jobs/:id/visit-tasks')
   @Permissions('scheduled_jobs_housekeeping.complete')
   @ApiOperation({ summary: 'Save visit task completion checkboxes for a scheduled job' })

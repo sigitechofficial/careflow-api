@@ -198,6 +198,19 @@ export function localVisitDateFromStart(plannedStart: Date, _timezone = 'Europe/
   );
 }
 
+/** True when planned start falls on operational YYYY-MM-DD in the given timezone. */
+export function plannedStartOnOperationalDate(
+  plannedStart: Date,
+  operationalDate: string,
+  timezone = 'Europe/London',
+): boolean {
+  const local = localVisitDateFromStart(plannedStart, timezone);
+  const y = local.getUTCFullYear();
+  const m = String(local.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(local.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}` === operationalDate;
+}
+
 export {
   deriveArrivalWindow,
   evaluateEcmTiming,

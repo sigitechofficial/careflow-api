@@ -71,6 +71,7 @@ export function buildVisitPlanOccurrence(
   day: Date,
   planAnchor: Date,
   planEffectiveTo: Date | null,
+  options?: { extendBeforeEffectiveFromDays?: number },
 ): GeneratedOccurrence | null {
   const exceptions = mapExceptions(slot.exceptions);
   const extraRow = findExtraRow(slot, day);
@@ -101,6 +102,7 @@ export function buildVisitPlanOccurrence(
       planAnchor,
       planEffectiveTo,
       exceptions,
+      extendBeforeEffectiveFromDays: options?.extendBeforeEffectiveFromDays,
     });
 
   if (!shouldOccur) return null;

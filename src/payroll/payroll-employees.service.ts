@@ -14,12 +14,69 @@ import {
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
 } from './dto/payroll.dto';
-import { mapAgreement, mapProfile } from './payroll-mapper.util';
+import { dateToIsoDate, mapAgreement, mapProfile } from './payroll-mapper.util';
 import { parsePayrollDateOnly } from './payroll-period.util';
 import {
   loanFlagsFromElections,
   sanitizeDeductionElections,
 } from './uk-deduction-elections.util';
+import {
+  assessRtiIdentityCompleteness,
+  formatRtiIdentityBlockMessage,
+  type RtiIdentityAssessment,
+} from './payroll-rti-identity.util';
+import { mapYtdLedger } from './payroll-ytd.util';
+
+type EmployeeIdentityRow = {
+  id: string
+  personalDetail: {
+    firstName: string | null
+    lastName: string | null
+    dateOfBirth: Date | null
+    addressLine1: string | null
+    town: string | null
+    postcode: string | null
+    gender: { name: string } | null
+  } | null
+  employment: {
+    payrollNumber: string | null
+    nationalInsuranceNo: string | null
+    defaultPayCardId: string | null
+  } | null
+}
+
+function assessEmployeeRti(
+  employee: EmployeeIdentityRow,
+  profile: { taxCode?: string | null; niCategory?: string | null },
+): RtiIdentityAssessment {
+  return assessRtiIdentityCompleteness({
+    firstName: employee.personalDetail?.firstName,
+    lastName: employee.personalDetail?.lastName,
+    dateOfBirth: employee.personalDetail?.dateOfBirth,
+    genderName: employee.personalDetail?.gender?.name,
+    addressLine1: employee.personalDetail?.addressLine1,
+    town: employee.personalDetail?.town,
+    postcode: employee.personalDetail?.postcode,
+    nationalInsuranceNo: employee.employment?.nationalInsuranceNo,
+    payrollNumber: employee.employment?.payrollNumber,
+    taxCode: profile.taxCode,
+    niCategory: profile.niCategory,
+  })
+}
+
+function mapRtiIdentityPayload(employee: EmployeeIdentityRow, assessment: RtiIdentityAssessment) {
+  const pd = employee.personalDetail
+  const addressParts = [pd?.addressLine1, pd?.town, pd?.postcode].filter((p) =>
+    Boolean(p && String(p).trim()),
+  )
+  return {
+    isComplete: assessment.isComplete,
+    issues: assessment.issues,
+    genderHmrc: assessment.genderHmrc,
+    dateOfBirth: dateToIsoDate(pd?.dateOfBirth ?? null),
+    addressSummary: addressParts.length ? addressParts.join(', ') : null,
+  }
+}
 
 @Injectable()
 export class PayrollEmployeesService {
@@ -28,23 +85,33 @@ export class PayrollEmployeesService {
     private readonly audit: AuditLogsService,
   ) {}
 
+  private employeeIdentitySelect = {
+    id: true,
+    personalDetail: {
+      select: {
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
+        addressLine1: true,
+        town: true,
+        postcode: true,
+        gender: { select: { name: true } },
+      },
+    },
+    employment: {
+      select: {
+        payrollNumber: true,
+        nationalInsuranceNo: true,
+        defaultPayCardId: true,
+      },
+    },
+  } as const
+
   async listEmployeeSetup() {
     const [employees, profiles, agreements] = await Promise.all([
       this.prisma.employee.findMany({
         where: { deletedAt: null },
-        select: {
-          id: true,
-          personalDetail: {
-            select: { firstName: true, lastName: true },
-          },
-          employment: {
-            select: {
-              payrollNumber: true,
-              nationalInsuranceNo: true,
-              defaultPayCardId: true,
-            },
-          },
-        },
+        select: this.employeeIdentitySelect,
         orderBy: { createdAt: 'desc' },
         take: 500,
       }),
@@ -59,11 +126,30 @@ export class PayrollEmployeesService {
     const profileByEmployee = new Map(profiles.map((p) => [p.employeeId, p]));
     const agreementByEmployee = new Map(agreements.map((a) => [a.employeeId, a]));
 
+    const currentTaxYear = await this.prisma.payrollTaxYear.findFirst({
+      where: { deletedAt: null, isCurrent: true },
+      select: { id: true, code: true },
+    });
+    const ytdRows = currentTaxYear
+      ? await this.prisma.employeePayrollYtdLedger.findMany({
+          where: {
+            taxYearId: currentTaxYear.id,
+            employeeId: { in: employees.map((e) => e.id) },
+          },
+        })
+      : [];
+    const ytdByEmployee = new Map(ytdRows.map((y) => [y.employeeId, y]));
+
     const data = employees.map((e) => {
       const profile = profileByEmployee.get(e.id);
       const agreement = agreementByEmployee.get(e.id);
       const first = e.personalDetail?.firstName ?? '';
       const last = e.personalDetail?.lastName ?? '';
+      const assessment = assessEmployeeRti(e, {
+        taxCode: profile?.taxCode,
+        niCategory: profile?.niCategory,
+      });
+      const ytd = ytdByEmployee.get(e.id);
       return {
         employeeId: e.id,
         displayName: `${first} ${last}`.trim() || 'Unnamed employee',
@@ -72,20 +158,97 @@ export class PayrollEmployeesService {
         defaultPayCardId: e.employment?.defaultPayCardId ?? null,
         profile: profile ? mapProfile(profile) : null,
         activeAgreement: agreement ? mapAgreement(agreement) : null,
+        rtiIdentity: mapRtiIdentityPayload(e, assessment),
+        ytd: ytd
+          ? {
+              ...mapYtdLedger(ytd),
+              taxYearCode: currentTaxYear?.code ?? null,
+            }
+          : currentTaxYear
+            ? {
+                employeeId: e.id,
+                taxYearId: currentTaxYear.id,
+                taxYearCode: currentTaxYear.code,
+                grossPayYtd: 0,
+                taxablePayYtd: 0,
+                incomeTaxYtd: 0,
+                employeeNiYtd: 0,
+                employerNiYtd: 0,
+                netPayYtd: 0,
+                lastClosedRunId: null,
+                updatedAt: new Date(0).toISOString(),
+              }
+            : null,
       };
     });
 
     return { message: 'Employee payroll setup', data };
   }
 
-  async getProfile(employeeId: string) {
+  async getEmployeeYtd(employeeId: string, taxYearId?: string) {
     await this.requireEmployee(employeeId);
+    let yearId = taxYearId;
+    if (!yearId) {
+      const current = await this.prisma.payrollTaxYear.findFirst({
+        where: { deletedAt: null, isCurrent: true },
+        select: { id: true },
+      });
+      if (!current) {
+        throw new BadRequestException('No current tax year — create/activate one under Tax years');
+      }
+      yearId = current.id;
+    } else {
+      const year = await this.prisma.payrollTaxYear.findFirst({
+        where: { id: yearId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!year) throw new NotFoundException('Tax year not found');
+    }
+
+    const year = await this.prisma.payrollTaxYear.findFirst({
+      where: { id: yearId },
+      select: { id: true, code: true, label: true },
+    });
+    const ledger = await this.prisma.employeePayrollYtdLedger.findUnique({
+      where: {
+        employeeId_taxYearId: { employeeId, taxYearId: yearId },
+      },
+    });
+
+    return {
+      message: 'Employee payroll YTD',
+      data: ledger
+        ? { ...mapYtdLedger(ledger), taxYearCode: year?.code ?? null, taxYearLabel: year?.label ?? null }
+        : {
+            employeeId,
+            taxYearId: yearId,
+            taxYearCode: year?.code ?? null,
+            taxYearLabel: year?.label ?? null,
+            grossPayYtd: 0,
+            taxablePayYtd: 0,
+            incomeTaxYtd: 0,
+            employeeNiYtd: 0,
+            employerNiYtd: 0,
+            netPayYtd: 0,
+            lastClosedRunId: null,
+            updatedAt: new Date(0).toISOString(),
+          },
+    };
+  }
+
+  async getProfile(employeeId: string) {
+    const employee = await this.requireEmployeeWithIdentity(employeeId);
     const profile = await this.prisma.employeePayrollProfile.findFirst({
       where: { employeeId, deletedAt: null },
+    });
+    const assessment = assessEmployeeRti(employee, {
+      taxCode: profile?.taxCode,
+      niCategory: profile?.niCategory,
     });
     return {
       message: 'Employee payroll profile',
       data: profile ? mapProfile(profile) : null,
+      rtiIdentity: mapRtiIdentityPayload(employee, assessment),
     };
   }
 
@@ -95,12 +258,28 @@ export class PayrollEmployeesService {
     dto: UpsertEmployeePayrollProfileDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.requireEmployee(employeeId);
+    const employee = await this.requireEmployeeWithIdentity(employeeId);
     if (dto.scheduleId) await this.requireSchedule(dto.scheduleId);
 
     const existing = await this.prisma.employeePayrollProfile.findFirst({
       where: { employeeId, deletedAt: null },
     });
+
+    const nextTaxCode =
+      dto.taxCode === undefined ? existing?.taxCode ?? null : dto.taxCode?.trim() || null;
+    const nextNiCategory =
+      dto.niCategory === undefined ? existing?.niCategory ?? null : dto.niCategory;
+    const nextStatus = dto.status ?? existing?.status ?? 'DRAFT';
+
+    if (nextStatus === 'READY') {
+      const assessment = assessEmployeeRti(employee, {
+        taxCode: nextTaxCode,
+        niCategory: nextNiCategory,
+      });
+      if (!assessment.isComplete) {
+        throw new BadRequestException(formatRtiIdentityBlockMessage(assessment.issues));
+      }
+    }
 
     const hasElections = dto.deductionElections !== undefined;
     const sanitizedElections = hasElections
@@ -183,9 +362,15 @@ export class PayrollEmployeesService {
       userAgent: meta?.userAgent,
     });
 
+    const assessment = assessEmployeeRti(employee, {
+      taxCode: row.taxCode,
+      niCategory: row.niCategory,
+    });
+
     return {
       message: existing ? 'Payroll profile updated' : 'Payroll profile created',
       data: mapProfile(row),
+      rtiIdentity: mapRtiIdentityPayload(employee, assessment),
     };
   }
 
@@ -351,6 +536,15 @@ export class PayrollEmployeesService {
     const row = await this.prisma.employee.findFirst({
       where: { id: employeeId, deletedAt: null },
       select: { id: true },
+    });
+    if (!row) throw new NotFoundException('Employee not found');
+    return row;
+  }
+
+  private async requireEmployeeWithIdentity(employeeId: string): Promise<EmployeeIdentityRow> {
+    const row = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      select: this.employeeIdentitySelect,
     });
     if (!row) throw new NotFoundException('Employee not found');
     return row;

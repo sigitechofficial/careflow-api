@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import {
+  AllocationStatus,
   Prisma,
   ScheduledJobPriority as PrismaPriority,
   ScheduledJobStatus as PrismaJobStatus,
@@ -390,9 +391,30 @@ export class ScheduledJobsService {
       where: { scheduledJobId, deletedAt: null, isActive: true },
       select: { status: true },
     });
-    const job = await tx.scheduledJob.findUnique({ where: { id: scheduledJobId } });
+    const job = await tx.scheduledJob.findUnique({
+      where: { id: scheduledJobId },
+      include: {
+        allocations: {
+          where: {
+            status: {
+              in: [
+                AllocationStatus.PENDING_CONFIRMATION,
+                AllocationStatus.ALLOCATED,
+                AllocationStatus.CONFIRMED,
+              ],
+            },
+          },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
     if (!job) return;
-    const nextStatus = deriveJobStatusFromVisits(visits, job.status);
+    let nextStatus = deriveJobStatusFromVisits(visits, job.status);
+    // Planned visits with carers should stay ALLOCATED, not drop to UNALLOCATED.
+    if (nextStatus === PrismaJobStatus.UNALLOCATED && job.allocations.length > 0) {
+      nextStatus = PrismaJobStatus.ALLOCATED;
+    }
     if (nextStatus !== job.status) {
       await tx.scheduledJob.update({
         where: { id: scheduledJobId },

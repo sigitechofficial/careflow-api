@@ -936,8 +936,10 @@ export class EmployeeAppClientDetailService {
     jobs: Array<{
       id: string;
       serviceUserId: string;
+      scheduledStartDateTime?: Date | null;
       visits: Array<{
         visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
+        scheduledStartDateTime?: Date | null;
       }>;
     }>,
   ) {
@@ -957,7 +959,21 @@ export class EmployeeAppClientDetailService {
               deletedAt: null,
               isActive: true,
             },
-            select: { id: true, serviceUserId: true, medicationRoundCode: true },
+            select: {
+              id: true,
+              serviceUserId: true,
+              medicationRoundCode: true,
+              daysOfWeek: true,
+              scheduleFrequency: true,
+              repeatEvery: true,
+              repeatUnit: true,
+              timeCritical: true,
+              timeToleranceMinutes: true,
+              monthlyDayMode: true,
+              monthlyDaysOfMonth: true,
+              monthlyPatternOrdinal: true,
+              monthlyPatternWeekday: true,
+            },
           }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: { in: jobs.map((j) => j.id) } },

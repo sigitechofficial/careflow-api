@@ -26,6 +26,13 @@ export class MedicationSupportProfileDto {
   })
   familyMemberOrCarerSupportsMedication!: boolean;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Where medicines are kept in the property (carer visit overview).',
+    example: 'Kitchen cupboard, above the sink (left-hand side, labelled “MAR”).',
+  })
+  storageLocation!: string | null;
+
   @ApiPropertyOptional({ nullable: true })
   notes!: string | null;
 }

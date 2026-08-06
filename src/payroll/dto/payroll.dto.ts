@@ -65,6 +65,13 @@ export enum PayrollNiCategoryDto {
   X = 'X',
 }
 
+export enum PayrollTaxCodeGroupDto {
+  STANDARD = 'STANDARD',
+  SPECIAL = 'SPECIAL',
+  SCOTLAND = 'SCOTLAND',
+  WALES = 'WALES',
+}
+
 export enum EmployeePayAgreementBasisDto {
   HOURLY_CARE = 'HOURLY_CARE',
   SALARIED = 'SALARIED',
@@ -110,6 +117,186 @@ export class UpdatePayrollTaxYearDto extends PartialType(CreatePayrollTaxYearDto
   @IsOptional()
   @IsEnum(PayrollTaxYearStatusDto)
   status?: PayrollTaxYearStatusDto;
+}
+
+export class CreatePayrollTaxCodeDto {
+  @ApiProperty({ example: '1257L' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(20)
+  code!: string;
+
+  @ApiProperty({ example: '1257L — Personal allowance (standard)' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  label!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string | null;
+
+  @ApiPropertyOptional({ enum: PayrollTaxCodeGroupDto })
+  @IsOptional()
+  @IsEnum(PayrollTaxCodeGroupDto)
+  group?: PayrollTaxCodeGroupDto;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10_000)
+  sortOrder?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdatePayrollTaxCodeDto extends PartialType(CreatePayrollTaxCodeDto) {}
+
+export class UpdatePayrollStatutoryRatesDto {
+  @ApiPropertyOptional({ example: 12570 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  personalAllowanceAnnual?: number;
+
+  @ApiPropertyOptional({ example: 37700 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  basicRateBandAnnual?: number;
+
+  @ApiPropertyOptional({ example: 50270 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  higherRateThresholdAnnual?: number;
+
+  @ApiPropertyOptional({ example: 125140 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  additionalRateThresholdAnnual?: number;
+
+  @ApiPropertyOptional({ example: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  basicRatePercent?: number;
+
+  @ApiPropertyOptional({ example: 40 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  higherRatePercent?: number;
+
+  @ApiPropertyOptional({ example: 45 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  additionalRatePercent?: number;
+
+  @ApiPropertyOptional({ example: 8 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  niEmployeeRateMainPercent?: number;
+
+  @ApiPropertyOptional({ example: 2 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  niEmployeeRateUpperPercent?: number;
+
+  @ApiPropertyOptional({ example: 15 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  niEmployerRatePercent?: number;
+
+  @ApiPropertyOptional({ example: 129 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niLelWeekly?: number;
+
+  @ApiPropertyOptional({ example: 242 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niPtWeekly?: number;
+
+  @ApiPropertyOptional({ example: 96 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niStWeekly?: number;
+
+  @ApiPropertyOptional({ example: 967 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niUelWeekly?: number;
+
+  @ApiPropertyOptional({ example: 559 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niLelMonthly?: number;
+
+  @ApiPropertyOptional({ example: 1048 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niPtMonthly?: number;
+
+  @ApiPropertyOptional({ example: 417 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niStMonthly?: number;
+
+  @ApiPropertyOptional({ example: 4189 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  niUelMonthly?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  sourceNote?: string | null;
 }
 
 export class CreatePayrollScheduleDto {
@@ -380,4 +567,52 @@ export class PurgePayrollDataDto {
   @IsString()
   @Matches(/^DELETE ALL PAYROLL$/)
   confirm!: string;
+}
+
+/** Org-level HMRC employer identity used on every FPS/EPS (T01). */
+export class UpdatePayrollEmployerSettingsDto {
+  @ApiPropertyOptional({
+    example: '123',
+    description: 'HMRC office number — first 3 digits of the Employer PAYE reference',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{3}$/, { message: 'hmrcOfficeNumber must be exactly 3 digits' })
+  hmrcOfficeNumber?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'AB45678',
+    description: 'Employer PAYE reference after the slash',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  employerPayeReference?: string | null;
+
+  @ApiPropertyOptional({
+    example: '123PA00012345',
+    description: 'Accounts Office reference from the HMRC registration letter',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  accountsOfficeReference?: string | null;
+
+  @ApiPropertyOptional({ example: 'London' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  taxDistrict?: string | null;
+
+  @ApiPropertyOptional({ example: 'Care Services Ltd' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  employerTradingName?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string | null;
 }

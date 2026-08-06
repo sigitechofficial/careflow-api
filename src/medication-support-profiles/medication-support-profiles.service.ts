@@ -62,6 +62,7 @@ export class MedicationSupportProfilesService {
         requiresCarerAdministration: dto.requiresCarerAdministration ?? existing.requiresCarerAdministration,
         familyMemberOrCarerSupportsMedication:
           dto.familyMemberOrCarerSupportsMedication ?? existing.familyMemberOrCarerSupportsMedication,
+        storageLocation: dto.storageLocation === undefined ? undefined : dto.storageLocation,
         notes: dto.notes === undefined ? undefined : dto.notes,
         updatedById: userId,
       },

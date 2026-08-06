@@ -3,6 +3,15 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ReplaceServiceUserVisitTasksDto } from './dto/replace-service-user-visit-tasks.dto';
+import {
+  mergeVisitTaskSchedule,
+  pickScheduleFromAssignment,
+  type VisitTaskScheduleShape,
+} from '../visit-tasks/visit-task-schedule.util';
+import {
+  isEmarMedicationPromptTask,
+  syncEmarMedicationPromptsForServiceUser,
+} from '../visit-tasks/visit-task-emar-prompt.sync';
 
 const assignmentInclude = {
   task: {
@@ -40,8 +49,14 @@ export class ServiceUserVisitTasksService {
     if (!row) throw new NotFoundException('Service user not found');
   }
 
-  async list(serviceUserId: string) {
+  async list(serviceUserId: string, actorUserId?: string | null) {
     await this.ensureServiceUser(serviceUserId);
+
+    const sync = await syncEmarMedicationPromptsForServiceUser(
+      this.prisma,
+      serviceUserId,
+      actorUserId,
+    );
 
     const [assignments, rounds] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
@@ -80,6 +95,11 @@ export class ServiceUserVisitTasksService {
       data: {
         rounds,
         assignmentsByRound: Object.fromEntries(byRound),
+        emarPrompt: {
+          medicationCountByRound: sync.medicationCountByRound,
+          addedRoundCodes: sync.added,
+          removedRoundCodes: sync.removed,
+        },
       },
     };
   }
@@ -99,6 +119,7 @@ export class ServiceUserVisitTasksService {
         taskCatalogueTaskId: string;
         carerInstructions: string | null;
         priority: string;
+        schedule: VisitTaskScheduleShape;
       }>
     >();
     for (const round of dto.rounds) {
@@ -109,6 +130,7 @@ export class ServiceUserVisitTasksService {
         taskCatalogueTaskId: string;
         carerInstructions: string | null;
         priority: string;
+        schedule: VisitTaskScheduleShape;
       }> = [];
       for (const task of round.tasks) {
         if (seen.has(task.taskCatalogueTaskId)) continue;
@@ -117,6 +139,7 @@ export class ServiceUserVisitTasksService {
           taskCatalogueTaskId: task.taskCatalogueTaskId,
           carerInstructions: normalizeInstructions(task.carerInstructions),
           priority: normalizePriority(task.priority),
+          schedule: mergeVisitTaskSchedule(task.schedule ?? null),
         });
       }
       desired.set(code, items);
@@ -152,6 +175,18 @@ export class ServiceUserVisitTasksService {
         for (const item of items) {
           const key = `${roundCode}:${item.taskCatalogueTaskId}`;
           const prev = existingByKey.get(key);
+          const scheduleData = {
+            daysOfWeek: item.schedule.daysOfWeek,
+            scheduleFrequency: item.schedule.scheduleFrequency,
+            repeatEvery: item.schedule.repeatEvery,
+            repeatUnit: item.schedule.repeatUnit,
+            timeCritical: item.schedule.timeCritical,
+            timeToleranceMinutes: item.schedule.timeToleranceMinutes,
+            monthlyDayMode: item.schedule.monthlyDayMode,
+            monthlyDaysOfMonth: item.schedule.monthlyDaysOfMonth,
+            monthlyPatternOrdinal: item.schedule.monthlyPatternOrdinal,
+            monthlyPatternWeekday: item.schedule.monthlyPatternWeekday,
+          };
           if (prev) {
             await tx.serviceUserVisitTaskAssignment.update({
               where: { id: prev.id },
@@ -161,6 +196,7 @@ export class ServiceUserVisitTasksService {
                 sortOrder,
                 carerInstructions: item.carerInstructions,
                 priority: item.priority,
+                ...scheduleData,
                 updatedById: userId,
               },
             });
@@ -174,6 +210,7 @@ export class ServiceUserVisitTasksService {
                 sortOrder,
                 carerInstructions: item.carerInstructions,
                 priority: item.priority,
+                ...scheduleData,
                 createdById: userId,
                 updatedById: userId,
               },
@@ -197,7 +234,8 @@ export class ServiceUserVisitTasksService {
       }
     });
 
-    return this.list(serviceUserId);
+    // Re-apply eMAR prompts after replace so slots with scheduled meds always keep one prompt.
+    return this.list(serviceUserId, userId);
   }
 
   private mapAssignment(
@@ -209,6 +247,11 @@ export class ServiceUserVisitTasksService {
       sortOrder: row.sortOrder,
       carerInstructions: row.carerInstructions,
       priority: row.priority,
+      schedule: pickScheduleFromAssignment(row),
+      isEmarPrompt: isEmarMedicationPromptTask({
+        name: row.task.name,
+        flagsJson: row.task.flagsJson,
+      }),
       task: {
         id: row.task.id,
         name: row.task.name,

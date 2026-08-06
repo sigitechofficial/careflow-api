@@ -35,10 +35,28 @@ import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
 import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
+import { VisitObservationsCatalogService } from '../service-user-observations/visit-observations-catalog.service';
+import {
+  pickScheduleFromAssignment,
+  visitTaskMatchesDay,
+} from '../visit-tasks/visit-task-schedule.util';
+import {
+  isEmarMedicationPromptTask,
+  syncEmarMedicationPromptsForServiceUser,
+} from '../visit-tasks/visit-task-emar-prompt.sync';
 import {
   resolveVisitTaskCompletionInput,
   visitTaskCompletionInputMissing,
 } from '../visit-tasks/visit-task-completion-input.util';
+import {
+  encodeVisitTaskOutcomeFields,
+  inferVisitTaskOutcome,
+  isVisitTaskOutcomeSentinel,
+  normalizeVisitTaskOutcomeCode,
+  stripVisitTaskOutcomeNotes,
+} from '../employee-app/visit-task-progress.util';
+import { resolveTaskObsLink } from '../employee-app/visit-task-obs-link.util';
+import { syncObservationFromCompletedVisitTask } from '../employee-app/visit-task-obs-sync.util';
 import { loadCarePlanFormFields } from '../service-user-care-plans/compose/compose-context.loader';
 import {
   buildCarePlanDeliveryTasks,
@@ -95,6 +113,7 @@ export class ScheduledJobsHousekeepingService {
     private readonly audit: AuditLogsService,
     private readonly scheduledJobsService: ScheduledJobsService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
+    private readonly visitObservationsCatalog: VisitObservationsCatalogService,
   ) {}
 
   private buildBaseWhere(query: HousekeepingQueryDto): Prisma.ScheduledJobWhereInput {
@@ -481,8 +500,9 @@ export class ScheduledJobsHousekeepingService {
       include: housekeepingInclude,
     });
     if (!existing) throw new NotFoundException('Scheduled job not found');
+    // Cancelled / called-off must use reinstate. COMPLETED jobs may still update outcome
+    // (e.g. reopen to PLANNED or correct times) via this endpoint.
     if (
-      existing.status === PrismaJobStatus.COMPLETED ||
       existing.status === PrismaJobStatus.CANCELLED ||
       existing.status === PrismaJobStatus.CALLED_OFF
     ) {
@@ -493,6 +513,8 @@ export class ScheduledJobsHousekeepingService {
     const completing =
       visitStatus === ScheduledVisitStatus.COMPLETED ||
       visitStatus === ScheduledVisitStatus.PARTIALLY_COMPLETED;
+    const reopeningFromCompleted =
+      existing.status === PrismaJobStatus.COMPLETED && !completing;
 
     if (completing && (!dto.actualStartDateTime || !dto.actualEndDateTime)) {
       if (!dto.carerActuals?.length) {
@@ -675,8 +697,16 @@ export class ScheduledJobsHousekeepingService {
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
         data: {
           status: visitStatus,
-          ...(actualStart ? { actualStartDateTime: actualStart } : {}),
-          ...(actualEnd ? { actualEndDateTime: actualEnd } : {}),
+          ...(actualStart
+            ? { actualStartDateTime: actualStart }
+            : reopeningFromCompleted
+              ? { actualStartDateTime: null }
+              : {}),
+          ...(actualEnd
+            ? { actualEndDateTime: actualEnd }
+            : reopeningFromCompleted
+              ? { actualEndDateTime: null }
+              : {}),
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
           ...(userId ? { updatedById: userId } : {}),
         },
@@ -690,6 +720,21 @@ export class ScheduledJobsHousekeepingService {
             actualEndDateTime: row.end,
           },
         });
+      }
+
+      if (reopeningFromCompleted && !carerActualRows.length) {
+        const activeAllocationIds = (existing.allocations ?? [])
+          .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
+          .map((a) => a.id);
+        if (activeAllocationIds.length) {
+          await tx.jobAllocation.updateMany({
+            where: { id: { in: activeAllocationIds } },
+            data: {
+              actualStartDateTime: null,
+              actualEndDateTime: null,
+            },
+          });
+        }
       }
 
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
@@ -715,7 +760,7 @@ export class ScheduledJobsHousekeepingService {
       if (overrunReason) {
         metadataPatch.overrunReason = overrunReason;
         metadataChanged = true;
-      } else if (completing && 'overrunReason' in metadataPatch) {
+      } else if ((completing || reopeningFromCompleted) && 'overrunReason' in metadataPatch) {
         delete metadataPatch.overrunReason;
         metadataChanged = true;
       } else if (completing && previousMeta.overrunReason && !overrunReason) {
@@ -728,7 +773,7 @@ export class ScheduledJobsHousekeepingService {
         if (timingExceptionNotes) metadataPatch.timingExceptionNotes = timingExceptionNotes;
         else delete metadataPatch.timingExceptionNotes;
         metadataChanged = true;
-      } else if (completing) {
+      } else if (completing || reopeningFromCompleted) {
         if ('timingExceptionReasonCode' in metadataPatch) {
           delete metadataPatch.timingExceptionReasonCode;
           metadataChanged = true;
@@ -1082,6 +1127,49 @@ export class ScheduledJobsHousekeepingService {
     });
   }
 
+  /**
+   * Same Obs catalog + recorded-this-visit payload as carer
+   * GET employee-app/visits/:jobId/details → observations (and GET …/observations).
+   */
+  async getVisitObservations(userId: string, jobId: string) {
+    void userId;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null, isActive: true },
+      include: {
+        visits: {
+          where: { deletedAt: null, isActive: true },
+          orderBy: { scheduledStartDateTime: 'asc' },
+          take: 1,
+          select: {
+            id: true,
+            scheduledStartDateTime: true,
+            actualStartDateTime: true,
+          },
+        },
+      },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const primaryVisit = job.visits[0];
+    const since =
+      primaryVisit?.actualStartDateTime ??
+      primaryVisit?.scheduledStartDateTime ??
+      job.scheduledStartDateTime;
+
+    const payload = await this.visitObservationsCatalog.buildVisitObservationsPayload({
+      serviceUserId: job.serviceUserId,
+      since,
+    });
+
+    return {
+      data: {
+        scheduledJobId: job.id,
+        scheduledVisitId: primaryVisit?.id ?? null,
+        serviceUserId: job.serviceUserId,
+        ...payload,
+      },
+    };
+  }
+
   async getVisitJobTasks(userId: string, jobId: string, meta?: RequestAuditMeta) {
     void userId;
     void meta;
@@ -1108,6 +1196,13 @@ export class ScheduledJobsHousekeepingService {
       where: { code: medicationRoundCode, deletedAt: null, isActive: true },
       select: { name: true, code: true, windowStart: true, windowEnd: true },
     });
+
+    // Ensure carers see Medication prompt even if planner was never opened.
+    await syncEmarMedicationPromptsForServiceUser(
+      this.prisma,
+      job.serviceUserId,
+      userId || null,
+    );
 
     const [assignments, completions] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
@@ -1142,7 +1237,14 @@ export class ScheduledJobsHousekeepingService {
     }
     const adHocCompletions = completions.filter((row) => !row.assignmentId);
 
-    const plannedTasks = assignments.map((assignment) => {
+    const visitDay = utcDayBounds(job.scheduledStartDateTime.toISOString().slice(0, 10)).start;
+    const dueAssignments = assignments.filter((assignment) => {
+      // Keep tasks already interacted with on this visit even if schedule was changed later.
+      if (completionByAssignment.has(assignment.id)) return true;
+      return visitTaskMatchesDay(pickScheduleFromAssignment(assignment), visitDay, visitDay);
+    });
+
+    const plannedTasks = dueAssignments.map((assignment) => {
       const completion = completionByAssignment.get(assignment.id);
       const flagsJson =
         assignment.task.flagsJson && typeof assignment.task.flagsJson === 'object'
@@ -1150,6 +1252,11 @@ export class ScheduledJobsHousekeepingService {
           : null;
       const completionInput = resolveVisitTaskCompletionInput({
         name: assignment.task.name,
+        flagsJson,
+      });
+      const obsLink = resolveTaskObsLink({
+        name: assignment.task.name,
+        groupCode: assignment.task.category.group.code,
         flagsJson,
       });
       return {
@@ -1164,8 +1271,19 @@ export class ScheduledJobsHousekeepingService {
         carerInstructions: assignment.carerInstructions,
         priority: assignment.priority,
         flagsJson,
+        isEmarPrompt: isEmarMedicationPromptTask({
+          name: assignment.task.name,
+          flagsJson,
+        }),
+        observationTypeCode: obsLink?.observationTypeCode ?? null,
+        linkedTypeCode: obsLink?.linkedTypeCode ?? null,
         isExtra: false,
         isCompleted: completion?.isCompleted ?? false,
+        outcome: inferVisitTaskOutcome({
+          isCompleted: completion?.isCompleted ?? false,
+          recordedValue: completion?.recordedValue ?? null,
+          notes: completion?.notes ?? null,
+        }),
         recordedValue: completion?.recordedValue ?? null,
         notes: completion?.notes ?? null,
         completedAt: completion?.completedAt?.toISOString() ?? null,
@@ -1194,6 +1312,11 @@ export class ScheduledJobsHousekeepingService {
           name: task.name,
           flagsJson,
         });
+        const obsLink = resolveTaskObsLink({
+          name: task.name,
+          groupCode: task.category.group.code,
+          flagsJson,
+        });
         return {
           assignmentId: `extra-${completion.taskCatalogueTaskId}`,
           taskCatalogueTaskId: completion.taskCatalogueTaskId,
@@ -1206,8 +1329,15 @@ export class ScheduledJobsHousekeepingService {
           carerInstructions: null,
           priority: 'routine',
           flagsJson,
+          observationTypeCode: obsLink?.observationTypeCode ?? null,
+          linkedTypeCode: obsLink?.linkedTypeCode ?? null,
           isExtra: true,
           isCompleted: completion.isCompleted,
+          outcome: inferVisitTaskOutcome({
+            isCompleted: completion.isCompleted,
+            recordedValue: completion.recordedValue ?? null,
+            notes: completion.notes ?? null,
+          }),
           recordedValue: completion.recordedValue ?? null,
           notes: completion.notes ?? null,
           completedAt: completion.completedAt?.toISOString() ?? null,
@@ -1271,7 +1401,11 @@ export class ScheduledJobsHousekeepingService {
               isActive: true,
             },
             include: {
-              task: true,
+              task: {
+                include: {
+                  category: { include: { group: true } },
+                },
+              },
             },
           })
         : [];
@@ -1284,6 +1418,7 @@ export class ScheduledJobsHousekeepingService {
       extraTaskIds.length > 0
         ? await this.prisma.taskCatalogueTask.findMany({
             where: { id: { in: extraTaskIds }, deletedAt: null, isActive: true },
+            include: { category: { include: { group: true } } },
           })
         : [];
     if (extraCatalogueTasks.length !== extraTaskIds.length) {
@@ -1297,8 +1432,76 @@ export class ScheduledJobsHousekeepingService {
       }
     }
 
-    for (const item of dto.tasks) {
+    type NormalizedTaskItem = {
+      assignmentId?: string;
+      taskCatalogueTaskId?: string;
+      isExtra?: boolean;
+      isCompleted: boolean;
+      recordedValue?: string | null;
+      notes?: string | null;
+      outcomeCode: ReturnType<typeof normalizeVisitTaskOutcomeCode>;
+    };
+
+    const normalizedTasks: NormalizedTaskItem[] = dto.tasks.map((item) => {
+      const outcomeCode = normalizeVisitTaskOutcomeCode(item.outcome);
+      if (item.outcome && !outcomeCode) {
+        throw new BadRequestException('outcome must be COMPLETED, PARTIAL, or DECLINED');
+      }
+
+      if (outcomeCode) {
+        if (
+          (outcomeCode === 'PARTIAL' || outcomeCode === 'DECLINED') &&
+          !stripVisitTaskOutcomeNotes(item.notes) &&
+          !item.outcomeReasonCode?.trim()
+        ) {
+          throw new BadRequestException('notes or outcomeReasonCode required for PARTIAL/DECLINED');
+        }
+        const encoded = encodeVisitTaskOutcomeFields({
+          outcome: outcomeCode,
+          notes: item.notes,
+          recordedValue: item.recordedValue,
+          outcomeReasonCode: item.outcomeReasonCode,
+        });
+        return {
+          assignmentId: item.assignmentId,
+          taskCatalogueTaskId: item.taskCatalogueTaskId,
+          isExtra: item.isExtra,
+          isCompleted: true,
+          recordedValue: encoded.recordedValue,
+          notes: encoded.notes,
+          outcomeCode,
+        };
+      }
+
+      return {
+        assignmentId: item.assignmentId,
+        taskCatalogueTaskId: item.taskCatalogueTaskId,
+        isExtra: item.isExtra,
+        isCompleted: item.isCompleted,
+        recordedValue: item.recordedValue ?? null,
+        notes: item.notes ?? null,
+        outcomeCode: item.isCompleted
+          ? (normalizeVisitTaskOutcomeCode(
+              inferVisitTaskOutcome({
+                isCompleted: item.isCompleted,
+                recordedValue: item.recordedValue,
+                notes: item.notes,
+              }) ?? 'COMPLETED',
+            ) ?? 'COMPLETED')
+          : null,
+      };
+    });
+
+    for (const item of normalizedTasks) {
       if (!item.isCompleted) continue;
+      // Clinical value/note fields required only for fully completed outcomes (parity with carer app).
+      if (item.outcomeCode === 'PARTIAL' || item.outcomeCode === 'DECLINED') continue;
+
+      const recordedForValidation = isVisitTaskOutcomeSentinel(item.recordedValue)
+        ? null
+        : item.recordedValue;
+      const notesForValidation = stripVisitTaskOutcomeNotes(item.notes);
+
       if (item.isExtra && item.taskCatalogueTaskId) {
         const task = extraCatalogueTasks.find((row) => row.id === item.taskCatalogueTaskId);
         if (!task) continue;
@@ -1307,7 +1510,12 @@ export class ScheduledJobsHousekeepingService {
             ? (task.flagsJson as Record<string, unknown>)
             : null;
         const spec = resolveVisitTaskCompletionInput({ name: task.name, flagsJson });
-        const missing = visitTaskCompletionInputMissing(spec, true, item.recordedValue, item.notes);
+        const missing = visitTaskCompletionInputMissing(
+          spec,
+          true,
+          recordedForValidation,
+          notesForValidation,
+        );
         if (missing) throw new BadRequestException(`${task.name}: ${missing}`);
         continue;
       }
@@ -1324,8 +1532,8 @@ export class ScheduledJobsHousekeepingService {
       const missing = visitTaskCompletionInputMissing(
         spec,
         true,
-        item.recordedValue,
-        item.notes,
+        recordedForValidation,
+        notesForValidation,
       );
       if (missing) {
         throw new BadRequestException(`${assignment.task.name}: ${missing}`);
@@ -1335,9 +1543,11 @@ export class ScheduledJobsHousekeepingService {
     const assignmentById = new Map(assignments.map((row) => [row.id, row]));
     const extraTaskById = new Map(extraCatalogueTasks.map((row) => [row.id, row]));
     const now = new Date();
+    const plannedNormalized = normalizedTasks.filter((task) => !task.isExtra && task.assignmentId);
+    const extraNormalized = normalizedTasks.filter((task) => task.isExtra && task.taskCatalogueTaskId);
 
     await this.prisma.$transaction(async (tx) => {
-      for (const item of plannedItems) {
+      for (const item of plannedNormalized) {
         const assignment = assignmentById.get(item.assignmentId!);
         if (!assignment) continue;
         await tx.scheduledVisitTaskCompletion.upsert({
@@ -1367,7 +1577,7 @@ export class ScheduledJobsHousekeepingService {
         });
       }
 
-      for (const item of extraItems) {
+      for (const item of extraNormalized) {
         const task = extraTaskById.get(item.taskCatalogueTaskId!);
         if (!task) continue;
         const existing = await tx.scheduledVisitTaskCompletion.findFirst({
@@ -1404,7 +1614,7 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
-      const retainedExtraTaskIds = extraItems.map((item) => item.taskCatalogueTaskId!);
+      const retainedExtraTaskIds = extraNormalized.map((item) => item.taskCatalogueTaskId!);
       // Partial carer-app saves (single planned task) must not wipe other ad-hoc rows.
       // Admin full checklist saves keep pruneMissingExtras=true (default).
       if (options?.pruneMissingExtras !== false) {
@@ -1420,7 +1630,58 @@ export class ScheduledJobsHousekeepingService {
       }
     });
 
-    void userId;
+    // Admin office path: mirror fully completed Obs-linked readings into Observations.
+    // Carer app passes empty userId and syncs via employee-app with recordedByEmployeeId.
+    const primaryVisitId = job.visits[0]?.id ?? null;
+    if (userId && primaryVisitId) {
+      for (const item of normalizedTasks) {
+        if (!item.isCompleted || item.outcomeCode !== 'COMPLETED') continue;
+        const recordedValue = item.recordedValue?.trim() || null;
+        const notes = item.notes?.trim() || null;
+        if (!recordedValue && !notes) continue;
+        if (isVisitTaskOutcomeSentinel(recordedValue)) continue;
+
+        if (item.isExtra && item.taskCatalogueTaskId) {
+          const task = extraTaskById.get(item.taskCatalogueTaskId);
+          if (!task) continue;
+          const flagsJson =
+            task.flagsJson && typeof task.flagsJson === 'object'
+              ? (task.flagsJson as Record<string, unknown>)
+              : null;
+          await syncObservationFromCompletedVisitTask(this.prisma, {
+            serviceUserId: job.serviceUserId,
+            jobId: job.id,
+            visitId: primaryVisitId,
+            taskName: task.name,
+            groupCode: task.category?.group?.code ?? null,
+            flagsJson,
+            recordedValue,
+            notes: stripVisitTaskOutcomeNotes(notes),
+            recordedByUserId: userId,
+          });
+          continue;
+        }
+
+        const assignment = assignmentById.get(item.assignmentId!);
+        if (!assignment) continue;
+        const flagsJson =
+          assignment.task.flagsJson && typeof assignment.task.flagsJson === 'object'
+            ? (assignment.task.flagsJson as Record<string, unknown>)
+            : null;
+        await syncObservationFromCompletedVisitTask(this.prisma, {
+          serviceUserId: job.serviceUserId,
+          jobId: job.id,
+          visitId: primaryVisitId,
+          taskName: assignment.task.name,
+          groupCode: assignment.task.category?.group?.code ?? null,
+          flagsJson,
+          recordedValue,
+          notes: stripVisitTaskOutcomeNotes(notes),
+          recordedByUserId: userId,
+        });
+      }
+    }
+
     return this.getVisitJobTasks(userId, jobId, meta);
   }
 }

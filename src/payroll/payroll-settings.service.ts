@@ -12,17 +12,32 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreatePayrollScheduleDto,
+  CreatePayrollTaxCodeDto,
   CreatePayrollTaxYearDto,
   DeletePayrollPeriodsDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
+  UpdatePayrollEmployerSettingsDto,
   UpdatePayrollScheduleDto,
+  UpdatePayrollStatutoryRatesDto,
+  UpdatePayrollTaxCodeDto,
   UpdatePayrollTaxYearDto,
 } from './dto/payroll.dto';
 import { generatePayrollPeriods, listUkTaxYearsAroundDate, parsePayrollDateOnly } from './payroll-period.util';
-import { dateToIsoDate, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
+import {
+  dateToIsoDate,
+  mapEmployerSettings,
+  mapPeriod,
+  mapSchedule,
+  mapStatutoryRateSet,
+  mapTaxCode,
+  mapTaxYear,
+} from './payroll-mapper.util';
 import { ensureEnglandStatutoryRateSet } from './payroll-statutory-rates.seed';
+
+/** Fixed singleton id for org HMRC employer identity (survives purge). */
+export const PAYROLL_EMPLOYER_SETTINGS_ID = '00000000-0000-4000-8000-000000000010';
 
 @Injectable()
 export class PayrollSettingsService {
@@ -32,23 +47,28 @@ export class PayrollSettingsService {
   ) {}
 
   async getOverview() {
-    const [taxYears, schedules, periods, profilesReady, runsOpen] = await Promise.all([
-      this.prisma.payrollTaxYear.count({ where: { deletedAt: null } }),
-      this.prisma.payrollSchedule.count({ where: { deletedAt: null } }),
-      this.prisma.payrollPeriod.count({ where: { deletedAt: null } }),
-      this.prisma.employeePayrollProfile.count({
-        where: { deletedAt: null, status: 'READY' },
-      }),
-      this.prisma.ukPayrollRun.count({
-        where: {
-          deletedAt: null,
-          status: { in: ['DRAFT', 'EMPLOYEES_ENROLLED', 'GROSS_CALCULATED', 'STATUTORY_CALCULATED'] },
-        },
-      }),
-    ]);
+    const [taxYears, schedules, periods, profilesReady, runsOpen, employerSettings] =
+      await Promise.all([
+        this.prisma.payrollTaxYear.count({ where: { deletedAt: null } }),
+        this.prisma.payrollSchedule.count({ where: { deletedAt: null } }),
+        this.prisma.payrollPeriod.count({ where: { deletedAt: null } }),
+        this.prisma.employeePayrollProfile.count({
+          where: { deletedAt: null, status: 'READY' },
+        }),
+        this.prisma.ukPayrollRun.count({
+          where: {
+            deletedAt: null,
+            status: {
+              in: ['DRAFT', 'EMPLOYEES_ENROLLED', 'GROSS_CALCULATED', 'STATUTORY_CALCULATED'],
+            },
+          },
+        }),
+        this.getOrCreateEmployerSettings(),
+      ]);
     const currentTaxYear = await this.prisma.payrollTaxYear.findFirst({
       where: { deletedAt: null, isCurrent: true },
     });
+    const mappedEmployer = mapEmployerSettings(employerSettings);
     return {
       message: 'UK payroll overview',
       data: {
@@ -58,15 +78,98 @@ export class PayrollSettingsService {
         readyEmployeeProfiles: profilesReady,
         openRuns: runsOpen,
         currentTaxYear: currentTaxYear ? mapTaxYear(currentTaxYear) : null,
+        employerSettingsComplete: mappedEmployer.isComplete,
+        employerFullPayeReference: mappedEmployer.fullPayeReference,
         phaseNote:
-          'Phase 3: gross + Week 1/Month 1 PAYE and Class 1 NI (England/NI/Wales). Cumulative YTD, Scotland, student loans, pensions, and FPS are not included.',
+          'Cumulative PAYE by default (YTD ledgers). Week 1/Month 1 when profile flag or BR/D0/D1. Close posts YTD. FPS not included.',
       },
     };
   }
 
+  private async getOrCreateEmployerSettings(userId?: string) {
+    const existing = await this.prisma.payrollEmployerSettings.findUnique({
+      where: { id: PAYROLL_EMPLOYER_SETTINGS_ID },
+    });
+    if (existing) return existing;
+    return this.prisma.payrollEmployerSettings.create({
+      data: {
+        id: PAYROLL_EMPLOYER_SETTINGS_ID,
+        createdById: userId ?? null,
+        updatedById: userId ?? null,
+      },
+    });
+  }
+
+  async getEmployerSettings() {
+    const row = await this.getOrCreateEmployerSettings();
+    return {
+      message: 'Employer PAYE settings',
+      data: mapEmployerSettings(row),
+    };
+  }
+
+  async updateEmployerSettings(
+    userId: string,
+    dto: UpdatePayrollEmployerSettingsDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.getOrCreateEmployerSettings(userId);
+    const norm = (v: string | null | undefined) => {
+      if (v === undefined) return undefined;
+      if (v === null) return null;
+      const t = v.trim();
+      return t.length ? t : null;
+    };
+    const payeRaw = norm(dto.employerPayeReference);
+    const paye =
+      payeRaw === undefined
+        ? undefined
+        : payeRaw === null
+          ? null
+          : payeRaw.replace(/\s+/g, '').toUpperCase();
+
+    const accountsRaw = norm(dto.accountsOfficeReference);
+    const accounts =
+      accountsRaw === undefined
+        ? undefined
+        : accountsRaw === null
+          ? null
+          : accountsRaw.replace(/\s+/g, '').toUpperCase();
+
+    const row = await this.prisma.payrollEmployerSettings.update({
+      where: { id: existing.id },
+      data: {
+        hmrcOfficeNumber: norm(dto.hmrcOfficeNumber),
+        employerPayeReference: paye,
+        accountsOfficeReference: accounts,
+        taxDistrict: norm(dto.taxDistrict),
+        employerTradingName: norm(dto.employerTradingName),
+        notes: norm(dto.notes),
+        updatedById: userId,
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_EMPLOYER_SETTINGS_UPDATED,
+      recordType: 'PayrollEmployerSettings',
+      recordId: row.id,
+      oldValues: mapEmployerSettings(existing),
+      newValues: mapEmployerSettings(row),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return {
+      message: 'Employer PAYE settings updated',
+      data: mapEmployerSettings(row),
+    };
+  }
+
   /**
-   * Hard-deletes all rows in the payroll schema only.
-   * Does not touch billing visit-pay, employees, pay cards, or permissions.
+   * Hard-deletes transactional payroll schema rows.
+   * Does not touch employer HMRC settings, billing visit-pay, employees, or permissions.
    */
   async purgeAllPayrollData(
     userId: string,
@@ -78,6 +181,8 @@ export class PayrollSettingsService {
     }
 
     const counts = await this.prisma.$transaction(async (tx) => {
+      const ytdContributions = await tx.employeePayrollYtdContribution.deleteMany({});
+      const ytdLedgers = await tx.employeePayrollYtdLedger.deleteMany({});
       const inputLines = await tx.ukPayrollInputLine.deleteMany({});
       const runEmployees = await tx.ukPayrollRunEmployee.deleteMany({});
       const runs = await tx.ukPayrollRun.deleteMany({});
@@ -86,8 +191,11 @@ export class PayrollSettingsService {
       const periods = await tx.payrollPeriod.deleteMany({});
       const schedules = await tx.payrollSchedule.deleteMany({});
       const statutoryRateSets = await tx.payrollStatutoryRateSet.deleteMany({});
+      const taxCodes = await tx.payrollTaxCode.deleteMany({});
       const taxYears = await tx.payrollTaxYear.deleteMany({});
       return {
+        ytdContributions: ytdContributions.count,
+        ytdLedgers: ytdLedgers.count,
         inputLines: inputLines.count,
         runEmployees: runEmployees.count,
         runs: runs.count,
@@ -96,6 +204,7 @@ export class PayrollSettingsService {
         periods: periods.count,
         schedules: schedules.count,
         statutoryRateSets: statutoryRateSets.count,
+        taxCodes: taxCodes.count,
         taxYears: taxYears.count,
       };
     });
@@ -321,6 +430,231 @@ export class PayrollSettingsService {
       userAgent: meta?.userAgent,
     });
     return { message: 'Tax year activated', data: mapTaxYear(row) };
+  }
+
+  async listTaxCodes(options?: { includeInactive?: boolean }) {
+    const rows = await this.prisma.payrollTaxCode.findMany({
+      where: {
+        deletedAt: null,
+        ...(options?.includeInactive ? {} : { isActive: true }),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+    });
+    return { message: 'Tax codes', data: rows.map(mapTaxCode) };
+  }
+
+  async createTaxCode(
+    userId: string,
+    dto: CreatePayrollTaxCodeDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const code = dto.code.trim().toUpperCase().replace(/\s+/g, '');
+    if (!code) throw new BadRequestException('Tax code is required');
+
+    try {
+      const row = await this.prisma.payrollTaxCode.create({
+        data: {
+          code,
+          label: dto.label.trim(),
+          description: dto.description?.trim() || null,
+          group: dto.group ?? 'STANDARD',
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: dto.isActive ?? true,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_TAX_CODE_CREATED,
+        recordType: 'PayrollTaxCode',
+        recordId: row.id,
+        newValues: mapTaxCode(row),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return { message: 'Tax code created', data: mapTaxCode(row) };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(`Tax code ${code} already exists`);
+      }
+      throw err;
+    }
+  }
+
+  async updateTaxCode(
+    userId: string,
+    id: string,
+    dto: UpdatePayrollTaxCodeDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.prisma.payrollTaxCode.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Tax code not found');
+
+    const nextCode =
+      dto.code === undefined
+        ? undefined
+        : dto.code.trim().toUpperCase().replace(/\s+/g, '');
+    if (dto.code !== undefined && !nextCode) {
+      throw new BadRequestException('Tax code is required');
+    }
+
+    try {
+      const row = await this.prisma.payrollTaxCode.update({
+        where: { id },
+        data: {
+          code: nextCode,
+          label: dto.label === undefined ? undefined : dto.label.trim(),
+          description:
+            dto.description === undefined
+              ? undefined
+              : dto.description?.trim() || null,
+          group: dto.group,
+          sortOrder: dto.sortOrder,
+          isActive: dto.isActive,
+          updatedById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_TAX_CODE_UPDATED,
+        recordType: 'PayrollTaxCode',
+        recordId: row.id,
+        oldValues: mapTaxCode(existing),
+        newValues: mapTaxCode(row),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return { message: 'Tax code updated', data: mapTaxCode(row) };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(`Tax code ${nextCode} already exists`);
+      }
+      throw err;
+    }
+  }
+
+  async deleteTaxCode(userId: string, id: string, meta?: RequestAuditMeta) {
+    const existing = await this.prisma.payrollTaxCode.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Tax code not found');
+
+    const row = await this.prisma.payrollTaxCode.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        updatedById: userId,
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_TAX_CODE_DELETED,
+      recordType: 'PayrollTaxCode',
+      recordId: row.id,
+      oldValues: mapTaxCode(existing),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Tax code deleted', data: { id: row.id } };
+  }
+
+  async listStatutoryRates(query?: { taxYearId?: string }) {
+    // Ensure current / requested tax year has an England rate set.
+    if (query?.taxYearId) {
+      await this.requireTaxYear(query.taxYearId);
+      await ensureEnglandStatutoryRateSet(this.prisma, query.taxYearId);
+    } else {
+      const current = await this.prisma.payrollTaxYear.findFirst({
+        where: { deletedAt: null, isCurrent: true },
+      });
+      if (current) {
+        await ensureEnglandStatutoryRateSet(this.prisma, current.id);
+      }
+    }
+
+    const rows = await this.prisma.payrollStatutoryRateSet.findMany({
+      where: {
+        isActive: true,
+        ...(query?.taxYearId ? { taxYearId: query.taxYearId } : {}),
+      },
+      include: {
+        taxYear: { select: { id: true, code: true, label: true, isCurrent: true } },
+      },
+      orderBy: [{ taxYear: { startDate: 'desc' } }, { nation: 'asc' }, { version: 'desc' }],
+    });
+    return { message: 'Statutory rates', data: rows.map(mapStatutoryRateSet) };
+  }
+
+  async updateStatutoryRates(
+    userId: string,
+    id: string,
+    dto: UpdatePayrollStatutoryRatesDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.prisma.payrollStatutoryRateSet.findFirst({
+      where: { id },
+      include: {
+        taxYear: { select: { id: true, code: true, label: true, isCurrent: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Statutory rate set not found');
+
+    const num = (v: number | undefined) =>
+      v === undefined ? undefined : new Prisma.Decimal(v);
+
+    const row = await this.prisma.payrollStatutoryRateSet.update({
+      where: { id },
+      data: {
+        personalAllowanceAnnual: num(dto.personalAllowanceAnnual),
+        basicRateBandAnnual: num(dto.basicRateBandAnnual),
+        higherRateThresholdAnnual: num(dto.higherRateThresholdAnnual),
+        additionalRateThresholdAnnual: num(dto.additionalRateThresholdAnnual),
+        basicRatePercent: num(dto.basicRatePercent),
+        higherRatePercent: num(dto.higherRatePercent),
+        additionalRatePercent: num(dto.additionalRatePercent),
+        niEmployeeRateMainPercent: num(dto.niEmployeeRateMainPercent),
+        niEmployeeRateUpperPercent: num(dto.niEmployeeRateUpperPercent),
+        niEmployerRatePercent: num(dto.niEmployerRatePercent),
+        niLelWeekly: num(dto.niLelWeekly),
+        niPtWeekly: num(dto.niPtWeekly),
+        niStWeekly: num(dto.niStWeekly),
+        niUelWeekly: num(dto.niUelWeekly),
+        niLelMonthly: num(dto.niLelMonthly),
+        niPtMonthly: num(dto.niPtMonthly),
+        niStMonthly: num(dto.niStMonthly),
+        niUelMonthly: num(dto.niUelMonthly),
+        sourceNote:
+          dto.sourceNote === undefined
+            ? undefined
+            : dto.sourceNote?.trim() || null,
+      },
+      include: {
+        taxYear: { select: { id: true, code: true, label: true, isCurrent: true } },
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_STATUTORY_RATES_UPDATED,
+      recordType: 'PayrollStatutoryRateSet',
+      recordId: row.id,
+      oldValues: mapStatutoryRateSet(existing),
+      newValues: mapStatutoryRateSet(row),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Statutory rates updated', data: mapStatutoryRateSet(row) };
   }
 
   async listSchedules() {

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { EmployeesModule } from '../employees/employees.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { BillingModule } from '../billing/billing.module';
+import { ServiceUserObservationsModule } from '../service-user-observations/service-user-observations.module';
 import { EmployeeAppAuthController } from './employee-app-auth.controller';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
@@ -18,6 +19,7 @@ import { EmployeeAppVisitsController } from './employee-app-visits.controller';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppSalaryController } from './employee-app-salary.controller';
 import { EmployeeAppSalaryService } from './employee-app-salary.service';
+import { VisitTimelineService } from './visit-timeline.service';
 import { ScheduledJobsHousekeepingModule } from '../scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
 import { BodyMapModule } from '../body-map/body-map.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
@@ -28,6 +30,7 @@ import { EcmModule } from '../ecm/ecm.module';
     EmployeesModule,
     AuditLogsModule,
     BillingModule,
+    ServiceUserObservationsModule,
     ScheduledJobsHousekeepingModule,
     BodyMapModule,
     VisitAttendanceModule,
@@ -58,6 +61,7 @@ import { EcmModule } from '../ecm/ecm.module';
     EmployeeAppClientsService,
     EmployeeAppClientDetailService,
     EmployeeAppVisitsService,
+    VisitTimelineService,
     EmployeeAppSalaryService,
   ],
   exports: [EmployeeAppAuthService, EmployeeAppAuthGuard],

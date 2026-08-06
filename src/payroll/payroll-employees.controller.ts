@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -26,6 +26,18 @@ export class PayrollEmployeesController {
   @ApiOperation({ summary: 'List employees with payroll setup status' })
   list() {
     return this.service.listEmployeeSetup();
+  }
+
+  @Get('employees/:employeeId/ytd')
+  @Permissions('payroll.employees.read')
+  @ApiOperation({
+    summary: 'Get employee year-to-date pay / tax / NI for a tax year (defaults to current)',
+  })
+  getYtd(
+    @Param('employeeId') employeeId: string,
+    @Query('taxYearId') taxYearId?: string,
+  ) {
+    return this.service.getEmployeeYtd(employeeId, taxYearId || undefined);
   }
 
   @Get('employees/:employeeId/profile')

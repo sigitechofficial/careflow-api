@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   EcmMissedClassification,
   Prisma,
+  ScheduledJobStatus,
   VisitAttendanceEventType,
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
@@ -24,6 +25,7 @@ import {
 } from './ecm-evaluation.mapper';
 import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
+import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 
 export type EvaluateJobOptions = {
   visitOverride?: EcmSettingsLayer | null;
@@ -45,6 +47,7 @@ export class EcmEvaluationService {
     private readonly prisma: PrismaService,
     private readonly exceptions: EcmExceptionsService,
     private readonly scheduleVersions: EcmScheduleVersionService,
+    private readonly thresholdLookups: EcmThresholdLookupsService,
   ) {}
 
   /**
@@ -111,6 +114,7 @@ export class EcmEvaluationService {
     const actualEnd =
       checkOutEvent?.occurredAt ?? visit?.actualEndDateTime ?? null;
 
+    const platform = await this.thresholdLookups.toPlatformLayer();
     const org = await this.prisma.organisationGeneralSettings.findFirst({
       select: {
         domLateVisitAlertMinutes: true,
@@ -122,6 +126,7 @@ export class EcmEvaluationService {
 
     const slot = visit?.visitPlanSlot;
     const resolved = resolveEcmSettings({
+      platform,
       organisation: orgSettingsToEcmLayer(org),
       branch: options.branchOverride,
       contract: options.contractOverride,
@@ -146,7 +151,8 @@ export class EcmEvaluationService {
       latestPermittedStart: window.latest,
       thresholds: resolved,
       now: options.now,
-      confirmedMissed: options.confirmedMissed,
+      confirmedMissed:
+        options.confirmedMissed ?? job.status === ScheduledJobStatus.MISSED,
       attendanceClaimedWithoutEvidence: options.attendanceClaimedWithoutEvidence,
       falseEcmAlert: options.falseEcmAlert,
       disputed: options.disputed,

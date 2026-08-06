@@ -1,7 +1,9 @@
 import {
   computeVisitTaskProgress,
+  encodeVisitTaskOutcomeFields,
   inferVisitTaskOutcome,
   isVisitTaskAddressed,
+  stripVisitTaskOutcomeNotes,
 } from './visit-task-progress.util';
 
 describe('computeVisitTaskProgress', () => {
@@ -106,5 +108,41 @@ describe('inferVisitTaskOutcome / isVisitTaskAddressed', () => {
 
   it('infers completed when isCompleted without partial/declined markers', () => {
     expect(inferVisitTaskOutcome({ isCompleted: true, recordedValue: '5' })).toBe('completed');
+  });
+});
+
+describe('encodeVisitTaskOutcomeFields / stripVisitTaskOutcomeNotes', () => {
+  it('encodes PARTIAL with notes required marker and sentinel', () => {
+    expect(
+      encodeVisitTaskOutcomeFields({
+        outcome: 'PARTIAL',
+        notes: 'Client tired',
+        recordedValue: null,
+      }),
+    ).toEqual({
+      isCompleted: true,
+      notes: 'Outcome: PARTIAL · Client tired',
+      recordedValue: 'PARTIAL',
+    });
+  });
+
+  it('strips outcome markers for editable notes', () => {
+    expect(
+      stripVisitTaskOutcomeNotes('Outcome: DECLINED · Reason: REFUSED · Asked later'),
+    ).toBe('Asked later');
+  });
+
+  it('clears PARTIAL sentinel when outcome is COMPLETED', () => {
+    expect(
+      encodeVisitTaskOutcomeFields({
+        outcome: 'COMPLETED',
+        notes: 'ok',
+        recordedValue: 'PARTIAL',
+      }),
+    ).toEqual({
+      isCompleted: true,
+      notes: 'ok',
+      recordedValue: null,
+    });
   });
 });

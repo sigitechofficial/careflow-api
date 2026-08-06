@@ -20,8 +20,8 @@ export class ServiceUserVisitTasksController {
   @Get()
   @AnyPermission('service_users.visit_tasks.read', 'service_users.read')
   @ApiOperation({ summary: 'List visit task assignments for a service user' })
-  list(@Param('id') serviceUserId: string) {
-    return this.service.list(serviceUserId);
+  list(@CurrentUser() user: RequestUser, @Param('id') serviceUserId: string) {
+    return this.service.list(serviceUserId, user.id);
   }
 
   @Put()

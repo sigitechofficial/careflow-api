@@ -29,7 +29,19 @@ export type StatutoryCalcInput = {
   niCategory: string | null | undefined;
   frequency: PayFrequencyCode;
   rates: StatutoryRateSnapshot;
+  /** Force Week 1 / Month 1 non-cumulative (profile taxCodeWeek1Month1). */
+  week1Month1?: boolean;
+  /** 1-based period index within the tax year (required for cumulative). */
+  periodNumber?: number;
+  /** Gross already posted to YTD before this period (closed runs). */
+  ytdGrossBefore?: number;
+  /** Income tax already posted to YTD before this period. */
+  ytdTaxBefore?: number;
 };
+
+export type StatutoryCalculationBasis =
+  | 'WEEK1_MONTH1_NON_CUMULATIVE'
+  | 'CUMULATIVE';
 
 export type StatutoryCalcResult = {
   taxablePay: number;
@@ -40,7 +52,7 @@ export type StatutoryCalcResult = {
   taxCodeApplied: string;
   niCategoryApplied: string;
   periodFreePay: number;
-  calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE';
+  calculationBasis: StatutoryCalculationBasis;
   explanation: string;
 };
 
@@ -56,6 +68,35 @@ export function periodsInTaxYear(frequency: PayFrequencyCode): number {
     default:
       return 12;
   }
+}
+
+/** 1-based pay period index inside a UK tax year (clamped to frequency periods). */
+export function taxYearPeriodNumber(
+  taxYearStart: Date,
+  periodStart: Date,
+  frequency: PayFrequencyCode,
+): number {
+  const max = periodsInTaxYear(frequency);
+  const start = new Date(
+    Date.UTC(taxYearStart.getUTCFullYear(), taxYearStart.getUTCMonth(), taxYearStart.getUTCDate()),
+  );
+  const period = new Date(
+    Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth(), periodStart.getUTCDate()),
+  );
+
+  if (frequency === 'MONTHLY') {
+    const n =
+      (period.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      (period.getUTCMonth() - start.getUTCMonth()) +
+      1;
+    return Math.min(max, Math.max(1, n));
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.floor((period.getTime() - start.getTime()) / dayMs);
+  if (frequency === 'WEEKLY') return Math.min(max, Math.max(1, Math.floor(days / 7) + 1));
+  if (frequency === 'FORTNIGHTLY') return Math.min(max, Math.max(1, Math.floor(days / 14) + 1));
+  return Math.min(max, Math.max(1, Math.floor(days / 28) + 1));
 }
 
 /** Parse common UK tax codes. Digits × 10 = annual personal allowance (e.g. 1257L → 12570). */
@@ -115,7 +156,7 @@ function periodNiThresholds(frequency: PayFrequencyCode, rates: StatutoryRateSna
 function taxOnTaxable(
   taxable: number,
   rates: StatutoryRateSnapshot,
-  periods: number,
+  bandScalePeriods: number,
   special: ReturnType<typeof parseUkTaxCode>['special'],
 ): number {
   if (special === 'NT' || taxable <= 0) return 0;
@@ -123,10 +164,11 @@ function taxOnTaxable(
   if (special === 'D0') return round2(taxable * (rates.higherRatePercent / 100));
   if (special === 'D1') return round2(taxable * (rates.additionalRatePercent / 100));
 
-  const basicWidth = rates.basicRateBandAnnual / periods;
+  const scale = Math.max(1, bandScalePeriods);
+  const basicWidth = rates.basicRateBandAnnual / scale;
   const higherWidth =
     (rates.additionalRateThresholdAnnual - rates.personalAllowanceAnnual - rates.basicRateBandAnnual) /
-    periods;
+    scale;
 
   let remaining = taxable;
   let tax = 0;
@@ -185,8 +227,9 @@ function employerNiOnGross(
 }
 
 /**
- * Week 1 / Month 1 (non-cumulative) PAYE + Class 1 NI for one pay period.
- * Uses HMRC band widths and NI thresholds scaled to the pay frequency.
+ * PAYE Income Tax + Class 1 NI for one pay period.
+ * Default: cumulative (uses YTD gross/tax when provided).
+ * Week 1 / Month 1: non-cumulative when week1Month1=true or special BR/D0/D1-style period codes.
  */
 export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCalcResult {
   const gross = Math.max(0, round2(input.periodGross));
@@ -194,27 +237,85 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const niCategory = (input.niCategory ?? 'A').toUpperCase();
   const periods = periodsInTaxYear(input.frequency);
   const niTh = periodNiThresholds(input.frequency, input.rates);
+  const periodNumber = Math.min(
+    periods,
+    Math.max(1, input.periodNumber ?? 1),
+  );
+  const ytdGrossBefore = Math.max(0, round2(input.ytdGrossBefore ?? 0));
+  const ytdTaxBefore = Math.max(0, round2(input.ytdTaxBefore ?? 0));
 
-  let periodFreePay = 0;
-  if (parsed.special === 'NT') {
-    periodFreePay = gross; // no tax
-  } else if (parsed.annualFreePay != null) {
-    periodFreePay = round2(parsed.annualFreePay / periods);
-  }
+  const forceNonCumulative =
+    Boolean(input.week1Month1) ||
+    parsed.special === 'BR' ||
+    parsed.special === 'D0' ||
+    parsed.special === 'D1' ||
+    parsed.special === '0T';
 
-  const taxablePay =
-    parsed.special === 'NT' ? 0 : round2(Math.max(0, gross - periodFreePay));
-  const incomeTax = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
   const employeeNi = employeeNiOnGross(gross, niTh, input.rates, niCategory);
   const employerNi = employerNiOnGross(gross, niTh, input.rates, niCategory);
+
+  if (forceNonCumulative || parsed.special === 'NT') {
+    let periodFreePay = 0;
+    if (parsed.special === 'NT') {
+      periodFreePay = gross;
+    } else if (parsed.annualFreePay != null) {
+      periodFreePay = round2(parsed.annualFreePay / periods);
+    }
+
+    const taxablePay =
+      parsed.special === 'NT' ? 0 : round2(Math.max(0, gross - periodFreePay));
+    const incomeTax = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
+    const netPay = round2(gross - incomeTax - employeeNi);
+    const basisLabel = input.week1Month1
+      ? 'Week 1 / Month 1 (non-cumulative)'
+      : `Non-cumulative (${parsed.special})`;
+
+    const explanation = [
+      `Basis: ${basisLabel}, ${input.frequency}, period ${periodNumber}/${periods}.`,
+      `Tax code ${parsed.code}; period free pay £${periodFreePay.toFixed(2)}.`,
+      `Period gross £${gross.toFixed(2)}; taxable £${taxablePay.toFixed(2)}; tax £${incomeTax.toFixed(2)}.`,
+      `NI category ${niCategory}; PT £${niTh.pt.toFixed(2)} UEL £${niTh.uel.toFixed(2)}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)}.`,
+      'Student loans / pensions / Scotland bands not included.',
+    ].join(' ');
+
+    return {
+      taxablePay,
+      incomeTax,
+      employeeNi,
+      employerNi,
+      netPay,
+      taxCodeApplied: parsed.code,
+      niCategoryApplied: niCategory,
+      periodFreePay,
+      calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+      explanation,
+    };
+  }
+
+  // Cumulative PAYE (standard letter codes).
+  const annualFree = parsed.annualFreePay ?? 0;
+  const freePayToDate = round2((annualFree / periods) * periodNumber);
+  const freePayPrevious =
+    periodNumber <= 1 ? 0 : round2((annualFree / periods) * (periodNumber - 1));
+  const grossYtd = round2(ytdGrossBefore + gross);
+  const taxableYtd = round2(Math.max(0, grossYtd - freePayToDate));
+  const taxablePrevious = round2(Math.max(0, ytdGrossBefore - freePayPrevious));
+  const taxablePay = round2(Math.max(0, taxableYtd - taxablePrevious));
+
+  // Band widths to date: annual band × periodNumber / periods  ⇒ divide annual by (periods/periodNumber)
+  const bandScale = periods / periodNumber;
+  const taxDueYtd = taxOnTaxable(taxableYtd, input.rates, bandScale, parsed.special);
+  const incomeTax = round2(Math.max(0, taxDueYtd - ytdTaxBefore));
+  const periodFreePay = round2(freePayToDate - freePayPrevious);
   const netPay = round2(gross - incomeTax - employeeNi);
 
   const explanation = [
-    `Basis: Week 1 / Month 1 (non-cumulative), ${input.frequency}, ${periods} periods/year.`,
-    `Tax code ${parsed.code}; period free pay £${periodFreePay.toFixed(2)}.`,
-    `Period gross £${gross.toFixed(2)}; taxable £${taxablePay.toFixed(2)}; tax £${incomeTax.toFixed(2)}.`,
-    `NI category ${niCategory}; PT £${niTh.pt.toFixed(2)} UEL £${niTh.uel.toFixed(2)}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)}.`,
-    'Not cumulative YTD PAYE. Scotland / student loans / pensions not included.',
+    `Basis: Cumulative PAYE, ${input.frequency}, period ${periodNumber}/${periods}.`,
+    `Tax code ${parsed.code}; free pay to date £${freePayToDate.toFixed(2)} (this period £${periodFreePay.toFixed(2)}).`,
+    `YTD gross before £${ytdGrossBefore.toFixed(2)} + period £${gross.toFixed(2)} = £${grossYtd.toFixed(2)}.`,
+    `Taxable YTD £${taxableYtd.toFixed(2)}; tax due YTD £${taxDueYtd.toFixed(2)}; tax paid YTD £${ytdTaxBefore.toFixed(2)}; this period tax £${incomeTax.toFixed(2)}.`,
+    `NI category ${niCategory}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (period basis).`,
+    'Student loans / pensions / Scotland bands not included.',
   ].join(' ');
 
   return {
@@ -226,7 +327,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     taxCodeApplied: parsed.code,
     niCategoryApplied: niCategory,
     periodFreePay,
-    calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+    calculationBasis: 'CUMULATIVE',
     explanation,
   };
 }

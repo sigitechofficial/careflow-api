@@ -1,4 +1,9 @@
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
+import {
+  pickScheduleFromAssignment,
+  visitTaskMatchesDay,
+  type VisitTaskScheduleShape,
+} from '../visit-tasks/visit-task-schedule.util';
 
 export type VisitTaskProgress = {
   completed: number;
@@ -8,8 +13,10 @@ export type VisitTaskProgress = {
 type JobForTaskProgress = {
   id: string;
   serviceUserId: string;
+  scheduledStartDateTime?: Date | string | null;
   visits: Array<{
     visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
+    scheduledStartDateTime?: Date | string | null;
   }>;
 };
 
@@ -17,7 +24,7 @@ type AssignmentRow = {
   id: string;
   serviceUserId: string;
   medicationRoundCode: string;
-};
+} & Partial<VisitTaskScheduleShape>;
 
 type CompletionRow = {
   scheduledJobId: string;
@@ -62,6 +69,78 @@ export function inferVisitTaskOutcome(input: {
   return null;
 }
 
+export type VisitTaskOutcomeCode = 'COMPLETED' | 'PARTIAL' | 'DECLINED';
+
+export function normalizeVisitTaskOutcomeCode(
+  value: string | null | undefined,
+): VisitTaskOutcomeCode | null {
+  if (!value?.trim()) return null;
+  const upper = value.trim().toUpperCase();
+  if (upper === 'COMPLETED' || upper === 'PARTIAL' || upper === 'DECLINED') return upper;
+  if (upper === 'COMPLETE') return 'COMPLETED';
+  return null;
+}
+
+/** Strip mobile/admin outcome markers so free-text notes stay editable. */
+export function stripVisitTaskOutcomeNotes(notes: string | null | undefined): string | null {
+  if (!notes?.trim()) return null;
+  const cleaned = notes
+    .split(/\s*·\s*/)
+    .map((part) => part.trim())
+    .filter(
+      (part) =>
+        part.length > 0 &&
+        !/^Outcome:\s*/i.test(part) &&
+        !/^Reason:\s*/i.test(part) &&
+        !/^Checklist:\s*/i.test(part),
+    )
+    .join(' · ')
+    .trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+export function isVisitTaskOutcomeSentinel(value: string | null | undefined): boolean {
+  const upper = String(value ?? '')
+    .trim()
+    .toUpperCase();
+  return upper === 'PARTIAL' || upper === 'DECLINED';
+}
+
+/**
+ * Encode carer/admin task outcome the same way as employee-app saveTask
+ * (notes Outcome: marker + PARTIAL/DECLINED recordedValue sentinel).
+ */
+export function encodeVisitTaskOutcomeFields(input: {
+  outcome: VisitTaskOutcomeCode;
+  notes?: string | null;
+  recordedValue?: string | null;
+  outcomeReasonCode?: string | null;
+}): {
+  isCompleted: true;
+  notes: string | null;
+  recordedValue: string | null;
+} {
+  const freeNotes = stripVisitTaskOutcomeNotes(input.notes);
+  const notesParts = [
+    input.outcome !== 'COMPLETED' ? `Outcome: ${input.outcome}` : null,
+    input.outcomeReasonCode?.trim() ? `Reason: ${input.outcomeReasonCode.trim()}` : null,
+    freeNotes,
+  ].filter(Boolean);
+
+  let recordedValue = input.recordedValue?.trim() || null;
+  if (isVisitTaskOutcomeSentinel(recordedValue) && input.outcome === 'COMPLETED') {
+    recordedValue = null;
+  }
+  if (input.outcome === 'PARTIAL') recordedValue = recordedValue || 'PARTIAL';
+  if (input.outcome === 'DECLINED') recordedValue = recordedValue || 'DECLINED';
+
+  return {
+    isCompleted: true,
+    notes: notesParts.length > 0 ? notesParts.join(' · ') : null,
+    recordedValue,
+  };
+}
+
 /**
  * Shared Home / Details / client-detail task progress.
  * Must match visit-task list semantics: planned assignments + all ad-hoc rows.
@@ -93,6 +172,28 @@ export function computeVisitTaskProgress(input: {
   };
 }
 
+function resolveJobVisitDay(job: JobForTaskProgress): Date | null {
+  const raw =
+    job.scheduledStartDateTime ??
+    job.visits.find((v) => v.scheduledStartDateTime)?.scheduledStartDateTime ??
+    null;
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+function assignmentDueOnDay(
+  assignment: AssignmentRow,
+  day: Date | null,
+  jobCompletions: CompletionRow[],
+): boolean {
+  if (jobCompletions.some((c) => c.assignmentId === assignment.id)) return true;
+  if (!day) return true;
+  if (assignment.scheduleFrequency == null && assignment.daysOfWeek == null) return true;
+  return visitTaskMatchesDay(pickScheduleFromAssignment(assignment as VisitTaskScheduleShape), day, day);
+}
+
 export function buildVisitTaskProgressByJobId(input: {
   jobs: JobForTaskProgress[];
   assignments: AssignmentRow[];
@@ -106,11 +207,11 @@ export function buildVisitTaskProgressByJobId(input: {
     jobRound.set(job.id, resolveJobMedicationRoundCode(job.visits));
   }
 
-  const assignmentsByKey = new Map<string, string[]>();
+  const assignmentsByKey = new Map<string, AssignmentRow[]>();
   for (const a of input.assignments) {
     const key = `${a.serviceUserId}|${a.medicationRoundCode}`;
     const list = assignmentsByKey.get(key) ?? [];
-    list.push(a.id);
+    list.push(a);
     assignmentsByKey.set(key, list);
   }
 
@@ -127,8 +228,11 @@ export function buildVisitTaskProgressByJobId(input: {
       result.set(job.id, { completed: 0, total: 0 });
       continue;
     }
-    const plannedIds = assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [];
+    const visitDay = resolveJobVisitDay(job);
     const jobCompletions = completionsByJob.get(job.id) ?? [];
+    const plannedIds = (assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [])
+      .filter((a) => assignmentDueOnDay(a, visitDay, jobCompletions))
+      .map((a) => a.id);
     result.set(
       job.id,
       computeVisitTaskProgress({

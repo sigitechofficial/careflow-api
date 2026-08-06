@@ -64,11 +64,19 @@ export function visitPlanSlotOccurrenceOnDay(params: {
   planAnchor: Date;
   planEffectiveTo: Date | null;
   exceptions: VisitPlanSlotExceptionShape[];
+  /** Allow N days before slotEffectiveFrom (backfill catch-up before call Start Date). */
+  extendBeforeEffectiveFromDays?: number;
 }): boolean {
-  const { slot, day, planAnchor, planEffectiveTo, exceptions } = params;
+  const { slot, day, planEffectiveTo, exceptions } = params;
+  const extendDays = Math.max(0, Math.floor(params.extendBeforeEffectiveFromDays ?? 0));
 
   if (!slot.isEnabled) return false;
-  if (!isWithinInclusive(day, slot.slotEffectiveFrom, slot.slotEffectiveTo)) return false;
+
+  let effectiveFrom = slot.slotEffectiveFrom;
+  if (extendDays > 0 && effectiveFrom) {
+    effectiveFrom = new Date(utcDateOnly(effectiveFrom).getTime() - extendDays * 86400000);
+  }
+  if (!isWithinInclusive(day, effectiveFrom, slot.slotEffectiveTo)) return false;
   if (planEffectiveTo && utcDateOnly(day).getTime() > utcDateOnly(planEffectiveTo).getTime()) return false;
   if (hasSkipException(exceptions, day)) return false;
 
@@ -78,7 +86,7 @@ export function visitPlanSlotOccurrenceOnDay(params: {
     return slot.oneOffDate != null && isSameUtcDate(slot.oneOffDate, day);
   }
 
-  return visitPlanSlotMatchesDay(slot, day, planAnchor);
+  return visitPlanSlotMatchesDay(slot, day, params.planAnchor);
 }
 
 /** Resolve carers for a specific day — day-specific assignments override global (dayOfWeek null). */
@@ -126,11 +134,13 @@ export function computeGenerationStart(
   fromDate: Date,
   backfillDays: number,
   slotEffectiveFrom: Date | null,
+  options?: { clampToSlotEffectiveFrom?: boolean },
 ): Date {
   const from = utcDateOnly(fromDate);
   if (backfillDays <= 0) return from;
   let start = new Date(from.getTime() - backfillDays * 86400000);
-  if (slotEffectiveFrom) {
+  const clamp = options?.clampToSlotEffectiveFrom !== false;
+  if (clamp && slotEffectiveFrom) {
     const slotFrom = utcDateOnly(slotEffectiveFrom);
     if (start.getTime() < slotFrom.getTime()) start = slotFrom;
   }

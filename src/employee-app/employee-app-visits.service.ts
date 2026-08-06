@@ -30,6 +30,11 @@ import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/vi
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
 import { validateObservationCreate } from '../service-user-observations/observation-payload.validation';
+import {
+  VisitObservationsCatalogService,
+  formatVisitObservationValue,
+  inferVisitObservationStatus,
+} from '../service-user-observations/visit-observations-catalog.service';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
@@ -55,12 +60,6 @@ import {
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
 import {
-  EMPLOYEE_APP_UNABLE_REASONS,
-  OBS_TYPE_CODE_ALIASES,
-  VITAL_RANGE_TO_OBS_CODE,
-  buildCatalogSections,
-  buildObsBounds,
-  buildObsFormForType,
   mobileTypeCode,
   resolveObservationTypeCode,
 } from './employee-app-observations.catalog';
@@ -78,9 +77,35 @@ import {
   isVisitTaskAddressed,
 } from './visit-task-progress.util';
 import {
+  pickScheduleFromAssignment,
+  visitTaskMatchesDay,
+} from '../visit-tasks/visit-task-schedule.util';
+import {
   parseObservationNumeric,
   resolveTaskObsLink,
 } from './visit-task-obs-link.util';
+import { syncObservationFromCompletedVisitTask } from './visit-task-obs-sync.util';
+import { VisitTimelineService } from './visit-timeline.service';
+import {
+  HANDOVER_TIMELINE_SOURCE_ID,
+  VISIT_NOTE_TIMELINE_SOURCE_ID,
+} from './visit-timeline.types';
+import {
+  checkInTimelineDetail,
+  concernTimelineTone,
+  handoverTimelineTone,
+  medicationOutcomeLabel,
+  medicationTimelineTone,
+  observationTimelineTone,
+  parseOccurredAt,
+  summarizeTimelineDetail,
+  taskOutcomeTimelineDetail,
+  taskOutcomeTimelineTone,
+} from './visit-timeline.util';
+import {
+  employeeAppEarlyArrivalReasons,
+  employeeAppLateArrivalReasons,
+} from './employee-app-check-in-arrival-reasons';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -210,6 +235,8 @@ export class EmployeeAppVisitsService {
     private readonly bodyMap: BodyMapService,
     private readonly attendance: VisitAttendanceService,
     private readonly ecmEvaluation: EcmEvaluationService,
+    private readonly visitTimeline: VisitTimelineService,
+    private readonly visitObservationsCatalog: VisitObservationsCatalogService,
   ) {}
 
   async getWorkspace(employeeId: string, jobId: string) {
@@ -235,6 +262,8 @@ export class EmployeeAppVisitsService {
           timingGraceMinutes: 15,
           allowManualOverride: true,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
+          earlyArrivalReasons: employeeAppEarlyArrivalReasons(),
+          lateArrivalReasons: employeeAppLateArrivalReasons(),
         },
       },
     };
@@ -393,6 +422,21 @@ export class EmployeeAppVisitsService {
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
+    const occurredAt = parseOccurredAt(deviceRecordedAt, now);
+    const timelineItem = await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      eventType: 'clock_in',
+      sourceType: 'check_in',
+      sourceId: 'check_in',
+      title: 'Clocked in',
+      detail: checkInTimelineDetail(dto.method),
+      tone: 'primary',
+      occurredAt,
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: idempotencyKey,
+    });
+
     const refreshed = await this.loadJobForEmployee(employeeId, jobId);
     const progress = await this.resolveProgress(refreshed);
 
@@ -410,6 +454,7 @@ export class EmployeeAppVisitsService {
         distanceMeters: geofence.distanceMeters,
         serverReceivedAt: now.toISOString(),
         shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+        ...(timelineItem ? { timelineItem } : {}),
       },
     };
   }
@@ -594,260 +639,32 @@ export class EmployeeAppVisitsService {
   async getObservations(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const since = ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
-    const [progress, medProgress, recorded, payload] = await Promise.all([
+    const [progress, medProgress, payload] = await Promise.all([
       this.resolveProgress(ctx),
       this.resolveMedicationProgress(ctx),
-      this.loadVisitObservations(ctx.job.serviceUserId, since),
-      this.buildObservationsCatalogPayload(ctx.job.serviceUserId),
+      this.visitObservationsCatalog.buildVisitObservationsPayload({
+        serviceUserId: ctx.job.serviceUserId,
+        since,
+      }),
     ]);
 
     return {
       data: {
         progress: this.buildProgress(progress, medProgress),
         ...payload,
-        recordedThisVisit: recorded,
-        recordedCount: recorded.length,
       },
     };
   }
 
   /**
-   * Backend-owned Obs picker + detail forms (units, ranges, unable reasons).
-   * Shared by details bootstrap and GET …/observations refresh.
+   * @deprecated Catalog is built by VisitObservationsCatalogService — kept as thin wrapper.
    */
   private async buildObservationsCatalogPayload(serviceUserId: string) {
-    const [types, vitalRanges, wellbeingDimensions, previousByType] = await Promise.all([
-      this.prisma.observationType.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-      }),
-      this.prisma.vitalAcceptedRangeCatalog.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-      }),
-      this.prisma.wellbeingDimension.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-        include: { levelLabels: { orderBy: { level: 'asc' } } },
-      }),
-      this.loadLatestObservationsByType(serviceUserId),
-    ]);
-
-    type VitalRangeEntry = {
-      min: number | null;
-      max: number | null;
-      unit: string;
-      diastolic?: { min: number; max: number; unit: string };
-    };
-    const rangeByObsCode = new Map<string, VitalRangeEntry>();
-    for (const row of vitalRanges) {
-      const obsCode = VITAL_RANGE_TO_OBS_CODE[row.fieldKey];
-      if (!obsCode) continue;
-      if (row.fieldKey === 'bpDiastolic') {
-        const existing = rangeByObsCode.get(obsCode) ?? {
-          min: null,
-          max: null,
-          unit: row.unit,
-        };
-        existing.diastolic = { min: row.min, max: row.max, unit: row.unit };
-        rangeByObsCode.set(obsCode, existing);
-        continue;
-      }
-      const existing = rangeByObsCode.get(obsCode);
-      rangeByObsCode.set(obsCode, {
-        min: row.min,
-        max: row.max,
-        unit: row.unit,
-        diastolic: existing?.diastolic,
-      });
-    }
-
-    const wellbeingForForm = wellbeingDimensions.map((d) => ({
-      code: d.code,
-      name: d.name,
-      levels: d.levelLabels.map((l) => ({ level: l.level, label: l.label })),
-    }));
-
-    const definitionsByTypeCode: Record<string, Record<string, unknown>> = {};
-    const optional: Array<Record<string, unknown>> = [];
-
-    for (const type of types) {
-      const code = type.code.toUpperCase();
-      const typeCode = mobileTypeCode(code);
-      const range = rangeByObsCode.get(code);
-      const unit = range?.unit ?? type.unitLabel ?? null;
-      const bounds = buildObsBounds({
-        unit,
-        minAccepted: range?.min ?? null,
-        maxAccepted: range?.max ?? null,
-        secondary:
-          code === 'BLOOD_PRESSURE' && range?.diastolic
-            ? {
-                key: 'diastolic',
-                label: 'Diastolic',
-                unit: range.diastolic.unit,
-                minAccepted: range.diastolic.min,
-                maxAccepted: range.diastolic.max,
-                ...(() => {
-                  const b = buildObsBounds({
-                    unit: range.diastolic.unit,
-                    minAccepted: range.diastolic.min,
-                    maxAccepted: range.diastolic.max,
-                  });
-                  return {
-                    warningMin: b.warningMin,
-                    warningMax: b.warningMax,
-                    criticalMin: b.criticalMin,
-                    criticalMax: b.criticalMax,
-                    normalRangeLabel: b.normalRangeLabel,
-                  };
-                })(),
-              }
-            : null,
-      });
-
-      const form = buildObsFormForType({
-        code,
-        name: type.name,
-        unitLabel: type.unitLabel,
-        valueKind: type.valueKind,
-        bounds,
-        wellbeingDimensions: code === 'WELLBEING' ? wellbeingForForm : undefined,
-      });
-
-      const previous = previousByType.get(code);
-      const definition = {
-        id: typeCode,
-        definitionId: typeCode,
-        typeCode,
-        observationTypeCode: code,
-        observationTypeId: type.id,
-        label: type.name,
-        description: form.subtitle,
-        category: type.usesNews2 ? 'vitals' : 'clinical',
-        isRequired: false,
-        unit: bounds.unit,
-        inputType: form.fields[0]?.inputType ?? 'number',
-        normalRangeLabel: bounds.normalRangeLabel,
-        minAccepted: bounds.minAccepted,
-        maxAccepted: bounds.maxAccepted,
-        warningMin: bounds.warningMin,
-        warningMax: bounds.warningMax,
-        criticalMin: bounds.criticalMin,
-        criticalMax: bounds.criticalMax,
-        instructions: form.subtitle,
-        previousValue: previous?.valueLabel ?? null,
-        previousRecordedAt: previous?.recordedAt ?? null,
-        allowsUnableToRecord: true,
-        allowsMultipleReadings: true,
-        requiresNotesWhenAbnormal: form.requiresNotesWhenAbnormal,
-        requiresNotesWhenCritical: form.requiresNotesWhenCritical,
-        isOutstanding: false,
-        isDue: false,
-        isOverdue: false,
-        done: false,
-        bounds,
-        form,
-        valueKind: type.valueKind,
-        usesNews2: type.usesNews2,
-      };
-
-      definitionsByTypeCode[typeCode] = definition;
-      // Also index by DB code for clients that still use BLOOD_SUGAR etc.
-      definitionsByTypeCode[code.toLowerCase()] = definition;
-      if (OBS_TYPE_CODE_ALIASES[code]) {
-        definitionsByTypeCode[OBS_TYPE_CODE_ALIASES[code]] = definition;
-      }
-
-      optional.push({
-        id: typeCode,
-        typeCode,
-        observationTypeCode: code,
-        label: type.name,
-        description: form.subtitle,
-        category: definition.category,
-        isRequired: false,
-        unit: bounds.unit,
-        normalRangeLabel: bounds.normalRangeLabel,
-        minAccepted: bounds.minAccepted,
-        maxAccepted: bounds.maxAccepted,
-        warningMin: bounds.warningMin,
-        warningMax: bounds.warningMax,
-        criticalMin: bounds.criticalMin,
-        criticalMax: bounds.criticalMax,
-        allowsUnableToRecord: true,
-        allowsMultipleReadings: true,
-        done: false,
-      });
-    }
-
-    const suggestedCodes = [
-      'BLOOD_SUGAR',
-      'FLUID_MONITOR',
-      'REPOSITIONING',
-      'WELLBEING',
-      'INFECTION',
-      'BLOOD_PRESSURE',
-      'PULSE',
-      'OXYGEN_SATURATION',
-      'TEMPERATURE',
-    ];
-    const suggested = suggestedCodes
-      .map((code) => types.find((t) => t.code.toUpperCase() === code))
-      .filter((t): t is NonNullable<typeof t> => Boolean(t))
-      .map((t) => ({
-        id: mobileTypeCode(t.code),
-        typeCode: mobileTypeCode(t.code),
-        label: t.name,
-        observationTypeCode: t.code,
-      }));
-
-    const catalogSections = buildCatalogSections(
-      types.map((t) => ({
-        code: t.code,
-        name: t.name,
-        unitLabel: t.unitLabel,
-      })),
-    );
-
-    return {
-      unableReasons: EMPLOYEE_APP_UNABLE_REASONS,
-      catalog: {
-        title: 'Record observation',
-        anotherTitle: 'Record another observation',
-        searchPlaceholder: 'Search observations',
-        sections: catalogSections,
-      },
-      definitionsByTypeCode,
-      required: [] as typeof optional,
-      optional,
-      suggested,
-      emergencyProtocol: {
-        id: 'medical_emergency',
-        title: 'Medical emergency — launch protocol',
-        description: 'Collapse, choking or acute deterioration.',
-        tone: 'danger' as Tone,
-      },
-    };
+    return this.visitObservationsCatalog.buildCatalogPayload(serviceUserId);
   }
 
-  private async loadLatestObservationsByType(serviceUserId: string) {
-    const rows = await this.prisma.serviceUserObservation.findMany({
-      where: { serviceUserId, deletedAt: null },
-      orderBy: { recordedAt: 'desc' },
-      include: { observationType: true },
-      take: 80,
-    });
-    const map = new Map<string, { valueLabel: string | null; recordedAt: string }>();
-    for (const row of rows) {
-      const code = row.observationType.code.toUpperCase();
-      if (map.has(code)) continue;
-      map.set(code, {
-        valueLabel: formatObservationValue(row),
-        recordedAt: row.recordedAt.toISOString(),
-      });
-    }
-    return map;
+  private async loadVisitObservations(serviceUserId: string, since: Date) {
+    return this.visitObservationsCatalog.loadVisitObservations(serviceUserId, since);
   }
 
   async createObservation(
@@ -911,8 +728,8 @@ export class EmployeeAppVisitsService {
         observationTypeCode: row.observationType.code,
         observationTypeName: row.observationType.name,
         recordedAt: row.recordedAt.toISOString(),
-        valueLabel: formatObservationValue(row),
-        statusLabel: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
+        valueLabel: formatVisitObservationValue(row),
+        statusLabel: inferVisitObservationStatus(row.observationType.code, row.numericValue, row.payload),
         tone: 'success' as Tone,
       },
     };
@@ -920,11 +737,10 @@ export class EmployeeAppVisitsService {
 
   async getLog(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const since = ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
     const [progress, medProgress, timeline, handoverNote] = await Promise.all([
       this.resolveProgress(ctx),
       this.resolveMedicationProgress(ctx),
-      this.buildVisitTimeline(ctx, since),
+      this.visitTimeline.listForJob(jobId),
       this.resolveHandoverNote(ctx),
     ]);
 
@@ -991,6 +807,19 @@ export class EmployeeAppVisitsService {
       ctx.primaryVisit.status === ScheduledVisitStatus.COMPLETED ||
       ctx.job.status === ScheduledJobStatus.COMPLETED;
     if (status === LocalVisitStatus.COMPLETED && visitAlreadyCompleted) {
+      await this.visitTimeline.upsertEvent({
+        scheduledJobId: jobId,
+        scheduledVisitId: ctx.primaryVisit.id,
+        eventType: 'clock_out',
+        sourceType: 'complete',
+        sourceId: 'complete',
+        title: 'Clocked out',
+        detail: 'Visit complete',
+        tone: 'success',
+        occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date()),
+        createdByEmployeeId: employeeId,
+        writeIdempotencyKey: dto.idempotencyKey,
+      });
       return this.buildCompleteResponse(employeeId, jobId, ctx, {
         status: LocalVisitStatus.COMPLETED,
         message: 'Visit already completed',
@@ -1077,6 +906,20 @@ export class EmployeeAppVisitsService {
       accuracyMeters: dto.accuracyMeters,
       outsideGeofence: !geofence.withinArea,
       distanceMeters: geofence.distanceMeters,
+    });
+
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'clock_out',
+      sourceType: 'complete',
+      sourceId: 'complete',
+      title: 'Clocked out',
+      detail: 'Visit complete',
+      tone: 'success',
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, now),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
     });
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
@@ -1320,6 +1163,24 @@ export class EmployeeAppVisitsService {
       },
     }));
 
+    const taskTitle = String(match.name ?? 'Task').trim() || 'Task';
+    const taskSourceId =
+      (match.assignmentId != null ? String(match.assignmentId) : null) ||
+      (match.taskCatalogueTaskId != null ? String(match.taskCatalogueTaskId) : null) ||
+      taskId;
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      eventType: 'task',
+      sourceType: 'task',
+      sourceId: taskSourceId,
+      title: taskTitle,
+      detail: taskOutcomeTimelineDetail(outcome),
+      tone: taskOutcomeTimelineTone(outcome),
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     return { data: response };
   }
 
@@ -1439,6 +1300,21 @@ export class EmployeeAppVisitsService {
       },
     }));
 
+    const medTitle = [med.medicationName, med.dose].filter(Boolean).join(' · ');
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'medication',
+      sourceType: 'medication',
+      sourceId: created.id,
+      title: medTitle || 'Medication',
+      detail: medicationOutcomeLabel(dto.outcomeLabel, mapped.status),
+      tone: medicationTimelineTone(mapped.status),
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, recordedAt),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     return { data: response };
   }
 
@@ -1550,6 +1426,31 @@ export class EmployeeAppVisitsService {
       }));
     }
 
+    const valueSummary =
+      numericValue != null
+        ? String(numericValue)
+        : dto.value != null
+          ? String(dto.value)
+          : dto.outcome === 'unable'
+            ? dto.unableReasonCode ?? 'Unable'
+            : dto.outcome ?? null;
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'observation',
+      sourceType: 'observation',
+      sourceId: row.id,
+      title: type.name,
+      detail: valueSummary,
+      tone: observationTimelineTone({
+        abnormal: dto.abnormal,
+        critical: dto.critical,
+      }),
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt ?? dto.recordedAt, new Date()),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     return { data: response };
   }
 
@@ -1631,32 +1532,62 @@ export class EmployeeAppVisitsService {
       }));
     }
 
+    const updateValueSummary =
+      (numericValue !== undefined ? String(numericValue) : null) ||
+      (dto.value != null ? String(dto.value) : null) ||
+      (existing.numericValue != null ? String(existing.numericValue) : null) ||
+      String(response.outcome);
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'observation',
+      sourceType: 'observation',
+      sourceId: updated.id,
+      title: existing.observationType.name,
+      detail: updateValueSummary,
+      tone: observationTimelineTone({
+        abnormal: Boolean(dto.abnormal ?? prevPayload.abnormal),
+        critical: Boolean(dto.critical ?? prevPayload.critical),
+      }),
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, existing.recordedAt),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     return { data: response };
   }
 
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
     const entryId = dto.clientEntryId ?? randomUUID();
     const now = new Date().toISOString();
-    const timelineItem = {
-      id: `note-${entryId}`,
-      at: now,
-      time: formatHmUtc(new Date(dto.deviceRecordedAt)),
-      timeLabel: formatHmUtc(new Date(dto.deviceRecordedAt)),
-      title: dto.title?.trim() || 'Visit note',
-      detail: dto.body,
-      subtitle: dto.body,
-      tone: 'neutral' as Tone,
-    };
+    const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
+    const title = dto.title?.trim() || 'Visit note';
+    const detail = summarizeTimelineDetail(dto.body);
+    const timelineItem = await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'visit_note',
+      sourceType: 'log_note',
+      sourceId: VISIT_NOTE_TIMELINE_SOURCE_ID,
+      title,
+      detail,
+      tone: 'ink',
+      occurredAt,
+      logEntryId: entryId,
+      isDraft: Boolean(dto.isDraft),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
     const response = {
       entryId,
       entryType: 'note',
       isDraft: Boolean(dto.isDraft),
       serverConfirmedAt: now,
-      timelineItem,
+      ...(timelineItem && !dto.isDraft ? { timelineItem } : {}),
     };
 
     await this.mergeEmployeeAppMeta(jobId, (ea) => {
@@ -1688,28 +1619,35 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
     const entryId = dto.clientEntryId ?? randomUUID();
     const now = new Date().toISOString();
-    const timelineItem = {
-      id: `handover-${entryId}`,
-      at: now,
-      time: formatHmUtc(new Date(dto.deviceRecordedAt)),
-      timeLabel: formatHmUtc(new Date(dto.deviceRecordedAt)),
-      title: 'Handover note',
-      detail: dto.body,
-      subtitle: dto.body,
-      tone: 'primary' as Tone,
-    };
+    const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
+    const detail = summarizeTimelineDetail(dto.body);
+    const timelineItem = await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'handover',
+      sourceType: 'handover',
+      sourceId: HANDOVER_TIMELINE_SOURCE_ID,
+      title: 'Handover',
+      detail,
+      tone: handoverTimelineTone(dto.priority),
+      occurredAt,
+      logEntryId: entryId,
+      isDraft: Boolean(dto.isDraft),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
     const response = {
       entryId,
       entryType: 'handover',
       isDraft: Boolean(dto.isDraft),
       serverConfirmedAt: now,
-      timelineItem,
+      ...(timelineItem && !dto.isDraft ? { timelineItem } : {}),
     };
 
     await this.mergeEmployeeAppMeta(jobId, (ea) => ({
@@ -1745,7 +1683,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogConcern(employeeId: string, jobId: string, dto: EmployeeAppLogConcernDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
@@ -1780,11 +1718,27 @@ export class EmployeeAppVisitsService {
       };
     });
 
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'concern',
+      sourceType: 'concern',
+      sourceId: entryId,
+      title: (dto.concernType ?? 'Concern').toString().trim() || 'Concern',
+      detail: summarizeTimelineDetail(dto.body),
+      tone: concernTimelineTone(dto.severity),
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+      logEntryId: entryId,
+      isDraft: Boolean(dto.isDraft),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     return { data: response };
   }
 
   async createIncident(employeeId: string, jobId: string, dto: EmployeeAppIncidentDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
@@ -1820,6 +1774,24 @@ export class EmployeeAppVisitsService {
           [dto.idempotencyKey]: response,
         },
       };
+    });
+
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'incident',
+      sourceType: 'incident',
+      sourceId: incidentId,
+      title: (dto.incidentType ?? 'Incident').toString().trim() || 'Incident',
+      detail: summarizeTimelineDetail(
+        [dto.body, dto.severity ? `Severity: ${dto.severity}` : null].filter(Boolean).join(' · '),
+      ),
+      tone: 'danger',
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+      logEntryId: incidentId,
+      isDraft: Boolean(dto.isDraft),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
     });
 
     return { data: response };
@@ -2059,7 +2031,8 @@ export class EmployeeAppVisitsService {
     const medsRemaining = Math.max(0, medsDue - medsGiven);
     const hasScheduledMeds = medsDue > 0;
     const hasPrnMeds = prnCount > 0;
-    const hasMedications = hasScheduledMeds || hasPrnMeds || Boolean(visit.medicationRequired);
+    // hasAny reflects actual due/PRN meds — not the overloaded visit-plan round label.
+    const hasMedications = hasScheduledMeds || hasPrnMeds;
     const hasTasks = tasks.length > 0;
     const hasObservations = obsCount > 0;
     const bodyMapActive = bodyMapHandover?.activeCount ?? 0;
@@ -2468,9 +2441,35 @@ export class EmployeeAppVisitsService {
               deletedAt: null,
               isActive: true,
             },
-            select: { id: true },
+            select: {
+              id: true,
+              daysOfWeek: true,
+              scheduleFrequency: true,
+              repeatEvery: true,
+              repeatUnit: true,
+              timeCritical: true,
+              timeToleranceMinutes: true,
+              monthlyDayMode: true,
+              monthlyDaysOfMonth: true,
+              monthlyPatternOrdinal: true,
+              monthlyPatternWeekday: true,
+            },
           })
-        : Promise.resolve([] as Array<{ id: string }>),
+        : Promise.resolve(
+            [] as Array<{
+              id: string
+              daysOfWeek: number[]
+              scheduleFrequency: import('@prisma/client').VisitPlanScheduleFrequency
+              repeatEvery: number
+              repeatUnit: import('@prisma/client').VisitPlanRepeatUnit
+              timeCritical: boolean
+              timeToleranceMinutes: number
+              monthlyDayMode: import('@prisma/client').VisitPlanMonthlyDayMode
+              monthlyDaysOfMonth: number[]
+              monthlyPatternOrdinal: import('@prisma/client').VisitPlanMonthlyOrdinal | null
+              monthlyPatternWeekday: number | null
+            }>,
+          ),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: ctx.job.id },
         select: {
@@ -2483,9 +2482,23 @@ export class EmployeeAppVisitsService {
       this.countVisitObservations(ctx.job.serviceUserId, since),
     ]);
 
+    const visitDay = new Date(
+      Date.UTC(
+        ctx.primaryVisit.scheduledStartDateTime.getUTCFullYear(),
+        ctx.primaryVisit.scheduledStartDateTime.getUTCMonth(),
+        ctx.primaryVisit.scheduledStartDateTime.getUTCDate(),
+      ),
+    );
+    const plannedAssignmentIds = assignments
+      .filter((a) => {
+        if (completions.some((c) => c.assignmentId === a.id)) return true;
+        return visitTaskMatchesDay(pickScheduleFromAssignment(a), visitDay, visitDay);
+      })
+      .map((a) => a.id);
+
     // Same formula as Home (`buildVisitTaskProgressByJobId`) — completion rows only.
     const progress = computeVisitTaskProgress({
-      plannedAssignmentIds: assignments.map((a) => a.id),
+      plannedAssignmentIds,
       completions,
     });
 
@@ -2511,74 +2524,16 @@ export class EmployeeAppVisitsService {
     recordedValue?: string | null;
     notes?: string | null;
   }) {
-    const link = resolveTaskObsLink({
-      name: input.taskName,
+    await syncObservationFromCompletedVisitTask(this.prisma, {
+      serviceUserId: input.serviceUserId,
+      jobId: input.jobId,
+      visitId: input.visitId,
+      taskName: input.taskName,
       groupCode: input.groupCode,
       flagsJson: input.flagsJson,
-    });
-    if (!link) return;
-
-    const type = await this.prisma.observationType.findFirst({
-      where: { code: link.observationTypeCode, isActive: true },
-      select: { id: true, unitLabel: true, code: true },
-    });
-    if (!type) return;
-
-    const numericValue =
-      parseObservationNumeric(input.recordedValue) ?? parseObservationNumeric(input.notes);
-    const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
-    const existing = await this.prisma.serviceUserObservation.findFirst({
-      where: {
-        serviceUserId: input.serviceUserId,
-        observationTypeId: type.id,
-        deletedAt: null,
-        recordedAt: { gte: since },
-        recordedByEmployeeId: input.employeeId,
-      },
-      orderBy: { recordedAt: 'desc' },
-    });
-
-    const payloadBase = {
-      definitionId: link.linkedTypeCode,
-      outcome: 'recorded',
-      value: numericValue ?? input.recordedValue ?? null,
-      scheduledJobId: input.jobId,
-      scheduledVisitId: input.visitId,
+      recordedValue: input.recordedValue,
+      notes: input.notes,
       recordedByEmployeeId: input.employeeId,
-      source: 'visit_task',
-    };
-
-    if (existing) {
-      await this.prisma.serviceUserObservation.update({
-        where: { id: existing.id },
-        data: {
-          numericValue: numericValue ?? existing.numericValue,
-          notes: input.notes?.trim() || existing.notes,
-          unit: type.unitLabel ?? existing.unit,
-          payload: {
-            ...(typeof existing.payload === 'object' &&
-            existing.payload &&
-            !Array.isArray(existing.payload)
-              ? (existing.payload as Record<string, unknown>)
-              : {}),
-            ...payloadBase,
-          } as Prisma.InputJsonValue,
-        },
-      });
-      return;
-    }
-
-    await this.prisma.serviceUserObservation.create({
-      data: {
-        serviceUserId: input.serviceUserId,
-        observationTypeId: type.id,
-        recordedAt: new Date(),
-        numericValue,
-        notes: input.notes?.trim() || null,
-        unit: type.unitLabel ?? null,
-        payload: payloadBase as Prisma.InputJsonValue,
-        recordedByEmployeeId: input.employeeId,
-      },
     });
   }
 
@@ -2834,7 +2789,7 @@ export class EmployeeAppVisitsService {
 
   private async loadOverviewExtras(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
     const suId = ctx.job.serviceUserId;
-    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover] =
+    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport] =
       await Promise.all([
         this.loadAllergies(suId),
         this.prisma.initialAssessmentRiskRecord.findMany({
@@ -2877,6 +2832,10 @@ export class EmployeeAppVisitsService {
         this.resolveProgress(ctx),
         this.resolveMedicationProgress(ctx),
         this.bodyMap.handoverPreview(suId).catch(() => null),
+        this.prisma.medicationSupportProfile.findFirst({
+          where: { serviceUserId: suId, deletedAt: null, isActive: true },
+          select: { storageLocation: true },
+        }),
       ]);
 
     const riskTags = openRisks.map((r) => ({
@@ -2919,6 +2878,11 @@ export class EmployeeAppVisitsService {
           }
         : null;
 
+    const medicationLocation =
+      medSupport?.storageLocation != null && medSupport.storageLocation.trim()
+        ? medSupport.storageLocation.trim()
+        : null;
+
     const lastHandoverMeta =
       typeof ctx.employeeAppMeta.lastHandover === 'object' && ctx.employeeAppMeta.lastHandover
         ? (ctx.employeeAppMeta.lastHandover as Record<string, unknown>)
@@ -2938,6 +2902,7 @@ export class EmployeeAppVisitsService {
         chipItems: riskTags,
       },
       keySafe,
+      medicationLocation,
       lastHandover: lastHandoverMeta
         ? {
             message: String(lastHandoverMeta.message ?? lastHandoverMeta.body ?? ''),
@@ -3186,156 +3151,10 @@ export class EmployeeAppVisitsService {
     return sections;
   }
 
-  private async loadVisitObservations(serviceUserId: string, since: Date) {
-    const rows = await this.prisma.serviceUserObservation.findMany({
-      where: {
-        serviceUserId,
-        deletedAt: null,
-        recordedAt: { gte: since },
-      },
-      orderBy: { recordedAt: 'desc' },
-      include: { observationType: true },
-      take: 20,
-    });
-
-    return rows.map((row) => {
-      const typeCode = mobileTypeCode(row.observationType.code);
-      return {
-        id: row.id,
-        definitionId: typeCode,
-        type: row.observationType.name,
-        title: row.observationType.name,
-        typeCode,
-        observationTypeCode: row.observationType.code,
-        value: formatObservationValue(row),
-        valueLabel: formatObservationValue(row),
-        unit: row.unit ?? row.observationType.unitLabel ?? null,
-        recordedAt: row.recordedAt.toISOString(),
-        time: formatHmUtc(row.recordedAt),
-        timeLabel: formatHmUtc(row.recordedAt),
-        status: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
-        statusLabel: inferObservationStatus(row.observationType.code, row.numericValue, row.payload),
-        statusTone: 'success' as Tone,
-        tone: 'success' as Tone,
-      };
-    });
-  }
-
   private async countVisitObservations(serviceUserId: string, since: Date) {
     return this.prisma.serviceUserObservation.count({
       where: { serviceUserId, deletedAt: null, recordedAt: { gte: since } },
     });
-  }
-
-  private async buildVisitTimeline(
-    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
-    since: Date,
-  ) {
-    const entries: Array<{
-      id: string;
-      at: string;
-      timeLabel: string;
-      title: string;
-      subtitle: string | null;
-      tone: Tone;
-      sortAt: number;
-    }> = [];
-
-    if (ctx.primaryVisit.actualStartDateTime || ctx.checkIn) {
-      const at = ctx.primaryVisit.actualStartDateTime ?? new Date(String(ctx.checkIn?.checkedInAt));
-      const geofence = this.evaluateGeofenceFromMeta(ctx);
-      entries.push({
-        id: 'check-in',
-        at: at.toISOString(),
-        timeLabel: formatHmUtc(at),
-        title: 'Clocked in',
-        subtitle: geofence.withinArea
-          ? 'Within geofence · GPS confirmed'
-          : 'Outside geofence · GPS recorded',
-        tone: 'primary',
-        sortAt: at.getTime(),
-      });
-    }
-
-    const [taskCompletions, observations, medEvents] = await Promise.all([
-      this.prisma.scheduledVisitTaskCompletion.findMany({
-        where: {
-          scheduledJobId: ctx.job.id,
-          isCompleted: true,
-          completedAt: { gte: since },
-        },
-        include: {
-          assignment: { include: { task: { select: { name: true } } } },
-        },
-        orderBy: { completedAt: 'asc' },
-      }),
-      this.loadVisitObservations(ctx.job.serviceUserId, since),
-      this.prisma.medicationAdministrationEvent.findMany({
-        where: {
-          serviceUserId: ctx.job.serviceUserId,
-          deletedAt: null,
-          actualDateTime: { gte: since },
-          status: MedicationAdministrationStatus.GIVEN,
-        },
-        include: { medication: { select: { medicationName: true } } },
-        orderBy: { actualDateTime: 'asc' },
-        take: 20,
-      }),
-    ]);
-
-    for (const t of taskCompletions) {
-      if (!t.completedAt) continue;
-      const name =
-        t.assignment?.task.name ??
-        (await this.prisma.taskCatalogueTask.findUnique({
-          where: { id: t.taskCatalogueTaskId },
-          select: { name: true },
-        }))?.name ??
-        'Task';
-      entries.push({
-        id: `task-${t.id}`,
-        at: t.completedAt.toISOString(),
-        timeLabel: formatHmUtc(t.completedAt),
-        title: 'Task completed',
-        subtitle: name,
-        tone: 'success',
-        sortAt: t.completedAt.getTime(),
-      });
-    }
-
-    for (const o of observations) {
-      entries.push({
-        id: `obs-${o.id}`,
-        at: o.recordedAt,
-        timeLabel: o.timeLabel,
-        title: 'Observation recorded',
-        subtitle: `${o.title} ${o.valueLabel ?? ''}`.trim(),
-        tone: 'success',
-        sortAt: new Date(o.recordedAt).getTime(),
-      });
-    }
-
-    for (const m of medEvents) {
-      if (!m.actualDateTime) continue;
-      entries.push({
-        id: `mar-${m.id}`,
-        at: m.actualDateTime.toISOString(),
-        timeLabel: formatHmUtc(m.actualDateTime),
-        title: 'Medication given',
-        subtitle: m.medication.medicationName,
-        tone: 'success',
-        sortAt: m.actualDateTime.getTime(),
-      });
-    }
-
-    entries.sort((a, b) => b.sortAt - a.sortAt);
-    return entries.map(({ sortAt: _sortAt, timeLabel, subtitle, ...rest }) => ({
-      ...rest,
-      timeLabel,
-      subtitle,
-      time: timeLabel,
-      detail: subtitle,
-    }));
   }
 
   private resolveHandoverNote(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
@@ -3664,45 +3483,6 @@ function extractCommunicationNotes(text: string): string[] {
   if (/hard of hearing|hearing aid|deaf/.test(lower)) items.push('Hard of hearing');
   if (/announce yourself|knock before/.test(lower)) items.push('Announce yourself');
   return items;
-}
-
-function formatObservationValue(row: {
-  numericValue: Prisma.Decimal | number | null;
-  unit: string | null;
-  payload: Prisma.JsonValue | null;
-  observationType?: { name: string };
-}): string | null {
-  if (row.numericValue != null) {
-    const unit = row.unit?.trim();
-    const num = Number(row.numericValue);
-    return unit ? `${num} ${unit}` : String(num);
-  }
-  if (row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)) {
-    const p = row.payload as Record<string, unknown>;
-    if (typeof p.amountMl === 'number') return `${p.amountMl} ml`;
-    if (typeof p.fluidType === 'string' && typeof p.amountMl === 'number') {
-      return `${p.fluidType} · ${p.amountMl} ml`;
-    }
-  }
-  return null;
-}
-
-function inferObservationStatus(
-  code: string,
-  numericValue: Prisma.Decimal | number | null,
-  payload: Prisma.JsonValue | null,
-): string | null {
-  if (code === 'BLOOD_SUGAR' && numericValue != null) {
-    const v = Number(numericValue);
-    if (v >= 4 && v <= 15) return 'Normal';
-    if (v < 4) return 'Low';
-    return 'High';
-  }
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    const p = payload as Record<string, unknown>;
-    if (typeof p.interpretation === 'string') return p.interpretation;
-  }
-  return null;
 }
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {

@@ -173,10 +173,15 @@ export class EcmExceptionsService {
     return createdOrExisting;
   }
 
-  async listOpen(limit = 50) {
+  async listOpen(limit = 50, serviceUserId?: string) {
     await this.alerts.refreshOverdueFlags(200);
     const rows = await this.prisma.ecmException.findMany({
-      where: { lifecycle: { in: OPEN_LIFECYCLES } },
+      where: {
+        lifecycle: { in: OPEN_LIFECYCLES },
+        ...(serviceUserId
+          ? { scheduledJob: { serviceUserId, deletedAt: null } }
+          : {}),
+      },
       orderBy: [{ overdue: 'desc' }, { createdAt: 'desc' }],
       take: Math.min(limit, 100),
       include: {
@@ -184,6 +189,7 @@ export class EcmExceptionsService {
           select: {
             id: true,
             jobName: true,
+            serviceUserId: true,
             serviceUser: {
               select: { id: true, firstName: true, lastName: true, preferredName: true },
             },
@@ -205,6 +211,7 @@ export class EcmExceptionsService {
         acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
         createdAt: r.createdAt.toISOString(),
         jobName: r.scheduledJob.jobName,
+        serviceUserId: r.scheduledJob.serviceUserId,
         serviceUserName:
           r.scheduledJob.serviceUser.preferredName?.trim() ||
           [r.scheduledJob.serviceUser.firstName, r.scheduledJob.serviceUser.lastName]
