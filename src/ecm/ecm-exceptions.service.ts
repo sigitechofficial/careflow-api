@@ -141,7 +141,7 @@ export class EcmExceptionsService {
     if (evaluation.operationalExceptionCodes.includes('MANUAL_ATTENDANCE')) {
       desired.push({
         kind: EcmExceptionKind.MANUAL_ATTENDANCE,
-        title: 'Manual attendance',
+        title: 'Admin completed visit',
       });
     }
     if (evaluation.operationalExceptionCodes.includes('MOCK_LOCATION')) {

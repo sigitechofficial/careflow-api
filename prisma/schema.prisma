@@ -7976,17 +7976,23 @@ model UkPayrollRun {
   @@schema("payroll")
 }
 
-/// Immutable HMRC RTI submission attempt (FPS first; EPS later). Passwords never stored.
+/// Immutable HMRC RTI submission attempt (FPS on runs; EPS on tax month).
+/// Payload XML + fingerprint are write-once; gateway outcome may update status/response only.
 model PayrollHmrcSubmission {
   id              String   @id @default(uuid()) @db.Uuid
-  ukPayrollRunId  String   @db.Uuid
-  /// FPS | EPS (EPS wired in T19).
+  /// Present for FPS; null for EPS (tax-month filings).
+  ukPayrollRunId  String?  @db.Uuid
+  /// Present for EPS; null for FPS.
+  taxYearId       String?  @db.Uuid
+  /// UK PAYE tax month 1–12 for EPS.
+  taxMonth        Int?
+  /// FPS | EPS
   documentType    String   @default("FPS")
   /// DRY_RUN | SUBMIT
   mode            String
-  /// TEST | LIVE — LIVE blocked until T18.
+  /// TEST | LIVE
   environment     String
-  /// DRAFT_BUILT | SUBMITTED | ACKNOWLEDGED | ACCEPTED | REJECTED | ERROR | SIMULATED
+  /// DRAFT_BUILT | PENDING_APPROVAL | SUBMITTED | ACKNOWLEDGED | ACCEPTED | REJECTED | REJECTED_APPROVAL | ERROR
   status          String
   correlationId   String?
   gatewayUserId   String?
@@ -8004,7 +8010,7 @@ model PayrollHmrcSubmission {
   acknowledgement Json?
   /// T17 — snapshot of Gov-* fraud-prevention headers attached (or that would be).
   fraudPreventionHeaders Json?
-  /// T18 — SHA-256 of FPS content at request time (dual-control match).
+  /// SHA-256 of FPS/EPS content at request time (dual-control match).
   payloadFingerprint String?
   approvedById    String?  @db.Uuid
   approvedAt      DateTime?
@@ -8014,11 +8020,39 @@ model PayrollHmrcSubmission {
   createdAt       DateTime @default(now())
   createdById     String?  @db.Uuid
 
-  run UkPayrollRun @relation(fields: [ukPayrollRunId], references: [id], onDelete: Cascade)
+  /// Preserve HMRC evidence if a payroll run is soft/hard-deleted.
+  run UkPayrollRun? @relation(fields: [ukPayrollRunId], references: [id], onDelete: SetNull)
+  events PayrollHmrcSubmissionEvent[]
 
   @@index([ukPayrollRunId])
+  @@index([taxYearId, taxMonth])
+  @@index([documentType])
   @@index([status])
   @@index([createdAt])
+  @@schema("payroll")
+}
+
+/// T21 — append-only lifecycle events (who / when / hash / correlation / response digest).
+model PayrollHmrcSubmissionEvent {
+  id                 String   @id @default(uuid()) @db.Uuid
+  submissionId       String   @db.Uuid
+  /// DRAFT_BUILT | LIVE_REQUESTED | LIVE_APPROVED | LIVE_REJECTED | GATEWAY_POSTED | GATEWAY_RESPONSE
+  eventType          String
+  actorUserId        String?  @db.Uuid
+  fromStatus         String?
+  toStatus           String
+  payloadFingerprint String?
+  correlationId      String?
+  /// SHA-256 of full gateway response body when stored.
+  responseSha256     String?
+  httpStatus         Int?
+  detail             Json?
+  createdAt          DateTime @default(now())
+
+  submission PayrollHmrcSubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+
+  @@index([submissionId, createdAt])
+  @@index([eventType])
   @@schema("payroll")
 }
 

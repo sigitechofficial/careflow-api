@@ -316,7 +316,7 @@ export class EcmReportsService {
           punctuality:
             'ON_TIME arrivals ÷ (total evaluations − confirmed missed). Early is not on-time. Aligns with arrivalClassification SSOT used by Graphs.',
           electronicMonitoring:
-            'Visits without MANUAL_ATTENDANCE operational exception ÷ total evaluations in period.',
+            'Visits without MANUAL_ATTENDANCE (admin-completed) ÷ total evaluations in period.',
           exceptionRegister:
             'Evaluations with a non-compliant arrival/duration/missed classification or any operational exception code.',
           opsDay: `Operational calendar day in ${DEFAULT_OPERATIONAL_TIMEZONE}.`,

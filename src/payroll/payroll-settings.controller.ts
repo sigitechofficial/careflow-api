@@ -27,12 +27,17 @@ import {
   PayrollPeriodsQueryDto,
   PreviewEpsQueryDto,
   PurgePayrollDataDto,
+  ApproveHmrcEpsSubmissionDto,
+  ListHmrcEpsSubmissionsQueryDto,
+  RejectHmrcEpsSubmissionDto,
+  SubmitHmrcEpsDto,
   UpdatePayrollEmployerSettingsDto,
   UpdatePayrollScheduleDto,
   UpdatePayrollStatutoryRatesDto,
   UpdatePayrollTaxCodeDto,
   UpdatePayrollTaxYearDto,
 } from './dto/payroll.dto';
+import { PayrollHmrcEpsSubmissionsService } from './payroll-hmrc-eps-submissions.service';
 import { PayrollSettingsService } from './payroll-settings.service';
 
 @ApiTags('UK Payroll — Settings')
@@ -40,7 +45,10 @@ import { PayrollSettingsService } from './payroll-settings.service';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('payroll')
 export class PayrollSettingsController {
-  constructor(private readonly service: PayrollSettingsService) {}
+  constructor(
+    private readonly service: PayrollSettingsService,
+    private readonly epsSubmissions: PayrollHmrcEpsSubmissionsService,
+  ) {}
 
   @Get('overview')
   @AnyPermission('payroll.settings.read', 'payroll.runs.read', 'payroll.employees.read')
@@ -74,10 +82,73 @@ export class PayrollSettingsController {
   @Permissions('payroll.settings.read')
   @ApiOperation({
     summary:
-      'Build EPS preview JSON for a UK tax month (Care schema; nil payment, EA, recoveries, deadline — not HMRC submit)',
+      'Build EPS preview JSON for a UK tax month (Care schema; nil payment, EA, recoveries, deadline)',
   })
   buildEpsPreview(@Query() query: PreviewEpsQueryDto) {
     return this.service.buildEpsPreview(query);
+  }
+
+  @Get('eps/submissions')
+  @Permissions('payroll.settings.read')
+  @ApiOperation({ summary: 'List HMRC EPS submission attempts (T19)' })
+  listEpsSubmissions(@Query() query: ListHmrcEpsSubmissionsQueryDto) {
+    return this.epsSubmissions.list(query);
+  }
+
+  @Get('eps/submissions/:submissionId')
+  @Permissions('payroll.settings.read')
+  @ApiOperation({ summary: 'Get one HMRC EPS submission detail' })
+  getEpsSubmission(@Param('submissionId') submissionId: string) {
+    return this.epsSubmissions.getById(submissionId);
+  }
+
+  @Post('eps/submit')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({
+    summary:
+      'T19: Dry-run or submit EPS. TEST posts when HTTP enabled. LIVE SUBMIT creates dual-control pending approval.',
+  })
+  submitEps(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SubmitHmrcEpsDto,
+    @Req() req: Request,
+  ) {
+    return this.epsSubmissions.submitEps(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('eps/submissions/:submissionId/approve')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'T19: Second user approves pending LIVE EPS and posts to HMRC' })
+  approveEps(
+    @CurrentUser() user: RequestUser,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: ApproveHmrcEpsSubmissionDto,
+    @Req() req: Request,
+  ) {
+    return this.epsSubmissions.approveLive(
+      user.id,
+      submissionId,
+      dto.confirmPhrase,
+      getRequestAuditMeta(req),
+      dto.clientContext ?? null,
+    );
+  }
+
+  @Post('eps/submissions/:submissionId/reject')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'T19: Reject / cancel a pending LIVE EPS dual-control request' })
+  rejectEps(
+    @CurrentUser() user: RequestUser,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: RejectHmrcEpsSubmissionDto,
+    @Req() req: Request,
+  ) {
+    return this.epsSubmissions.rejectLive(
+      user.id,
+      submissionId,
+      dto.reason,
+      getRequestAuditMeta(req),
+    );
   }
 
   @Post('purge-all')

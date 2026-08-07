@@ -369,4 +369,9 @@ export enum AuditAction {
   PAYROLL_HMRC_FPS_LIVE_REQUESTED = 'payroll_hmrc_fps_live_requested',
   PAYROLL_HMRC_FPS_LIVE_APPROVED = 'payroll_hmrc_fps_live_approved',
   PAYROLL_HMRC_FPS_LIVE_REJECTED = 'payroll_hmrc_fps_live_rejected',
+  PAYROLL_HMRC_EPS_DRY_RUN = 'payroll_hmrc_eps_dry_run',
+  PAYROLL_HMRC_EPS_SUBMITTED = 'payroll_hmrc_eps_submitted',
+  PAYROLL_HMRC_EPS_LIVE_REQUESTED = 'payroll_hmrc_eps_live_requested',
+  PAYROLL_HMRC_EPS_LIVE_APPROVED = 'payroll_hmrc_eps_live_approved',
+  PAYROLL_HMRC_EPS_LIVE_REJECTED = 'payroll_hmrc_eps_live_rejected',
 }

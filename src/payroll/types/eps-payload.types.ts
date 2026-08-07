@@ -1,4 +1,4 @@
-/** Care-owned EPS preview schema (not GovTalk XML — T19 maps this to HMRC). */
+/** Care-owned EPS preview (T14) — GovTalk submit is T19. */
 
 export type CareEpsStatutoryRecoveries = {
   smpRecovered: number

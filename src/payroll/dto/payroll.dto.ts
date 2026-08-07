@@ -878,3 +878,124 @@ export class RejectHmrcFpsSubmissionDto {
   @MaxLength(500)
   reason?: string;
 }
+
+/** T19 — build / send EPS GovTalk for a tax month. */
+export class SubmitHmrcEpsDto {
+  @ApiProperty({ enum: HmrcFpsSubmitModeDto })
+  @IsEnum(HmrcFpsSubmitModeDto)
+  mode!: HmrcFpsSubmitModeDto;
+
+  @ApiPropertyOptional({ enum: ['TEST', 'LIVE'], default: 'TEST' })
+  @IsOptional()
+  @IsIn(['TEST', 'LIVE'])
+  environment?: 'TEST' | 'LIVE';
+
+  @ApiPropertyOptional({ description: 'Payroll tax year id. Defaults to current tax year.' })
+  @IsOptional()
+  @IsUUID()
+  taxYearId?: string;
+
+  @ApiProperty({ example: 1, description: 'UK PAYE tax month 1–12' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  taxMonth!: number;
+
+  @ApiPropertyOptional({ description: 'Force nil-payment indicator' })
+  @IsOptional()
+  @IsBoolean()
+  noPaymentThisPeriod?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  employmentAllowanceClaimed?: boolean;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  smpRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  sppRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  sapRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  shppRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  spbpRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  nicCompensationOnStatutory?: number;
+
+  @ApiPropertyOptional({ type: HmrcFraudClientContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HmrcFraudClientContextDto)
+  clientContext?: HmrcFraudClientContextDto;
+}
+
+/** T19 — list EPS submissions for a tax month. */
+export class ListHmrcEpsSubmissionsQueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  taxYearId?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  taxMonth?: number;
+}
+
+/** T19 — approve pending LIVE EPS. */
+export class ApproveHmrcEpsSubmissionDto {
+  @ApiProperty({ example: 'SEND LIVE EPS' })
+  @IsString()
+  @Matches(/^SEND LIVE EPS$/)
+  confirmPhrase!: string;
+
+  @ApiPropertyOptional({ type: HmrcFraudClientContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HmrcFraudClientContextDto)
+  clientContext?: HmrcFraudClientContextDto;
+}
+
+/** T19 — reject pending LIVE EPS. */
+export class RejectHmrcEpsSubmissionDto {
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}

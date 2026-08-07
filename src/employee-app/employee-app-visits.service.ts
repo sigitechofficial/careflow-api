@@ -219,6 +219,7 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         id: true;
         status: true;
         employeeId: true;
+        isLeadCarer: true;
         scheduledStartDateTime: true;
         scheduledEndDateTime: true;
         durationMinutes: true;
@@ -2382,6 +2383,7 @@ export class EmployeeAppVisitsService {
             id: true,
             status: true,
             employeeId: true,
+            isLeadCarer: true,
             scheduledStartDateTime: true,
             scheduledEndDateTime: true,
             durationMinutes: true,
@@ -2537,18 +2539,50 @@ export class EmployeeAppVisitsService {
         longitude: destinationLongitude,
         allowedRadiusMeters,
       }),
-      coCarers: ctx.job.allocations
-        .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
-        .map((a) => ({
-          employeeId: a.employeeId,
-          name: displayName(
-            a.employee.personalDetail?.firstName,
-            a.employee.personalDetail?.lastName,
-          ),
-          isYou: employeeId ? a.employeeId === employeeId : false,
-        })),
+      ...this.buildCoCarerShellFields(ctx.job.allocations, ctx.job.requiredCarers, employeeId),
       requiredCarers: ctx.job.requiredCarers,
     };
+  }
+
+  private buildCoCarerShellFields(
+    allocations: VisitJobRow['allocations'],
+    requiredCarers: number,
+    employeeId?: string,
+  ) {
+    const activeCoCarers = allocations.filter((a) => ACTIVE_ALLOCATION.includes(a.status));
+    const multiCarer = activeCoCarers.length >= 2 || requiredCarers >= 2;
+    const coCarers = activeCoCarers.map((a) => {
+      const name = displayName(
+        a.employee.personalDetail?.firstName,
+        a.employee.personalDetail?.lastName,
+      );
+      const base = {
+        employeeId: a.employeeId,
+        name,
+        isYou: employeeId ? a.employeeId === employeeId : false,
+      };
+      if (!multiCarer) return base;
+      return {
+        ...base,
+        isLeadCarer: a.isLeadCarer,
+        role: a.isLeadCarer ? ('lead' as const) : ('support' as const),
+      };
+    });
+    const leadAllocation =
+      multiCarer
+        ? activeCoCarers.find((a) => a.isLeadCarer) ?? activeCoCarers[0] ?? null
+        : null;
+    const leadCarer = leadAllocation
+      ? {
+          employeeId: leadAllocation.employeeId,
+          name: displayName(
+            leadAllocation.employee.personalDetail?.firstName,
+            leadAllocation.employee.personalDetail?.lastName,
+          ),
+          isYou: employeeId ? leadAllocation.employeeId === employeeId : false,
+        }
+      : null;
+    return { coCarers, leadCarer };
   }
 
   private async loadGeofenceSettings() {

@@ -90,7 +90,7 @@ const REASON_LABEL_BY_CODE = new Map(
 
 /** Operational / exception-kind codes that appear beside structured reason codes. */
 const OPS_REASON_LABELS: Record<string, string> = {
-  MANUAL_ATTENDANCE: 'Manual attendance',
+  MANUAL_ATTENDANCE: 'Admin completed visit',
   OUTSIDE_GEOFENCE: 'Outside geofence',
   MOCK_LOCATION: 'Mock location',
   LOW_GPS_ACCURACY: 'Low GPS accuracy',

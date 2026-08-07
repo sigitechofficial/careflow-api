@@ -34,6 +34,13 @@ import {
 } from './payroll-gateway-credentials.util'
 import { PAYROLL_EMPLOYER_SETTINGS_ID } from './payroll-settings.service'
 import { PayrollRunsService } from './payroll-runs.service'
+import { hmrcSubmissionLifecycleFields } from './payroll-hmrc-submission-lifecycle.util'
+import {
+  appendHmrcSubmissionAuditEvent,
+  hmrcSubmissionGatewayUpdateData,
+  mapHmrcSubmissionAuditEvent,
+  responseBodySha256,
+} from './payroll-hmrc-submission-audit.util'
 import type { CareFpsPayload } from './types/fps-payload.types'
 
 export type HmrcFpsSubmitMode = 'DRY_RUN' | 'SUBMIT'
@@ -45,7 +52,9 @@ function asHmrcSubmissionWrite<T>(data: T): T {
 
 function mapSubmissionRow(row: {
   id: string
-  ukPayrollRunId: string
+  ukPayrollRunId: string | null
+  taxYearId?: string | null
+  taxMonth?: number | null
   documentType: string
   mode: string
   environment: string
@@ -75,6 +84,8 @@ function mapSubmissionRow(row: {
   return {
     id: row.id,
     ukPayrollRunId: row.ukPayrollRunId,
+    taxYearId: row.taxYearId ?? null,
+    taxMonth: row.taxMonth ?? null,
     documentType: row.documentType,
     mode: row.mode,
     environment: row.environment,
@@ -100,6 +111,7 @@ function mapSubmissionRow(row: {
     rejectionNote: row.rejectionNote ?? null,
     createdAt: row.createdAt.toISOString(),
     createdById: row.createdById,
+    ...hmrcSubmissionLifecycleFields(row.status, Boolean(row.requestXmlRedacted)),
   }
 }
 
@@ -121,7 +133,7 @@ export class PayrollHmrcSubmissionsService {
     if (!run) throw new NotFoundException('UK payroll run not found')
 
     const rows = await this.prisma.payrollHmrcSubmission.findMany({
-      where: { ukPayrollRunId: runId },
+      where: { ukPayrollRunId: runId, documentType: 'FPS' },
       orderBy: { createdAt: 'desc' },
     })
 
@@ -136,12 +148,22 @@ export class PayrollHmrcSubmissionsService {
       where: { id: submissionId, ukPayrollRunId: runId },
     })
     if (!row) throw new NotFoundException('HMRC submission not found')
+    const events = await (this.prisma as unknown as {
+      payrollHmrcSubmissionEvent: {
+        findMany: (args: unknown) => Promise<Array<Parameters<typeof mapHmrcSubmissionAuditEvent>[0]>>
+      }
+    }).payrollHmrcSubmissionEvent.findMany({
+      where: { submissionId: row.id },
+      orderBy: { createdAt: 'asc' },
+    })
     return {
       message: 'HMRC RTI submission detail',
       data: {
         ...mapSubmissionRow(row),
         requestXmlRedacted: row.requestXmlRedacted,
         responseXml: row.responseXml,
+        responseSha256: responseBodySha256(row.responseXml),
+        auditEvents: events.map(mapHmrcSubmissionAuditEvent),
       },
     }
   }
@@ -286,44 +308,91 @@ export class PayrollHmrcSubmissionsService {
       errorMessage = `Empty response from HMRC (HTTP ${http.httpStatus})`
     }
 
-    const data = {
-      documentType: 'FPS',
-      mode: params.mode,
-      environment: params.environment,
-      status,
-      correlationId,
-      gatewayUserId: params.gatewayUserId,
-      vendorId: params.vendorId,
-      submissionUrl: params.submissionUrl,
-      requestXmlRedacted: params.requestXmlRedacted,
-      responseXml: http.body || null,
-      httpStatus: http.httpStatus || null,
-      qualifier,
-      functionCode,
-      errorCode,
-      errorMessage,
-      acknowledgement: (ack ?? {
-        networkError: http.networkError,
-        timedOut: http.timedOut,
-      }) as Prisma.InputJsonValue,
-      fraudPreventionHeaders: params.fraudSnapshot,
-      payloadFingerprint: params.payloadFingerprint,
-      approvedById: params.approvedById ?? null,
-      approvedAt: params.approvedById ? new Date() : null,
-    }
+    const acknowledgement = (ack ?? {
+      networkError: http.networkError,
+      timedOut: http.timedOut,
+    }) as Prisma.InputJsonValue
+    const responseXml = http.body || null
+    const responseSha = responseBodySha256(responseXml)
+    const fromStatus = params.existingSubmissionId ? 'PENDING_APPROVAL' : null
 
     const row = params.existingSubmissionId
       ? await this.prisma.payrollHmrcSubmission.update({
           where: { id: params.existingSubmissionId },
-          data: asHmrcSubmissionWrite(data) as never,
+          data: asHmrcSubmissionWrite(
+            hmrcSubmissionGatewayUpdateData({
+              status,
+              correlationId,
+              responseXml,
+              httpStatus: http.httpStatus || null,
+              qualifier,
+              functionCode,
+              errorCode,
+              errorMessage,
+              acknowledgement,
+              fraudPreventionHeaders: params.fraudSnapshot,
+              approvedById: params.approvedById ?? null,
+              approvedAt: params.approvedById ? new Date() : null,
+              gatewayUserId: params.gatewayUserId,
+              vendorId: params.vendorId,
+              submissionUrl: params.submissionUrl,
+            }),
+          ) as never,
         })
       : await this.prisma.payrollHmrcSubmission.create({
           data: asHmrcSubmissionWrite({
             ukPayrollRunId: params.runId,
-            ...data,
+            documentType: 'FPS',
+            mode: params.mode,
+            environment: params.environment,
+            status,
+            correlationId,
+            gatewayUserId: params.gatewayUserId,
+            vendorId: params.vendorId,
+            submissionUrl: params.submissionUrl,
+            requestXmlRedacted: params.requestXmlRedacted,
+            responseXml,
+            httpStatus: http.httpStatus || null,
+            qualifier,
+            functionCode,
+            errorCode,
+            errorMessage,
+            acknowledgement,
+            fraudPreventionHeaders: params.fraudSnapshot,
+            payloadFingerprint: params.payloadFingerprint,
+            approvedById: params.approvedById ?? null,
+            approvedAt: params.approvedById ? new Date() : null,
             createdById: params.userId,
           }) as never,
         })
+
+    if (params.approvedById) {
+      await appendHmrcSubmissionAuditEvent(this.prisma as never, {
+        submissionId: row.id,
+        eventType: 'LIVE_APPROVED',
+        actorUserId: params.approvedById,
+        fromStatus,
+        toStatus: status,
+        payloadFingerprint: params.payloadFingerprint,
+        correlationId,
+        responseSha256: responseSha,
+        httpStatus: http.httpStatus || null,
+        detail: { environment: params.environment, mode: params.mode },
+      })
+    } else if (!params.existingSubmissionId) {
+      await appendHmrcSubmissionAuditEvent(this.prisma as never, {
+        submissionId: row.id,
+        eventType: 'GATEWAY_RESPONSE',
+        actorUserId: params.userId,
+        fromStatus: null,
+        toStatus: status,
+        payloadFingerprint: params.payloadFingerprint,
+        correlationId,
+        responseSha256: responseSha,
+        httpStatus: http.httpStatus || null,
+        detail: { environment: params.environment, mode: params.mode },
+      })
+    }
 
     await this.audit.logAudit({
       userId: params.userId,
@@ -341,6 +410,8 @@ export class PayrollHmrcSubmissionsService {
         correlationId,
         httpStatus: http.httpStatus,
         errorCode,
+        payloadFingerprint: params.payloadFingerprint,
+        responseSha256: responseSha,
       },
       ipAddress: params.meta?.ipAddress,
       userAgent: params.meta?.userAgent,
@@ -355,6 +426,7 @@ export class PayrollHmrcSubmissionsService {
         ...mapSubmissionRow(row),
         requestXmlRedacted: row.requestXmlRedacted,
         responseXml: row.responseXml,
+        responseSha256: responseSha,
       },
     }
   }
@@ -454,9 +526,20 @@ export class PayrollHmrcSubmissionsService {
           mode: 'DRY_RUN',
           environment,
           status: 'DRAFT_BUILT',
+          payloadFingerprint: fingerprint,
         },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
+      })
+
+      await appendHmrcSubmissionAuditEvent(this.prisma as never, {
+        submissionId: row.id,
+        eventType: 'DRAFT_BUILT',
+        actorUserId: userId,
+        fromStatus: null,
+        toStatus: 'DRAFT_BUILT',
+        payloadFingerprint: fingerprint,
+        detail: { environment, mode: 'DRY_RUN', documentType: 'FPS' },
       })
 
       return {
@@ -523,10 +606,20 @@ export class PayrollHmrcSubmissionsService {
           ukPayrollRunId: runId,
           environment: 'LIVE',
           status: 'PENDING_APPROVAL',
-          fingerprint,
+          payloadFingerprint: fingerprint,
         },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
+      })
+
+      await appendHmrcSubmissionAuditEvent(this.prisma as never, {
+        submissionId: row.id,
+        eventType: 'LIVE_REQUESTED',
+        actorUserId: userId,
+        fromStatus: null,
+        toStatus: 'PENDING_APPROVAL',
+        payloadFingerprint: fingerprint,
+        detail: { environment: 'LIVE', documentType: 'FPS' },
       })
 
       return {
@@ -691,9 +784,21 @@ export class PayrollHmrcSubmissionsService {
         ukPayrollRunId: runId,
         status: 'REJECTED_APPROVAL',
         reason: reason?.trim() || null,
+        payloadFingerprint: (row as { payloadFingerprint?: string | null }).payloadFingerprint ?? null,
       },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
+    })
+
+    await appendHmrcSubmissionAuditEvent(this.prisma as never, {
+      submissionId: updated.id,
+      eventType: 'LIVE_REJECTED',
+      actorUserId: userId,
+      fromStatus: 'PENDING_APPROVAL',
+      toStatus: 'REJECTED_APPROVAL',
+      payloadFingerprint:
+        (row as { payloadFingerprint?: string | null }).payloadFingerprint ?? null,
+      detail: { reason: reason?.trim() || null, documentType: 'FPS' },
     })
 
     return {
