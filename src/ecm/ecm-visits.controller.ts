@@ -126,10 +126,17 @@ export class EcmVisitsController {
     @Query('date') date?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @Query('scheduleAreaId') scheduleAreaId?: string,
+    @Query('locationId') locationId?: string,
+    @Query('serviceUserId') serviceUserId?: string,
   ) {
+    const from = dateFrom ?? date;
     return this.reports.compliance({
-      dateFrom: dateFrom ?? date,
-      dateTo,
+      dateFrom: from,
+      dateTo: dateTo ?? from,
+      scheduleAreaId,
+      locationId,
+      serviceUserId,
     });
   }
 
