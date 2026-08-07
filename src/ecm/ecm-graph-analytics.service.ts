@@ -8,9 +8,13 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { operationalTodayIso } from '../common/utils/operational-day.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
+import { ECM_REASON_CODES } from './ecm-reason-codes';
 
 export type EcmGraphDashboardQuery = {
   dateFrom?: string;
@@ -24,6 +28,8 @@ type DrillVisit = {
   jobName: string;
   serviceUserName: string;
   plannedStartDateTime: string;
+  /** Operational calendar day YYYY-MM-DD (Europe/London). */
+  localVisitDate: string;
   hourKey: string;
   statusKey: string;
   arrivalBand: string;
@@ -31,6 +37,12 @@ type DrillVisit = {
   branchName: string | null;
   /** Distinct reason codes for this visit (exceptions ∪ operationalExceptionCodes). */
   reasonCodes: string[];
+  /** Weekday label Mon–Sun from localVisitDate. */
+  weekday: string;
+  /** Heatmap time-band key (e.g. 06-09, overnight). */
+  timeBandKey: string;
+  /** True when confidence is VERIFIED or PARTIALLY_VERIFIED. */
+  verified: boolean;
 };
 
 const HOUR_KEYS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
@@ -68,6 +80,28 @@ const TIME_BANDS = [
   { key: 'overnight', label: 'Overnight', start: 22, end: 6 },
 ] as const;
 
+const REASON_LABEL_BY_CODE = new Map(
+  ECM_REASON_CODES.map((r) => [r.code.toUpperCase(), r.label]),
+);
+
+/** Operational / exception-kind codes that appear beside structured reason codes. */
+const OPS_REASON_LABELS: Record<string, string> = {
+  MANUAL_ATTENDANCE: 'Manual attendance',
+  OUTSIDE_GEOFENCE: 'Outside geofence',
+  MOCK_LOCATION: 'Mock location',
+  LOW_GPS_ACCURACY: 'Low GPS accuracy',
+  NO_ACCESS: 'No access',
+  LATE_ARRIVAL: 'Late arrival',
+  VERY_LATE_ARRIVAL: 'Very late arrival',
+  SHORT_VISIT: 'Short visit',
+  LONG_VISIT: 'Long visit',
+  EXCESSIVE_OVERRUN: 'Excessive overrun',
+  POTENTIAL_MISSED: 'Potentially missed',
+  CONFIRMED_MISSED: 'Confirmed missed',
+  MISSING_CHECKOUT: 'Missing checkout',
+  UNSPECIFIED: 'Unspecified',
+};
+
 function parseIsoDate(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
 }
@@ -89,12 +123,26 @@ function eachDateInclusive(from: string, to: string): string[] {
   return out;
 }
 
-function hourKeyFromDate(d: Date): string {
-  return String(d.getUTCHours()).padStart(2, '0');
+/** Planned-start hour in operational TZ (Europe/London), not raw UTC. */
+function hourKeyInOperationalTz(
+  d: Date,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(d);
+    const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+    return hour.padStart(2, '0');
+  } catch {
+    return String(d.getUTCHours()).padStart(2, '0');
+  }
 }
 
 function weekdayIndexUtc(isoDate: string): number {
-  // 0=Mon … 6=Sun
+  // 0=Mon … 6=Sun — localVisitDate is UTC midnight of the London calendar day.
   const d = parseIsoDate(isoDate);
   const js = d.getUTCDay(); // 0=Sun
   return js === 0 ? 6 : js - 1;
@@ -151,6 +199,18 @@ function distinctReasonCodes(
   return [...codes];
 }
 
+function humanReasonLabel(code: string): string {
+  const upper = code.toUpperCase();
+  return (
+    REASON_LABEL_BY_CODE.get(upper) ??
+    OPS_REASON_LABELS[upper] ??
+    upper
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 function statusKey(row: {
   lifecycleStatus: EcmLifecycleStatus;
   arrivalClassification: EcmArrivalClassification;
@@ -194,11 +254,14 @@ function statusKey(row: {
   return 'other';
 }
 
-function isExceptionVisit(row: {
+/**
+ * Heatmap / ops-pattern exception: aligns with primary trend series
+ * (late+very late, short, missed) — excludes long/excessive-only and bare op codes.
+ */
+function isTrendAlignedException(row: {
   arrivalClassification: EcmArrivalClassification;
   durationClassification: EcmDurationClassification;
   missedClassification: EcmMissedClassification;
-  operationalExceptionCodes: string[];
 }): boolean {
   if (
     row.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL ||
@@ -206,20 +269,16 @@ function isExceptionVisit(row: {
   ) {
     return true;
   }
-  if (
-    row.durationClassification === EcmDurationClassification.SHORT_VISIT ||
-    row.durationClassification === EcmDurationClassification.LONG_VISIT ||
-    row.durationClassification === EcmDurationClassification.EXCESSIVE_OVERRUN
-  ) {
+  if (row.durationClassification === EcmDurationClassification.SHORT_VISIT) {
     return true;
   }
   if (
-    row.missedClassification !== EcmMissedClassification.NONE &&
-    row.missedClassification !== EcmMissedClassification.FALSE_ECM_ALERT
+    row.missedClassification === EcmMissedClassification.POTENTIAL_MISSED ||
+    row.missedClassification === EcmMissedClassification.CONFIRMED_MISSED
   ) {
     return true;
   }
-  return row.operationalExceptionCodes.length > 0;
+  return false;
 }
 
 function timeBandKey(hour: number): string {
@@ -231,6 +290,11 @@ function timeBandKey(hour: number): string {
     }
   }
   return 'overnight';
+}
+
+function pct(numerator: number, denominator: number): number {
+  if (!denominator) return 0;
+  return Math.round((numerator / denominator) * 1000) / 10;
 }
 
 @Injectable()
@@ -282,9 +346,9 @@ export class EcmGraphAnalyticsService {
             },
           },
         },
+        // Analytics path: do not truncate exception rows (reason ranking).
         exceptions: {
           select: { reasonCode: true, kind: true },
-          take: 5,
         },
       },
     });
@@ -309,23 +373,27 @@ export class EcmGraphAnalyticsService {
       other: HOUR_KEYS.map(() => 0),
     };
 
+    type DayTrend = {
+      visits: number;
+      assessedArrival: number;
+      assessedDuration: number;
+      late: number;
+      short: number;
+      missed: number;
+    };
     const trend = Object.fromEntries(
       dates.map((d) => [
         d,
-        { late: 0, veryLate: 0, short: 0, missed: 0, missingCheckout: 0, noAccess: 0, manual: 0 },
+        {
+          visits: 0,
+          assessedArrival: 0,
+          assessedDuration: 0,
+          late: 0,
+          short: 0,
+          missed: 0,
+        },
       ]),
-    ) as Record<
-      string,
-      {
-        late: number;
-        veryLate: number;
-        short: number;
-        missed: number;
-        missingCheckout: number;
-        noAccess: number;
-        manual: number;
-      }
-    >;
+    ) as Record<string, DayTrend>;
 
     const arrivalCounts = Object.fromEntries(ARRIVAL_BANDS.map((b) => [b, 0])) as Record<
       string,
@@ -348,6 +416,8 @@ export class EcmGraphAnalyticsService {
     type BranchAgg = {
       name: string;
       total: number;
+      assessedArrival: number;
+      assessedDuration: number;
       onTime: number;
       late: number;
       missed: number;
@@ -357,41 +427,41 @@ export class EcmGraphAnalyticsService {
     const branchMap = new Map<string, BranchAgg>();
 
     const reasonCounts = new Map<string, number>();
-    const verificationCounts = new Map<string, number>();
     const drillVisits: DrillVisit[] = [];
 
     for (const row of rows) {
       const localIso = formatScheduleDate(row.localVisitDate);
-      const hour = hourKeyFromDate(row.plannedStartDateTime);
+      const hour = hourKeyInOperationalTz(row.plannedStartDateTime);
       const hourIdx = Number(hour);
       const sk = statusKey(row);
       if (hourIdx >= 0 && hourIdx < 24 && sk in visitStatusByHour) {
         visitStatusByHour[sk as keyof typeof visitStatusByHour][hourIdx] += 1;
       }
 
+      const aBand = arrivalBandFromClassification(row.arrivalClassification);
+      const dBand = durationBandFromClassification(row.durationClassification);
+      const isLate =
+        row.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL ||
+        row.arrivalClassification === EcmArrivalClassification.VERY_LATE_ARRIVAL;
+      const isShort = row.durationClassification === EcmDurationClassification.SHORT_VISIT;
+      const isMissed =
+        row.missedClassification === EcmMissedClassification.POTENTIAL_MISSED ||
+        row.missedClassification === EcmMissedClassification.CONFIRMED_MISSED;
+      const isVerified =
+        row.confidence === EcmAttendanceConfidence.VERIFIED ||
+        row.confidence === EcmAttendanceConfidence.PARTIALLY_VERIFIED;
+
       const dayTrend = trend[localIso];
       if (dayTrend) {
-        if (row.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL) dayTrend.late += 1;
-        if (row.arrivalClassification === EcmArrivalClassification.VERY_LATE_ARRIVAL) {
-          dayTrend.veryLate += 1;
-        }
-        if (row.durationClassification === EcmDurationClassification.SHORT_VISIT) {
-          dayTrend.short += 1;
-        }
-        if (
-          row.missedClassification === EcmMissedClassification.POTENTIAL_MISSED ||
-          row.missedClassification === EcmMissedClassification.CONFIRMED_MISSED
-        ) {
-          dayTrend.missed += 1;
-        }
-        if (row.actualCheckInAt && !row.actualCheckOutAt) dayTrend.missingCheckout += 1;
-        if (row.operationalExceptionCodes.includes('NO_ACCESS')) dayTrend.noAccess += 1;
-        if (row.operationalExceptionCodes.includes('MANUAL_ATTENDANCE')) dayTrend.manual += 1;
+        dayTrend.visits += 1;
+        if (aBand !== 'not_assessed') dayTrend.assessedArrival += 1;
+        if (dBand !== 'not_assessed') dayTrend.assessedDuration += 1;
+        if (isLate) dayTrend.late += 1;
+        if (isShort) dayTrend.short += 1;
+        if (isMissed) dayTrend.missed += 1;
       }
 
-      const aBand = arrivalBandFromClassification(row.arrivalClassification);
       arrivalCounts[aBand] = (arrivalCounts[aBand] ?? 0) + 1;
-      const dBand = durationBandFromClassification(row.durationClassification);
       durationCounts[dBand] = (durationCounts[dBand] ?? 0) + 1;
 
       const wd = weekdays[weekdayIndexUtc(localIso)] ?? 'Mon';
@@ -399,7 +469,7 @@ export class EcmGraphAnalyticsService {
       const cell = heatmapTotals[tb]?.[wd];
       if (cell) {
         cell.total += 1;
-        if (isExceptionVisit(row)) cell.exceptions += 1;
+        if (isTrendAlignedException(row)) cell.exceptions += 1;
       }
 
       const branchName = row.scheduledJob.scheduleArea?.name ?? 'Unassigned area';
@@ -409,6 +479,8 @@ export class EcmGraphAnalyticsService {
         branch = {
           name: branchName,
           total: 0,
+          assessedArrival: 0,
+          assessedDuration: 0,
           onTime: 0,
           late: 0,
           missed: 0,
@@ -418,35 +490,18 @@ export class EcmGraphAnalyticsService {
         branchMap.set(branchId, branch);
       }
       branch.total += 1;
-      // Same SSOT as arrival chart `on_time` band (arrivalClassification.ON_TIME).
+      if (aBand !== 'not_assessed') branch.assessedArrival += 1;
+      if (dBand !== 'not_assessed') branch.assessedDuration += 1;
       if (row.arrivalClassification === EcmArrivalClassification.ON_TIME) branch.onTime += 1;
-      if (
-        row.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL ||
-        row.arrivalClassification === EcmArrivalClassification.VERY_LATE_ARRIVAL
-      ) {
-        branch.late += 1;
-      }
-      if (
-        row.missedClassification === EcmMissedClassification.POTENTIAL_MISSED ||
-        row.missedClassification === EcmMissedClassification.CONFIRMED_MISSED
-      ) {
-        branch.missed += 1;
-      }
-      if (row.durationClassification === EcmDurationClassification.SHORT_VISIT) branch.short += 1;
-      if (
-        row.confidence === EcmAttendanceConfidence.VERIFIED ||
-        row.confidence === EcmAttendanceConfidence.PARTIALLY_VERIFIED
-      ) {
-        branch.verified += 1;
-      }
+      if (isLate) branch.late += 1;
+      if (isMissed) branch.missed += 1;
+      if (isShort) branch.short += 1;
+      if (isVerified) branch.verified += 1;
 
       const reasonCodes = distinctReasonCodes(row.exceptions, row.operationalExceptionCodes);
       for (const code of reasonCodes) {
         reasonCounts.set(code, (reasonCounts.get(code) ?? 0) + 1);
       }
-
-      const conf = String(row.confidence);
-      verificationCounts.set(conf, (verificationCounts.get(conf) ?? 0) + 1);
 
       const su =
         row.scheduledJob.serviceUser.preferredName?.trim() ||
@@ -459,12 +514,16 @@ export class EcmGraphAnalyticsService {
         jobName: row.scheduledJob.jobName,
         serviceUserName: su,
         plannedStartDateTime: row.plannedStartDateTime.toISOString(),
+        localVisitDate: localIso,
         hourKey: hour,
         statusKey: sk,
         arrivalBand: aBand,
         durationBand: dBand,
         branchName,
         reasonCodes,
+        weekday: wd,
+        timeBandKey: tb,
+        verified: isVerified,
       });
     }
 
@@ -483,26 +542,20 @@ export class EcmGraphAnalyticsService {
       .map((b) => ({
         name: b.name,
         total: b.total,
-        onTimePct: b.total ? Math.round((b.onTime / b.total) * 1000) / 10 : 0,
-        latePct: b.total ? Math.round((b.late / b.total) * 1000) / 10 : 0,
-        missedPct: b.total ? Math.round((b.missed / b.total) * 1000) / 10 : 0,
-        shortPct: b.total ? Math.round((b.short / b.total) * 1000) / 10 : 0,
-        verifiedPct: b.total ? Math.round((b.verified / b.total) * 1000) / 10 : 0,
+        assessedArrival: b.assessedArrival,
+        assessedDuration: b.assessedDuration,
+        onTimePct: pct(b.onTime, b.assessedArrival),
+        latePct: pct(b.late, b.assessedArrival),
+        missedPct: pct(b.missed, b.total),
+        shortPct: pct(b.short, b.assessedDuration),
+        verifiedPct: pct(b.verified, b.total),
       }))
-      .sort((a, b) => b.onTimePct - a.onTimePct);
+      .sort((a, b) => b.latePct - a.latePct);
 
     const exceptionReasons = [...reasonCounts.entries()]
-      .map(([code, count]) => ({ code, label: code.replace(/_/g, ' '), count }))
+      .map(([code, count]) => ({ code, label: humanReasonLabel(code), count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
-
-    const verificationMethod = [...verificationCounts.entries()]
-      .map(([code, value]) => ({
-        code,
-        label: code.replace(/_/g, ' '),
-        value,
-      }))
-      .sort((a, b) => b.value - a.value);
 
     return {
       data: {
@@ -524,17 +577,20 @@ export class EcmGraphAnalyticsService {
         exceptionTrend: {
           dates,
           series: {
+            latePct: dates.map((d) => pct(trend[d].late, trend[d].assessedArrival)),
+            shortPct: dates.map((d) => pct(trend[d].short, trend[d].assessedDuration)),
+            missedPct: dates.map((d) => pct(trend[d].missed, trend[d].visits)),
+          },
+          counts: {
             late: dates.map((d) => trend[d].late),
-            veryLate: dates.map((d) => trend[d].veryLate),
             short: dates.map((d) => trend[d].short),
             missed: dates.map((d) => trend[d].missed),
-            missingCheckout: dates.map((d) => trend[d].missingCheckout),
-            noAccess: dates.map((d) => trend[d].noAccess),
           },
-        },
-        manualTrend: {
-          dates,
-          manual: dates.map((d) => trend[d].manual),
+          denominators: {
+            assessedArrival: dates.map((d) => trend[d].assessedArrival),
+            assessedDuration: dates.map((d) => trend[d].assessedDuration),
+            visits: dates.map((d) => trend[d].visits),
+          },
         },
         arrivalPunctuality: ARRIVAL_BANDS.map((key) => ({
           key,
@@ -550,7 +606,6 @@ export class EcmGraphAnalyticsService {
         },
         branchComparison,
         exceptionReasons,
-        verificationMethod,
         drillVisits,
       },
     };
