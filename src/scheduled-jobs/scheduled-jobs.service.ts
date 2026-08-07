@@ -36,6 +36,7 @@ import {
 } from '../scheduling/schedule-timeline.mapper';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import { visitTimingExceptionReasonLabel } from '../scheduling/visit-timing-exception-reason.util';
+import { visitCareNotDeliveredReasonLabel } from '../scheduling/visit-care-not-delivered-reason.util';
 
 const jobInclude = {
   serviceUser: {
@@ -639,6 +640,13 @@ export class ScheduledJobsService {
       typeof meta.timingExceptionNotes === 'string' ? meta.timingExceptionNotes : null;
     const overrunReason =
       typeof meta.overrunReason === 'string' ? meta.overrunReason : null;
+    const careNotDeliveredReasonCode =
+      typeof meta.careNotDeliveredReasonCode === 'string'
+        ? meta.careNotDeliveredReasonCode
+        : null;
+    const careNotDeliveredNotes =
+      typeof meta.careNotDeliveredNotes === 'string' ? meta.careNotDeliveredNotes : null;
+    const careNotDeliveredFlag = meta.careNotDelivered === true || Boolean(careNotDeliveredReasonCode);
 
     const deliveryAssessment = assessVisitDeliveryFromJobLike({
       status: timeline.status,
@@ -690,6 +698,16 @@ export class ScheduledJobsService {
               overrunReason,
             }
           : null,
+      careNotDelivered: careNotDeliveredFlag
+        ? {
+            reasonCode: careNotDeliveredReasonCode,
+            reasonLabel:
+              typeof meta.careNotDeliveredReasonLabel === 'string'
+                ? meta.careNotDeliveredReasonLabel
+                : visitCareNotDeliveredReasonLabel(careNotDeliveredReasonCode),
+            notes: careNotDeliveredNotes,
+          }
+        : null,
     };
   }
 }

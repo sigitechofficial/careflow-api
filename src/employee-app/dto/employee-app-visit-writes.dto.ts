@@ -14,29 +14,39 @@ import {
 } from 'class-validator';
 
 export class EmployeeAppUnableToStartDto {
-  @ApiProperty({ example: 'NO_ANSWER' })
+  @ApiProperty({
+    example: 'CLIENT_NOT_HOME',
+    description:
+      'Must match a code from GET details → data.unableToStart.reasons (care-not-delivered catalogue)',
+  })
   @IsString()
   @MaxLength(64)
   reasonCode!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({
+    example: 'Knocked twice, called mobile — no answer',
+    description: 'Required for all unable-to-start reasons',
+  })
   @IsString()
   @MaxLength(4000)
-  notes?: string;
+  notes!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-08-07T06:05:00.000Z' })
   @IsISO8601()
   attemptedAt!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Optional legacy field — ignored (location already validated at check-in)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   contactAttemptCount?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Optional legacy field — not required (location already validated at check-in)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()

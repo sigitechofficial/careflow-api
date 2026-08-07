@@ -5,6 +5,8 @@ import {
   Prisma,
   ScheduledJobStatus as PrismaJobStatus,
   ScheduledVisitStatus as PrismaVisitStatus,
+  VisitAttendanceEventType,
+  VisitAttendanceVerificationMethod,
   VisitChargeDecision,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,6 +33,11 @@ import {
   VISIT_MISSED_REASONS,
   visitMissedReasonLabel,
 } from '../scheduling/visit-missed-reason.util';
+import {
+  isVisitCareNotDeliveredReasonCode,
+  VISIT_CARE_NOT_DELIVERED_REASONS,
+  visitCareNotDeliveredReasonLabel,
+} from '../scheduling/visit-care-not-delivered-reason.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduledVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
@@ -42,6 +49,7 @@ import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
 import { VisitObservationsCatalogService } from '../service-user-observations/visit-observations-catalog.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
+import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -121,7 +129,72 @@ export class ScheduledJobsHousekeepingService {
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly ecmEvaluation: EcmEvaluationService,
+    private readonly visitAttendance: VisitAttendanceService,
   ) {}
+
+  /**
+   * Admin complete with typed carer times → always write MANUAL_OFFICE evidence.
+   * Even if demo/seed GPS events exist, office completion must count as Manual.
+   */
+  private async ensureOfficeManualAttendanceFromAdminComplete(input: {
+    jobId: string;
+    userId: string;
+    actualStart: Date;
+    actualEnd?: Date;
+    visitId?: string | null;
+    allocations: Array<{ id: string; employeeId: string; status: AllocationStatus }>;
+  }): Promise<void> {
+    const events = await this.prisma.visitAttendanceEvent.findMany({
+      where: { scheduledJobId: input.jobId },
+      select: {
+        eventType: true,
+        verificationMethod: true,
+      },
+    });
+
+    const allocation =
+      input.allocations.find((a) => ACTIVE_ALLOCATION.includes(a.status)) ?? null;
+    if (!allocation?.employeeId) return;
+
+    const hasManualCheckIn = events.some(
+      (e) =>
+        e.eventType === VisitAttendanceEventType.CHECK_IN &&
+        e.verificationMethod === VisitAttendanceVerificationMethod.MANUAL_OFFICE,
+    );
+    if (!hasManualCheckIn) {
+      await this.visitAttendance.recordEvent({
+        scheduledJobId: input.jobId,
+        scheduledVisitId: input.visitId ?? null,
+        jobAllocationId: allocation.id,
+        employeeId: allocation.employeeId,
+        eventType: VisitAttendanceEventType.CHECK_IN,
+        verificationMethod: VisitAttendanceVerificationMethod.MANUAL_OFFICE,
+        occurredAt: input.actualStart,
+        identityConfirmed: true,
+        notes: `MANUAL:ADMIN_COMPLETE | approvedBy:${input.userId}`,
+      });
+    }
+
+    if (!input.actualEnd) return;
+    const hasManualCheckOut = events.some(
+      (e) =>
+        e.eventType === VisitAttendanceEventType.CHECK_OUT &&
+        e.verificationMethod === VisitAttendanceVerificationMethod.MANUAL_OFFICE,
+    );
+    if (!hasManualCheckOut) {
+      await this.visitAttendance.recordEvent({
+        scheduledJobId: input.jobId,
+        scheduledVisitId: input.visitId ?? null,
+        jobAllocationId: allocation.id,
+        employeeId: allocation.employeeId,
+        eventType: VisitAttendanceEventType.CHECK_OUT,
+        verificationMethod: VisitAttendanceVerificationMethod.MANUAL_OFFICE,
+        occurredAt: input.actualEnd,
+        identityConfirmed: true,
+        notes: `MANUAL:ADMIN_COMPLETE | approvedBy:${input.userId}`,
+      });
+    }
+  }
 
   private buildBaseWhere(query: HousekeepingQueryDto): Prisma.ScheduledJobWhereInput {
     const where: Prisma.ScheduledJobWhereInput = { deletedAt: null, isActive: true };
@@ -165,6 +238,23 @@ export class ScheduledJobsHousekeepingService {
     }));
     const actualStart = visits.find((v) => v.actualStartDateTime)?.actualStartDateTime ?? null;
     const actualEnd = [...visits].reverse().find((v) => v.actualEndDateTime)?.actualEndDateTime ?? null;
+    const meta = this.parseJobMetadata(row.metadata);
+    const careNotDeliveredReasonCode =
+      typeof meta.careNotDeliveredReasonCode === 'string'
+        ? meta.careNotDeliveredReasonCode
+        : null;
+    const careNotDelivered =
+      meta.careNotDelivered === true || Boolean(careNotDeliveredReasonCode)
+        ? {
+            reasonCode: careNotDeliveredReasonCode,
+            reasonLabel:
+              typeof meta.careNotDeliveredReasonLabel === 'string'
+                ? meta.careNotDeliveredReasonLabel
+                : visitCareNotDeliveredReasonLabel(careNotDeliveredReasonCode),
+            notes:
+              typeof meta.careNotDeliveredNotes === 'string' ? meta.careNotDeliveredNotes : null,
+          }
+        : null;
 
     return {
       ...timeline,
@@ -173,6 +263,7 @@ export class ScheduledJobsHousekeepingService {
       scheduledEndDateTime: row.scheduledEndDateTime?.toISOString() ?? null,
       actualStartDateTime: actualStart,
       actualEndDateTime: actualEnd,
+      careNotDelivered,
       employees: row.allocations
         .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
         .map((a) => ({
@@ -548,6 +639,42 @@ export class ScheduledJobsHousekeepingService {
       }
     }
 
+    let careNotDelivered = false;
+    let careNotDeliveredReasonCode: string | null = null;
+    let careNotDeliveredNotes: string | null = null;
+    if (completing && dto.careNotDelivered === true) {
+      careNotDelivered = true;
+      const code = dto.careNotDeliveredReasonCode?.trim() ?? '';
+      if (!isVisitCareNotDeliveredReasonCode(code)) {
+        throw new BadRequestException(
+          'Select a reason when care was not delivered (service user unavailable / not home). Visit stays completed because the carer attended.',
+        );
+      }
+      careNotDeliveredReasonCode = code;
+      careNotDeliveredNotes = dto.careNotDeliveredNotes?.trim() || null;
+      const reasonMeta = VISIT_CARE_NOT_DELIVERED_REASONS.find((r) => r.code === code);
+      if (reasonMeta?.requiresNotes && !careNotDeliveredNotes) {
+        throw new BadRequestException(
+          'Notes are required when care was not delivered after attendance.',
+        );
+      }
+    } else if (completing && dto.careNotDeliveredReasonCode?.trim()) {
+      // Allow reason without explicit flag for clients that only send the code.
+      const code = dto.careNotDeliveredReasonCode.trim();
+      if (!isVisitCareNotDeliveredReasonCode(code)) {
+        throw new BadRequestException('Invalid care-not-delivered reason code.');
+      }
+      careNotDelivered = true;
+      careNotDeliveredReasonCode = code;
+      careNotDeliveredNotes = dto.careNotDeliveredNotes?.trim() || null;
+      const reasonMeta = VISIT_CARE_NOT_DELIVERED_REASONS.find((r) => r.code === code);
+      if (reasonMeta?.requiresNotes && !careNotDeliveredNotes) {
+        throw new BadRequestException(
+          'Notes are required when care was not delivered after attendance.',
+        );
+      }
+    }
+
     let actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : undefined;
     // Started must never persist checkout — strip any client-sent draft/planned ends.
     let actualEnd = markingStarted
@@ -667,7 +794,7 @@ export class ScheduledJobsHousekeepingService {
         })),
       });
 
-      if (deliveryAssessment.requiresExceptionReason) {
+      if (deliveryAssessment.requiresExceptionReason && !careNotDelivered) {
         const code = dto.timingExceptionReasonCode?.trim() ?? '';
         if (!isVisitTimingExceptionReasonCode(code)) {
           throw new BadRequestException(
@@ -695,7 +822,7 @@ export class ScheduledJobsHousekeepingService {
           0,
           Math.round((actualEnd.getTime() - actualStart.getTime()) / 60_000),
         );
-        if (actualMinutes > plannedMinutes) {
+        if (actualMinutes > plannedMinutes && !careNotDelivered) {
           // Prefer explicit overrunReason; otherwise accept structured timing exception
           // (mobile apps should not need two near-duplicate reason fields).
           const fromDto = dto.overrunReason?.trim() ?? '';
@@ -861,6 +988,33 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
+      if (completing && careNotDelivered && careNotDeliveredReasonCode) {
+        metadataPatch.careNotDelivered = true;
+        metadataPatch.careNotDeliveredReasonCode = careNotDeliveredReasonCode;
+        metadataPatch.careNotDeliveredReasonLabel =
+          visitCareNotDeliveredReasonLabel(careNotDeliveredReasonCode);
+        if (careNotDeliveredNotes) metadataPatch.careNotDeliveredNotes = careNotDeliveredNotes;
+        else delete metadataPatch.careNotDeliveredNotes;
+        metadataChanged = true;
+      } else if (completing || reopeningFromCompleted) {
+        if ('careNotDelivered' in metadataPatch) {
+          delete metadataPatch.careNotDelivered;
+          metadataChanged = true;
+        }
+        if ('careNotDeliveredReasonCode' in metadataPatch) {
+          delete metadataPatch.careNotDeliveredReasonCode;
+          metadataChanged = true;
+        }
+        if ('careNotDeliveredReasonLabel' in metadataPatch) {
+          delete metadataPatch.careNotDeliveredReasonLabel;
+          metadataChanged = true;
+        }
+        if ('careNotDeliveredNotes' in metadataPatch) {
+          delete metadataPatch.careNotDeliveredNotes;
+          metadataChanged = true;
+        }
+      }
+
       const metadata = metadataChanged ? metadataPatch : undefined;
 
       const updated = await tx.scheduledJob.update({
@@ -887,6 +1041,8 @@ export class ScheduledJobsHousekeepingService {
           actualStartDateTime: actualStart?.toISOString() ?? null,
           actualEndDateTime: actualEnd?.toISOString() ?? null,
           missedReasonCode,
+          careNotDelivered,
+          careNotDeliveredReasonCode,
         }),
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
@@ -908,9 +1064,47 @@ export class ScheduledJobsHousekeepingService {
       }
     }
 
+    // Admin actor (non-empty userId) + completion → Manual (even if GPS seed exists).
+    // Carer app calls completeJob('') and records MOBILE_GPS → Electronic.
+    const officeCompleted = Boolean(completing && userId?.trim() && actualStart);
+    if (officeCompleted && userId) {
+      try {
+        await this.ensureOfficeManualAttendanceFromAdminComplete({
+          jobId: id,
+          userId,
+          actualStart: actualStart!,
+          actualEnd: actualEnd ?? undefined,
+          visitId: existing.visits?.[0]?.id ?? null,
+          allocations: (existing.allocations ?? []).map((a) => ({
+            id: a.id,
+            employeeId: a.employeeId,
+            status: a.status,
+          })),
+        });
+      } catch {
+        // Completion must succeed even if attendance evidence write fails; ECM evaluate still runs.
+      }
+
+      try {
+        const previousMeta = this.parseJobMetadata(existing.metadata);
+        await this.prisma.scheduledJob.update({
+          where: { id },
+          data: {
+            metadata: {
+              ...previousMeta,
+              ecmCompletionSource: 'office',
+            } as Prisma.InputJsonValue,
+          },
+        });
+      } catch {
+        // Non-fatal — MANUAL_OFFICE events + officeCompleted option still drive Manual.
+      }
+    }
+
     // ECM evaluation is a derived cache — rebuild from workspace after every outcome write.
     await this.ecmEvaluation.evaluateJobSafe(id, {
       confirmedMissed: markingMissed || undefined,
+      officeCompleted: officeCompleted || undefined,
     });
 
     return result;

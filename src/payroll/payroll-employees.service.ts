@@ -25,6 +25,7 @@ import {
   formatRtiIdentityBlockMessage,
   type RtiIdentityAssessment,
 } from './payroll-rti-identity.util';
+import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
 import { mapYtdLedger } from './payroll-ytd.util';
 
 type EmployeeIdentityRow = {
@@ -42,6 +43,8 @@ type EmployeeIdentityRow = {
     payrollNumber: string | null
     nationalInsuranceNo: string | null
     defaultPayCardId: string | null
+    startDate: Date | null
+    endDate: Date | null
   } | null
 }
 
@@ -103,6 +106,8 @@ export class PayrollEmployeesService {
         payrollNumber: true,
         nationalInsuranceNo: true,
         defaultPayCardId: true,
+        startDate: true,
+        endDate: true,
       },
     },
   } as const
@@ -156,6 +161,8 @@ export class PayrollEmployeesService {
         payrollNumber: e.employment?.payrollNumber ?? null,
         nationalInsuranceNo: e.employment?.nationalInsuranceNo ?? null,
         defaultPayCardId: e.employment?.defaultPayCardId ?? null,
+        employmentStartDate: dateToIsoDate(e.employment?.startDate ?? null),
+        employmentEndDate: dateToIsoDate(e.employment?.endDate ?? null),
         profile: profile ? mapProfile(profile) : null,
         activeAgreement: agreement ? mapAgreement(agreement) : null,
         rtiIdentity: mapRtiIdentityPayload(e, assessment),
@@ -269,6 +276,10 @@ export class PayrollEmployeesService {
       dto.taxCode === undefined ? existing?.taxCode ?? null : dto.taxCode?.trim() || null;
     const nextNiCategory =
       dto.niCategory === undefined ? existing?.niCategory ?? null : dto.niCategory;
+    const nextHours =
+      dto.hoursNormallyWorked === undefined
+        ? existing?.hoursNormallyWorked ?? null
+        : dto.hoursNormallyWorked;
     const nextStatus = dto.status ?? existing?.status ?? 'DRAFT';
 
     if (nextStatus === 'READY') {
@@ -276,9 +287,23 @@ export class PayrollEmployeesService {
         taxCode: nextTaxCode,
         niCategory: nextNiCategory,
       });
-      if (!assessment.isComplete) {
-        throw new BadRequestException(formatRtiIdentityBlockMessage(assessment.issues));
+      const readyIssues = [...assessment.issues];
+      if (!isPayrollHoursNormallyWorked(nextHours)) {
+        readyIssues.push(
+          'Hours normally worked band (A–E) must be set on the payroll profile for FPS',
+        );
       }
+      if (readyIssues.length > 0) {
+        throw new BadRequestException(formatRtiIdentityBlockMessage(readyIssues));
+      }
+    }
+
+    if (
+      dto.hoursNormallyWorked !== undefined &&
+      dto.hoursNormallyWorked !== null &&
+      !isPayrollHoursNormallyWorked(dto.hoursNormallyWorked)
+    ) {
+      throw new BadRequestException('hoursNormallyWorked must be A, B, C, D, or E');
     }
 
     const hasElections = dto.deductionElections !== undefined;
@@ -296,6 +321,13 @@ export class PayrollEmployeesService {
       taxCodeWeek1Month1: dto.taxCodeWeek1Month1,
       niCategory: dto.niCategory === undefined ? undefined : dto.niCategory,
       starterDeclaration: dto.starterDeclaration,
+      hoursNormallyWorked:
+        dto.hoursNormallyWorked === undefined
+          ? undefined
+          : dto.hoursNormallyWorked === null
+            ? null
+            : dto.hoursNormallyWorked,
+      p45Received: dto.p45Received,
       studentLoanPlan1: syncedFlags?.studentLoanPlan1 ?? dto.studentLoanPlan1,
       studentLoanPlan2: syncedFlags?.studentLoanPlan2 ?? dto.studentLoanPlan2,
       studentLoanPlan4: syncedFlags?.studentLoanPlan4 ?? dto.studentLoanPlan4,
@@ -331,6 +363,8 @@ export class PayrollEmployeesService {
             taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
             niCategory: dto.niCategory ?? null,
             starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
+            hoursNormallyWorked: dto.hoursNormallyWorked ?? null,
+            p45Received: dto.p45Received ?? false,
             studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
             studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
             studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),

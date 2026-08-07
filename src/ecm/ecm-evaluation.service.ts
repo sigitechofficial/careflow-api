@@ -4,7 +4,6 @@ import {
   Prisma,
   ScheduledJobStatus,
   VisitAttendanceEventType,
-  VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
@@ -27,6 +26,7 @@ import {
 import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
+import { shouldFlagManualAttendance } from './ecm-attendance-method.util';
 
 export type EvaluateJobOptions = {
   visitOverride?: EcmSettingsLayer | null;
@@ -37,6 +37,8 @@ export type EvaluateJobOptions = {
   attendanceClaimedWithoutEvidence?: boolean;
   falseEcmAlert?: boolean;
   disputed?: boolean;
+  /** True when admin / schedule-jobs completed the visit (Manual on ECM graphs). */
+  officeCompleted?: boolean;
   now?: Date;
 };
 
@@ -96,6 +98,13 @@ export class EcmEvaluationService {
     const plannedStart = visit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
     const plannedEnd =
       visit?.scheduledEndDateTime ?? job.scheduledEndDateTime ?? null;
+
+    const jobMeta =
+      job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? (job.metadata as Record<string, unknown>)
+        : {};
+    const officeCompletedFromMeta = jobMeta.ecmCompletionSource === 'office';
+    const officeCompleted = options.officeCompleted === true || officeCompletedFromMeta;
 
     try {
       await this.scheduleVersions.ensureOriginal({
@@ -200,9 +209,15 @@ export class EcmEvaluationService {
     if (checkInEvent?.isMockLocation) {
       operationalExceptionCodes.push('MOCK_LOCATION');
     }
-    if (
-      checkInEvent?.verificationMethod === VisitAttendanceVerificationMethod.MANUAL_OFFICE
-    ) {
+
+    const manualAttendance = shouldFlagManualAttendance({
+      completedOutcome,
+      hasActualStart: Boolean(actualStart),
+      attendanceEvents: job.attendanceEvents,
+      checkInVerificationMethod: checkInEvent?.verificationMethod,
+      officeCompleted,
+    });
+    if (manualAttendance) {
       operationalExceptionCodes.push('MANUAL_ATTENDANCE');
     }
 
@@ -233,9 +248,7 @@ export class EcmEvaluationService {
       verificationMethod: checkInEvent?.verificationMethod,
       outsideGeofence: checkInEvent?.outsideGeofence,
       isMockLocation: checkInEvent?.isMockLocation,
-      manual:
-        checkInEvent?.verificationMethod ===
-        VisitAttendanceVerificationMethod.MANUAL_OFFICE,
+      manual: manualAttendance,
       hasCheckIn: Boolean(actualStart),
       hasCheckOut: Boolean(actualEnd),
       accuracyMeters:

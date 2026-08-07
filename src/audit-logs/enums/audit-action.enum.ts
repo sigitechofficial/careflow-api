@@ -346,6 +346,7 @@ export enum AuditAction {
   PAYROLL_TAX_CODE_DELETED = 'payroll_tax_code_deleted',
   PAYROLL_STATUTORY_RATES_UPDATED = 'payroll_statutory_rates_updated',
   PAYROLL_EMPLOYER_SETTINGS_UPDATED = 'payroll_employer_settings_updated',
+  PAYROLL_GATEWAY_CREDENTIALS_UPDATED = 'payroll_gateway_credentials_updated',
   PAYROLL_SCHEDULE_CREATED = 'payroll_schedule_created',
   PAYROLL_SCHEDULE_UPDATED = 'payroll_schedule_updated',
   PAYROLL_PERIODS_GENERATED = 'payroll_periods_generated',
@@ -363,4 +364,9 @@ export enum AuditAction {
   PAYROLL_RUN_STATUTORY_CALCULATED = 'payroll_run_statutory_calculated',
   PAYROLL_RUNS_DELETED = 'payroll_runs_deleted',
   PAYROLL_DATA_PURGED = 'payroll_data_purged',
+  PAYROLL_HMRC_FPS_DRY_RUN = 'payroll_hmrc_fps_dry_run',
+  PAYROLL_HMRC_FPS_SUBMITTED = 'payroll_hmrc_fps_submitted',
+  PAYROLL_HMRC_FPS_LIVE_REQUESTED = 'payroll_hmrc_fps_live_requested',
+  PAYROLL_HMRC_FPS_LIVE_APPROVED = 'payroll_hmrc_fps_live_approved',
+  PAYROLL_HMRC_FPS_LIVE_REJECTED = 'payroll_hmrc_fps_live_rejected',
 }

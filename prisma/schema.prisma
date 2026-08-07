@@ -7690,6 +7690,19 @@ model PayrollEmployerSettings {
   /// Legal / trading name to show on payroll filings (optional until FPS).
   employerTradingName      String?
   notes                    String?
+  /// Which HMRC Gateway environment Care will use for RTI submit (T16). TEST | LIVE.
+  activeHmrcEnvironment    String   @default("TEST")
+  /// PAYE Online / Gateway user ID for HMRC test (sandbox) submissions.
+  gatewayTestUserId        String?
+  /// AES-GCM ciphertext (enc:v1:…) — never returned on API reads.
+  gatewayTestPasswordEnc   String?
+  /// PAYE Online / Gateway user ID for HMRC live submissions.
+  gatewayLiveUserId        String?
+  /// AES-GCM ciphertext (enc:v1:…) — never returned on API reads.
+  gatewayLivePasswordEnc   String?
+  gatewayCredentialsUpdatedAt DateTime?
+  /// Claim Employment Allowance on EPS when eligible (T14).
+  employmentAllowanceClaimed Boolean @default(false)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
   createdById              String?  @db.Uuid
@@ -7851,6 +7864,10 @@ model EmployeePayrollProfile {
   taxCodeWeek1Month1    Boolean                      @default(false)
   niCategory            PayrollNiCategory?
   starterDeclaration    PayrollStarterDeclaration    @default(UNKNOWN)
+  /// HMRC FPS hours-normally-worked band A–E (T04).
+  hoursNormallyWorked   String?
+  /// Previous employer P45 received — starter declaration A/B/C not required (T05).
+  p45Received           Boolean                      @default(false)
   studentLoanPlan1      Boolean                      @default(false)
   studentLoanPlan2      Boolean                      @default(false)
   studentLoanPlan4      Boolean                      @default(false)
@@ -7949,12 +7966,59 @@ model UkPayrollRun {
   employees UkPayrollRunEmployee[]
   inputLines UkPayrollInputLine[]
   payoutBatches EmployeePayoutBatch[]
+  hmrcSubmissions PayrollHmrcSubmission[]
 
   @@unique([scheduleId, periodId, runNumber])
   @@index([status])
   @@index([taxYearId])
   @@index([periodId])
   @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Immutable HMRC RTI submission attempt (FPS first; EPS later). Passwords never stored.
+model PayrollHmrcSubmission {
+  id              String   @id @default(uuid()) @db.Uuid
+  ukPayrollRunId  String   @db.Uuid
+  /// FPS | EPS (EPS wired in T19).
+  documentType    String   @default("FPS")
+  /// DRY_RUN | SUBMIT
+  mode            String
+  /// TEST | LIVE — LIVE blocked until T18.
+  environment     String
+  /// DRAFT_BUILT | SUBMITTED | ACKNOWLEDGED | ACCEPTED | REJECTED | ERROR | SIMULATED
+  status          String
+  correlationId   String?
+  gatewayUserId   String?
+  vendorId        String?
+  submissionUrl   String?
+  /// GovTalk XML with Authentication/Value redacted.
+  requestXmlRedacted String? @db.Text
+  responseXml     String?  @db.Text
+  httpStatus      Int?
+  qualifier       String?
+  functionCode    String?
+  errorCode       String?
+  errorMessage    String?
+  /// Structured ack / error summary JSON.
+  acknowledgement Json?
+  /// T17 — snapshot of Gov-* fraud-prevention headers attached (or that would be).
+  fraudPreventionHeaders Json?
+  /// T18 — SHA-256 of FPS content at request time (dual-control match).
+  payloadFingerprint String?
+  approvedById    String?  @db.Uuid
+  approvedAt      DateTime?
+  rejectedById    String?  @db.Uuid
+  rejectedAt      DateTime?
+  rejectionNote   String?
+  createdAt       DateTime @default(now())
+  createdById     String?  @db.Uuid
+
+  run UkPayrollRun @relation(fields: [ukPayrollRunId], references: [id], onDelete: Cascade)
+
+  @@index([ukPayrollRunId])
+  @@index([status])
+  @@index([createdAt])
   @@schema("payroll")
 }
 

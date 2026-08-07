@@ -60,7 +60,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Shell includes service-user lat/lng for navigation (`shell.client.latitude` / `longitude`). `shell.location` is destination lat/lng + `allowedRadiusMeters` only (no tabs array).',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);
@@ -77,7 +77,11 @@ export class EmployeeAppVisitsController {
   }
 
   @Post(':jobId/unable-to-start')
-  @ApiOperation({ summary: 'Record unable to start without check-in (API-10)' })
+  @ApiOperation({
+    summary: 'Report unable to start visit (post check-in, API-10)',
+    description:
+      'Carer must already be checked in. Records care-not-delivered (visit COMPLETED + careNotDelivered). reasonCode must match GET details → data.unableToStart.reasons[].code. No GPS required.',
+  })
   unableToStart(
     @CurrentUser() user: RequestUser,
     @Param('jobId') jobId: string,

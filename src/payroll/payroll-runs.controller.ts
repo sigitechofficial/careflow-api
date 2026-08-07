@@ -7,7 +7,14 @@ import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
-import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
+import {
+  CreateUkPayrollRunDto,
+  EnrolUkPayrollRunDto,
+  ApproveHmrcFpsSubmissionDto,
+  RejectHmrcFpsSubmissionDto,
+  SubmitHmrcFpsDto,
+} from './dto/payroll.dto';
+import { PayrollHmrcSubmissionsService } from './payroll-hmrc-submissions.service';
 import { PayrollRunsService } from './payroll-runs.service';
 
 @ApiTags('UK Payroll — Runs')
@@ -15,7 +22,10 @@ import { PayrollRunsService } from './payroll-runs.service';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('payroll/runs')
 export class PayrollRunsController {
-  constructor(private readonly service: PayrollRunsService) {}
+  constructor(
+    private readonly service: PayrollRunsService,
+    private readonly hmrcSubmissions: PayrollHmrcSubmissionsService,
+  ) {}
 
   @Get()
   @Permissions('payroll.runs.read')
@@ -41,6 +51,30 @@ export class PayrollRunsController {
     return this.service.getById(id);
   }
 
+  @Get(':id/fps')
+  @Permissions('payroll.runs.read')
+  @ApiOperation({
+    summary:
+      'Build FPS preview JSON from a CLOSED UK payroll run (Care schema; not HMRC GovTalk submit)',
+  })
+  buildFpsPreview(@Param('id') id: string) {
+    return this.service.buildFpsPreview(id);
+  }
+
+  @Get(':id/hmrc-submissions')
+  @Permissions('payroll.runs.read')
+  @ApiOperation({ summary: 'List HMRC RTI submission attempts for a UK payroll run (T16)' })
+  listHmrcSubmissions(@Param('id') id: string) {
+    return this.hmrcSubmissions.listForRun(id);
+  }
+
+  @Get(':id/hmrc-submissions/:submissionId')
+  @Permissions('payroll.runs.read')
+  @ApiOperation({ summary: 'Get one HMRC RTI submission (includes redacted request XML)' })
+  getHmrcSubmission(@Param('id') id: string, @Param('submissionId') submissionId: string) {
+    return this.hmrcSubmissions.getSubmission(id, submissionId);
+  }
+
   @Post()
   @Permissions('payroll.runs.manage')
   @ApiOperation({ summary: 'Create UK payroll run shell for a period' })
@@ -50,6 +84,69 @@ export class PayrollRunsController {
     @Req() req: Request,
   ) {
     return this.service.create(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/fps/submit')
+  @Permissions('payroll.runs.manage')
+  @ApiOperation({
+    summary:
+      'T16–T18: Dry-run or submit FPS. TEST posts when HTTP enabled. LIVE SUBMIT creates dual-control pending approval.',
+  })
+  submitFps(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SubmitHmrcFpsDto,
+    @Req() req: Request,
+  ) {
+    return this.hmrcSubmissions.submitFps(
+      user.id,
+      id,
+      dto.mode,
+      getRequestAuditMeta(req),
+      dto.clientContext ?? null,
+      dto.environment === 'LIVE' ? 'LIVE' : 'TEST',
+    );
+  }
+
+  @Post(':id/hmrc-submissions/:submissionId/approve')
+  @Permissions('payroll.runs.manage')
+  @ApiOperation({
+    summary: 'T18: Second user approves pending LIVE FPS and posts to HMRC live gateway',
+  })
+  approveLiveFps(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: ApproveHmrcFpsSubmissionDto,
+    @Req() req: Request,
+  ) {
+    return this.hmrcSubmissions.approveLiveSubmission(
+      user.id,
+      id,
+      submissionId,
+      dto.confirmPhrase,
+      getRequestAuditMeta(req),
+      dto.clientContext ?? null,
+    );
+  }
+
+  @Post(':id/hmrc-submissions/:submissionId/reject')
+  @Permissions('payroll.runs.manage')
+  @ApiOperation({ summary: 'T18: Reject / cancel a pending LIVE FPS dual-control request' })
+  rejectLiveFps(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: RejectHmrcFpsSubmissionDto,
+    @Req() req: Request,
+  ) {
+    return this.hmrcSubmissions.rejectLiveSubmission(
+      user.id,
+      id,
+      submissionId,
+      dto.reason,
+      getRequestAuditMeta(req),
+    );
   }
 
   @Post(':id/enrol')

@@ -13,7 +13,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
-import { dateToIsoDate, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
+import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
 import {
   accumulateGrossLine,
   emptyGrossBucket,
@@ -38,6 +38,9 @@ import {
   postRunEmployeesToYtd,
   reverseRunEmployeesFromYtd,
 } from './payroll-ytd.util';
+import { buildCareFpsPayload } from './payroll-fps.util';
+import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
+import { PAYROLL_EMPLOYER_SETTINGS_ID } from './payroll-settings.service';
 
 const OPEN_RUN_STATUSES = [
   'DRAFT',
@@ -347,8 +350,170 @@ export class PayrollRunsService {
           };
         }),
         phaseNote:
-          'Cumulative PAYE by default using YTD ledgers (T06/T07). Week 1/Month 1 when the employee flag is set (or BR/D0/D1). Closing posts YTD. Scotland, student loans, pensions, and FPS are not included.',
+          'Cumulative PAYE by default using YTD ledgers (T06/T07). Week 1/Month 1 when the employee flag is set (or BR/D0/D1). Closing posts YTD. Closed runs can preview FPS and dry-run / TEST-submit GovTalk (T16). Live HMRC send is T18.',
       },
+    };
+  }
+
+  /**
+   * Build a Care-owned FPS preview JSON from a CLOSED run (GovTalk submit is T16).
+   */
+  async buildFpsPreview(runId: string) {
+    const row = await this.requireRun(runId);
+    if (row.status !== 'CLOSED') {
+      throw new BadRequestException(
+        'FPS preview is only available for CLOSED runs. Close the run after statutory calculation first.',
+      );
+    }
+
+    const employees = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: { runId },
+      orderBy: { enrolledAt: 'asc' },
+    });
+    const employeeIds = employees.map((e) => e.employeeId);
+
+    const [employerRow, people, profiles, ytdRows] = await Promise.all([
+      this.prisma.payrollEmployerSettings.findUnique({
+        where: { id: PAYROLL_EMPLOYER_SETTINGS_ID },
+      }),
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds }, deletedAt: null },
+            select: {
+              id: true,
+              personalDetail: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  dateOfBirth: true,
+                  addressLine1: true,
+                  addressLine2: true,
+                  town: true,
+                  county: true,
+                  country: true,
+                  postcode: true,
+                  gender: { select: { name: true } },
+                },
+              },
+              employment: {
+                select: {
+                  payrollNumber: true,
+                  nationalInsuranceNo: true,
+                  startDate: true,
+                  endDate: true,
+                  contractedWeeklyHours: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      employeeIds.length
+        ? this.prisma.employeePayrollProfile.findMany({
+            where: { employeeId: { in: employeeIds }, deletedAt: null },
+          })
+        : Promise.resolve([]),
+      employeeIds.length
+        ? this.prisma.employeePayrollYtdLedger.findMany({
+            where: {
+              taxYearId: row.taxYearId,
+              employeeId: { in: employeeIds },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    if (!employerRow) {
+      throw new BadRequestException(
+        'Employer PAYE settings not found. Configure them under Payroll → Employer PAYE.',
+      );
+    }
+
+    const employer = mapEmployerSettings(employerRow);
+    const profileByEmployee = new Map(profiles.map((p) => [p.employeeId, p]));
+    const ytdByEmployee = new Map(ytdRows.map((y) => [y.employeeId, mapYtdLedger(y)]));
+    const period = mapPeriod(row.period);
+    const schedule = mapSchedule(row.schedule);
+    const taxYear = mapTaxYear(row.taxYear);
+
+    const payload = buildCareFpsPayload({
+      run: {
+        id: row.id,
+        status: row.status,
+        totalGross: decimalNum(row.totalGross),
+        totalIncomeTax: decimalNum(row.totalIncomeTax),
+        totalEmployeeNi: decimalNum(row.totalEmployeeNi),
+        totalEmployerNi: decimalNum(row.totalEmployerNi),
+        totalNetPay: decimalNum(row.totalNetPay),
+        taxYearCode: taxYear.code,
+        periodSequence: period.sequence,
+        periodStart: period.periodStart!,
+        periodEnd: period.periodEnd!,
+        paymentDate: period.paymentDate!,
+        payFrequency: schedule.frequency,
+      },
+      employer: {
+        hmrcOfficeNumber: employer.hmrcOfficeNumber,
+        employerPayeReference: employer.employerPayeReference,
+        accountsOfficeReference: employer.accountsOfficeReference,
+        employerTradingName: employer.employerTradingName,
+        fullPayeReference: employer.fullPayeReference,
+        isComplete: employer.isComplete,
+      },
+      identities: people.map((p) => ({
+        employeeId: p.id,
+        firstName: p.personalDetail?.firstName ?? null,
+        lastName: p.personalDetail?.lastName ?? null,
+        dateOfBirth: p.personalDetail?.dateOfBirth ?? null,
+        genderName: p.personalDetail?.gender?.name ?? null,
+        addressLine1: p.personalDetail?.addressLine1 ?? null,
+        addressLine2: p.personalDetail?.addressLine2 ?? null,
+        town: p.personalDetail?.town ?? null,
+        county: p.personalDetail?.county ?? null,
+        country: p.personalDetail?.country ?? null,
+        postcode: p.personalDetail?.postcode ?? null,
+        nationalInsuranceNo: p.employment?.nationalInsuranceNo ?? null,
+        payrollNumber: p.employment?.payrollNumber ?? null,
+        startDate: p.employment?.startDate ?? null,
+        endDate: p.employment?.endDate ?? null,
+        contractedWeeklyHours: p.employment?.contractedWeeklyHours ?? null,
+      })),
+      employees: employees.map((e) => {
+        const profile = profileByEmployee.get(e.employeeId);
+        const ytd = ytdByEmployee.get(e.employeeId) ?? null;
+        return {
+          employeeId: e.employeeId,
+          totalGross: decimalNum(e.totalGross),
+          taxablePay: decimalNum(e.taxablePay),
+          incomeTax: decimalNum(e.incomeTax),
+          employeeNi: decimalNum(e.employeeNi),
+          employerNi: decimalNum(e.employerNi),
+          netPay: decimalNum(e.netPay),
+          taxCodeApplied: e.taxCodeApplied,
+          niCategoryApplied: e.niCategoryApplied,
+          week1Month1: profile?.taxCodeWeek1Month1 ?? false,
+          starterDeclaration: profile?.starterDeclaration ?? null,
+          hoursNormallyWorked: isPayrollHoursNormallyWorked(profile?.hoursNormallyWorked)
+            ? profile.hoursNormallyWorked
+            : null,
+          p45Received: Boolean(profile?.p45Received),
+          ytd: ytd
+            ? {
+                grossPayYtd: ytd.grossPayYtd,
+                taxablePayYtd: ytd.taxablePayYtd,
+                incomeTaxYtd: ytd.incomeTaxYtd,
+                employeeNiYtd: ytd.employeeNiYtd,
+                employerNiYtd: ytd.employerNiYtd,
+                netPayYtd: ytd.netPayYtd,
+              }
+            : null,
+        };
+      }),
+      gatewayCredentialsReady: employer.gatewayCredentialsReady,
+    });
+
+    return {
+      message: 'FPS preview payload (Care schema — not submitted to HMRC)',
+      data: payload,
     };
   }
 

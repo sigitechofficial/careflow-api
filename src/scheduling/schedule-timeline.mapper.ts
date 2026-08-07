@@ -3,6 +3,7 @@ import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { jobDurationMinutes } from './schedule-date-range.util';
 import { assessVisitDeliveryFromJobLike } from './visit-delivery-assessment.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import { visitCareNotDeliveredReasonLabel } from './visit-care-not-delivered-reason.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -185,11 +186,36 @@ function mapVisitPlanContext(row: TimelineJobRow) {
   };
 }
 
+function parseJobMetadata(raw: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return { ...(raw as Record<string, unknown>) };
+  }
+  return {};
+}
+
+function mapCareNotDelivered(row: TimelineJobRow) {
+  const meta = parseJobMetadata(row.metadata);
+  const reasonCode =
+    typeof meta.careNotDeliveredReasonCode === 'string'
+      ? meta.careNotDeliveredReasonCode
+      : null;
+  if (meta.careNotDelivered !== true && !reasonCode) return null;
+  return {
+    reasonCode,
+    reasonLabel:
+      typeof meta.careNotDeliveredReasonLabel === 'string'
+        ? meta.careNotDeliveredReasonLabel
+        : visitCareNotDeliveredReasonLabel(reasonCode),
+    notes: typeof meta.careNotDeliveredNotes === 'string' ? meta.careNotDeliveredNotes : null,
+  };
+}
+
 export function mapTimelineJob(row: TimelineJobRow) {
   const visitPlanContext = mapVisitPlanContext(row);
   const primaryVisit = row.visits[0];
   const actualStartDateTime = primaryVisit?.actualStartDateTime?.toISOString() ?? null;
   const actualEndDateTime = primaryVisit?.actualEndDateTime?.toISOString() ?? null;
+  const careNotDelivered = mapCareNotDelivered(row);
   const allocations = row.allocations.map((a) => {
     const resolved = resolveAllocationWindow(a, {
       scheduledStartDateTime: row.scheduledStartDateTime,
@@ -246,6 +272,7 @@ export function mapTimelineJob(row: TimelineJobRow) {
         }
       : null,
     allocations,
+    careNotDelivered,
     ...visitPlanContext,
   };
 

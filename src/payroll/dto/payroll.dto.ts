@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,6 +16,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 
 export enum PayrollTaxYearStatusDto {
@@ -383,6 +385,21 @@ export class UpsertEmployeePayrollProfileDto {
   @IsEnum(PayrollStarterDeclarationDto)
   starterDeclaration?: PayrollStarterDeclarationDto;
 
+  @ApiPropertyOptional({
+    enum: ['A', 'B', 'C', 'D', 'E'],
+    description: 'HMRC FPS hours-normally-worked band (A–E)',
+  })
+  @IsOptional()
+  @IsIn(['A', 'B', 'C', 'D', 'E'])
+  hoursNormallyWorked?: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+
+  @ApiPropertyOptional({
+    description: 'Previous employer P45 received — starter A/B/C statement not required',
+  })
+  @IsOptional()
+  @IsBoolean()
+  p45Received?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -615,4 +632,249 @@ export class UpdatePayrollEmployerSettingsDto {
   @IsString()
   @MaxLength(2000)
   notes?: string | null;
+
+  @ApiPropertyOptional({ enum: ['TEST', 'LIVE'], example: 'TEST' })
+  @IsOptional()
+  @IsIn(['TEST', 'LIVE'])
+  activeHmrcEnvironment?: 'TEST' | 'LIVE';
+
+  @ApiPropertyOptional({
+    example: 'my-gateway-user',
+    description: 'HMRC PAYE Online Gateway user ID (test environment)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  gatewayTestUserId?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'New Gateway password for test. Omit or leave blank to keep the stored password. Never returned on GET.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  gatewayTestPassword?: string | null;
+
+  @ApiPropertyOptional({ description: 'Clear stored test Gateway password' })
+  @IsOptional()
+  @IsBoolean()
+  clearTestPassword?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'my-live-gateway-user',
+    description: 'HMRC PAYE Online Gateway user ID (live environment)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  gatewayLiveUserId?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'New Gateway password for live. Omit or leave blank to keep the stored password. Never returned on GET.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  gatewayLivePassword?: string | null;
+
+  @ApiPropertyOptional({ description: 'Clear stored live Gateway password' })
+  @IsOptional()
+  @IsBoolean()
+  clearLivePassword?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Claim Employment Allowance on Employer Payment Summary (EPS) when eligible',
+  })
+  @IsOptional()
+  @IsBoolean()
+  employmentAllowanceClaimed?: boolean;
+}
+
+/** Query for Care EPS preview (T14) — not HMRC GovTalk submit. */
+export class PreviewEpsQueryDto {
+  @ApiPropertyOptional({
+    description: 'Payroll tax year id. Defaults to the current tax year.',
+  })
+  @IsOptional()
+  @IsUUID()
+  taxYearId?: string;
+
+  @ApiProperty({ example: 1, description: 'UK PAYE tax month 1–12 (Month 1 = 6 Apr–5 May)' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  taxMonth!: number;
+
+  @ApiPropertyOptional({
+    description: 'Force nil-payment indicator. Omit to auto-suggest from closed runs.',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (value === true || value === 'true' || value === '1') return true;
+    if (value === false || value === 'false' || value === '0') return false;
+    return value;
+  })
+  @IsBoolean()
+  noPaymentThisPeriod?: boolean;
+
+  @ApiPropertyOptional({ description: 'Override Employment Allowance claim for this preview' })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (value === true || value === 'true' || value === '1') return true;
+    if (value === false || value === 'false' || value === '0') return false;
+    return value;
+  })
+  @IsBoolean()
+  employmentAllowanceClaimed?: boolean;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  smpRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  sppRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  sapRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  shppRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  spbpRecovered?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  nicCompensationOnStatutory?: number;
+}
+
+export enum HmrcFpsSubmitModeDto {
+  DRY_RUN = 'DRY_RUN',
+  SUBMIT = 'SUBMIT',
+}
+
+/** Browser-collected fraud-prevention context (WEB_APP_VIA_SERVER). */
+export class HmrcFraudClientContextDto {
+  @ApiPropertyOptional({ description: 'Persistent UUID for this browser (localStorage)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  deviceId?: string;
+
+  @ApiPropertyOptional({ description: 'navigator.userAgent from the browser' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1024)
+  browserJsUserAgent?: string;
+
+  @ApiPropertyOptional({ example: 'UTC+01:00' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(16)
+  @Matches(/^UTC[+-]\d{2}:\d{2}$/)
+  timezone?: string;
+
+  @ApiPropertyOptional({
+    example: 'width=1920&height=1080&scaling-factor=1&colour-depth=24',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  screens?: string;
+
+  @ApiPropertyOptional({ example: 'width=1256&height=803' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  windowSize?: string;
+
+  @ApiPropertyOptional({
+    description: 'Public TCP port of the browser connection when known (1–65535)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  publicPort?: number;
+}
+
+/** T16/T17/T18 — build / send FPS GovTalk (LIVE requires dual control). */
+export class SubmitHmrcFpsDto {
+  @ApiProperty({
+    enum: HmrcFpsSubmitModeDto,
+    example: HmrcFpsSubmitModeDto.DRY_RUN,
+    description:
+      'DRY_RUN builds redacted GovTalk XML only. SUBMIT to TEST posts when HMRC_RTI_HTTP_ENABLED=true. SUBMIT to LIVE creates a pending dual-control request (T18).',
+  })
+  @IsEnum(HmrcFpsSubmitModeDto)
+  mode!: HmrcFpsSubmitModeDto;
+
+  @ApiPropertyOptional({
+    enum: ['TEST', 'LIVE'],
+    default: 'TEST',
+    description: 'TEST = Transaction Engine test. LIVE = real HMRC (dual-control on SUBMIT).',
+  })
+  @IsOptional()
+  @IsIn(['TEST', 'LIVE'])
+  environment?: 'TEST' | 'LIVE';
+
+  @ApiPropertyOptional({ type: HmrcFraudClientContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HmrcFraudClientContextDto)
+  clientContext?: HmrcFraudClientContextDto;
+}
+
+/** T18 — second person approves a pending LIVE FPS send. */
+export class ApproveHmrcFpsSubmissionDto {
+  @ApiProperty({
+    example: 'SEND LIVE FPS',
+    description: 'Must be exactly SEND LIVE FPS',
+  })
+  @IsString()
+  @Matches(/^SEND LIVE FPS$/)
+  confirmPhrase!: string;
+
+  @ApiPropertyOptional({ type: HmrcFraudClientContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HmrcFraudClientContextDto)
+  clientContext?: HmrcFraudClientContextDto;
+}
+
+/** T18 — reject / cancel a pending LIVE FPS send. */
+export class RejectHmrcFpsSubmissionDto {
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }

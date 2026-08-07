@@ -106,6 +106,12 @@ import {
   employeeAppEarlyArrivalReasons,
   employeeAppLateArrivalReasons,
 } from './employee-app-check-in-arrival-reasons';
+import {
+  buildUnableToStartBlock,
+  employeeAppUnableToStartReasonLabel,
+  isEmployeeAppUnableToStartReasonCode,
+  type UnableToStartSummary,
+} from './employee-app-unable-to-start.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -274,6 +280,7 @@ export class EmployeeAppVisitsService {
    * remain available for lightweight refreshes after the initial load.
    */
   async getVisitDetails(employeeId: string, jobId: string) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const [workspace, tasks, medication, observations, log, bodyMap] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
@@ -297,6 +304,7 @@ export class EmployeeAppVisitsService {
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
+        unableToStart: this.buildUnableToStartPayload(ctx),
       },
     };
   }
@@ -889,7 +897,11 @@ export class EmployeeAppVisitsService {
     await this.prisma.scheduledJob.update({
       where: { id: jobId },
       data: {
-        metadata: { ...previousMeta, employeeApp } as Prisma.InputJsonValue,
+        metadata: {
+          ...previousMeta,
+          ecmCompletionSource: 'mobile',
+          employeeApp,
+        } as Prisma.InputJsonValue,
       },
     });
 
@@ -982,49 +994,105 @@ export class EmployeeAppVisitsService {
 
   async unableToStart(employeeId: string, jobId: string, dto: EmployeeAppUnableToStartDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    if (
-      ctx.primaryVisit.status === ScheduledVisitStatus.STARTED ||
-      ctx.primaryVisit.actualStartDateTime ||
-      ctx.checkIn
-    ) {
-      contractError('ALREADY_CHECKED_IN', 'Cannot mark unable-to-start after check-in');
+    const visit = ctx.primaryVisit;
+
+    const isCheckedIn =
+      Boolean(visit.actualStartDateTime) ||
+      visit.status === ScheduledVisitStatus.STARTED ||
+      Boolean(ctx.checkIn);
+    if (!isCheckedIn) {
+      contractError(
+        'NOT_CHECKED_IN',
+        'Clock in before reporting unable to start visit',
+      );
     }
-    if (dto.reasonCode === 'OTHER' && !dto.notes?.trim()) {
-      validationError('notes are required when reasonCode is OTHER');
+
+    const visitClosed =
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF ||
+      visit.status === ScheduledVisitStatus.MISSED;
+    if (visitClosed) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const existingSummary = this.resolveUnableToStartSummary(ctx);
+    if (existingSummary) {
+      contractError('ALREADY_REPORTED', 'Unable to start has already been reported for this visit');
+    }
+
+    if (!isEmployeeAppUnableToStartReasonCode(dto.reasonCode)) {
+      validationError(
+        'reasonCode must be one of: CLIENT_NOT_HOME, CLIENT_IN_HOSPITAL, CLIENT_DECEASED, CLIENT_REFUSED, UNSAFE_SITUATION, OTHER',
+      );
+    }
+    if (!dto.notes?.trim()) {
+      validationError('notes are required');
     }
 
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
-    const notes =
-      `[Unable to start: ${dto.reasonCode}] ${dto.notes?.trim() ?? ''}`.trim() ||
-      `Unable to start — ${dto.reasonCode}`;
+    const now = new Date();
+    const attemptedAt = parseOccurredAt(dto.attemptedAt, now);
+    const actualStart =
+      visit.actualStartDateTime ??
+      (ctx.checkIn?.checkedInAt ? new Date(String(ctx.checkIn.checkedInAt)) : attemptedAt);
+    const actualEnd =
+      attemptedAt.getTime() > actualStart.getTime() ? attemptedAt : now;
+    const notes = dto.notes.trim();
+    const reasonLabel =
+      employeeAppUnableToStartReasonLabel(dto.reasonCode) ?? dto.reasonCode;
 
+    // Carer attended (checked in) but care was not delivered — keep COMPLETED + careNotDelivered.
     await this.housekeeping.completeJob('', jobId, {
-      status: LocalVisitStatus.MISSED,
-      notes,
-      actualStartDateTime: undefined,
-      actualEndDateTime: undefined,
+      status: LocalVisitStatus.COMPLETED,
+      notes: `[Unable to start: ${dto.reasonCode}] ${notes}`.trim(),
+      actualStartDateTime: actualStart.toISOString(),
+      actualEndDateTime: actualEnd.toISOString(),
+      careNotDelivered: true,
+      careNotDeliveredReasonCode: dto.reasonCode,
+      careNotDeliveredNotes: notes,
     });
 
-    const now = new Date();
     const auditRecordId = newAuditRecordId();
+    const refreshed = await this.loadJobForEmployee(employeeId, jobId).catch(() => ctx);
     const response = {
       jobId,
       status: 'unable_to_start',
       recordedAt: now.toISOString(),
       auditRecordId,
+      reasonCode: dto.reasonCode,
+      notes,
+      visitStatus: refreshed.primaryVisit.status,
+      officeNotified: true,
     };
 
     await this.mergeEmployeeAppMeta(jobId, (ea) => ({
       ...ea,
       unableToStart: {
-        ...dto,
+        reasonCode: dto.reasonCode,
+        reasonLabel,
+        notes,
+        attemptedAt: attemptedAt.toISOString(),
         employeeId,
         recordedAt: now.toISOString(),
         auditRecordId,
-        // Explicitly do not set checked-in
-        isCheckedIn: false,
+        officeNotified: true,
+        // Checked in earlier; report closes the visit as attended / care not delivered.
+        isCheckedIn: true,
+      },
+      checkOut: {
+        ...(typeof ea.checkOut === 'object' && ea.checkOut
+          ? (ea.checkOut as Record<string, unknown>)
+          : {}),
+        completedAt: actualEnd.toISOString(),
+        deviceRecordedAt: attemptedAt.toISOString(),
+        employeeId,
+        status: LocalVisitStatus.COMPLETED,
+        careNotDelivered: true,
+        unableToStart: true,
       },
       idempotency: {
         ...((ea.idempotency as Record<string, unknown>) ?? {}),
@@ -1032,8 +1100,91 @@ export class EmployeeAppVisitsService {
       },
     }));
 
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      eventType: 'concern',
+      sourceType: 'complete',
+      sourceId: 'unable_to_start',
+      title: 'Unable to start visit',
+      detail: `${reasonLabel}: ${notes}`,
+      tone: dto.reasonCode === 'UNSAFE_SITUATION' || dto.reasonCode === 'CLIENT_DECEASED'
+        ? 'danger'
+        : 'warning',
+      occurredAt: attemptedAt,
+      logEntryId: auditRecordId,
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
     await this.ecmEvaluation.evaluateJobSafe(jobId);
     return { data: response };
+  }
+
+  private buildUnableToStartPayload(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+  ) {
+    const visit = ctx.primaryVisit;
+    const isCheckedIn =
+      Boolean(visit.actualStartDateTime) ||
+      visit.status === ScheduledVisitStatus.STARTED ||
+      Boolean(ctx.checkIn);
+    const visitClosed =
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF ||
+      visit.status === ScheduledVisitStatus.MISSED;
+    return buildUnableToStartBlock({
+      isCheckedIn,
+      visitClosed,
+      existing: this.resolveUnableToStartSummary(ctx),
+    });
+  }
+
+  private resolveUnableToStartSummary(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+  ): UnableToStartSummary | null {
+    const ea = ctx.employeeAppMeta;
+    const stored =
+      typeof ea.unableToStart === 'object' && ea.unableToStart
+        ? (ea.unableToStart as Record<string, unknown>)
+        : null;
+    if (stored?.reasonCode) {
+      const code = String(stored.reasonCode);
+      return {
+        reasonCode: code,
+        reasonLabel:
+          String(stored.reasonLabel ?? '') ||
+          employeeAppUnableToStartReasonLabel(code) ||
+          code,
+        notes: stored.notes != null ? String(stored.notes) : null,
+        recordedAt: String(stored.recordedAt ?? ''),
+        attemptedAt: stored.attemptedAt != null ? String(stored.attemptedAt) : null,
+        auditRecordId: stored.auditRecordId != null ? String(stored.auditRecordId) : null,
+      };
+    }
+
+    const jobMeta = this.parseMetadata(ctx.job.metadata);
+    if (jobMeta.careNotDelivered === true && typeof jobMeta.careNotDeliveredReasonCode === 'string') {
+      const code = jobMeta.careNotDeliveredReasonCode;
+      return {
+        reasonCode: code,
+        reasonLabel:
+          (typeof jobMeta.careNotDeliveredReasonLabel === 'string'
+            ? jobMeta.careNotDeliveredReasonLabel
+            : null) ||
+          employeeAppUnableToStartReasonLabel(code) ||
+          code,
+        notes:
+          typeof jobMeta.careNotDeliveredNotes === 'string'
+            ? jobMeta.careNotDeliveredNotes
+            : null,
+        recordedAt:
+          ctx.primaryVisit.actualEndDateTime?.toISOString() ?? new Date().toISOString(),
+      };
+    }
+    return null;
   }
 
   async saveTask(

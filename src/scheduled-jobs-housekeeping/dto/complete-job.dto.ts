@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsISO8601,
   IsOptional,
@@ -133,4 +134,30 @@ export class CompleteJobDto {
   @IsString()
   @MaxLength(2000)
   missedReasonNotes?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'When true with COMPLETED/PARTIALLY_COMPLETED: carer attended but care was not delivered (SU unavailable). Requires careNotDeliveredReasonCode.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  careNotDelivered?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Structured reason when care was not delivered after attendance (see VISIT_CARE_NOT_DELIVERED_REASON_CODES)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  careNotDeliveredReasonCode?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Notes for care-not-delivered (optional unless reason is OTHER)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  careNotDeliveredNotes?: string;
 }

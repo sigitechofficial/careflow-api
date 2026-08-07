@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { electionsFromLegacyFlags } from './uk-deduction-elections.util';
+import { gatewayCredentialsPublicFlags } from './payroll-gateway-credentials.util';
 
 export function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -197,6 +198,8 @@ export function mapProfile(row: {
   taxCodeWeek1Month1: boolean;
   niCategory: string | null;
   starterDeclaration: string;
+  hoursNormallyWorked?: string | null;
+  p45Received?: boolean;
   studentLoanPlan1: boolean;
   studentLoanPlan2: boolean;
   studentLoanPlan4: boolean;
@@ -230,6 +233,8 @@ export function mapProfile(row: {
     taxCodeWeek1Month1: row.taxCodeWeek1Month1,
     niCategory: row.niCategory,
     starterDeclaration: row.starterDeclaration,
+    hoursNormallyWorked: row.hoursNormallyWorked ?? null,
+    p45Received: Boolean(row.p45Received),
     studentLoanPlan1: row.studentLoanPlan1,
     studentLoanPlan2: row.studentLoanPlan2,
     studentLoanPlan4: row.studentLoanPlan4,
@@ -291,11 +296,26 @@ export function mapEmployerSettings(row: {
   taxDistrict: string | null;
   employerTradingName: string | null;
   notes: string | null;
+  activeHmrcEnvironment?: string | null;
+  gatewayTestUserId?: string | null;
+  gatewayTestPasswordEnc?: string | null;
+  gatewayLiveUserId?: string | null;
+  gatewayLivePasswordEnc?: string | null;
+  gatewayCredentialsUpdatedAt?: Date | null;
+  employmentAllowanceClaimed?: boolean | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
   const office = row.hmrcOfficeNumber?.trim() || null;
   const paye = row.employerPayeReference?.trim() || null;
+  const gateway = gatewayCredentialsPublicFlags({
+    activeHmrcEnvironment: row.activeHmrcEnvironment ?? 'TEST',
+    gatewayTestUserId: row.gatewayTestUserId ?? null,
+    gatewayTestPasswordEnc: row.gatewayTestPasswordEnc ?? null,
+    gatewayLiveUserId: row.gatewayLiveUserId ?? null,
+    gatewayLivePasswordEnc: row.gatewayLivePasswordEnc ?? null,
+    gatewayCredentialsUpdatedAt: row.gatewayCredentialsUpdatedAt ?? null,
+  });
   return {
     id: row.id,
     hmrcOfficeNumber: office,
@@ -306,6 +326,8 @@ export function mapEmployerSettings(row: {
     notes: row.notes?.trim() || null,
     fullPayeReference: office && paye ? `${office}/${paye}` : null,
     isComplete: Boolean(office && paye && row.accountsOfficeReference?.trim()),
+    employmentAllowanceClaimed: Boolean(row.employmentAllowanceClaimed),
+    ...gateway,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -18,6 +18,7 @@ import {
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
+  PreviewEpsQueryDto,
   UpdatePayrollEmployerSettingsDto,
   UpdatePayrollScheduleDto,
   UpdatePayrollStatutoryRatesDto,
@@ -35,6 +36,11 @@ import {
   mapTaxYear,
 } from './payroll-mapper.util';
 import { ensureEnglandStatutoryRateSet } from './payroll-statutory-rates.seed';
+import {
+  encryptGatewayPassword,
+  normalizeHmrcEnvironment,
+} from './payroll-gateway-credentials.util';
+import { buildCareEpsPayload } from './payroll-eps.util';
 
 /** Fixed singleton id for org HMRC employer identity (survives purge). */
 export const PAYROLL_EMPLOYER_SETTINGS_ID = '00000000-0000-4000-8000-000000000010';
@@ -136,6 +142,66 @@ export class PayrollSettingsService {
           ? null
           : accountsRaw.replace(/\s+/g, '').toUpperCase();
 
+    const testPasswordPlain =
+      typeof dto.gatewayTestPassword === 'string' ? dto.gatewayTestPassword.trim() : '';
+    const livePasswordPlain =
+      typeof dto.gatewayLivePassword === 'string' ? dto.gatewayLivePassword.trim() : '';
+    const clearTest = dto.clearTestPassword === true;
+    const clearLive = dto.clearLivePassword === true;
+    if (clearTest && testPasswordPlain) {
+      throw new BadRequestException('Cannot clear and set the test Gateway password in one request');
+    }
+    if (clearLive && livePasswordPlain) {
+      throw new BadRequestException('Cannot clear and set the live Gateway password in one request');
+    }
+
+    let gatewayTestPasswordEnc: string | null | undefined = undefined;
+    let gatewayLivePasswordEnc: string | null | undefined = undefined;
+    let testPasswordChanged = false;
+    let livePasswordChanged = false;
+
+    if (clearTest) {
+      gatewayTestPasswordEnc = null;
+      testPasswordChanged = true;
+    } else if (testPasswordPlain) {
+      gatewayTestPasswordEnc = encryptGatewayPassword(testPasswordPlain);
+      testPasswordChanged = true;
+    }
+
+    if (clearLive) {
+      gatewayLivePasswordEnc = null;
+      livePasswordChanged = true;
+    } else if (livePasswordPlain) {
+      gatewayLivePasswordEnc = encryptGatewayPassword(livePasswordPlain);
+      livePasswordChanged = true;
+    }
+
+    const envChanged =
+      dto.activeHmrcEnvironment !== undefined &&
+      normalizeHmrcEnvironment(dto.activeHmrcEnvironment) !==
+        normalizeHmrcEnvironment(existing.activeHmrcEnvironment);
+    const testUserChanged =
+      dto.gatewayTestUserId !== undefined &&
+      (norm(dto.gatewayTestUserId) ?? null) !== (existing.gatewayTestUserId?.trim() || null);
+    const liveUserChanged =
+      dto.gatewayLiveUserId !== undefined &&
+      (norm(dto.gatewayLiveUserId) ?? null) !== (existing.gatewayLiveUserId?.trim() || null);
+    const gatewayTouched =
+      envChanged ||
+      testUserChanged ||
+      liveUserChanged ||
+      testPasswordChanged ||
+      livePasswordChanged;
+
+    const identityTouched =
+      dto.hmrcOfficeNumber !== undefined ||
+      dto.employerPayeReference !== undefined ||
+      dto.accountsOfficeReference !== undefined ||
+      dto.taxDistrict !== undefined ||
+      dto.employerTradingName !== undefined ||
+      dto.notes !== undefined ||
+      dto.employmentAllowanceClaimed !== undefined;
+
     const row = await this.prisma.payrollEmployerSettings.update({
       where: { id: existing.id },
       data: {
@@ -145,25 +211,144 @@ export class PayrollSettingsService {
         taxDistrict: norm(dto.taxDistrict),
         employerTradingName: norm(dto.employerTradingName),
         notes: norm(dto.notes),
+        employmentAllowanceClaimed:
+          dto.employmentAllowanceClaimed !== undefined
+            ? Boolean(dto.employmentAllowanceClaimed)
+            : undefined,
+        activeHmrcEnvironment:
+          dto.activeHmrcEnvironment !== undefined
+            ? normalizeHmrcEnvironment(dto.activeHmrcEnvironment)
+            : undefined,
+        gatewayTestUserId: norm(dto.gatewayTestUserId),
+        gatewayLiveUserId: norm(dto.gatewayLiveUserId),
+        gatewayTestPasswordEnc,
+        gatewayLivePasswordEnc,
+        gatewayCredentialsUpdatedAt: gatewayTouched ? new Date() : undefined,
         updatedById: userId,
       },
     });
 
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_EMPLOYER_SETTINGS_UPDATED,
-      recordType: 'PayrollEmployerSettings',
-      recordId: row.id,
-      oldValues: mapEmployerSettings(existing),
-      newValues: mapEmployerSettings(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
+    if (identityTouched) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_EMPLOYER_SETTINGS_UPDATED,
+        recordType: 'PayrollEmployerSettings',
+        recordId: row.id,
+        oldValues: mapEmployerSettings(existing),
+        newValues: mapEmployerSettings(row),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+
+    if (gatewayTouched) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_GATEWAY_CREDENTIALS_UPDATED,
+        recordType: 'PayrollEmployerSettings',
+        recordId: row.id,
+        oldValues: {
+          activeHmrcEnvironment: normalizeHmrcEnvironment(existing.activeHmrcEnvironment),
+          hasTestPassword: Boolean(existing.gatewayTestPasswordEnc),
+          hasLivePassword: Boolean(existing.gatewayLivePasswordEnc),
+          gatewayTestUserId: existing.gatewayTestUserId,
+          gatewayLiveUserId: existing.gatewayLiveUserId,
+        },
+        newValues: {
+          activeHmrcEnvironment: normalizeHmrcEnvironment(row.activeHmrcEnvironment),
+          hasTestPassword: Boolean(row.gatewayTestPasswordEnc),
+          hasLivePassword: Boolean(row.gatewayLivePasswordEnc),
+          gatewayTestUserId: row.gatewayTestUserId,
+          gatewayLiveUserId: row.gatewayLiveUserId,
+          testPasswordChanged,
+          livePasswordChanged,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
 
     return {
       message: 'Employer PAYE settings updated',
       data: mapEmployerSettings(row),
+    };
+  }
+
+  /**
+   * Build a Care-owned EPS preview for a UK tax month (T14). Not GovTalk / not submitted.
+   */
+  async buildEpsPreview(query: PreviewEpsQueryDto) {
+    const taxYear = query.taxYearId
+      ? await this.prisma.payrollTaxYear.findFirst({
+          where: { id: query.taxYearId, deletedAt: null },
+        })
+      : await this.prisma.payrollTaxYear.findFirst({
+          where: { deletedAt: null, isCurrent: true },
+        });
+    if (!taxYear) {
+      throw new NotFoundException(
+        query.taxYearId
+          ? 'Tax year not found'
+          : 'No current tax year — create/activate one under Payroll → Tax years',
+      );
+    }
+
+    const employerRow = await this.getOrCreateEmployerSettings();
+    const employer = mapEmployerSettings(employerRow);
+
+    const periods = await this.prisma.payrollPeriod.findMany({
+      where: {
+        taxYearId: taxYear.id,
+        sequence: query.taxMonth,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    const periodIds = periods.map((p) => p.id);
+    const closedRuns = periodIds.length
+      ? await this.prisma.ukPayrollRun.findMany({
+          where: {
+            periodId: { in: periodIds },
+            status: 'CLOSED',
+            deletedAt: null,
+          },
+          select: { employeeCount: true },
+        })
+      : [];
+
+    const payload = buildCareEpsPayload({
+      taxYearCode: taxYear.code,
+      taxMonth: query.taxMonth,
+      employer: {
+        hmrcOfficeNumber: employer.hmrcOfficeNumber,
+        employerPayeReference: employer.employerPayeReference,
+        accountsOfficeReference: employer.accountsOfficeReference,
+        employerTradingName: employer.employerTradingName,
+        fullPayeReference: employer.fullPayeReference,
+        isComplete: employer.isComplete,
+        employmentAllowanceClaimed: employer.employmentAllowanceClaimed,
+      },
+      noPaymentThisPeriod: query.noPaymentThisPeriod,
+      employmentAllowanceClaimed: query.employmentAllowanceClaimed,
+      recoveries: {
+        smpRecovered: query.smpRecovered,
+        sppRecovered: query.sppRecovered,
+        sapRecovered: query.sapRecovered,
+        shppRecovered: query.shppRecovered,
+        spbpRecovered: query.spbpRecovered,
+        nicCompensationOnStatutory: query.nicCompensationOnStatutory,
+      },
+      context: {
+        closedRunsInTaxMonth: closedRuns.length,
+        employeesPaidInTaxMonth: closedRuns.reduce((sum, r) => sum + (r.employeeCount ?? 0), 0),
+      },
+    });
+
+    return {
+      message: 'EPS preview payload (Care schema — not submitted to HMRC)',
+      data: payload,
     };
   }
 
@@ -183,6 +368,7 @@ export class PayrollSettingsService {
     const counts = await this.prisma.$transaction(async (tx) => {
       const ytdContributions = await tx.employeePayrollYtdContribution.deleteMany({});
       const ytdLedgers = await tx.employeePayrollYtdLedger.deleteMany({});
+      const hmrcSubmissions = await tx.payrollHmrcSubmission.deleteMany({});
       const inputLines = await tx.ukPayrollInputLine.deleteMany({});
       const runEmployees = await tx.ukPayrollRunEmployee.deleteMany({});
       const runs = await tx.ukPayrollRun.deleteMany({});
@@ -196,6 +382,7 @@ export class PayrollSettingsService {
       return {
         ytdContributions: ytdContributions.count,
         ytdLedgers: ytdLedgers.count,
+        hmrcSubmissions: hmrcSubmissions.count,
         inputLines: inputLines.count,
         runEmployees: runEmployees.count,
         runs: runs.count,

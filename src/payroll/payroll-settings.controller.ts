@@ -25,6 +25,7 @@ import {
   DeletePayrollPeriodsDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
+  PreviewEpsQueryDto,
   PurgePayrollDataDto,
   UpdatePayrollEmployerSettingsDto,
   UpdatePayrollScheduleDto,
@@ -67,6 +68,16 @@ export class PayrollSettingsController {
     @Req() req: Request,
   ) {
     return this.service.updateEmployerSettings(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('eps/preview')
+  @Permissions('payroll.settings.read')
+  @ApiOperation({
+    summary:
+      'Build EPS preview JSON for a UK tax month (Care schema; nil payment, EA, recoveries, deadline — not HMRC submit)',
+  })
+  buildEpsPreview(@Query() query: PreviewEpsQueryDto) {
+    return this.service.buildEpsPreview(query);
   }
 
   @Post('purge-all')
