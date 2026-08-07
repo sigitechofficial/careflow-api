@@ -29,30 +29,35 @@ type DrillVisit = {
   arrivalBand: string;
   durationBand: string;
   branchName: string | null;
+  /** Distinct reason codes for this visit (exceptions ∪ operationalExceptionCodes). */
+  reasonCodes: string[];
 };
 
 const HOUR_KEYS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 
+/**
+ * Band / on-time SSOT for graph-dashboard: persisted evaluation classifications
+ * (EcmArrivalClassification / EcmDurationClassification), not raw minute buckets.
+ * Branch onTimePct and Compliance Overview bands use the same enums so % and
+ * charts reconcile. Null / NOT_ASSESSED → `not_assessed` (never counted as within).
+ */
 const ARRIVAL_BANDS = [
-  'gt30_early',
-  '16_30_early',
-  '1_15_early',
+  'early',
   'on_time',
-  '1_15_late',
-  '16_30_late',
-  'gt30_late',
-  'no_check_in',
+  'late',
+  'very_late',
+  'not_assessed',
 ] as const;
 
 const DURATION_BANDS = [
-  'gt30_short',
-  '16_30_short',
-  '6_15_short',
-  'within',
-  '6_15_long',
-  '16_30_long',
-  'gt30_long',
+  'short',
+  'on_time',
+  'long',
+  'excessive',
+  'not_assessed',
 ] as const;
+
+const GRAPH_ROW_CAP = 5000;
 
 const TIME_BANDS = [
   { key: '06-09', label: '06:00–09:00', start: 6, end: 9 },
@@ -95,29 +100,55 @@ function weekdayIndexUtc(isoDate: string): number {
   return js === 0 ? 6 : js - 1;
 }
 
-function arrivalBand(startVarianceMinutes: number | null, hasCheckIn: boolean): string {
-  if (!hasCheckIn) return 'no_check_in';
-  if (startVarianceMinutes == null) return 'on_time';
-  const v = startVarianceMinutes;
-  if (v <= -31) return 'gt30_early';
-  if (v <= -16) return '16_30_early';
-  if (v <= -1) return '1_15_early';
-  if (v <= 0) return 'on_time';
-  if (v <= 15) return '1_15_late';
-  if (v <= 30) return '16_30_late';
-  return 'gt30_late';
+function arrivalBandFromClassification(
+  classification: EcmArrivalClassification,
+): (typeof ARRIVAL_BANDS)[number] {
+  switch (classification) {
+    case EcmArrivalClassification.EARLY_ARRIVAL:
+      return 'early';
+    case EcmArrivalClassification.ON_TIME:
+      return 'on_time';
+    case EcmArrivalClassification.LATE_ARRIVAL:
+      return 'late';
+    case EcmArrivalClassification.VERY_LATE_ARRIVAL:
+      return 'very_late';
+    case EcmArrivalClassification.NOT_ASSESSED:
+    default:
+      return 'not_assessed';
+  }
 }
 
-function durationBand(durationVarianceMinutes: number | null): string {
-  if (durationVarianceMinutes == null) return 'within';
-  const v = durationVarianceMinutes;
-  if (v <= -31) return 'gt30_short';
-  if (v <= -16) return '16_30_short';
-  if (v <= -6) return '6_15_short';
-  if (v < 6) return 'within';
-  if (v <= 15) return '6_15_long';
-  if (v <= 30) return '16_30_long';
-  return 'gt30_long';
+function durationBandFromClassification(
+  classification: EcmDurationClassification,
+): (typeof DURATION_BANDS)[number] {
+  switch (classification) {
+    case EcmDurationClassification.SHORT_VISIT:
+      return 'short';
+    case EcmDurationClassification.ON_TIME:
+      return 'on_time';
+    case EcmDurationClassification.LONG_VISIT:
+      return 'long';
+    case EcmDurationClassification.EXCESSIVE_OVERRUN:
+      return 'excessive';
+    case EcmDurationClassification.NOT_ASSESSED:
+    default:
+      return 'not_assessed';
+  }
+}
+
+/** One count per distinct code per visit (no double-count across exception rows + op codes). */
+function distinctReasonCodes(
+  exceptions: Array<{ reasonCode: string | null; kind: string }>,
+  operationalExceptionCodes: string[],
+): string[] {
+  const codes = new Set<string>();
+  for (const ex of exceptions) {
+    codes.add((ex.reasonCode || ex.kind || 'UNSPECIFIED').toUpperCase());
+  }
+  for (const code of operationalExceptionCodes) {
+    if (code) codes.add(code.toUpperCase());
+  }
+  return [...codes];
 }
 
 function statusKey(row: {
@@ -223,9 +254,12 @@ export class EcmGraphAnalyticsService {
       },
     };
 
+    const totalMatching = await this.prisma.ecmVisitEvaluation.count({ where });
+    const truncated = totalMatching > GRAPH_ROW_CAP;
+
     const rows = await this.prisma.ecmVisitEvaluation.findMany({
       where,
-      take: 5000,
+      take: GRAPH_ROW_CAP,
       orderBy: { plannedStartDateTime: 'asc' },
       select: {
         scheduledJobId: true,
@@ -233,8 +267,6 @@ export class EcmGraphAnalyticsService {
         localVisitDate: true,
         actualCheckInAt: true,
         actualCheckOutAt: true,
-        startVarianceMinutes: true,
-        durationVarianceMinutes: true,
         arrivalClassification: true,
         durationClassification: true,
         lifecycleStatus: true,
@@ -357,9 +389,9 @@ export class EcmGraphAnalyticsService {
         if (row.operationalExceptionCodes.includes('MANUAL_ATTENDANCE')) dayTrend.manual += 1;
       }
 
-      const aBand = arrivalBand(row.startVarianceMinutes, Boolean(row.actualCheckInAt));
+      const aBand = arrivalBandFromClassification(row.arrivalClassification);
       arrivalCounts[aBand] = (arrivalCounts[aBand] ?? 0) + 1;
-      const dBand = durationBand(row.durationVarianceMinutes);
+      const dBand = durationBandFromClassification(row.durationClassification);
       durationCounts[dBand] = (durationCounts[dBand] ?? 0) + 1;
 
       const wd = weekdays[weekdayIndexUtc(localIso)] ?? 'Mon';
@@ -386,6 +418,7 @@ export class EcmGraphAnalyticsService {
         branchMap.set(branchId, branch);
       }
       branch.total += 1;
+      // Same SSOT as arrival chart `on_time` band (arrivalClassification.ON_TIME).
       if (row.arrivalClassification === EcmArrivalClassification.ON_TIME) branch.onTime += 1;
       if (
         row.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL ||
@@ -407,11 +440,8 @@ export class EcmGraphAnalyticsService {
         branch.verified += 1;
       }
 
-      for (const ex of row.exceptions) {
-        const code = (ex.reasonCode || ex.kind || 'UNSPECIFIED').toUpperCase();
-        reasonCounts.set(code, (reasonCounts.get(code) ?? 0) + 1);
-      }
-      for (const code of row.operationalExceptionCodes) {
+      const reasonCodes = distinctReasonCodes(row.exceptions, row.operationalExceptionCodes);
+      for (const code of reasonCodes) {
         reasonCounts.set(code, (reasonCounts.get(code) ?? 0) + 1);
       }
 
@@ -434,6 +464,7 @@ export class EcmGraphAnalyticsService {
         arrivalBand: aBand,
         durationBand: dBand,
         branchName,
+        reasonCodes,
       });
     }
 
@@ -479,6 +510,9 @@ export class EcmGraphAnalyticsService {
         dateTo,
         refreshedAt: new Date().toISOString(),
         visitCount: rows.length,
+        totalMatching,
+        truncated,
+        rowCap: GRAPH_ROW_CAP,
         visitStatusByHour: {
           hours: HOUR_KEYS.map((h) => `${h}:00`),
           series: statusSeriesKeys.map((key) => ({
