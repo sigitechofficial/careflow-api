@@ -14,6 +14,10 @@ import {
 } from '../common/utils/operational-day.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
+import {
+  resolveGraphBranch,
+  scheduledJobScheduleAreaScope,
+} from './ecm-graph-branch.util';
 import { ECM_REASON_CODES } from './ecm-reason-codes';
 
 export type EcmGraphDashboardQuery = {
@@ -308,12 +312,24 @@ export class EcmGraphAnalyticsService {
     const fromDate = parseIsoDate(dateFrom);
     const toDate = parseIsoDate(dateTo);
 
+    let scheduleAreaJobScope: Prisma.ScheduledJobWhereInput | undefined;
+    if (query.scheduleAreaId) {
+      const area = await this.prisma.scheduleArea.findFirst({
+        where: { id: query.scheduleAreaId, deletedAt: null },
+        select: { id: true, locationId: true },
+      });
+      scheduleAreaJobScope = scheduledJobScheduleAreaScope(
+        query.scheduleAreaId,
+        area?.locationId,
+      );
+    }
+
     const where: Prisma.EcmVisitEvaluationWhereInput = {
       localVisitDate: { gte: fromDate, lte: toDate },
       scheduledJob: {
         deletedAt: null,
         isActive: true,
-        ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
+        ...(scheduleAreaJobScope ?? {}),
         ...(query.locationId ? scheduledJobLocationScope(query.locationId) : {}),
       },
     };
@@ -342,7 +358,13 @@ export class EcmGraphAnalyticsService {
             jobName: true,
             scheduleArea: { select: { id: true, name: true } },
             serviceUser: {
-              select: { firstName: true, lastName: true, preferredName: true },
+              select: {
+                firstName: true,
+                lastName: true,
+                preferredName: true,
+                locationId: true,
+                location: { select: { id: true, name: true } },
+              },
             },
           },
         },
@@ -352,6 +374,31 @@ export class EcmGraphAnalyticsService {
         },
       },
     });
+
+    const locationIds = [
+      ...new Set(
+        rows
+          .map((r) => r.scheduledJob.serviceUser.locationId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const areasForLocations =
+      locationIds.length > 0
+        ? await this.prisma.scheduleArea.findMany({
+            where: {
+              deletedAt: null,
+              isActive: true,
+              locationId: { in: locationIds },
+            },
+            select: { id: true, name: true, locationId: true, sortOrder: true },
+            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          })
+        : [];
+    const areaByLocationId = new Map<string, { id: string; name: string }>();
+    for (const area of areasForLocations) {
+      if (!area.locationId || areaByLocationId.has(area.locationId)) continue;
+      areaByLocationId.set(area.locationId, { id: area.id, name: area.name });
+    }
 
     const statusSeriesKeys = [
       'completedOnTime',
@@ -472,8 +519,13 @@ export class EcmGraphAnalyticsService {
         if (isTrendAlignedException(row)) cell.exceptions += 1;
       }
 
-      const branchName = row.scheduledJob.scheduleArea?.name ?? 'Unassigned area';
-      const branchId = row.scheduledJob.scheduleArea?.id ?? 'none';
+      const resolvedBranch = resolveGraphBranch({
+        scheduleArea: row.scheduledJob.scheduleArea,
+        serviceUserLocation: row.scheduledJob.serviceUser.location,
+        areaByLocationId,
+      });
+      const branchName = resolvedBranch.name;
+      const branchId = resolvedBranch.id;
       let branch = branchMap.get(branchId);
       if (!branch) {
         branch = {
