@@ -8,7 +8,9 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
+import { scheduledJobLocationScope } from './ecm-location-scope.util';
 
 export type EcmGraphDashboardQuery = {
   dateFrom?: string;
@@ -205,7 +207,7 @@ export class EcmGraphAnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async graphDashboard(query: EcmGraphDashboardQuery) {
-    const dateTo = query.dateTo ?? formatScheduleDate(new Date());
+    const dateTo = query.dateTo ?? operationalTodayIso();
     const dateFrom = query.dateFrom ?? addDaysIso(dateTo, -6);
     const dates = eachDateInclusive(dateFrom, dateTo);
     const fromDate = parseIsoDate(dateFrom);
@@ -217,9 +219,7 @@ export class EcmGraphAnalyticsService {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
-        ...(query.locationId
-          ? { scheduleArea: { locationId: query.locationId } }
-          : {}),
+        ...(query.locationId ? scheduledJobLocationScope(query.locationId) : {}),
       },
     };
 

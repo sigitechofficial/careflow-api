@@ -8,6 +8,7 @@ import { ECM_PLATFORM_DEFAULTS } from './ecm-timing.util';
 export type EcmDashboardWindows = {
   dueNowWindowMinutes: number;
   startingSoonMinutes: number;
+  earlyArrivalToleranceMinutes: number;
   lateArrivalToleranceMinutes: number;
   veryLateThresholdMinutes: number;
   missedVisitThresholdMinutes: number;
@@ -96,6 +97,9 @@ export class EcmThresholdLookupsService {
     return {
       dueNowWindowMinutes: map.get('dueNowWindowMinutes') ?? 15,
       startingSoonMinutes: map.get('startingSoonMinutes') ?? 30,
+      earlyArrivalToleranceMinutes:
+        map.get('earlyArrivalToleranceMinutes') ??
+        ECM_PLATFORM_DEFAULTS.earlyArrivalToleranceMinutes,
       lateArrivalToleranceMinutes:
         map.get('lateArrivalToleranceMinutes') ??
         ECM_PLATFORM_DEFAULTS.lateArrivalToleranceMinutes,

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  AllocationStatus,
   EcmArrivalClassification,
   EcmLifecycleStatus,
   EcmMissedClassification,
@@ -13,7 +14,93 @@ import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 import type { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
-import { plannedStartOnOperationalDate } from './ecm-evaluation.mapper';
+import { localVisitDateFromStart } from './ecm-evaluation.mapper';
+import { scheduledJobLocationScope } from './ecm-location-scope.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  addDaysToOperationalIso,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
+
+function resolveLiveDateRange(query: EcmLiveDashboardQueryDto): {
+  dateFrom: string;
+  dateTo: string;
+} {
+  if (query.dateFrom) {
+    const dateFrom = query.dateFrom.slice(0, 10);
+    const dateTo = (query.dateTo ?? query.dateFrom).slice(0, 10);
+    return dateFrom <= dateTo
+      ? { dateFrom, dateTo }
+      : { dateFrom: dateTo, dateTo: dateFrom };
+  }
+  const day = (query.date ?? operationalTodayIso()).slice(0, 10);
+  return { dateFrom: day, dateTo: day };
+}
+
+function plannedOperationalDayKey(plannedStart: Date): string {
+  return formatScheduleDate(
+    localVisitDateFromStart(plannedStart, DEFAULT_OPERATIONAL_TIMEZONE),
+  );
+}
+
+const ACTIVE_ALLOCATION: AllocationStatus[] = [
+  AllocationStatus.PENDING_CONFIRMATION,
+  AllocationStatus.ALLOCATED,
+  AllocationStatus.CONFIRMED,
+];
+
+const EVAL_INCLUDE = {
+  scheduledJob: {
+    select: {
+      id: true,
+      jobName: true,
+      serviceUserId: true,
+      status: true,
+      address: true,
+      postcode: true,
+      scheduledStartDateTime: true,
+      scheduledEndDateTime: true,
+      serviceUser: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          preferredName: true,
+        },
+      },
+      visits: {
+        where: { deletedAt: null, isActive: true },
+        orderBy: { scheduledStartDateTime: 'asc' as const },
+        take: 1,
+        select: {
+          visitName: true,
+          visitPlanSlot: {
+            select: { slotCode: true, medicationRoundCode: true },
+          },
+        },
+      },
+      allocations: {
+        where: {
+          deletedAt: null,
+          isActive: true,
+          unallocatedAt: null,
+          status: { in: ACTIVE_ALLOCATION },
+        },
+        select: {
+          isLeadCarer: true,
+          employee: {
+            select: {
+              id: true,
+              personalDetail: {
+                select: { firstName: true, lastName: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
 
 /** Jobs excluded from ECM live-dashboard backfill (not operational visits). */
 const SKIP_BACKFILL_JOB: ScheduledJobStatus[] = [
@@ -26,13 +113,24 @@ type DashboardBucket =
   | 'dueNow'
   | 'startingSoon'
   | 'inProgress'
+  | 'earlyArrival'
   | 'lateArrival'
   | 'veryLateArrival'
   | 'potentialMissed'
   | 'confirmedMissed'
   | 'missingCheckout'
   | 'outsideGeofence'
-  | 'manualAttendance';
+  | 'manualAttendance'
+  | 'completed'
+  | 'completedOnTime'
+  | 'completedLate';
+
+const COMPLETED_LIFECYCLES: ReadonlySet<EcmLifecycleStatus> = new Set([
+  EcmLifecycleStatus.COMPLETED,
+  EcmLifecycleStatus.COMPLETED_WITH_EXCEPTION,
+  EcmLifecycleStatus.CHECKED_OUT,
+  EcmLifecycleStatus.CLOSED,
+]);
 
 export type EcmLiveVisitRow = {
   scheduledJobId: string;
@@ -42,6 +140,7 @@ export type EcmLiveVisitRow = {
   slotLabel: string | null;
   serviceUserId: string;
   serviceUserName: string;
+  carers: Array<{ employeeId: string; name: string; isLeadCarer: boolean }>;
   address: string | null;
   postcode: string | null;
   plannedStartDateTime: string;
@@ -65,6 +164,22 @@ export type EcmLiveVisitRow = {
   buckets: DashboardBucket[];
 };
 
+export type EcmLiveDashboardSummary = {
+  total: number;
+  completed: number;
+  completedOnTime: number;
+  completedLate: number;
+  /** Share of completed with assessed on-time/early arrival (null when none completed). */
+  completedOnTimePct: number | null;
+  outstanding: number;
+  inProgress: number;
+  potentialMissed: number;
+  confirmedMissed: number;
+  missingCheckout: number;
+  /** Past planned start, no check-in, not confirmed missed. */
+  missingCheckIn: number;
+};
+
 @Injectable()
 export class EcmVisitsService {
   constructor(
@@ -75,16 +190,47 @@ export class EcmVisitsService {
   ) {}
 
   async getLiveDashboard(query: EcmLiveDashboardQueryDto) {
-    const date = query.date ?? formatScheduleDate(new Date());
-    const localDate = new Date(`${date}T00:00:00.000Z`);
-    const limit = query.limit ?? 100;
+    const { dateFrom, dateTo } = resolveLiveDateRange(query);
+    const singleDay = dateFrom === dateTo;
+    const date = singleDay ? dateFrom : dateTo;
+    const pageLimit = query.limit ?? 150;
     const now = new Date();
+    const operationalToday = operationalTodayIso(now);
     const windows = await this.thresholdLookups.getDashboardWindows();
     const soonMs = windows.startingSoonMinutes * 60_000;
     const dueWindowMs = windows.dueNowWindowMinutes * 60_000;
 
+    const scheduledJobAnd: Prisma.ScheduledJobWhereInput[] = [];
+    if (query.locationId) {
+      scheduledJobAnd.push(scheduledJobLocationScope(query.locationId));
+    }
+    if (query.search?.trim()) {
+      const q = query.search.trim();
+      scheduledJobAnd.push({
+        OR: [
+          { jobName: { contains: q, mode: 'insensitive' } },
+          {
+            serviceUser: {
+              OR: [
+                { preferredName: { contains: q, mode: 'insensitive' } },
+                { firstName: { contains: q, mode: 'insensitive' } },
+                { lastName: { contains: q, mode: 'insensitive' } },
+              ],
+            },
+          },
+        ],
+      });
+    }
+
+    const localDateFilter: Prisma.DateTimeFilter = singleDay
+      ? { equals: new Date(`${dateFrom}T00:00:00.000Z`) }
+      : {
+          gte: new Date(`${dateFrom}T00:00:00.000Z`),
+          lte: new Date(`${dateTo}T00:00:00.000Z`),
+        };
+
     const where: Prisma.EcmVisitEvaluationWhereInput = {
-      localVisitDate: localDate,
+      localVisitDate: localDateFilter,
       ...(query.arrivalClassification
         ? { arrivalClassification: query.arrivalClassification }
         : {}),
@@ -96,176 +242,170 @@ export class EcmVisitsService {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
-        ...(query.locationId
-          ? { scheduleArea: { locationId: query.locationId } }
-          : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
-        ...(query.search?.trim()
-          ? {
-              OR: [
-                { jobName: { contains: query.search.trim(), mode: 'insensitive' } },
-                {
-                  serviceUser: {
-                    OR: [
-                      { preferredName: { contains: query.search.trim(), mode: 'insensitive' } },
-                      { firstName: { contains: query.search.trim(), mode: 'insensitive' } },
-                      { lastName: { contains: query.search.trim(), mode: 'insensitive' } },
-                    ],
-                  },
-                },
-              ],
-            }
-          : {}),
+        ...(scheduledJobAnd.length ? { AND: scheduledJobAnd } : {}),
       },
     };
 
-    const evaluations = await this.prisma.ecmVisitEvaluation.findMany({
+    // Catch-up only: today ±1 intersected with the requested range (not full YTD on read).
+    const catchFrom = addDaysToOperationalIso(operationalToday, -1);
+    const catchTo = addDaysToOperationalIso(operationalToday, 1);
+    const ensureFrom = catchFrom > dateFrom ? catchFrom : dateFrom;
+    const ensureTo = catchTo < dateTo ? catchTo : dateTo;
+    if (ensureFrom <= ensureTo) {
+      await this.ensureEvaluationsForDateRange({
+        dateFrom: ensureFrom,
+        dateTo: ensureTo,
+        now,
+        evaluateBudget: 120,
+        candidateLimit: 400,
+        scheduleAreaId: query.scheduleAreaId,
+        serviceUserId: query.serviceUserId,
+        locationId: query.locationId,
+      });
+    }
+
+    const total = await this.prisma.ecmVisitEvaluation.count({ where });
+
+    // Light rows for period-wide tiles/summary (no heavy includes).
+    const lightEvals = await this.prisma.ecmVisitEvaluation.findMany({
       where,
-      take: limit,
-      orderBy: { plannedStartDateTime: 'asc' },
-      include: {
-        scheduledJob: {
-          select: {
-            id: true,
-            jobName: true,
-            serviceUserId: true,
-            status: true,
-            address: true,
-            postcode: true,
-            scheduledStartDateTime: true,
-            scheduledEndDateTime: true,
-            serviceUser: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                preferredName: true,
-              },
-            },
-            visits: {
-              where: { deletedAt: null, isActive: true },
-              orderBy: { scheduledStartDateTime: 'asc' as const },
-              take: 1,
-              select: {
-                visitName: true,
-                visitPlanSlot: {
-                  select: { slotCode: true, medicationRoundCode: true },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Backfill + refresh: ensure every operational job for this local day has a
-    // current evaluation (including MISSED / past ALLOCATED visits). Previously
-    // MISSED/COMPLETED were skipped and stale NONE-missed rows were never refreshed.
-    const evaluatedJobIds = new Set(evaluations.map((e) => e.scheduledJobId));
-    const dayStart = new Date(`${date}T00:00:00.000Z`);
-    // Pad ±1 day in UTC so London-local morning visits near midnight still match.
-    const padStart = new Date(dayStart);
-    padStart.setUTCDate(padStart.getUTCDate() - 1);
-    const padEnd = new Date(`${date}T23:59:59.999Z`);
-    padEnd.setUTCDate(padEnd.getUTCDate() + 1);
-
-    const candidateJobs = await this.prisma.scheduledJob.findMany({
-      where: {
-        deletedAt: null,
-        isActive: true,
-        status: { notIn: SKIP_BACKFILL_JOB },
-        scheduledStartDateTime: { gte: padStart, lte: padEnd },
-        ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
-        ...(query.locationId
-          ? { scheduleArea: { locationId: query.locationId } }
-          : {}),
-        ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
-      },
-      take: Math.min(120, Math.max(40, limit * 2)),
+      take: 10_000,
+      orderBy: [{ plannedStartDateTime: 'asc' }, { scheduledJobId: 'asc' }],
       select: {
-        id: true,
-        scheduledStartDateTime: true,
-        visits: {
-          where: { deletedAt: null, isActive: true },
-          orderBy: { scheduledStartDateTime: 'asc' },
-          take: 1,
-          select: { scheduledStartDateTime: true },
-        },
+        scheduledJobId: true,
+        plannedStartDateTime: true,
+        plannedEndDateTime: true,
+        actualCheckInAt: true,
+        actualCheckOutAt: true,
+        lifecycleStatus: true,
+        arrivalClassification: true,
+        departureClassification: true,
+        durationClassification: true,
+        missedClassification: true,
+        operationalExceptionCodes: true,
+        localVisitDate: true,
+        startVarianceMinutes: true,
+        endVarianceMinutes: true,
+        durationVarianceMinutes: true,
+        scheduledJob: { select: { status: true } },
       },
     });
 
-    const jobsForOperationalDay = candidateJobs.filter((job) => {
-      const plannedStart = job.visits[0]?.scheduledStartDateTime ?? job.scheduledStartDateTime;
-      return plannedStartOnOperationalDate(plannedStart, date, 'Europe/London');
+    const summaryRows: EcmLiveVisitRow[] = lightEvals.map((ev) => {
+      const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
+      const buckets = this.classifyBuckets(
+        ev as never,
+        now,
+        soonMs,
+        dueWindowMs,
+        visitOperationalDay === operationalToday,
+      );
+      return {
+        scheduledJobId: ev.scheduledJobId,
+        scheduledVisitId: null,
+        jobName: '',
+        slotLabel: null,
+        serviceUserId: '',
+        serviceUserName: '',
+        carers: [],
+        address: null,
+        postcode: null,
+        plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
+        plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
+        actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
+        actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
+        plannedDurationMinutes: null,
+        actualDurationMinutes: null,
+        lifecycleStatus: ev.lifecycleStatus,
+        arrivalClassification: ev.arrivalClassification,
+        departureClassification: ev.departureClassification,
+        durationClassification: ev.durationClassification,
+        missedClassification: ev.missedClassification,
+        confidence: '',
+        criticality: '',
+        startVarianceMinutes: ev.startVarianceMinutes,
+        endVarianceMinutes: ev.endVarianceMinutes,
+        durationVarianceMinutes: ev.durationVarianceMinutes,
+        appliedSettingsLevel: '',
+        operationalExceptionCodes: ev.operationalExceptionCodes,
+        buckets,
+      };
     });
 
-    const missingJobs = jobsForOperationalDay
-      .filter((job) => !evaluatedJobIds.has(job.id))
-      .slice(0, Math.min(60, Math.max(0, limit)));
+    const cursor = this.parseLiveCursor(query.cursor);
+    const pageWhere: Prisma.EcmVisitEvaluationWhereInput = cursor
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                { plannedStartDateTime: { gt: cursor.plannedStart } },
+                {
+                  plannedStartDateTime: cursor.plannedStart,
+                  scheduledJobId: { gt: cursor.scheduledJobId },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
 
-    // Refresh stale open / missed classifications for the selected day.
-    const staleEvaluations = evaluations
-      .filter(
-        (ev) =>
+    let pageEvals = await this.prisma.ecmVisitEvaluation.findMany({
+      where: pageWhere,
+      take: pageLimit,
+      orderBy: [{ plannedStartDateTime: 'asc' }, { scheduledJobId: 'asc' }],
+      include: EVAL_INCLUDE,
+    });
+
+    const staleEvaluations = pageEvals
+      .filter((ev) => {
+        const jobStatus = ev.scheduledJob.status;
+        const evalCompleted = this.isCompletedEvaluation(ev);
+
+        if (
+          jobStatus === ScheduledJobStatus.COMPLETED &&
+          (!ev.actualCheckOutAt || !evalCompleted)
+        ) {
+          return true;
+        }
+        if (jobStatus === ScheduledJobStatus.IN_PROGRESS && evalCompleted) {
+          return true;
+        }
+        if (
+          jobStatus === ScheduledJobStatus.MISSED &&
+          ev.missedClassification === EcmMissedClassification.NONE
+        ) {
+          return true;
+        }
+        return (
           !ev.actualCheckInAt &&
           ev.plannedStartDateTime.getTime() < now.getTime() &&
           (ev.missedClassification === EcmMissedClassification.NONE ||
-            ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED),
-      )
-      .slice(0, 60);
+            ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED)
+        );
+      })
+      .slice(0, 40);
 
-    const jobIdsToEvaluate = [
-      ...new Set([
-        ...missingJobs.map((j) => j.id),
-        ...staleEvaluations.map((e) => e.scheduledJobId),
-      ]),
-    ];
-
-    for (const jobId of jobIdsToEvaluate) {
-      await this.evaluation.evaluateJobSafe(jobId, { now });
+    if (staleEvaluations.length > 0) {
+      await this.evaluateJobsInChunks(
+        staleEvaluations.map((e) => e.scheduledJobId),
+        now,
+      );
+      pageEvals = await this.prisma.ecmVisitEvaluation.findMany({
+        where: pageWhere,
+        take: pageLimit,
+        orderBy: [{ plannedStartDateTime: 'asc' }, { scheduledJobId: 'asc' }],
+        include: EVAL_INCLUDE,
+      });
     }
 
-    const refreshed =
-      jobIdsToEvaluate.length > 0
-        ? await this.prisma.ecmVisitEvaluation.findMany({
-            where,
-            take: limit,
-            orderBy: { plannedStartDateTime: 'asc' },
-            include: {
-              scheduledJob: {
-                select: {
-                  id: true,
-                  jobName: true,
-                  serviceUserId: true,
-                  status: true,
-                  address: true,
-                  postcode: true,
-                  scheduledStartDateTime: true,
-                  scheduledEndDateTime: true,
-                  serviceUser: {
-                    select: {
-                      id: true,
-                      firstName: true,
-                      lastName: true,
-                      preferredName: true,
-                    },
-                  },
-                  visits: {
-                    where: { deletedAt: null, isActive: true },
-                    orderBy: { scheduledStartDateTime: 'asc' as const },
-                    take: 1,
-                    select: {
-                      visitName: true,
-                      visitPlanSlot: {
-                        select: { slotCode: true, medicationRoundCode: true },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          })
-        : evaluations;
+    const refreshed = pageEvals;
+    const last = refreshed[refreshed.length - 1];
+    const nextCursor =
+      refreshed.length === pageLimit && last
+        ? `${last.plannedStartDateTime.toISOString()}|${last.scheduledJobId}`
+        : null;
 
     const rows: EcmLiveVisitRow[] = refreshed.map((ev) => {
       const su = ev.scheduledJob.serviceUser;
@@ -274,7 +414,14 @@ export class EcmVisitsService {
         [su.firstName, su.lastName].filter(Boolean).join(' ').trim() ||
         'Service user';
 
-      const buckets = this.classifyBuckets(ev, now, soonMs, dueWindowMs);
+      const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
+      const buckets = this.classifyBuckets(
+        ev,
+        now,
+        soonMs,
+        dueWindowMs,
+        visitOperationalDay === operationalToday,
+      );
       const primaryVisit = ev.scheduledJob.visits?.[0];
       const slotFromPlan =
         primaryVisit?.visitPlanSlot?.medicationRoundCode ??
@@ -290,6 +437,21 @@ export class EcmVisitsService {
           : null) ||
         this.slotLabelFromJobName(ev.scheduledJob.jobName);
 
+      const carers = ev.scheduledJob.allocations.map((a) => {
+        const carerName = [
+          a.employee.personalDetail?.firstName,
+          a.employee.personalDetail?.lastName,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        return {
+          employeeId: a.employee.id,
+          name: carerName || a.employee.id,
+          isLeadCarer: a.isLeadCarer,
+        };
+      });
+
       return {
         scheduledJobId: ev.scheduledJobId,
         scheduledVisitId: ev.scheduledVisitId,
@@ -297,6 +459,7 @@ export class EcmVisitsService {
         slotLabel,
         serviceUserId: ev.scheduledJob.serviceUserId,
         serviceUserName: name,
+        carers,
         address: ev.scheduledJob.address ?? null,
         postcode: ev.scheduledJob.postcode ?? null,
         plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
@@ -325,6 +488,7 @@ export class EcmVisitsService {
       dueNow: 0,
       startingSoon: 0,
       inProgress: 0,
+      earlyArrival: 0,
       lateArrival: 0,
       veryLateArrival: 0,
       potentialMissed: 0,
@@ -332,23 +496,125 @@ export class EcmVisitsService {
       missingCheckout: 0,
       outsideGeofence: 0,
       manualAttendance: 0,
-      total: rows.length,
+      completed: 0,
+      completedOnTime: 0,
+      completedLate: 0,
+      total,
     };
-    for (const row of rows) {
+    for (const row of summaryRows) {
       for (const b of row.buckets) {
         counts[b] += 1;
       }
     }
 
+    const summary = this.buildSummary(summaryRows, now);
+
     return {
       data: {
         date,
+        dateFrom,
+        dateTo,
+        operationalToday,
+        operationalTimezone: DEFAULT_OPERATIONAL_TIMEZONE,
         refreshedAt: now.toISOString(),
         windows,
         counts,
+        summary,
+        total,
+        nextCursor,
         visits: rows,
       },
     };
+  }
+
+  private parseLiveCursor(
+    cursor: string | undefined,
+  ): { plannedStart: Date; scheduledJobId: string } | null {
+    if (!cursor?.trim()) return null;
+    const sep = cursor.indexOf('|');
+    if (sep <= 0) return null;
+    const plannedStart = new Date(cursor.slice(0, sep));
+    const scheduledJobId = cursor.slice(sep + 1).trim();
+    if (Number.isNaN(plannedStart.getTime()) || !scheduledJobId) return null;
+    return { plannedStart, scheduledJobId };
+  }
+
+  /**
+   * Ensure every active scheduled job in [dateFrom, dateTo] (Europe/London day)
+   * has an ECM evaluation row. Period filters must not silently omit days.
+   */
+  private async ensureEvaluationsForDateRange(params: {
+    dateFrom: string;
+    dateTo: string;
+    now: Date;
+    evaluateBudget: number;
+    candidateLimit: number;
+    scheduleAreaId?: string;
+    serviceUserId?: string;
+    locationId?: string;
+  }): Promise<void> {
+    const padStart = new Date(`${params.dateFrom}T00:00:00.000Z`);
+    padStart.setUTCDate(padStart.getUTCDate() - 1);
+    const padEnd = new Date(`${params.dateTo}T23:59:59.999Z`);
+    padEnd.setUTCDate(padEnd.getUTCDate() + 1);
+
+    const candidateJobs = await this.prisma.scheduledJob.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        status: { notIn: SKIP_BACKFILL_JOB },
+        scheduledStartDateTime: { gte: padStart, lte: padEnd },
+        ...(params.scheduleAreaId ? { scheduleAreaId: params.scheduleAreaId } : {}),
+        ...(params.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
+        ...(params.locationId ? scheduledJobLocationScope(params.locationId) : {}),
+      },
+      take: params.candidateLimit,
+      orderBy: { scheduledStartDateTime: 'asc' },
+      select: {
+        id: true,
+        scheduledStartDateTime: true,
+        visits: {
+          where: { deletedAt: null, isActive: true },
+          orderBy: { scheduledStartDateTime: 'asc' },
+          take: 1,
+          select: { scheduledStartDateTime: true },
+        },
+      },
+    });
+
+    const jobsInPeriod = candidateJobs.filter((job) => {
+      const plannedStart =
+        job.visits[0]?.scheduledStartDateTime ?? job.scheduledStartDateTime;
+      const day = plannedOperationalDayKey(plannedStart);
+      return day >= params.dateFrom && day <= params.dateTo;
+    });
+    if (jobsInPeriod.length === 0) return;
+
+    const existing = await this.prisma.ecmVisitEvaluation.findMany({
+      where: { scheduledJobId: { in: jobsInPeriod.map((j) => j.id) } },
+      select: { scheduledJobId: true },
+    });
+    const haveEval = new Set(existing.map((e) => e.scheduledJobId));
+    const missingIds = jobsInPeriod
+      .filter((j) => !haveEval.has(j.id))
+      .map((j) => j.id)
+      .slice(0, params.evaluateBudget);
+
+    await this.evaluateJobsInChunks(missingIds, params.now);
+  }
+
+  private async evaluateJobsInChunks(
+    jobIds: string[],
+    now: Date,
+    chunkSize = 8,
+  ): Promise<void> {
+    const unique = [...new Set(jobIds)];
+    for (let i = 0; i < unique.length; i += chunkSize) {
+      const chunk = unique.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map((jobId) => this.evaluation.evaluateJobSafe(jobId, { now })),
+      );
+    }
   }
 
   async getVisitDetail(scheduledJobId: string, opts?: { refresh?: boolean }) {
@@ -680,6 +946,96 @@ export class EcmVisitsService {
     return null;
   }
 
+  private isCompletedEvaluation(ev: {
+    actualCheckOutAt: Date | null;
+    lifecycleStatus: EcmLifecycleStatus;
+  }): boolean {
+    return Boolean(ev.actualCheckOutAt) || COMPLETED_LIFECYCLES.has(ev.lifecycleStatus);
+  }
+
+  /**
+   * Completion punctuality from arrival classification (same basis as daily-ops punctuality).
+   * Early counts as on time; late / very late as not on time; NOT_ASSESSED is neither.
+   */
+  private completionPunctuality(
+    arrival: EcmArrivalClassification,
+  ): 'onTime' | 'late' | null {
+    if (
+      arrival === EcmArrivalClassification.ON_TIME ||
+      arrival === EcmArrivalClassification.EARLY_ARRIVAL
+    ) {
+      return 'onTime';
+    }
+    if (
+      arrival === EcmArrivalClassification.LATE_ARRIVAL ||
+      arrival === EcmArrivalClassification.VERY_LATE_ARRIVAL
+    ) {
+      return 'late';
+    }
+    return null;
+  }
+
+  private buildSummary(
+    rows: EcmLiveVisitRow[],
+    now: Date,
+  ): EcmLiveDashboardSummary {
+    let completed = 0;
+    let completedOnTime = 0;
+    let completedLate = 0;
+    let outstanding = 0;
+    let inProgress = 0;
+    let potentialMissed = 0;
+    let confirmedMissed = 0;
+    let missingCheckout = 0;
+    let missingCheckIn = 0;
+
+    for (const row of rows) {
+      const hasIn = Boolean(row.actualCheckInAt);
+      const isCompleted = row.buckets.includes('completed');
+      const isConfirmedMissed = row.buckets.includes('confirmedMissed');
+
+      if (isCompleted) {
+        completed += 1;
+        if (row.buckets.includes('completedOnTime')) completedOnTime += 1;
+        if (row.buckets.includes('completedLate')) completedLate += 1;
+      } else if (!isConfirmedMissed) {
+        outstanding += 1;
+      }
+
+      if (row.buckets.includes('inProgress')) inProgress += 1;
+      if (row.buckets.includes('potentialMissed')) potentialMissed += 1;
+      if (isConfirmedMissed) confirmedMissed += 1;
+      if (row.buckets.includes('missingCheckout')) missingCheckout += 1;
+
+      const startMs = new Date(row.plannedStartDateTime).getTime();
+      if (
+        !isCompleted &&
+        !isConfirmedMissed &&
+        !hasIn &&
+        Number.isFinite(startMs) &&
+        startMs < now.getTime()
+      ) {
+        missingCheckIn += 1;
+      }
+    }
+
+    const assessed = completedOnTime + completedLate;
+    return {
+      total: rows.length,
+      completed,
+      completedOnTime,
+      completedLate,
+      completedOnTimePct:
+        assessed > 0 ? Math.round((completedOnTime / assessed) * 1000) / 10 : null,
+      outstanding,
+      inProgress,
+      potentialMissed,
+      confirmedMissed,
+      missingCheckout,
+      missingCheckIn,
+    };
+  }
+
   private classifyBuckets(
     ev: {
       plannedStartDateTime: Date;
@@ -694,44 +1050,72 @@ export class EcmVisitsService {
     now: Date,
     soonMs: number,
     dueWindowMs: number,
+    /** Due now / starting soon only for visits whose operational day is today. */
+    includeUrgencyTiles = true,
   ): DashboardBucket[] {
     const buckets: DashboardBucket[] = [];
     const start = ev.plannedStartDateTime.getTime();
     const hasIn = Boolean(ev.actualCheckInAt);
     const hasOut = Boolean(ev.actualCheckOutAt);
+    const completed = this.isCompletedEvaluation(ev);
 
-    if (
-      !hasIn &&
-      start <= now.getTime() + dueWindowMs &&
-      start >= now.getTime() - dueWindowMs &&
-      ev.missedClassification === EcmMissedClassification.NONE
-    ) {
-      buckets.push('dueNow');
+    if (completed) {
+      buckets.push('completed');
+      const punctuality = this.completionPunctuality(ev.arrivalClassification);
+      if (punctuality === 'onTime') buckets.push('completedOnTime');
+      if (punctuality === 'late') buckets.push('completedLate');
+      // Finished visits stay out of live ops tiles (due/soon/in-progress/active late).
+      // Missed / geofence / manual still surface for completed-with-exception review.
+    } else {
+      if (
+        includeUrgencyTiles &&
+        !hasIn &&
+        start <= now.getTime() + dueWindowMs &&
+        start >= now.getTime() - dueWindowMs &&
+        ev.missedClassification === EcmMissedClassification.NONE
+      ) {
+        buckets.push('dueNow');
+      }
+      if (
+        includeUrgencyTiles &&
+        !hasIn &&
+        start > now.getTime() &&
+        start <= now.getTime() + soonMs
+      ) {
+        buckets.push('startingSoon');
+      }
+      if (
+        ev.lifecycleStatus === EcmLifecycleStatus.IN_PROGRESS ||
+        ev.lifecycleStatus === EcmLifecycleStatus.CHECKED_IN ||
+        (hasIn && !hasOut)
+      ) {
+        buckets.push('inProgress');
+      }
+      // Open early check-in (beyond earlyArrivalTolerance) — parity with late open tiles.
+      if (ev.arrivalClassification === EcmArrivalClassification.EARLY_ARRIVAL) {
+        buckets.push('earlyArrival');
+      }
+      if (ev.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL) {
+        buckets.push('lateArrival');
+      }
+      if (ev.arrivalClassification === EcmArrivalClassification.VERY_LATE_ARRIVAL) {
+        buckets.push('veryLateArrival');
+      }
+      if (
+        hasIn &&
+        !hasOut &&
+        ev.plannedEndDateTime &&
+        ev.plannedEndDateTime.getTime() < now.getTime()
+      ) {
+        buckets.push('missingCheckout');
+      }
     }
-    if (!hasIn && start > now.getTime() && start <= now.getTime() + soonMs) {
-      buckets.push('startingSoon');
-    }
-    if (
-      ev.lifecycleStatus === EcmLifecycleStatus.IN_PROGRESS ||
-      ev.lifecycleStatus === EcmLifecycleStatus.CHECKED_IN ||
-      (hasIn && !hasOut)
-    ) {
-      buckets.push('inProgress');
-    }
-    if (ev.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL) {
-      buckets.push('lateArrival');
-    }
-    if (ev.arrivalClassification === EcmArrivalClassification.VERY_LATE_ARRIVAL) {
-      buckets.push('veryLateArrival');
-    }
+
     if (ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED) {
       buckets.push('potentialMissed');
     }
     if (ev.missedClassification === EcmMissedClassification.CONFIRMED_MISSED) {
       buckets.push('confirmedMissed');
-    }
-    if (hasIn && !hasOut && ev.plannedEndDateTime && ev.plannedEndDateTime.getTime() < now.getTime()) {
-      buckets.push('missingCheckout');
     }
     if (ev.operationalExceptionCodes.includes('OUTSIDE_GEOFENCE')) {
       buckets.push('outsideGeofence');

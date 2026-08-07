@@ -196,11 +196,13 @@ export class EcmScheduleVersionService {
       where: { scheduledJobId },
       orderBy: { versionNumber: 'asc' },
     });
+    const originalRow = rows.find((r) => r.isOriginal) ?? rows[0] ?? null;
+    const currentRow = rows[rows.length - 1] ?? null;
     return {
       data: {
         scheduledJobId,
-        original: rows.find((r) => r.isOriginal) ?? rows[0] ?? null,
-        current: rows[rows.length - 1] ?? null,
+        original: originalRow ? this.mapVersion(originalRow) : null,
+        current: currentRow ? this.mapVersion(currentRow) : null,
         versions: rows.map((r) => this.mapVersion(r)),
       },
     };

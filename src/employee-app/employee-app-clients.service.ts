@@ -7,6 +7,7 @@ import {
   VisitPlanStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 
@@ -188,7 +189,7 @@ export class EmployeeAppClientsService {
 
   /** Standing visit-plan roster + clients scheduled in the next 14 days. */
   async resolveRoundClientIds(employeeId: string): Promise<string[]> {
-    const today = formatScheduleDate(new Date());
+    const today = operationalTodayIso();
     const horizon = new Date();
     horizon.setUTCDate(horizon.getUTCDate() + 14);
     const horizonStr = formatScheduleDate(horizon);

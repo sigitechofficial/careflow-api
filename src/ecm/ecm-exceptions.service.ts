@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AllocationStatus,
   EcmArrivalClassification,
   EcmDurationClassification,
   EcmExceptionKind,
@@ -28,6 +29,12 @@ const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
   EcmExceptionLifecycle.MANAGER_REVIEWED,
 ];
 
+const ACTIVE_ALLOCATION: AllocationStatus[] = [
+  AllocationStatus.PENDING_CONFIRMATION,
+  AllocationStatus.ALLOCATED,
+  AllocationStatus.CONFIRMED,
+];
+
 @Injectable()
 export class EcmExceptionsService {
   constructor(
@@ -42,10 +49,36 @@ export class EcmExceptionsService {
   async syncFromEvaluation(evaluationId: string) {
     const evaluation = await this.prisma.ecmVisitEvaluation.findUnique({
       where: { id: evaluationId },
+      include: {
+        scheduledJob: { select: { metadata: true } },
+      },
     });
     if (!evaluation) return [];
 
-    const desired: { kind: EcmExceptionKind; title: string; detail?: string }[] = [];
+    const jobMeta =
+      evaluation.scheduledJob.metadata &&
+      typeof evaluation.scheduledJob.metadata === 'object' &&
+      !Array.isArray(evaluation.scheduledJob.metadata)
+        ? (evaluation.scheduledJob.metadata as Record<string, unknown>)
+        : {};
+    const missedReasonCode =
+      typeof jobMeta.missedReasonCode === 'string' ? jobMeta.missedReasonCode : null;
+    const missedReasonLabel =
+      typeof jobMeta.missedReasonLabel === 'string'
+        ? jobMeta.missedReasonLabel
+        : missedReasonCode;
+    const missedReasonNotes =
+      typeof jobMeta.missedReasonNotes === 'string' ? jobMeta.missedReasonNotes : null;
+    const confirmedMissedDetail = [missedReasonLabel, missedReasonNotes]
+      .filter(Boolean)
+      .join(' — ') || undefined;
+
+    const desired: {
+      kind: EcmExceptionKind;
+      title: string;
+      detail?: string;
+      reasonCode?: string | null;
+    }[] = [];
 
     if (evaluation.arrivalClassification === EcmArrivalClassification.LATE_ARRIVAL) {
       desired.push({
@@ -95,6 +128,8 @@ export class EcmExceptionsService {
       desired.push({
         kind: EcmExceptionKind.CONFIRMED_MISSED,
         title: 'Confirmed missed visit',
+        detail: confirmedMissedDetail,
+        reasonCode: missedReasonCode,
       });
     }
     if (evaluation.operationalExceptionCodes.includes('OUTSIDE_GEOFENCE')) {
@@ -137,7 +172,22 @@ export class EcmExceptionsService {
         },
       });
       if (open) {
-        createdOrExisting.push(open);
+        if (
+          item.kind === EcmExceptionKind.CONFIRMED_MISSED &&
+          (item.detail || item.reasonCode) &&
+          (open.detail !== item.detail || open.reasonCode !== (item.reasonCode ?? null))
+        ) {
+          const updated = await this.prisma.ecmException.update({
+            where: { id: open.id },
+            data: {
+              detail: item.detail ?? open.detail,
+              reasonCode: item.reasonCode ?? open.reasonCode,
+            },
+          });
+          createdOrExisting.push(updated);
+        } else {
+          createdOrExisting.push(open);
+        }
         continue;
       }
       const sla = slaTargetsForCriticality(evaluation.criticality);
@@ -149,6 +199,7 @@ export class EcmExceptionsService {
           lifecycle: EcmExceptionLifecycle.DETECTED,
           title: item.title,
           detail: item.detail,
+          reasonCode: item.reasonCode ?? null,
           responseTargetMinutes: sla.responseTargetMinutes,
           escalationDeadlineAt:
             sla.escalationMinutes > 0
@@ -170,7 +221,91 @@ export class EcmExceptionsService {
       });
       createdOrExisting.push(row);
     }
+
+    await this.clearStaleExceptions(
+      evaluation.scheduledJobId,
+      evaluation.id,
+      desired.map(d => d.kind),
+      evaluation.missedClassification,
+    );
+
     return createdOrExisting;
+  }
+
+  /**
+   * Close open exceptions whose kinds are no longer justified by the evaluation.
+   * Miss kinds are always eligible when classification is NONE; other kinds (e.g.
+   * MISSING_CHECKOUT) clear when office completion / re-eval no longer desires them.
+   * RESOLVED alone still appears in listOpen — close after resolve.
+   */
+  private async clearStaleExceptions(
+    scheduledJobId: string,
+    evaluationId: string,
+    desiredKinds: EcmExceptionKind[],
+    missedClassification: EcmMissedClassification,
+  ) {
+    const keep = new Set(desiredKinds);
+    // Defensive: if miss classification still set, never drop that miss kind early.
+    if (missedClassification === EcmMissedClassification.POTENTIAL_MISSED) {
+      keep.add(EcmExceptionKind.POTENTIAL_MISSED);
+    }
+    if (missedClassification === EcmMissedClassification.CONFIRMED_MISSED) {
+      keep.add(EcmExceptionKind.CONFIRMED_MISSED);
+    }
+
+    const open = await this.prisma.ecmException.findMany({
+      where: {
+        scheduledJobId,
+        lifecycle: { in: OPEN_LIFECYCLES },
+      },
+    });
+    const stale = open.filter(row => !keep.has(row.kind));
+    if (stale.length === 0) return;
+
+    for (const row of stale) {
+      const resolved =
+        row.lifecycle === EcmExceptionLifecycle.RESOLVED ||
+        row.lifecycle === EcmExceptionLifecycle.MANAGER_REVIEWED
+          ? row
+          : await this.prisma.ecmException.update({
+              where: { id: row.id },
+              data: {
+                lifecycle: EcmExceptionLifecycle.RESOLVED,
+                reasonCode: 'CLEARED_BY_REEVALUATION',
+                resolutionNote:
+                  'Exception cleared after visit outcome / re-evaluation.',
+                resolvedAt: new Date(),
+                resolvedById: null,
+                firstActionAt: row.firstActionAt ?? new Date(),
+                ecmVisitEvaluationId: evaluationId,
+              },
+            });
+
+      if (resolved.lifecycle !== EcmExceptionLifecycle.CLOSED) {
+        await this.prisma.ecmException.update({
+          where: { id: resolved.id },
+          data: {
+            lifecycle: EcmExceptionLifecycle.CLOSED,
+            closedAt: new Date(),
+            closedById: null,
+          },
+        });
+      }
+
+      await this.audit.append({
+        eventType: EcmAuditEventType.EXCEPTION_CLOSED,
+        scheduledJobId,
+        ecmExceptionId: row.id,
+        summary: `${row.kind} exception cleared by re-evaluation`,
+        detail: {
+          reasonCode: 'CLEARED_BY_REEVALUATION',
+          previousLifecycle: row.lifecycle,
+          previousKind: row.kind,
+          evaluationId,
+          missedClassification,
+        },
+      });
+    }
   }
 
   async listOpen(limit = 50, serviceUserId?: string) {
@@ -189,35 +324,77 @@ export class EcmExceptionsService {
           select: {
             id: true,
             jobName: true,
+            status: true,
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
             serviceUserId: true,
             serviceUser: {
               select: { id: true, firstName: true, lastName: true, preferredName: true },
+            },
+            allocations: {
+              where: {
+                deletedAt: null,
+                isActive: true,
+                unallocatedAt: null,
+                status: { in: ACTIVE_ALLOCATION },
+              },
+              select: {
+                isLeadCarer: true,
+                employee: {
+                  select: {
+                    id: true,
+                    personalDetail: {
+                      select: { firstName: true, lastName: true },
+                    },
+                  },
+                },
+              },
             },
           },
         },
       },
     });
     return {
-      data: rows.map((r) => ({
-        id: r.id,
-        scheduledJobId: r.scheduledJobId,
-        kind: r.kind,
-        lifecycle: r.lifecycle,
-        title: r.title,
-        detail: r.detail,
-        overdue: r.overdue,
-        responseTargetMinutes: r.responseTargetMinutes,
-        escalationDeadlineAt: r.escalationDeadlineAt?.toISOString() ?? null,
-        acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
-        createdAt: r.createdAt.toISOString(),
-        jobName: r.scheduledJob.jobName,
-        serviceUserId: r.scheduledJob.serviceUserId,
-        serviceUserName:
-          r.scheduledJob.serviceUser.preferredName?.trim() ||
-          [r.scheduledJob.serviceUser.firstName, r.scheduledJob.serviceUser.lastName]
+      data: rows.map((r) => {
+        const start = r.scheduledJob.scheduledStartDateTime;
+        const end = r.scheduledJob.scheduledEndDateTime;
+        const carers = r.scheduledJob.allocations.map((a) => {
+          const name = [a.employee.personalDetail?.firstName, a.employee.personalDetail?.lastName]
             .filter(Boolean)
-            .join(' '),
-      })),
+            .join(' ')
+            .trim();
+          return {
+            employeeId: a.employee.id,
+            name: name || a.employee.id,
+            isLeadCarer: a.isLeadCarer,
+          };
+        });
+        return {
+          id: r.id,
+          scheduledJobId: r.scheduledJobId,
+          kind: r.kind,
+          lifecycle: r.lifecycle,
+          title: r.title,
+          detail: r.detail,
+          overdue: r.overdue,
+          responseTargetMinutes: r.responseTargetMinutes,
+          escalationDeadlineAt: r.escalationDeadlineAt?.toISOString() ?? null,
+          acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
+          createdAt: r.createdAt.toISOString(),
+          jobName: r.scheduledJob.jobName,
+          jobStatus: r.scheduledJob.status,
+          plannedDate: start.toISOString().slice(0, 10),
+          plannedStartDateTime: start.toISOString(),
+          plannedEndDateTime: end?.toISOString() ?? null,
+          carers,
+          serviceUserId: r.scheduledJob.serviceUserId,
+          serviceUserName:
+            r.scheduledJob.serviceUser.preferredName?.trim() ||
+            [r.scheduledJob.serviceUser.firstName, r.scheduledJob.serviceUser.lastName]
+              .filter(Boolean)
+              .join(' '),
+        };
+      }),
     };
   }
 

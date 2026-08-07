@@ -7,6 +7,7 @@ import {
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 import {
   deriveArrivalWindow,
   evaluateEcmTiming,
@@ -74,7 +75,11 @@ export class EcmEvaluationService {
         },
         allocations: {
           where: { deletedAt: null, isActive: true, unallocatedAt: null },
-          select: { id: true },
+          select: {
+            id: true,
+            actualStartDateTime: true,
+            actualEndDateTime: true,
+          },
         },
         attendanceEvents: {
           orderBy: { occurredAt: 'desc' },
@@ -109,10 +114,40 @@ export class EcmEvaluationService {
       .reverse()
       .find((e) => e.eventType === VisitAttendanceEventType.CHECK_OUT);
 
+    const allocationStarts = job.allocations
+      .map((a) => a.actualStartDateTime)
+      .filter((d): d is Date => d != null);
+    const allocationEnds = job.allocations
+      .map((a) => a.actualEndDateTime)
+      .filter((d): d is Date => d != null);
+    const earliestAllocationStart =
+      allocationStarts.length > 0
+        ? new Date(Math.min(...allocationStarts.map((d) => d.getTime())))
+        : null;
+    const latestAllocationEnd =
+      allocationEnds.length > 0
+        ? new Date(Math.max(...allocationEnds.map((d) => d.getTime())))
+        : null;
+
+    // Prefer attendance events, then visit office actuals, then carer allocation actuals
+    // (completeJob may write carerActuals even when a visit row is missing).
     const actualStart =
-      checkInEvent?.occurredAt ?? visit?.actualStartDateTime ?? null;
+      checkInEvent?.occurredAt ??
+      visit?.actualStartDateTime ??
+      earliestAllocationStart ??
+      null;
+    const visitStatus = String(visit?.status ?? '').toUpperCase();
+    const completedOutcome =
+      job.status === ScheduledJobStatus.COMPLETED ||
+      visitStatus === 'COMPLETED' ||
+      visitStatus === 'PARTIALLY_COMPLETED';
+    // Checkout actuals only for completed outcomes (or a real mobile CHECK_OUT event).
+    // Draft/planned ends left on STARTED/IN_PROGRESS must not drive ECM classifications.
     const actualEnd =
-      checkOutEvent?.occurredAt ?? visit?.actualEndDateTime ?? null;
+      checkOutEvent?.occurredAt ??
+      (completedOutcome
+        ? (visit?.actualEndDateTime ?? latestAllocationEnd ?? null)
+        : null);
 
     const platform = await this.thresholdLookups.toPlatformLayer();
     const org = await this.prisma.organisationGeneralSettings.findFirst({
@@ -218,7 +253,7 @@ export class EcmEvaluationService {
       operationalExceptionCodes.push('LOW_GPS_ACCURACY');
     }
 
-    const timezone = 'Europe/London';
+    const timezone = DEFAULT_OPERATIONAL_TIMEZONE;
     const data: Prisma.EcmVisitEvaluationUncheckedCreateInput = {
       scheduledJobId: job.id,
       scheduledVisitId: visit?.id ?? null,

@@ -6,7 +6,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatScheduleDate } from '../schedules/schedules-date.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { scheduledJobLocationScope } from './ecm-location-scope.util';
 
 export type EcmReportsQuery = {
   dateFrom?: string;
@@ -22,18 +23,25 @@ export class EcmReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async dailyOperations(query: EcmReportsQuery) {
-    const date = query.dateFrom ?? formatScheduleDate(new Date());
-    const localDate = new Date(`${date}T00:00:00.000Z`);
+    const dateFrom = (query.dateFrom ?? operationalTodayIso()).slice(0, 10);
+    const dateTo = (query.dateTo ?? dateFrom).slice(0, 10);
+    const from = dateFrom <= dateTo ? dateFrom : dateTo;
+    const to = dateFrom <= dateTo ? dateTo : dateFrom;
+    const singleDay = from === to;
+    const localDateFilter: Prisma.DateTimeFilter = singleDay
+      ? { equals: new Date(`${from}T00:00:00.000Z`) }
+      : {
+          gte: new Date(`${from}T00:00:00.000Z`),
+          lte: new Date(`${to}T00:00:00.000Z`),
+        };
 
     const where: Prisma.EcmVisitEvaluationWhereInput = {
-      localVisitDate: localDate,
+      localVisitDate: localDateFilter,
       scheduledJob: {
         deletedAt: null,
         isActive: true,
         ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
-        ...(query.locationId
-          ? { scheduleArea: { locationId: query.locationId } }
-          : {}),
+        ...(query.locationId ? scheduledJobLocationScope(query.locationId) : {}),
         ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
       },
       ...(query.criticality
@@ -65,7 +73,7 @@ export class EcmReportsService {
           },
         },
       },
-      take: 500,
+      take: singleDay ? 500 : 5000,
       orderBy: { plannedStartDateTime: 'asc' },
     });
 
@@ -111,7 +119,9 @@ export class EcmReportsService {
     return {
       data: {
         reportType: 'daily-operations',
-        date,
+        date: from,
+        dateFrom: from,
+        dateTo: to,
         refreshedAt: new Date().toISOString(),
         thresholdVersion:
           rows.find((r) => r.thresholdRuleVersion)?.thresholdRuleVersion ?? 'platform-default',

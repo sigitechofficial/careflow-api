@@ -11,13 +11,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { EmployeeVisitsService } from '../employees/employee-visits.service';
-import { formatScheduleDate } from '../schedules/schedules-date.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppScheduleService } from './employee-app-schedule.service';
 
 class EmployeeAppScheduleQueryDto {
   @ApiPropertyOptional({
-    description: 'Selected schedule day (YYYY-MM-DD). Defaults to today (UTC).',
+    description:
+      'Selected schedule day (YYYY-MM-DD). Defaults to operational today (Europe/London).',
     example: '2026-06-30',
   })
   @IsOptional()
@@ -130,7 +131,7 @@ export class EmployeeAppScheduleController {
         dateFrom: result.data.dateFrom,
         dateTo: result.data.dateTo,
         generatedAt: new Date().toISOString(),
-        asOfDate: formatScheduleDate(new Date()),
+        asOfDate: operationalTodayIso(),
         summary: result.data.summary,
         visits: result.data.visits.map((visit) => {
           const { job: _job, ...rest } = visit;

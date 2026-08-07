@@ -11,6 +11,7 @@ import {
   ServiceUserDocumentRecordStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -40,7 +41,7 @@ export class EmployeeAppClientDetailService {
 
   async getProfile(employeeId: string, clientId: string, dateParam?: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
-    const date = dateParam?.trim() || formatScheduleDate(new Date());
+    const date = dateParam?.trim() || operationalTodayIso();
     const { start, end } = utcDayBounds(date);
 
     const su = await this.loadClientOrThrow(clientId);

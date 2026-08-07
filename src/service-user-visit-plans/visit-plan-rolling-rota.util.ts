@@ -1,6 +1,12 @@
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
+
 export type RotaHorizonMode = 'FIXED_DAYS' | 'CALENDAR_MONTH';
 
-export const ROTA_ROLLING_TIMEZONE = 'Europe/London';
+/** @deprecated Prefer DEFAULT_OPERATIONAL_TIMEZONE — same value in P0. */
+export const ROTA_ROLLING_TIMEZONE = DEFAULT_OPERATIONAL_TIMEZONE;
 
 export const DEFAULT_ROTA_HORIZON_DAYS = 28;
 export const DEFAULT_AUTO_EXTEND_ROTA_RUN_HOUR = 12;
@@ -49,7 +55,7 @@ export function endOfMonthIsoDate(isoDate: string): string {
 }
 
 export function londonTodayIsoDate(now = new Date()): string {
-  return formatIsoDateInTimeZone(now, ROTA_ROLLING_TIMEZONE);
+  return operationalTodayIso(now, ROTA_ROLLING_TIMEZONE);
 }
 
 /** Day at the far edge of the rolling window (today + horizonDays). */

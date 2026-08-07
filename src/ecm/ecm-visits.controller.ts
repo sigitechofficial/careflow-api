@@ -101,13 +101,17 @@ export class EcmVisitsController {
   @ApiOperation({ summary: 'Daily ECM operations report with KPI numerator/denominator' })
   dailyOps(
     @Query('date') date?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
     @Query('scheduleAreaId') scheduleAreaId?: string,
     @Query('locationId') locationId?: string,
     @Query('serviceUserId') serviceUserId?: string,
     @Query('criticality') criticality?: string,
   ) {
+    const from = dateFrom ?? date;
     return this.reports.dailyOperations({
-      dateFrom: date,
+      dateFrom: from,
+      dateTo: dateTo ?? from,
       scheduleAreaId,
       locationId,
       serviceUserId,

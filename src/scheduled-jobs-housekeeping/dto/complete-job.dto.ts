@@ -22,9 +22,13 @@ export class CompleteJobCarerActualDto {
   @IsISO8601()
   actualStartDateTime!: string;
 
-  @ApiPropertyOptional({ description: 'Carer actual end (ISO 8601)' })
+  @ApiPropertyOptional({
+    description:
+      'Carer actual end (ISO 8601). Required when completing; omit when status is STARTED.',
+  })
+  @IsOptional()
   @IsISO8601()
-  actualEndDateTime!: string;
+  actualEndDateTime?: string;
 }
 
 export class CompleteJobDto {
@@ -112,4 +116,21 @@ export class CompleteJobDto {
   @IsString()
   @MaxLength(2000)
   timingExceptionNotes?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Structured reason code required when status is MISSED (see VISIT_MISSED_REASON_CODES)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  missedReasonCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Notes for the missed visit (required when missedReasonCode is OTHER)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  missedReasonNotes?: string;
 }

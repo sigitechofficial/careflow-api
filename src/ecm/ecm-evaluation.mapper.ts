@@ -14,6 +14,7 @@ import {
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 import {
   deriveArrivalWindow,
   evaluateEcmTiming,
@@ -45,6 +46,20 @@ export function mapToEcmLifecycle(ctx: EcmLifecycleContext): EcmLifecycleStatus 
   }
   if (job === 'DRAFT') return EcmLifecycleStatus.DRAFT;
 
+  // Workspace status is authoritative. Timestamps only refine within that status.
+  if (job === 'COMPLETED' || visit === 'COMPLETED') {
+    return ctx.hasTimingOrOperationalException
+      ? EcmLifecycleStatus.COMPLETED_WITH_EXCEPTION
+      : EcmLifecycleStatus.COMPLETED;
+  }
+  if (job === 'PARTIALLY_COMPLETED' || visit === 'PARTIALLY_COMPLETED') {
+    return EcmLifecycleStatus.COMPLETED_WITH_EXCEPTION;
+  }
+  if (job === 'IN_PROGRESS' || visit === 'STARTED') {
+    return EcmLifecycleStatus.IN_PROGRESS;
+  }
+
+  // Evidence-only path when job/visit status has not been updated yet.
   if (ctx.hasCheckOut) {
     return ctx.hasTimingOrOperationalException
       ? EcmLifecycleStatus.COMPLETED_WITH_EXCEPTION
@@ -175,7 +190,10 @@ export function toPrismaMissed(c: string): EcmMissedClassification {
     ?? EcmMissedClassification.NONE;
 }
 
-export function localVisitDateFromStart(plannedStart: Date, _timezone = 'Europe/London'): Date {
+export function localVisitDateFromStart(
+  plannedStart: Date,
+  _timezone = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
   // Store as UTC midnight of the calendar day in Europe/London via Intl when possible.
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
@@ -202,7 +220,7 @@ export function localVisitDateFromStart(plannedStart: Date, _timezone = 'Europe/
 export function plannedStartOnOperationalDate(
   plannedStart: Date,
   operationalDate: string,
-  timezone = 'Europe/London',
+  timezone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): boolean {
   const local = localVisitDateFromStart(plannedStart, timezone);
   const y = local.getUTCFullYear();

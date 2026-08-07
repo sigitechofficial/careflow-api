@@ -26,6 +26,11 @@ import {
   isVisitTimingExceptionReasonCode,
   VISIT_TIMING_EXCEPTION_REASONS,
 } from '../scheduling/visit-timing-exception-reason.util';
+import {
+  isVisitMissedReasonCode,
+  VISIT_MISSED_REASONS,
+  visitMissedReasonLabel,
+} from '../scheduling/visit-missed-reason.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { ScheduledVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
@@ -36,6 +41,7 @@ import { ReinstateJobDto } from './dto/reinstate-job.dto';
 import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
 import { VisitObservationsCatalogService } from '../service-user-observations/visit-observations-catalog.service';
+import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -114,6 +120,7 @@ export class ScheduledJobsHousekeepingService {
     private readonly scheduledJobsService: ScheduledJobsService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
+    private readonly ecmEvaluation: EcmEvaluationService,
   ) {}
 
   private buildBaseWhere(query: HousekeepingQueryDto): Prisma.ScheduledJobWhereInput {
@@ -513,6 +520,8 @@ export class ScheduledJobsHousekeepingService {
     const completing =
       visitStatus === ScheduledVisitStatus.COMPLETED ||
       visitStatus === ScheduledVisitStatus.PARTIALLY_COMPLETED;
+    const markingStarted = visitStatus === ScheduledVisitStatus.STARTED;
+    const markingMissed = visitStatus === ScheduledVisitStatus.MISSED;
     const reopeningFromCompleted =
       existing.status === PrismaJobStatus.COMPLETED && !completing;
 
@@ -522,17 +531,37 @@ export class ScheduledJobsHousekeepingService {
       }
     }
 
+    let missedReasonCode: string | null = null;
+    let missedReasonNotes: string | null = null;
+    if (markingMissed) {
+      const code = dto.missedReasonCode?.trim() ?? '';
+      if (!isVisitMissedReasonCode(code)) {
+        throw new BadRequestException(
+          'A structured missed reason is required when marking a visit as did not attend.',
+        );
+      }
+      missedReasonCode = code;
+      missedReasonNotes = dto.missedReasonNotes?.trim() || null;
+      const reasonMeta = VISIT_MISSED_REASONS.find((r) => r.code === code);
+      if (reasonMeta?.requiresNotes && !missedReasonNotes) {
+        throw new BadRequestException('Notes are required when the missed reason is Other.');
+      }
+    }
+
     let actualStart = dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : undefined;
-    let actualEnd = dto.actualEndDateTime
-      ? new Date(dto.actualEndDateTime)
-      : completing && !dto.status
-        ? new Date()
-        : undefined;
+    // Started must never persist checkout — strip any client-sent draft/planned ends.
+    let actualEnd = markingStarted
+      ? undefined
+      : dto.actualEndDateTime
+        ? new Date(dto.actualEndDateTime)
+        : completing && !dto.status
+          ? new Date()
+          : undefined;
 
     const carerActualRows: Array<{
       allocationId: string;
       start: Date;
-      end: Date;
+      end: Date | null;
     }> = [];
 
     if (dto.carerActuals?.length) {
@@ -548,9 +577,21 @@ export class ScheduledJobsHousekeepingService {
           );
         }
         const start = new Date(row.actualStartDateTime);
+        if (Number.isNaN(start.getTime())) {
+          throw new BadRequestException('Invalid carer actual start time');
+        }
+        if (markingStarted) {
+          carerActualRows.push({ allocationId: row.allocationId, start, end: null });
+          continue;
+        }
+        if (!row.actualEndDateTime) {
+          throw new BadRequestException(
+            'Each carer actual end time is required when completing a visit',
+          );
+        }
         const end = new Date(row.actualEndDateTime);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-          throw new BadRequestException('Invalid carer actual start/end time');
+        if (Number.isNaN(end.getTime())) {
+          throw new BadRequestException('Invalid carer actual end time');
         }
         if (end.getTime() <= start.getTime()) {
           throw new BadRequestException(
@@ -561,7 +602,14 @@ export class ScheduledJobsHousekeepingService {
       }
       if (carerActualRows.length) {
         actualStart = new Date(Math.min(...carerActualRows.map((r) => r.start.getTime())));
-        actualEnd = new Date(Math.max(...carerActualRows.map((r) => r.end.getTime())));
+        if (!markingStarted) {
+          const ends = carerActualRows
+            .map((r) => r.end)
+            .filter((d): d is Date => d != null);
+          if (ends.length) {
+            actualEnd = new Date(Math.max(...ends.map((d) => d.getTime())));
+          }
+        }
       }
     }
 
@@ -570,6 +618,9 @@ export class ScheduledJobsHousekeepingService {
     }
     if (actualEnd && Number.isNaN(actualEnd.getTime())) {
       throw new BadRequestException('Invalid actualEndDateTime');
+    }
+    if (markingStarted) {
+      actualEnd = undefined;
     }
 
     let overrunReason: string | null = null;
@@ -702,11 +753,14 @@ export class ScheduledJobsHousekeepingService {
             : reopeningFromCompleted
               ? { actualStartDateTime: null }
               : {}),
-          ...(actualEnd
-            ? { actualEndDateTime: actualEnd }
-            : reopeningFromCompleted
-              ? { actualEndDateTime: null }
-              : {}),
+          // In-progress visits keep start only — clear draft/planned end times.
+          ...(markingStarted
+            ? { actualEndDateTime: null }
+            : actualEnd
+              ? { actualEndDateTime: actualEnd }
+              : reopeningFromCompleted
+                ? { actualEndDateTime: null }
+                : {}),
           ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
           ...(userId ? { updatedById: userId } : {}),
         },
@@ -717,22 +771,24 @@ export class ScheduledJobsHousekeepingService {
           where: { id: row.allocationId },
           data: {
             actualStartDateTime: row.start,
-            actualEndDateTime: row.end,
+            actualEndDateTime: markingStarted ? null : row.end,
           },
         });
       }
 
-      if (reopeningFromCompleted && !carerActualRows.length) {
+      if ((reopeningFromCompleted || markingStarted) && !carerActualRows.length) {
         const activeAllocationIds = (existing.allocations ?? [])
           .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
           .map((a) => a.id);
         if (activeAllocationIds.length) {
           await tx.jobAllocation.updateMany({
             where: { id: { in: activeAllocationIds } },
-            data: {
-              actualStartDateTime: null,
-              actualEndDateTime: null,
-            },
+            data: markingStarted
+              ? { actualEndDateTime: null }
+              : {
+                  actualStartDateTime: null,
+                  actualEndDateTime: null,
+                },
           });
         }
       }
@@ -784,6 +840,27 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
+      if (markingMissed && missedReasonCode) {
+        metadataPatch.missedReasonCode = missedReasonCode;
+        if (missedReasonNotes) metadataPatch.missedReasonNotes = missedReasonNotes;
+        else delete metadataPatch.missedReasonNotes;
+        metadataPatch.missedReasonLabel = visitMissedReasonLabel(missedReasonCode);
+        metadataChanged = true;
+      } else if (!markingMissed) {
+        if ('missedReasonCode' in metadataPatch) {
+          delete metadataPatch.missedReasonCode;
+          metadataChanged = true;
+        }
+        if ('missedReasonNotes' in metadataPatch) {
+          delete metadataPatch.missedReasonNotes;
+          metadataChanged = true;
+        }
+        if ('missedReasonLabel' in metadataPatch) {
+          delete metadataPatch.missedReasonLabel;
+          metadataChanged = true;
+        }
+      }
+
       const metadata = metadataChanged ? metadataPatch : undefined;
 
       const updated = await tx.scheduledJob.update({
@@ -809,6 +886,7 @@ export class ScheduledJobsHousekeepingService {
           visitStatus,
           actualStartDateTime: actualStart?.toISOString() ?? null,
           actualEndDateTime: actualEnd?.toISOString() ?? null,
+          missedReasonCode,
         }),
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
@@ -829,6 +907,11 @@ export class ScheduledJobsHousekeepingService {
         // Visit completion must succeed even if finance evaluate fails; ops can Sync later.
       }
     }
+
+    // ECM evaluation is a derived cache — rebuild from workspace after every outcome write.
+    await this.ecmEvaluation.evaluateJobSafe(id, {
+      confirmedMissed: markingMissed || undefined,
+    });
 
     return result;
   }
@@ -883,7 +966,7 @@ export class ScheduledJobsHousekeepingService {
     const combinedNotes = [dto.notes?.trim(), dto.reasonNotes?.trim()].filter(Boolean).join('\n\n') || undefined;
     const callOffReason = `${reasonMeta.label}${dto.reasonNotes?.trim() ? `: ${dto.reasonNotes.trim()}` : ''}`;
 
-    return this.prisma.$transaction(async (tx) => {
+    const cancelResult = await this.prisma.$transaction(async (tx) => {
       await tx.scheduledVisit.updateMany({
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
         data: { status: visitOutcome, updatedById: userId },
@@ -996,6 +1079,9 @@ export class ScheduledJobsHousekeepingService {
         data: { ...this.mapDayJob(updated), cancellationId: cancellation.id },
       };
     });
+
+    await this.ecmEvaluation.evaluateJobSafe(id);
+    return cancelResult;
   }
 
   async reinstateJob(userId: string, id: string, dto: ReinstateJobDto, meta?: RequestAuditMeta) {
@@ -1019,7 +1105,7 @@ export class ScheduledJobsHousekeepingService {
         ? existing.cancellation
         : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const reinstateResult = await this.prisma.$transaction(async (tx) => {
       await tx.scheduledVisit.updateMany({
         where: { scheduledJobId: id, deletedAt: null, isActive: true },
         data: { status: PrismaVisitStatus.PLANNED, updatedById: userId },
@@ -1125,6 +1211,9 @@ export class ScheduledJobsHousekeepingService {
         data: this.mapDayJob(updated),
       };
     });
+
+    await this.ecmEvaluation.evaluateJobSafe(id);
+    return reinstateResult;
   }
 
   /**

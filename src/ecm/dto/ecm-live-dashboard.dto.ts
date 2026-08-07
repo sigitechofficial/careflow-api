@@ -17,10 +17,27 @@ import {
 } from '@prisma/client';
 
 export class EcmLiveDashboardQueryDto {
-  @ApiPropertyOptional({ description: 'ISO date YYYY-MM-DD (local operational day)' })
+  @ApiPropertyOptional({
+    description:
+      'ISO date YYYY-MM-DD (single operational day). Ignored when dateFrom/dateTo are set.',
+  })
   @IsOptional()
   @IsDateString()
   date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Inclusive operational-day range start (YYYY-MM-DD, Europe/London calendar)',
+  })
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional({
+    description: 'Inclusive operational-day range end (YYYY-MM-DD). Defaults to dateFrom when omitted.',
+  })
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
 
   @ApiPropertyOptional({ description: 'Branch / schedule area id' })
   @IsOptional()
@@ -28,7 +45,8 @@ export class EcmLiveDashboardQueryDto {
   scheduleAreaId?: string;
 
   @ApiPropertyOptional({
-    description: 'Organisation location id — filters jobs whose schedule area belongs to this location',
+    description:
+      'Organisation location id — matches schedule-area location or service-user home location',
   })
   @IsOptional()
   @IsUUID()
@@ -54,13 +72,24 @@ export class EcmLiveDashboardQueryDto {
   @IsEnum(EcmLifecycleStatus)
   lifecycleStatus?: EcmLifecycleStatus;
 
-  @ApiPropertyOptional({ default: 100 })
+  @ApiPropertyOptional({
+    description: 'Max visit rows per page (default 150).',
+    maximum: 500,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(300)
+  @Max(500)
   limit?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Opaque cursor from previous page (`plannedStartIso|scheduledJobId`).',
+  })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 
   @ApiPropertyOptional({ description: 'Free-text search on job name / SU name' })
   @IsOptional()

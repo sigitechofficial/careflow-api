@@ -7,6 +7,7 @@ import {
   ScheduledVisitStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -297,7 +298,7 @@ export class EmployeeAppHomeService {
 
   private resolveDate(dateParam?: string): string {
     if (!dateParam?.trim()) {
-      return formatScheduleDate(new Date());
+      return operationalTodayIso();
     }
     parseScheduleDate(dateParam);
     return dateParam.trim();

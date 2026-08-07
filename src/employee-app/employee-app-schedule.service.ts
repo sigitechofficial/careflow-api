@@ -5,6 +5,7 @@ import {
   ScheduledVisitStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
 import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
@@ -33,7 +34,7 @@ export class EmployeeAppScheduleService {
     opts: { date?: string; from?: string; to?: string } = {},
   ) {
     const selectedDate = this.resolveDate(opts.date);
-    const today = formatScheduleDate(new Date());
+    const today = operationalTodayIso();
     const { stripFrom, stripTo } = this.resolveStripBounds(selectedDate, opts.from, opts.to);
 
     const dayBounds = utcDayBounds(selectedDate);
@@ -216,7 +217,7 @@ export class EmployeeAppScheduleService {
   }
 
   private resolveDate(dateParam?: string): string {
-    if (!dateParam?.trim()) return formatScheduleDate(new Date());
+    if (!dateParam?.trim()) return operationalTodayIso();
     parseScheduleDate(dateParam);
     return dateParam.trim();
   }
