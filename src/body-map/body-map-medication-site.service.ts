@@ -151,9 +151,10 @@ export class BodyMapMedicationSiteService {
     dto: BodyMapMedicationSiteDto,
     med: MedWithLookups,
     serviceUserMedicationId: string,
-    userId: string,
+    userId: string | undefined,
     isCreate: boolean,
   ): Omit<Prisma.BodyMapMedicationSiteUncheckedCreateInput, 'bodyMapRecordId'> {
+    const actorUserId = userId?.trim() ? userId.trim() : undefined;
     return {
       serviceUserMedicationId,
       lastAdministrationEventId: dto.lastAdministrationEventId,
@@ -161,7 +162,7 @@ export class BodyMapMedicationSiteService {
       strength: dto.strength ?? med.strength,
       frequencyText: dto.frequencyText ?? med.frequencyText ?? med.frequency?.name ?? null,
       appliedAt: dto.appliedAt ? new Date(dto.appliedAt) : isCreate ? new Date() : undefined,
-      appliedById: dto.appliedById ?? userId,
+      appliedById: dto.appliedById ?? actorUserId,
       consentGiven: dto.consentGiven,
       marLinkedAt: isCreate ? new Date() : undefined,
       amountOrThickness: dto.amountOrThickness,
@@ -179,7 +180,7 @@ export class BodyMapMedicationSiteService {
       secondStaffCheck: dto.secondStaffCheck,
       siteRotationNotes: dto.siteRotationNotes,
       assessmentData: dto.assessmentData as Prisma.InputJsonValue | undefined,
-      createdById: isCreate ? userId : undefined,
+      createdById: isCreate ? actorUserId : undefined,
     };
   }
 
@@ -209,7 +210,7 @@ export class BodyMapMedicationSiteService {
     opts: {
       recordId: string;
       serviceUserId: string;
-      userId: string;
+      userId: string | undefined;
       dto: BodyMapMedicationSiteDto;
       isCreate: boolean;
       auditAction: BodyMapAuditAction;
@@ -233,7 +234,8 @@ export class BodyMapMedicationSiteService {
       );
     }
 
-    const data = this.buildSiteData(opts.dto, med, medicationId, opts.userId, opts.isCreate);
+    const actorUserId = opts.userId?.trim() ? opts.userId.trim() : undefined;
+    const data = this.buildSiteData(opts.dto, med, medicationId, actorUserId, opts.isCreate);
 
     const site = await tx.bodyMapMedicationSite.upsert({
       where: { bodyMapRecordId: opts.recordId },
@@ -253,7 +255,7 @@ export class BodyMapMedicationSiteService {
         linkedModule: BodyMapLinkedModule.MAR,
         linkedRecordId: medicationId,
         label: med.medicationName,
-        createdById: opts.userId,
+        createdById: actorUserId,
       },
     });
 
@@ -261,7 +263,7 @@ export class BodyMapMedicationSiteService {
       data: {
         bodyMapRecordId: opts.recordId,
         action: opts.auditAction,
-        actorUserId: opts.userId,
+        actorUserId: actorUserId,
         payload: {
           serviceUserMedicationId: medicationId,
           medicationSiteId: site.id,

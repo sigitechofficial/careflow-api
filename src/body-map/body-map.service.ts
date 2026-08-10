@@ -538,7 +538,8 @@ export class BodyMapService {
     return mapRecord(row);
   }
 
-  async createRecord(userId: string, dto: CreateBodyMapRecordDto) {
+  async createRecord(userId: string | null | undefined, dto: CreateBodyMapRecordDto) {
+    const actorUserId = userId?.trim() ? userId.trim() : undefined;
     await this.ensureServiceUser(dto.serviceUserId);
     if (!dto.bodyPart?.trim()) {
       throw new BadRequestException('Body part is required');
@@ -620,8 +621,8 @@ export class BodyMapService {
           nextReviewAt: dto.nextReviewAt ? new Date(dto.nextReviewAt) : null,
           safeguardingTriggered,
           managerReviewRequired,
-          createdById: userId,
-          updatedById: userId,
+          createdById: actorUserId,
+          updatedById: actorUserId,
         },
       });
 
@@ -638,7 +639,7 @@ export class BodyMapService {
           markerType: recordType,
           riskLevel,
           status,
-          createdById: userId,
+          createdById: actorUserId,
         },
       });
 
@@ -646,7 +647,7 @@ export class BodyMapService {
         data: {
           bodyMapRecordId: record.id,
           action: BodyMapAuditAction.CREATE,
-          actorUserId: userId,
+          actorUserId: actorUserId,
           payload: { markerId: marker.id },
         },
       });
@@ -656,14 +657,14 @@ export class BodyMapService {
           data: {
             bodyMapRecordId: record.id,
             ...this.mapSafeguardingInput(dto.safeguardingCheck),
-            completedById: userId,
+            completedById: actorUserId,
           },
         });
         await tx.bodyMapAuditLog.create({
           data: {
             bodyMapRecordId: record.id,
             action: BodyMapAuditAction.SAFEGUARDING_CHECK,
-            actorUserId: userId,
+            actorUserId: actorUserId,
             payload: { referralRequired: dto.safeguardingCheck.referralRequired },
           },
         });
@@ -695,14 +696,14 @@ export class BodyMapService {
             bodyMapRecordId: record.id,
             ...woundInput,
             assessmentData: lifecycleData as Prisma.InputJsonValue,
-            createdById: userId,
+            createdById: actorUserId,
           },
         });
         await tx.bodyMapAuditLog.create({
           data: {
             bodyMapRecordId: record.id,
             action: BodyMapAuditAction.WOUND_ASSESSMENT,
-            actorUserId: userId,
+            actorUserId: actorUserId,
           },
         });
       }
@@ -712,7 +713,7 @@ export class BodyMapService {
           data: {
             bodyMapRecordId: record.id,
             ...this.mapPressureInput(dto.pressureAssessment),
-            createdById: userId,
+            createdById: actorUserId,
           },
         });
         if (
@@ -731,7 +732,7 @@ export class BodyMapService {
           data: {
             bodyMapRecordId: record.id,
             action: BodyMapAuditAction.PRESSURE_ASSESSMENT,
-            actorUserId: userId,
+            actorUserId: actorUserId,
           },
         });
       }
@@ -740,7 +741,7 @@ export class BodyMapService {
         await this.medicationSiteService.persistSiteInTransaction(tx, {
           recordId: record.id,
           serviceUserId: dto.serviceUserId,
-          userId,
+          userId: actorUserId,
           dto: dto.medicationSite,
           isCreate: true,
           auditAction: BodyMapAuditAction.MEDICATION_SITE_CREATE,

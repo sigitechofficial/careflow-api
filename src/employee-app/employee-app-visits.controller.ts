@@ -43,6 +43,7 @@ import {
   EmployeeAppUnableToStartDto,
 } from './dto/employee-app-visit-writes.dto';
 import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
+import { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
 
 @ApiTags('Employee App Visits')
 @ApiBearerAuth()
@@ -61,7 +62,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map data in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map bootstrap (lookups, active records, diagram catalog) in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);
@@ -303,9 +304,27 @@ export class EmployeeAppVisitsController {
   }
 
   @Get(':jobId/body-map')
-  @ApiOperation({ summary: 'Body map handover for visit workspace' })
+  @ApiOperation({
+    summary: 'Body map bootstrap for visit workspace',
+    description:
+      'Handover summary, active markers, record-type lookups, diagram UI catalog, and visit linkage ids. Same clinical data as admin visit workspace body map.',
+  })
   bodyMap(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getBodyMap(user.employeeId!, jobId);
+  }
+
+  @Post(':jobId/body-map/records')
+  @ApiOperation({
+    summary: 'Record body map observation during visit',
+    description:
+      'Same payload shape as admin POST /body-map/records (except serviceUserId — taken from the visit). Requires check-in. Lead and support carers may record.',
+  })
+  createBodyMapRecord(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppCreateBodyMapRecordDto,
+  ) {
+    return this.visitsService.createBodyMapRecord(user.employeeId!, jobId, dto);
   }
 
   @Get(':jobId/completion-options')

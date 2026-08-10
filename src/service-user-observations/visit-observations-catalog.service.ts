@@ -10,6 +10,11 @@ import {
   buildObsFormForType,
   mobileTypeCode,
 } from '../employee-app/employee-app-observations.catalog';
+import {
+  extractBodyMapPinsFromPayload,
+  observationPayloadMatchesJob,
+  type EmployeeAppBodyMapPin,
+} from '../employee-app/employee-app-body-map-pins.util';
 
 export type VisitObservationRecordedRow = {
   id: string;
@@ -28,6 +33,8 @@ export type VisitObservationRecordedRow = {
   statusLabel: string | null;
   statusTone: 'success';
   tone: 'success';
+  /** Present when observation was saved with payload.bodyMapPins (skin / body map obs). */
+  bodyMapPins?: EmployeeAppBodyMapPin[];
 };
 
 function formatHmUtc(d: Date) {
@@ -309,6 +316,7 @@ export class VisitObservationsCatalogService {
   async loadVisitObservations(
     serviceUserId: string,
     since: Date,
+    scheduledJobId?: string,
   ): Promise<VisitObservationRecordedRow[]> {
     const rows = await this.prisma.serviceUserObservation.findMany({
       where: {
@@ -321,7 +329,12 @@ export class VisitObservationsCatalogService {
       take: 20,
     });
 
-    return rows.map((row) => {
+    return rows
+      .filter(
+        (row) =>
+          !scheduledJobId || observationPayloadMatchesJob(row.payload, scheduledJobId),
+      )
+      .map((row) => {
       const typeCode = mobileTypeCode(row.observationType.code);
       const valueLabel = formatVisitObservationValue(row);
       const status = inferVisitObservationStatus(
@@ -329,6 +342,7 @@ export class VisitObservationsCatalogService {
         row.numericValue,
         row.payload,
       );
+      const bodyMapPins = extractBodyMapPinsFromPayload(row.payload) ?? undefined;
       return {
         id: row.id,
         definitionId: typeCode,
@@ -346,6 +360,7 @@ export class VisitObservationsCatalogService {
         statusLabel: status,
         statusTone: 'success' as const,
         tone: 'success' as const,
+        ...(bodyMapPins ? { bodyMapPins } : {}),
       };
     });
   }
@@ -353,10 +368,11 @@ export class VisitObservationsCatalogService {
   async buildVisitObservationsPayload(input: {
     serviceUserId: string;
     since: Date;
+    scheduledJobId?: string;
   }) {
     const [catalog, recorded] = await Promise.all([
       this.buildCatalogPayload(input.serviceUserId),
-      this.loadVisitObservations(input.serviceUserId, input.since),
+      this.loadVisitObservations(input.serviceUserId, input.since, input.scheduledJobId),
     ]);
     return {
       ...catalog,

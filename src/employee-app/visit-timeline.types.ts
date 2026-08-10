@@ -9,7 +9,8 @@ export type VisitTimelineEventType =
   | 'handover'
   | 'concern'
   | 'incident'
-  | 'presence';
+  | 'presence'
+  | 'body_map';
 
 export type VisitTimelineSourceType =
   | 'check_in'
@@ -21,7 +22,8 @@ export type VisitTimelineSourceType =
   | 'concern'
   | 'incident'
   | 'complete'
-  | 'presence';
+  | 'presence'
+  | 'body_map';
 
 export type VisitTimelineTone =
   | 'primary'

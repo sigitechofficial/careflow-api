@@ -10,6 +10,7 @@ import {
   IsString,
   MaxLength,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 
@@ -453,11 +454,56 @@ export class EmployeeAppLogConcernDto {
   clientEntryId?: string;
 }
 
+export class EmployeeAppIncidentBodyMapMarkDto {
+  @ApiProperty({ example: 'dual' })
+  @IsString()
+  @MaxLength(64)
+  view!: string;
+
+  @ApiProperty({ example: 38.5, description: '0–100 percent' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  x!: number;
+
+  @ApiProperty({ example: 22.1, description: '0–100 percent' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  y!: number;
+
+  @ApiProperty({ example: 'Left shoulder' })
+  @IsString()
+  @MaxLength(200)
+  part!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  canvasView?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  recordView?: string;
+}
+
 export class EmployeeAppIncidentBodyMapDto {
   @ApiProperty({ type: [String] })
   @IsArray()
   @IsString({ each: true })
   regions!: string[];
+
+  @ApiPropertyOptional({ type: [EmployeeAppIncidentBodyMapMarkDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EmployeeAppIncidentBodyMapMarkDto)
+  marks?: EmployeeAppIncidentBodyMapMarkDto[];
 
   @ApiPropertyOptional()
   @IsOptional()
