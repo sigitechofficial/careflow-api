@@ -5,6 +5,7 @@ import {
   mapTwoPersonTaskFlags,
   resolveCarerRole,
   resolveLeadEmployeeId,
+  buildSupportClockedOutBeforeLeadComplete,
 } from './employee-app-multi-carer.util';
 
 describe('employee-app-multi-carer.util', () => {
@@ -49,6 +50,37 @@ describe('employee-app-multi-carer.util', () => {
     expect(mapTwoPersonTaskFlags(true).twoPerson).toBe(true);
     expect(mapTwoPersonTaskFlags(true).requiresSupport).toBe(true);
     expect(mapTwoPersonTaskFlags(true).requiredForRoles).toEqual(['lead', 'support']);
+  });
+
+  it('builds supportClockedOutBeforeLeadComplete when support left and lead has not', () => {
+    const block = buildSupportClockedOutBeforeLeadComplete({
+      requiredCarers: 2,
+      visitStatus: 'STARTED',
+      viewingEmployeeId: 'lead-1',
+      allocations: [
+        {
+          employeeId: 'lead-1',
+          status: 'CONFIRMED',
+          isLeadCarer: true,
+          actualStartDateTime: '2026-08-10T10:00:00.000Z',
+          actualEndDateTime: null,
+          employee: { personalDetail: { firstName: 'Jane', lastName: 'Lead' } },
+        },
+        {
+          employeeId: 'support-1',
+          status: 'CONFIRMED',
+          isLeadCarer: false,
+          actualStartDateTime: '2026-08-10T10:05:00.000Z',
+          actualEndDateTime: '2026-08-10T10:45:00.000Z',
+          employee: { personalDetail: { firstName: 'Sam', lastName: 'Support' } },
+        },
+      ],
+    });
+    expect(block?.occurred).toBe(true);
+    expect(block?.carers).toHaveLength(1);
+    expect(block?.carers[0].name).toBe('Sam Support');
+    expect(block?.carers[0].isYou).toBe(false);
+    expect(block?.visitRemainsOpenForLead).toBe(true);
   });
 
   it('unable-to-start catalogue still available for lead path', () => {

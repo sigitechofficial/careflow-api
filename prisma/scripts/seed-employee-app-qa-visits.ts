@@ -626,6 +626,13 @@ async function main() {
     });
     for (const row of catalogueRows) catalogueByName.set(row.name, row.id);
 
+    // Double-up QA (Visit B): flag hoist / pressure tasks as two-person for Support clock-out gate.
+    const twoPersonCatalogueNames = ['Hoist use', 'Check pressure areas'];
+    await prisma.taskCatalogueTask.updateMany({
+      where: { deletedAt: null, isActive: true, name: { in: twoPersonCatalogueNames } },
+      data: { requiresMultipleCarers: true },
+    });
+
     const clientIds: Record<string, string> = {};
     for (const [key, c] of Object.entries(clients) as Array<[VisitDef['clientKey'], ClientSeed]>) {
       const su = await upsertClient(prisma, c, iaTemplate?.id ?? null);

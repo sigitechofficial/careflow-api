@@ -116,6 +116,7 @@ import {
   allocationIso,
   isLeadCarerOnVisit,
   isMultiCarerVisit,
+  buildSupportClockedOutBeforeLeadComplete,
   mapTwoPersonTaskFlags,
   readCoCarerPresenceMap,
   resolveCarerRole,
@@ -2963,6 +2964,7 @@ export class EmployeeAppVisitsService {
         ctx.job.requiredCarers,
         employeeId,
         ctx.employeeAppMeta,
+        visit.status,
       ),
       requiredCarers: ctx.job.requiredCarers,
       myRole: employeeId
@@ -2976,6 +2978,7 @@ export class EmployeeAppVisitsService {
     requiredCarers: number,
     employeeId?: string,
     employeeAppMeta?: Record<string, unknown>,
+    visitStatus?: string,
   ) {
     const activeCoCarers = allocations.filter((a) => ACTIVE_ALLOCATION.includes(a.status));
     const multiCarer = activeCoCarers.length >= 2 || requiredCarers >= 2;
@@ -3025,7 +3028,24 @@ export class EmployeeAppVisitsService {
           isYou: employeeId ? leadAllocation.employeeId === employeeId : false,
         }
       : null;
-    return { coCarers, leadCarer };
+
+    const supportClockedOutBeforeLeadComplete =
+      visitStatus != null
+        ? buildSupportClockedOutBeforeLeadComplete({
+            requiredCarers,
+            allocations,
+            visitStatus,
+            viewingEmployeeId: employeeId,
+          })
+        : null;
+
+    return {
+      coCarers,
+      leadCarer,
+      ...(supportClockedOutBeforeLeadComplete
+        ? { supportClockedOutBeforeLeadComplete }
+        : {}),
+    };
   }
 
   private async loadGeofenceSettings() {

@@ -124,3 +124,79 @@ export function mapTwoPersonTaskFlags(requiresMultipleCarers: boolean): {
     requiredForRoles: ['lead', 'support'],
   };
 }
+
+const VISIT_CLOSED_FOR_DOUBLE_UP = new Set([
+  'COMPLETED',
+  'PARTIALLY_COMPLETED',
+  'CANCELLED',
+  'CALLED_OFF',
+  'MISSED',
+]);
+
+export type SupportClockedOutBeforeLeadComplete = {
+  /** True when at least one support carer clocked out and lead has not closed the visit. */
+  occurred: true;
+  leadHasNotCompletedVisit: true;
+  visitRemainsOpenForLead: true;
+  /** Non-lead carers who already clocked out (support checkout). */
+  carers: Array<{
+    employeeId: string;
+    name: string;
+    role: 'support';
+    checkedOutAt: string;
+    isYou: boolean;
+  }>;
+};
+
+/**
+ * Double-up only: support left (allocation actualEnd) while visit still open for lead.
+ * Returns null for single-carer or when visit is already closed.
+ */
+export function buildSupportClockedOutBeforeLeadComplete(input: {
+  requiredCarers: number;
+  allocations: Array<
+    AllocationLike & {
+      employee?: {
+        personalDetail?: { firstName?: string | null; lastName?: string | null } | null;
+      } | null;
+    }
+  >;
+  visitStatus: string;
+  viewingEmployeeId?: string;
+}): SupportClockedOutBeforeLeadComplete | null {
+  if (!isMultiCarerVisit(input.requiredCarers, input.allocations)) return null;
+  if (VISIT_CLOSED_FOR_DOUBLE_UP.has(input.visitStatus)) return null;
+
+  const leadId = resolveLeadEmployeeId(input.requiredCarers, input.allocations);
+  if (!leadId) return null;
+
+  const active = activeAllocations(input.allocations);
+  const leadAlloc = active.find((a) => a.employeeId === leadId);
+  if (leadAlloc?.actualEndDateTime) return null;
+
+  const departed = active
+    .filter((a) => a.employeeId !== leadId && a.actualEndDateTime)
+    .map((a) => {
+      const checkedOutAt = allocationIso(a.actualEndDateTime);
+      if (!checkedOutAt) return null;
+      const pd = a.employee?.personalDetail;
+      const name = [pd?.firstName, pd?.lastName].filter(Boolean).join(' ').trim() || 'Co-carer';
+      return {
+        employeeId: a.employeeId,
+        name,
+        role: 'support' as const,
+        checkedOutAt,
+        isYou: input.viewingEmployeeId ? a.employeeId === input.viewingEmployeeId : false,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
+
+  if (departed.length === 0) return null;
+
+  return {
+    occurred: true,
+    leadHasNotCompletedVisit: true,
+    visitRemainsOpenForLead: true,
+    carers: departed,
+  };
+}

@@ -38,7 +38,8 @@ import {
   postRunEmployeesToYtd,
   reverseRunEmployeesFromYtd,
 } from './payroll-ytd.util';
-import { buildCareFpsPayload } from './payroll-fps.util';
+import { buildCareFpsPayload } from './payroll-fps.util'
+import { buildFpsPreviewExcelBuffer } from './payroll-fps-excel.util';
 import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
 import { PAYROLL_EMPLOYER_SETTINGS_ID } from './payroll-settings.service';
 
@@ -514,6 +515,16 @@ export class PayrollRunsService {
     return {
       message: 'FPS preview payload (Care schema — not submitted to HMRC)',
       data: payload,
+    };
+  }
+
+  /** Human-readable FPS workbook for HMRC gateway (companion to GovTalk XML). */
+  async exportFpsExcel(runId: string): Promise<{ buffer: Buffer; filename: string }> {
+    const preview = await this.buildFpsPreview(runId);
+    const buffer = await buildFpsPreviewExcelBuffer(preview.data);
+    return {
+      buffer,
+      filename: `care-fps-${runId.slice(0, 8)}.xlsx`,
     };
   }
 

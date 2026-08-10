@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
@@ -59,6 +59,22 @@ export class PayrollRunsController {
   })
   buildFpsPreview(@Param('id') id: string) {
     return this.service.buildFpsPreview(id);
+  }
+
+  @Get(':id/fps/export')
+  @Permissions('payroll.runs.read')
+  @ApiOperation({
+    summary: 'Download FPS preview as Excel (.xlsx) — companion to GovTalk XML',
+  })
+  async exportFpsExcel(
+    @Param('id') id: string,
+    @Res({ passthrough: false }) res: Response,
+  ) {
+    const { buffer, filename } = await this.service.exportFpsExcel(id);
+    res
+      .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(buffer);
   }
 
   @Get(':id/hmrc-submissions')
