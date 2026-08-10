@@ -622,10 +622,19 @@ export class ServiceUserVisitPlansService {
       if (hasRotaConflict) {
         warnings.push(CARER_ROTA_CONFLICT_MESSAGE);
       }
-      if (availability.unavailableDays.length) warnings.push(availability.summary);
-      if (availability.timeMismatchMessages.length) {
-        warnings.push(...availability.timeMismatchMessages);
-      } else if (!availability.timeWindowOk) {
+      // Availability summary is shown separately in the UI — only add extras not already in it.
+      const availabilitySummaryNorm = availability.summary.trim().toLowerCase();
+      for (const message of availability.timeMismatchMessages) {
+        const norm = message.trim().toLowerCase();
+        if (!norm) continue;
+        if (availabilitySummaryNorm && availabilitySummaryNorm.includes(norm)) continue;
+        warnings.push(message);
+      }
+      if (
+        !availability.timeWindowOk &&
+        availability.timeMismatchMessages.length === 0 &&
+        !availabilitySummaryNorm.includes('outside')
+      ) {
         warnings.push('Visit time outside working hours on some days');
       }
       if (skills.missing.length) warnings.push(`Missing skills: ${skills.missing.join(', ')}`);
