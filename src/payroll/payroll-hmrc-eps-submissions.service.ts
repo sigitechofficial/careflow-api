@@ -42,6 +42,7 @@ import {
   mapHmrcSubmissionAuditEvent,
   responseBodySha256,
 } from './payroll-hmrc-submission-audit.util'
+import { resolveHmrcVendorId } from './payroll-hmrc-vendor-id.util'
 import type { CareEpsPayload } from './types/eps-payload.types'
 
 type HmrcSubmitMode = 'DRY_RUN' | 'SUBMIT'
@@ -474,7 +475,7 @@ export class PayrollHmrcEpsSubmissionsService {
       }
     }
 
-    const vendorId = (this.config.get<string>('HMRC_VENDOR_ID') ?? '').trim()
+    const vendorId = resolveHmrcVendorId(this.config)
     if (mode === 'SUBMIT' && !vendorId) {
       throw new BadRequestException('HMRC_VENDOR_ID is not set on the server.')
     }
@@ -489,7 +490,7 @@ export class PayrollHmrcEpsSubmissionsService {
       gatewayUserId: creds.userId,
       password: creds.password,
       environment,
-      vendorId: vendorId || 'CARE-PENDING-VENDOR-ID',
+      vendorId: vendorId || resolveHmrcVendorId(this.config),
     })
 
     if (mode === 'DRY_RUN') {
@@ -705,7 +706,7 @@ export class PayrollHmrcEpsSubmissionsService {
     if (!creds.ready || !creds.userId || !creds.password) {
       throw new BadRequestException('HMRC Gateway LIVE credentials are incomplete.')
     }
-    const vendorId = (this.config.get<string>('HMRC_VENDOR_ID') ?? '').trim()
+    const vendorId = resolveHmrcVendorId(this.config)
     if (!vendorId) throw new BadRequestException('HMRC_VENDOR_ID is not set on the server.')
 
     const fraud = this.buildFraudHeaders({
