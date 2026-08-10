@@ -3862,6 +3862,8 @@ model TaskCatalogueTask {
   competencyGated        Boolean   @default(false)
   competency             String?
   outOfScope             Boolean   @default(false)
+  /// When true, this visit task typically needs more than one carer (double-up).
+  requiresMultipleCarers Boolean   @default(false)
   flagsJson              Json?
   isActive               Boolean   @default(true)
   createdAt              DateTime  @default(now())

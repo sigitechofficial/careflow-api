@@ -45,6 +45,13 @@ export class UpdateTaskCatalogueTaskDto {
   @IsBoolean()
   outOfScope?: boolean;
 
+  @ApiPropertyOptional({
+    description: 'When true, this task typically requires more than one carer',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiresMultipleCarers?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

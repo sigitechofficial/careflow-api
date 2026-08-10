@@ -112,6 +112,17 @@ import {
   isEmployeeAppUnableToStartReasonCode,
   type UnableToStartSummary,
 } from './employee-app-unable-to-start.util';
+import {
+  allocationIso,
+  isLeadCarerOnVisit,
+  isMultiCarerVisit,
+  mapTwoPersonTaskFlags,
+  readCoCarerPresenceMap,
+  resolveCarerRole,
+  resolveLeadEmployeeId,
+  type CoCarerPresenceRecord,
+} from './employee-app-multi-carer.util';
+import type { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -220,6 +231,8 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         status: true;
         employeeId: true;
         isLeadCarer: true;
+        actualStartDateTime: true;
+        actualEndDateTime: true;
         scheduledStartDateTime: true;
         scheduledEndDateTime: true;
         durationMinutes: true;
@@ -305,7 +318,7 @@ export class EmployeeAppVisitsService {
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
-        unableToStart: this.buildUnableToStartPayload(ctx),
+        unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
       },
     };
   }
@@ -313,6 +326,8 @@ export class EmployeeAppVisitsService {
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const visit = ctx.primaryVisit;
+    const multi = isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations);
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
 
     if (
       visit.status === ScheduledVisitStatus.COMPLETED ||
@@ -323,12 +338,20 @@ export class EmployeeAppVisitsService {
       contractError('VISIT_COMPLETED', 'Visit is already closed');
     }
 
-    const alreadyCheckedIn =
-      Boolean(visit.actualStartDateTime) ||
-      visit.status === ScheduledVisitStatus.STARTED ||
-      Boolean(ctx.checkIn);
+    // Single-carer: visit-level already-checked-in (unchanged).
+    // Double-up: each carer clocks in independently via allocation actualStart.
+    const alreadyCheckedIn = multi
+      ? Boolean(myAllocation?.actualStartDateTime)
+      : Boolean(visit.actualStartDateTime) ||
+        visit.status === ScheduledVisitStatus.STARTED ||
+        Boolean(ctx.checkIn);
     if (alreadyCheckedIn) {
-      contractError('ALREADY_CHECKED_IN', 'Visit is already checked in');
+      contractError(
+        'ALREADY_CHECKED_IN',
+        multi
+          ? 'You are already checked in to this visit'
+          : 'Visit is already checked in',
+      );
     }
 
     const now = new Date();
@@ -375,9 +398,16 @@ export class EmployeeAppVisitsService {
         where: { id: visit.id },
         data: {
           status: ScheduledVisitStatus.STARTED,
+          // Envelope start = first carer on site (do not overwrite later partners).
           actualStartDateTime: visit.actualStartDateTime ?? now,
         },
       });
+      if (myAllocation?.id) {
+        await tx.jobAllocation.update({
+          where: { id: myAllocation.id },
+          data: { actualStartDateTime: myAllocation.actualStartDateTime ?? now },
+        });
+      }
       const visits = await tx.scheduledVisit.findMany({
         where: { scheduledJobId: jobId, deletedAt: null, isActive: true },
         select: { status: true },
@@ -394,11 +424,19 @@ export class EmployeeAppVisitsService {
       }
 
       const previousMeta = this.parseMetadata(ctx.job.metadata);
-      const employeeApp = {
-        ...(typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+      const previousEa =
+        typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
           ? (previousMeta.employeeApp as Record<string, unknown>)
-          : {}),
+          : {};
+      const previousCheckIns =
+        typeof previousEa.checkIns === 'object' && previousEa.checkIns
+          ? (previousEa.checkIns as Record<string, unknown>)
+          : {};
+      const employeeApp = {
+        ...previousEa,
+        // Keep last checkIn blob for single-carer / legacy clients.
         checkIn: checkInPayload,
+        checkIns: { ...previousCheckIns, [employeeId]: checkInPayload },
         identityConfirmed: checkInPayload.identityConfirmed,
       };
       await tx.scheduledJob.update({
@@ -437,7 +475,7 @@ export class EmployeeAppVisitsService {
       scheduledVisitId: visit.id,
       eventType: 'clock_in',
       sourceType: 'check_in',
-      sourceId: 'check_in',
+      sourceId: `check_in:${employeeId}`,
       title: 'Clocked in',
       detail: checkInTimelineDetail(dto.method),
       tone: 'primary',
@@ -522,6 +560,7 @@ export class EmployeeAppVisitsService {
         notes: task.notes != null ? String(task.notes) : null,
       });
       const completedAt = task.completedAt ? String(task.completedAt) : null;
+      const twoPersonFlags = mapTwoPersonTaskFlags(Boolean(task.requiresMultipleCarers));
 
       let subtext: string | null = null;
       if (moduleLink?.id === 'emar') {
@@ -565,6 +604,11 @@ export class EmployeeAppVisitsService {
         linkedTypeCode: obsLink?.linkedTypeCode ?? null,
         observationTypeCode: obsLink?.observationTypeCode ?? null,
         moduleLink,
+        /** Canonical dual-carer flag (from TaskCatalogueTask.requiresMultipleCarers). */
+        twoPerson: twoPersonFlags.twoPerson,
+        /** Alias for mobile copy (“Your presence needed”); same as twoPerson. */
+        requiresSupport: twoPersonFlags.requiresSupport,
+        requiredForRoles: twoPersonFlags.requiredForRoles,
       };
     });
 
@@ -800,6 +844,12 @@ export class EmployeeAppVisitsService {
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
+
+    // Support on double-up: end this carer's attendance only — visit stays open for lead.
+    if (role === 'support') {
+      return this.completeAsSupport(employeeId, jobId, ctx, dto);
+    }
 
     const status = mapVisitOutcomeToStatus(
       dto.visitOutcome,
@@ -839,6 +889,7 @@ export class EmployeeAppVisitsService {
 
     // Enforce clinical gates only for explicit contract full-delivery / leaving-safe flows.
     // Legacy COMPLETED without visitOutcome/leavingSafeChecks stays permissive for one release.
+    // Lead may complete even if support is still checked in / on site.
     const enforceGates =
       dto.visitOutcome === 'fully_delivered' ||
       (status === LocalVisitStatus.COMPLETED && dto.leavingSafeChecks != null);
@@ -852,18 +903,38 @@ export class EmployeeAppVisitsService {
       throw new BadRequestException(`Notes are required when status is ${status}`);
     }
 
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+    const endIso = dto.actualEndDateTime ?? new Date().toISOString();
+    const startIso =
+      dto.actualStartDateTime ??
+      myAllocation?.actualStartDateTime?.toISOString() ??
+      ctx.primaryVisit.actualStartDateTime?.toISOString();
+
     const result = await this.housekeeping.completeJob('', jobId, {
       status,
       notes,
       deliveredCarePlanFormIds: dto.deliveredCarePlanFormIds,
       deliveredCarePlanDetails: dto.deliveredCarePlanDetails,
       extraCareNotes: dto.extraCareNotes,
-      actualStartDateTime: dto.actualStartDateTime,
-      actualEndDateTime: dto.actualEndDateTime,
+      actualStartDateTime: startIso,
+      actualEndDateTime: endIso,
       overrunReason: dto.overrunReason,
       timingExceptionReasonCode: dto.timingExceptionReasonCode,
       timingExceptionNotes: dto.timingExceptionNotes,
     });
+
+    // Lead allocation clock-out only — do not force support allocation end if still on site.
+    if (myAllocation?.id) {
+      await this.prisma.jobAllocation.update({
+        where: { id: myAllocation.id },
+        data: {
+          actualStartDateTime:
+            myAllocation.actualStartDateTime ??
+            (startIso ? new Date(startIso) : new Date()),
+          actualEndDateTime: new Date(endIso),
+        },
+      });
+    }
 
     const now = new Date();
     const hasGps = dto.latitude != null && dto.longitude != null;
@@ -893,6 +964,7 @@ export class EmployeeAppVisitsService {
         visitOutcome: dto.visitOutcome ?? null,
         leavingSafeChecks: dto.leavingSafeChecks ?? null,
         outsideGeofence: !geofence.withinArea,
+        role: role ?? 'lead',
       },
     };
     await this.prisma.scheduledJob.update({
@@ -919,6 +991,7 @@ export class EmployeeAppVisitsService {
       accuracyMeters: dto.accuracyMeters,
       outsideGeofence: !geofence.withinArea,
       distanceMeters: geofence.distanceMeters,
+      clientEventId: dto.idempotencyKey ?? undefined,
     });
 
     await this.visitTimeline.upsertEvent({
@@ -946,6 +1019,170 @@ export class EmployeeAppVisitsService {
     });
   }
 
+  /**
+   * Support carer clock-out on a double-up visit.
+   * Does NOT close the visit/job — only ends this allocation's attendance.
+   * Gates: twoPerson / requiresSupport tasks must be addressed; no MAR/obs/log/all-tasks.
+   */
+  private async completeAsSupport(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppVisitCompleteDto,
+  ) {
+    const visit = ctx.primaryVisit;
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+
+    if (
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF ||
+      visit.status === ScheduledVisitStatus.MISSED
+    ) {
+      // Visit already closed by lead — idempotent success for support.
+      return this.buildCompleteResponse(employeeId, jobId, ctx, {
+        status: visit.status as LocalVisitStatus,
+        message: 'Visit already completed by lead',
+        actualStartDateTime: dto.actualStartDateTime,
+        actualEndDateTime: dto.actualEndDateTime,
+        supportCheckoutOnly: true,
+        visitRemainsOpen: false,
+      });
+    }
+
+    if (myAllocation?.actualEndDateTime) {
+      return this.buildCompleteResponse(employeeId, jobId, ctx, {
+        status: LocalVisitStatus.STARTED,
+        message: 'Support carer already clocked out — visit remains open for lead',
+        actualStartDateTime:
+          dto.actualStartDateTime ?? myAllocation.actualStartDateTime?.toISOString(),
+        actualEndDateTime: myAllocation.actualEndDateTime.toISOString(),
+        supportCheckoutOnly: true,
+        visitRemainsOpen: true,
+      });
+    }
+
+    if (!myAllocation?.actualStartDateTime && !visit.actualStartDateTime) {
+      contractError('NOT_CHECKED_IN', 'Clock in before completing as support');
+    }
+
+    await this.assertSupportTwoPersonTasksDone(jobId);
+
+    const now = new Date();
+    const endAt = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
+    const startAt =
+      myAllocation?.actualStartDateTime ??
+      (dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : null) ??
+      visit.actualStartDateTime ??
+      now;
+
+    if (myAllocation?.id) {
+      await this.prisma.jobAllocation.update({
+        where: { id: myAllocation.id },
+        data: {
+          actualStartDateTime: myAllocation.actualStartDateTime ?? startAt,
+          actualEndDateTime: endAt,
+        },
+      });
+    }
+
+    const previousMeta = this.parseMetadata(
+      (await this.prisma.scheduledJob.findUnique({ where: { id: jobId }, select: { metadata: true } }))
+        ?.metadata,
+    );
+    const previousEa =
+      typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+        ? (previousMeta.employeeApp as Record<string, unknown>)
+        : {};
+    const previousCheckOuts =
+      typeof previousEa.supportCheckOuts === 'object' && previousEa.supportCheckOuts
+        ? (previousEa.supportCheckOuts as Record<string, unknown>)
+        : {};
+    const supportCheckout = {
+      completedAt: now.toISOString(),
+      actualStartDateTime: startAt.toISOString(),
+      actualEndDateTime: endAt.toISOString(),
+      deviceRecordedAt: dto.deviceRecordedAt ?? null,
+      idempotencyKey: dto.idempotencyKey ?? null,
+      employeeId,
+      role: 'support',
+    };
+    await this.prisma.scheduledJob.update({
+      where: { id: jobId },
+      data: {
+        metadata: {
+          ...previousMeta,
+          employeeApp: {
+            ...previousEa,
+            supportCheckOuts: { ...previousCheckOuts, [employeeId]: supportCheckout },
+          },
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    await this.attendance.recordEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      jobAllocationId: ctx.allocationId,
+      employeeId,
+      eventType: VisitAttendanceEventType.CHECK_OUT,
+      verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
+      occurredAt: endAt,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracyMeters: dto.accuracyMeters,
+      clientEventId: dto.idempotencyKey ?? undefined,
+    });
+
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      eventType: 'clock_out',
+      sourceType: 'complete',
+      sourceId: `support_complete:${employeeId}`,
+      title: 'Support clocked out',
+      detail: 'Support carer left — visit remains open for lead',
+      tone: 'primary',
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, endAt),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
+    await this.ecmEvaluation.evaluateJobSafe(jobId);
+
+    return this.buildCompleteResponse(employeeId, jobId, ctx, {
+      status: LocalVisitStatus.STARTED,
+      message: 'Support carer clocked out — visit remains open for lead',
+      actualStartDateTime: startAt.toISOString(),
+      actualEndDateTime: endAt.toISOString(),
+      supportCheckoutOnly: true,
+      visitRemainsOpen: true,
+    });
+  }
+
+  private async assertSupportTwoPersonTasksDone(jobId: string) {
+    const raw = await this.housekeeping.getVisitJobTasks('', jobId);
+    const tasks = (raw.data.tasks as Array<Record<string, unknown>>) ?? [];
+    const twoPerson = tasks.filter((t) => Boolean(t.requiresMultipleCarers));
+    if (twoPerson.length === 0) return;
+
+    const incomplete = twoPerson.filter(
+      (t) =>
+        !isVisitTaskAddressed({
+          isCompleted: Boolean(t.isCompleted),
+          recordedValue: t.recordedValue != null ? String(t.recordedValue) : null,
+          notes: t.notes != null ? String(t.notes) : null,
+        }),
+    );
+    if (incomplete.length > 0) {
+      contractError(
+        'SUPPORT_TASKS_INCOMPLETE',
+        `Complete two-person / support-required tasks before clocking out (${twoPerson.length - incomplete.length}/${twoPerson.length} done)`,
+      );
+    }
+  }
+
   private async buildCompleteResponse(
     employeeId: string,
     jobId: string,
@@ -956,6 +1193,8 @@ export class EmployeeAppVisitsService {
       actualStartDateTime?: string;
       actualEndDateTime?: string;
       job?: unknown;
+      supportCheckoutOnly?: boolean;
+      visitRemainsOpen?: boolean;
     },
   ) {
     const refreshed = await this.loadJobForEmployee(employeeId, jobId).catch(() => ctx);
@@ -974,6 +1213,12 @@ export class EmployeeAppVisitsService {
     const durationMinutes =
       start && end ? Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000)) : null;
 
+    const role = resolveCarerRole(
+      employeeId,
+      refreshed.job.requiredCarers,
+      refreshed.job.allocations,
+    );
+
     return {
       data: {
         message: opts.message,
@@ -988,6 +1233,10 @@ export class EmployeeAppVisitsService {
         obsCount: progress.obsCount,
         summaryLabel: `${progress.tasksDone}/${progress.tasksTotal} tasks · ${medProgress.givenCount}/${medProgress.dueCount} meds · ${progress.obsCount} obs`,
         alreadyCompleted: opts.message === 'Visit already completed',
+        role: role ?? undefined,
+        supportCheckoutOnly: opts.supportCheckoutOnly === true ? true : undefined,
+        visitRemainsOpen: opts.visitRemainsOpen === true ? true : undefined,
+        visitClosed: opts.visitRemainsOpen === true ? false : undefined,
         ...(opts.job !== undefined ? { job: opts.job } : {}),
       },
     };
@@ -997,10 +1246,23 @@ export class EmployeeAppVisitsService {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const visit = ctx.primaryVisit;
 
-    const isCheckedIn =
-      Boolean(visit.actualStartDateTime) ||
-      visit.status === ScheduledVisitStatus.STARTED ||
-      Boolean(ctx.checkIn);
+    if (!isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)) {
+      throw new ForbiddenException({
+        code: 'LEAD_ONLY',
+        message:
+          'Only the lead carer can report unable to start on a double-up visit. Ask the lead to report, or contact the office.',
+      });
+    }
+
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+    const multi = isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations);
+    const isCheckedIn = multi
+      ? Boolean(myAllocation?.actualStartDateTime) ||
+        Boolean(visit.actualStartDateTime) ||
+        Boolean(ctx.checkIn)
+      : Boolean(visit.actualStartDateTime) ||
+        visit.status === ScheduledVisitStatus.STARTED ||
+        Boolean(ctx.checkIn);
     if (!isCheckedIn) {
       contractError(
         'NOT_CHECKED_IN',
@@ -1038,6 +1300,7 @@ export class EmployeeAppVisitsService {
     const now = new Date();
     const attemptedAt = parseOccurredAt(dto.attemptedAt, now);
     const actualStart =
+      myAllocation?.actualStartDateTime ??
       visit.actualStartDateTime ??
       (ctx.checkIn?.checkedInAt ? new Date(String(ctx.checkIn.checkedInAt)) : attemptedAt);
     const actualEnd =
@@ -1122,25 +1385,168 @@ export class EmployeeAppVisitsService {
     return { data: response };
   }
 
+  /**
+   * Mark a co-carer as arrived/left for two-person task UI sync.
+   * Independent of ECM check-in; does not block lead task writes.
+   * Auth: caller must be allocated to the job; target must also be an active co-carer.
+   */
+  async setCoCarerPresence(
+    employeeId: string,
+    jobId: string,
+    targetEmployeeId: string,
+    dto: EmployeeAppCoCarerPresenceDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (!isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations)) {
+      throw new BadRequestException(
+        'Partner presence is only available on double-up (multi-carer) visits',
+      );
+    }
+
+    const target = ctx.job.allocations.find(
+      (a) => a.employeeId === targetEmployeeId && ACTIVE_ALLOCATION.includes(a.status),
+    );
+    if (!target) {
+      throw new NotFoundException('Co-carer is not allocated to this visit');
+    }
+
+    const visit = ctx.primaryVisit;
+    if (
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF ||
+      visit.status === ScheduledVisitStatus.MISSED
+    ) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const previousMeta = this.parseMetadata(ctx.job.metadata);
+    const previousEa =
+      typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+        ? (previousMeta.employeeApp as Record<string, unknown>)
+        : {};
+    const presenceMap = readCoCarerPresenceMap(previousEa);
+    const existing = presenceMap[targetEmployeeId];
+    if (
+      existing?.updatedAt &&
+      dto.idempotencyKey &&
+      previousEa.coCarerPresenceIdempotency &&
+      typeof previousEa.coCarerPresenceIdempotency === 'object' &&
+      (previousEa.coCarerPresenceIdempotency as Record<string, unknown>)[
+        `${targetEmployeeId}:${dto.idempotencyKey}`
+      ]
+    ) {
+      const geofenceSettings = await this.loadGeofenceSettings();
+      const progress = await this.resolveProgress(ctx);
+      return {
+        data: {
+          message: 'Presence already recorded',
+          jobId,
+          employeeId: targetEmployeeId,
+          present: existing.present,
+          arrivedAt: existing.arrivedAt ?? null,
+          leftAt: existing.leftAt ?? null,
+          shell: this.buildShell(ctx, progress, undefined, employeeId, geofenceSettings),
+        },
+      };
+    }
+
+    const at = parseOccurredAt(dto.at, new Date());
+    const atIso = at.toISOString();
+    const next: CoCarerPresenceRecord = {
+      present: dto.present,
+      arrivedAt: dto.present ? atIso : existing?.arrivedAt ?? null,
+      leftAt: dto.present ? null : atIso,
+      markedByEmployeeId: employeeId,
+      updatedAt: new Date().toISOString(),
+    };
+    const idempotency =
+      typeof previousEa.coCarerPresenceIdempotency === 'object' &&
+      previousEa.coCarerPresenceIdempotency
+        ? { ...(previousEa.coCarerPresenceIdempotency as Record<string, unknown>) }
+        : {};
+    idempotency[`${targetEmployeeId}:${dto.idempotencyKey}`] = next.updatedAt;
+
+    await this.prisma.scheduledJob.update({
+      where: { id: jobId },
+      data: {
+        metadata: {
+          ...previousMeta,
+          employeeApp: {
+            ...previousEa,
+            coCarerPresence: { ...presenceMap, [targetEmployeeId]: next },
+            coCarerPresenceIdempotency: idempotency,
+          },
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      eventType: 'presence',
+      sourceType: 'presence',
+      sourceId: `presence:${targetEmployeeId}:${dto.idempotencyKey}`,
+      title: dto.present ? 'Co-carer marked arrived' : 'Co-carer marked left',
+      detail: dto.notes?.trim() || null,
+      tone: 'primary',
+      occurredAt: at,
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
+    const refreshed = await this.loadJobForEmployee(employeeId, jobId);
+    const progress = await this.resolveProgress(refreshed);
+    const geofenceSettings = await this.loadGeofenceSettings();
+    return {
+      data: {
+        message: dto.present ? 'Co-carer marked arrived' : 'Co-carer marked left',
+        jobId,
+        employeeId: targetEmployeeId,
+        present: next.present,
+        arrivedAt: next.arrivedAt ?? null,
+        leftAt: next.leftAt ?? null,
+        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+      },
+    };
+  }
+
   private buildUnableToStartPayload(
     ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    employeeId?: string,
   ) {
     const visit = ctx.primaryVisit;
-    const isCheckedIn =
-      Boolean(visit.actualStartDateTime) ||
-      visit.status === ScheduledVisitStatus.STARTED ||
-      Boolean(ctx.checkIn);
+    const myAllocation = employeeId
+      ? ctx.job.allocations.find((a) => a.employeeId === employeeId)
+      : null;
+    const multi = isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations);
+    const isCheckedIn = multi
+      ? Boolean(myAllocation?.actualStartDateTime) ||
+        Boolean(visit.actualStartDateTime) ||
+        Boolean(ctx.checkIn)
+      : Boolean(visit.actualStartDateTime) ||
+        visit.status === ScheduledVisitStatus.STARTED ||
+        Boolean(ctx.checkIn);
     const visitClosed =
       visit.status === ScheduledVisitStatus.COMPLETED ||
       visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
       visit.status === ScheduledVisitStatus.CANCELLED ||
       visit.status === ScheduledVisitStatus.CALLED_OFF ||
       visit.status === ScheduledVisitStatus.MISSED;
-    return buildUnableToStartBlock({
+    const block = buildUnableToStartBlock({
       isCheckedIn,
       visitClosed,
       existing: this.resolveUnableToStartSummary(ctx),
     });
+    // Support carers never report unable-to-start on double-up.
+    if (
+      employeeId &&
+      !isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)
+    ) {
+      return { ...block, canReport: false, leadOnly: true };
+    }
+    return block;
   }
 
   private resolveUnableToStartSummary(
@@ -2384,6 +2790,8 @@ export class EmployeeAppVisitsService {
             status: true,
             employeeId: true,
             isLeadCarer: true,
+            actualStartDateTime: true,
+            actualEndDateTime: true,
             scheduledStartDateTime: true,
             scheduledEndDateTime: true,
             durationMinutes: true,
@@ -2447,6 +2855,7 @@ export class EmployeeAppVisitsService {
     const myAllocation = employeeId
       ? ctx.job.allocations.find((a) => a.employeeId === employeeId)
       : null;
+    const multiCarerVisit = isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations);
     const resolved = resolveAllocationWindow(
       myAllocation
         ? {
@@ -2464,11 +2873,21 @@ export class EmployeeAppVisitsService {
     const scheduledStart = formatHmUtc(resolved.start);
     const scheduledEnd = formatHmUtc(resolved.end);
     const checkedInAt =
+      (multiCarerVisit
+        ? myAllocation?.actualStartDateTime
+        : null) ??
       visit.actualStartDateTime ??
       (ctx.checkIn?.checkedInAt ? new Date(String(ctx.checkIn.checkedInAt)) : null);
-    const isCheckedIn =
-      visit.status === ScheduledVisitStatus.STARTED ||
-      Boolean(visit.actualStartDateTime);
+    const isCheckedIn = multiCarerVisit
+      ? Boolean(myAllocation?.actualStartDateTime) ||
+        Boolean(
+          employeeId &&
+            typeof ctx.employeeAppMeta.checkIns === 'object' &&
+            ctx.employeeAppMeta.checkIns &&
+            (ctx.employeeAppMeta.checkIns as Record<string, unknown>)[employeeId],
+        )
+      : visit.status === ScheduledVisitStatus.STARTED ||
+        Boolean(visit.actualStartDateTime);
 
     const address =
       su.address && !su.address.deletedAt
@@ -2539,8 +2958,16 @@ export class EmployeeAppVisitsService {
         longitude: destinationLongitude,
         allowedRadiusMeters,
       }),
-      ...this.buildCoCarerShellFields(ctx.job.allocations, ctx.job.requiredCarers, employeeId),
+      ...this.buildCoCarerShellFields(
+        ctx.job.allocations,
+        ctx.job.requiredCarers,
+        employeeId,
+        ctx.employeeAppMeta,
+      ),
       requiredCarers: ctx.job.requiredCarers,
+      myRole: employeeId
+        ? resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations)
+        : null,
     };
   }
 
@@ -2548,29 +2975,45 @@ export class EmployeeAppVisitsService {
     allocations: VisitJobRow['allocations'],
     requiredCarers: number,
     employeeId?: string,
+    employeeAppMeta?: Record<string, unknown>,
   ) {
     const activeCoCarers = allocations.filter((a) => ACTIVE_ALLOCATION.includes(a.status));
     const multiCarer = activeCoCarers.length >= 2 || requiredCarers >= 2;
+    const leadId = resolveLeadEmployeeId(requiredCarers, allocations);
+    const presenceMap = readCoCarerPresenceMap(employeeAppMeta);
+
     const coCarers = activeCoCarers.map((a) => {
       const name = displayName(
         a.employee.personalDetail?.firstName,
         a.employee.personalDetail?.lastName,
       );
+      const checkedInAt = allocationIso(a.actualStartDateTime);
+      const checkedOutAt = allocationIso(a.actualEndDateTime);
+      const presence: CoCarerPresenceRecord | undefined = presenceMap[a.employeeId];
       const base = {
         employeeId: a.employeeId,
         name,
         isYou: employeeId ? a.employeeId === employeeId : false,
       };
       if (!multiCarer) return base;
+
+      const isLead = leadId != null && a.employeeId === leadId;
       return {
         ...base,
-        isLeadCarer: a.isLeadCarer,
-        role: a.isLeadCarer ? ('lead' as const) : ('support' as const),
+        isLeadCarer: isLead,
+        role: isLead ? ('lead' as const) : ('support' as const),
+        isCheckedIn: Boolean(checkedInAt),
+        checkedInAt,
+        checkedOutAt,
+        // Partner presence (mark arrived/left) — independent of ECM clock-in.
+        present: presence ? presence.present : null,
+        arrivedAt: presence?.arrivedAt ?? null,
+        leftAt: presence?.leftAt ?? null,
       };
     });
     const leadAllocation =
-      multiCarer
-        ? activeCoCarers.find((a) => a.isLeadCarer) ?? activeCoCarers[0] ?? null
+      multiCarer && leadId
+        ? activeCoCarers.find((a) => a.employeeId === leadId) ?? activeCoCarers[0] ?? null
         : null;
     const leadCarer = leadAllocation
       ? {

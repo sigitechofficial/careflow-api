@@ -42,6 +42,7 @@ import {
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
 } from './dto/employee-app-visit-writes.dto';
+import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
 
 @ApiTags('Employee App Visits')
 @ApiBearerAuth()
@@ -80,7 +81,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Report unable to start visit (post check-in, API-10)',
     description:
-      'Carer must already be checked in. Records care-not-delivered (visit COMPLETED + careNotDelivered). reasonCode must match GET details → data.unableToStart.reasons[].code. No GPS required.',
+      'Lead only on double-up visits. Carer must already be checked in. Records care-not-delivered (visit COMPLETED + careNotDelivered). reasonCode must match GET details → data.unableToStart.reasons[].code. No GPS required.',
   })
   unableToStart(
     @CurrentUser() user: RequestUser,
@@ -88,6 +89,26 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppUnableToStartDto,
   ) {
     return this.visitsService.unableToStart(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/co-carers/:employeeId/presence')
+  @ApiOperation({
+    summary: 'Mark co-carer arrived / left (double-up presence sync)',
+    description:
+      'Either allocated carer may mark a partner present or left for two-person task UI. Does not replace check-in/out and does not block lead task completion. Reflected on next GET details under shell.coCarers[].present / arrivedAt / leftAt.',
+  })
+  setCoCarerPresence(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: EmployeeAppCoCarerPresenceDto,
+  ) {
+    return this.visitsService.setCoCarerPresence(
+      user.employeeId!,
+      jobId,
+      employeeId,
+      dto,
+    );
   }
 
   @Get(':jobId/tasks')

@@ -19,6 +19,7 @@ function mapTask(task: {
   competencyGated: boolean;
   competency: string | null;
   outOfScope: boolean;
+  requiresMultipleCarers: boolean;
   flagsJson: Prisma.JsonValue;
   isActive: boolean;
 }) {
@@ -31,6 +32,7 @@ function mapTask(task: {
     competencyGated: task.competencyGated,
     competency: task.competency,
     outOfScope: task.outOfScope,
+    requiresMultipleCarers: task.requiresMultipleCarers,
     flagsJson: task.flagsJson,
     isActive: task.isActive,
   };
@@ -108,6 +110,7 @@ export class TaskCatalogueService {
         competencyGated: dto.competencyGated ?? false,
         competency: dto.competencyGated ? dto.competency?.trim() ?? null : null,
         outOfScope: dto.outOfScope ?? false,
+        requiresMultipleCarers: dto.requiresMultipleCarers ?? false,
         flagsJson: buildTaskCatalogueFlagsJson(name),
       },
     });
@@ -167,6 +170,9 @@ export class TaskCatalogueService {
           ? { competency: competencyGated ? dto.competency?.trim() ?? null : null }
           : {}),
         ...(dto.outOfScope !== undefined ? { outOfScope: dto.outOfScope } : {}),
+        ...(dto.requiresMultipleCarers !== undefined
+          ? { requiresMultipleCarers: dto.requiresMultipleCarers }
+          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         flagsJson: buildTaskCatalogueFlagsJson(name, existingFlags),
       },

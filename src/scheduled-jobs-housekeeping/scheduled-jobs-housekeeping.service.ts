@@ -1550,6 +1550,8 @@ export class ScheduledJobsHousekeepingService {
         groupCode: assignment.task.category.group.code,
         consentRequired: assignment.task.consentRequired,
         supportLevelApplicable: assignment.task.supportLevelApplicable,
+        /** DB source for employee-app TaskItem.twoPerson */
+        requiresMultipleCarers: Boolean(assignment.task.requiresMultipleCarers),
         completionInput,
         carerInstructions: assignment.carerInstructions,
         priority: assignment.priority,
@@ -1608,6 +1610,7 @@ export class ScheduledJobsHousekeepingService {
           groupCode: task.category.group.code,
           consentRequired: task.consentRequired,
           supportLevelApplicable: task.supportLevelApplicable,
+          requiresMultipleCarers: Boolean(task.requiresMultipleCarers),
           completionInput,
           carerInstructions: null,
           priority: 'routine',

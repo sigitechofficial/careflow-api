@@ -263,6 +263,7 @@ export class ServiceUserVisitTasksService {
         competencyGated: row.task.competencyGated,
         competency: row.task.competency,
         outOfScope: row.task.outOfScope,
+        requiresMultipleCarers: row.task.requiresMultipleCarers,
         flagsJson: row.task.flagsJson,
       },
     };
