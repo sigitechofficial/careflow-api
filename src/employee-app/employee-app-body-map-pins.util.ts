@@ -1,4 +1,6 @@
 /** Pin shape stored on observation payload and returned on GET (API-13/14). */
+import { normalizeBodyMapPinCoordinates } from './body-map/body-map-pin-coordinates.util';
+
 export type EmployeeAppBodyMapPin = {
   view: string;
   x: number;
@@ -16,13 +18,21 @@ function normalizePin(raw: unknown): EmployeeAppBodyMapPin | null {
   const x = typeof o.x === 'number' ? o.x : Number(o.x);
   const y = typeof o.y === 'number' ? o.y : Number(o.y);
   if (!view || !part || Number.isNaN(x) || Number.isNaN(y)) return null;
-  const pin: EmployeeAppBodyMapPin = { view, x, y, part };
-  if (typeof o.canvasView === 'string' && o.canvasView.trim()) {
-    pin.canvasView = o.canvasView.trim();
-  }
-  if (typeof o.recordView === 'string' && o.recordView.trim()) {
-    pin.recordView = o.recordView.trim();
-  }
+  const coords = normalizeBodyMapPinCoordinates({
+    recordView: typeof o.recordView === 'string' ? o.recordView : undefined,
+    canvasView: typeof o.canvasView === 'string' ? o.canvasView : view,
+    view,
+    x,
+    y,
+  });
+  const pin: EmployeeAppBodyMapPin = {
+    view: coords.canvasView,
+    x: coords.x,
+    y: coords.y,
+    part,
+    canvasView: coords.canvasView,
+    recordView: coords.recordView,
+  };
   return pin;
 }
 

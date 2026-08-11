@@ -47,6 +47,7 @@ import {
   woundLifecycleLabel,
 } from './body-map-wound-lifecycle.util';
 import { medicationRequiresBodyMapSiteFromMed } from './body-map-medication-eligibility.util';
+import { assignBodyMapCanvasDisplayNumbers } from './body-map-canvas-display-numbers.util';
 import {
   BodyMapMedicationSiteDto,
   CreateMedicationBodyMapSiteFromMarDto,
@@ -136,6 +137,12 @@ function mapPressureAssessment(p: NonNullable<RecordRow['pressureAssessment']>) 
   };
 }
 
+function extractStringField(json: unknown, key: string): string | null {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
+  const val = (json as Record<string, unknown>)[key];
+  return typeof val === 'string' && val.trim() ? val.trim() : null;
+}
+
 function mapRecord(row: RecordRow) {
   return {
     id: row.id,
@@ -152,6 +159,8 @@ function mapRecord(row: RecordRow) {
     causeSummary: row.causeSummary,
     actionSummary: row.actionSummary,
     observationDetails: row.observationDetails,
+    scheduledJobId: extractStringField(row.observationDetails, 'scheduledJobId'),
+    scheduledVisitId: extractStringField(row.observationDetails, 'scheduledVisitId'),
     reviewRequired: row.reviewRequired,
     nextReviewAt: row.nextReviewAt?.toISOString() ?? null,
     safeguardingTriggered: row.safeguardingTriggered,
@@ -341,7 +350,7 @@ export class BodyMapService {
       include: recordInclude,
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     });
-    return { records: rows.map(mapRecord) };
+    return { records: assignBodyMapCanvasDisplayNumbers(rows.map(mapRecord)) };
   }
 
   async summary(serviceUserId: string) {
@@ -616,7 +625,12 @@ export class BodyMapService {
           noticedByName: dto.noticedByName,
           causeSummary: dto.causeSummary,
           actionSummary: dto.actionSummary,
-          observationDetails: dto.observationDetails as Prisma.InputJsonValue | undefined,
+          observationDetails: {
+            ...(dto.observationDetails ?? {}),
+            ...(dto.scheduledJobId ? { scheduledJobId: dto.scheduledJobId } : {}),
+            ...(dto.scheduledVisitId ? { scheduledVisitId: dto.scheduledVisitId } : {}),
+            ...(!extractStringField(dto.observationDetails, 'channel') ? { channel: 'admin' } : {}),
+          } as Prisma.InputJsonValue,
           reviewRequired: dto.reviewRequired ?? true,
           nextReviewAt: dto.nextReviewAt ? new Date(dto.nextReviewAt) : null,
           safeguardingTriggered,

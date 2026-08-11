@@ -1,6 +1,7 @@
 /**
  * Probe API-22 body-map on local/staging API.
  * Usage: node prisma/scripts/probe-body-map-api.mjs [--job=uuid]
+ * Tests dedicated wizard API (GET wizard, POST wizard/records) + legacy routes.
  */
 import { createHmac, createHash } from 'crypto';
 import { readFileSync } from 'fs';
@@ -107,14 +108,17 @@ async function post(path, body) {
 }
 
 const bm = await get(`/employee-app/visits/${jobId}/body-map`);
+const wizard = await get(`/employee-app/visits/${jobId}/body-map/wizard`);
 const det = await get(`/employee-app/visits/${jobId}/details`);
 
 console.log(JSON.stringify({ apiBase: base, jobId, qaVisit: 'B (double-up)' }, null, 2));
-console.log('GET body-map status', bm.status);
-console.log('GET details embedded bodyMap', det.status, Boolean(det.json?.data?.bodyMap));
+console.log('GET body-map status', bm.status, bm.json?.error?.code ?? '');
+console.log('GET body-map/wizard status', wizard.status, wizard.json?.error?.code ?? '');
+console.log('GET wizard steps', wizard.json?.data?.wizard?.steps ?? null);
+console.log('GET details embedded bodyMap', det.status, Boolean(det.json?.data?.bodyMap), Boolean(det.json?.data?.bodyMap?.wizard));
 
-if (bm.status === 404) {
-  console.log('API-22 not deployed on this base (404).');
+if (bm.status === 404 && wizard.status === 404) {
+  console.log('Body map API not deployed on this base (404). Restart backend if you just added EmployeeAppBodyMapController.');
   await prisma.$disconnect();
   process.exit(0);
 }
@@ -146,6 +150,54 @@ const postBody = {
   deviceRecordedAt: new Date().toISOString(),
   idempotencyKey: idem,
 };
+
+const wizardPost = {
+  marker: {
+    recordView: 'front',
+    canvasView: 'dual',
+    x: 13.7,
+    y: 42.7,
+    bodyPart: 'Forearm',
+    side: 'Right',
+    regionId: 'right-arm-lower-front',
+    summaryLabel: 'Front · Forearm · Front (13.7%, 42.7%)',
+  },
+  type: {
+    purpose: 'New observation',
+    recordType: 'INJURY',
+    subType: 'Bruise',
+    firstNoticedAt: new Date().toISOString(),
+    noticedDuring: 'Visit',
+  },
+  location: {
+    bodyPart: 'Forearm',
+    side: 'Right',
+    specificLocation: 'Front · Forearm · Front (13.7%, 42.7%)',
+  },
+  observation: {
+    description: 'QA wizard mobile sample bruise',
+    painLevel: 7,
+    skinIntact: 'Intact',
+    riskLevel: 'MEDIUM',
+  },
+  cause: {
+    causeKnown: 'yes',
+    consistentWithInjury: 'yes',
+    causeSummary: 'Knocked arm on door frame',
+  },
+  action: {
+    managerInformed: 'Yes',
+    reviewRequired: 'yes',
+    nextReviewAt: new Date(Date.now() + 86400000).toISOString(),
+    actionSummary: 'Cold compress applied; monitor next visit',
+  },
+  deviceRecordedAt: new Date().toISOString(),
+  idempotencyKey: `bm-wizard-${createHash('sha256').update(jobId).digest('hex').slice(0, 8)}`,
+};
+
+const wizardRes = await post(`/employee-app/visits/${jobId}/body-map/wizard/records`, wizardPost);
+console.log('POST wizard/records status', wizardRes.status);
+console.log('SAMPLE_WIZARD_POST_RESPONSE', JSON.stringify(wizardRes.json, null, 2));
 
 const postRes = await post(`/employee-app/visits/${jobId}/body-map/records`, postBody);
 console.log('POST body-map/records status', postRes.status);

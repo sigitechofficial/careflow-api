@@ -57,6 +57,14 @@ import type {
   EmployeeAppUnableToStartDto,
 } from './dto/employee-app-visit-writes.dto';
 import type { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
+import type { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
+import { employeeAppBodyMapWizardCatalog } from './body-map/employee-app-body-map-wizard.catalog';
+import { mapWizardSubmitToCreateDto } from './body-map/employee-app-body-map-wizard.util';
+import {
+  enrichBodyMapRecordForMobile,
+  flattenObservationBodyMapPins,
+} from './body-map/employee-app-body-map-records.util';
+import { medicationRequiresBodyMapSiteFromMed } from '../body-map/body-map-medication-eligibility.util';
 import {
   EMPLOYEE_APP_COMPLETION_OUTCOMES,
   employeeAppTimingExceptionReasons,
@@ -306,7 +314,7 @@ export class EmployeeAppVisitsService {
         this.getMedication(employeeId, jobId),
         this.getObservations(employeeId, jobId),
         this.getLog(employeeId, jobId),
-        this.getBodyMap(employeeId, jobId),
+        this.getBodyMapWizard(employeeId, jobId),
       ]);
 
     return {
@@ -871,13 +879,25 @@ export class EmployeeAppVisitsService {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const serviceUserId = ctx.job.serviceUserId;
     const visit = ctx.primaryVisit;
-    const [handover, progress, medProgress, lookups, bodyMapList] = await Promise.all([
+    const [handover, progress, medProgress, lookups, bodyMapList, observations] = await Promise.all([
       this.bodyMap.handoverPreview(serviceUserId),
       this.resolveProgress(ctx),
       this.resolveMedicationProgress(ctx),
       this.bodyMap.lookups(),
       this.bodyMap.listForServiceUser(serviceUserId, false),
+      this.getObservations(employeeId, jobId),
     ]);
+
+    const enrichedRecords = bodyMapList.records.map(enrichBodyMapRecordForMobile);
+    const recordsThisVisit = enrichedRecords.filter((r) => r.scheduledJobId === jobId);
+    const chartMaxNumber = enrichedRecords.reduce(
+      (max, r) => Math.max(max, r.canvasDisplayNumber ?? 0),
+      0,
+    );
+    const observationPins = flattenObservationBodyMapPins(
+      observations.data?.recordedThisVisit ?? [],
+      chartMaxNumber,
+    );
 
     return {
       data: {
@@ -887,11 +907,160 @@ export class EmployeeAppVisitsService {
         progress: this.buildProgress(progress, medProgress),
         handover,
         lookups,
-        records: bodyMapList.records,
+        /** All active chart markers for this client (handover context). */
+        records: enrichedRecords,
+        /** Chart records linked to this visit — includes admin + mobile saves. */
+        recordsThisVisit,
+        /** Observation payload pins (API-13) on this visit — blue overlay on admin; render on mobile too. */
+        observationPins,
         diagram: bodyMapDiagramCatalogForMobile(),
         canRecord: this.isEmployeeCheckedInForVisit(employeeId, ctx),
       },
     };
+  }
+
+  async getBodyMapWizard(employeeId: string, jobId: string) {
+    const base = await this.getBodyMap(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const eligibleMedications = await this.listBodyMapEligibleMedications(ctx.job.serviceUserId);
+    return {
+      data: {
+        ...base.data,
+        wizard: {
+          ...employeeAppBodyMapWizardCatalog(),
+          eligibleMedications,
+        },
+      },
+    };
+  }
+
+  async submitBodyMapWizardRecord(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppBodyMapWizardSubmitDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before recording a body map observation');
+    }
+
+    const visitClosed =
+      ctx.primaryVisit.status === ScheduledVisitStatus.COMPLETED ||
+      ctx.primaryVisit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      ctx.primaryVisit.status === ScheduledVisitStatus.CANCELLED ||
+      ctx.primaryVisit.status === ScheduledVisitStatus.CALLED_OFF ||
+      ctx.primaryVisit.status === ScheduledVisitStatus.MISSED;
+    if (visitClosed) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const createDto = mapWizardSubmitToCreateDto(
+      jobId,
+      ctx.primaryVisit.id,
+      ctx.job.serviceUserId,
+      employeeId,
+      dto,
+    );
+
+    let record;
+    try {
+      record = await this.bodyMap.createRecord(undefined, createDto);
+    } catch (e) {
+      if (e instanceof BadRequestException) {
+        const msg =
+          typeof e.getResponse() === 'string'
+            ? e.getResponse()
+            : (e.getResponse() as { message?: string | string[] })?.message;
+        validationError(Array.isArray(msg) ? msg.join('; ') : String(msg ?? e.message));
+      }
+      throw e;
+    }
+
+    return this.finalizeBodyMapRecordWrite({
+      employeeId,
+      jobId,
+      visitId: ctx.primaryVisit.id,
+      idempotencyKey: dto.idempotencyKey,
+      deviceRecordedAt: dto.deviceRecordedAt,
+      record,
+    });
+  }
+
+  private async listBodyMapEligibleMedications(serviceUserId: string) {
+    const rows = await this.prisma.serviceUserMedication.findMany({
+      where: { serviceUserId, deletedAt: null, status: 'ACTIVE' },
+      include: {
+        medicationType: { select: { code: true, name: true, requiresBodyMapSite: true } },
+        route: { select: { code: true, name: true, requiresBodyMapSite: true } },
+        frequency: { select: { name: true } },
+      },
+      orderBy: { medicationName: 'asc' },
+    });
+    return rows
+      .filter((m) => medicationRequiresBodyMapSiteFromMed(m))
+      .map((m) => ({
+        id: m.id,
+        medicationName: m.medicationName,
+        strength: m.strength,
+        frequencyText: m.frequencyText ?? m.frequency?.name ?? null,
+        medicationTypeCode: m.medicationType?.code ?? null,
+        routeCode: m.route?.code ?? null,
+      }));
+  }
+
+  private async finalizeBodyMapRecordWrite(input: {
+    employeeId: string;
+    jobId: string;
+    visitId: string;
+    idempotencyKey: string;
+    deviceRecordedAt: string;
+    record: Awaited<ReturnType<BodyMapService['createRecord']>>;
+  }) {
+    const { employeeId, jobId, visitId, idempotencyKey, deviceRecordedAt, record } = input;
+    const now = new Date().toISOString();
+    const auditRecordId = newAuditRecordId();
+    const response = {
+      recordId: record.id,
+      entryType: 'body_map' as const,
+      serverConfirmedAt: now,
+      auditRecordId,
+      record,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [idempotencyKey]: response,
+      },
+    }));
+
+    const marker = record.markers?.[0];
+    const title = record.title ?? record.recordType ?? 'Body map';
+    const detailParts = [
+      marker?.bodyPart,
+      record.riskLevel ? `Risk: ${record.riskLevel}` : null,
+      record.description,
+    ].filter(Boolean);
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visitId,
+      eventType: 'body_map',
+      sourceType: 'body_map',
+      sourceId: record.id,
+      title: String(title).slice(0, 120),
+      detail: summarizeTimelineDetail(detailParts.join(' · ')),
+      tone: record.safeguardingTriggered || record.managerReviewRequired ? 'danger' : 'warning',
+      occurredAt: parseOccurredAt(deviceRecordedAt, new Date(now)),
+      logEntryId: record.id,
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: idempotencyKey,
+    });
+
+    return { data: response };
   }
 
   async createBodyMapRecord(
@@ -953,47 +1122,15 @@ export class EmployeeAppVisitsService {
       }
       throw e;
     }
-    const now = new Date().toISOString();
-    const auditRecordId = newAuditRecordId();
-    const response = {
-      recordId: record.id,
-      entryType: 'body_map' as const,
-      serverConfirmedAt: now,
-      auditRecordId,
+
+    return this.finalizeBodyMapRecordWrite({
+      employeeId,
+      jobId,
+      visitId: ctx.primaryVisit.id,
+      idempotencyKey,
+      deviceRecordedAt,
       record,
-    };
-
-    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
-      ...ea,
-      idempotency: {
-        ...((ea.idempotency as Record<string, unknown>) ?? {}),
-        [idempotencyKey]: response,
-      },
-    }));
-
-    const marker = record.markers?.[0];
-    const title = record.title ?? record.recordType ?? 'Body map';
-    const detailParts = [
-      marker?.bodyPart,
-      record.riskLevel ? `Risk: ${record.riskLevel}` : null,
-      record.description,
-    ].filter(Boolean);
-    await this.visitTimeline.upsertEvent({
-      scheduledJobId: jobId,
-      scheduledVisitId: ctx.primaryVisit.id,
-      eventType: 'body_map',
-      sourceType: 'body_map',
-      sourceId: record.id,
-      title: String(title).slice(0, 120),
-      detail: summarizeTimelineDetail(detailParts.join(' · ')),
-      tone: record.safeguardingTriggered || record.managerReviewRequired ? 'danger' : 'warning',
-      occurredAt: parseOccurredAt(deviceRecordedAt, new Date(now)),
-      logEntryId: record.id,
-      createdByEmployeeId: employeeId,
-      writeIdempotencyKey: idempotencyKey,
     });
-
-    return { data: response };
   }
 
   private isEmployeeCheckedInForVisit(

@@ -175,6 +175,16 @@ export class CreateBodyMapRecordDto {
   @ValidateNested()
   @Type(() => BodyMapMedicationSiteDto)
   medicationSite?: BodyMapMedicationSiteDto;
+
+  @ApiPropertyOptional({ description: 'Link to the scheduled job when recorded during a visit' })
+  @IsOptional()
+  @IsString()
+  scheduledJobId?: string;
+
+  @ApiPropertyOptional({ description: 'Link to the scheduled visit when recorded during a visit' })
+  @IsOptional()
+  @IsString()
+  scheduledVisitId?: string;
 }
 
 export class UpdateBodyMapRecordDto {

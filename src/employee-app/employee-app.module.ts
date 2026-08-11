@@ -16,6 +16,7 @@ import { EmployeeAppClientsController } from './employee-app-clients.controller'
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { EmployeeAppClientDetailService } from './employee-app-client-detail.service';
 import { EmployeeAppVisitsController } from './employee-app-visits.controller';
+import { EmployeeAppBodyMapController } from './employee-app-body-map.controller';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppSalaryController } from './employee-app-salary.controller';
 import { EmployeeAppSalaryService } from './employee-app-salary.service';
@@ -51,6 +52,7 @@ import { EcmModule } from '../ecm/ecm.module';
     EmployeeAppScheduleController,
     EmployeeAppClientsController,
     EmployeeAppVisitsController,
+    EmployeeAppBodyMapController,
     EmployeeAppSalaryController,
   ],
   providers: [

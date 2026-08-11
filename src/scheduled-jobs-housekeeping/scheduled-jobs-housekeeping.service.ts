@@ -1441,6 +1441,7 @@ export class ScheduledJobsHousekeepingService {
     const payload = await this.visitObservationsCatalog.buildVisitObservationsPayload({
       serviceUserId: job.serviceUserId,
       since,
+      scheduledJobId: job.id,
     });
 
     return {

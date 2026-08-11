@@ -43,7 +43,6 @@ import {
   EmployeeAppUnableToStartDto,
 } from './dto/employee-app-visit-writes.dto';
 import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
-import { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
 
 @ApiTags('Employee App Visits')
 @ApiBearerAuth()
@@ -301,30 +300,6 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppHandoverAcknowledgeDto,
   ) {
     return this.visitsService.acknowledgeHandover(user.employeeId!, jobId, dto);
-  }
-
-  @Get(':jobId/body-map')
-  @ApiOperation({
-    summary: 'Body map bootstrap for visit workspace',
-    description:
-      'Handover summary, active markers, record-type lookups, diagram UI catalog, and visit linkage ids. Same clinical data as admin visit workspace body map.',
-  })
-  bodyMap(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
-    return this.visitsService.getBodyMap(user.employeeId!, jobId);
-  }
-
-  @Post(':jobId/body-map/records')
-  @ApiOperation({
-    summary: 'Record body map observation during visit',
-    description:
-      'Same payload shape as admin POST /body-map/records (except serviceUserId — taken from the visit). Requires check-in. Lead and support carers may record.',
-  })
-  createBodyMapRecord(
-    @CurrentUser() user: RequestUser,
-    @Param('jobId') jobId: string,
-    @Body() dto: EmployeeAppCreateBodyMapRecordDto,
-  ) {
-    return this.visitsService.createBodyMapRecord(user.employeeId!, jobId, dto);
   }
 
   @Get(':jobId/completion-options')
