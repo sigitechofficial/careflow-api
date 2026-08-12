@@ -11,6 +11,7 @@ import {
   BackfillVisitReconciliationsDto,
   BulkApproveVisitReconciliationsDto,
   DecideVisitOverrunDto,
+  RecalculateVisitReconciliationsDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
   UpdateVisitReconciliationDto,
@@ -58,6 +59,16 @@ export class VisitReconciliationsController {
   @ApiOperation({ summary: 'Create reconciliation records for existing completed visits' })
   backfill(@Body() dto: BackfillVisitReconciliationsDto) {
     return this.service.backfill(dto);
+  }
+
+  @Post('recalculate-amounts')
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({
+    summary:
+      'Re-run pay/bill card resolution and amount calculation for unlocked reconciliations',
+  })
+  recalculateAmounts(@Body() dto: RecalculateVisitReconciliationsDto) {
+    return this.service.recalculateAmounts(dto);
   }
 
   @Post('clear-all')

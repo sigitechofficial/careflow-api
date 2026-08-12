@@ -1456,9 +1456,11 @@ async function main() {
 
   const absenceReasonCatalogSeed: Array<[string, string]> = [
     ['Hospital Visit', 'HOSPITAL_VISIT'],
+    ['Hospitalised', 'HOSPITALISED'],
     ['Family Visit', 'FAMILY_VISIT'],
-    ['Other', 'OTHER'],
     ['Respite Care', 'RESPITE_CARE'],
+    ['Deceased', 'DECEASED'],
+    ['Other', 'OTHER'],
   ];
   const absenceCatalog = prisma as unknown as {
     absenceReasonCatalog: {

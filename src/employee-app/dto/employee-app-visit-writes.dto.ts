@@ -189,6 +189,12 @@ export class EmployeeAppMedicationAdminDto {
   @MaxLength(4000)
   notes?: string;
 
+  @ApiPropertyOptional({ example: '09:15', description: 'Clock-face time given (HH:mm)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(5)
+  timeGiven?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

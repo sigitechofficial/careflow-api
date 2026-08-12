@@ -32,6 +32,23 @@ describe('resolveDefaultApprovedWindows overrun approval', () => {
     });
     expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
   });
+
+  it('early visit finished before planned start bills actual worked time', () => {
+    const earlyStart = new Date('2026-08-12T12:05:00.000Z');
+    const earlyEnd = new Date('2026-08-12T12:22:00.000Z');
+    const slotStart = new Date('2026-08-12T13:00:00.000Z');
+    const slotEnd = new Date('2026-08-12T14:30:00.000Z');
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: slotStart,
+      plannedEndDateTime: slotEnd,
+      actualStartDateTime: earlyStart,
+      actualEndDateTime: earlyEnd,
+      exceptions: [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+    });
+    expect(w.approvedBillStart.getTime()).toBe(earlyStart.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(earlyEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBeGreaterThan(w.approvedBillStart.getTime());
+  });
 });
 
 describe('Sunday into Monday bank holiday per-segment', () => {

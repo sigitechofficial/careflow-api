@@ -307,8 +307,7 @@ export function resolveDefaultApprovedWindows(input: {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
-      approvedBillStart: plannedStartDateTime,
-      approvedBillEnd: plannedEnd,
+      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
     };
   }
 
@@ -316,8 +315,12 @@ export function resolveDefaultApprovedWindows(input: {
     return {
       approvedPayStart: actualStartDateTime!,
       approvedPayEnd: actualEndDateTime!,
-      approvedBillStart: plannedStartDateTime,
-      approvedBillEnd: actualEndDateTime!,
+      ...resolveBillWindow(
+        plannedStartDateTime,
+        plannedEnd,
+        actualStartDateTime,
+        actualEndDateTime!,
+      ),
     };
   }
 
@@ -327,9 +330,50 @@ export function resolveDefaultApprovedWindows(input: {
   return {
     approvedPayStart: payStart,
     approvedPayEnd: payEnd,
-    approvedBillStart: plannedStartDateTime,
-    approvedBillEnd: actualEndDateTime ?? plannedEnd,
+    ...resolveBillWindow(
+      plannedStartDateTime,
+      plannedEnd,
+      actualStartDateTime,
+      actualEndDateTime ?? plannedEnd,
+    ),
   };
+}
+
+/**
+ * Client charge window: normally planned start → actual end (booked start through departure).
+ * When the visit ends before planned start (fully early), that would invert — bill actual worked time instead.
+ */
+export function resolveBillWindow(
+  plannedStartDateTime: Date,
+  plannedEndDateTime: Date,
+  actualStartDateTime: Date | null,
+  billEndCandidate: Date,
+): { approvedBillStart: Date; approvedBillEnd: Date } {
+  if (billEndCandidate.getTime() > plannedStartDateTime.getTime()) {
+    return {
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: billEndCandidate,
+    };
+  }
+
+  const actualStart = actualStartDateTime ?? plannedStartDateTime;
+  if (billEndCandidate.getTime() > actualStart.getTime()) {
+    return {
+      approvedBillStart: actualStart,
+      approvedBillEnd: billEndCandidate,
+    };
+  }
+
+  // No usable actual span — fall back to the planned slot so charge can still be calculated.
+  return {
+    approvedBillStart: plannedStartDateTime,
+    approvedBillEnd: plannedEndDateTime,
+  };
+}
+
+export function isInvertedDateWindow(start: Date | null | undefined, end: Date | null | undefined): boolean {
+  if (!start || !end) return false;
+  return end.getTime() <= start.getTime();
 }
 
 export type PayCardRuleLike = {
@@ -357,9 +401,17 @@ export type ChargeCardRuleLike = {
   rateType: string;
   amount: Prisma.Decimal | number;
   dayType: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  multiplier?: Prisma.Decimal | number | null;
+  additionalAmount?: Prisma.Decimal | number | null;
+  percentageUplift?: Prisma.Decimal | number | null;
+  enhancementMethod?: string | null;
   minimumMinutes?: number | null;
   priority: number;
   sortOrder: number;
+  appliesToVisit?: boolean | null;
+  appliesToTravel?: boolean | null;
 };
 
 export function resolveCalendarDayType(visitDate: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
@@ -611,16 +663,47 @@ export function calculateBillableAmount(
   minutes: number,
   defaultChargeMethod: string,
   isBankHoliday = false,
-): { amount: number; label: string } | null {
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
-  if (!rule || minutes <= 0) return null;
-  const amount = Number(rule.amount);
-  const method = rule.chargeMethod || defaultChargeMethod;
-  if (method === 'FIXED_VISIT' || rule.rateType === 'FIXED') {
-    return { amount, label: method };
+  window?: {
+    start: Date;
+    end: Date;
+    stackingPolicy?: PayStackingPolicy;
+    isBankHolidayFn?: (d: Date) => boolean;
+  },
+): PayableAmountResult | null {
+  if (minutes <= 0) return null;
+
+  // Reuse pay engine (fixed slots + time-banded hourly) then map labels to charge methods.
+  const asPayRules: PayCardRuleLike[] = rules.map((rule) => ({
+    label: rule.label,
+    rateType: rule.rateType,
+    amount: rule.amount,
+    dayType: rule.dayType,
+    startTime: rule.startTime,
+    endTime: rule.endTime,
+    multiplier: rule.multiplier,
+    additionalAmount: rule.additionalAmount,
+    percentageUplift: rule.percentageUplift,
+    enhancementMethod: rule.enhancementMethod ?? 'ABSOLUTE_HOURLY',
+    minimumMinutes: rule.minimumMinutes,
+    priority: rule.priority,
+    sortOrder: rule.sortOrder,
+    appliesToVisit: rule.appliesToVisit ?? true,
+    appliesToTravel: rule.appliesToTravel ?? false,
+  }));
+
+  const calc = calculatePayableAmount(asPayRules, visitDate, minutes, isBankHoliday, window);
+  if (!calc) return null;
+
+  if (calc.label === 'BANDED_HOURLY') {
+    return { ...calc, label: 'HOURLY_PRO_RATA' };
   }
-  const hourly = amount * (minutes / 60);
-  return { amount: Math.round(hourly * 100) / 100, label: method };
+  if (calc.label === 'FIXED' || calc.label === 'PER_VISIT_FEE') {
+    return { ...calc, label: 'FIXED_VISIT' };
+  }
+  if (calc.label === 'HOURLY') {
+    return { ...calc, label: defaultChargeMethod === 'FIXED_VISIT' ? 'HOURLY_PRO_RATA' : defaultChargeMethod };
+  }
+  return calc;
 }
 
 export function formatMinutesAsHours(minutes: number): string {
@@ -826,16 +909,69 @@ export function buildChargeRateBreakdown(
     cardSource?: string | null;
   },
   isBankHoliday = false,
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
-  if (!rule) return null;
 
-  const unitAmount = Number(rule.amount);
-  const calc = calculateBillableAmount(rules, visitDate, minutes, defaultChargeMethod, isBankHoliday);
+  const calc = calculateBillableAmount(
+    rules,
+    visitDate,
+    minutes,
+    defaultChargeMethod,
+    isBankHoliday,
+    window,
+  );
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
+
+  if (calc.segments?.length) {
+    const rates = [...new Set(calc.segments.map((s) => s.rate))];
+    const unitRate =
+      rates.length === 1 ? formatGbp(rates[0]) + '/hr' : 'Varies by time band';
+    const bandCount = calc.segments.length;
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'BANDED_HOURLY',
+      unitRate,
+      amount: formatGbp(calc.amount),
+      formula: `${hoursLabel} across ${bandCount} time band${bandCount === 1 ? '' : 's'} = ${formatGbp(calc.amount)}`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: 'Time-band split',
+      segments: calc.segments.map((s) => ({
+        startLabel: s.startLabel ?? '',
+        endLabel: s.endLabel ?? '',
+        hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
+        minutes: s.minutes,
+        unitRate: `${formatGbp(s.rate)}/hr`,
+        ruleLabel: s.ruleLabel ?? null,
+        lineFormula:
+          s.lineFormula ??
+          `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
+        amount: formatGbp(s.amount),
+      })),
+    };
+  }
+
+  const asPayRules: PayCardRuleLike[] = rules.map((rule) => ({
+    label: rule.label,
+    rateType: rule.rateType,
+    amount: rule.amount,
+    dayType: rule.dayType,
+    startTime: rule.startTime,
+    endTime: rule.endTime,
+    multiplier: rule.multiplier,
+    minimumMinutes: rule.minimumMinutes,
+    priority: rule.priority,
+    sortOrder: rule.sortOrder,
+  }));
+  const rule = pickBestRule(asPayRules, visitDate, minutes, isBankHoliday);
+  if (!rule) return null;
+
+  const unitAmount = Number(rule.amount);
   const ruleLabel = rule.label ?? null;
 
   if (calc.label === 'FIXED_VISIT' || calc.label === 'FIXED') {
@@ -858,7 +994,6 @@ export function buildChargeRateBreakdown(
     };
   }
 
-  const hrs = minutes / 60;
   return {
     minutes,
     hoursLabel,

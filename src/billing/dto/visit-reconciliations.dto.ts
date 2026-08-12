@@ -218,3 +218,24 @@ export class BackfillVisitReconciliationsDto {
   @IsDateString()
   dateTo?: string;
 }
+
+export class RecalculateVisitReconciliationsDto {
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'When set, only re-evaluate these reconciliation ids (unlocked rows)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  ids?: string[];
+
+  @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
+}

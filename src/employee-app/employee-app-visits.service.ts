@@ -13,6 +13,7 @@ import {
   InitialAssessmentRiskType,
   MedicationAdministrationStatus,
   MedicationKind,
+  MedicationPackStatus,
   MedicationRecordStatus,
   Prisma,
   ScheduledJobStatus,
@@ -64,6 +65,15 @@ import {
   enrichBodyMapRecordForMobile,
   flattenObservationBodyMapPins,
 } from './body-map/employee-app-body-map-records.util';
+import {
+  buildVisitBlisterPacks,
+  collectActivePackMedicationIds,
+} from './medication/employee-app-visit-blister-packs.util';
+import {
+  buildMarAdminEchoFields,
+  emptyMarAdminEchoFields,
+} from './medication/employee-app-mar-echo.util';
+import { resolveVisitMedicationRoundFromDb } from './medication/employee-app-visit-medication-round.util';
 import { medicationRequiresBodyMapSiteFromMed } from '../body-map/body-map-medication-eligibility.util';
 import {
   EMPLOYEE_APP_COMPLETION_OUTCOMES,
@@ -677,7 +687,7 @@ export class EmployeeAppVisitsService {
 
   async getMedication(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [allergies, sections, progress, medProgress] = await Promise.all([
+    const [allergies, medicationPayload, progress, medProgress] = await Promise.all([
       this.loadAllergies(ctx.job.serviceUserId),
       this.loadVisitMedicationSections(ctx),
       this.resolveProgress(ctx),
@@ -696,7 +706,8 @@ export class EmployeeAppVisitsService {
           label: 'ALLERGIES',
           items: allergies,
         },
-        sections,
+        sections: medicationPayload.sections,
+        blisterPacks: medicationPayload.blisterPacks,
       },
     };
   }
@@ -2103,6 +2114,16 @@ export class EmployeeAppVisitsService {
         : med.schedules[0];
 
     const recordedAt = new Date(dto.deviceRecordedAt);
+    if (Number.isNaN(recordedAt.getTime())) {
+      validationError('deviceRecordedAt must be a valid ISO date-time');
+    }
+    const timeGiven =
+      dto.timeGiven?.trim() ||
+      (() => {
+        const hh = String(recordedAt.getUTCHours()).padStart(2, '0');
+        const mm = String(recordedAt.getUTCMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      })();
     const roundRow = ctx.medicationRoundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
@@ -2122,13 +2143,10 @@ export class EmployeeAppVisitsService {
         status: mapped.status,
         statusCode: mapped.statusCode,
         reason: dto.reasonCode ?? null,
-        notes: [
-          dto.outcomeLabel,
-          dto.supportLevel ? `Support: ${dto.supportLevel}` : null,
-          dto.notes,
-        ]
-          .filter(Boolean)
-          .join(' · ') || null,
+        notes: dto.notes?.trim() || null,
+        supportLevel: dto.supportLevel?.trim() || null,
+        timeGiven,
+        outcomeLabel: dto.outcomeLabel?.trim() || null,
         visitId: ctx.primaryVisit.id,
         isPrn,
         prnReason: dto.prnIndication ?? null,
@@ -2221,35 +2239,37 @@ export class EmployeeAppVisitsService {
     if (!type) throw new BadRequestException('Invalid observation type');
 
     const recordedAt = new Date(dto.deviceRecordedAt ?? dto.recordedAt ?? new Date().toISOString());
+    if (Number.isNaN(recordedAt.getTime())) {
+      validationError('deviceRecordedAt must be a valid ISO date-time');
+    }
     const numericValue =
       dto.numericValue ??
       parseObservationNumeric(dto.value) ??
       parseObservationNumeric(dto.notes);
+
+    const unableReasonCode = dto.unableReasonCode?.trim() || null;
+    const carerNotes = dto.notes?.trim() || null;
 
     const row = await this.prisma.serviceUserObservation.create({
       data: {
         serviceUserId: ctx.job.serviceUserId,
         observationTypeId: type.id,
         recordedAt,
-        notes:
-          [
-            dto.notes?.trim(),
-            dto.outcome === 'unable' ? `Unable: ${dto.unableReasonCode}` : null,
-            dto.escalationAction ? `Escalation: ${dto.escalationAction}` : null,
-          ]
-            .filter(Boolean)
-            .join(' · ') || null,
+        notes: carerNotes,
         numericValue,
         unit: dto.unit?.trim() ?? type.unitLabel ?? null,
         payload: {
           ...(dto.payload ?? {}),
-          definitionId: dto.definitionId ?? null,
+          definitionId: dto.definitionId ?? mobileTypeCode(type.code),
           outcome: dto.outcome,
           value: dto.value ?? numericValue ?? null,
           secondaryValue: dto.secondaryValue ?? null,
+          unableReasonCode: dto.outcome === 'unable' ? unableReasonCode : null,
           abnormal: dto.abnormal ?? false,
           critical: dto.critical ?? false,
           emergencyProtocolOpened: dto.emergencyProtocolOpened ?? false,
+          escalationAction: dto.escalationAction ?? null,
+          deviceRecordedAt: recordedAt.toISOString(),
           scheduledJobId: jobId,
           scheduledVisitId: ctx.primaryVisit.id,
           recordedByEmployeeId: employeeId,
@@ -2362,9 +2382,12 @@ export class EmployeeAppVisitsService {
     const updated = await this.prisma.serviceUserObservation.update({
       where: { id: observationId },
       data: {
-        notes: dto.notes !== undefined ? dto.notes : existing.notes,
+        notes: dto.notes !== undefined ? dto.notes?.trim() || null : existing.notes,
         numericValue: numericValue !== undefined ? numericValue : existing.numericValue,
         unit: dto.unit !== undefined ? dto.unit : existing.unit,
+        recordedAt: dto.deviceRecordedAt
+          ? new Date(dto.deviceRecordedAt)
+          : existing.recordedAt,
         payload: {
           ...prevPayload,
           ...(dto.payload ?? {}),
@@ -2372,8 +2395,17 @@ export class EmployeeAppVisitsService {
           outcome: dto.outcome ?? prevPayload.outcome ?? null,
           value: dto.value ?? prevPayload.value ?? null,
           secondaryValue: dto.secondaryValue ?? prevPayload.secondaryValue ?? null,
+          unableReasonCode:
+            dto.unableReasonCode !== undefined
+              ? dto.unableReasonCode
+              : prevPayload.unableReasonCode ?? null,
           abnormal: dto.abnormal ?? prevPayload.abnormal ?? false,
           critical: dto.critical ?? prevPayload.critical ?? false,
+          escalationAction:
+            dto.escalationAction !== undefined
+              ? dto.escalationAction
+              : prevPayload.escalationAction ?? null,
+          deviceRecordedAt: dto.deviceRecordedAt ?? prevPayload.deviceRecordedAt ?? null,
           correctionReason: dto.correctionReason ?? null,
           correctedByEmployeeId: employeeId,
           correctedAt: new Date().toISOString(),
@@ -3927,68 +3959,130 @@ export class EmployeeAppVisitsService {
     const round = roundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: roundCode, deletedAt: null, isActive: true },
-          select: { id: true, name: true },
+          select: { id: true, name: true, code: true, time: true },
         })
       : null;
+    const visitRound = resolveVisitMedicationRoundFromDb(round);
 
-    const scheduledMeds = await this.prisma.serviceUserMedication.findMany({
-      where: {
-        serviceUserId: ctx.job.serviceUserId,
-        deletedAt: null,
-        isActive: true,
-        status: MedicationRecordStatus.ACTIVE,
-        medicationKind: { not: MedicationKind.PRN },
-        ...(round
-          ? {
-              schedules: {
-                some: {
-                  deletedAt: null,
-                  isActive: true,
-                  roundId: round.id,
+    const [scheduledMeds, prnMeds, activePacks] = await Promise.all([
+      this.prisma.serviceUserMedication.findMany({
+        where: {
+          serviceUserId: ctx.job.serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          status: MedicationRecordStatus.ACTIVE,
+          medicationKind: { not: MedicationKind.PRN },
+          ...(round
+            ? {
+                schedules: {
+                  some: {
+                    deletedAt: null,
+                    isActive: true,
+                    roundId: round.id,
+                  },
+                },
+              }
+            : {}),
+        },
+        orderBy: { medicationName: 'asc' },
+        select: {
+          id: true,
+          medicationName: true,
+          dose: true,
+          strength: true,
+          instructions: true,
+          isControlledMedication: true,
+          medicationPackId: true,
+          route: { select: { name: true } },
+          schedules: {
+            where: { deletedAt: null, isActive: true, ...(round ? { roundId: round.id } : {}) },
+            select: { dueTime: true, round: { select: { name: true } } },
+            take: 1,
+          },
+          medicationPack: { select: { adminRules: true } },
+        },
+      }),
+      this.prisma.serviceUserMedication.findMany({
+        where: {
+          serviceUserId: ctx.job.serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          status: MedicationRecordStatus.ACTIVE,
+          medicationKind: MedicationKind.PRN,
+        },
+        orderBy: { medicationName: 'asc' },
+        select: {
+          id: true,
+          medicationName: true,
+          dose: true,
+          strength: true,
+          instructions: true,
+          isControlledMedication: true,
+          route: { select: { name: true } },
+        },
+      }),
+      this.prisma.medicationPack.findMany({
+        where: {
+          serviceUserId: ctx.job.serviceUserId,
+          deletedAt: null,
+          status: MedicationPackStatus.ACTIVE,
+        },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          packType: true,
+          status: true,
+          roundLabel: true,
+          compartments: {
+            where: { deletedAt: null, isActive: true },
+            orderBy: [{ sortOrder: 'asc' }, { dueTime: 'asc' }],
+            select: {
+              id: true,
+              label: true,
+              dueTime: true,
+              windowStart: true,
+              windowEnd: true,
+              witnessRequired: true,
+            },
+          },
+          members: {
+            where: { deletedAt: null, status: 'ACTIVE' },
+            select: {
+              id: true,
+              serviceUserMedicationId: true,
+              serviceUserMedication: {
+                select: {
+                  id: true,
+                  medicationName: true,
+                  dose: true,
+                  strength: true,
+                  instructions: true,
+                  isControlledMedication: true,
+                  route: { select: { name: true } },
+                  medicationPack: { select: { adminRules: true } },
+                  schedules: {
+                    where: { deletedAt: null, isActive: true },
+                    select: { id: true, dueTime: true, round: { select: { name: true } } },
+                  },
                 },
               },
-            }
-          : {}),
-      },
-      orderBy: { medicationName: 'asc' },
-      select: {
-        id: true,
-        medicationName: true,
-        dose: true,
-        strength: true,
-        instructions: true,
-        isControlledMedication: true,
-        route: { select: { name: true } },
-        schedules: {
-          where: { deletedAt: null, isActive: true, ...(round ? { roundId: round.id } : {}) },
-          select: { dueTime: true, round: { select: { name: true } } },
-          take: 1,
+            },
+          },
         },
-        medicationPack: { select: { adminRules: true } },
-      },
-    });
+      }),
+    ]);
 
-    const prnMeds = await this.prisma.serviceUserMedication.findMany({
-      where: {
-        serviceUserId: ctx.job.serviceUserId,
-        deletedAt: null,
-        isActive: true,
-        status: MedicationRecordStatus.ACTIVE,
-        medicationKind: MedicationKind.PRN,
-      },
-      orderBy: { medicationName: 'asc' },
-      select: {
-        id: true,
-        medicationName: true,
-        dose: true,
-        strength: true,
-        instructions: true,
-        isControlledMedication: true,
-        route: { select: { name: true } },
-      },
-    });
+    const packMedicationIds = collectActivePackMedicationIds(activePacks);
+    const standaloneScheduledMeds = scheduledMeds.filter((m) => !packMedicationIds.has(m.id));
 
-    const medIds = [...scheduledMeds, ...prnMeds].map((m) => m.id);
+    const medIds = [
+      ...new Set([
+        ...standaloneScheduledMeds.map((m) => m.id),
+        ...prnMeds.map((m) => m.id),
+        ...packMedicationIds,
+      ]),
+    ];
     const events =
       medIds.length > 0
         ? await this.prisma.medicationAdministrationEvent.findMany({
@@ -4005,7 +4099,16 @@ export class EmployeeAppVisitsService {
               id: true,
               serviceUserMedicationId: true,
               status: true,
+              statusCode: true,
+              reason: true,
+              notes: true,
+              supportLevel: true,
+              timeGiven: true,
+              outcomeLabel: true,
               actualDateTime: true,
+              prnReason: true,
+              prnOutcome: true,
+              isPrn: true,
             },
           })
         : [];
@@ -4039,7 +4142,7 @@ export class EmployeeAppVisitsService {
       }
 
       const evt = eventByMed.get(m.id);
-      const isRecorded = evt != null;
+      const echo = evt ? buildMarAdminEchoFields(evt) : emptyMarAdminEchoFields();
       const dueTime =
         'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;
       const scheduledDoseId = isPrn ? `${m.id}:prn` : `${m.id}:${dueTime ?? 'dose'}`;
@@ -4058,21 +4161,17 @@ export class EmployeeAppVisitsService {
         detailLine: detailParts.join(' · '),
         detail: detailParts.join(' · '),
         isPrn,
-        done: isRecorded,
-        isRecorded,
-        resolved: isRecorded,
         controlled: Boolean(m.isControlledMedication),
         timeCritical: Boolean(adminRules.timeCritical),
         allergyWarning: Boolean(allergyHit),
         allergyWarningMessage: relatedAllergy ? `Related allergy: ${relatedAllergy}` : null,
         relatedAllergy,
-        administrationEventId: evt?.id ?? null,
-        outcomeCode: evt?.status ?? null,
-        dueStatus: isPrn ? 'prn' : isRecorded ? 'recorded' : 'due',
+        dueStatus: isPrn ? (echo.done ? 'recorded' : 'prn') : echo.done ? 'recorded' : 'due',
         countsTowardScheduledProgress: !isPrn,
         instructions: m.instructions ?? null,
         scheduledLabel: dueTime,
         tags,
+        ...echo,
       };
     };
 
@@ -4084,8 +4183,8 @@ export class EmployeeAppVisitsService {
       items: ReturnType<typeof mapMed>[];
     }> = [];
 
-    if (scheduledMeds.length > 0) {
-      const medicines = scheduledMeds.map((m) => mapMed(m, false));
+    if (standaloneScheduledMeds.length > 0) {
+      const medicines = standaloneScheduledMeds.map((m) => mapMed(m, false));
       const title = round ? `SCHEDULED · ${round.name.toUpperCase()}` : 'SCHEDULED';
       sections.push({
         id: 'scheduled',
@@ -4107,7 +4206,14 @@ export class EmployeeAppVisitsService {
       });
     }
 
-    return sections;
+    const blisterPacks = buildVisitBlisterPacks({
+      packs: activePacks,
+      visitRound,
+      allergyLower,
+      eventByMed,
+    });
+
+    return { sections, blisterPacks };
   }
 
   private async countVisitObservations(serviceUserId: string, since: Date) {

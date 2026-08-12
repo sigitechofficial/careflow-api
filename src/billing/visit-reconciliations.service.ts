@@ -20,6 +20,7 @@ import {
   BackfillVisitReconciliationsDto,
   BulkApproveVisitReconciliationsDto,
   DecideVisitOverrunDto,
+  RecalculateVisitReconciliationsDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
   UpdateVisitReconciliationDto,
@@ -42,6 +43,7 @@ import {
   hasPayBlockingExceptions,
   listPayBlockingCodes,
   minutesBetween,
+  isInvertedDateWindow,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
 import {
@@ -927,32 +929,55 @@ export class VisitReconciliationsService {
 
     // Re-evaluate unlocked rows so org billing policy changes (e.g. COMBINED vs FIXED
     // multi-carer funder charge) refresh stored pay/bill amounts.
-    const pending = await this.prisma.visitReconciliation.findMany({
-      where: {
-        status: { not: VisitReconciliationStatus.LOCKED },
-        ...(dto.dateFrom || dto.dateTo
-          ? {
-              plannedStartDateTime: {
-                ...(dto.dateFrom
-                  ? { gte: new Date(`${dto.dateFrom}T00:00:00.000Z`) }
-                  : {}),
-                ...(dto.dateTo
-                  ? { lte: new Date(`${dto.dateTo}T23:59:59.999Z`) }
-                  : {}),
-              },
-            }
-          : {}),
+    const recalculated = await this.recalculateAmounts({
+      dateFrom: dto.dateFrom,
+      dateTo: dto.dateTo,
+    });
+
+    return {
+      message: `Processed ${visits.length} completed visit(s); re-evaluated ${recalculated.data.reEvaluated} reconciliation(s)`,
+      data: {
+        count: created.length,
+        ids: created,
+        reEvaluated: recalculated.data.reEvaluated,
       },
+    };
+  }
+
+  /**
+   * Re-run card resolution and payable/billable amount calculation for unlocked rows.
+   * Does not create new reconciliations — use backfill/sync for that.
+   */
+  async recalculateAmounts(dto: RecalculateVisitReconciliationsDto) {
+    const where: Prisma.VisitReconciliationWhereInput = {
+      status: { not: VisitReconciliationStatus.LOCKED },
+    };
+
+    if (dto.ids?.length) {
+      where.id = { in: dto.ids };
+    }
+
+    if (dto.dateFrom || dto.dateTo) {
+      where.plannedStartDateTime = {
+        ...(dto.dateFrom ? { gte: new Date(`${dto.dateFrom}T00:00:00.000Z`) } : {}),
+        ...(dto.dateTo ? { lte: new Date(`${dto.dateTo}T23:59:59.999Z`) } : {}),
+      };
+    }
+
+    const pending = await this.prisma.visitReconciliation.findMany({
+      where,
       select: { id: true },
+      orderBy: { plannedStartDateTime: 'asc' },
       take: 1000,
     });
+
     for (const row of pending) {
       await this.safeEvaluate(this.prisma, row.id);
     }
 
     return {
-      message: `Processed ${visits.length} completed visit(s); re-evaluated ${pending.length} reconciliation(s)`,
-      data: { count: created.length, ids: created, reEvaluated: pending.length },
+      message: `Recalculated amounts for ${pending.length} reconciliation(s)`,
+      data: { reEvaluated: pending.length, ids: pending.map((r) => r.id) },
     };
   }
 
@@ -1292,12 +1317,16 @@ export class VisitReconciliationsService {
       approvedBillStart = visitBillWindows.approvedBillStart;
       approvedBillEnd = visitBillWindows.approvedBillEnd;
     } else {
+      const storedBillInverted = isInvertedDateWindow(
+        row.approvedBillStart,
+        row.approvedBillEnd,
+      );
       approvedBillStart =
-        computedOverrun != null
+        computedOverrun != null || storedBillInverted
           ? defaultWindows.approvedBillStart
           : (row.approvedBillStart ?? defaultWindows.approvedBillStart);
       approvedBillEnd =
-        computedOverrun != null
+        computedOverrun != null || storedBillInverted
           ? defaultWindows.approvedBillEnd
           : (row.approvedBillEnd ?? defaultWindows.approvedBillEnd);
     }
@@ -1365,6 +1394,13 @@ export class VisitReconciliationsService {
         billMinutes,
         card?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
         isBankHoliday,
+        approvedBillStart && approvedBillEnd
+          ? {
+              start: approvedBillStart,
+              end: approvedBillEnd,
+              isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+            }
+          : undefined,
       );
       billableAmount = calc?.amount ?? null;
     } else if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
@@ -1762,6 +1798,7 @@ export class VisitReconciliationsService {
           cardSource: row.chargeCardSource,
         },
         isBankHoliday,
+        { start: billStart, end: billEnd },
       );
     }
 

@@ -4784,6 +4784,12 @@ model MedicationAdministrationEvent {
   notGivenReasonId        String?                       @db.Uuid
   reason                  String?
   notes                   String?
+  /** Carer-app MAR echo: support level UI enum (Assisted, Supervised, …). */
+  supportLevel            String?                       @db.VarChar(64)
+  /** Carer-app MAR echo: clock-face time given (HH:mm). */
+  timeGiven               String?                       @db.VarChar(5)
+  /** Carer-app MAR echo: UI outcome label (Given, Refused, …). */
+  outcomeLabel            String?                       @db.VarChar(128)
   correctionReason        String?
   correctionNotes         String?
   medicationNameSnapshot  String?

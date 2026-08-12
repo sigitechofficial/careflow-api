@@ -21,18 +21,28 @@ export type VisitObservationRecordedRow = {
   definitionId: string;
   type: string;
   title: string;
+  label: string;
   typeCode: string;
   observationTypeCode: string;
-  value: string | null;
+  outcomeCode: 'recorded' | 'unable';
+  value: string | number | null;
+  secondaryValue: string | number | null;
   valueLabel: string | null;
+  currentValue: string | number | null;
   unit: string | null;
+  notes: string | null;
+  unableReasonCode: string | null;
+  unableReasonLabel: string | null;
+  abnormal: boolean;
+  critical: boolean;
   recordedAt: string;
+  deviceRecordedAt: string | null;
   time: string;
   timeLabel: string;
   status: string | null;
   statusLabel: string | null;
-  statusTone: 'success';
-  tone: 'success';
+  statusTone: 'success' | 'warning' | 'danger' | 'neutral';
+  tone: 'success' | 'warning' | 'danger' | 'neutral';
   /** Present when observation was saved with payload.bodyMapPins (skin / body map obs). */
   bodyMapPins?: EmployeeAppBodyMapPin[];
 };
@@ -41,6 +51,41 @@ function formatHmUtc(d: Date) {
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
+}
+
+function readPayload(payload: Prisma.JsonValue | null): Record<string, unknown> {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    return payload as Record<string, unknown>;
+  }
+  return {};
+}
+
+function unableReasonLabel(code: string | null): string | null {
+  if (!code) return null;
+  return EMPLOYEE_APP_UNABLE_REASONS.find((r) => r.code === code)?.label ?? code;
+}
+
+function rawValueFromRow(row: {
+  numericValue: Prisma.Decimal | number | null;
+  payload: Prisma.JsonValue | null;
+}): string | number | null {
+  const p = readPayload(row.payload);
+  if (p.value != null && (typeof p.value === 'string' || typeof p.value === 'number')) {
+    return p.value;
+  }
+  if (row.numericValue != null) return Number(row.numericValue);
+  return null;
+}
+
+function secondaryValueFromPayload(payload: Prisma.JsonValue | null): string | number | null {
+  const p = readPayload(payload);
+  if (p.secondaryValue != null && (typeof p.secondaryValue === 'string' || typeof p.secondaryValue === 'number')) {
+    return p.secondaryValue;
+  }
+  if (p.diastolic != null && (typeof p.diastolic === 'string' || typeof p.diastolic === 'number')) {
+    return p.diastolic;
+  }
+  return null;
 }
 
 export function formatVisitObservationValue(row: {
@@ -77,17 +122,132 @@ export function inferVisitObservationStatus(
   numericValue: Prisma.Decimal | number | null,
   payload: Prisma.JsonValue | null,
 ): string | null {
+  const p = readPayload(payload);
+  if (p.outcome === 'unable') return 'Unable to record';
+  if (Boolean(p.critical)) return 'Critical';
+  if (Boolean(p.abnormal)) return 'Abnormal';
   if (code === 'BLOOD_SUGAR' && numericValue != null) {
     const v = Number(numericValue);
     if (v >= 4 && v <= 15) return 'Normal';
     if (v < 4) return 'Low';
     return 'High';
   }
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    const p = payload as Record<string, unknown>;
-    if (typeof p.interpretation === 'string') return p.interpretation;
-  }
+  if (typeof p.interpretation === 'string') return p.interpretation;
   return null;
+}
+
+function statusToneFor(status: string | null, payload: Record<string, unknown>): VisitObservationRecordedRow['statusTone'] {
+  if (Boolean(payload.critical) || status === 'Critical') return 'danger';
+  if (Boolean(payload.abnormal) || status === 'Abnormal' || status === 'Unable to record') return 'warning';
+  if (status) return 'success';
+  return 'neutral';
+}
+
+function mapObservationRow(row: {
+  id: string;
+  notes: string | null;
+  unit: string | null;
+  recordedAt: Date;
+  numericValue: Prisma.Decimal | number | null;
+  payload: Prisma.JsonValue | null;
+  observationType: { code: string; name: string; unitLabel: string | null };
+}): VisitObservationRecordedRow {
+  const typeCode = mobileTypeCode(row.observationType.code);
+  const payload = readPayload(row.payload);
+  const outcomeRaw = typeof payload.outcome === 'string' ? payload.outcome : 'recorded';
+  const outcomeCode: 'recorded' | 'unable' = outcomeRaw === 'unable' ? 'unable' : 'recorded';
+  const valueLabel = formatVisitObservationValue(row);
+  const currentValue = rawValueFromRow(row);
+  const secondaryValue = secondaryValueFromPayload(row.payload);
+  const unableReasonCode =
+    typeof payload.unableReasonCode === 'string' ? payload.unableReasonCode : null;
+  const status = inferVisitObservationStatus(
+    row.observationType.code,
+    row.numericValue,
+    row.payload,
+  );
+  const tone = statusToneFor(status, payload);
+  const deviceRecordedAt =
+    typeof payload.deviceRecordedAt === 'string'
+      ? payload.deviceRecordedAt
+      : row.recordedAt.toISOString();
+  const recordedAtDate = new Date(deviceRecordedAt);
+  const clock = Number.isNaN(recordedAtDate.getTime())
+    ? formatHmUtc(row.recordedAt)
+    : formatHmUtc(recordedAtDate);
+  const bodyMapPins = extractBodyMapPinsFromPayload(row.payload) ?? undefined;
+  const definitionId =
+    (typeof payload.definitionId === 'string' && payload.definitionId.trim()) || typeCode;
+
+  // Legacy: notes may have been mashed with "Unable: code"
+  let notes = row.notes?.trim() || null;
+  let legacyUnable: string | null = null;
+  if (!unableReasonCode && notes) {
+    const m = /^Unable:\s*(.+?)(?:\s*·\s*(.*))?$/i.exec(notes);
+    if (m) {
+      legacyUnable = m[1]?.trim() || null;
+      notes = m[2]?.trim() || null;
+    }
+  }
+
+  const resolvedUnable = unableReasonCode ?? legacyUnable;
+
+  return {
+    id: row.id,
+    definitionId,
+    type: row.observationType.name,
+    title: row.observationType.name,
+    label: row.observationType.name,
+    typeCode,
+    observationTypeCode: row.observationType.code,
+    outcomeCode,
+    value: currentValue,
+    secondaryValue,
+    valueLabel,
+    currentValue,
+    unit: row.unit ?? row.observationType.unitLabel ?? null,
+    notes,
+    unableReasonCode: resolvedUnable,
+    unableReasonLabel: unableReasonLabel(resolvedUnable),
+    abnormal: Boolean(payload.abnormal),
+    critical: Boolean(payload.critical),
+    recordedAt: row.recordedAt.toISOString(),
+    deviceRecordedAt,
+    time: clock,
+    timeLabel: clock,
+    status,
+    statusLabel: status,
+    statusTone: tone,
+    tone,
+    ...(bodyMapPins ? { bodyMapPins } : {}),
+  };
+}
+
+function mergeRecordingIntoDefinition(
+  definition: Record<string, unknown>,
+  recording: VisitObservationRecordedRow,
+): Record<string, unknown> {
+  return {
+    ...definition,
+    done: true,
+    outcomeCode: recording.outcomeCode,
+    currentValue: recording.currentValue,
+    value: recording.currentValue,
+    secondaryValue: recording.secondaryValue,
+    unit: recording.unit ?? definition.unit ?? null,
+    notes: recording.notes,
+    unableReasonCode: recording.unableReasonCode,
+    unableReasonLabel: recording.unableReasonLabel,
+    status: recording.status,
+    statusLabel: recording.statusLabel,
+    statusTone: recording.statusTone,
+    timeLabel: recording.timeLabel,
+    recordedAt: recording.recordedAt,
+    deviceRecordedAt: recording.deviceRecordedAt,
+    abnormal: recording.abnormal,
+    critical: recording.critical,
+    observationId: recording.id,
+  };
 }
 
 /**
@@ -229,6 +389,13 @@ export class VisitObservationsCatalogService {
         isDue: false,
         isOverdue: false,
         done: false,
+        outcomeCode: null as string | null,
+        currentValue: null as string | number | null,
+        secondaryValue: null as string | number | null,
+        notes: null as string | null,
+        unableReasonCode: null as string | null,
+        unableReasonLabel: null as string | null,
+        timeLabel: null as string | null,
         bounds,
         form,
         valueKind: type.valueKind,
@@ -260,6 +427,13 @@ export class VisitObservationsCatalogService {
         allowsUnableToRecord: true,
         allowsMultipleReadings: true,
         done: false,
+        outcomeCode: null,
+        currentValue: null,
+        secondaryValue: null,
+        notes: null,
+        unableReasonCode: null,
+        unableReasonLabel: null,
+        timeLabel: null,
       });
     }
 
@@ -334,35 +508,7 @@ export class VisitObservationsCatalogService {
         (row) =>
           !scheduledJobId || observationPayloadMatchesJob(row.payload, scheduledJobId),
       )
-      .map((row) => {
-      const typeCode = mobileTypeCode(row.observationType.code);
-      const valueLabel = formatVisitObservationValue(row);
-      const status = inferVisitObservationStatus(
-        row.observationType.code,
-        row.numericValue,
-        row.payload,
-      );
-      const bodyMapPins = extractBodyMapPinsFromPayload(row.payload) ?? undefined;
-      return {
-        id: row.id,
-        definitionId: typeCode,
-        type: row.observationType.name,
-        title: row.observationType.name,
-        typeCode,
-        observationTypeCode: row.observationType.code,
-        value: valueLabel,
-        valueLabel,
-        unit: row.unit ?? row.observationType.unitLabel ?? null,
-        recordedAt: row.recordedAt.toISOString(),
-        time: formatHmUtc(row.recordedAt),
-        timeLabel: formatHmUtc(row.recordedAt),
-        status,
-        statusLabel: status,
-        statusTone: 'success' as const,
-        tone: 'success' as const,
-        ...(bodyMapPins ? { bodyMapPins } : {}),
-      };
-    });
+      .map((row) => mapObservationRow(row));
   }
 
   async buildVisitObservationsPayload(input: {
@@ -374,8 +520,35 @@ export class VisitObservationsCatalogService {
       this.buildCatalogPayload(input.serviceUserId),
       this.loadVisitObservations(input.serviceUserId, input.since, input.scheduledJobId),
     ]);
+
+    // Latest reading per typeCode wins for list prefill.
+    const latestByType = new Map<string, VisitObservationRecordedRow>();
+    for (const row of recorded) {
+      if (!latestByType.has(row.typeCode)) latestByType.set(row.typeCode, row);
+      if (!latestByType.has(row.definitionId)) latestByType.set(row.definitionId, row);
+    }
+
+    const mergeList = (items: Array<Record<string, unknown>>) =>
+      items.map((item) => {
+        const typeCode = String(item.typeCode ?? item.id ?? '');
+        const recording = latestByType.get(typeCode);
+        return recording ? mergeRecordingIntoDefinition(item, recording) : item;
+      });
+
+    const definitionsByTypeCode = { ...catalog.definitionsByTypeCode };
+    for (const [key, definition] of Object.entries(definitionsByTypeCode)) {
+      const typeCode = String(definition.typeCode ?? key);
+      const recording = latestByType.get(typeCode) ?? latestByType.get(key);
+      if (recording) {
+        definitionsByTypeCode[key] = mergeRecordingIntoDefinition(definition, recording);
+      }
+    }
+
     return {
       ...catalog,
+      definitionsByTypeCode,
+      required: mergeList(catalog.required),
+      optional: mergeList(catalog.optional),
       recordedThisVisit: recorded,
       recordedCount: recorded.length,
     };
