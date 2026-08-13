@@ -4,20 +4,20 @@ import { resolveSlotVisitWindow, resolveCarerWindows, envelopeWindow } from './v
 import { VisitPlanScheduleFrequency } from '@prisma/client';
 
 describe('visit-plan-slot-window.util', () => {
-  it('resolves overnight window when end <= start', () => {
+  // 2026-06-18 is BST (Europe/London = UTC+1)
+  it('resolves overnight window when end <= start (org TZ → true UTC)', () => {
     const day = new Date(Date.UTC(2026, 5, 18));
     const w = resolveSlotVisitWindow(day, {
       plannedStartTime: '22:00',
       plannedEndTime: '07:00',
       slotKind: VisitPlanSlotKind.OVERNIGHT,
     });
-    expect(w.start.toISOString()).toContain('T22:00:00.000Z');
-    expect(w.end.toISOString()).toContain('T07:00:00.000Z');
-    expect(w.end.getUTCDate()).toBe(19);
+    expect(w.start.toISOString()).toBe('2026-06-18T21:00:00.000Z');
+    expect(w.end.toISOString()).toBe('2026-06-19T06:00:00.000Z');
     expect(w.isOvernight).toBe(true);
   });
 
-  it('uses durationMinutes when set', () => {
+  it('uses durationMinutes when set (org TZ → true UTC)', () => {
     const day = new Date(Date.UTC(2026, 5, 18));
     const w = resolveSlotVisitWindow(day, {
       plannedStartTime: '07:00',
@@ -25,7 +25,8 @@ describe('visit-plan-slot-window.util', () => {
       durationMinutes: 60,
     });
     expect(w.durationMinutes).toBe(60);
-    expect(w.end.toISOString()).toContain('T08:00:00.000Z');
+    expect(w.start.toISOString()).toBe('2026-06-18T06:00:00.000Z');
+    expect(w.end.toISOString()).toBe('2026-06-18T07:00:00.000Z');
   });
 
   it('supports asymmetric double-up carer windows', () => {

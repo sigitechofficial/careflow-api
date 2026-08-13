@@ -273,6 +273,29 @@ export function listPayBlockingCodes(exceptions: DetectedException[]): FinanceEx
   return [...new Set(exceptions.filter(isPayBlockingException).map((e) => e.code))];
 }
 
+/**
+ * When actual duration is shorter than planned by at most `durationToleranceMinutes`,
+ * pay and charge use the full planned window (fixed ≤60 and hourly/pro-rata >60).
+ * UNDERRUN / early-leave flags stay independent of this snap.
+ */
+export function isDurationShortfallWithinTolerance(input: {
+  plannedStartDateTime: Date;
+  plannedEndDateTime: Date;
+  actualStartDateTime: Date | null;
+  actualEndDateTime: Date | null;
+  durationToleranceMinutes: number;
+}): boolean {
+  const tol = Math.floor(Number(input.durationToleranceMinutes));
+  if (!(tol > 0) || !input.actualStartDateTime || !input.actualEndDateTime) {
+    return false;
+  }
+  const plannedMinutes = minutesBetween(input.plannedStartDateTime, input.plannedEndDateTime);
+  const actualMinutes = minutesBetween(input.actualStartDateTime, input.actualEndDateTime);
+  if (plannedMinutes <= 0 || actualMinutes <= 0) return false;
+  const shortfall = plannedMinutes - actualMinutes;
+  return shortfall > 0 && shortfall <= tol;
+}
+
 export function resolveDefaultApprovedWindows(input: {
   plannedStartDateTime: Date;
   plannedEndDateTime: Date | null;
@@ -281,6 +304,11 @@ export function resolveDefaultApprovedWindows(input: {
   exceptions: DetectedException[];
   /** When overrun is APPROVED, pay uses actual clock times; otherwise planned (extra time unpaid until approved). */
   overrunDecision?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  /**
+   * Org/slot punctuality tolerance (minutes). Early leave / short duration within this
+   * still pays and charges the full planned visit length. Defaults to 0 (no snap).
+   */
+  durationToleranceMinutes?: number | null;
 }): {
   approvedPayStart: Date;
   approvedPayEnd: Date;
@@ -294,6 +322,7 @@ export function resolveDefaultApprovedWindows(input: {
     actualEndDateTime,
     exceptions,
     overrunDecision,
+    durationToleranceMinutes = 0,
   } = input;
   const plannedEnd =
     plannedEndDateTime ??
@@ -324,6 +353,23 @@ export function resolveDefaultApprovedWindows(input: {
         actualStartDateTime,
         actualEndDateTime!,
       ),
+    };
+  }
+
+  // Early leave / short visit within tolerance → full planned pay + charge duration.
+  if (
+    isDurationShortfallWithinTolerance({
+      plannedStartDateTime,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime,
+      actualEndDateTime,
+      durationToleranceMinutes: durationToleranceMinutes ?? 0,
+    })
+  ) {
+    return {
+      approvedPayStart: plannedStartDateTime,
+      approvedPayEnd: plannedEnd,
+      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
     };
   }
 

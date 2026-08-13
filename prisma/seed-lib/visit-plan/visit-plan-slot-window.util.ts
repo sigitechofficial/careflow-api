@@ -1,3 +1,9 @@
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  combineOperationalDateAndHm,
+  dayKeyInTimeZone,
+} from '../../../src/common/utils/operational-day.util';
+
 const DAY_MS = 86400000;
 const HM_RE = /^(\d{2}):(\d{2})$/;
 
@@ -21,11 +27,20 @@ export function parseHm(time: string): { hours: number; minutes: number } {
   return { hours: Number(m[1]), minutes: Number(m[2]) };
 }
 
-export function combineDateAndTimeUtc(day: Date, time: string): Date {
-  const { hours, minutes } = parseHm(time);
-  const dt = new Date(day);
-  dt.setUTCHours(hours, minutes, 0, 0);
-  return dt;
+function dayIsoFromUtcCalendarDay(day: Date): string {
+  return day.toISOString().slice(0, 10);
+}
+
+/**
+ * Combine a UTC-midnight calendar day + HH:mm wall clock in the org timezone
+ * into a true UTC instant (e.g. Europe/London BST 07:00 → 06:00Z).
+ */
+export function combineDateAndTimeUtc(
+  day: Date,
+  time: string,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  return combineOperationalDateAndHm(dayIsoFromUtcCalendarDay(day), time, timeZone);
 }
 
 function minutesBetween(start: Date, end: Date): number {
@@ -33,9 +48,13 @@ function minutesBetween(start: Date, end: Date): number {
 }
 
 /** Resolve absolute visit window for a calendar day from slot pattern fields. */
-export function resolveSlotVisitWindow(day: Date, slot: SlotTimeWindowInput): ResolvedVisitWindow {
-  const start = combineDateAndTimeUtc(day, slot.plannedStartTime);
-  let end = combineDateAndTimeUtc(day, slot.plannedEndTime);
+export function resolveSlotVisitWindow(
+  day: Date,
+  slot: SlotTimeWindowInput,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): ResolvedVisitWindow {
+  const start = combineDateAndTimeUtc(day, slot.plannedStartTime, timeZone);
+  let end = combineDateAndTimeUtc(day, slot.plannedEndTime, timeZone);
 
   const overnightByKind = slot.slotKind === 'OVERNIGHT';
   const overnightByTime = end.getTime() <= start.getTime();
@@ -44,7 +63,7 @@ export function resolveSlotVisitWindow(day: Date, slot: SlotTimeWindowInput): Re
     end = new Date(start.getTime() + slot.durationMinutes * 60000);
     if (overnightByKind || overnightByTime) {
       const span = slot.durationMinutes;
-      const sameDayEnd = combineDateAndTimeUtc(day, slot.plannedEndTime);
+      const sameDayEnd = combineDateAndTimeUtc(day, slot.plannedEndTime, timeZone);
       if (sameDayEnd.getTime() <= start.getTime() && span > minutesBetween(start, sameDayEnd)) {
         // duration spans past midnight when end time is on next day
         if (end.getTime() <= start.getTime() || overnightByTime) {
@@ -64,7 +83,10 @@ export function resolveSlotVisitWindow(day: Date, slot: SlotTimeWindowInput): Re
     start,
     end,
     durationMinutes: minutesBetween(start, end),
-    isOvernight: end.getUTCDate() !== start.getUTCDate() || overnightByKind || overnightByTime,
+    isOvernight:
+      dayKeyInTimeZone(end, timeZone) !== dayKeyInTimeZone(start, timeZone) ||
+      overnightByKind ||
+      overnightByTime,
   };
 }
 
@@ -89,19 +111,20 @@ export function resolveCarerWindows(
   day: Date,
   slot: SlotTimeWindowInput,
   carers: CarerWindowInput[],
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
 ): ResolvedCarerWindow[] {
-  const base = resolveSlotVisitWindow(day, slot);
+  const base = resolveSlotVisitWindow(day, slot, timeZone);
   if (!carers.length) return [];
 
   return carers.map((carer) => {
     const startTime = carer.plannedStartTime?.trim() || slot.plannedStartTime;
-    const start = combineDateAndTimeUtc(day, startTime);
+    const start = combineDateAndTimeUtc(day, startTime, timeZone);
     let end: Date;
 
     if (carer.durationMinutes != null && carer.durationMinutes > 0) {
       end = new Date(start.getTime() + carer.durationMinutes * 60000);
     } else if (carer.plannedEndTime?.trim()) {
-      end = combineDateAndTimeUtc(day, carer.plannedEndTime);
+      end = combineDateAndTimeUtc(day, carer.plannedEndTime, timeZone);
       if (end.getTime() <= start.getTime()) {
         end = new Date(end.getTime() + DAY_MS);
       }
@@ -126,6 +149,7 @@ export function resolveCarerWindows(
 export function envelopeWindow(
   slotWindow: ResolvedVisitWindow,
   carerWindows: ResolvedCarerWindow[],
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
 ): ResolvedVisitWindow {
   if (!carerWindows.length) return slotWindow;
   const starts = carerWindows.map((c) => c.start.getTime());
@@ -136,17 +160,26 @@ export function envelopeWindow(
     start,
     end,
     durationMinutes: minutesBetween(start, end),
-    isOvernight: end.getUTCDate() !== start.getUTCDate(),
+    isOvernight: dayKeyInTimeZone(end, timeZone) !== dayKeyInTimeZone(start, timeZone),
   };
 }
 
 /** Derive durationMinutes from HH:mm window when not explicitly set. */
-export function deriveDurationFromTimes(startTime: string, endTime: string, slotKind?: string): number {
+export function deriveDurationFromTimes(
+  startTime: string,
+  endTime: string,
+  slotKind?: string,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): number {
   const baseDay = new Date(Date.UTC(2026, 0, 1));
-  const w = resolveSlotVisitWindow(baseDay, {
-    plannedStartTime: startTime,
-    plannedEndTime: endTime,
-    slotKind: slotKind as SlotTimeWindowInput['slotKind'],
-  });
+  const w = resolveSlotVisitWindow(
+    baseDay,
+    {
+      plannedStartTime: startTime,
+      plannedEndTime: endTime,
+      slotKind: slotKind as SlotTimeWindowInput['slotKind'],
+    },
+    timeZone,
+  );
   return w.durationMinutes;
 }

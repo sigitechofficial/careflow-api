@@ -2466,12 +2466,19 @@ export class EmployeeAppVisitsService {
 
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
-    if (replay) return { data: replay };
+    /**
+     * Same `clientEntryId` + `idempotencyKey` may be reused to edit a note.
+     * Only short-circuit when there is no clientEntryId (pure offline replay of create).
+     */
+    if (!dto.clientEntryId?.trim()) {
+      const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+      if (replay) return { data: replay };
+    }
 
-    const entryId = dto.clientEntryId ?? randomUUID();
+    const entryId = dto.clientEntryId?.trim() || randomUUID();
     const now = new Date().toISOString();
     const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
+    const occurredAtIso = occurredAt.toISOString();
     const title = dto.title?.trim() || 'Visit note';
     const detail = summarizeTimelineDetail(dto.body);
     const timelineItem = await this.visitTimeline.upsertEvent({
@@ -2494,6 +2501,7 @@ export class EmployeeAppVisitsService {
       entryType: 'note',
       isDraft: Boolean(dto.isDraft),
       serverConfirmedAt: now,
+      deviceRecordedAt: occurredAtIso,
       ...(timelineItem && !dto.isDraft ? { timelineItem } : {}),
     };
 
@@ -2505,9 +2513,9 @@ export class EmployeeAppVisitsService {
         body: dto.body,
         title: dto.title ?? null,
         isDraft: Boolean(dto.isDraft),
-        deviceRecordedAt: dto.deviceRecordedAt,
+        deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
-        recordedAt: now,
+        recordedAt: occurredAtIso,
       };
       const idx = notes.findIndex((n) => (n as { id?: string }).id === entryId);
       if (idx >= 0) notes[idx] = entry;
@@ -2527,12 +2535,24 @@ export class EmployeeAppVisitsService {
 
   async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
-    if (replay) return { data: replay };
-
-    const entryId = dto.clientEntryId ?? randomUUID();
+    /**
+     * Handover is a visit singleton. POST is always upsert: reuse of the same
+     * `idempotencyKey` / `clientEntryId` applies the latest body, priority,
+     * outstandingAction, isDraft, and deviceRecordedAt (does not replay the first save).
+     * True network retries with identical content are safe (idempotent overwrite).
+     */
+    const existingEa = await this.readEmployeeAppMeta(jobId);
+    const existingHandover =
+      typeof existingEa.handoverNote === 'object' && existingEa.handoverNote
+        ? (existingEa.handoverNote as Record<string, unknown>)
+        : null;
+    const entryId =
+      dto.clientEntryId?.trim() ||
+      (existingHandover?.id != null ? String(existingHandover.id) : '') ||
+      randomUUID();
     const now = new Date().toISOString();
     const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
+    const occurredAtIso = occurredAt.toISOString();
     const detail = summarizeTimelineDetail(dto.body);
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
@@ -2554,6 +2574,7 @@ export class EmployeeAppVisitsService {
       entryType: 'handover',
       isDraft: Boolean(dto.isDraft),
       serverConfirmedAt: now,
+      deviceRecordedAt: occurredAtIso,
       ...(timelineItem && !dto.isDraft ? { timelineItem } : {}),
     };
 
@@ -2565,9 +2586,9 @@ export class EmployeeAppVisitsService {
         priority: dto.priority ?? 'normal',
         outstandingAction: dto.outstandingAction ?? null,
         isDraft: Boolean(dto.isDraft),
-        deviceRecordedAt: dto.deviceRecordedAt,
+        deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
-        recordedAt: now,
+        recordedAt: occurredAtIso,
       },
       lastHandover: {
         message: dto.body,
@@ -2577,6 +2598,7 @@ export class EmployeeAppVisitsService {
         acknowledged: false,
         priority: dto.priority ?? 'normal',
         outstandingAction: dto.outstandingAction ?? null,
+        deviceRecordedAt: occurredAtIso,
       },
       handoverAcknowledged: false,
       handoverAcknowledgedAt: null,
@@ -4261,6 +4283,12 @@ export class EmployeeAppVisitsService {
       extra ||
       visitNotes ||
       null;
+    const deviceRecordedAt =
+      handover?.deviceRecordedAt != null
+        ? String(handover.deviceRecordedAt)
+        : handover?.recordedAt != null
+          ? String(handover.recordedAt)
+          : null;
     return {
       title: 'VISIT NOTE / HANDOVER',
       value,
@@ -4268,6 +4296,8 @@ export class EmployeeAppVisitsService {
       priority: handover?.priority != null ? String(handover.priority) : null,
       outstandingAction:
         handover?.outstandingAction != null ? String(handover.outstandingAction) : null,
+      deviceRecordedAt,
+      recordedAt: deviceRecordedAt,
       acknowledged: Boolean(employeeApp.handoverAcknowledged),
       acknowledgedAt:
         employeeApp.handoverAcknowledgedAt != null

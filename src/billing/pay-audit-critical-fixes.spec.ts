@@ -51,6 +51,74 @@ describe('resolveDefaultApprovedWindows overrun approval', () => {
   });
 });
 
+describe('resolveDefaultApprovedWindows duration tolerance', () => {
+  it('fixed ≤60: early leave within tolerance pays and charges full planned', () => {
+    const plannedStart = new Date('2026-07-13T10:00:00.000Z');
+    const plannedEnd = new Date('2026-07-13T10:45:00.000Z'); // 45 min fixed
+    const actualEnd = new Date('2026-07-13T10:37:00.000Z'); // 8 min early
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: plannedStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [],
+      durationToleranceMinutes: 15,
+    });
+    expect(w.approvedPayStart.getTime()).toBe(plannedStart.getTime());
+    expect(w.approvedPayEnd.getTime()).toBe(plannedEnd.getTime());
+    expect(w.approvedBillStart.getTime()).toBe(plannedStart.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(plannedEnd.getTime());
+  });
+
+  it('pro-rata >60: early leave within tolerance pays and charges full planned', () => {
+    const plannedStart = new Date('2026-07-13T10:00:00.000Z');
+    const plannedEnd = new Date('2026-07-13T11:30:00.000Z'); // 90 min
+    const actualEnd = new Date('2026-07-13T11:18:00.000Z'); // 12 min short
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: plannedStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+      durationToleranceMinutes: 20,
+    });
+    expect(w.approvedPayEnd.getTime()).toBe(plannedEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(plannedEnd.getTime());
+  });
+
+  it('shortfall beyond tolerance keeps actual pay/charge windows', () => {
+    const plannedStart = new Date('2026-07-13T10:00:00.000Z');
+    const plannedEnd = new Date('2026-07-13T11:00:00.000Z');
+    const actualEnd = new Date('2026-07-13T10:30:00.000Z'); // 30 min short
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: plannedStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+      durationToleranceMinutes: 15,
+    });
+    expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(actualEnd.getTime());
+  });
+
+  it('UNDERRUN flag input does not block tolerance snap when shortfall ≤ tolerance', () => {
+    const plannedStart = new Date('2026-07-13T10:00:00.000Z');
+    const plannedEnd = new Date('2026-07-13T11:00:00.000Z');
+    const actualEnd = new Date('2026-07-13T10:42:00.000Z'); // 18 min short, flag would fire (>15)
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: plannedStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+      durationToleranceMinutes: 20,
+    });
+    expect(w.approvedPayEnd.getTime()).toBe(plannedEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(plannedEnd.getTime());
+  });
+});
+
 describe('Sunday into Monday bank holiday per-segment', () => {
   it('applies bank-holiday rate only after midnight when isBankHolidayFn marks Monday', () => {
     const rules = [

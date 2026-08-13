@@ -9,7 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
-  formatHmUtc,
+  formatHmInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
@@ -154,11 +154,16 @@ export class EmployeeAppHomeService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = formatHmUtc(endAt);
-      // UTC ISO must match Visit Details `shell.visitWindow.scheduled*Iso` (primary visit).
-      const scheduledStartIso = primaryVisit?.scheduledStartDateTime?.toISOString() ?? null;
-      const scheduledEndIso = primaryVisit?.scheduledEndDateTime?.toISOString() ?? null;
+      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
+      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
+      // UTC ISO (always `…Z`) — Flutter may convert via organisationTimezone.
+      // Prefer primary visit (same as details shell.visitWindow); fall back to allocation window.
+      const scheduledStartIso = (
+        primaryVisit?.scheduledStartDateTime ?? startAt
+      ).toISOString();
+      const scheduledEndIso = (
+        primaryVisit?.scheduledEndDateTime ?? endAt ?? null
+      )?.toISOString() ?? null;
       const visitTypeLong =
         primaryVisit?.visitName?.trim() ||
         su.careType?.name?.trim() ||
@@ -454,7 +459,7 @@ type VisitRow = {
   status: HomeVisitUiStatus;
   scheduledStart: string;
   scheduledEnd: string | null;
-  scheduledStartIso: string | null;
+  scheduledStartIso: string;
   scheduledEndIso: string | null;
   startAt: Date;
   endAt: Date | null;

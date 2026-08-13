@@ -95,6 +95,7 @@ import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
 import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
 import { CompanyProfileModule } from './company-profile/company-profile.module';
 import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { LocationManagementModule } from './location-management/location-management.module';
 import { CarePathwayModule } from './care-pathway/care-pathway.module';
 import { FormSelectionModule } from './form-selection/form-selection.module';
@@ -223,6 +224,7 @@ import { LearningModule } from './learning/learning.module';
     ScheduleReportsModule,
     CompanyProfileModule,
     OrganisationGeneralSettingsModule,
+    DashboardModule,
     LocationManagementModule,
     CarePathwayModule,
     FormSelectionModule,

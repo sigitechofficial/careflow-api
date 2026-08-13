@@ -12,6 +12,7 @@ import {
   type VisitPlanSlotCarerAssignmentShape,
   type VisitPlanSlotExceptionShape,
 } from './visit-plan-slot-carer-resolve.util';
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 import {
   envelopeWindow,
   resolveCarerWindows,
@@ -71,8 +72,9 @@ export function buildVisitPlanOccurrence(
   day: Date,
   planAnchor: Date,
   planEffectiveTo: Date | null,
-  options?: { extendBeforeEffectiveFromDays?: number },
+  options?: { extendBeforeEffectiveFromDays?: number; timeZone?: string },
 ): GeneratedOccurrence | null {
+  const timeZone = options?.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
   const exceptions = mapExceptions(slot.exceptions);
   const extraRow = findExtraRow(slot, day);
 
@@ -134,10 +136,11 @@ export function buildVisitPlanOccurrence(
       plannedEndTime: a.plannedEndTime,
       sortOrder: a.sortOrder,
     })),
+    timeZone,
   );
 
-  const slotWindow = resolveSlotVisitWindow(day, slotWindowInput);
-  const envelope = envelopeWindow(slotWindow, carerWindows);
+  const slotWindow = resolveSlotVisitWindow(day, slotWindowInput, timeZone);
+  const envelope = envelopeWindow(slotWindow, carerWindows, timeZone);
 
   return {
     start: envelope.start,

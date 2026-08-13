@@ -38,7 +38,9 @@ Effective tolerance for **punctuality** (start and end):
 4. Else 15 minutes (industry default)
 ```
 
-**Do not** mix this with **duration** short/exceeded rules (those remain independent; duration underrun uses &gt; 15 minutes under planned length for billing alignment).
+**Do not** mix punctuality tolerance with **duration exception flags** (UNDERRUN still uses &gt; 15 minutes under planned length for visibility).
+
+**Pay / charge amounts** do use the same tolerance hierarchy: when actual duration is shorter than planned by at most the effective tolerance, reconciliation pays and charges the **full planned** window (fixed ≤60 and hourly/pro-rata &gt;60). Flags can still show UNDERRUN when shortfall &gt; 15 even if amounts were snapped to planned (e.g. tolerance 20, shortfall 18).
 
 ---
 

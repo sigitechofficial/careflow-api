@@ -385,22 +385,27 @@ export function evaluateCarerAvailability(
   };
 }
 
-export function combineUtcDateAndHm(dateIso: string, hm: string): Date {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateIso.trim());
-  const t = /^(\d{2}):(\d{2})$/.exec(hm.trim());
-  if (!m || !t) return new Date(Number.NaN);
-  return new Date(
-    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(t[1]), Number(t[2]), 0, 0),
-  );
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  combineOperationalDateAndHm,
+} from '../common/utils/operational-day.util';
+
+export function combineUtcDateAndHm(
+  dateIso: string,
+  hm: string,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  return combineOperationalDateAndHm(dateIso, hm, timeZone);
 }
 
 export function visitPlanSuggestJobWindow(
   scheduledDate: string,
   plannedStartTime: string,
   plannedEndTime: string,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
 ): { jobStart: Date; jobEnd: Date } | null {
-  const jobStart = combineUtcDateAndHm(scheduledDate, plannedStartTime);
-  let jobEnd = combineUtcDateAndHm(scheduledDate, plannedEndTime);
+  const jobStart = combineUtcDateAndHm(scheduledDate, plannedStartTime, timeZone);
+  let jobEnd = combineUtcDateAndHm(scheduledDate, plannedEndTime, timeZone);
   if (Number.isNaN(jobStart.getTime()) || Number.isNaN(jobEnd.getTime())) return null;
   if (jobEnd.getTime() <= jobStart.getTime()) {
     jobEnd = new Date(jobEnd.getTime() + 86_400_000);
@@ -434,6 +439,7 @@ export function scheduledJobOverlapsVisitPlanSlot(input: {
   slotDaysOfWeek: Iterable<number>;
   plannedStartTime: string;
   plannedEndTime: string;
+  timeZone?: string;
 }): boolean {
   const slotDays = new Set(input.slotDaysOfWeek);
   if (!slotDays.size) return false;
@@ -443,6 +449,7 @@ export function scheduledJobOverlapsVisitPlanSlot(input: {
     input.jobStart.toISOString().slice(0, 10),
     input.plannedStartTime,
     input.plannedEndTime,
+    input.timeZone,
   );
   if (!slotWindow) return false;
 

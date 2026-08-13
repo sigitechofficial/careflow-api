@@ -1,5 +1,6 @@
 import { VisitTimelineService } from './visit-timeline.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 
 describe('VisitTimelineService', () => {
   const upsert = jest.fn();
@@ -7,12 +8,16 @@ describe('VisitTimelineService', () => {
   const prisma = {
     visitTimelineEvent: { upsert, findMany },
   } as unknown as PrismaService;
+  const orgSettings = {
+    getOperationalTimezone: jest.fn().mockResolvedValue('UTC'),
+  } as unknown as OrganisationGeneralSettingsService;
 
-  const service = new VisitTimelineService(prisma);
+  const service = new VisitTimelineService(prisma, orgSettings);
 
   beforeEach(() => {
     upsert.mockReset();
     findMany.mockReset();
+    (orgSettings.getOperationalTimezone as jest.Mock).mockResolvedValue('UTC');
   });
 
   it('upserts on write and returns API item', async () => {
@@ -141,5 +146,37 @@ describe('VisitTimelineService', () => {
   it('returns empty timeline when no events', async () => {
     findMany.mockResolvedValue([]);
     await expect(service.listForJob('job-fresh')).resolves.toEqual([]);
+  });
+
+  it('formats timeLabel in organisation timezone', async () => {
+    (orgSettings.getOperationalTimezone as jest.Mock).mockResolvedValue('Europe/London');
+    upsert.mockResolvedValue({
+      id: 'tl-handover',
+      eventType: 'handover',
+      occurredAt: new Date('2026-08-13T12:12:54.569Z'),
+      timeLabel: '12:12',
+      title: 'Handover',
+      detail: 'xmgmvv gkxk',
+      tone: 'ink',
+      sourceType: 'handover',
+      sourceId: 'handover',
+      logEntryId: 'h1',
+      isDraft: false,
+    });
+
+    const item = await service.upsertEvent({
+      scheduledJobId: 'job-1',
+      eventType: 'handover',
+      sourceType: 'handover',
+      sourceId: 'handover',
+      title: 'Handover',
+      detail: 'xmgmvv gkxk',
+      tone: 'ink',
+      occurredAt: new Date('2026-08-13T12:12:54.569Z'),
+    });
+
+    expect(item?.occurredAt).toBe('2026-08-13T12:12:54.569Z');
+    expect(item?.time).toBe('13:12');
+    expect(item?.timeLabel).toBe('13:12');
   });
 });

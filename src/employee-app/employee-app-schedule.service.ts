@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   dayKeyInTimeZone,
-  formatHmUtc,
+  formatHmInTimeZone,
   hourInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -146,8 +146,8 @@ export class EmployeeAppScheduleService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = formatHmUtc(endAt);
+      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
+      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
       const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
       const periodLabel = resolvePeriodLabel({
         visitName: primaryVisit?.visitName ?? job.jobName,

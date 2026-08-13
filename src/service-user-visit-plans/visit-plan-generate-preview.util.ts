@@ -1,4 +1,5 @@
 import type { VisitPlanSlot } from '@prisma/client';
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 import { buildVisitPlanOccurrence, type SlotWithRelations } from './visit-plan-generate-occurrence.util';
 import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-user-absences/active-absence.util';
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
@@ -29,6 +30,8 @@ type PreviewParams = {
   planEffectiveTo: Date | null;
   bankHolidayDates: Set<string>;
   absenceDays: Set<string>;
+  /** Org operational IANA timezone for converting slot HH:mm → UTC. */
+  timeZone?: string;
 };
 
 function utcDateKey(d: Date): string {
@@ -142,6 +145,7 @@ export async function previewGenerateScheduleFromPlan(
 
       const occurrence = buildVisitPlanOccurrence(slot, day, params.scheduleAnchor, params.planEffectiveTo, {
         extendBeforeEffectiveFromDays: extendBefore,
+        timeZone: params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE,
       });
       if (!occurrence) {
         const hasSkip = (slot.exceptions ?? []).some(

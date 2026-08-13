@@ -68,8 +68,8 @@ export function formatHmsInTimeZone(
 }
 
 /**
- * UTC clock-face HH:mm — matches admin schedule display (`utc: true`).
- * Employee-app sends these on visit cards; Flutter converts ISO via organisationTimezone.
+ * UTC clock-face HH:mm — only for legacy fake-UTC wall-clock storage.
+ * Prefer formatHmInTimeZone with organisation timezone for true-UTC instants.
  */
 export function formatHmUtc(instant: Date): string {
   return formatHmInTimeZone(instant, 'UTC');
@@ -109,6 +109,40 @@ export function operationalDayBounds(
   return { start, end, date: day };
 }
 
+/**
+ * Convert an operational calendar day + local HH:mm wall clock in `timeZone`
+ * into the true UTC instant (e.g. London BST 07:00 → 06:00Z).
+ */
+export function combineOperationalDateAndHm(
+  dayIso: string,
+  hm: string,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  const day = dayIso.slice(0, 10);
+  const match = /^(\d{2}):(\d{2})$/.exec(hm.trim());
+  if (!match) {
+    return new Date(Number.NaN);
+  }
+  const targetMinutes = Number(match[1]) * 60 + Number(match[2]);
+  const dayStart = startOfOperationalDayUtc(day, timeZone);
+  let guess = dayStart.getTime() + targetMinutes * 60_000;
+
+  for (let i = 0; i < 8; i++) {
+    const instant = new Date(guess);
+    const shownDay = dayKeyInTimeZone(instant, timeZone);
+    const shownHm = formatHmInTimeZone(instant, timeZone);
+    const [sh, sm] = shownHm.split(':').map(Number);
+    const shownMinutes = (sh ?? 0) * 60 + (sm ?? 0);
+    let deltaMin = targetMinutes - shownMinutes;
+    if (shownDay < day) deltaMin += 24 * 60;
+    else if (shownDay > day) deltaMin -= 24 * 60;
+    if (deltaMin === 0) return instant;
+    guess += deltaMin * 60_000;
+  }
+
+  return new Date(guess);
+}
+
 function addOneCalendarDay(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   const dt = new Date(Date.UTC(y!, m! - 1, d!));
@@ -120,7 +154,7 @@ function addOneCalendarDay(iso: string): string {
  * UTC instant of local midnight on `day` in `timeZone`.
  * Finds the UTC ms where the TZ calendar first shows `day`.
  */
-function startOfOperationalDayUtc(day: string, timeZone: string): Date {
+export function startOfOperationalDayUtc(day: string, timeZone: string): Date {
   let guess = Date.parse(`${day}T00:00:00.000Z`);
   if (!Number.isFinite(guess)) {
     return new Date(`${day}T00:00:00.000Z`);

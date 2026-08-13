@@ -48,6 +48,8 @@ import {
 } from './visit-medication-required.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { combineOperationalDateAndHm } from '../common/utils/operational-day.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import {
@@ -148,6 +150,7 @@ export class ServiceUserVisitPlansService {
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
     private readonly amendmentImpact: VisitPlanAmendmentImpactService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -697,6 +700,7 @@ export class ServiceUserVisitPlansService {
     const conflicts = new Map<string, string[]>();
     if (!employeeIds.length) return conflicts;
 
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const activeStatuses: AllocationStatus[] = [
       AllocationStatus.PENDING_CONFIRMATION,
       AllocationStatus.ALLOCATED,
@@ -708,6 +712,7 @@ export class ServiceUserVisitPlansService {
         dto.scheduledDate,
         dto.plannedStartTime,
         dto.plannedEndTime,
+        timeZone,
       );
       if (!window) return conflicts;
 
@@ -793,6 +798,7 @@ export class ServiceUserVisitPlansService {
           slotDaysOfWeek: slotDays,
           plannedStartTime: dto.plannedStartTime,
           plannedEndTime: dto.plannedEndTime,
+          timeZone,
         })
       ) {
         continue;
@@ -814,29 +820,30 @@ export class ServiceUserVisitPlansService {
     return d;
   }
 
-  private combineDateAndTime(date: Date, time: string): Date {
+  private combineDateAndTime(date: Date, time: string, timeZone: string): Date {
     const m = /^(\d{2}):(\d{2})$/.exec(time);
     if (!m) throw new BadRequestException('Invalid time');
-    const dt = new Date(date);
-    dt.setUTCHours(Number(m[1]), Number(m[2]), 0, 0);
-    return dt;
+    const combined = combineOperationalDateAndHm(date.toISOString().slice(0, 10), time, timeZone);
+    if (Number.isNaN(combined.getTime())) throw new BadRequestException('Invalid time');
+    return combined;
   }
 
   private resolveActualVisitTimes(
     day: Date,
     dto: RecordVisitPlanCalendarOutcomeDto,
+    timeZone: string,
   ): { actualStart?: Date; actualEnd?: Date } {
     let actualStart: Date | undefined;
     let actualEnd: Date | undefined;
 
     if (dto.actualStartTime) {
-      actualStart = this.combineDateAndTime(day, dto.actualStartTime);
+      actualStart = this.combineDateAndTime(day, dto.actualStartTime, timeZone);
     } else if (dto.status === ScheduledVisitStatus.STARTED) {
       actualStart = new Date();
     }
 
     if (dto.actualEndTime) {
-      actualEnd = this.combineDateAndTime(day, dto.actualEndTime);
+      actualEnd = this.combineDateAndTime(day, dto.actualEndTime, timeZone);
       if (actualStart && actualEnd.getTime() <= actualStart.getTime()) {
         actualEnd = new Date(actualEnd.getTime() + 86400000);
       }
@@ -850,7 +857,7 @@ export class ServiceUserVisitPlansService {
       dto.actualEndTime &&
       !actualStart
     ) {
-      actualStart = this.combineDateAndTime(day, dto.actualStartTime);
+      actualStart = this.combineDateAndTime(day, dto.actualStartTime, timeZone);
     }
 
     return { actualStart, actualEnd };
@@ -1357,6 +1364,7 @@ export class ServiceUserVisitPlansService {
     }
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const preview = await previewGenerateScheduleFromPlan(this.prisma, {
       serviceUserId,
       planId,
@@ -1369,6 +1377,7 @@ export class ServiceUserVisitPlansService {
       planEffectiveTo: plan.effectiveTo,
       bankHolidayDates,
       absenceDays: new Set(),
+      timeZone,
     });
     return { data: preview };
   }
@@ -2143,6 +2152,7 @@ export class ServiceUserVisitPlansService {
     const planEffectiveTo = plan.effectiveTo;
 
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
 
     await this.prisma.$transaction(async (tx) => {
       let patternByEmployee = new Map<string, EmployeePatternContext>();
@@ -2210,6 +2220,7 @@ export class ServiceUserVisitPlansService {
 
           const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, planEffectiveTo, {
             extendBeforeEffectiveFromDays: extendBefore,
+            timeZone,
           });
           if (!occurrence) continue;
 
@@ -2577,7 +2588,10 @@ export class ServiceUserVisitPlansService {
 
     const day = this.parseDateOnly(dto.date, 'date');
     const scheduleAnchor = plan.effectiveFrom;
-    const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, plan.effectiveTo);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const occurrence = buildVisitPlanOccurrence(slot, day, scheduleAnchor, plan.effectiveTo, {
+      timeZone,
+    });
     if (!occurrence) {
       throw new BadRequestException('This visit is not scheduled on the selected date');
     }
@@ -2706,7 +2720,7 @@ export class ServiceUserVisitPlansService {
         }
       }
 
-      const { actualStart, actualEnd } = this.resolveActualVisitTimes(day, dto);
+      const { actualStart, actualEnd } = this.resolveActualVisitTimes(day, dto, timeZone);
 
       if (dto.status === ScheduledVisitStatus.COMPLETED) {
         if (!dto.employeeId) {

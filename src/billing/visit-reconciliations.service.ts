@@ -45,8 +45,10 @@ import {
   listPayBlockingCodes,
   minutesBetween,
   isInvertedDateWindow,
+  isDurationShortfallWithinTolerance,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
+import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
 import {
   formatTimeHhMmSs,
   formatTimeHhMmSsOrZero,
@@ -185,6 +187,36 @@ export class VisitReconciliationsService {
 
   private client(tx?: Prisma.TransactionClient): DbClient {
     return tx ?? this.prisma;
+  }
+
+  /** Same hierarchy as punctuality: time-critical slot → late alert → global → 15. */
+  private async resolveDurationToleranceMinutes(
+    db: DbClient,
+    scheduledVisitId: string,
+  ): Promise<number> {
+    const [org, visit] = await Promise.all([
+      db.organisationGeneralSettings.findFirst({
+        select: {
+          domLateVisitAlertMinutes: true,
+          domGlobalToleranceMinutes: true,
+        },
+      }),
+      db.scheduledVisit.findUnique({
+        where: { id: scheduledVisitId },
+        select: {
+          visitPlanSlot: {
+            select: { timeCritical: true, timeToleranceMinutes: true },
+          },
+        },
+      }),
+    ]);
+
+    return resolveVisitDeliveryToleranceMinutes({
+      timeCritical: visit?.visitPlanSlot?.timeCritical,
+      timeToleranceMinutes: visit?.visitPlanSlot?.timeToleranceMinutes,
+      orgLateAlertMinutes: org?.domLateVisitAlertMinutes,
+      orgGlobalToleranceMinutes: org?.domGlobalToleranceMinutes,
+    });
   }
 
   async ensureForCompletedJob(
@@ -695,6 +727,10 @@ export class VisitReconciliationsService {
       actualStartDateTime: row.actualStartDateTime,
       actualEndDateTime: row.actualEndDateTime,
       exceptions,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
+        this.prisma,
+        row.scheduledVisitId,
+      ),
     });
 
     const approvedPayStart = row.approvedPayStart ?? defaults.approvedPayStart;
@@ -786,6 +822,10 @@ export class VisitReconciliationsService {
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
       overrunDecision: VisitOverrunDecision.APPROVED,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
+        this.prisma,
+        row.scheduledVisitId,
+      ),
     });
 
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
@@ -826,6 +866,10 @@ export class VisitReconciliationsService {
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
       overrunDecision: VisitOverrunDecision.REJECTED,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
+        this.prisma,
+        row.scheduledVisitId,
+      ),
     });
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
@@ -1291,6 +1335,11 @@ export class VisitReconciliationsService {
         : status;
 
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
+    // Early leave within org/slot tolerance → full planned pay + charge (flags unchanged).
+    const durationToleranceMinutes = await this.resolveDurationToleranceMinutes(
+      db,
+      row.scheduledVisitId,
+    );
     const defaultWindows = resolveDefaultApprovedWindows({
       plannedStartDateTime: row.plannedStartDateTime,
       plannedEndDateTime: row.plannedEndDateTime,
@@ -1300,16 +1349,28 @@ export class VisitReconciliationsService {
         ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
         : activeExceptions,
       overrunDecision,
+      durationToleranceMinutes,
     });
 
-    const approvedPayStart =
-      computedOverrun != null
-        ? defaultWindows.approvedPayStart
-        : (row.approvedPayStart ?? defaultWindows.approvedPayStart);
-    const approvedPayEnd =
-      computedOverrun != null
-        ? defaultWindows.approvedPayEnd
-        : (row.approvedPayEnd ?? defaultWindows.approvedPayEnd);
+    const plannedEndForTol =
+      row.plannedEndDateTime ??
+      new Date(row.plannedStartDateTime.getTime() + 30 * 60_000);
+    const withinDurationTolerance = isDurationShortfallWithinTolerance({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: plannedEndForTol,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      durationToleranceMinutes,
+    });
+
+    const forceDefaultWindows = computedOverrun != null || withinDurationTolerance;
+
+    const approvedPayStart = forceDefaultWindows
+      ? defaultWindows.approvedPayStart
+      : (row.approvedPayStart ?? defaultWindows.approvedPayStart);
+    const approvedPayEnd = forceDefaultWindows
+      ? defaultWindows.approvedPayEnd
+      : (row.approvedPayEnd ?? defaultWindows.approvedPayEnd);
 
     const orgChargeMode = await db.organisationGeneralSettings.findFirst({
       select: { multiCarerFunderChargeMode: true },
@@ -1360,6 +1421,7 @@ export class VisitReconciliationsService {
           ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
           : activeExceptions,
         overrunDecision,
+        durationToleranceMinutes,
       });
       approvedBillStart = visitBillWindows.approvedBillStart;
       approvedBillEnd = visitBillWindows.approvedBillEnd;
@@ -1369,11 +1431,11 @@ export class VisitReconciliationsService {
         row.approvedBillEnd,
       );
       approvedBillStart =
-        computedOverrun != null || storedBillInverted
+        forceDefaultWindows || storedBillInverted
           ? defaultWindows.approvedBillStart
           : (row.approvedBillStart ?? defaultWindows.approvedBillStart);
       approvedBillEnd =
-        computedOverrun != null || storedBillInverted
+        forceDefaultWindows || storedBillInverted
           ? defaultWindows.approvedBillEnd
           : (row.approvedBillEnd ?? defaultWindows.approvedBillEnd);
     }
@@ -1758,6 +1820,10 @@ export class VisitReconciliationsService {
       actualStartDateTime: row.actualStartDateTime,
       actualEndDateTime: row.actualEndDateTime,
       exceptions,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
+        this.prisma,
+        row.scheduledVisitId,
+      ),
     });
 
     const payStart = row.approvedPayStart ?? defaults.approvedPayStart;

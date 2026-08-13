@@ -5,11 +5,14 @@ import type {
   VisitTimelineTone,
   VisitTimelineUpsertInput,
 } from './visit-timeline.types';
-import { formatHmInTimeZone, formatHmUtc } from '../common/utils/operational-day.util';
+import {
+  formatHmInTimeZone,
+  formatHmUtc,
+} from '../common/utils/operational-day.util';
 
 const DETAIL_MAX = 280;
 
-/** Clock-face HH:mm for timeline — defaults to UTC to match admin. */
+/** Clock-face HH:mm for timeline — prefer org timezone when provided. */
 export function formatTimelineHm(d: Date, timeZone?: string): string {
   if (timeZone) return formatHmInTimeZone(d, timeZone);
   return formatHmUtc(d);
@@ -151,7 +154,10 @@ export function mapRowToTimelineApiItem(
   },
   timeZone?: string,
 ): VisitTimelineApiItem {
-  const time = row.timeLabel?.trim() || formatTimelineHm(row.occurredAt, timeZone);
+  /** Prefer org-TZ clock face from occurredAt when TZ known (ignore stale UTC-stored labels). */
+  const time = timeZone
+    ? formatTimelineHm(row.occurredAt, timeZone)
+    : row.timeLabel?.trim() || formatTimelineHm(row.occurredAt);
   const detail = row.detail ?? null;
   return {
     id: row.id,

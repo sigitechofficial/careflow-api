@@ -1507,6 +1507,14 @@ export class ScheduledJobsHousekeepingService {
       }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: job.id },
+        include: {
+          completedBy: {
+            select: {
+              id: true,
+              personalDetail: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
       }),
     ]);
 
@@ -1528,6 +1536,20 @@ export class ScheduledJobsHousekeepingService {
       return visitTaskMatchesDay(pickScheduleFromAssignment(assignment), visitDay, visitDay);
     });
 
+    const mapCompletedBy = (
+      completion: (typeof completions)[number] | undefined,
+    ): { completedById: string | null; completedByName: string | null } => {
+      if (!completion?.completedById) {
+        return { completedById: null, completedByName: null };
+      }
+      const pd = completion.completedBy?.personalDetail;
+      const name = [pd?.firstName, pd?.lastName].filter(Boolean).join(' ').trim();
+      return {
+        completedById: completion.completedById,
+        completedByName: name || null,
+      };
+    };
+
     const plannedTasks = dueAssignments.map((assignment) => {
       const completion = completionByAssignment.get(assignment.id);
       const flagsJson =
@@ -1543,6 +1565,8 @@ export class ScheduledJobsHousekeepingService {
         groupCode: assignment.task.category.group.code,
         flagsJson,
       });
+      const completedBy = mapCompletedBy(completion);
+      const priority = assignment.priority ?? 'routine';
       return {
         assignmentId: assignment.id,
         taskCatalogueTaskId: assignment.taskCatalogueTaskId,
@@ -1555,7 +1579,8 @@ export class ScheduledJobsHousekeepingService {
         requiresMultipleCarers: Boolean(assignment.task.requiresMultipleCarers),
         completionInput,
         carerInstructions: assignment.carerInstructions,
-        priority: assignment.priority,
+        priority,
+        isRequired: !['optional', 'low', 'nice_to_have'].includes(String(priority).toLowerCase()),
         flagsJson,
         isEmarPrompt: isEmarMedicationPromptTask({
           name: assignment.task.name,
@@ -1573,6 +1598,8 @@ export class ScheduledJobsHousekeepingService {
         recordedValue: completion?.recordedValue ?? null,
         notes: completion?.notes ?? null,
         completedAt: completion?.completedAt?.toISOString() ?? null,
+        completedById: completedBy.completedById,
+        completedByName: completedBy.completedByName,
       };
     });
 
@@ -1603,6 +1630,7 @@ export class ScheduledJobsHousekeepingService {
           groupCode: task.category.group.code,
           flagsJson,
         });
+        const completedBy = mapCompletedBy(completion);
         return {
           assignmentId: `extra-${completion.taskCatalogueTaskId}`,
           taskCatalogueTaskId: completion.taskCatalogueTaskId,
@@ -1615,6 +1643,7 @@ export class ScheduledJobsHousekeepingService {
           completionInput,
           carerInstructions: null,
           priority: 'routine',
+          isRequired: true,
           flagsJson,
           observationTypeCode: obsLink?.observationTypeCode ?? null,
           linkedTypeCode: obsLink?.linkedTypeCode ?? null,
@@ -1628,6 +1657,8 @@ export class ScheduledJobsHousekeepingService {
           recordedValue: completion.recordedValue ?? null,
           notes: completion.notes ?? null,
           completedAt: completion.completedAt?.toISOString() ?? null,
+          completedById: completedBy.completedById,
+          completedByName: completedBy.completedByName,
         };
       })
       .filter((row): row is NonNullable<typeof row> => row != null);

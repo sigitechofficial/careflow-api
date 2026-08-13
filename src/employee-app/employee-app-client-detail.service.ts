@@ -13,7 +13,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
-  formatHmUtc,
+  formatHmInTimeZone,
   hourInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -184,9 +184,9 @@ export class EmployeeAppClientDetailService {
         jobId: job.id,
         title,
         iconType: iconForPeriod(title),
-        scheduledStart: formatHmUtc(startAt),
+        scheduledStart: formatHmInTimeZone(startAt, timeZone),
         scheduledEnd: visit?.scheduledEndDateTime
-          ? formatHmUtc(visit.scheduledEndDateTime)
+          ? formatHmInTimeZone(visit.scheduledEndDateTime, timeZone)
           : null,
         tasksDone: progress.completed,
         tasksTotal: progress.total,

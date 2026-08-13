@@ -1,5 +1,6 @@
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
+  combineOperationalDateAndHm,
   dayKeyInTimeZone,
   formatHmInTimeZone,
   operationalTodayIso,
@@ -33,5 +34,17 @@ describe('formatHmInTimeZone', () => {
     expect(formatHmInTimeZone(new Date('2026-07-15T14:30:00.000Z'), 'Europe/London')).toBe(
       '15:30',
     );
+  });
+});
+
+describe('combineOperationalDateAndHm', () => {
+  it('stores London BST 07:00 as 06:00Z', () => {
+    const instant = combineOperationalDateAndHm('2026-06-18', '07:00', 'Europe/London');
+    expect(instant.toISOString()).toBe('2026-06-18T06:00:00.000Z');
+  });
+
+  it('stores London winter GMT 07:00 as 07:00Z', () => {
+    const instant = combineOperationalDateAndHm('2026-01-15', '07:00', 'Europe/London');
+    expect(instant.toISOString()).toBe('2026-01-15T07:00:00.000Z');
   });
 });
