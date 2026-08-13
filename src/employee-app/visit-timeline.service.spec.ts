@@ -1,6 +1,5 @@
 import { VisitTimelineService } from './visit-timeline.service';
 import type { PrismaService } from '../prisma/prisma.service';
-import type { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 
 describe('VisitTimelineService', () => {
   const upsert = jest.fn();
@@ -8,11 +7,8 @@ describe('VisitTimelineService', () => {
   const prisma = {
     visitTimelineEvent: { upsert, findMany },
   } as unknown as PrismaService;
-  const orgSettings = {
-    getOperationalTimezone: jest.fn().mockResolvedValue('Europe/London'),
-  } as unknown as OrganisationGeneralSettingsService;
 
-  const service = new VisitTimelineService(prisma, orgSettings);
+  const service = new VisitTimelineService(prisma);
 
   beforeEach(() => {
     upsert.mockReset();

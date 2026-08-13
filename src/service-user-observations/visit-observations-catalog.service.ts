@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
-import { formatHmInTimeZone } from '../common/utils/operational-day.util';
+import { formatHmUtc } from '../common/utils/operational-day.util';
 import {
   EMPLOYEE_APP_UNABLE_REASONS,
   OBS_TYPE_CODE_ALIASES,
@@ -139,18 +138,15 @@ function statusToneFor(status: string | null, payload: Record<string, unknown>):
   return 'neutral';
 }
 
-function mapObservationRow(
-  row: {
-    id: string;
-    notes: string | null;
-    unit: string | null;
-    recordedAt: Date;
-    numericValue: Prisma.Decimal | number | null;
-    payload: Prisma.JsonValue | null;
-    observationType: { code: string; name: string; unitLabel: string | null };
-  },
-  timeZone: string,
-): VisitObservationRecordedRow {
+function mapObservationRow(row: {
+  id: string;
+  notes: string | null;
+  unit: string | null;
+  recordedAt: Date;
+  numericValue: Prisma.Decimal | number | null;
+  payload: Prisma.JsonValue | null;
+  observationType: { code: string; name: string; unitLabel: string | null };
+}): VisitObservationRecordedRow {
   const typeCode = mobileTypeCode(row.observationType.code);
   const payload = readPayload(row.payload);
   const outcomeRaw = typeof payload.outcome === 'string' ? payload.outcome : 'recorded';
@@ -172,8 +168,8 @@ function mapObservationRow(
       : row.recordedAt.toISOString();
   const recordedAtDate = new Date(deviceRecordedAt);
   const clock = Number.isNaN(recordedAtDate.getTime())
-    ? formatHmInTimeZone(row.recordedAt, timeZone)
-    : formatHmInTimeZone(recordedAtDate, timeZone);
+    ? formatHmUtc(row.recordedAt)
+    : formatHmUtc(recordedAtDate);
   const bodyMapPins = extractBodyMapPinsFromPayload(row.payload) ?? undefined;
   const definitionId =
     (typeof payload.definitionId === 'string' && payload.definitionId.trim()) || typeCode;
@@ -255,10 +251,7 @@ function mergeRecordingIntoDefinition(
  */
 @Injectable()
 export class VisitObservationsCatalogService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly orgSettings: OrganisationGeneralSettingsService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async buildCatalogPayload(serviceUserId: string) {
     const [types, vitalRanges, wellbeingDimensions, previousByType] = await Promise.all([
@@ -494,7 +487,6 @@ export class VisitObservationsCatalogService {
     since: Date,
     scheduledJobId?: string,
   ): Promise<VisitObservationRecordedRow[]> {
-    const timeZone = await this.orgSettings.getOperationalTimezone();
     const rows = await this.prisma.serviceUserObservation.findMany({
       where: {
         serviceUserId,
@@ -511,7 +503,7 @@ export class VisitObservationsCatalogService {
         (row) =>
           !scheduledJobId || observationPayloadMatchesJob(row.payload, scheduledJobId),
       )
-      .map((row) => mapObservationRow(row, timeZone));
+      .map((row) => mapObservationRow(row));
   }
 
   async buildVisitObservationsPayload(input: {

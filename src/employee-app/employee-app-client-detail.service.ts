@@ -13,7 +13,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
-  formatHmInTimeZone,
+  formatHmUtc,
   hourInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -177,7 +177,6 @@ export class EmployeeAppClientDetailService {
         visit?.visitName ?? job.jobName,
         visit?.visitPlanSlot ?? null,
         startAt,
-        timeZone,
       );
       const progress = taskProgress.get(job.id) ?? { completed: 0, total: 0 };
       return {
@@ -185,9 +184,9 @@ export class EmployeeAppClientDetailService {
         jobId: job.id,
         title,
         iconType: iconForPeriod(title),
-        scheduledStart: formatHmInTimeZone(startAt, timeZone),
+        scheduledStart: formatHmUtc(startAt),
         scheduledEnd: visit?.scheduledEndDateTime
-          ? formatHmInTimeZone(visit.scheduledEndDateTime, timeZone)
+          ? formatHmUtc(visit.scheduledEndDateTime)
           : null,
         tasksDone: progress.completed,
         tasksTotal: progress.total,
@@ -1072,7 +1071,6 @@ function periodTitle(
   visitName: string | null,
   slot: { slotCode: string; medicationRoundCode: string | null } | null,
   startAt: Date,
-  timeZone: string,
 ): string {
   const code = (slot?.medicationRoundCode ?? slot?.slotCode ?? '').toUpperCase();
   if (code.includes('MORNING') || code === 'AM') return 'Morning visit';
@@ -1084,7 +1082,7 @@ function periodTitle(
   if (name.includes('lunch')) return 'Lunch visit';
   if (name.includes('tea')) return 'Tea visit';
   if (name.includes('bed')) return 'Bedtime visit';
-  const h = hourInTimeZone(startAt, timeZone);
+  const h = hourInTimeZone(startAt, 'UTC');
   if (h < 11) return 'Morning visit';
   if (h < 14) return 'Lunch visit';
   if (h < 18) return 'Tea visit';

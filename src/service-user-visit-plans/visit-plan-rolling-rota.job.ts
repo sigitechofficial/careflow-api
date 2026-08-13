@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { VisitPlanBulkScheduleService } from './visit-plan-bulk-schedule.service';
 import {
   clampAutoExtendRotaRunHour,
   clampRotaHorizonDays,
   currentHourInTimeZone,
-  londonTodayIsoDate,
+  operationalRotaTodayIsoDate,
   resolveRollingRotaDayToGenerate,
-  ROTA_ROLLING_TIMEZONE,
 } from './visit-plan-rolling-rota.util';
 
 @Injectable()
@@ -18,10 +18,11 @@ export class VisitPlanRollingRotaJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bulkSchedule: VisitPlanBulkScheduleService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
-  /** Hourly check; runs bulk extend once per day at the configured London hour. */
-  @Cron('0 * * * *', { timeZone: ROTA_ROLLING_TIMEZONE })
+  /** Hourly UTC tick; runs bulk extend once per day at the configured org-timezone hour. */
+  @Cron('0 * * * *')
   async handleRollingRotaExtension(): Promise<void> {
     const settings = await this.prisma.organisationGeneralSettings.findFirst({
       orderBy: { updatedAt: 'desc' },
@@ -33,9 +34,10 @@ export class VisitPlanRollingRotaJob {
     });
     if (!settings?.domAutoExtendRotaEnabled) return;
 
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const now = new Date();
     const runHour = clampAutoExtendRotaRunHour(settings.domAutoExtendRotaRunHour);
-    const currentHour = currentHourInTimeZone(now, ROTA_ROLLING_TIMEZONE);
+    const currentHour = currentHourInTimeZone(now, timeZone);
     if (currentHour !== runHour) return;
 
     const systemUser = await this.prisma.user.findFirst({
@@ -48,7 +50,7 @@ export class VisitPlanRollingRotaJob {
       return;
     }
 
-    const today = londonTodayIsoDate(now);
+    const today = operationalRotaTodayIsoDate(now, timeZone);
     const horizonDays = clampRotaHorizonDays(settings.domRotaHorizonDays);
     const dayToGenerate = resolveRollingRotaDayToGenerate(today, horizonDays);
 
@@ -61,7 +63,7 @@ export class VisitPlanRollingRotaJob {
 
       const totals = response.data.totals;
       this.logger.log(
-        `Rolling rota extended ${dayToGenerate} (horizon ${horizonDays}d): ` +
+        `Rolling rota extended ${dayToGenerate} (horizon ${horizonDays}d, tz ${timeZone}): ` +
           `${totals.visitsCreated} created, ${totals.visitsSkipped} skipped, ` +
           `${totals.succeeded} plans ok, ${totals.failed} failed, ${totals.skipped} skipped plans`,
       );

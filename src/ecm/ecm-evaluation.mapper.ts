@@ -194,7 +194,7 @@ export function localVisitDateFromStart(
   plannedStart: Date,
   _timezone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): Date {
-  // Store as UTC midnight of the calendar day in Europe/London via Intl when possible.
+  // Store as UTC midnight of the organisation operational calendar day via Intl when possible.
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
       timeZone: _timezone,

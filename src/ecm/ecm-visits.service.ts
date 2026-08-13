@@ -17,12 +17,15 @@ import type { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
 import { localVisitDateFromStart } from './ecm-evaluation.mapper';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import {
-  DEFAULT_OPERATIONAL_TIMEZONE,
   addDaysToOperationalIso,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 
-function resolveLiveDateRange(query: EcmLiveDashboardQueryDto): {
+function resolveLiveDateRange(
+  query: EcmLiveDashboardQueryDto,
+  timeZone: string,
+): {
   dateFrom: string;
   dateTo: string;
 } {
@@ -33,14 +36,12 @@ function resolveLiveDateRange(query: EcmLiveDashboardQueryDto): {
       ? { dateFrom, dateTo }
       : { dateFrom: dateTo, dateTo: dateFrom };
   }
-  const day = (query.date ?? operationalTodayIso()).slice(0, 10);
+  const day = (query.date ?? operationalTodayIso(new Date(), timeZone)).slice(0, 10);
   return { dateFrom: day, dateTo: day };
 }
 
-function plannedOperationalDayKey(plannedStart: Date): string {
-  return formatScheduleDate(
-    localVisitDateFromStart(plannedStart, DEFAULT_OPERATIONAL_TIMEZONE),
-  );
+function plannedOperationalDayKey(plannedStart: Date, timeZone: string): string {
+  return formatScheduleDate(localVisitDateFromStart(plannedStart, timeZone));
 }
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
@@ -187,15 +188,17 @@ export class EcmVisitsService {
     private readonly evaluation: EcmEvaluationService,
     private readonly scheduleVersions: EcmScheduleVersionService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async getLiveDashboard(query: EcmLiveDashboardQueryDto) {
-    const { dateFrom, dateTo } = resolveLiveDateRange(query);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { dateFrom, dateTo } = resolveLiveDateRange(query, timeZone);
     const singleDay = dateFrom === dateTo;
     const date = singleDay ? dateFrom : dateTo;
     const pageLimit = query.limit ?? 150;
     const now = new Date();
-    const operationalToday = operationalTodayIso(now);
+    const operationalToday = operationalTodayIso(now, timeZone);
     const windows = await this.thresholdLookups.getDashboardWindows();
     const soonMs = windows.startingSoonMinutes * 60_000;
     const dueWindowMs = windows.dueNowWindowMinutes * 60_000;
@@ -262,6 +265,7 @@ export class EcmVisitsService {
         scheduleAreaId: query.scheduleAreaId,
         serviceUserId: query.serviceUserId,
         locationId: query.locationId,
+        timeZone,
       });
     }
 
@@ -515,7 +519,7 @@ export class EcmVisitsService {
         dateFrom,
         dateTo,
         operationalToday,
-        operationalTimezone: DEFAULT_OPERATIONAL_TIMEZONE,
+        operationalTimezone: timeZone,
         refreshedAt: now.toISOString(),
         windows,
         counts,
@@ -540,7 +544,7 @@ export class EcmVisitsService {
   }
 
   /**
-   * Ensure every active scheduled job in [dateFrom, dateTo] (Europe/London day)
+   * Ensure every active scheduled job in [dateFrom, dateTo] (organisation ops day)
    * has an ECM evaluation row. Period filters must not silently omit days.
    */
   private async ensureEvaluationsForDateRange(params: {
@@ -552,6 +556,7 @@ export class EcmVisitsService {
     scheduleAreaId?: string;
     serviceUserId?: string;
     locationId?: string;
+    timeZone?: string;
   }): Promise<void> {
     const padStart = new Date(`${params.dateFrom}T00:00:00.000Z`);
     padStart.setUTCDate(padStart.getUTCDate() - 1);
@@ -582,10 +587,11 @@ export class EcmVisitsService {
       },
     });
 
+    const timeZone = params.timeZone ?? (await this.orgSettings.getOperationalTimezone());
     const jobsInPeriod = candidateJobs.filter((job) => {
       const plannedStart =
         job.visits[0]?.scheduledStartDateTime ?? job.scheduledStartDateTime;
-      const day = plannedOperationalDayKey(plannedStart);
+      const day = plannedOperationalDayKey(plannedStart, timeZone);
       return day >= params.dateFrom && day <= params.dateTo;
     });
     if (jobsInPeriod.length === 0) return;

@@ -5,12 +5,14 @@ import type {
   VisitTimelineTone,
   VisitTimelineUpsertInput,
 } from './visit-timeline.types';
-import { formatHmInTimeZone } from '../common/utils/operational-day.util';
+import { formatHmInTimeZone, formatHmUtc } from '../common/utils/operational-day.util';
 
 const DETAIL_MAX = 280;
 
+/** Clock-face HH:mm for timeline — defaults to UTC to match admin. */
 export function formatTimelineHm(d: Date, timeZone?: string): string {
-  return formatHmInTimeZone(d, timeZone);
+  if (timeZone) return formatHmInTimeZone(d, timeZone);
+  return formatHmUtc(d);
 }
 
 export function summarizeTimelineDetail(value: string | null | undefined): string | null {

@@ -8,10 +8,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  DEFAULT_OPERATIONAL_TIMEZONE,
-  operationalTodayIso,
-} from '../common/utils/operational-day.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import {
@@ -32,7 +30,7 @@ type DrillVisit = {
   jobName: string;
   serviceUserName: string;
   plannedStartDateTime: string;
-  /** Operational calendar day YYYY-MM-DD (Europe/London). */
+  /** Operational calendar day YYYY-MM-DD (organisation timezone). */
   localVisitDate: string;
   hourKey: string;
   statusKey: string;
@@ -127,11 +125,8 @@ function eachDateInclusive(from: string, to: string): string[] {
   return out;
 }
 
-/** Planned-start hour in operational TZ (Europe/London), not raw UTC. */
-function hourKeyInOperationalTz(
-  d: Date,
-  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
-): string {
+/** Planned-start hour in organisation operational TZ, not raw UTC. */
+function hourKeyInOperationalTz(d: Date, timeZone: string): string {
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
       timeZone,
@@ -303,10 +298,14 @@ function pct(numerator: number, denominator: number): number {
 
 @Injectable()
 export class EcmGraphAnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async graphDashboard(query: EcmGraphDashboardQuery) {
-    const dateTo = query.dateTo ?? operationalTodayIso();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const dateTo = query.dateTo ?? operationalTodayIso(new Date(), timeZone);
     const dateFrom = query.dateFrom ?? addDaysIso(dateTo, -6);
     const dates = eachDateInclusive(dateFrom, dateTo);
     const fromDate = parseIsoDate(dateFrom);
@@ -478,7 +477,7 @@ export class EcmGraphAnalyticsService {
 
     for (const row of rows) {
       const localIso = formatScheduleDate(row.localVisitDate);
-      const hour = hourKeyInOperationalTz(row.plannedStartDateTime);
+      const hour = hourKeyInOperationalTz(row.plannedStartDateTime, timeZone);
       const hourIdx = Number(hour);
       const sk = statusKey(row);
       if (hourIdx >= 0 && hourIdx < 24 && sk in visitStatusByHour) {

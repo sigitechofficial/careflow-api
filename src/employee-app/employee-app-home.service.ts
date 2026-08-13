@@ -9,7 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
-  formatHmInTimeZone,
+  formatHmUtc,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
@@ -154,8 +154,8 @@ export class EmployeeAppHomeService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
-      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
+      const scheduledStart = formatHmUtc(startAt);
+      const scheduledEnd = formatHmUtc(endAt);
       // UTC ISO must match Visit Details `shell.visitWindow.scheduled*Iso` (primary visit).
       const scheduledStartIso = primaryVisit?.scheduledStartDateTime?.toISOString() ?? null;
       const scheduledEndIso = primaryVisit?.scheduledEndDateTime?.toISOString() ?? null;

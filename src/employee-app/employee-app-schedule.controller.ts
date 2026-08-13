@@ -12,13 +12,14 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { EmployeeVisitsService } from '../employees/employee-visits.service';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppScheduleService } from './employee-app-schedule.service';
 
 class EmployeeAppScheduleQueryDto {
   @ApiPropertyOptional({
     description:
-      'Selected schedule day (YYYY-MM-DD). Defaults to operational today (Europe/London).',
+      'Selected schedule day (YYYY-MM-DD). Defaults to operational today (organisation timezone).',
     example: '2026-06-30',
   })
   @IsOptional()
@@ -85,6 +86,7 @@ export class EmployeeAppScheduleController {
   constructor(
     private readonly scheduleService: EmployeeAppScheduleService,
     private readonly employeeVisitsService: EmployeeVisitsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   @Get('schedule')
@@ -120,7 +122,10 @@ export class EmployeeAppScheduleController {
       dateTo: query.dateTo,
     });
 
-    const result = await this.employeeVisitsService.getVisitsInRange(user.employeeId!, resolved);
+    const [result, timeZone] = await Promise.all([
+      this.employeeVisitsService.getVisitsInRange(user.employeeId!, resolved),
+      this.orgSettings.getOperationalTimezone(),
+    ]);
 
     return {
       data: {
@@ -131,7 +136,8 @@ export class EmployeeAppScheduleController {
         dateFrom: result.data.dateFrom,
         dateTo: result.data.dateTo,
         generatedAt: new Date().toISOString(),
-        asOfDate: operationalTodayIso(),
+        asOfDate: operationalTodayIso(new Date(), timeZone),
+        organisationTimezone: timeZone,
         summary: result.data.summary,
         visits: result.data.visits.map((visit) => {
           const { job: _job, ...rest } = visit;

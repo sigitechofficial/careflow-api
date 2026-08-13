@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   dayKeyInTimeZone,
-  formatHmInTimeZone,
+  formatHmUtc,
   hourInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -146,8 +146,8 @@ export class EmployeeAppScheduleService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
-      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
+      const scheduledStart = formatHmUtc(startAt);
+      const scheduledEnd = formatHmUtc(endAt);
       const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
       const periodLabel = resolvePeriodLabel({
         visitName: primaryVisit?.visitName ?? job.jobName,
@@ -155,7 +155,6 @@ export class EmployeeAppScheduleService {
         roundCode: primaryVisit?.visitPlanSlot?.medicationRoundCode ?? null,
         startAt,
         careTypeName: su.careType?.name ?? null,
-        timeZone,
       });
       const requiredCarers = Math.max(
         primaryVisit?.requiredCarers ?? 1,
@@ -394,7 +393,6 @@ function resolvePeriodLabel(input: {
   roundCode: string | null;
   startAt: Date;
   careTypeName: string | null;
-  timeZone: string;
 }): string {
   const code = (input.roundCode ?? input.slotCode ?? '').trim().toUpperCase();
   if (code === 'MORNING' || code === 'AM') return 'Morning';
@@ -421,7 +419,7 @@ function resolvePeriodLabel(input: {
     return shortenVisitType(input.careTypeName.trim());
   }
 
-  const hour = hourInTimeZone(input.startAt, input.timeZone);
+  const hour = hourInTimeZone(input.startAt, 'UTC');
   if (hour < 11) return 'Morning';
   if (hour < 14) return 'Lunch';
   if (hour < 17) return 'Afternoon';

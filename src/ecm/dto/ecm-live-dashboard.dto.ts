@@ -26,7 +26,7 @@ export class EcmLiveDashboardQueryDto {
   date?: string;
 
   @ApiPropertyOptional({
-    description: 'Inclusive operational-day range start (YYYY-MM-DD, Europe/London calendar)',
+    description: 'Inclusive operational-day range start (YYYY-MM-DD, organisation timezone calendar)',
   })
   @IsOptional()
   @IsDateString()

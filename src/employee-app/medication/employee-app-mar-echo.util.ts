@@ -1,4 +1,4 @@
-import { formatHmInTimeZone } from '../../common/utils/operational-day.util';
+import { formatHmUtc } from '../../common/utils/operational-day.util';
 import { MedicationAdministrationStatus } from '@prisma/client';
 
 export type MarAdminEventEchoSource = {
@@ -91,12 +91,11 @@ export function echoMarOutcomeLabel(
 
 function formatHmFromDate(
   value: Date | string | null | undefined,
-  timeZone?: string,
 ): string | null {
   if (!value) return null;
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return null;
-  return formatHmInTimeZone(d, timeZone);
+  return formatHmUtc(d);
 }
 
 function isoFromDate(value: Date | string | null | undefined): string | null {
@@ -150,7 +149,7 @@ export function parseLegacyMarNotes(notes: string | null | undefined): {
 
 export function buildMarAdminEchoFields(
   evt: MarAdminEventEchoSource,
-  timeZone?: string,
+  _timeZone?: string,
 ): MarAdminEchoFields {
   const legacy = parseLegacyMarNotes(evt.notes);
   const outcomeCode = echoMarOutcomeCode(evt.statusCode, evt.status);
@@ -170,7 +169,7 @@ export function buildMarAdminEchoFields(
   const administeredAt = isoFromDate(evt.actualDateTime);
   const timeGiven =
     evt.timeGiven?.trim() ||
-    formatHmFromDate(evt.actualDateTime, timeZone);
+    formatHmFromDate(evt.actualDateTime);
 
   return {
     administrationEventId: evt.id,

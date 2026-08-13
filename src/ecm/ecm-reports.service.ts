@@ -7,10 +7,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  DEFAULT_OPERATIONAL_TIMEZONE,
-  operationalTodayIso,
-} from '../common/utils/operational-day.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 
@@ -109,10 +107,14 @@ function buildExceptionReasons(row: EvaluationRow): string[] {
 
 @Injectable()
 export class EcmReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async dailyOperations(query: EcmReportsQuery) {
-    const dateFrom = (query.dateFrom ?? operationalTodayIso()).slice(0, 10);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const dateFrom = (query.dateFrom ?? operationalTodayIso(new Date(), timeZone)).slice(0, 10);
     const dateTo = (query.dateTo ?? dateFrom).slice(0, 10);
     const from = dateFrom <= dateTo ? dateFrom : dateTo;
     const to = dateFrom <= dateTo ? dateTo : dateFrom;
@@ -309,7 +311,7 @@ export class EcmReportsService {
         dateFrom: from,
         dateTo: to,
         refreshedAt: new Date().toISOString(),
-        operationalTimezone: DEFAULT_OPERATIONAL_TIMEZONE,
+        operationalTimezone: timeZone,
         thresholdVersion:
           rows.find((r) => r.thresholdRuleVersion)?.thresholdRuleVersion ?? 'platform-default',
         definitions: {
@@ -319,7 +321,7 @@ export class EcmReportsService {
             'Visits without MANUAL_ATTENDANCE (admin-completed) ÷ total evaluations in period.',
           exceptionRegister:
             'Evaluations with a non-compliant arrival/duration/missed classification or any operational exception code.',
-          opsDay: `Operational calendar day in ${DEFAULT_OPERATIONAL_TIMEZONE}.`,
+          opsDay: `Operational calendar day in ${timeZone}.`,
         },
         kpis: {
           punctuality: {

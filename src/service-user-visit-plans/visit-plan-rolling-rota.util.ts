@@ -5,7 +5,7 @@ import {
 
 export type RotaHorizonMode = 'FIXED_DAYS' | 'CALENDAR_MONTH';
 
-/** @deprecated Prefer DEFAULT_OPERATIONAL_TIMEZONE — same value in P0. */
+/** @deprecated Prefer DEFAULT_OPERATIONAL_TIMEZONE — fallback only. */
 export const ROTA_ROLLING_TIMEZONE = DEFAULT_OPERATIONAL_TIMEZONE;
 
 export const DEFAULT_ROTA_HORIZON_DAYS = 28;
@@ -54,8 +54,16 @@ export function endOfMonthIsoDate(isoDate: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+export function operationalRotaTodayIsoDate(
+  now = new Date(),
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  return operationalTodayIso(now, timeZone);
+}
+
+/** @deprecated Prefer operationalRotaTodayIsoDate(now, orgTimezone). */
 export function londonTodayIsoDate(now = new Date()): string {
-  return operationalTodayIso(now, ROTA_ROLLING_TIMEZONE);
+  return operationalRotaTodayIsoDate(now, ROTA_ROLLING_TIMEZONE);
 }
 
 /** Day at the far edge of the rolling window (today + horizonDays). */

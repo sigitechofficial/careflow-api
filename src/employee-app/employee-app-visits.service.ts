@@ -41,7 +41,7 @@ import {
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   dayKeyInTimeZone,
-  formatHmInTimeZone,
+  formatHmUtc,
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
@@ -523,7 +523,7 @@ export class EmployeeAppVisitsService {
         visitId: visit.id,
         isCheckedIn: true,
         checkedInAt: now.toISOString(),
-        checkedInLabel: formatHmInTimeZone(now, refreshed.timeZone),
+        checkedInLabel: formatHmUtc(now),
         method: dto.method ?? 'GPS',
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
@@ -619,7 +619,7 @@ export class EmployeeAppVisitsService {
         outcome,
         completedAt,
         completedLabel: completedAt
-          ? `Completed · ${formatHmInTimeZone(new Date(completedAt), ctx.timeZone)}`
+          ? `Completed · ${formatHmUtc(new Date(completedAt))}`
           : null,
         recordedValue: task.recordedValue ?? null,
         notes: task.notes ?? null,
@@ -2127,7 +2127,7 @@ export class EmployeeAppVisitsService {
       validationError('deviceRecordedAt must be a valid ISO date-time');
     }
     const timeGiven =
-      dto.timeGiven?.trim() || formatHmInTimeZone(recordedAt, ctx.timeZone);
+      dto.timeGiven?.trim() || formatHmUtc(recordedAt);
     const roundRow = ctx.medicationRoundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
@@ -3040,17 +3040,17 @@ export class EmployeeAppVisitsService {
         planned: {
           startIso: visit.scheduledStartDateTime.toISOString(),
           endIso: plannedEnd?.toISOString() ?? null,
-          startLabel: formatHmInTimeZone(visit.scheduledStartDateTime, ctx.timeZone),
-          endLabel: plannedEnd ? formatHmInTimeZone(plannedEnd, ctx.timeZone) : null,
+          startLabel: formatHmUtc(visit.scheduledStartDateTime),
+          endLabel: plannedEnd ? formatHmUtc(plannedEnd) : null,
         },
         actual: {
           startIso: visit.actualStartDateTime?.toISOString() ?? null,
           endIso: visit.actualEndDateTime?.toISOString() ?? null,
           startLabel: visit.actualStartDateTime
-            ? formatHmInTimeZone(visit.actualStartDateTime, ctx.timeZone)
+            ? formatHmUtc(visit.actualStartDateTime)
             : null,
           endLabel: visit.actualEndDateTime
-            ? formatHmInTimeZone(visit.actualEndDateTime, ctx.timeZone)
+            ? formatHmUtc(visit.actualEndDateTime)
             : null,
         },
         checklist,
@@ -3226,8 +3226,8 @@ export class EmployeeAppVisitsService {
         estimatedDurationMinutes: ctx.job.estimatedDurationMinutes,
       },
     );
-    const scheduledStart = formatHmInTimeZone(resolved.start, ctx.timeZone);
-    const scheduledEnd = formatHmInTimeZone(resolved.end, ctx.timeZone);
+    const scheduledStart = formatHmUtc(resolved.start);
+    const scheduledEnd = formatHmUtc(resolved.end);
     const checkedInAt =
       (multiCarerVisit
         ? myAllocation?.actualStartDateTime
@@ -3308,7 +3308,7 @@ export class EmployeeAppVisitsService {
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
       isCheckedIn,
       checkedInAt: checkedInAt?.toISOString() ?? null,
-      checkedInLabel: checkedInAt ? `In ${formatHmInTimeZone(checkedInAt, ctx.timeZone)}` : null,
+      checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
       progress: this.buildProgress(progress, medProgress),
       location: buildShellLocation({
         latitude: destinationLatitude,

@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmVisitsService } from './ecm-visits.service';
 import { EcmVisitsController } from './ecm-visits.controller';
@@ -24,6 +25,7 @@ import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
     PrismaModule,
     VisitAttendanceModule,
     ScheduleModule,
+    OrganisationGeneralSettingsModule,
     forwardRef(() => NotificationsModule),
   ],
   controllers: [EcmVisitsController],

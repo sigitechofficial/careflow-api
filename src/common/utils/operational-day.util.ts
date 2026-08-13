@@ -49,6 +49,14 @@ export function formatHmInTimeZone(
   return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
 }
 
+/**
+ * UTC clock-face HH:mm — matches admin schedule display (`utc: true`).
+ * Employee-app sends these on visit cards; Flutter converts ISO via organisationTimezone.
+ */
+export function formatHmUtc(instant: Date): string {
+  return formatHmInTimeZone(instant, 'UTC');
+}
+
 /** Hour (0–23) of an instant in the operational timezone. */
 export function hourInTimeZone(
   instant: Date,
