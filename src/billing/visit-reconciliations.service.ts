@@ -13,6 +13,7 @@ import {
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
 import {
@@ -179,6 +180,7 @@ export class VisitReconciliationsService {
     private readonly prisma: PrismaService,
     private readonly payCardsService: PayCardsService,
     private readonly chargeCardsService: ChargeCardsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   private client(tx?: Prisma.TransactionClient): DbClient {
@@ -1636,6 +1638,7 @@ export class VisitReconciliationsService {
   }
 
   private async enrichRows(rows: ReconciliationRow[]): Promise<VisitReconciliationListRow[]> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const suIds = [...new Set(rows.map((r) => r.serviceUserId))];
     const empIds = [...new Set(rows.map((r) => r.employeeId).filter(Boolean))] as string[];
 
@@ -1699,11 +1702,11 @@ export class VisitReconciliationsService {
         serviceUserName: su ? formatPersonName(su) : 'Unknown',
         employeeId: row.employeeId,
         carerName: row.employeeId ? (empMap.get(row.employeeId) ?? null) : null,
-        date: formatDateOnly(row.plannedStartDateTime),
-        planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime),
-        actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime),
-        approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd),
-        approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd),
+        date: formatDateOnly(row.plannedStartDateTime, timeZone),
+        planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
+        actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
+        approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd, timeZone),
+        approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd, timeZone),
         payableAmount:
           row.payableAmount != null ? `£${Number(row.payableAmount).toFixed(2)}` : null,
         billableAmount:
@@ -1726,17 +1729,17 @@ export class VisitReconciliationsService {
         clientSecondName: su?.lastName ?? '',
         clientAddress,
         clientPostCode: su?.address?.postcode?.trim() || '',
-        visitDate: formatVisitDateMmDdYy(row.plannedStartDateTime),
+        visitDate: formatVisitDateMmDdYy(row.plannedStartDateTime, timeZone),
         careType: resolveCareTypeExportCode(su?.careType?.code),
-        plannedArrival: formatTimeHhMmSs(row.plannedStartDateTime),
-        plannedDeparture: formatTimeHhMmSsOrZero(row.plannedEndDateTime),
+        plannedArrival: formatTimeHhMmSs(row.plannedStartDateTime, timeZone),
+        plannedDeparture: formatTimeHhMmSsOrZero(row.plannedEndDateTime, timeZone),
         actualArrival:
           emonitored === 'LOGGED'
-            ? formatTimeHhMmSs(row.actualStartDateTime!)
+            ? formatTimeHhMmSs(row.actualStartDateTime!, timeZone)
             : '00:00:00',
         actualDeparture:
           emonitored === 'LOGGED'
-            ? formatTimeHhMmSs(row.actualEndDateTime!)
+            ? formatTimeHhMmSs(row.actualEndDateTime!, timeZone)
             : '00:00:00',
         createdAt: row.createdAt.toISOString(),
       };
@@ -1744,6 +1747,7 @@ export class VisitReconciliationsService {
   }
 
   private async buildCalculationPreview(row: ReconciliationRow) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const exceptions = row.exceptions
       .filter((e) => !e.resolvedAt)
       .map((e) => ({ code: e.code, message: e.message ?? '' }));
@@ -1860,12 +1864,12 @@ export class VisitReconciliationsService {
       isFunderBillingRow,
       funderChargeNote,
       timeWindows: {
-        planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime),
-        actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime),
-        approvedPayable: formatTimeRange(payStart, payEnd),
+        planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
+        actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
+        approvedPayable: formatTimeRange(payStart, payEnd, timeZone),
         approvedBillable:
           billStart && billEnd && billMinutes > 0
-            ? formatTimeRange(billStart, billEnd)
+            ? formatTimeRange(billStart, billEnd, timeZone)
             : '— (not charged)',
       },
       carerPay,

@@ -5,6 +5,11 @@ import {
   ScheduledVisitStatus,
   VisitReconciliationStatus,
 } from '@prisma/client';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  dayKeyInTimeZone,
+  formatHmInTimeZone,
+} from '../common/utils/operational-day.util';
 import { assessFundingBillingReadiness } from './funding-contract.util';
 import {
   calculateBandedPay,
@@ -67,27 +72,25 @@ export function formatVisitRef(visitId: string, plannedStart: Date): string {
   return `V-${y}-${m}-${suffix}`;
 }
 
-/** Format HH:mm–HH:mm using UTC wall clock (matches scheduling rota / complete-visit UI). */
+/** Format HH:mm–HH:mm in the organisation operational timezone. */
 export function formatTimeRange(
   start: Date | null | undefined,
   end: Date | null | undefined,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
 ): string {
   if (!start && !end) return '—';
-  const fmt = (d: Date) => {
-    const h = String(d.getUTCHours()).padStart(2, '0');
-    const m = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${h}:${m}`;
-  };
+  const fmt = (d: Date) => formatHmInTimeZone(d, timeZone);
   if (start && end) return `${fmt(start)}–${fmt(end)}`;
   if (start) return `${fmt(start)}–—`;
   return `—–${fmt(end!)}`;
 }
 
-export function formatDateOnly(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(date.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+/** Calendar day YYYY-MM-DD in the organisation operational timezone. */
+export function formatDateOnly(
+  date: Date,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  return dayKeyInTimeZone(date, timeZone);
 }
 
 type VisitSnapshot = {

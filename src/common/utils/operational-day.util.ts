@@ -49,6 +49,24 @@ export function formatHmInTimeZone(
   return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
 }
 
+/** Clock-face HH:mm:ss for an instant in the operational timezone. */
+export function formatHmsInTimeZone(
+  instant: Date,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  const second = parts.find((p) => p.type === 'second')?.value ?? '00';
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+}
+
 /**
  * UTC clock-face HH:mm — matches admin schedule display (`utc: true`).
  * Employee-app sends these on visit cards; Flutter converts ISO via organisationTimezone.

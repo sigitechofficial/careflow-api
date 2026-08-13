@@ -60,8 +60,12 @@ describe('payroll-run-export-csv.util', () => {
   });
 
   it('formats visit date and ECM monitoring flags', () => {
-    expect(formatVisitDateMmDdYy(new Date('2026-04-27T08:05:00.000Z'))).toBe('04-27-26');
-    expect(formatTimeHhMmSs(new Date('2026-04-27T08:05:00.000Z'))).toBe('08:05:00');
+    expect(formatVisitDateMmDdYy(new Date('2026-04-27T08:05:00.000Z'), 'UTC')).toBe('04-27-26');
+    expect(formatTimeHhMmSs(new Date('2026-04-27T08:05:00.000Z'), 'UTC')).toBe('08:05:00');
+    // BST: 08:05 UTC → 09:05 Europe/London
+    expect(formatTimeHhMmSs(new Date('2026-04-27T08:05:00.000Z'), 'Europe/London')).toBe(
+      '09:05:00',
+    );
     expect(resolveCareTypeExportCode('DOMICILIARY')).toBe('PC');
     expect(resolveEmonitored(new Date(), new Date())).toBe('LOGGED');
     expect(resolveEmonitored(new Date(), null)).toBe('NOT LOG');

@@ -1,3 +1,9 @@
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  dayKeyInTimeZone,
+  formatHmsInTimeZone,
+} from '../common/utils/operational-day.util';
+
 export type PayrollVisitExportRow = {
   emonitored: 'LOGGED' | 'NOT LOG';
   carerId: string;
@@ -39,23 +45,28 @@ function csvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(escapeCsvField).join(',');
 }
 
-export function formatVisitDateMmDdYy(date: Date): string {
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const yy = String(date.getUTCFullYear()).slice(-2);
-  return `${mm}-${dd}-${yy}`;
+export function formatVisitDateMmDdYy(
+  date: Date,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  const day = dayKeyInTimeZone(date, timeZone); // YYYY-MM-DD
+  const [y, m, d] = day.split('-');
+  return `${m}-${d}-${(y ?? '').slice(-2)}`;
 }
 
-export function formatTimeHhMmSs(date: Date): string {
-  const h = String(date.getUTCHours()).padStart(2, '0');
-  const m = String(date.getUTCMinutes()).padStart(2, '0');
-  const s = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
+export function formatTimeHhMmSs(
+  date: Date,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  return formatHmsInTimeZone(date, timeZone);
 }
 
-export function formatTimeHhMmSsOrZero(date: Date | null | undefined): string {
+export function formatTimeHhMmSsOrZero(
+  date: Date | null | undefined,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
   if (!date) return '00:00:00';
-  return formatTimeHhMmSs(date);
+  return formatTimeHhMmSs(date, timeZone);
 }
 
 export function resolveCarerId(input: {
