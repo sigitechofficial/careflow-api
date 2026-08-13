@@ -5,6 +5,7 @@ import { EmployeesModule } from '../employees/employees.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { BillingModule } from '../billing/billing.module';
 import { ServiceUserObservationsModule } from '../service-user-observations/service-user-observations.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { EmployeeAppAuthController } from './employee-app-auth.controller';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
@@ -32,6 +33,7 @@ import { EcmModule } from '../ecm/ecm.module';
     AuditLogsModule,
     BillingModule,
     ServiceUserObservationsModule,
+    OrganisationGeneralSettingsModule,
     ScheduledJobsHousekeepingModule,
     BodyMapModule,
     VisitAttendanceModule,

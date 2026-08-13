@@ -5,13 +5,12 @@ import type {
   VisitTimelineTone,
   VisitTimelineUpsertInput,
 } from './visit-timeline.types';
+import { formatHmInTimeZone } from '../common/utils/operational-day.util';
 
 const DETAIL_MAX = 280;
 
-export function formatTimelineHm(d: Date): string {
-  const h = String(d.getUTCHours()).padStart(2, '0');
-  const m = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+export function formatTimelineHm(d: Date, timeZone?: string): string {
+  return formatHmInTimeZone(d, timeZone);
 }
 
 export function summarizeTimelineDetail(value: string | null | undefined): string | null {
@@ -135,19 +134,22 @@ export function parseOccurredAt(
   return fallback;
 }
 
-export function mapRowToTimelineApiItem(row: {
-  id: string;
-  eventType: string;
-  occurredAt: Date;
-  timeLabel: string | null;
-  title: string;
-  detail: string | null;
-  tone: string | null;
-  sourceType: string;
-  sourceId: string;
-  logEntryId: string | null;
-}): VisitTimelineApiItem {
-  const time = row.timeLabel?.trim() || formatTimelineHm(row.occurredAt);
+export function mapRowToTimelineApiItem(
+  row: {
+    id: string;
+    eventType: string;
+    occurredAt: Date;
+    timeLabel: string | null;
+    title: string;
+    detail: string | null;
+    tone: string | null;
+    sourceType: string;
+    sourceId: string;
+    logEntryId: string | null;
+  },
+  timeZone?: string,
+): VisitTimelineApiItem {
+  const time = row.timeLabel?.trim() || formatTimelineHm(row.occurredAt, timeZone);
   const detail = row.detail ?? null;
   return {
     id: row.id,
@@ -175,9 +177,9 @@ export function sortTimelineRows<T extends { occurredAt: Date; id: string }>(row
   });
 }
 
-export function buildTimelineUpsertData(input: VisitTimelineUpsertInput) {
+export function buildTimelineUpsertData(input: VisitTimelineUpsertInput, timeZone?: string) {
   const occurredAt = input.occurredAt;
-  const timeLabel = formatTimelineHm(occurredAt);
+  const timeLabel = formatTimelineHm(occurredAt, timeZone);
   const detail = summarizeTimelineDetail(input.detail);
   const idempotencyKey = timelineIdempotencyKey(
     input.scheduledJobId,

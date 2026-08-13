@@ -38,9 +38,13 @@ import {
   formatVisitObservationValue,
   inferVisitObservationStatus,
 } from '../service-user-observations/visit-observations-catalog.service';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  dayKeyInTimeZone,
+  formatHmInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
-import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
@@ -279,6 +283,7 @@ export class EmployeeAppVisitsService {
     private readonly ecmEvaluation: EcmEvaluationService,
     private readonly visitTimeline: VisitTimelineService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async getWorkspace(employeeId: string, jobId: string) {
@@ -332,6 +337,7 @@ export class EmployeeAppVisitsService {
         schemaVersion: 1,
         generatedAt: new Date().toISOString(),
         jobId,
+        organisationTimezone: ctx.timeZone,
         shell: workspace.data.shell,
         overview: workspace.data.overview,
         tasks: tasks.data,
@@ -517,7 +523,7 @@ export class EmployeeAppVisitsService {
         visitId: visit.id,
         isCheckedIn: true,
         checkedInAt: now.toISOString(),
-        checkedInLabel: formatHmUtc(now),
+        checkedInLabel: formatHmInTimeZone(now, refreshed.timeZone),
         method: dto.method ?? 'GPS',
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
@@ -537,6 +543,7 @@ export class EmployeeAppVisitsService {
       serviceUserId: ctx.job.serviceUserId,
       medicationRoundCode: ctx.medicationRoundCode,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
+      timeZone: ctx.timeZone,
     });
 
     const since =
@@ -611,7 +618,9 @@ export class EmployeeAppVisitsService {
         isCompleted,
         outcome,
         completedAt,
-        completedLabel: completedAt ? `Completed · ${formatHmUtc(new Date(completedAt))}` : null,
+        completedLabel: completedAt
+          ? `Completed · ${formatHmInTimeZone(new Date(completedAt), ctx.timeZone)}`
+          : null,
         recordedValue: task.recordedValue ?? null,
         notes: task.notes ?? null,
         completionInput: task.completionInput,
@@ -2118,12 +2127,7 @@ export class EmployeeAppVisitsService {
       validationError('deviceRecordedAt must be a valid ISO date-time');
     }
     const timeGiven =
-      dto.timeGiven?.trim() ||
-      (() => {
-        const hh = String(recordedAt.getUTCHours()).padStart(2, '0');
-        const mm = String(recordedAt.getUTCMinutes()).padStart(2, '0');
-        return `${hh}:${mm}`;
-      })();
+      dto.timeGiven?.trim() || formatHmInTimeZone(recordedAt, ctx.timeZone);
     const roundRow = ctx.medicationRoundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
@@ -2166,6 +2170,7 @@ export class EmployeeAppVisitsService {
       serviceUserId: ctx.job.serviceUserId,
       medicationRoundCode: ctx.medicationRoundCode,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
+      timeZone: ctx.timeZone,
     });
 
     const auditRecordId = newAuditRecordId();
@@ -3035,16 +3040,18 @@ export class EmployeeAppVisitsService {
         planned: {
           startIso: visit.scheduledStartDateTime.toISOString(),
           endIso: plannedEnd?.toISOString() ?? null,
-          startLabel: formatHmUtc(visit.scheduledStartDateTime),
-          endLabel: plannedEnd ? formatHmUtc(plannedEnd) : null,
+          startLabel: formatHmInTimeZone(visit.scheduledStartDateTime, ctx.timeZone),
+          endLabel: plannedEnd ? formatHmInTimeZone(plannedEnd, ctx.timeZone) : null,
         },
         actual: {
           startIso: visit.actualStartDateTime?.toISOString() ?? null,
           endIso: visit.actualEndDateTime?.toISOString() ?? null,
           startLabel: visit.actualStartDateTime
-            ? formatHmUtc(visit.actualStartDateTime)
+            ? formatHmInTimeZone(visit.actualStartDateTime, ctx.timeZone)
             : null,
-          endLabel: visit.actualEndDateTime ? formatHmUtc(visit.actualEndDateTime) : null,
+          endLabel: visit.actualEndDateTime
+            ? formatHmInTimeZone(visit.actualEndDateTime, ctx.timeZone)
+            : null,
         },
         checklist,
         hints: {
@@ -3070,8 +3077,10 @@ export class EmployeeAppVisitsService {
     checkIn: Record<string, unknown> | null;
     identityConfirmed: boolean;
     allocationId: string | null;
+    timeZone: string;
   }> {
-    const job = await this.prisma.scheduledJob.findFirst({
+    const [job, timeZone] = await Promise.all([
+      this.prisma.scheduledJob.findFirst({
       where: {
         id: jobId,
         deletedAt: null,
@@ -3148,7 +3157,9 @@ export class EmployeeAppVisitsService {
           },
         },
       },
-    });
+    }),
+      this.orgSettings.getOperationalTimezone(),
+    ]);
 
     if (!job) {
       const exists = await this.prisma.scheduledJob.findFirst({
@@ -3183,6 +3194,7 @@ export class EmployeeAppVisitsService {
       checkIn,
       identityConfirmed: Boolean(employeeAppMeta.identityConfirmed ?? checkIn?.identityConfirmed),
       allocationId,
+      timeZone,
     };
   }
 
@@ -3214,8 +3226,8 @@ export class EmployeeAppVisitsService {
         estimatedDurationMinutes: ctx.job.estimatedDurationMinutes,
       },
     );
-    const scheduledStart = formatHmUtc(resolved.start);
-    const scheduledEnd = formatHmUtc(resolved.end);
+    const scheduledStart = formatHmInTimeZone(resolved.start, ctx.timeZone);
+    const scheduledEnd = formatHmInTimeZone(resolved.end, ctx.timeZone);
     const checkedInAt =
       (multiCarerVisit
         ? myAllocation?.actualStartDateTime
@@ -3271,6 +3283,7 @@ export class EmployeeAppVisitsService {
       jobId: ctx.job.id,
       visitId: visit.id,
       clientId: su.id,
+      organisationTimezone: ctx.timeZone,
       client: {
         name: fullName,
         initials: initialsFromName(su.firstName, su.lastName),
@@ -3295,7 +3308,7 @@ export class EmployeeAppVisitsService {
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
       isCheckedIn,
       checkedInAt: checkedInAt?.toISOString() ?? null,
-      checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
+      checkedInLabel: checkedInAt ? `In ${formatHmInTimeZone(checkedInAt, ctx.timeZone)}` : null,
       progress: this.buildProgress(progress, medProgress),
       location: buildShellLocation({
         latitude: destinationLatitude,
@@ -3539,11 +3552,12 @@ export class EmployeeAppVisitsService {
     serviceUserId: string;
     medicationRoundCode: string | null;
     visitStart: Date;
+    timeZone: string;
   }) {
     if (!input.medicationRoundCode) return;
 
-    const visitDate = formatScheduleDate(input.visitStart);
-    const { start, end } = utcDayBounds(visitDate);
+    const visitDate = dayKeyInTimeZone(input.visitStart, input.timeZone);
+    const { start, end } = operationalDayBounds(visitDate, input.timeZone);
     const round = await this.prisma.medicationAdministrationRound.findFirst({
       where: { code: input.medicationRoundCode, deletedAt: null, isActive: true },
       select: { id: true },
@@ -3729,8 +3743,11 @@ export class EmployeeAppVisitsService {
   }
 
   private async resolveMedicationProgress(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
-    const visitDate = formatScheduleDate(ctx.primaryVisit.scheduledStartDateTime);
-    const { start, end } = utcDayBounds(visitDate);
+    const visitDate = dayKeyInTimeZone(
+      ctx.primaryVisit.scheduledStartDateTime,
+      ctx.timeZone,
+    );
+    const { start, end } = operationalDayBounds(visitDate, ctx.timeZone);
     const roundCode = ctx.medicationRoundCode;
     if (!roundCode) return { dueCount: 0, givenCount: 0 };
 
@@ -3950,8 +3967,11 @@ export class EmployeeAppVisitsService {
   }
 
   private async loadVisitMedicationSections(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
-    const visitDate = formatScheduleDate(ctx.primaryVisit.scheduledStartDateTime);
-    const { start, end } = utcDayBounds(visitDate);
+    const visitDate = dayKeyInTimeZone(
+      ctx.primaryVisit.scheduledStartDateTime,
+      ctx.timeZone,
+    );
+    const { start, end } = operationalDayBounds(visitDate, ctx.timeZone);
     const roundCode = ctx.medicationRoundCode;
     const allergies = await this.loadAllergies(ctx.job.serviceUserId);
     const allergyLower = allergies.map((a) => a.toLowerCase());
@@ -4142,7 +4162,7 @@ export class EmployeeAppVisitsService {
       }
 
       const evt = eventByMed.get(m.id);
-      const echo = evt ? buildMarAdminEchoFields(evt) : emptyMarAdminEchoFields();
+      const echo = evt ? buildMarAdminEchoFields(evt, ctx.timeZone) : emptyMarAdminEchoFields();
       const dueTime =
         'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;
       const scheduledDoseId = isPrn ? `${m.id}:prn` : `${m.id}:${dueTime ?? 'dose'}`;
@@ -4211,6 +4231,7 @@ export class EmployeeAppVisitsService {
       visitRound,
       allergyLower,
       eventByMed,
+      timeZone: ctx.timeZone,
     });
 
     return { sections, blisterPacks };
@@ -4488,12 +4509,6 @@ function initialsFromName(first: string | null | undefined, last: string | null 
   const a = first?.trim().charAt(0) ?? '';
   const b = last?.trim().charAt(0) ?? '';
   return (a + b).toUpperCase() || '?';
-}
-
-function formatHmUtc(d: Date) {
-  const h = String(d.getUTCHours()).padStart(2, '0');
-  const m = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
 }
 
 function formatDob(d: Date) {

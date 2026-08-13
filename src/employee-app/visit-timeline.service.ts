@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import type { VisitTimelineApiItem, VisitTimelineUpsertInput } from './visit-timeline.types';
 import {
   buildTimelineUpsertData,
@@ -11,7 +12,10 @@ import {
 export class VisitTimelineService {
   private readonly logger = new Logger(VisitTimelineService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   /**
    * Upsert a timeline event keyed by (jobId, sourceType, sourceId, eventType).
@@ -20,7 +24,8 @@ export class VisitTimelineService {
    */
   async upsertEvent(input: VisitTimelineUpsertInput): Promise<VisitTimelineApiItem | null> {
     try {
-      const data = buildTimelineUpsertData(input);
+      const timeZone = await this.orgSettings.getOperationalTimezone();
+      const data = buildTimelineUpsertData(input, timeZone);
       const row = await this.prisma.visitTimelineEvent.upsert({
         where: {
           scheduledJobId_sourceType_sourceId_eventType: {
@@ -46,7 +51,7 @@ export class VisitTimelineService {
           idempotencyKey: data.idempotencyKey,
         },
       });
-      return mapRowToTimelineApiItem(row);
+      return mapRowToTimelineApiItem(row, timeZone);
     } catch (err) {
       this.logger.warn(
         `Failed to upsert visit timeline event job=${input.scheduledJobId} type=${input.eventType}: ${
@@ -59,10 +64,11 @@ export class VisitTimelineService {
 
   /** Non-draft events for details → data.log.timeline, oldest → newest. */
   async listForJob(scheduledJobId: string): Promise<VisitTimelineApiItem[]> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const rows = await this.prisma.visitTimelineEvent.findMany({
       where: { scheduledJobId, isDraft: false },
       orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
     });
-    return sortTimelineRows(rows).map(mapRowToTimelineApiItem);
+    return sortTimelineRows(rows).map((row) => mapRowToTimelineApiItem(row, timeZone));
   }
 }

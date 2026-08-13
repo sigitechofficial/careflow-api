@@ -113,10 +113,11 @@ type MapPackMedicineInput = {
   compartmentDueTime: string;
   allergyLower: string[];
   eventByMed: Map<string, MarAdminEventEchoSource>;
+  timeZone?: string;
 };
 
 function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMedicine {
-  const { memberId, med, compartmentDueTime, allergyLower, eventByMed } = input;
+  const { memberId, med, compartmentDueTime, allergyLower, eventByMed, timeZone } = input;
   const dose = [med.dose, med.strength].filter(Boolean).join(' ') || null;
   const route = med.route?.name ?? null;
   const schedule =
@@ -137,7 +138,7 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
   }
 
   const evt = eventByMed.get(med.id);
-  const echo = evt ? buildMarAdminEchoFields(evt) : emptyMarAdminEchoFields();
+  const echo = evt ? buildMarAdminEchoFields(evt, timeZone) : emptyMarAdminEchoFields();
   const dueTime = normalizePackDueTime(compartmentDueTime);
   const relatedAllergy = allergyHit
     ? allergyLower.find((a) => med.medicationName.toLowerCase().includes(a)) ?? null
@@ -174,8 +175,9 @@ export function buildVisitBlisterPacks(input: {
   visitRound: VisitMedicationRound | null;
   allergyLower: string[];
   eventByMed: Map<string, MarAdminEventEchoSource>;
+  timeZone?: string;
 }): EmployeeAppBlisterPack[] {
-  const { packs, visitRound, allergyLower, eventByMed } = input;
+  const { packs, visitRound, allergyLower, eventByMed, timeZone } = input;
 
   return packs
     .map((pack) => {
@@ -195,6 +197,7 @@ export function buildVisitBlisterPacks(input: {
               compartmentDueTime: compartment.dueTime,
               allergyLower,
               eventByMed,
+              timeZone,
             }),
           );
           const pendingCount = medicines.filter((m) => !m.isRecorded).length;

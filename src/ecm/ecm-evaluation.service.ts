@@ -6,7 +6,10 @@ import {
   VisitAttendanceEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  getOperationalTimeZone,
+} from '../common/utils/operational-day.util';
 import {
   deriveArrivalWindow,
   evaluateEcmTiming,
@@ -266,7 +269,12 @@ export class EcmEvaluationService {
       operationalExceptionCodes.push('LOW_GPS_ACCURACY');
     }
 
-    const timezone = DEFAULT_OPERATIONAL_TIMEZONE;
+    const orgSettings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { timezone: true },
+    });
+    const timezone = getOperationalTimeZone(
+      (orgSettings as { timezone?: string | null } | null)?.timezone ?? DEFAULT_OPERATIONAL_TIMEZONE,
+    );
     const data: Prisma.EcmVisitEvaluationUncheckedCreateInput = {
       scheduledJobId: job.id,
       scheduledVisitId: visit?.id ?? null,

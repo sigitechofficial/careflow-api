@@ -5,9 +5,15 @@ import {
   ScheduledVisitStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  dayKeyInTimeZone,
+  formatHmInTimeZone,
+  hourInTimeZone,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
@@ -27,19 +33,23 @@ type Tone = 'danger' | 'primary' | 'success' | 'warning' | 'neutral';
 
 @Injectable()
 export class EmployeeAppScheduleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async getSchedule(
     employeeId: string,
     opts: { date?: string; from?: string; to?: string } = {},
   ) {
-    const selectedDate = this.resolveDate(opts.date);
-    const today = operationalTodayIso();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const selectedDate = this.resolveDate(opts.date, timeZone);
+    const today = operationalTodayIso(new Date(), timeZone);
     const { stripFrom, stripTo } = this.resolveStripBounds(selectedDate, opts.from, opts.to);
 
-    const dayBounds = utcDayBounds(selectedDate);
-    const stripStart = utcDayBounds(stripFrom).start;
-    const stripEnd = utcDayBounds(stripTo).end;
+    const dayBounds = operationalDayBounds(selectedDate, timeZone);
+    const stripStart = operationalDayBounds(stripFrom, timeZone).start;
+    const stripEnd = operationalDayBounds(stripTo, timeZone).end;
 
     const [dayAllocations, stripAllocations] = await Promise.all([
       this.prisma.jobAllocation.findMany({
@@ -115,7 +125,9 @@ export class EmployeeAppScheduleService {
     ]);
 
     const daysWithVisits = new Set(
-      stripAllocations.map((a) => formatScheduleDate(a.scheduledJob.scheduledStartDateTime)),
+      stripAllocations.map((a) =>
+        dayKeyInTimeZone(a.scheduledJob.scheduledStartDateTime, timeZone),
+      ),
     );
 
     const dateStrip = buildDateStrip(stripFrom, stripTo, selectedDate, today, daysWithVisits);
@@ -134,8 +146,8 @@ export class EmployeeAppScheduleService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = formatHmUtc(endAt);
+      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
+      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
       const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
       const periodLabel = resolvePeriodLabel({
         visitName: primaryVisit?.visitName ?? job.jobName,
@@ -143,6 +155,7 @@ export class EmployeeAppScheduleService {
         roundCode: primaryVisit?.visitPlanSlot?.medicationRoundCode ?? null,
         startAt,
         careTypeName: su.careType?.name ?? null,
+        timeZone,
       });
       const requiredCarers = Math.max(
         primaryVisit?.requiredCarers ?? 1,
@@ -191,6 +204,7 @@ export class EmployeeAppScheduleService {
     return {
       data: {
         selectedDate,
+        organisationTimezone: timeZone,
         isToday,
         selectedDateLabel: formatSelectedDateLabel(selected, isToday),
         totalsHeading: formatTotalsHeading(selected),
@@ -216,8 +230,8 @@ export class EmployeeAppScheduleService {
     };
   }
 
-  private resolveDate(dateParam?: string): string {
-    if (!dateParam?.trim()) return operationalTodayIso();
+  private resolveDate(dateParam: string | undefined, timeZone: string): string {
+    if (!dateParam?.trim()) return operationalTodayIso(new Date(), timeZone);
     parseScheduleDate(dateParam);
     return dateParam.trim();
   }
@@ -380,6 +394,7 @@ function resolvePeriodLabel(input: {
   roundCode: string | null;
   startAt: Date;
   careTypeName: string | null;
+  timeZone: string;
 }): string {
   const code = (input.roundCode ?? input.slotCode ?? '').trim().toUpperCase();
   if (code === 'MORNING' || code === 'AM') return 'Morning';
@@ -406,7 +421,7 @@ function resolvePeriodLabel(input: {
     return shortenVisitType(input.careTypeName.trim());
   }
 
-  const hour = input.startAt.getUTCHours();
+  const hour = hourInTimeZone(input.startAt, input.timeZone);
   if (hour < 11) return 'Morning';
   if (hour < 14) return 'Lunch';
   if (hour < 17) return 'Afternoon';
@@ -422,12 +437,6 @@ function initialsFromName(firstName: string, lastName: string): string {
   const a = firstName.trim().charAt(0);
   const b = lastName.trim().charAt(0);
   return `${a}${b}`.toUpperCase() || '?';
-}
-
-function formatHmUtc(date: Date): string {
-  const h = String(date.getUTCHours()).padStart(2, '0');
-  const m = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
 }
 
 function durationMinutes(

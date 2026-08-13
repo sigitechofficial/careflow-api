@@ -11,9 +11,13 @@ import {
   ServiceUserDocumentRecordStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { operationalTodayIso } from '../common/utils/operational-day.util';
-import { formatScheduleDate } from '../schedules/schedules-date.util';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  formatHmInTimeZone,
+  hourInTimeZone,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
@@ -37,12 +41,14 @@ export class EmployeeAppClientDetailService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clientsService: EmployeeAppClientsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async getProfile(employeeId: string, clientId: string, dateParam?: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
-    const date = dateParam?.trim() || operationalTodayIso();
-    const { start, end } = utcDayBounds(date);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const date = dateParam?.trim() || operationalTodayIso(new Date(), timeZone);
+    const { start, end } = operationalDayBounds(date, timeZone);
 
     const su = await this.loadClientOrThrow(clientId);
     const [
@@ -167,15 +173,22 @@ export class EmployeeAppClientDetailService {
     const todayVisits = jobs.map((job) => {
       const visit = job.visits[0] ?? null;
       const startAt = visit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
-      const title = periodTitle(visit?.visitName ?? job.jobName, visit?.visitPlanSlot ?? null, startAt);
+      const title = periodTitle(
+        visit?.visitName ?? job.jobName,
+        visit?.visitPlanSlot ?? null,
+        startAt,
+        timeZone,
+      );
       const progress = taskProgress.get(job.id) ?? { completed: 0, total: 0 };
       return {
         visitId: visit?.id ?? job.id,
         jobId: job.id,
         title,
         iconType: iconForPeriod(title),
-        scheduledStart: formatHmUtc(startAt),
-        scheduledEnd: visit?.scheduledEndDateTime ? formatHmUtc(visit.scheduledEndDateTime) : null,
+        scheduledStart: formatHmInTimeZone(startAt, timeZone),
+        scheduledEnd: visit?.scheduledEndDateTime
+          ? formatHmInTimeZone(visit.scheduledEndDateTime, timeZone)
+          : null,
         tasksDone: progress.completed,
         tasksTotal: progress.total,
         taskProgressLabel: `${progress.completed}/${progress.total}`,
@@ -1009,10 +1022,6 @@ function ageFromDob(dob: Date | null): number | null {
   return age >= 0 && age < 130 ? age : null;
 }
 
-function formatHmUtc(date: Date): string {
-  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
-}
-
 function formatDisplayDate(date: Date): string {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${String(date.getUTCDate()).padStart(2, '0')} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
@@ -1063,6 +1072,7 @@ function periodTitle(
   visitName: string | null,
   slot: { slotCode: string; medicationRoundCode: string | null } | null,
   startAt: Date,
+  timeZone: string,
 ): string {
   const code = (slot?.medicationRoundCode ?? slot?.slotCode ?? '').toUpperCase();
   if (code.includes('MORNING') || code === 'AM') return 'Morning visit';
@@ -1074,7 +1084,7 @@ function periodTitle(
   if (name.includes('lunch')) return 'Lunch visit';
   if (name.includes('tea')) return 'Tea visit';
   if (name.includes('bed')) return 'Bedtime visit';
-  const h = startAt.getUTCHours();
+  const h = hourInTimeZone(startAt, timeZone);
   if (h < 11) return 'Morning visit';
   if (h < 14) return 'Lunch visit';
   if (h < 18) return 'Tea visit';

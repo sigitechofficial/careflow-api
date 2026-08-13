@@ -663,6 +663,8 @@ model OrganisationGeneralSettings {
   archiveServiceUserAfterMonths Int               @default(3)
   timeDisplayFormat             TimeDisplayFormat @default(HH_MM)
   dateDisplayFormat             DateDisplayFormat @default(DD_MM_YYYY)
+  /// IANA timezone for operational calendar days (schedules, ECM, "today").
+  timezone                      String            @default("Europe/London")
   defaultCarerStatus            DefaultCarerStatus @default(ACTIVE)
   sendEmailWhenEmployeeActive   Boolean           @default(true)
   allowMultipleRoles            Boolean           @default(true)

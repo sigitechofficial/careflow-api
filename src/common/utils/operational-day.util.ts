@@ -1,12 +1,12 @@
 /**
- * Care-delivery operational calendar (P0).
- * Default Europe/London until OrganisationGeneralSettings.timezone lands (P1).
+ * Care-delivery operational calendar.
+ * Prefer OrganisationGeneralSettings.timezone via getOperationalTimeZone(orgTz).
  * Browser / server local TZ must never define "today" for visits/schedules/ECM.
  */
 
 export const DEFAULT_OPERATIONAL_TIMEZONE = 'Europe/London';
 
-/** Resolve org ops TZ. P0: always default; P1: read OrganisationGeneralSettings.timezone. */
+/** Resolve org ops TZ from settings (falls back to Europe/London). */
 export function getOperationalTimeZone(_orgTimezone?: string | null): string {
   const trimmed = _orgTimezone?.trim();
   return trimmed || DEFAULT_OPERATIONAL_TIMEZONE;
@@ -33,6 +33,31 @@ export function dayKeyInTimeZone(
   return operationalTodayIso(instant, timeZone);
 }
 
+/** Clock-face HH:mm for an instant in the operational timezone. */
+export function formatHmInTimeZone(
+  instant: Date,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+}
+
+/** Hour (0–23) of an instant in the operational timezone. */
+export function hourInTimeZone(
+  instant: Date,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): number {
+  const hm = formatHmInTimeZone(instant, timeZone);
+  return Number(hm.slice(0, 2)) || 0;
+}
+
 /** Add calendar days to a YYYY-MM-DD label (UTC date arithmetic on the label). */
 export function addDaysToOperationalIso(iso: string, delta: number): string {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
@@ -51,9 +76,6 @@ export function operationalDayBounds(
   timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): { start: Date; end: Date; date: string } {
   const day = dateIso.slice(0, 10);
-  // Probe noon UTC and walk to find UTC instants that fall on `day` in timeZone.
-  // Robust approach: binary-search-ish via formatting — use start/end of day via
-  // iterative offset from a known anchor.
   const start = startOfOperationalDayUtc(day, timeZone);
   const next = addOneCalendarDay(day);
   const endExclusive = startOfOperationalDayUtc(next, timeZone);
@@ -73,21 +95,17 @@ function addOneCalendarDay(iso: string): string {
  * Finds the UTC ms where the TZ calendar first shows `day`.
  */
 function startOfOperationalDayUtc(day: string, timeZone: string): Date {
-  // Guess: day as UTC midnight, then adjust using formatter.
   let guess = Date.parse(`${day}T00:00:00.000Z`);
   if (!Number.isFinite(guess)) {
     return new Date(`${day}T00:00:00.000Z`);
   }
-  // Iteratively correct: if formatted day is before target, move forward; if after, move back.
   for (let i = 0; i < 48; i++) {
     const key = dayKeyInTimeZone(new Date(guess), timeZone);
     if (key === day) {
-      // Walk backward to the first ms of this ops day.
       let t = guess;
       while (dayKeyInTimeZone(new Date(t - 60_000), timeZone) === day) {
         t -= 60_000;
       }
-      // Fine-tune to second
       while (dayKeyInTimeZone(new Date(t - 1000), timeZone) === day) {
         t -= 1000;
       }

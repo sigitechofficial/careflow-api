@@ -7,9 +7,12 @@ import {
   VisitPlanStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { operationalTodayIso } from '../common/utils/operational-day.util';
-import { formatScheduleDate } from '../schedules/schedules-date.util';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  addDaysToOperationalIso,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -28,7 +31,10 @@ type ClientTag = { id: string; label: string; tone: TagTone };
 
 @Injectable()
 export class EmployeeAppClientsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async getClients(employeeId: string, opts: { search?: string } = {}) {
     const serviceUserIds = await this.resolveRoundClientIds(employeeId);
@@ -189,12 +195,11 @@ export class EmployeeAppClientsService {
 
   /** Standing visit-plan roster + clients scheduled in the next 14 days. */
   async resolveRoundClientIds(employeeId: string): Promise<string[]> {
-    const today = operationalTodayIso();
-    const horizon = new Date();
-    horizon.setUTCDate(horizon.getUTCDate() + 14);
-    const horizonStr = formatScheduleDate(horizon);
-    const { start } = utcDayBounds(today);
-    const { end } = utcDayBounds(horizonStr);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const today = operationalTodayIso(new Date(), timeZone);
+    const horizonStr = addDaysToOperationalIso(today, 14);
+    const { start } = operationalDayBounds(today, timeZone);
+    const { end } = operationalDayBounds(horizonStr, timeZone);
 
     const [assignments, legacySlots, allocations] = await Promise.all([
       this.prisma.visitPlanSlotCarerAssignment.findMany({

@@ -26,6 +26,7 @@ import {
 } from './optional-settings.dto';
 import { PreAssessmentChecklistItemDto } from './pre-assessment-settings.dto';
 import { EmployeeVisaTypeDto } from './employee-visa-types.dto';
+import { ORGANISATION_TIMEZONES } from '../organisation-timezone';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
 const DATE_DISPLAY_FORMATS = ['DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'] as const;
@@ -73,6 +74,16 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsIn(DATE_DISPLAY_FORMATS)
   dateDisplayFormat?: (typeof DATE_DISPLAY_FORMATS)[number];
+
+  @ApiPropertyOptional({
+    description: 'IANA timezone used for operational calendar days (schedules, ECM, today)',
+    example: 'Europe/London',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  @IsIn(ORGANISATION_TIMEZONES)
+  timezone?: (typeof ORGANISATION_TIMEZONES)[number];
 
   @ApiPropertyOptional({ enum: DEFAULT_CARER_STATUSES })
   @IsOptional()

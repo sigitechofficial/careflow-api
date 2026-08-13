@@ -7,6 +7,7 @@ describe('buildEmployeeAppHomeData', () => {
   it('serializes kept keys and omits trimmed top-level objects', () => {
     const data = buildEmployeeAppHomeData({
       date: '2026-08-04',
+      organisationTimezone: 'Asia/Karachi',
       activeVisit: null,
       visits: [
         {
@@ -33,12 +34,13 @@ describe('buildEmployeeAppHomeData', () => {
 
     expect(data).toEqual({
       date: '2026-08-04',
+      organisationTimezone: 'Asia/Karachi',
       activeVisit: null,
       visits: expect.any(Array),
       endOfShift: expect.objectContaining({ enabled: true }),
     });
     expect(Object.keys(data).sort()).toEqual(
-      ['activeVisit', 'date', 'endOfShift', 'visits'].sort(),
+      ['activeVisit', 'date', 'endOfShift', 'organisationTimezone', 'visits'].sort(),
     );
 
     expect(data.visits[0]).toEqual(
@@ -64,6 +66,7 @@ describe('buildEmployeeAppHomeData', () => {
     };
     const data = buildEmployeeAppHomeData({
       date: '2026-08-04',
+      organisationTimezone: 'Europe/London',
       activeVisit: activeVisit as never,
       visits: [],
       endOfShift: { enabled: false },

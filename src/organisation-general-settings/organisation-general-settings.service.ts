@@ -43,6 +43,11 @@ import {
   type EmployeeVisaType,
 } from './employee-visa-types.util';
 import { parseRotaHorizonMode } from '../service-user-visit-plans/visit-plan-rolling-rota.util';
+import {
+  DEFAULT_ORGANISATION_TIMEZONE,
+  isOrganisationTimezone,
+} from './organisation-timezone';
+import { getOperationalTimeZone } from '../common/utils/operational-day.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
@@ -53,6 +58,7 @@ const CREATE_DEFAULTS = {
   archiveServiceUserAfterMonths: 3,
   timeDisplayFormat: 'HH_MM' as const,
   dateDisplayFormat: 'DD_MM_YYYY' as const,
+  timezone: DEFAULT_ORGANISATION_TIMEZONE,
 };
 
 type SettingsRow = {
@@ -62,6 +68,7 @@ type SettingsRow = {
   archiveServiceUserAfterMonths: number;
   timeDisplayFormat: string;
   dateDisplayFormat: string;
+  timezone?: string | null;
   defaultCarerStatus: string;
   sendEmailWhenEmployeeActive: boolean;
   allowMultipleRoles: boolean;
@@ -183,6 +190,9 @@ function mapRow(row: SettingsRow) {
     archiveServiceUserAfterMonths: row.archiveServiceUserAfterMonths,
     timeDisplayFormat: row.timeDisplayFormat,
     dateDisplayFormat: row.dateDisplayFormat,
+    timezone: isOrganisationTimezone(row.timezone ?? '')
+      ? row.timezone!
+      : DEFAULT_ORGANISATION_TIMEZONE,
     defaultCarerStatus: row.defaultCarerStatus,
     sendEmailWhenEmployeeActive: row.sendEmailWhenEmployeeActive,
     allowMultipleRoles: row.allowMultipleRoles,
@@ -290,6 +300,7 @@ function buildUpdateData(
   set('archiveServiceUserAfterMonths', dto.archiveServiceUserAfterMonths);
   set('timeDisplayFormat', dto.timeDisplayFormat);
   set('dateDisplayFormat', dto.dateDisplayFormat);
+  set('timezone', dto.timezone);
   set('defaultCarerStatus', dto.defaultCarerStatus);
   set('sendEmailWhenEmployeeActive', dto.sendEmailWhenEmployeeActive);
   set('allowMultipleRoles', dto.allowMultipleRoles);
@@ -465,6 +476,15 @@ export class OrganisationGeneralSettingsService {
   async get() {
     const row = await this.getOrCreate();
     return { data: mapRow(row as SettingsRow) };
+  }
+
+  /** Operational IANA timezone for schedules / ECM / calendar "today". */
+  async getOperationalTimezone(): Promise<string> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { timezone: true },
+    });
+    return getOperationalTimeZone(row?.timezone);
   }
 
   async update(userId: string, dto: UpdateOrganisationGeneralSettingsDto) {

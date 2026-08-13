@@ -14,8 +14,14 @@ import {
 } from './visit-timeline.types';
 
 describe('visit-timeline.util', () => {
-  it('formats HH:mm in UTC', () => {
-    expect(formatTimelineHm(new Date('2026-08-06T05:02:00.000Z'))).toBe('05:02');
+  it('formats HH:mm in operational timezone (defaults to Europe/London)', () => {
+    // Aug is BST (UTC+1): 05:02Z → 06:02 London
+    expect(formatTimelineHm(new Date('2026-08-06T05:02:00.000Z'), 'Europe/London')).toBe(
+      '06:02',
+    );
+    expect(formatTimelineHm(new Date('2026-01-15T05:02:00.000Z'), 'Europe/London')).toBe(
+      '05:02',
+    );
   });
 
   it('summarizes long detail text', () => {

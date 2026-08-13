@@ -7,9 +7,13 @@ import {
   ScheduledVisitStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { operationalTodayIso } from '../common/utils/operational-day.util';
-import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  formatHmInTimeZone,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
+import { parseScheduleDate } from '../schedules/schedules-date.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
@@ -41,11 +45,15 @@ const AVG_URBAN_SPEED_MPH = 20;
 
 @Injectable()
 export class EmployeeAppHomeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async getHome(employeeId: string, dateParam?: string) {
-    const date = this.resolveDate(dateParam);
-    const { start, end } = utcDayBounds(date);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const date = this.resolveDate(dateParam, timeZone);
+    const { start, end } = operationalDayBounds(date, timeZone);
 
     const [allocations, hourlyRate] = await Promise.all([
       this.prisma.jobAllocation.findMany({
@@ -146,8 +154,8 @@ export class EmployeeAppHomeService {
       });
       const startAt = resolved.start;
       const endAt = resolved.end;
-      const scheduledStart = formatHmUtc(startAt);
-      const scheduledEnd = formatHmUtc(endAt);
+      const scheduledStart = formatHmInTimeZone(startAt, timeZone);
+      const scheduledEnd = formatHmInTimeZone(endAt, timeZone);
       // UTC ISO must match Visit Details `shell.visitWindow.scheduled*Iso` (primary visit).
       const scheduledStartIso = primaryVisit?.scheduledStartDateTime?.toISOString() ?? null;
       const scheduledEndIso = primaryVisit?.scheduledEndDateTime?.toISOString() ?? null;
@@ -281,6 +289,7 @@ export class EmployeeAppHomeService {
     return {
       data: buildEmployeeAppHomeData({
         date,
+        organisationTimezone: timeZone,
         activeVisit,
         visits,
         endOfShift: {
@@ -296,9 +305,9 @@ export class EmployeeAppHomeService {
     };
   }
 
-  private resolveDate(dateParam?: string): string {
+  private resolveDate(dateParam: string | undefined, timeZone: string): string {
     if (!dateParam?.trim()) {
-      return operationalTodayIso();
+      return operationalTodayIso(new Date(), timeZone);
     }
     parseScheduleDate(dateParam);
     return dateParam.trim();
@@ -603,12 +612,14 @@ export const EMPLOYEE_APP_HOME_REMOVED_DATA_KEYS = [
 /** Assemble the trimmed Home / Today `data` object (API-01). */
 export function buildEmployeeAppHomeData(input: {
   date: string;
+  organisationTimezone: string;
   activeVisit: ReturnType<typeof buildActiveVisit> | null;
   visits: Array<Record<string, unknown>>;
   endOfShift: Record<string, unknown>;
 }) {
   return {
     date: input.date,
+    organisationTimezone: input.organisationTimezone,
     activeVisit: input.activeVisit,
     visits: input.visits,
     endOfShift: input.endOfShift,
@@ -678,12 +689,6 @@ function initialsFromName(firstName: string, lastName: string): string {
   const a = firstName.trim().charAt(0);
   const b = lastName.trim().charAt(0);
   return `${a}${b}`.toUpperCase() || '?';
-}
-
-function formatHmUtc(date: Date): string {
-  const h = String(date.getUTCHours()).padStart(2, '0');
-  const m = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
 }
 
 function durationMinutes(startAt: Date, endAt: Date | null, estimated: number | null | undefined): number {
