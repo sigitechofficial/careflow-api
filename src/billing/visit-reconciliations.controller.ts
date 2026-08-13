@@ -12,6 +12,7 @@ import {
   BulkApproveVisitReconciliationsDto,
   DecideVisitOverrunDto,
   RecalculateVisitReconciliationsDto,
+  ClearVisitReconciliationsDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
   UpdateVisitReconciliationDto,
@@ -74,10 +75,11 @@ export class VisitReconciliationsController {
   @Post('clear-all')
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
-    summary: 'Delete all visit reconciliations (and dependent payroll/invoice lines)',
+    summary:
+      'Delete visit reconciliations (optionally scoped to one service user) and dependent payroll/invoice lines',
   })
-  clearAll() {
-    return this.service.clearAll();
+  clearAll(@Body() dto: ClearVisitReconciliationsDto) {
+    return this.service.clearAll(dto?.serviceUserId);
   }
 
   @Post('bulk-approve')

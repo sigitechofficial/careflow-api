@@ -239,3 +239,13 @@ export class RecalculateVisitReconciliationsDto {
   @IsDateString()
   dateTo?: string;
 }
+
+export class ClearVisitReconciliationsDto {
+  @ApiPropertyOptional({
+    description:
+      'When set, only delete reconciliations for this service user (and their dependent lines)',
+  })
+  @IsOptional()
+  @IsUUID()
+  serviceUserId?: string;
+}

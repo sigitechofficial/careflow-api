@@ -982,19 +982,62 @@ export class VisitReconciliationsService {
   }
 
   /**
-   * Delete every visit reconciliation (and dependent finance lines).
+   * Delete visit reconciliations (and dependent finance lines).
+   * When `serviceUserId` is set, only that client's rows are removed.
    * Does not reset scheduled visits — use Sync completed visits to recreate.
    */
-  async clearAll() {
-    const before = await this.prisma.visitReconciliation.count();
+  async clearAll(serviceUserId?: string) {
+    const scopedWhere = serviceUserId?.trim()
+      ? { serviceUserId: serviceUserId.trim() }
+      : undefined;
+    const before = await this.prisma.visitReconciliation.count({
+      where: scopedWhere,
+    });
+
+    if (before === 0) {
+      return {
+        message: 'No visit reconciliations to delete',
+        data: {
+          before: 0,
+          visitReconciliations: 0,
+          payrollRunLines: 0,
+          invoiceRunLines: 0,
+          financeExceptions: 0,
+        },
+      };
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
-      const payrollRunLines = await tx.payrollRunLine.deleteMany();
-      const invoiceRunLines = await tx.invoiceRunLine.deleteMany();
+      const reconIds = scopedWhere
+        ? (
+            await tx.visitReconciliation.findMany({
+              where: scopedWhere,
+              select: { id: true },
+            })
+          ).map((r) => r.id)
+        : null;
+
+      const lineWhere = reconIds
+        ? { visitReconciliationId: { in: reconIds } }
+        : undefined;
+
+      const payrollRunLines = await tx.payrollRunLine.deleteMany(
+        lineWhere ? { where: lineWhere } : undefined,
+      );
+      const invoiceRunLines = await tx.invoiceRunLine.deleteMany(
+        lineWhere ? { where: lineWhere } : undefined,
+      );
       await tx.payComponent.deleteMany({
-        where: { visitReconciliationId: { not: null } },
+        where: reconIds
+          ? { visitReconciliationId: { in: reconIds } }
+          : { visitReconciliationId: { not: null } },
       });
-      const financeExceptions = await tx.financeException.deleteMany();
-      const visitReconciliations = await tx.visitReconciliation.deleteMany();
+      const financeExceptions = await tx.financeException.deleteMany(
+        lineWhere ? { where: lineWhere } : undefined,
+      );
+      const visitReconciliations = await tx.visitReconciliation.deleteMany({
+        where: scopedWhere,
+      });
       return {
         payrollRunLines: payrollRunLines.count,
         invoiceRunLines: invoiceRunLines.count,
@@ -1007,7 +1050,9 @@ export class VisitReconciliationsService {
       message:
         result.visitReconciliations === 0
           ? 'No visit reconciliations to delete'
-          : `Deleted ${result.visitReconciliations} visit reconciliation(s)`,
+          : serviceUserId
+            ? `Deleted ${result.visitReconciliations} visit reconciliation(s) for this service user`
+            : `Deleted ${result.visitReconciliations} visit reconciliation(s)`,
       data: { before, ...result },
     };
   }
