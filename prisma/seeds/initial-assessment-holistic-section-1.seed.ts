@@ -48,7 +48,7 @@ export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'Care manager contact', questionType: TEXTAREA, sortOrder: 100, metadata: { specRef: '1.1', fieldKey: 'careManagerContact' } },
   { questionText: 'Mental health team contact', questionType: TEXTAREA, sortOrder: 101, metadata: { specRef: '1.1', fieldKey: 'mentalHealthTeamContact' } },
   { questionText: 'Advocate contact', questionType: TEXTAREA, sortOrder: 102, metadata: { specRef: '1.1', fieldKey: 'advocateContact' } },
-  { questionText: 'Allergies (summary)', questionType: TEXTAREA, sortOrder: 103, metadata: { specRef: '1.0', fieldKey: 'allergiesSummary', prefillKey: 'allergies' } },
+  { questionText: 'Allergies (summary)', questionType: TEXTAREA, sortOrder: 103, metadata: { specRef: '1.0', fieldKey: 'allergiesSummary', prefillKey: 'allergies', optionsLookup: 'service_user_allergies' } },
   { questionText: 'Does the client receive support from an informal carer?', questionType: YES_NO, sortOrder: 110, metadata: { specRef: '1.2', fieldKey: 'informalCarerSupport' } },
   { questionText: 'Informal carer name', questionType: TEXT, sortOrder: 111, metadata: { specRef: '1.2', fieldKey: 'informalCarerName', showWhen: { gateTextIncludes: 'informal carer', yes: true } } },
   { questionText: 'Informal carer contact (if different)', questionType: TEXTAREA, sortOrder: 112, metadata: { specRef: '1.2', fieldKey: 'informalCarerContact' } },

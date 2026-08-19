@@ -94,23 +94,36 @@ export class HttpExceptionFilter implements ExceptionFilter {
     errors?: unknown[];
   } {
     switch (e.code) {
-      case 'P2002':
+      case 'P2002': {
+        const fields = this.prismaFields((e.meta as { target?: unknown })?.target);
+        const message =
+          fields.length === 1
+            ? `${fields[0]} is already in use`
+            : fields.length
+              ? `Unique constraint failed: ${fields.join(', ')}`
+              : 'A unique value is already in use';
         return {
           status: HttpStatus.CONFLICT,
-          message: 'Unique constraint failed',
-          errors: [{ target: (e.meta as any)?.target }],
+          message,
+          errors: fields.length ? fields.map((field) => `${field} is already in use`) : [message],
         };
+      }
       case 'P2025':
         return {
           status: HttpStatus.NOT_FOUND,
           message: 'Resource not found',
         };
-      case 'P2003':
+      case 'P2003': {
+        const field = this.prismaField((e.meta as { field_name?: string })?.field_name);
+        const message = field
+          ? `${field} is not a valid selection`
+          : 'Related record not found (invalid reference)';
         return {
           status: HttpStatus.BAD_REQUEST,
-          message: 'Related record not found (invalid reference)',
-          errors: [{ code: e.code, field: (e.meta as { field_name?: string })?.field_name }],
+          message,
+          errors: [message],
         };
+      }
       case 'P2021':
         return {
           status: HttpStatus.FAILED_DEPENDENCY,
@@ -129,9 +142,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return {
           status: HttpStatus.BAD_REQUEST,
           message: 'Database error',
-          errors: [{ code: e.code }],
+          errors: [e.code ? `Database error (${e.code})` : 'Database error'],
         };
     }
+  }
+
+  private prismaFields(target: unknown): string[] {
+    const items = Array.isArray(target) ? target : target != null ? [target] : [];
+    const fields: string[] = [];
+    for (const item of items) {
+      const field = this.prismaField(String(item));
+      if (field) fields.push(field);
+    }
+    return fields;
+  }
+
+  private prismaField(raw: string | undefined): string | null {
+    if (!raw?.trim()) return null;
+    const value = raw.trim();
+    const constraint = value.match(/_([A-Za-z][A-Za-z0-9]*)_(?:key|fkey)$/);
+    if (constraint?.[1]) return constraint[1];
+    if (/^[A-Z][A-Za-z]+$/.test(value) && !value.endsWith('Id')) return null;
+    return value;
   }
 }
 
