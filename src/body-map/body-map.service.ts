@@ -326,14 +326,14 @@ export class BodyMapService {
   private async writeAudit(
     recordId: string,
     action: BodyMapAuditAction,
-    actorUserId: string,
+    actorUserId: string | null | undefined,
     payload?: Record<string, unknown>,
   ) {
     await this.prisma.bodyMapAuditLog.create({
       data: {
         bodyMapRecordId: recordId,
         action,
-        actorUserId,
+        actorUserId: actorUserId ?? undefined,
         payload: payload ? (payload as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
@@ -857,7 +857,7 @@ export class BodyMapService {
     return mapMarker(updated);
   }
 
-  async addReview(userId: string, recordId: string, dto: CreateBodyMapReviewDto) {
+  async addReview(userId: string | null | undefined, recordId: string, dto: CreateBodyMapReviewDto) {
     const record = await this.ensureRecord(recordId);
     const conditionStatus = dto.conditionStatus as BodyMapConditionStatus;
     const reviewDetails = dto.woundReview
@@ -867,7 +867,7 @@ export class BodyMapService {
       await tx.bodyMapReview.create({
         data: {
           bodyMapRecordId: recordId,
-          reviewedById: userId,
+          reviewedById: userId ?? undefined,
           conditionStatus,
           reviewNote: dto.reviewNote,
           actionTaken: dto.actionTaken,
@@ -886,11 +886,11 @@ export class BodyMapService {
       const recordPatch: {
         status: BodyMapRecordStatus;
         nextReviewAt?: Date;
-        updatedById: string;
+        updatedById?: string;
         managerReviewRequired?: boolean;
       } = {
         status,
-        updatedById: userId,
+        ...(userId ? { updatedById: userId } : {}),
       };
       if (dto.nextReviewAt) recordPatch.nextReviewAt = new Date(dto.nextReviewAt);
       if (conditionStatus === BodyMapConditionStatus.WORSENING) {
@@ -930,7 +930,7 @@ export class BodyMapService {
               ? new Date(dto.woundReview.nextDressingChange)
               : undefined,
             assessmentData: assessmentData as Prisma.InputJsonValue,
-            createdById: userId,
+            createdById: userId ?? undefined,
           },
           update: {
             measurements: dto.woundReview.measurements ?? existing?.measurements,
@@ -1557,7 +1557,7 @@ export class BodyMapService {
   }
 
   async uploadPhoto(
-    userId: string,
+    userId: string | null | undefined,
     recordId: string,
     file: Express.Multer.File,
     consentStatus: BodyMapPhotoConsentStatus,
@@ -1587,14 +1587,14 @@ export class BodyMapService {
           mimeType: file.mimetype,
           consentStatus,
           caption,
-          uploadedById: userId,
+          uploadedById: userId ?? undefined,
         },
       });
       await tx.bodyMapAuditLog.create({
         data: {
           bodyMapRecordId: recordId,
           action: BodyMapAuditAction.ADD_PHOTO,
-          actorUserId: userId,
+          actorUserId: userId ?? undefined,
           payload: { photoId: created.id, consentStatus },
         },
       });

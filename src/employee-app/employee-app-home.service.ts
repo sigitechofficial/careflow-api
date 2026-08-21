@@ -17,6 +17,12 @@ import { parseScheduleDate } from '../schedules/schedules-date.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import {
+  jobMetadataIsOvernight,
+  nightDutyAppLabel,
+  nightDutyHomeTag,
+  resolveStoredNightDuty,
+} from '../service-user-visit-plans/visit-plan-night-duty.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -111,6 +117,7 @@ export class EmployeeAppHomeService {
                     select: {
                       slotCode: true,
                       medicationRoundCode: true,
+                      nightDuty: true,
                     },
                   },
                 },
@@ -195,6 +202,13 @@ export class EmployeeAppHomeService {
       const tasksDone = showTaskProgress ? taskProgress.completed : null;
       const tasksTotal = showTaskProgress ? taskProgress.total : null;
       const identityConfirmed = readIdentityConfirmed(job.metadata);
+      const nightDuty = resolveStoredNightDuty({
+        slotNightDuty: primaryVisit?.visitPlanSlot?.nightDuty,
+        jobMetadata: job.metadata,
+      });
+      const isOvernight =
+        jobMetadataIsOvernight(job.metadata) ||
+        (endAt != null && startAt.toISOString().slice(0, 10) !== endAt.toISOString().slice(0, 10));
 
       return {
         jobId: job.id,
@@ -228,6 +242,9 @@ export class EmployeeAppHomeService {
         durationMinutes: durationMinutes(startAt, endAt, job.estimatedDurationMinutes),
         travelMinutes: null as number | null,
         distanceMiles: null as number | null,
+        nightDuty,
+        nightDutyLabel: nightDutyAppLabel(nightDuty),
+        isOvernight,
       };
     });
 
@@ -268,6 +285,9 @@ export class EmployeeAppHomeService {
           row.tasksDone != null && row.tasksTotal != null
             ? `${row.tasksDone}/${row.tasksTotal}`
             : null,
+        nightDuty: row.nightDuty,
+        nightDutyLabel: row.nightDutyLabel,
+        isOvernight: row.isOvernight,
       };
     });
 
@@ -484,6 +504,9 @@ type VisitRow = {
   durationMinutes: number;
   travelMinutes: number | null;
   distanceMiles: number | null;
+  nightDuty: ReturnType<typeof resolveStoredNightDuty>;
+  nightDutyLabel: string | null;
+  isOvernight: boolean;
 };
 
 function buildActiveVisit(row: VisitRow) {
@@ -542,6 +565,9 @@ function buildActiveVisit(row: VisitRow) {
       address: row.address.formatted,
       mapsUrl,
     },
+    nightDuty: row.nightDuty,
+    nightDutyLabel: row.nightDutyLabel,
+    isOvernight: row.isOvernight,
   };
 }
 
@@ -580,6 +606,8 @@ function applyTravelBetweenVisits(rows: VisitRow[]) {
 
 function buildVisitTags(row: VisitRow): HomeTag[] {
   const tags: HomeTag[] = [];
+  const nightTag = nightDutyHomeTag(row.nightDuty);
+  if (nightTag) tags.push(nightTag);
   if (row.allergyNames.length > 0) {
     tags.push({ id: 'allergy', label: 'Allergy', tone: 'danger' });
   }

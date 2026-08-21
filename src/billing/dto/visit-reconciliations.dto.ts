@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -49,6 +50,15 @@ export class VisitReconciliationsQueryDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by visit-plan night duty: overnight (sleeping+waking), SLEEPING_NIGHT, WAKING_NIGHT, or standard',
+    enum: ['overnight', 'SLEEPING_NIGHT', 'WAKING_NIGHT', 'standard'],
+  })
+  @IsOptional()
+  @IsIn(['overnight', 'SLEEPING_NIGHT', 'WAKING_NIGHT', 'standard', 'NONE'])
+  nightDuty?: string;
 
   @ApiPropertyOptional({ description: 'ISO date (YYYY-MM-DD)' })
   @IsOptional()

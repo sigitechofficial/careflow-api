@@ -706,6 +706,27 @@ export function calculatePayableAmount(
   return { amount: Math.round(hourly * 100) / 100, label: 'HOURLY' };
 }
 
+function isNightDutyChargeMethod(chargeMethod?: string | null): boolean {
+  return chargeMethod === 'SLEEP_IN' || chargeMethod === 'WAKING_NIGHT';
+}
+
+function pickNightDutyChargeRule(
+  rules: ChargeCardRuleLike[],
+  chargeMethod: 'SLEEP_IN' | 'WAKING_NIGHT',
+  visitDate: Date,
+  isBankHoliday: boolean,
+): ChargeCardRuleLike | null {
+  const matches = rules.filter(
+    (rule) =>
+      rule.chargeMethod === chargeMethod && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+  );
+  if (!matches.length) return null;
+  return [...matches].sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority;
+    return a.sortOrder - b.sortOrder;
+  })[0] ?? null;
+}
+
 export function calculateBillableAmount(
   rules: ChargeCardRuleLike[],
   visitDate: Date,
@@ -718,11 +739,26 @@ export function calculateBillableAmount(
     stackingPolicy?: PayStackingPolicy;
     isBankHolidayFn?: (d: Date) => boolean;
   },
+  nightDuty?: string | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
+  if (nightDuty === 'SLEEPING_NIGHT') {
+    const rule = pickNightDutyChargeRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    if (!rule) return null;
+    return { amount: Number(rule.amount), label: 'SLEEP_IN' };
+  }
+  if (nightDuty === 'WAKING_NIGHT') {
+    const rule = pickNightDutyChargeRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    if (!rule) return null;
+    const hourly = Number(rule.amount) * (minutes / 60);
+    return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
+  }
+
+  const dayRules = rules.filter((rule) => !isNightDutyChargeMethod(rule.chargeMethod));
+
   // Reuse pay engine (fixed slots + time-banded hourly) then map labels to charge methods.
-  const asPayRules: PayCardRuleLike[] = rules.map((rule) => ({
+  const asPayRules: PayCardRuleLike[] = dayRules.map((rule) => ({
     label: rule.label,
     rateType: rule.rateType,
     amount: rule.amount,
@@ -959,6 +995,7 @@ export function buildChargeRateBreakdown(
   },
   isBankHoliday = false,
   window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
+  nightDuty?: string | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
@@ -969,10 +1006,44 @@ export function buildChargeRateBreakdown(
     defaultChargeMethod,
     isBankHoliday,
     window,
+    nightDuty,
   );
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
+
+  if (calc.label === 'SLEEP_IN') {
+    const rule = pickNightDutyChargeRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? calc.amount);
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'SLEEP_IN',
+      unitRate: formatGbp(unitAmount),
+      amount: formatGbp(calc.amount),
+      formula: `${formatGbp(unitAmount)} per sleeping night`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Sleeping night',
+    };
+  }
+  if (calc.label === 'WAKING_NIGHT') {
+    const rule = pickNightDutyChargeRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? 0);
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'WAKING_NIGHT',
+      unitRate: `${formatGbp(unitAmount)}/hr`,
+      amount: formatGbp(calc.amount),
+      formula: `${hoursLabel} × ${formatGbp(unitAmount)}/hr = ${formatGbp(calc.amount)}`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Waking night',
+    };
+  }
 
   if (calc.segments?.length) {
     const rates = [...new Set(calc.segments.map((s) => s.rate))];

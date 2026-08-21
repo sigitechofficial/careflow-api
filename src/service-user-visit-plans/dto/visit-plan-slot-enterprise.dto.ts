@@ -34,11 +34,11 @@ export class VisitPlanSlotCarerAssignmentDto {
   @IsEnum(VisitPlanSlotCarerRole)
   role?: VisitPlanSlotCarerRole;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 480 })
+  @ApiPropertyOptional({ minimum: 1, maximum: 720 })
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(480)
+  @Max(720)
   durationMinutes?: number | null;
 
   @ApiPropertyOptional({ example: '07:00' })
@@ -85,7 +85,7 @@ export class VisitPlanSlotExceptionDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(480)
+  @Max(720)
   durationMinutes?: number | null;
 
   @ApiPropertyOptional()

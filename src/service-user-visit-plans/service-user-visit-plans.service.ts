@@ -88,6 +88,10 @@ import {
   previewGenerateScheduleFromPlan,
   slotAsWithRelations,
 } from './visit-plan-generate-preview.util';
+import {
+  resolveVisitPlanNightDuty,
+  visitPlanGeneratedJobMetadata,
+} from './visit-plan-night-duty.util';
 import type { ActivateVisitPlanDto } from './dto/suspend-visit-plan.dto';
 import type {
   VisitPlanReturnImpactPreviewQueryDto,
@@ -133,6 +137,7 @@ const calendarVisitInclude = {
     select: {
       slotCode: true,
       linkedCarePlanFormIds: true,
+      nightDuty: true,
     },
   },
 } satisfies Prisma.ScheduledVisitInclude;
@@ -260,6 +265,7 @@ export class ServiceUserVisitPlansService {
         linkedCarePlanFormIds: s.linkedCarePlanFormIds ?? [],
         assignedEmployeeIds: s.assignedEmployeeIds ?? [],
         slotKind: s.slotKind,
+        nightDuty: s.nightDuty,
         slotEffectiveFrom: s.slotEffectiveFrom?.toISOString() ?? null,
         slotEffectiveTo: s.slotEffectiveTo?.toISOString() ?? null,
         oneOffDate: s.oneOffDate?.toISOString() ?? null,
@@ -324,6 +330,7 @@ export class ServiceUserVisitPlansService {
       return {
         ...row,
         slotKind,
+        nightDuty: resolveVisitPlanNightDuty({ ...row, slotKind }),
         slotEffectiveFrom: null,
         slotEffectiveTo: null,
         oneOffDate: null,
@@ -377,6 +384,12 @@ export class ServiceUserVisitPlansService {
           input?.carerAssignments,
         ),
         slotKind: input?.slotKind ?? slotKind,
+        nightDuty: resolveVisitPlanNightDuty({
+          slotKind: input?.slotKind ?? slotKind,
+          plannedStartTime: plannedStart,
+          plannedEndTime: plannedEnd,
+          nightDuty: input?.nightDuty,
+        }),
         slotEffectiveFrom: input?.slotEffectiveFrom ?? null,
         slotEffectiveTo: input?.slotEffectiveTo ?? null,
         oneOffDate: input?.oneOffDate ?? null,
@@ -415,6 +428,7 @@ export class ServiceUserVisitPlansService {
       linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
       assignedEmployeeIds: slot.assignedEmployeeIds ?? [],
       slotKind: slot.slotKind ?? VisitPlanSlotKind.STANDARD,
+      nightDuty: resolveVisitPlanNightDuty(slot),
       slotEffectiveFrom: slot.slotEffectiveFrom ? new Date(slot.slotEffectiveFrom) : null,
       slotEffectiveTo: slot.slotEffectiveTo ? new Date(slot.slotEffectiveTo) : null,
       oneOffDate: slot.oneOffDate ? new Date(slot.oneOffDate) : null,
@@ -1281,6 +1295,8 @@ export class ServiceUserVisitPlansService {
           isEnabled: input.isEnabled,
           requiredCarers: input.requiredCarers,
           durationMinutes: input.durationMinutes ?? slot.durationMinutes,
+          slotKind: input.slotKind,
+          nightDuty: input.nightDuty,
           exceptions: (input.exceptions ?? []).map((ex, idx) => ({
             id: `sim-${slot.slotCode}-${idx}`,
             visitPlanSlotId: slot.id,
@@ -2303,12 +2319,13 @@ export class ServiceUserVisitPlansService {
                       .filter(Boolean)
                       .join(', ')
                   : null,
-                metadata: {
+                metadata: visitPlanGeneratedJobMetadata({
                   visitPlanId: planId,
                   visitPlanSlotId: slot.id,
                   date: dateStr,
                   isOvernight,
-                } as Prisma.InputJsonValue,
+                  nightDuty: resolveVisitPlanNightDuty(slot),
+                }) as Prisma.InputJsonValue,
                 createdById: userId,
               },
             });
@@ -2363,12 +2380,13 @@ export class ServiceUserVisitPlansService {
                     .filter(Boolean)
                     .join(', ')
                 : null,
-              metadata: {
+              metadata: visitPlanGeneratedJobMetadata({
                 visitPlanId: planId,
                 visitPlanSlotId: slot.id,
                 date: dateStr,
                 isOvernight,
-              } as Prisma.InputJsonValue,
+                nightDuty: resolveVisitPlanNightDuty(slot),
+              }) as Prisma.InputJsonValue,
               createdById: userId,
             },
           });
@@ -2521,6 +2539,9 @@ export class ServiceUserVisitPlansService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
+    }, {
+      // Multi-slot + 2–4 carer ranges exceed Prisma's 5s interactive default.
+      timeout: 120_000,
     });
 
     return {
@@ -2650,12 +2671,13 @@ export class ServiceUserVisitPlansService {
                   .filter(Boolean)
                   .join(', ')
               : null,
-            metadata: {
+            metadata: visitPlanGeneratedJobMetadata({
               visitPlanId: planId,
               visitPlanSlotId: slot.id,
               date: dateStr,
               isOvernight,
-            } as Prisma.InputJsonValue,
+              nightDuty: resolveVisitPlanNightDuty(slot),
+            }) as Prisma.InputJsonValue,
             createdById: userId,
           },
         });
@@ -2829,6 +2851,9 @@ export class ServiceUserVisitPlansService {
       attendingEmployeeId,
       slotLabel: row.visitName,
       slotCode: row.visitPlanSlot?.slotCode ?? null,
+      nightDuty:
+        row.visitPlanSlot?.nightDuty ??
+        (typeof jobMeta.nightDuty === 'string' ? jobMeta.nightDuty : 'NONE'),
       linkedCarePlanFormIds: row.visitPlanSlot?.linkedCarePlanFormIds ?? [],
       notes: row.notes,
       scheduledStartDateTime: row.scheduledStartDateTime.toISOString(),

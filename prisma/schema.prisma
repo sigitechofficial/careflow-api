@@ -3624,6 +3624,15 @@ enum VisitPlanSlotKind {
   @@schema("service_users")
 }
 
+/// Duty type for overnight visits. Billing (fixed vs hourly) uses this in a later step.
+enum VisitPlanNightDuty {
+  NONE
+  SLEEPING_NIGHT
+  WAKING_NIGHT
+
+  @@schema("service_users")
+}
+
 enum VisitPlanSlotCarerRole {
   LEAD
   SECONDARY
@@ -3754,6 +3763,7 @@ model VisitPlanSlot {
   linkedCarePlanFormIds  String[]               @default([])
   assignedEmployeeIds    String[]               @default([])
   slotKind               VisitPlanSlotKind      @default(STANDARD)
+  nightDuty              VisitPlanNightDuty     @default(NONE)
   slotEffectiveFrom      DateTime?
   slotEffectiveTo        DateTime?
   oneOffDate             DateTime?

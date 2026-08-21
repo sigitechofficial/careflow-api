@@ -12,6 +12,7 @@ import {
   Prisma,
   VisitPlanScheduleFrequency,
   VisitPlanSlotCarerRole,
+  VisitPlanNightDuty,
   VisitPlanSlotKind,
   VisitPlanStatus,
   type PrismaClient,
@@ -423,6 +424,12 @@ async function upsertVisitPlan(prisma: PrismaClient, serviceUserId: string, pers
       timeCritical: slot.timeCritical ?? false,
       timeToleranceMinutes: slot.timeToleranceMinutes ?? 30,
       slotKind,
+      nightDuty:
+        slot.nightDuty === 'SLEEPING_NIGHT'
+          ? VisitPlanNightDuty.SLEEPING_NIGHT
+          : slot.nightDuty === 'WAKING_NIGHT'
+            ? VisitPlanNightDuty.WAKING_NIGHT
+            : VisitPlanNightDuty.NONE,
       durationMinutes: slot.durationMinutes ?? null,
       slotEffectiveFrom: slot.slotEffectiveFrom ? new Date(slot.slotEffectiveFrom) : null,
       slotEffectiveTo: slot.slotEffectiveTo ? new Date(slot.slotEffectiveTo) : null,

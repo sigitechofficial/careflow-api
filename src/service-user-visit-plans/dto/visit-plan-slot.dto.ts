@@ -23,7 +23,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { VisitPlanSlotKind } from '@prisma/client';
+import { VisitPlanNightDuty, VisitPlanSlotKind } from '@prisma/client';
 import {
   VisitPlanSlotCarerAssignmentDto,
   VisitPlanSlotExceptionDto,
@@ -107,11 +107,11 @@ export class VisitPlanSlotDto {
   @Max(240)
   timeToleranceMinutes?: number;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 480 })
+  @ApiPropertyOptional({ minimum: 1, maximum: 720 })
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(480)
+  @Max(720)
   durationMinutes?: number | null;
 
   @ApiPropertyOptional()
@@ -180,6 +180,14 @@ export class VisitPlanSlotDto {
   @IsOptional()
   @IsEnum(VisitPlanSlotKind)
   slotKind?: VisitPlanSlotKind;
+
+  @ApiPropertyOptional({
+    enum: VisitPlanNightDuty,
+    description: 'Sleeping night (fixed later) vs waking night (hourly later). Only for overnight windows.',
+  })
+  @IsOptional()
+  @IsEnum(VisitPlanNightDuty)
+  nightDuty?: VisitPlanNightDuty;
 
   @ApiPropertyOptional({ description: 'First date this slot is active (YYYY-MM-DD)' })
   @IsOptional()

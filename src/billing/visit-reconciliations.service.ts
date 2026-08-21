@@ -10,6 +10,7 @@ import {
   Prisma,
   ScheduledVisitStatus,
   VisitOverrunDecision,
+  VisitPlanNightDuty,
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,6 +62,10 @@ import {
   summariseTravelForDestination,
 } from './pay-inter-visit-travel.util';
 import { resolveAllocationWindow, resolveAllocationActualWindow } from '../job-allocations/allocation-window.util';
+import {
+  nightDutyAppLabel,
+  resolveStoredNightDuty,
+} from '../service-user-visit-plans/visit-plan-night-duty.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -143,6 +148,8 @@ export type VisitReconciliationListRow = {
   actualArrival: string;
   actualDeparture: string;
   createdAt: string;
+  nightDuty: 'NONE' | 'SLEEPING_NIGHT' | 'WAKING_NIGHT';
+  nightDutyLabel: string;
 };
 
 type DbClient = PrismaService | Prisma.TransactionClient;
@@ -494,6 +501,19 @@ export class VisitReconciliationsService {
       where.exceptions = { some: { resolvedAt: null } };
     } else if (query.hasExceptions === false) {
       where.exceptions = { none: { resolvedAt: null } };
+    }
+
+    const nightDutyVisitFilter = await this.scheduledVisitIdsForNightDutyFilter(query.nightDuty);
+    if (nightDutyVisitFilter.mode === 'empty') {
+      return {
+        data: [],
+        meta: buildPaginationMeta({ total: 0, page, limit }),
+      };
+    }
+    if (nightDutyVisitFilter.mode === 'in') {
+      where.scheduledVisitId = { in: nightDutyVisitFilter.ids };
+    } else if (nightDutyVisitFilter.mode === 'notIn' && nightDutyVisitFilter.ids.length) {
+      where.scheduledVisitId = { notIn: nightDutyVisitFilter.ids };
     }
 
     if (query.search?.trim()) {
@@ -1222,9 +1242,15 @@ export class VisitReconciliationsService {
         scheduledEndDateTime: true,
         actualStartDateTime: true,
         actualEndDateTime: true,
+        visitPlanSlot: { select: { nightDuty: true } },
+        scheduledJob: { select: { metadata: true } },
       },
     });
     if (!visit) return;
+    const nightDuty = resolveStoredNightDuty({
+      slotNightDuty: visit.visitPlanSlot?.nightDuty,
+      jobMetadata: visit.scheduledJob?.metadata,
+    });
 
     const tasksIncomplete = await this.hasIncompleteTasks(db, row.scheduledJobId);
     const funding = await this.loadFundingSnapshot(db, row.serviceUserId);
@@ -1510,8 +1536,22 @@ export class VisitReconciliationsService {
               isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
             }
           : undefined,
+        nightDuty,
       );
       billableAmount = calc?.amount ?? null;
+      if (
+        billableAmount == null &&
+        billMinutes > 0 &&
+        (nightDuty === 'SLEEPING_NIGHT' || nightDuty === 'WAKING_NIGHT')
+      ) {
+        activeExceptions.push({
+          code: FinanceExceptionCode.RATE_MISSING,
+          message:
+            nightDuty === 'SLEEPING_NIGHT'
+              ? 'No sleeping night rate on this charge card. Add a Sleeping night (£/night) rule.'
+              : 'No waking night rate on this charge card. Add a Waking night (£/hour) rule.',
+        });
+      }
     } else if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
       billableAmount = 0;
     }
@@ -1699,12 +1739,71 @@ export class VisitReconciliationsService {
     };
   }
 
+  private async scheduledVisitIdsForNightDutyFilter(
+    raw?: string,
+  ): Promise<
+    | { mode: 'all' }
+    | { mode: 'empty' }
+    | { mode: 'in'; ids: string[] }
+    | { mode: 'notIn'; ids: string[] }
+  > {
+    const filter = raw?.trim();
+    if (!filter || filter === 'all') return { mode: 'all' };
+
+    const overnightDuties: VisitPlanNightDuty[] = [
+      VisitPlanNightDuty.SLEEPING_NIGHT,
+      VisitPlanNightDuty.WAKING_NIGHT,
+    ];
+    const duties: VisitPlanNightDuty[] | null =
+      filter === 'overnight'
+        ? overnightDuties
+        : filter === 'SLEEPING_NIGHT' || filter === 'WAKING_NIGHT'
+          ? [filter]
+          : filter === 'standard' || filter === 'NONE'
+            ? overnightDuties
+            : null;
+    if (!duties) return { mode: 'all' };
+
+    const [fromSlots, fromJobs] = await Promise.all([
+      this.prisma.scheduledVisit.findMany({
+        where: { deletedAt: null, visitPlanSlot: { nightDuty: { in: duties } } },
+        select: { id: true },
+      }),
+      this.prisma.scheduledJob.findMany({
+        where: {
+          deletedAt: null,
+          OR: duties.map((duty) => ({
+            metadata: { path: ['nightDuty'], equals: duty },
+          })),
+        },
+        select: { id: true },
+      }),
+    ]);
+    const extraVisits = fromJobs.length
+      ? await this.prisma.scheduledVisit.findMany({
+          where: {
+            deletedAt: null,
+            scheduledJobId: { in: fromJobs.map((job) => job.id) },
+          },
+          select: { id: true },
+        })
+      : [];
+    const ids = [...new Set([...fromSlots, ...extraVisits].map((row) => row.id))];
+    if (filter === 'standard' || filter === 'NONE') {
+      return { mode: 'notIn', ids };
+    }
+    if (!ids.length) return { mode: 'empty' };
+    return { mode: 'in', ids };
+  }
+
   private async enrichRows(rows: ReconciliationRow[]): Promise<VisitReconciliationListRow[]> {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const suIds = [...new Set(rows.map((r) => r.serviceUserId))];
     const empIds = [...new Set(rows.map((r) => r.employeeId).filter(Boolean))] as string[];
 
-    const [serviceUsers, employees] = await Promise.all([
+    const visitIds = [...new Set(rows.map((r) => r.scheduledVisitId))];
+    const jobIds = [...new Set(rows.map((r) => r.scheduledJobId))];
+    const [serviceUsers, employees, nightVisits, nightJobs] = await Promise.all([
       suIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: suIds } },
@@ -1734,9 +1833,41 @@ export class VisitReconciliationsService {
             },
           })
         : [],
+      visitIds.length
+        ? this.prisma.scheduledVisit.findMany({
+            where: { id: { in: visitIds } },
+            select: {
+              id: true,
+              scheduledJobId: true,
+              visitPlanSlot: { select: { nightDuty: true } },
+              scheduledJob: { select: { metadata: true } },
+            },
+          })
+        : [],
+      jobIds.length
+        ? this.prisma.scheduledJob.findMany({
+            where: { id: { in: jobIds } },
+            select: { id: true, metadata: true },
+          })
+        : [],
     ]);
 
     const suById = new Map(serviceUsers.map((su) => [su.id, su]));
+    const nightDutyByJobId = new Map(
+      nightJobs.map((job) => [
+        job.id,
+        resolveStoredNightDuty({ jobMetadata: job.metadata }),
+      ]),
+    );
+    const nightDutyByVisitId = new Map(
+      nightVisits.map((visit) => {
+        const nightDuty = resolveStoredNightDuty({
+          slotNightDuty: visit.visitPlanSlot?.nightDuty,
+          jobMetadata: visit.scheduledJob?.metadata,
+        });
+        return [visit.id, nightDuty] as const;
+      }),
+    );
     const empMap = new Map(
       employees.map((e) => [
         e.id,
@@ -1804,6 +1935,16 @@ export class VisitReconciliationsService {
             ? formatTimeHhMmSs(row.actualEndDateTime!, timeZone)
             : '00:00:00',
         createdAt: row.createdAt.toISOString(),
+        nightDuty:
+          nightDutyByVisitId.get(row.scheduledVisitId) ??
+          nightDutyByJobId.get(row.scheduledJobId) ??
+          'NONE',
+        nightDutyLabel:
+          nightDutyAppLabel(
+            nightDutyByVisitId.get(row.scheduledVisitId) ??
+              nightDutyByJobId.get(row.scheduledJobId) ??
+              'NONE',
+          ) ?? 'Standard',
       };
     });
   }
@@ -1902,6 +2043,17 @@ export class VisitReconciliationsService {
         }),
         this.prisma.chargeCardRule.findMany({ where: { chargeCardId: row.chargeCardId } }),
       ]);
+      const nightVisit = await this.prisma.scheduledVisit.findUnique({
+        where: { id: row.scheduledVisitId },
+        select: {
+          visitPlanSlot: { select: { nightDuty: true } },
+          scheduledJob: { select: { metadata: true } },
+        },
+      });
+      const nightDuty = resolveStoredNightDuty({
+        slotNightDuty: nightVisit?.visitPlanSlot?.nightDuty,
+        jobMetadata: nightVisit?.scheduledJob?.metadata,
+      });
       clientCharge = buildChargeRateBreakdown(
         chargeRules,
         billStart,
@@ -1914,6 +2066,7 @@ export class VisitReconciliationsService {
         },
         isBankHoliday,
         { start: billStart, end: billEnd },
+        nightDuty,
       );
     }
 

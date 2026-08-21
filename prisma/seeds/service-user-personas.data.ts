@@ -18,6 +18,7 @@ export type PersonaVisitSlot = {
   scheduleFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   notes?: string;
   slotKind?: 'STANDARD' | 'OVERNIGHT' | 'ONE_OFF';
+  nightDuty?: 'NONE' | 'SLEEPING_NIGHT' | 'WAKING_NIGHT';
   durationMinutes?: number;
   slotEffectiveFrom?: string;
   slotEffectiveTo?: string;
@@ -564,6 +565,7 @@ export const SERVICE_USER_PERSONAS: ServiceUserPersona[] = [
           plannedEndTime: '07:00',
           requiredCarers: 1,
           slotKind: 'OVERNIGHT',
+          nightDuty: 'WAKING_NIGHT',
           durationMinutes: 540,
           notes: 'Waking night Sat–Sun',
         },

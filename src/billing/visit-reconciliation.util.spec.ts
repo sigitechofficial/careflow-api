@@ -1,5 +1,6 @@
 import {
   calculatePayableAmount,
+  calculateBillableAmount,
   buildPayRateBreakdown,
   deriveReconciliationStatus,
   hasPayBlockingExceptions,
@@ -202,7 +203,78 @@ describe('deriveReconciliationStatus — auto pay on complete', () => {
       VisitReconciliationStatus.PENDING_REVIEW,
     );
   });
+});
 
+describe('calculateBillableAmount night duty', () => {
+  const dayHourly = {
+    chargeMethod: 'HOURLY_PRO_RATA',
+    dayType: 'WEEKDAY',
+    rateType: 'HOURLY',
+    amount: 18,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 0,
+    label: 'Weekday daytime',
+  };
+  const sleepIn = {
+    chargeMethod: 'SLEEP_IN',
+    dayType: 'ANY',
+    rateType: 'FIXED',
+    amount: 75,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 1,
+    label: 'Sleeping night',
+  };
+  const waking = {
+    chargeMethod: 'WAKING_NIGHT',
+    dayType: 'ANY',
+    rateType: 'HOURLY',
+    amount: 16,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 2,
+    label: 'Waking night',
+  };
+
+  it('charges a flat sleeping night even when hourly day rules exist', () => {
+    const result = calculateBillableAmount(
+      [dayHourly, sleepIn, waking],
+      weekday,
+      540,
+      'HOURLY_PRO_RATA',
+      false,
+      undefined,
+      'SLEEPING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 75, label: 'SLEEP_IN' });
+  });
+
+  it('charges waking night hourly from duration', () => {
+    const result = calculateBillableAmount(
+      [dayHourly, sleepIn, waking],
+      weekday,
+      540,
+      'HOURLY_PRO_RATA',
+      false,
+      undefined,
+      'WAKING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 144, label: 'WAKING_NIGHT' });
+  });
+
+  it('ignores overnight rules on a normal day visit', () => {
+    const result = calculateBillableAmount(
+      [dayHourly, sleepIn, waking],
+      weekday,
+      120,
+      'HOURLY_PRO_RATA',
+    );
+    expect(result).toEqual({ amount: 36, label: 'HOURLY_PRO_RATA' });
+  });
+});
+
+describe('deriveReconciliationStatus — auto pay on complete', () => {
   it('treats pay-card RATE_MISSING as pay blocking, not charge-card', () => {
     expect(
       hasPayBlockingExceptions([

@@ -38,6 +38,7 @@ export type PortalVisitPlanSlot = {
   requiredCarers: number;
   scheduleFrequency: string;
   slotKind: string;
+  nightDuty: string;
   notes: string;
   carers: Array<{
     displayName: string;
@@ -105,6 +106,7 @@ export function mapPortalVisitPlan(
         requiredCarers: slot.requiredCarers,
         scheduleFrequency: slot.scheduleFrequency,
         slotKind: slot.slotKind,
+        nightDuty: slot.nightDuty,
         notes: slot.notes ?? '',
         carers: [...assignmentCarers, ...fallbackCarers],
       };

@@ -9,6 +9,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import {
   AllocationStatus,
+  BodyMapPhotoConsentStatus,
   InitialAssessmentRiskStatus,
   InitialAssessmentRiskType,
   MedicationAdministrationStatus,
@@ -26,7 +27,10 @@ import { ScheduledJobsHousekeepingService } from '../scheduled-jobs-housekeeping
 import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-visit-job-tasks.dto';
 import { BodyMapService } from '../body-map/body-map.service';
 import { bodyMapDiagramCatalogForMobile } from '../body-map/body-map-diagram-catalog.util';
-import type { CreateBodyMapRecordDto } from '../body-map/dto/create-body-map-record.dto';
+import type {
+  CreateBodyMapRecordDto,
+  CreateBodyMapReviewDto,
+} from '../body-map/dto/create-body-map-record.dto';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -39,6 +43,11 @@ import {
   inferVisitObservationStatus,
 } from '../service-user-observations/visit-observations-catalog.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  jobMetadataIsOvernight,
+  nightDutyAppLabel,
+  resolveStoredNightDuty,
+} from '../service-user-visit-plans/visit-plan-night-duty.util';
 import {
   dayKeyInTimeZone,
   formatHmUtc,
@@ -247,7 +256,7 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         actualEndDateTime: true;
         medicationRequired: true;
         notes: true;
-        visitPlanSlot: { select: { slotCode: true; medicationRoundCode: true } };
+        visitPlanSlot: { select: { slotCode: true; medicationRoundCode: true; nightDuty: true } };
       };
     };
     allocations: {
@@ -1151,6 +1160,58 @@ export class EmployeeAppVisitsService {
       deviceRecordedAt,
       record,
     });
+  }
+
+  private async assertBodyMapRecordOnVisit(
+    employeeId: string,
+    jobId: string,
+    recordId: string,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const record = await this.bodyMap.getRecord(recordId);
+    if (record.serviceUserId !== ctx.job.serviceUserId) {
+      throw new ForbiddenException('Body map record is not on this visit');
+    }
+    return { ctx, record };
+  }
+
+  async addBodyMapReview(
+    employeeId: string,
+    jobId: string,
+    recordId: string,
+    dto: CreateBodyMapReviewDto,
+  ) {
+    const { ctx } = await this.assertBodyMapRecordOnVisit(employeeId, jobId, recordId);
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before updating a body map record');
+    }
+    return { data: await this.bodyMap.addReview(undefined, recordId, dto) };
+  }
+
+  async uploadBodyMapPhoto(
+    employeeId: string,
+    jobId: string,
+    recordId: string,
+    file: Express.Multer.File,
+    consentStatus: BodyMapPhotoConsentStatus,
+    caption?: string,
+  ) {
+    const { ctx } = await this.assertBodyMapRecordOnVisit(employeeId, jobId, recordId);
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before adding a body map photo');
+    }
+    return {
+      data: await this.bodyMap.uploadPhoto(undefined, recordId, file, consentStatus, caption),
+    };
+  }
+
+  async patchRotationCheckForVisit(
+    employeeId: string,
+    jobId: string,
+    opts: { bodyView: string; x: number; y: number },
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    return this.bodyMap.patchRotationCheck(ctx.job.serviceUserId, opts);
   }
 
   private isEmployeeCheckedInForVisit(
@@ -3155,7 +3216,7 @@ export class EmployeeAppVisitsService {
             actualEndDateTime: true,
             medicationRequired: true,
             notes: true,
-            visitPlanSlot: { select: { slotCode: true, medicationRoundCode: true } },
+            visitPlanSlot: { select: { slotCode: true, medicationRoundCode: true, nightDuty: true } },
           },
         },
         allocations: {
@@ -3300,6 +3361,10 @@ export class EmployeeAppVisitsService {
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
     const allowedRadiusMeters =
       geofenceSettings?.allowedRadiusMeters ?? EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
+    const nightDuty = resolveStoredNightDuty({
+      slotNightDuty: visit.visitPlanSlot?.nightDuty,
+      jobMetadata: ctx.job.metadata,
+    });
 
     return {
       jobId: ctx.job.id,
@@ -3325,6 +3390,13 @@ export class EmployeeAppVisitsService {
         scheduledEndIso: visit.scheduledEndDateTime?.toISOString() ?? null,
       },
       visitName: visit.visitName,
+      nightDuty,
+      nightDutyLabel: nightDutyAppLabel(nightDuty),
+      isOvernight:
+        jobMetadataIsOvernight(ctx.job.metadata) ||
+        (visit.scheduledEndDateTime != null &&
+          visit.scheduledStartDateTime.toISOString().slice(0, 10) !==
+            visit.scheduledEndDateTime.toISOString().slice(0, 10)),
       status: mapUiStatus(ctx.job.status, visit.status),
       identityConfirmed: ctx.identityConfirmed,
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
