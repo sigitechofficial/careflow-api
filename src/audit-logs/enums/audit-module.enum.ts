@@ -31,4 +31,5 @@ export enum AuditModule {
   CARE_PATHWAY = 'CARE_PATHWAY',
   PAYROLL = 'PAYROLL',
   LEARNING = 'LEARNING',
+  HR = 'HR',
 }

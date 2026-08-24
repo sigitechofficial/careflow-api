@@ -34,6 +34,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { LookupsModule } from './lookups/lookups.module';
 import { EmployeeHolidaysModule } from './employee-holidays/employee-holidays.module';
 import { EmployeeLeavingRecordsModule } from './employee-leaving-records/employee-leaving-records.module';
+import { HrModule } from './hr/hr.module';
 import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-inspectors.module';
 import { ServiceUsersModule } from './service-users/service-users.module';
 import { ServiceUserPortalModule } from './service-user-portal/service-user-portal.module';
@@ -159,6 +160,7 @@ import { LearningModule } from './learning/learning.module';
     EmployeeAbsencesModule,
     EmployeeHolidaysModule,
     EmployeeLeavingRecordsModule,
+    HrModule,
     FilesModule,
     AuditLogsModule,
     LookupsModule,

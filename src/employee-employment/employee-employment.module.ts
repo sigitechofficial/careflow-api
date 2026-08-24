@@ -8,6 +8,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
   imports: [AuditLogsModule],
   controllers: [EmployeeEmploymentController],
   providers: [EmployeeEmploymentService, RbacEmploymentSyncService],
+  exports: [EmployeeEmploymentService],
 })
 export class EmployeeEmploymentModule {}
 

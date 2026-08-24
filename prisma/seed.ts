@@ -175,6 +175,18 @@ async function main() {
     'compliance_requirements.update',
     'compliance_requirements.delete',
     'employees.reports.read',
+    'hr.read',
+    'hr.profile.create',
+    'hr.profile.update',
+    'hr.documents.upload',
+    'hr.documents.delete',
+    'hr.vacancies.read',
+    'hr.vacancies.create',
+    'hr.vacancies.update',
+    'hr.candidates.read',
+    'hr.candidates.create',
+    'hr.candidates.update',
+    'hr.candidates.convert',
     'lookups.read',
     'lookups.manage',
     'settings.company.read',
@@ -2196,6 +2208,55 @@ async function main() {
         where: { roleId_permissionId: { roleId: adminRole.id, permissionId: p.id } },
         update: {},
         create: { roleId: adminRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const hrFullPermKeys = [
+    'hr.read',
+    'hr.profile.create',
+    'hr.profile.update',
+    'hr.documents.upload',
+    'hr.documents.delete',
+    'hr.vacancies.read',
+    'hr.vacancies.create',
+    'hr.vacancies.update',
+    'hr.candidates.read',
+    'hr.candidates.create',
+    'hr.candidates.update',
+    'hr.candidates.convert',
+  ];
+  const hrReadPermKeys = [
+    'hr.read',
+    'hr.vacancies.read',
+    'hr.candidates.read',
+  ];
+  const hrFullPerms = await prisma.permission.findMany({
+    where: { key: { in: hrFullPermKeys }, deletedAt: null },
+  });
+  const hrReadPerms = await prisma.permission.findMany({
+    where: { key: { in: hrReadPermKeys }, deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'HR']) {
+    const r = roles.find((x) => x.name === roleName);
+    if (!r) continue;
+    for (const p of hrFullPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+  const managerRole = roles.find((x) => x.name === 'Manager');
+  if (managerRole) {
+    for (const p of hrReadPerms) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: { roleId: managerRole.id, permissionId: p.id },
+        },
+        update: {},
+        create: { roleId: managerRole.id, permissionId: p.id },
       });
     }
   }

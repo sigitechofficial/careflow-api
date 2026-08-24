@@ -51,6 +51,119 @@ enum EmployeeComplianceStatus {
   @@schema("employees")
 }
 
+enum CareWorkforceCategory {
+  NEW_TO_CARE
+  CARE_OR_SUPPORT_WORKER
+  SUPERVISOR_OR_LEADER
+  PRACTITIONER
+  DEPUTY_MANAGER
+  REGISTERED_MANAGER
+  NON_DIRECT_CARE
+
+  @@schema("employees")
+}
+
+enum EmployeeLifecycleStatus {
+  PRE_EMPLOYMENT
+  CLEARED
+  ONBOARDING
+  ACTIVE
+  ACTIVE_PAUSED
+  LEAVING
+  LEFT
+  ALUMNI
+
+  @@schema("employees")
+}
+
+enum HrDeploymentStatus {
+  GREEN
+  AMBER
+  RED
+
+  @@schema("employees")
+}
+
+enum HrDocumentType {
+  ID_DOCUMENT
+  CONTRACT
+  QUALIFICATION
+  CERTIFICATE
+  OTHER
+
+  @@schema("employees")
+}
+
+enum HrDocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("employees")
+}
+
+enum VacancyStatus {
+  OPEN
+  PAUSED
+  CLOSED
+
+  @@schema("employees")
+}
+
+enum RecruitmentEmploymentType {
+  PERMANENT
+  FIXED_TERM
+  BANK
+  AGENCY
+  APPRENTICE
+  VOLUNTEER
+
+  @@schema("employees")
+}
+
+enum CandidateSource {
+  WEBSITE
+  REFERRAL
+  AGENCY
+  INTERNAL
+  MANUAL
+
+  @@schema("employees")
+}
+
+enum CandidateStage {
+  APPLIED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW
+  ASSESSMENT
+  OFFER
+  VETTING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+
+  @@schema("employees")
+}
+
+enum CandidateDocumentType {
+  CV
+  CERTIFICATE
+  ID_DOCUMENT
+  OTHER
+
+  @@schema("employees")
+}
+
+enum CandidateDocumentStatus {
+  UPLOADED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+
+  @@schema("employees")
+}
+
 enum ComplianceVerificationAction {
   SUBMITTED
   VERIFIED
@@ -462,6 +575,10 @@ model User {
   medicationsStatusEnded             ServiceUserMedication[]         @relation("MedicationStatusEndedBy")
   visitTaskAssignmentsCreated        ServiceUserVisitTaskAssignment[] @relation("ServiceUserVisitTaskAssignmentCreatedBy")
   visitTaskAssignmentsUpdated        ServiceUserVisitTaskAssignment[] @relation("ServiceUserVisitTaskAssignmentUpdatedBy")
+  vacanciesCreated                   Vacancy[]                        @relation("VacancyCreatedBy")
+  candidatesConverted                Candidate[]                      @relation("CandidateConvertedBy")
+  candidateDocumentsUploaded         CandidateDocument[]              @relation("CandidateDocumentUploadedBy")
+  candidateStageChanges              CandidateStageHistory[]          @relation("CandidateStageChangedBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -828,8 +945,163 @@ model Employee {
   portalAccount             EmployeePortalAccount?
   hoursMonthlyReviews       EmployeeHoursMonthlyReview[]
   absenceRecords            EmployeeAbsenceRecord[]
+  hrProfile                 EmployeeHRProfile?
+  hrDirectReports           EmployeeHRProfile[] @relation("HrReportingManager")
+  vacanciesAsHiringManager  Vacancy[]           @relation("VacancyHiringManager")
+  convertedCandidates       Candidate[]         @relation("CandidateConvertedEmployee")
 
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// HR workforce extension — lifecycle and deployment readiness (parallel to operational EmployeeStatus).
+model EmployeeHRProfile {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  employeeId              String                  @unique @db.Uuid
+  legalName               String?
+  preferredName           String?
+  careWorkforceCategory   CareWorkforceCategory?
+  employeeLifecycleStatus EmployeeLifecycleStatus @default(ACTIVE)
+  deploymentStatus        HrDeploymentStatus      @default(GREEN)
+  reportingManagerId      String?                 @db.Uuid
+  branchTeam              String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  employee         Employee  @relation(fields: [employeeId], references: [id])
+  reportingManager Employee? @relation("HrReportingManager", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([reportingManagerId])
+  @@index([employeeLifecycleStatus])
+  @@index([deploymentStatus])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// Recruitment vacancy (ATS).
+model Vacancy {
+  id                String                    @id @default(uuid()) @db.Uuid
+  /// Sequential number rendered as VAC-0001.
+  recordNo          Int                       @unique @default(autoincrement())
+  title             String
+  jobTitleId        String?                   @db.Uuid
+  locationId        String?                   @db.Uuid
+  employmentType    RecruitmentEmploymentType
+  description       String?
+  requirements      String?
+  salaryRange       String?
+  numberOfPositions Int                       @default(1)
+  status            VacancyStatus             @default(OPEN)
+  hiringManagerId   String?                   @db.Uuid
+  createdById       String?                   @db.Uuid
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  updatedById String?   @db.Uuid
+
+  jobTitle      JobTitle? @relation(fields: [jobTitleId], references: [id])
+  location      Location? @relation(fields: [locationId], references: [id])
+  hiringManager Employee? @relation("VacancyHiringManager", fields: [hiringManagerId], references: [id], onDelete: SetNull)
+  createdBy     User?     @relation("VacancyCreatedBy", fields: [createdById], references: [id])
+  candidates    Candidate[]
+
+  @@index([status])
+  @@index([hiringManagerId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// Pre-employment candidate (not an Employee until converted).
+model Candidate {
+  id                    String          @id @default(uuid()) @db.Uuid
+  /// Sequential number rendered as CAN-0001.
+  recordNo              Int             @unique @default(autoincrement())
+  firstName             String
+  lastName              String
+  email                 String?
+  phone                 String?
+  dateOfBirth           DateTime?
+  address               String?
+  vacancyId             String          @db.Uuid
+  source                CandidateSource
+  stage                 CandidateStage  @default(APPLIED)
+  coverLetter           String?
+  personalStatement     String?
+  cvFileUrl             String?
+  dataProcessingConsent Boolean         @default(false)
+  consentDate           DateTime?
+  convertedEmployeeId   String?         @unique @db.Uuid
+  convertedAt           DateTime?
+  convertedById         String?         @db.Uuid
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  vacancy           Vacancy                 @relation(fields: [vacancyId], references: [id])
+  convertedEmployee Employee?               @relation("CandidateConvertedEmployee", fields: [convertedEmployeeId], references: [id], onDelete: SetNull)
+  convertedBy       User?                   @relation("CandidateConvertedBy", fields: [convertedById], references: [id])
+  documents         CandidateDocument[]
+  stageHistory      CandidateStageHistory[]
+
+  @@index([vacancyId])
+  @@index([stage])
+  @@index([email])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model CandidateDocument {
+  id          String                  @id @default(uuid()) @db.Uuid
+  candidateId String                  @db.Uuid
+  documentType CandidateDocumentType
+  fileUrl     String
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  status      CandidateDocumentStatus @default(UPLOADED)
+  reviewNotes String?
+  uploadedById String?                @db.Uuid
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+
+  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedBy User?     @relation("CandidateDocumentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([candidateId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+model CandidateStageHistory {
+  id          String          @id @default(uuid()) @db.Uuid
+  candidateId String          @db.Uuid
+  fromStage   CandidateStage?
+  toStage     CandidateStage
+  changedById String?         @db.Uuid
+  notes       String?
+  createdAt   DateTime        @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  changedBy User?     @relation("CandidateStageChangedBy", fields: [changedById], references: [id])
+
+  @@index([candidateId, createdAt])
   @@schema("employees")
 }
 
@@ -1189,6 +1461,9 @@ model EmployeeDocument {
   uploadedById String? @db.Uuid
   uploadedDate DateTime @default(now())
   tags         String[]
+  documentType HrDocumentType?
+  expiryDate   DateTime?
+  status       HrDocumentStatus?
 
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -1203,6 +1478,8 @@ model EmployeeDocument {
 
   @@index([employeeId])
   @@index([uploadedDate])
+  @@index([documentType])
+  @@index([status])
   @@index([deletedAt])
   @@schema("employees")
 }
@@ -1743,6 +2020,7 @@ model JobTitle {
 
   employments EmployeeEmployment[]
   complianceRequirements ComplianceRequirement[]
+  vacancies Vacancy[]
   @@schema("lookups")
 }
 
@@ -1810,6 +2088,7 @@ model Location {
   serviceUserAssignments    ServiceUserAssignment[]
   scheduleAreas             ScheduleArea[]
   employmentFloorLocations  EmployeeEmploymentFloorLocation[]
+  recruitmentVacancies      Vacancy[]
   @@schema("lookups")
 }
 
@@ -5149,6 +5428,10 @@ enum NotificationType {
   MEDICATION_REVIEW_REMINDER
   ASSESSMENT_DUE_REMINDER
   BIRTHDAY_REMINDER
+  HR_APPLICATION_RECEIVED
+  HR_CANDIDATE_SHORTLISTED
+  HR_INTERVIEW_SCHEDULED
+  HR_OFFER_ACCEPTED
 
   @@schema("notifications")
 }
@@ -5173,6 +5456,7 @@ enum NotificationModule {
   REPORT
   SECURITY
   SYSTEM
+  HR
 
   @@schema("notifications")
 }
