@@ -36,6 +36,29 @@ describe('buildFunderSplitPreview', () => {
     expect(preview?.lines[1]?.reason).toContain('No split %');
     expect(preview?.note).toContain('100%');
   });
+
+  it('notes when funders have different charge cards', () => {
+    const fundingChargeCardById = new Map([
+      ['a', { id: 'card-la', name: 'Local Authority — Croydon Council' }],
+      ['b', { id: 'card-family', name: 'charge card 2' }],
+    ]);
+    const preview = buildFunderSplitPreview(
+      12.5,
+      [
+        fundingLine({ id: 'a', funderName: 'Croydon Council', splitPercent: 60, splitPriority: 1, isPrimary: true }),
+        fundingLine({ id: 'b', funderName: 'Family Funded', splitPercent: 40, splitPriority: 2 }),
+      ],
+      {
+        visitChargeCardId: 'card-la',
+        visitChargeCardName: 'Local Authority — Croydon Council',
+        fundingChargeCardById,
+      },
+    );
+    expect(preview?.note).toContain('one gross charge');
+    expect(preview?.lines[1]?.pricingNote).toContain('charge card 2');
+    expect(preview?.lines[1]?.pricedWithVisitCard).toBe(false);
+    expect(preview?.lines[0]?.pricedWithVisitCard).toBe(true);
+  });
 });
 
 describe('buildFundingSplits', () => {

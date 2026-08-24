@@ -2074,18 +2074,30 @@ export class VisitReconciliationsService {
     let funderSplitPreview: {
       note: string;
       totalAmount: string;
+      visitChargeCardName: string | null;
       lines: Array<{
         funderName: string;
         splitPercent: number | null;
         amount: string;
         included: boolean;
         reason: string | null;
+        chargeCardName: string | null;
+        pricedWithVisitCard: boolean;
+        pricingNote: string | null;
       }>;
     } | null = null;
 
     const fundingLines = await this.prisma.serviceUserFunding.findMany({
       where: { serviceUserId: row.serviceUserId, deletedAt: null },
-      include: { funder: { select: { name: true } } },
+      include: {
+        funder: {
+          select: {
+            name: true,
+            defaultChargeCard: { select: { id: true, name: true, code: true } },
+          },
+        },
+        defaultChargeCard: { select: { id: true, name: true, code: true } },
+      },
     });
     const fundingSplits = buildFundingSplits(fundingLines);
     if (fundingSplits.length >= 2) {
@@ -2095,17 +2107,39 @@ export class VisitReconciliationsService {
           : clientCharge?.amount != null
             ? Number(String(clientCharge.amount).replace(/[^0-9.-]+/g, ''))
             : 0;
-      const preview = buildFunderSplitPreview(totalCharge, fundingSplits);
+      const fundingChargeCardById = new Map<
+        string,
+        { id: string; name: string } | null
+      >();
+      for (const funding of fundingLines) {
+        const card =
+          funding.defaultChargeCard ??
+          funding.funder?.defaultChargeCard ??
+          null;
+        fundingChargeCardById.set(
+          funding.id,
+          card ? { id: card.id, name: card.name } : null,
+        );
+      }
+      const preview = buildFunderSplitPreview(totalCharge, fundingSplits, {
+        visitChargeCardId: row.chargeCardId,
+        visitChargeCardName: clientCharge?.cardName ?? null,
+        fundingChargeCardById,
+      });
       if (preview) {
         funderSplitPreview = {
           note: preview.note,
           totalAmount: formatMoney(preview.totalAmount),
+          visitChargeCardName: preview.visitChargeCardName,
           lines: preview.lines.map((line) => ({
             funderName: line.funderName,
             splitPercent: line.splitPercent,
             amount: formatMoney(line.amount),
             included: line.included,
             reason: line.reason,
+            chargeCardName: line.chargeCardName,
+            pricedWithVisitCard: line.pricedWithVisitCard,
+            pricingNote: line.pricingNote,
           })),
         };
       }

@@ -92,20 +92,36 @@ export type FunderSplitPreviewLine = {
   amount: number;
   included: boolean;
   reason: string | null;
+  chargeCardName: string | null;
+  /** True when this funder's funding charge card was used for the visit gross. */
+  pricedWithVisitCard: boolean;
+  pricingNote: string | null;
 };
 
 export type FunderSplitPreview = {
   totalAmount: number;
   note: string;
+  visitChargeCardName: string | null;
   lines: FunderSplitPreviewLine[];
+};
+
+export type FunderSplitPreviewOptions = {
+  visitChargeCardId?: string | null;
+  visitChargeCardName?: string | null;
+  fundingChargeCardById?: Map<string, { id: string; name: string } | null>;
 };
 
 /** Preview how a visit charge is split across funders on invoice run. */
 export function buildFunderSplitPreview(
   total: number,
   splits: FundingSplitLine[],
+  options?: FunderSplitPreviewOptions,
 ): FunderSplitPreview | null {
   if (splits.length < 2) return null;
+
+  const visitChargeCardId = options?.visitChargeCardId ?? null;
+  const visitChargeCardName = options?.visitChargeCardName?.trim() || null;
+  const fundingChargeCardById = options?.fundingChargeCardById ?? new Map();
 
   const ordered = [...splits].sort((a, b) => a.splitPriority - b.splitPriority);
   const allocated = splitAmount(total, splits);
@@ -117,23 +133,48 @@ export function buildFunderSplitPreview(
     ordered[0]?.funderName ??
     'primary funder';
 
+  const distinctFundingCards = new Set(
+    [...fundingChargeCardById.values()]
+      .filter((card): card is { id: string; name: string } => Boolean(card?.id))
+      .map((card) => card.id),
+  );
+  const hasMultipleFundingCards = distinctFundingCards.size > 1;
+
   const lines: FunderSplitPreviewLine[] = ordered.map((split) => {
     const amount = allocatedById.get(split.id) ?? 0;
     const included = amount > 0;
+    const fundingCard = fundingChargeCardById.get(split.id) ?? null;
+    const chargeCardName = fundingCard?.name ?? null;
+    const pricedWithVisitCard = Boolean(
+      visitChargeCardId && fundingCard?.id && fundingCard.id === visitChargeCardId,
+    );
+
     let reason: string | null = null;
+    let pricingNote: string | null = null;
+
     if (!included) {
       if (split.splitPercent == null || split.splitPercent <= 0) {
         reason = 'No split % on this funding — receives £0 on the invoice run.';
       } else {
         reason = 'Not allocated on this invoice run.';
       }
+    } else if (hasMultipleFundingCards && !pricedWithVisitCard) {
+      pricingNote = chargeCardName
+        ? `${split.splitPercent != null ? `${split.splitPercent}% share` : 'Share'} of the visit charge priced with ${visitChargeCardName ?? 'the primary rate card'} — ${chargeCardName} on this funding is not applied to the visit gross in percentage-split mode.`
+        : `Share of the visit charge priced with ${visitChargeCardName ?? 'the primary rate card'}.`;
+    } else if (pricedWithVisitCard) {
+      pricingNote = 'Visit gross charge is calculated with this funder\'s rate card.';
     }
+
     return {
       funderName: split.funderName ?? 'Unassigned funder',
       splitPercent: split.splitPercent,
       amount,
       included,
       reason,
+      chargeCardName,
+      pricedWithVisitCard,
+      pricingNote,
     };
   });
 
@@ -141,6 +182,8 @@ export function buildFunderSplitPreview(
   if (total <= 0) {
     note =
       'Visit charge is £0 — funder split is not applied until there is an approved billable amount.';
+  } else if (hasMultipleFundingCards) {
+    note = `This visit has one gross charge using ${visitChargeCardName ?? 'the primary funding rate card'}. Percentage split divides that total on the invoice run — each funder's own charge card is not used to price the visit separately.`;
   } else if (withPercent.length === 0) {
     note = `Multiple funders apply but no split % is configured. The primary funder (${primaryName}) receives the full ${formatMoney(total)} when an invoice run is calculated. Other funders receive £0.`;
   } else if (withPercent.length === 1 && ordered.length > 1) {
@@ -154,5 +197,5 @@ export function buildFunderSplitPreview(
       'The visit charge above is split across funders when an invoice run is calculated. Each funder receives a separate invoice line.';
   }
 
-  return { totalAmount: total, note, lines };
+  return { totalAmount: total, note, visitChargeCardName, lines };
 }
