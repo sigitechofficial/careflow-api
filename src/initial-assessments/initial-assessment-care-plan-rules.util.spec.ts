@@ -18,6 +18,34 @@ const baseAnswer = (overrides: Partial<SubmissionAnswerForRules>): SubmissionAns
   ...overrides,
 });
 
+const fallsRule: CarePlanRecommendationRuleRow = {
+  id: 'falls-rule',
+  carePathwayFormId: 'form-falls',
+  label: null,
+  matchMode: 'ANY',
+  conditions: [{ fieldKey: 'fallsLast12Months', when: 'yes' }],
+  suppressLegacyArea: 'Mobility',
+  sortOrder: 50,
+  isActive: true,
+  formName: 'Falls',
+};
+
+const enterpriseFallsYes: SubmissionAnswerForRules = {
+  questionId: 'q-falls-yn',
+  questionText: 'Falls in last 12 months?',
+  checked: true,
+  booleanValue: true,
+  textValue: null,
+  selectedOptions: null,
+  numberValue: null,
+  dateValue: null,
+  fieldKey: 'fallsLast12Months',
+  specRef: '12.7',
+  sectionNumber: 12,
+  sectionTitle: 'Mobility, ADL and Practical Support',
+  carePlanArea: 'Mobility',
+};
+
 describe('evaluateCarePlanRule', () => {
   const rule: CarePlanRecommendationRuleRow = {
     id: 'r1',
@@ -40,6 +68,44 @@ describe('evaluateCarePlanRule', () => {
   it('does not match when answer is no', () => {
     const result = evaluateCarePlanRule(rule, [
       baseAnswer({ booleanValue: false, checked: false }),
+    ]);
+    expect(result.matched).toBe(false);
+  });
+});
+
+describe('Falls recommendation rule (fieldKey fallsLast12Months)', () => {
+  it('recommends Falls when the enterprise IA field is Yes', () => {
+    const result = evaluateCarePlanRule(fallsRule, [enterpriseFallsYes]);
+    expect(result.matched).toBe(true);
+    expect(result.triggers[0]?.fieldKey).toBe('fallsLast12Months');
+    expect(result.triggers[0]?.specRef).toBe('12.7');
+  });
+
+  it('does not recommend Falls when fallsLast12Months is No', () => {
+    const result = evaluateCarePlanRule(fallsRule, [
+      { ...enterpriseFallsYes, booleanValue: false, checked: false },
+    ]);
+    expect(result.matched).toBe(false);
+  });
+
+  it('does not recommend Falls from number-of-falls or other Falls-worded questions alone', () => {
+    const result = evaluateCarePlanRule(fallsRule, [
+      {
+        ...enterpriseFallsYes,
+        questionId: 'q-count',
+        questionText: 'Number of falls (last 12 months)',
+        fieldKey: undefined,
+        booleanValue: null,
+        checked: null,
+        numberValue: 2,
+      },
+      {
+        ...enterpriseFallsYes,
+        questionId: 'q-injury',
+        questionText: 'Injury caused by fall?',
+        fieldKey: undefined,
+        specRef: '12.7',
+      },
     ]);
     expect(result.matched).toBe(false);
   });

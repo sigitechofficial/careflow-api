@@ -60,7 +60,7 @@ const STARTER_RULES: RuleSeed[] = [
     formName: 'Falls',
     suppressLegacyArea: 'Mobility',
     sortOrder: 50,
-    conditions: [{ specRef: '12.1', questionTextContains: 'Falls', when: 'yes' }],
+    conditions: [{ fieldKey: 'fallsLast12Months', when: 'yes' }],
   },
 ];
 

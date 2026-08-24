@@ -9,10 +9,10 @@ import {
   type LabelFieldMapping,
 } from './label-mapped-compose.util';
 import { findIaAnswer, resolveIaDisplayValue } from './ia-answer-resolver.util';
+import { composeFallsCarePlanSuggestions } from './falls-care-plan.suggestions';
 import { iaRoute, profileRoute } from './compose-routes.util';
 
 const PERSON_CENTRED_FORM = 'Person Centred care plan';
-const FALLS_FORM = 'Falls';
 const SKIN_INTEGRITY_FORM = 'Skin Integrity';
 
 function iaText(
@@ -121,48 +121,12 @@ export function composeFallsCarePlan(
   fields: CarePlanFormFieldRef[],
   serviceUserId: string,
 ): ComposePlanResult {
-  const mappings: LabelFieldMapping[] = [
-    {
-      fieldLabel: 'Falls in last 12 months',
-      resolve: (c) =>
-        iaText(c, { questionTextContains: 'falls in last' }) ??
-        iaText(c, { specRef: '12.1', questionTextContains: 'falls' }),
-    },
-    {
-      fieldLabel: 'Last fall date and circumstances',
-      resolve: (c) => iaText(c, { questionTextContains: 'last fall' }),
-    },
-    {
-      fieldLabel: 'Mobility aids in use',
-      resolve: (c) =>
-        iaText(c, { questionTextContains: 'mobility aid' }) ??
-        iaText(c, { specRef: '12.1', questionTextContains: 'equipment' }),
-    },
-    {
-      fieldLabel: 'Environmental hazards identified',
-      resolve: (c) =>
-        iaText(c, { specRef: '3.7', questionTextContains: 'trip' }) ??
-        iaText(c, { questionTextContains: 'hazard' }),
-    },
-    {
-      fieldLabel: 'Transfers – instructions',
-      required: true,
-      resolve: (c) =>
-        iaText(c, { specRef: '12.1', questionTextContains: 'transfer' }) ??
-        iaText(c, { questionTextContains: 'moving and handling' }),
-    },
-  ];
-
-  return composeLabelMappedForm(ctx, fields, mappings, {
+  return composeFallsCarePlanSuggestions(
+    ctx.ia,
+    ctx.previousAssessments ?? [],
+    fields,
     serviceUserId,
-    initialEvidence: baseEvidence(ctx, serviceUserId),
-    composedFrom: {
-      formName: FALLS_FORM,
-      iaSubmissionId: ctx.ia?.submissionId ?? null,
-      composedAt: new Date().toISOString(),
-    },
-    fixesForField: () => [{ label: 'Complete mobility section', route: iaRoute(serviceUserId, 12) }],
-  });
+  );
 }
 
 export function composeSkinIntegrityCarePlan(

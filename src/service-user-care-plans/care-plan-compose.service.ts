@@ -36,7 +36,10 @@ export class CarePlanComposeService {
       | Record<string, string | boolean>
       | undefined;
     const fieldLabels = Object.fromEntries(fields.map((f) => [f.key, f.label]));
-    const deltas = computeComposeDeltas(result.values, latestPublished, fieldLabels);
+    const deltas =
+      result.suggestionMode === 'explicit'
+        ? []
+        : computeComposeDeltas(result.values, latestPublished, fieldLabels);
 
     return {
       data: {
