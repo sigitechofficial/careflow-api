@@ -21,7 +21,7 @@ CREATE TYPE "scheduling"."EcmNotificationOutcome" AS ENUM (
 );
 
 CREATE TABLE "scheduling"."EcmNotificationEvidence" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "ecmExceptionId" UUID,
   "contactedByUserId" UUID,

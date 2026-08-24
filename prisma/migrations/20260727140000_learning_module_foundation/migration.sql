@@ -142,12 +142,6 @@ ALTER TABLE "billing"."PayCardRule" ALTER COLUMN "id" DROP DEFAULT;
 ALTER TABLE "billing"."PayComponent" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "employees"."EmployeeAbsenceRecord" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "employees"."EmployeeHoursMonthlyReview" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
 ALTER TABLE "identity"."OrganisationGeneralSettings" DROP COLUMN "domShowBlockedCarersInSchedule";
 
 -- AlterTable
@@ -164,27 +158,6 @@ DROP COLUMN "description";
 
 -- AlterTable
 ALTER TABLE "lookups"."SkillType" DROP COLUMN "defaultRefreshMonths";
-
--- AlterTable
-ALTER TABLE "scheduling"."EcmAuditEvent" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."EcmException" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."EcmNotificationEvidence" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."EcmScheduleVersion" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."EcmVisitEvaluation" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."LateVisitAlertLog" ALTER COLUMN "id" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "scheduling"."VisitAttendanceEvent" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "service_users"."BodyMapRecord" DROP COLUMN "scheduledJobId",

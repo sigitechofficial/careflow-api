@@ -30,7 +30,7 @@ CREATE TYPE "scheduling"."EcmExceptionLifecycle" AS ENUM (
 );
 
 CREATE TABLE "scheduling"."EcmException" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "ecmVisitEvaluationId" UUID,
   "kind" "scheduling"."EcmExceptionKind" NOT NULL,

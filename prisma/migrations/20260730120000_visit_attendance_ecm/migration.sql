@@ -12,7 +12,7 @@ CREATE TYPE "scheduling"."VisitAttendanceVerificationMethod" AS ENUM (
 CREATE TYPE "scheduling"."LateVisitAlertKind" AS ENUM ('LATE_START', 'NOT_STARTED_PAST_END');
 
 CREATE TABLE "scheduling"."VisitAttendanceEvent" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "scheduledVisitId" UUID,
   "jobAllocationId" UUID,
@@ -36,7 +36,7 @@ CREATE TABLE "scheduling"."VisitAttendanceEvent" (
 );
 
 CREATE TABLE "scheduling"."LateVisitAlertLog" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "alertKind" "scheduling"."LateVisitAlertKind" NOT NULL,
   "thresholdMinutes" INTEGER NOT NULL,
