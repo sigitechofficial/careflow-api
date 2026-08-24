@@ -31,6 +31,9 @@ import {
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 import { buildFundingSplits, buildFunderSplitPreview, formatMoney } from './billing-run.util';
 import {
+  loadPerFunderChargeCalculation,
+} from './multi-funder-charge.util';
+import {
   calculateBillableAmount,
   calculatePayableAmount,
   buildChargeRateBreakdown,
@@ -1512,7 +1515,60 @@ export class VisitReconciliationsService {
         });
       }
     }
-    if (chargeCard && billMinutes) {
+    const billRateAnchor =
+      multiCarerMode === 'FIXED' && siblingRecons.length > 1 && isFunderBillingRow
+        ? visit.scheduledStartDateTime
+        : row.plannedStartDateTime;
+
+    let perFunderCharges = null as Awaited<ReturnType<typeof loadPerFunderChargeCalculation>>;
+    if (billMinutes > 0 && approvedBillStart && approvedBillEnd) {
+      perFunderCharges = await loadPerFunderChargeCalculation(db, {
+        serviceUserId: row.serviceUserId,
+        billMinutes,
+        billRateAnchor,
+        approvedBillStart,
+        approvedBillEnd,
+        isBankHoliday,
+        isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+        nightDuty,
+      });
+    }
+
+    if (perFunderCharges) {
+      billableAmount = perFunderCharges.totalAmount;
+      if (perFunderCharges.primaryChargeCardId) {
+        const primaryCard = await db.chargeCard.findUnique({
+          where: { id: perFunderCharges.primaryChargeCardId },
+          select: { id: true, status: true },
+        });
+        const rulesCount = await db.chargeCardRule.count({
+          where: { chargeCardId: perFunderCharges.primaryChargeCardId },
+        });
+        if (primaryCard) {
+          chargeCard = {
+            id: primaryCard.id,
+            status: primaryCard.status,
+            rulesCount,
+          };
+          chargeCardSource = 'EXPLICIT_FUNDING';
+        }
+      }
+      for (const line of perFunderCharges.lines) {
+        if (line.splitPercent != null && line.splitPercent > 0) {
+          if (!line.chargeCardId) {
+            activeExceptions.push({
+              code: FinanceExceptionCode.CHARGE_CARD_MISSING,
+              message: `No charge card on ${line.funderName ?? 'funder'} funding.`,
+            });
+          } else if (line.cardGrossAmount == null) {
+            activeExceptions.push({
+              code: FinanceExceptionCode.RATE_MISSING,
+              message: `No charge rate on ${line.funderName ?? 'funder'}'s charge card for this visit.`,
+            });
+          }
+        }
+      }
+    } else if (chargeCard && billMinutes) {
       const chargeRules = await db.chargeCardRule.findMany({
         where: { chargeCardId: chargeCard.id },
       });
@@ -1520,10 +1576,6 @@ export class VisitReconciliationsService {
         where: { id: chargeCard.id },
         select: { defaultChargeMethod: true },
       });
-      const billRateAnchor =
-        multiCarerMode === 'FIXED' && siblingRecons.length > 1 && isFunderBillingRow
-          ? visit.scheduledStartDateTime
-          : row.plannedStartDateTime;
       const calc = calculateBillableAmount(
         chargeRules,
         billRateAnchor,
@@ -2011,9 +2063,121 @@ export class VisitReconciliationsService {
 
     let carerPay = null;
     let clientCharge = null;
+    let funderClientCharges: Array<{
+      funderName: string;
+      splitPercent: number | null;
+      shareAmount: string;
+      cardGrossAmount: string | null;
+      breakdown: ReturnType<typeof buildChargeRateBreakdown>;
+      reason: string | null;
+    }> | null = null;
 
     const isBankHoliday = await isVisitOnBankHoliday(this.prisma, row.plannedStartDateTime);
+    const bankHolidayDates =
+      billStart && billEnd
+        ? await loadBankHolidayDateSet(this.prisma, billStart, billEnd)
+        : new Set<string>();
+    const nightVisit = await this.prisma.scheduledVisit.findUnique({
+      where: { id: row.scheduledVisitId },
+      select: {
+        scheduledStartDateTime: true,
+        visitPlanSlot: { select: { nightDuty: true } },
+        scheduledJob: { select: { metadata: true } },
+      },
+    });
+    const nightDuty = resolveStoredNightDuty({
+      slotNightDuty: nightVisit?.visitPlanSlot?.nightDuty,
+      jobMetadata: nightVisit?.scheduledJob?.metadata,
+    });
+    const billRateAnchor = nightVisit?.scheduledStartDateTime ?? row.plannedStartDateTime;
 
+    const perFunderCharges =
+      billMinutes > 0 && billStart && billEnd
+        ? await loadPerFunderChargeCalculation(this.prisma, {
+            serviceUserId: row.serviceUserId,
+            billMinutes,
+            billRateAnchor,
+            approvedBillStart: billStart,
+            approvedBillEnd: billEnd,
+            isBankHoliday,
+            isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+            nightDuty,
+          })
+        : null;
+
+    if (perFunderCharges) {
+      funderClientCharges = [];
+      for (const line of perFunderCharges.lines) {
+        let breakdown: ReturnType<typeof buildChargeRateBreakdown> = null;
+        if (line.chargeCardId && billStart && billEnd) {
+          const [chargeCard, chargeRules] = await Promise.all([
+            this.prisma.chargeCard.findUnique({
+              where: { id: line.chargeCardId },
+              select: { name: true, code: true, defaultChargeMethod: true },
+            }),
+            this.prisma.chargeCardRule.findMany({ where: { chargeCardId: line.chargeCardId } }),
+          ]);
+          breakdown = buildChargeRateBreakdown(
+            chargeRules,
+            billRateAnchor,
+            billMinutes,
+            chargeCard?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
+            {
+              cardName: chargeCard?.name ?? null,
+              cardCode: chargeCard?.code ?? null,
+              cardSource: 'EXPLICIT_FUNDING',
+            },
+            isBankHoliday,
+            { start: billStart, end: billEnd },
+            nightDuty,
+          );
+        }
+        funderClientCharges.push({
+          funderName: line.funderName ?? 'Unassigned funder',
+          splitPercent: line.splitPercent,
+          shareAmount: formatMoney(line.amount),
+          cardGrossAmount:
+            line.cardGrossAmount != null ? formatMoney(line.cardGrossAmount) : null,
+          breakdown,
+          reason: line.reason,
+        });
+      }
+      const includedCount = perFunderCharges.lines.filter((line) => line.included).length;
+      clientCharge = {
+        minutes: billMinutes,
+        hoursLabel: formatMinutesAsHours(billMinutes),
+        rateType: 'MULTI_FUNDER',
+        unitRate: null,
+        amount: formatMoney(perFunderCharges.totalAmount),
+        formula: `Total across ${includedCount} funder${includedCount === 1 ? '' : 's'}`,
+        cardName: null,
+        cardCode: null,
+        cardSource: row.chargeCardSource,
+        ruleLabel: 'Per-funder charge cards',
+      };
+    } else if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
+      const [chargeCard, chargeRules] = await Promise.all([
+        this.prisma.chargeCard.findUnique({
+          where: { id: row.chargeCardId },
+          select: { name: true, code: true, defaultChargeMethod: true },
+        }),
+        this.prisma.chargeCardRule.findMany({ where: { chargeCardId: row.chargeCardId } }),
+      ]);
+      clientCharge = buildChargeRateBreakdown(
+        chargeRules,
+        billStart,
+        billMinutes,
+        chargeCard?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
+        {
+          cardName: chargeCard?.name ?? null,
+          cardCode: chargeCard?.code ?? null,
+          cardSource: row.chargeCardSource,
+        },
+        isBankHoliday,
+        { start: billStart, end: billEnd },
+        nightDuty,
+      );
+    }
     if (row.payCardId && payMinutes > 0) {
       const [payCard, payRules] = await Promise.all([
         this.prisma.payCard.findUnique({
@@ -2033,41 +2197,6 @@ export class VisitReconciliationsService {
         },
         isBankHoliday,
         { start: payStart, end: payEnd },
-      );
-    }
-
-    if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
-      const [chargeCard, chargeRules] = await Promise.all([
-        this.prisma.chargeCard.findUnique({
-          where: { id: row.chargeCardId },
-          select: { name: true, code: true, defaultChargeMethod: true },
-        }),
-        this.prisma.chargeCardRule.findMany({ where: { chargeCardId: row.chargeCardId } }),
-      ]);
-      const nightVisit = await this.prisma.scheduledVisit.findUnique({
-        where: { id: row.scheduledVisitId },
-        select: {
-          visitPlanSlot: { select: { nightDuty: true } },
-          scheduledJob: { select: { metadata: true } },
-        },
-      });
-      const nightDuty = resolveStoredNightDuty({
-        slotNightDuty: nightVisit?.visitPlanSlot?.nightDuty,
-        jobMetadata: nightVisit?.scheduledJob?.metadata,
-      });
-      clientCharge = buildChargeRateBreakdown(
-        chargeRules,
-        billStart,
-        billMinutes,
-        chargeCard?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
-        {
-          cardName: chargeCard?.name ?? null,
-          cardCode: chargeCard?.code ?? null,
-          cardSource: row.chargeCardSource,
-        },
-        isBankHoliday,
-        { start: billStart, end: billEnd },
-        nightDuty,
       );
     }
 
@@ -2100,7 +2229,33 @@ export class VisitReconciliationsService {
       },
     });
     const fundingSplits = buildFundingSplits(fundingLines);
-    if (fundingSplits.length >= 2) {
+    if (perFunderCharges) {
+      const cardNameByFunding = new Map(
+        fundingLines.map((funding) => [
+          funding.id,
+          funding.defaultChargeCard?.name ?? funding.funder?.defaultChargeCard?.name ?? null,
+        ]),
+      );
+      funderSplitPreview = {
+        note:
+          'Each funder is charged using their own funding rate card. The split % applies to that funder\'s full visit price.',
+        totalAmount: formatMoney(perFunderCharges.totalAmount),
+        visitChargeCardName: null,
+        lines: perFunderCharges.lines.map((line) => ({
+          funderName: line.funderName ?? 'Unassigned funder',
+          splitPercent: line.splitPercent,
+          amount: formatMoney(line.amount),
+          included: line.included,
+          reason: line.reason,
+          chargeCardName: cardNameByFunding.get(line.fundingId) ?? null,
+          pricedWithVisitCard: true,
+          pricingNote:
+            line.included && line.cardGrossAmount != null && line.splitPercent != null
+              ? `${formatMoney(line.cardGrossAmount)} visit price × ${line.splitPercent}%`
+              : line.reason,
+        })),
+      };
+    } else if (fundingSplits.length >= 2) {
       const totalCharge =
         row.billableAmount != null
           ? Number(row.billableAmount)
@@ -2169,6 +2324,7 @@ export class VisitReconciliationsService {
       },
       carerPay,
       clientCharge,
+      funderClientCharges,
       exceptionDetails: row.exceptions.map((e) => ({
         code: e.code,
         message: e.message ?? e.code,

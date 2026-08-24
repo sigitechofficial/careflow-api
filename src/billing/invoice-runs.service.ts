@@ -20,6 +20,7 @@ import {
   parseBillingDateOnly,
   splitAmount,
 } from './billing-run.util';
+import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
 import { InvoiceTemplatesService } from './invoice-templates.service';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
@@ -426,7 +427,75 @@ export class InvoiceRunsService {
 
       if (issues.length) exceptionCount += 1;
 
-      const allocated = splitAmount(issues.length ? 0 : total, splits);
+      const perFunderCharges =
+        !issues.length &&
+        recon.approvedBillStart &&
+        recon.approvedBillEnd &&
+        billMins > 0
+          ? await loadPerFunderChargeCalculation(this.prisma, {
+              serviceUserId: recon.serviceUserId,
+              billMinutes: billMins,
+              billRateAnchor: recon.approvedBillStart,
+              approvedBillStart: recon.approvedBillStart,
+              approvedBillEnd: recon.approvedBillEnd,
+              isBankHoliday: false,
+              isBankHolidayFn: () => false,
+              nightDuty: null,
+            })
+          : null;
+
+      const allocated = perFunderCharges
+        ? perFunderCharges.lines
+            .filter((line) => line.included && line.amount > 0)
+            .map((line) => ({
+              id: line.fundingId,
+              funderId: line.funderId,
+              funderName: line.funderName,
+              splitPercent: line.splitPercent,
+              splitPriority: line.splitPriority,
+              isPrimary: line.isPrimary,
+              amount: line.amount,
+              chargeCardId: line.chargeCardId,
+            }))
+        : [];
+
+      if (!perFunderCharges) {
+        const legacyAllocated = splitAmount(issues.length ? 0 : total, splits);
+        for (const split of legacyAllocated) {
+          if (split.funderId) funderIds.add(split.funderId);
+
+          const lineIssues = [...issues];
+          const resolved = await this.invoiceTemplates.resolveForServiceUser(
+            recon.serviceUserId,
+            split.id,
+          );
+          if (!resolved.data.invoiceTemplate) {
+            templateMissingCount += 1;
+            lineIssues.push('Invoice template missing');
+            if (!issues.length) exceptionCount += 1;
+          }
+
+          lineData.push({
+            invoiceRunId: id,
+            visitReconciliationId: recon.id,
+            serviceUserId: recon.serviceUserId,
+            serviceUserFundingId: split.id,
+            funderId: split.funderId,
+            lineType: InvoiceRunLineType.VISIT_CHARGE,
+            description: split.funderName
+              ? `Visit charge — ${recon.visitRef} (${split.funderName})`
+              : `Visit charge — ${recon.visitRef}`,
+            minutes: recon.billableMinutes,
+            splitPercent: split.splitPercent,
+            amount: split.amount,
+            chargeCardId: recon.chargeCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
+          });
+        }
+        continue;
+      }
+
       for (const split of allocated) {
         if (split.funderId) funderIds.add(split.funderId);
 
@@ -454,7 +523,7 @@ export class InvoiceRunsService {
           minutes: recon.billableMinutes,
           splitPercent: split.splitPercent,
           amount: split.amount,
-          chargeCardId: recon.chargeCardId,
+          chargeCardId: split.chargeCardId ?? recon.chargeCardId,
           visitRef: recon.visitRef,
           exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
         });
