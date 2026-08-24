@@ -17,6 +17,10 @@ import {
   computeNextReviewDueAt,
   getCarePlanReviewSchedule,
 } from './care-plan-review-schedule';
+import {
+  carePlanInstanceDisplayStatus,
+  consumePublishedDraftWhere,
+} from './care-plan-instance-display-status.util';
 
 const instanceInclude = {
   draft: true,
@@ -55,14 +59,10 @@ export class ServiceUserCarePlansService {
 
   private mapInstance(row: InstanceRow, formName?: string | null) {
     const latest = row.publishedVersions[0] ?? null;
-    const displayStatus =
-      latest == null
-        ? row.draft
-          ? 'DRAFT'
-          : 'NOT_STARTED'
-        : row.draft
-          ? 'PUBLISHED_WITH_DRAFT'
-          : 'PUBLISHED';
+    const displayStatus = carePlanInstanceDisplayStatus({
+      hasDraft: Boolean(row.draft),
+      hasPublishedVersion: latest != null,
+    });
 
     const schedule = getCarePlanReviewSchedule(formName);
     const review = computeCarePlanReviewState({
@@ -297,6 +297,18 @@ export class ServiceUserCarePlansService {
     const nextReviewDueAt = computeNextReviewDueAt(publishedAt, schedule.defaultIntervalDays);
 
     const version = await this.prisma.$transaction(async (tx) => {
+      const currentDraft = await tx.serviceUserCarePlanDraft.findUnique({
+        where: { id: draft.id },
+      });
+      if (!currentDraft) {
+        throw new BadRequestException('Save a draft before publishing.');
+      }
+
+      const currentValues = currentDraft.valuesJson as Record<string, unknown>;
+      if (!currentValues || typeof currentValues !== 'object' || Object.keys(currentValues).length === 0) {
+        throw new BadRequestException('Care plan draft has no values to publish.');
+      }
+
       await tx.serviceUserCarePlanPublishedVersion.updateMany({
         where: { instanceId: instance.id, supersededAt: null },
         data: { supersededAt: new Date() },
@@ -306,8 +318,8 @@ export class ServiceUserCarePlansService {
         data: {
           instanceId: instance.id,
           versionNumber,
-          valuesJson: draft.valuesJson as Prisma.InputJsonValue,
-          composedFromJson: draft.composedFromJson ?? undefined,
+          valuesJson: currentDraft.valuesJson as Prisma.InputJsonValue,
+          composedFromJson: currentDraft.composedFromJson ?? undefined,
           summary: dto.summary?.trim() || null,
           signaturesJson: dto.signatures
             ? (dto.signatures as Prisma.InputJsonValue)
@@ -326,6 +338,10 @@ export class ServiceUserCarePlansService {
           lastReviewedById: userId,
           nextReviewDueAt,
         },
+      });
+
+      await tx.serviceUserCarePlanDraft.deleteMany({
+        where: consumePublishedDraftWhere(currentDraft),
       });
 
       return created;

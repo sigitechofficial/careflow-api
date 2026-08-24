@@ -12,6 +12,8 @@ export type SubmissionAnswerForRules = {
   booleanValue: boolean | null;
   textValue: string | null;
   selectedOptions: Prisma.JsonValue;
+  numberValue?: number | null;
+  dateValue?: string | null;
   specRef?: string;
   fieldKey?: string;
   sectionNumber: number;
@@ -223,6 +225,8 @@ export function submissionAnswersForRules(
     booleanValue: boolean | null;
     textValue: string | null;
     selectedOptions: Prisma.JsonValue;
+    numberValue?: Prisma.Decimal | number | null;
+    dateValue?: Date | string | null;
     question: {
       questionText: string;
       metadata: Prisma.JsonValue;
@@ -239,6 +243,20 @@ export function submissionAnswersForRules(
       a.question.metadata && typeof a.question.metadata === 'object' && !Array.isArray(a.question.metadata)
         ? (a.question.metadata as Record<string, unknown>)
         : {};
+    const rawNumber = a.numberValue;
+    const numberValue =
+      rawNumber == null
+        ? null
+        : typeof rawNumber === 'number'
+          ? rawNumber
+          : Number(rawNumber);
+    const rawDate = a.dateValue;
+    const dateValue =
+      rawDate == null
+        ? null
+        : rawDate instanceof Date
+          ? rawDate.toISOString()
+          : String(rawDate);
     return {
       questionId: a.questionId,
       questionText: a.question.questionText,
@@ -246,6 +264,8 @@ export function submissionAnswersForRules(
       booleanValue: a.booleanValue,
       textValue: a.textValue,
       selectedOptions: a.selectedOptions,
+      numberValue: numberValue != null && !Number.isNaN(numberValue) ? numberValue : null,
+      dateValue,
       specRef: typeof meta.specRef === 'string' ? meta.specRef : undefined,
       fieldKey: typeof meta.fieldKey === 'string' ? meta.fieldKey : undefined,
       sectionNumber: a.question.section.sectionNumber,

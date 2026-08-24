@@ -57,6 +57,35 @@ export function resolveIaBooleanYes(answer: SubmissionAnswerForRules | undefined
   return raw.toLowerCase() === 'yes' || raw === 'true';
 }
 
+export function resolveIaBooleanValue(answer: SubmissionAnswerForRules | undefined): boolean | null {
+  if (!answer) return null;
+  if (answer.checked === true || answer.booleanValue === true) return true;
+  if (answer.checked === false || answer.booleanValue === false) return false;
+  return null;
+}
+
+export function resolveIaNumberValue(answer: SubmissionAnswerForRules | undefined): number | null {
+  if (!answer) return null;
+  if (answer.numberValue != null && !Number.isNaN(Number(answer.numberValue))) {
+    return Number(answer.numberValue);
+  }
+  if (answer.textValue?.trim()) {
+    const n = Number(answer.textValue.trim());
+    if (!Number.isNaN(n)) return n;
+  }
+  return null;
+}
+
+export function resolveIaDateIso(answer: SubmissionAnswerForRules | undefined): string | null {
+  if (!answer?.dateValue) return null;
+  const raw = answer.dateValue;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    return raw.trim() ? raw : null;
+  }
+  return date.toISOString();
+}
+
 /** Map IA medication support level codes to Medication care plan SELECT labels. */
 export function mapMedicationSupportLevelToCarePlan(raw: string | null): string | null {
   if (!raw) return null;

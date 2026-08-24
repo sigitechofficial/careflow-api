@@ -1,5 +1,4 @@
 import {
-  InitialAssessmentStatus,
   MedicationRecordStatus,
   Prisma,
 } from '@prisma/client';
@@ -31,6 +30,12 @@ import {
   findIaAnswer,
   resolveIaDisplayValue,
 } from './ia-answer-resolver.util';
+import {
+  COMPOSE_ELIGIBLE_IA_STATUSES,
+  splitLatestAndPreviousAssessments,
+  toComposeIaStatus,
+} from './compose-ia-eligibility.util';
+import type { CarePlanComposeIaSnapshot, CarePlanFallsSnapshotEvidence } from './compose-context.types';
 
 const MEDICATION_FORM_NAME = 'Medication';
 const CARE_PLAN_REVIEW_FORM_NAME = 'Care Plan review form';
@@ -55,6 +60,7 @@ export async function loadCarePlanFormFields(
             orderBy: { sortOrder: 'asc' },
             select: {
               id: true,
+              title: true,
               fields: {
                 where: { deletedAt: null, isActive: true },
                 orderBy: { sortOrder: 'asc' },
@@ -83,6 +89,7 @@ export async function loadCarePlanFormFields(
         key: `${section.id}:${field.id}`,
         sectionId: section.id,
         fieldId: field.id,
+        sectionTitle: section.title,
         label: field.label,
         fieldType: field.fieldType,
         required: field.required,
@@ -93,24 +100,116 @@ export async function loadCarePlanFormFields(
   return { formName: form.name, fields };
 }
 
+function readFallsSnapshot(metadata: Prisma.JsonValue | null | undefined): CarePlanFallsSnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const falls = (metadata as Record<string, unknown>).falls;
+  if (!falls || typeof falls !== 'object' || Array.isArray(falls)) return null;
+  const row = falls as Record<string, unknown>;
+  return {
+    fallsLast12Months: typeof row.fallsLast12Months === 'boolean' ? row.fallsLast12Months : null,
+    numberOfFalls: typeof row.numberOfFalls === 'number' ? row.numberOfFalls : null,
+    mostRecentFallDate: typeof row.mostRecentFallDate === 'string' ? row.mostRecentFallDate : null,
+    injuryCaused: typeof row.injuryCaused === 'boolean' ? row.injuryCaused : null,
+    riskScore: typeof row.riskScore === 'number' ? row.riskScore : null,
+    riskLevel: typeof row.riskLevel === 'string' ? row.riskLevel : null,
+  };
+}
+
+function readFallsScreeningSummary(metadata: Prisma.JsonValue | null | undefined): string | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const screening = (metadata as Record<string, unknown>).fallsScreening;
+  if (!screening || typeof screening !== 'object' || Array.isArray(screening)) return null;
+  const row = screening as Record<string, unknown>;
+  const parts: string[] = [];
+  if (row.q6FearOfFalling === true) parts.push('Fear of falling recorded');
+  if (row.q5TrippingMore === true) parts.push('Tripping more often');
+  if (row.q1FallsNeedInvestigating === true) parts.push('Falls need investigating');
+  if (parts.length === 0 && row.fallOrConcern === true) parts.push('Fall or concern recorded');
+  return parts.length > 0 ? parts.join('; ') : 'Falls screening completed';
+}
+
+const iaAnswerInclude = {
+  question: {
+    select: {
+      questionText: true,
+      metadata: true,
+      section: {
+        select: {
+          sectionNumber: true,
+          title: true,
+          carePlanArea: true,
+        },
+      },
+    },
+  },
+} as const;
+
+async function loadComposeIaSnapshots(
+  prisma: PrismaService,
+  serviceUserId: string,
+): Promise<{ latest: CarePlanComposeIaSnapshot | null; previous: CarePlanComposeIaSnapshot[] }> {
+  const rows = await prisma.initialAssessmentSubmission.findMany({
+    where: {
+      serviceUserId,
+      deletedAt: null,
+      status: { in: COMPOSE_ELIGIBLE_IA_STATUSES },
+    },
+    select: { id: true, submittedAt: true, updatedAt: true, status: true, metadata: true },
+  });
+  const { latest, previous } = splitLatestAndPreviousAssessments(rows);
+  const ids = [latest, ...previous].filter(Boolean).map((row) => row!.id);
+  if (ids.length === 0) return { latest: null, previous: [] };
+
+  const answerRows = await prisma.initialAssessmentAnswer.findMany({
+    where: { submissionId: { in: ids } },
+    include: iaAnswerInclude,
+  });
+  const answersBySubmission = new Map<string, typeof answerRows>();
+  for (const row of answerRows) {
+    const list = answersBySubmission.get(row.submissionId) ?? [];
+    list.push(row);
+    answersBySubmission.set(row.submissionId, list);
+  }
+
+  const toSnapshot = (row: NonNullable<typeof latest>): CarePlanComposeIaSnapshot | null => {
+    const status = toComposeIaStatus(row.status);
+    if (!status) return null;
+    const mapped = (answersBySubmission.get(row.id) ?? []).map((a) => ({
+      questionId: a.questionId,
+      checked: a.checked,
+      booleanValue: a.booleanValue,
+      textValue: a.textValue,
+      selectedOptions: a.selectedOptions as Prisma.JsonValue,
+      numberValue: a.numberValue,
+      dateValue: a.dateValue,
+      question: a.question,
+    }));
+    return {
+      submissionId: row.id,
+      submittedAt: row.submittedAt?.toISOString() ?? null,
+      status,
+      answers: submissionAnswersForRules(mapped),
+      fallsSnapshot: readFallsSnapshot(row.metadata),
+      fallsScreeningSummary: readFallsScreeningSummary(row.metadata),
+    };
+  };
+
+  return {
+    latest: latest ? toSnapshot(latest) : null,
+    previous: previous.map(toSnapshot).filter((s): s is CarePlanComposeIaSnapshot => Boolean(s)),
+  };
+}
+
 export async function loadCarePlanComposeContext(
   prisma: PrismaService,
   serviceUserId: string,
 ): Promise<CarePlanComposeContext> {
-  const [serviceUser, submission, allergies, meds, pack, references, emergencyContacts] = await Promise.all([
+  const [serviceUser, iaBundle, allergies, meds, pack, references, emergencyContacts] = await Promise.all([
     prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
       select: { id: true, firstName: true, lastName: true, preferredName: true, serviceUserNumber: true },
     }),
-    prisma.initialAssessmentSubmission.findFirst({
-      where: {
-        serviceUserId,
-        deletedAt: null,
-        status: { in: [InitialAssessmentStatus.SUBMITTED, InitialAssessmentStatus.REVIEWED] },
-      },
-      orderBy: [{ submittedAt: 'desc' }, { updatedAt: 'desc' }],
-      select: { id: true, submittedAt: true },
-    }),
+    loadComposeIaSnapshots(prisma, serviceUserId),
     prisma.serviceUserAllergy.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
       select: { allergyName: true, comment: true },
@@ -158,42 +257,8 @@ export async function loadCarePlanComposeContext(
       'Service user'
     : 'Service user';
 
-  let ia: CarePlanComposeContext['ia'] = null;
-  if (submission) {
-    const answerRows = await prisma.initialAssessmentAnswer.findMany({
-      where: { submissionId: submission.id },
-      include: {
-        question: {
-          select: {
-            questionText: true,
-            metadata: true,
-            section: {
-              select: {
-                sectionNumber: true,
-                title: true,
-                carePlanArea: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    ia = {
-      submissionId: submission.id,
-      submittedAt: submission.submittedAt?.toISOString() ?? null,
-      answers: submissionAnswersForRules(
-        answerRows.map((a) => ({
-          questionId: a.questionId,
-          checked: a.checked,
-          booleanValue: a.booleanValue,
-          textValue: a.textValue,
-          selectedOptions: a.selectedOptions as Prisma.JsonValue,
-          question: a.question,
-        })),
-      ),
-    };
-  }
+  const ia = iaBundle.latest;
+  const previousAssessments = iaBundle.previous;
 
   const gpParts: string[] = [];
   if (ia) {
@@ -219,6 +284,7 @@ export async function loadCarePlanComposeContext(
       serviceUserNumber: serviceUser?.serviceUserNumber ?? null,
     }),
     ia,
+    previousAssessments,
     aboutMe: loadAboutMeFromReferences(references),
     emergencyContacts: emergencyContacts.map((c) => {
       const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();

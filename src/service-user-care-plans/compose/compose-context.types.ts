@@ -37,15 +37,32 @@ export type MedicationPackComposeSummary = {
   storageLine: string | null;
 };
 
+export type CarePlanComposeIaStatus = 'SUBMITTED' | 'REVIEWED';
+
+export type CarePlanFallsSnapshotEvidence = {
+  fallsLast12Months: boolean | null;
+  numberOfFalls: number | null;
+  mostRecentFallDate: string | null;
+  injuryCaused: boolean | null;
+  riskScore: number | null;
+  riskLevel: string | null;
+};
+
+export type CarePlanComposeIaSnapshot = {
+  submissionId: string;
+  submittedAt: string | null;
+  status?: CarePlanComposeIaStatus;
+  answers: SubmissionAnswerForRules[];
+  fallsSnapshot?: CarePlanFallsSnapshotEvidence | null;
+  fallsScreeningSummary?: string | null;
+};
+
 export type CarePlanComposeContext = {
   serviceUserId: string;
   serviceUserName: string;
   personalisation: CarePlanPersonalisationContext;
-  ia: {
-    submissionId: string;
-    submittedAt: string | null;
-    answers: SubmissionAnswerForRules[];
-  } | null;
+  ia: CarePlanComposeIaSnapshot | null;
+  previousAssessments?: CarePlanComposeIaSnapshot[];
   aboutMe: AboutMeComposeSummary | null;
   emergencyContacts: string[];
   allergies: string[];
@@ -68,6 +85,7 @@ export type CarePlanFormFieldRef = {
   label: string;
   fieldType: string;
   required: boolean;
+  sectionTitle?: string;
 };
 
 export type ComposeFieldResult = {
@@ -78,10 +96,53 @@ export type ComposeFieldResult = {
   sourceLabel: string;
 };
 
+export type CarePlanSuggestionKind = 'value' | 'context';
+
+export type CarePlanSuggestionSourceQuestion = {
+  questionId: string;
+  questionFieldKey?: string;
+  specRef?: string;
+  sourceSection: string;
+  sourceLabel: string;
+  sourceValue: string;
+};
+
+export type CarePlanFieldSuggestion = {
+  id: string;
+  kind: CarePlanSuggestionKind;
+  targetFieldKey: string;
+  targetLabel: string;
+  targetFieldType: string;
+  suggestedValue: string | boolean | null;
+  displayText: string;
+  sourceType: 'INITIAL_ASSESSMENT';
+  submissionId: string;
+  sourceDate: string | null;
+  questionId?: string;
+  questionFieldKey?: string;
+  specRef?: string;
+  sourceSection?: string;
+  sourceLabel?: string;
+  sourceValue?: string;
+  sourceQuestions: CarePlanSuggestionSourceQuestion[];
+  transform: 'direct' | 'typed' | 'narrative' | 'join' | 'context';
+};
+
+export type CarePlanPreviousAssessment = {
+  submissionId: string;
+  submittedAt: string | null;
+  status: CarePlanComposeIaStatus;
+  suggestions: CarePlanFieldSuggestion[];
+};
+
 export type ComposePlanResult = {
   values: Record<string, string | boolean>;
   fieldSources: Record<string, ComposeFieldResult['source']>;
   gaps: ComposeGap[];
   evidence: ComposeEvidenceItem[];
   composedFrom: Record<string, unknown>;
+  suggestionMode?: 'explicit';
+  suggestions?: CarePlanFieldSuggestion[];
+  previousAssessments?: CarePlanPreviousAssessment[];
+  iaStatus?: CarePlanComposeIaStatus | null;
 };
