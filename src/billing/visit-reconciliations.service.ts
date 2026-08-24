@@ -1285,7 +1285,7 @@ export class VisitReconciliationsService {
     }
 
     const chargeResolved = await this.chargeCardsService.resolveForServiceUser(row.serviceUserId);
-    const chargeCardSource = chargeResolved.data.source;
+    let chargeCardSource = chargeResolved.data.source;
     let chargeCard: { id: string; status: string; rulesCount: number } | null = null;
     if (chargeResolved.data.chargeCard) {
       chargeCard = {
