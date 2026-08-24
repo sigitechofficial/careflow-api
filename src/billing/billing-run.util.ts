@@ -85,3 +85,74 @@ export function splitAmount(total: number, splits: FundingSplitLine[]): Array<Fu
   }
   return result;
 }
+
+export type FunderSplitPreviewLine = {
+  funderName: string;
+  splitPercent: number | null;
+  amount: number;
+  included: boolean;
+  reason: string | null;
+};
+
+export type FunderSplitPreview = {
+  totalAmount: number;
+  note: string;
+  lines: FunderSplitPreviewLine[];
+};
+
+/** Preview how a visit charge is split across funders on invoice run. */
+export function buildFunderSplitPreview(
+  total: number,
+  splits: FundingSplitLine[],
+): FunderSplitPreview | null {
+  if (splits.length < 2) return null;
+
+  const ordered = [...splits].sort((a, b) => a.splitPriority - b.splitPriority);
+  const allocated = splitAmount(total, splits);
+  const allocatedById = new Map(allocated.map((line) => [line.id, line.amount]));
+
+  const withPercent = ordered.filter((s) => s.splitPercent != null && s.splitPercent > 0);
+  const primaryName =
+    ordered.find((s) => s.isPrimary)?.funderName ??
+    ordered[0]?.funderName ??
+    'primary funder';
+
+  const lines: FunderSplitPreviewLine[] = ordered.map((split) => {
+    const amount = allocatedById.get(split.id) ?? 0;
+    const included = amount > 0;
+    let reason: string | null = null;
+    if (!included) {
+      if (split.splitPercent == null || split.splitPercent <= 0) {
+        reason = 'No split % on this funding — receives £0 on the invoice run.';
+      } else {
+        reason = 'Not allocated on this invoice run.';
+      }
+    }
+    return {
+      funderName: split.funderName ?? 'Unassigned funder',
+      splitPercent: split.splitPercent,
+      amount,
+      included,
+      reason,
+    };
+  });
+
+  let note: string;
+  if (total <= 0) {
+    note =
+      'Visit charge is £0 — funder split is not applied until there is an approved billable amount.';
+  } else if (withPercent.length === 0) {
+    note = `Multiple funders apply but no split % is configured. The primary funder (${primaryName}) receives the full ${formatMoney(total)} when an invoice run is calculated. Other funders receive £0.`;
+  } else if (withPercent.length === 1 && ordered.length > 1) {
+    const named = withPercent[0]!.funderName ?? 'the funder with a split %';
+    note = `Only ${named} has a split % configured, so that funder receives 100% (${formatMoney(total)}) on the invoice run. Other funders receive £0.`;
+  } else if (lines.some((line) => !line.included)) {
+    note =
+      'The visit charge above is split across funders when an invoice run is calculated. Funders without a split % receive £0.';
+  } else {
+    note =
+      'The visit charge above is split across funders when an invoice run is calculated. Each funder receives a separate invoice line.';
+  }
+
+  return { totalAmount: total, note, lines };
+}

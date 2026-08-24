@@ -308,24 +308,26 @@ export class ServiceUserPortalService {
     ];
 
     const [rounds, allAssignments] = await Promise.all([
-      roundCodes.length
-        ? this.prisma.medicationAdministrationRound.findMany({
-            where: { code: { in: roundCodes }, deletedAt: null, isActive: true },
-            select: { code: true, name: true },
-          })
-        : Promise.resolve([]),
-      roundCodes.length
-        ? this.prisma.serviceUserVisitTaskAssignment.findMany({
-            where: {
-              serviceUserId,
-              medicationRoundCode: { in: roundCodes },
-              deletedAt: null,
-              isActive: true,
-            },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            include: { task: { include: { category: true } } },
-          })
-        : Promise.resolve([]),
+      this.prisma.medicationAdministrationRound.findMany({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          ...(roundCodes.length > 0 ? { code: { in: roundCodes } } : { id: { in: [] } }),
+        },
+        select: { code: true, name: true },
+      }),
+      this.prisma.serviceUserVisitTaskAssignment.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          ...(roundCodes.length > 0
+            ? { medicationRoundCode: { in: roundCodes } }
+            : { id: { in: [] } }),
+        },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        include: { task: { include: { category: true } } },
+      }),
     ]);
 
     const roundNameByCode = new Map(rounds.map(r => [r.code.toUpperCase(), r.name]));

@@ -29,6 +29,7 @@ import {
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { buildFundingSplits, buildFunderSplitPreview, formatMoney } from './billing-run.util';
 import {
   calculateBillableAmount,
   calculatePayableAmount,
@@ -2070,6 +2071,46 @@ export class VisitReconciliationsService {
       );
     }
 
+    let funderSplitPreview: {
+      note: string;
+      totalAmount: string;
+      lines: Array<{
+        funderName: string;
+        splitPercent: number | null;
+        amount: string;
+        included: boolean;
+        reason: string | null;
+      }>;
+    } | null = null;
+
+    const fundingLines = await this.prisma.serviceUserFunding.findMany({
+      where: { serviceUserId: row.serviceUserId, deletedAt: null },
+      include: { funder: { select: { name: true } } },
+    });
+    const fundingSplits = buildFundingSplits(fundingLines);
+    if (fundingSplits.length >= 2) {
+      const totalCharge =
+        row.billableAmount != null
+          ? Number(row.billableAmount)
+          : clientCharge?.amount != null
+            ? Number(String(clientCharge.amount).replace(/[^0-9.-]+/g, ''))
+            : 0;
+      const preview = buildFunderSplitPreview(totalCharge, fundingSplits);
+      if (preview) {
+        funderSplitPreview = {
+          note: preview.note,
+          totalAmount: formatMoney(preview.totalAmount),
+          lines: preview.lines.map((line) => ({
+            funderName: line.funderName,
+            splitPercent: line.splitPercent,
+            amount: formatMoney(line.amount),
+            included: line.included,
+            reason: line.reason,
+          })),
+        };
+      }
+    }
+
     return {
       plannedMinutes,
       actualMinutes,
@@ -2082,6 +2123,7 @@ export class VisitReconciliationsService {
       multiCarerFunderChargeMode: multiCarerMode,
       isFunderBillingRow,
       funderChargeNote,
+      funderSplitPreview,
       timeWindows: {
         planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
         actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
