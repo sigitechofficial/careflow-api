@@ -1619,9 +1619,7 @@ export class VisitReconciliationsService {
         : row.plannedStartDateTime;
 
     let perFunderCharges = null as Awaited<ReturnType<typeof loadPerFunderChargeCalculation>>;
-    if (freezeBillable) {
-      billableAmount = Number(row.billableAmount);
-    } else if (billMinutes > 0 && approvedBillStart && approvedBillEnd) {
+    if (billMinutes > 0 && approvedBillStart && approvedBillEnd) {
       perFunderCharges = await loadPerFunderChargeCalculation(db, {
         serviceUserId: row.serviceUserId,
         billMinutes,
@@ -1634,7 +1632,33 @@ export class VisitReconciliationsService {
       });
     }
 
-    if (!freezeBillable && perFunderCharges) {
+    /** When true, keep the previously stored billable amount (card changes must not rewrite it). */
+    let keepFrozenBillable = freezeBillable;
+
+    if (freezeBillable) {
+      billableAmount = Number(row.billableAmount);
+      // Repair visits that were priced on the primary card only while 2+ funders
+      // with split % should have used per-funder charge cards.
+      if (perFunderCharges) {
+        const primaryGross =
+          perFunderCharges.lines.find((line) => line.isPrimary)?.cardGrossAmount ??
+          perFunderCharges.lines.find((line) => line.chargeCardId === row.chargeCardId)
+            ?.cardGrossAmount ??
+          null;
+        const stored = Number(row.billableAmount);
+        const multiTotal = perFunderCharges.totalAmount;
+        if (
+          primaryGross != null &&
+          Math.abs(stored - primaryGross) < 0.009 &&
+          Math.abs(multiTotal - stored) > 0.009
+        ) {
+          billableAmount = multiTotal;
+          keepFrozenBillable = false;
+        }
+      }
+    }
+
+    if (!keepFrozenBillable && perFunderCharges) {
       billableAmount = perFunderCharges.totalAmount;
       if (perFunderCharges.primaryChargeCardId) {
         const primaryCard = await db.chargeCard.findUnique({
@@ -1668,7 +1692,7 @@ export class VisitReconciliationsService {
           }
         }
       }
-    } else if (!freezeBillable && chargeCard && billMinutes) {
+    } else if (!keepFrozenBillable && chargeCard && billMinutes) {
       const chargeRules = await db.chargeCardRule.findMany({
         where: { chargeCardId: chargeCard.id },
       });
@@ -1705,7 +1729,7 @@ export class VisitReconciliationsService {
               : 'No waking night rate on this charge card. Add a Waking night (£/hour) rule.',
         });
       }
-    } else if (!freezeBillable && multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
+    } else if (!keepFrozenBillable && multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
       billableAmount = 0;
     }
 
@@ -1820,11 +1844,11 @@ export class VisitReconciliationsService {
       data: {
         status: finalStatus,
         payCardId: freezePayable ? (payCard?.id ?? row.payCardId) : (payCard?.id ?? null),
-        chargeCardId: freezeBillable
+        chargeCardId: keepFrozenBillable
           ? (chargeCard?.id ?? row.chargeCardId)
           : (chargeCard?.id ?? null),
         payCardSource: freezePayable ? (payCardSource ?? row.payCardSource) : payCardSource,
-        chargeCardSource: freezeBillable
+        chargeCardSource: keepFrozenBillable
           ? (chargeCardSource ?? row.chargeCardSource)
           : chargeCardSource,
         approvedPayStart,
@@ -2209,13 +2233,9 @@ export class VisitReconciliationsService {
       : false;
     const freezeBillable = visitCompleted && row.billableAmount != null;
     const freezePayable = visitCompleted && row.payableAmount != null;
-    const pricingFrozenNote =
-      freezeBillable || freezePayable
-        ? 'Amounts were priced when this visit completed. Changing charge/pay cards later does not update these figures (unless finance force-recalculates).'
-        : null;
 
     const perFunderCharges =
-      !freezeBillable && billMinutes > 0 && billStart && billEnd
+      billMinutes > 0 && billStart && billEnd
         ? await loadPerFunderChargeCalculation(this.prisma, {
             serviceUserId: row.serviceUserId,
             billMinutes,
@@ -2228,31 +2248,21 @@ export class VisitReconciliationsService {
           })
         : null;
 
-    if (freezeBillable && row.billableAmount != null) {
-      let cardName: string | null = null;
-      let cardCode: string | null = null;
-      if (row.chargeCardId) {
-        const chargeCard = await this.prisma.chargeCard.findUnique({
-          where: { id: row.chargeCardId },
-          select: { name: true, code: true },
-        });
-        cardName = chargeCard?.name ?? null;
-        cardCode = chargeCard?.code ?? null;
-      }
-      clientCharge = {
-        minutes: billMinutes,
-        hoursLabel: formatMinutesAsHours(billMinutes),
-        rateType: 'FROZEN',
-        unitRate: null,
-        amount: formatMoney(Number(row.billableAmount)),
-        formula:
-          'Priced at visit completion — charge-card changes no longer update this amount',
-        cardName,
-        cardCode,
-        cardSource: row.chargeCardSource,
-        ruleLabel: 'Frozen at completion',
-      };
-    } else if (perFunderCharges) {
+    const frozenBillable = freezeBillable ? Number(row.billableAmount) : null;
+    const liveBillableTotal = perFunderCharges?.totalAmount ?? null;
+    const frozenDiffersFromLive =
+      frozenBillable != null &&
+      liveBillableTotal != null &&
+      Math.abs(frozenBillable - liveBillableTotal) > 0.009;
+
+    const pricingFrozenNote =
+      freezeBillable || freezePayable
+        ? frozenDiffersFromLive
+          ? `Stored client charge is ${formatMoney(frozenBillable!)}. Current funder charge cards would price this visit at ${formatMoney(liveBillableTotal!)}. Use Recalculate amounts on Visit reconciliations if you want to update the stored figure.`
+          : 'Amounts were priced when this visit completed. Changing charge/pay cards later does not update these figures (unless finance force-recalculates).'
+        : null;
+
+    if (perFunderCharges) {
       funderClientCharges = [];
       for (const line of perFunderCharges.lines) {
         let breakdown: ReturnType<typeof buildChargeRateBreakdown> = null;
@@ -2290,17 +2300,47 @@ export class VisitReconciliationsService {
         });
       }
       const includedCount = perFunderCharges.lines.filter((line) => line.included).length;
+      const displayTotal =
+        freezeBillable && frozenBillable != null ? frozenBillable : perFunderCharges.totalAmount;
       clientCharge = {
         minutes: billMinutes,
         hoursLabel: formatMinutesAsHours(billMinutes),
-        rateType: 'MULTI_FUNDER',
+        rateType: freezeBillable ? 'FROZEN_MULTI_FUNDER' : 'MULTI_FUNDER',
         unitRate: null,
-        amount: formatMoney(perFunderCharges.totalAmount),
-        formula: `Total across ${includedCount} funder${includedCount === 1 ? '' : 's'}`,
+        amount: formatMoney(displayTotal),
+        formula: freezeBillable
+          ? `Stored total across ${includedCount} funder${includedCount === 1 ? '' : 's'} (priced at completion)`
+          : `Total across ${includedCount} funder${includedCount === 1 ? '' : 's'}`,
         cardName: null,
         cardCode: null,
         cardSource: row.chargeCardSource,
-        ruleLabel: 'Per-funder charge cards',
+        ruleLabel: freezeBillable
+          ? 'Per-funder charge cards (frozen total)'
+          : 'Per-funder charge cards',
+      };
+    } else if (freezeBillable && row.billableAmount != null) {
+      let cardName: string | null = null;
+      let cardCode: string | null = null;
+      if (row.chargeCardId) {
+        const chargeCard = await this.prisma.chargeCard.findUnique({
+          where: { id: row.chargeCardId },
+          select: { name: true, code: true },
+        });
+        cardName = chargeCard?.name ?? null;
+        cardCode = chargeCard?.code ?? null;
+      }
+      clientCharge = {
+        minutes: billMinutes,
+        hoursLabel: formatMinutesAsHours(billMinutes),
+        rateType: 'FROZEN',
+        unitRate: null,
+        amount: formatMoney(Number(row.billableAmount)),
+        formula:
+          'Priced at visit completion — charge-card changes no longer update this amount',
+        cardName,
+        cardCode,
+        cardSource: row.chargeCardSource,
+        ruleLabel: 'Frozen at completion',
       };
     } else if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
       const [chargeCard, chargeRules] = await Promise.all([
@@ -2324,6 +2364,16 @@ export class VisitReconciliationsService {
         { start: billStart, end: billEnd },
         nightDuty,
       );
+      if (freezeBillable && row.billableAmount != null && clientCharge) {
+        clientCharge = {
+          ...clientCharge,
+          amount: formatMoney(Number(row.billableAmount)),
+          formula: `${clientCharge.formula} (stored total frozen at completion)`,
+          ruleLabel: clientCharge.ruleLabel
+            ? `${clientCharge.ruleLabel} · frozen total`
+            : 'Frozen at completion',
+        };
+      }
     }
     if (row.payCardId && payMinutes > 0) {
       const [payCard, payRules] = await Promise.all([
@@ -2392,25 +2442,22 @@ export class VisitReconciliationsService {
       },
     });
     const fundingSplits = buildFundingSplits(fundingLines);
-    if (freezeBillable && row.billableAmount != null && fundingSplits.length >= 2) {
-      funderSplitPreview = {
-        note:
-          'Client charge was priced when the visit completed. Later funding or charge-card changes do not update this total.',
-        totalAmount: formatMoney(Number(row.billableAmount)),
-        visitChargeCardName: clientCharge?.cardName ?? null,
-        lines: [],
-      };
-    } else if (perFunderCharges) {
+    if (perFunderCharges) {
       const cardNameByFunding = new Map(
         fundingLines.map((funding) => [
           funding.id,
           funding.defaultChargeCard?.name ?? funding.funder?.defaultChargeCard?.name ?? null,
         ]),
       );
+      const displayTotal =
+        freezeBillable && frozenBillable != null
+          ? frozenBillable
+          : perFunderCharges.totalAmount;
       funderSplitPreview = {
-        note:
-          'Each funder is charged using their own funding rate card. The split % applies to that funder\'s full visit price.',
-        totalAmount: formatMoney(perFunderCharges.totalAmount),
+        note: freezeBillable
+          ? 'Each funder is priced with their own charge card (45‑min / hourly rules as applicable). The stored visit total was frozen at completion.'
+          : 'Each funder is charged using their own funding rate card. The split % applies to that funder\'s full visit price.',
+        totalAmount: formatMoney(displayTotal),
         visitChargeCardName: null,
         lines: perFunderCharges.lines.map((line) => ({
           funderName: line.funderName ?? 'Unassigned funder',
