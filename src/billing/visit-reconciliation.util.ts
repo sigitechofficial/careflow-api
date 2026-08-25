@@ -894,6 +894,19 @@ export function calculateWaitingTimeAmount(
   };
 }
 
+export type AppliedRateRule = {
+  label: string;
+  rateType: string;
+  rateTypeLabel: string;
+  dayType: string | null;
+  dayTypeLabel: string | null;
+  timeWindow: string | null;
+  unitRate: string | null;
+  amount: string | null;
+  /** One-line summary for UI (e.g. "45-minute fixed · Any day · £33.20"). */
+  detail: string;
+};
+
 export type RateBreakdown = {
   minutes: number;
   hoursLabel: string;
@@ -905,6 +918,7 @@ export type RateBreakdown = {
   cardCode: string | null;
   cardSource: string | null;
   ruleLabel: string | null;
+  appliedRules?: AppliedRateRule[];
   segments?: Array<{
     startLabel: string;
     endLabel: string;
@@ -919,6 +933,98 @@ export type RateBreakdown = {
 
 function formatGbp(amount: number): string {
   return `£${amount.toFixed(2)}`;
+}
+
+function formatDayTypeLabel(dayType: string | null | undefined): string | null {
+  if (!dayType) return null;
+  const map: Record<string, string> = {
+    ANY: 'Any day',
+    WEEKDAY: 'Weekday',
+    SATURDAY: 'Saturday',
+    SUNDAY: 'Sunday',
+    BANK_HOLIDAY: 'Bank holiday',
+    SPECIAL: 'Organisation special day',
+    CHRISTMAS: 'Christmas Day',
+    BOXING_DAY: 'Boxing Day',
+    NEW_YEAR: "New Year's Day",
+    EASTER: 'Easter holiday',
+  };
+  return map[dayType] ?? dayType.replace(/_/g, ' ').toLowerCase();
+}
+
+function formatRuleTimeWindow(
+  startTime?: string | null,
+  endTime?: string | null,
+): string | null {
+  const start = startTime?.trim() || null;
+  const end = endTime?.trim() || null;
+  if (!start && !end) return null;
+  if (start && end) {
+    if (start === '00:00' && (end === '23:59' || end === '24:00')) return 'All day';
+    return `${start}–${end}`;
+  }
+  return start ?? end;
+}
+
+function rateTypeDisplayLabel(
+  rateType: string,
+  minimumMinutes?: number | null,
+): string {
+  if (rateType === 'FIXED' || rateType === 'FIXED_VISIT' || rateType === 'PER_VISIT_FEE') {
+    return minimumMinutes != null && minimumMinutes > 0
+      ? `${minimumMinutes}-minute fixed visit`
+      : 'Fixed visit';
+  }
+  if (rateType === 'HOURLY' || rateType === 'HOURLY_PRO_RATA') return 'Hourly (£/hr)';
+  if (rateType === 'BANDED' || rateType === 'BANDED_HOURLY') return 'Time-banded hourly';
+  if (rateType === 'SLEEP_IN') return 'Sleeping night';
+  if (rateType === 'WAKING_NIGHT') return 'Waking night';
+  if (rateType === 'PREMIUM') return 'Premium';
+  if (rateType === 'UPLIFT') return 'Uplift';
+  return rateType.replace(/_/g, ' ');
+}
+
+function buildAppliedRuleFromPick(
+  rule: {
+    label?: string | null;
+    rateType: string;
+    dayType?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    minimumMinutes?: number | null;
+    amount?: unknown;
+  },
+  opts: {
+    rateTypeOverride?: string;
+    unitRate: string | null;
+    amount: string | null;
+  },
+): AppliedRateRule {
+  const rateType = opts.rateTypeOverride ?? rule.rateType;
+  const rateTypeLabel = rateTypeDisplayLabel(rateType, rule.minimumMinutes);
+  const dayType = rule.dayType ?? null;
+  const dayTypeLabel = formatDayTypeLabel(dayType);
+  const timeWindow = formatRuleTimeWindow(rule.startTime, rule.endTime);
+  const label =
+    rule.label?.trim() ||
+    (rule.minimumMinutes != null && rule.minimumMinutes > 0
+      ? `${rule.minimumMinutes} minute visit`
+      : rateTypeLabel);
+  const parts = [rateTypeLabel];
+  if (dayTypeLabel) parts.push(dayTypeLabel);
+  if (timeWindow) parts.push(timeWindow);
+  if (opts.unitRate) parts.push(opts.unitRate);
+  return {
+    label,
+    rateType,
+    rateTypeLabel,
+    dayType,
+    dayTypeLabel,
+    timeWindow,
+    unitRate: opts.unitRate,
+    amount: opts.amount,
+    detail: parts.join(' · '),
+  };
 }
 
 export function buildPayRateBreakdown(
@@ -946,6 +1052,18 @@ export function buildPayRateBreakdown(
     const unitRate =
       rates.length === 1 ? formatGbp(rates[0]) + '/hr' : 'Varies by time band';
     const bandCount = calc.segments.length;
+    const segments = calc.segments.map((s) => ({
+      startLabel: s.startLabel ?? '',
+      endLabel: s.endLabel ?? '',
+      hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
+      minutes: s.minutes,
+      unitRate: `${formatGbp(s.rate)}/hr`,
+      ruleLabel: s.ruleLabel ?? null,
+      lineFormula:
+        s.lineFormula ??
+        `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
+      amount: formatGbp(s.amount),
+    }));
     return {
       minutes,
       hoursLabel,
@@ -957,18 +1075,18 @@ export function buildPayRateBreakdown(
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
       ruleLabel: 'Time-band split',
-      segments: calc.segments.map((s) => ({
-        startLabel: s.startLabel ?? '',
-        endLabel: s.endLabel ?? '',
-        hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
-        minutes: s.minutes,
-        unitRate: `${formatGbp(s.rate)}/hr`,
-        ruleLabel: s.ruleLabel ?? null,
-        lineFormula:
-          s.lineFormula ??
-          `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
-        amount: formatGbp(s.amount),
+      appliedRules: segments.map((s) => ({
+        label: s.ruleLabel?.trim() || `${s.startLabel}–${s.endLabel}`,
+        rateType: 'BANDED_HOURLY',
+        rateTypeLabel: 'Time-banded hourly',
+        dayType: null,
+        dayTypeLabel: null,
+        timeWindow: `${s.startLabel}–${s.endLabel}`,
+        unitRate: s.unitRate,
+        amount: s.amount,
+        detail: `${s.ruleLabel?.trim() || 'Hourly band'} · ${s.startLabel}–${s.endLabel} · ${s.unitRate}`,
       })),
+      segments,
     };
   }
 
@@ -984,31 +1102,47 @@ export function buildPayRateBreakdown(
       slotMinutes != null && slotMinutes > 0
         ? ` for ${slotMinutes}-minute visit`
         : ' per visit';
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(rule, {
+      rateTypeOverride: calc.label,
+      unitRate,
+      amount,
+    });
     return {
       minutes,
       hoursLabel,
       rateType: calc.label,
-      unitRate: formatGbp(unitAmount),
-      amount: formatGbp(calc.amount),
+      unitRate,
+      amount,
       formula: `${formatGbp(unitAmount)}${durationSuffix}`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
-      ruleLabel,
+      ruleLabel: ruleLabel ?? applied.label,
+      appliedRules: [applied],
     };
   }
 
+  const unitRate = `${formatGbp(unitAmount)}/hr`;
+  const amount = formatGbp(calc.amount);
+  const applied = buildAppliedRuleFromPick(rule, {
+    rateTypeOverride: 'HOURLY',
+    unitRate,
+    amount,
+  });
   return {
     minutes,
     hoursLabel,
     rateType: 'HOURLY',
-    unitRate: `${formatGbp(unitAmount)}/hr`,
-    amount: formatGbp(calc.amount),
+    unitRate,
+    amount,
     formula: `${hoursLabel} × ${formatGbp(unitAmount)}/hr = ${formatGbp(calc.amount)}`,
     cardName: meta?.cardName ?? null,
     cardCode: meta?.cardCode ?? null,
     cardSource: meta?.cardSource ?? null,
-    ruleLabel,
+    ruleLabel: ruleLabel ?? applied.label,
+    appliedRules: [applied],
   };
 }
 
@@ -1044,33 +1178,63 @@ export function buildChargeRateBreakdown(
   if (calc.label === 'SLEEP_IN') {
     const rule = pickNightDutyChargeRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
     const unitAmount = Number(rule?.amount ?? calc.amount);
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Sleeping night',
+        rateType: 'SLEEP_IN',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate, amount },
+    );
     return {
       minutes,
       hoursLabel,
       rateType: 'SLEEP_IN',
-      unitRate: formatGbp(unitAmount),
-      amount: formatGbp(calc.amount),
+      unitRate,
+      amount,
       formula: `${formatGbp(unitAmount)} per sleeping night`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
       ruleLabel: rule?.label ?? 'Sleeping night',
+      appliedRules: [applied],
     };
   }
   if (calc.label === 'WAKING_NIGHT') {
     const rule = pickNightDutyChargeRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
     const unitAmount = Number(rule?.amount ?? 0);
+    const unitRate = `${formatGbp(unitAmount)}/hr`;
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Waking night',
+        rateType: 'WAKING_NIGHT',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate, amount },
+    );
     return {
       minutes,
       hoursLabel,
       rateType: 'WAKING_NIGHT',
-      unitRate: `${formatGbp(unitAmount)}/hr`,
-      amount: formatGbp(calc.amount),
+      unitRate,
+      amount,
       formula: `${hoursLabel} × ${formatGbp(unitAmount)}/hr = ${formatGbp(calc.amount)}`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
       ruleLabel: rule?.label ?? 'Waking night',
+      appliedRules: [applied],
     };
   }
 
@@ -1079,6 +1243,18 @@ export function buildChargeRateBreakdown(
     const unitRate =
       rates.length === 1 ? formatGbp(rates[0]) + '/hr' : 'Varies by time band';
     const bandCount = calc.segments.length;
+    const segments = calc.segments.map((s) => ({
+      startLabel: s.startLabel ?? '',
+      endLabel: s.endLabel ?? '',
+      hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
+      minutes: s.minutes,
+      unitRate: `${formatGbp(s.rate)}/hr`,
+      ruleLabel: s.ruleLabel ?? null,
+      lineFormula:
+        s.lineFormula ??
+        `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
+      amount: formatGbp(s.amount),
+    }));
     return {
       minutes,
       hoursLabel,
@@ -1090,18 +1266,18 @@ export function buildChargeRateBreakdown(
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
       ruleLabel: 'Time-band split',
-      segments: calc.segments.map((s) => ({
-        startLabel: s.startLabel ?? '',
-        endLabel: s.endLabel ?? '',
-        hoursLabel: s.hoursLabel ?? formatMinutesAsHours(s.minutes),
-        minutes: s.minutes,
-        unitRate: `${formatGbp(s.rate)}/hr`,
-        ruleLabel: s.ruleLabel ?? null,
-        lineFormula:
-          s.lineFormula ??
-          `${formatMinutesAsHours(s.minutes)} × ${formatGbp(s.rate)}/hr = ${formatGbp(s.amount)}`,
-        amount: formatGbp(s.amount),
+      appliedRules: segments.map((s) => ({
+        label: s.ruleLabel?.trim() || `${s.startLabel}–${s.endLabel}`,
+        rateType: 'BANDED_HOURLY',
+        rateTypeLabel: 'Time-banded hourly',
+        dayType: null,
+        dayTypeLabel: null,
+        timeWindow: `${s.startLabel}–${s.endLabel}`,
+        unitRate: s.unitRate,
+        amount: s.amount,
+        detail: `${s.ruleLabel?.trim() || 'Hourly band'} · ${s.startLabel}–${s.endLabel} · ${s.unitRate}`,
       })),
+      segments,
     };
   }
 
@@ -1129,30 +1305,46 @@ export function buildChargeRateBreakdown(
       slotMinutes != null && slotMinutes > 0
         ? ` for ${slotMinutes}-minute visit`
         : ' per visit';
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(rule, {
+      rateTypeOverride: 'FIXED_VISIT',
+      unitRate,
+      amount,
+    });
     return {
       minutes,
       hoursLabel,
       rateType: calc.label,
-      unitRate: formatGbp(unitAmount),
-      amount: formatGbp(calc.amount),
+      unitRate,
+      amount,
       formula: `${formatGbp(unitAmount)}${durationSuffix}`,
       cardName: meta?.cardName ?? null,
       cardCode: meta?.cardCode ?? null,
       cardSource: meta?.cardSource ?? null,
-      ruleLabel,
+      ruleLabel: ruleLabel ?? applied.label,
+      appliedRules: [applied],
     };
   }
 
+  const unitRate = `${formatGbp(unitAmount)}/hr`;
+  const amount = formatGbp(calc.amount);
+  const applied = buildAppliedRuleFromPick(rule, {
+    rateTypeOverride: calc.label,
+    unitRate,
+    amount,
+  });
   return {
     minutes,
     hoursLabel,
     rateType: calc.label,
-    unitRate: `${formatGbp(unitAmount)}/hr`,
-    amount: formatGbp(calc.amount),
+    unitRate,
+    amount,
     formula: `${hoursLabel} × ${formatGbp(unitAmount)}/hr = ${formatGbp(calc.amount)}`,
     cardName: meta?.cardName ?? null,
     cardCode: meta?.cardCode ?? null,
     cardSource: meta?.cardSource ?? null,
-    ruleLabel,
+    ruleLabel: ruleLabel ?? applied.label,
+    appliedRules: [applied],
   };
 }

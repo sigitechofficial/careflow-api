@@ -2302,6 +2302,44 @@ export class VisitReconciliationsService {
       const includedCount = perFunderCharges.lines.filter((line) => line.included).length;
       const displayTotal =
         freezeBillable && frozenBillable != null ? frozenBillable : perFunderCharges.totalAmount;
+      const appliedRules = funderClientCharges.flatMap((funderCharge) => {
+        const rules = funderCharge.breakdown?.appliedRules ?? [];
+        if (!rules.length && funderCharge.breakdown?.ruleLabel) {
+          return [
+            {
+              label: `${funderCharge.funderName}: ${funderCharge.breakdown.ruleLabel}`,
+              rateType: funderCharge.breakdown.rateType,
+              rateTypeLabel: funderCharge.breakdown.rateType,
+              dayType: null,
+              dayTypeLabel: null,
+              timeWindow: null,
+              unitRate: funderCharge.breakdown.unitRate,
+              amount: funderCharge.shareAmount,
+              detail: [
+                funderCharge.breakdown.ruleLabel,
+                funderCharge.splitPercent != null ? `${funderCharge.splitPercent}% split` : null,
+                funderCharge.cardGrossAmount
+                  ? `${funderCharge.cardGrossAmount} visit price`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            },
+          ];
+        }
+        return rules.map((rule) => ({
+          ...rule,
+          label: `${funderCharge.funderName}: ${rule.label}`,
+          amount: funderCharge.shareAmount,
+          detail: [
+            rule.detail,
+            funderCharge.splitPercent != null ? `${funderCharge.splitPercent}% split` : null,
+            funderCharge.cardGrossAmount ? `card ${funderCharge.cardGrossAmount}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        }));
+      });
       clientCharge = {
         minutes: billMinutes,
         hoursLabel: formatMinutesAsHours(billMinutes),
@@ -2317,30 +2355,7 @@ export class VisitReconciliationsService {
         ruleLabel: freezeBillable
           ? 'Per-funder charge cards (frozen total)'
           : 'Per-funder charge cards',
-      };
-    } else if (freezeBillable && row.billableAmount != null) {
-      let cardName: string | null = null;
-      let cardCode: string | null = null;
-      if (row.chargeCardId) {
-        const chargeCard = await this.prisma.chargeCard.findUnique({
-          where: { id: row.chargeCardId },
-          select: { name: true, code: true },
-        });
-        cardName = chargeCard?.name ?? null;
-        cardCode = chargeCard?.code ?? null;
-      }
-      clientCharge = {
-        minutes: billMinutes,
-        hoursLabel: formatMinutesAsHours(billMinutes),
-        rateType: 'FROZEN',
-        unitRate: null,
-        amount: formatMoney(Number(row.billableAmount)),
-        formula:
-          'Priced at visit completion — charge-card changes no longer update this amount',
-        cardName,
-        cardCode,
-        cardSource: row.chargeCardSource,
-        ruleLabel: 'Frozen at completion',
+        appliedRules: appliedRules.length ? appliedRules : undefined,
       };
     } else if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
       const [chargeCard, chargeRules] = await Promise.all([
@@ -2352,7 +2367,7 @@ export class VisitReconciliationsService {
       ]);
       clientCharge = buildChargeRateBreakdown(
         chargeRules,
-        billStart,
+        billRateAnchor,
         billMinutes,
         chargeCard?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
         {
@@ -2374,6 +2389,20 @@ export class VisitReconciliationsService {
             : 'Frozen at completion',
         };
       }
+    } else if (freezeBillable && row.billableAmount != null) {
+      clientCharge = {
+        minutes: billMinutes,
+        hoursLabel: formatMinutesAsHours(billMinutes),
+        rateType: 'FROZEN',
+        unitRate: null,
+        amount: formatMoney(Number(row.billableAmount)),
+        formula:
+          'Priced at visit completion — charge-card changes no longer update this amount',
+        cardName: null,
+        cardCode: null,
+        cardSource: row.chargeCardSource,
+        ruleLabel: 'Frozen at completion',
+      };
     }
     if (row.payCardId && payMinutes > 0) {
       const [payCard, payRules] = await Promise.all([
@@ -2383,33 +2412,45 @@ export class VisitReconciliationsService {
         }),
         this.prisma.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
       ]);
-      if (freezePayable && row.payableAmount != null) {
-        carerPay = {
-          minutes: payMinutes,
-          hoursLabel: formatMinutesAsHours(payMinutes),
-          rateType: 'FROZEN',
-          unitRate: null,
-          amount: formatMoney(Number(row.payableAmount)),
-          formula:
-            'Priced at visit completion — pay-card changes no longer update this amount',
+      const livePay = buildPayRateBreakdown(
+        payRules,
+        row.plannedStartDateTime,
+        payMinutes,
+        {
           cardName: payCard?.name ?? null,
           cardCode: payCard?.code ?? null,
           cardSource: row.payCardSource,
-          ruleLabel: 'Frozen at completion',
-        };
+        },
+        isBankHoliday,
+        { start: payStart, end: payEnd },
+      );
+      if (freezePayable && row.payableAmount != null) {
+        carerPay = livePay
+          ? {
+              ...livePay,
+              amount: formatMoney(Number(row.payableAmount)),
+              formula: livePay.formula
+                ? `${livePay.formula} (stored total frozen at completion)`
+                : 'Priced at visit completion — pay-card changes no longer update this amount',
+              ruleLabel: livePay.ruleLabel
+                ? `${livePay.ruleLabel} · frozen total`
+                : 'Frozen at completion',
+            }
+          : {
+              minutes: payMinutes,
+              hoursLabel: formatMinutesAsHours(payMinutes),
+              rateType: 'FROZEN',
+              unitRate: null,
+              amount: formatMoney(Number(row.payableAmount)),
+              formula:
+                'Priced at visit completion — pay-card changes no longer update this amount',
+              cardName: payCard?.name ?? null,
+              cardCode: payCard?.code ?? null,
+              cardSource: row.payCardSource,
+              ruleLabel: 'Frozen at completion',
+            };
       } else {
-        carerPay = buildPayRateBreakdown(
-          payRules,
-          row.plannedStartDateTime,
-          payMinutes,
-          {
-            cardName: payCard?.name ?? null,
-            cardCode: payCard?.code ?? null,
-            cardSource: row.payCardSource,
-          },
-          isBankHoliday,
-          { start: payStart, end: payEnd },
-        );
+        carerPay = livePay;
       }
     }
 
