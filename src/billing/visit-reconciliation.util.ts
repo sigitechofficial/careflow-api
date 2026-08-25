@@ -721,8 +721,37 @@ function pickNightDutyChargeRule(
       rule.chargeMethod === chargeMethod && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
   );
   if (!matches.length) return null;
+  const dayTypeRank = (dayType: string): number => {
+    switch (dayType) {
+      case 'ANY':
+        return 0;
+      case 'WEEKDAY':
+        return 10;
+      case 'SATURDAY':
+        return 20;
+      case 'SUNDAY':
+        return 30;
+      case 'BANK_HOLIDAY':
+        return 100;
+      case 'SPECIAL':
+        return 105;
+      case 'EASTER':
+        return 108;
+      case 'CHRISTMAS':
+      case 'BOXING_DAY':
+      case 'NEW_YEAR':
+        return 110;
+      default:
+        return 0;
+    }
+  };
   return [...matches].sort((a, b) => {
-    if (a.priority !== b.priority) return b.priority - a.priority;
+    const pa = a.priority ?? 0;
+    const pb = b.priority ?? 0;
+    if (pa !== pb) return pb - pa;
+    const ra = dayTypeRank(a.dayType);
+    const rb = dayTypeRank(b.dayType);
+    if (ra !== rb) return rb - ra;
     return a.sortOrder - b.sortOrder;
   })[0] ?? null;
 }
