@@ -3,8 +3,9 @@ import {
   visitPlanCarerSyncFromDateTime,
   targetEmployeeIdsForVisit,
   visitCarerPatternMismatchWarnings,
+  desiredEmployeeIdsForVisitSync,
 } from './visit-plan-slot-carer-sync.util';
-import { DayOfWeek } from '@prisma/client';
+import { DayOfWeek, VisitPlanSlotCarerRole } from '@prisma/client';
 import type { EmployeePatternContext } from './visit-plan-carer-job-fit.util';
 
 describe('visit-plan-slot-carer-sync.util', () => {
@@ -27,6 +28,65 @@ describe('visit-plan-slot-carer-sync.util', () => {
       expect(
         visitPlanCarerEmployeeIds([{ employeeId: '' }, { employeeId: '  ' }], ['legacy-id'], 1),
       ).toEqual(['legacy-id']);
+    });
+  });
+
+  describe('desiredEmployeeIdsForVisitSync', () => {
+    const monday = new Date('2026-08-24T15:00:00.000Z');
+    const wednesday = new Date('2026-08-26T15:00:00.000Z');
+    const assignments = [
+      {
+        dayOfWeek: 1,
+        employeeId: 'mon-carer',
+        role: VisitPlanSlotCarerRole.LEAD,
+        durationMinutes: null,
+        plannedStartTime: null,
+        plannedEndTime: null,
+        sortOrder: 0,
+      },
+      {
+        dayOfWeek: 3,
+        employeeId: 'wed-carer',
+        role: VisitPlanSlotCarerRole.LEAD,
+        durationMinutes: null,
+        plannedStartTime: null,
+        plannedEndTime: null,
+        sortOrder: 1,
+      },
+    ];
+
+    it('picks the Monday carer for a Monday visit', () => {
+      expect(
+        desiredEmployeeIdsForVisitSync({
+          visitStart: monday,
+          requiredCarers: 1,
+          assignedEmployeeIds: ['legacy'],
+          carerAssignments: assignments,
+        }),
+      ).toEqual(['mon-carer']);
+    });
+
+    it('picks the Wednesday carer for a Wednesday visit', () => {
+      expect(
+        desiredEmployeeIdsForVisitSync({
+          visitStart: wednesday,
+          requiredCarers: 1,
+          assignedEmployeeIds: ['legacy'],
+          carerAssignments: assignments,
+        }),
+      ).toEqual(['wed-carer']);
+    });
+
+    it('prefers carer windows when provided (regenerate path)', () => {
+      expect(
+        desiredEmployeeIdsForVisitSync({
+          visitStart: wednesday,
+          requiredCarers: 1,
+          assignedEmployeeIds: ['legacy'],
+          carerAssignments: assignments,
+          carerWindows: [{ employeeId: 'window-carer' }],
+        }),
+      ).toEqual(['window-carer']);
     });
   });
 

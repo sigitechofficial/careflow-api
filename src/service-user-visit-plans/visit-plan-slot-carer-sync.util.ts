@@ -3,6 +3,7 @@ import {
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
+  VisitPlanSlotCarerRole,
 } from '@prisma/client';
 import {
   employmentToPatternContext,
@@ -25,6 +26,10 @@ import {
   CARER_ROTA_CONFLICT_MESSAGE,
 } from './visit-carer-rota-conflict.util';
 import { DAY_LABEL, type CarerPatternRow } from './visit-plan-carer-suggest.util';
+import {
+  resolveCarerAssignmentsForDay,
+  type VisitPlanSlotCarerAssignmentShape,
+} from './visit-plan-slot-carer-resolve.util';
 
 type VisitPlanSlotCarerSyncParams = {
   scheduledJobId: string;
@@ -102,6 +107,11 @@ export async function syncJobAllocationStatus(
 export type SyncVisitPlanSlotCarersParams = {
   visitPlanSlotId: string;
   assignedEmployeeIds: string[];
+  /**
+   * Day-specific + global (dayOfWeek null) assignments from the visit plan slot.
+   * When present, each visit is synced to carers for that calendar day — not a flat list.
+   */
+  carerAssignments?: VisitPlanSlotCarerAssignmentShape[];
   requiredCarers: number;
   userId: string;
   scheduledVisitId?: string;
@@ -118,6 +128,66 @@ export type SyncVisitPlanSlotCarersParams = {
     isLeadCarer?: boolean;
   }>;
 };
+
+/** Resolve which employees should be on a visit for sync (day-specific assignments win). */
+export function desiredEmployeeIdsForVisitSync(params: {
+  visitStart: Date;
+  requiredCarers: number;
+  assignedEmployeeIds: string[];
+  carerAssignments?: VisitPlanSlotCarerAssignmentShape[] | null;
+  carerWindows?: Array<{ employeeId: string }> | null;
+}): string[] {
+  const required = Math.max(1, params.requiredCarers);
+  if (params.carerWindows?.length) {
+    const fromWindows = visitPlanCarerEmployeeIds(
+      params.carerWindows,
+      params.assignedEmployeeIds,
+      required,
+    );
+    if (fromWindows.length) return fromWindows;
+  }
+  if (params.carerAssignments?.length) {
+    const resolved = resolveCarerAssignmentsForDay(
+      params.carerAssignments,
+      params.visitStart.getUTCDay(),
+      required,
+      params.assignedEmployeeIds,
+    );
+    const ids = resolved
+      .map((row) => row.employeeId?.trim())
+      .filter((id): id is string => Boolean(id));
+    if (ids.length) return ids.slice(0, required);
+  }
+  return (params.assignedEmployeeIds ?? [])
+    .map((id) => id?.trim())
+    .filter((id): id is string => Boolean(id))
+    .slice(0, required);
+}
+
+export function mapDbCarerAssignmentsForSync(
+  rows: Array<{
+    dayOfWeek: number | null;
+    employeeId: string;
+    role: VisitPlanSlotCarerRole | string;
+    durationMinutes: number | null;
+    plannedStartTime: string | null;
+    plannedEndTime: string | null;
+    sortOrder: number;
+  }>,
+): VisitPlanSlotCarerAssignmentShape[] {
+  return rows.map((row) => ({
+    dayOfWeek: row.dayOfWeek,
+    employeeId: row.employeeId,
+    role:
+      row.role === VisitPlanSlotCarerRole.LEAD || row.role === 'LEAD'
+        ? VisitPlanSlotCarerRole.LEAD
+        : VisitPlanSlotCarerRole.SECONDARY,
+    durationMinutes: row.durationMinutes,
+    plannedStartTime: row.plannedStartTime,
+    plannedEndTime: row.plannedEndTime,
+    sortOrder: row.sortOrder,
+  }));
+}
 
 export async function loadEmployeePatternContexts(
   tx: Prisma.TransactionClient,
@@ -345,10 +415,19 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
 ): Promise<{ jobsUpdated: number }> {
   const from = params.fromDateTime ?? visitPlanCarerSyncFromDateTime();
   const required = Math.max(1, params.requiredCarers);
-  const desired = (params.assignedEmployeeIds ?? []).slice(0, required);
   const respectWorkingPattern = params.respectWorkingPattern !== false;
-
-  const patternByEmployee = await loadEmployeePatternContexts(tx, desired);
+  const legacyAssigned = (params.assignedEmployeeIds ?? [])
+    .map((id) => id?.trim())
+    .filter((id): id is string => Boolean(id));
+  const assignmentIds = (params.carerAssignments ?? [])
+    .map((row) => row.employeeId?.trim())
+    .filter((id): id is string => Boolean(id));
+  const windowIds = (params.carerWindows ?? [])
+    .map((row) => row.employeeId?.trim())
+    .filter((id): id is string => Boolean(id));
+  const patternByEmployee = await loadEmployeePatternContexts(tx, [
+    ...new Set([...legacyAssigned, ...assignmentIds, ...windowIds]),
+  ]);
 
   const visits = await tx.scheduledVisit.findMany({
     where: {
@@ -373,7 +452,17 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
 
   for (const visit of visits) {
     const jobId = visit.scheduledJobId;
-    const resolved = await resolveVisitCarerAssignment(tx, desired, visit, required, {
+    // Prefer day-specific carerWindows (single-visit regenerate). Otherwise resolve
+    // Mon/Wed/… from carerAssignments so bulk sync does not flatten every day to one carer.
+    const desiredForVisit = desiredEmployeeIdsForVisitSync({
+      visitStart: visit.scheduledStartDateTime,
+      requiredCarers: Math.max(1, visit.requiredCarers || required),
+      assignedEmployeeIds: legacyAssigned,
+      carerAssignments: params.carerAssignments,
+      carerWindows: params.carerWindows,
+    });
+
+    const resolved = await resolveVisitCarerAssignment(tx, desiredForVisit, visit, required, {
       respectWorkingPattern,
       patternByEmployee,
       excludeScheduledJobId: jobId,

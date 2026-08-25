@@ -74,6 +74,7 @@ import {
   loadEmployeePatternContexts,
   resolveVisitCarerAssignment,
   countVisitsSkippedIfRespecting,
+  mapDbCarerAssignmentsForSync,
 } from './visit-plan-slot-carer-sync.util';
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
@@ -445,16 +446,18 @@ export class ServiceUserVisitPlansService {
     await tx.visitPlanSlotCarerAssignment.deleteMany({ where: { visitPlanSlotId } });
     if (carerAssignments.length) {
       await tx.visitPlanSlotCarerAssignment.createMany({
-        data: carerAssignments.map((a, index) => ({
-          visitPlanSlotId,
-          dayOfWeek: a.dayOfWeek ?? null,
-          employeeId: a.employeeId,
-          role: a.role ?? 'SECONDARY',
-          durationMinutes: a.durationMinutes ?? null,
-          plannedStartTime: a.plannedStartTime ?? null,
-          plannedEndTime: a.plannedEndTime ?? null,
-          sortOrder: a.sortOrder ?? index,
-        })),
+        data: carerAssignments
+          .filter((a) => Boolean(a.employeeId?.trim()))
+          .map((a, index) => ({
+            visitPlanSlotId,
+            dayOfWeek: a.dayOfWeek ?? null,
+            employeeId: a.employeeId.trim(),
+            role: a.role ?? 'SECONDARY',
+            durationMinutes: a.durationMinutes ?? null,
+            plannedStartTime: a.plannedStartTime ?? null,
+            plannedEndTime: a.plannedEndTime ?? null,
+            sortOrder: a.sortOrder ?? index,
+          })),
       });
     }
 
@@ -1059,6 +1062,7 @@ export class ServiceUserVisitPlansService {
             include: { carerAssignments: true },
           });
           if (row) {
+            const carerAssignments = mapDbCarerAssignmentsForSync(row.carerAssignments ?? []);
             const assignedEmployeeIds = visitPlanCarerEmployeeIds(
               [],
               slotAssignedEmployeeIds(row),
@@ -1067,6 +1071,7 @@ export class ServiceUserVisitPlansService {
             await syncVisitPlanSlotCarersToScheduledJobs(tx, {
               visitPlanSlotId: row.id,
               assignedEmployeeIds,
+              carerAssignments,
               requiredCarers: row.requiredCarers,
               userId,
               fromDateTime: visitPlanCarerSyncFromDateTime(),
@@ -2175,11 +2180,12 @@ export class ServiceUserVisitPlansService {
       if (assignCarers) {
         const allEmployeeIds = [
           ...new Set(
-            enabledSlots.flatMap((slot) =>
-              visitPlanCarerEmployeeIds([], slotAssignedEmployeeIds(slot), slot.requiredCarers),
-            ),
+            enabledSlots.flatMap((slot) => [
+              ...slotAssignedEmployeeIds(slot),
+              ...(slot.carerAssignments ?? []).map((a) => a.employeeId?.trim()).filter(Boolean),
+            ]),
           ),
-        ];
+        ] as string[];
         patternByEmployee = await loadEmployeePatternContexts(tx, allEmployeeIds);
       }
 
@@ -2242,12 +2248,19 @@ export class ServiceUserVisitPlansService {
 
           const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
 
+          const dayStart = new Date(
+            Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 0, 0, 0, 0),
+          );
+          const dayEnd = new Date(
+            Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 23, 59, 59, 999),
+          );
           const existingVisit = await tx.scheduledVisit.findFirst({
             where: {
               visitPlanSlotId: slot.id,
               deletedAt: null,
-              scheduledStartDateTime: start,
+              scheduledStartDateTime: { gte: dayStart, lte: dayEnd },
             },
+            orderBy: { scheduledStartDateTime: 'asc' },
           });
           if (existingVisit) {
             const liveJob = await tx.scheduledJob.findFirst({
@@ -2263,6 +2276,7 @@ export class ServiceUserVisitPlansService {
                 await syncVisitPlanSlotCarersToScheduledJobs(tx, {
                   visitPlanSlotId: slot.id,
                   assignedEmployeeIds: syncEmployeeIds,
+                  carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
                   requiredCarers,
                   userId,
                   scheduledVisitId: existingVisit.id,
@@ -2347,6 +2361,7 @@ export class ServiceUserVisitPlansService {
                   slotAssignedEmployeeIds(slot),
                   requiredCarers,
                 ),
+                carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
                 requiredCarers,
                 userId,
                 scheduledVisitId: existingVisit.id,
@@ -2508,10 +2523,11 @@ export class ServiceUserVisitPlansService {
             slotAssignedEmployeeIds(slot),
             slot.requiredCarers,
           );
-          if (!assignedEmployeeIds.length) continue;
+          if (!assignedEmployeeIds.length && !(slot.carerAssignments ?? []).length) continue;
           await syncVisitPlanSlotCarersToScheduledJobs(tx, {
             visitPlanSlotId: slot.id,
             assignedEmployeeIds,
+            carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
             requiredCarers: slot.requiredCarers,
             userId,
             fromDateTime: rangeStart,
