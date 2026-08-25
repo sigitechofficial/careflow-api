@@ -381,9 +381,13 @@ export class VisitReconciliationsService {
     return firstId;
   }
 
-  private async safeEvaluate(db: DbClient, id: string) {
+  private async safeEvaluate(
+    db: DbClient,
+    id: string,
+    options?: { forceRecalculateAmounts?: boolean },
+  ) {
     try {
-      await this.evaluateInternal(db, id);
+      await this.evaluateInternal(db, id, options);
     } catch (err) {
       this.logger.warn(
         `Visit reconciliation evaluate failed for ${id}: ${
@@ -1042,7 +1046,7 @@ export class VisitReconciliationsService {
     });
 
     for (const row of pending) {
-      await this.safeEvaluate(this.prisma, row.id);
+      await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
     }
 
     return {
@@ -1231,12 +1235,24 @@ export class VisitReconciliationsService {
     };
   }
 
-  private async evaluateInternal(db: DbClient, id: string) {
+  private async evaluateInternal(
+    db: DbClient,
+    id: string,
+    options?: { forceRecalculateAmounts?: boolean },
+  ) {
     const row = await db.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
     });
     if (!row) return;
+
+    // LOCKED rows keep stored pricing unless finance explicitly force-recalculates.
+    if (
+      row.status === VisitReconciliationStatus.LOCKED &&
+      !options?.forceRecalculateAmounts
+    ) {
+      return;
+    }
 
     const visit = await db.scheduledVisit.findUnique({
       where: { id: row.scheduledVisitId },
@@ -1256,6 +1272,18 @@ export class VisitReconciliationsService {
       jobMetadata: visit.scheduledJob?.metadata,
     });
 
+    // After the visit is complete and amounts were priced once, keep those amounts
+    // even if charge/pay cards change later (unless forceRecalculateAmounts).
+    const visitCompleted = isBillingEligibleVisit(visit);
+    const freezeBillable =
+      !options?.forceRecalculateAmounts &&
+      visitCompleted &&
+      row.billableAmount != null;
+    const freezePayable =
+      !options?.forceRecalculateAmounts &&
+      visitCompleted &&
+      row.payableAmount != null;
+
     const tasksIncomplete = await this.hasIncompleteTasks(db, row.scheduledJobId);
     const funding = await this.loadFundingSnapshot(db, row.serviceUserId);
 
@@ -1267,7 +1295,28 @@ export class VisitReconciliationsService {
       version?: number;
     } | null = null;
     let payCardSource: string | null = null;
-    if (row.employeeId) {
+    if (freezePayable && row.payCardId) {
+      const pinned = await db.payCard.findUnique({
+        where: { id: row.payCardId },
+        select: {
+          id: true,
+          status: true,
+          stackingPolicy: true,
+          version: true,
+          rules: { select: { id: true } },
+        },
+      });
+      payCardSource = row.payCardSource;
+      if (pinned) {
+        payCard = {
+          id: pinned.id,
+          status: pinned.status,
+          rulesCount: pinned.rules.length,
+          stackingPolicy: pinned.stackingPolicy ?? undefined,
+          version: pinned.version ?? undefined,
+        };
+      }
+    } else if (row.employeeId) {
       const resolved = await this.payCardsService.resolveForEmployee(
         row.employeeId,
         row.plannedStartDateTime,
@@ -1284,15 +1333,38 @@ export class VisitReconciliationsService {
       }
     }
 
-    const chargeResolved = await this.chargeCardsService.resolveForServiceUser(row.serviceUserId);
-    let chargeCardSource = chargeResolved.data.source;
+    let chargeCardSource: string | null = null;
     let chargeCard: { id: string; status: string; rulesCount: number } | null = null;
-    if (chargeResolved.data.chargeCard) {
-      chargeCard = {
-        id: chargeResolved.data.chargeCard.id,
-        status: chargeResolved.data.chargeCard.status,
-        rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
-      };
+    if (freezeBillable && row.chargeCardId) {
+      const pinned = await db.chargeCard.findUnique({
+        where: { id: row.chargeCardId },
+        select: { id: true, status: true },
+      });
+      chargeCardSource = row.chargeCardSource;
+      if (pinned) {
+        const rulesCount = await db.chargeCardRule.count({
+          where: { chargeCardId: pinned.id },
+        });
+        chargeCard = {
+          id: pinned.id,
+          status: pinned.status,
+          rulesCount,
+        };
+      }
+    } else if (!freezeBillable) {
+      const chargeResolved = await this.chargeCardsService.resolveForServiceUser(
+        row.serviceUserId,
+      );
+      chargeCardSource = chargeResolved.data.source;
+      if (chargeResolved.data.chargeCard) {
+        chargeCard = {
+          id: chargeResolved.data.chargeCard.id,
+          status: chargeResolved.data.chargeCard.status,
+          rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
+        };
+      }
+    } else {
+      chargeCardSource = row.chargeCardSource;
     }
 
     const exceptions = detectVisitExceptions({
@@ -1347,6 +1419,30 @@ export class VisitReconciliationsService {
       overrunDecision === VisitOverrunDecision.REJECTED
         ? exceptions.filter((e) => e.code !== FinanceExceptionCode.OVERRUN)
         : exceptions;
+
+    // Already-priced completed visits must not be blocked by later card removal/changes.
+    if (freezeBillable) {
+      for (let i = activeExceptions.length - 1; i >= 0; i -= 1) {
+        const ex = activeExceptions[i];
+        if (
+          ex.code === FinanceExceptionCode.CHARGE_CARD_MISSING ||
+          (ex.code === FinanceExceptionCode.RATE_MISSING && /charge card/i.test(ex.message))
+        ) {
+          activeExceptions.splice(i, 1);
+        }
+      }
+    }
+    if (freezePayable) {
+      for (let i = activeExceptions.length - 1; i >= 0; i -= 1) {
+        const ex = activeExceptions[i];
+        if (
+          ex.code === FinanceExceptionCode.PAY_CARD_MISSING ||
+          (ex.code === FinanceExceptionCode.RATE_MISSING && /pay card/i.test(ex.message))
+        ) {
+          activeExceptions.splice(i, 1);
+        }
+      }
+    }
 
     const status =
       row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
@@ -1486,7 +1582,9 @@ export class VisitReconciliationsService {
     );
     const isBankHoliday = bankHolidayDates.has(utcDateKey(row.plannedStartDateTime));
 
-    if (payCard && payMinutes) {
+    if (freezePayable) {
+      payableAmount = Number(row.payableAmount);
+    } else if (payCard && payMinutes) {
       const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
       const stackingPolicy =
         ((payCard as { stackingPolicy?: string }).stackingPolicy as
@@ -1521,7 +1619,9 @@ export class VisitReconciliationsService {
         : row.plannedStartDateTime;
 
     let perFunderCharges = null as Awaited<ReturnType<typeof loadPerFunderChargeCalculation>>;
-    if (billMinutes > 0 && approvedBillStart && approvedBillEnd) {
+    if (freezeBillable) {
+      billableAmount = Number(row.billableAmount);
+    } else if (billMinutes > 0 && approvedBillStart && approvedBillEnd) {
       perFunderCharges = await loadPerFunderChargeCalculation(db, {
         serviceUserId: row.serviceUserId,
         billMinutes,
@@ -1534,7 +1634,7 @@ export class VisitReconciliationsService {
       });
     }
 
-    if (perFunderCharges) {
+    if (!freezeBillable && perFunderCharges) {
       billableAmount = perFunderCharges.totalAmount;
       if (perFunderCharges.primaryChargeCardId) {
         const primaryCard = await db.chargeCard.findUnique({
@@ -1568,7 +1668,7 @@ export class VisitReconciliationsService {
           }
         }
       }
-    } else if (chargeCard && billMinutes) {
+    } else if (!freezeBillable && chargeCard && billMinutes) {
       const chargeRules = await db.chargeCardRule.findMany({
         where: { chargeCardId: chargeCard.id },
       });
@@ -1605,7 +1705,7 @@ export class VisitReconciliationsService {
               : 'No waking night rate on this charge card. Add a Waking night (£/hour) rule.',
         });
       }
-    } else if (multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
+    } else if (!freezeBillable && multiCarerMode === 'FIXED' && siblingRecons.length > 1 && !isFunderBillingRow) {
       billableAmount = 0;
     }
 
@@ -1719,10 +1819,14 @@ export class VisitReconciliationsService {
       where: { id },
       data: {
         status: finalStatus,
-        payCardId: payCard?.id ?? null,
-        chargeCardId: chargeCard?.id ?? null,
-        payCardSource,
-        chargeCardSource,
+        payCardId: freezePayable ? (payCard?.id ?? row.payCardId) : (payCard?.id ?? null),
+        chargeCardId: freezeBillable
+          ? (chargeCard?.id ?? row.chargeCardId)
+          : (chargeCard?.id ?? null),
+        payCardSource: freezePayable ? (payCardSource ?? row.payCardSource) : payCardSource,
+        chargeCardSource: freezeBillable
+          ? (chargeCardSource ?? row.chargeCardSource)
+          : chargeCardSource,
         approvedPayStart,
         approvedPayEnd,
         approvedBillStart,
@@ -1735,7 +1839,9 @@ export class VisitReconciliationsService {
         overrunDecision,
         payCardVersion: payCard
           ? ((payCard as { version?: number }).version ?? null)
-          : null,
+          : freezePayable
+            ? row.payCardVersion
+            : null,
         lastEvaluatedAt: new Date(),
         ...((finalStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
           finalStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
@@ -2080,6 +2186,9 @@ export class VisitReconciliationsService {
     const nightVisit = await this.prisma.scheduledVisit.findUnique({
       where: { id: row.scheduledVisitId },
       select: {
+        status: true,
+        actualStartDateTime: true,
+        actualEndDateTime: true,
         scheduledStartDateTime: true,
         visitPlanSlot: { select: { nightDuty: true } },
         scheduledJob: { select: { metadata: true } },
@@ -2091,8 +2200,22 @@ export class VisitReconciliationsService {
     });
     const billRateAnchor = nightVisit?.scheduledStartDateTime ?? row.plannedStartDateTime;
 
+    const visitCompleted = nightVisit
+      ? isBillingEligibleVisit({
+          status: nightVisit.status,
+          actualStartDateTime: nightVisit.actualStartDateTime,
+          actualEndDateTime: nightVisit.actualEndDateTime,
+        })
+      : false;
+    const freezeBillable = visitCompleted && row.billableAmount != null;
+    const freezePayable = visitCompleted && row.payableAmount != null;
+    const pricingFrozenNote =
+      freezeBillable || freezePayable
+        ? 'Amounts were priced when this visit completed. Changing charge/pay cards later does not update these figures (unless finance force-recalculates).'
+        : null;
+
     const perFunderCharges =
-      billMinutes > 0 && billStart && billEnd
+      !freezeBillable && billMinutes > 0 && billStart && billEnd
         ? await loadPerFunderChargeCalculation(this.prisma, {
             serviceUserId: row.serviceUserId,
             billMinutes,
@@ -2105,7 +2228,31 @@ export class VisitReconciliationsService {
           })
         : null;
 
-    if (perFunderCharges) {
+    if (freezeBillable && row.billableAmount != null) {
+      let cardName: string | null = null;
+      let cardCode: string | null = null;
+      if (row.chargeCardId) {
+        const chargeCard = await this.prisma.chargeCard.findUnique({
+          where: { id: row.chargeCardId },
+          select: { name: true, code: true },
+        });
+        cardName = chargeCard?.name ?? null;
+        cardCode = chargeCard?.code ?? null;
+      }
+      clientCharge = {
+        minutes: billMinutes,
+        hoursLabel: formatMinutesAsHours(billMinutes),
+        rateType: 'FROZEN',
+        unitRate: null,
+        amount: formatMoney(Number(row.billableAmount)),
+        formula:
+          'Priced at visit completion — charge-card changes no longer update this amount',
+        cardName,
+        cardCode,
+        cardSource: row.chargeCardSource,
+        ruleLabel: 'Frozen at completion',
+      };
+    } else if (perFunderCharges) {
       funderClientCharges = [];
       for (const line of perFunderCharges.lines) {
         let breakdown: ReturnType<typeof buildChargeRateBreakdown> = null;
@@ -2186,18 +2333,34 @@ export class VisitReconciliationsService {
         }),
         this.prisma.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
       ]);
-      carerPay = buildPayRateBreakdown(
-        payRules,
-        row.plannedStartDateTime,
-        payMinutes,
-        {
+      if (freezePayable && row.payableAmount != null) {
+        carerPay = {
+          minutes: payMinutes,
+          hoursLabel: formatMinutesAsHours(payMinutes),
+          rateType: 'FROZEN',
+          unitRate: null,
+          amount: formatMoney(Number(row.payableAmount)),
+          formula:
+            'Priced at visit completion — pay-card changes no longer update this amount',
           cardName: payCard?.name ?? null,
           cardCode: payCard?.code ?? null,
           cardSource: row.payCardSource,
-        },
-        isBankHoliday,
-        { start: payStart, end: payEnd },
-      );
+          ruleLabel: 'Frozen at completion',
+        };
+      } else {
+        carerPay = buildPayRateBreakdown(
+          payRules,
+          row.plannedStartDateTime,
+          payMinutes,
+          {
+            cardName: payCard?.name ?? null,
+            cardCode: payCard?.code ?? null,
+            cardSource: row.payCardSource,
+          },
+          isBankHoliday,
+          { start: payStart, end: payEnd },
+        );
+      }
     }
 
     let funderSplitPreview: {
@@ -2229,7 +2392,15 @@ export class VisitReconciliationsService {
       },
     });
     const fundingSplits = buildFundingSplits(fundingLines);
-    if (perFunderCharges) {
+    if (freezeBillable && row.billableAmount != null && fundingSplits.length >= 2) {
+      funderSplitPreview = {
+        note:
+          'Client charge was priced when the visit completed. Later funding or charge-card changes do not update this total.',
+        totalAmount: formatMoney(Number(row.billableAmount)),
+        visitChargeCardName: clientCharge?.cardName ?? null,
+        lines: [],
+      };
+    } else if (perFunderCharges) {
       const cardNameByFunding = new Map(
         fundingLines.map((funding) => [
           funding.id,
@@ -2313,6 +2484,8 @@ export class VisitReconciliationsService {
       isFunderBillingRow,
       funderChargeNote,
       funderSplitPreview,
+      pricingFrozen: freezeBillable || freezePayable,
+      pricingFrozenNote,
       timeWindows: {
         planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
         actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
