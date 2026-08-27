@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents"]
 }
 
 enum DayOfWeek {
@@ -9447,4 +9447,535 @@ model LearningComplianceSnapshot {
   @@index([dueAt])
   @@index([lastCalculatedAt])
   @@schema("learning")
+}
+
+// ============================================================================
+// INCIDENT MANAGEMENT MODULE  (schema: "incidents")
+// Phase 1 — Foundation: categories, subtypes, core incident, status/severity
+// history, and the race-safe reference-number counter.
+// External references (service user, employee, location, user actors) are stored
+// as scalar Uuid columns (matching the BodyMap* convention) and validated in the
+// service layer, to avoid cross-schema back-relation churn on shared models.
+// ============================================================================
+
+enum IncidentStatus {
+  REPORTED
+  AWAITING_REVIEW
+  UNDER_INVESTIGATION
+  ACTIONS_REQUIRED
+  AWAITING_CLOSURE
+  CLOSED
+  REOPENED
+
+  @@schema("incidents")
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("incidents")
+}
+
+enum IncidentPrivacyLevel {
+  NORMAL
+  RESTRICTED
+  HIGHLY_CONFIDENTIAL
+
+  @@schema("incidents")
+}
+
+/// Configurable event category (Accident, Incident, Near Miss, ...). DB-driven so
+/// new categories can be added without code changes.
+model IncidentCategory {
+  id          String  @id @default(uuid()) @db.Uuid
+  key         String  @unique
+  label       String
+  description String?
+  /// Marks the built-in categories seeded by the platform (protected from deletion).
+  isSystem    Boolean @default(false)
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  subtypes  IncidentSubtype[]
+  incidents Incident[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Configurable subtype belonging to a category (Slip, Trip, Fall, Missed Dose, ...).
+model IncidentSubtype {
+  id         String  @id @default(uuid()) @db.Uuid
+  categoryId String  @db.Uuid
+  key        String
+  label      String
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  category  IncidentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  incidents Incident[]
+
+  @@unique([categoryId, key])
+  @@index([categoryId])
+  @@index([isActive])
+  @@schema("incidents")
+}
+
+/// Monotonic per-year counter that backs human reference numbers (INC-2026-000128).
+/// Incremented atomically inside the incident-create transaction.
+model IncidentNumberSequence {
+  year      Int      @id
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@schema("incidents")
+}
+
+/// A reported accident / incident / near miss. The frontline report is preserved;
+/// management data (review, investigation, actions, outcome) is layered on in later
+/// phases via related tables.
+model Incident {
+  id              String  @id @default(uuid()) @db.Uuid
+  referenceNumber String  @unique
+
+  categoryId String  @db.Uuid
+  subtypeId  String? @db.Uuid
+
+  status      IncidentStatus       @default(REPORTED)
+  severity    IncidentSeverity     @default(LOW)
+  privacyLevel IncidentPrivacyLevel @default(NORMAL)
+  shareWithHandover Boolean         @default(false)
+
+  /// When the incident actually occurred (date + time).
+  occurredAt DateTime
+
+  /// Reference to lookups.Location (validated in service layer, no cross-schema FK).
+  locationId   String? @db.Uuid
+  specificArea String?
+
+  /// Reporter (a platform user); optionally the employee they map to.
+  reportedById       String? @db.Uuid
+  reporterEmployeeId String? @db.Uuid
+
+  /// Primary person affected — a service user OR an employee (or neither for external).
+  primaryServiceUserId String? @db.Uuid
+  primaryEmployeeId    String? @db.Uuid
+
+  description    String  @default("") @db.Text
+  contextBefore  String? @db.Text
+  contextAfter   String? @db.Text
+  immediateActions String? @db.Text
+  /// Checklist codes for immediate actions taken (FIRST_AID, EMERGENCY_SERVICES, ...).
+  immediateActionCodes String[]
+
+  injuryOccurred Boolean @default(false)
+
+  /// Manager who owns the incident once triaged.
+  ownerId String? @db.Uuid
+
+  reportedAt DateTime @default(now())
+
+  /// Denormalised latest-closure info (full trail lives in status history + audit).
+  closedAt   DateTime?
+  closedById String?   @db.Uuid
+
+  /// Soft lifecycle: archived/void instead of hard delete.
+  isArchived Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  category        IncidentCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subtype         IncidentSubtype?        @relation(fields: [subtypeId], references: [id], onDelete: SetNull)
+  statusHistory   IncidentStatusHistory[]
+  severityHistory IncidentSeverityHistory[]
+  review          IncidentReview?
+  investigation   IncidentInvestigation?
+  outcome         IncidentOutcome?
+  actions         IncidentAction[]
+  injuries        IncidentInjury[]
+  witnesses       IncidentWitness[]
+  attachments     IncidentAttachment[]
+  relatedCareRecords IncidentRelatedCareRecord[]
+  relatedFrom     IncidentRelatedIncident[] @relation("IncidentRelSource")
+  relatedTo       IncidentRelatedIncident[] @relation("IncidentRelTarget")
+
+  @@index([status])
+  @@index([severity])
+  @@index([privacyLevel])
+  @@index([categoryId])
+  @@index([subtypeId])
+  @@index([primaryServiceUserId])
+  @@index([primaryEmployeeId])
+  @@index([locationId])
+  @@index([ownerId])
+  @@index([occurredAt])
+  @@index([reportedAt])
+  @@index([isArchived])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Append-only workflow-status transitions for an incident.
+model IncidentStatusHistory {
+  id          String          @id @default(uuid()) @db.Uuid
+  incidentId  String          @db.Uuid
+  fromStatus  IncidentStatus?
+  toStatus    IncidentStatus
+  changedById String?         @db.Uuid
+  reason      String?
+  createdAt   DateTime        @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
+/// Append-only severity-change history for an incident.
+model IncidentSeverityHistory {
+  id           String            @id @default(uuid()) @db.Uuid
+  incidentId   String            @db.Uuid
+  fromSeverity IncidentSeverity?
+  toSeverity   IncidentSeverity
+  changedById  String?           @db.Uuid
+  reason       String?
+  createdAt    DateTime          @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
+// --- Phase 3: Manager Review & Investigation --------------------------------
+
+enum IncidentPreventability {
+  YES
+  NO
+  PARTIALLY
+  UNKNOWN
+
+  @@schema("incidents")
+}
+
+/// Manager triage / review — one per incident (upserted). Captures the triage
+/// questions used to decide investigation, safeguarding and escalation routing.
+model IncidentReview {
+  id                           String            @id @default(uuid()) @db.Uuid
+  incidentId                   String            @unique @db.Uuid
+  confirmedSeverity            IncidentSeverity?
+  investigationRequired        Boolean?
+  safeguardingConcern          Boolean?
+  possibleAbuseOrNeglect       Boolean?
+  furtherMedicalAttention      Boolean?
+  externalNotificationRequired Boolean?
+  escalationRequired           Boolean?
+  managementNotes              String?           @db.Text
+  reviewedById                 String?           @db.Uuid
+  reviewedAt                   DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+/// Structured investigation — one per incident (upserted). Contributing factors
+/// are stored as codes (multi-select) alongside the narrative fields.
+model IncidentInvestigation {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  incidentId          String                  @unique @db.Uuid
+  whatHappened        String?                 @db.Text
+  whyHappened         String?                 @db.Text
+  contributingFactors String[]
+  rootCause           String?                 @db.Text
+  preventable         IncidentPreventability?
+  conclusion          String?                 @db.Text
+  completedAt         DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+// --- Phase 4: Corrective Actions --------------------------------------------
+
+enum IncidentActionPriority {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("incidents")
+}
+
+/// Stored action lifecycle. OVERDUE is intentionally NOT stored — it is derived
+/// from (status not in COMPLETED/CANCELLED) AND (dueDate < now).
+enum IncidentActionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@schema("incidents")
+}
+
+/// A corrective / preventive action arising from an incident.
+model IncidentAction {
+  id          String                 @id @default(uuid()) @db.Uuid
+  incidentId  String                 @db.Uuid
+  title       String
+  description String?                @db.Text
+  priority    IncidentActionPriority @default(MEDIUM)
+  status      IncidentActionStatus   @default(NOT_STARTED)
+  /// Mandatory actions block closure of High/Critical incidents unless overridden.
+  isMandatory Boolean                @default(false)
+  dueDate     DateTime?
+
+  /// Assigned to an existing employee (validated in the service layer).
+  assignedEmployeeId String? @db.Uuid
+
+  completionNotes String?   @db.Text
+  completedById   String?   @db.Uuid
+  completedAt     DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([assignedEmployeeId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+// --- Phase 5: Injuries, witnesses, attachments, related links ---------------
+
+enum IncidentInjurySeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+  FATAL
+
+  @@schema("incidents")
+}
+
+/// Kind of person referenced by an injury / witness (existing entity or external).
+enum IncidentPersonKind {
+  SERVICE_USER
+  EMPLOYEE
+  FAMILY
+  VISITOR
+  HEALTHCARE_PROFESSIONAL
+  CONTRACTOR
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum IncidentRelatedRecordType {
+  CARE_PLAN
+  RISK_ASSESSMENT
+  MEDICATION
+  BODY_MAP
+  DAILY_NOTES
+  VISIT
+  BEHAVIOUR
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum IncidentRelatedRecordStatus {
+  REVIEW_REQUIRED
+  UPDATED
+
+  @@schema("incidents")
+}
+
+enum IncidentAttachmentCategory {
+  INCIDENT_PHOTO
+  INJURY_PHOTO
+  WITNESS_EVIDENCE
+  MEDICAL_DOCUMENT
+  NOTIFICATION_EVIDENCE
+  INVESTIGATION_DOCUMENT
+  OTHER
+
+  @@schema("incidents")
+}
+
+/// A recorded injury. Person may be an existing service user / employee or an
+/// external person (name only). Optionally links to an existing BodyMapRecord.
+model IncidentInjury {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  incidentId           String                 @db.Uuid
+  personKind           IncidentPersonKind     @default(SERVICE_USER)
+  personServiceUserId  String?                @db.Uuid
+  personEmployeeId     String?                @db.Uuid
+  personName           String?
+  injurySeverity       IncidentInjurySeverity @default(MINOR)
+  injuryType           String
+  bodyRegion           String?
+  side                 String?
+  notes                String?                @db.Text
+  measurements         String?
+  /// Optional link to an existing body-map record (reuses the body-map module).
+  bodyMapRecordId      String?                @db.Uuid
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([personServiceUserId])
+  @@schema("incidents")
+}
+
+/// A witness and their statement. Statements are never silently overwritten —
+/// each is a distinct row.
+model IncidentWitness {
+  id                  String             @id @default(uuid()) @db.Uuid
+  incidentId          String             @db.Uuid
+  personKind          IncidentPersonKind @default(OTHER)
+  personServiceUserId String?            @db.Uuid
+  personEmployeeId    String?            @db.Uuid
+  personName          String?
+  statement           String?            @db.Text
+  statementDate       DateTime?
+  addedById           String?            @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@schema("incidents")
+}
+
+/// Reference to an existing care record that needs review / has been updated.
+/// The care record itself lives in its own module — this only links to it.
+model IncidentRelatedCareRecord {
+  id             String                      @id @default(uuid()) @db.Uuid
+  incidentId     String                      @db.Uuid
+  recordType     IncidentRelatedRecordType
+  referenceLabel String
+  externalId     String?                     @db.Uuid
+  status         IncidentRelatedRecordStatus @default(REVIEW_REQUIRED)
+  note           String?
+  updatedByLabel String?
+  resolvedAt     DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@schema("incidents")
+}
+
+/// Directed link between two incidents (e.g. repeat falls).
+model IncidentRelatedIncident {
+  id                String   @id @default(uuid()) @db.Uuid
+  incidentId        String   @db.Uuid
+  relatedIncidentId String   @db.Uuid
+  note              String?
+  createdById       String?  @db.Uuid
+  createdAt         DateTime @default(now())
+
+  incident        Incident @relation("IncidentRelSource", fields: [incidentId], references: [id], onDelete: Cascade)
+  relatedIncident Incident @relation("IncidentRelTarget", fields: [relatedIncidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, relatedIncidentId])
+  @@index([incidentId])
+  @@index([relatedIncidentId])
+  @@schema("incidents")
+}
+
+/// Secure attachment. Stored on disk (multer); served only via an authenticated,
+/// permission-checked download endpoint (never a public URL).
+model IncidentAttachment {
+  id           String                     @id @default(uuid()) @db.Uuid
+  incidentId   String                     @db.Uuid
+  category     IncidentAttachmentCategory @default(OTHER)
+  fileName     String
+  originalName String
+  fileUrl      String
+  mimeType     String
+  fileSize     Int
+  uploadedById String?                    @db.Uuid
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@schema("incidents")
+}
+
+// --- Phase 6: Outcome & lessons learned (closure) ---------------------------
+
+/// Closure record — one per incident (upserted). Captures the outcome, lessons
+/// learned and what changed. Preserved across reopen cycles (never destroyed).
+model IncidentOutcome {
+  id                        String                  @id @default(uuid()) @db.Uuid
+  incidentId                String                  @unique @db.Uuid
+  finalOutcome              String?                 @db.Text
+  lessonsLearned            String?                 @db.Text
+  preventability            IncidentPreventability?
+  /// Codes for changes made (CARE_PLAN, RISK_ASSESSMENT, POLICY, ...).
+  changesMade               String[]
+  informationSharedWithStaff Boolean?
+  serviceUserInformed       Boolean?
+  nokInformed               Boolean?
+  finalManagementComments   String?                 @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
 }

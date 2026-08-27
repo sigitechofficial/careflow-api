@@ -32,4 +32,5 @@ export enum AuditModule {
   PAYROLL = 'PAYROLL',
   LEARNING = 'LEARNING',
   HR = 'HR',
+  INCIDENT = 'INCIDENT',
 }

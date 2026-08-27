@@ -107,6 +107,7 @@ import { PathwayChecklistsModule } from './pathway-checklists/pathway-checklists
 import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
+import { IncidentsModule } from './incidents/incidents.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
@@ -238,6 +239,7 @@ import { LearningModule } from './learning/learning.module';
     PathwayActionsModule,
     PictureGalleryModule,
     BodyMapModule,
+    IncidentsModule,
     DevToolsModule,
     BillingModule,
     EmployeeAppModule,

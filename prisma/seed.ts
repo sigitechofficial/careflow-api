@@ -1,6 +1,7 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
+import { DEFAULT_INCIDENT_CATEGORIES } from './seed-data/incident-categories';
 import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
@@ -495,6 +496,21 @@ async function main() {
     'billing.invoice_runs.manage',
     'billing.payments.read',
     'billing.payments.manage',
+    // Incident Management
+    'incidents.read',
+    'incidents.create',
+    'incidents.update',
+    'incidents.review',
+    'incidents.investigate',
+    'incidents.assign',
+    'incidents.manage_actions',
+    'incidents.close',
+    'incidents.reopen',
+    'incidents.delete',
+    'incidents.view_confidential',
+    'incidents.view_highly_confidential',
+    'incidents.view_analytics',
+    'incidents.manage_settings',
   ];
 
   for (const key of permissionKeys) {
@@ -542,6 +558,58 @@ async function main() {
         },
         update: {},
         create: { roleId: superAdminRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // Incident Management — role assignments.
+  // Frontline carers can report and view; managers/admin get the full workflow.
+  const incidentFrontlineKeys = ['incidents.read', 'incidents.create'];
+  const incidentManagerKeys = [
+    'incidents.read',
+    'incidents.create',
+    'incidents.update',
+    'incidents.review',
+    'incidents.investigate',
+    'incidents.assign',
+    'incidents.manage_actions',
+    'incidents.close',
+    'incidents.reopen',
+    'incidents.view_confidential',
+    'incidents.view_analytics',
+  ];
+  const incidentAdminKeys = [
+    ...incidentManagerKeys,
+    'incidents.delete',
+    'incidents.view_highly_confidential',
+    'incidents.manage_settings',
+  ];
+  await assignPermKeys('Carer/Domestic', incidentFrontlineKeys);
+  await assignPermKeys('Senior Carer/Nurse', incidentFrontlineKeys);
+  await assignPermKeys('Care Coordinator', [...incidentFrontlineKeys, 'incidents.manage_actions', 'incidents.view_analytics']);
+  await assignPermKeys('Manager', incidentManagerKeys);
+  await assignPermKeys('Admin', incidentAdminKeys);
+
+  // Incident Management — configurable categories & subtypes (idempotent).
+  for (let ci = 0; ci < DEFAULT_INCIDENT_CATEGORIES.length; ci++) {
+    const cat = DEFAULT_INCIDENT_CATEGORIES[ci];
+    const category = await prisma.incidentCategory.upsert({
+      where: { key: cat.key },
+      update: { label: cat.label, description: cat.description ?? null, isSystem: true },
+      create: {
+        key: cat.key,
+        label: cat.label,
+        description: cat.description ?? null,
+        isSystem: true,
+        sortOrder: ci,
+      },
+    });
+    for (let si = 0; si < cat.subtypes.length; si++) {
+      const sub = cat.subtypes[si];
+      await prisma.incidentSubtype.upsert({
+        where: { categoryId_key: { categoryId: category.id, key: sub.key } },
+        update: { label: sub.label },
+        create: { categoryId: category.id, key: sub.key, label: sub.label, sortOrder: si },
       });
     }
   }
