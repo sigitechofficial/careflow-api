@@ -582,7 +582,12 @@ export class VisitReconciliationsService {
     });
     if (!row) throw new NotFoundException('Visit reconciliation not found');
     const [enriched] = await this.enrichRows([row]);
-    const preview = await this.buildCalculationPreview(row);
+    // Completed visits replay the pricing breakdown captured at completion, so later
+    // pay/charge card rule edits do not retro-change how the visit was priced.
+    const preview =
+      row.pricingSnapshot != null
+        ? row.pricingSnapshot
+        : await this.buildCalculationPreview(row);
     return { data: { ...enriched, calculationPreview: preview } };
   }
 
@@ -1879,6 +1884,27 @@ export class VisitReconciliationsService {
           : {}),
       },
     });
+
+    // Freeze the pricing breakdown the moment a completed visit is priced (fresh or
+    // force-recalculated). The detail view replays this snapshot, so later pay/charge
+    // card rule edits do not retro-change how an already-completed visit was priced.
+    const repriced = !freezeBillable || !freezePayable;
+    if (visitCompleted && repriced && (billableAmount != null || payableAmount != null)) {
+      const snapshotRow = await db.visitReconciliation.findUnique({
+        where: { id },
+        include: reconciliationInclude,
+      });
+      if (snapshotRow) {
+        const snapshot = await this.buildCalculationPreview(snapshotRow, db);
+        await db.visitReconciliation.update({
+          where: { id },
+          data: {
+            pricingSnapshot: JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue,
+            pricingSnapshotAt: new Date(),
+          },
+        });
+      }
+    }
   }
 
   private async hasIncompleteTasks(db: DbClient, jobId: string): Promise<boolean> {
@@ -2132,7 +2158,7 @@ export class VisitReconciliationsService {
     });
   }
 
-  private async buildCalculationPreview(row: ReconciliationRow) {
+  private async buildCalculationPreview(row: ReconciliationRow, db: DbClient = this.prisma) {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const exceptions = row.exceptions
       .filter((e) => !e.resolvedAt)
@@ -2145,7 +2171,7 @@ export class VisitReconciliationsService {
       actualEndDateTime: row.actualEndDateTime,
       exceptions,
       durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
-        this.prisma,
+        db,
         row.scheduledVisitId,
       ),
     });
@@ -2155,13 +2181,13 @@ export class VisitReconciliationsService {
     const billStart = row.approvedBillStart;
     const billEnd = row.approvedBillEnd;
 
-    const orgChargeMode = await this.prisma.organisationGeneralSettings.findFirst({
+    const orgChargeMode = await db.organisationGeneralSettings.findFirst({
       select: { multiCarerFunderChargeMode: true },
     });
     const multiCarerMode =
       orgChargeMode?.multiCarerFunderChargeMode === 'FIXED' ? 'FIXED' : 'COMBINED';
 
-    const siblingCount = await this.prisma.visitReconciliation.count({
+    const siblingCount = await db.visitReconciliation.count({
       where: { scheduledVisitId: row.scheduledVisitId },
     });
     const isMultiCarer = siblingCount > 1;
@@ -2202,12 +2228,12 @@ export class VisitReconciliationsService {
       reason: string | null;
     }> | null = null;
 
-    const isBankHoliday = await isVisitOnBankHoliday(this.prisma, row.plannedStartDateTime);
+    const isBankHoliday = await isVisitOnBankHoliday(db, row.plannedStartDateTime);
     const bankHolidayDates =
       billStart && billEnd
-        ? await loadBankHolidayDateSet(this.prisma, billStart, billEnd)
+        ? await loadBankHolidayDateSet(db, billStart, billEnd)
         : new Set<string>();
-    const nightVisit = await this.prisma.scheduledVisit.findUnique({
+    const nightVisit = await db.scheduledVisit.findUnique({
       where: { id: row.scheduledVisitId },
       select: {
         status: true,
@@ -2236,7 +2262,7 @@ export class VisitReconciliationsService {
 
     const perFunderCharges =
       billMinutes > 0 && billStart && billEnd
-        ? await loadPerFunderChargeCalculation(this.prisma, {
+        ? await loadPerFunderChargeCalculation(db, {
             serviceUserId: row.serviceUserId,
             billMinutes,
             billRateAnchor,
@@ -2268,11 +2294,11 @@ export class VisitReconciliationsService {
         let breakdown: ReturnType<typeof buildChargeRateBreakdown> = null;
         if (line.chargeCardId && billStart && billEnd) {
           const [chargeCard, chargeRules] = await Promise.all([
-            this.prisma.chargeCard.findUnique({
+            db.chargeCard.findUnique({
               where: { id: line.chargeCardId },
               select: { name: true, code: true, defaultChargeMethod: true },
             }),
-            this.prisma.chargeCardRule.findMany({ where: { chargeCardId: line.chargeCardId } }),
+            db.chargeCardRule.findMany({ where: { chargeCardId: line.chargeCardId } }),
           ]);
           breakdown = buildChargeRateBreakdown(
             chargeRules,
@@ -2359,11 +2385,11 @@ export class VisitReconciliationsService {
       };
     } else if (row.chargeCardId && billMinutes > 0 && billStart && billEnd) {
       const [chargeCard, chargeRules] = await Promise.all([
-        this.prisma.chargeCard.findUnique({
+        db.chargeCard.findUnique({
           where: { id: row.chargeCardId },
           select: { name: true, code: true, defaultChargeMethod: true },
         }),
-        this.prisma.chargeCardRule.findMany({ where: { chargeCardId: row.chargeCardId } }),
+        db.chargeCardRule.findMany({ where: { chargeCardId: row.chargeCardId } }),
       ]);
       clientCharge = buildChargeRateBreakdown(
         chargeRules,
@@ -2406,11 +2432,11 @@ export class VisitReconciliationsService {
     }
     if (row.payCardId && payMinutes > 0) {
       const [payCard, payRules] = await Promise.all([
-        this.prisma.payCard.findUnique({
+        db.payCard.findUnique({
           where: { id: row.payCardId },
           select: { name: true, code: true },
         }),
-        this.prisma.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
+        db.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
       ]);
       const livePay = buildPayRateBreakdown(
         payRules,
@@ -2470,7 +2496,7 @@ export class VisitReconciliationsService {
       }>;
     } | null = null;
 
-    const fundingLines = await this.prisma.serviceUserFunding.findMany({
+    const fundingLines = await db.serviceUserFunding.findMany({
       where: { serviceUserId: row.serviceUserId, deletedAt: null },
       include: {
         funder: {

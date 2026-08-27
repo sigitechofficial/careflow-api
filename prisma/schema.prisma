@@ -7380,6 +7380,14 @@ model VisitReconciliation {
   passengerMiles       Decimal?                  @db.Decimal(10, 2)
   /** Snapshot of pay card version used when last evaluated. */
   payCardVersion       Int?
+  /**
+   * Frozen copy of the calculation breakdown (calculationPreview shape) captured
+   * when the visit was priced at completion. Replayed on the detail view so later
+   * pay/charge card rule edits do not retro-change how a completed visit was priced.
+   */
+  pricingSnapshot      Json?
+  /** When the pricingSnapshot was captured. */
+  pricingSnapshotAt    DateTime?
   currency             String                    @default("GBP")
   status               VisitReconciliationStatus @default(PENDING_REVIEW)
   payCardId            String?                   @db.Uuid
