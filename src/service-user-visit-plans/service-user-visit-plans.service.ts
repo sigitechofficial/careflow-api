@@ -2172,7 +2172,6 @@ export class ServiceUserVisitPlansService {
     const scheduleAnchor = plan.effectiveFrom;
     const planEffectiveTo = plan.effectiveTo;
 
-    const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
     const timeZone = await this.orgSettings.getOperationalTimezone();
 
     await this.prisma.$transaction(async (tx) => {
@@ -2194,8 +2193,8 @@ export class ServiceUserVisitPlansService {
         const dateStr = day.toISOString().slice(0, 10);
         const isBackfillDay = backfillOnly || t < from.getTime();
 
-        if (bankHolidayDates.has(dateStr)) continue;
-
+        // Bank holidays no longer suppress visit generation — home-care visits
+        // still occur on bank holidays (holiday only affects carer pay banding).
         const absentOnDay = await tx.serviceUserAbsence.count({
           where: { serviceUserId, ...activeServiceUserAbsenceWhere(calendarDayUtcNoon(day)) },
         });

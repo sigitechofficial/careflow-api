@@ -65,7 +65,7 @@ export async function previewGenerateScheduleFromPlan(
   let visitsToCreate = 0;
   let visitsSkippedAbsent = 0;
   let visitsSkippedSkip = 0;
-  let visitsSkippedBankHoliday = 0;
+  const visitsSkippedBankHoliday = 0;
   let visitsSkippedOffPattern = 0;
   let visitsSkippedNoBackfillAllow = 0;
   let visitsAlreadyExist = 0;
@@ -92,11 +92,8 @@ export async function previewGenerateScheduleFromPlan(
     const dateStr = utcDateKey(day);
     const isBackfillDay = backfillOnly || t < params.fromDate.getTime();
 
-    if (params.bankHolidayDates.has(dateStr)) {
-      visitsSkippedBankHoliday += 1;
-      continue;
-    }
-
+    // Bank holidays no longer suppress visit generation — home-care visits
+    // still occur on bank holidays (holiday only affects carer pay banding).
     if (params.absenceDays.has(dateStr)) {
       visitsSkippedAbsent += 1;
       continue;
