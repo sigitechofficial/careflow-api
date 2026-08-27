@@ -38,6 +38,61 @@ describe('employee-app observations catalog', () => {
     expect(resolveObservationTypeCode('bp')).toBe('BLOOD_PRESSURE');
     expect(resolveObservationTypeCode('BLOOD_SUGAR')).toBe('BLOOD_SUGAR');
     expect(resolveObservationTypeCode('mood_wellbeing')).toBe('WELLBEING');
+    expect(resolveObservationTypeCode('continence')).toBe('CONTINENCE');
+    expect(resolveObservationTypeCode('sleep')).toBe('SLEEP');
+    expect(resolveObservationTypeCode('peg_enteral')).toBe('PEG_ENTERAL');
+    expect(resolveObservationTypeCode('news2')).toBe('NEWS2');
+    expect(resolveObservationTypeCode('abc_patterns')).toBe('ABC_PATTERNS');
+    expect(resolveObservationTypeCode('seizure')).toBe('SEIZURE_CHART');
+    expect(resolveObservationTypeCode('urinalysis')).toBe('URINALYSIS');
+    expect(resolveObservationTypeCode('infection')).toBe('INFECTION');
+  });
+
+  it('builds NEWS2 and clinical chart forms instead of a generic textarea', () => {
+    const bounds = buildObsBounds({
+      unit: null,
+      minAccepted: null,
+      maxAccepted: null,
+    });
+    const news2 = buildObsFormForType({
+      code: 'NEWS2',
+      name: 'NEWS2',
+      unitLabel: null,
+      valueKind: 'COMPOSITE',
+      bounds,
+    });
+    expect(news2.fields.map((f) => f.key)).toEqual(
+      expect.arrayContaining([
+        'respirationRate',
+        'oxygenSaturation',
+        'airOrOxygen',
+        'systolic',
+        'diastolic',
+        'pulse',
+        'consciousness',
+        'temperature',
+      ]),
+    );
+    const abc = buildObsFormForType({
+      code: 'ABC_PATTERNS',
+      name: 'ABC Patterns',
+      unitLabel: null,
+      valueKind: 'COMPOSITE',
+      bounds,
+    });
+    expect(abc.fields.map((f) => f.key)).toEqual(
+      expect.arrayContaining(['antecedent', 'behaviour', 'consequences', 'actionTaken']),
+    );
+    const infection = buildObsFormForType({
+      code: 'INFECTION',
+      name: 'Infection',
+      unitLabel: null,
+      valueKind: 'COMPOSITE',
+      bounds,
+    });
+    expect(infection.fields.map((f) => f.key)).toEqual(
+      expect.arrayContaining(['infectionType', 'infectionCleared', 'isolationRequired']),
+    );
   });
 
   it('builds numeric bounds with normal range label and warning/critical bands', () => {

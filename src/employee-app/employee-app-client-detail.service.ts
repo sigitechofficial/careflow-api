@@ -19,6 +19,7 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
+import { plannedHowAssistedLabel } from './medication/employee-app-visit-medication-round.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 
@@ -380,6 +381,7 @@ export class EmployeeAppClientDetailService {
           medicationKind: true,
           isControlledMedication: true,
           instructions: true,
+          howAssisted: true,
           route: { select: { name: true } },
           frequency: { select: { name: true } },
           schedules: {
@@ -440,7 +442,13 @@ export class EmployeeAppClientDetailService {
 
       const dose = [m.dose, m.strength].filter(Boolean).join(' ') || null;
       const route = m.route?.name ?? null;
-      const detailParts = [dose, route, timing].filter(Boolean);
+      const howAssisted = plannedHowAssistedLabel(m.howAssisted);
+      const detailParts = [
+        dose,
+        route,
+        timing,
+        howAssisted ? `Support: ${howAssisted}` : null,
+      ].filter(Boolean);
 
       return {
         id: m.id,
@@ -448,6 +456,7 @@ export class EmployeeAppClientDetailService {
         dose,
         route,
         timing,
+        howAssisted,
         detail: detailParts.join(' · '),
         isPrn,
         isControlled: m.isControlledMedication,

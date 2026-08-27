@@ -10,6 +10,7 @@ import * as path from 'path';
 import {
   AllocationStatus,
   BodyMapPhotoConsentStatus,
+  BodyMapRecordStatus,
   InitialAssessmentRiskStatus,
   InitialAssessmentRiskType,
   MedicationAdministrationStatus,
@@ -37,6 +38,11 @@ import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/vi
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
 import { validateObservationCreate } from '../service-user-observations/observation-payload.validation';
+import {
+  calculateNews2Score,
+  extractWellbeingScoresFromPayload,
+  shouldValidateEmployeeObservationPayload,
+} from '../service-user-observations/observation-clinical.catalog';
 import {
   VisitObservationsCatalogService,
   formatVisitObservationValue,
@@ -82,11 +88,15 @@ import {
   buildVisitBlisterPacks,
   collectActivePackMedicationIds,
 } from './medication/employee-app-visit-blister-packs.util';
+import { indexMarBodyMapSites } from './medication/employee-app-mar-body-map-site.util';
 import {
   buildMarAdminEchoFields,
   emptyMarAdminEchoFields,
 } from './medication/employee-app-mar-echo.util';
-import { resolveVisitMedicationRoundFromDb } from './medication/employee-app-visit-medication-round.util';
+import {
+  plannedHowAssistedLabel,
+  resolveVisitMedicationRoundFromDb,
+} from './medication/employee-app-visit-medication-round.util';
 import { medicationRequiresBodyMapSiteFromMed } from '../body-map/body-map-medication-eligibility.util';
 import {
   EMPLOYEE_APP_COMPLETION_OUTCOMES,
@@ -170,8 +180,6 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
   ScheduledJobStatus.CALLED_OFF,
   ScheduledJobStatus.DRAFT,
 ];
-
-const OPTIONAL_TASK_PRIORITIES = new Set(['optional', 'low', 'nice_to_have']);
 
 /** Carer-app check-in / shell geofence radius (meters). */
 const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 10000;
@@ -585,7 +593,6 @@ export class EmployeeAppVisitsService {
             ? { id: 'obs' as const, label: 'Obs', tone: 'success' as Tone }
             : null;
       const priority = String(task.priority ?? 'routine');
-      const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
       // COMPLETED / PARTIAL / DECLINED all count as addressed for progress.
       const isCompleted = isVisitTaskAddressed({
         isCompleted: Boolean(task.isCompleted),
@@ -621,7 +628,6 @@ export class EmployeeAppVisitsService {
         categoryName: task.categoryName,
         groupCode: task.groupCode,
         priority,
-        isRequired,
         isExtra: Boolean(task.isExtra),
         done: isCompleted,
         isCompleted,
@@ -669,9 +675,7 @@ export class EmployeeAppVisitsService {
       });
     }
 
-    const required = tasks.filter((t) => t.isRequired);
-    const optional = tasks.filter((t) => !t.isRequired);
-    // Same progress source as Home / shell (not a second count from the mapped list).
+    // 24 Aug 2026: every visit task must be addressed — no required/optional split.
     const builtProgress = this.buildProgress(
       { tasksDone: progress.tasksDone, tasksTotal: progress.tasksTotal, obsCount },
       medProgress,
@@ -684,8 +688,8 @@ export class EmployeeAppVisitsService {
         roundLabel: raw.data.roundLabel,
         windowStart: raw.data.windowStart,
         windowEnd: raw.data.windowEnd,
-        requiredTasks: required,
-        optionalTasks: optional,
+        requiredTasks: tasks,
+        optionalTasks: [],
         tasks,
       },
     };
@@ -762,6 +766,29 @@ export class EmployeeAppVisitsService {
     return this.visitObservationsCatalog.loadVisitObservations(serviceUserId, since);
   }
 
+  private async persistWellbeingScores(
+    observationId: string,
+    scores: Array<{ dimensionCode: string; level: number }>,
+  ) {
+    if (!scores.length) return;
+    const codes = [...new Set(scores.map((s) => s.dimensionCode.toUpperCase()))];
+    const dimensions = await this.prisma.wellbeingDimension.findMany({
+      where: { code: { in: codes }, isActive: true },
+    });
+    if (dimensions.length !== codes.length) {
+      throw new BadRequestException('One or more wellbeing dimensions are invalid');
+    }
+    const byCode = new Map(dimensions.map((d) => [d.code, d]));
+    await this.prisma.wellbeingObservationScore.deleteMany({ where: { observationId } });
+    await this.prisma.wellbeingObservationScore.createMany({
+      data: scores.map((s) => ({
+        observationId,
+        dimensionId: byCode.get(s.dimensionCode.toUpperCase())!.id,
+        level: s.level,
+      })),
+    });
+  }
+
   async createObservation(
     employeeId: string,
     jobId: string,
@@ -776,6 +803,11 @@ export class EmployeeAppVisitsService {
     });
     if (!type) throw new BadRequestException('Invalid observation type');
     validateObservationCreate(type.code, type.valueKind, dto);
+    const wellbeingScores =
+      dto.wellbeingScores?.map((s) => ({
+        dimensionCode: s.dimensionCode,
+        level: s.level,
+      })) ?? extractWellbeingScoresFromPayload(dto.payload);
 
     const recordedAt = new Date(dto.recordedAt);
     if (Number.isNaN(recordedAt.getTime())) {
@@ -816,6 +848,7 @@ export class EmployeeAppVisitsService {
         observationType: true,
       },
     });
+    await this.persistWellbeingScores(row.id, wellbeingScores);
 
     return {
       data: {
@@ -2308,10 +2341,26 @@ export class EmployeeAppVisitsService {
     if (Number.isNaN(recordedAt.getTime())) {
       validationError('deviceRecordedAt must be a valid ISO date-time');
     }
-    const numericValue =
+    const payloadRecord =
+      dto.payload && typeof dto.payload === 'object' && !Array.isArray(dto.payload)
+        ? (dto.payload as Record<string, unknown>)
+        : {};
+    const wellbeingScores = extractWellbeingScoresFromPayload(payloadRecord);
+    let numericValue =
       dto.numericValue ??
       parseObservationNumeric(dto.value) ??
       parseObservationNumeric(dto.notes);
+    if (type.code === 'NEWS2' && numericValue == null) {
+      numericValue = calculateNews2Score(payloadRecord);
+    }
+    if (dto.outcome === 'recorded' && shouldValidateEmployeeObservationPayload(type.code)) {
+      validateObservationCreate(type.code, type.valueKind, {
+        payload: payloadRecord,
+        wellbeingScores,
+        numericValue,
+        notes: dto.notes,
+      } as CreateServiceUserObservationDto);
+    }
 
     const unableReasonCode = dto.unableReasonCode?.trim() || null;
     const carerNotes = dto.notes?.trim() || null;
@@ -2343,6 +2392,7 @@ export class EmployeeAppVisitsService {
         recordedByEmployeeId: employeeId,
       },
     });
+    await this.persistWellbeingScores(row.id, wellbeingScores);
 
     if (dto.outcome === 'recorded' || dto.outcome === 'unable') {
       await this.syncVisitTaskFromObservation({
@@ -2437,13 +2487,35 @@ export class EmployeeAppVisitsService {
         ? (existing.payload as Record<string, unknown>)
         : {};
 
-    const numericValue =
+    const incomingPayload =
+      dto.payload && typeof dto.payload === 'object' && !Array.isArray(dto.payload)
+        ? (dto.payload as Record<string, unknown>)
+        : {};
+    const wellbeingScores = extractWellbeingScoresFromPayload({
+      ...prevPayload,
+      ...incomingPayload,
+    });
+    let numericValue =
       dto.numericValue ??
       (typeof dto.value === 'number'
         ? dto.value
         : typeof dto.value === 'string' && !Number.isNaN(Number(dto.value))
           ? Number(dto.value)
           : undefined);
+    if (existing.observationType.code === 'NEWS2' && numericValue == null) {
+      numericValue = calculateNews2Score({ ...prevPayload, ...incomingPayload }) ?? undefined;
+    }
+    if (
+      (dto.outcome ?? prevPayload.outcome) === 'recorded' &&
+      shouldValidateEmployeeObservationPayload(existing.observationType.code)
+    ) {
+      validateObservationCreate(existing.observationType.code, existing.observationType.valueKind, {
+        payload: { ...prevPayload, ...incomingPayload },
+        wellbeingScores,
+        numericValue: numericValue ?? (existing.numericValue != null ? Number(existing.numericValue) : undefined),
+        notes: dto.notes ?? existing.notes ?? undefined,
+      } as CreateServiceUserObservationDto);
+    }
 
     const updated = await this.prisma.serviceUserObservation.update({
       where: { id: observationId },
@@ -2478,6 +2550,7 @@ export class EmployeeAppVisitsService {
         } as Prisma.InputJsonValue,
       },
     });
+    await this.persistWellbeingScores(updated.id, wellbeingScores);
 
     const auditRecordId = newAuditRecordId();
     const response = {
@@ -2988,8 +3061,6 @@ export class EmployeeAppVisitsService {
 
     const taskRows = (taskRaw.data.tasks as Array<Record<string, unknown>>) ?? [];
     const tasks = taskRows.map((task) => {
-      const priority = String(task.priority ?? 'routine');
-      const isRequired = !OPTIONAL_TASK_PRIORITIES.has(priority.toLowerCase());
       const isCompleted = isVisitTaskAddressed({
         isCompleted: Boolean(task.isCompleted),
         recordedValue: task.recordedValue != null ? String(task.recordedValue) : null,
@@ -2999,16 +3070,14 @@ export class EmployeeAppVisitsService {
         assignmentId: (task.assignmentId as string | null) ?? null,
         taskCatalogueTaskId: String(task.taskCatalogueTaskId ?? ''),
         name: String(task.name ?? ''),
-        isRequired,
         isExtra: Boolean(task.isExtra),
         isCompleted,
       };
     });
-    const requiredTasks = tasks.filter((t) => t.isRequired);
-    const optionalTasks = tasks.filter((t) => !t.isRequired);
-    const requiredDone = requiredTasks.filter((t) => t.isCompleted).length;
     const tasksDone = tasks.filter((t) => t.isCompleted).length;
-    const incompleteRequired = requiredTasks
+    const remainingTasks = Math.max(0, tasks.length - tasksDone);
+    const allTasksComplete = tasks.length === 0 || remainingTasks === 0;
+    const incompleteRequired = tasks
       .filter((t) => !t.isCompleted)
       .map((t) => ({
         assignmentId: t.assignmentId,
@@ -3035,12 +3104,12 @@ export class EmployeeAppVisitsService {
         total: tasks.length,
         done: tasksDone,
         remaining: Math.max(0, tasks.length - tasksDone),
-        requiredTotal: requiredTasks.length,
-        requiredDone,
-        requiredRemaining: Math.max(0, requiredTasks.length - requiredDone),
-        optionalTotal: optionalTasks.length,
+        requiredTotal: tasks.length,
+        requiredDone: tasksDone,
+        requiredRemaining: remainingTasks,
+        optionalTotal: 0,
         incompleteRequired,
-        allRequiredComplete: requiredTasks.length === 0 || requiredDone === requiredTasks.length,
+        allRequiredComplete: allTasksComplete,
       },
       medications: {
         hasAny: hasMedications,
@@ -3067,18 +3136,16 @@ export class EmployeeAppVisitsService {
         hasMedications,
         hasObservations,
         hasBodyMap,
-        pendingRequiredTasks: Math.max(0, requiredTasks.length - requiredDone),
+        pendingRequiredTasks: remainingTasks,
         pendingScheduledMeds: medsRemaining,
-        readyForComplete:
-          (requiredTasks.length === 0 || requiredDone === requiredTasks.length) &&
-          (medsDue === 0 || medsGiven >= medsDue),
+        readyForComplete: allTasksComplete && (medsDue === 0 || medsGiven >= medsDue),
       },
       tabs: [
         {
           id: 'tasks',
           label: 'Tasks',
           hasContent: hasTasks,
-          incomplete: Math.max(0, requiredTasks.length - requiredDone) > 0,
+          incomplete: remainingTasks > 0,
           countLabel: hasTasks ? `${tasksDone}/${tasks.length}` : null,
         },
         {
@@ -4105,6 +4172,8 @@ export class EmployeeAppVisitsService {
           dose: true,
           strength: true,
           instructions: true,
+          reasonForMedication: true,
+          howAssisted: true,
           isControlledMedication: true,
           medicationPackId: true,
           route: { select: { name: true } },
@@ -4131,6 +4200,8 @@ export class EmployeeAppVisitsService {
           dose: true,
           strength: true,
           instructions: true,
+          reasonForMedication: true,
+          howAssisted: true,
           isControlledMedication: true,
           route: { select: { name: true } },
         },
@@ -4172,6 +4243,8 @@ export class EmployeeAppVisitsService {
                   dose: true,
                   strength: true,
                   instructions: true,
+                  reasonForMedication: true,
+                  howAssisted: true,
                   isControlledMedication: true,
                   route: { select: { name: true } },
                   medicationPack: { select: { adminRules: true } },
@@ -4197,35 +4270,73 @@ export class EmployeeAppVisitsService {
         ...packMedicationIds,
       ]),
     ];
-    const events =
+    const [events, bodyMapSites] =
       medIds.length > 0
-        ? await this.prisma.medicationAdministrationEvent.findMany({
-            where: {
-              serviceUserId: ctx.job.serviceUserId,
-              deletedAt: null,
-              serviceUserMedicationId: { in: medIds },
-              OR: [
-                { scheduledDateTime: { gte: start, lte: end } },
-                { actualDateTime: { gte: start, lte: end } },
-              ],
-            },
-            select: {
-              id: true,
-              serviceUserMedicationId: true,
-              status: true,
-              statusCode: true,
-              reason: true,
-              notes: true,
-              supportLevel: true,
-              timeGiven: true,
-              outcomeLabel: true,
-              actualDateTime: true,
-              prnReason: true,
-              prnOutcome: true,
-              isPrn: true,
-            },
-          })
-        : [];
+        ? await Promise.all([
+            this.prisma.medicationAdministrationEvent.findMany({
+              where: {
+                serviceUserId: ctx.job.serviceUserId,
+                deletedAt: null,
+                serviceUserMedicationId: { in: medIds },
+                OR: [
+                  { scheduledDateTime: { gte: start, lte: end } },
+                  { actualDateTime: { gte: start, lte: end } },
+                ],
+              },
+              select: {
+                id: true,
+                serviceUserMedicationId: true,
+                status: true,
+                statusCode: true,
+                reason: true,
+                notes: true,
+                supportLevel: true,
+                timeGiven: true,
+                outcomeLabel: true,
+                actualDateTime: true,
+                prnReason: true,
+                prnOutcome: true,
+                isPrn: true,
+              },
+            }),
+            this.prisma.bodyMapMedicationSite.findMany({
+              where: {
+                serviceUserMedicationId: { in: medIds },
+                bodyMapRecord: {
+                  serviceUserId: ctx.job.serviceUserId,
+                  isArchived: false,
+                  status: { notIn: [BodyMapRecordStatus.CLOSED, BodyMapRecordStatus.RESOLVED] },
+                },
+              },
+              orderBy: { updatedAt: 'desc' },
+              select: {
+                serviceUserMedicationId: true,
+                bodyMapRecord: {
+                    select: {
+                    id: true,
+                    subType: true,
+                    observationDetails: true,
+                    markers: {
+                      where: { isVisible: true },
+                      orderBy: { markerNumber: 'asc' },
+                      take: 1,
+                      select: {
+                        bodyView: true,
+                        bodyPart: true,
+                        side: true,
+                        specificLocation: true,
+                        xCoordinate: true,
+                        yCoordinate: true,
+                      },
+                    },
+                  },
+                },
+              },
+            }),
+          ])
+        : [[], []];
+
+    const bodyMapSiteByMedId = indexMarBodyMapSites(bodyMapSites);
 
     const eventByMed = new Map<string, (typeof events)[number]>();
     for (const e of events) {
@@ -4240,7 +4351,7 @@ export class EmployeeAppVisitsService {
         : 'schedules' in m && m.schedules[0]?.round?.name
           ? m.schedules[0].round.name
           : null;
-      const detailParts = [dose, route, m.instructions?.trim() || timing].filter(Boolean);
+      const detailParts = [dose, route, timing].filter(Boolean);
       const allergyHit = allergyLower.some((a) => m.medicationName.toLowerCase().includes(a));
       const adminRules =
         'medicationPack' in m &&
@@ -4282,7 +4393,10 @@ export class EmployeeAppVisitsService {
         relatedAllergy,
         dueStatus: isPrn ? (echo.done ? 'recorded' : 'prn') : echo.done ? 'recorded' : 'due',
         countsTowardScheduledProgress: !isPrn,
+        reasonForMedication: m.reasonForMedication ?? null,
         instructions: m.instructions ?? null,
+        howAssisted: plannedHowAssistedLabel(m.howAssisted),
+        bodyMapSite: bodyMapSiteByMedId.get(m.id) ?? null,
         scheduledLabel: dueTime,
         tags,
         ...echo,
@@ -4325,6 +4439,7 @@ export class EmployeeAppVisitsService {
       visitRound,
       allergyLower,
       eventByMed,
+      bodyMapSiteByMedId,
       timeZone: ctx.timeZone,
     });
 

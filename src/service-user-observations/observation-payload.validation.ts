@@ -1,6 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { ObservationValueKind } from '@prisma/client';
 import type { CreateServiceUserObservationDto } from './dto/create-service-user-observation.dto';
+import {
+  isSleepQualityCode,
+  isSleepReasonCode,
+  normalizeSleepReasons,
+} from './observation-sleep.catalog';
+import { validateAlignedCarePayload } from './observation-align.catalog';
 
 function payloadObject(dto: CreateServiceUserObservationDto): Record<string, unknown> {
   if (!dto.payload || typeof dto.payload !== 'object' || Array.isArray(dto.payload)) {
@@ -139,6 +145,32 @@ export function validateObservationCreate(
         typeof payload.consciousness === 'string' ? payload.consciousness.trim() : '';
       if (!consciousness || !['A', 'C', 'V', 'P', 'U'].includes(consciousness)) {
         throw new BadRequestException('consciousness must be A, C, V, P, or U');
+      }
+      return;
+    }
+    case 'CONTINENCE':
+    case 'SKIN_INTEGRITY':
+    case 'PEG_ENTERAL':
+    case 'BODY_MAP':
+    case 'BOWEL_MOVEMENT':
+    case 'FALLS':
+    case 'REPOSITIONING':
+    case 'MEALS': {
+      try {
+        validateAlignedCarePayload(code, payload);
+      } catch (e) {
+        throw new BadRequestException(e instanceof Error ? e.message : 'Invalid observation payload');
+      }
+      return;
+    }
+    case 'SLEEP': {
+      const quality = typeof payload.quality === 'string' ? payload.quality.trim() : '';
+      if (!quality || !isSleepQualityCode(quality)) {
+        throw new BadRequestException('quality is required for sleep');
+      }
+      const reasons = normalizeSleepReasons(payload);
+      if (reasons.some((code) => !isSleepReasonCode(code))) {
+        throw new BadRequestException('reasons contains an invalid sleep reason');
       }
       return;
     }

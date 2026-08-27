@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  MedicationKind,
   MedicationRecordStatus,
   MedicationSchedulePattern,
   MedicationStatusEndReason,
@@ -29,6 +30,10 @@ import {
   startOfUtcDay,
   syncMedicationsPastEndDate,
 } from './medication-status-end.util';
+import {
+  ensurePackMemberForMedication,
+  syncPackCompartmentsFromLinkedSchedules,
+} from '../medication-packs/medication-pack-membership.util';
 import { AuditLogQueryDto } from '../audit-logs/dto/audit-log-query.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
@@ -342,6 +347,7 @@ export class ServiceUserMedicationsService {
               ? dto.monthlyDayOfMonth
               : null,
           monthlyAnchorToStartDate: dto.monthlyAnchorToStartDate ?? true,
+          reasonForMedication: dto.reasonForMedication,
           instructions: dto.instructions,
           notes: dto.notes,
           isControlledMedication: dto.isControlledMedication ?? false,
@@ -394,6 +400,17 @@ export class ServiceUserMedicationsService {
         }
       }
 
+      if (dto.medicationPackId) {
+        await ensurePackMemberForMedication(tx, {
+          packId: dto.medicationPackId,
+          medicationId: med.id,
+          userId,
+          medicationKind: dto.medicationKind ?? MedicationKind.REGULAR,
+          isControlledMedication: dto.isControlledMedication ?? false,
+        });
+        await syncPackCompartmentsFromLinkedSchedules(tx, dto.medicationPackId);
+      }
+
       return tx.serviceUserMedication.findUniqueOrThrow({
         where: { id: med.id },
         include: medInclude,
@@ -436,9 +453,14 @@ export class ServiceUserMedicationsService {
     this.validateDates(dto.startDate ?? existing.startDate, dto.endDate ?? existing.endDate);
     if (dto.medicationPackId) await this.ensurePackForUser(serviceUserId, dto.medicationPackId);
     const nextKind = dto.medicationKind ?? existing.medicationKind;
+    if (nextKind === MedicationKind.PRN && (dto.medicationPackId ?? existing.medicationPackId)) {
+      throw new BadRequestException('PRN medications cannot be in a blister pack');
+    }
     if (dto.schedules !== undefined) {
       this.validateSchedules(nextKind, dto.schedules);
     }
+    const convertingToPrn =
+      existing.medicationKind !== MedicationKind.PRN && nextKind === MedicationKind.PRN;
 
     const nextEndDate =
       dto.endDate === undefined
@@ -471,6 +493,7 @@ export class ServiceUserMedicationsService {
       strength: dto.strength,
       startDate: dto.startDate === undefined ? undefined : dto.startDate ? new Date(dto.startDate) : null,
       endDate: dto.endDate === undefined ? undefined : dto.endDate ? new Date(dto.endDate) : null,
+      expiryDate: dto.expiryDate === undefined ? undefined : dto.expiryDate ? new Date(dto.expiryDate) : null,
       medicationTypeId: dto.medicationTypeId,
       routeId: dto.routeId,
       categoryId: dto.categoryId,
@@ -480,21 +503,51 @@ export class ServiceUserMedicationsService {
       frequencyIntervalDays: dto.frequencyIntervalDays,
       monthlyDayOfMonth: dto.monthlyDayOfMonth,
       monthlyAnchorToStartDate: dto.monthlyAnchorToStartDate,
+      howAssisted: dto.howAssisted,
+      reasonForMedication: dto.reasonForMedication,
       instructions: dto.instructions,
       notes: dto.notes,
       isControlledMedication: dto.isControlledMedication,
       isDecongestantMedication: dto.isDecongestantMedication,
       medicationKind: dto.medicationKind,
+      ...(convertingToPrn
+        ? {
+            schedulePattern: null,
+            frequencyId: null,
+            frequencyText: 'PRN',
+            monthlyDayOfMonth: null,
+          }
+        : {}),
       status: endDateTriggersAutoEnd ? MedicationRecordStatus.ENDED : dto.status,
       updatedById: userId,
       ...statusPatch,
     };
 
-    const updated = await this.prisma.serviceUserMedication.update({
-      where: { id: medicationId },
-      data: updateData,
-      include: medInclude,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (convertingToPrn) {
+        await tx.medicationSchedule.updateMany({
+          where: { serviceUserMedicationId: medicationId, deletedAt: null },
+          data: { deletedAt: new Date(), isActive: false, updatedById: userId },
+        });
+      }
+      return tx.serviceUserMedication.update({
+        where: { id: medicationId },
+        data: updateData,
+        include: medInclude,
+      });
     });
+
+    const nextPackId = updated.medicationPackId;
+    if (nextPackId) {
+      await ensurePackMemberForMedication(this.prisma, {
+        packId: nextPackId,
+        medicationId: updated.id,
+        userId,
+        medicationKind: updated.medicationKind,
+        isControlledMedication: updated.isControlledMedication,
+      });
+      await syncPackCompartmentsFromLinkedSchedules(this.prisma, nextPackId);
+    }
 
     const oldS = auditSnapshot(existing);
     const newS = auditSnapshot(updated);

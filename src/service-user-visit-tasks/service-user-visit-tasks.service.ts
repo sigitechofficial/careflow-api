@@ -160,8 +160,10 @@ export class ServiceUserVisitTasksService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      // 24 Aug 2026: re-adding a removed task hit unique (serviceUser + slot + catalogue).
+      // Soft-deleted rows were ignored so create() failed — include them and reactivate.
       const existing = await tx.serviceUserVisitTaskAssignment.findMany({
-        where: { serviceUserId, deletedAt: null },
+        where: { serviceUserId },
       });
 
       const existingByKey = new Map(
@@ -221,7 +223,9 @@ export class ServiceUserVisitTasksService {
         }
       }
 
-      const toDeactivate = existing.filter((row) => !keepIds.has(row.id));
+      const toDeactivate = existing.filter(
+        (row) => !keepIds.has(row.id) && row.deletedAt == null,
+      );
       if (toDeactivate.length > 0) {
         await tx.serviceUserVisitTaskAssignment.updateMany({
           where: { id: { in: toDeactivate.map((row) => row.id) } },
