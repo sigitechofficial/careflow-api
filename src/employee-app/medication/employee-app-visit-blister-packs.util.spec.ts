@@ -42,6 +42,7 @@ describe('employee-app-visit-blister-packs.util', () => {
                 dose: '1 tablet',
                 strength: '500mg',
                 instructions: null,
+                howAssisted: 'Prompting',
                 isControlledMedication: false,
                 route: { name: 'Oral' },
                 medicationPack: null,
@@ -58,6 +59,7 @@ describe('employee-app-visit-blister-packs.util', () => {
     expect(packs[0]?.compartments[0]?.medicines[0]?.scheduledDoseId).toBe('med-1:08:00');
     expect(packs[0]?.compartments[0]?.canRecordRound).toBe(true);
     expect(packs[0]?.compartments[0]?.medicines[0]?.done).toBe(false);
+    expect(packs[0]?.compartments[0]?.medicines[0]?.howAssisted).toBe('Prompting');
   });
 
   it('echoes MAR admin fields on recorded blister medicines', () => {
@@ -106,6 +108,7 @@ describe('employee-app-visit-blister-packs.util', () => {
                 dose: '1 tablet',
                 strength: '500mg',
                 instructions: null,
+                howAssisted: 'Prompting',
                 isControlledMedication: false,
                 route: { name: 'Oral' },
                 medicationPack: null,

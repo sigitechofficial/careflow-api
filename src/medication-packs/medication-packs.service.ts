@@ -25,6 +25,10 @@ import { CreateMedicationPackCompartmentDto } from './dto/create-medication-pack
 import { UpdateMedicationPackCompartmentDto } from './dto/update-medication-pack-compartment.dto';
 import type { MedicationPackManifestDto } from './dto/medication-pack-manifest-response.dto';
 import { buildPackManifestPdf } from './medication-pack-manifest-pdf.util';
+import {
+  syncPackCompartmentsFromLinkedSchedules,
+  syncPackMembersFromLinkedMedications,
+} from './medication-pack-membership.util';
 
 const PACK_TYPE_LABEL: Record<string, string> = {
   BLISTER: 'Blister pack',
@@ -46,7 +50,15 @@ const packInclude = {
 } as const;
 
 const memberMedicationInclude = {
-  serviceUserMedication: { include: { route: true } },
+  serviceUserMedication: {
+    include: {
+      route: true,
+      schedules: {
+        where: { deletedAt: null, isActive: true },
+        select: { id: true, dueTime: true, dose: true, round: { select: { name: true } } },
+      },
+    },
+  },
 } as const;
 
 type PackSetupPersist = {
@@ -88,11 +100,20 @@ export class MedicationPacksService {
 
   async list(serviceUserId: string) {
     await assertServiceUserExists(this.prisma, serviceUserId);
-    return this.prisma.medicationPack.findMany({
+    const packs = await this.prisma.medicationPack.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
       include: packInclude,
       orderBy: { updatedAt: 'desc' },
     });
+    // Add-medication blister save used to set medicationPackId without members/slots.
+    // Opening this tab backfills linked chart medicines into pack members and compartments.
+    await Promise.all(
+      packs.map(async (pack) => {
+        await syncPackMembersFromLinkedMedications(this.prisma, pack.id);
+        await syncPackCompartmentsFromLinkedSchedules(this.prisma, pack.id);
+      }),
+    );
+    return packs;
   }
 
   async getOne(serviceUserId: string, packId: string) {
@@ -298,6 +319,7 @@ export class MedicationPacksService {
 
   async listMembers(serviceUserId: string, packId: string) {
     await this.getOne(serviceUserId, packId);
+    await syncPackMembersFromLinkedMedications(this.prisma, packId);
     return this.prisma.medicationPackMember.findMany({
       where: { medicationPackId: packId, deletedAt: null },
       include: memberMedicationInclude,
@@ -442,6 +464,8 @@ export class MedicationPacksService {
   ) {
     const pack = await this.getOne(serviceUserId, packId);
     this.assertPackEditable(pack.status);
+    await syncPackMembersFromLinkedMedications(this.prisma, packId, userId);
+    await syncPackCompartmentsFromLinkedSchedules(this.prisma, packId);
 
     const members = await this.prisma.medicationPackMember.findMany({
       where: { medicationPackId: packId, status: MedicationPackMemberStatus.ACTIVE, deletedAt: null },
@@ -773,6 +797,7 @@ export class MedicationPacksService {
 
   async listCompartments(serviceUserId: string, packId: string) {
     await this.getOne(serviceUserId, packId);
+    await syncPackCompartmentsFromLinkedSchedules(this.prisma, packId);
     return this.prisma.medicationPackCompartment.findMany({
       where: { medicationPackId: packId, deletedAt: null, isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { dueTime: 'asc' }],

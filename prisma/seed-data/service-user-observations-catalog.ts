@@ -18,6 +18,7 @@ export const OBSERVATION_SHARE_TARGETS = [
 export const OBSERVATION_TYPES: ObservationTypeSeed[] = [
   { code: 'WEIGHT', name: 'Weight', sortOrder: 10, valueKind: 'NUMERIC', usesNews2: true, unitLabel: 'KG' },
   { code: 'WELLBEING', name: 'Wellbeing', sortOrder: 20, valueKind: 'WELLBEING', usesNews2: false },
+  { code: 'SLEEP', name: 'Sleep', sortOrder: 21, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'RESPIRATION', name: 'Respiration', sortOrder: 30, valueKind: 'NUMERIC', usesNews2: true, unitLabel: 'RPM' },
   { code: 'BLOOD_SUGAR', name: 'Blood Sugar', sortOrder: 40, valueKind: 'NUMERIC', usesNews2: false, unitLabel: 'MMOL/L' },
   { code: 'BLOOD_PRESSURE', name: 'Blood Pressure', sortOrder: 50, valueKind: 'COMPOSITE', usesNews2: true, unitLabel: 'MMHG' },
@@ -28,12 +29,16 @@ export const OBSERVATION_TYPES: ObservationTypeSeed[] = [
   { code: 'FLUID_MONITOR', name: 'Fluid Monitor', sortOrder: 90, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'FALLS', name: 'Falls', sortOrder: 100, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'BOWEL_MOVEMENT', name: 'Bowel Movement', sortOrder: 110, valueKind: 'COMPOSITE', usesNews2: false },
+  { code: 'CONTINENCE', name: 'Continence care', sortOrder: 111, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'MEALS', name: 'Meals', sortOrder: 120, valueKind: 'COMPOSITE', usesNews2: false },
+  { code: 'PEG_ENTERAL', name: 'PEG / enteral feeding', sortOrder: 121, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'REPOSITIONING', name: 'Repositioning', sortOrder: 130, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'ABC_PATTERNS', name: 'ABC Patterns', sortOrder: 140, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'SEIZURE_CHART', name: 'Seizure Chart', sortOrder: 150, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'URINALYSIS', name: 'Urinalysis', sortOrder: 160, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'INFECTION', name: 'Infection', sortOrder: 170, valueKind: 'COMPOSITE', usesNews2: false },
+  { code: 'SKIN_INTEGRITY', name: 'Skin integrity', sortOrder: 172, valueKind: 'COMPOSITE', usesNews2: false },
+  { code: 'BODY_MAP', name: 'Body map', sortOrder: 173, valueKind: 'COMPOSITE', usesNews2: false },
   { code: 'PAIN', name: 'Pain score', sortOrder: 175, valueKind: 'NUMERIC', usesNews2: false, unitLabel: '0-10' },
 ];
 

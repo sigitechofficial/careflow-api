@@ -8,8 +8,10 @@ import {
   filterCompartmentsForVisitRound,
   medMatchesCompartmentDueTime,
   normalizePackDueTime,
+  plannedHowAssistedLabel,
   type VisitMedicationRound,
 } from './employee-app-visit-medication-round.util';
+import type { MarBodyMapSite } from './employee-app-mar-body-map-site.util';
 
 type Tone = 'danger' | 'warning' | 'primary' | 'success' | 'neutral';
 
@@ -47,7 +49,10 @@ export type EmployeeAppBlisterPackMedicine = {
   savedAtLabel: string | null;
   dueStatus: 'due' | 'recorded';
   countsTowardScheduledProgress: true;
+  reasonForMedication: string | null;
   instructions: string | null;
+  howAssisted: string | null;
+  bodyMapSite: MarBodyMapSite | null;
   scheduledLabel: string;
   tags: Array<{ id: string; label: string; tone: Tone }>;
 };
@@ -79,7 +84,9 @@ type PackMemberMed = {
   medicationName: string;
   dose: string | null;
   strength: string | null;
+  reasonForMedication?: string | null;
   instructions: string | null;
+  howAssisted?: string | null;
   isControlledMedication: boolean;
   route: { name: string } | null;
   medicationPack: { adminRules: unknown } | null;
@@ -113,18 +120,20 @@ type MapPackMedicineInput = {
   compartmentDueTime: string;
   allergyLower: string[];
   eventByMed: Map<string, MarAdminEventEchoSource>;
+  bodyMapSiteByMedId?: Map<string, MarBodyMapSite>;
   timeZone?: string;
 };
 
 function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMedicine {
-  const { memberId, med, compartmentDueTime, allergyLower, eventByMed, timeZone } = input;
+  const { memberId, med, compartmentDueTime, allergyLower, eventByMed, bodyMapSiteByMedId, timeZone } =
+    input;
   const dose = [med.dose, med.strength].filter(Boolean).join(' ') || null;
   const route = med.route?.name ?? null;
   const schedule =
     med.schedules.find((s) => normalizePackDueTime(s.dueTime) === normalizePackDueTime(compartmentDueTime)) ??
     med.schedules[0];
   const timing = schedule?.round?.name ?? null;
-  const detailParts = [dose, route, med.instructions?.trim() || timing].filter(Boolean);
+  const detailParts = [dose, route, timing].filter(Boolean);
   const allergyHit = allergyLower.some((a) => med.medicationName.toLowerCase().includes(a));
   const adminRules =
     med.medicationPack?.adminRules && typeof med.medicationPack.adminRules === 'object'
@@ -163,7 +172,10 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
     relatedAllergy,
     dueStatus: echo.done ? 'recorded' : 'due',
     countsTowardScheduledProgress: true,
+    reasonForMedication: med.reasonForMedication?.trim() || null,
     instructions: med.instructions ?? null,
+    howAssisted: plannedHowAssistedLabel(med.howAssisted),
+    bodyMapSite: bodyMapSiteByMedId?.get(med.id) ?? null,
     scheduledLabel: dueTime,
     tags,
     ...echo,
@@ -175,9 +187,10 @@ export function buildVisitBlisterPacks(input: {
   visitRound: VisitMedicationRound | null;
   allergyLower: string[];
   eventByMed: Map<string, MarAdminEventEchoSource>;
+  bodyMapSiteByMedId?: Map<string, MarBodyMapSite>;
   timeZone?: string;
 }): EmployeeAppBlisterPack[] {
-  const { packs, visitRound, allergyLower, eventByMed, timeZone } = input;
+  const { packs, visitRound, allergyLower, eventByMed, bodyMapSiteByMedId, timeZone } = input;
 
   return packs
     .map((pack) => {
@@ -197,6 +210,7 @@ export function buildVisitBlisterPacks(input: {
               compartmentDueTime: compartment.dueTime,
               allergyLower,
               eventByMed,
+              bodyMapSiteByMedId,
               timeZone,
             }),
           );

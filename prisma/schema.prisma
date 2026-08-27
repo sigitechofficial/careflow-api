@@ -4948,7 +4948,11 @@ model ServiceUserMedication {
   frequencyIntervalDays    Int                    @default(1)
   monthlyDayOfMonth        Int?
   monthlyAnchorToStartDate Boolean                @default(true)
+  /// Why this medicine is prescribed (shown to the carer).
+  reasonForMedication      String?
+  /// How to give this dose (shown to the carer).
   instructions             String?
+  /// Office-only chart notes (not sent to the employee app).
   notes                    String?
   isControlledMedication   Boolean                @default(false)
   isDecongestantMedication Boolean               @default(false)

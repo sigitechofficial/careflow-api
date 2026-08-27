@@ -16,6 +16,9 @@ import {
   observationPayloadMatchesJob,
   type EmployeeAppBodyMapPin,
 } from '../employee-app/employee-app-body-map-pins.util';
+import { formatSleepObservationValue } from './observation-sleep.catalog';
+import { formatAlignedCareValue } from './observation-align.catalog';
+import { formatClinicalObservationValue } from './observation-clinical.catalog';
 
 export type VisitObservationRecordedRow = {
   id: string;
@@ -87,7 +90,22 @@ export function formatVisitObservationValue(row: {
   numericValue: Prisma.Decimal | number | null;
   unit: string | null;
   payload: Prisma.JsonValue | null;
+  observationType?: { code: string };
 }): string | null {
+  if (row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)) {
+    const p = row.payload as Record<string, unknown>;
+    const sleep = formatSleepObservationValue(p);
+    if (sleep) return sleep;
+    const typeCode = row.observationType?.code;
+    if (typeCode) {
+      const aligned = formatAlignedCareValue(typeCode, p);
+      if (aligned) return aligned;
+      const numeric =
+        row.numericValue != null ? Number(row.numericValue) : null;
+      const clinical = formatClinicalObservationValue(typeCode, p, numeric);
+      if (clinical) return clinical;
+    }
+  }
   if (row.numericValue != null) {
     const unit = row.unit?.trim();
     const num = Number(row.numericValue);
