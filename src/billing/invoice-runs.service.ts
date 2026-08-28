@@ -248,6 +248,167 @@ export class InvoiceRunsService {
     };
   }
 
+  /**
+   * Per-service-user invoice status across every invoice run (period). For each service user
+   * it returns how many invoices they have, how many are sent vs still outstanding, and a
+   * month-by-month breakdown. Optional `month` (YYYY-MM) filters to a single billing period.
+   */
+  async getServiceUserInvoicesOverview(params: { month?: string } = {}) {
+    const runWhere: Prisma.InvoiceRunWhereInput = {};
+    if (params.month && /^\d{4}-\d{2}$/.test(params.month)) {
+      const [year, month] = params.month.split('-').map(Number);
+      runWhere.periodStart = {
+        gte: new Date(Date.UTC(year, month - 1, 1)),
+        lt: new Date(Date.UTC(year, month, 1)),
+      };
+    }
+
+    const runs = await this.prisma.invoiceRun.findMany({
+      where: runWhere,
+      select: {
+        id: true,
+        periodLabel: true,
+        periodStart: true,
+        periodEnd: true,
+        status: true,
+        exportStatus: true,
+        sentAt: true,
+      },
+      orderBy: { periodStart: 'desc' },
+    });
+
+    const months = [
+      ...new Set(runs.map((r) => r.periodStart.toISOString().slice(0, 7))),
+    ].sort((a, b) => b.localeCompare(a));
+
+    if (!runs.length) {
+      return { data: { months, serviceUsers: [] } };
+    }
+
+    const runMap = new Map(runs.map((r) => [r.id, r]));
+
+    const grouped = await this.prisma.invoiceRunLine.groupBy({
+      by: ['serviceUserId', 'invoiceRunId'],
+      where: { invoiceRunId: { in: runs.map((r) => r.id) } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    const serviceUserIds = [...new Set(grouped.map((g) => g.serviceUserId))];
+    const serviceUserRows = serviceUserIds.length
+      ? await this.prisma.serviceUser.findMany({
+          where: { id: { in: serviceUserIds } },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            preferredName: true,
+            serviceUserNumber: true,
+          },
+        })
+      : [];
+    const suMap = new Map(serviceUserRows.map((s) => [s.id, s]));
+    const suName = (id: string) => {
+      const su = suMap.get(id);
+      if (!su) return 'Unknown service user';
+      return (
+        su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim()
+      );
+    };
+
+    const sentStatuses: InvoiceRunStatus[] = [
+      InvoiceRunStatus.SENT,
+      InvoiceRunStatus.PART_PAID,
+      InvoiceRunStatus.PAID,
+    ];
+    const isSent = (run: (typeof runs)[number]) =>
+      sentStatuses.includes(run.status) ||
+      run.exportStatus === BillingRunExportStatus.SENT;
+
+    type MonthRow = {
+      runId: string;
+      period: string;
+      periodStart: string;
+      periodEnd: string;
+      status: InvoiceRunStatus;
+      exportStatus: BillingRunExportStatus;
+      sent: boolean;
+      sentAt: string | null;
+      lineCount: number;
+      subtotal: string;
+      subtotalValue: number;
+    };
+    type SuRow = {
+      serviceUserId: string;
+      serviceUserName: string;
+      serviceUserNumber: string | null;
+      invoiceCount: number;
+      sentCount: number;
+      pendingCount: number;
+      totalInvoiced: string;
+      totalInvoicedValue: number;
+      lastPeriodEnd: string | null;
+      months: MonthRow[];
+    };
+
+    const bySu = new Map<string, SuRow>();
+    for (const g of grouped) {
+      const run = runMap.get(g.invoiceRunId);
+      if (!run) continue;
+      const amount = Number(g._sum.amount ?? 0);
+      const sent = isSent(run);
+      let row = bySu.get(g.serviceUserId);
+      if (!row) {
+        row = {
+          serviceUserId: g.serviceUserId,
+          serviceUserName: suName(g.serviceUserId),
+          serviceUserNumber:
+            suMap.get(g.serviceUserId)?.serviceUserNumber ?? null,
+          invoiceCount: 0,
+          sentCount: 0,
+          pendingCount: 0,
+          totalInvoiced: formatMoney(0),
+          totalInvoicedValue: 0,
+          lastPeriodEnd: null,
+          months: [],
+        };
+        bySu.set(g.serviceUserId, row);
+      }
+      row.invoiceCount += 1;
+      if (sent) row.sentCount += 1;
+      else row.pendingCount += 1;
+      row.totalInvoicedValue += amount;
+      row.months.push({
+        runId: run.id,
+        period: run.periodLabel,
+        periodStart: run.periodStart.toISOString().slice(0, 10),
+        periodEnd: run.periodEnd.toISOString().slice(0, 10),
+        status: run.status,
+        exportStatus: run.exportStatus,
+        sent,
+        sentAt: run.sentAt?.toISOString() ?? null,
+        lineCount: g._count._all,
+        subtotal: formatMoney(amount),
+        subtotalValue: Math.round(amount * 100) / 100,
+      });
+    }
+
+    const serviceUsers = [...bySu.values()].map((row) => {
+      row.months.sort((a, b) => b.periodStart.localeCompare(a.periodStart));
+      row.totalInvoicedValue = Math.round(row.totalInvoicedValue * 100) / 100;
+      row.totalInvoiced = formatMoney(row.totalInvoicedValue);
+      row.lastPeriodEnd = row.months[0]?.periodEnd ?? null;
+      return row;
+    });
+    serviceUsers.sort(
+      (a, b) =>
+        b.pendingCount - a.pendingCount ||
+        a.serviceUserName.localeCompare(b.serviceUserName),
+    );
+
+    return { data: { months, serviceUsers } };
+  }
+
   async getById(id: string) {
     const row = await this.prisma.invoiceRun.findUnique({
       where: { id },

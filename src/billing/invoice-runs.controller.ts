@@ -56,6 +56,16 @@ export class InvoiceRunsController {
     return this.service.getForServiceUser(serviceUserId);
   }
 
+  @Get('service-users')
+  @Permissions('billing.invoice_runs.read')
+  @ApiOperation({
+    summary:
+      'Per-service-user invoice status across periods (sent vs outstanding)',
+  })
+  serviceUsersOverview(@Query('month') month?: string) {
+    return this.service.getServiceUserInvoicesOverview({ month });
+  }
+
   @Get()
   @Permissions('billing.invoice_runs.read')
   @ApiOperation({ summary: 'List invoice runs' })
