@@ -73,7 +73,7 @@ CREATE TYPE "scheduling"."EcmAttendanceConfidence" AS ENUM (
 );
 
 CREATE TABLE "scheduling"."EcmVisitEvaluation" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "scheduledVisitId" UUID,
   "plannedStartDateTime" TIMESTAMP(3) NOT NULL,

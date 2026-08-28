@@ -76,13 +76,19 @@ export class CreateServiceUserMedicationDto {
   @MaxLength(200)
   frequencyText?: string;
 
-  @ApiPropertyOptional({ maxLength: 2000, description: 'Reason for medication' })
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Why this medicine is prescribed' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reasonForMedication?: string;
+
+  @ApiPropertyOptional({ maxLength: 2000, description: 'How to give this medicine (carer-facing)' })
   @IsOptional()
   @IsString()
   @MaxLength(2000)
   instructions?: string;
 
-  @ApiPropertyOptional({ maxLength: 2000, description: 'Medication notes' })
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Office-only medication notes' })
   @IsOptional()
   @IsString()
   @MaxLength(2000)

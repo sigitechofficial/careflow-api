@@ -34,6 +34,8 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { LookupsModule } from './lookups/lookups.module';
 import { EmployeeHolidaysModule } from './employee-holidays/employee-holidays.module';
 import { EmployeeLeavingRecordsModule } from './employee-leaving-records/employee-leaving-records.module';
+import { HrModule } from './hr/hr.module';
+import { RecruitmentModule } from './hr/recruitment/recruitment.module';
 import { TemporaryInspectorsModule } from './temporary-inspectors/temporary-inspectors.module';
 import { ServiceUsersModule } from './service-users/service-users.module';
 import { ServiceUserPortalModule } from './service-user-portal/service-user-portal.module';
@@ -105,6 +107,7 @@ import { PathwayChecklistsModule } from './pathway-checklists/pathway-checklists
 import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
+import { IncidentsModule } from './incidents/incidents.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
@@ -159,6 +162,8 @@ import { LearningModule } from './learning/learning.module';
     EmployeeAbsencesModule,
     EmployeeHolidaysModule,
     EmployeeLeavingRecordsModule,
+    HrModule,
+    RecruitmentModule,
     FilesModule,
     AuditLogsModule,
     LookupsModule,
@@ -234,6 +239,7 @@ import { LearningModule } from './learning/learning.module';
     PathwayActionsModule,
     PictureGalleryModule,
     BodyMapModule,
+    IncidentsModule,
     DevToolsModule,
     BillingModule,
     EmployeeAppModule,

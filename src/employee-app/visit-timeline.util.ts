@@ -20,7 +20,13 @@ export function formatTimelineHm(d: Date, timeZone?: string): string {
 
 export function summarizeTimelineDetail(value: string | null | undefined): string | null {
   if (value == null) return null;
-  const trimmed = value.trim().replace(/\s+/g, ' ');
+  // Collapse horizontal whitespace but PRESERVE line breaks so multi-line
+  // details (e.g. a handover with an "Outstanding action:" line) stay multi-line.
+  const trimmed = value
+    .trim()
+    .replace(/[^\S\n]+/g, ' ') // spaces/tabs → single space (keeps \n)
+    .replace(/ *\n */g, '\n') // trim spaces around line breaks
+    .replace(/\n{3,}/g, '\n\n'); // cap consecutive blank lines
   if (!trimmed) return null;
   if (trimmed.length <= DETAIL_MAX) return trimmed;
   return `${trimmed.slice(0, DETAIL_MAX - 1)}…`;

@@ -19,6 +19,8 @@ export type VisitPlanSlotCarerAssignmentShape = {
   dayOfWeek: number | null;
   employeeId: string;
   role: VisitPlanSlotCarerRole;
+  /** Carers required for this row's day(s); null = use the slot default. */
+  requiredCarers?: number | null;
   durationMinutes: number | null;
   plannedStartTime: string | null;
   plannedEndTime: string | null;
@@ -118,6 +120,30 @@ export function resolveCarerAssignmentsForDay(
     plannedEndTime: null,
     sortOrder: index,
   }));
+}
+
+/**
+ * Derive how many carers a specific day requires from the row assignments.
+ * Mirrors the day-specific-vs-global selection used by resolveCarerAssignmentsForDay:
+ * takes the largest per-row requiredCarers among the applicable rows, falling back to
+ * the slot default when no row sets an explicit count.
+ */
+export function resolveRequiredCarersForDay(
+  assignments: VisitPlanSlotCarerAssignmentShape[],
+  dayOfWeek: number,
+  slotDefault: number,
+): number {
+  const withEmployeeId = assignments.filter((a) => a.employeeId?.trim());
+  const daySpecific = withEmployeeId.filter((a) => a.dayOfWeek === dayOfWeek);
+  const group =
+    daySpecific.length > 0
+      ? daySpecific
+      : withEmployeeId.filter((a) => a.dayOfWeek == null);
+  const explicit = group
+    .map((a) => a.requiredCarers)
+    .filter((n): n is number => typeof n === 'number' && n > 0);
+  const base = explicit.length ? Math.max(...explicit) : slotDefault;
+  return Math.max(1, base);
 }
 
 export function maxAllowedBackfillDays(

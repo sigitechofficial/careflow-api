@@ -2,6 +2,7 @@ import {
   assessVisitPlanReadiness,
   assessVisitPlanSlotReadiness,
   resolveAssignedEmployeeIds,
+  resolveGlobalAssignedEmployeeIds,
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 
@@ -28,6 +29,26 @@ describe('visit-plan-readiness.util', () => {
     expect(
       resolveAssignedEmployeeIds([], [{ employeeId: 'from-row' }]),
     ).toEqual(['from-row']);
+  });
+
+  it('resolveGlobalAssignedEmployeeIds ignores day-specific rows', () => {
+    // Global (dayOfWeek null) carer wins; the Saturday-only carer must not become the default.
+    expect(
+      resolveGlobalAssignedEmployeeIds(
+        ['legacy'],
+        [
+          { employeeId: 'alice', dayOfWeek: null },
+          { employeeId: 'bob', dayOfWeek: 6 },
+        ],
+      ),
+    ).toEqual(['alice']);
+  });
+
+  it('resolveGlobalAssignedEmployeeIds keeps the legacy default when only day-specific rows exist', () => {
+    // Adding a Saturday-only carer must not wipe the Visit Schedule default carer.
+    expect(
+      resolveGlobalAssignedEmployeeIds(['alice'], [{ employeeId: 'bob', dayOfWeek: 6 }]),
+    ).toEqual(['alice']);
   });
 
   it('flags missing times and carers on enabled slots', () => {

@@ -55,3 +55,11 @@ export function filterCompartmentsForVisitRound<T extends { label: string; dueTi
   if (!round) return compartments;
   return compartments.filter((c) => compartmentMatchesVisitRound(c, round));
 }
+
+/** Chart "How assisted" for the carer. Hide empty / N/A. */
+export function plannedHowAssistedLabel(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (trimmed.toLowerCase() === 'not applicable') return null;
+  return trimmed;
+}

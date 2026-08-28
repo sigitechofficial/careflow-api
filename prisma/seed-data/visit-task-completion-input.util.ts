@@ -62,6 +62,7 @@ const NOTE_SPECS: Record<string, Pick<VisitTaskCompletionInputSpec, 'noteLabel' 
     noteLabel: 'Equipment notes',
     notePlaceholder: 'Equipment used, LOLER status…',
   },
+  'Record PPE use': { noteLabel: 'PPE used', notePlaceholder: 'Gloves, apron, mask…' },
   'Consumable supply check (in-stock / low / out)': {
     noteLabel: 'Supply check notes',
     notePlaceholder: 'Items low or out of stock…',
@@ -127,13 +128,16 @@ function evidenceRequiresNote(flagsJson?: Record<string, unknown> | null): boole
 function feedsMeasurableObservation(flagsJson?: Record<string, unknown> | null): boolean {
   const feeds = flagsJson?.feedsObservation;
   if (!Array.isArray(feeds)) return false;
+  // 27 Aug 2026: food_intake / fluid_intake deliberately excluded. Those tasks
+  // (Assist to eat, Feeding, Encourage fluids, IDDSI diet) are care actions whose
+  // amount is captured on the MEALS / FLUID observation chart (totals + trends),
+  // not as a single free-text task "Reading". Forcing a generic value gave a
+  // meaningless "Reading" field, so they resolve to a plain tick instead.
   const measurable = new Set([
     'vitals',
     'diabetes',
     'pain',
     'must',
-    'fluid_intake',
-    'food_intake',
     'news2',
   ]);
   return feeds.some((f) => typeof f === 'string' && measurable.has(f));

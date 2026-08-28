@@ -52,6 +52,21 @@ export class MedicationRegularChartQueryDto {
 
   medicationIds?: string;
 
+
+
+  @ApiPropertyOptional({
+
+    description:
+      'Visit workspace only: scopes PRN "recorded" cells to this visit (ScheduledVisit id) so a PRN given in another same-day visit is not shown as given. Omit for the full day-scoped MAR chart.',
+
+  })
+
+  @IsOptional()
+
+  @IsString()
+
+  prnVisitId?: string;
+
 }
 
 

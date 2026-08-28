@@ -2,6 +2,7 @@ import {
   compartmentMatchesVisitRound,
   filterCompartmentsForVisitRound,
   medMatchesCompartmentDueTime,
+  plannedHowAssistedLabel,
 } from './employee-app-visit-medication-round.util';
 
 describe('employee-app-visit-medication-round.util', () => {
@@ -31,5 +32,12 @@ describe('employee-app-visit-medication-round.util', () => {
     expect(
       medMatchesCompartmentDueTime([{ dueTime: '08:00' }, { dueTime: '18:00' }], '8:00'),
     ).toBe(true);
+  });
+
+  it('hides empty and not-applicable how-assisted labels', () => {
+    expect(plannedHowAssistedLabel(null)).toBeNull();
+    expect(plannedHowAssistedLabel('  ')).toBeNull();
+    expect(plannedHowAssistedLabel('Not applicable')).toBeNull();
+    expect(plannedHowAssistedLabel('Full assistance')).toBe('Full assistance');
   });
 });

@@ -13,7 +13,7 @@ CREATE TYPE "scheduling"."EcmScheduleChangeClass" AS ENUM (
 );
 
 CREATE TABLE "scheduling"."EcmScheduleVersion" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID NOT NULL,
   "versionNumber" INTEGER NOT NULL,
   "isOriginal" BOOLEAN NOT NULL DEFAULT false,
@@ -73,7 +73,7 @@ CREATE TYPE "scheduling"."EcmAuditEventType" AS ENUM (
 );
 
 CREATE TABLE "scheduling"."EcmAuditEvent" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "scheduledJobId" UUID,
   "ecmExceptionId" UUID,
   "eventType" "scheduling"."EcmAuditEventType" NOT NULL,

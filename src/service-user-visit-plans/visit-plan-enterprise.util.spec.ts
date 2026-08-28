@@ -1,5 +1,9 @@
 import { VisitPlanSlotExceptionType, VisitPlanSlotKind } from '@prisma/client';
-import { resolveCarerAssignmentsForDay, visitPlanSlotOccurrenceOnDay } from './visit-plan-slot-carer-resolve.util';
+import {
+  resolveCarerAssignmentsForDay,
+  resolveRequiredCarersForDay,
+  visitPlanSlotOccurrenceOnDay,
+} from './visit-plan-slot-carer-resolve.util';
 import { resolveSlotVisitWindow, resolveCarerWindows, envelopeWindow } from './visit-plan-slot-window.util';
 import { VisitPlanScheduleFrequency } from '@prisma/client';
 
@@ -109,6 +113,37 @@ describe('visit-plan-slot-carer-resolve.util', () => {
       [],
     );
     expect(mon[0]!.employeeId).toBe('mon-carer');
+  });
+
+  it('derives per-day required carers from the day-specific row count', () => {
+    const rows = [
+      {
+        dayOfWeek: 1,
+        employeeId: 'mon-carer',
+        role: 'LEAD' as const,
+        requiredCarers: 2,
+        durationMinutes: null,
+        plannedStartTime: null,
+        plannedEndTime: null,
+        sortOrder: 0,
+      },
+      {
+        dayOfWeek: 2,
+        employeeId: 'tue-carer',
+        role: 'LEAD' as const,
+        requiredCarers: null,
+        durationMinutes: null,
+        plannedStartTime: null,
+        plannedEndTime: null,
+        sortOrder: 1,
+      },
+    ];
+    // Monday row explicitly needs 2 carers.
+    expect(resolveRequiredCarersForDay(rows, 1, 1)).toBe(2);
+    // Tuesday row has no explicit count -> falls back to the slot default.
+    expect(resolveRequiredCarersForDay(rows, 2, 1)).toBe(1);
+    // A day with no matching row also falls back to the slot default.
+    expect(resolveRequiredCarersForDay(rows, 3, 3)).toBe(3);
   });
 
   it('handles ONE_OFF slot kind', () => {

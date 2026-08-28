@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "employees"."EmployeeAbsenceRecord" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "recordNo" SERIAL NOT NULL,
   "employeeId" UUID NOT NULL,
   "absenceType" TEXT NOT NULL,

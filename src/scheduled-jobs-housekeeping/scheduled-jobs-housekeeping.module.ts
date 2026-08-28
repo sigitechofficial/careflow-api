@@ -6,6 +6,8 @@ import { BillingModule } from '../billing/billing.module';
 import { ServiceUserObservationsModule } from '../service-user-observations/service-user-observations.module';
 import { EcmModule } from '../ecm/ecm.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { ScheduledJobsHousekeepingController } from './scheduled-jobs-housekeeping.controller';
 import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.service';
 
@@ -17,10 +19,11 @@ import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.
     BillingModule,
     ServiceUserObservationsModule,
     VisitAttendanceModule,
+    OrganisationGeneralSettingsModule,
     forwardRef(() => EcmModule),
   ],
   controllers: [ScheduledJobsHousekeepingController],
-  providers: [ScheduledJobsHousekeepingService],
+  providers: [ScheduledJobsHousekeepingService, VisitTimelineService],
   exports: [ScheduledJobsHousekeepingService],
 })
 export class ScheduledJobsHousekeepingModule {}
