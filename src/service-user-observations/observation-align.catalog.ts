@@ -134,6 +134,25 @@ const LABEL: Record<string, string> = {
   '999': '999',
   DISCOMFORT: 'With discomfort',
   MARK: 'Mark',
+  // Catheter care — care given
+  BAG_EMPTIED: 'Bag emptied',
+  BAG_CHANGED: 'Bag changed',
+  FLUSHED: 'Flushed',
+  CHECKED_ONLY: 'Checked only',
+  // Catheter care — urine appearance
+  CLEAR: 'Clear',
+  CLOUDY: 'Cloudy',
+  DARK: 'Dark',
+  BLOOD_STAINED: 'Blood-stained',
+  ODOUR: 'Odour',
+  // Catheter care — problems
+  BYPASSING: 'Bypassing',
+  SITE_REDNESS: 'Site redness',
+  // Continence — skin care
+  SKIN_INTACT: 'Skin intact',
+  BARRIER_CREAM: 'Barrier cream',
+  WASH_DRY: 'Wash & dry',
+  WASH_AND_DRY: 'Wash & dry',
 };
 
 function labelOf(code: string): string {
@@ -155,13 +174,35 @@ export function formatAlignedCareValue(
     parts.push(labelOf(String(raw)));
   };
 
+  // Prefixes a field label so admin readers know what each value means
+  // (e.g. "Action: Bag changed" instead of a bare "Bag changed").
+  const pushLabeled = (parts: string[], label: string, raw: unknown) => {
+    if (raw == null || raw === '') return;
+    if (Array.isArray(raw)) {
+      const labels = raw.map((item) => labelOf(String(item))).filter(Boolean);
+      if (labels.length) parts.push(`${label}: ${labels.join(', ')}`);
+      return;
+    }
+    parts.push(`${label}: ${labelOf(String(raw))}`);
+  };
+
   const parts: string[] = [];
   switch (code) {
     case 'CONTINENCE':
-      push(parts, payload.status);
+      push(parts, payload.status); // primary status (e.g. "Catheter care")
+      // Labels mirror the carer-app field names for app↔admin consistency.
+      pushLabeled(parts, 'Care given', payload.catheter_action);
+      if (payload.catheter_volume != null && payload.catheter_volume !== '')
+        parts.push(`Output: ${payload.catheter_volume} ml`);
+      pushLabeled(parts, 'Urine appearance', payload.catheter_appearance);
+      pushLabeled(parts, 'Catheter problems', payload.catheter_issues);
+      pushLabeled(parts, 'Skin condition', payload.skin);
       break;
     case 'PEG_ENTERAL':
       push(parts, payload.feed_given);
+      if (payload.volume_ml != null && payload.volume_ml !== '')
+        parts.push(`${payload.volume_ml} ml`);
+      push(parts, payload.flush);
       push(parts, payload.tube_status);
       push(parts, payload.site);
       break;
@@ -179,6 +220,9 @@ export function formatAlignedCareValue(
       else if (payload.hadFall === true || payload.hadFall === 'true') parts.push('Yes');
       else if (payload.hadFall === false || payload.hadFall === 'false') parts.push('No');
       push(parts, payload.location);
+      push(parts, payload.witnessed);
+      push(parts, payload.injury);
+      push(parts, payload.help);
       break;
     }
     case 'REPOSITIONING':
@@ -189,6 +233,7 @@ export function formatAlignedCareValue(
     case 'MEALS':
       push(parts, payload.amount ?? payload.mealType);
       if (payload.intakeLevel) push(parts, payload.intakeLevel);
+      push(parts, payload.refused_reason);
       push(parts, asCodes(payload.texture));
       break;
     default:

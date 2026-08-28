@@ -12,6 +12,8 @@ import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-typ
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
+import { CreateWelfareOutcomeDto } from './dto/create-welfare-outcome.dto';
+import { UpdateWelfareOutcomeDto } from './dto/update-welfare-outcome.dto';
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
@@ -393,6 +395,38 @@ export class LookupsController {
   async deleteBodyMapRecordType(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.deleteBodyMapRecordType(id);
     return { message: 'Record type deleted' };
+  }
+
+  @Get('welfare-outcomes')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List on-entry welfare outcomes (carer-app clock-in)' })
+  async welfareOutcomes() {
+    return { data: await this.service.listWelfareOutcomes() };
+  }
+
+  @Post('welfare-outcomes')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create an on-entry welfare outcome' })
+  async createWelfareOutcome(@Body() dto: CreateWelfareOutcomeDto) {
+    return { data: await this.service.createWelfareOutcome(dto) };
+  }
+
+  @Patch('welfare-outcomes/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update an on-entry welfare outcome' })
+  async updateWelfareOutcome(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateWelfareOutcomeDto,
+  ) {
+    return { data: await this.service.updateWelfareOutcome(id, dto) };
+  }
+
+  @Delete('welfare-outcomes/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate an on-entry welfare outcome' })
+  async deleteWelfareOutcome(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteWelfareOutcome(id);
+    return { message: 'Welfare outcome deleted' };
   }
 
   @Get('vital-accepted-ranges')

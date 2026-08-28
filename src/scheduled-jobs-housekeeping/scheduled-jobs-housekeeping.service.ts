@@ -23,6 +23,7 @@ import {
   visitCancellationReasonMeta,
 } from './visit-cancellation-reason.util';
 import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import {
   isVisitTimingExceptionReasonCode,
@@ -130,7 +131,23 @@ export class ScheduledJobsHousekeepingService {
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly ecmEvaluation: EcmEvaluationService,
     private readonly visitAttendance: VisitAttendanceService,
+    private readonly visitTimeline: VisitTimelineService,
   ) {}
+
+  /**
+   * Visit activity timeline for the admin workspace Log tab — same events the
+   * carer app shows (clock in/out, tasks, medication, observations, visit
+   * notes, handovers, concerns, incidents), oldest → newest.
+   */
+  async getVisitTimeline(jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const timeline = await this.visitTimeline.listForJob(jobId);
+    return { jobId, timeline };
+  }
 
   /**
    * Admin complete with typed carer times → always write MANUAL_OFFICE evidence.

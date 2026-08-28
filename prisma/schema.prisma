@@ -6137,6 +6137,24 @@ enum LateVisitAlertKind {
   @@schema("scheduling")
 }
 
+/// Org-configurable on-entry welfare outcomes shown in the carer-app clock-in
+/// sheet. Served via employee-app visit details; managed in admin Settings.
+model VisitWelfareOutcomeCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  label     String
+  /// Visual tone for the option: ok | warn | bad.
+  tone      String   @default("ok") @db.VarChar(8)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
 /** Dedupes late-visit ECM alerts so cron does not spam. */
 model LateVisitAlertLog {
   id             String            @id @default(uuid()) @db.Uuid

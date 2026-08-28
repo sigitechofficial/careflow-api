@@ -86,6 +86,68 @@ function secondaryValueFromPayload(payload: Prisma.JsonValue | null): string | n
   return null;
 }
 
+function asQualifierText(v: unknown): string | null {
+  if (v == null) return null;
+  if (Array.isArray(v)) {
+    const parts = v.map((x) => String(x).trim()).filter(Boolean);
+    return parts.length ? parts.join(', ') : null;
+  }
+  const s = String(v).trim();
+  return s || null;
+}
+
+/** Reading + qualifier fields for vitals / single-value-with-qualifier types. */
+function formatVitalsQualifierValue(
+  typeCode: string,
+  p: Record<string, unknown>,
+): string | null {
+  const reading = asQualifierText(p.reading);
+  const join = (base: string | null, quals: Array<string | null>): string | null => {
+    if (!base) return null;
+    const q = quals.filter((x): x is string => Boolean(x));
+    return q.length ? `${base} · ${q.join(' · ')}` : base;
+  };
+  switch (typeCode) {
+    case 'RESPIRATORY_RATE':
+    case 'RESPIRATION': {
+      const base = reading ? `${reading} breaths/min` : null;
+      const spo2 = asQualifierText(p.spo2);
+      const lpm = asQualifierText(p.oxygen_lpm);
+      return join(base, [
+        asQualifierText(p.breathless),
+        spo2 ? `SpO2 ${spo2}%` : null,
+        asQualifierText(p.oxygen),
+        lpm ? `${lpm} L/min` : null,
+      ]);
+    }
+    case 'OXYGEN_SATURATION':
+      return join(reading ? `${reading}%` : null, [asQualifierText(p.context)]);
+    case 'BLOOD_GLUCOSE':
+    case 'BLOOD_SUGAR':
+      return join(reading ? `${reading} mmol/L` : null, [asQualifierText(p.timing)]);
+    case 'SOFT_SIGNS': {
+      const signs = asQualifierText(p.signs);
+      return signs ? `Signs: ${signs}` : null;
+    }
+    case 'URINE_OUTPUT':
+      return join(reading ? `${reading} ml` : null, [
+        asQualifierText(p.route),
+        asQualifierText(p.appearance),
+      ]);
+    case 'WEIGHT':
+      return join(reading ? `${reading} kg` : null, [asQualifierText(p.method)]);
+    case 'PAIN_SCORE':
+    case 'PAIN': {
+      const score = asQualifierText(p.score);
+      return join(score ? `${score}/10` : null, [asQualifierText(p.pattern)]);
+    }
+    case 'ORAL_MOUTH_CARE':
+      return join(asQualifierText(p.status), [asQualifierText(p.actions)]);
+    default:
+      return null;
+  }
+}
+
 export function formatVisitObservationValue(row: {
   numericValue: Prisma.Decimal | number | null;
   unit: string | null;
@@ -98,6 +160,17 @@ export function formatVisitObservationValue(row: {
     if (sleep) return sleep;
     const typeCode = row.observationType?.code;
     if (typeCode) {
+      // Blood pressure: prefer structured systolic/diastolic (+ pulse) over the
+      // numericValue (which only holds systolic), so the full reading is shown.
+      if (typeCode === 'BLOOD_PRESSURE' && p.systolic != null && p.diastolic != null) {
+        const bpUnit = row.unit?.trim() || 'mmHg';
+        const base = `${p.systolic}/${p.diastolic} ${bpUnit}`;
+        return p.pulse != null ? `${base} · Pulse ${p.pulse}` : base;
+      }
+      // Vitals / qualifier forms: reading + its qualifier fields (context,
+      // timing, route, method, pattern, etc.) so the admin sees the full record.
+      const vitals = formatVitalsQualifierValue(typeCode, p);
+      if (vitals) return vitals;
       const aligned = formatAlignedCareValue(typeCode, p);
       if (aligned) return aligned;
       const numeric =

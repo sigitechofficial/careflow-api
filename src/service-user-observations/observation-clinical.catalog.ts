@@ -110,24 +110,52 @@ export function formatClinicalObservationValue(
       if (a) parts.push(`A: ${truncate(a, 40)}`);
       if (b) parts.push(`B: ${truncate(b, 40)}`);
       if (c) parts.push(`C: ${truncate(c, 40)}`);
+      const abcAction = asTrim(payload.actionTaken);
+      if (abcAction) parts.push(`Action: ${truncate(abcAction, 40)}`);
+      const risk = asTrim(payload.riskLevel);
+      if (risk) parts.push(`Risk: ${risk.replace(/_/g, ' ')}`);
       return parts.length ? parts.join(' · ') : null;
     }
     case 'SEIZURE_CHART': {
+      const parts: string[] = [];
       const description = asTrim(payload.description);
       const length = asTrim(payload.lengthOfSeizure);
-      if (description && length) return `${truncate(description, 40)} · ${length} min`;
-      return description ? truncate(description, 60) : length ? `${length} min` : null;
+      if (description) parts.push(truncate(description, 40));
+      if (length) parts.push(`${length} min`);
+      const type = asTrim(payload.type);
+      if (type) parts.push(type.replace(/_/g, ' '));
+      const recovery = asTrim(payload.recovery);
+      if (recovery) parts.push(recovery.replace(/_/g, ' '));
+      const rescue = asTrim(payload.rescueMed);
+      if (rescue) parts.push(`Rescue: ${rescue}`);
+      const seizureInjury = asTrim(payload.injury);
+      if (seizureInjury) parts.push(`Injury: ${seizureInjury}`);
+      return parts.length ? parts.join(' · ') : null;
     }
     case 'URINALYSIS': {
+      const parts: string[] = [];
       const obs = asTrim(payload.observationOfUrine);
-      if (!obs) return null;
-      if (obs === 'OTHER') return asTrim(payload.observationOfUrineOther) || 'Other';
-      return URINE_LABELS[obs] ?? obs.replace(/_/g, ' ');
+      if (obs) {
+        parts.push(
+          obs === 'OTHER'
+            ? asTrim(payload.observationOfUrineOther) || 'Other'
+            : URINE_LABELS[obs] ?? obs.replace(/_/g, ' '),
+        );
+      }
+      const dip = asTrim(payload.dipstick);
+      if (dip && dip !== 'NOT_TAKEN') parts.push(`Dipstick: ${dip.replace(/_/g, ' ')}`);
+      const urineAction = asTrim(payload.actionTaken);
+      if (urineAction) parts.push(`Action: ${urineAction}`);
+      return parts.length ? parts.join(' · ') : null;
     }
     case 'INFECTION': {
+      const parts: string[] = [];
       const type = asTrim(payload.infectionType);
-      if (!type) return null;
-      return INFECTION_LABELS[type] ?? type.replace(/_/g, ' ');
+      if (type) parts.push(INFECTION_LABELS[type] ?? type.replace(/_/g, ' '));
+      if (payload.infectionCleared === true) parts.push('Cleared');
+      if (payload.hospitalisation === true) parts.push('Hospitalised');
+      if (payload.isolationRequired === true) parts.push('Isolation');
+      return parts.length ? parts.join(' · ') : null;
     }
     default:
       return null;

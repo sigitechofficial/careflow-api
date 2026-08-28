@@ -91,6 +91,7 @@ type ChartEvent = {
   actualDateTime: Date | null;
   createdAt: Date;
   managerReviewedAt: Date | null;
+  visitId: string | null;
 };
 
 export type MarChartCell = {
@@ -110,6 +111,12 @@ export type RegularChartQuery = {
   dateFrom?: string;
   dateTo?: string;
   medicationIds?: string;
+  /**
+   * When set (visit workspace), PRN "recorded" cells are scoped to this visit
+   * only — a PRN given in another same-day visit won't show as given here.
+   * Omitted by the full MAR chart, which stays day-scoped (unchanged).
+   */
+  prnVisitId?: string;
 };
 
 @Injectable()
@@ -162,6 +169,7 @@ export class MedicationChartsService {
   ) {
     const q: RegularChartQuery =
       typeof query === 'string' ? { month: query } : query;
+    const prnVisitScopeId = q.prnVisitId?.trim() || null;
     const range = resolveChartRange({
       month: q.month,
       dateFrom: q.dateFrom,
@@ -318,6 +326,7 @@ export class MedicationChartsService {
               actualDateTime: true,
               createdAt: true,
               managerReviewedAt: true,
+              visitId: true,
             },
             orderBy: { createdAt: 'desc' },
           });
@@ -333,6 +342,9 @@ export class MedicationChartsService {
         canonicalIdByMedicationId.get(e.serviceUserMedicationId) ?? e.serviceUserMedicationId;
       const med = chartMedications.find((m) => m.id === canonicalMedId);
       if (med?.medicationKind === MedicationKind.PRN) {
+        // Visit workspace scope: only THIS visit's PRN administrations count,
+        // so a PRN given in another same-day visit doesn't show as given here.
+        if (prnVisitScopeId && e.visitId !== prnVisitScopeId) continue;
         const prnKey = `${canonicalMedId}:${date}`;
         if (!eventsByPrnDay.has(prnKey)) eventsByPrnDay.set(prnKey, e);
       } else {
