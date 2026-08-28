@@ -2,6 +2,8 @@ import { registerAs } from '@nestjs/config';
 
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
+  /** Enables the `/dev/*` QA tools in production-like environments; off by default. */
+  enableDevTools: process.env.ENABLE_DEV_TOOLS === 'true',
   port: Number(process.env.PORT ?? 3000),
   /** `0.0.0.0` = reachable via LAN IP; override with HOST=127.0.0.1 to lock to localhost. */
   host: process.env.HOST ?? '0.0.0.0',

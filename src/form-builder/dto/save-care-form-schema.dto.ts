@@ -9,11 +9,15 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
+
+/** Lowercase snake_case business key (optional). */
+const FIELD_KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 export class SaveCareFormFieldDto {
   @ApiPropertyOptional({ description: 'Existing field id; omit for new fields' })
@@ -26,6 +30,18 @@ export class SaveCareFormFieldDto {
   @MinLength(1)
   @MaxLength(500)
   label!: string;
+
+  @ApiPropertyOptional({
+    description: 'Stable business key for IA → care plan mapping (e.g. hsp_personal_care_tasks)',
+    example: 'hsp_personal_care_tasks',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  @Matches(FIELD_KEY_PATTERN, {
+    message: 'fieldKey must be lowercase snake_case starting with a letter',
+  })
+  fieldKey?: string;
 
   @ApiProperty({ enum: CarePathwayFormFieldType })
   @IsEnum(CarePathwayFormFieldType)

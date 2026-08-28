@@ -162,12 +162,17 @@ function buildCarerAdministrationSummary(ctx: CarePlanComposeContext): string | 
   if (!ctx.ia) return null;
   const lines: string[] = [];
   const supportLevel = mapMedicationSupportLevelToCarePlan(
-    resolveIaRawValue(findIaAnswer(ctx.ia.answers, { fieldKey: 'medicationSupportLevel' })),
+    resolveIaRawValue(findIaAnswer(ctx.ia.answers, { fieldKey: 'medicationSupportLevel' })) ??
+      ctx.ia.medicationSnapshot?.supportLevel ??
+      null,
   );
   if (supportLevel) lines.push(`Support level: ${supportLevel}`);
-  const packaging = resolveIaBooleanYes(
-    findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' }),
-  );
+  const packaging =
+    resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' })) ||
+    resolveIaBooleanYes(
+      findIaAnswer(ctx.ia.answers, { questionTextContains: 'removed from packaging' }),
+    ) ||
+    ctx.ia.medicationSnapshot?.packagingHelpRequired === true;
   if (packaging) lines.push('Help removing medicines from packaging');
   const prompting = resolveIaDisplayValue(
     findIaAnswer(ctx.ia.answers, { specRef: '9.2', questionTextContains: 'prompting or reminding' }),
@@ -182,9 +187,10 @@ function buildCarerAdministrationSummary(ctx: CarePlanComposeContext): string | 
     );
     lines.push(by ? `Assistance administering — ${by}` : 'Assistance administering medication');
   }
-  const notes = resolveIaDisplayValue(
-    findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'medication safety notes' }),
-  );
+  const notes =
+    resolveIaDisplayValue(
+      findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'medication safety notes' }),
+    ) ?? ctx.ia.medicationSnapshot?.safetyNotes ?? null;
   if (notes) lines.push(`Safety notes: ${notes}`);
   return lines.length > 0 ? lines.join('\n') : null;
 }
@@ -227,14 +233,16 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
     resolve: (ctx) => {
       if (!ctx.ia) return null;
       const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'medicationSupportLevel' });
-      const mapped = mapMedicationSupportLevelToCarePlan(resolveIaRawValue(answer));
+      const mapped = mapMedicationSupportLevelToCarePlan(
+        resolveIaRawValue(answer) ?? ctx.ia.medicationSnapshot?.supportLevel ?? null,
+      );
       if (!mapped) return null;
       return {
         fieldKey: '',
         label: 'Medication support level',
         value: mapped,
         source: 'ia',
-        sourceLabel: 'IA §9.2',
+        sourceLabel: answer ? 'IA §9.2' : 'IA medication snapshot',
       };
     },
   },
@@ -244,9 +252,13 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
     resolve: (ctx) => {
       const allergyLines = [...ctx.allergies];
       if (ctx.ia) {
-        const iaDetails = resolveIaDisplayValue(
-          findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'allergy details' }),
-        );
+        const iaDetails =
+          resolveIaDisplayValue(
+            findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'allergy details' }),
+          ) ??
+          resolveIaDisplayValue(findIaAnswer(ctx.ia.answers, { fieldKey: 'allergiesSummary' })) ??
+          ctx.ia.medicationSnapshot?.allergyDetails ??
+          null;
         if (iaDetails && !allergyLines.some((l) => l.includes(iaDetails))) {
           allergyLines.push(iaDetails);
         }
@@ -257,7 +269,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
         label: 'Known allergies',
         value: allergyLines.join('\n'),
         source: ctx.allergies.length > 0 ? 'allergies' : 'ia',
-        sourceLabel: ctx.allergies.length > 0 ? 'Allergies tab' : 'IA §9.5',
+        sourceLabel: ctx.allergies.length > 0 ? 'Allergies tab' : 'IA allergies',
       };
     },
   },
@@ -265,6 +277,15 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
     fieldLabel: 'Active medication list',
     resolve: (ctx) => {
       const parts = [ctx.emar.medListText, ctx.emar.prnText ? `PRN:\n${ctx.emar.prnText}` : ''].filter(Boolean);
+      if (parts.length === 0 && ctx.ia?.medicationSnapshot?.currentMedicationDetails) {
+        return {
+          fieldKey: '',
+          label: 'Active medication list',
+          value: ctx.ia.medicationSnapshot.currentMedicationDetails,
+          source: 'ia',
+          sourceLabel: 'IA medication snapshot',
+        };
+      }
       if (parts.length === 0) return null;
       return {
         fieldKey: '',
@@ -343,11 +364,12 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
         const prnPresent = resolveIaDisplayValue(
           findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'prn medication present' }),
         );
-        const prnProtocol = resolveIaDisplayValue(
-          findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'prn protocol' }),
-        );
+        const prnProtocol =
+          resolveIaDisplayValue(
+            findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'prn protocol' }),
+          ) ?? ctx.ia.medicationSnapshot?.prnProtocol ?? null;
         if (prnPresent) parts.push(`PRN present: ${prnPresent}`);
-        if (prnProtocol) parts.push(`PRN protocol: ${prnProtocol}`);
+        if (prnProtocol) parts.push(prnPresent ? `PRN protocol: ${prnProtocol}` : prnProtocol);
       }
       const text = parts.filter(Boolean).join('\n');
       if (!text) return null;
@@ -356,7 +378,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
         label: 'PRN medicines and when used',
         value: text,
         source: ctx.emar.prnText ? 'emar' : 'ia',
-        sourceLabel: ctx.emar.prnText ? 'eMAR PRN list' : 'IA §9.5',
+        sourceLabel: ctx.emar.prnText ? 'eMAR PRN list' : 'IA PRN',
       };
     },
   },
@@ -373,16 +395,28 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
         };
       }
       if (ctx.ia) {
-        const packaging = resolveIaBooleanYes(
-          findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' }),
-        );
+        if (ctx.ia.medicationSnapshot?.storageNotes?.trim()) {
+          return {
+            fieldKey: '',
+            label: 'Storage and blister packs',
+            value: ctx.ia.medicationSnapshot.storageNotes.trim(),
+            source: 'ia',
+            sourceLabel: 'IA medication snapshot',
+          };
+        }
+        const packaging =
+          resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' })) ||
+          resolveIaBooleanYes(
+            findIaAnswer(ctx.ia.answers, { questionTextContains: 'removed from packaging' }),
+          ) ||
+          ctx.ia.medicationSnapshot?.packagingHelpRequired === true;
         if (packaging) {
           return {
             fieldKey: '',
             label: 'Storage and blister packs',
             value: 'Help removing medicines from packaging required (IA §9.2)',
             source: 'ia',
-            sourceLabel: 'IA §9.2',
+            sourceLabel: 'IA packaging',
           };
         }
       }
@@ -394,16 +428,17 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
     required: true,
     resolve: (ctx) => {
       if (!ctx.ia) return null;
-      const notes = resolveIaDisplayValue(
-        findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'medication safety notes' }),
-      );
+      const notes =
+        resolveIaDisplayValue(
+          findIaAnswer(ctx.ia.answers, { specRef: '9.5', questionTextContains: 'medication safety notes' }),
+        ) ?? ctx.ia.medicationSnapshot?.safetyNotes ?? null;
       if (!notes) return null;
       return {
         fieldKey: '',
         label: 'Refusal or missed dose – action',
         value: notes,
         source: 'ia',
-        sourceLabel: 'IA §9.5',
+        sourceLabel: 'IA medication safety',
       };
     },
   },

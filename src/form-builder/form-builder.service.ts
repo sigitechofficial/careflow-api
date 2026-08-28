@@ -18,15 +18,25 @@ import { CreateCareFormDto } from './dto/create-care-form.dto';
 import { UpdateCareFormDto } from './dto/update-care-form.dto';
 import { SaveCareFormSchemaDto } from './dto/save-care-form-schema.dto';
 
-const formInclude = {
+/**
+ * Prisma include shape for reading a form for the UI/response. Fields are filtered to
+ * `isActive: true` so deactivated (intentionally-removed) fields are never rendered.
+ * Exported so the renderer contract can be asserted in tests.
+ */
+export const formInclude = {
   currentVersion: {
     include: {
       sections: {
         where: { deletedAt: null },
         orderBy: { sortOrder: 'asc' as const },
         include: {
+          // Deactivated fields (isActive:false) are intentionally removed from the schema
+          // by the ID-safe care-plan appliers; they are kept as soft rows (deletedAt:null)
+          // to preserve UUIDs and any saved values, but they must NOT be rendered. Without
+          // this isActive filter the UI showed removed fields (e.g. Skin Integrity's
+          // duplicate "Person-centred details" fields) even after deactivation.
           fields: {
-            where: { deletedAt: null },
+            where: { deletedAt: null, isActive: true },
             orderBy: { sortOrder: 'asc' as const },
           },
         },
@@ -60,8 +70,15 @@ function formIconMaxBytes(): number {
   return 2 * 1024 * 1024;
 }
 
+function normalizeFieldKey(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function mapField(row: {
   id: string;
+  fieldKey: string | null;
   label: string;
   fieldType: string;
   placeholder: string | null;
@@ -73,6 +90,7 @@ function mapField(row: {
 }) {
   return {
     id: row.id,
+    fieldKey: row.fieldKey,
     label: row.label,
     fieldType: row.fieldType,
     placeholder: row.placeholder,
@@ -146,6 +164,7 @@ function buildSchemaJson(sections: SaveCareFormSchemaDto['sections']) {
       sortOrder: s.sortOrder,
       fields: s.fields.map(f => ({
         label: f.label,
+        fieldKey: normalizeFieldKey(f.fieldKey) ?? null,
         fieldType: f.fieldType,
         placeholder: f.placeholder ?? null,
         helpText: f.helpText ?? null,
@@ -339,6 +358,7 @@ export class FormBuilderService {
           await tx.carePathwayFormField.createMany({
             data: section.fields.map(field => ({
               sectionId: createdSection.id,
+              fieldKey: normalizeFieldKey(field.fieldKey),
               label: field.label.trim(),
               fieldType: field.fieldType,
               placeholder: field.placeholder?.trim() || null,
