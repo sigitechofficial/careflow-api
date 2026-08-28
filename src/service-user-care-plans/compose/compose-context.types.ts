@@ -1,8 +1,12 @@
 import type { SubmissionAnswerForRules } from '../../initial-assessments/initial-assessment-care-plan-rules.util';
 import type { CarePlanPersonalisationContext } from '../../care-plan-text/care-plan-text.util';
 import type { AboutMeComposeSummary } from './about-me-compose-summary.util';
+import type { AdlComposeMetadata } from './compose-adl-metadata.util';
 
 export type { AboutMeComposeSummary };
+
+/** explicit = suggestions only (Falls). hybrid = partial auto-prefill + suggestions (HSP). */
+export type CarePlanSuggestionMode = 'explicit' | 'hybrid';
 
 export type ComposeEvidenceItem = {
   id: string;
@@ -48,6 +52,67 @@ export type CarePlanFallsSnapshotEvidence = {
   riskLevel: string | null;
 };
 
+/** Demo / worksheet medication snapshot when enterprise §9 detail questions were pruned. */
+export type CarePlanMedicationSnapshotEvidence = {
+  supportLevel: string | null;
+  allergyDetails: string | null;
+  currentMedicationDetails: string | null;
+  prnProtocol: string | null;
+  packagingHelpRequired: boolean | null;
+  storageNotes: string | null;
+  safetyNotes: string | null;
+};
+
+/** Demo / worksheet continence snapshot when detail questions are sparse or pruned. */
+export type CarePlanContinenceSnapshotEvidence = {
+  bladderStatus: string | null;
+  bowelStatus: string | null;
+  productsUsed: string | null;
+  toiletingRoutine: string | null;
+  fluidGuidance: string | null;
+  skinCareAfterEpisodes: string | null;
+};
+
+/** Demo / worksheet eating & drinking snapshot. */
+export type CarePlanEatingDrinkingSnapshotEvidence = {
+  dietType: string | null;
+  fluidTargetMl: string | null;
+  foodAllergiesIntolerances: string | null;
+  mealAssistanceLevel: string | null;
+  chokingSaltGuidance: string | null;
+  preferredFoodsDislikes: string | null;
+};
+
+/** Demo / worksheet skin integrity snapshot. */
+export type CarePlanSkinIntegritySnapshotEvidence = {
+  skinTypeIssues: string | null;
+  emollientsCreams: string | null;
+  previousPressureDamage: boolean | null;
+  creamApplication: string | null;
+  signsToReport: string | null;
+};
+
+/** Demo / worksheet personal safety snapshot. */
+export type CarePlanPersonalSafetySnapshotEvidence = {
+  homeHazards: string | null;
+  fireSafety: string | null;
+  loneWorkerRisk: string | null;
+  safeguardingOnFile: boolean | null;
+  actionsInPlace: string | null;
+  emergencyContacts: string | null;
+};
+
+/** Demo / worksheet communication snapshot. */
+export type CarePlanCommunicationSnapshotEvidence = {
+  preferredLanguage: string | null;
+  hearingImpairment: boolean | null;
+  visionImpairment: boolean | null;
+  communicationMethod: string | null;
+  staffGuidance: string | null;
+  aids: string | null;
+  consentSharing: boolean | null;
+};
+
 export type CarePlanComposeIaSnapshot = {
   submissionId: string;
   submittedAt: string | null;
@@ -55,6 +120,43 @@ export type CarePlanComposeIaSnapshot = {
   answers: SubmissionAnswerForRules[];
   fallsSnapshot?: CarePlanFallsSnapshotEvidence | null;
   fallsScreeningSummary?: string | null;
+  medicationSnapshot?: CarePlanMedicationSnapshotEvidence | null;
+  continenceSnapshot?: CarePlanContinenceSnapshotEvidence | null;
+  eatingDrinkingSnapshot?: CarePlanEatingDrinkingSnapshotEvidence | null;
+  skinIntegritySnapshot?: CarePlanSkinIntegritySnapshotEvidence | null;
+  personalSafetySnapshot?: CarePlanPersonalSafetySnapshotEvidence | null;
+  communicationSnapshot?: CarePlanCommunicationSnapshotEvidence | null;
+  /** Enterprise IA §12 ADL worksheet (submission.metadata.adl). */
+  adlMetadata?: AdlComposeMetadata | null;
+};
+
+/**
+ * Structured legal-document record (ServiceUserLegalDocument) — the maintained source of
+ * truth for DNACPR status/location, better than the point-in-time IA §13.6 answer. Loaded
+ * additively; only the Final Days compose reads it, every other plan ignores it.
+ */
+export type CarePlanLegalDocumentEvidence = {
+  dnacprInPlace: boolean;
+  dnacprStatusConfirmation: string;
+  dnacprPhysicalLocation: string | null;
+  dnacprStartDate: string | null;
+};
+
+/**
+ * Read-only service-user profile facts loaded from the ServiceUser system-of-record. Used to
+ * PREFILL person-centred fields (e.g. preferred name, date of birth, phone, address) without
+ * duplicating the source: the value is read from the profile at compose time. Optional so
+ * existing consumers/tests that don't set it are unaffected.
+ */
+export type CarePlanComposeProfile = {
+  preferredName: string | null;
+  /** ISO yyyy-mm-dd, or null. */
+  dateOfBirth: string | null;
+  phone: string | null;
+  /** Formatted multi-line home address, or null. */
+  homeAddress: string | null;
+  /** Access instructions / key-safe notes from the address record, or null. */
+  propertyAccessInstructions: string | null;
 };
 
 export type CarePlanComposeContext = {
@@ -69,6 +171,10 @@ export type CarePlanComposeContext = {
   emar: EmarComposeSummary;
   pack: MedicationPackComposeSummary | null;
   gpPharmacyLine: string | null;
+  /** Structured legal-document record; null when the service user has none on file. */
+  legalDocument?: CarePlanLegalDocumentEvidence | null;
+  /** Read-only profile facts for person-centred prefill; null/undefined when unavailable. */
+  profile?: CarePlanComposeProfile | null;
 };
 
 export type CarePlanComposeDelta = {
@@ -82,6 +188,8 @@ export type CarePlanFormFieldRef = {
   key: string;
   sectionId: string;
   fieldId: string;
+  /** Stable business key from CarePathwayFormField.fieldKey (e.g. hsp_lives_alone). */
+  fieldKey?: string | null;
   label: string;
   fieldType: string;
   required: boolean;
@@ -135,13 +243,29 @@ export type CarePlanPreviousAssessment = {
   suggestions: CarePlanFieldSuggestion[];
 };
 
+export type CarePlanFieldProvenance = {
+  sourceType: 'INITIAL_ASSESSMENT';
+  submissionId: string;
+  questionId?: string;
+  sourceQuestions?: CarePlanSuggestionSourceQuestion[];
+  acceptedAt: string;
+  acceptedById?: string | null;
+  originalValue: string | boolean | null;
+  sourceDate: string | null;
+  userEdited?: boolean;
+  /** True when value was auto-prefilled from IA (hybrid tier A) without user confirmation. */
+  autoPrefilled?: boolean;
+};
+
 export type ComposePlanResult = {
   values: Record<string, string | boolean>;
   fieldSources: Record<string, ComposeFieldResult['source']>;
   gaps: ComposeGap[];
   evidence: ComposeEvidenceItem[];
   composedFrom: Record<string, unknown>;
-  suggestionMode?: 'explicit';
+  /** Per-field IA provenance keyed by runtime field key ({sectionId}:{fieldId}). */
+  provenance?: Record<string, CarePlanFieldProvenance>;
+  suggestionMode?: CarePlanSuggestionMode;
   suggestions?: CarePlanFieldSuggestion[];
   previousAssessments?: CarePlanPreviousAssessment[];
   iaStatus?: CarePlanComposeIaStatus | null;

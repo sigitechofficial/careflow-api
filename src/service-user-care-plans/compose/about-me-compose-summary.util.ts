@@ -4,6 +4,7 @@ export type AboutMeComposeSummary = {
   howToSupport: string | null;
   communication: string | null;
   personalCare: string | null;
+  domesticSupport: string | null;
   foodPreferences: string | null;
   routineSummary: string | null;
   triggersCalm: string | null;
@@ -64,6 +65,7 @@ export function parseAboutMeReferenceJson(raw: string | null | undefined): About
       howToSupport: readString(parsed, 'howAndWhenToSupportMe'),
       communication: readString(parsed, 'howICommunicate'),
       personalCare: readString(parsed, 'personalHygiene'),
+      domesticSupport: readString(parsed, 'domesticSupport'),
       foodPreferences: foodParts.length > 0 ? foodParts.join('\n') : null,
       routineSummary: summarizeRoutine(parsed.routine),
       triggersCalm: calmParts.length > 0 ? calmParts.join('\n') : null,

@@ -7,12 +7,14 @@ import type { IaAutofillLevel } from './ia-autofill-build.util';
 export class DevToolsService {
   constructor(private readonly iaApiAutofill: IaApiAutofillService) {}
 
-  async runIaPlaywrightAutofill(
+  async runIaSectionAutofill(
     userId: string,
     serviceUserId: string,
     level: IaAutofillLevel,
+    tabId: number,
+    questionIds: string[],
     meta?: RequestAuditMeta,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; tabId: number; answersWritten: number }> {
     if (!['low', 'normal', 'critical'].includes(level)) {
       throw new BadRequestException('level must be low, normal, or critical');
     }
@@ -20,6 +22,13 @@ export class DevToolsService {
       throw new BadRequestException('serviceUserId is required');
     }
 
-    return this.iaApiAutofill.run(userId, serviceUserId.trim(), level, meta);
+    return this.iaApiAutofill.runSection(
+      userId,
+      serviceUserId.trim(),
+      level,
+      tabId,
+      Array.isArray(questionIds) ? questionIds : [],
+      meta,
+    );
   }
 }

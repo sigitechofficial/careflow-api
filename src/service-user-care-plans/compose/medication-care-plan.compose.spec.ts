@@ -145,4 +145,187 @@ describe('composeMedicationCarePlan', () => {
     expect(result.evidence.some((e) => e.source === 'emar')).toBe(true);
     expect(result.gaps).toHaveLength(0);
   });
+
+  it('populates Medication fields from demo medicationSnapshot when §9 answer rows are absent', () => {
+    const formFields: CarePlanFormFieldRef[] = [
+      {
+        key: 'sec:support',
+        sectionId: 'sec',
+        fieldId: 'support',
+        label: 'Medication support level',
+        fieldType: 'SELECT',
+        required: true,
+      },
+      {
+        key: 'sec:allergies',
+        sectionId: 'sec',
+        fieldId: 'allergies',
+        label: 'Known allergies',
+        fieldType: 'TEXTAREA',
+        required: true,
+      },
+      {
+        key: 'sec:prn',
+        sectionId: 'sec',
+        fieldId: 'prn',
+        label: 'PRN medicines and when used',
+        fieldType: 'TEXTAREA',
+        required: false,
+      },
+      {
+        key: 'sec:storage',
+        sectionId: 'sec',
+        fieldId: 'storage',
+        label: 'Storage and blister packs',
+        fieldType: 'TEXT',
+        required: false,
+      },
+      {
+        key: 'sec:refusal',
+        sectionId: 'sec',
+        fieldId: 'refusal',
+        label: 'Refusal or missed dose – action',
+        fieldType: 'TEXTAREA',
+        required: true,
+      },
+      {
+        key: 'sec:gp',
+        sectionId: 'sec',
+        fieldId: 'gp',
+        label: 'Pharmacy and GP contact',
+        fieldType: 'TEXT',
+        required: false,
+      },
+    ];
+
+    const ctx: CarePlanComposeContext = {
+      serviceUserId: 'su-demo',
+      serviceUserName: 'Demo User',
+      personalisation: buildCarePlanPersonalisationContext({
+        firstName: 'Demo',
+        lastName: 'User',
+      }),
+      ia: {
+        submissionId: 'demo-ia',
+        submittedAt: '2026-08-19T07:36:44.000Z',
+        status: 'SUBMITTED',
+        // Pruned enterprise §9 — no medicationSupportLevel / allergy details answers.
+        answers: [
+          {
+            questionId: 'q-taking',
+            questionText: 'Taking prescribed medication?',
+            checked: true,
+            booleanValue: true,
+            textValue: null,
+            selectedOptions: null,
+            fieldKey: 'takingPrescribedMedication',
+            specRef: '9.1',
+            sectionNumber: 9,
+            sectionTitle: 'Medication',
+            carePlanArea: 'Medication',
+          },
+          {
+            questionId: 'q-allergies-summary',
+            questionText: 'Allergies (summary)',
+            checked: null,
+            booleanValue: null,
+            textValue: 'No known allergies.',
+            selectedOptions: null,
+            fieldKey: 'allergiesSummary',
+            specRef: '1.0',
+            sectionNumber: 1,
+            sectionTitle: 'About the Service User',
+            carePlanArea: null,
+          },
+        ],
+        medicationSnapshot: {
+          supportLevel: 'prompting',
+          allergyDetails: 'No known allergies.',
+          currentMedicationDetails: 'Regular medicines include prescribed tablets taken as directed.',
+          prnProtocol: 'Paracetamol PRN for occasional pain as prescribed.',
+          packagingHelpRequired: true,
+          storageNotes:
+            'Medicines stored securely in original packaging. Blister pack used where required.',
+          safetyNotes:
+            'If medication is refused or missed, record in MAR and inform GP/pharmacy according to procedure.',
+        },
+      },
+      aboutMe: null,
+      emergencyContacts: [],
+      allergies: [],
+      emar: {
+        activeCount: 0,
+        scheduledCount: 0,
+        prnCount: 0,
+        medListText: '',
+        prnText: '',
+      },
+      pack: null,
+      gpPharmacyLine: 'Dr Patel, Riverside Medical Centre, Tel 01234 567890',
+    };
+
+    const result = composeMedicationCarePlan(
+      ctx,
+      formFields,
+      MEDICATION_CARE_PLAN_FIELD_MAPPINGS,
+      'su-demo',
+    );
+
+    expect(result.values['sec:support']).toBe('Prompted');
+    expect(result.values['sec:allergies']).toContain('No known allergies');
+    expect(String(result.values['sec:prn'])).toContain('Paracetamol PRN');
+    expect(String(result.values['sec:storage'])).toMatch(/Blister pack|packaging/i);
+    expect(String(result.values['sec:refusal'])).toMatch(/refused or missed/i);
+    expect(String(result.values['sec:gp'])).toContain('Dr Patel');
+    expect(result.gaps).toHaveLength(0);
+  });
+
+  it('uses allergiesSummary when allergy-details question is missing', () => {
+    const result = composeMedicationCarePlan(
+      {
+        serviceUserId: 'su-1',
+        serviceUserName: 'Test',
+        personalisation: buildCarePlanPersonalisationContext({ firstName: 'Test', lastName: 'User' }),
+        ia: {
+          submissionId: 'ia-1',
+          submittedAt: '2026-08-19T07:36:44.000Z',
+          answers: [
+            {
+              questionId: 'q-sum',
+              questionText: 'Allergies (summary)',
+              checked: null,
+              booleanValue: null,
+              textValue: 'No known allergies.',
+              selectedOptions: null,
+              fieldKey: 'allergiesSummary',
+              sectionNumber: 1,
+              sectionTitle: 'About',
+              carePlanArea: null,
+            },
+          ],
+        },
+        aboutMe: null,
+        emergencyContacts: [],
+        allergies: [],
+        emar: { activeCount: 0, scheduledCount: 0, prnCount: 0, medListText: '', prnText: '' },
+        pack: null,
+        gpPharmacyLine: null,
+      },
+      [
+        {
+          key: 'sec:allergies',
+          sectionId: 'sec',
+          fieldId: 'allergies',
+          label: 'Known allergies',
+          fieldType: 'TEXTAREA',
+          required: true,
+        },
+      ],
+      MEDICATION_CARE_PLAN_FIELD_MAPPINGS,
+      'su-1',
+    );
+
+    expect(result.values['sec:allergies']).toBe('No known allergies.');
+    expect(result.gaps).toHaveLength(0);
+  });
 });

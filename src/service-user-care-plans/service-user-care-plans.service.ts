@@ -9,7 +9,16 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { InitialAssessmentCarePlanRulesService } from '../initial-assessments/initial-assessment-care-plan-rules.service';
+import { readCarePlanDecisions } from '../initial-assessments/initial-assessment-care-plan-decisions.util';
+import type { CarePlanTriggerItem } from '../initial-assessments/initial-assessment-care-plan.util';
+import { isSecureQuestionMetadata } from '../initial-assessments/initial-assessment-secure-field.util';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  buildAcceptedDecisionOnPublish,
+  mergeCarePlanDecisionsIntoMetadata,
+  recommendationsMatchingPublishedForm,
+} from './accept-ia-recommendation-on-publish.util';
 import { PublishCarePlanDto } from './dto/save-care-plan-draft.dto';
 import type { SaveCarePlanDraftDto } from './dto/save-care-plan-draft.dto';
 import {
@@ -21,6 +30,11 @@ import {
   carePlanInstanceDisplayStatus,
   consumePublishedDraftWhere,
 } from './care-plan-instance-display-status.util';
+import { sanitizeCarePlanDraftValuesForSave } from './compose/care-plan-draft-sanitize.util';
+import {
+  COMPOSE_ELIGIBLE_IA_STATUSES,
+  splitLatestAndPreviousAssessments,
+} from './compose/compose-ia-eligibility.util';
 
 const instanceInclude = {
   draft: true,
@@ -38,6 +52,7 @@ export class ServiceUserCarePlansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -209,9 +224,10 @@ export class ServiceUserCarePlansService {
     dto: SaveCarePlanDraftDto,
     meta?: RequestAuditMeta,
   ) {
+    const form = await this.ensureCarePlanForm(carePathwayFormId);
     const instance = await this.getOrCreateInstance(userId, serviceUserId, carePathwayFormId);
 
-    const valuesJson = dto.values as Prisma.InputJsonValue;
+    const valuesJson = sanitizeCarePlanDraftValuesForSave(form.name, dto.values) as Prisma.InputJsonValue;
     const composedFromJson = dto.composedFrom
       ? (dto.composedFrom as Prisma.InputJsonValue)
       : undefined;
@@ -367,7 +383,152 @@ export class ServiceUserCarePlansService {
       ...meta,
     });
 
+    await this.acceptMatchingIaRecommendationsOnPublish({
+      userId,
+      serviceUserId,
+      carePathwayFormId,
+      carePathwayFormName: form.name,
+      meta,
+    });
+
     return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  /**
+   * Publishing a care plan created from an IA recommendation must mark that
+   * recommendation accepted (same metadata shape as decideCarePlanRecommendation).
+   * Otherwise Recommended Care Plans keeps showing pending cards.
+   */
+  private async acceptMatchingIaRecommendationsOnPublish(input: {
+    userId: string;
+    serviceUserId: string;
+    carePathwayFormId: string;
+    carePathwayFormName: string;
+    meta?: RequestAuditMeta;
+  }) {
+    const submissions = await this.prisma.initialAssessmentSubmission.findMany({
+      where: {
+        serviceUserId: input.serviceUserId,
+        deletedAt: null,
+        status: { in: COMPOSE_ELIGIBLE_IA_STATUSES },
+      },
+      select: { id: true, metadata: true, submittedAt: true, updatedAt: true, status: true },
+    });
+    const { latest: submission } = splitLatestAndPreviousAssessments(submissions);
+    if (!submission) return;
+
+    const triggerItems = await this.loadCarePlanTriggerItems(submission.id);
+    const recommendations = await this.carePlanRules.resolveRecommendations(
+      submission.id,
+      triggerItems,
+    );
+    const existingDecisions = readCarePlanDecisions(submission.metadata);
+    const catalogue = await this.prisma.carePathwayForm.findMany({
+      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    const matches = recommendationsMatchingPublishedForm(
+      recommendations,
+      input.carePathwayFormId,
+      input.carePathwayFormName,
+      catalogue,
+      existingDecisions,
+    );
+    if (matches.length === 0) return;
+
+    const decidedAtIso = new Date().toISOString();
+    const additions = Object.fromEntries(
+      matches.map((recommendation) => [
+        recommendation.id,
+        buildAcceptedDecisionOnPublish({
+          userId: input.userId,
+          decidedAtIso,
+          carePathwayFormId: input.carePathwayFormId,
+          carePathwayFormName: input.carePathwayFormName,
+          recommendation,
+        }),
+      ]),
+    );
+
+    const nextMetadata = mergeCarePlanDecisionsIntoMetadata(
+      submission.metadata,
+      additions,
+    ) as Prisma.InputJsonValue;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.initialAssessmentSubmission.update({
+        where: { id: submission.id },
+        data: { metadata: nextMetadata, updatedById: input.userId },
+      });
+
+      for (const recommendation of matches) {
+        await this.audit.logAudit({
+          tx,
+          userId: input.userId,
+          module: AuditModule.SERVICE_USER,
+          action: AuditAction.INITIAL_ASSESSMENT_CARE_PLAN_DECISION,
+          recordType: 'InitialAssessmentSubmission',
+          recordId: submission.id,
+          newValues: {
+            recommendationId: recommendation.id,
+            carePlanArea: recommendation.carePlanArea,
+            decision: 'accepted',
+            reason: null,
+            source: 'care_plan_publish',
+          },
+          metadata: {
+            serviceUserId: input.serviceUserId,
+            submissionId: submission.id,
+            recommendationId: recommendation.id,
+            carePathwayFormId: input.carePathwayFormId,
+          },
+          ipAddress: input.meta?.ipAddress,
+          userAgent: input.meta?.userAgent,
+        });
+      }
+    });
+  }
+
+  private async loadCarePlanTriggerItems(submissionId: string): Promise<CarePlanTriggerItem[]> {
+    const answers = await this.prisma.initialAssessmentAnswer.findMany({
+      where: { submissionId, carePlanTrigger: true },
+      include: {
+        question: {
+          select: {
+            id: true,
+            questionText: true,
+            metadata: true,
+            section: {
+              select: { id: true, title: true, sectionNumber: true, carePlanArea: true },
+            },
+          },
+        },
+      },
+    });
+
+    return answers
+      .filter((a) => a.checked === true || a.booleanValue === true || Boolean(a.textValue?.trim()))
+      .map((a) => {
+        const meta = a.question.metadata;
+        const specRef =
+          meta &&
+          typeof meta === 'object' &&
+          !Array.isArray(meta) &&
+          typeof (meta as { specRef?: unknown }).specRef === 'string'
+            ? (meta as { specRef: string }).specRef
+            : undefined;
+        return {
+          answerId: a.id,
+          questionId: a.questionId,
+          questionText: a.question.questionText,
+          notes: a.notes,
+          textValue: isSecureQuestionMetadata(a.question.metadata) ? null : a.textValue,
+          section: a.question.section,
+          carePlanArea: a.question.section.carePlanArea,
+          specRef,
+        };
+      });
   }
 
   async listVersions(serviceUserId: string, carePathwayFormId: string) {

@@ -18,6 +18,7 @@ import {
 } from './label-mapped-compose.util';
 import { iaRoute, profileRoute } from './compose-routes.util';
 import { getCarePlanReviewSchedule, computeNextReviewDueAt } from '../care-plan-review-schedule';
+import { sanitizeComposeTextOrNull } from './compose-html-sanitize.util';
 
 const DEMENTIA_CARE_PLAN_FORM_NAME = 'Dementia Care plan';
 
@@ -25,27 +26,77 @@ function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Join free-text parts for a rich-text target field.
+ *
+ * Every part is passed through `sanitizeComposeTextOrNull`, which strips editor markup and
+ * returns null for empty rich text (e.g. `<p><br></p>`, `<p></p>`, whitespace-only HTML) so
+ * such values never reach the field. Exact duplicate lines are collapsed. Returns null when
+ * nothing remains, so the field is left empty rather than showing raw/empty HTML.
+ */
 function joinParts(parts: Array<string | null | undefined>): string | null {
-  const lines = parts.filter((p) => p?.trim()) as string[];
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const part of parts) {
+    const clean = sanitizeComposeTextOrNull(part);
+    if (clean && !seen.has(clean)) {
+      seen.add(clean);
+      lines.push(clean);
+    }
+  }
   return lines.length > 0 ? lines.join('\n') : null;
 }
 
+/**
+ * Resolve a single IA answer to a normalised line for a rich-text summary field.
+ *
+ * Boolean answers (yes/no toggles) are rendered as "Question: Yes/No" using the answer's own
+ * question text, so a summary never shows bare, context-free "Yes"/"No" values. Text/select
+ * answers are sanitised (rich-text stripped, empty HTML dropped). Returns null when the answer
+ * is missing or resolves to nothing.
+ */
+function resolveIaLine(
+  ctx: CarePlanComposeContext,
+  query: { fieldKey?: string; specRef?: string; contains?: string },
+): string | null {
+  if (!ctx.ia) return null;
+  const answer = findIaAnswer(ctx.ia.answers, {
+    fieldKey: query.fieldKey,
+    specRef: query.specRef,
+    questionTextContains: query.contains,
+  });
+  if (!answer) return null;
+
+  const isBoolean = answer.booleanValue != null || answer.checked != null;
+  if (isBoolean) {
+    const yesNo = resolveIaDisplayValue(answer); // 'Yes' | 'No'
+    if (!yesNo) return null;
+    const label = sanitizeComposeTextOrNull(answer.questionText);
+    return label ? `${label}: ${yesNo}` : yesNo;
+  }
+
+  return sanitizeComposeTextOrNull(resolveIaDisplayValue(answer));
+}
+
+/**
+ * Join several IA answers into a de-duplicated, normalised rich-text summary. Boolean answers
+ * are labelled with their question (never bare "Yes"/"No"), empty rich text is dropped, and
+ * exact duplicate lines are collapsed. Returns null when nothing remains.
+ */
 function joinIa(
   ctx: CarePlanComposeContext,
   queries: Array<{ fieldKey?: string; specRef?: string; contains?: string }>,
 ): string | null {
   if (!ctx.ia) return null;
-  const lines = queries
-    .map((q) =>
-      resolveIaDisplayValue(
-        findIaAnswer(ctx.ia!.answers, {
-          fieldKey: q.fieldKey,
-          specRef: q.specRef,
-          questionTextContains: q.contains,
-        }),
-      ),
-    )
-    .filter(Boolean) as string[];
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const query of queries) {
+    const line = resolveIaLine(ctx, query);
+    if (line && !seen.has(line)) {
+      seen.add(line);
+      lines.push(line);
+    }
+  }
   return lines.length > 0 ? lines.join('\n') : null;
 }
 
@@ -111,14 +162,14 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     },
   },
   {
-    fieldLabel: 'What makes a good day for @',
+    fieldLabel: 'What makes a good day for the person?',
     required: true,
     resolve: (ctx) => {
       const text = joinParts([ctx.aboutMe?.goodDay, ctx.aboutMe?.meaningfulActivities]);
       if (!text) return null;
       return {
         fieldKey: '',
-        label: 'What makes a good day for @',
+        label: 'What makes a good day for the person?',
         value: text,
         source: 'about_me',
         sourceLabel: 'About Me',
@@ -126,19 +177,20 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     },
   },
   {
-    fieldLabel: 'How @ communicates best',
+    fieldLabel: 'How does the person communicate best?',
     resolve: (ctx) => {
+      const aboutMeCommunication = sanitizeComposeTextOrNull(ctx.aboutMe?.communication);
       const text = joinParts([
-        ctx.aboutMe?.communication,
+        aboutMeCommunication,
         joinIa(ctx, [{ specRef: '8.1', contains: 'communication support notes' }]),
       ]);
       if (!text) return null;
       return {
         fieldKey: '',
-        label: 'How @ communicates best',
+        label: 'How does the person communicate best?',
         value: text,
-        source: ctx.aboutMe?.communication ? 'about_me' : 'ia',
-        sourceLabel: ctx.aboutMe?.communication ? 'About Me' : 'IA §8',
+        source: aboutMeCommunication ? 'about_me' : 'ia',
+        sourceLabel: aboutMeCommunication ? 'About Me' : 'IA §8',
       };
     },
   },
@@ -378,7 +430,7 @@ function buildDementiaFixes(label: string, serviceUserId: string): ComposeGap['f
   const aboutMe = `/service-users/${serviceUserId}/about-me`;
   switch (label.toLowerCase()) {
     case 'life history and interests':
-    case 'what makes a good day for @':
+    case 'what makes a good day for the person?':
     case 'calming strategies that work':
     case 'meaningful activities and occupation':
       return [{ label: 'Complete About Me', route: aboutMe }];

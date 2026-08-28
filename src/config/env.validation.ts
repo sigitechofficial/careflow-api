@@ -15,6 +15,10 @@ class EnvironmentVariables {
   NODE_ENV?: string;
 
   @IsOptional()
+  @IsString()
+  ENABLE_DEV_TOOLS?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   PORT?: number;

@@ -6422,6 +6422,8 @@ model CarePathwayFormSection {
 model CarePathwayFormField {
   id                  String                 @id @default(uuid()) @db.Uuid
   sectionId           String                 @db.Uuid
+  /// Stable business key for IA → care plan mapping (e.g. hsp_personal_care_tasks). Nullable until backfill.
+  fieldKey            String?                @db.VarChar(128)
   label               String
   fieldType           CarePathwayFormFieldType
   placeholder         String?
@@ -6439,6 +6441,7 @@ model CarePathwayFormField {
   section CarePathwayFormSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId])
+  @@index([fieldKey])
   @@index([deletedAt])
   @@schema("care_pathway")
 }

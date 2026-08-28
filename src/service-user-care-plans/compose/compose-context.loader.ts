@@ -6,7 +6,15 @@ import { submissionAnswersForRules } from '../../initial-assessments/initial-ass
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   CarePlanComposeContext,
+  CarePlanComposeIaSnapshot,
+  CarePlanCommunicationSnapshotEvidence,
+  CarePlanContinenceSnapshotEvidence,
+  CarePlanEatingDrinkingSnapshotEvidence,
+  CarePlanFallsSnapshotEvidence,
   CarePlanFormFieldRef,
+  CarePlanMedicationSnapshotEvidence,
+  CarePlanPersonalSafetySnapshotEvidence,
+  CarePlanSkinIntegritySnapshotEvidence,
   ComposePlanResult,
 } from './compose-context.types';
 import { buildEmarComposeSummary } from './emar-compose-summary.util';
@@ -23,6 +31,12 @@ import {
   composePersonCentredCarePlan,
   composeSkinIntegrityCarePlan,
 } from './area-care-plans.compose';
+import {
+  composeCommunicationCarePlan,
+  composeContinenceCarePlan,
+  composeEatingDrinkingCarePlan,
+  composePersonalSafetyCarePlan,
+} from './remaining-area-care-plans.compose';
 import { loadAboutMeFromReferences } from './about-me-compose-summary.util';
 import { buildPersonalisationFromServiceUser } from './care-plan-personalisation.util';
 import { iaRoute } from './compose-routes.util';
@@ -35,7 +49,39 @@ import {
   splitLatestAndPreviousAssessments,
   toComposeIaStatus,
 } from './compose-ia-eligibility.util';
-import type { CarePlanComposeIaSnapshot, CarePlanFallsSnapshotEvidence } from './compose-context.types';
+import { readAdlMetadataFromSubmissionMetadata } from './compose-adl-metadata.util';
+import {
+  composeHomeSupportPlanHybrid,
+  HOME_SUPPORT_PLAN_FORM_NAME,
+} from './home-support-plan.compose';
+import {
+  composeHomeCarePlanHybrid,
+  HOME_CARE_PLAN_FORM_NAME,
+} from './home-care-plan.compose';
+import {
+  composeAdvanceCarePlan,
+  ADVANCE_CARE_PLAN_FORM_NAME,
+} from './advance-care-plan.compose';
+import {
+  composeCognitionBehaviourCarePlan,
+  COGNITION_BEHAVIOUR_CARE_PLAN_FORM_NAME,
+} from './cognition-behaviour-care-plan.compose';
+import {
+  composeCultureReligionCarePlan,
+  CULTURE_RELIGION_CARE_PLAN_FORM_NAME,
+} from './culture-religion-care-plan.compose';
+import {
+  composeFinalDaysCarePlan,
+  FINAL_DAYS_CARE_PLAN_FORM_NAME,
+} from './final-days-care-plan.compose';
+import {
+  composePainManagementCarePlan,
+  PAIN_MANAGEMENT_CARE_PLAN_FORM_NAME,
+} from './pain-management-care-plan.compose';
+import {
+  composePsychologicalCarePlan,
+  PSYCHOLOGICAL_CARE_PLAN_FORM_NAME,
+} from './psychological-care-plan.compose';
 
 const MEDICATION_FORM_NAME = 'Medication';
 const CARE_PLAN_REVIEW_FORM_NAME = 'Care Plan review form';
@@ -44,6 +90,10 @@ const DEMENTIA_CARE_PLAN_FORM_NAME = 'Dementia Care plan';
 const PERSON_CENTRED_FORM_NAME = 'Person Centred care plan';
 const FALLS_FORM_NAME = 'Falls';
 const SKIN_INTEGRITY_FORM_NAME = 'Skin Integrity';
+const CONTINENCE_FORM_NAME = 'Continence';
+const EATING_DRINKING_FORM_NAME = 'Eating and Drinking';
+const PERSONAL_SAFETY_FORM_NAME = 'Personal Safety';
+const COMMUNICATION_FORM_NAME = 'Communication';
 
 export async function loadCarePlanFormFields(
   prisma: PrismaService,
@@ -66,6 +116,7 @@ export async function loadCarePlanFormFields(
                 orderBy: { sortOrder: 'asc' },
                 select: {
                   id: true,
+                  fieldKey: true,
                   label: true,
                   fieldType: true,
                   required: true,
@@ -89,6 +140,7 @@ export async function loadCarePlanFormFields(
         key: `${section.id}:${field.id}`,
         sectionId: section.id,
         fieldId: field.id,
+        fieldKey: field.fieldKey,
         sectionTitle: section.title,
         label: field.label,
         fieldType: field.fieldType,
@@ -112,6 +164,125 @@ function readFallsSnapshot(metadata: Prisma.JsonValue | null | undefined): CareP
     injuryCaused: typeof row.injuryCaused === 'boolean' ? row.injuryCaused : null,
     riskScore: typeof row.riskScore === 'number' ? row.riskScore : null,
     riskLevel: typeof row.riskLevel === 'string' ? row.riskLevel : null,
+  };
+}
+
+function readMedicationSnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanMedicationSnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const medication = (metadata as Record<string, unknown>).medication;
+  if (!medication || typeof medication !== 'object' || Array.isArray(medication)) return null;
+  const row = medication as Record<string, unknown>;
+  return {
+    supportLevel: typeof row.supportLevel === 'string' ? row.supportLevel : null,
+    allergyDetails: typeof row.allergyDetails === 'string' ? row.allergyDetails : null,
+    currentMedicationDetails:
+      typeof row.currentMedicationDetails === 'string' ? row.currentMedicationDetails : null,
+    prnProtocol: typeof row.prnProtocol === 'string' ? row.prnProtocol : null,
+    packagingHelpRequired:
+      typeof row.packagingHelpRequired === 'boolean' ? row.packagingHelpRequired : null,
+    storageNotes: typeof row.storageNotes === 'string' ? row.storageNotes : null,
+    safetyNotes: typeof row.safetyNotes === 'string' ? row.safetyNotes : null,
+  };
+}
+
+function readStringField(row: Record<string, unknown>, key: string): string | null {
+  return typeof row[key] === 'string' ? (row[key] as string) : null;
+}
+
+function readBooleanField(row: Record<string, unknown>, key: string): boolean | null {
+  return typeof row[key] === 'boolean' ? (row[key] as boolean) : null;
+}
+
+function readContinenceSnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanContinenceSnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const continence = (metadata as Record<string, unknown>).continence;
+  if (!continence || typeof continence !== 'object' || Array.isArray(continence)) return null;
+  const row = continence as Record<string, unknown>;
+  return {
+    bladderStatus: readStringField(row, 'bladderStatus'),
+    bowelStatus: readStringField(row, 'bowelStatus'),
+    productsUsed: readStringField(row, 'productsUsed'),
+    toiletingRoutine: readStringField(row, 'toiletingRoutine'),
+    fluidGuidance: readStringField(row, 'fluidGuidance'),
+    skinCareAfterEpisodes: readStringField(row, 'skinCareAfterEpisodes'),
+  };
+}
+
+function readEatingDrinkingSnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanEatingDrinkingSnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const eating = (metadata as Record<string, unknown>).eatingDrinking;
+  if (!eating || typeof eating !== 'object' || Array.isArray(eating)) return null;
+  const row = eating as Record<string, unknown>;
+  const fluidTargetMl =
+    typeof row.fluidTargetMl === 'number'
+      ? String(row.fluidTargetMl)
+      : readStringField(row, 'fluidTargetMl');
+  return {
+    dietType: readStringField(row, 'dietType'),
+    fluidTargetMl,
+    foodAllergiesIntolerances: readStringField(row, 'foodAllergiesIntolerances'),
+    mealAssistanceLevel: readStringField(row, 'mealAssistanceLevel'),
+    chokingSaltGuidance: readStringField(row, 'chokingSaltGuidance'),
+    preferredFoodsDislikes: readStringField(row, 'preferredFoodsDislikes'),
+  };
+}
+
+function readSkinIntegritySnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanSkinIntegritySnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const skin = (metadata as Record<string, unknown>).skinIntegrity;
+  if (!skin || typeof skin !== 'object' || Array.isArray(skin)) return null;
+  const row = skin as Record<string, unknown>;
+  return {
+    skinTypeIssues: readStringField(row, 'skinTypeIssues'),
+    emollientsCreams: readStringField(row, 'emollientsCreams'),
+    previousPressureDamage: readBooleanField(row, 'previousPressureDamage'),
+    creamApplication: readStringField(row, 'creamApplication'),
+    signsToReport: readStringField(row, 'signsToReport'),
+  };
+}
+
+function readPersonalSafetySnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanPersonalSafetySnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const safety = (metadata as Record<string, unknown>).personalSafety;
+  if (!safety || typeof safety !== 'object' || Array.isArray(safety)) return null;
+  const row = safety as Record<string, unknown>;
+  return {
+    homeHazards: readStringField(row, 'homeHazards'),
+    fireSafety: readStringField(row, 'fireSafety'),
+    loneWorkerRisk: readStringField(row, 'loneWorkerRisk'),
+    safeguardingOnFile: readBooleanField(row, 'safeguardingOnFile'),
+    actionsInPlace: readStringField(row, 'actionsInPlace'),
+    emergencyContacts: readStringField(row, 'emergencyContacts'),
+  };
+}
+
+function readCommunicationSnapshot(
+  metadata: Prisma.JsonValue | null | undefined,
+): CarePlanCommunicationSnapshotEvidence | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const communication = (metadata as Record<string, unknown>).communication;
+  if (!communication || typeof communication !== 'object' || Array.isArray(communication)) {
+    return null;
+  }
+  const row = communication as Record<string, unknown>;
+  return {
+    preferredLanguage: readStringField(row, 'preferredLanguage'),
+    hearingImpairment: readBooleanField(row, 'hearingImpairment'),
+    visionImpairment: readBooleanField(row, 'visionImpairment'),
+    communicationMethod: readStringField(row, 'communicationMethod'),
+    staffGuidance: readStringField(row, 'staffGuidance'),
+    aids: readStringField(row, 'aids'),
+    consentSharing: readBooleanField(row, 'consentSharing'),
   };
 }
 
@@ -191,6 +362,13 @@ async function loadComposeIaSnapshots(
       answers: submissionAnswersForRules(mapped),
       fallsSnapshot: readFallsSnapshot(row.metadata),
       fallsScreeningSummary: readFallsScreeningSummary(row.metadata),
+      medicationSnapshot: readMedicationSnapshot(row.metadata),
+      continenceSnapshot: readContinenceSnapshot(row.metadata),
+      eatingDrinkingSnapshot: readEatingDrinkingSnapshot(row.metadata),
+      skinIntegritySnapshot: readSkinIntegritySnapshot(row.metadata),
+      personalSafetySnapshot: readPersonalSafetySnapshot(row.metadata),
+      communicationSnapshot: readCommunicationSnapshot(row.metadata),
+      adlMetadata: readAdlMetadataFromSubmissionMetadata(row.metadata),
     };
   };
 
@@ -204,10 +382,31 @@ export async function loadCarePlanComposeContext(
   prisma: PrismaService,
   serviceUserId: string,
 ): Promise<CarePlanComposeContext> {
-  const [serviceUser, iaBundle, allergies, meds, pack, references, emergencyContacts] = await Promise.all([
+  const [serviceUser, iaBundle, allergies, meds, pack, references, emergencyContacts, legalDocument] =
+    await Promise.all([
     prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
-      select: { id: true, firstName: true, lastName: true, preferredName: true, serviceUserNumber: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        serviceUserNumber: true,
+        dateOfBirth: true,
+        phone: true,
+        mobile: true,
+        address: {
+          select: {
+            addressLine1: true,
+            addressLine2: true,
+            town: true,
+            county: true,
+            postcode: true,
+            accessInstructions: true,
+            keySafeNumber: true,
+          },
+        },
+      },
     }),
     loadComposeIaSnapshots(prisma, serviceUserId),
     prisma.serviceUserAllergy.findMany({
@@ -249,6 +448,15 @@ export async function loadCarePlanComposeContext(
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
       take: 6,
     }),
+    prisma.serviceUserLegalDocument.findFirst({
+      where: { serviceUserId, isActive: true },
+      select: {
+        dnacprInPlace: true,
+        dnacprStatusConfirmation: true,
+        dnacprPhysicalLocation: true,
+        dnacprStartDate: true,
+      },
+    }),
   ]);
 
   const displayName = serviceUser
@@ -269,9 +477,13 @@ export async function loadCarePlanComposeContext(
     const pharmacy = resolveIaDisplayValue(
       findIaAnswer(ia.answers, { specRef: '13.9', questionTextContains: 'pharmacy' }),
     );
+    const gpContact = resolveIaDisplayValue(
+      findIaAnswer(ia.answers, { fieldKey: 'gpContactDetails' }),
+    );
     if (gpName) gpParts.push(`GP: ${gpName}`);
     if (gpPractice) gpParts.push(gpPractice);
     if (pharmacy) gpParts.push(`Pharmacy: ${pharmacy}`);
+    if (gpParts.length === 0 && gpContact) gpParts.push(gpContact);
   }
 
   return {
@@ -307,6 +519,43 @@ export async function loadCarePlanComposeContext(
     ),
     pack: pack ? buildMedicationPackComposeSummary(pack) : null,
     gpPharmacyLine: gpParts.length > 0 ? gpParts.join('\n') : null,
+    profile: serviceUser
+      ? {
+          preferredName: serviceUser.preferredName?.trim() || null,
+          dateOfBirth: serviceUser.dateOfBirth
+            ? serviceUser.dateOfBirth.toISOString().slice(0, 10)
+            : null,
+          phone: serviceUser.mobile?.trim() || serviceUser.phone?.trim() || null,
+          homeAddress: (() => {
+            const a = serviceUser.address;
+            if (!a) return null;
+            const line = [a.addressLine1, a.addressLine2, a.town, a.county, a.postcode]
+              .map((p) => p?.trim())
+              .filter(Boolean)
+              .join('\n');
+            return line || null;
+          })(),
+          propertyAccessInstructions: (() => {
+            const a = serviceUser.address;
+            if (!a) return null;
+            const parts = [
+              a.accessInstructions?.trim() || null,
+              a.keySafeNumber?.trim() ? `Key safe: ${a.keySafeNumber.trim()}` : null,
+            ].filter(Boolean);
+            return parts.length > 0 ? parts.join('\n') : null;
+          })(),
+        }
+      : null,
+    legalDocument: legalDocument
+      ? {
+          dnacprInPlace: legalDocument.dnacprInPlace,
+          dnacprStatusConfirmation: String(legalDocument.dnacprStatusConfirmation),
+          dnacprPhysicalLocation: legalDocument.dnacprPhysicalLocation ?? null,
+          dnacprStartDate: legalDocument.dnacprStartDate
+            ? legalDocument.dnacprStartDate.toISOString()
+            : null,
+        }
+      : null,
   };
 }
 
@@ -339,8 +588,56 @@ export function runCarePlanCompose(
     return composeFallsCarePlan(ctx, fields, ctx.serviceUserId);
   }
 
+  if (formName === HOME_SUPPORT_PLAN_FORM_NAME) {
+    return composeHomeSupportPlanHybrid(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === HOME_CARE_PLAN_FORM_NAME) {
+    return composeHomeCarePlanHybrid(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === ADVANCE_CARE_PLAN_FORM_NAME) {
+    return composeAdvanceCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === COGNITION_BEHAVIOUR_CARE_PLAN_FORM_NAME) {
+    return composeCognitionBehaviourCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === CULTURE_RELIGION_CARE_PLAN_FORM_NAME) {
+    return composeCultureReligionCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === FINAL_DAYS_CARE_PLAN_FORM_NAME) {
+    return composeFinalDaysCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === PAIN_MANAGEMENT_CARE_PLAN_FORM_NAME) {
+    return composePainManagementCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === PSYCHOLOGICAL_CARE_PLAN_FORM_NAME) {
+    return composePsychologicalCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
   if (formName === SKIN_INTEGRITY_FORM_NAME) {
     return composeSkinIntegrityCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === CONTINENCE_FORM_NAME) {
+    return composeContinenceCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === EATING_DRINKING_FORM_NAME) {
+    return composeEatingDrinkingCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === PERSONAL_SAFETY_FORM_NAME) {
+    return composePersonalSafetyCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === COMMUNICATION_FORM_NAME) {
+    return composeCommunicationCarePlan(ctx, fields, ctx.serviceUserId);
   }
 
   return {
