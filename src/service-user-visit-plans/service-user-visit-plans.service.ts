@@ -276,6 +276,7 @@ export class ServiceUserVisitPlansService {
           dayOfWeek: a.dayOfWeek,
           employeeId: a.employeeId,
           role: a.role,
+          requiredCarers: a.requiredCarers,
           durationMinutes: a.durationMinutes,
           plannedStartTime: a.plannedStartTime,
           plannedEndTime: a.plannedEndTime,
@@ -453,6 +454,7 @@ export class ServiceUserVisitPlansService {
             dayOfWeek: a.dayOfWeek ?? null,
             employeeId: a.employeeId.trim(),
             role: a.role ?? 'SECONDARY',
+            requiredCarers: a.requiredCarers ?? null,
             durationMinutes: a.durationMinutes ?? null,
             plannedStartTime: a.plannedStartTime ?? null,
             plannedEndTime: a.plannedEndTime ?? null,
@@ -1188,6 +1190,7 @@ export class ServiceUserVisitPlansService {
             carerAssignments: slot.carerAssignments?.map((a) => ({
               employeeId: a.employeeId,
               dayOfWeek: a.dayOfWeek,
+              requiredCarers: a.requiredCarers,
               plannedStartTime: a.plannedStartTime,
               plannedEndTime: a.plannedEndTime,
             })),

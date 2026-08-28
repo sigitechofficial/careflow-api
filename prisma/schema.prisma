@@ -4070,6 +4070,8 @@ model VisitPlanSlotCarerAssignment {
   dayOfWeek        Int?
   employeeId       String                 @db.Uuid
   role             VisitPlanSlotCarerRole @default(SECONDARY)
+  /// Per-day carers required for this row's day(s). Null = use the slot default.
+  requiredCarers   Int?
   durationMinutes  Int?
   plannedStartTime String?
   plannedEndTime   String?

@@ -34,6 +34,17 @@ export class VisitPlanSlotCarerAssignmentDto {
   @IsEnum(VisitPlanSlotCarerRole)
   role?: VisitPlanSlotCarerRole;
 
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 4,
+    description: 'Carers required for this row’s day(s); null = slot default',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(4)
+  requiredCarers?: number | null;
+
   @ApiPropertyOptional({ minimum: 1, maximum: 720 })
   @IsOptional()
   @IsInt()

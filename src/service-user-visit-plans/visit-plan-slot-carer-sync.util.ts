@@ -169,6 +169,7 @@ export function mapDbCarerAssignmentsForSync(
     dayOfWeek: number | null;
     employeeId: string;
     role: VisitPlanSlotCarerRole | string;
+    requiredCarers?: number | null;
     durationMinutes: number | null;
     plannedStartTime: string | null;
     plannedEndTime: string | null;
@@ -182,6 +183,7 @@ export function mapDbCarerAssignmentsForSync(
       row.role === VisitPlanSlotCarerRole.LEAD || row.role === 'LEAD'
         ? VisitPlanSlotCarerRole.LEAD
         : VisitPlanSlotCarerRole.SECONDARY,
+    requiredCarers: row.requiredCarers ?? null,
     durationMinutes: row.durationMinutes,
     plannedStartTime: row.plannedStartTime,
     plannedEndTime: row.plannedEndTime,
