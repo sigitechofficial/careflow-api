@@ -19,6 +19,8 @@ import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-typ
 import { UpdateServiceUserFundingTypeDto } from './dto/update-service-user-funding-type.dto';
 import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dto';
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
+import { CreateWelfareOutcomeDto } from './dto/create-welfare-outcome.dto';
+import { UpdateWelfareOutcomeDto } from './dto/update-welfare-outcome.dto';
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
@@ -987,6 +989,82 @@ export class LookupsService implements OnModuleInit {
     const ids = [id, ...childIds.map((row) => row.id)];
     await this.prisma.bodyMapRecordTypeCatalog.updateMany({
       where: { id: { in: ids } },
+      data: { isActive: false },
+    });
+  }
+
+  // ─── On-entry welfare outcomes (carer-app clock-in) ───────────────────────
+
+  private readonly welfareSelect = {
+    id: true,
+    code: true,
+    label: true,
+    tone: true,
+    sortOrder: true,
+    isActive: true,
+  } as const;
+
+  async listWelfareOutcomes() {
+    return this.prisma.visitWelfareOutcomeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: this.welfareSelect,
+    });
+  }
+
+  async createWelfareOutcome(dto: CreateWelfareOutcomeDto) {
+    const label = dto.label.trim();
+    const code = dto.code.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!label || !code) throw new BadRequestException('Label and code are required');
+    try {
+      return await this.prisma.visitWelfareOutcomeCatalog.create({
+        data: {
+          code,
+          label,
+          tone: dto.tone ?? 'ok',
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: true,
+        },
+        select: this.welfareSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A welfare outcome with this code already exists');
+    }
+  }
+
+  async updateWelfareOutcome(id: string, dto: UpdateWelfareOutcomeDto) {
+    const existing = await this.prisma.visitWelfareOutcomeCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Welfare outcome not found');
+    const data: Prisma.VisitWelfareOutcomeCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.code !== undefined) {
+      const code = dto.code.trim().toLowerCase().replace(/\s+/g, '-');
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.tone !== undefined) data.tone = dto.tone;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitWelfareOutcomeCatalog.update({
+        where: { id },
+        data,
+        select: this.welfareSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A welfare outcome with this code already exists');
+    }
+  }
+
+  async deleteWelfareOutcome(id: string) {
+    const existing = await this.prisma.visitWelfareOutcomeCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Welfare outcome not found');
+    await this.prisma.visitWelfareOutcomeCatalog.update({
+      where: { id },
       data: { isActive: false },
     });
   }

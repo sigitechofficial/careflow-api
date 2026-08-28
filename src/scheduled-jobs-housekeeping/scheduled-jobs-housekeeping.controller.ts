@@ -105,6 +105,15 @@ export class ScheduledJobsHousekeepingController {
     return this.service.getVisitObservations(user.id, id);
   }
 
+  @Get('jobs/:id/timeline')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({
+    summary: 'Visit activity timeline (Log tab) — same events the carer app shows',
+  })
+  visitJobTimeline(@Param('id') id: string) {
+    return this.service.getVisitTimeline(id);
+  }
+
   @Patch('jobs/:id/visit-tasks')
   @Permissions('scheduled_jobs_housekeeping.complete')
   @ApiOperation({ summary: 'Save visit task completion checkboxes for a scheduled job' })

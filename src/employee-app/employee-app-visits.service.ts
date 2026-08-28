@@ -339,7 +339,7 @@ export class EmployeeAppVisitsService {
    */
   async getVisitDetails(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [workspace, tasks, medication, observations, log, bodyMap] =
+    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
         this.getTasks(employeeId, jobId),
@@ -347,6 +347,7 @@ export class EmployeeAppVisitsService {
         this.getObservations(employeeId, jobId),
         this.getLog(employeeId, jobId),
         this.getBodyMapWizard(employeeId, jobId),
+        this.getWelfareOutcomes(),
       ]);
 
     return {
@@ -364,8 +365,23 @@ export class EmployeeAppVisitsService {
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
+        welfareOutcomes,
       },
     };
+  }
+
+  /**
+   * Org-configurable on-entry welfare outcomes for the carer-app clock-in sheet.
+   * Maps catalog `code` → app `id` (the app's existing shape). Empty list → the
+   * app falls back to its built-in options.
+   */
+  async getWelfareOutcomes() {
+    const rows = await this.prisma.visitWelfareOutcomeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: { code: true, label: true, tone: true },
+    });
+    return rows.map((r) => ({ id: r.code, label: r.label, tone: r.tone }));
   }
 
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {
@@ -2687,7 +2703,17 @@ export class EmployeeAppVisitsService {
     const now = new Date().toISOString();
     const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
     const occurredAtIso = occurredAt.toISOString();
-    const detail = summarizeTimelineDetail(dto.body);
+    // Rich handover detail for the timeline / admin Log tab: priority + full
+    // note + outstanding action (not truncated like a generic timeline summary).
+    const handoverParts: string[] = [];
+    if (dto.priority === 'high') handoverParts.push('⚠ High priority');
+    const handoverBody = dto.body?.trim();
+    if (handoverBody) handoverParts.push(handoverBody);
+    const outstandingAction = dto.outstandingAction?.trim();
+    if (outstandingAction) handoverParts.push(`Outstanding action: ${outstandingAction}`);
+    const detail = handoverParts.length
+      ? handoverParts.join('\n')
+      : summarizeTimelineDetail(dto.body);
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: ctx.primaryVisit.id,
@@ -4297,6 +4323,7 @@ export class EmployeeAppVisitsService {
                 prnReason: true,
                 prnOutcome: true,
                 isPrn: true,
+                visitId: true,
               },
             }),
             this.prisma.bodyMapMedicationSite.findMany({
@@ -4343,6 +4370,21 @@ export class EmployeeAppVisitsService {
       if (!eventByMed.has(e.serviceUserMedicationId)) eventByMed.set(e.serviceUserMedicationId, e);
     }
 
+    // PRN is "as needed" — it can be given in each visit independently. Its
+    // "recorded" status must be scoped to THIS visit, otherwise a PRN given in
+    // an earlier same-day visit would wrongly show as already given here.
+    // (Scheduled meds keep the day-scoped `eventByMed` above — unchanged.)
+    const prnEventThisVisit = new Map<string, (typeof events)[number]>();
+    for (const e of events) {
+      if (
+        e.isPrn &&
+        e.visitId === ctx.primaryVisit.id &&
+        !prnEventThisVisit.has(e.serviceUserMedicationId)
+      ) {
+        prnEventThisVisit.set(e.serviceUserMedicationId, e);
+      }
+    }
+
     const mapMed = (m: (typeof scheduledMeds)[number] | (typeof prnMeds)[number], isPrn: boolean) => {
       const dose = [m.dose, m.strength].filter(Boolean).join(' ') || null;
       const route = m.route?.name ?? null;
@@ -4366,7 +4408,8 @@ export class EmployeeAppVisitsService {
         tags.push({ id: 'time_critical', label: 'Time-critical', tone: 'warning' });
       }
 
-      const evt = eventByMed.get(m.id);
+      // PRN → only this visit's administration counts; scheduled → day-scoped.
+      const evt = isPrn ? prnEventThisVisit.get(m.id) : eventByMed.get(m.id);
       const echo = evt ? buildMarAdminEchoFields(evt, ctx.timeZone) : emptyMarAdminEchoFields();
       const dueTime =
         'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;

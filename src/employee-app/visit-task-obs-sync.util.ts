@@ -122,19 +122,32 @@ export async function syncObservationFromCompletedVisitTask(
   }
 
   if (existing) {
+    // An observation already exists for this visit — it was recorded via the
+    // observation sheet and owns its OWN clinical value + notes. This task→obs
+    // sync must only ensure the job/visit linkage; it must NOT overwrite the
+    // observation's notes/value with the TASK's outcome notes/recordedValue
+    // (that belongs to the task, and doing so made "Observation notes" and
+    // "Task outcome notes" show the same value in admin).
+    const existingPayload =
+      typeof existing.payload === 'object' &&
+      existing.payload &&
+      !Array.isArray(existing.payload)
+        ? (existing.payload as Record<string, unknown>)
+        : {};
     await prisma.serviceUserObservation.update({
       where: { id: existing.id },
       data: {
-        numericValue: numericValue ?? existing.numericValue,
-        notes: input.notes?.trim() || existing.notes,
-        unit: type.unitLabel ?? existing.unit,
+        // Keep the observation's own reading/notes; only backfill if absent.
+        numericValue: existing.numericValue ?? numericValue,
+        notes: existing.notes ?? (input.notes?.trim() || null),
+        unit: existing.unit ?? type.unitLabel ?? null,
         payload: {
-          ...(typeof existing.payload === 'object' &&
-          existing.payload &&
-          !Array.isArray(existing.payload)
-            ? (existing.payload as Record<string, unknown>)
-            : {}),
-          ...payloadBase,
+          ...existingPayload,
+          // Linkage only — never clobber the observation's own value.
+          definitionId: existingPayload.definitionId ?? link.linkedTypeCode,
+          scheduledJobId: existingPayload.scheduledJobId ?? input.jobId,
+          scheduledVisitId: existingPayload.scheduledVisitId ?? input.visitId,
+          source: existingPayload.source ?? 'visit_task',
         } as Prisma.InputJsonValue,
       },
     });
