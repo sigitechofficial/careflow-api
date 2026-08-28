@@ -1,12 +1,33 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProduces,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
+import {
+  AnyPermission,
+  Permissions,
+} from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { InvoiceRunsService } from './invoice-runs.service';
-import { CreateBillingRunDto, BillingRunsQueryDto } from './dto/billing-runs.dto';
+import {
+  CreateBillingRunDto,
+  BillingRunsQueryDto,
+} from './dto/billing-runs.dto';
 
 @ApiTags('Billing — Invoice runs')
 @ApiBearerAuth()
@@ -23,8 +44,14 @@ export class InvoiceRunsController {
   }
 
   @Get('service-user/:serviceUserId')
-  @AnyPermission('billing.invoice_runs.read', 'service_users.read', 'service_users.update')
-  @ApiOperation({ summary: 'Invoice runs and funder totals for one service user' })
+  @AnyPermission(
+    'billing.invoice_runs.read',
+    'service_users.read',
+    'service_users.update',
+  )
+  @ApiOperation({
+    summary: 'Invoice runs and funder totals for one service user',
+  })
   forServiceUser(@Param('serviceUserId') serviceUserId: string) {
     return this.service.getForServiceUser(serviceUserId);
   }
@@ -41,6 +68,28 @@ export class InvoiceRunsController {
   @ApiOperation({ summary: 'Get invoice run with lines' })
   getById(@Param('id') id: string) {
     return this.service.getById(id);
+  }
+
+  @Get(':id/export')
+  @Permissions('billing.invoice_runs.read')
+  @ApiProduces(
+    'text/csv',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  )
+  @ApiOperation({
+    summary: 'Download invoice run lines as CSV or Excel (?format=csv|xlsx)',
+  })
+  async export(
+    @Param('id') id: string,
+    @Query('format') format: string | undefined,
+    @Res() res: Response,
+  ) {
+    const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
+    const { filename, mime, body } = await this.service.exportRun(id, fmt);
+    res
+      .type(mime)
+      .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(body);
   }
 
   @Post()

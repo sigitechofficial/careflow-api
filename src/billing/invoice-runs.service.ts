@@ -23,6 +23,12 @@ import {
 import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
 import { InvoiceTemplatesService } from './invoice-templates.service';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
+import {
+  buildInvoiceRunCsv,
+  buildInvoiceRunXlsx,
+  invoiceRunExportFilename,
+  type InvoiceRunExportModel,
+} from './invoice-run-export.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const MUTABLE_STATUSES: InvoiceRunStatus[] = [
@@ -59,7 +65,10 @@ export class InvoiceRunsService {
   async list(query?: BillingRunsQueryDto) {
     const where: Prisma.InvoiceRunWhereInput = {};
     if (query?.locationId) {
-      const suIds = await serviceUserIdsForLocation(this.prisma, query.locationId);
+      const suIds = await serviceUserIdsForLocation(
+        this.prisma,
+        query.locationId,
+      );
       where.OR = [
         { lines: { none: {} } },
         ...(suIds.length
@@ -125,7 +134,9 @@ export class InvoiceRunsService {
     });
 
     const funderIds = [
-      ...new Set(lines.map((l) => l.funderId).filter((id): id is string => Boolean(id))),
+      ...new Set(
+        lines.map((l) => l.funderId).filter((id): id is string => Boolean(id)),
+      ),
     ];
     const funders = funderIds.length
       ? await this.prisma.funder.findMany({
@@ -145,7 +156,8 @@ export class InvoiceRunsService {
     for (const line of lines) {
       const existing = byRun.get(line.invoiceRunId);
       if (existing) existing.lines.push(line);
-      else byRun.set(line.invoiceRunId, { run: line.invoiceRun, lines: [line] });
+      else
+        byRun.set(line.invoiceRunId, { run: line.invoiceRun, lines: [line] });
     }
 
     const runs = [...byRun.values()]
@@ -162,11 +174,14 @@ export class InvoiceRunsService {
               `${serviceUser.firstName} ${serviceUser.lastName}`.trim(),
             serviceUserNumber: serviceUser.serviceUserNumber,
             funderId: l.funderId,
-            funderName: funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
+            funderName:
+              funder?.name ??
+              (l.funderId ? 'Unknown funder' : 'Direct / family'),
             funderCode: funder?.code ?? null,
             description: l.description,
             minutes: l.minutes,
-            splitPercent: l.splitPercent != null ? Number(l.splitPercent) : null,
+            splitPercent:
+              l.splitPercent != null ? Number(l.splitPercent) : null,
             amount: formatMoney(Number(l.amount)),
             amountValue: Number(l.amount),
             exceptionMessage: l.exceptionMessage,
@@ -174,7 +189,9 @@ export class InvoiceRunsService {
         });
         const funderSummaries = this.buildFunderSummaries(mappedLines);
         const subtotal = mappedLines.reduce((sum, l) => sum + l.amountValue, 0);
-        const exceptionCount = mappedLines.filter((l) => l.exceptionMessage).length;
+        const exceptionCount = mappedLines.filter(
+          (l) => l.exceptionMessage,
+        ).length;
         return {
           id: run.id,
           period: run.periodLabel,
@@ -192,7 +209,8 @@ export class InvoiceRunsService {
           funderSummaries,
           lines: mappedLines,
           canSend:
-            run.status === InvoiceRunStatus.LOCKED || run.status === InvoiceRunStatus.APPROVED,
+            run.status === InvoiceRunStatus.LOCKED ||
+            run.status === InvoiceRunStatus.APPROVED,
         };
       });
 
@@ -245,7 +263,11 @@ export class InvoiceRunsService {
 
     const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
     const funderIds = [
-      ...new Set(row.lines.map((l) => l.funderId).filter((id): id is string => Boolean(id))),
+      ...new Set(
+        row.lines
+          .map((l) => l.funderId)
+          .filter((id): id is string => Boolean(id)),
+      ),
     ];
 
     const [serviceUsers, funders] = await Promise.all([
@@ -274,8 +296,7 @@ export class InvoiceRunsService {
         su.id,
         {
           name:
-            su.preferredName?.trim() ||
-            `${su.firstName} ${su.lastName}`.trim(),
+            su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim(),
           number: su.serviceUserNumber,
         },
       ]),
@@ -299,7 +320,8 @@ export class InvoiceRunsService {
         serviceUserName: su?.name ?? 'Unknown service user',
         serviceUserNumber: su?.number ?? null,
         funderId: l.funderId,
-        funderName: funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
+        funderName:
+          funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
         funderCode: funder?.code ?? null,
         description: l.description,
         minutes: l.minutes,
@@ -331,11 +353,104 @@ export class InvoiceRunsService {
     };
   }
 
+  /** Build a downloadable CSV or Excel of the invoice run's lines + funder totals. */
+  async exportRun(
+    id: string,
+    format: 'csv' | 'xlsx',
+  ): Promise<{ filename: string; mime: string; body: string | Buffer }> {
+    const row = await this.prisma.invoiceRun.findUnique({
+      where: { id },
+      include: {
+        lines: { orderBy: [{ visitRef: 'asc' }, { description: 'asc' }] },
+      },
+    });
+    if (!row) throw new NotFoundException('Invoice run not found');
+
+    const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
+    const funderIds = [
+      ...new Set(
+        row.lines.map((l) => l.funderId).filter((f): f is string => Boolean(f)),
+      ),
+    ];
+    const [serviceUsers, funders] = await Promise.all([
+      serviceUserIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: serviceUserIds } },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+              serviceUserNumber: true,
+            },
+          })
+        : Promise.resolve([]),
+      funderIds.length
+        ? this.prisma.funder.findMany({
+            where: { id: { in: funderIds } },
+            select: { id: true, name: true, code: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const suMap = new Map(
+      serviceUsers.map((su) => [
+        su.id,
+        {
+          name:
+            su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim(),
+          number: su.serviceUserNumber,
+        },
+      ]),
+    );
+    const funderMap = new Map(funders.map((f) => [f.id, f]));
+
+    const model: InvoiceRunExportModel = {
+      periodLabel: row.periodLabel,
+      periodStart: row.periodStart.toISOString().slice(0, 10),
+      periodEnd: row.periodEnd.toISOString().slice(0, 10),
+      status: row.status,
+      currency: row.currency,
+      netTotalValue: Number(row.netTotal),
+      lines: row.lines.map((l) => {
+        const su = suMap.get(l.serviceUserId);
+        const funder = l.funderId ? funderMap.get(l.funderId) : null;
+        return {
+          funderName:
+            funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
+          funderCode: funder?.code ?? null,
+          serviceUserName: su?.name ?? 'Unknown service user',
+          serviceUserNumber: su?.number ?? null,
+          visitRef: l.visitRef,
+          description: l.description,
+          minutes: l.minutes,
+          splitPercent: l.splitPercent != null ? Number(l.splitPercent) : null,
+          amountValue: Number(l.amount),
+          exceptionMessage: l.exceptionMessage,
+        };
+      }),
+    };
+
+    if (format === 'xlsx') {
+      return {
+        filename: invoiceRunExportFilename(model, 'xlsx'),
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        body: await buildInvoiceRunXlsx(model),
+      };
+    }
+    return {
+      filename: invoiceRunExportFilename(model, 'csv'),
+      mime: 'text/csv; charset=utf-8',
+      body: buildInvoiceRunCsv(model),
+    };
+  }
+
   async create(userId: string, dto: CreateBillingRunDto) {
     const periodStart = parseBillingDateOnly(dto.periodStart);
     const periodEnd = parseBillingDateOnly(dto.periodEnd);
     if (periodEnd < periodStart) {
-      throw new BadRequestException('Period end must be on or after period start');
+      throw new BadRequestException(
+        'Period end must be on or after period start',
+      );
     }
 
     const created = await this.prisma.invoiceRun.create({
@@ -354,7 +469,9 @@ export class InvoiceRunsService {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Invoice run not found');
     if (!MUTABLE_STATUSES.includes(run.status)) {
-      throw new BadRequestException(`Cannot recalculate invoice run in status ${run.status}`);
+      throw new BadRequestException(
+        `Cannot recalculate invoice run in status ${run.status}`,
+      );
     }
 
     await this.prisma.invoiceRun.update({
@@ -383,20 +500,23 @@ export class InvoiceRunsService {
 
     for (const recon of reconciliations) {
       const billMins = recon.billableMinutes ?? 0;
-      const billAmt = recon.billableAmount != null ? Number(recon.billableAmount) : 0;
+      const billAmt =
+        recon.billableAmount != null ? Number(recon.billableAmount) : 0;
       // FIXED multi-carer mode zeroes secondary carers — skip empty charge lines.
       if (billMins <= 0 && billAmt <= 0) {
         continue;
       }
 
       const issues: string[] = [];
-      if (recon.billableAmount == null) issues.push('Billable amount not calculated');
+      if (recon.billableAmount == null)
+        issues.push('Billable amount not calculated');
       if (!recon.approvedBillStart || !recon.approvedBillEnd) {
         issues.push('Approved billable time missing');
       }
       if (!recon.chargeCardId) issues.push('Charge card missing');
 
-      const total = recon.billableAmount != null ? Number(recon.billableAmount) : 0;
+      const total =
+        recon.billableAmount != null ? Number(recon.billableAmount) : 0;
       serviceUserIds.add(recon.serviceUserId);
 
       const fundingLines = await this.prisma.serviceUserFunding.findMany({
@@ -531,7 +651,8 @@ export class InvoiceRunsService {
     }
 
     const netTotal = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
-    let exportStatus: BillingRunExportStatus = BillingRunExportStatus.NOT_STARTED;
+    let exportStatus: BillingRunExportStatus =
+      BillingRunExportStatus.NOT_STARTED;
     if (templateMissingCount > 0) {
       exportStatus = BillingRunExportStatus.TEMPLATE_MISSING;
     } else if (lineData.length > 0 && exceptionCount === 0) {
@@ -571,7 +692,9 @@ export class InvoiceRunsService {
       run.status !== InvoiceRunStatus.READY_FOR_REVIEW &&
       run.status !== InvoiceRunStatus.EXCEPTION_FOUND
     ) {
-      throw new BadRequestException('Only runs ready for review can be approved');
+      throw new BadRequestException(
+        'Only runs ready for review can be approved',
+      );
     }
 
     await this.prisma.invoiceRun.update({
@@ -595,7 +718,9 @@ export class InvoiceRunsService {
       throw new BadRequestException('Approve the invoice run before locking');
     }
 
-    const reconIds = [...new Set(run.lines.map((l) => l.visitReconciliationId))];
+    const reconIds = [
+      ...new Set(run.lines.map((l) => l.visitReconciliationId)),
+    ];
 
     await this.prisma.$transaction(async (tx) => {
       await tx.invoiceRun.update({
@@ -621,8 +746,13 @@ export class InvoiceRunsService {
   async markSent(id: string) {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Invoice run not found');
-    if (run.status !== InvoiceRunStatus.LOCKED && run.status !== InvoiceRunStatus.APPROVED) {
-      throw new BadRequestException('Lock the invoice run before marking as sent');
+    if (
+      run.status !== InvoiceRunStatus.LOCKED &&
+      run.status !== InvoiceRunStatus.APPROVED
+    ) {
+      throw new BadRequestException(
+        'Lock the invoice run before marking as sent',
+      );
     }
 
     await this.prisma.invoiceRun.update({
