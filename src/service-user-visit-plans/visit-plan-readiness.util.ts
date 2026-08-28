@@ -31,6 +31,30 @@ export function resolveAssignedEmployeeIds(
   return (assignedEmployeeIds ?? []).filter((id) => id.trim());
 }
 
+/**
+ * The slot's default carers only — global rows (dayOfWeek == null), falling back to the
+ * legacy assignedEmployeeIds list. Used when persisting slot.assignedEmployeeIds so that
+ * day-specific advanced rows never become the fallback carer for every other day.
+ */
+export function resolveGlobalAssignedEmployeeIds(
+  assignedEmployeeIds?: string[] | null,
+  carerAssignments?: Array<{
+    employeeId?: string | null;
+    dayOfWeek?: number | null;
+  }> | null,
+): string[] {
+  const globalIds = [
+    ...new Set(
+      (carerAssignments ?? [])
+        .filter((row) => row.dayOfWeek == null)
+        .map((row) => row.employeeId?.trim())
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (globalIds.length) return globalIds;
+  return (assignedEmployeeIds ?? []).filter((id) => id.trim());
+}
+
 export function slotAssignedEmployeeIds(slot: VisitPlanSlotReadinessInput): string[] {
   return resolveAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments);
 }

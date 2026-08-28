@@ -79,7 +79,10 @@ import {
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
 import { clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
-import { resolveAssignedEmployeeIds, slotAssignedEmployeeIds } from './visit-plan-readiness.util';
+import {
+  resolveGlobalAssignedEmployeeIds,
+  slotAssignedEmployeeIds,
+} from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
 import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
@@ -381,7 +384,9 @@ export class ServiceUserVisitPlansService {
         notes: input?.notes?.trim() ?? '',
         sortOrder: defaults.sortOrder ?? index,
         linkedCarePlanFormIds: input?.linkedCarePlanFormIds ?? [],
-        assignedEmployeeIds: resolveAssignedEmployeeIds(
+        // Default carers = global rows only; day-specific advanced rows stay per-day (they
+        // must not leak into the slot fallback used for days without a specific carer).
+        assignedEmployeeIds: resolveGlobalAssignedEmployeeIds(
           input?.assignedEmployeeIds,
           input?.carerAssignments,
         ),
@@ -1067,7 +1072,7 @@ export class ServiceUserVisitPlansService {
             const carerAssignments = mapDbCarerAssignmentsForSync(row.carerAssignments ?? []);
             const assignedEmployeeIds = visitPlanCarerEmployeeIds(
               [],
-              slotAssignedEmployeeIds(row),
+              resolveGlobalAssignedEmployeeIds(row.assignedEmployeeIds, row.carerAssignments),
               row.requiredCarers,
             );
             await syncVisitPlanSlotCarersToScheduledJobs(tx, {
@@ -2272,7 +2277,7 @@ export class ServiceUserVisitPlansService {
               if (assignCarers) {
                 const syncEmployeeIds = visitPlanCarerEmployeeIds(
                   carerWindows,
-                  slotAssignedEmployeeIds(slot),
+                  resolveGlobalAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments),
                   requiredCarers,
                 );
                 await syncVisitPlanSlotCarersToScheduledJobs(tx, {
@@ -2360,7 +2365,7 @@ export class ServiceUserVisitPlansService {
                 visitPlanSlotId: slot.id,
                 assignedEmployeeIds: visitPlanCarerEmployeeIds(
                   carerWindows,
-                  slotAssignedEmployeeIds(slot),
+                  resolveGlobalAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments),
                   requiredCarers,
                 ),
                 carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
@@ -2430,13 +2435,13 @@ export class ServiceUserVisitPlansService {
           });
 
           if (assignCarers) {
-            let employeeIds = visitPlanCarerEmployeeIds(
-              carerWindows,
-              slotAssignedEmployeeIds(slot),
-              requiredCarers,
+            const globalCarerIds = resolveGlobalAssignedEmployeeIds(
+              slot.assignedEmployeeIds,
+              slot.carerAssignments,
             );
+            let employeeIds = visitPlanCarerEmployeeIds(carerWindows, globalCarerIds, requiredCarers);
             if (!employeeIds.length) {
-              employeeIds = slotAssignedEmployeeIds(slot).slice(0, Math.max(1, requiredCarers));
+              employeeIds = globalCarerIds.slice(0, Math.max(1, requiredCarers));
             }
             const visitRow = {
               scheduledStartDateTime: start,
@@ -2522,7 +2527,7 @@ export class ServiceUserVisitPlansService {
         for (const slot of enabledSlots) {
           const assignedEmployeeIds = visitPlanCarerEmployeeIds(
             [],
-            slotAssignedEmployeeIds(slot),
+            resolveGlobalAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments),
             slot.requiredCarers,
           );
           if (!assignedEmployeeIds.length && !(slot.carerAssignments ?? []).length) continue;
