@@ -374,4 +374,19 @@ export enum AuditAction {
   PAYROLL_HMRC_EPS_LIVE_REQUESTED = 'payroll_hmrc_eps_live_requested',
   PAYROLL_HMRC_EPS_LIVE_APPROVED = 'payroll_hmrc_eps_live_approved',
   PAYROLL_HMRC_EPS_LIVE_REJECTED = 'payroll_hmrc_eps_live_rejected',
+
+  HR_DOCUMENT_UPLOADED = 'hr_document_uploaded',
+  HR_DOCUMENT_DELETED = 'hr_document_deleted',
+  HR_PROFILE_CREATED = 'hr_profile_created',
+  HR_PROFILE_UPDATED = 'hr_profile_updated',
+
+  INCIDENT_CREATED = 'incident_created',
+  INCIDENT_UPDATED = 'incident_updated',
+  INCIDENT_STATUS_CHANGED = 'incident_status_changed',
+  INCIDENT_SEVERITY_CHANGED = 'incident_severity_changed',
+  INCIDENT_OWNER_CHANGED = 'incident_owner_changed',
+  INCIDENT_PRIVACY_CHANGED = 'incident_privacy_changed',
+  INCIDENT_ARCHIVED = 'incident_archived',
+  INCIDENT_REOPENED = 'incident_reopened',
+  INCIDENT_CLOSED = 'incident_closed',
 }

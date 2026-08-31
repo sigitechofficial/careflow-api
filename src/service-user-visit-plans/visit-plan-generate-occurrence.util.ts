@@ -8,6 +8,7 @@ import {
 import {
   findExtraException,
   resolveCarerAssignmentsForDay,
+  resolveRequiredCarersForDay,
   visitPlanSlotOccurrenceOnDay,
   type VisitPlanSlotCarerAssignmentShape,
   type VisitPlanSlotExceptionShape,
@@ -48,6 +49,7 @@ function mapAssignments(rows: VisitPlanSlotCarerAssignment[] | undefined): Visit
     dayOfWeek: a.dayOfWeek,
     employeeId: a.employeeId,
     role: a.role,
+    requiredCarers: a.requiredCarers,
     durationMinutes: a.durationMinutes,
     plannedStartTime: a.plannedStartTime,
     plannedEndTime: a.plannedEndTime,
@@ -109,7 +111,16 @@ export function buildVisitPlanOccurrence(
 
   if (!shouldOccur) return null;
 
-  const requiredCarers = extraRow?.requiredCarers ?? slot.requiredCarers;
+  const mappedAssignments = mapAssignments(slot.carerAssignments);
+  // Per-row required carers: an EXTRA exception overrides for its date; otherwise the
+  // largest per-row count among the day's assignments wins, falling back to the slot default.
+  const requiredCarers =
+    extraRow?.requiredCarers ??
+    resolveRequiredCarersForDay(
+      mappedAssignments,
+      day.getUTCDay(),
+      slot.requiredCarers,
+    );
 
   const slotWindowInput = {
     plannedStartTime: extraRow?.plannedStartTime ?? slot.plannedStartTime,
@@ -119,7 +130,7 @@ export function buildVisitPlanOccurrence(
   };
 
   const assignments = resolveCarerAssignmentsForDay(
-    mapAssignments(slot.carerAssignments),
+    mappedAssignments,
     day.getUTCDay(),
     requiredCarers,
     slot.assignedEmployeeIds ?? [],

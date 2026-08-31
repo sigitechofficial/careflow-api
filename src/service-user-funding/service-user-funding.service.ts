@@ -133,6 +133,46 @@ export class ServiceUserFundingService {
     });
   }
 
+  private primaryEligibleWhere(serviceUserId: string): Prisma.ServiceUserFundingWhereInput {
+    return {
+      serviceUserId,
+      deletedAt: null,
+      status: { notIn: [FundingStatus.ENDED, FundingStatus.REJECTED] },
+    };
+  }
+
+  /** Keep exactly one primary among billable fundings; auto-promote when none remain. */
+  private async ensurePrimaryFunding(tx: Tx, serviceUserId: string, userId: string): Promise<string | null> {
+    const rows = await tx.serviceUserFunding.findMany({
+      where: this.primaryEligibleWhere(serviceUserId),
+      orderBy: [{ splitPriority: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, isPrimary: true },
+    });
+    if (rows.length === 0) {
+      await this.setCurrentFundingPointer(tx, serviceUserId, null);
+      return null;
+    }
+
+    const primaryRows = rows.filter((row) => row.isPrimary);
+    if (primaryRows.length === 1) {
+      const primaryId = primaryRows[0]!.id;
+      await this.setCurrentFundingPointer(tx, serviceUserId, primaryId);
+      return primaryId;
+    }
+
+    const winnerId = (primaryRows.length > 1 ? rows.find((row) => row.isPrimary) : rows[0])!.id;
+    await tx.serviceUserFunding.updateMany({
+      where: { serviceUserId, deletedAt: null, isPrimary: true, id: { not: winnerId } },
+      data: { isPrimary: false, updatedById: userId },
+    });
+    await tx.serviceUserFunding.update({
+      where: { id: winnerId },
+      data: { isPrimary: true, updatedById: userId },
+    });
+    await this.setCurrentFundingPointer(tx, serviceUserId, winnerId);
+    return winnerId;
+  }
+
   private buildFundingData(
     dto: CreateServiceUserFundingDto | UpdateServiceUserFundingDto,
     userId: string,
@@ -301,6 +341,7 @@ export class ServiceUserFundingService {
         include: fundingInclude,
       });
       if (isPrimary) await this.setCurrentFundingPointer(tx, serviceUserId, created.id);
+      await this.ensurePrimaryFunding(tx, serviceUserId, userId);
       await this.audit.logAudit({
         tx,
         userId,
@@ -362,6 +403,7 @@ export class ServiceUserFundingService {
         const su = await tx.serviceUser.findFirst({ where: { id: serviceUserId }, select: { currentFundingId: true } });
         if (su?.currentFundingId === fundingId) await this.setCurrentFundingPointer(tx, serviceUserId, null);
       }
+      await this.ensurePrimaryFunding(tx, serviceUserId, userId);
       await this.audit.logAudit({
         tx,
         userId,
@@ -400,6 +442,7 @@ export class ServiceUserFundingService {
       });
       const su = await tx.serviceUser.findFirst({ where: { id: serviceUserId }, select: { currentFundingId: true } });
       if (su?.currentFundingId === fundingId) await this.setCurrentFundingPointer(tx, serviceUserId, null);
+      await this.ensurePrimaryFunding(tx, serviceUserId, userId);
       await this.audit.logAudit({
         tx,
         userId,
@@ -574,6 +617,7 @@ export class ServiceUserFundingService {
       });
       const su = await tx.serviceUser.findFirst({ where: { id: serviceUserId }, select: { currentFundingId: true } });
       if (su?.currentFundingId === fundingId) await this.setCurrentFundingPointer(tx, serviceUserId, null);
+      await this.ensurePrimaryFunding(tx, serviceUserId, userId);
       await this.audit.logAudit({
         tx,
         userId,

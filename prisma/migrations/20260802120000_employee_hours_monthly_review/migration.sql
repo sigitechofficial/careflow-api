@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "employees"."EmployeeHoursMonthlyReview" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" UUID NOT NULL,
   "employeeId" UUID NOT NULL,
   "year" INTEGER NOT NULL,
   "month" INTEGER NOT NULL,

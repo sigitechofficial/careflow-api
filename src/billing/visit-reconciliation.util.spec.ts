@@ -272,6 +272,26 @@ describe('calculateBillableAmount night duty', () => {
     );
     expect(result).toEqual({ amount: 36, label: 'HOURLY_PRO_RATA' });
   });
+
+  it('prefers a weekday sleeping night rate over an ANY-day fallback', () => {
+    const weekdaySleep = {
+      ...sleepIn,
+      dayType: 'WEEKDAY',
+      amount: 90,
+      priority: 10,
+      label: 'Sleeping night — Weekday',
+    };
+    const result = calculateBillableAmount(
+      [dayHourly, sleepIn, weekdaySleep, waking],
+      weekday,
+      540,
+      'HOURLY_PRO_RATA',
+      false,
+      undefined,
+      'SLEEPING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 90, label: 'SLEEP_IN' });
+  });
 });
 
 describe('deriveReconciliationStatus — auto pay on complete', () => {
