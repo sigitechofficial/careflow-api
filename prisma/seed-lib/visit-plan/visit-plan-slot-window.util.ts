@@ -2,7 +2,7 @@ import {
   DEFAULT_OPERATIONAL_TIMEZONE,
   combineOperationalDateAndHm,
   dayKeyInTimeZone,
-} from '../../../src/common/utils/operational-day.util';
+} from './operational-day.util';
 
 const DAY_MS = 86400000;
 const HM_RE = /^(\d{2}):(\d{2})$/;

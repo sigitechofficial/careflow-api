@@ -2145,23 +2145,37 @@ async function main() {
     );
   }
 
-  // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
-  const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
+  // Demo / sample seeding is for dev & test only. It creates demo service users and RESETS
+  // body-map data, so it must NEVER run against production — otherwise a deploy that runs
+  // `prisma db seed` would inject demo data into the live DB. Default OFF on production:
+  // an explicit SEED_DEMO_DATA flag wins; otherwise demo seeds everywhere EXCEPT production.
+  const seedDemoData =
+    process.env.SEED_DEMO_DATA === 'true' ||
+    (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production');
 
-  // Demo service-user data (medications, observations, allergies, inventory, etc.)
-  await seedDemoServiceUserData(prisma, demoSuId ? { serviceUserId: demoSuId } : {});
+  if (seedDemoData) {
+    // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
+    const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
 
-  await resetAndSeedBodyMapDemo(prisma, {
-    serviceUserId: demoSuId ?? undefined,
-    includeSecondServiceUser: true,
-  });
+    // Demo service-user data (medications, observations, allergies, inventory, etc.)
+    await seedDemoServiceUserData(prisma, demoSuId ? { serviceUserId: demoSuId } : {});
 
-  if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
-    await seedServiceUserPersonas(prisma);
-  }
+    await resetAndSeedBodyMapDemo(prisma, {
+      serviceUserId: demoSuId ?? undefined,
+      includeSecondServiceUser: true,
+    });
 
-  if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
-    await seedPersonaSchedule(prisma);
+    if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+      await seedServiceUserPersonas(prisma);
+    }
+
+    if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+      await seedPersonaSchedule(prisma);
+    }
+  } else {
+    console.log(
+      '[seed] Demo seeding disabled (SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
+    );
   }
 
   const scheduleOperatorPermKeys = [
