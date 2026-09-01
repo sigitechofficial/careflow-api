@@ -145,6 +145,14 @@ export function mapServiceUserDetail(
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
   locationId: string | null;
   location: { id: string; name: string } | null;
+  serviceUserAreaId?: string | null;
+  serviceUserArea?: {
+    id: string;
+    name: string;
+    code: string;
+    scheduleAreaId: string;
+    postcodes: { postcode: string }[];
+  } | null;
   keyWorker: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   namedNurse: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   address:
@@ -242,6 +250,16 @@ export function mapServiceUserDetail(
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
     location: mappedLocation,
+    serviceUserAreaId: user.serviceUserAreaId ?? null,
+    serviceUserArea: user.serviceUserArea
+      ? {
+          id: user.serviceUserArea.id,
+          name: user.serviceUserArea.name,
+          code: user.serviceUserArea.code,
+          scheduleAreaId: user.serviceUserArea.scheduleAreaId,
+          postcodes: user.serviceUserArea.postcodes.map((p) => p.postcode),
+        }
+      : null,
     keyWorker: mapEmployeeBrief(user.keyWorker),
     namedNurse: mapEmployeeBrief(user.namedNurse),
     address: user.address

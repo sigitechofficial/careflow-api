@@ -178,6 +178,17 @@ export class LookupsService implements OnModuleInit {
     );
   }
 
+  upsertVisitStatusReason(rawName: string) {
+    return this.upsertByName(rawName, (name) =>
+      this.prisma.visitStatusReason.upsert({
+        where: { name },
+        update: { isActive: true, deletedAt: null },
+        create: { name, isActive: true },
+        select: { id: true, name: true },
+      }),
+    );
+  }
+
   upsertReviewType(rawName: string) {
     return this.upsertByName(rawName, (name) =>
       this.prisma.reviewType.upsert({
@@ -241,6 +252,12 @@ export class LookupsService implements OnModuleInit {
   }
   leavingReasons() {
     return this.prisma.leavingReason.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } });
+  }
+  visitStatusReasons() {
+    return this.prisma.visitStatusReason.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: { name: 'asc' },
+    });
   }
   skillTypes() {
     return this.prisma.skillType.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } });
@@ -399,6 +416,18 @@ export class LookupsService implements OnModuleInit {
               select: { id: true, name: true },
             }),
         );
+      case 'visit-status-reasons':
+        return this.updateLookupRow(
+          id,
+          name,
+          () => this.prisma.visitStatusReason.findFirst({ where: { id, deletedAt: null } }),
+          (n) =>
+            this.prisma.visitStatusReason.update({
+              where: { id },
+              data: { name: n },
+              select: { id: true, name: true },
+            }),
+        );
       case 'review-types':
         return this.updateLookupRow(
           id,
@@ -506,6 +535,13 @@ export class LookupsService implements OnModuleInit {
           id,
           () => this.prisma.leavingReason.findFirst({ where: { id, deletedAt: null } }),
           () => this.prisma.leavingReason.update({ where: { id }, data: soft }).then(() => undefined),
+        );
+      case 'visit-status-reasons':
+        return this.softDeleteLookupRow(
+          id,
+          () => this.prisma.visitStatusReason.findFirst({ where: { id, deletedAt: null } }),
+          () =>
+            this.prisma.visitStatusReason.update({ where: { id }, data: soft }).then(() => undefined),
         );
       case 'review-types':
         return this.softDeleteLookupRow(

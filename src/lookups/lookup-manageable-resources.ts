@@ -7,6 +7,7 @@ export const LOOKUP_MANAGEABLE_RESOURCES = [
   'certification-types',
   'non-core-activity-reasons',
   'leaving-reasons',
+  'visit-status-reasons',
   'review-types',
   'locations',
   'zones',

@@ -58,13 +58,18 @@ export class EmployeeEmploymentService {
     return { data: employment };
   }
 
-  async update(userId: string, employeeId: string, dto: UpdateEmployeeEmploymentDto, meta?: RequestAuditMeta) {
+  async update(
+    userId: string,
+    employeeId: string,
+    dto: UpdateEmployeeEmploymentDto,
+    meta?: RequestAuditMeta,
+  ) {
     const exists = await this.prisma.employee.findFirst({
       where: { id: employeeId, deletedAt: null },
     });
     if (!exists) throw new NotFoundException('Employee not found');
 
-    const { baseLocationIds, defaultPayCardId, ...employmentScalars } = dto
+    const { baseLocationIds, defaultPayCardId, ...employmentScalars } = dto;
 
     const agencyClear =
       dto.isAgencyStaff === false

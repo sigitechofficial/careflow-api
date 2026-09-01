@@ -7,6 +7,7 @@ import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-check
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
 import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
 import { seedScheduleAreas } from './seeds/schedule-areas.seed';
+import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
@@ -32,6 +33,7 @@ import {
   DEFAULT_SERVICE_USER_ETHNICITIES,
   DEFAULT_SERVICE_USER_LANGUAGES,
 } from './seed-data/service-user-ethnicity-language.defaults';
+import { DEFAULT_VISIT_STATUS_REASONS } from './seed-data/visit-status-reasons.defaults';
 
 const prisma = new PrismaClient();
 
@@ -98,6 +100,9 @@ async function main() {
     'Other',
   ])
     await upsertLookup(prisma.leavingReason, name);
+
+  for (const name of DEFAULT_VISIT_STATUS_REASONS)
+    await upsertLookup(prisma.visitStatusReason, name);
 
   for (const name of [
     'Grade1',
@@ -2129,6 +2134,17 @@ async function main() {
   }
 
   await seedScheduleAreas(prisma);
+  try {
+    const sua = await seedServiceUserAreas(prisma);
+    console.log(
+      `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
+    );
+  } catch (err) {
+    console.warn(
+      '[seed] Service user areas skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
