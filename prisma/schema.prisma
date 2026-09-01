@@ -2099,6 +2099,8 @@ model Location {
 model Zone {
   id        String @id @default(uuid()) @db.Uuid
   name      String @unique
+  country   String?
+  city      String?
   isActive  Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5590,6 +5592,8 @@ model ScheduleArea {
   /** 3-character branch code used in visit references (VIS-[BRANCH]-…). */
   visitRefCode String?  @unique @db.VarChar(3)
   description String?
+  /** Physical / postal address for this branch. */
+  address     String?
   locationId  String?  @db.Uuid
   zoneId      String?  @db.Uuid
   sortOrder   Int      @default(0)

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 
 export class UpdateMemberLocationDto {
   @ApiPropertyOptional({ nullable: true, description: 'Branch Location id' })
@@ -13,4 +13,14 @@ export class UpdateMemberLocationDto {
   @ValidateIf((_, v) => v !== null)
   @IsUUID()
   serviceUserAreaId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Home address postcode — typically one of the selected area’s postcodes',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(32)
+  postcode?: string | null;
 }

@@ -9,6 +9,10 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { LocationManagementService } from './location-management.service';
 import { UpdateLocationZoneDto } from './dto/update-location-zone.dto';
+import {
+  CreateLocationBranchDto,
+  CreateLocationZoneDto,
+} from './dto/create-location-zone-branch.dto';
 import { UpdateMemberLocationDto } from './dto/update-member-location.dto';
 import { UpdateEmployeeLocationDto } from './dto/update-employee-location.dto';
 import {
@@ -37,6 +41,17 @@ export class LocationManagementController {
     return this.service.listActiveUsers();
   }
 
+  @Post('zones')
+  @AnyPermission('lookups.manage', 'schedule_areas.create')
+  @ApiOperation({ summary: 'Create a zone (country + city)' })
+  createZone(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateLocationZoneDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createZone(user.id, dto, getRequestAuditMeta(req));
+  }
+
   @Get('zones/:id')
   @AnyPermission('lookups.read', 'schedule_areas.read')
   getZone(@Param('id') id: string) {
@@ -53,6 +68,17 @@ export class LocationManagementController {
     @Req() req: Request,
   ) {
     return this.service.updateZone(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('branches')
+  @AnyPermission('lookups.manage', 'schedule_areas.create')
+  @ApiOperation({ summary: 'Create a branch under a zone (with address)' })
+  createBranch(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateLocationBranchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createBranch(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post('areas')
