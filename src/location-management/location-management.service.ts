@@ -459,6 +459,41 @@ export class LocationManagementService {
     }
   }
 
+  /**
+   * Pick a free 3-char visit reference branch code.
+   * Prefer a derived token from the branch name; otherwise L00…L99 then A00…Z99.
+   */
+  private async allocateUniqueVisitRefCode(
+    tx: Prisma.TransactionClient,
+    seed: string,
+  ): Promise<string> {
+    const preferred = normalizeVisitRefBranchCode(seed);
+    const candidates: string[] = [];
+    if (preferred && preferred !== 'GEN') candidates.push(preferred);
+    for (let i = 0; i < 100; i += 1) {
+      candidates.push(`L${String(i).padStart(2, '0')}`);
+    }
+    for (let letter = 65; letter <= 90; letter += 1) {
+      for (let i = 0; i < 100; i += 1) {
+        candidates.push(`${String.fromCharCode(letter)}${String(i).padStart(2, '0')}`);
+      }
+    }
+
+    const seen = new Set<string>();
+    for (const raw of candidates) {
+      const code = normalizeVisitRefBranchCode(raw);
+      if (!code || code === 'GEN' || seen.has(code)) continue;
+      seen.add(code);
+      const clash = await tx.scheduleArea.findFirst({
+        where: { visitRefCode: code, deletedAt: null },
+        select: { id: true },
+      });
+      if (!clash) return code;
+    }
+
+    throw new ConflictException('Could not allocate a unique visit reference branch code');
+  }
+
   async createBranch(userId: string, dto: CreateLocationBranchDto, meta?: RequestAuditMeta) {
     const zone = await this.prisma.zone.findFirst({
       where: { id: dto.zoneId, deletedAt: null, isActive: true },
@@ -495,16 +530,18 @@ export class LocationManagementService {
           code = `${preferredCode.slice(0, 70)}_${attempt + 1}`;
         }
 
-        if (visitRefCode) {
-          const visitClash = await tx.scheduleArea.findFirst({
-            where: { visitRefCode, deletedAt: null },
-            select: { id: true },
-          });
-          if (visitClash) {
-            throw new ConflictException(
-              `Visit reference branch code “${visitRefCode}” is already in use`,
-            );
-          }
+        const resolvedVisitRef =
+          visitRefCode ??
+          (await this.allocateUniqueVisitRefCode(tx, preferredCode || branchName));
+
+        const visitClash = await tx.scheduleArea.findFirst({
+          where: { visitRefCode: resolvedVisitRef, deletedAt: null },
+          select: { id: true },
+        });
+        if (visitClash) {
+          throw new ConflictException(
+            `Visit reference branch code “${resolvedVisitRef}” is already in use`,
+          );
         }
 
         const maxSort = await tx.scheduleArea.aggregate({
@@ -516,7 +553,7 @@ export class LocationManagementService {
           data: {
             name: branchName,
             code,
-            visitRefCode,
+            visitRefCode: resolvedVisitRef,
             address: dto.address?.trim() || null,
             locationId: location.id,
             zoneId: zone.id,

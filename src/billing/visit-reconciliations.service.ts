@@ -378,18 +378,83 @@ export class VisitReconciliationsService {
   /**
    * Reuse the visit reference already issued for this scheduled visit.
    * Otherwise allocate VIS-[BRANCH]-[YYYYMMDD]-[NNNN] once (immutable thereafter).
+   * BRANCH comes from the service user’s assigned branch (location → ScheduleArea),
+   * then service-user area’s schedule area, then the job’s schedule area.
    * YYYYMMDD is taken from the original planned start at allocation time.
+   * Legacy VIS-GEN-* refs are rewritten once when a real branch code is available.
    */
   private async resolveOrAllocateVisitRef(
     db: DbClient,
-    visit: { id: string; scheduledJobId: string; scheduledStartDateTime: Date },
+    visit: {
+      id: string
+      scheduledJobId: string
+      serviceUserId: string
+      scheduledStartDateTime: Date
+    },
   ): Promise<string> {
     const existing = await db.visitReconciliation.findFirst({
       where: { scheduledVisitId: visit.id },
       select: { visitRef: true },
       orderBy: { createdAt: 'asc' },
     });
-    if (existing?.visitRef?.trim()) return existing.visitRef.trim();
+    const existingRef = existing?.visitRef?.trim() || '';
+    const isLegacyGen = /^VIS-GEN-\d{8}-\d{4}$/.test(existingRef);
+    if (existingRef && !isLegacyGen) return existingRef;
+
+    const branchCode = await this.resolveVisitRefBranchCode(db, visit);
+    // Still no branch mapping — keep legacy GEN rather than minting another GEN seq.
+    if (isLegacyGen && branchCode === 'GEN') return existingRef;
+
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    // Freeze the planned calendar day at first issuance (reschedules do not reissue).
+    // For legacy GEN rewrite, keep the original day segment when present.
+    const dayKey = isLegacyGen
+      ? existingRef.slice(8, 16)
+      : visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
+    const nextRef = await this.allocateVisitRef(db, branchCode, dayKey);
+
+    if (isLegacyGen && nextRef !== existingRef) {
+      await db.visitReconciliation.updateMany({
+        where: { scheduledVisitId: visit.id, visitRef: existingRef },
+        data: { visitRef: nextRef },
+      });
+    }
+
+    return nextRef;
+  }
+
+  /**
+   * Prefer the service user’s branch ScheduleArea.visitRefCode / code.
+   */
+  private async resolveVisitRefBranchCode(
+    db: DbClient,
+    visit: { scheduledJobId: string; serviceUserId: string },
+  ): Promise<string> {
+    const su = await db.serviceUser.findFirst({
+      where: { id: visit.serviceUserId, deletedAt: null },
+      select: {
+        locationId: true,
+        serviceUserArea: {
+          select: {
+            scheduleArea: {
+              select: { visitRefCode: true, code: true },
+            },
+          },
+        },
+      },
+    });
+
+    type BranchBits = { visitRefCode: string | null; code: string | null };
+    let fromSuLocation: BranchBits | null = null;
+    if (su?.locationId) {
+      fromSuLocation = await db.scheduleArea.findFirst({
+        where: { locationId: su.locationId, deletedAt: null, isActive: true },
+        select: { visitRefCode: true, code: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      });
+    }
+
+    const fromSuArea = su?.serviceUserArea?.scheduleArea ?? null;
 
     const job = await db.scheduledJob.findFirst({
       where: { id: visit.scheduledJobId },
@@ -397,13 +462,19 @@ export class VisitReconciliationsService {
         scheduleArea: { select: { visitRefCode: true, code: true } },
       },
     });
-    const branchCode = normalizeVisitRefBranchCode(
-      job?.scheduleArea?.visitRefCode ?? job?.scheduleArea?.code,
-    );
-    const timeZone = await this.orgSettings.getOperationalTimezone();
-    // Freeze the planned calendar day at first issuance (reschedules do not reissue).
-    const dayKey = visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
-    return this.allocateVisitRef(db, branchCode, dayKey);
+    const fromJob = job?.scheduleArea ?? null;
+
+    const pick = (...candidates: Array<BranchBits | null | undefined>) => {
+      for (const c of candidates) {
+        if (!c) continue;
+        if (c.visitRefCode?.trim() || c.code?.trim()) {
+          return normalizeVisitRefBranchCode(c.visitRefCode ?? c.code);
+        }
+      }
+      return normalizeVisitRefBranchCode(null);
+    };
+
+    return pick(fromSuLocation, fromSuArea, fromJob);
   }
 
   private async allocateVisitRef(

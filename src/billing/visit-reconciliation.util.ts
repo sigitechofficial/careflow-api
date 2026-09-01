@@ -67,10 +67,11 @@ export function minutesBetween(start: Date, end: Date): number {
 
 /**
  * Human visit reference: VIS-[BRANCH]-[YYYYMMDD]-[NNNN]
- * BRANCH = 3-character branch code (e.g. L01)
+ * BRANCH = 3-character code from the service user’s branch (ScheduleArea.visitRefCode)
  * YYYYMMDD = original planned visit date
  * NNNN = daily sequence per branch (resets each day)
- * Immutable after creation. Separate from Rolling Rota / Timebank IDs.
+ * Immutable after creation (except one-time rewrite of legacy VIS-GEN-* refs).
+ * Separate from Rolling Rota / Timebank IDs.
  * Example: VIS-L01-20260901-0123
  */
 export function formatVisitRef(branchCode: string, dayKeyYyyymmdd: string, sequence: number): string {
