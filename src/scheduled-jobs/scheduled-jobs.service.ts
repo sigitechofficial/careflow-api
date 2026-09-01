@@ -139,6 +139,85 @@ export class ScheduledJobsService {
     return { data: this.mapJobDetail(row) };
   }
 
+  async listCareConsents(jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const rows = await this.prisma.visitCareConsent.findMany({
+      where: { scheduledJobId: jobId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        reason: true,
+        deviceRecordedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        capturedByEmployeeId: true,
+        capturedBy: {
+          select: {
+            personalDetail: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    return {
+      data: {
+        required: true,
+        consents: rows.map((row) => {
+          const first = row.capturedBy.personalDetail?.firstName?.trim() ?? '';
+          const last = row.capturedBy.personalDetail?.lastName?.trim() ?? '';
+          const name = `${first} ${last}`.trim();
+          return {
+            status: row.status,
+            reason: row.reason,
+            recordedAt: (row.deviceRecordedAt ?? row.updatedAt ?? row.createdAt).toISOString(),
+            capturedByEmployeeId: row.capturedByEmployeeId,
+            capturedByName: name || null,
+          };
+        }),
+      },
+    };
+  }
+
+  async clearCareConsents(jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true, metadata: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    await this.prisma.visitCareConsent.deleteMany({
+      where: { scheduledJobId: jobId },
+    });
+
+    const previousMeta =
+      job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? { ...(job.metadata as Record<string, unknown>) }
+        : {};
+    const previousEa =
+      previousMeta.employeeApp &&
+      typeof previousMeta.employeeApp === 'object' &&
+      !Array.isArray(previousMeta.employeeApp)
+        ? { ...(previousMeta.employeeApp as Record<string, unknown>) }
+        : {};
+    if ('careConsent' in previousEa) {
+      delete previousEa.careConsent;
+      await this.prisma.scheduledJob.update({
+        where: { id: jobId },
+        data: {
+          metadata: { ...previousMeta, employeeApp: previousEa } as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    return { data: { required: true, consents: [] as const } };
+  }
+
   private jobDataFromDto(
     dto: CreateScheduledJobDto | UpdateScheduledJobDto,
     userId: string,

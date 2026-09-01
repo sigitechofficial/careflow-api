@@ -27,6 +27,20 @@ export class ScheduledJobsController {
     return this.service.list(query);
   }
 
+  @Get(':id/care-consents')
+  @Permissions('scheduled_jobs.read')
+  @ApiOperation({ summary: 'Consent-to-care record for this visit' })
+  listCareConsents(@Param('id') id: string) {
+    return this.service.listCareConsents(id);
+  }
+
+  @Delete(':id/care-consents')
+  @Permissions('scheduled_jobs.update')
+  @ApiOperation({ summary: 'Clear consent to care for this visit (testing / office override)' })
+  clearCareConsents(@Param('id') id: string) {
+    return this.service.clearCareConsents(id);
+  }
+
   @Get(':id')
   @Permissions('scheduled_jobs.read')
   @ApiOperation({ summary: 'Get scheduled job by id' })

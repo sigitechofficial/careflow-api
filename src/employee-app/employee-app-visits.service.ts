@@ -20,6 +20,7 @@ import {
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
+  VisitCareConsentStatus,
   VisitAttendanceEventType,
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
@@ -75,6 +76,7 @@ import type {
   EmployeeAppObservationWriteDto,
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
+  EmployeeAppCareConsentDto,
 } from './dto/employee-app-visit-writes.dto';
 import type { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
 import type { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
@@ -339,7 +341,7 @@ export class EmployeeAppVisitsService {
    */
   async getVisitDetails(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes] =
+    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
         this.getTasks(employeeId, jobId),
@@ -348,6 +350,7 @@ export class EmployeeAppVisitsService {
         this.getLog(employeeId, jobId),
         this.getBodyMapWizard(employeeId, jobId),
         this.getWelfareOutcomes(),
+        this.getCareConsent(employeeId, ctx.primaryVisit.id),
       ]);
 
     return {
@@ -366,6 +369,7 @@ export class EmployeeAppVisitsService {
         clockInSettings: workspace.data.clockInSettings,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
         welfareOutcomes,
+        careConsent,
       },
     };
   }
@@ -382,6 +386,120 @@ export class EmployeeAppVisitsService {
       select: { code: true, label: true, tone: true },
     });
     return rows.map((r) => ({ id: r.code, label: r.label, tone: r.tone }));
+  }
+
+  private mapCareConsent(row: {
+    status: VisitCareConsentStatus;
+    reason: string | null;
+    deviceRecordedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    capturedByEmployeeId: string;
+  } | null) {
+    if (!row) {
+      return {
+        required: true,
+        status: null,
+        reason: null,
+        recordedAt: null,
+        capturedByEmployeeId: null,
+      };
+    }
+    return {
+      required: true,
+      status: row.status,
+      reason: row.reason,
+      recordedAt: (row.deviceRecordedAt ?? row.updatedAt ?? row.createdAt).toISOString(),
+      capturedByEmployeeId: row.capturedByEmployeeId,
+    };
+  }
+
+  async getCareConsent(_employeeId: string, scheduledVisitId: string) {
+    const row = await this.prisma.visitCareConsent.findUnique({
+      where: { scheduledVisitId },
+      select: {
+        status: true,
+        reason: true,
+        deviceRecordedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        capturedByEmployeeId: true,
+      },
+    });
+    return this.mapCareConsent(row);
+  }
+
+  async getCareConsentForJob(employeeId: string, jobId: string) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    return { data: await this.getCareConsent(employeeId, ctx.primaryVisit.id) };
+  }
+
+  async saveCareConsent(employeeId: string, jobId: string, dto: EmployeeAppCareConsentDto) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+
+    if (!isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)) {
+      validationError('Only the lead carer can record consent to care');
+    }
+
+    if (
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF
+    ) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const checkedIn =
+      Boolean(myAllocation?.actualStartDateTime) || Boolean(ctx.checkIn);
+    if (!checkedIn) {
+      validationError('Clock in before recording consent to care');
+    }
+
+    if (dto.status === 'DECLINED' && !dto.reason?.trim()) {
+      validationError('A reason is required when consent is declined');
+    }
+
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const deviceRecordedAt = dto.deviceRecordedAt ? new Date(dto.deviceRecordedAt) : new Date();
+    const status =
+      dto.status === 'DECLINED' ? VisitCareConsentStatus.DECLINED : VisitCareConsentStatus.GRANTED;
+    const reason = dto.status === 'DECLINED' ? dto.reason!.trim() : dto.reason?.trim() || null;
+
+    const row = await this.prisma.visitCareConsent.upsert({
+      where: { scheduledVisitId: visit.id },
+      create: {
+        scheduledVisitId: visit.id,
+        scheduledJobId: jobId,
+        serviceUserId: ctx.job.serviceUserId,
+        capturedByEmployeeId: employeeId,
+        status,
+        reason,
+        deviceRecordedAt,
+      },
+      update: {
+        capturedByEmployeeId: employeeId,
+        status,
+        reason,
+        deviceRecordedAt,
+      },
+    });
+
+    const data = this.mapCareConsent(row);
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      careConsent: data,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: data,
+      },
+    }));
+
+    return { data };
   }
 
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {

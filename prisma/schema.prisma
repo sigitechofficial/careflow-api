@@ -939,6 +939,7 @@ model Employee {
   visitTaskCompletions      ScheduledVisitTaskCompletion[]  @relation("VisitTaskCompletedBy")
   jobAllocations            JobAllocation[]
   visitAttendanceEvents     VisitAttendanceEvent[]
+  visitCareConsentsCaptured VisitCareConsent[]
   visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
   scheduleRuns              ScheduleRun[]
@@ -2598,6 +2599,7 @@ model ServiceUser {
   bodyMapRecords             BodyMapRecord[]
   bodyMapAlerts              BodyMapAlert[]
   portalAccount              ServiceUserPortalAccount?
+  visitCareConsents          VisitCareConsent[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -5785,6 +5787,7 @@ model ScheduledJob {
   ecmScheduleVersions EcmScheduleVersion[]
   ecmNotificationEvidence EcmNotificationEvidence[]
   timelineEvents   VisitTimelineEvent[]
+  careConsents     VisitCareConsent[]
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
@@ -5867,6 +5870,7 @@ model ScheduledVisit {
   callOffVisits CallOffVisit[]
   attendanceEvents VisitAttendanceEvent[]
   ecmEvaluations EcmVisitEvaluation[]
+  careConsents     VisitCareConsent[]
 
   @@index([scheduledJobId])
   @@index([serviceUserId])
@@ -6152,6 +6156,37 @@ model VisitWelfareOutcomeCatalog {
 
   @@index([isActive])
   @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+enum VisitCareConsentStatus {
+  GRANTED
+  DECLINED
+
+  @@schema("scheduling")
+}
+
+/// One consent-to-care row per visit (lead records; support does not).
+model VisitCareConsent {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  scheduledVisitId     String                 @unique @db.Uuid
+  scheduledJobId       String                 @db.Uuid
+  serviceUserId        String                 @db.Uuid
+  capturedByEmployeeId String                 @db.Uuid
+  status               VisitCareConsentStatus
+  reason               String?                @db.Text
+  deviceRecordedAt     DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  scheduledVisit ScheduledVisit @relation(fields: [scheduledVisitId], references: [id], onDelete: Cascade)
+  scheduledJob   ScheduledJob   @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  serviceUser    ServiceUser    @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  capturedBy     Employee       @relation(fields: [capturedByEmployeeId], references: [id], onDelete: Restrict)
+
+  @@index([scheduledJobId])
+  @@index([serviceUserId])
+  @@index([capturedByEmployeeId])
   @@schema("scheduling")
 }
 
