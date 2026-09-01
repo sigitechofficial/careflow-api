@@ -41,6 +41,7 @@ import {
   EmployeeAppObservationWriteDto,
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
+  EmployeeAppCareConsentDto,
 } from './dto/employee-app-visit-writes.dto';
 import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
 
@@ -61,10 +62,30 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map bootstrap (lookups, active records, diagram catalog) in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map bootstrap (lookups, active records, diagram catalog) in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, `data.careConsent` (required, status GRANTED/DECLINED/null), and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);
+  }
+
+  @Get(':jobId/care-consent')
+  @ApiOperation({ summary: 'Visit-level consent to care (lead records)' })
+  getCareConsent(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    return this.visitsService.getCareConsentForJob(user.employeeId!, jobId);
+  }
+
+  @Post(':jobId/care-consent')
+  @ApiOperation({
+    summary: 'Record consent to care for this visit',
+    description:
+      'One row per visit (lead records). Clock-in required. DECLINED requires reason. Upserts if already recorded.',
+  })
+  saveCareConsent(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppCareConsentDto,
+  ) {
+    return this.visitsService.saveCareConsent(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/check-in')

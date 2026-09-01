@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsISO8601,
   IsNumber,
   IsObject,
@@ -635,6 +636,33 @@ export class EmployeeAppIncidentDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+}
+
+export const VISIT_CARE_CONSENT_STATUSES = ['GRANTED', 'DECLINED'] as const;
+
+export class EmployeeAppCareConsentDto {
+  @ApiProperty({ enum: VISIT_CARE_CONSENT_STATUSES, example: 'GRANTED' })
+  @IsIn(VISIT_CARE_CONSENT_STATUSES as unknown as string[])
+  status!: (typeof VISIT_CARE_CONSENT_STATUSES)[number];
+
+  @ApiPropertyOptional({
+    description: 'Required when status is DECLINED',
+    example: 'Person declined personal care this visit',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reason?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsISO8601()
+  deviceRecordedAt?: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(128)
+  idempotencyKey!: string;
 }
 
 export class EmployeeAppIdentityDto {
