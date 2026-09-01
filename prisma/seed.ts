@@ -148,8 +148,77 @@ async function main() {
     'Transport - Croydon Transport',
   ]) {
     await upsertLookup(prisma.location, name);
-    await upsertLookup(prisma.zone, name);
   }
+
+  // Location-management zones = cities (not “Zone - Branch” location labels).
+  const CITY_ZONES: Array<{ name: string; country: string; city: string }> = [
+    { name: 'London', country: 'United Kingdom', city: 'London' },
+    { name: 'Birmingham', country: 'United Kingdom', city: 'Birmingham' },
+    { name: 'Manchester', country: 'United Kingdom', city: 'Manchester' },
+    { name: 'Leeds', country: 'United Kingdom', city: 'Leeds' },
+    { name: 'Glasgow', country: 'United Kingdom', city: 'Glasgow' },
+    { name: 'Edinburgh', country: 'United Kingdom', city: 'Edinburgh' },
+    { name: 'Liverpool', country: 'United Kingdom', city: 'Liverpool' },
+    { name: 'Bristol', country: 'United Kingdom', city: 'Bristol' },
+    { name: 'Sheffield', country: 'United Kingdom', city: 'Sheffield' },
+    { name: 'Newcastle', country: 'United Kingdom', city: 'Newcastle' },
+    { name: 'Cardiff', country: 'United Kingdom', city: 'Cardiff' },
+    { name: 'Belfast', country: 'United Kingdom', city: 'Belfast' },
+  ];
+  for (const zone of CITY_ZONES) {
+    await prisma.zone.upsert({
+      where: { name: zone.name },
+      update: {
+        country: zone.country,
+        city: zone.city,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        name: zone.name,
+        country: zone.country,
+        city: zone.city,
+        isActive: true,
+      },
+    });
+  }
+
+  // Soft-deactivate legacy zone rows that were seeded as location labels / borough names.
+  const legacyZoneNames = [
+    'Croydon - Croydon 1',
+    'Croydon - Croydon 2',
+    'Croydon - Croydon 3',
+    'Croydon - Croydon 4',
+    'Croydon - Croydon 5',
+    'Merton - Merton',
+    'Hackney - Harrow 1',
+    'Haringey - Haringey',
+    'Croydon Private - Croydon 1 Private',
+    'Croydon admin - Croydon office',
+    'Bexley ISF - Bexley',
+    'Cleaners - Cleaning 1',
+    'ALF Private - ALF Private',
+    'Greenwich council - Greenwich',
+    'Transport - Croydon Transport',
+    'Croydon',
+    'Merton',
+    'Haringey',
+    'Bexley',
+    'Greenwich',
+    'Transport',
+    'Hackney',
+    'ALF Private',
+    'Cleaners',
+    'Croydon Private',
+    'Croydon admin',
+  ];
+  await prisma.zone.updateMany({
+    where: {
+      name: { in: legacyZoneNames },
+      deletedAt: null,
+    },
+    data: { isActive: false, deletedAt: new Date() },
+  });
 
   // Core permissions
   const permissionKeys = [
