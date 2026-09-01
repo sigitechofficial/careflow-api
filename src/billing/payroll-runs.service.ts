@@ -30,7 +30,6 @@ import {
   calculateWaitingTimeAmount,
   formatMinutesAsHours,
   formatTimeRange,
-  formatVisitRef,
 } from './visit-reconciliation.util';
 import { calculateUkMileage } from './pay-mileage.util';
 import {
@@ -1704,7 +1703,7 @@ export class PayrollRunsService {
 
       return {
         id: row.id,
-        visitRef: formatVisitRef(row.scheduledVisitId, row.plannedStartDateTime),
+        visitRef: row.visitRef,
         serviceUserName: suMap.get(row.serviceUserId) ?? 'Unknown',
         plannedStart: row.plannedStartDateTime.toISOString(),
         plannedEnd: row.plannedEndDateTime?.toISOString() ?? null,

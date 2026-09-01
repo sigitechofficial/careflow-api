@@ -8,6 +8,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { IsOnOrAfterDate } from '../../common/validators/date-order.validator';
@@ -127,6 +128,15 @@ export class CreateServiceUserDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Service user area under a branch (also sets locationId)',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  serviceUserAreaId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

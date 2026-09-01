@@ -88,3 +88,48 @@ export function formatFloorNames(
     .filter(Boolean)
     .join(', ');
 }
+
+/** Uppercase, strip all whitespace — for unique postcode keys. */
+export function normalizePostcodeKey(raw: string): string {
+  return raw.replace(/\s+/g, '').toUpperCase();
+}
+
+/** Display form: outward + inward with a single space when possible. */
+export function formatPostcodeDisplay(raw: string): string {
+  const key = normalizePostcodeKey(raw);
+  if (key.length > 3) {
+    return `${key.slice(0, key.length - 3)} ${key.slice(key.length - 3)}`;
+  }
+  return key;
+}
+
+export function parsePostcodeList(raw: string[] | undefined | null): Array<{
+  postcode: string;
+  normalizedPostcode: string;
+}> {
+  if (!raw?.length) return [];
+  const seen = new Set<string>();
+  const out: Array<{ postcode: string; normalizedPostcode: string }> = [];
+  for (const item of raw) {
+    const trimmed = typeof item === 'string' ? item.trim() : '';
+    if (!trimmed) continue;
+    const normalizedPostcode = normalizePostcodeKey(trimmed);
+    if (!normalizedPostcode || seen.has(normalizedPostcode)) continue;
+    seen.add(normalizedPostcode);
+    out.push({
+      postcode: formatPostcodeDisplay(trimmed),
+      normalizedPostcode,
+    });
+  }
+  return out;
+}
+
+export function slugifyAreaCode(name: string): string {
+  const base = name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 32);
+  return base || 'AREA';
+}

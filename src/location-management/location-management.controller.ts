@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -11,6 +11,10 @@ import { LocationManagementService } from './location-management.service';
 import { UpdateLocationZoneDto } from './dto/update-location-zone.dto';
 import { UpdateMemberLocationDto } from './dto/update-member-location.dto';
 import { UpdateEmployeeLocationDto } from './dto/update-employee-location.dto';
+import {
+  CreateServiceUserAreaDto,
+  UpdateServiceUserAreaDto,
+} from './dto/service-user-area.dto';
 
 @ApiTags('Location Management')
 @ApiBearerAuth()
@@ -21,7 +25,7 @@ export class LocationManagementController {
 
   @Get('tree')
   @AnyPermission('lookups.read', 'schedule_areas.read')
-  @ApiOperation({ summary: 'Organisation location tree (zones, service users, employees)' })
+  @ApiOperation({ summary: 'Organisation location tree (zones, branches, service user areas)' })
   getTree() {
     return this.service.getTree();
   }
@@ -49,6 +53,40 @@ export class LocationManagementController {
     @Req() req: Request,
   ) {
     return this.service.updateZone(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('areas')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Create a service user area under a branch' })
+  createArea(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateServiceUserAreaDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createServiceUserArea(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('areas/:id')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Update a service user area and its postcodes' })
+  updateArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateServiceUserAreaDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateServiceUserArea(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('areas/:id')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Soft-delete a service user area' })
+  deleteArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteServiceUserArea(user.id, id, getRequestAuditMeta(req));
   }
 
   @Get('service-users')

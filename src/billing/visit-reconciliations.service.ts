@@ -51,8 +51,11 @@ import {
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
+  normalizeVisitRefBranchCode,
   resolveDefaultApprovedWindows,
+  visitRefDayKey,
 } from './visit-reconciliation.util';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
 import {
   formatTimeHhMmSs,
@@ -295,11 +298,12 @@ export class VisitReconciliationsService {
             },
           ];
 
+    // Same scheduled visit → same immutable visitRef for every carer.
+    // VIS-[BRANCH]-[YYYYMMDD]-[NNNN]; never reallocated after first creation.
+    const sharedVisitRef = await this.resolveOrAllocateVisitRef(db, visit);
+
     let firstId: string | null = null;
     for (const allocation of targets) {
-      // Same scheduled visit → same visitRef for every carer (double-up / multi-allocation).
-      const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-
       const planned = resolveAllocationWindow(
         {
           scheduledStartDateTime: allocation.scheduledStartDateTime,
@@ -331,6 +335,7 @@ export class VisitReconciliationsService {
           });
 
       if (existing) {
+        // visitRef is immutable after creation (call-off / reschedule keep the same ref).
         const updated = await db.visitReconciliation.update({
           where: { id: existing.id },
           data: {
@@ -340,7 +345,6 @@ export class VisitReconciliationsService {
             actualEndDateTime: actual.end,
             employeeId: allocation.employeeId ?? existing.employeeId,
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
-            visitRef,
             ...(overrunReason != null ? { overrunReason } : {}),
           },
         });
@@ -356,7 +360,7 @@ export class VisitReconciliationsService {
           serviceUserId: visit.serviceUserId,
           employeeId: allocation.employeeId,
           jobAllocationId: allocation.id,
-          visitRef,
+          visitRef: sharedVisitRef,
           plannedStartDateTime: planned.start,
           plannedEndDateTime: planned.end,
           actualStartDateTime: actual.start,
@@ -368,17 +372,54 @@ export class VisitReconciliationsService {
       firstId ??= created.id;
     }
 
-    // Keep every carer's reconciliation on the same shared visit id for this scheduled visit.
-    const sharedVisitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-    await db.visitReconciliation.updateMany({
-      where: {
-        scheduledVisitId: visit.id,
-        NOT: { visitRef: sharedVisitRef },
-      },
-      data: { visitRef: sharedVisitRef },
-    });
-
     return firstId;
+  }
+
+  /**
+   * Reuse the visit reference already issued for this scheduled visit.
+   * Otherwise allocate VIS-[BRANCH]-[YYYYMMDD]-[NNNN] once (immutable thereafter).
+   * YYYYMMDD is taken from the original planned start at allocation time.
+   */
+  private async resolveOrAllocateVisitRef(
+    db: DbClient,
+    visit: { id: string; scheduledJobId: string; scheduledStartDateTime: Date },
+  ): Promise<string> {
+    const existing = await db.visitReconciliation.findFirst({
+      where: { scheduledVisitId: visit.id },
+      select: { visitRef: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing?.visitRef?.trim()) return existing.visitRef.trim();
+
+    const job = await db.scheduledJob.findFirst({
+      where: { id: visit.scheduledJobId },
+      select: {
+        scheduleArea: { select: { visitRefCode: true, code: true } },
+      },
+    });
+    const branchCode = normalizeVisitRefBranchCode(
+      job?.scheduleArea?.visitRefCode ?? job?.scheduleArea?.code,
+    );
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    // Freeze the planned calendar day at first issuance (reschedules do not reissue).
+    const dayKey = visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
+    return this.allocateVisitRef(db, branchCode, dayKey);
+  }
+
+  private async allocateVisitRef(
+    db: DbClient,
+    branchCode: string,
+    dayKey: string,
+  ): Promise<string> {
+    const rows = await db.$queryRaw<Array<{ lastValue: number }>>(Prisma.sql`
+      INSERT INTO "billing"."VisitReferenceSequence" ("branchCode", "dayKey", "lastValue", "updatedAt")
+      VALUES (${branchCode}, ${dayKey}, 1, now())
+      ON CONFLICT ("branchCode", "dayKey")
+      DO UPDATE SET "lastValue" = "VisitReferenceSequence"."lastValue" + 1, "updatedAt" = now()
+      RETURNING "lastValue"
+    `);
+    const value = rows[0]?.lastValue ?? 1;
+    return formatVisitRef(branchCode, dayKey, value);
   }
 
   private async safeEvaluate(
@@ -540,8 +581,11 @@ export class VisitReconciliationsService {
         take: 100,
       });
       const suIds = serviceUsers.map((r) => r.id);
+      const looksLikeUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
       where.OR = [
         { visitRef: { contains: s, mode: 'insensitive' } },
+        ...(looksLikeUuid ? [{ scheduledVisitId: s }] : []),
         ...(suIds.length ? [{ serviceUserId: { in: suIds } }] : []),
       ];
     }
@@ -780,16 +824,21 @@ export class VisitReconciliationsService {
       status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
     }
 
-    if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
-      dto.scope === 'INVOICE'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
-    } else if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      dto.scope === 'PAY'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+    // Additive default: approving one side when the other is already approved promotes
+    // to BOTH. The three-choice buttons pass `exclusive` to set the decision definitively
+    // (e.g. "Funders" always means bill-only / carer £0, even if pay was approved before).
+    if (!dto.exclusive) {
+      if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        dto.scope === 'INVOICE'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      } else if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
+        dto.scope === 'PAY'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      }
     }
 
     await this.prisma.visitReconciliation.update({
@@ -1459,11 +1508,11 @@ export class VisitReconciliationsService {
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
-    const promotedStatus =
-      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      !hasPayBlockingExceptions(activeExceptions)
-        ? VisitReconciliationStatus.APPROVED_FOR_BOTH
-        : status;
+    // A bill-only approval (APPROVED_FOR_INVOICE) is an exclusive choice: charge the
+    // client / funder, pay the carer £0. Previously this auto-promoted to
+    // APPROVED_FOR_BOTH (carer always paid once priced); that promotion is intentionally
+    // removed so "Funders only" truly excludes carer pay.
+    const promotedStatus = status;
 
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
     // Early leave within org/slot tolerance → full planned pay + charge (flags unchanged).
@@ -1826,7 +1875,8 @@ export class VisitReconciliationsService {
         promotedStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
         row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
       ) {
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+        // Bill-only approval → keep it bill-only (carer £0). Do NOT auto-approve pay.
+        finalStatus = VisitReconciliationStatus.APPROVED_FOR_INVOICE;
       } else if (
         promotedStatus !== VisitReconciliationStatus.APPROVED_FOR_BOTH &&
         row.status !== VisitReconciliationStatus.APPROVED_FOR_BOTH

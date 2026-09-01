@@ -184,6 +184,17 @@ export class ApproveVisitReconciliationDto {
   @Type(() => Boolean)
   @IsBoolean()
   managerOverride?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, set the decision exactly to this scope (authoritative) instead of ' +
+      'merging with a prior approval. PAY → pay only (funder £0), INVOICE → bill only ' +
+      '(carer £0), BOTH → both. Used by the three-choice approve buttons.',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  exclusive?: boolean;
 }
 
 export class RejectVisitReconciliationDto {

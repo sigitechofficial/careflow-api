@@ -16,10 +16,13 @@ import {
   parentZoneFromGroupId,
   parentZoneFromLocationName,
   parseLocationName,
+  parsePostcodeList,
   parseUserIdList,
   resolveParentZoneName,
+  slugifyAreaCode,
   zoneGroupId,
 } from './location-management.util';
+import type { CreateServiceUserAreaDto, UpdateServiceUserAreaDto } from './dto/service-user-area.dto';
 
 const COMPANY_PROFILE_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -116,7 +119,7 @@ export class LocationManagementService {
   }
 
   async getTree() {
-    const [company, areas, serviceUsers, employees] = await Promise.all([
+    const [company, areas, serviceUserAreas, serviceUsers, employees] = await Promise.all([
       this.prisma.companyProfile.findUnique({ where: { id: COMPANY_PROFILE_ID } }),
       this.prisma.scheduleArea.findMany({
         where: { deletedAt: null, isActive: true },
@@ -126,6 +129,16 @@ export class LocationManagementService {
           zone: { select: { id: true, name: true } },
         },
       }),
+      this.prisma.serviceUserArea.findMany({
+        where: { deletedAt: null, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        include: {
+          postcodes: {
+            orderBy: { postcode: 'asc' },
+            select: { id: true, postcode: true, normalizedPostcode: true },
+          },
+        },
+      }),
       this.prisma.serviceUser.findMany({
         where: { deletedAt: null, isActive: true },
         select: {
@@ -133,6 +146,7 @@ export class LocationManagementService {
           firstName: true,
           lastName: true,
           locationId: true,
+          serviceUserAreaId: true,
           address: {
             select: {
               addressLine1: true,
@@ -160,12 +174,19 @@ export class LocationManagementService {
       }),
     ]);
 
-    const suByLocation = new Map<string, typeof serviceUsers>();
+    const suByArea = new Map<string, typeof serviceUsers>();
+    const suByLocationUnassigned = new Map<string, typeof serviceUsers>();
     for (const su of serviceUsers) {
+      if (su.serviceUserAreaId) {
+        const list = suByArea.get(su.serviceUserAreaId) ?? [];
+        list.push(su);
+        suByArea.set(su.serviceUserAreaId, list);
+        continue;
+      }
       if (!su.locationId) continue;
-      const list = suByLocation.get(su.locationId) ?? [];
+      const list = suByLocationUnassigned.get(su.locationId) ?? [];
       list.push(su);
-      suByLocation.set(su.locationId, list);
+      suByLocationUnassigned.set(su.locationId, list);
     }
 
     const empByLocation = new Map<string, typeof employees>();
@@ -177,12 +198,52 @@ export class LocationManagementService {
       empByLocation.set(locId, list);
     }
 
+    const areasByScheduleArea = new Map<string, typeof serviceUserAreas>();
+    for (const sua of serviceUserAreas) {
+      const list = areasByScheduleArea.get(sua.scheduleAreaId) ?? [];
+      list.push(sua);
+      areasByScheduleArea.set(sua.scheduleAreaId, list);
+    }
+
+    const suChild = (su: (typeof serviceUsers)[number]) => {
+      const addr = su.address;
+      const line = [addr?.addressLine1, addr?.addressLine2, addr?.town, addr?.postcode]
+        .filter(Boolean)
+        .join(', ');
+      return {
+        id: `su-${su.id}`,
+        type: 'service_user' as const,
+        entityId: su.id,
+        label: formatPersonLabel(su.firstName, su.lastName, line || null),
+      };
+    };
+
+    const empChild = (emp: (typeof employees)[number]) => ({
+      id: `emp-${emp.id}`,
+      type: 'employee' as const,
+      entityId: emp.id,
+      label: formatPersonLabel(
+        emp.personalDetail?.firstName,
+        emp.personalDetail?.lastName,
+        emp.employment?.location?.name ?? null,
+      ),
+    });
+
     const grouped = this.groupAreas(areas);
     const zones = grouped.map((group, groupIndex) => {
       const representative = group.areas[0];
       const isMulti = group.areas.length > 1;
       const branches = group.areas.map((area) => {
         const locationId = area.locationId;
+        const branchAreas = (areasByScheduleArea.get(area.id) ?? []).map((sua) => ({
+          id: sua.id,
+          name: sua.name,
+          code: sua.code,
+          scheduleAreaId: sua.scheduleAreaId,
+          postcodes: sua.postcodes.map((p) => p.postcode),
+          children: (suByArea.get(sua.id) ?? []).map(suChild),
+        }));
+
         const children: Array<{
           id: string;
           type: 'service_user' | 'employee';
@@ -191,29 +252,11 @@ export class LocationManagementService {
         }> = [];
 
         if (locationId) {
-          for (const su of suByLocation.get(locationId) ?? []) {
-            const addr = su.address;
-            const line = [addr?.addressLine1, addr?.addressLine2, addr?.town, addr?.postcode]
-              .filter(Boolean)
-              .join(', ');
-            children.push({
-              id: `su-${su.id}`,
-              type: 'service_user',
-              entityId: su.id,
-              label: formatPersonLabel(su.firstName, su.lastName, line || null),
-            });
+          for (const su of suByLocationUnassigned.get(locationId) ?? []) {
+            children.push(suChild(su));
           }
           for (const emp of empByLocation.get(locationId) ?? []) {
-            children.push({
-              id: `emp-${emp.id}`,
-              type: 'employee',
-              entityId: emp.id,
-              label: formatPersonLabel(
-                emp.personalDetail?.firstName,
-                emp.personalDetail?.lastName,
-                emp.employment?.location?.name ?? null,
-              ),
-            });
+            children.push(empChild(emp));
           }
         }
 
@@ -223,6 +266,8 @@ export class LocationManagementService {
           scheduleAreaId: area.id,
           locationId: area.locationId,
           locationName: area.location?.name ?? null,
+          areas: branchAreas,
+          /** Unassigned service users + all employees (employees nest under branches only). */
           children,
         };
       });
@@ -239,7 +284,10 @@ export class LocationManagementService {
         incidentMessageUserIds: parseUserIdList(representative.incidentMessageUserIds),
         incidentEmailUserIds: parseUserIdList(representative.incidentEmailUserIds),
         branches,
-        children: branches.flatMap((b) => b.children),
+        children: branches.flatMap((b) => [
+          ...b.areas.flatMap((a) => a.children),
+          ...b.children,
+        ]),
       };
     });
 
@@ -350,7 +398,7 @@ export class LocationManagementService {
   }
 
   async listServiceUserLocations() {
-    const [rows, locations, scheduleAreas] = await Promise.all([
+    const [rows, locations, scheduleAreas, serviceUserAreas] = await Promise.all([
       this.prisma.serviceUser.findMany({
         where: { deletedAt: null },
         select: {
@@ -359,7 +407,16 @@ export class LocationManagementService {
           lastName: true,
           isActive: true,
           locationId: true,
+          serviceUserAreaId: true,
           location: { select: { id: true, name: true } },
+          serviceUserArea: {
+            select: {
+              id: true,
+              name: true,
+              scheduleAreaId: true,
+              postcodes: { select: { postcode: true }, orderBy: { postcode: 'asc' } },
+            },
+          },
         },
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       }),
@@ -371,11 +428,22 @@ export class LocationManagementService {
       this.prisma.scheduleArea.findMany({
         where: { deletedAt: null, isActive: true, locationId: { not: null } },
         select: {
+          id: true,
           name: true,
           locationId: true,
           parentZoneName: true,
           location: { select: { name: true } },
           zone: { select: { name: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.serviceUserArea.findMany({
+        where: { deletedAt: null, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          scheduleAreaId: true,
+          postcodes: { select: { postcode: true }, orderBy: { postcode: 'asc' } },
         },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       }),
@@ -387,7 +455,26 @@ export class LocationManagementService {
         .map((area) => [area.locationId as string, area]),
     );
 
-    const zoneMap = new Map<string, { id: string; name: string; branches: { id: string; name: string }[] }>();
+    const areasByScheduleAreaId = new Map<string, typeof serviceUserAreas>();
+    for (const sua of serviceUserAreas) {
+      const list = areasByScheduleAreaId.get(sua.scheduleAreaId) ?? [];
+      list.push(sua);
+      areasByScheduleAreaId.set(sua.scheduleAreaId, list);
+    }
+
+    const zoneMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        branches: Array<{
+          id: string;
+          name: string;
+          scheduleAreaId: string | null;
+          areas: Array<{ id: string; name: string; postcodes: string[] }>;
+        }>;
+      }
+    >();
     for (const loc of locations) {
       const area = areaByLocationId.get(loc.id);
       const parsed = parseLocationName(loc.name);
@@ -399,7 +486,19 @@ export class LocationManagementService {
       const branchName = area?.name || parsed.roomName || loc.name;
       const zoneKey = zoneName || loc.name;
       const zone = zoneMap.get(zoneKey) ?? { id: zoneKey, name: zoneKey, branches: [] };
-      zone.branches.push({ id: loc.id, name: branchName });
+      const nestedAreas = area
+        ? (areasByScheduleAreaId.get(area.id) ?? []).map((sua) => ({
+            id: sua.id,
+            name: sua.name,
+            postcodes: sua.postcodes.map((p) => p.postcode),
+          }))
+        : [];
+      zone.branches.push({
+        id: loc.id,
+        name: branchName,
+        scheduleAreaId: area?.id ?? null,
+        areas: nestedAreas,
+      });
       zoneMap.set(zoneKey, zone);
     }
 
@@ -424,10 +523,250 @@ export class LocationManagementService {
             locationName: r.location?.name ?? null,
             zoneName: zoneName || null,
             roomName: branchName,
+            serviceUserAreaId: r.serviceUserAreaId,
+            serviceUserAreaName: r.serviceUserArea?.name ?? null,
+            serviceUserAreaPostcodes:
+              r.serviceUserArea?.postcodes.map((p) => p.postcode) ?? [],
           };
         }),
       },
     };
+  }
+
+  private mapServiceUserArea(row: {
+    id: string;
+    scheduleAreaId: string;
+    name: string;
+    code: string;
+    description: string | null;
+    sortOrder: number;
+    isActive: boolean;
+    postcodes: Array<{ id: string; postcode: string; normalizedPostcode: string }>;
+    scheduleArea?: { id: string; name: string; locationId: string | null } | null;
+  }) {
+    return {
+      id: row.id,
+      scheduleAreaId: row.scheduleAreaId,
+      scheduleAreaName: row.scheduleArea?.name ?? null,
+      locationId: row.scheduleArea?.locationId ?? null,
+      name: row.name,
+      code: row.code,
+      description: row.description,
+      sortOrder: row.sortOrder,
+      isActive: row.isActive,
+      postcodes: row.postcodes.map((p) => p.postcode),
+    };
+  }
+
+  private async assertUniquePostcodes(
+    postcodes: Array<{ postcode: string; normalizedPostcode: string }>,
+    exceptAreaId?: string,
+  ) {
+    if (!postcodes.length) return;
+    const clash = await this.prisma.serviceUserAreaPostcode.findFirst({
+      where: {
+        normalizedPostcode: { in: postcodes.map((p) => p.normalizedPostcode) },
+        ...(exceptAreaId ? { serviceUserAreaId: { not: exceptAreaId } } : {}),
+      },
+      include: {
+        serviceUserArea: { select: { id: true, name: true, deletedAt: true } },
+      },
+    });
+    if (clash && !clash.serviceUserArea.deletedAt) {
+      throw new BadRequestException(
+        `Postcode ${clash.postcode} is already used by area “${clash.serviceUserArea.name}”.`,
+      );
+    }
+  }
+
+  private async uniqueAreaCode(scheduleAreaId: string, preferred: string, exceptId?: string) {
+    let code = preferred.slice(0, 40);
+    let attempt = 0;
+    while (attempt < 50) {
+      const existing = await this.prisma.serviceUserArea.findFirst({
+        where: {
+          scheduleAreaId,
+          code,
+          deletedAt: null,
+          ...(exceptId ? { id: { not: exceptId } } : {}),
+        },
+        select: { id: true },
+      });
+      if (!existing) return code;
+      attempt += 1;
+      code = `${preferred.slice(0, 36)}_${attempt}`;
+    }
+    throw new BadRequestException('Could not allocate a unique area code');
+  }
+
+  async createServiceUserArea(userId: string, dto: CreateServiceUserAreaDto, meta?: RequestAuditMeta) {
+    const branch = await this.prisma.scheduleArea.findFirst({
+      where: { id: dto.scheduleAreaId, deletedAt: null, isActive: true },
+      select: { id: true, name: true, locationId: true },
+    });
+    if (!branch) throw new BadRequestException('Branch (schedule area) not found');
+
+    const postcodes = parsePostcodeList(dto.postcodes);
+    await this.assertUniquePostcodes(postcodes);
+
+    const preferredCode = (dto.code?.trim() || slugifyAreaCode(dto.name)).toUpperCase();
+    const code = await this.uniqueAreaCode(dto.scheduleAreaId, preferredCode);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const area = await tx.serviceUserArea.create({
+        data: {
+          scheduleAreaId: dto.scheduleAreaId,
+          name: dto.name.trim(),
+          code,
+          description: dto.description?.trim() || null,
+          sortOrder: dto.sortOrder ?? 0,
+          createdById: userId,
+          updatedById: userId,
+          postcodes: postcodes.length
+            ? {
+                create: postcodes.map((p) => ({
+                  postcode: p.postcode,
+                  normalizedPostcode: p.normalizedPostcode,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          postcodes: { orderBy: { postcode: 'asc' } },
+          scheduleArea: { select: { id: true, name: true, locationId: true } },
+        },
+      });
+      return area;
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SCHEDULING,
+      action: AuditAction.SCHEDULE_AREA_CREATED,
+      recordType: 'ServiceUserArea',
+      recordId: created.id,
+      newValues: auditSnapshot(created),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Service user area created', data: this.mapServiceUserArea(created) };
+  }
+
+  async updateServiceUserArea(
+    userId: string,
+    id: string,
+    dto: UpdateServiceUserAreaDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.prisma.serviceUserArea.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        postcodes: true,
+        scheduleArea: { select: { id: true, name: true, locationId: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Service user area not found');
+
+    const postcodes =
+      dto.postcodes !== undefined ? parsePostcodeList(dto.postcodes) : null;
+    if (postcodes) await this.assertUniquePostcodes(postcodes, id);
+
+    let nextCode = existing.code;
+    if (dto.code?.trim()) {
+      nextCode = await this.uniqueAreaCode(
+        existing.scheduleAreaId,
+        dto.code.trim().toUpperCase(),
+        id,
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (postcodes) {
+        await tx.serviceUserAreaPostcode.deleteMany({ where: { serviceUserAreaId: id } });
+        if (postcodes.length) {
+          await tx.serviceUserAreaPostcode.createMany({
+            data: postcodes.map((p) => ({
+              serviceUserAreaId: id,
+              postcode: p.postcode,
+              normalizedPostcode: p.normalizedPostcode,
+            })),
+          });
+        }
+      }
+
+      return tx.serviceUserArea.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+          ...(dto.code !== undefined ? { code: nextCode } : {}),
+          ...(dto.description !== undefined
+            ? { description: dto.description?.trim() || null }
+            : {}),
+          ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+          ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+          updatedById: userId,
+        },
+        include: {
+          postcodes: { orderBy: { postcode: 'asc' } },
+          scheduleArea: { select: { id: true, name: true, locationId: true } },
+        },
+      });
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SCHEDULING,
+      action: AuditAction.SCHEDULE_AREA_UPDATED,
+      recordType: 'ServiceUserArea',
+      recordId: id,
+      oldValues: auditSnapshot(existing),
+      newValues: auditSnapshot(updated),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Service user area updated', data: this.mapServiceUserArea(updated) };
+  }
+
+  async deleteServiceUserArea(userId: string, id: string, meta?: RequestAuditMeta) {
+    const existing = await this.prisma.serviceUserArea.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        postcodes: true,
+        scheduleArea: { select: { id: true, name: true, locationId: true } },
+        _count: { select: { serviceUsers: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Service user area not found');
+
+    if (existing._count.serviceUsers > 0) {
+      throw new BadRequestException(
+        `Cannot delete area “${existing.name}” while ${existing._count.serviceUsers} service user(s) are assigned. Reassign them first.`,
+      );
+    }
+
+    const deleted = await this.prisma.serviceUserArea.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false, deletedById: userId, updatedById: userId },
+      include: {
+        postcodes: { orderBy: { postcode: 'asc' } },
+        scheduleArea: { select: { id: true, name: true, locationId: true } },
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SCHEDULING,
+      action: AuditAction.SCHEDULE_AREA_DELETED,
+      recordType: 'ServiceUserArea',
+      recordId: id,
+      oldValues: auditSnapshot(existing),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Service user area deleted', data: this.mapServiceUserArea(deleted) };
   }
 
   async updateServiceUserLocation(
@@ -436,24 +775,76 @@ export class LocationManagementService {
     dto: UpdateMemberLocationDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.assertLocation(dto.locationId ?? undefined);
     const existing = await this.prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
     });
     if (!existing) throw new NotFoundException('Service user not found');
 
+    let locationId = dto.locationId ?? null;
+    let serviceUserAreaId =
+      dto.serviceUserAreaId === undefined ? existing.serviceUserAreaId : dto.serviceUserAreaId;
+
+    if (dto.serviceUserAreaId) {
+      const sua = await this.prisma.serviceUserArea.findFirst({
+        where: { id: dto.serviceUserAreaId, deletedAt: null, isActive: true },
+        include: {
+          scheduleArea: { select: { id: true, locationId: true, deletedAt: true, isActive: true } },
+        },
+      });
+      if (!sua || !sua.scheduleArea || sua.scheduleArea.deletedAt || !sua.scheduleArea.isActive) {
+        throw new BadRequestException('Service user area not found');
+      }
+      serviceUserAreaId = sua.id;
+      locationId = sua.scheduleArea.locationId;
+      if (!locationId) {
+        throw new BadRequestException(
+          'This area’s branch has no linked location. Link a location on the schedule area first.',
+        );
+      }
+    } else if (dto.serviceUserAreaId === null) {
+      serviceUserAreaId = null;
+      if (dto.locationId !== undefined) {
+        locationId = dto.locationId;
+      }
+    } else if (dto.locationId !== undefined) {
+      locationId = dto.locationId;
+      // Clearing/changing branch without an area clears the area assignment.
+      if (dto.locationId == null) {
+        serviceUserAreaId = null;
+      } else if (existing.serviceUserAreaId) {
+        const currentArea = await this.prisma.serviceUserArea.findFirst({
+          where: { id: existing.serviceUserAreaId, deletedAt: null },
+          include: { scheduleArea: { select: { locationId: true } } },
+        });
+        if (currentArea?.scheduleArea.locationId !== dto.locationId) {
+          serviceUserAreaId = null;
+        }
+      }
+    }
+
+    await this.assertLocation(locationId ?? undefined);
+
     const updated = await this.prisma.serviceUser.update({
       where: { id: serviceUserId },
       data: {
-        location: dto.locationId
-          ? { connect: { id: dto.locationId } }
+        location: locationId ? { connect: { id: locationId } } : { disconnect: true },
+        serviceUserArea: serviceUserAreaId
+          ? { connect: { id: serviceUserAreaId } }
           : { disconnect: true },
         updatedById: userId,
       },
       select: {
         id: true,
         locationId: true,
+        serviceUserAreaId: true,
         location: { select: { id: true, name: true } },
+        serviceUserArea: {
+          select: {
+            id: true,
+            name: true,
+            postcodes: { select: { postcode: true }, orderBy: { postcode: 'asc' } },
+          },
+        },
       },
     });
 
@@ -465,15 +856,15 @@ export class LocationManagementService {
       await this.prisma.serviceUserAssignment.update({
         where: { id: assignment.id },
         data: {
-          locationId: dto.locationId ?? null,
+          locationId: locationId ?? null,
           updatedById: userId,
         },
       });
-    } else if (dto.locationId) {
+    } else if (locationId) {
       await this.prisma.serviceUserAssignment.create({
         data: {
           serviceUserId,
-          locationId: dto.locationId,
+          locationId,
           createdById: userId,
         },
       });
@@ -506,12 +897,16 @@ export class LocationManagementService {
         locationName: updated.location?.name ?? null,
         zoneName,
         roomName: branchName,
+        serviceUserAreaId: updated.serviceUserAreaId,
+        serviceUserAreaName: updated.serviceUserArea?.name ?? null,
+        serviceUserAreaPostcodes:
+          updated.serviceUserArea?.postcodes.map((p) => p.postcode) ?? [],
       },
     };
   }
 
   async listEmployeeLocations() {
-    const [rows, locations] = await Promise.all([
+    const [rows, locations, scheduleAreas] = await Promise.all([
       this.prisma.employee.findMany({
         where: { deletedAt: null },
         select: {
@@ -539,14 +934,48 @@ export class LocationManagementService {
         orderBy: { name: 'asc' },
         select: { id: true, name: true },
       }),
+      this.prisma.scheduleArea.findMany({
+        where: { deletedAt: null, isActive: true, locationId: { not: null } },
+        select: {
+          id: true,
+          name: true,
+          locationId: true,
+          parentZoneName: true,
+        },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      }),
     ]);
 
-    const zoneMap = new Map<string, { id: string; name: string; branches: { id: string; name: string }[] }>();
+    const areaByLocationId = new Map(
+      scheduleAreas
+        .filter((a) => a.locationId)
+        .map((a) => [a.locationId as string, a]),
+    );
+
+    const zoneMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        branches: Array<{
+          id: string;
+          name: string;
+          scheduleAreaId: string | null;
+        }>;
+      }
+    >();
     for (const loc of locations) {
-      const { zoneName, roomName } = parseLocationName(loc.name);
+      const area = areaByLocationId.get(loc.id);
+      const parsed = parseLocationName(loc.name);
+      const zoneName = area?.parentZoneName?.trim() || parsed.zoneName || loc.name;
+      const branchName = area?.name || parsed.roomName || loc.name;
       const zoneKey = zoneName || loc.name;
       const zone = zoneMap.get(zoneKey) ?? { id: zoneKey, name: zoneKey, branches: [] };
-      zone.branches.push({ id: loc.id, name: roomName || loc.name });
+      zone.branches.push({
+        id: loc.id,
+        name: branchName,
+        scheduleAreaId: area?.id ?? null,
+      });
       zoneMap.set(zoneKey, zone);
     }
 
@@ -589,7 +1018,7 @@ export class LocationManagementService {
             isActive: r.isActive,
             locationId: emp?.locationId ?? null,
             locationName: primaryName,
-            zoneName: primaryName,
+            zoneName: parentZone || primaryName,
             floorNames,
             accessAllZones,
             floorLocationIds: [...floorIds],
@@ -605,7 +1034,9 @@ export class LocationManagementService {
     dto: UpdateEmployeeLocationDto,
     meta?: RequestAuditMeta,
   ) {
-    if (dto.locationId) await this.assertLocation(dto.locationId);
+    const locationId = dto.locationId === undefined ? undefined : dto.locationId;
+
+    if (locationId) await this.assertLocation(locationId);
     if (dto.floorLocationIds?.length) await this.assertLocations(dto.floorLocationIds);
 
     const employment = await this.prisma.employeeEmployment.findFirst({
@@ -614,9 +1045,11 @@ export class LocationManagementService {
     });
     if (!employment) throw new NotFoundException('Employee employment record not found');
 
+    const resolvedLocationId =
+      locationId !== undefined ? locationId : employment.locationId;
     const floorIds = dto.floorLocationIds ?? [];
-    if (dto.locationId && !floorIds.includes(dto.locationId)) {
-      floorIds.unshift(dto.locationId);
+    if (resolvedLocationId && !floorIds.includes(resolvedLocationId)) {
+      floorIds.unshift(resolvedLocationId);
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -624,12 +1057,12 @@ export class LocationManagementService {
         where: { employmentId: employment.id },
       });
 
-      const extraFloorIds = floorIds.filter((id) => id !== dto.locationId);
+      const extraFloorIds = floorIds.filter((id) => id !== resolvedLocationId);
       if (extraFloorIds.length > 0) {
         await tx.employeeEmploymentFloorLocation.createMany({
-          data: extraFloorIds.map((locationId) => ({
+          data: extraFloorIds.map((locId) => ({
             employmentId: employment.id,
-            locationId,
+            locationId: locId,
           })),
           skipDuplicates: true,
         });
@@ -638,7 +1071,7 @@ export class LocationManagementService {
       return tx.employeeEmployment.update({
         where: { employeeId },
         data: {
-          locationId: dto.locationId ?? null,
+          locationId: resolvedLocationId ?? null,
           ...(dto.accessAllZones !== undefined
             ? { accessAllZones: dto.accessAllZones }
             : {}),
@@ -685,7 +1118,7 @@ export class LocationManagementService {
         id: updated.employeeId,
         locationId: updated.locationId,
         locationName: updated.location?.name ?? null,
-        zoneName: updated.location?.name ?? null,
+        zoneName: parentZone || updated.location?.name || null,
         floorNames,
         accessAllZones: updated.accessAllZones,
         floorLocationIds: [...floorIdSet],

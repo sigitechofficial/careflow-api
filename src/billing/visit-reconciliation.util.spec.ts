@@ -3,7 +3,11 @@ import {
   calculateBillableAmount,
   buildPayRateBreakdown,
   deriveReconciliationStatus,
+  formatVisitRef,
   hasPayBlockingExceptions,
+  isCanonicalVisitRef,
+  normalizeVisitRefBranchCode,
+  visitRefDayKey,
 } from './visit-reconciliation.util';
 import { FinanceExceptionCode, VisitReconciliationStatus } from '@prisma/client';
 
@@ -291,6 +295,24 @@ describe('calculateBillableAmount night duty', () => {
       'SLEEPING_NIGHT',
     );
     expect(result).toEqual({ amount: 90, label: 'SLEEP_IN' });
+  });
+});
+
+describe('formatVisitRef', () => {
+  it('builds VIS-[BRANCH]-[YYYYMMDD]-[NNNN] with 3-char branch', () => {
+    expect(formatVisitRef('L01', '20260901', 123)).toBe('VIS-L01-20260901-0123');
+    expect(formatVisitRef('croydon_1', '2026-09-01', 1)).toBe('VIS-C01-20260901-0001');
+  });
+
+  it('normalizes branch codes to exactly 3 characters', () => {
+    expect(normalizeVisitRefBranchCode('L01')).toBe('L01');
+    expect(normalizeVisitRefBranchCode('L-01')).toBe('L01');
+    expect(normalizeVisitRefBranchCode('MERTON')).toBe('MER');
+    expect(normalizeVisitRefBranchCode('')).toBe('GEN');
+    expect(isCanonicalVisitRef('VIS-L01-20260901-0123')).toBe(true);
+    expect(isCanonicalVisitRef('VIS-CROYDON1-20260901-0001')).toBe(false);
+    expect(isCanonicalVisitRef('V-2026-09-ABCD')).toBe(false);
+    expect(visitRefDayKey('2026-09-01')).toBe('20260901');
   });
 });
 

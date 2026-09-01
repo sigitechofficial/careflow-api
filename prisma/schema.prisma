@@ -524,6 +524,9 @@ model User {
   scheduleAreasCreated               ScheduleArea[]                    @relation("ScheduleAreaCreatedBy")
   scheduleAreasUpdated               ScheduleArea[]                    @relation("ScheduleAreaUpdatedBy")
   scheduleAreasDeleted               ScheduleArea[]                    @relation("ScheduleAreaDeletedBy")
+  serviceUserAreasCreated            ServiceUserArea[]                 @relation("ServiceUserAreaCreatedBy")
+  serviceUserAreasUpdated            ServiceUserArea[]                 @relation("ServiceUserAreaUpdatedBy")
+  serviceUserAreasDeleted            ServiceUserArea[]                 @relation("ServiceUserAreaDeletedBy")
   scheduleBatchesCreated             ScheduleBatch[]                   @relation("ScheduleBatchCreatedBy")
   scheduleBatchesUpdated             ScheduleBatch[]                   @relation("ScheduleBatchUpdatedBy")
   scheduleBatchesDeleted             ScheduleBatch[]                   @relation("ScheduleBatchDeletedBy")
@@ -2119,6 +2122,18 @@ model LeavingReason {
   @@schema("lookups")
 }
 
+/** Office Record visit — required status reason options (Settings-managed). */
+model VisitStatusReason {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@schema("lookups")
+}
+
 model SkillType {
   id        String @id @default(uuid()) @db.Uuid
   name      String @unique
@@ -2530,6 +2545,7 @@ model ServiceUser {
   serviceStartDate         DateTime?
   serviceEndDate           DateTime?
   locationId               String?   @db.Uuid
+  serviceUserAreaId        String?   @db.Uuid
   keyWorkerId              String?   @db.Uuid
   namedNurseId             String?   @db.Uuid
   notes                    String?
@@ -2553,6 +2569,7 @@ model ServiceUser {
   fundingType   ServiceUserFundingType?   @relation(fields: [fundingTypeId], references: [id])
   riskLevel     ServiceUserRiskLevel?     @relation(fields: [riskLevelId], references: [id])
   location      Location?                 @relation(fields: [locationId], references: [id])
+  serviceUserArea ServiceUserArea?        @relation(fields: [serviceUserAreaId], references: [id], onDelete: SetNull)
   keyWorker     Employee?                 @relation("ServiceUserKeyWorker", fields: [keyWorkerId], references: [id])
   namedNurse    Employee?                 @relation("ServiceUserNamedNurse", fields: [namedNurseId], references: [id])
 
@@ -2607,6 +2624,7 @@ model ServiceUser {
   @@index([fundingTypeId])
   @@index([riskLevelId])
   @@index([locationId])
+  @@index([serviceUserAreaId])
   @@index([defaultChargeCardId])
   @@index([keyWorkerId])
   @@index([namedNurseId])
@@ -5569,6 +5587,8 @@ model ScheduleArea {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   code        String   @unique
+  /** 3-character branch code used in visit references (VIS-[BRANCH]-…). */
+  visitRefCode String?  @unique @db.VarChar(3)
   description String?
   locationId  String?  @db.Uuid
   zoneId      String?  @db.Uuid
@@ -5593,11 +5613,59 @@ model ScheduleArea {
   areaStatuses ScheduleAreaStatus[]
   runs         ScheduleRun[]
   jobs         ScheduledJob[]
+  serviceUserAreas ServiceUserArea[]
 
   @@index([deletedAt])
   @@index([isActive])
   @@index([locationId])
   @@index([zoneId])
+  @@schema("scheduling")
+}
+
+/** Geographic monitoring area under a branch (ScheduleArea), with one or more postcodes. */
+model ServiceUserArea {
+  id             String   @id @default(uuid()) @db.Uuid
+  scheduleAreaId String   @db.Uuid
+  name           String
+  code           String
+  description    String?
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+  createdById    String?  @db.Uuid
+  updatedById    String?  @db.Uuid
+  deletedById    String?  @db.Uuid
+
+  scheduleArea ScheduleArea               @relation(fields: [scheduleAreaId], references: [id], onDelete: Cascade)
+  postcodes    ServiceUserAreaPostcode[]
+  serviceUsers ServiceUser[]
+  createdBy    User?                      @relation("ServiceUserAreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?                      @relation("ServiceUserAreaUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedBy    User?                      @relation("ServiceUserAreaDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleAreaId, code])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([scheduleAreaId])
+  @@schema("scheduling")
+}
+
+model ServiceUserAreaPostcode {
+  id                 String   @id @default(uuid()) @db.Uuid
+  serviceUserAreaId  String   @db.Uuid
+  /** Display form, e.g. CR0 1AA */
+  postcode           String
+  /** Uppercase, no spaces — unique org-wide so a postcode maps to one area */
+  normalizedPostcode String   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  serviceUserArea ServiceUserArea @relation(fields: [serviceUserAreaId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceUserAreaId, normalizedPostcode])
+  @@index([serviceUserAreaId])
   @@schema("scheduling")
 }
 
@@ -7411,6 +7479,21 @@ enum FinanceExceptionCode {
   PO_EXPIRED
   PO_MISSING
 
+  @@schema("billing")
+}
+
+/**
+ * Per branch + calendar day counter for human visit references
+ * (VIS-[BRANCH]-[YYYYMMDD]-[NNNN]).
+ */
+model VisitReferenceSequence {
+  branchCode String
+  /** YYYYMMDD in org operational timezone */
+  dayKey     String
+  lastValue  Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@id([branchCode, dayKey])
   @@schema("billing")
 }
 

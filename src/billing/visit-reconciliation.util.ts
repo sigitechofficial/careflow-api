@@ -65,11 +65,44 @@ export function minutesBetween(start: Date, end: Date): number {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000));
 }
 
-export function formatVisitRef(visitId: string, plannedStart: Date): string {
-  const y = plannedStart.getUTCFullYear();
-  const m = String(plannedStart.getUTCMonth() + 1).padStart(2, '0');
-  const suffix = visitId.replace(/-/g, '').slice(0, 4).toUpperCase();
-  return `V-${y}-${m}-${suffix}`;
+/**
+ * Human visit reference: VIS-[BRANCH]-[YYYYMMDD]-[NNNN]
+ * BRANCH = 3-character branch code (e.g. L01)
+ * YYYYMMDD = original planned visit date
+ * NNNN = daily sequence per branch (resets each day)
+ * Immutable after creation. Separate from Rolling Rota / Timebank IDs.
+ * Example: VIS-L01-20260901-0123
+ */
+export function formatVisitRef(branchCode: string, dayKeyYyyymmdd: string, sequence: number): string {
+  const branch = normalizeVisitRefBranchCode(branchCode);
+  const day = dayKeyYyyymmdd.replace(/-/g, '').slice(0, 8);
+  const seq = Math.max(1, Math.floor(sequence));
+  return `VIS-${branch}-${day}-${String(seq).padStart(4, '0')}`;
+}
+
+/**
+ * Exactly 3 uppercase alphanumeric characters.
+ * Prefer ScheduleArea.visitRefCode; otherwise derive a stable 3-char token.
+ */
+export function normalizeVisitRefBranchCode(code: string | null | undefined): string {
+  const cleaned = (code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!cleaned) return 'GEN';
+  if (/^[A-Z0-9]{3}$/.test(cleaned)) return cleaned;
+  const withDigits = cleaned.match(/^([A-Z]+)(\d{1,2})$/);
+  if (withDigits) {
+    return `${withDigits[1][0]}${withDigits[2].padStart(2, '0')}`.slice(0, 3);
+  }
+  if (cleaned.length >= 3) return cleaned.slice(0, 3);
+  return cleaned.padEnd(3, 'X').slice(0, 3);
+}
+
+export function isCanonicalVisitRef(visitRef: string | null | undefined): boolean {
+  return /^VIS-[A-Z0-9]{3}-\d{8}-\d{4}$/.test((visitRef ?? '').trim());
+}
+
+/** YYYY-MM-DD → YYYYMMDD for visit ref day segment. */
+export function visitRefDayKey(dayKeyIso: string): string {
+  return dayKeyIso.replace(/-/g, '').slice(0, 8);
 }
 
 /** Format HH:mm–HH:mm in the organisation operational timezone. */

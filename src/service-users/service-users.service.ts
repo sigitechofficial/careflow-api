@@ -36,6 +36,15 @@ const detailInclude = {
   fundingType: true,
   riskLevel: true,
   location: true,
+  serviceUserArea: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      scheduleAreaId: true,
+      postcodes: { select: { postcode: true }, orderBy: { postcode: 'asc' as const } },
+    },
+  },
   address: true,
   contacts: {
     where: { deletedAt: null },
@@ -85,6 +94,28 @@ export class ServiceUsersService implements OnModuleInit {
       where: { id, deletedAt: null, isActive: true },
     });
     if (!loc) throw new BadRequestException(`Location ${id} not found or inactive`);
+  }
+
+  /** When an area is set, derive the branch locationId from that area’s schedule area. */
+  private async resolveLocationFromServiceUserArea(
+    serviceUserAreaId: string | null | undefined,
+  ): Promise<{ serviceUserAreaId: string; locationId: string } | null> {
+    if (!serviceUserAreaId) return null;
+    const area = await this.prisma.serviceUserArea.findFirst({
+      where: { id: serviceUserAreaId, deletedAt: null, isActive: true },
+      include: {
+        scheduleArea: { select: { locationId: true, deletedAt: true, isActive: true } },
+      },
+    });
+    if (!area || !area.scheduleArea || area.scheduleArea.deletedAt || !area.scheduleArea.isActive) {
+      throw new BadRequestException('Service user area not found');
+    }
+    if (!area.scheduleArea.locationId) {
+      throw new BadRequestException(
+        'This area’s branch has no linked location. Link a location on the schedule area first.',
+      );
+    }
+    return { serviceUserAreaId: area.id, locationId: area.scheduleArea.locationId };
   }
 
   async validateAssignments(dto: {
@@ -410,7 +441,14 @@ export class ServiceUsersService implements OnModuleInit {
   }
 
   async create(userId: string, dto: CreateServiceUserDto, meta?: RequestAuditMeta) {
-    await this.validateAssignments(dto);
+    const fromArea = await this.resolveLocationFromServiceUserArea(dto.serviceUserAreaId);
+    const locationId = fromArea?.locationId ?? dto.locationId;
+    const serviceUserAreaId = fromArea?.serviceUserAreaId ?? null;
+    await this.validateAssignments({
+      keyWorkerId: dto.keyWorkerId,
+      namedNurseId: dto.namedNurseId,
+      locationId,
+    });
     return this.prisma.$transaction(async (tx) => {
       const data: Prisma.ServiceUserCreateInput = {
         firstName: dto.firstName,
@@ -438,7 +476,10 @@ export class ServiceUsersService implements OnModuleInit {
         careType: dto.careTypeId ? { connect: { id: dto.careTypeId } } : undefined,
         fundingType: dto.fundingTypeId ? { connect: { id: dto.fundingTypeId } } : undefined,
         riskLevel: dto.riskLevelId ? { connect: { id: dto.riskLevelId } } : undefined,
-        location: dto.locationId ? { connect: { id: dto.locationId } } : undefined,
+        location: locationId ? { connect: { id: locationId } } : undefined,
+        serviceUserArea: serviceUserAreaId
+          ? { connect: { id: serviceUserAreaId } }
+          : undefined,
         keyWorker: dto.keyWorkerId ? { connect: { id: dto.keyWorkerId } } : undefined,
         namedNurse: dto.namedNurseId ? { connect: { id: dto.namedNurseId } } : undefined,
       };
@@ -458,13 +499,13 @@ export class ServiceUsersService implements OnModuleInit {
         }
       }
 
-      if (dto.keyWorkerId || dto.namedNurseId || dto.locationId) {
+      if (dto.keyWorkerId || dto.namedNurseId || locationId) {
         await tx.serviceUserAssignment.create({
           data: {
             serviceUserId: created.id,
             keyWorkerId: dto.keyWorkerId ?? null,
             namedNurseId: dto.namedNurseId ?? null,
-            locationId: dto.locationId ?? null,
+            locationId: locationId ?? null,
             createdById: userId,
           },
         });
@@ -485,6 +526,7 @@ export class ServiceUsersService implements OnModuleInit {
           keyWorkerId: created.keyWorkerId,
           namedNurseId: created.namedNurseId,
           locationId: created.locationId,
+          serviceUserAreaId: created.serviceUserAreaId,
         }),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
@@ -541,10 +583,19 @@ export class ServiceUsersService implements OnModuleInit {
 
   async update(userId: string, id: string, dto: UpdateServiceUserDto, meta?: RequestAuditMeta) {
     await this.ensureExists(id);
+    const areaFieldProvided = dto.serviceUserAreaId !== undefined;
+    const fromArea = areaFieldProvided
+      ? await this.resolveLocationFromServiceUserArea(dto.serviceUserAreaId)
+      : null;
+    const resolvedLocationId = fromArea
+      ? fromArea.locationId
+      : dto.locationId !== undefined
+        ? dto.locationId
+        : undefined;
     await this.validateAssignments({
       keyWorkerId: dto.keyWorkerId,
       namedNurseId: dto.namedNurseId,
-      locationId: dto.locationId,
+      locationId: resolvedLocationId,
     });
     return this.prisma.$transaction(async (tx) => {
       if (dto.defaultChargeCardId !== undefined) {
@@ -587,8 +638,18 @@ export class ServiceUsersService implements OnModuleInit {
         data.fundingType = dto.fundingTypeId ? { connect: { id: dto.fundingTypeId } } : { disconnect: true };
       if (dto.riskLevelId !== undefined)
         data.riskLevel = dto.riskLevelId ? { connect: { id: dto.riskLevelId } } : { disconnect: true };
-      if (dto.locationId !== undefined)
+      if (areaFieldProvided) {
+        data.serviceUserArea = fromArea
+          ? { connect: { id: fromArea.serviceUserAreaId } }
+          : { disconnect: true };
+        data.location = fromArea
+          ? { connect: { id: fromArea.locationId } }
+          : dto.locationId
+            ? { connect: { id: dto.locationId } }
+            : { disconnect: true };
+      } else if (dto.locationId !== undefined) {
         data.location = dto.locationId ? { connect: { id: dto.locationId } } : { disconnect: true };
+      }
       if (dto.keyWorkerId !== undefined)
         data.keyWorker = dto.keyWorkerId ? { connect: { id: dto.keyWorkerId } } : { disconnect: true };
       if (dto.namedNurseId !== undefined)
@@ -604,7 +665,10 @@ export class ServiceUsersService implements OnModuleInit {
       await this.syncReferences(tx, id, dto.references);
 
       const assignmentTouch =
-        dto.keyWorkerId !== undefined || dto.namedNurseId !== undefined || dto.locationId !== undefined;
+        dto.keyWorkerId !== undefined ||
+        dto.namedNurseId !== undefined ||
+        dto.locationId !== undefined ||
+        areaFieldProvided;
       if (assignmentTouch) {
         const current = await tx.serviceUserAssignment.findFirst({
           where: { serviceUserId: id, deletedAt: null },
@@ -616,7 +680,8 @@ export class ServiceUsersService implements OnModuleInit {
             data: {
               keyWorkerId: dto.keyWorkerId !== undefined ? dto.keyWorkerId : current.keyWorkerId,
               namedNurseId: dto.namedNurseId !== undefined ? dto.namedNurseId : current.namedNurseId,
-              locationId: dto.locationId !== undefined ? dto.locationId : current.locationId,
+              locationId:
+                resolvedLocationId !== undefined ? resolvedLocationId : current.locationId,
               updatedById: userId,
             },
           });

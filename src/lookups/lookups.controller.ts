@@ -109,6 +109,12 @@ export class LookupsController {
     return { data: await this.service.upsertLeavingReason(dto.name) };
   }
 
+  @Post('visit-status-reasons')
+  @Permissions('lookups.manage')
+  async createVisitStatusReason(@Body() dto: CreateLookupNameDto) {
+    return { data: await this.service.upsertVisitStatusReason(dto.name) };
+  }
+
   @Post('review-types')
   @Permissions('lookups.manage')
   async createReviewType(@Body() dto: CreateLookupNameDto) {
@@ -173,6 +179,12 @@ export class LookupsController {
   @Permissions('lookups.read')
   async leavingReasons() {
     return { data: await this.service.leavingReasons() };
+  }
+
+  @Get('visit-status-reasons')
+  @Permissions('lookups.read')
+  async visitStatusReasons() {
+    return { data: await this.service.visitStatusReasons() };
   }
 
   @Get('skill-types')
