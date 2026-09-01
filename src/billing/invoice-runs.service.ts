@@ -171,6 +171,24 @@ export class InvoiceRunsService {
       paymentsByRun.map((p) => [p.invoiceRunId, Number(p._sum.amount ?? 0)]),
     );
 
+    // Per-funder paid: each payment carries the funder that sent it, so attribute
+    // allocations to (run, funder) to show how much each funder has settled.
+    const runFunderAllocations = await this.prisma.paymentAllocation.findMany({
+      where: { invoiceRunId: { in: [...byRun.keys()] } },
+      select: {
+        invoiceRunId: true,
+        amount: true,
+        payment: { select: { funderId: true } },
+      },
+    });
+    const runFunderKey = (runId: string, funderId: string | null) =>
+      `${runId}::${funderId ?? '__direct__'}`;
+    const paidByRunFunder = new Map<string, number>();
+    for (const a of runFunderAllocations) {
+      const key = runFunderKey(a.invoiceRunId, a.payment?.funderId ?? null);
+      paidByRunFunder.set(key, (paidByRunFunder.get(key) ?? 0) + Number(a.amount));
+    }
+
     const runs = [...byRun.values()]
       .sort((a, b) => b.run.periodEnd.getTime() - a.run.periodEnd.getTime())
       .map(({ run, lines: runLines }) => {
@@ -198,7 +216,33 @@ export class InvoiceRunsService {
             exceptionMessage: l.exceptionMessage,
           };
         });
-        const funderSummaries = this.buildFunderSummaries(mappedLines);
+        const funderSummaries = this.buildFunderSummaries(mappedLines).map(
+          (fs) => {
+            const paidF =
+              Math.round(
+                (paidByRunFunder.get(runFunderKey(run.id, fs.funderId)) ?? 0) *
+                  100,
+              ) / 100;
+            const outstandingF = Math.max(
+              0,
+              Math.round((fs.subtotalValue - paidF) * 100) / 100,
+            );
+            const fsStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
+              paidF <= 0
+                ? 'UNPAID'
+                : outstandingF <= 0.001
+                  ? 'PAID'
+                  : 'PART_PAID';
+            return {
+              ...fs,
+              paid: formatMoney(paidF),
+              paidValue: paidF,
+              outstanding: formatMoney(outstandingF),
+              outstandingValue: outstandingF,
+              paymentStatus: fsStatus,
+            };
+          },
+        );
         const subtotal = mappedLines.reduce((sum, l) => sum + l.amountValue, 0);
         const exceptionCount = mappedLines.filter(
           (l) => l.exceptionMessage,

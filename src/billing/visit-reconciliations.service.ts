@@ -780,16 +780,21 @@ export class VisitReconciliationsService {
       status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
     }
 
-    if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
-      dto.scope === 'INVOICE'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
-    } else if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      dto.scope === 'PAY'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+    // Additive default: approving one side when the other is already approved promotes
+    // to BOTH. The three-choice buttons pass `exclusive` to set the decision definitively
+    // (e.g. "Funders" always means bill-only / carer £0, even if pay was approved before).
+    if (!dto.exclusive) {
+      if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        dto.scope === 'INVOICE'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      } else if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
+        dto.scope === 'PAY'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      }
     }
 
     await this.prisma.visitReconciliation.update({
@@ -1459,11 +1464,11 @@ export class VisitReconciliationsService {
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
-    const promotedStatus =
-      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      !hasPayBlockingExceptions(activeExceptions)
-        ? VisitReconciliationStatus.APPROVED_FOR_BOTH
-        : status;
+    // A bill-only approval (APPROVED_FOR_INVOICE) is an exclusive choice: charge the
+    // client / funder, pay the carer £0. Previously this auto-promoted to
+    // APPROVED_FOR_BOTH (carer always paid once priced); that promotion is intentionally
+    // removed so "Funders only" truly excludes carer pay.
+    const promotedStatus = status;
 
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
     // Early leave within org/slot tolerance → full planned pay + charge (flags unchanged).
@@ -1826,7 +1831,8 @@ export class VisitReconciliationsService {
         promotedStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
         row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
       ) {
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+        // Bill-only approval → keep it bill-only (carer £0). Do NOT auto-approve pay.
+        finalStatus = VisitReconciliationStatus.APPROVED_FOR_INVOICE;
       } else if (
         promotedStatus !== VisitReconciliationStatus.APPROVED_FOR_BOTH &&
         row.status !== VisitReconciliationStatus.APPROVED_FOR_BOTH
