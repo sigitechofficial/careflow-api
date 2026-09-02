@@ -3,8 +3,8 @@
  * Verified against enterprise questionText / fieldKey / option codes and persona seeds.
  * Does not invent ethnicity, N/A fillers, or dynamic “today” dates.
  */
-import { IA_REGISTERED_HOLISTIC_TAB_IDS } from '../../src/dev-tools/dto/generate-ia-section.dto';
-import { enrichWaterlowMetadata } from '../../src/initial-assessments/initial-assessment-waterlow.util';
+import { IA_REGISTERED_HOLISTIC_TAB_IDS } from '../seed-lib/ia-registered-holistic-tab-ids';
+import { enrichWaterlowMetadata } from '../seed-lib/initial-assessment-waterlow.util';
 import {
   clearAnswer,
   dateAnswer,

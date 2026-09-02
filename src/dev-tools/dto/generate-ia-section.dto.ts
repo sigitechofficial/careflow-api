@@ -1,28 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ArrayMaxSize, IsArray, IsIn, IsInt, IsObject, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+  IA_REGISTERED_HOLISTIC_TAB_IDS,
+} from '../../../prisma/seed-lib/ia-registered-holistic-tab-ids';
+
+export {
+  IA_REGISTERED_HOLISTIC_TAB_IDS,
+  IA_HOLISTIC_TAB_COUNT,
+  IA_MAX_HOLISTIC_TAB_ID,
+  isRegisteredHolisticTabId,
+  type IaRegisteredHolisticTabId,
+} from '../../../prisma/seed-lib/ia-registered-holistic-tab-ids';
 
 /** QA demo severity scenarios. */
 export const IA_AUTOFILL_LEVELS = ['low', 'normal', 'critical'] as const;
 export type IaAutofillLevelDto = (typeof IA_AUTOFILL_LEVELS)[number];
-
-/**
- * Registered holistic tab IDs. Navigation order is independent; IDs 1–18 stay frozen.
- * 21 = Infection, 22 = Fire Safety, 19 = PEEP, 20 = Bed Rails.
- */
-export const IA_REGISTERED_HOLISTIC_TAB_IDS = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-] as const;
-
-export type IaRegisteredHolisticTabId = (typeof IA_REGISTERED_HOLISTIC_TAB_IDS)[number];
-
-/** Number of registered holistic tabs (not a 1..N ID range). */
-export const IA_HOLISTIC_TAB_COUNT = IA_REGISTERED_HOLISTIC_TAB_IDS.length;
-
-export const IA_MAX_HOLISTIC_TAB_ID = Math.max(...IA_REGISTERED_HOLISTIC_TAB_IDS);
-
-export function isRegisteredHolisticTabId(tabId: number): tabId is IaRegisteredHolisticTabId {
-  return (IA_REGISTERED_HOLISTIC_TAB_IDS as readonly number[]).includes(tabId);
-}
 
 /**
  * Generate (no-save) severity-aware demo values for ONE holistic tab. The frontend passes the
