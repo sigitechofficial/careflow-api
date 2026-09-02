@@ -667,12 +667,8 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
           done
 
-          # Allforcare production: never seed demo employees; soft-delete any that exist.
-          echo "Soft-deleting all employees on allforcare (no employee seed on this site)..."
-          if ! npx ts-node --transpile-only prisma/scripts/soft-delete-all-employees.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-purge-employees.log"; then
-            echo "::error title=Employee purge failed::Could not soft-delete employees. Check $DEPLOY_ROOT/logs/last-purge-employees.log on the VPS."
-            exit 1
-          fi
+          # Allforcare: do not seed workforce demo employees (real staff must be kept).
+          echo "Skipping workforce demo employee seeds on allforcare."
 
           echo "Cleaning empty database backups if any..."
           find "$DEPLOY_ROOT/db-backups" \
