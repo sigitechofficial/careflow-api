@@ -594,12 +594,27 @@ jobs:
           # Never seed demo data on production. NODE_ENV=production already defaults it off in
           # seed.ts; set this explicitly as a belt-and-suspenders guard for the deploy seed run.
           export SEED_DEMO_DATA=false
+          export ADMIN_SEED_EMAIL="suzzette@allforcare.co.uk"
+          export ADMIN_SEED_PASSWORD="Admin@12345"
+          export ADMIN_EMAIL="suzzette@allforcare.co.uk"
+          export ADMIN_EMAIL_FROM="admin@careadmin.local"
+          export ADMIN_PASSWORD="Admin@12345"
+
+          echo "Ensuring allforcare admin email ($ADMIN_EMAIL)..."
+          if ! npx ts-node --transpile-only prisma/scripts/ensure-admin-email.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-ensure-admin-email.log"; then
+            echo "::error title=Admin email update failed::Could not set admin to $ADMIN_EMAIL. Check $DEPLOY_ROOT/logs/last-ensure-admin-email.log on the VPS."
+            exit 1
+          fi
+
           if ! bash prisma/scripts/run-deploy-seeds.sh "$LIVE_PATH" 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
             # Surface loudly as a GitHub error annotation so a broken seed can't silently skip
             # data (e.g. care-plan form templates) while the deploy still shows green.
             echo "::error title=Deploy seeders failed::prisma db seed / deploy seeders failed — reference/catalog/care-plan-form data may NOT have been applied. Check $DEPLOY_ROOT/logs/last-seed.log on the VPS."
             echo "WARN: deploy seeders failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
           fi
+
+          echo "Re-applying allforcare admin email after seed..."
+          npx ts-node --transpile-only prisma/scripts/ensure-admin-email.ts 2>&1 | tee -a "$DEPLOY_ROOT/logs/last-ensure-admin-email.log" || true
 
           echo "Reloading PM2 app..."
           if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then

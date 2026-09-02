@@ -1430,8 +1430,8 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log('[seed] Compliance types & requirements upserted.');
-  const email = 'admin@careadmin.local';
-  const password = 'Admin@12345';
+  const email = process.env.ADMIN_SEED_EMAIL?.trim() || 'admin@careadmin.local';
+  const password = process.env.ADMIN_SEED_PASSWORD?.trim() || 'Admin@12345';
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.upsert({
