@@ -667,15 +667,11 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
           done
 
-          echo "Seeding workforce demo employees via API (idempotent; non-fatal)..."
-          export API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:3000}"
-          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-demo-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-demo-seed.log"; then
-            echo "WARN: workforce demo employee seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-demo-seed.log"
-          fi
-
-          echo "Seeding workforce compliance samples via API (idempotent; non-fatal)..."
-          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-compliance-samples-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"; then
-            echo "WARN: workforce compliance sample seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"
+          # Allforcare production: never seed demo employees; soft-delete any that exist.
+          echo "Soft-deleting all employees on allforcare (no employee seed on this site)..."
+          if ! npx ts-node --transpile-only prisma/scripts/soft-delete-all-employees.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-purge-employees.log"; then
+            echo "::error title=Employee purge failed::Could not soft-delete employees. Check $DEPLOY_ROOT/logs/last-purge-employees.log on the VPS."
+            exit 1
           fi
 
           echo "Cleaning empty database backups if any..."
