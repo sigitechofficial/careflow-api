@@ -34,6 +34,7 @@ import {
   mapTimelineJob,
   timelineJobInclude,
 } from '../scheduling/schedule-timeline.mapper';
+import { attachVisitRefsToJobs } from '../scheduling/visit-ref-lookup.util';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import { visitTimingExceptionReasonLabel } from '../scheduling/visit-timing-exception-reason.util';
 import { visitCareNotDeliveredReasonLabel } from '../scheduling/visit-care-not-delivered-reason.util';
@@ -136,7 +137,9 @@ export class ScheduledJobsService {
       include: jobDetailInclude,
     });
     if (!row) throw new NotFoundException('Scheduled job not found');
-    return { data: this.mapJobDetail(row) };
+    const detail = this.mapJobDetail(row);
+    const [withRef] = await attachVisitRefsToJobs(this.prisma, [detail]);
+    return { data: withRef };
   }
 
   async listCareConsents(jobId: string) {

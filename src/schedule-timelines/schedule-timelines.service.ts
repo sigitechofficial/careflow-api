@@ -20,6 +20,7 @@ import {
   jobDurationMinutes,
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
+import { attachVisitRefsToJobs } from '../scheduling/visit-ref-lookup.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import {
   employmentToCycleConfig,
@@ -124,16 +125,17 @@ export class ScheduleTimelinesService {
   private async enrichTimelineJobs<T extends ReturnType<typeof mapTimelineJob>>(
     jobs: T[],
     day: string,
-  ): Promise<T[]> {
-    if (!jobs.length) return jobs;
+  ): Promise<Array<T & { visitRef: string | null }>> {
+    if (!jobs.length) return [];
     const scheduleAreaByLocation = await loadScheduleAreaByLocationMap(this.prisma);
     const withBranches = this.applyBranchLabelsToTimelineJobs(jobs, scheduleAreaByLocation);
     const dayDate = utcDayBounds(day).start;
     const flags = await this.scheduleImpact.loadTimelineOperationalFlags(withBranches, dayDate);
-    return withBranches.map((job) => {
+    const withFlags = withBranches.map((job) => {
       const f = flags.get(job.id);
       return f ? { ...job, ...f } : job;
     });
+    return attachVisitRefsToJobs(this.prisma, withFlags);
   }
 
   private async fetchJobs(
