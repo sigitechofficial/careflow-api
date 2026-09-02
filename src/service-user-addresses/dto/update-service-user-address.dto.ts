@@ -33,11 +33,23 @@ export class UpdateServiceUserAddressDto {
   @MaxLength(200)
   country?: string;
 
-  @ApiPropertyOptional({ maxLength: 20 })
+  @ApiPropertyOptional({
+    maxLength: 20,
+    description: 'Main postcode (usually from the assigned service-user area)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(20)
   postcode?: string;
+
+  @ApiPropertyOptional({
+    maxLength: 20,
+    description: 'Secondary postcode from the searched / home street address',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  secondaryPostcode?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

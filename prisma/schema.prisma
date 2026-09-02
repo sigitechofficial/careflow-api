@@ -1355,6 +1355,7 @@ model EmployeeEmployment {
   location              Location? @relation("EmploymentLocation", fields: [locationId], references: [id])
   leavingReason         LeavingReason? @relation(fields: [leavingReasonId], references: [id])
   floorLocations        EmployeeEmploymentFloorLocation[]
+  serviceUserAreas      EmployeeEmploymentServiceUserArea[]
   defaultPayCard        PayCard? @relation("EmployeeDefaultPayCard", fields: [defaultPayCardId], references: [id], onDelete: SetNull)
 
   @@index([employeeId])
@@ -1373,6 +1374,20 @@ model EmployeeEmploymentFloorLocation {
 
   @@id([employmentId, locationId])
   @@index([locationId])
+  @@schema("employees")
+}
+
+/** Branches an employee can work across may include multiple service-user monitoring areas. */
+model EmployeeEmploymentServiceUserArea {
+  employmentId      String   @db.Uuid
+  serviceUserAreaId String   @db.Uuid
+  createdAt         DateTime @default(now())
+
+  employment      EmployeeEmployment @relation(fields: [employmentId], references: [id], onDelete: Cascade)
+  serviceUserArea ServiceUserArea    @relation(fields: [serviceUserAreaId], references: [id], onDelete: Cascade)
+
+  @@id([employmentId, serviceUserAreaId])
+  @@index([serviceUserAreaId])
   @@schema("employees")
 }
 
@@ -3423,7 +3438,10 @@ model ServiceUserAddress {
   town               String?
   county             String?
   country            String?
+  /** Main postcode — typically from the assigned service-user area. */
   postcode           String?
+  /** Secondary postcode — from the searched / home street address. */
+  secondaryPostcode  String?
   latitude           Decimal? @db.Decimal(10, 7)
   longitude          Decimal? @db.Decimal(10, 7)
   accessInstructions String?
@@ -5645,6 +5663,7 @@ model ServiceUserArea {
   scheduleArea ScheduleArea               @relation(fields: [scheduleAreaId], references: [id], onDelete: Cascade)
   postcodes    ServiceUserAreaPostcode[]
   serviceUsers ServiceUser[]
+  employments  EmployeeEmploymentServiceUserArea[]
   createdBy    User?                      @relation("ServiceUserAreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy    User?                      @relation("ServiceUserAreaUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   deletedBy    User?                      @relation("ServiceUserAreaDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)

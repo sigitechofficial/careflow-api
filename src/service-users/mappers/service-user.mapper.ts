@@ -164,6 +164,7 @@ export function mapServiceUserDetail(
         county: string | null;
         country: string | null;
         postcode: string | null;
+        secondaryPostcode: string | null;
         latitude: unknown;
         longitude: unknown;
         accessInstructions: string | null;
@@ -271,6 +272,7 @@ export function mapServiceUserDetail(
           county: user.address.county,
           country: user.address.country,
           postcode: user.address.postcode,
+          secondaryPostcode: user.address.secondaryPostcode,
           latitude: user.address.latitude,
           longitude: user.address.longitude,
           accessInstructions: user.address.accessInstructions,

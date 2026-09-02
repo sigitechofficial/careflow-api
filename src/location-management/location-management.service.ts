@@ -1347,6 +1347,23 @@ export class LocationManagementService {
         .map((a) => [a.locationId as string, a]),
     );
 
+    const serviceUserAreas = await this.prisma.serviceUserArea.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        scheduleAreaId: true,
+        postcodes: { select: { postcode: true }, orderBy: { postcode: 'asc' } },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    const areasByScheduleAreaId = new Map<string, typeof serviceUserAreas>();
+    for (const sua of serviceUserAreas) {
+      const list = areasByScheduleAreaId.get(sua.scheduleAreaId) ?? [];
+      list.push(sua);
+      areasByScheduleAreaId.set(sua.scheduleAreaId, list);
+    }
+
     const zoneMap = new Map<
       string,
       {
@@ -1356,6 +1373,7 @@ export class LocationManagementService {
           id: string;
           name: string;
           scheduleAreaId: string | null;
+          areas: Array<{ id: string; name: string; postcodes: string[] }>;
         }>;
       }
     >();
@@ -1366,10 +1384,18 @@ export class LocationManagementService {
       const branchName = area?.name || parsed.roomName || loc.name;
       const zoneKey = zoneName || loc.name;
       const zone = zoneMap.get(zoneKey) ?? { id: zoneKey, name: zoneKey, branches: [] };
+      const nestedAreas = area
+        ? (areasByScheduleAreaId.get(area.id) ?? []).map((sua) => ({
+            id: sua.id,
+            name: sua.name,
+            postcodes: sua.postcodes.map((p) => p.postcode),
+          }))
+        : [];
       zone.branches.push({
         id: loc.id,
         name: branchName,
         scheduleAreaId: area?.id ?? null,
+        areas: nestedAreas,
       });
       zoneMap.set(zoneKey, zone);
     }

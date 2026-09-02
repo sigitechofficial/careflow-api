@@ -35,6 +35,18 @@ export class EmployeeEmploymentService {
         floorLocations: {
           include: { location: true },
         },
+        serviceUserAreas: {
+          include: {
+            serviceUserArea: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                scheduleAreaId: true,
+              },
+            },
+          },
+        },
         defaultPayCard: {
           select: { id: true, name: true, code: true, status: true },
         },
@@ -55,7 +67,12 @@ export class EmployeeEmploymentService {
       });
     }
 
-    return { data: employment };
+    return {
+      data: {
+        ...employment,
+        serviceUserAreaIds: employment.serviceUserAreas.map((row) => row.serviceUserAreaId),
+      },
+    };
   }
 
   async update(
@@ -69,7 +86,7 @@ export class EmployeeEmploymentService {
     });
     if (!exists) throw new NotFoundException('Employee not found');
 
-    const { baseLocationIds, defaultPayCardId, ...employmentScalars } = dto;
+    const { baseLocationIds, serviceUserAreaIds, defaultPayCardId, ...employmentScalars } = dto;
 
     const agencyClear =
       dto.isAgencyStaff === false
@@ -138,6 +155,45 @@ export class EmployeeEmploymentService {
         }
       }
 
+      if (serviceUserAreaIds !== undefined) {
+        const uniqueAreaIds = [...new Set(serviceUserAreaIds.filter(Boolean))];
+        if (uniqueAreaIds.length) {
+          const found = await tx.serviceUserArea.findMany({
+            where: { id: { in: uniqueAreaIds }, deletedAt: null, isActive: true },
+            select: { id: true },
+          });
+          if (found.length !== uniqueAreaIds.length) {
+            throw new NotFoundException('One or more service areas were not found');
+          }
+        }
+        await tx.employeeEmploymentServiceUserArea.deleteMany({
+          where: { employmentId: employment.id },
+        });
+        if (uniqueAreaIds.length) {
+          await tx.employeeEmploymentServiceUserArea.createMany({
+            data: uniqueAreaIds.map((serviceUserAreaId) => ({
+              employmentId: employment.id,
+              serviceUserAreaId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      const refreshed = await tx.employeeEmployment.findFirst({
+        where: { id: employment.id },
+        include: {
+          floorLocations: { include: { location: true } },
+          serviceUserAreas: {
+            include: {
+              serviceUserArea: {
+                select: { id: true, name: true, code: true, scheduleAreaId: true },
+              },
+            },
+          },
+        },
+      });
+
       const oldS = auditSnapshot(before);
       const newS = auditSnapshot(employment);
       await this.audit.logAudit({
@@ -157,7 +213,13 @@ export class EmployeeEmploymentService {
         userAgent: meta?.userAgent ?? undefined,
       });
       await this.rbacEmploymentSync.syncUserRolesForEmployee(tx, employeeId);
-      return { message: 'Employment details updated', data: employment };
+      return {
+        message: 'Employment details updated',
+        data: {
+          ...refreshed!,
+          serviceUserAreaIds: (refreshed?.serviceUserAreas ?? []).map((row) => row.serviceUserAreaId),
+        },
+      };
     });
   }
 }

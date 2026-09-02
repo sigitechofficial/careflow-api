@@ -16,7 +16,7 @@ export class UpdateMemberLocationDto {
 
   @ApiPropertyOptional({
     nullable: true,
-    description: 'Home address postcode — typically one of the selected area’s postcodes',
+    description: 'Main postcode — typically one of the selected area’s postcodes',
   })
   @IsOptional()
   @ValidateIf((_, v) => v !== null)

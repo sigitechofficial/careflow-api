@@ -117,6 +117,18 @@ export class EmployeesService {
             floorLocations: {
               include: { location: true },
             },
+            serviceUserAreas: {
+              include: {
+                serviceUserArea: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    scheduleAreaId: true,
+                  },
+                },
+              },
+            },
             defaultPayCard: {
               select: { id: true, name: true, code: true, status: true },
             },
@@ -139,7 +151,19 @@ export class EmployeesService {
       });
     }
 
-    return { data: employee };
+    const data = employee.employment
+      ? {
+          ...employee,
+          employment: {
+            ...employee.employment,
+            serviceUserAreaIds: employee.employment.serviceUserAreas.map(
+              (row) => row.serviceUserAreaId,
+            ),
+          },
+        }
+      : employee;
+
+    return { data };
   }
 
   async previewScheduleImpact(employeeId: string, query: ScheduleImpactPreviewQueryDto) {
