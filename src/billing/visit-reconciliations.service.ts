@@ -1413,6 +1413,7 @@ export class VisitReconciliationsService {
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: visit.scheduledJob?.metadata,
     });
+    const timeZone = await this.orgSettings.getOperationalTimezone();
 
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
@@ -1744,6 +1745,7 @@ export class VisitReconciliationsService {
           end: approvedPayEnd,
           stackingPolicy,
           isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+          timeZone,
         },
       );
       payableAmount = calc?.amount ?? null;
@@ -1771,6 +1773,7 @@ export class VisitReconciliationsService {
         isBankHoliday,
         isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
         nightDuty,
+        timeZone,
       });
     }
 
@@ -1853,6 +1856,7 @@ export class VisitReconciliationsService {
               start: approvedBillStart,
               end: approvedBillEnd,
               isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+              timeZone,
             }
           : undefined,
         nightDuty,
@@ -2409,6 +2413,7 @@ export class VisitReconciliationsService {
             isBankHoliday,
             isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
             nightDuty,
+            timeZone,
           })
         : null;
 

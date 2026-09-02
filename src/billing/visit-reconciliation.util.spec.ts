@@ -330,3 +330,34 @@ describe('deriveReconciliationStatus — auto pay on complete', () => {
     ).toBe(false);
   });
 });
+
+describe('calculatePayableAmount operational timezone (BST)', () => {
+  it('matches Weekday daytime 07:00–19:00 for a London 07:00–10:00 visit stored as UTC', () => {
+    // 2026-09-02 07:00–10:00 Europe/London = 06:00–09:00Z
+    const start = new Date('2026-09-02T06:00:00.000Z');
+    const end = new Date('2026-09-02T09:00:00.000Z');
+    const rules = [
+      {
+        label: 'Weekday daytime',
+        dayType: 'WEEKDAY',
+        rateType: 'HOURLY',
+        amount: 25,
+        priority: 0,
+        sortOrder: 0,
+        startTime: '07:00',
+        endTime: '19:00',
+        appliesToVisit: true,
+      },
+    ];
+    const withoutTz = calculatePayableAmount(rules, start, 180, false, { start, end });
+    expect(withoutTz).toBeNull();
+
+    const withLondon = calculatePayableAmount(rules, start, 180, false, {
+      start,
+      end,
+      timeZone: 'Europe/London',
+    });
+    expect(withLondon?.amount).toBe(75);
+    expect(withLondon?.label).toBe('BANDED_HOURLY');
+  });
+});

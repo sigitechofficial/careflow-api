@@ -155,6 +155,7 @@ export async function loadPerFunderChargeCalculation(
     isBankHoliday: boolean;
     isBankHolidayFn: (date: Date) => boolean;
     nightDuty?: string | null;
+    timeZone?: string;
   },
 ): Promise<MultiFunderChargeResult | null> {
   if (params.billMinutes <= 0) return null;
@@ -209,6 +210,7 @@ export async function loadPerFunderChargeCalculation(
           start: params.approvedBillStart,
           end: params.approvedBillEnd,
           isBankHolidayFn: params.isBankHolidayFn,
+          timeZone: params.timeZone,
         },
         params.nightDuty,
       );

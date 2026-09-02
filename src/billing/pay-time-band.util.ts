@@ -1,7 +1,18 @@
 /**
  * Time-band enhancement engine for carer pay.
  * Splits payable activities across day/time bands and applies absolute, plus, %, or multiplier rates.
+ *
+ * Clock bands (e.g. 07:00–19:00) are interpreted in the organisation operational timezone
+ * (default Europe/London), not UTC — otherwise BST visits miss daytime rules by one hour.
  */
+
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  combineOperationalDateAndHm,
+  dayKeyInTimeZone,
+  formatHmInTimeZone,
+  startOfOperationalDayUtc,
+} from '../common/utils/operational-day.util';
 
 export type PayStackingPolicy = 'PRIORITY' | 'HIGHEST' | 'STACK';
 
@@ -103,12 +114,15 @@ export const DAY_TYPE_PRIORITY = [
   'ANY',
 ];
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
+export function formatHhMmUtc(d: Date): string {
+  return formatHmInTimeZone(d, 'UTC');
 }
 
-export function formatHhMmUtc(d: Date): string {
-  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+export function formatHhMmInZone(
+  d: Date,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  return formatHmInTimeZone(d, timeZone);
 }
 
 export function parseHhMm(value: string): { hours: number; minutes: number } | null {
@@ -124,10 +138,28 @@ export function minutesOfDayUtc(d: Date): number {
   return d.getUTCHours() * 60 + d.getUTCMinutes();
 }
 
-export function resolveCalendarDayType(date: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
-  const day = date.getUTCDay();
-  if (day === 0) return 'SUNDAY';
-  if (day === 6) return 'SATURDAY';
+export function minutesOfDayInZone(
+  d: Date,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): number {
+  const hm = formatHmInTimeZone(d, timeZone);
+  const [h, m] = hm.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+export function resolveCalendarDayType(
+  date: Date,
+  timeZone: string = 'UTC',
+): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
+  if (timeZone === 'UTC') {
+    const day = date.getUTCDay();
+    if (day === 0) return 'SUNDAY';
+    if (day === 6) return 'SATURDAY';
+    return 'WEEKDAY';
+  }
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(date);
+  if (weekday === 'Sun') return 'SUNDAY';
+  if (weekday === 'Sat') return 'SATURDAY';
   return 'WEEKDAY';
 }
 
@@ -136,17 +168,27 @@ export function resolveSpecialDay(
   opts?: {
     isBankHoliday?: boolean;
     specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
+    timeZone?: string;
   },
 ): PaySpecialDay {
-  const ymd = date.toISOString().slice(0, 10);
+  const timeZone = opts?.timeZone ?? 'UTC';
+  const ymd =
+    timeZone === 'UTC' ? date.toISOString().slice(0, 10) : dayKeyInTimeZone(date, timeZone);
   const fromList = opts?.specialDays?.find((s) => s.date === ymd)?.kind;
   if (fromList && fromList !== 'NONE') return fromList;
 
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
-  if (month === 12 && day === 25) return 'CHRISTMAS';
-  if (month === 12 && day === 26) return 'BOXING_DAY';
-  if (month === 1 && day === 1) return 'NEW_YEAR';
+  if (timeZone === 'UTC') {
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    if (month === 12 && day === 25) return 'CHRISTMAS';
+    if (month === 12 && day === 26) return 'BOXING_DAY';
+    if (month === 1 && day === 1) return 'NEW_YEAR';
+  } else {
+    const [y, m, d] = ymd.split('-').map(Number);
+    if (m === 12 && d === 25) return 'CHRISTMAS';
+    if (m === 12 && d === 26) return 'BOXING_DAY';
+    if (m === 1 && d === 1) return 'NEW_YEAR';
+  }
   if (opts?.isBankHoliday) return 'BANK_HOLIDAY';
   return 'NONE';
 }
@@ -204,54 +246,107 @@ function ruleSpecificity(rule: TimeBandRule): number {
 }
 
 /**
- * Collect boundaries (UTC) where bands or calendar days change within [start, end).
+ * Collect boundaries where bands or calendar days change within [start, end).
+ * Band clock times are interpreted in `timeZone` (UTC for legacy tests).
  */
 export function collectBandBoundaries(
   start: Date,
   end: Date,
   rules: TimeBandRule[],
+  timeZone: string = 'UTC',
 ): Date[] {
   const points = new Set<number>();
   points.add(start.getTime());
   points.add(end.getTime());
 
-  // Midnight UTC splits
-  let cursor = new Date(Date.UTC(
-    start.getUTCFullYear(),
-    start.getUTCMonth(),
-    start.getUTCDate() + 1,
-    0, 0, 0, 0,
-  ));
-  while (cursor.getTime() < end.getTime()) {
-    points.add(cursor.getTime());
-    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
-  }
+  if (timeZone === 'UTC') {
+    let cursor = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 1, 0, 0, 0, 0),
+    );
+    while (cursor.getTime() < end.getTime()) {
+      points.add(cursor.getTime());
+      cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+    }
 
-  for (const rule of rules) {
-    for (const t of [rule.startTime, rule.endTime]) {
-      if (!t) continue;
-      const parsed = parseHhMm(t);
-      if (!parsed) continue;
-      let day = new Date(Date.UTC(
-        start.getUTCFullYear(),
-        start.getUTCMonth(),
-        start.getUTCDate(),
-        parsed.hours,
-        parsed.minutes,
-        0, 0,
-      ));
-      // Walk days covering the activity
-      const lastDay = new Date(Date.UTC(
-        end.getUTCFullYear(),
-        end.getUTCMonth(),
-        end.getUTCDate(),
-        0, 0, 0, 0,
-      ));
-      while (day.getTime() <= lastDay.getTime() + 24 * 60 * 60 * 1000) {
-        if (day.getTime() > start.getTime() && day.getTime() < end.getTime()) {
-          points.add(day.getTime());
+    for (const rule of rules) {
+      for (const t of [rule.startTime, rule.endTime]) {
+        if (!t) continue;
+        const parsed = parseHhMm(t);
+        if (!parsed) continue;
+        let day = new Date(
+          Date.UTC(
+            start.getUTCFullYear(),
+            start.getUTCMonth(),
+            start.getUTCDate(),
+            parsed.hours,
+            parsed.minutes,
+            0,
+            0,
+          ),
+        );
+        const lastDay = new Date(
+          Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 0, 0, 0, 0),
+        );
+        while (day.getTime() <= lastDay.getTime() + 24 * 60 * 60 * 1000) {
+          if (day.getTime() > start.getTime() && day.getTime() < end.getTime()) {
+            points.add(day.getTime());
+          }
+          day = new Date(day.getTime() + 24 * 60 * 60 * 1000);
         }
-        day = new Date(day.getTime() + 24 * 60 * 60 * 1000);
+      }
+    }
+  } else {
+    // Operational midnights and band HH:mm instants in org TZ
+    let dayKey = dayKeyInTimeZone(start, timeZone);
+    const endDayKey = dayKeyInTimeZone(end, timeZone);
+    for (let guard = 0; guard < 40; guard++) {
+      const nextMidnight = startOfOperationalDayUtc(
+        // add one day to dayKey
+        (() => {
+          const [y, m, d] = dayKey.split('-').map(Number);
+          const dt = new Date(Date.UTC(y!, m! - 1, d!));
+          dt.setUTCDate(dt.getUTCDate() + 1);
+          return dt.toISOString().slice(0, 10);
+        })(),
+        timeZone,
+      );
+      if (nextMidnight.getTime() > start.getTime() && nextMidnight.getTime() < end.getTime()) {
+        points.add(nextMidnight.getTime());
+      }
+      if (dayKey >= endDayKey) break;
+      const [y, m, d] = dayKey.split('-').map(Number);
+      const dt = new Date(Date.UTC(y!, m! - 1, d!));
+      dt.setUTCDate(dt.getUTCDate() + 1);
+      dayKey = dt.toISOString().slice(0, 10);
+    }
+
+    const startDay = dayKeyInTimeZone(start, timeZone);
+    const endDay = dayKeyInTimeZone(end, timeZone);
+    const days: string[] = [];
+    {
+      let cursor = startDay;
+      for (let guard = 0; guard < 40; guard++) {
+        days.push(cursor);
+        if (cursor >= endDay) break;
+        const [y, m, d] = cursor.split('-').map(Number);
+        const dt = new Date(Date.UTC(y!, m! - 1, d!));
+        dt.setUTCDate(dt.getUTCDate() + 1);
+        cursor = dt.toISOString().slice(0, 10);
+      }
+    }
+    for (const rule of rules) {
+      for (const t of [rule.startTime, rule.endTime]) {
+        if (!t?.trim()) continue;
+        for (const day of days) {
+          const instant = combineOperationalDateAndHm(day, t.trim(), timeZone);
+          if (
+            Number.isFinite(instant.getTime()) &&
+            instant.getTime() > start.getTime() &&
+            instant.getTime() < end.getTime()
+          ) {
+            points.add(instant.getTime());
+          }
+        }
       }
     }
   }
@@ -266,10 +361,12 @@ export function splitIntoTimeSegments(
   opts?: {
     isBankHolidayFn?: (d: Date) => boolean;
     specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
+    timeZone?: string;
   },
 ): TimeSegment[] {
   if (end.getTime() <= start.getTime()) return [];
-  const boundaries = collectBandBoundaries(start, end, rules);
+  const timeZone = opts?.timeZone ?? 'UTC';
+  const boundaries = collectBandBoundaries(start, end, rules, timeZone);
   const segments: TimeSegment[] = [];
   for (let i = 0; i < boundaries.length - 1; i++) {
     const segStart = boundaries[i];
@@ -280,8 +377,9 @@ export function splitIntoTimeSegments(
     const specialDay = resolveSpecialDay(segStart, {
       isBankHoliday: isBh,
       specialDays: opts?.specialDays,
+      timeZone,
     });
-    const calendar = resolveCalendarDayType(segStart);
+    const calendar = resolveCalendarDayType(segStart, timeZone);
     const dayType =
       specialDay === 'CHRISTMAS' ||
       specialDay === 'BOXING_DAY' ||
@@ -391,13 +489,20 @@ export function applyEnhancement(
 function matchingHourlyRulesForSegment(
   rules: TimeBandRule[],
   segment: TimeSegment,
+  timeZone: string = 'UTC',
 ): TimeBandRule[] {
-  const midMinute = minutesOfDayUtc(
-    new Date(segment.start.getTime() + Math.floor((segment.minutes * 60_000) / 2)),
-  );
+  const mid = new Date(segment.start.getTime() + Math.floor((segment.minutes * 60_000) / 2));
+  const midMinute =
+    timeZone === 'UTC' ? minutesOfDayUtc(mid) : minutesOfDayInZone(mid, timeZone);
   return rules.filter((rule) => {
     if (!isVisitHourlyRule(rule)) return false;
-    if (!dayTypeMatchesRule(rule.dayType, resolveCalendarDayType(segment.start), segment.specialDay)) {
+    if (
+      !dayTypeMatchesRule(
+        rule.dayType,
+        resolveCalendarDayType(segment.start, timeZone),
+        segment.specialDay,
+      )
+    ) {
       return false;
     }
     return minuteInTimeBand(midMinute, rule.startTime, rule.endTime);
@@ -451,6 +556,8 @@ export function calculateBandedPay(input: {
   baseRateOverride?: number;
   isBankHolidayFn?: (d: Date) => boolean;
   specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
+  /** IANA TZ for interpreting rule clock bands (default UTC for unit tests). */
+  timeZone?: string;
 }): BandedPayResult | null {
   const {
     start,
@@ -460,17 +567,24 @@ export function calculateBandedPay(input: {
     baseRateOverride,
     isBankHolidayFn,
     specialDays,
+    timeZone = 'UTC',
   } = input;
 
-  const segments = splitIntoTimeSegments(start, end, rules, { isBankHolidayFn, specialDays });
+  const segments = splitIntoTimeSegments(start, end, rules, {
+    isBankHolidayFn,
+    specialDays,
+    timeZone,
+  });
   if (!segments.length) return null;
 
   const baseRate = baseRateOverride ?? pickBaseHourlyRate(rules);
   const segmentResults: SegmentPayResult[] = [];
   let unmatchedSegments = 0;
+  const formatHm = (d: Date) =>
+    timeZone === 'UTC' ? formatHhMmUtc(d) : formatHhMmInZone(d, timeZone);
 
   for (const segment of segments) {
-    const matches = matchingHourlyRulesForSegment(rules, segment);
+    const matches = matchingHourlyRulesForSegment(rules, segment, timeZone);
     const chosen = chooseRulesByPolicy(matches, stackingPolicy);
 
     let rate = 0;
@@ -520,7 +634,7 @@ export function calculateBandedPay(input: {
       ruleLabel: label,
       baseRate,
       shiftAllowance: shiftAllowance > 0 ? shiftAllowance : undefined,
-      explanation: `${formatHhMmUtc(segment.start)}–${formatHhMmUtc(segment.end)} (${segment.minutes}m) @ £${rate.toFixed(2)}/hr${
+      explanation: `${formatHm(segment.start)}–${formatHm(segment.end)} (${segment.minutes}m) @ £${rate.toFixed(2)}/hr${
         shiftAllowance > 0 ? ` + £${shiftAllowance.toFixed(2)} allowance` : ''
       } [${parts.join('; ')}]`,
     });

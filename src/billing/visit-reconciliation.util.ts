@@ -597,11 +597,22 @@ function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T 
   })[0] ?? null;
 }
 
-function ruleMatchesVisitClock(rule: RuleWithOptionalTime, visitDate: Date): boolean {
+function ruleMatchesVisitClock(
+  rule: RuleWithOptionalTime,
+  visitDate: Date,
+  timeZone: string = 'UTC',
+): boolean {
   const start = rule.startTime?.trim() || null;
   const end = rule.endTime?.trim() || null;
   if (!start && !end) return true;
-  const minuteOfDay = visitDate.getUTCHours() * 60 + visitDate.getUTCMinutes();
+  const minuteOfDay =
+    timeZone === 'UTC'
+      ? visitDate.getUTCHours() * 60 + visitDate.getUTCMinutes()
+      : (() => {
+          const hm = formatHmInTimeZone(visitDate, timeZone);
+          const [h, m] = hm.split(':').map(Number);
+          return (h ?? 0) * 60 + (m ?? 0);
+        })();
   return minuteInTimeBand(minuteOfDay, start, end);
 }
 
@@ -611,6 +622,7 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   visitDate: Date,
   visitMinutes: number,
   isBankHoliday = false,
+  timeZone: string = 'UTC',
 ): T | null {
   if (!rules.length || visitMinutes <= 0) return null;
 
@@ -620,7 +632,7 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixedSlots = dayMatches
       .filter((rule) => isFixedVisitSlotRule(rule))
-      .filter((rule) => ruleMatchesVisitClock(rule, visitDate));
+      .filter((rule) => ruleMatchesVisitClock(rule, visitDate, timeZone));
     const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
     if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
@@ -662,16 +674,19 @@ export function calculatePayableAmount(
     end: Date;
     stackingPolicy?: PayStackingPolicy;
     isBankHolidayFn?: (d: Date) => boolean;
+    /** IANA TZ for pay-card clock bands (e.g. Europe/London). */
+    timeZone?: string;
   },
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
   const bandRules = toTimeBandRules(rules);
+  const timeZone = window?.timeZone ?? 'UTC';
 
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Otherwise use hourly pro-rata (time-banded when a window is provided).
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -689,6 +704,7 @@ export function calculatePayableAmount(
       end,
       rules: bandRules,
       stackingPolicy: window.stackingPolicy ?? 'PRIORITY',
+      timeZone,
       isBankHolidayFn:
         window.isBankHolidayFn ??
         ((d) => {
@@ -713,8 +729,14 @@ export function calculatePayableAmount(
             rate: s.appliedHourlyRate,
             amount: s.amount,
             explanation: s.explanation,
-            startLabel: formatHhMmUtc(s.segment.start),
-            endLabel: formatHhMmUtc(s.segment.end),
+            startLabel:
+              timeZone === 'UTC'
+                ? formatHhMmUtc(s.segment.start)
+                : formatHmInTimeZone(s.segment.start, timeZone),
+            endLabel:
+              timeZone === 'UTC'
+                ? formatHhMmUtc(s.segment.end)
+                : formatHmInTimeZone(s.segment.end, timeZone),
             ruleLabel: s.ruleLabel,
             hoursLabel,
             lineFormula: `${hoursLabel} × ${rateLabel}/hr = ${formatGbp(s.amount)}`,
@@ -725,13 +747,13 @@ export function calculatePayableAmount(
   }
 
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
@@ -802,6 +824,7 @@ export function calculateBillableAmount(
     end: Date;
     stackingPolicy?: PayStackingPolicy;
     isBankHolidayFn?: (d: Date) => boolean;
+    timeZone?: string;
   },
   nightDuty?: string | null,
 ): PayableAmountResult | null {
