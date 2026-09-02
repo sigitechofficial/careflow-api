@@ -1,0 +1,694 @@
+name: Deploy Allforcare API
+
+on:
+  push:
+    branches:
+      - production
+
+  workflow_dispatch:
+
+concurrency:
+  group: careflow-api-allforcare-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build NestJS API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout API repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build NestJS API
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Validate backend build output
+        run: |
+          test -f dist/src/main.js
+          test -f prisma/schema.prisma
+          test -f prisma/seed.ts
+          test -f prisma/seed-data/medication-status-codes.defaults.ts
+          test -f prisma/seed-data/medication-administration-rounds.defaults.ts
+          test -f prisma/seed-data/initial-assessment-catalog.json
+          test -f prisma/seed-data/vital-accepted-ranges.defaults.ts
+          test -f prisma/seed-data/task-catalogue-seed.json
+          test -d prisma/migrations
+          test -f package.json
+          test -f package-lock.json
+          echo "Backend build output verified."
+          # The deploy artifact ships dist/ but NOT src/, yet the seed runs as raw TS via
+          # `ts-node prisma/seed.ts`. Any import from the seed path into src/ (at ANY depth,
+          # including prisma/seed-lib/) crashes `prisma db seed` at load time on the VPS and
+          # silently skips ALL seeding. Guard the whole seed path.
+          if grep -REn "from ['\"](\.\./)+src/" prisma/seed.ts prisma/seeds prisma/seed-lib; then
+            echo "ERROR: the prisma seed path imports from src/ (shown above). src/ is not in the deploy artifact, so this crashes 'prisma db seed' on the VPS. Move the dependency under prisma/."
+            exit 1
+          fi
+          echo "prisma seed path is self-contained (no src/ imports)."
+
+      - name: Create release metadata
+        run: |
+          cat > release.json <<EOF
+          {
+            "app": "api-allforcare",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "deployedBy": "${{ github.actor }}",
+            "runId": "${{ github.run_id }}",
+            "runNumber": "${{ github.run_number }}",
+            "deployedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+      - name: Package backend release
+        run: |
+          tar -czf api-allforcare-release.tar.gz \
+            dist \
+            prisma \
+            package.json \
+            package-lock.json \
+            nest-cli.json \
+            tsconfig.json \
+            tsconfig.build.json \
+            release.json
+
+      - name: Upload backend release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-allforcare-release
+          path: api-allforcare-release.tar.gz
+          retention-days: 7
+
+  deploy:
+    name: Deploy to cPanel VPS
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      # Hardcoded allforcare targets — do not reuse BACKEND_* secrets (those are for careflowbackend/main).
+      LIVE_PATH: /home/sigisolutions/api-allforcare.sigisolutions.net
+      APP_URL: https://api-allforcare.sigisolutions.net/
+      PM2_APP_NAME: api-allforcare
+      DEPLOY_ROOT: /home/sigisolutions/deployments/api-allforcare
+      # Keep SSH alive during long remote tar / pg_dump (idle sessions often drop on cPanel).
+      SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Download backend release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-allforcare-release
+
+      - name: Configure SSH access
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          echo "Adding VPS host key to known_hosts..."
+
+          for i in 1 2 3 4 5; do
+            ssh-keyscan -T 20 -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts && break
+            echo "ssh-keyscan failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Failed to add VPS host key."
+            exit 1
+          fi
+
+          echo "SSH access configured."
+
+      - name: Verify SSH connection
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          # shellcheck disable=SC2086
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            $SSH_OPTS \
+            "$VPS_USER@$VPS_HOST" \
+            "whoami && pwd && ls -ld '$LIVE_PATH'"
+
+      - name: Prepare remote deployment folders
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          # shellcheck disable=SC2086
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            $SSH_OPTS \
+            "$VPS_USER@$VPS_HOST" \
+            "
+              mkdir -p /home/sigisolutions/deployments/api-allforcare/incoming
+              mkdir -p /home/sigisolutions/deployments/api-allforcare/releases
+              mkdir -p /home/sigisolutions/deployments/api-allforcare/backups
+              mkdir -p /home/sigisolutions/deployments/api-allforcare/db-backups
+              mkdir -p /home/sigisolutions/deployments/api-allforcare/logs
+            "
+
+      - name: Upload backend release package
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          # shellcheck disable=SC2086
+          scp -i ~/.ssh/deploy_key \
+            -P "$VPS_PORT" \
+            $SSH_OPTS \
+            api-allforcare-release.tar.gz \
+            "$VPS_USER@$VPS_HOST:/home/sigisolutions/deployments/api-allforcare/incoming/${{ github.sha }}.tar.gz"
+
+      - name: Deploy backend release with backup and rollback protection
+        run: |
+          set -e
+
+          VPS_PORT="${VPS_PORT:-22}"
+
+          # shellcheck disable=SC2086
+          ssh -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            $SSH_OPTS \
+            "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          APP_NAME="api-allforcare"
+          RELEASE_ID="${{ github.sha }}"
+          LIVE_PATH="/home/sigisolutions/api-allforcare.sigisolutions.net"
+          APP_URL="https://api-allforcare.sigisolutions.net/"
+          PM2_APP_NAME="api-allforcare"
+          DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
+          INCOMING_FILE="$DEPLOY_ROOT/incoming/$RELEASE_ID.tar.gz"
+
+          DEPLOY_TS="$(date -u +%Y%m%d-%H%M%SZ)"
+          SHORT_SHA="$(printf '%s' "$RELEASE_ID" | cut -c1-8)"
+          RELEASE_NAME="release-${DEPLOY_TS}-run-${{ github.run_number }}-${SHORT_SHA}"
+
+          RELEASE_PATH="$DEPLOY_ROOT/releases/$RELEASE_NAME"
+          BACKUP_FILE="$DEPLOY_ROOT/backups/file-before-${RELEASE_NAME}.tar.gz"
+          DB_BACKUP_FILE="$DEPLOY_ROOT/db-backups/db-before-${RELEASE_NAME}.dump"
+
+          ROLLBACK_DIR="$DEPLOY_ROOT/rollback-temp"
+          DEPLOY_LOG="$DEPLOY_ROOT/logs/deployments.log"
+
+          # Nest 11 / Prisma 6+ require Node 20+. cPanel shells often default to Node 16.
+          ensure_node20() {
+            echo "Resolving Node.js 20+ for deploy..."
+
+            export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              # shellcheck disable=SC1090
+              . "$NVM_DIR/nvm.sh"
+              nvm use 20 >/dev/null 2>&1 || nvm use 20.19 >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
+            fi
+
+            for CANDIDATE in \
+              "/opt/cpanel/ea-nodejs22/bin" \
+              "/opt/cpanel/ea-nodejs20/bin" \
+              "/usr/local/bin"
+            do
+              if [ -x "$CANDIDATE/node" ]; then
+                CAND_MAJOR="$("$CANDIDATE/node" -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)"
+                if [ "$CAND_MAJOR" -ge 20 ] 2>/dev/null; then
+                  export PATH="$CANDIDATE:$PATH"
+                  break
+                fi
+              fi
+            done
+
+            if [ -d "$NVM_DIR/versions/node" ]; then
+              LATEST20="$(ls -1 "$NVM_DIR/versions/node" 2>/dev/null | grep -E '^v20\.' | sort -V | tail -1 || true)"
+              if [ -n "$LATEST20" ] && [ -x "$NVM_DIR/versions/node/$LATEST20/bin/node" ]; then
+                export PATH="$NVM_DIR/versions/node/$LATEST20/bin:$PATH"
+              fi
+            fi
+
+            hash -r 2>/dev/null || true
+            echo "node binary: $(command -v node || echo MISSING)"
+            echo "node version: $(node -v 2>/dev/null || echo MISSING)"
+            echo "npm binary: $(command -v npm || echo MISSING)"
+            echo "npm version: $(npm -v 2>/dev/null || echo MISSING)"
+
+            NODE_MAJOR="$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)"
+            if [ "$NODE_MAJOR" -lt 20 ]; then
+              echo "========================================"
+              echo "ERROR: Deploy requires Node.js 20+."
+              echo "This SSH session is using: $(node -v 2>/dev/null || echo 'no node')"
+              echo ""
+              echo "Fix on the VPS (once), then re-run deploy:"
+              echo "  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+              echo "  source ~/.nvm/nvm.sh"
+              echo "  nvm install 20"
+              echo "  nvm alias default 20"
+              echo "  hash -r && node -v   # must show v20.x"
+              echo "  pm2 kill && cd \$LIVE_PATH && pm2 start dist/src/main.js --name \$PM2_APP_NAME"
+              echo "========================================"
+              exit 1
+            fi
+          }
+
+          on_deploy_error() {
+            local exit_code=$?
+            set +e
+            trap - ERR
+            echo "========================================"
+            echo "DEPLOYMENT FAILED (exit code: $exit_code)"
+            echo "Check logs on server:"
+            echo "  $DEPLOY_ROOT/logs/last-migrate-deploy.log"
+            echo "  $DEPLOY_ROOT/logs/last-seed.log"
+            echo "========================================"
+            rollback
+            exit "$exit_code"
+          }
+
+          rollback() {
+            echo "Deployment failed. Starting backend file rollback..."
+
+            if [ -f "$BACKUP_FILE" ]; then
+              rm -rf "$ROLLBACK_DIR"
+              mkdir -p "$ROLLBACK_DIR"
+
+              tar -xzf "$BACKUP_FILE" -C "$ROLLBACK_DIR"
+
+              rsync -az --delete \
+                --exclude=".env" \
+                --exclude=".env.*" \
+                --exclude=".htaccess" \
+                --exclude=".well-known" \
+                --exclude="uploads" \
+                --exclude="node_modules" \
+                --exclude="*.pem" \
+                --exclude="*.key" \
+                "$ROLLBACK_DIR/" "$LIVE_PATH/"
+
+              cd "$LIVE_PATH"
+
+              ensure_node20
+
+              echo "Reinstalling dependencies after rollback..."
+              npm ci --include=dev
+
+              echo "Regenerating Prisma client after rollback..."
+              npx prisma generate
+
+              echo "Reloading PM2 after rollback..."
+              if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+                pm2 reload "$PM2_APP_NAME" --update-env
+              else
+                cd "$LIVE_PATH/dist/src"
+                pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+              fi
+
+              pm2 save
+
+              echo "Backend file rollback completed."
+              echo "Important: database was not restored automatically."
+              echo "Database backup created before this deployment is available at:"
+              echo "$DB_BACKUP_FILE"
+            else
+              echo "No file backup found. Rollback skipped."
+            fi
+          }
+
+          trap on_deploy_error ERR
+          set -x
+
+          echo "Starting deployment for $APP_NAME"
+          echo "Release ID: $RELEASE_ID"
+          echo "Release name: $RELEASE_NAME"
+          echo "Live path: $LIVE_PATH"
+          echo "PM2 app: $PM2_APP_NAME"
+
+          test -f "$INCOMING_FILE"
+
+          rm -rf "$RELEASE_PATH"
+          mkdir -p "$RELEASE_PATH"
+
+          echo "Extracting release..."
+          tar -xzf "$INCOMING_FILE" -C "$RELEASE_PATH"
+
+          test -f "$RELEASE_PATH/dist/src/main.js"
+          test -f "$RELEASE_PATH/prisma/schema.prisma"
+          test -d "$RELEASE_PATH/prisma/migrations"
+          test -f "$RELEASE_PATH/package.json"
+          test -f "$RELEASE_PATH/package-lock.json"
+
+          cat > "$RELEASE_PATH/release-info.txt" <<EOF
+          Release name:
+          $RELEASE_NAME
+
+          How to read this release name:
+          release = deployable backend release
+          $DEPLOY_TS = deployment date and UTC time
+          run-${{ github.run_number }} = GitHub Actions run number
+          $SHORT_SHA = first 8 characters of the commit SHA
+
+          App:
+          $APP_NAME
+
+          Full commit:
+          $RELEASE_ID
+
+          Short commit:
+          $SHORT_SHA
+
+          Branch:
+          ${{ github.ref_name }}
+
+          GitHub run number:
+          ${{ github.run_number }}
+
+          GitHub run ID:
+          ${{ github.run_id }}
+
+          Deployed by:
+          ${{ github.actor }}
+
+          Deployed at UTC:
+          $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          File backup created before this release:
+          file-before-${RELEASE_NAME}.tar.gz
+
+          Database backup created before this release:
+          db-before-${RELEASE_NAME}.dump
+
+          Use this value for specific-release rollback:
+          $RELEASE_NAME
+          EOF
+
+          echo "Checking disk space before file backup..."
+          df -h "$LIVE_PATH" "$DEPLOY_ROOT/backups" || df -h
+          echo "Live path size (approximate):"
+          du -sh "$LIVE_PATH" 2>/dev/null || true
+          du -sh \
+            --exclude=node_modules \
+            --exclude=uploads \
+            --exclude=.git \
+            "$LIVE_PATH" 2>/dev/null || true
+
+          FREE_KB="$(df -Pk "$DEPLOY_ROOT/backups" | awk 'NR==2 {print $4}')"
+          if [ -n "$FREE_KB" ] && [ "$FREE_KB" -lt 1048576 ]; then
+            echo "Less than 1GB free on backup volume (${FREE_KB}KB). Free disk space, then re-run deploy."
+            exit 1
+          fi
+
+          echo "Creating backup of current backend files..."
+          # Heartbeat keeps the SSH channel active while tar runs (cPanel often drops idle SSH).
+          rm -f "$BACKUP_FILE"
+          (
+            tar \
+              --exclude=".env" \
+              --exclude=".env.*" \
+              --exclude=".htaccess" \
+              --exclude=".well-known" \
+              --exclude="uploads" \
+              --exclude="node_modules" \
+              --exclude=".git" \
+              --exclude="coverage" \
+              --exclude="tmp" \
+              --exclude="temp" \
+              --exclude="logs" \
+              --exclude="*.log" \
+              --exclude="careadmin-backend.zip" \
+              --exclude="*.tar.gz" \
+              --exclude="*.zip" \
+              --exclude="*.pem" \
+              --exclude="*.key" \
+              -czf "$BACKUP_FILE" \
+              -C "$LIVE_PATH" .
+          ) &
+          TAR_PID=$!
+          while kill -0 "$TAR_PID" 2>/dev/null; do
+            echo "File backup still running... $(date -u +%H:%M:%S)"
+            sleep 20
+          done
+          set +e
+          wait "$TAR_PID"
+          TAR_EXIT=$?
+          set -e
+          if [ "$TAR_EXIT" -ne 0 ]; then
+            echo "File backup tar failed with exit code $TAR_EXIT (often disk full or quota)."
+            rm -f "$BACKUP_FILE"
+            exit "$TAR_EXIT"
+          fi
+
+          if [ ! -s "$BACKUP_FILE" ]; then
+            echo "File backup was not created or is empty."
+            exit 1
+          fi
+
+          chmod 600 "$BACKUP_FILE"
+
+          echo "File backup created successfully:"
+          ls -lh "$BACKUP_FILE"
+
+          echo "Creating PostgreSQL backup using PG_BACKUP variables from server .env..."
+
+          PG_BACKUP_HOST=""
+          PG_BACKUP_PORT=""
+          PG_BACKUP_DATABASE=""
+          PG_BACKUP_USER=""
+          PG_BACKUP_PASSWORD=""
+
+          if [ -f "$LIVE_PATH/.env" ]; then
+            PG_BACKUP_HOST="$(grep -E '^PG_BACKUP_HOST=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PORT="$(grep -E '^PG_BACKUP_PORT=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_DATABASE="$(grep -E '^PG_BACKUP_DATABASE=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_USER="$(grep -E '^PG_BACKUP_USER=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+            PG_BACKUP_PASSWORD="$(grep -E '^PG_BACKUP_PASSWORD=' "$LIVE_PATH/.env" | cut -d '=' -f2- | tr -d '\r' | sed "s/^['\"]//;s/['\"]$//" || true)"
+          fi
+
+          if ! command -v pg_dump > /dev/null 2>&1; then
+            echo "pg_dump is not available on server. Database backup cannot continue."
+            exit 1
+          fi
+
+          if [ -z "$PG_BACKUP_HOST" ] || [ -z "$PG_BACKUP_PORT" ] || [ -z "$PG_BACKUP_DATABASE" ] || [ -z "$PG_BACKUP_USER" ] || [ -z "$PG_BACKUP_PASSWORD" ]; then
+            echo "Database backup variables are missing in server .env."
+            echo "Required variables:"
+            echo "PG_BACKUP_HOST"
+            echo "PG_BACKUP_PORT"
+            echo "PG_BACKUP_DATABASE"
+            echo "PG_BACKUP_USER"
+            echo "PG_BACKUP_PASSWORD"
+            exit 1
+          fi
+
+          echo "Database backup target:"
+          echo "Host: $PG_BACKUP_HOST"
+          echo "Port: $PG_BACKUP_PORT"
+          echo "Database: $PG_BACKUP_DATABASE"
+          echo "User: $PG_BACKUP_USER"
+          echo "Password: hidden"
+
+          rm -f "$DB_BACKUP_FILE"
+
+          PGPASSWORD="$PG_BACKUP_PASSWORD" pg_dump \
+            -h "$PG_BACKUP_HOST" \
+            -p "$PG_BACKUP_PORT" \
+            -U "$PG_BACKUP_USER" \
+            -d "$PG_BACKUP_DATABASE" \
+            -Fc \
+            -f "$DB_BACKUP_FILE"
+
+          if [ ! -s "$DB_BACKUP_FILE" ]; then
+            echo "Database backup file was not created or is empty."
+            exit 1
+          fi
+
+          chmod 600 "$DB_BACKUP_FILE"
+
+          echo "Database backup created successfully:"
+          ls -lh "$DB_BACKUP_FILE"
+
+          echo "Syncing new backend release to live folder..."
+          rsync -az --delete \
+            --exclude=".env" \
+            --exclude=".env.*" \
+            --exclude=".htaccess" \
+            --exclude=".well-known" \
+            --exclude="uploads" \
+            --exclude="node_modules" \
+            --exclude="*.pem" \
+            --exclude="*.key" \
+            "$RELEASE_PATH/" "$LIVE_PATH/"
+
+          cd "$LIVE_PATH"
+
+          ensure_node20
+
+          echo "Installing backend dependencies (including dev tools for Prisma migrate/seed)..."
+          npm ci --include=dev
+
+          if [ ! -f "$LIVE_PATH/.env" ]; then
+            echo "Missing .env at $LIVE_PATH/.env — cannot run migrations or seed."
+            exit 1
+          fi
+
+          echo "Loading DATABASE_URL from server .env..."
+          set -a
+          # shellcheck disable=SC1091
+          . "$LIVE_PATH/.env"
+          set +a
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is not set in $LIVE_PATH/.env"
+            exit 1
+          fi
+
+          echo "Generating Prisma client..."
+          npx prisma generate
+
+          echo "Pending migrations (informational; non-zero exit is expected)..."
+          npx prisma migrate status || true
+
+          echo "Applying Prisma migrations..."
+          if ! npx prisma migrate deploy 2>&1 | tee "$DEPLOY_ROOT/logs/last-migrate-deploy.log"; then
+            echo "prisma migrate deploy failed. Log: $DEPLOY_ROOT/logs/last-migrate-deploy.log"
+            if npx prisma migrate status 2>&1 | grep -qE "failed|P3009"; then
+              echo "Hint: failed migration or drift. On the server run:"
+              echo "  cd $LIVE_PATH && bash prisma/scripts/reconcile-production-migrations.sh"
+              echo "  or restore DB from: $DB_BACKUP_FILE"
+            fi
+            exit 1
+          fi
+
+          echo "Verifying migrations (informational)..."
+          npx prisma migrate status || true
+
+          echo "Seeding database (idempotent upserts; failures are logged but do not block deploy)..."
+          # Never seed demo data on production. NODE_ENV=production already defaults it off in
+          # seed.ts; set this explicitly as a belt-and-suspenders guard for the deploy seed run.
+          export SEED_DEMO_DATA=false
+          if ! bash prisma/scripts/run-deploy-seeds.sh "$LIVE_PATH" 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
+            # Surface loudly as a GitHub error annotation so a broken seed can't silently skip
+            # data (e.g. care-plan form templates) while the deploy still shows green.
+            echo "::error title=Deploy seeders failed::prisma db seed / deploy seeders failed — reference/catalog/care-plan-form data may NOT have been applied. Check $DEPLOY_ROOT/logs/last-seed.log on the VPS."
+            echo "WARN: deploy seeders failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
+          fi
+
+          echo "Reloading PM2 app..."
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 reload "$PM2_APP_NAME" --update-env
+          else
+            cd "$LIVE_PATH/dist/src"
+            pm2 start "$LIVE_PATH/dist/src/main.js" --name "$PM2_APP_NAME" --update-env
+          fi
+
+          pm2 save
+
+          echo "$RELEASE_NAME" > "$DEPLOY_ROOT/current-release.txt"
+
+          {
+            echo "release_name=$RELEASE_NAME"
+            echo "commit=$RELEASE_ID"
+            echo "short_commit=$SHORT_SHA"
+            echo "file_backup=$BACKUP_FILE"
+            echo "db_backup=$DB_BACKUP_FILE"
+            echo "pm2_app=$PM2_APP_NAME"
+            echo "actor=${{ github.actor }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "run_number=${{ github.run_number }}"
+            echo "date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "---"
+          } >> "$DEPLOY_LOG"
+
+          echo "Checking backend website/API reachability with retry..."
+
+          HTTP_CODE="000"
+          ATTEMPT=1
+          MAX_ATTEMPTS=12
+
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+
+            if [ -z "$HTTP_CODE" ]; then
+              HTTP_CODE="000"
+            fi
+
+            echo "Backend HTTP code: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" -lt 500 ]; then
+              echo "Backend smoke check passed."
+              break
+            fi
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Backend smoke check failed after $MAX_ATTEMPTS attempts."
+              echo "Final HTTP code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "Backend not ready yet. Waiting 5 seconds..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "Seeding workforce demo employees via API (idempotent; non-fatal)..."
+          export API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:3000}"
+          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-demo-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-demo-seed.log"; then
+            echo "WARN: workforce demo employee seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-demo-seed.log"
+          fi
+
+          echo "Seeding workforce compliance samples via API (idempotent; non-fatal)..."
+          if ! npx ts-node --transpile-only prisma/scripts/seed-workforce-compliance-samples-via-api.ts 2>&1 | tee "$DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"; then
+            echo "WARN: workforce compliance sample seed failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-workforce-compliance-seed.log"
+          fi
+
+          echo "Cleaning empty database backups if any..."
+          find "$DEPLOY_ROOT/db-backups" \
+            -type f \
+            -name "*.dump" \
+            -size 0 \
+            -print \
+            -delete || true
+
+          echo "Cleaning old backend releases, file backups, and DB backups..."
+          ls -1dt "$DEPLOY_ROOT/releases"/* 2>/dev/null | tail -n +11 | xargs -r rm -rf
+          ls -1t "$DEPLOY_ROOT/backups"/*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+          ls -1t "$DEPLOY_ROOT/db-backups"/*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f
+
+          echo "Backend deployment completed successfully."
+          echo "Release deployed:"
+          echo "$RELEASE_NAME"
+          echo "File backup:"
+          echo "$BACKUP_FILE"
+          echo "Database backup:"
+          echo "$DB_BACKUP_FILE"
+          REMOTE_SCRIPT

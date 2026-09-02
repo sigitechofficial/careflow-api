@@ -24,8 +24,17 @@ on:
         required: false
         type: string
 
+      deploy_target:
+        description: "Which API site to roll back (careflowbackend = main site, allforcare = production branch site)"
+        required: true
+        type: choice
+        default: careflowbackend
+        options:
+          - careflowbackend
+          - allforcare
+
 concurrency:
-  group: careflow-api-allforcare-production
+  group: careflow-api-${{ github.event.inputs.deploy_target }}-ops
   cancel-in-progress: false
 
 permissions:
@@ -102,26 +111,36 @@ jobs:
             "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
           set -euo pipefail
 
-          APP_NAME="api-allforcare"
-          LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
-          APP_URL="${{ secrets.BACKEND_APP_URL }}"
-          PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
+          DEPLOY_TARGET="${{ github.event.inputs.deploy_target }}"
           ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
           TARGET="${{ github.event.inputs.target }}"
 
-          if [ -z "$LIVE_PATH" ]; then
+          if [ "$DEPLOY_TARGET" = "allforcare" ]; then
+            APP_NAME="api-allforcare"
             LIVE_PATH="/home/sigisolutions/api-allforcare.sigisolutions.net"
-          fi
-
-          if [ -z "$APP_URL" ]; then
             APP_URL="https://api-allforcare.sigisolutions.net/"
-          fi
-
-          if [ -z "$PM2_APP_NAME" ]; then
             PM2_APP_NAME="api-allforcare"
-          fi
+            DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
+          else
+            APP_NAME="careflow-api"
+            LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            APP_URL="${{ secrets.BACKEND_APP_URL }}"
+            PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
 
-          DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
+            if [ -z "$LIVE_PATH" ]; then
+              LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+            fi
+
+            if [ -z "$APP_URL" ]; then
+              APP_URL="https://careflowbackend.sigisolutions.net/"
+            fi
+
+            if [ -z "$PM2_APP_NAME" ]; then
+              PM2_APP_NAME="main"
+            fi
+
+            DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          fi
           RELEASES_DIR="$DEPLOY_ROOT/releases"
           BACKUPS_DIR="$DEPLOY_ROOT/backups"
           DB_BACKUPS_DIR="$DEPLOY_ROOT/db-backups"
