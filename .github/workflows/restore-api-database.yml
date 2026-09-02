@@ -423,6 +423,10 @@ jobs:
             echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
 
             HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
+              echo "TLS verify failed or unreachable; retrying smoke check with insecure SSL (-k)..."
+              HTTP_CODE="$(curl -sS -k -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            fi
 
             if [ -z "$HTTP_CODE" ]; then
               HTTP_CODE="000"

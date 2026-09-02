@@ -636,7 +636,13 @@ jobs:
           while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
             echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
 
+            # Prefer verified TLS; if the host still has a self-signed / AutoSSL-pending
+            # cert, retry with -k so deploy does not fail while the app is actually up.
             HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
+              echo "TLS verify failed or unreachable; retrying smoke check with insecure SSL (-k)..."
+              HTTP_CODE="$(curl -sS -k -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            fi
 
             if [ -z "$HTTP_CODE" ]; then
               HTTP_CODE="000"
@@ -652,6 +658,7 @@ jobs:
             if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
               echo "Backend smoke check failed after $MAX_ATTEMPTS attempts."
               echo "Final HTTP code: $HTTP_CODE"
+              echo "If curl reported a self-signed certificate, install AutoSSL/Let's Encrypt for api-allforcare.sigisolutions.net in cPanel."
               exit 1
             fi
 
