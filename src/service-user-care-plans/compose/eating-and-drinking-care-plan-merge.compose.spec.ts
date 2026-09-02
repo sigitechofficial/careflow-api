@@ -19,15 +19,28 @@ const CARE_2020_KEYS = [
   'eating_and_drinking_desired_goals_outcomes',
   'eating_and_drinking_support_required',
   'eating_and_drinking_area_risk',
+  'eating_and_drinking_risk_identify',
+  'eating_and_drinking_risk_who_might_be_harmed',
+  'eating_and_drinking_risk_level',
+  'eating_and_drinking_risk_likelihood',
+  'eating_and_drinking_risk_triggers',
+  'eating_and_drinking_risk_management',
 ];
 
-const EXISTING_KEYS = [
-  'eating_and_drinking_diet_type',
+const AUTO_KEYS = [
   'eating_and_drinking_fluid_target',
   'eating_and_drinking_food_allergies',
+  'eating_and_drinking_preferred_foods',
+];
+
+const SUGGESTION_KEYS = [
+  'eating_and_drinking_diet_type',
   'eating_and_drinking_level_of_assistance',
   'eating_and_drinking_choking_salt',
-  'eating_and_drinking_preferred_foods',
+  'eating_and_drinking_service_user_needs',
+  'eating_and_drinking_needs_person_centred',
+  'eating_and_drinking_desired_goals_outcomes',
+  'eating_and_drinking_support_required',
 ];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
@@ -91,11 +104,11 @@ function ctxWith(): CarePlanComposeContext {
 describe('Eating and Drinking engine still auto-prefills after stable keys are added', () => {
   it('populates existing fields into values{} (label matching survives the key addition)', () => {
     const result = runCarePlanCompose(EATING_DRINKING_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    expect(result.values[keyOf('eating_and_drinking_diet_type')]).toBe('Soft');
+    expect(result.values[keyOf('eating_and_drinking_diet_type')]).toBeUndefined();
     expect(result.values[keyOf('eating_and_drinking_fluid_target')]).toContain('1500');
     expect(result.values[keyOf('eating_and_drinking_food_allergies')]).toContain('Lactose');
-    expect(result.values[keyOf('eating_and_drinking_level_of_assistance')]).toBe('Supervision');
-    expect(result.values[keyOf('eating_and_drinking_choking_salt')]).toContain('Thickened');
+    expect(result.values[keyOf('eating_and_drinking_level_of_assistance')]).toBeUndefined();
+    expect(result.values[keyOf('eating_and_drinking_choking_salt')]).toBeUndefined();
     expect(result.values[keyOf('eating_and_drinking_preferred_foods')]).toContain('fish');
   });
 
@@ -142,16 +155,16 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Eating and Drinking documentation registry', () => {
-  it('documents six auto-prefill fields, zero suggestions, and five manual fields', () => {
-    expect(EATING_AND_DRINKING_FIELD_REGISTRY).toHaveLength(11);
-    expect(EATING_AND_DRINKING_AUTO_PREFILL_KEYS).toEqual(EXISTING_KEYS);
-    expect(EATING_AND_DRINKING_SUGGESTION_KEYS).toHaveLength(0);
-    expect(EATING_AND_DRINKING_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
+  it('documents three auto-prefill fields, seven suggestions, and seven manual fields', () => {
+    expect(EATING_AND_DRINKING_FIELD_REGISTRY).toHaveLength(17);
+    expect(EATING_AND_DRINKING_AUTO_PREFILL_KEYS).toEqual(AUTO_KEYS);
+    expect(EATING_AND_DRINKING_SUGGESTION_KEYS).toEqual(SUGGESTION_KEYS);
+    expect(EATING_AND_DRINKING_MANUAL_KEYS).toEqual(CARE_2020_KEYS.slice(4));
   });
 
-  it('records the required person-centred details field as manual', () => {
+  it('records the required person-centred details field as a suggestion', () => {
     const entry = eatingAndDrinkingFieldRegistryEntry('eating_and_drinking_needs_person_centred');
-    expect(entry?.mode).toBe('MANUAL');
+    expect(entry?.mode).toBe('SUGGESTION');
     expect(entry?.sources[0]?.notes ?? '').toMatch(/person-centred/i);
   });
 

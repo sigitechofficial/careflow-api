@@ -230,7 +230,7 @@ describe('Cognition and Behaviour template', () => {
   it('contains no duplicate field keys', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(12);
+    expect(keys).toHaveLength(18);
   });
 
   it('gives every field a cog_ prefixed key', () => {
@@ -306,7 +306,7 @@ describe('applyCognitionBehaviourCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(12);
+    expect(activeKeys).toHaveLength(18);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }

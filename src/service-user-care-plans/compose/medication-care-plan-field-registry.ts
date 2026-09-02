@@ -1,4 +1,5 @@
 import { MEDICATION_CARE_PLAN_SEED } from '../../../prisma/seeds/medication-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Medication Care Plan.
@@ -49,15 +50,15 @@ export const MEDICATION_FIELD_REGISTRY: readonly MedicationFieldRegistryEntry[] 
   // ---------- Medication overview (existing — auto-prefilled by the engine) ----------
   {
     businessKey: 'medication_support_level',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['medicationSupportLevel'],
         iaSpecRefs: ['9.2'],
         notes:
-          'IA medicationSupportLevel (§9.2; largely pruned live) mapped via mapMedicationSupportLevelToCarePlan to the SELECT options.',
+          'IA medicationSupportLevel (§9.2) mapped via mapMedicationSupportLevelToCarePlan. Emitted as a Care Plan suggestion — staff must Accept, Edit, or Dismiss. Never silent AUTO.',
       },
       { kind: 'MEDICATION_SNAPSHOT', notes: 'medicationSnapshot.supportLevel fallback.' },
     ],
@@ -185,6 +186,7 @@ export const MEDICATION_FIELD_REGISTRY: readonly MedicationFieldRegistryEntry[] 
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('medication'),
 ];
 
 export type MedicationFieldBusinessKey = (typeof MEDICATION_FIELD_REGISTRY)[number]['businessKey'];

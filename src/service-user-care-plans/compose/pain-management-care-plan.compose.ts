@@ -105,10 +105,10 @@ function baseEvidence(ctx: CarePlanComposeContext, serviceUserId: string): Compo
 /**
  * Pain Management compose — suggestions only.
  *
- * The IA audit approved four mappings, all from IA §5.3: usual pain score, site (pain
+ * The IA audit approved four mappings from IA §5.3: usual pain score, site (pain
  * location), what worsens pain (pain trigger), and regular analgesia (current pain relief).
- * Nothing auto-prefills — every field is clinician-authored, and the remaining ten are
- * deliberately manual with reasons recorded in the registry.
+ * A fifth suggestion is the Abbey Pain Scale summary from the IA Pain Assessment Tool.
+ * Nothing auto-prefills — every field is clinician-authored.
  */
 export function composePainManagementCarePlan(
   ctx: CarePlanComposeContext,

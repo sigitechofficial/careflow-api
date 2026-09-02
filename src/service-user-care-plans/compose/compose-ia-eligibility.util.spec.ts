@@ -52,7 +52,20 @@ describe('splitLatestAndPreviousAssessments', () => {
     expect(latest?.id).toBe('reviewed');
   });
 
-  it('ignores DRAFT and IN_PROGRESS assessments as current source', () => {
+  it('ignores DRAFT assessments as current source', () => {
+    const { latest, previous } = splitLatestAndPreviousAssessments([
+      {
+        id: 'draft',
+        status: InitialAssessmentStatus.DRAFT,
+        submittedAt: new Date('2026-08-20T00:00:00.000Z'),
+        updatedAt: new Date('2026-08-20T00:00:00.000Z'),
+      },
+    ]);
+    expect(latest).toBeNull();
+    expect(previous).toEqual([]);
+  });
+
+  it('falls back to IN_PROGRESS when no SUBMITTED or REVIEWED assessment exists', () => {
     const { latest, previous } = splitLatestAndPreviousAssessments([
       {
         id: 'draft',
@@ -67,8 +80,26 @@ describe('splitLatestAndPreviousAssessments', () => {
         updatedAt: new Date('2026-08-21T00:00:00.000Z'),
       },
     ]);
-    expect(latest).toBeNull();
+    expect(latest?.id).toBe('in-progress');
     expect(previous).toEqual([]);
+  });
+
+  it('prefers SUBMITTED over a newer IN_PROGRESS assessment', () => {
+    const { latest } = splitLatestAndPreviousAssessments([
+      {
+        id: 'in-progress',
+        status: InitialAssessmentStatus.IN_PROGRESS,
+        submittedAt: null,
+        updatedAt: new Date('2026-08-22T00:00:00.000Z'),
+      },
+      {
+        id: 'submitted',
+        status: InitialAssessmentStatus.SUBMITTED,
+        submittedAt: new Date('2026-08-19T00:00:00.000Z'),
+        updatedAt: new Date('2026-08-19T00:00:00.000Z'),
+      },
+    ]);
+    expect(latest?.id).toBe('submitted');
   });
 
   it('ignores ARCHIVED assessments as current source and previous history', () => {

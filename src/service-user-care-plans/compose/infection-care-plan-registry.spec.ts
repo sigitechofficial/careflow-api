@@ -15,9 +15,9 @@ function seedFieldKeys(): string[] {
 
 describe('Infection registry (documentation-only, all manual)', () => {
   it('marks every one of the eleven fields MANUAL, with a recorded reason', () => {
-    expect(INFECTION_FIELD_REGISTRY).toHaveLength(11);
+    expect(INFECTION_FIELD_REGISTRY).toHaveLength(17);
     expect(INFECTION_SUGGESTION_KEYS).toHaveLength(0);
-    expect(INFECTION_MANUAL_KEYS).toHaveLength(11);
+    expect(INFECTION_MANUAL_KEYS).toHaveLength(17);
     for (const entry of INFECTION_FIELD_REGISTRY) {
       expect(entry.mode).toBe('MANUAL');
       expect(entry.notes.trim().length).toBeGreaterThan(0);

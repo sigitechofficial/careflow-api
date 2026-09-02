@@ -1,4 +1,5 @@
 import { PERSONAL_SAFETY_CARE_PLAN_SEED } from '../../../prisma/seeds/personal-safety-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Personal Safety Care Plan.
@@ -119,8 +120,8 @@ export const PERSONAL_SAFETY_FIELD_REGISTRY: readonly PersonalSafetyFieldRegistr
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'personal_safety_service_user_needs',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -130,24 +131,24 @@ export const PERSONAL_SAFETY_FIELD_REGISTRY: readonly PersonalSafetyFieldRegistr
   },
   {
     businessKey: 'personal_safety_needs_person_centred',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Required free-text person-centred narrative for the needs question.' },
     ],
   },
   {
     businessKey: 'personal_safety_desired_goals_outcomes',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'The IA holds no personal-safety-specific goals; must not be mapped.' },
     ],
   },
   {
     businessKey: 'personal_safety_support_required',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Generic Care 2020 support narrative; no personal-safety-specific source.' },
     ],
@@ -164,6 +165,7 @@ export const PERSONAL_SAFETY_FIELD_REGISTRY: readonly PersonalSafetyFieldRegistr
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('personal_safety'),
 ];
 
 export type PersonalSafetyFieldBusinessKey =

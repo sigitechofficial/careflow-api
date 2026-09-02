@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CarePathwayFormType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { CARE_PLAN_REVIEW_FREQUENCY_MONTHS } from '../../service-user-care-plans/care-plan-review-schedule';
 
 export class CreateCareFormDto {
   @ApiProperty({ example: 'Personal care assessment' })
@@ -24,4 +25,13 @@ export class CreateCareFormDto {
   @IsString()
   @MaxLength(500)
   pictureUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Care plan review interval in calendar months',
+    enum: CARE_PLAN_REVIEW_FREQUENCY_MONTHS,
+  })
+  @IsOptional()
+  @IsInt()
+  @IsIn([...CARE_PLAN_REVIEW_FREQUENCY_MONTHS])
+  reviewFrequencyMonths?: number;
 }

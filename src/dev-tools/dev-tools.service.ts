@@ -1,34 +1,34 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { IaApiAutofillService } from './ia-api-autofill.service';
-import type { IaAutofillLevel } from './ia-autofill-build.util';
+import type { AnswerInput, IaAutofillLevel } from './ia-autofill-build.util';
 
 @Injectable()
 export class DevToolsService {
   constructor(private readonly iaApiAutofill: IaApiAutofillService) {}
 
-  async runIaSectionAutofill(
-    userId: string,
-    serviceUserId: string,
+  /**
+   * Generate (no-save) demo values for one holistic tab. Returns the answers + worksheet
+   * metadata for the frontend to merge into the editable form draft — nothing is persisted.
+   */
+  async generateIaSection(
     level: IaAutofillLevel,
     tabId: number,
     questionIds: string[],
-    meta?: RequestAuditMeta,
-  ): Promise<{ message: string; tabId: number; answersWritten: number }> {
+    identity?: import('./ia-autofill-build.util').IaDemoIdentity | null,
+  ): Promise<{
+    answers: AnswerInput[];
+    metadata: Record<string, unknown>;
+    profilePatch: import('./ia-autofill-build.util').IaDemoProfilePatch;
+  }> {
     if (!['low', 'normal', 'critical'].includes(level)) {
       throw new BadRequestException('level must be low, normal, or critical');
     }
-    if (!serviceUserId?.trim()) {
-      throw new BadRequestException('serviceUserId is required');
-    }
 
-    return this.iaApiAutofill.runSection(
-      userId,
-      serviceUserId.trim(),
+    return this.iaApiAutofill.generateSection(
       level,
       tabId,
       Array.isArray(questionIds) ? questionIds : [],
-      meta,
+      identity,
     );
   }
 }

@@ -40,16 +40,31 @@ import {
 import { loadAboutMeFromReferences } from './about-me-compose-summary.util';
 import { buildPersonalisationFromServiceUser } from './care-plan-personalisation.util';
 import { iaRoute } from './compose-routes.util';
+import { attachCare2020NeedsGoalsSuggestions } from './care-2020-needs-goals.suggestions';
 import {
   findIaAnswer,
   resolveIaDisplayValue,
 } from './ia-answer-resolver.util';
 import {
-  COMPOSE_ELIGIBLE_IA_STATUSES,
+  COMPOSE_IA_LOAD_STATUSES,
   splitLatestAndPreviousAssessments,
   toComposeIaStatus,
 } from './compose-ia-eligibility.util';
 import { readAdlMetadataFromSubmissionMetadata } from './compose-adl-metadata.util';
+import { readWaterlowFromSubmissionMetadata } from './compose-waterlow-metadata.util';
+import { readPainAssessmentFromSubmissionMetadata } from './compose-pain-assessment-metadata.util';
+import {
+  composePressureUlcerCarePlan,
+  PRESSURE_ULCER_CARE_PLAN_FORM_NAME,
+} from './pressure-ulcer-care-plan.compose';
+import {
+  composeSleepingNightCarePlan,
+  SLEEPING_NIGHT_CARE_PLAN_FORM_NAME,
+} from './sleeping-night-care-plan.compose';
+import {
+  composeWashingDressingCarePlan,
+  WASHING_DRESSING_CARE_PLAN_FORM_NAME,
+} from './washing-dressing-care-plan.compose';
 import {
   composeHomeSupportPlanHybrid,
   HOME_SUPPORT_PLAN_FORM_NAME,
@@ -98,11 +113,12 @@ const COMMUNICATION_FORM_NAME = 'Communication';
 export async function loadCarePlanFormFields(
   prisma: PrismaService,
   formId: string,
-): Promise<{ formName: string; fields: CarePlanFormFieldRef[] }> {
+): Promise<{ formName: string; fields: CarePlanFormFieldRef[]; reviewFrequencyMonths: number | null }> {
   const form = await prisma.carePathwayForm.findFirst({
     where: { id: formId, deletedAt: null },
     select: {
       name: true,
+      reviewFrequencyMonths: true,
       currentVersion: {
         select: {
           sections: {
@@ -130,7 +146,7 @@ export async function loadCarePlanFormFields(
   });
 
   if (!form?.currentVersion) {
-    return { formName: form?.name ?? '', fields: [] };
+    return { formName: form?.name ?? '', fields: [], reviewFrequencyMonths: form?.reviewFrequencyMonths ?? null };
   }
 
   const fields: CarePlanFormFieldRef[] = [];
@@ -149,7 +165,7 @@ export async function loadCarePlanFormFields(
     }
   }
 
-  return { formName: form.name, fields };
+  return { formName: form.name, fields, reviewFrequencyMonths: form.reviewFrequencyMonths ?? null };
 }
 
 function readFallsSnapshot(metadata: Prisma.JsonValue | null | undefined): CarePlanFallsSnapshotEvidence | null {
@@ -323,7 +339,7 @@ async function loadComposeIaSnapshots(
     where: {
       serviceUserId,
       deletedAt: null,
-      status: { in: COMPOSE_ELIGIBLE_IA_STATUSES },
+      status: { in: COMPOSE_IA_LOAD_STATUSES },
     },
     select: { id: true, submittedAt: true, updatedAt: true, status: true, metadata: true },
   });
@@ -369,6 +385,8 @@ async function loadComposeIaSnapshots(
       personalSafetySnapshot: readPersonalSafetySnapshot(row.metadata),
       communicationSnapshot: readCommunicationSnapshot(row.metadata),
       adlMetadata: readAdlMetadataFromSubmissionMetadata(row.metadata),
+      waterlowMetadata: readWaterlowFromSubmissionMetadata(row.metadata),
+      painAssessmentMetadata: readPainAssessmentFromSubmissionMetadata(row.metadata),
     };
   };
 
@@ -564,6 +582,15 @@ export function runCarePlanCompose(
   ctx: CarePlanComposeContext,
   fields: CarePlanFormFieldRef[],
 ): ComposePlanResult {
+  const result = runCarePlanComposeCore(formName, ctx, fields);
+  return attachCare2020NeedsGoalsSuggestions(formName, ctx, fields, result);
+}
+
+function runCarePlanComposeCore(
+  formName: string,
+  ctx: CarePlanComposeContext,
+  fields: CarePlanFormFieldRef[],
+): ComposePlanResult {
   if (formName === MEDICATION_FORM_NAME) {
     return composeMedicationCarePlan(ctx, fields, MEDICATION_CARE_PLAN_FIELD_MAPPINGS, ctx.serviceUserId);
   }
@@ -638,6 +665,18 @@ export function runCarePlanCompose(
 
   if (formName === COMMUNICATION_FORM_NAME) {
     return composeCommunicationCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === PRESSURE_ULCER_CARE_PLAN_FORM_NAME) {
+    return composePressureUlcerCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === SLEEPING_NIGHT_CARE_PLAN_FORM_NAME) {
+    return composeSleepingNightCarePlan(ctx, fields, ctx.serviceUserId);
+  }
+
+  if (formName === WASHING_DRESSING_CARE_PLAN_FORM_NAME) {
+    return composeWashingDressingCarePlan(ctx, fields, ctx.serviceUserId);
   }
 
   return {

@@ -8,7 +8,7 @@ import {
   composeLabelMappedForm,
   type LabelFieldMapping,
 } from './label-mapped-compose.util';
-import { findIaAnswer, resolveIaDisplayValue, resolveIaBooleanYes } from './ia-answer-resolver.util';
+import { findIaAnswer, resolveIaDisplayValue } from './ia-answer-resolver.util';
 import { sanitizeComposeTextOrNull } from './compose-html-sanitize.util';
 import { composeFallsCarePlanSuggestions } from './falls-care-plan.suggestions';
 import { iaRoute, profileRoute } from './compose-routes.util';
@@ -23,15 +23,6 @@ function iaText(
 ): ComposeFieldResult | null {
   if (!ctx.ia) return null;
   const text = sanitizeComposeTextOrNull(resolveIaDisplayValue(findIaAnswer(ctx.ia.answers, query)));
-  if (!text) return null;
-  return { fieldKey: '', label: '', value: text, source: 'ia', sourceLabel };
-}
-
-function snapshotText(
-  value: string | null | undefined,
-  sourceLabel: string,
-): ComposeFieldResult | null {
-  const text = sanitizeComposeTextOrNull(value);
   if (!text) return null;
   return { fieldKey: '', label: '', value: text, source: 'ia', sourceLabel };
 }
@@ -206,65 +197,11 @@ export function composeFallsCarePlan(
 }
 
 export const SKIN_INTEGRITY_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
-  {
-    fieldLabel: 'Skin type / common issues',
-    resolve: (c) =>
-      iaText(c, { specRef: '11.1', questionTextContains: 'skin' }) ??
-      iaText(c, { questionTextContains: 'pressure ulcer risk assessment comment' }) ??
-      iaText(c, { questionTextContains: 'skin condition comment' }) ??
-      snapshotText(c.ia?.skinIntegritySnapshot?.skinTypeIssues, 'IA skin integrity snapshot'),
-  },
-  {
-    fieldLabel: 'Emollients or creams prescribed',
-    resolve: (c) =>
-      iaText(c, { questionTextContains: 'emollien' }) ??
-      snapshotText(c.ia?.skinIntegritySnapshot?.emollientsCreams, 'IA skin integrity snapshot'),
-  },
-  {
-    fieldLabel: 'Previous pressure damage',
-    resolve: (c) => {
-      if (!c.ia) return null;
-      const answer =
-        findIaAnswer(c.ia.answers, { questionTextContains: 'currently has ulcers or wounds' }) ??
-        findIaAnswer(c.ia.answers, { questionTextContains: 'pressure damage' });
-      if (answer) {
-        return {
-          fieldKey: '',
-          label: 'Previous pressure damage',
-          value: resolveIaBooleanYes(answer),
-          source: 'ia',
-          sourceLabel: 'IA skin / wounds',
-        };
-      }
-      if (c.ia.skinIntegritySnapshot?.previousPressureDamage != null) {
-        return {
-          fieldKey: '',
-          label: 'Previous pressure damage',
-          value: c.ia.skinIntegritySnapshot.previousPressureDamage,
-          source: 'ia',
-          sourceLabel: 'IA skin integrity snapshot',
-        };
-      }
-      return null;
-    },
-  },
-  {
-    fieldLabel: 'Application of creams – when and where',
-    required: true,
-    resolve: (c) =>
-      iaText(c, { questionTextContains: 'pressure equipment details' }) ??
-      iaText(c, { specRef: '11.1', questionTextContains: 'equipment' }) ??
-      snapshotText(c.ia?.skinIntegritySnapshot?.creamApplication, 'IA skin integrity snapshot'),
-  },
-  {
-    fieldLabel: 'Signs to report immediately',
-    required: true,
-    resolve: (c) =>
-      iaText(c, { questionTextContains: 'skin integrity' }) ??
-      iaText(c, { questionTextContains: 'skin / wound notes' }) ??
-      iaText(c, { questionTextContains: 'wound' }) ??
-      snapshotText(c.ia?.skinIntegritySnapshot?.signsToReport, 'IA skin integrity snapshot'),
-  },
+  { fieldLabel: 'Skin type / common issues', resolve: () => null },
+  { fieldLabel: 'Emollients or creams prescribed', resolve: () => null },
+  { fieldLabel: 'Previous pressure damage', resolve: () => null },
+  { fieldLabel: 'Application of creams – when and where', required: true, resolve: () => null },
+  { fieldLabel: 'Signs to report immediately', required: true, resolve: () => null },
 ];
 
 export function composeSkinIntegrityCarePlan(

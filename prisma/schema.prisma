@@ -3359,6 +3359,7 @@ model ServiceUserCarePlanInstance {
   @@unique([serviceUserId, carePathwayFormId])
   @@index([serviceUserId])
   @@index([carePathwayFormId])
+  @@index([status, nextReviewDueAt])
   @@schema("service_users")
 }
 
@@ -6883,6 +6884,8 @@ model CarePathwayForm {
   publishedById    String?               @db.Uuid
   pictureUrl       String?
   versionLabel     String                @default("1")
+  /// Care-plan review interval in calendar months. Allowed: 1, 2, 3, 6, 12. Null for non-care-plan forms.
+  reviewFrequencyMonths Int?
   isActive         Boolean               @default(true)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt

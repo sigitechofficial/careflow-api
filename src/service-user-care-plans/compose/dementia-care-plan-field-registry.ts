@@ -1,4 +1,5 @@
 import { DEMENTIA_CARE_PLAN_SEED } from '../../../prisma/seeds/dementia-care-plan.seed-data';
+import { AREA_RISK_FOLLOW_UP_MANUAL_NOTE, areaRiskFollowUpFieldKeys } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Dementia Care Plan.
@@ -6,7 +7,7 @@ import { DEMENTIA_CARE_PLAN_SEED } from '../../../prisma/seeds/dementia-care-pla
  * Dementia already has a compose engine in `dementia-care-plan.compose.ts`
  * (`DEMENTIA_CARE_PLAN_FIELD_MAPPINGS` + `composeDementiaCarePlan`), an AUTO-PREFILL,
  * label-matched engine drawing on About Me, the Initial Assessment (§8, §10.6/§10.6a, §12),
- * emergency contacts and the six-monthly review schedule. That engine remains the single
+ * emergency contacts and the Care Pathway review frequency. That engine remains the single
  * source of truth and is intentionally retained unchanged — this registry does NOT re-resolve
  * anything and must never become a second engine.
  *
@@ -51,6 +52,17 @@ const MANUAL = (businessKey: string, notes: string): DementiaFieldRegistryEntry 
   sources: [{ kind: 'MANUAL', notes }],
 });
 
+const SUGGEST = (
+  businessKey: string,
+  kind: DementiaFieldSourceKind,
+  notes: string,
+): DementiaFieldRegistryEntry => ({
+  businessKey,
+  mode: 'SUGGESTION',
+  resolvedByEngine: true,
+  sources: [{ kind, notes }],
+});
+
 export const DEMENTIA_FIELD_REGISTRY: readonly DementiaFieldRegistryEntry[] = [
   // ---------- Understanding the person (existing) ----------
   AUTO('dementia_life_history', 'ABOUT_ME', 'About Me lifeHistoryInterests / whatMattersMost.'),
@@ -73,17 +85,29 @@ export const DEMENTIA_FIELD_REGISTRY: readonly DementiaFieldRegistryEntry[] = [
   AUTO('dementia_calming_strategies', 'ABOUT_ME', 'About Me howToSupport / triggersCalm.'),
   AUTO('dementia_daily_routines', 'ABOUT_ME', 'About Me routineSummary.'),
   AUTO('dementia_meaningful_activities', 'ABOUT_ME', 'About Me meaningfulActivities / lifeHistoryInterests.'),
-  AUTO('dementia_wandering_risk', 'INITIAL_ASSESSMENT', 'IA §10.6a de-orientation / §12 falls.'),
+  MANUAL(
+    'dementia_wandering_risk',
+    'Must not infer wandering/exit-seeking from de-orientated + falls. No IA wandering question.',
+  ),
   AUTO('dementia_night_support', 'ABOUT_ME', 'About Me nightSupport.'),
   AUTO('dementia_family_involvement', 'ABOUT_ME', 'About Me peopleImportant / emergency contacts.'),
-  AUTO('dementia_next_review', 'REVIEW_SCHEDULE', 'Six-monthly dementia review schedule; reviewer may override.'),
+  AUTO('dementia_next_review', 'REVIEW_SCHEDULE', 'Care Pathway review frequency; reviewer may override.'),
 
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   MANUAL('dementia_service_user_needs', 'Generic Care 2020 needs field; no generic dementia needs source.'),
-  MANUAL('dementia_needs_person_centred', 'Required free-text person-centred narrative for the needs question.'),
+  SUGGEST(
+    'dementia_needs_person_centred',
+    'ABOUT_ME',
+    'Suggestion from first-person howAndWhenToSupportMe / About Me howToSupport. Never inferred from diagnosis.',
+  ),
   MANUAL('dementia_desired_goals_outcomes', 'The IA holds no dementia-specific goals; must not be mapped.'),
-  MANUAL('dementia_support_required', 'Generic Care 2020 support narrative; no dementia-specific source.'),
+  SUGGEST(
+    'dementia_support_required',
+    'ABOUT_ME',
+    'Suggestion from first-person how to support / communication. Staff must accept.',
+  ),
   MANUAL('dementia_area_risk', 'Generic risk gate; must not be driven from cognition/wandering data. The assessor owns it.'),
+  ...areaRiskFollowUpFieldKeys('dementia').map((key) => MANUAL(key, AREA_RISK_FOLLOW_UP_MANUAL_NOTE)),
 ];
 
 export type DementiaFieldBusinessKey = (typeof DEMENTIA_FIELD_REGISTRY)[number]['businessKey'];

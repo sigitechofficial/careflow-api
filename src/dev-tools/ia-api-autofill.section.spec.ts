@@ -2,8 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { IaApiAutofillService } from './ia-api-autofill.service';
 
 /**
- * Section-scoped QA demo population (`runSection`). Verifies tab isolation, profile/secure
- * exclusion, validation, and that the whole assessment is never submitted.
+ * Section-scoped QA demo GENERATION (`generateSection`). Verifies tab scoping, profile/secure
+ * exclusion, validation, and — critically — that NOTHING is persisted (no submission, no save).
  */
 type Q = {
   id: string;
@@ -28,116 +28,178 @@ function q(id: string, section: number, extra: Partial<Q> = {}): Q & { sectionNu
 }
 
 function makeService(sectionsQuestions: Array<Q & { sectionNumber: number }>) {
-  const saveAnswers = jest.fn().mockResolvedValue({ data: [] });
-  const updateSubmission = jest.fn().mockResolvedValue({ data: {} });
-  const submitAssessment = jest.fn().mockResolvedValue({ data: {} });
-
-  // group questions by section for the template shape
+  // Group flat questions into template sections.
   const bySection = new Map<number, Q[]>();
   for (const it of sectionsQuestions) {
-    const list = bySection.get(it.sectionNumber) ?? [];
     const { sectionNumber, ...rest } = it;
-    void sectionNumber;
+    const list = bySection.get(sectionNumber) ?? [];
     list.push(rest);
-    bySection.set(it.sectionNumber, list);
+    bySection.set(sectionNumber, list);
   }
   const sections = [...bySection.entries()].map(([sectionNumber, questions]) => ({
     sectionNumber,
     questions: questions.map((qq) => ({ ...qq, options: undefined })),
   }));
 
+  const getDefaultTemplate = jest.fn().mockResolvedValue({ data: { sections } });
+  // Any persistence method, if ever called, must fail the test.
+  const forbidden = jest.fn(() => {
+    throw new Error('generateSection must not persist anything');
+  });
   const assessments = {
-    getSubmissions: jest.fn().mockResolvedValue({ data: [{ id: 'sub-1', status: 'IN_PROGRESS' }] }),
-    createSubmission: jest.fn(),
-    updateStatus: jest.fn(),
-    getSubmissionById: jest.fn().mockResolvedValue({ data: { id: 'sub-1', status: 'IN_PROGRESS', metadata: {} } }),
-    getAnswers: jest.fn().mockResolvedValue({ data: [] }),
-    saveAnswers,
-    updateSubmission,
-    submitAssessment,
+    getSubmissions: forbidden,
+    createSubmission: forbidden,
+    updateStatus: forbidden,
+    getSubmissionById: forbidden,
+    getAnswers: forbidden,
+    saveAnswers: forbidden,
+    updateSubmission: forbidden,
+    submitAssessment: forbidden,
   };
-  const templates = { getDefaultTemplate: jest.fn().mockResolvedValue({ data: { sections } }) };
+  const templates = { getDefaultTemplate };
 
-  const service = new IaApiAutofillService(assessments as never, templates as never);
-  return { service, saveAnswers, updateSubmission, submitAssessment };
+  const service = new IaApiAutofillService(templates as never);
+  return { service, getDefaultTemplate, forbidden, assessments };
 }
 
-/** All questionIds passed to saveAnswers across chunks. */
-function writtenIds(saveAnswers: jest.Mock): string[] {
-  return saveAnswers.mock.calls.flatMap((c) => (c[3]?.answers ?? []).map((a: { questionId: string }) => a.questionId));
-}
+describe('IaApiAutofillService.generateSection', () => {
+  it('returns only the requested section-A questions, never section B — and persists nothing', async () => {
+    const { service, forbidden } = makeService([q('a1', 5), q('a2', 5), q('b1', 11)]);
 
-describe('IaApiAutofillService.runSection', () => {
-  it('writes only the requested section-A questions, never section B', async () => {
-    const { service, saveAnswers, submitAssessment } = makeService([
-      q('a1', 5),
-      q('a2', 5),
-      q('b1', 11),
-    ]);
+    const res = await service.generateSection('critical', 10, ['a1', 'a2']);
 
-    await service.runSection('user-1', 'su-1', 'critical', 10, ['a1', 'a2']);
-
-    const ids = writtenIds(saveAnswers);
-    expect(ids.sort()).toEqual(['a1', 'a2']);
-    expect(ids).not.toContain('b1'); // Section B untouched
-    // Never submits the whole assessment from a section fill.
-    expect(submitAssessment).not.toHaveBeenCalled();
-  });
-
-  it('populating Section A does not modify Section B (isolation)', async () => {
-    const { service, saveAnswers } = makeService([q('a1', 5), q('b1', 11), q('b2', 11)]);
-    await service.runSection('user-1', 'su-1', 'critical', 10, ['a1']);
-    const ids = writtenIds(saveAnswers);
-    expect(ids).toEqual(['a1']);
+    const ids = res.answers.map((a) => a.questionId).sort();
+    expect(ids).toEqual(['a1', 'a2']);
     expect(ids).not.toContain('b1');
-    expect(ids).not.toContain('b2');
+    expect(forbidden).not.toHaveBeenCalled(); // no submission created / saved / submitted
   });
 
-  it('excludes profile (prefillKey) and secure (secureField) fields even if requested', async () => {
-    const { service, saveAnswers } = makeService([
+  it('fills empty identity prefills and never overwrites occupied profile or secure fields', async () => {
+    const { service } = makeService([
       q('plain', 1),
-      q('dob', 1, { metadata: { prefillKey: 'dateOfBirth' } }),
+      q('dob', 1, { questionText: 'Date of birth', questionType: 'DATE', metadata: { prefillKey: 'dateOfBirth' } }),
       q('keysafe', 1, { metadata: { secureField: true } }),
     ]);
 
-    await service.runSection('user-1', 'su-1', 'critical', 1, ['plain', 'dob', 'keysafe']);
+    const empty = await service.generateSection('critical', 1, ['plain', 'dob', 'keysafe']);
+    expect(empty.answers.map((a) => a.questionId)).toEqual(expect.arrayContaining(['plain', 'dob']));
+    expect(empty.answers.map((a) => a.questionId)).not.toContain('keysafe');
+    expect(empty.profilePatch.address?.addressLine1).toBeTruthy();
+    expect(empty.profilePatch.gp?.name).toBeTruthy();
 
-    const ids = writtenIds(saveAnswers);
-    expect(ids).toContain('plain');
-    expect(ids).not.toContain('dob'); // profile-sourced, protected
-    expect(ids).not.toContain('keysafe'); // secure, protected
+    const occupied = await service.generateSection('critical', 1, ['plain', 'dob', 'keysafe'], {
+      dateOfBirth: '1944-03-12',
+      addressLine1: '99 Existing Street',
+      gpName: 'Dr Existing',
+    });
+    expect(occupied.answers.map((a) => a.questionId)).toContain('plain');
+    expect(occupied.answers.map((a) => a.questionId)).not.toContain('dob');
+    expect(occupied.answers.map((a) => a.questionId)).not.toContain('keysafe');
+    expect(occupied.profilePatch.address?.addressLine1).toBeUndefined();
+    expect(occupied.profilePatch.gp?.name).toBeUndefined();
   });
 
-  it('ignores questionIds not in the template (no accidental writes)', async () => {
-    const { service, saveAnswers } = makeService([q('a1', 5)]);
-    await service.runSection('user-1', 'su-1', 'critical', 10, ['a1', 'does-not-exist']);
-    expect(writtenIds(saveAnswers)).toEqual(['a1']);
+  it('fills About Me prefill fields and empty identity fields such as date of birth', async () => {
+    const { service } = makeService([
+      q('about', 1, {
+        questionText: 'What is most important to me',
+        questionType: 'TEXTAREA',
+        metadata: { specRef: '1.3a', aboutMeProfileField: true, prefillKey: 'aboutMe_whatIsMostImportantToMe' },
+      }),
+      q('dob', 1, { metadata: { prefillKey: 'dateOfBirth' } }),
+    ]);
+    const res = await service.generateSection('normal', 1, ['about', 'dob']);
+    const ids = res.answers.map((a) => a.questionId);
+    expect(ids).toContain('about');
+    expect(ids).toContain('dob');
+    expect(res.answers.find((a) => a.questionId === 'about')?.textValue).toMatch(/^(I |I'm |Please |My )/i);
   });
 
-  it.each([0, 19, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
+  it('ignores questionIds not in the template', async () => {
     const { service } = makeService([q('a1', 5)]);
-    await expect(service.runSection('user-1', 'su-1', 'critical', tabId, ['a1'])).rejects.toBeInstanceOf(
+    const res = await service.generateSection('critical', 10, ['a1', 'nope']);
+    expect(res.answers.map((a) => a.questionId)).toEqual(['a1']);
+  });
+
+  it.each([0, 23, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
+    const { service } = makeService([q('a1', 5)]);
+    await expect(service.generateSection('critical', tabId, ['a1'])).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
-  it('applies only the tab-owned worksheet metadata (Waterlow tab → waterlow key)', async () => {
-    const { service, updateSubmission } = makeService([q('a1', 11)]);
-    await service.runSection('user-1', 'su-1', 'critical', 5, []); // tab 5 = Waterlow
-    // updateSubmission called with a metadata patch containing only tab 5's keys.
-    const patch = updateSubmission.mock.calls[0]?.[3]?.metadata as Record<string, unknown> | undefined;
-    expect(patch).toBeDefined();
-    expect(Object.keys(patch ?? {})).toContain('waterlow');
-    expect(Object.keys(patch ?? {})).not.toContain('painAssessment');
-    expect(Object.keys(patch ?? {})).not.toContain('mustAssessment');
+  it.each([19, 20, 21, 22])('accepts registered holistic tabId %p', async (tabId) => {
+    const sectionNumber = tabId === 19 ? 16 : tabId === 20 ? 17 : tabId === 21 ? 15 : 18;
+    const { service } = makeService([q('a1', sectionNumber)]);
+    const res = await service.generateSection('critical', tabId, ['a1']);
+    expect(res.answers.map((a) => a.questionId)).toContain('a1');
   });
-});
 
-describe('IaApiAutofillService level selection', () => {
+  it('tab 11 Fill Demo writes nested therapyAideMemoire without a top-level key', async () => {
+    const { service } = makeService([]);
+    const res = await service.generateSection('critical', 11, []);
+    expect(res.metadata.therapyAideMemoire).toBeUndefined();
+    const pain = res.metadata.painAssessment as {
+      nrsScore?: number;
+      abbey?: unknown;
+      therapyAideMemoire?: {
+        furtherReferralRequired?: boolean;
+        mobilityChange?: { checked?: boolean; details?: string };
+        choking?: { checked?: boolean };
+      };
+    };
+    expect(pain.nrsScore).toBeUndefined();
+    expect(pain.abbey).toBeUndefined();
+    expect(pain.therapyAideMemoire?.furtherReferralRequired).toBe(false);
+    expect(pain.therapyAideMemoire?.choking?.checked).toBe(false);
+    expect(pain.therapyAideMemoire?.mobilityChange?.checked).toBe(true);
+    expect(pain.therapyAideMemoire?.mobilityChange?.details?.trim()).toBeTruthy();
+  });
+
+  it('tab 6 owns equipment selection and checklist; Stable does not invent hoist/bed', async () => {
+    const { service } = makeService([]);
+    const res = await service.generateSection('low', 6, []);
+    expect(res.metadata.equipmentSelection).toEqual(
+      expect.objectContaining({
+        selectedEquipment: 'Standard foam mattress — no additional pressure equipment',
+      }),
+    );
+    expect(res.metadata.equipmentChecklist).toEqual(
+      expect.objectContaining({
+        hoistServiced: false,
+        profilingBedServiced: false,
+      }),
+    );
+  });
+
+  it('returns only the tab-owned worksheet metadata (Waterlow tab → waterlow key)', async () => {
+    const { service } = makeService([q('a1', 11)]);
+    const res = await service.generateSection('critical', 5, []); // tab 5 = Waterlow
+    expect(Object.keys(res.metadata)).toContain('waterlow');
+    expect(Object.keys(res.metadata)).not.toContain('painAssessment');
+    expect(Object.keys(res.metadata)).not.toContain('mustAssessment');
+  });
+
   it.each(['low', 'normal', 'critical'] as const)('accepts the %s severity level', async (level) => {
-    const { service, saveAnswers } = makeService([q('a1', 5)]);
-    await expect(service.runSection('user-1', 'su-1', level, 10, ['a1'])).resolves.toMatchObject({ tabId: 10 });
-    // 'a1' is required, so every level fills it.
-    expect(writtenIds(saveAnswers)).toContain('a1');
+    const { service } = makeService([q('a1', 5)]);
+    const res = await service.generateSection(level, 10, ['a1']);
+    expect(res.answers.map((a) => a.questionId)).toContain('a1'); // required → filled at every level
+  });
+
+  it('does not persist when expanding follow-ups or tab extras', async () => {
+    const { service, forbidden } = makeService([
+      q('wounds', 11, { questionText: 'Currently has ulcers or wounds?', metadata: { fieldKey: 'hasWounds' } }),
+      q('wound-assessment', 11, { questionText: 'Has wound assessment been completed?' }),
+      q('access', 3, {
+        questionText: 'Access instructions for staff',
+        metadata: { specRef: '3.5', prefillKey: 'accessInstruction' },
+      }),
+    ]);
+    const res = await service.generateSection('critical', 1, ['wounds']);
+    expect(res.answers.map((a) => a.questionId)).toEqual(
+      expect.arrayContaining(['wounds', 'wound-assessment']),
+    );
+    expect(res.answers.map((a) => a.questionId)).not.toContain('access');
+    expect(forbidden).not.toHaveBeenCalled();
   });
 });

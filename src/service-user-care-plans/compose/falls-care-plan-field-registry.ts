@@ -1,4 +1,5 @@
 import { FALLS_CARE_PLAN_SEED } from '../../../prisma/seeds/falls-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Falls Care Plan.
@@ -177,6 +178,7 @@ export const FALLS_FIELD_REGISTRY: readonly FallsFieldRegistryEntry[] = [
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('falls'),
 ];
 
 export type FallsFieldBusinessKey = (typeof FALLS_FIELD_REGISTRY)[number]['businessKey'];

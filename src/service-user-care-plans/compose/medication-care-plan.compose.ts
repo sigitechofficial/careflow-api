@@ -1,6 +1,8 @@
 import type {
   CarePlanComposeContext,
+  CarePlanFieldSuggestion,
   CarePlanFormFieldRef,
+  CarePlanSuggestionSourceQuestion,
   ComposeEvidenceItem,
   ComposeFieldResult,
   ComposeGap,
@@ -14,6 +16,7 @@ import {
   resolveIaBooleanYes,
 } from './ia-answer-resolver.util';
 import { iaRoute, medRoute, normalizeFieldLabel, profileRoute } from './compose-routes.util';
+import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
 
 export type MedicationFieldMapping = {
   fieldLabel: string;
@@ -26,9 +29,84 @@ function fieldByLabel(fields: CarePlanFormFieldRef[], label: string): CarePlanFo
   return fields.find((f) => normalizeFieldLabel(f.label) === needle);
 }
 
+function fieldByLabelOrKey(
+  fields: CarePlanFormFieldRef[],
+  label: string,
+  businessKey?: string,
+): CarePlanFormFieldRef | undefined {
+  if (businessKey) {
+    const byKey = fields.find((f) => f.fieldKey === businessKey);
+    if (byKey) return byKey;
+  }
+  return fieldByLabel(fields, label);
+}
+
+function findMedicationSupportLevelAnswer(
+  answers: Parameters<typeof findIaAnswer>[0],
+): ReturnType<typeof findIaAnswer> {
+  return (
+    findIaAnswer(answers, { fieldKey: 'medicationSupportLevel' }) ??
+    findIaAnswer(answers, { specRef: '9.2', questionTextContains: 'medication support level' }) ??
+    findIaAnswer(answers, { questionTextContains: 'medication support level' })
+  );
+}
+
 function mergeEvidence(existing: ComposeEvidenceItem[], item: ComposeEvidenceItem): ComposeEvidenceItem[] {
   if (existing.some((e) => e.id === item.id)) return existing;
   return [...existing, item];
+}
+
+const MEDICATION_SUPPORT_LEVEL_LABEL = 'Medication support level';
+const MEDICATION_SUPPORT_LEVEL_KEY = 'medication_support_level';
+
+function fnv1a(input: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function medicationSupportSuggestion(
+  field: CarePlanFormFieldRef,
+  ctx: CarePlanComposeContext,
+  mapped: string,
+  answer: ReturnType<typeof findIaAnswer>,
+): CarePlanFieldSuggestion {
+  const ia = ctx.ia!;
+  const sources: CarePlanSuggestionSourceQuestion[] = answer
+    ? [
+        {
+          questionId: answer.questionId,
+          questionFieldKey: answer.fieldKey ?? 'medicationSupportLevel',
+          specRef: answer.specRef ?? '9.2',
+          sourceSection: 'Medication Support',
+          sourceLabel: answer.questionText,
+          sourceValue: mapped,
+        },
+      ]
+    : [];
+  return {
+    id: `medication:${fnv1a(`${field.key}|${ia.submissionId}|${mapped}`)}`,
+    kind: 'value',
+    targetFieldKey: field.key,
+    targetLabel: field.label,
+    targetFieldType: field.fieldType,
+    suggestedValue: mapped,
+    displayText: mapped,
+    sourceType: 'INITIAL_ASSESSMENT',
+    submissionId: ia.submissionId,
+    sourceDate: ia.submittedAt,
+    sourceQuestions: sources,
+    transform: 'typed',
+    questionId: sources[0]?.questionId,
+    questionFieldKey: sources[0]?.questionFieldKey,
+    specRef: sources[0]?.specRef,
+    sourceSection: sources[0]?.sourceSection,
+    sourceLabel: sources[0]?.sourceLabel,
+    sourceValue: sources[0]?.sourceValue,
+  };
 }
 
 export function composeMedicationCarePlan(
@@ -49,7 +127,9 @@ export function composeMedicationCarePlan(
       label: 'Initial Assessment',
       value: ctx.ia.submittedAt
         ? `Submitted ${ctx.ia.submittedAt.slice(0, 10)}`
-        : 'Submitted assessment on file',
+        : ctx.ia.status === 'IN_PROGRESS'
+          ? 'In-progress assessment on file'
+          : 'Submitted assessment on file',
       route: iaRoute(serviceUserId),
     });
   }
@@ -84,11 +164,24 @@ export function composeMedicationCarePlan(
     });
   }
 
+  const suggestions: CarePlanFieldSuggestion[] = [];
+
   for (const mapping of mappings) {
-    const field = fieldByLabel(fields, mapping.fieldLabel);
+    const field =
+      mapping.fieldLabel === MEDICATION_SUPPORT_LEVEL_LABEL
+        ? fieldByLabelOrKey(fields, mapping.fieldLabel, MEDICATION_SUPPORT_LEVEL_KEY)
+        : fieldByLabel(fields, mapping.fieldLabel);
     if (!field) continue;
 
     const resolved = mapping.resolve(ctx);
+    if (mapping.fieldLabel === MEDICATION_SUPPORT_LEVEL_LABEL) {
+      if (resolved?.value != null && resolved.value !== '' && ctx.ia) {
+        const answer = findMedicationSupportLevelAnswer(ctx.ia.answers);
+        suggestions.push(medicationSupportSuggestion(field, ctx, String(resolved.value), answer));
+      }
+      continue;
+    }
+
     if (resolved?.value != null && resolved.value !== '') {
       values[field.key] = resolved.value;
       fieldSources[field.key] = resolved.source;
@@ -124,6 +217,8 @@ export function composeMedicationCarePlan(
     fieldSources,
     gaps,
     evidence,
+    suggestionMode: 'hybrid',
+    suggestions,
     composedFrom: {
       iaSubmissionId: ctx.ia?.submissionId ?? null,
       iaSubmittedAt: ctx.ia?.submittedAt ?? null,
@@ -134,39 +229,9 @@ export function composeMedicationCarePlan(
   };
 }
 
-function buildHighRiskMedicationSummary(ctx: CarePlanComposeContext): string | null {
-  if (!ctx.ia) return null;
-  const lines: string[] = [];
-  const flags: Array<[string, string]> = [
-    ['insulinAdministrationRequired', 'Insulin administration required'],
-    ['insulinSupervisionRequired', 'Insulin supervision required'],
-    ['bloodGlucoseMonitoringRequired', 'Blood glucose monitoring required'],
-  ];
-  for (const [fieldKey, label] of flags) {
-    if (resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey }))) {
-      lines.push(label);
-    }
-  }
-  const controlled = resolveIaDisplayValue(
-    findIaAnswer(ctx.ia.answers, { specRef: '9.3', questionTextContains: 'controlled drugs' }),
-  );
-  if (controlled?.toLowerCase() === 'yes') lines.push('Controlled drugs in use');
-  const covert = resolveIaDisplayValue(
-    findIaAnswer(ctx.ia.answers, { specRef: '9.3', questionTextContains: 'covert medication' }),
-  );
-  if (covert?.toLowerCase() === 'yes') lines.push('Covert medication required');
-  return lines.length > 0 ? lines.join('\n') : null;
-}
-
 function buildCarerAdministrationSummary(ctx: CarePlanComposeContext): string | null {
   if (!ctx.ia) return null;
   const lines: string[] = [];
-  const supportLevel = mapMedicationSupportLevelToCarePlan(
-    resolveIaRawValue(findIaAnswer(ctx.ia.answers, { fieldKey: 'medicationSupportLevel' })) ??
-      ctx.ia.medicationSnapshot?.supportLevel ??
-      null,
-  );
-  if (supportLevel) lines.push(`Support level: ${supportLevel}`);
   const packaging =
     resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' })) ||
     resolveIaBooleanYes(
@@ -199,10 +264,6 @@ function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function addDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
 function buildFixesForField(label: string, serviceUserId: string): ComposeGap['fixes'] {
   const ia = iaRoute(serviceUserId);
   const ia9 = iaRoute(serviceUserId, 9);
@@ -232,7 +293,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
     required: true,
     resolve: (ctx) => {
       if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'medicationSupportLevel' });
+      const answer = findMedicationSupportLevelAnswer(ctx.ia.answers);
       const mapped = mapMedicationSupportLevelToCarePlan(
         resolveIaRawValue(answer) ?? ctx.ia.medicationSnapshot?.supportLevel ?? null,
       );
@@ -298,17 +359,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
   },
   {
     fieldLabel: 'High-risk medicines',
-    resolve: (ctx) => {
-      const text = buildHighRiskMedicationSummary(ctx);
-      if (!text) return null;
-      return {
-        fieldKey: '',
-        label: 'High-risk medicines',
-        value: text,
-        source: 'ia',
-        sourceLabel: 'IA §9.3',
-      };
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Carer administration responsibilities',
@@ -347,13 +398,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
   },
   {
     fieldLabel: 'Next medication review date',
-    resolve: () => ({
-      fieldKey: '',
-      label: 'Next medication review date',
-      value: isoDateOnly(addDays(new Date(), 365)),
-      source: 'static',
-      sourceLabel: 'Annual review schedule',
-    }),
+    resolve: (ctx) => resolveComposeNextReviewDate(ctx, 'Next medication review date'),
   },
   {
     fieldLabel: 'PRN medicines and when used',

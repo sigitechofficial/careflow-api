@@ -19,6 +19,12 @@ const CARE_2020_KEYS = [
   'skin_integrity_desired_goals_outcomes',
   'skin_integrity_support_required',
   'skin_integrity_area_risk',
+  'skin_integrity_risk_identify',
+  'skin_integrity_risk_who_might_be_harmed',
+  'skin_integrity_risk_level',
+  'skin_integrity_risk_likelihood',
+  'skin_integrity_risk_triggers',
+  'skin_integrity_risk_management',
 ];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
@@ -81,16 +87,15 @@ function ctxWith(): CarePlanComposeContext {
 describe('Skin Integrity engine still auto-prefills after stable keys are added', () => {
   it('populates existing fields into values{} (label matching survives the key addition)', () => {
     const result = runCarePlanCompose(SKIN_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    expect(result.values[keyOf('skin_integrity_skin_type_issues')]).toContain('eczema');
-    expect(result.values[keyOf('skin_integrity_emollients_creams')]).toContain('Diprobase');
-    expect(result.values[keyOf('skin_integrity_previous_pressure_damage')]).toBe(true);
-    expect(result.values[keyOf('skin_integrity_cream_application')]).toContain('each morning');
-    expect(result.values[keyOf('skin_integrity_signs_to_report')]).toContain('Redness');
+    expect(result.values[keyOf('skin_integrity_skin_type_issues')]).toBeUndefined();
+    expect(result.values[keyOf('skin_integrity_emollients_creams')]).toBeUndefined();
+    expect(result.values[keyOf('skin_integrity_previous_pressure_damage')]).toBeUndefined();
+    expect(result.values[keyOf('skin_integrity_cream_application')]).toBeUndefined();
+    expect(result.values[keyOf('skin_integrity_signs_to_report')]).toBeUndefined();
   });
 
-  it('keeps writing into values{} and leaves suggestions[] unused (no conversion to suggestions)', () => {
+  it('keeps suggestions[] unused (Phase 1 disabled unsafe AUTO; suggestion not implemented yet)', () => {
     const result = runCarePlanCompose(SKIN_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    expect(Object.keys(result.values).length).toBeGreaterThan(0);
     expect(result.suggestions).toBeUndefined();
   });
 
@@ -130,17 +135,29 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Skin Integrity documentation registry', () => {
-  it('documents five auto-prefill fields, zero suggestions, and five manual fields', () => {
-    expect(SKIN_INTEGRITY_FIELD_REGISTRY).toHaveLength(10);
-    expect(SKIN_AUTO_PREFILL_KEYS).toEqual([
+  it('documents zero auto-prefill fields, six suggestions, and ten manual fields', () => {
+    expect(SKIN_INTEGRITY_FIELD_REGISTRY).toHaveLength(16);
+    expect(SKIN_AUTO_PREFILL_KEYS).toEqual([]);
+    expect(SKIN_SUGGESTION_KEYS).toEqual([
       'skin_integrity_skin_type_issues',
+      'skin_integrity_signs_to_report',
+      'skin_integrity_service_user_needs',
+      'skin_integrity_needs_person_centred',
+      'skin_integrity_desired_goals_outcomes',
+      'skin_integrity_support_required',
+    ]);
+    expect(SKIN_MANUAL_KEYS).toEqual([
       'skin_integrity_emollients_creams',
       'skin_integrity_previous_pressure_damage',
       'skin_integrity_cream_application',
-      'skin_integrity_signs_to_report',
+      'skin_integrity_area_risk',
+      'skin_integrity_risk_identify',
+      'skin_integrity_risk_who_might_be_harmed',
+      'skin_integrity_risk_level',
+      'skin_integrity_risk_likelihood',
+      'skin_integrity_risk_triggers',
+      'skin_integrity_risk_management',
     ]);
-    expect(SKIN_SUGGESTION_KEYS).toHaveLength(0);
-    expect(SKIN_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
   });
 
   it('records the area-risk gate as manual (not driven by pressure-ulcer-risk flags)', () => {

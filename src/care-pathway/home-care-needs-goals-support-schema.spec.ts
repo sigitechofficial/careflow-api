@@ -231,6 +231,12 @@ describe('Home Care needs/goals/support template', () => {
       'home_care_goal_2',
       'home_care_progress_notes',
       'home_care_area_risk',
+      'home_care_risk_identify',
+      'home_care_risk_who_might_be_harmed',
+      'home_care_risk_level',
+      'home_care_risk_likelihood',
+      'home_care_risk_triggers',
+      'home_care_risk_management',
     ]);
     expect(seedField('home_care_area_risk')?.fieldType).toBe('YES_NO');
     const pcd = HOME_CARE_NEEDS_GOALS_SUPPORT_SEED.sections
@@ -250,7 +256,7 @@ describe('Home Care needs/goals/support template', () => {
   it('contains no duplicate field keys and totals nine', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(9);
+    expect(keys).toHaveLength(15);
   });
 
   it('gives every field a home_care_ prefixed key and shares none with the large Home Care Plan (hcp_)', () => {
@@ -340,7 +346,7 @@ describe('applyHomeCareNeedsGoalsSupportSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(9);
+    expect(activeKeys).toHaveLength(15);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }

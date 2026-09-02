@@ -13,13 +13,17 @@ function seedFieldKeys(): string[] {
   return MOBILITY_CARE_PLAN_SEED.sections.flatMap((s) => s.fields.map((f) => f.fieldKey as string));
 }
 
-describe('Mobility registry (documentation-only, all manual)', () => {
-  it('marks every one of the thirteen fields MANUAL, with a recorded reason', () => {
-    expect(MOBILITY_FIELD_REGISTRY).toHaveLength(13);
-    expect(MOBILITY_SUGGESTION_KEYS).toHaveLength(0);
-    expect(MOBILITY_MANUAL_KEYS).toHaveLength(13);
+describe('Mobility registry (Care 2020 narratives are suggestions)', () => {
+  it('marks transfer/equipment fields MANUAL and Care 2020 narratives SUGGESTION', () => {
+    expect(MOBILITY_FIELD_REGISTRY).toHaveLength(19);
+    expect(MOBILITY_SUGGESTION_KEYS).toEqual([
+      'mobility_service_user_needs',
+      'mobility_needs_person_centred',
+      'mobility_desired_goals_outcomes',
+      'mobility_support_required',
+    ]);
+    expect(MOBILITY_MANUAL_KEYS).toHaveLength(15);
     for (const entry of MOBILITY_FIELD_REGISTRY) {
-      expect(entry.mode).toBe('MANUAL');
       expect(entry.notes.trim().length).toBeGreaterThan(0);
     }
   });
@@ -32,7 +36,9 @@ describe('Mobility registry (documentation-only, all manual)', () => {
 
   it('stays in lockstep with the seed template', () => {
     expect(() => assertMobilityRegistryMatchesTemplate()).not.toThrow();
-    expect(MOBILITY_MANUAL_KEYS.slice().sort()).toEqual(seedFieldKeys().slice().sort());
+    expect(MOBILITY_FIELD_REGISTRY.map((e) => e.businessKey).slice().sort()).toEqual(
+      seedFieldKeys().slice().sort(),
+    );
   });
 });
 

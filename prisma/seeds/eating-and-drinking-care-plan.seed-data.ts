@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Eating and Drinking Care Plan template — the local plan merged with the Care 2020 generic
@@ -111,6 +112,7 @@ export const EATING_AND_DRINKING_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'eating_and_drinking_area_risk',
         },
+        ...areaRiskFollowUpFields('eating_and_drinking'),
       ],
     },
   ],

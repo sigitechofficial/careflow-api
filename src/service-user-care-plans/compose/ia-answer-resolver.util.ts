@@ -10,6 +10,10 @@ function selectedValues(selectedOptions: SubmissionAnswerForRules['selectedOptio
   if (!selectedOptions) return [];
   if (Array.isArray(selectedOptions)) return selectedOptions.map(String);
   if (typeof selectedOptions === 'string' && selectedOptions.trim()) return [selectedOptions.trim()];
+  if (typeof selectedOptions === 'object') {
+    const row = selectedOptions as Record<string, unknown>;
+    if (typeof row.value === 'string' && row.value.trim()) return [row.value.trim()];
+  }
   return [];
 }
 
@@ -90,14 +94,15 @@ export function resolveIaDateIso(answer: SubmissionAnswerForRules | undefined): 
 export function mapMedicationSupportLevelToCarePlan(raw: string | null): string | null {
   if (!raw) return null;
   const v = raw.toLowerCase().trim();
-  if (v === 'independent') return 'Self-administers';
-  if (v === 'prompting') return 'Prompted';
-  if (['administration', 'full_admin', 'packaging', 'supervision', 'mixed', 'family'].includes(v)) {
+  if (v === 'level_0' || v === 'independent') return 'Self-administers';
+  if (v === 'level_1a' || v === 'prompting') return 'Prompted';
+  if (v === 'level_1b' || v === 'packaging' || v === 'supervision') return 'Administered by carer';
+  if (v === 'level_2a' || ['administration', 'full_admin', 'mixed', 'family'].includes(v)) {
     return 'Administered by carer';
   }
-  if (v === 'district_nurse') return 'Nurse only';
+  if (v === 'level_2b' || v === 'district_nurse') return 'Nurse only';
   if (v.includes('prompt')) return 'Prompted';
-  if (v.includes('independ')) return 'Self-administers';
+  if (v.includes('independ') || v === 'level_0') return 'Self-administers';
   if (v.includes('nurse')) return 'Nurse only';
   if (v.includes('admin') || v.includes('carer')) return 'Administered by carer';
   return null;

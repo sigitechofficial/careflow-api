@@ -212,6 +212,8 @@ describe('Person Centred Care Plan template', () => {
     const keys = seedFieldKeys();
     expect(keys).not.toContain('person_centred_needs_person_centred');
     expect(keys.some((k) => k.endsWith('_area_risk'))).toBe(false);
+    expect(keys.some((k) => k.endsWith('_risk_identify'))).toBe(false);
+    expect(keys.some((k) => k.endsWith('_risk_management'))).toBe(false);
   });
 
   it('every new field is optional (only the two original required fields stay required)', () => {
@@ -245,6 +247,8 @@ describe('Person Centred Care Plan template', () => {
     expect(keys).not.toContain('person_centred_support_person_centred');
     // No generic needs/goals/support/risk block was introduced.
     expect(keys.some((k) => k.endsWith('_area_risk'))).toBe(false);
+    expect(keys.some((k) => k.endsWith('_risk_identify'))).toBe(false);
+    expect(keys.some((k) => k.endsWith('_risk_management'))).toBe(false);
     expect(keys.some((k) => k.endsWith('_service_user_needs'))).toBe(false);
   });
 

@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Cognition and Behaviour Care Plan template — the local plan merged with the
@@ -109,6 +110,7 @@ export const COGNITION_BEHAVIOUR_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'cog_area_risk',
         },
+        ...areaRiskFollowUpFields('cog'),
       ],
     },
   ],

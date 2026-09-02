@@ -260,28 +260,15 @@ function resolveDateAutoPrefill(
   };
 }
 
-function sourceFromSystem(label: string, sourceValue: string): CarePlanSuggestionSourceQuestion {
-  return {
-    questionId: `system:${label.replace(/\s+/g, '-').toLowerCase()}`,
-    sourceSection: 'System',
-    sourceLabel: label,
-    sourceValue,
-  };
-}
-
-/** Map IA eating assistance codes to Home Support Plan SELECT labels. */
+/** Map IA eating assistance codes to Home Support Plan SELECT labels — exact codes only. */
 export function mapEatingAssistanceLevelToHsp(raw: string | null): string | null {
   if (!raw) return null;
   const v = raw.toLowerCase().trim();
   if (v === 'independent') return 'Independent';
   if (v === 'prompting') return 'Prompting';
-  if (v === 'assistance' || v === 'supervision') return 'Supervision';
+  if (v === 'supervision') return 'Supervision';
   if (v === 'full_support' || v === 'full assistance') return 'Full assistance';
-  if (v.includes('full')) return 'Full assistance';
-  if (v.includes('supervis') || v.includes('assist')) return 'Supervision';
-  if (v.includes('prompt')) return 'Prompting';
-  if (v.includes('independ')) return 'Independent';
-  return sanitizeComposeTextOrNull(raw);
+  return null;
 }
 
 function resolveEatingDrinkingAssistanceLevel(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {
@@ -297,13 +284,7 @@ function resolveEatingDrinkingAssistanceLevel(ctx: CarePlanComposeContext): HspR
 
 function resolvePlanStartDate(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {
   if (!ctx.ia) return null;
-  const fromIa = resolveDateAutoPrefill(ctx.ia, { fieldKey: 'assessmentDate' });
-  if (fromIa) return fromIa;
-  const today = new Date().toISOString().slice(0, 10);
-  return {
-    value: today,
-    sources: [sourceFromSystem('Plan start date', today)],
-  };
+  return resolveDateAutoPrefill(ctx.ia, { fieldKey: 'assessmentDate' });
 }
 
 function resolveHomeAccessInstructions(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {

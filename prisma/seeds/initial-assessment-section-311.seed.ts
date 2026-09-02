@@ -13,8 +13,9 @@ export function isSection311FlooringQuestion(metadata: unknown): boolean {
 }
 
 /**
- * Soft-delete all §3.11 / sec_flooring template questions and remove stored answers.
- * Run before enterprise seed so the three canonical YES/NO fields are recreated cleanly.
+ * Soft-delete obsolete §3.11 / sec_flooring extras (not the two canonical trip/fall checks)
+ * and remove stored answers on those extras only.
+ * Canonical "Rugs or worn carpet" / "Worn carpet on stairs?" keep their IDs and answers.
  */
 export async function purgeSection311FlooringQuestions(
   prisma: PrismaClient,
@@ -31,11 +32,13 @@ export async function purgeSection311FlooringQuestions(
 
   const questions = await prisma.initialAssessmentQuestion.findMany({
     where: { sectionId: section.id, deletedAt: null },
-    select: { id: true, metadata: true },
+    select: { id: true, questionText: true, metadata: true },
   });
 
+  const canonical = new Set<string>(SECTION_311_CANONICAL_QUESTION_TEXT);
   const flooringIds = questions
     .filter((q) => isSection311FlooringQuestion(q.metadata))
+    .filter((q) => !canonical.has(q.questionText.trim()))
     .map((q) => q.id);
 
   if (flooringIds.length === 0) return { questions: 0, answers: 0 };

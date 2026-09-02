@@ -17,7 +17,7 @@ export class CarePlanComposeService {
   constructor(private readonly prisma: PrismaService) {}
 
   async compose(serviceUserId: string, carePathwayFormId: string) {
-    const [{ formName, fields }, ctx, instance] = await Promise.all([
+    const [{ formName, fields, reviewFrequencyMonths }, ctx, instance] = await Promise.all([
       loadCarePlanFormFields(this.prisma, carePathwayFormId),
       loadCarePlanComposeContext(this.prisma, serviceUserId),
       this.prisma.serviceUserCarePlanInstance.findUnique({
@@ -34,7 +34,9 @@ export class CarePlanComposeService {
       }),
     ]);
 
-    const result = normalizeComposePlanResult(runCarePlanCompose(formName, ctx, fields));
+    const result = normalizeComposePlanResult(
+      runCarePlanCompose(formName, { ...ctx, reviewFrequencyMonths }, fields),
+    );
     const factsheets = resolveCarePlanFactsheets(formName, ctx.personalisation);
     const latestPublished = instance?.publishedVersions[0]?.valuesJson as
       | Record<string, string | boolean>

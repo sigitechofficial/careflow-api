@@ -312,8 +312,8 @@ describe('no suggestion without evidence', () => {
 describe('merged Culture/Religion/Spirituality template', () => {
   it('has eleven unique fields across three sections', () => {
     const keys = seedFieldKeys();
-    expect(keys).toHaveLength(11);
-    expect(new Set(keys).size).toBe(11);
+    expect(keys).toHaveLength(17);
+    expect(new Set(keys).size).toBe(17);
     expect(CULTURE_RELIGION_CARE_PLAN_SEED.sections.map((s) => s.title)).toEqual([
       'Identity and beliefs',
       'Daily care impact',
@@ -344,16 +344,20 @@ describe('merged Culture/Religion/Spirituality template', () => {
     expect(seedField('crs_area_risk')?.fieldType).toBe('YES_NO');
   });
 
-  it('exposes exactly five suggestions and eight manual fields', () => {
+  it('exposes nine suggestions and eight manual fields', () => {
     expect(CRS_SUGGESTION_KEYS).toEqual([
       'crs_faith_belief_system',
       'crs_cultural_practices',
       'crs_religious_observances',
       'crs_dietary_requirements',
       'crs_gender_preference',
+      'crs_service_user_needs',
+      'crs_needs_person_centred',
+      'crs_desired_goals_outcomes',
+      'crs_support_required',
     ]);
-    expect(CRS_MANUAL_KEYS).toHaveLength(6);
-    expect(CRS_FIELD_REGISTRY).toHaveLength(11);
+    expect(CRS_MANUAL_KEYS).toHaveLength(8);
+    expect(CRS_FIELD_REGISTRY).toHaveLength(17);
   });
 
   it('keeps the registry and the template in lockstep', () => {

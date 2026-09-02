@@ -218,8 +218,9 @@ describe('Pain Management Care Plan template', () => {
   it('adds the six Care 2020 fields with NRS toggle first and area risk last', () => {
     const care2020 = PAIN_MANAGEMENT_CARE_PLAN_SEED.sections[2].fields.map((f) => f.fieldKey);
     expect(care2020[0]).toBe('pain_management_nrs_needed');
-    expect(care2020[care2020.length - 1]).toBe('pain_management_area_risk');
-    expect(care2020).toHaveLength(6);
+    expect(care2020).toContain('pain_management_area_risk');
+    expect(care2020[care2020.length - 1]).toBe('pain_management_risk_management');
+    expect(care2020).toHaveLength(12);
     expect(seedField('pain_management_nrs_needed')?.fieldType).toBe('YES_NO');
     expect(seedField('pain_management_area_risk')?.fieldType).toBe('YES_NO');
   });
@@ -227,7 +228,7 @@ describe('Pain Management Care Plan template', () => {
   it('contains no duplicate field keys and totals twelve', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(12);
+    expect(keys).toHaveLength(18);
   });
 
   it('gives every field a pain_management_ prefixed key', () => {
@@ -317,7 +318,7 @@ describe('applyPainManagementCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(12);
+    expect(activeKeys).toHaveLength(18);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }
@@ -370,13 +371,13 @@ describe('other care plans are unaffected', () => {
     expect(HOME_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(36);
     expect(HOME_SUPPORT_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(45);
     expect(ADVANCE_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(COGNITION_BEHAVIOUR_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(CULTURE_RELIGION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(FALLS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(FINAL_DAYS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(INFECTION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(MEDICATION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(MOBILITY_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(13);
+    expect(COGNITION_BEHAVIOUR_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(CULTURE_RELIGION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(17);
+    expect(FALLS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(FINAL_DAYS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(INFECTION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(17);
+    expect(MEDICATION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(17);
+    expect(MOBILITY_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(19);
   });
 
   it('shares no field keys with any other plan', () => {

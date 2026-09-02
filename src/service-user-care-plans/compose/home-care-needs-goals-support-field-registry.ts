@@ -1,4 +1,5 @@
 import { HOME_CARE_NEEDS_GOALS_SUPPORT_SEED } from '../../../prisma/seeds/home-care-needs-goals-support.seed-data';
+import { areaRiskFollowUpManualEntriesNotesOnly } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-only registry for the "Home Care Plan - needs/goals/support" form.
@@ -31,6 +32,7 @@ export const HOME_CARE_NEEDS_GOALS_SUPPORT_FIELD_REGISTRY: readonly HomeCareFiel
   { businessKey: 'home_care_goal_2', mode: 'MANUAL', notes: 'Optional second goal.' },
   { businessKey: 'home_care_progress_notes', mode: 'MANUAL', notes: 'Free-text progress notes.' },
   { businessKey: 'home_care_area_risk', mode: 'MANUAL', notes: 'Generic risk gate; the assessor owns this decision.' },
+  ...areaRiskFollowUpManualEntriesNotesOnly('home_care'),
 ];
 
 export type HomeCareFieldBusinessKey =

@@ -10,6 +10,10 @@
  * - CQC / InspectReady — falls, nutrition, pressure linked; review after significant change
  */
 import { getCarePathwayFormReviewSchedule } from './care-pathway-assessment-registry';
+import {
+  isPainElevatedReview,
+  type PainAssessmentMetadataLike,
+} from '../initial-assessments/initial-assessment-abbey.util';
 export type AssessmentReviewScheduleKind = 'interval' | 'event_driven';
 
 export type AssessmentReviewSchedule = {
@@ -154,6 +158,20 @@ export const ASSESSMENT_REVIEW_SCHEDULES: Record<string, AssessmentReviewSchedul
     guidanceSource: 'ICO / consent management',
     guidanceSummary: 'Renew photography consent annually or when consent scope changes.',
   },
+  'equipment-selection': {
+    kind: 'event_driven',
+    dueSoonLeadDays: 14,
+    guidanceSource: 'Pressure-care / equipment good practice',
+    guidanceSummary:
+      'Review equipment selection when Waterlow, mobility, or the equipment in place changes.',
+  },
+  peep: {
+    kind: 'event_driven',
+    dueSoonLeadDays: 14,
+    guidanceSource: 'Fire safety / PEEP good practice',
+    guidanceSummary:
+      'Review the personal emergency evacuation plan when mobility, equipment, or the home layout changes, and by the recorded review date.',
+  },
 };
 
 export function getAssessmentReviewSchedule(
@@ -215,6 +233,13 @@ export function resolveEffectiveReviewIntervalDays(
       if (rf && typeof rf === 'object' && (rf as Record<string, unknown>).totallyIndependentLowRisk === false) {
         return elevatedDays;
       }
+    }
+  }
+
+  if (assessmentKey === 'pain-tool') {
+    const raw = snapshot.painAssessment;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      if (isPainElevatedReview(raw as PainAssessmentMetadataLike)) return elevatedDays;
     }
   }
 

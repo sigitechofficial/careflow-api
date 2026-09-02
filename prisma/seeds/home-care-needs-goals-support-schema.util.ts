@@ -10,6 +10,7 @@ import {
   HOME_CARE_NEEDS_GOALS_SUPPORT_SEED,
 } from './home-care-needs-goals-support.seed-data';
 import { buildCarePlanSchemaJson } from './home-support-plan-schema.util';
+import { stampAreaRiskFollowUpConditionals } from './area-risk-follow-up.seed';
 
 function fieldWriteData(sectionId: string, f: CarePlanFieldSeed, sortOrder: number) {
   return {
@@ -175,6 +176,8 @@ export async function applyHomeCareNeedsGoalsSupportSchema(
       });
     }
   }
+
+  await stampAreaRiskFollowUpConditionals(prisma, formVersionId);
 
   await prisma.carePathwayFormVersion.update({
     where: { id: formVersionId },

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { isPainToolComplete } from '../initial-assessments/initial-assessment-abbey.util';
 
 function metadataObject(metadata: Prisma.JsonValue | null | undefined): Record<string, unknown> {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
@@ -23,11 +24,37 @@ type PainAssessmentMetadata = {
   abbey?: Record<string, unknown>;
 };
 
+type TherapyAideMemoireItem = {
+  checked?: boolean;
+  details?: string;
+};
+
 type TherapyAideMemoireMetadata = {
+  choking?: TherapyAideMemoireItem;
+  chestInfections?: TherapyAideMemoireItem;
+  speechConcern?: TherapyAideMemoireItem;
+  mobilityChange?: TherapyAideMemoireItem;
+  selfCareChange?: TherapyAideMemoireItem;
+  carePackageConcern?: TherapyAideMemoireItem;
   furtherReferralRequired?: boolean | null;
   referralCompleted?: boolean | null;
   referralDate?: string;
 };
+
+const THERAPY_SCREENING_ITEMS: Array<{
+  key: keyof Pick<
+    TherapyAideMemoireMetadata,
+    'choking' | 'chestInfections' | 'speechConcern' | 'mobilityChange' | 'selfCareChange' | 'carePackageConcern'
+  >;
+  detailsRequired: boolean;
+}> = [
+  { key: 'choking', detailsRequired: false },
+  { key: 'chestInfections', detailsRequired: false },
+  { key: 'speechConcern', detailsRequired: true },
+  { key: 'mobilityChange', detailsRequired: true },
+  { key: 'selfCareChange', detailsRequired: true },
+  { key: 'carePackageConcern', detailsRequired: true },
+];
 
 type MovingHandlingMetadata = {
   riskFilter?: Record<string, boolean | null | undefined>;
@@ -75,25 +102,24 @@ const MOVING_HANDLING_RISK_KEYS = [
 
 export function isPainAssessmentComplete(metadata: Prisma.JsonValue | null | undefined): boolean {
   const pain = metaBlock<PainAssessmentMetadata>(metadata, 'painAssessment');
-  if (!pain) return false;
-  if (pain.nrsScore != null && Number.isFinite(pain.nrsScore)) return true;
-  const abbey = pain.abbey;
-  if (!abbey || typeof abbey !== 'object') return false;
-  return Object.values(abbey).some((v) => typeof v === 'number' && Number.isFinite(v));
+  return isPainToolComplete(pain);
 }
 
 export function isTherapyAideMemoireComplete(
   metadata: Prisma.JsonValue | null | undefined,
 ): boolean {
-  const pain = metaBlock<{ therapyAideMemoire?: TherapyAideMemoireMetadata }>(
-    metadata,
-    'painAssessment',
-  );
-  const meta = pain?.therapyAideMemoire;
+  const meta = extractTherapyAideMemoire(metadata) as TherapyAideMemoireMetadata | undefined;
   if (!meta) return false;
+  for (const item of THERAPY_SCREENING_ITEMS) {
+    const state = meta[item.key];
+    if (!boolAnswered(state?.checked)) return false;
+    if (state?.checked === true && item.detailsRequired && !state.details?.trim()) return false;
+  }
   if (!boolAnswered(meta.furtherReferralRequired)) return false;
-  if (!boolAnswered(meta.referralCompleted)) return false;
-  if (meta.referralCompleted === true && !meta.referralDate?.trim()) return false;
+  if (meta.furtherReferralRequired === true) {
+    if (!boolAnswered(meta.referralCompleted)) return false;
+    if (meta.referralCompleted === true && !meta.referralDate?.trim()) return false;
+  }
   return true;
 }
 
@@ -138,10 +164,35 @@ export function isEndOfLifeAssessmentComplete(
 ): boolean {
   const row = metaBlock<Record<string, unknown>>(metadata, 'endOfLifeAssessment');
   if (!row) return false;
-  const answered = Object.entries(row).filter(
-    ([k, v]) => !k.endsWith('Notes') && (typeof v === 'boolean' || v === 'unknown'),
-  );
-  return answered.length >= 3;
+
+  const yesNoIds = [
+    'endOfLifeCarePlan',
+    'awareOfDying',
+    'medicationAssessed',
+    'medicationAvailable',
+    'interventionDiscussion',
+    'carersAwareWishes',
+    'capacityEndOfLife',
+    'comfortDiscussWishes',
+    'terminalResidence',
+    'hospiceHospitalTransfer',
+    'funeralArrangements',
+    'contactNextOfKin',
+    'reviewWishesFuture',
+    'capacityLastWishes',
+    'dnrInPlace',
+  ] as const;
+  const triIds = ['medicalAidRecovery', 'lastWill'] as const;
+
+  for (const id of yesNoIds) {
+    const value = row[`${id}Answer`];
+    if (value !== true && value !== false) return false;
+  }
+  for (const id of triIds) {
+    const value = row[`${id}TriAnswer`];
+    if (value !== 'yes' && value !== 'no' && value !== 'unknown') return false;
+  }
+  return true;
 }
 
 export function isMentalCapacityChecklistComplete(
@@ -173,5 +224,8 @@ export function extractTherapyAideMemoire(metadata: Prisma.JsonValue | null | un
     metadata,
     'painAssessment',
   );
-  return pain?.therapyAideMemoire;
+  if (pain?.therapyAideMemoire && typeof pain.therapyAideMemoire === 'object') {
+    return pain.therapyAideMemoire;
+  }
+  return metaBlock<Record<string, unknown>>(metadata, 'therapyAideMemoire');
 }

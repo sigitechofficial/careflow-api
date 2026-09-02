@@ -14,9 +14,8 @@ import {
 } from './label-mapped-compose.util';
 import {
   findIaAnswer,
-  resolveIaDisplayValue,
-  resolveIaRawValue,
   resolveIaBooleanYes,
+  resolveIaDisplayValue,
 } from './ia-answer-resolver.util';
 import { sanitizeComposeTextOrNull } from './compose-html-sanitize.util';
 import { iaRoute, profileRoute } from './compose-routes.util';
@@ -65,40 +64,38 @@ function snapshotBoolean(
   return { fieldKey: '', label: '', value, source: 'ia', sourceLabel };
 }
 
-/** Map IA eating assistance codes → Eating and Drinking Care Plan SELECT labels. */
+/**
+ * Exact IA eating-assistance codes → Eating and Drinking SELECT labels.
+ *
+ * Do not use substring matching: `prompting` is not `Setup only`, and
+ * `assistance` is not `Supervision`. Diet/assistance fields are no longer
+ * AUTO-PREFILL (approved matrix: SUGGESTION).
+ */
 export function mapEatingAssistanceToCarePlan(raw: string | null): string | null {
   if (!raw) return null;
   const v = raw.toLowerCase().trim();
-  if (v === 'independent' || v.includes('independ')) return 'Independent';
-  if (v === 'prompting' || v.includes('prompt') || v === 'setup' || v.includes('setup')) {
-    return 'Setup only';
-  }
-  if (v === 'supervision' || v.includes('supervis') || v === 'assistance' || v.includes('assist')) {
-    return 'Supervision';
-  }
-  if (v === 'full_support' || v.includes('full')) return 'Full assistance';
-  return sanitizeComposeTextOrNull(raw);
+  if (v === 'independent') return 'Independent';
+  if (v === 'setup' || v === 'setup only') return 'Setup only';
+  if (v === 'supervision') return 'Supervision';
+  if (v === 'full_support' || v === 'full assistance') return 'Full assistance';
+  return null;
 }
 
-/** Map IA foodTexture / nutrition codes → Diet type SELECT labels. */
+/**
+ * Exact IA foodTexture codes → Diet type SELECT labels.
+ *
+ * Never map diabetes / "diabet" onto Diabetic diet. Never use `.includes()`
+ * (e.g. "abnormal" must not become Normal). Diet type is no longer AUTO-PREFILL.
+ */
 export function mapDietTypeToCarePlan(raw: string | null): string | null {
   if (!raw) return null;
   const v = raw.toLowerCase().trim();
-  if (v === 'normal' || v.includes('normal')) return 'Normal';
-  if (v === 'soft' || v.includes('soft')) return 'Soft';
-  if (v.includes('puree') || v.includes('purée')) return 'Pureed';
-  if (v.includes('diabet')) return 'Diabetic';
-  if (v.includes('fortif')) return 'Fortified';
+  if (v === 'normal') return 'Normal';
+  if (v === 'soft') return 'Soft';
+  if (v === 'puree' || v === 'pureed' || v === 'purée' || v === 'puréed') return 'Pureed';
+  if (v === 'fortified') return 'Fortified';
   if (v === 'other') return 'Other';
-  return sanitizeComposeTextOrNull(raw);
-}
-
-function mapSensoryLevelToImpairment(raw: string | null): boolean | null {
-  if (!raw) return null;
-  const v = raw.toLowerCase().trim();
-  if (v === 'none' || v === 'no' || v === 'normal' || v === 'good') return false;
-  if (v === 'yes' || v === 'true') return true;
-  return true;
+  return null;
 }
 
 function mapLoneWorkerRisk(raw: string | null): string | null {
@@ -110,109 +107,21 @@ function mapLoneWorkerRisk(raw: string | null): string | null {
   return sanitizeComposeTextOrNull(raw);
 }
 
-function mapContinenceSelect(raw: string | null, kind: 'bladder' | 'bowel'): string | null {
-  if (!raw) return null;
-  const text = sanitizeComposeTextOrNull(raw);
-  if (!text) return null;
-  const v = text.toLowerCase();
-  if (kind === 'bladder' && v.includes('catheter')) return 'Catheter';
-  if (kind === 'bowel' && v.includes('stoma')) return 'Stoma';
-  if (v.includes('incontinent')) return 'Incontinent – managed';
-  if (v.includes('occasional') || v.includes('leakage') || v.includes('accident')) {
-    return kind === 'bladder' ? 'Occasional leakage' : 'Occasional accident';
-  }
-  if (v.includes('continent')) return 'Continent';
-  // Snapshot may already store Care Plan SELECT labels.
-  if (
-    text === 'Continent' ||
-    text === 'Occasional leakage' ||
-    text === 'Occasional accident' ||
-    text === 'Incontinent – managed' ||
-    text === 'Catheter' ||
-    text === 'Stoma'
-  ) {
-    return text;
-  }
-  return text;
-}
-
 // —— Continence ——
 
+/**
+ * Continence clinical fields are SUGGESTION (fluid intake is MANUAL) on the
+ * approved IA → Care Plan matrix. Phase 1 disables silent AUTO-PREFILL:
+ * keyword hits (`pads`, `toileting`) and IA-code → SELECT inference
+ * (`incontinence` contains `continent`) must not write values.
+ */
 export const CONTINENCE_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
-  {
-    fieldLabel: 'Bladder continence',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'bladderContinenceOptions' });
-      const mapped = mapContinenceSelect(
-        resolveIaDisplayValue(answer) ?? ctx.ia.continenceSnapshot?.bladderStatus ?? null,
-        'bladder',
-      );
-      if (!mapped) return null;
-      return {
-        fieldKey: '',
-        label: 'Bladder continence',
-        value: mapped,
-        source: 'ia',
-        sourceLabel: answer ? 'IA bladder continence' : 'IA continence snapshot',
-      };
-    },
-  },
-  {
-    fieldLabel: 'Bowel continence',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'bowelContinenceOptions' });
-      const mapped = mapContinenceSelect(
-        resolveIaDisplayValue(answer) ?? ctx.ia.continenceSnapshot?.bowelStatus ?? null,
-        'bowel',
-      );
-      if (!mapped) return null;
-      return {
-        fieldKey: '',
-        label: 'Bowel continence',
-        value: mapped,
-        source: 'ia',
-        sourceLabel: answer ? 'IA bowel continence' : 'IA continence snapshot',
-      };
-    },
-  },
-  {
-    fieldLabel: 'Products used (pads, commode, etc.)',
-    resolve: (ctx) =>
-      iaText(ctx, { questionTextContains: 'continence product' }) ??
-      iaText(ctx, { questionTextContains: 'pads' }) ??
-      snapshotText(ctx.ia?.continenceSnapshot?.productsUsed, 'IA continence snapshot'),
-  },
-  {
-    fieldLabel: 'Toileting/prompting routine',
-    required: true,
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const adlNotes = ctx.ia.adlMetadata?.rows?.find(
-        (r) => r.id === 'toileting' || r.activity?.toLowerCase().includes('toilet'),
-      )?.notes;
-      return (
-        iaText(ctx, { questionTextContains: 'toileting' }) ??
-        snapshotText(sanitizeComposeTextOrNull(adlNotes), 'IA ADL toileting') ??
-        snapshotText(ctx.ia.continenceSnapshot?.toiletingRoutine, 'IA continence snapshot')
-      );
-    },
-  },
-  {
-    fieldLabel: 'Fluid intake guidance',
-    resolve: (ctx) =>
-      iaText(ctx, { fieldKey: 'fluidThickness' }) ??
-      iaText(ctx, { fieldKey: 'adequatelyHydrated' }) ??
-      snapshotText(ctx.ia?.continenceSnapshot?.fluidGuidance, 'IA continence snapshot'),
-  },
-  {
-    fieldLabel: 'Skin care after episodes',
-    resolve: (ctx) =>
-      iaText(ctx, { questionTextContains: 'skin care' }) ??
-      iaText(ctx, { questionTextContains: 'barrier cream' }) ??
-      snapshotText(ctx.ia?.continenceSnapshot?.skinCareAfterEpisodes, 'IA continence snapshot'),
-  },
+  { fieldLabel: 'Bladder continence', resolve: () => null },
+  { fieldLabel: 'Bowel continence', resolve: () => null },
+  { fieldLabel: 'Products used (pads, commode, etc.)', resolve: () => null },
+  { fieldLabel: 'Toileting/prompting routine', required: true, resolve: () => null },
+  { fieldLabel: 'Fluid intake guidance', resolve: () => null },
+  { fieldLabel: 'Skin care after episodes', resolve: () => null },
 ];
 
 export function composeContinenceCarePlan(
@@ -237,24 +146,7 @@ export function composeContinenceCarePlan(
 export const EATING_DRINKING_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   {
     fieldLabel: 'Diet type',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'foodTexture' });
-      const mapped = mapDietTypeToCarePlan(
-        resolveIaRawValue(answer) ??
-          resolveIaDisplayValue(answer) ??
-          ctx.ia.eatingDrinkingSnapshot?.dietType ??
-          null,
-      );
-      if (!mapped) return null;
-      return {
-        fieldKey: '',
-        label: 'Diet type',
-        value: mapped,
-        source: 'ia',
-        sourceLabel: answer ? 'IA food texture' : 'IA eating snapshot',
-      };
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Fluid target per day (ml)',
@@ -300,31 +192,11 @@ export const EATING_DRINKING_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Level of assistance',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'eatingAssistanceLevel' });
-      const mapped = mapEatingAssistanceToCarePlan(
-        resolveIaRawValue(answer) ??
-          resolveIaDisplayValue(answer) ??
-          ctx.ia.eatingDrinkingSnapshot?.mealAssistanceLevel ??
-          null,
-      );
-      if (!mapped) return null;
-      return {
-        fieldKey: '',
-        label: 'Level of assistance',
-        value: mapped,
-        source: 'ia',
-        sourceLabel: answer ? 'IA eating assistance' : 'IA eating snapshot',
-      };
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Choking risk / SALT recommendations',
-    resolve: (ctx) =>
-      iaText(ctx, { questionTextContains: 'choking' }) ??
-      iaText(ctx, { questionTextContains: 'salt' }) ??
-      snapshotText(ctx.ia?.eatingDrinkingSnapshot?.chokingSaltGuidance, 'IA eating snapshot'),
+    resolve: () => null,
   },
   {
     fieldLabel: 'Preferred foods and dislikes',
@@ -343,8 +215,7 @@ export const EATING_DRINKING_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
         }
       }
       return (
-        iaText(ctx, { questionTextContains: 'preferred foods' }) ??
-        iaText(ctx, { questionTextContains: 'dietary' }) ??
+        iaText(ctx, { questionTextContains: 'food likes and dislikes' }) ??
         snapshotText(ctx.ia?.eatingDrinkingSnapshot?.preferredFoodsDislikes, 'IA eating snapshot')
       );
     },
@@ -493,47 +364,11 @@ export const COMMUNICATION_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Hearing impairment',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'hearingLevel' });
-      if (answer) {
-        const mapped = mapSensoryLevelToImpairment(resolveIaRawValue(answer) ?? resolveIaDisplayValue(answer));
-        if (mapped == null) return null;
-        return {
-          fieldKey: '',
-          label: 'Hearing impairment',
-          value: mapped,
-          source: 'ia',
-          sourceLabel: 'IA hearing level',
-        };
-      }
-      return snapshotBoolean(
-        ctx.ia.communicationSnapshot?.hearingImpairment,
-        'IA communication snapshot',
-      );
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Vision impairment',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer = findIaAnswer(ctx.ia.answers, { fieldKey: 'sightLevel' });
-      if (answer) {
-        const mapped = mapSensoryLevelToImpairment(resolveIaRawValue(answer) ?? resolveIaDisplayValue(answer));
-        if (mapped == null) return null;
-        return {
-          fieldKey: '',
-          label: 'Vision impairment',
-          value: mapped,
-          source: 'ia',
-          sourceLabel: 'IA sight level',
-        };
-      }
-      return snapshotBoolean(
-        ctx.ia.communicationSnapshot?.visionImpairment,
-        'IA communication snapshot',
-      );
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Primary communication method',
@@ -561,32 +396,11 @@ export const COMMUNICATION_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Uses glasses/hearing aids',
-    resolve: (ctx) =>
-      iaText(ctx, { questionTextContains: 'hearing aid' }) ??
-      iaText(ctx, { questionTextContains: 'glasses' }) ??
-      snapshotText(ctx.ia?.communicationSnapshot?.aids, 'IA communication snapshot'),
+    resolve: () => null,
   },
   {
     fieldLabel: 'Consent to share information with family',
-    resolve: (ctx) => {
-      if (!ctx.ia) return null;
-      const answer =
-        findIaAnswer(ctx.ia.answers, { questionTextContains: 'consent to share' }) ??
-        findIaAnswer(ctx.ia.answers, { questionTextContains: 'share information' });
-      if (answer) {
-        return {
-          fieldKey: '',
-          label: 'Consent to share information with family',
-          value: resolveIaBooleanYes(answer),
-          source: 'ia',
-          sourceLabel: 'IA consent',
-        };
-      }
-      return snapshotBoolean(
-        ctx.ia.communicationSnapshot?.consentSharing,
-        'IA communication snapshot',
-      );
-    },
+    resolve: () => null,
   },
 ];
 

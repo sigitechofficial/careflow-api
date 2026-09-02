@@ -20,14 +20,14 @@ import {
   pruneSection11ActiveExtras,
   pruneSection13ActiveExtras,
 } from './initial-assessment-sections-phase1-prune.seed';
-import { SECTION_4_QUESTIONS } from './initial-assessment-enterprise-section-4.seed';
+import { SECTION_4_QUESTIONS, remapDiabetesTypeHistoricalAnswers } from './initial-assessment-enterprise-section-4.seed';
 import {
   ASSESSMENT_REASON_OPTIONS,
   CAR_PARKING_LIKELIHOOD_OPTIONS,
   CAR_PARKING_SEVERITY_OPTIONS,
   REVIEW_FREQUENCY_OPTIONS,
 } from './initial-assessment-enterprise-options';
-import { migrateSection31FireQuestions } from './initial-assessment-section-31-fire.seed';
+import { migrateSection31FireQuestions, rehomeFireSafetyQuestionsToSection18 } from './initial-assessment-section-31-fire.seed';
 import { whenFieldYes, whenNo, whenYes } from './initial-assessment-enterprise-metadata';
 import {
   SECTION_5_QUESTIONS,
@@ -48,6 +48,12 @@ import {
   SECTION_14_EXTRA_QUESTIONS,
   SECTION_14_TAIL_QUESTIONS,
 } from './initial-assessment-enterprise-sections-11-14.seed';
+import {
+  SECTION_15_QUESTIONS,
+  SECTION_16_QUESTIONS,
+  SECTION_17_QUESTIONS,
+  SECTION_18_QUESTIONS,
+} from './initial-assessment-enterprise-sections-15-18.seed';
 
 type QuestionSeed = {
   questionText: string;
@@ -338,7 +344,7 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       { questionText: 'Has the Service User consented to receive care and support?', questionType: YES_NO, isRequired: true, sortOrder: 3, metadata: { specRef: '2.2' } },
       { questionText: 'Information explained in a way they understand?', questionType: YES_NO, isRequired: true, sortOrder: 4, metadata: { specRef: '2.3' } },
       { questionText: 'Capacity to consent to assessment appears intact?', questionType: YES_NO, isRequired: true, sortOrder: 5, metadata: { specRef: '2.4' } },
-      { questionText: 'MCA required?', questionType: YES_NO, isRequired: true, sortOrder: 6, metadata: { specRef: '2.5' } },
+      { questionText: 'MCA required?', questionType: YES_NO, isRequired: true, sortOrder: 6, metadata: { specRef: '2.5', fieldKey: 'mcaRequired' } },
       { questionText: 'MCA completed?', questionType: YES_NO, sortOrder: 7, metadata: { specRef: '2.5' } },
       { questionText: 'Best interest decision required?', questionType: YES_NO, sortOrder: 8, metadata: { specRef: '2.6' } },
       { questionText: 'Best interest decision details', questionType: TEXTAREA, sortOrder: 9, metadata: { specRef: '2.6' } },
@@ -347,6 +353,36 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       { questionText: 'Consent to share with family', questionType: YES_NO, isRequired: true, sortOrder: 12, metadata: { specRef: '2.8' } },
       { questionText: 'Consent to share with pharmacy', questionType: YES_NO, sortOrder: 13, metadata: { specRef: '2.8' } },
       { questionText: 'Consent to share with local authority', questionType: YES_NO, sortOrder: 14, metadata: { specRef: '2.8' } },
+      {
+        questionText: 'DoLS / LPS authorisation in place?',
+        questionType: YES_NO,
+        sortOrder: 15,
+        metadata: { specRef: '2.9', fieldKey: 'dolsLpsAuthorisationInPlace' },
+      },
+      {
+        questionText: 'DoLS / LPS authorising body',
+        questionType: TEXT,
+        sortOrder: 16,
+        metadata: { specRef: '2.9', fieldKey: 'dolsAuthorisingBody', ...whenYes('DoLS / LPS authorisation in place') },
+      },
+      {
+        questionText: 'DoLS / LPS reference',
+        questionType: TEXT,
+        sortOrder: 17,
+        metadata: { specRef: '2.9', fieldKey: 'dolsReference', ...whenYes('DoLS / LPS authorisation in place') },
+      },
+      {
+        questionText: 'DoLS / LPS expiry date',
+        questionType: DATE,
+        sortOrder: 18,
+        metadata: { specRef: '2.9', fieldKey: 'dolsExpiryDate', ...whenYes('DoLS / LPS authorisation in place') },
+      },
+      {
+        questionText: 'DoLS / LPS relevant details',
+        questionType: TEXTAREA,
+        sortOrder: 19,
+        metadata: { specRef: '2.9', fieldKey: 'dolsDetails', ...whenYes('DoLS / LPS authorisation in place') },
+      },
       ...MCA_SCREENING_QUESTIONS,
     ],
   },
@@ -354,42 +390,8 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
     sectionNumber: 3,
     title: 'Environmental / Home Safety',
     carePlanArea: 'Environment',
-    description: 'Spec Â§3 â€” fire, access, environment checklist, flooring, pets',
+    description: 'Spec §3 — access, environment checklist, flooring, pets, parking',
     questions: [
-      {
-        questionText: 'Any fire safety risks identified?',
-        questionType: YES_NO,
-        isRequired: true,
-        riskFlag: true,
-        sortOrder: 1,
-        metadata: { specRef: '3.1', fieldKey: 'fireSafetyRisksIdentified' },
-      },
-      {
-        questionText: 'Any fire safety risks identified? (Please state)',
-        questionType: TEXTAREA,
-        sortOrder: 2,
-        metadata: {
-          specRef: '3.1',
-          fieldKey: 'fireSafetyRisksDetails',
-          ...whenYes('Any fire safety risks identified?'),
-        },
-      },
-      {
-        questionText: 'London Fire Brigade informed?',
-        questionType: YES_NO,
-        isRequired: true,
-        sortOrder: 3,
-        metadata: { specRef: '3.2', fieldKey: 'londonFireBrigadeInformed' },
-      },
-      {
-        questionText: 'Details',
-        questionType: TEXTAREA,
-        sortOrder: 4,
-        metadata: {
-          specRef: '3.2',
-          fieldKey: 'londonFireBrigadeDetails',
-        },
-      },
       {
         questionText: 'Can client manage home environment safely?',
         questionType: YES_NO,
@@ -422,7 +424,6 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
         sortOrder: 14,
         metadata: { specRef: '3.8', fieldKey: 'petsSecuredDuringVisits', ...whenFieldYes('petsPresent') },
       },
-      { questionText: 'Smoking in property?', questionType: YES_NO, sortOrder: 15, metadata: { specRef: '3.8', fieldKey: 'smokingInProperty' } },
       {
         questionText: 'Pet infestation or hygiene risk?',
         questionType: YES_NO,
@@ -431,14 +432,6 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       },
       { questionText: 'Lone worker risk identified?', questionType: YES_NO, isRequired: true, riskFlag: true, sortOrder: 17, metadata: { specRef: '3.9' } },
       { questionText: 'Staff safety instructions', questionType: TEXTAREA, sortOrder: 18, metadata: { specRef: '3.9' } },
-      { questionText: 'Smoke alarm fitted and working?', questionType: YES_NO, sortOrder: 19, metadata: { specRef: '3.10' } },
-      {
-        questionText: 'Referral required for smoke, CO or fire alarm?',
-        questionType: YES_NO,
-        carePlanTrigger: true,
-        sortOrder: 20,
-        metadata: { specRef: '3.10' },
-      },
       { questionText: 'Steps or uneven access at entrance?', questionType: YES_NO, sortOrder: 21, metadata: { specRef: '3.10' } },
       { questionText: 'Level access throughout the property?', questionType: YES_NO, sortOrder: 22, metadata: { specRef: '3.10' } },
       { questionText: 'Hoarding or clutter risk?', questionType: YES_NO, riskFlag: true, sortOrder: 23, metadata: { specRef: '3.10' } },
@@ -568,6 +561,34 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
     description: 'Spec Â§14 â€” governance, review schedule, sign-off',
     questions: asQuestionSeeds(SECTION_14_QUESTIONS),
   },
+  {
+    sectionNumber: 15,
+    title: 'Infection and Clinical Precautions',
+    carePlanArea: 'Infection',
+    description: 'Spec §15 — infection precautions, PPE, and staff instructions',
+    questions: asQuestionSeeds(SECTION_15_QUESTIONS),
+  },
+  {
+    sectionNumber: 16,
+    title: 'Personal Emergency Evacuation Plan',
+    carePlanArea: 'Environment',
+    description: 'Spec §16 — person-specific evacuation assistance, equipment, procedure, and review',
+    questions: asQuestionSeeds(SECTION_16_QUESTIONS),
+  },
+  {
+    sectionNumber: 17,
+    title: 'Bed Rails',
+    carePlanArea: 'Mobility',
+    description: 'Spec §17 — initial bed rail screen (in use, reason, alternatives, entrapment, review)',
+    questions: asQuestionSeeds(SECTION_17_QUESTIONS),
+  },
+  {
+    sectionNumber: 18,
+    title: 'Fire Safety',
+    carePlanArea: 'Environment',
+    description: 'Spec §18 — property fire hazards, alarms, smoking, cooking, and escape arrangements',
+    questions: asQuestionSeeds(SECTION_18_QUESTIONS),
+  },
 ];
 export const ENTERPRISE_TEMPLATE_NAME = 'Initial Assessment — Enterprise';
 export const LEGACY_TEMPLATE_NAME = 'Initial Assessment Checklist';
@@ -592,8 +613,8 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
       data: {
         name: ENTERPRISE_TEMPLATE_NAME,
         description:
-          '14-section enterprise initial assessment (CQC-aligned). Replaces legacy 28-section checklist as default.',
-        version: 7,
+          'Enterprise initial assessment (CQC-aligned). Replaces legacy 28-section checklist as default.',
+        version: 8,
         isDefault: true,
         isActive: true,
       },
@@ -607,8 +628,8 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
       where: { id: template.id },
       data: {
         description:
-          '14-section enterprise initial assessment (CQC-aligned). Replaces legacy 28-section checklist as default.',
-        version: 7,
+          'Enterprise initial assessment (CQC-aligned). Replaces legacy 28-section checklist as default.',
+        version: 8,
         isDefault: true,
         isActive: true,
         deletedAt: null,
@@ -624,7 +645,7 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
   }
 
   for (const section of ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS) {
-    const sectionRow = await prisma.initialAssessmentSection.upsert({
+    await prisma.initialAssessmentSection.upsert({
       where: {
         templateId_sectionNumber: {
           templateId: template.id,
@@ -648,11 +669,24 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
         sortOrder: section.sectionNumber,
       },
     });
+  }
 
-    let sectionQuestions = await prisma.initialAssessmentQuestion.findMany({
+  const rehomedFire = await rehomeFireSafetyQuestionsToSection18(prisma);
+  if (rehomedFire > 0) {
+    console.log(`[seed] Rehomed ${rehomedFire} fire-safety question(s) to §18 without changing IDs.`);
+  }
+
+  for (const section of ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS) {
+    const sectionRow = await prisma.initialAssessmentSection.findFirst({
+      where: { templateId: template.id, sectionNumber: section.sectionNumber, deletedAt: null },
+    });
+    if (!sectionRow) continue;
+
+    const sectionQuestions = await prisma.initialAssessmentQuestion.findMany({
       where: { sectionId: sectionRow.id },
       select: { id: true, questionText: true, metadata: true, deletedAt: true },
     });
+    const usedIds = new Set<string>();
 
     for (const q of section.questions) {
       const specRef =
@@ -680,13 +714,14 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
           : null;
 
       const existing = sectionQuestions.find((row) => {
+        if (usedIds.has(row.id)) return false;
         if (row.questionText === q.questionText) return true;
-        if (!specRef || !row.metadata || typeof row.metadata !== 'object' || Array.isArray(row.metadata)) {
+        if (!row.metadata || typeof row.metadata !== 'object' || Array.isArray(row.metadata)) {
           return false;
         }
         const rowMeta = row.metadata as Record<string, unknown>;
-        if (rowMeta.specRef !== specRef) return false;
-        if (fieldKey) return rowMeta.fieldKey === fieldKey;
+        if (fieldKey && rowMeta.fieldKey === fieldKey) return true;
+        if (!specRef || rowMeta.specRef !== specRef) return false;
         if (prefillKey && rowMeta.prefillKey === prefillKey) return true;
         return false;
       });
@@ -704,6 +739,7 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
         isActive: true,
       };
       if (existing) {
+        usedIds.add(existing.id);
         await prisma.initialAssessmentQuestion.update({
           where: { id: existing.id },
           data: { ...data, deletedAt: null },
@@ -723,7 +759,12 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
 
   const migratedFire = await migrateSection31FireQuestions(prisma);
   if (migratedFire > 0) {
-    console.log(`[seed] Migrated ${migratedFire} §3.1–3.4 fire / home-safety question(s).`);
+    console.log(`[seed] Aligned ${migratedFire} Environment home-safety question(s).`);
+  }
+
+  const remappedDiabetes = await remapDiabetesTypeHistoricalAnswers(prisma);
+  if (remappedDiabetes > 0) {
+    console.log(`[seed] Remapped ${remappedDiabetes} historical diabetes type answer(s) (Type A/B → type_1/type_2).`);
   }
 
   const pruned311 = await pruneSection311ActiveExtras(prisma);
@@ -779,4 +820,175 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
   if (pruned12 > 0) {
     console.log(`[seed] Pruned ${pruned12} non-canonical §12 mobility/ADL question(s).`);
   }
+}
+
+export type EnterpriseSectionUpsertResult = {
+  templateId: string;
+  templateName: string;
+  templateVersion: number;
+  sections: Array<{
+    sectionNumber: number;
+    sectionId: string;
+    sectionCreated: boolean;
+    questionsCreated: number;
+    questionsUpdated: number;
+    fieldKeys: string[];
+  }>;
+};
+
+/**
+ * Idempotent upsert of selected enterprise sections onto the EXISTING default template.
+ * Does not create the template, prune other sections, or rehome fire questions.
+ */
+export async function upsertEnterpriseTemplateSections(
+  prisma: PrismaClient,
+  sectionNumbers: number[],
+): Promise<EnterpriseSectionUpsertResult> {
+  const wanted = new Set(sectionNumbers);
+  const specs = ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS.filter((s) => wanted.has(s.sectionNumber));
+  if (specs.length !== sectionNumbers.length) {
+    const found = new Set(specs.map((s) => s.sectionNumber));
+    const missing = sectionNumbers.filter((n) => !found.has(n));
+    throw new Error(`Enterprise seed has no definition for section(s): ${missing.join(', ')}`);
+  }
+
+  const template = await prisma.initialAssessmentTemplate.findFirst({
+    where: { name: ENTERPRISE_TEMPLATE_NAME, deletedAt: null },
+  });
+  if (!template) {
+    throw new Error(
+      `Enterprise template "${ENTERPRISE_TEMPLATE_NAME}" not found — refusing to create a new template`,
+    );
+  }
+
+  const result: EnterpriseSectionUpsertResult = {
+    templateId: template.id,
+    templateName: template.name,
+    templateVersion: template.version,
+    sections: [],
+  };
+
+  for (const section of specs) {
+    const before = await prisma.initialAssessmentSection.findUnique({
+      where: {
+        templateId_sectionNumber: {
+          templateId: template.id,
+          sectionNumber: section.sectionNumber,
+        },
+      },
+      select: { id: true },
+    });
+
+    const sectionRow = await prisma.initialAssessmentSection.upsert({
+      where: {
+        templateId_sectionNumber: {
+          templateId: template.id,
+          sectionNumber: section.sectionNumber,
+        },
+      },
+      update: {
+        title: section.title,
+        description: section.description ?? null,
+        carePlanArea: section.carePlanArea ?? null,
+        sortOrder: section.sectionNumber,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        templateId: template.id,
+        sectionNumber: section.sectionNumber,
+        title: section.title,
+        description: section.description ?? null,
+        carePlanArea: section.carePlanArea ?? null,
+        sortOrder: section.sectionNumber,
+      },
+    });
+
+    const sectionQuestions = await prisma.initialAssessmentQuestion.findMany({
+      where: { sectionId: sectionRow.id },
+      select: { id: true, questionText: true, metadata: true, deletedAt: true },
+    });
+    const usedIds = new Set<string>();
+    let questionsCreated = 0;
+    let questionsUpdated = 0;
+    const fieldKeys: string[] = [];
+
+    for (const q of section.questions) {
+      const specRef =
+        q.metadata &&
+        typeof q.metadata === 'object' &&
+        !Array.isArray(q.metadata) &&
+        typeof (q.metadata as Record<string, unknown>).specRef === 'string'
+          ? ((q.metadata as Record<string, unknown>).specRef as string)
+          : null;
+
+      const fieldKey =
+        q.metadata &&
+        typeof q.metadata === 'object' &&
+        !Array.isArray(q.metadata) &&
+        typeof (q.metadata as Record<string, unknown>).fieldKey === 'string'
+          ? ((q.metadata as Record<string, unknown>).fieldKey as string)
+          : null;
+
+      const prefillKey =
+        q.metadata &&
+        typeof q.metadata === 'object' &&
+        !Array.isArray(q.metadata) &&
+        typeof (q.metadata as Record<string, unknown>).prefillKey === 'string'
+          ? ((q.metadata as Record<string, unknown>).prefillKey as string)
+          : null;
+
+      if (fieldKey) fieldKeys.push(fieldKey);
+
+      const existing = sectionQuestions.find((row) => {
+        if (usedIds.has(row.id)) return false;
+        if (row.questionText === q.questionText) return true;
+        if (!row.metadata || typeof row.metadata !== 'object' || Array.isArray(row.metadata)) {
+          return false;
+        }
+        const rowMeta = row.metadata as Record<string, unknown>;
+        if (fieldKey && rowMeta.fieldKey === fieldKey) return true;
+        if (!specRef || rowMeta.specRef !== specRef) return false;
+        if (prefillKey && rowMeta.prefillKey === prefillKey) return true;
+        return false;
+      });
+
+      const data = {
+        questionText: q.questionText,
+        helpText: q.helpText ?? null,
+        questionType: q.questionType ?? CHECKBOX,
+        options: q.options ? (q.options as object) : undefined,
+        isRequired: q.isRequired ?? false,
+        riskFlag: q.riskFlag ?? false,
+        carePlanTrigger: q.carePlanTrigger ?? false,
+        sortOrder: q.sortOrder,
+        metadata: q.metadata ? (q.metadata as object) : undefined,
+        isActive: true,
+      };
+      if (existing) {
+        usedIds.add(existing.id);
+        await prisma.initialAssessmentQuestion.update({
+          where: { id: existing.id },
+          data: { ...data, deletedAt: null },
+        });
+        questionsUpdated += 1;
+      } else {
+        await prisma.initialAssessmentQuestion.create({
+          data: { sectionId: sectionRow.id, ...data },
+        });
+        questionsCreated += 1;
+      }
+    }
+
+    result.sections.push({
+      sectionNumber: section.sectionNumber,
+      sectionId: sectionRow.id,
+      sectionCreated: !before,
+      questionsCreated,
+      questionsUpdated,
+      fieldKeys,
+    });
+  }
+
+  return result;
 }

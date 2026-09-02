@@ -1,5 +1,9 @@
 import { Prisma } from '@prisma/client';
 import {
+  formatPainAssessmentHistorySummary,
+  painAssessmentFromMetadata,
+} from '../initial-assessments/initial-assessment-abbey.util';
+import {
   extractTherapyAideMemoire,
   isAdvanceCarePlanningComplete,
   isEndOfLifeAssessmentComplete,
@@ -177,6 +181,59 @@ function specRefOf(q: { metadata: Prisma.JsonValue }): string | undefined {
   return typeof ref === 'string' ? ref : undefined;
 }
 
+function fieldKeyOf(q: { metadata: Prisma.JsonValue }): string | undefined {
+  if (!q.metadata || typeof q.metadata !== 'object' || Array.isArray(q.metadata)) return undefined;
+  const key = (q.metadata as Record<string, unknown>).fieldKey;
+  return typeof key === 'string' ? key : undefined;
+}
+
+function isYesNoAnswered(answer?: AnswerRow): boolean {
+  return (
+    answer?.checked === true ||
+    answer?.checked === false ||
+    answer?.booleanValue === true ||
+    answer?.booleanValue === false
+  );
+}
+
+function isPeepFieldAnswered(q: QuestionRow, answer?: AnswerRow): boolean {
+  if (q.questionType === 'YES_NO' || q.questionType === 'CHECKBOX') return isYesNoAnswered(answer);
+  return isAnswered(q, answer);
+}
+
+function isPeepComplete(questions: QuestionRow[], answers: AnswerRow[]): boolean {
+  const peepQuestions = questions.filter((q) => q.section.sectionNumber === 16);
+  if (!peepQuestions.length) return false;
+  const map = new Map(answers.map((a) => [a.questionId, a]));
+  const parent = peepQuestions.find((q) => fieldKeyOf(q) === 'canSelfEvacuate');
+  if (!parent || !isYesNoAnswered(map.get(parent.id))) return false;
+  const canSelfEvacuate =
+    map.get(parent.id)?.checked === true || map.get(parent.id)?.booleanValue === true;
+  if (canSelfEvacuate) return true;
+  return peepQuestions
+    .filter((q) => fieldKeyOf(q) !== 'canSelfEvacuate')
+    .every((q) => isPeepFieldAnswered(q, map.get(q.id)));
+}
+
+function buildPeepSnapshot(questions: QuestionRow[], answers: AnswerRow[]): Record<string, unknown> {
+  const map = new Map(answers.map((a) => [a.questionId, a]));
+  const snapshot: Record<string, unknown> = {};
+  for (const q of questions.filter((row) => row.section.sectionNumber === 16)) {
+    const key = fieldKeyOf(q);
+    if (!key) continue;
+    const answer = map.get(q.id);
+    if (!answer) continue;
+    if (isYesNoAnswered(answer)) {
+      snapshot[key] = answer.booleanValue ?? answer.checked;
+    } else if (answer.textValue?.trim()) {
+      snapshot[key] = answer.textValue;
+    } else if (answer.dateValue) {
+      snapshot[key] = answer.dateValue.toISOString().slice(0, 10);
+    }
+  }
+  return snapshot;
+}
+
 function isAnswered(q: { questionType: string }, answer?: AnswerRow): boolean {
   if (!answer) return false;
   if (q.questionType === 'CHECKBOX' || q.questionType === 'YES_NO') {
@@ -344,6 +401,24 @@ function getWaterlowMetadata(metadata: Prisma.JsonValue | null | undefined): Wat
   return row as WaterlowMetadata;
 }
 
+type EquipmentSelectionMetadata = {
+  selectedRiskLevel?: string;
+  selectedEquipment?: string;
+};
+
+function getEquipmentSelectionMetadata(
+  metadata: Prisma.JsonValue | null | undefined,
+): EquipmentSelectionMetadata | undefined {
+  const row = metadataObject(metadata).equipmentSelection;
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return undefined;
+  return row as EquipmentSelectionMetadata;
+}
+
+function isEquipmentSelectionComplete(meta: EquipmentSelectionMetadata | undefined): boolean {
+  if (!meta) return false;
+  return Boolean(meta.selectedRiskLevel?.trim() && meta.selectedEquipment?.trim());
+}
+
 function getFallsMetadata(metadata: Prisma.JsonValue | null | undefined): FallsScreeningMetadata | undefined {
   const base = metadataObject(metadata);
   const row = base.fallsScreening;
@@ -427,6 +502,30 @@ export function buildIaAssessmentCompletions(context: AssessmentToolContext): As
       },
     },
     {
+      assessmentKey: 'equipment-selection',
+      title: 'Equipment selection',
+      holisticTabId: 6,
+      buildCompletion: ({ metadata }) => {
+        const equipmentSelection = getEquipmentSelectionMetadata(metadata);
+        if (!equipmentSelection || !isEquipmentSelectionComplete(equipmentSelection)) return null;
+        const risk = equipmentSelection.selectedRiskLevel?.trim();
+        const equipment = equipmentSelection.selectedEquipment?.trim();
+        const equipmentChecklist = metadataObject(metadata).equipmentChecklist;
+        return {
+          assessmentKey: 'equipment-selection',
+          title: 'Equipment selection',
+          holisticTabId: 6,
+          summary: `Equipment selection recorded (${risk}: ${equipment})`,
+          snapshot: {
+            equipmentSelection,
+            ...(equipmentChecklist && typeof equipmentChecklist === 'object'
+              ? { equipmentChecklist }
+              : {}),
+          },
+        };
+      },
+    },
+    {
       assessmentKey: 'falls-screening',
       title: 'Falls screening',
       holisticTabId: 8,
@@ -463,6 +562,15 @@ export function buildIaAssessmentCompletions(context: AssessmentToolContext): As
       title: 'MCA screening',
       holisticTabId: 3,
       buildCompletion: ({ questions, answers }) => {
+        const required = questions.find((q) => {
+          const key = (q.metadata as Record<string, unknown> | null)?.fieldKey;
+          return key === 'mcaRequired' || q.questionText.trim().toLowerCase() === 'mca required?';
+        });
+        const requiredAnswer = required ? answers.find((a) => a.questionId === required.id) : undefined;
+        const requiredYes =
+          requiredAnswer?.checked === true || requiredAnswer?.booleanValue === true;
+        if (!requiredYes) return null;
+
         const mcaQuestions = questions.filter((q) => specRefOf(q) === '2.mca');
         if (!isMcaScreeningComplete(mcaQuestions, answers)) return null;
         return {
@@ -501,7 +609,9 @@ export function buildIaAssessmentCompletions(context: AssessmentToolContext): As
           assessmentKey: 'pain-tool',
           title: 'Pain assessment',
           holisticTabId: 10,
-          summary: 'Pain assessment completed',
+          summary:
+            formatPainAssessmentHistorySummary(painAssessmentFromMetadata(metadata)) ??
+            'Pain assessment completed',
           snapshot: { painAssessment },
         };
       },
@@ -602,6 +712,25 @@ export function buildIaAssessmentCompletions(context: AssessmentToolContext): As
         };
       },
     },
+    {
+      assessmentKey: 'peep',
+      title: 'Personal Emergency Evacuation Plan',
+      holisticTabId: 19,
+      buildCompletion: ({ questions, answers }) => {
+        if (!isPeepComplete(questions, answers)) return null;
+        const snapshot = buildPeepSnapshot(questions, answers);
+        const independent = snapshot.canSelfEvacuate === true;
+        return {
+          assessmentKey: 'peep',
+          title: 'Personal Emergency Evacuation Plan',
+          holisticTabId: 19,
+          summary: independent
+            ? 'PEEP completed — can self-evacuate'
+            : 'PEEP completed — assistance required',
+          snapshot: { peep: snapshot },
+        };
+      },
+    },
   ];
 
   return tools
@@ -614,6 +743,7 @@ export const IA_ASSESSMENT_TOOL_CATALOGUE = [
   { assessmentKey: 'mca-screening', title: 'MCA screening', holisticTabId: 3 },
   { assessmentKey: 'skin-integrity', title: 'Skin integrity', holisticTabId: 4 },
   { assessmentKey: 'waterlow', title: 'Waterlow', holisticTabId: 5 },
+  { assessmentKey: 'equipment-selection', title: 'Equipment selection', holisticTabId: 6 },
   { assessmentKey: 'must', title: 'MUST', holisticTabId: 7 },
   { assessmentKey: 'falls-screening', title: 'Falls screening', holisticTabId: 8 },
   { assessmentKey: 'moving-handling', title: 'Moving and handling', holisticTabId: 9 },
@@ -628,4 +758,5 @@ export const IA_ASSESSMENT_TOOL_CATALOGUE = [
     holisticTabId: 17,
   },
   { assessmentKey: 'photography-consent', title: 'Photography consent', holisticTabId: 18 },
+  { assessmentKey: 'peep', title: 'Personal Emergency Evacuation Plan', holisticTabId: 19 },
 ];

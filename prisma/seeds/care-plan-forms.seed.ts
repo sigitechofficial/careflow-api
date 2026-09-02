@@ -56,6 +56,12 @@ import { applyHomeCareNeedsGoalsSupportSchema } from './home-care-needs-goals-su
 import { HOME_CARE_NEEDS_GOALS_SUPPORT_NAME } from './home-care-needs-goals-support.seed-data';
 import { applyPersonCentredCarePlanSchema } from './person-centred-care-plan-schema.util';
 import { PERSON_CENTRED_CARE_PLAN_NAME } from './person-centred-care-plan.seed-data';
+import { applyPressureUlcerCarePlanSchema } from './pressure-ulcer-care-plan-schema.util';
+import { PRESSURE_ULCER_CARE_PLAN_NAME } from './pressure-ulcer-care-plan.seed-data';
+import { applySleepingNightCarePlanSchema } from './sleeping-night-care-plan-schema.util';
+import { SLEEPING_NIGHT_CARE_PLAN_NAME } from './sleeping-night-care-plan.seed-data';
+import { applyWashingDressingCarePlanSchema } from './washing-dressing-care-plan-schema.util';
+import { WASHING_DRESSING_CARE_PLAN_NAME } from './washing-dressing-care-plan.seed-data';
 import { HOME_CARE_PLAN_NAME } from './home-care-plan.seed-data';
 import { writeStandardIconFile } from './care-pathway-icon-svg.util';
 import { resolveGalleryPictureUrl } from './care-pathway-gallery.seed';
@@ -253,6 +259,12 @@ export async function seedCarePlanForms(prisma: PrismaClient): Promise<void> {
         await applyHomeCareNeedsGoalsSupportSchema(prisma, version.id, seed);
       } else if (planName === PERSON_CENTRED_CARE_PLAN_NAME) {
         await applyPersonCentredCarePlanSchema(prisma, version.id, seed);
+      } else if (planName === PRESSURE_ULCER_CARE_PLAN_NAME) {
+        await applyPressureUlcerCarePlanSchema(prisma, version.id, seed);
+      } else if (planName === SLEEPING_NIGHT_CARE_PLAN_NAME) {
+        await applySleepingNightCarePlanSchema(prisma, version.id, seed);
+      } else if (planName === WASHING_DRESSING_CARE_PLAN_NAME) {
+        await applyWashingDressingCarePlanSchema(prisma, version.id, seed);
       } else {
         await applyCarePlanSchema(prisma, version.id, seed);
       }
@@ -330,6 +342,12 @@ export async function seedCarePlanForms(prisma: PrismaClient): Promise<void> {
       await applyHomeCareNeedsGoalsSupportSchema(prisma, versionId, seed);
     } else if (planName === PERSON_CENTRED_CARE_PLAN_NAME) {
       await applyPersonCentredCarePlanSchema(prisma, versionId, seed);
+    } else if (planName === PRESSURE_ULCER_CARE_PLAN_NAME) {
+      await applyPressureUlcerCarePlanSchema(prisma, versionId, seed);
+    } else if (planName === SLEEPING_NIGHT_CARE_PLAN_NAME) {
+      await applySleepingNightCarePlanSchema(prisma, versionId, seed);
+    } else if (planName === WASHING_DRESSING_CARE_PLAN_NAME) {
+      await applyWashingDressingCarePlanSchema(prisma, versionId, seed);
     } else {
       await applyCarePlanSchema(prisma, versionId, seed);
     }

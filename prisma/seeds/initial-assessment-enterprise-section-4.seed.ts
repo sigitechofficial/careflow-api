@@ -1,5 +1,6 @@
 import { InitialAssessmentQuestionType } from '@prisma/client';
 import {
+  DIABETES_TYPE_OPTIONS,
   GENERAL_PHYSICAL_WELLBEING_OPTIONS,
   MUAC_NUTRITIONAL_RISK_OPTIONS,
   PULSE_RHYTHM_OPTIONS,
@@ -87,7 +88,7 @@ export const SECTION_4_QUESTIONS: EnterpriseQuestionSeed[] = [
     questionType: SINGLE_SELECT,
     isRequired: true,
     sortOrder: 20,
-    options: ['Type A', 'Type B'],
+    options: DIABETES_TYPE_OPTIONS,
     metadata: iaMeta('4.4', { fieldKey: 'diabetesType', ...whenYes('service user is diabetic') }),
   },
   { questionText: 'Ongoing vital signs monitoring required?', questionType: YES_NO, isRequired: true, sortOrder: 21, metadata: { specRef: '4.5' } },
@@ -173,3 +174,67 @@ export const SECTION_4_QUESTIONS: EnterpriseQuestionSeed[] = [
   },
   { questionText: 'Physical assessment additional comments', questionType: TEXTAREA, sortOrder: 33, metadata: { specRef: '4.7' } },
 ];
+
+const DIABETES_TYPE_REMAP: Record<string, string> = {
+  'type a': 'type_1',
+  type_a: 'type_1',
+  typea: 'type_1',
+  'type b': 'type_2',
+  type_b: 'type_2',
+  typeb: 'type_2',
+};
+
+function normalizeDiabetesTypeToken(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export function remapDiabetesSelectedOptions(value: unknown): { next: unknown; changed: boolean } {
+  const mapToken = (token: string): string => DIABETES_TYPE_REMAP[normalizeDiabetesTypeToken(token)] ?? token;
+  if (typeof value === 'string') {
+    const next = mapToken(value);
+    return { next, changed: next !== value };
+  }
+  if (Array.isArray(value)) {
+    const next = value.map((entry) => (typeof entry === 'string' ? mapToken(entry) : entry));
+    const changed = next.some((entry, i) => entry !== value[i]);
+    return { next, changed };
+  }
+  return { next: value, changed: false };
+}
+
+/** Preserve historical Type A / Type B answers as type_1 / type_2. Never delete rows. */
+export async function remapDiabetesTypeHistoricalAnswers(
+  prisma: import('@prisma/client').PrismaClient,
+): Promise<number> {
+  const questions = await prisma.initialAssessmentQuestion.findMany({
+    where: { deletedAt: null },
+    select: { id: true, questionText: true, metadata: true },
+  });
+  const diabetesIds = questions
+    .filter((q) => {
+      const meta = q.metadata && typeof q.metadata === 'object' && !Array.isArray(q.metadata)
+        ? (q.metadata as Record<string, unknown>)
+        : null;
+      return meta?.fieldKey === 'diabetesType' || q.questionText.trim() === 'Type of diabetes';
+    })
+    .map((q) => q.id);
+  if (diabetesIds.length === 0) return 0;
+
+  const answers = await prisma.initialAssessmentAnswer.findMany({
+    where: { questionId: { in: diabetesIds } },
+    select: { id: true, selectedOptions: true },
+  });
+
+  let updated = 0;
+  for (const row of answers) {
+    const { next, changed } = remapDiabetesSelectedOptions(row.selectedOptions);
+    if (!changed) continue;
+    await prisma.initialAssessmentAnswer.update({
+      where: { id: row.id },
+      data: { selectedOptions: next as object },
+    });
+    updated += 1;
+  }
+  return updated;
+}
+

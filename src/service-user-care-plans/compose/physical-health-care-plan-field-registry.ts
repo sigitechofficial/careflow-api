@@ -1,4 +1,5 @@
 import { PHYSICAL_HEALTH_CARE_PLAN_SEED } from '../../../prisma/seeds/physical-health-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesNotesOnly } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-only registry for the Physical Health Care Plan.
@@ -92,6 +93,7 @@ export const PHYSICAL_HEALTH_FIELD_REGISTRY: readonly PhysicalHealthFieldRegistr
     notes:
       'Generic "is there a risk associated with this area of care?" gate; must not be driven from NEWS2 / vital signs / blood-glucose observations. The assessor owns this decision.',
   },
+  ...areaRiskFollowUpManualEntriesNotesOnly('physical_health'),
 ];
 
 export type PhysicalHealthFieldBusinessKey =

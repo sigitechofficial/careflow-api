@@ -10,6 +10,7 @@ import {
   SKIN_INTEGRITY_CARE_PLAN_SEED,
 } from './skin-integrity-care-plan.seed-data';
 import { buildCarePlanSchemaJson } from './home-support-plan-schema.util';
+import { stampAreaRiskFollowUpConditionals } from './area-risk-follow-up.seed';
 
 function fieldWriteData(sectionId: string, f: CarePlanFieldSeed, sortOrder: number) {
   return {
@@ -175,6 +176,8 @@ export async function applySkinIntegrityCarePlanSchema(
       });
     }
   }
+
+  await stampAreaRiskFollowUpConditionals(prisma, formVersionId);
 
   await prisma.carePathwayFormVersion.update({
     where: { id: formVersionId },

@@ -10,6 +10,7 @@ import {
   INFECTION_CARE_PLAN_SEED,
 } from './infection-care-plan.seed-data';
 import { buildCarePlanSchemaJson } from './home-support-plan-schema.util';
+import { stampAreaRiskFollowUpConditionals } from './area-risk-follow-up.seed';
 
 function fieldWriteData(sectionId: string, f: CarePlanFieldSeed, sortOrder: number) {
   return {
@@ -172,6 +173,8 @@ export async function applyInfectionCarePlanSchema(
       });
     }
   }
+
+  await stampAreaRiskFollowUpConditionals(prisma, formVersionId);
 
   await prisma.carePathwayFormVersion.update({
     where: { id: formVersionId },

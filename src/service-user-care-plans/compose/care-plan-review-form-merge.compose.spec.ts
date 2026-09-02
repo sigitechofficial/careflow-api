@@ -93,6 +93,7 @@ function ctxWith(): CarePlanComposeContext {
     },
     pack: null,
     gpPharmacyLine: null,
+    reviewFrequencyMonths: 6,
   } as unknown as CarePlanComposeContext;
 }
 

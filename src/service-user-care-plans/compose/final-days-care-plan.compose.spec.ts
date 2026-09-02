@@ -303,8 +303,8 @@ describe('no suggestion without evidence', () => {
 describe('merged Final Days template', () => {
   it('has twelve unique fields across three sections', () => {
     const keys = seedFieldKeys();
-    expect(keys).toHaveLength(12);
-    expect(new Set(keys).size).toBe(12);
+    expect(keys).toHaveLength(18);
+    expect(new Set(keys).size).toBe(18);
     expect(FINAL_DAYS_CARE_PLAN_SEED.sections.map((s) => s.title)).toEqual([
       'Comfort and symptoms',
       'People and wishes',
@@ -346,8 +346,8 @@ describe('merged Final Days template', () => {
       'final_days_spiritual_cultural_needs',
       'final_days_adrt_details',
     ]);
-    expect(FINAL_DAYS_MANUAL_KEYS).toHaveLength(8);
-    expect(FINAL_DAYS_FIELD_REGISTRY).toHaveLength(12);
+    expect(FINAL_DAYS_MANUAL_KEYS).toHaveLength(14);
+    expect(FINAL_DAYS_FIELD_REGISTRY).toHaveLength(18);
   });
 
   it('keeps the registry and the template in lockstep', () => {

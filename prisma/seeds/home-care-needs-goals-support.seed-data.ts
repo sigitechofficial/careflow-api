@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * "Home Care Plan - needs/goals/support" template — the existing project form brought into the
@@ -93,6 +94,7 @@ export const HOME_CARE_NEEDS_GOALS_SUPPORT_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'home_care_area_risk',
         },
+        ...areaRiskFollowUpFields('home_care'),
       ],
     },
   ],

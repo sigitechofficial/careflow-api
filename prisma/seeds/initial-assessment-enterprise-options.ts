@@ -4,6 +4,15 @@ export type OptionSet = { options: { value: string; label: string }[] };
 
 export const NO_CONCERN_OPTION = { value: 'no_concern', label: 'No concern / need identified' };
 
+/** §17 Bed Rails — whether rails are required and currently in place. */
+export const BED_RAILS_REQUIRED_IN_PLACE_OPTIONS: OptionSet = {
+  options: [
+    { value: 'not_required', label: 'Not required' },
+    { value: 'required_in_place', label: 'Required and in place' },
+    { value: 'required_not_yet_in_place', label: 'Required but not yet in place' },
+  ],
+};
+
 /** §3.12 Car parking — likelihood without control measures (1–3 matrix score). */
 export const CAR_PARKING_LIKELIHOOD_OPTIONS: OptionSet = {
   options: [
@@ -251,16 +260,75 @@ export const MEDICATION_AWARENESS_OPTIONS: OptionSet = {
 
 export const MEDICATION_SUPPORT_LEVEL_OPTIONS: OptionSet = {
   options: [
-    { value: 'independent', label: 'Independent' },
-    { value: 'prompting', label: 'Prompting only' },
-    { value: 'supervision', label: 'Supervision required' },
-    { value: 'packaging', label: 'Help with packaging' },
-    { value: 'administration', label: 'Assistance with administration' },
-    { value: 'full_admin', label: 'Full administration by carer' },
-    { value: 'family', label: 'Family administers' },
-    { value: 'district_nurse', label: 'District nurse administers' },
-    { value: 'mixed', label: 'Mixed support' },
-    { value: 'unknown', label: 'Unknown — requires medication review' },
+    { value: 'level_0', label: 'Level 0 — Independent self-administration' },
+    { value: 'level_1a', label: 'Level 1a — Prompting and reminding' },
+    { value: 'level_1b', label: 'Level 1b — Help with packaging' },
+    { value: 'level_2a', label: 'Level 2a — Assistance administering' },
+    { value: 'level_2b', label: 'Level 2b — Administration by trained staff' },
+  ],
+};
+
+export const MEDICATION_ADMINISTERED_BY_OPTIONS: OptionSet = {
+  options: [
+    { value: 'self', label: 'Service user' },
+    { value: 'family', label: 'Family / informal carer' },
+    { value: 'care_staff', label: 'Care staff' },
+    { value: 'nurse', label: 'Nurse' },
+    { value: 'mixed', label: 'Mixed' },
+  ],
+};
+
+export const MEDICATION_DISPENSING_METHOD_OPTIONS: OptionSet = {
+  options: [
+    { value: 'original_packs', label: 'Original packs' },
+    { value: 'blister_pack', label: 'Blister pack / MDS' },
+    { value: 'dosette', label: 'Dosette box' },
+    { value: 'other', label: 'Other' },
+  ],
+};
+
+export const DIABETES_TYPE_OPTIONS: OptionSet = {
+  options: [
+    { value: 'type_1', label: 'Type 1' },
+    { value: 'type_2', label: 'Type 2' },
+    { value: 'other', label: 'Other' },
+    { value: 'unknown', label: 'Unknown' },
+  ],
+};
+
+export const CHOKING_OCCURS_WITH_OPTIONS: OptionSet = {
+  options: [
+    { value: 'liquids', label: 'Liquids' },
+    { value: 'solids', label: 'Solids' },
+    { value: 'medicines', label: 'Medicines' },
+    { value: 'mixed', label: 'More than one of these' },
+  ],
+};
+
+export const CHOKING_FREQUENCY_OPTIONS: OptionSet = {
+  options: [
+    { value: 'rare', label: 'Rarely' },
+    { value: 'occasional', label: 'Occasionally' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'daily', label: 'Daily or most days' },
+  ],
+};
+
+export const INFECTION_PRECAUTION_OPTIONS: OptionSet = {
+  options: [
+    { value: 'standard', label: 'Standard precautions' },
+    { value: 'contact', label: 'Contact precautions' },
+    { value: 'droplet', label: 'Droplet precautions' },
+    { value: 'enhanced_hygiene', label: 'Enhanced hygiene' },
+  ],
+};
+
+export const PPE_REQUIRED_OPTIONS: OptionSet = {
+  options: [
+    { value: 'gloves', label: 'Gloves' },
+    { value: 'apron', label: 'Apron' },
+    { value: 'mask', label: 'Mask' },
+    { value: 'eye_protection', label: 'Eye protection' },
   ],
 };
 

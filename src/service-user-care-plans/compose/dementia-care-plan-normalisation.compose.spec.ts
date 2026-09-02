@@ -166,9 +166,9 @@ describe('Dementia compose value normalisation (rendering fixes)', () => {
 });
 
 describe('Dementia schema is untouched by the compose fix', () => {
-  it('still has 25 fields across 4 sections with exactly one required PCD', () => {
+  it('still has 31 fields across 4 sections with exactly one required PCD', () => {
     const fields = DEMENTIA_CARE_PLAN_SEED.sections.flatMap((s) => s.fields);
-    expect(fields).toHaveLength(25);
+    expect(fields).toHaveLength(31);
     expect(DEMENTIA_CARE_PLAN_SEED.sections).toHaveLength(4);
     const pcd = fields.filter((f) => f.label === 'Person-centred details');
     expect(pcd).toHaveLength(1);

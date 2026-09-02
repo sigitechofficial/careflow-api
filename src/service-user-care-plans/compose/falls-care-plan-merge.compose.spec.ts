@@ -20,6 +20,12 @@ const CARE_2020_KEYS = [
   'falls_desired_goals_outcomes',
   'falls_support_required',
   'falls_area_risk',
+  'falls_risk_identify',
+  'falls_risk_who_might_be_harmed',
+  'falls_risk_level',
+  'falls_risk_likelihood',
+  'falls_risk_triggers',
+  'falls_risk_management',
 ];
 
 /** Field refs as the loader would build them — crucially carrying sectionTitle,
@@ -186,8 +192,8 @@ describe('Falls registry', () => {
       'falls_environmental_hazards',
       'falls_transfers_instructions',
     ]);
-    expect(FALLS_MANUAL_KEYS).toHaveLength(6);
-    expect(FALLS_FIELD_REGISTRY).toHaveLength(12);
+    expect(FALLS_MANUAL_KEYS).toHaveLength(12);
+    expect(FALLS_FIELD_REGISTRY).toHaveLength(18);
   });
 
   it('marks every Care 2020 field manual with a recorded reason', () => {

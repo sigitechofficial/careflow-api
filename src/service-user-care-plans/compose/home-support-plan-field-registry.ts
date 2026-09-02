@@ -49,7 +49,6 @@ export const HSP_FIELD_REGISTRY: readonly HspFieldRegistryEntry[] = [
     source: 'INITIAL_ASSESSMENT',
     sources: [
       { kind: 'INITIAL_ASSESSMENT', iaFieldKeys: ['assessmentDate'] },
-      { kind: 'SYSTEM', notes: 'Default to today when IA date absent' },
     ],
     resolverImplemented: true,
   },

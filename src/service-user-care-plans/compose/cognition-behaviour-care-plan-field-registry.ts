@@ -1,4 +1,5 @@
 import { COGNITION_BEHAVIOUR_CARE_PLAN_SEED } from '../../../prisma/seeds/cognition-behaviour-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesWithSource } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /** How a Cognition & Behaviour field participates in compose. Mirrors the Advance contract. */
 export type CogFieldMappingMode = 'AUTO_PREFILL' | 'SUGGESTION' | 'MANUAL';
@@ -134,8 +135,8 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'cog_service_user_needs',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -146,8 +147,8 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
   },
   {
     businessKey: 'cog_needs_person_centred',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -158,8 +159,8 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
   },
   {
     businessKey: 'cog_desired_goals_outcomes',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -170,8 +171,8 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
   },
   {
     businessKey: 'cog_support_required',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -192,6 +193,7 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesWithSource('cog'),
 ];
 
 export type CogFieldBusinessKey = (typeof COG_FIELD_REGISTRY)[number]['businessKey'];

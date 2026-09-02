@@ -7,6 +7,7 @@ import {
   MedicationRecordStatus,
   ScheduledJobStatus,
   ScheduledVisitStatus,
+  ServiceUserCarePlanInstanceStatus,
   ServiceUserDocumentAccessLevel,
   ServiceUserDocumentRecordStatus,
 } from '@prisma/client';
@@ -22,6 +23,10 @@ import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/vi
 import { plannedHowAssistedLabel } from './medication/employee-app-visit-medication-round.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
+import {
+  aggregatePublishedCarePlanReview,
+  computeCarePlanReviewState,
+} from '../service-user-care-plans/care-plan-review-schedule';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -901,6 +906,9 @@ export class EmployeeAppClientDetailService {
             .join(' · '),
           versionNumber: pub?.versionNumber ?? null,
           reviewDueAt: primary?.nextReviewDueAt?.toISOString() ?? null,
+          reviewStatus: primary
+            ? computeCarePlanReviewState({ nextReviewDueAt: primary.nextReviewDueAt }).status
+            : 'none',
         },
         changeAlert: pub
           ? {
@@ -925,12 +933,18 @@ export class EmployeeAppClientDetailService {
         },
         sections,
         hasFallsRisk: openRisks.length > 0,
+        carePlanReviewRequired: aggregatePublishedCarePlanReview(
+          instances
+            .filter((i) => i.status === ServiceUserCarePlanInstanceStatus.PUBLISHED)
+            .map((i) => computeCarePlanReviewState({ nextReviewDueAt: i.nextReviewDueAt })),
+        ).carePlanReviewRequired,
         plans: instances.map((i) => ({
           id: i.id,
           formName: i.carePathwayForm.name,
           status: i.status,
           versionNumber: i.publishedVersions[0]?.versionNumber ?? null,
           nextReviewDueAt: i.nextReviewDueAt?.toISOString() ?? null,
+          reviewStatus: computeCarePlanReviewState({ nextReviewDueAt: i.nextReviewDueAt }).status,
         })),
       },
     };

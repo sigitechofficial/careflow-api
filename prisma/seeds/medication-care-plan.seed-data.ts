@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Medication Care Plan template — the local plan merged with the Care 2020 Medication
@@ -112,6 +113,7 @@ export const MEDICATION_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'medication_area_risk',
         },
+        ...areaRiskFollowUpFields('medication'),
       ],
     },
   ],

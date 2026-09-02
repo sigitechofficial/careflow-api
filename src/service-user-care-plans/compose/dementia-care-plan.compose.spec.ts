@@ -105,6 +105,7 @@ describe('composeDementiaCarePlan', () => {
       emar: { activeCount: 0, scheduledCount: 0, prnCount: 0, medListText: '', prnText: '' },
       pack: null,
       gpPharmacyLine: null,
+      reviewFrequencyMonths: 6,
     };
 
     const result = composeDementiaCarePlan(ctx, fields, 'su-1');
