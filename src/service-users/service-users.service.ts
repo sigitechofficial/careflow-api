@@ -1,5 +1,4 @@
-import type { Prisma } from '@prisma/client';
-import { DataAccessType } from '@prisma/client';
+import { DataAccessType, ServiceUserCarePlanInstanceStatus, type Prisma } from '@prisma/client';
 import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -17,6 +16,7 @@ import { PatchServiceUserFundingRefsDto } from './dto/patch-service-user-funding
 import { activeServiceUserAbsenceWhere } from '../service-user-absences/active-absence.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
+import { carePlanListStatusByServiceUser } from '../service-user-care-plans/care-plan-review-schedule';
 import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
 import {
   inferBranchFromAddress,
@@ -364,8 +364,25 @@ export class ServiceUsersService implements OnModuleInit {
       }),
     ]);
 
+    const pageIds = rows.map((row) => row.id);
+    const publishedCarePlans =
+      pageIds.length === 0
+        ? []
+        : await this.prisma.serviceUserCarePlanInstance.findMany({
+            where: {
+              serviceUserId: { in: pageIds },
+              status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
+            },
+            select: { serviceUserId: true, nextReviewDueAt: true },
+          });
+    const carePlanListStatusByUserId = carePlanListStatusByServiceUser(pageIds, publishedCarePlans);
+
     return {
-      data: rows.map((row) => mapServiceUserListRow(row, scheduleAreaByLocation)),
+      data: rows.map((row) =>
+        mapServiceUserListRow(row, scheduleAreaByLocation, {
+          carePlanListStatus: carePlanListStatusByUserId.get(row.id) ?? 'none',
+        }),
+      ),
       meta: buildPaginationMeta({ page, limit, total }),
     };
   }

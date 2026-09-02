@@ -1,9 +1,18 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
-import { CarePathwayFormType, Prisma, ServiceUserCarePlanInstanceStatus } from '@prisma/client';
+import {
+  CarePathwayFormType,
+  NotificationModule,
+  NotificationSeverity,
+  NotificationType,
+  Prisma,
+  ServiceUserCarePlanInstanceStatus,
+} from '@prisma/client';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -22,9 +31,14 @@ import {
 import { PublishCarePlanDto } from './dto/save-care-plan-draft.dto';
 import type { SaveCarePlanDraftDto } from './dto/save-care-plan-draft.dto';
 import {
+  aggregatePublishedCarePlanReview,
   computeCarePlanReviewState,
-  computeNextReviewDueAt,
-  getCarePlanReviewSchedule,
+  defaultNextReviewDate,
+  ensureDraftValuesNextReviewDate,
+  isoDateOnly,
+  parseDraftNextReviewDate,
+  resolvePublishedNextReviewDueAt,
+  reviewGuidanceSummary,
 } from './care-plan-review-schedule';
 import {
   carePlanInstanceDisplayStatus,
@@ -35,6 +49,7 @@ import {
   COMPOSE_ELIGIBLE_IA_STATUSES,
   splitLatestAndPreviousAssessments,
 } from './compose/compose-ia-eligibility.util';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const instanceInclude = {
   draft: true,
@@ -47,12 +62,17 @@ const instanceInclude = {
 
 type InstanceRow = Prisma.ServiceUserCarePlanInstanceGetPayload<{ include: typeof instanceInclude }>;
 
+export type CarePlanReviewQueueStatusFilter = 'all' | 'overdue' | 'due_soon' | 'ok';
+
 @Injectable()
 export class ServiceUserCarePlansService {
+  private readonly logger = new Logger(ServiceUserCarePlansService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -66,26 +86,30 @@ export class ServiceUserCarePlansService {
   private async ensureCarePlanForm(formId: string) {
     const form = await this.prisma.carePathwayForm.findFirst({
       where: { id: formId, deletedAt: null, formType: CarePathwayFormType.CARE_PLAN },
-      select: { id: true, name: true, currentVersionId: true },
+      select: { id: true, name: true, currentVersionId: true, reviewFrequencyMonths: true, pictureUrl: true },
     });
     if (!form) throw new NotFoundException('Care plan form not found');
     return form;
   }
 
-  private mapInstance(row: InstanceRow, formName?: string | null) {
+  private mapInstance(
+    row: InstanceRow,
+    form?: { name?: string | null; reviewFrequencyMonths?: number | null } | null,
+  ) {
     const latest = row.publishedVersions[0] ?? null;
     const displayStatus = carePlanInstanceDisplayStatus({
       hasDraft: Boolean(row.draft),
       hasPublishedVersion: latest != null,
     });
 
-    const schedule = getCarePlanReviewSchedule(formName);
+    const intervalMonths = form?.reviewFrequencyMonths ?? null;
     const review = computeCarePlanReviewState({
       nextReviewDueAt: row.nextReviewDueAt,
       lastReviewedAt: row.lastReviewedAt,
-      intervalDays: schedule.defaultIntervalDays,
-      guidanceSummary: schedule.guidanceSummary,
+      intervalMonths,
+      guidanceSummary: reviewGuidanceSummary(intervalMonths),
     });
+    const defaultDue = defaultNextReviewDate(new Date(), intervalMonths);
 
     return {
       id: row.id,
@@ -97,6 +121,8 @@ export class ServiceUserCarePlansService {
       nextReviewDueAt: row.nextReviewDueAt?.toISOString() ?? null,
       lastReviewedAt: row.lastReviewedAt?.toISOString() ?? null,
       lastReviewedById: row.lastReviewedById,
+      reviewFrequencyMonths: intervalMonths,
+      defaultNextReviewDate: defaultDue ? isoDateOnly(defaultDue) : null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       draft: row.draft
@@ -174,17 +200,22 @@ export class ServiceUserCarePlansService {
       formIds.length > 0
         ? await this.prisma.carePathwayForm.findMany({
             where: { id: { in: formIds }, deletedAt: null },
-            select: { id: true, name: true, pictureUrl: true },
+            select: { id: true, name: true, pictureUrl: true, reviewFrequencyMonths: true },
           })
         : [];
     const formById = new Map(forms.map((f) => [f.id, f]));
+    const data = rows.map((row) => ({
+      ...this.mapInstance(row, formById.get(row.carePathwayFormId) ?? null),
+      formName: formById.get(row.carePathwayFormId)?.name ?? null,
+      pictureUrl: formById.get(row.carePathwayFormId)?.pictureUrl ?? null,
+    }));
+    const publishedReviews = data
+      .filter((row) => row.status === ServiceUserCarePlanInstanceStatus.PUBLISHED)
+      .map((row) => row.review);
 
     return {
-      data: rows.map((row) => ({
-        ...this.mapInstance(row, formById.get(row.carePathwayFormId)?.name ?? null),
-        formName: formById.get(row.carePathwayFormId)?.name ?? null,
-        pictureUrl: formById.get(row.carePathwayFormId)?.pictureUrl ?? null,
-      })),
+      data,
+      meta: aggregatePublishedCarePlanReview(publishedReviews),
     };
   }
 
@@ -205,12 +236,12 @@ export class ServiceUserCarePlansService {
 
     const form = await this.prisma.carePathwayForm.findFirst({
       where: { id: carePathwayFormId, deletedAt: null },
-      select: { id: true, name: true, pictureUrl: true },
+      select: { id: true, name: true, pictureUrl: true, reviewFrequencyMonths: true },
     });
 
     return {
       data: {
-        ...this.mapInstance(row, form?.name ?? null),
+        ...this.mapInstance(row, form),
         formName: form?.name ?? null,
         pictureUrl: form?.pictureUrl ?? null,
       },
@@ -227,7 +258,16 @@ export class ServiceUserCarePlansService {
     const form = await this.ensureCarePlanForm(carePathwayFormId);
     const instance = await this.getOrCreateInstance(userId, serviceUserId, carePathwayFormId);
 
-    const valuesJson = sanitizeCarePlanDraftValuesForSave(form.name, dto.values) as Prisma.InputJsonValue;
+    const sanitized = sanitizeCarePlanDraftValuesForSave(form.name, dto.values) as Record<
+      string,
+      unknown
+    >;
+    const valuesWithReview = ensureDraftValuesNextReviewDate(sanitized, {
+      existingNextReviewDueAt: instance.nextReviewDueAt,
+      reviewFrequencyMonths: form.reviewFrequencyMonths,
+      from: new Date(),
+    });
+    const valuesJson = valuesWithReview as Prisma.InputJsonValue;
     const composedFromJson = dto.composedFrom
       ? (dto.composedFrom as Prisma.InputJsonValue)
       : undefined;
@@ -309,8 +349,20 @@ export class ServiceUserCarePlansService {
     });
     const versionNumber = (latestVersion?.versionNumber ?? 0) + 1;
     const publishedAt = new Date();
-    const schedule = getCarePlanReviewSchedule(form.name);
-    const nextReviewDueAt = computeNextReviewDueAt(publishedAt, schedule.defaultIntervalDays);
+    const valuesForPublish = ensureDraftValuesNextReviewDate(
+      values && typeof values === 'object' ? { ...values } : {},
+      {
+        existingNextReviewDueAt: instance.nextReviewDueAt,
+        reviewFrequencyMonths: form.reviewFrequencyMonths,
+        from: publishedAt,
+      },
+    );
+    const nextReviewDueAt = resolvePublishedNextReviewDueAt({
+      explicitDate: parseDraftNextReviewDate(valuesForPublish),
+      existingNextReviewDueAt: instance.nextReviewDueAt,
+      reviewFrequencyMonths: form.reviewFrequencyMonths,
+      from: publishedAt,
+    });
 
     const version = await this.prisma.$transaction(async (tx) => {
       const currentDraft = await tx.serviceUserCarePlanDraft.findUnique({
@@ -325,6 +377,15 @@ export class ServiceUserCarePlansService {
         throw new BadRequestException('Care plan draft has no values to publish.');
       }
 
+      const publishedValues = ensureDraftValuesNextReviewDate(
+        { ...currentValues },
+        {
+          existingNextReviewDueAt: instance.nextReviewDueAt,
+          reviewFrequencyMonths: form.reviewFrequencyMonths,
+          from: publishedAt,
+        },
+      );
+
       await tx.serviceUserCarePlanPublishedVersion.updateMany({
         where: { instanceId: instance.id, supersededAt: null },
         data: { supersededAt: new Date() },
@@ -334,7 +395,7 @@ export class ServiceUserCarePlansService {
         data: {
           instanceId: instance.id,
           versionNumber,
-          valuesJson: currentDraft.valuesJson as Prisma.InputJsonValue,
+          valuesJson: publishedValues as Prisma.InputJsonValue,
           composedFromJson: currentDraft.composedFromJson ?? undefined,
           summary: dto.summary?.trim() || null,
           signaturesJson: dto.signatures
@@ -598,5 +659,172 @@ export class ServiceUserCarePlansService {
         supersededAt: version.supersededAt?.toISOString() ?? null,
       },
     };
+  }
+
+  async reviewQueue(params?: {
+    status?: CarePlanReviewQueueStatusFilter;
+    serviceUserId?: string;
+  }) {
+    const rows = await this.prisma.serviceUserCarePlanInstance.findMany({
+      where: {
+        status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
+        nextReviewDueAt: { not: null },
+        ...(params?.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
+        serviceUser: { deletedAt: null, isActive: true },
+      },
+      select: {
+        id: true,
+        serviceUserId: true,
+        carePathwayFormId: true,
+        nextReviewDueAt: true,
+        lastReviewedAt: true,
+        serviceUser: { select: { firstName: true, lastName: true, preferredName: true } },
+        carePathwayForm: { select: { name: true, reviewFrequencyMonths: true } },
+      },
+      orderBy: { nextReviewDueAt: 'asc' },
+    });
+
+    const items = rows.map((row) => {
+      const intervalMonths = row.carePathwayForm.reviewFrequencyMonths;
+      const review = computeCarePlanReviewState({
+        nextReviewDueAt: row.nextReviewDueAt,
+        lastReviewedAt: row.lastReviewedAt,
+        intervalMonths,
+        guidanceSummary: reviewGuidanceSummary(intervalMonths),
+      });
+      const preferred = row.serviceUser.preferredName?.trim();
+      const serviceUserName =
+        preferred ||
+        [row.serviceUser.firstName, row.serviceUser.lastName].filter(Boolean).join(' ').trim() ||
+        'Service user';
+      return {
+        instanceId: row.id,
+        serviceUserId: row.serviceUserId,
+        serviceUserName,
+        carePathwayFormId: row.carePathwayFormId,
+        carePlanName: row.carePathwayForm.name,
+        nextReviewDueAt: row.nextReviewDueAt?.toISOString() ?? null,
+        review,
+      };
+    });
+
+    const filtered =
+      !params?.status || params.status === 'all'
+        ? items
+        : items.filter((item) => item.review.status === params.status);
+
+    const counts = {
+      overdueCount: items.filter((item) => item.review.status === 'overdue').length,
+      dueSoonCount: items.filter((item) => item.review.status === 'due_soon').length,
+      upToDateCount: items.filter((item) => item.review.status === 'ok').length,
+    };
+
+    return {
+      data: filtered,
+      meta: {
+        total: filtered.length,
+        carePlanReviewRequired: counts.overdueCount > 0,
+        ...counts,
+      },
+    };
+  }
+
+  async sendReviewReminders(params?: { triggeredByUserId?: string; dryRun?: boolean }) {
+    const queue = await this.reviewQueue({ status: 'all' });
+    const due = queue.data.filter(
+      (item) => item.review.status === 'overdue' || item.review.status === 'due_soon',
+    );
+    let sent = 0;
+    let skipped = 0;
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    for (const item of due) {
+      const already = await this.prisma.notification.findFirst({
+        where: {
+          type: NotificationType.CARE_PLAN_REVIEW_DUE,
+          recordId: item.instanceId,
+          createdAt: { gte: since },
+        },
+        select: { id: true },
+      });
+      if (already) {
+        skipped += 1;
+        continue;
+      }
+      const recipientUserIds = await this.resolveCareTeamUserIds(item.serviceUserId);
+      if (!recipientUserIds.length) {
+        skipped += 1;
+        continue;
+      }
+      if (params?.dryRun) {
+        sent += 1;
+        continue;
+      }
+      if (!this.notifications) {
+        skipped += 1;
+        continue;
+      }
+      const statusLabel = item.review.status === 'overdue' ? 'overdue' : 'due soon';
+      try {
+        await this.notifications.notifyUsers({
+          recipientUserIds,
+          type: NotificationType.CARE_PLAN_REVIEW_DUE,
+          title: `Care plan review ${statusLabel}: ${item.carePlanName}`,
+          message: `${item.serviceUserName} — ${item.carePlanName} is ${statusLabel}. Open the care plan to complete the review.`,
+          module: NotificationModule.SERVICE_CARE,
+          severity:
+            item.review.status === 'overdue'
+              ? NotificationSeverity.WARNING
+              : NotificationSeverity.INFO,
+          recordType: 'ServiceUserCarePlanInstance',
+          recordId: item.instanceId,
+          metadata: {
+            serviceUserId: item.serviceUserId,
+            carePathwayFormId: item.carePathwayFormId,
+            reviewStatus: item.review.status,
+            nextReviewDueAt: item.nextReviewDueAt,
+          },
+          createdById: params?.triggeredByUserId,
+        });
+        sent += 1;
+      } catch (err) {
+        this.logger.warn(`Care plan review reminder failed: ${(err as Error).message}`);
+        skipped += 1;
+      }
+    }
+
+    return { data: { sent, skipped, due: due.length } };
+  }
+
+  private async userIdForEmployee(employeeId: string): Promise<string | null> {
+    const emp = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      select: { personalDetail: { select: { email: true } } },
+    });
+    const email = emp?.personalDetail?.email?.trim();
+    if (!email) return null;
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  }
+
+  private async resolveCareTeamUserIds(serviceUserId: string): Promise<string[]> {
+    const su = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      select: { keyWorkerId: true, namedNurseId: true },
+    });
+    if (!su) return [];
+    const ids = new Set<string>();
+    if (su.keyWorkerId) {
+      const uid = await this.userIdForEmployee(su.keyWorkerId);
+      if (uid) ids.add(uid);
+    }
+    if (su.namedNurseId) {
+      const uid = await this.userIdForEmployee(su.namedNurseId);
+      if (uid) ids.add(uid);
+    }
+    return [...ids];
   }
 }

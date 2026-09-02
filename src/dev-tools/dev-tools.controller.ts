@@ -1,13 +1,10 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { DevToolsGuard } from '../common/guards/dev-tools.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
-import { CurrentUser, type RequestUser } from '../common/decorators/current-user.decorator';
-import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
-import { RunIaSectionDto } from './dto/run-ia-section.dto';
+import { GenerateIaSectionDto } from './dto/generate-ia-section.dto';
 import { DevToolsService } from './dev-tools.service';
 
 @ApiTags('dev-tools')
@@ -18,23 +15,16 @@ import { DevToolsService } from './dev-tools.service';
 export class DevToolsController {
   constructor(private readonly devTools: DevToolsService) {}
 
-  /** Populates ONE holistic tab/section by severity (dev/QA). Never submits the assessment. */
-  @Post('run-ia-section')
+  /**
+   * Generate (no-save) demo values for ONE holistic tab/section by severity (dev/QA).
+   * Nothing is persisted — no submission, no answers saved, no submit. The frontend merges the
+   * returned values into the editable form draft, and the user saves/submits themselves.
+   */
+  @Post('generate-ia-section')
   @Permissions('service_users.initial_assessment.update')
-  @ApiOperation({ summary: 'Populate a single initial-assessment section with demo data (dev/QA)' })
-  async runIaSection(
-    @CurrentUser() user: RequestUser,
-    @Body() body: RunIaSectionDto,
-    @Req() req: Request,
-  ) {
-    const data = await this.devTools.runIaSectionAutofill(
-      user.id,
-      body.serviceUserId,
-      body.level,
-      body.tabId,
-      body.questionIds,
-      getRequestAuditMeta(req),
-    );
+  @ApiOperation({ summary: 'Generate (no-save) demo values for a single initial-assessment section (dev/QA)' })
+  async generateIaSection(@Body() body: GenerateIaSectionDto) {
+    const data = await this.devTools.generateIaSection(body.level, body.tabId, body.questionIds, body.identity);
     return { data };
   }
 }

@@ -1,4 +1,5 @@
 import { EATING_AND_DRINKING_CARE_PLAN_SEED } from '../../../prisma/seeds/eating-and-drinking-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Eating and Drinking Care Plan.
@@ -45,13 +46,14 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
   // ---------- Diet and fluids (existing — auto-prefilled by the engine, by label) ----------
   {
     businessKey: 'eating_and_drinking_diet_type',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['foodTexture'],
-        notes: 'IA foodTexture mapped to the SELECT / snapshot.dietType.',
+        notes:
+          'foodTexture may suggest Normal/Soft/Pureed. Never map T2DM / "diabet" onto Diabetic diet. Not AUTO.',
       },
     ],
   },
@@ -83,24 +85,26 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
   // ---------- Support at mealtimes (existing) ----------
   {
     businessKey: 'eating_and_drinking_level_of_assistance',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['eatingAssistanceLevel'],
-        notes: 'IA eatingAssistanceLevel mapped to the SELECT / snapshot.mealAssistanceLevel.',
+        notes:
+          'prompting ≠ Setup only; assistance ≠ Supervision. Exact codes only when suggestion is implemented. Not AUTO.',
       },
     ],
   },
   {
     businessKey: 'eating_and_drinking_choking_salt',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "choking" / "salt" text / snapshot.chokingSaltGuidance.',
+        notes:
+          'Never match the word "salt" (SALT vs dietary salt). Swallowing/choking No must not write SALT guidance.',
       },
     ],
   },
@@ -112,7 +116,7 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
       { kind: 'ABOUT_ME', notes: 'aboutMe.foodPreferences (primary source).' },
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "preferred foods" / "dietary" text / snapshot.preferredFoodsDislikes.',
+        notes: 'aboutMe.foodPreferences (primary). IA "Food likes and dislikes" only — not the word "dietary".',
       },
     ],
   },
@@ -120,8 +124,8 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'eating_and_drinking_service_user_needs',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -132,24 +136,24 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
   },
   {
     businessKey: 'eating_and_drinking_needs_person_centred',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Required free-text person-centred narrative for the needs question.' },
     ],
   },
   {
     businessKey: 'eating_and_drinking_desired_goals_outcomes',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'The IA holds no eating-specific goals; must not be mapped.' },
     ],
   },
   {
     businessKey: 'eating_and_drinking_support_required',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -170,6 +174,7 @@ export const EATING_AND_DRINKING_FIELD_REGISTRY: readonly EatingDrinkingFieldReg
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('eating_and_drinking'),
 ];
 
 export type EatingDrinkingFieldBusinessKey =

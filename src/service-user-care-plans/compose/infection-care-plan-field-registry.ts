@@ -1,4 +1,5 @@
 import { INFECTION_CARE_PLAN_SEED } from '../../../prisma/seeds/infection-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesNotesOnly } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-only registry for the Infection Care Plan.
@@ -85,6 +86,7 @@ export const INFECTION_FIELD_REGISTRY: readonly InfectionFieldRegistryEntry[] = 
     notes:
       'Generic "is there a risk associated with this area of care?" gate; must not be driven from a generic IA risk flag or the (empty) INFECTION_CONTROL risk records.',
   },
+  ...areaRiskFollowUpManualEntriesNotesOnly('infection'),
 ];
 
 export type InfectionFieldBusinessKey = (typeof INFECTION_FIELD_REGISTRY)[number]['businessKey'];

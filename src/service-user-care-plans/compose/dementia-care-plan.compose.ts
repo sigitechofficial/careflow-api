@@ -17,14 +17,8 @@ import {
   type LabelFieldMapping,
 } from './label-mapped-compose.util';
 import { iaRoute, profileRoute } from './compose-routes.util';
-import { getCarePlanReviewSchedule, computeNextReviewDueAt } from '../care-plan-review-schedule';
+import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
 import { sanitizeComposeTextOrNull } from './compose-html-sanitize.util';
-
-const DEMENTIA_CARE_PLAN_FORM_NAME = 'Dementia Care plan';
-
-function isoDateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 /**
  * Join free-text parts for a rich-text target field.
@@ -363,20 +357,7 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Wandering or exit-seeking risk',
-    resolve: (ctx) => {
-      const text = joinIa(ctx, [
-        { specRef: '10.6a', contains: 'De-orientated' },
-        { specRef: '12.1', contains: 'Falls' },
-      ]);
-      if (!text) return null;
-      return {
-        fieldKey: '',
-        label: 'Wandering or exit-seeking risk',
-        value: text,
-        source: 'ia',
-        sourceLabel: 'IA §10.6a / §12',
-      };
-    },
+    resolve: () => null,
   },
   {
     fieldLabel: 'Night-time support',
@@ -411,16 +392,7 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Next dementia care plan review',
-    resolve: () => {
-      const schedule = getCarePlanReviewSchedule(DEMENTIA_CARE_PLAN_FORM_NAME);
-      return {
-        fieldKey: '',
-        label: 'Next dementia care plan review',
-        value: isoDateOnly(computeNextReviewDueAt(new Date(), schedule.defaultIntervalDays)),
-        source: 'static',
-        sourceLabel: 'Six-month schedule',
-      };
-    },
+    resolve: (ctx) => resolveComposeNextReviewDate(ctx, 'Next dementia care plan review'),
   },
 ];
 

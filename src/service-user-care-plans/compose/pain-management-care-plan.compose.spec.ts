@@ -241,8 +241,8 @@ describe('no suggestion without evidence', () => {
 describe('merged Pain Management template', () => {
   it('has twelve unique fields across three sections', () => {
     const keys = seedFieldKeys();
-    expect(keys).toHaveLength(12);
-    expect(new Set(keys).size).toBe(12);
+    expect(keys).toHaveLength(18);
+    expect(new Set(keys).size).toBe(18);
     expect(PAIN_MANAGEMENT_CARE_PLAN_SEED.sections.map((s) => s.title)).toEqual([
       'Pain profile',
       'Management',
@@ -261,7 +261,9 @@ describe('merged Pain Management template', () => {
   it('adds the six Care 2020 fields, NRS toggle first', () => {
     const care2020 = PAIN_MANAGEMENT_CARE_PLAN_SEED.sections[2].fields.map((f) => f.fieldKey);
     expect(care2020[0]).toBe('pain_management_nrs_needed');
-    expect(care2020).toHaveLength(6);
+    expect(care2020).toContain('pain_management_area_risk');
+    expect(care2020[care2020.length - 1]).toBe('pain_management_risk_management');
+    expect(care2020).toHaveLength(12);
     expect(seedField('pain_management_nrs_needed')?.fieldType).toBe('YES_NO');
     expect(seedField('pain_management_area_risk')?.fieldType).toBe('YES_NO');
   });
@@ -273,8 +275,8 @@ describe('merged Pain Management template', () => {
       'pain_management_worsens_relieves',
       'pain_management_regular_analgesia',
     ]);
-    expect(PAIN_MANUAL_KEYS).toHaveLength(8);
-    expect(PAIN_FIELD_REGISTRY).toHaveLength(12);
+    expect(PAIN_MANUAL_KEYS).toHaveLength(14);
+    expect(PAIN_FIELD_REGISTRY).toHaveLength(18);
   });
 
   it('keeps the registry and the template in lockstep', () => {

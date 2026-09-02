@@ -19,6 +19,12 @@ const CARE_2020_KEYS = [
   'personal_safety_desired_goals_outcomes',
   'personal_safety_support_required',
   'personal_safety_area_risk',
+  'personal_safety_risk_identify',
+  'personal_safety_risk_who_might_be_harmed',
+  'personal_safety_risk_level',
+  'personal_safety_risk_likelihood',
+  'personal_safety_risk_triggers',
+  'personal_safety_risk_management',
 ];
 
 const EXISTING_KEYS = [
@@ -142,11 +148,16 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Personal Safety documentation registry', () => {
-  it('documents six auto-prefill fields, zero suggestions, and five manual fields', () => {
-    expect(PERSONAL_SAFETY_FIELD_REGISTRY).toHaveLength(11);
+  it('documents six auto-prefill fields, four suggestions, and seven manual fields', () => {
+    expect(PERSONAL_SAFETY_FIELD_REGISTRY).toHaveLength(17);
     expect(PERSONAL_SAFETY_AUTO_PREFILL_KEYS).toEqual(EXISTING_KEYS);
-    expect(PERSONAL_SAFETY_SUGGESTION_KEYS).toHaveLength(0);
-    expect(PERSONAL_SAFETY_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
+    expect(PERSONAL_SAFETY_SUGGESTION_KEYS).toEqual([
+      'personal_safety_service_user_needs',
+      'personal_safety_needs_person_centred',
+      'personal_safety_desired_goals_outcomes',
+      'personal_safety_support_required',
+    ]);
+    expect(PERSONAL_SAFETY_MANUAL_KEYS).toEqual(CARE_2020_KEYS.slice(4));
   });
 
   it('records the risk gate as manual (not driven by safeguarding-concern flag)', () => {

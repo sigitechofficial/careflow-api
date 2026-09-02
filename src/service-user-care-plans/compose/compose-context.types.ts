@@ -2,6 +2,7 @@ import type { SubmissionAnswerForRules } from '../../initial-assessments/initial
 import type { CarePlanPersonalisationContext } from '../../care-plan-text/care-plan-text.util';
 import type { AboutMeComposeSummary } from './about-me-compose-summary.util';
 import type { AdlComposeMetadata } from './compose-adl-metadata.util';
+import type { CarePlanWaterlowComposeMetadata } from './compose-waterlow-metadata.util';
 
 export type { AboutMeComposeSummary };
 
@@ -128,6 +129,11 @@ export type CarePlanComposeIaSnapshot = {
   communicationSnapshot?: CarePlanCommunicationSnapshotEvidence | null;
   /** Enterprise IA §12 ADL worksheet (submission.metadata.adl). */
   adlMetadata?: AdlComposeMetadata | null;
+  /**
+   * Enterprise IA Waterlow worksheet (submission.metadata.waterlow). Loaded additively;
+   * only the Pressure Ulcer compose reads it. Other plans ignore it.
+   */
+  waterlowMetadata?: CarePlanWaterlowComposeMetadata | null;
 };
 
 /**
@@ -175,6 +181,8 @@ export type CarePlanComposeContext = {
   legalDocument?: CarePlanLegalDocumentEvidence | null;
   /** Read-only profile facts for person-centred prefill; null/undefined when unavailable. */
   profile?: CarePlanComposeProfile | null;
+  /** Care Pathway review frequency in calendar months (1/2/3/6/12). */
+  reviewFrequencyMonths?: number | null;
 };
 
 export type CarePlanComposeDelta = {

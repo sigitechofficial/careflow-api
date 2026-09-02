@@ -270,6 +270,12 @@ describe('Dementia Care Plan template', () => {
       'dementia_desired_goals_outcomes',
       'dementia_support_required',
       'dementia_area_risk',
+      'dementia_risk_identify',
+      'dementia_risk_who_might_be_harmed',
+      'dementia_risk_level',
+      'dementia_risk_likelihood',
+      'dementia_risk_triggers',
+      'dementia_risk_management',
     ]);
     expect(seedField('dementia_area_risk')?.fieldType).toBe('YES_NO');
     const pcd = DEMENTIA_CARE_PLAN_SEED.sections
@@ -286,7 +292,7 @@ describe('Dementia Care Plan template', () => {
   it('contains no duplicate field keys and totals twenty-five', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(25);
+    expect(keys).toHaveLength(31);
   });
 
   it('gives every field a dementia_ prefixed key', () => {
@@ -378,7 +384,7 @@ describe('applyDementiaCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(25);
+    expect(activeKeys).toHaveLength(31);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }

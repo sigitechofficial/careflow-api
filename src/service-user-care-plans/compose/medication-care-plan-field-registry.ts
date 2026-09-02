@@ -1,4 +1,5 @@
 import { MEDICATION_CARE_PLAN_SEED } from '../../../prisma/seeds/medication-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Medication Care Plan.
@@ -185,6 +186,7 @@ export const MEDICATION_FIELD_REGISTRY: readonly MedicationFieldRegistryEntry[] 
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('medication'),
 ];
 
 export type MedicationFieldBusinessKey = (typeof MEDICATION_FIELD_REGISTRY)[number]['businessKey'];

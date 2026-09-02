@@ -3,6 +3,7 @@
  * Idempotent — keyed on serviceUserNumber SU-1042.
  */
 import type { PrismaClient } from '@prisma/client';
+import { MARGARET_ABOUT_ME_PATCH } from './care-plan-ia-demo-overlay.data';
 
 export const INITIAL_ASSESSMENT_DEMO_SU_NUMBER = 'SU-1042';
 
@@ -16,11 +17,11 @@ function emptyRoutine() {
     routine[d] = Object.fromEntries(slots.map((s) => [s, '']));
   }
   routine.monday = {
-    getUp: '8:00 — help with wash and dress',
+    getUp: '8:00 — I need help to wash and dress',
     breakfast: '9:00 — porridge and tea',
     lunch: '12:30 — soup and sandwich',
-    afternoon: '14:00 — radio and short walk if weather allows',
-    teaTime: '17:00 — light meal',
+    afternoon: '14:00 — radio and a short walk if the weather allows',
+    teaTime: '17:00 — a light meal',
     bedtime: '21:00 — personal care then bed',
   };
   return routine;
@@ -29,41 +30,14 @@ function emptyRoutine() {
 function aboutMeJson(): string {
   return JSON.stringify({
     version: 1,
-    whatIsMostImportantToMe: 'Staying in my own home and seeing my daughter Sarah regularly.',
-    peopleImportantToMe: 'Sarah Hughes (daughter), church friends, former neighbours.',
+    ...MARGARET_ABOUT_ME_PATCH,
     externalAboutMeUrl: '',
-    howICommunicate: 'Clear speech; short sentences work best. Hard of hearing in left ear.',
-    myWellness: 'Mobility limited — uses walking frame indoors.',
-    whatMakesAGoodDay: 'Morning personal care before 10am, radio on, visit from Sarah.',
-    whatMakesMeHappy: 'Classic FM, gardening programmes, family photos.',
-    whatMakesMeUnhappy: 'Being rushed during personal care; loud sudden noises.',
-    whatMakesABadDay: 'Missed medication times or carers arriving very late.',
-    howAndWhenToSupportMe: 'Female carers preferred for personal care. Speak calmly at eye level.',
-    alsoWorthKnowing: 'Prefers to be called Margaret. Church of England — bible on bedside table.',
-    supportedToWriteThisBy: 'Sarah Hughes (daughter)',
-    hobbiesAndInterests: 'Gardening (watching), knitting, church choir (when able).',
-    religiousSpiritualPreferences: 'Church of England; Sunday service when health allows.',
-    whereIAmFrom: 'Born in Bromley; lived in this house 40 years.',
-    whatILikeToTalkAbout: 'Family, garden, local news.',
-    familyAndFriends: 'Daughter Sarah visits twice weekly.',
     myChildhood: '',
     myEducation: '',
-    myOccupation: 'Retired school secretary.',
     myAdulthood: '',
     lifeHistoryFavourites: '',
-    personalHygiene: 'Shower preferred in morning; needs full assistance.',
-    domesticSupport: 'Meals prepared by carers; light housekeeping support.',
-    shoppingArrangements: 'Sarah handles online grocery orders.',
-    nightSupport: 'Bed sensor mat in use — may attempt to get up unassisted.',
     supportOther: '',
-    foodDrinksLike: 'Porridge, soft cooked vegetables, warm tea with one sugar.',
-    foodDrinksDontLike: 'Shellfish (allergy).',
-    favouriteItems: 'Pearl necklace, family photo album.',
-    tvProgrammes: 'Gardeners\' World, classic films.',
-    favouriteActivities: 'Listening to radio, looking through photo albums.',
-    favouriteRooms: 'Living room bay window seat.',
     favouriteOther: '',
-    identificationCharacteristics: 'Silver hair, walks with frame.',
     routine: emptyRoutine(),
   });
 }

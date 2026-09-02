@@ -21,6 +21,15 @@ import { CARE_PLAN_REVIEW_FORM_SEED } from './care-plan-review-form.seed-data';
 import { DEMENTIA_CARE_PLAN_SEED } from './dementia-care-plan.seed-data';
 import { HOME_CARE_NEEDS_GOALS_SUPPORT_SEED } from './home-care-needs-goals-support.seed-data';
 import { PERSON_CENTRED_CARE_PLAN_SEED } from './person-centred-care-plan.seed-data';
+import { PRESSURE_ULCER_CARE_PLAN_SEED } from './pressure-ulcer-care-plan.seed-data';
+import { SLEEPING_NIGHT_CARE_PLAN_SEED } from './sleeping-night-care-plan.seed-data';
+import { WASHING_DRESSING_CARE_PLAN_SEED } from './washing-dressing-care-plan.seed-data';
+
+/** Seed-time visibility rule. Resolved to UUID `showWhen` after fields exist. */
+export type CarePlanFieldShowWhenSeed = {
+  fieldKey: string;
+  operator: 'is_true';
+};
 
 export type CarePlanFieldSeed = {
   label: string;
@@ -31,6 +40,11 @@ export type CarePlanFieldSeed = {
   placeholder?: string;
   helpText?: string;
   options?: string[];
+  /**
+   * Seed-time conditional visibility. Persisted as `conditionalLogicJson` once
+   * the referenced fieldKey can be resolved to sectionId/fieldId UUIDs.
+   */
+  showWhen?: CarePlanFieldShowWhenSeed;
 };
 
 export type CarePlanSectionSeed = {
@@ -66,32 +80,7 @@ export const CARE_PLAN_FORM_SEEDS: Record<string, CarePlanFormSeed> = {
   'Person Centred care plan': PERSON_CENTRED_CARE_PLAN_SEED,
   'Personal Safety': PERSONAL_SAFETY_CARE_PLAN_SEED,
   'Physical Health': PHYSICAL_HEALTH_CARE_PLAN_SEED,
-  'Pressure Ulcer': {
-    description:
-      'Skin integrity and pressure ulcer prevention: risk level, repositioning, equipment, and existing wounds with dressings.',
-    sections: [
-      {
-        title: 'Risk and skin',
-        fields: [
-          {
-            label: 'Waterlow or risk score',
-            fieldType: 'SELECT',
-            options: ['Low', 'At risk', 'High', 'Very high'],
-          },
-          { label: 'Existing pressure areas or wounds', fieldType: 'TEXTAREA' },
-          { label: 'Skin inspection frequency', fieldType: 'TEXT' },
-        ],
-      },
-      {
-        title: 'Prevention plan',
-        fields: [
-          { label: 'Repositioning schedule', fieldType: 'TEXTAREA', required: true },
-          { label: 'Pressure relieving equipment', fieldType: 'TEXTAREA' },
-          { label: 'Nutrition linked to skin healing', fieldType: 'TEXT' },
-        ],
-      },
-    ],
-  },
+  'Pressure Ulcer': PRESSURE_ULCER_CARE_PLAN_SEED,
   Psychological: PSYCHOLOGICAL_CARE_PLAN_SEED,
   'Risk Assessment': {
     description:
@@ -139,28 +128,7 @@ export const CARE_PLAN_FORM_SEEDS: Record<string, CarePlanFormSeed> = {
     ],
   },
   'Skin Integrity': SKIN_INTEGRITY_CARE_PLAN_SEED,
-  'Sleeping and Night': {
-    description:
-      'Night-time routine, sleep patterns, disturbances, and how to promote rest while keeping the person safe.',
-    sections: [
-      {
-        title: 'Sleep pattern',
-        fields: [
-          { label: 'Usual bedtime and wake time', fieldType: 'TEXT' },
-          { label: 'Night-time waking or confusion', fieldType: 'TEXTAREA' },
-          { label: 'Daytime naps', fieldType: 'YES_NO' },
-        ],
-      },
-      {
-        title: 'Night care',
-        fields: [
-          { label: 'Evening routine', fieldType: 'TEXTAREA', required: true },
-          { label: 'Call bell / monitoring', fieldType: 'TEXT' },
-          { label: 'Night-time drinks or snacks', fieldType: 'TEXT' },
-        ],
-      },
-    ],
-  },
+  'Sleeping and Night': SLEEPING_NIGHT_CARE_PLAN_SEED,
   'Social Activities': {
     description:
       'Social interests, community links, activities to maintain wellbeing, and support needed to participate.',
@@ -197,30 +165,5 @@ export const CARE_PLAN_FORM_SEEDS: Record<string, CarePlanFormSeed> = {
       },
     ],
   },
-  'Washing and dressing': {
-    description:
-      'Personal care preferences for washing, bathing, oral care, and dressing including dignity, gender, and equipment.',
-    sections: [
-      {
-        title: 'Preferences',
-        fields: [
-          {
-            label: 'Preferred wash type',
-            fieldType: 'SELECT',
-            options: ['Full bath', 'Shower', 'Strip wash', 'Bed bath', 'Declines on this day'],
-          },
-          { label: 'Preferred time of day', fieldType: 'SELECT', options: ['Morning', 'Afternoon', 'Evening'] },
-          { label: 'Gender of carer preferred', fieldType: 'TEXT' },
-        ],
-      },
-      {
-        title: 'Dressing and grooming',
-        fields: [
-          { label: 'Level of assistance required', fieldType: 'SELECT', options: ['Independent', 'Supervision', 'Full assistance'] },
-          { label: 'Clothing preferences', fieldType: 'TEXTAREA' },
-          { label: 'Dental / denture care', fieldType: 'TEXTAREA', required: true },
-        ],
-      },
-    ],
-  },
+  'Washing and dressing': WASHING_DRESSING_CARE_PLAN_SEED,
 };

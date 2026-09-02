@@ -16,10 +16,10 @@ function seedFieldKeys(): string[] {
 
 describe('Physical Health registry (documentation-only, all manual)', () => {
   it('marks every one of the eleven fields MANUAL, with a recorded reason', () => {
-    expect(PHYSICAL_HEALTH_FIELD_REGISTRY).toHaveLength(11);
+    expect(PHYSICAL_HEALTH_FIELD_REGISTRY).toHaveLength(17);
     expect(PHYSICAL_HEALTH_SUGGESTION_KEYS).toHaveLength(0);
     expect(PHYSICAL_HEALTH_AUTO_PREFILL_KEYS).toHaveLength(0);
-    expect(PHYSICAL_HEALTH_MANUAL_KEYS).toHaveLength(11);
+    expect(PHYSICAL_HEALTH_MANUAL_KEYS).toHaveLength(17);
     for (const entry of PHYSICAL_HEALTH_FIELD_REGISTRY) {
       expect(entry.mode).toBe('MANUAL');
       expect(entry.notes.trim().length).toBeGreaterThan(0);

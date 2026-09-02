@@ -19,6 +19,12 @@ const CARE_2020_KEYS = [
   'medication_desired_goals_outcomes',
   'medication_support_required',
   'medication_area_risk',
+  'medication_risk_identify',
+  'medication_risk_who_might_be_harmed',
+  'medication_risk_level',
+  'medication_risk_likelihood',
+  'medication_risk_triggers',
+  'medication_risk_management',
 ];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
@@ -124,7 +130,7 @@ describe('Care 2020 fields stay manual', () => {
 
 describe('Medication documentation registry', () => {
   it('documents six auto-prefill fields, zero suggestions, and seven manual fields', () => {
-    expect(MEDICATION_FIELD_REGISTRY).toHaveLength(11);
+    expect(MEDICATION_FIELD_REGISTRY).toHaveLength(17);
     expect(MEDICATION_AUTO_PREFILL_KEYS).toEqual([
       'medication_support_level',
       'medication_known_allergies',

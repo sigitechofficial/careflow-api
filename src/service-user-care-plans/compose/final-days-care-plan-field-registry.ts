@@ -1,4 +1,5 @@
 import { FINAL_DAYS_CARE_PLAN_SEED } from '../../../prisma/seeds/final-days-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesWithSource } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /** How a Final Days field participates in compose. Mirrors the Advance/Culture contract. */
 export type FinalDaysFieldMappingMode = 'AUTO_PREFILL' | 'SUGGESTION' | 'MANUAL';
@@ -165,6 +166,7 @@ export const FINAL_DAYS_FIELD_REGISTRY: readonly FinalDaysFieldRegistryEntry[] =
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesWithSource('final_days'),
   {
     businessKey: 'final_days_adrt_details',
     mode: 'SUGGESTION',

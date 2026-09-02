@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Mobility Care Plan template — the local plan merged with the Care 2020 Mobility
@@ -123,6 +124,7 @@ export const MOBILITY_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'mobility_area_risk',
         },
+        ...areaRiskFollowUpFields('mobility'),
       ],
     },
   ],

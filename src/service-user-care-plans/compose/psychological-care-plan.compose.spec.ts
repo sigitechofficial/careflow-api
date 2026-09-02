@@ -153,8 +153,8 @@ describe('no assessment', () => {
 describe('merged Psychological template', () => {
   it('has eleven unique fields across three sections with exactly one PCD', () => {
     const keys = seedFieldKeys();
-    expect(keys).toHaveLength(11);
-    expect(new Set(keys).size).toBe(11);
+    expect(keys).toHaveLength(17);
+    expect(new Set(keys).size).toBe(17);
     const pcd = PSYCHOLOGICAL_CARE_PLAN_SEED.sections.flatMap((s) => s.fields).filter((f) => f.label === 'Person-centred details');
     expect(pcd).toHaveLength(1);
   });
@@ -167,8 +167,8 @@ describe('merged Psychological template', () => {
 
   it('exposes exactly one suggestion and ten manual fields', () => {
     expect(PSYCH_SUGGESTION_KEYS).toEqual(['psychological_cmht_counsellor']);
-    expect(PSYCH_MANUAL_KEYS).toHaveLength(10);
-    expect(PSYCH_FIELD_REGISTRY).toHaveLength(11);
+    expect(PSYCH_MANUAL_KEYS).toHaveLength(16);
+    expect(PSYCH_FIELD_REGISTRY).toHaveLength(17);
   });
 
   it('keeps the registry and the template in lockstep', () => {

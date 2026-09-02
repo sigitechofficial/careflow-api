@@ -14,6 +14,7 @@ import {
   resolveIaBooleanYes,
 } from './ia-answer-resolver.util';
 import { iaRoute, medRoute, normalizeFieldLabel, profileRoute } from './compose-routes.util';
+import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
 
 export type MedicationFieldMapping = {
   fieldLabel: string;
@@ -199,10 +200,6 @@ function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function addDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
 function buildFixesForField(label: string, serviceUserId: string): ComposeGap['fixes'] {
   const ia = iaRoute(serviceUserId);
   const ia9 = iaRoute(serviceUserId, 9);
@@ -347,13 +344,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
   },
   {
     fieldLabel: 'Next medication review date',
-    resolve: () => ({
-      fieldKey: '',
-      label: 'Next medication review date',
-      value: isoDateOnly(addDays(new Date(), 365)),
-      source: 'static',
-      sourceLabel: 'Annual review schedule',
-    }),
+    resolve: (ctx) => resolveComposeNextReviewDate(ctx, 'Next medication review date'),
   },
   {
     fieldLabel: 'PRN medicines and when used',

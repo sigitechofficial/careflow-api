@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Falls Care Plan template — the local plan merged with the Care 2020 Falls Care Plan
@@ -107,6 +108,7 @@ export const FALLS_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'falls_area_risk',
         },
+        ...areaRiskFollowUpFields('falls'),
       ],
     },
   ],

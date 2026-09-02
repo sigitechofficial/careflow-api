@@ -1,5 +1,6 @@
 import type { ScheduleAreaBranchLookup } from '../../location-management/service-user-branch.util';
 import { resolveServiceUserBranch } from '../../location-management/service-user-branch.util';
+import type { CarePlanListStatus } from '../../service-user-care-plans/care-plan-review-schedule';
 
 type LookupLite = { id: string; name: string; code: string } | null;
 
@@ -85,6 +86,7 @@ export function mapServiceUserListRow(
   assignments?: ServiceUserAssignmentSlice[];
 },
   scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
+  extras?: { carePlanListStatus?: CarePlanListStatus },
 ) {
   return {
     id: user.id,
@@ -107,6 +109,7 @@ export function mapServiceUserListRow(
     namedNurse: mapEmployeeBrief(user.namedNurse),
     hasActiveAbsence: (user.absences?.length ?? 0) > 0,
     hasActiveFlashMessage: (user.flashMessages?.length ?? 0) > 0,
+    carePlanListStatus: extras?.carePlanListStatus ?? 'none',
   };
 }
 

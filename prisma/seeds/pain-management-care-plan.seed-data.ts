@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Pain Management Care Plan template — the local plan merged with the Care 2020
@@ -109,6 +110,7 @@ export const PAIN_MANAGEMENT_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'pain_management_area_risk',
         },
+        ...areaRiskFollowUpFields('pain_management'),
       ],
     },
   ],

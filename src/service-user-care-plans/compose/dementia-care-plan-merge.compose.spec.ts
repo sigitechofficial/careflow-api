@@ -19,9 +19,20 @@ const CARE_2020_KEYS = [
   'dementia_desired_goals_outcomes',
   'dementia_support_required',
   'dementia_area_risk',
+  'dementia_risk_identify',
+  'dementia_risk_who_might_be_harmed',
+  'dementia_risk_level',
+  'dementia_risk_likelihood',
+  'dementia_risk_triggers',
+  'dementia_risk_management',
 ];
 
-const MANUAL_EXISTING = ['dementia_stage', 'dementia_best_time', 'dementia_orientation_cues'];
+const MANUAL_EXISTING = [
+  'dementia_stage',
+  'dementia_best_time',
+  'dementia_orientation_cues',
+  'dementia_wandering_risk',
+];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
 function fieldRefsFromSeed(): CarePlanFormFieldRef[] {
@@ -98,6 +109,7 @@ function ctxWith(): CarePlanComposeContext {
     emar: { activeCount: 0, scheduledCount: 0, prnCount: 0, medListText: '', prnText: '' },
     pack: null,
     gpPharmacyLine: null,
+    reviewFrequencyMonths: 6,
   } as unknown as CarePlanComposeContext;
 }
 
@@ -147,16 +159,16 @@ describe('Dementia engine auto-prefills the merged schema (activated dead mappin
 // --------------------------------------------------------------------------
 
 describe('Dementia documentation registry', () => {
-  it('documents seventeen auto-prefill fields, zero suggestions, and eight manual fields', () => {
-    expect(DEMENTIA_FIELD_REGISTRY).toHaveLength(25);
-    expect(DEMENTIA_AUTO_PREFILL_KEYS).toHaveLength(17);
-    expect(DEMENTIA_SUGGESTION_KEYS).toHaveLength(0);
-    expect(DEMENTIA_MANUAL_KEYS).toHaveLength(8);
+  it('documents sixteen auto-prefill fields, two suggestions, and thirteen manual fields', () => {
+    expect(DEMENTIA_FIELD_REGISTRY).toHaveLength(31);
+    expect(DEMENTIA_AUTO_PREFILL_KEYS).toHaveLength(16);
+    expect(DEMENTIA_SUGGESTION_KEYS).toHaveLength(2);
+    expect(DEMENTIA_MANUAL_KEYS).toHaveLength(13);
   });
 
-  it('records the Care 2020 risk gate and PCD as manual', () => {
+  it('records the Care 2020 risk gate as manual and person-centred needs as suggestion', () => {
     expect(dementiaFieldRegistryEntry('dementia_area_risk')?.mode).toBe('MANUAL');
-    expect(dementiaFieldRegistryEntry('dementia_needs_person_centred')?.mode).toBe('MANUAL');
+    expect(dementiaFieldRegistryEntry('dementia_needs_person_centred')?.mode).toBe('SUGGESTION');
     expect(dementiaFieldRegistryEntry('dementia_area_risk')?.sources[0]?.notes ?? '').toMatch(/assessor|cognition|wandering/i);
   });
 

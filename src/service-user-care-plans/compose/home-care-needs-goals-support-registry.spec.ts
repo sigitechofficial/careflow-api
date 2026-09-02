@@ -16,10 +16,10 @@ function seedFieldKeys(): string[] {
 
 describe('Home Care needs/goals/support registry (documentation-only, all manual)', () => {
   it('marks every one of the nine fields MANUAL, with a recorded reason', () => {
-    expect(HOME_CARE_NEEDS_GOALS_SUPPORT_FIELD_REGISTRY).toHaveLength(9);
+    expect(HOME_CARE_NEEDS_GOALS_SUPPORT_FIELD_REGISTRY).toHaveLength(15);
     expect(HOME_CARE_SUGGESTION_KEYS).toHaveLength(0);
     expect(HOME_CARE_AUTO_PREFILL_KEYS).toHaveLength(0);
-    expect(HOME_CARE_MANUAL_KEYS).toHaveLength(9);
+    expect(HOME_CARE_MANUAL_KEYS).toHaveLength(15);
     for (const entry of HOME_CARE_NEEDS_GOALS_SUPPORT_FIELD_REGISTRY) {
       expect(entry.mode).toBe('MANUAL');
       expect(entry.notes.trim().length).toBeGreaterThan(0);

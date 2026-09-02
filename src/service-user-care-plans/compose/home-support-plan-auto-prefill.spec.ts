@@ -202,6 +202,22 @@ describe('Home Support Plan AUTO_PREFILL resolvers (phase 2D-1)', () => {
     expect(Object.keys(result.provenance ?? {})).toHaveLength(0);
   });
 
+  it('does not default plan start date to today when assessmentDate is absent', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const result = composeHomeSupportPlanHybrid(
+      buildIaContext([]),
+      hspFields(['hsp_plan_start_date']),
+      'su-2d1',
+    );
+    expect(result.values['sec:plan_start_date']).toBeUndefined();
+    expect(result.values['sec:plan_start_date']).not.toBe(today);
+  });
+
+  it('does not map IA assistance onto HSP Supervision', () => {
+    expect(mapEatingAssistanceLevelToHsp('assistance')).toBeNull();
+    expect(mapEatingAssistanceLevelToHsp('prompting')).toBe('Prompting');
+  });
+
   it('does not emit suggestions for AUTO_PREFILL fields', () => {
     const result = composeHomeSupportPlanHybrid(
       buildIaContext([

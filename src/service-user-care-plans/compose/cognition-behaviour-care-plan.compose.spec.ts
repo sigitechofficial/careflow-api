@@ -327,8 +327,8 @@ describe('no suggestion without evidence', () => {
 describe('merged Cognition and Behaviour template', () => {
   it('has twelve unique fields across three sections', () => {
     const keys = seedFieldKeys();
-    expect(keys).toHaveLength(12);
-    expect(new Set(keys).size).toBe(12);
+    expect(keys).toHaveLength(18);
+    expect(new Set(keys).size).toBe(18);
     expect(COGNITION_BEHAVIOUR_CARE_PLAN_SEED.sections.map((s) => s.title)).toEqual([
       'Cognition',
       'Behaviour support',
@@ -361,10 +361,17 @@ describe('merged Cognition and Behaviour template', () => {
     expect(seedField('cog_area_risk')?.fieldType).toBe('YES_NO');
   });
 
-  it('exposes exactly two suggestions and twelve manual fields', () => {
-    expect(COG_SUGGESTION_KEYS).toEqual(['cog_diagnosis_or_concern', 'cog_known_triggers']);
-    expect(COG_MANUAL_KEYS).toHaveLength(10);
-    expect(COG_FIELD_REGISTRY).toHaveLength(12);
+  it('exposes six suggestions and twelve manual fields', () => {
+    expect(COG_SUGGESTION_KEYS).toEqual([
+      'cog_diagnosis_or_concern',
+      'cog_known_triggers',
+      'cog_service_user_needs',
+      'cog_needs_person_centred',
+      'cog_desired_goals_outcomes',
+      'cog_support_required',
+    ]);
+    expect(COG_MANUAL_KEYS).toHaveLength(12);
+    expect(COG_FIELD_REGISTRY).toHaveLength(18);
   });
 
   it('keeps the registry and the template in lockstep', () => {

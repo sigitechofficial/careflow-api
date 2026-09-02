@@ -1,4 +1,5 @@
 import { COMMUNICATION_CARE_PLAN_SEED } from '../../../prisma/seeds/communication-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Communication Care Plan.
@@ -52,25 +53,25 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
   },
   {
     businessKey: 'communication_hearing_impairment',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['hearingLevel'],
-        notes: 'IA hearing level mapped to an impairment yes/no / snapshot.hearingImpairment.',
+        notes: 'hearingLevel (e.g. mild) is not a Yes/No impairment. Do not AUTO.',
       },
     ],
   },
   {
     businessKey: 'communication_vision_impairment',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['sightLevel'],
-        notes: 'IA sight level mapped to an impairment yes/no / snapshot.visionImpairment.',
+        notes: 'sightLevel is not a Yes/No impairment. Do not AUTO.',
       },
     ],
   },
@@ -99,23 +100,23 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
   },
   {
     businessKey: 'communication_glasses_hearing_aids',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "hearing aid" / "glasses" text / snapshot.aids.',
+        notes: 'Do not keyword-match "hearing aid" / "glasses".',
       },
     ],
   },
   {
     businessKey: 'communication_consent_share',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'MANUAL',
+    resolvedByEngine: false,
     sources: [
       {
-        kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "consent to share" / "share information" (boolean) / snapshot.consentSharing.',
+        kind: 'MANUAL',
+        notes: 'Consent to share with GP is not consent to share with family. Do not AUTO.',
       },
     ],
   },
@@ -123,8 +124,8 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'communication_service_user_needs',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -135,24 +136,24 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
   },
   {
     businessKey: 'communication_needs_person_centred',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Required free-text person-centred narrative for the needs question.' },
     ],
   },
   {
     businessKey: 'communication_desired_goals_outcomes',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'The IA holds no communication-specific goals; must not be mapped.' },
     ],
   },
   {
     businessKey: 'communication_support_required',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -172,6 +173,7 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('communication'),
 ];
 
 export type CommunicationFieldBusinessKey =

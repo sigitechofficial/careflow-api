@@ -1,4 +1,5 @@
 import { PAIN_MANAGEMENT_CARE_PLAN_SEED } from '../../../prisma/seeds/pain-management-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesWithSource } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /** How a Pain Management field participates in compose. Mirrors the Culture/Final Days contract. */
 export type PainFieldMappingMode = 'AUTO_PREFILL' | 'SUGGESTION' | 'MANUAL';
@@ -177,6 +178,7 @@ export const PAIN_FIELD_REGISTRY: readonly PainFieldRegistryEntry[] = [
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesWithSource('pain_management'),
 ];
 
 export type PainFieldBusinessKey = (typeof PAIN_FIELD_REGISTRY)[number]['businessKey'];

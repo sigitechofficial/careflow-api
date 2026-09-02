@@ -19,16 +19,39 @@ const CARE_2020_KEYS = [
   'communication_desired_goals_outcomes',
   'communication_support_required',
   'communication_area_risk',
+  'communication_risk_identify',
+  'communication_risk_who_might_be_harmed',
+  'communication_risk_level',
+  'communication_risk_likelihood',
+  'communication_risk_triggers',
+  'communication_risk_management',
 ];
 
-const EXISTING_KEYS = [
+const AUTO_KEYS = [
   'communication_preferred_language',
-  'communication_hearing_impairment',
-  'communication_vision_impairment',
   'communication_primary_method',
   'communication_approach',
+];
+
+const SUGGESTION_KEYS = [
+  'communication_hearing_impairment',
+  'communication_vision_impairment',
   'communication_glasses_hearing_aids',
+  'communication_service_user_needs',
+  'communication_needs_person_centred',
+  'communication_desired_goals_outcomes',
+  'communication_support_required',
+];
+
+const MANUAL_KEYS = [
   'communication_consent_share',
+  'communication_area_risk',
+  'communication_risk_identify',
+  'communication_risk_who_might_be_harmed',
+  'communication_risk_level',
+  'communication_risk_likelihood',
+  'communication_risk_triggers',
+  'communication_risk_management',
 ];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
@@ -94,12 +117,12 @@ describe('Communication engine still auto-prefills after stable keys are added',
   it('populates existing fields into values{} (label matching survives the key addition)', () => {
     const result = runCarePlanCompose(COMMUNICATION_FORM_NAME, ctxWith(), fieldRefsFromSeed());
     expect(result.values[keyOf('communication_preferred_language')]).toContain('Polish');
-    expect(result.values[keyOf('communication_hearing_impairment')]).toBe(true);
-    expect(result.values[keyOf('communication_vision_impairment')]).toBe(false);
+    expect(result.values[keyOf('communication_hearing_impairment')]).toBeUndefined();
+    expect(result.values[keyOf('communication_vision_impairment')]).toBeUndefined();
     expect(result.values[keyOf('communication_primary_method')]).toBeDefined();
     expect(result.values[keyOf('communication_approach')]).toContain('slowly');
-    expect(result.values[keyOf('communication_glasses_hearing_aids')]).toContain('glasses');
-    expect(result.values[keyOf('communication_consent_share')]).toBe(true);
+    expect(result.values[keyOf('communication_glasses_hearing_aids')]).toBeUndefined();
+    expect(result.values[keyOf('communication_consent_share')]).toBeUndefined();
   });
 
   it('keeps writing into values{} and leaves suggestions[] unused (no conversion to suggestions)', () => {
@@ -146,16 +169,16 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Communication documentation registry', () => {
-  it('documents seven auto-prefill fields, zero suggestions, and five manual fields', () => {
-    expect(COMMUNICATION_FIELD_REGISTRY).toHaveLength(12);
-    expect(COMMUNICATION_AUTO_PREFILL_KEYS).toEqual(EXISTING_KEYS);
-    expect(COMMUNICATION_SUGGESTION_KEYS).toHaveLength(0);
-    expect(COMMUNICATION_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
+  it('documents three auto-prefill fields, seven suggestions, and eight manual fields', () => {
+    expect(COMMUNICATION_FIELD_REGISTRY).toHaveLength(18);
+    expect(COMMUNICATION_AUTO_PREFILL_KEYS).toEqual(AUTO_KEYS);
+    expect(COMMUNICATION_SUGGESTION_KEYS).toEqual(SUGGESTION_KEYS);
+    expect(COMMUNICATION_MANUAL_KEYS).toEqual(MANUAL_KEYS);
   });
 
-  it('records the required person-centred details field as manual', () => {
+  it('records the required person-centred details field as a suggestion', () => {
     const entry = communicationFieldRegistryEntry('communication_needs_person_centred');
-    expect(entry?.mode).toBe('MANUAL');
+    expect(entry?.mode).toBe('SUGGESTION');
     expect(entry?.sources[0]?.notes ?? '').toMatch(/person-centred/i);
   });
 

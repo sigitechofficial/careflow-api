@@ -1,4 +1,5 @@
 import { MOBILITY_CARE_PLAN_SEED } from '../../../prisma/seeds/mobility-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesNotesOnly } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-only registry for the Mobility Care Plan.
@@ -78,22 +79,22 @@ export const MOBILITY_FIELD_REGISTRY: readonly MobilityFieldRegistryEntry[] = [
   },
   {
     businessKey: 'mobility_service_user_needs',
-    mode: 'MANUAL',
+    mode: 'SUGGESTION',
     notes: 'Generic needs field; the IA holds no mobility-specific needs question.',
   },
   {
     businessKey: 'mobility_needs_person_centred',
-    mode: 'MANUAL',
+    mode: 'SUGGESTION',
     notes: 'Free-text person-centred narrative for the needs question.',
   },
   {
     businessKey: 'mobility_desired_goals_outcomes',
-    mode: 'MANUAL',
+    mode: 'SUGGESTION',
     notes: 'The IA holds no mobility-specific goals; general support goals must not be mapped.',
   },
   {
     businessKey: 'mobility_support_required',
-    mode: 'MANUAL',
+    mode: 'SUGGESTION',
     notes: 'Generic support narrative; no mobility-specific IA source.',
   },
   {
@@ -108,6 +109,7 @@ export const MOBILITY_FIELD_REGISTRY: readonly MobilityFieldRegistryEntry[] = [
     notes:
       'Generic "is there a risk associated with this area of care?" gate; must not be driven from a generic IA risk flag.',
   },
+  ...areaRiskFollowUpManualEntriesNotesOnly('mobility'),
 ];
 
 export type MobilityFieldBusinessKey = (typeof MOBILITY_FIELD_REGISTRY)[number]['businessKey'];

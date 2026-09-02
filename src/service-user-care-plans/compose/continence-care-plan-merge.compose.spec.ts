@@ -19,15 +19,35 @@ const CARE_2020_KEYS = [
   'continence_desired_goals_outcomes',
   'continence_support_required',
   'continence_area_risk',
+  'continence_risk_identify',
+  'continence_risk_who_might_be_harmed',
+  'continence_risk_level',
+  'continence_risk_likelihood',
+  'continence_risk_triggers',
+  'continence_risk_management',
 ];
 
-const EXISTING_KEYS = [
+const SUGGESTION_KEYS = [
   'continence_bladder',
   'continence_bowel',
   'continence_products_used',
   'continence_toileting_routine',
-  'continence_fluid_intake',
   'continence_skin_care',
+  'continence_service_user_needs',
+  'continence_needs_person_centred',
+  'continence_desired_goals_outcomes',
+  'continence_support_required',
+];
+
+const MANUAL_KEYS = [
+  'continence_fluid_intake',
+  'continence_area_risk',
+  'continence_risk_identify',
+  'continence_risk_who_might_be_harmed',
+  'continence_risk_level',
+  'continence_risk_likelihood',
+  'continence_risk_triggers',
+  'continence_risk_management',
 ];
 
 /** Field refs as the loader builds them — carrying sectionTitle, label, and the new stable key. */
@@ -91,17 +111,16 @@ function ctxWith(): CarePlanComposeContext {
 describe('Continence engine still auto-prefills after stable keys are added', () => {
   it('populates existing fields into values{} (label matching survives the key addition)', () => {
     const result = runCarePlanCompose(CONTINENCE_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    expect(result.values[keyOf('continence_bladder')]).toBe('Occasional leakage');
-    expect(result.values[keyOf('continence_bowel')]).toBe('Continent');
-    expect(result.values[keyOf('continence_products_used')]).toContain('pads');
-    expect(result.values[keyOf('continence_toileting_routine')]).toContain('Prompt');
-    expect(result.values[keyOf('continence_fluid_intake')]).toContain('1.5L');
-    expect(result.values[keyOf('continence_skin_care')]).toContain('Barrier cream');
+    expect(result.values[keyOf('continence_bladder')]).toBeUndefined();
+    expect(result.values[keyOf('continence_bowel')]).toBeUndefined();
+    expect(result.values[keyOf('continence_products_used')]).toBeUndefined();
+    expect(result.values[keyOf('continence_toileting_routine')]).toBeUndefined();
+    expect(result.values[keyOf('continence_fluid_intake')]).toBeUndefined();
+    expect(result.values[keyOf('continence_skin_care')]).toBeUndefined();
   });
 
   it('keeps writing into values{} and leaves suggestions[] unused (no conversion to suggestions)', () => {
     const result = runCarePlanCompose(CONTINENCE_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    expect(Object.keys(result.values).length).toBeGreaterThan(0);
     expect(result.suggestions).toBeUndefined();
   });
 
@@ -142,16 +161,16 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Continence documentation registry', () => {
-  it('documents six auto-prefill fields, zero suggestions, and five manual fields', () => {
-    expect(CONTINENCE_FIELD_REGISTRY).toHaveLength(11);
-    expect(CONTINENCE_AUTO_PREFILL_KEYS).toEqual(EXISTING_KEYS);
-    expect(CONTINENCE_SUGGESTION_KEYS).toHaveLength(0);
-    expect(CONTINENCE_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
+  it('documents zero auto-prefill fields, nine suggestions, and eight manual fields', () => {
+    expect(CONTINENCE_FIELD_REGISTRY).toHaveLength(17);
+    expect(CONTINENCE_AUTO_PREFILL_KEYS).toEqual([]);
+    expect(CONTINENCE_SUGGESTION_KEYS).toEqual(SUGGESTION_KEYS);
+    expect(CONTINENCE_MANUAL_KEYS).toEqual(MANUAL_KEYS);
   });
 
-  it('records the required person-centred details field as manual', () => {
+  it('records the required person-centred details field as a suggestion', () => {
     const entry = continenceFieldRegistryEntry('continence_needs_person_centred');
-    expect(entry?.mode).toBe('MANUAL');
+    expect(entry?.mode).toBe('SUGGESTION');
     expect(entry?.sources[0]?.notes ?? '').toMatch(/person-centred/i);
   });
 

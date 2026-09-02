@@ -219,7 +219,7 @@ describe('Falls Care Plan template', () => {
   it('contains no duplicate field keys and totals twelve', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(12);
+    expect(keys).toHaveLength(18);
   });
 
   it('gives every field a falls_ prefixed key', () => {
@@ -293,7 +293,7 @@ describe('applyFallsCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(12);
+    expect(activeKeys).toHaveLength(18);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }
@@ -358,8 +358,8 @@ describe('other care plans are unaffected', () => {
     expect(hcp).toHaveLength(36);
     expect(hsp).toHaveLength(45);
     expect(acp).toHaveLength(11);
-    expect(cog).toHaveLength(12);
-    expect(crs).toHaveLength(11);
+    expect(cog).toHaveLength(18);
+    expect(crs).toHaveLength(17);
   });
 
   it('shares no field keys with any other plan', () => {

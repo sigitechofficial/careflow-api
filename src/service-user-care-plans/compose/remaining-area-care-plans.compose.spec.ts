@@ -19,7 +19,6 @@ import {
   mapDietTypeToCarePlan,
   mapEatingAssistanceToCarePlan,
 } from './remaining-area-care-plans.compose';
-import { composeTextContainsRawHtml } from './compose-html-sanitize.util';
 
 function field(
   key: string,
@@ -60,12 +59,16 @@ function emptyCtx(
 }
 
 describe('mapEatingAssistanceToCarePlan / mapDietTypeToCarePlan', () => {
-  it('maps assistance and diet codes to Care Plan SELECT labels', () => {
-    expect(mapEatingAssistanceToCarePlan('prompting')).toBe('Setup only');
+  it('maps only exact SELECT-equivalent codes and never infers diabetes or prompting', () => {
     expect(mapEatingAssistanceToCarePlan('independent')).toBe('Independent');
     expect(mapEatingAssistanceToCarePlan('full_support')).toBe('Full assistance');
+    expect(mapEatingAssistanceToCarePlan('prompting')).toBeNull();
+    expect(mapEatingAssistanceToCarePlan('assistance')).toBeNull();
     expect(mapDietTypeToCarePlan('normal')).toBe('Normal');
     expect(mapDietTypeToCarePlan('soft')).toBe('Soft');
+    expect(mapDietTypeToCarePlan('diabet')).toBeNull();
+    expect(mapDietTypeToCarePlan('Type B')).toBeNull();
+    expect(mapDietTypeToCarePlan('abnormal')).toBeNull();
   });
 });
 
@@ -166,13 +169,13 @@ describe('demo area Care Plan snapshots', () => {
       'su-demo',
     );
 
-    expect(result.values['sec:bladder']).toBe('Continent');
-    expect(result.values['sec:bowel']).toBe('Continent');
-    expect(String(result.values['sec:products'])).toMatch(/pads|toilet/i);
-    expect(String(result.values['sec:toileting'])).toMatch(/toileting/i);
-    expect(String(result.values['sec:fluid'])).toMatch(/1500|fluids/i);
-    expect(String(result.values['sec:skin'])).toMatch(/barrier|skin/i);
-    expect(result.gaps).toHaveLength(0);
+    expect(result.values['sec:bladder']).toBeUndefined();
+    expect(result.values['sec:bowel']).toBeUndefined();
+    expect(result.values['sec:products']).toBeUndefined();
+    expect(result.values['sec:toileting']).toBeUndefined();
+    expect(result.values['sec:fluid']).toBeUndefined();
+    expect(result.values['sec:skin']).toBeUndefined();
+    expect(result.gaps.some((g) => g.fieldKey === 'sec:toileting')).toBe(true);
     expect(CONTINENCE_CARE_PLAN_FIELD_MAPPINGS.length).toBe(6);
   });
 
@@ -209,11 +212,11 @@ describe('demo area Care Plan snapshots', () => {
       'su-demo',
     );
 
-    expect(result.values['sec:diet']).toBe('Normal');
+    expect(result.values['sec:diet']).toBeUndefined();
     expect(result.values['sec:fluid']).toBe('1500');
     expect(String(result.values['sec:allergy'])).toMatch(/No known allergies/i);
-    expect(result.values['sec:assist']).toBe('Setup only');
-    expect(String(result.values['sec:choke'])).toMatch(/choking|SALT/i);
+    expect(result.values['sec:assist']).toBeUndefined();
+    expect(result.values['sec:choke']).toBeUndefined();
     expect(String(result.values['sec:pref'])).toMatch(/porridge|Dislikes/i);
     expect(result.gaps).toHaveLength(0);
     expect(EATING_DRINKING_CARE_PLAN_FIELD_MAPPINGS.length).toBe(6);
@@ -260,15 +263,13 @@ describe('demo area Care Plan snapshots', () => {
       'su-demo',
     );
 
-    expect(String(result.values['sec:type'])).toMatch(/Skin|intact|dry/i);
-    expect(String(result.values['sec:emollient'])).toMatch(/Emollient/i);
-    expect(result.values['sec:pressure']).toBe(false);
-    expect(String(result.values['sec:apply'])).toMatch(/Pressure|cushion|heels/i);
-    expect(String(result.values['sec:report'])).toMatch(/Report redness|wound/i);
-    expect(result.gaps).toHaveLength(0);
-    for (const value of Object.values(result.values)) {
-      expect(composeTextContainsRawHtml(value)).toBe(false);
-    }
+    expect(result.values['sec:type']).toBeUndefined();
+    expect(result.values['sec:emollient']).toBeUndefined();
+    expect(result.values['sec:pressure']).toBeUndefined();
+    expect(result.values['sec:apply']).toBeUndefined();
+    expect(result.values['sec:report']).toBeUndefined();
+    expect(result.gaps.some((g) => g.fieldKey === 'sec:apply')).toBe(true);
+    expect(result.gaps.some((g) => g.fieldKey === 'sec:report')).toBe(true);
     expect(SKIN_INTEGRITY_CARE_PLAN_FIELD_MAPPINGS.length).toBe(5);
   });
 
@@ -390,12 +391,12 @@ describe('demo area Care Plan snapshots', () => {
     );
 
     expect(result.values['sec:lang']).toBe('English');
-    expect(result.values['sec:hear']).toBe(true);
-    expect(result.values['sec:vision']).toBe(false);
+    expect(result.values['sec:hear']).toBeUndefined();
+    expect(result.values['sec:vision']).toBeUndefined();
     expect(result.values['sec:method']).toBe('Verbal');
     expect(String(result.values['sec:approach'])).toMatch(/Speak clearly/i);
-    expect(String(result.values['sec:aids'])).toMatch(/Hearing aid|glasses/i);
-    expect(result.values['sec:consent']).toBe(true);
+    expect(result.values['sec:aids']).toBeUndefined();
+    expect(result.values['sec:consent']).toBeUndefined();
     expect(result.gaps).toHaveLength(0);
     expect(COMMUNICATION_CARE_PLAN_FIELD_MAPPINGS.length).toBe(7);
   });

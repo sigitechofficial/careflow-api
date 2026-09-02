@@ -1,4 +1,5 @@
 import { CONTINENCE_CARE_PLAN_SEED } from '../../../prisma/seeds/continence-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Continence Care Plan.
@@ -40,76 +41,75 @@ export type ContinenceFieldRegistryEntry = {
 };
 
 export const CONTINENCE_FIELD_REGISTRY: readonly ContinenceFieldRegistryEntry[] = [
-  // ---------- Continence status (existing — auto-prefilled by the engine, by label) ----------
+  // ---------- Continence status (Phase 1: AUTO disabled — SUGGESTION later) ----------
   {
     businessKey: 'continence_bladder',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['bladderContinenceOptions'],
-        notes: 'IA bladderContinenceOptions mapped to the SELECT / snapshot.bladderStatus.',
+        notes:
+          'IA codes (no_concern / incontinence / products) are not Care Plan SELECT labels. Do not AUTO. Do not treat incontinence as Continent.',
       },
     ],
   },
   {
     businessKey: 'continence_bowel',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['bowelContinenceOptions'],
-        notes: 'IA bowelContinenceOptions mapped to the SELECT / snapshot.bowelStatus.',
+        notes: 'IA codes are not Care Plan SELECT labels. Do not AUTO.',
       },
     ],
   },
   {
     businessKey: 'continence_products_used',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "continence product" / "pads" text / snapshot.productsUsed.',
+        notes: 'Do not keyword-match "pads". Product details may be suggested later, not silently written.',
       },
     ],
   },
 
-  // ---------- Care instructions (existing) ----------
+  // ---------- Care instructions ----------
   {
     businessKey: 'continence_toileting_routine',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "toileting" text / ADL toileting notes / snapshot.toiletingRoutine.',
+        notes: 'Do not keyword-match "toileting". ADL notes are related, not a Care Plan routine.',
       },
-      { kind: 'ADL_METADATA', notes: 'adlMetadata.rows[toileting].notes fallback.' },
     ],
   },
   {
     businessKey: 'continence_fluid_intake',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'MANUAL',
+    resolvedByEngine: false,
     sources: [
       {
-        kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['fluidThickness', 'adequatelyHydrated'],
-        notes: 'IA fluidThickness / adequatelyHydrated text / snapshot.fluidGuidance.',
+        kind: 'MANUAL',
+        notes: 'fluidThickness / adequatelyHydrated are not fluid-intake guidance for continence.',
       },
     ],
   },
   {
     businessKey: 'continence_skin_care',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        notes: 'IA "skin care" / "barrier cream" text / snapshot.skinCareAfterEpisodes.',
+        notes: 'Do not keyword-match "skin care" / "barrier cream".',
       },
     ],
   },
@@ -117,8 +117,8 @@ export const CONTINENCE_FIELD_REGISTRY: readonly ContinenceFieldRegistryEntry[] 
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'continence_service_user_needs',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -129,24 +129,24 @@ export const CONTINENCE_FIELD_REGISTRY: readonly ContinenceFieldRegistryEntry[] 
   },
   {
     businessKey: 'continence_needs_person_centred',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Required free-text person-centred narrative for the needs question.' },
     ],
   },
   {
     businessKey: 'continence_desired_goals_outcomes',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'The IA holds no continence-specific goals; must not be mapped.' },
     ],
   },
   {
     businessKey: 'continence_support_required',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -166,6 +166,7 @@ export const CONTINENCE_FIELD_REGISTRY: readonly ContinenceFieldRegistryEntry[] 
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('continence'),
 ];
 
 export type ContinenceFieldBusinessKey =

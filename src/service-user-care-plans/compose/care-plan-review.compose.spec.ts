@@ -80,6 +80,7 @@ describe('composeCarePlanReviewForm', () => {
       },
       pack: null,
       gpPharmacyLine: null,
+      reviewFrequencyMonths: 6,
     };
 
     const result = composeCarePlanReviewForm(ctx, fields, 'su-1');

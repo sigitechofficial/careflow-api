@@ -5,8 +5,8 @@ import { CARE_PLAN_REVIEW_FORM_SEED } from '../../../prisma/seeds/care-plan-revi
  *
  * The Review form already has a compose engine in `care-plan-review.compose.ts`
  * (`CARE_PLAN_REVIEW_FIELD_MAPPINGS` + `composeCarePlanReviewForm`), an AUTO-PREFILL,
- * label-matched engine drawing on the Initial Assessment, eMAR and the six-monthly review
- * schedule. That engine remains the single source of truth and is intentionally retained
+ * label-matched engine drawing on the Initial Assessment, eMAR and the Care Pathway review
+ * frequency. That engine remains the single source of truth and is intentionally retained
  * unchanged — this registry does NOT re-resolve anything and must never become a second engine.
  *
  * Its job is to (a) record, per field, whether the engine auto-prefills it and from where, or
@@ -144,7 +144,7 @@ export const CARE_PLAN_REVIEW_FIELD_REGISTRY: readonly ReviewFieldRegistryEntry[
     businessKey: 'care_plan_review_next_review_date',
     mode: 'AUTO_PREFILL',
     resolvedByEngine: true,
-    sources: [{ kind: 'REVIEW_SCHEDULE', notes: 'Engine sets next date from the six-monthly schedule; reviewer may override.' }],
+    sources: [{ kind: 'REVIEW_SCHEDULE', notes: 'Engine sets next date from the Care Pathway review frequency; reviewer may override.' }],
   },
 ];
 

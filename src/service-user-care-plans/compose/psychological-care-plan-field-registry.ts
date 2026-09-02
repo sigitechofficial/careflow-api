@@ -1,4 +1,5 @@
 import { PSYCHOLOGICAL_CARE_PLAN_SEED } from '../../../prisma/seeds/psychological-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesWithSource } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /** How a Psychological field participates in compose. Mirrors the Pain/Culture contract. */
 export type PsychFieldMappingMode = 'AUTO_PREFILL' | 'SUGGESTION' | 'MANUAL';
@@ -151,6 +152,7 @@ export const PSYCH_FIELD_REGISTRY: readonly PsychFieldRegistryEntry[] = [
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesWithSource('psychological'),
 ];
 
 export type PsychFieldBusinessKey = (typeof PSYCH_FIELD_REGISTRY)[number]['businessKey'];

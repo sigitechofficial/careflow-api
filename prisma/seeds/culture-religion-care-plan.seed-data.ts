@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Culture/Religion/Spirituality Care Plan template — the local plan merged with the
@@ -100,6 +101,7 @@ export const CULTURE_RELIGION_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'crs_area_risk',
         },
+        ...areaRiskFollowUpFields('crs'),
       ],
     },
   ],

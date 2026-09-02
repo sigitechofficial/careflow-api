@@ -13,9 +13,7 @@ import {
 } from './ia-answer-resolver.util';
 import { composeLabelMappedForm, mergeEvidence, type LabelFieldMapping } from './label-mapped-compose.util';
 import { iaRoute, medRoute } from './compose-routes.util';
-import { getCarePlanReviewSchedule, computeNextReviewDueAt } from '../care-plan-review-schedule';
-
-const REVIEW_FORM_NAME = 'Care Plan review form';
+import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
 
 function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -208,17 +206,7 @@ export const CARE_PLAN_REVIEW_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Next review date',
-    resolve: () => {
-      const schedule = getCarePlanReviewSchedule(REVIEW_FORM_NAME);
-      const next = computeNextReviewDueAt(new Date(), schedule.defaultIntervalDays);
-      return {
-        fieldKey: '',
-        label: 'Next review date',
-        value: isoDateOnly(next),
-        source: 'static',
-        sourceLabel: 'Six-monthly schedule',
-      };
-    },
+    resolve: (ctx) => resolveComposeNextReviewDate(ctx, 'Next review date'),
   },
 ];
 

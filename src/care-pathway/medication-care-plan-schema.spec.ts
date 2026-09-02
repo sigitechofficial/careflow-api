@@ -234,7 +234,7 @@ describe('Medication Care Plan template', () => {
   it('contains no duplicate field keys and totals eleven', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(11);
+    expect(keys).toHaveLength(17);
   });
 
   it('gives every field a medication_ prefixed key', () => {
@@ -340,7 +340,7 @@ describe('applyMedicationCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(11);
+    expect(activeKeys).toHaveLength(17);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }
@@ -393,11 +393,11 @@ describe('other care plans are unaffected', () => {
     expect(HOME_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(36);
     expect(HOME_SUPPORT_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(45);
     expect(ADVANCE_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(COGNITION_BEHAVIOUR_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(CULTURE_RELIGION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
-    expect(FALLS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(FINAL_DAYS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(12);
-    expect(INFECTION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(11);
+    expect(COGNITION_BEHAVIOUR_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(CULTURE_RELIGION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(17);
+    expect(FALLS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(FINAL_DAYS_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(18);
+    expect(INFECTION_CARE_PLAN_SEED.sections.flatMap((s) => s.fields)).toHaveLength(17);
   });
 
   it('shares no field keys with any other plan', () => {

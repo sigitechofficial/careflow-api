@@ -3348,7 +3348,11 @@
                 "CARE_REVIEW_REMINDER",
                 "MEDICATION_REVIEW_REMINDER",
                 "ASSESSMENT_DUE_REMINDER",
-                "BIRTHDAY_REMINDER"
+                "BIRTHDAY_REMINDER",
+                "HR_APPLICATION_RECEIVED",
+                "HR_CANDIDATE_SHORTLISTED",
+                "HR_INTERVIEW_SCHEDULED",
+                "HR_OFFER_ACCEPTED"
               ]
             }
           },
@@ -3367,7 +3371,8 @@
                 "SCHEDULING",
                 "REPORT",
                 "SECURITY",
-                "SYSTEM"
+                "SYSTEM",
+                "HR"
               ]
             }
           },
@@ -8459,6 +8464,775 @@
         ]
       }
     },
+    "/hr/employees": {
+      "get": {
+        "operationId": "HrEmployeesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by name, employee number, or job title",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeLifecycleStatus",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PRE_EMPLOYMENT",
+                "CLEARED",
+                "ONBOARDING",
+                "ACTIVE",
+                "ACTIVE_PAUSED",
+                "LEAVING",
+                "LEFT",
+                "ALUMNI"
+              ]
+            }
+          },
+          {
+            "name": "deploymentStatus",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "GREEN",
+                "AMBER",
+                "RED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR"
+        ]
+      }
+    },
+    "/hr/employees/{employeeId}/hr-profile": {
+      "post": {
+        "operationId": "HrEmployeesController_createProfile",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHrProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR"
+        ]
+      },
+      "get": {
+        "operationId": "HrEmployeesController_getProfile",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR"
+        ]
+      },
+      "patch": {
+        "operationId": "HrEmployeesController_updateProfile",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHrProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR"
+        ]
+      }
+    },
+    "/hr/employees/{employeeId}/documents": {
+      "get": {
+        "operationId": "HrEmployeeDocumentsController_list",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Documents"
+        ]
+      },
+      "post": {
+        "operationId": "HrEmployeeDocumentsController_upload",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Documents"
+        ]
+      }
+    },
+    "/hr/documents/{id}": {
+      "delete": {
+        "operationId": "HrDocumentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Documents"
+        ]
+      }
+    },
+    "/hr/recruitment/summary": {
+      "get": {
+        "operationId": "RecruitmentSummaryController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Recruitment"
+        ]
+      }
+    },
+    "/hr/vacancies": {
+      "post": {
+        "operationId": "VacanciesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVacancyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Vacancies"
+        ]
+      },
+      "get": {
+        "operationId": "VacanciesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "PAUSED",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hiringManagerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Vacancies"
+        ]
+      }
+    },
+    "/hr/vacancies/{id}": {
+      "get": {
+        "operationId": "VacanciesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Vacancies"
+        ]
+      },
+      "patch": {
+        "operationId": "VacanciesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVacancyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Vacancies"
+        ]
+      }
+    },
+    "/hr/vacancies/{id}/status": {
+      "patch": {
+        "operationId": "VacanciesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVacancyStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Vacancies"
+        ]
+      }
+    },
+    "/hr/candidates": {
+      "post": {
+        "operationId": "CandidatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      },
+      "get": {
+        "operationId": "CandidatesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vacancyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "APPLIED",
+                "SCREENING",
+                "SHORTLISTED",
+                "INTERVIEW",
+                "ASSESSMENT",
+                "OFFER",
+                "VETTING",
+                "ACCEPTED",
+                "REJECTED",
+                "WITHDRAWN"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
+    "/hr/candidates/pipeline": {
+      "get": {
+        "operationId": "CandidatesController_pipeline",
+        "parameters": [
+          {
+            "name": "vacancyId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
+    "/hr/candidates/{id}": {
+      "get": {
+        "operationId": "CandidatesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
+    "/hr/candidates/{id}/stage": {
+      "patch": {
+        "operationId": "CandidatesController_updateStage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateStageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
+    "/hr/candidates/{id}/convert": {
+      "post": {
+        "operationId": "CandidatesController_convert",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
+    "/hr/candidates/{id}/documents": {
+      "get": {
+        "operationId": "CandidatesController_listDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      },
+      "post": {
+        "operationId": "CandidatesController_uploadDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "HR Candidates"
+        ]
+      }
+    },
     "/files/uploads": {
       "get": {
         "operationId": "FilesController_stream[0]",
@@ -9834,6 +10608,120 @@
           }
         ],
         "summary": "Deactivate body map record type (and sub-types if parent)",
+        "tags": [
+          "Lookups"
+        ]
+      }
+    },
+    "/lookups/welfare-outcomes": {
+      "get": {
+        "operationId": "LookupsController_welfareOutcomes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List on-entry welfare outcomes (carer-app clock-in)",
+        "tags": [
+          "Lookups"
+        ]
+      },
+      "post": {
+        "operationId": "LookupsController_createWelfareOutcome",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWelfareOutcomeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an on-entry welfare outcome",
+        "tags": [
+          "Lookups"
+        ]
+      }
+    },
+    "/lookups/welfare-outcomes/{id}": {
+      "patch": {
+        "operationId": "LookupsController_updateWelfareOutcome",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWelfareOutcomeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an on-entry welfare outcome",
+        "tags": [
+          "Lookups"
+        ]
+      },
+      "delete": {
+        "operationId": "LookupsController_deleteWelfareOutcome",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate an on-entry welfare outcome",
         "tags": [
           "Lookups"
         ]
@@ -17458,6 +18346,35 @@
         ]
       }
     },
+    "/billing/invoice-runs/service-users": {
+      "get": {
+        "operationId": "InvoiceRunsController_serviceUsersOverview",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Per-service-user invoice status across periods (sent vs outstanding)",
+        "tags": [
+          "Billing — Invoice runs"
+        ]
+      }
+    },
     "/billing/invoice-runs": {
       "get": {
         "operationId": "InvoiceRunsController_list",
@@ -17548,6 +18465,35 @@
           }
         ],
         "summary": "Get invoice run with lines",
+        "tags": [
+          "Billing — Invoice runs"
+        ]
+      }
+    },
+    "/billing/invoice-runs/{id}/export": {
+      "get": {
+        "operationId": "InvoiceRunsController_export",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download invoice run lines as CSV or Excel (?format=csv|xlsx)",
         "tags": [
           "Billing — Invoice runs"
         ]
@@ -29131,6 +30077,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "prnVisitId",
+            "required": false,
+            "in": "query",
+            "description": "Visit workspace only: scopes PRN \"recorded\" cells to this visit (ScheduledVisit id) so a PRN given in another same-day visit is not shown as given. Omit for the full day-scoped MAR chart.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -29446,6 +30401,15 @@
             "required": false,
             "in": "query",
             "description": "Comma-separated service user medication IDs to include",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prnVisitId",
+            "required": false,
+            "in": "query",
+            "description": "Visit workspace only: scopes PRN \"recorded\" cells to this visit (ScheduledVisit id) so a PRN given in another same-day visit is not shown as given. Omit for the full day-scoped MAR chart.",
             "schema": {
               "type": "string"
             }
@@ -34430,6 +35394,35 @@
           }
         ],
         "summary": "Visit observations catalog for admin workspace (same catalog as carer details /observations)",
+        "tags": [
+          "Scheduled Jobs Housekeeping"
+        ]
+      }
+    },
+    "/scheduled-jobs-housekeeping/jobs/{id}/timeline": {
+      "get": {
+        "operationId": "ScheduledJobsHousekeepingController_visitJobTimeline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Visit activity timeline (Log tab) — same events the carer app shows",
         "tags": [
           "Scheduled Jobs Housekeeping"
         ]
@@ -39588,16 +40581,179 @@
         ]
       }
     },
-    "/dev/run-ia-section": {
+    "/incidents/categories": {
+      "get": {
+        "operationId": "IncidentsController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List configurable incident categories and subtypes",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/stats": {
+      "get": {
+        "operationId": "IncidentsController_getStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dashboard summary statistics (privacy-filtered)",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/analytics": {
+      "get": {
+        "operationId": "IncidentsController_getAnalytics",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "occurredAt from (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "occurredAt to (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REPORTED",
+                "AWAITING_REVIEW",
+                "UNDER_INVESTIGATION",
+                "ACTIONS_REQUIRED",
+                "AWAITING_CLOSURE",
+                "CLOSED",
+                "REOPENED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Incident analytics & trend warnings (privacy-filtered)",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/my-actions": {
+      "get": {
+        "operationId": "IncidentsController_myActions",
+        "parameters": [
+          {
+            "name": "openOnly",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Corrective actions assigned to the current user",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents": {
       "post": {
-        "operationId": "DevToolsController_runIaSection",
+        "operationId": "IncidentsController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RunIaSectionDto"
+                "$ref": "#/components/schemas/CreateIncidentDto"
               }
             }
           }
@@ -39612,7 +40768,1190 @@
             "bearer": []
           }
         ],
-        "summary": "Populate a single initial-assessment section with demo data (dev/QA)",
+        "summary": "Report a new accident / incident",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "get": {
+        "operationId": "IncidentsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REPORTED",
+                "AWAITING_REVIEW",
+                "UNDER_INVESTIGATION",
+                "ACTIONS_REQUIRED",
+                "AWAITING_CLOSURE",
+                "CLOSED",
+                "REOPENED"
+              ]
+            }
+          },
+          {
+            "name": "severity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            }
+          },
+          {
+            "name": "privacyLevel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "RESTRICTED",
+                "HIGHLY_CONFIDENTIAL"
+              ]
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subtypeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter by occurredAt from (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter by occurredAt to (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "openOnly",
+            "required": false,
+            "in": "query",
+            "description": "Only open (non-closed) incidents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "description": "Include archived/voided incidents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List incidents (privacy-filtered, paginated)",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}": {
+      "get": {
+        "operationId": "IncidentsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an incident with its timeline",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/status": {
+      "post": {
+        "operationId": "IncidentsController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIncidentStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Transition incident workflow status",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/severity": {
+      "post": {
+        "operationId": "IncidentsController_changeSeverity",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIncidentSeverityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change incident severity (audited, history preserved)",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/owner": {
+      "post": {
+        "operationId": "IncidentsController_assignOwner",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignIncidentOwnerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign an incident owner",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/review": {
+      "post": {
+        "operationId": "IncidentsController_upsertReview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertIncidentReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the manager triage / review",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/investigation": {
+      "post": {
+        "operationId": "IncidentsController_upsertInvestigation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertIncidentInvestigationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the incident investigation",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/outcome": {
+      "post": {
+        "operationId": "IncidentsController_upsertOutcome",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertIncidentOutcomeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the closure outcome & lessons learned",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/actions": {
+      "get": {
+        "operationId": "IncidentsController_listActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List corrective actions for an incident",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentsController_createAction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a corrective action",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/actions/{actionId}": {
+      "patch": {
+        "operationId": "IncidentsController_updateAction",
+        "parameters": [
+          {
+            "name": "actionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIncidentActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a corrective action",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/actions/{actionId}/complete": {
+      "post": {
+        "operationId": "IncidentsController_completeAction",
+        "parameters": [
+          {
+            "name": "actionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteIncidentActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Complete a corrective action (manager or assignee)",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/incidents/{id}/injuries": {
+      "get": {
+        "operationId": "IncidentCareController_listInjuries",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List injuries for an incident",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentCareController_addInjury",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentInjuryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record an injury",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/injuries/{injuryId}": {
+      "delete": {
+        "operationId": "IncidentCareController_deleteInjury",
+        "parameters": [
+          {
+            "name": "injuryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an injury",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/{id}/witnesses": {
+      "get": {
+        "operationId": "IncidentCareController_listWitnesses",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List witnesses",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentCareController_addWitness",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentWitnessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a witness and statement",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/witnesses/{witnessId}": {
+      "delete": {
+        "operationId": "IncidentCareController_deleteWitness",
+        "parameters": [
+          {
+            "name": "witnessId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a witness",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/{id}/related-incidents": {
+      "get": {
+        "operationId": "IncidentCareController_listRelated",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List linked incidents",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentCareController_linkRelated",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkRelatedIncidentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Link a related incident",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/related-incidents/{linkId}": {
+      "delete": {
+        "operationId": "IncidentCareController_unlinkRelated",
+        "parameters": [
+          {
+            "name": "linkId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unlink a related incident",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/{id}/care-records": {
+      "get": {
+        "operationId": "IncidentCareController_listCareRecords",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List linked care records",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentCareController_addCareRecord",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelatedCareRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Link a care record that needs review",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/care-records/{recordId}": {
+      "patch": {
+        "operationId": "IncidentCareController_updateCareRecord",
+        "parameters": [
+          {
+            "name": "recordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRelatedCareRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a linked care record (e.g. mark reviewed)",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "delete": {
+        "operationId": "IncidentCareController_deleteCareRecord",
+        "parameters": [
+          {
+            "name": "recordId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a care record link",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/{id}/attachments": {
+      "get": {
+        "operationId": "IncidentCareController_listAttachments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List incident attachments",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      },
+      "post": {
+        "operationId": "IncidentCareController_addAttachment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentAttachmentMetaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a secure incident attachment",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/attachments/{attachmentId}/download": {
+      "get": {
+        "operationId": "IncidentCareController_downloadAttachment",
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download an attachment (authenticated, permission-checked)",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/attachments/{attachmentId}": {
+      "delete": {
+        "operationId": "IncidentCareController_deleteAttachment",
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an attachment",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/incidents/service-user/{serviceUserId}/history": {
+      "get": {
+        "operationId": "IncidentCareController_serviceUserHistory",
+        "parameters": [
+          {
+            "name": "serviceUserId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Incident history and trend indicators for a service user",
+        "tags": [
+          "Incidents — Care integration"
+        ]
+      }
+    },
+    "/dev/generate-ia-section": {
+      "post": {
+        "operationId": "DevToolsController_generateIaSection",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateIaSectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate (no-save) demo values for a single initial-assessment section (dev/QA)",
         "tags": [
           "dev-tools"
         ]
@@ -46995,7 +49334,11 @@
               "CARE_REVIEW_REMINDER",
               "MEDICATION_REVIEW_REMINDER",
               "ASSESSMENT_DUE_REMINDER",
-              "BIRTHDAY_REMINDER"
+              "BIRTHDAY_REMINDER",
+              "HR_APPLICATION_RECEIVED",
+              "HR_CANDIDATE_SHORTLISTED",
+              "HR_INTERVIEW_SCHEDULED",
+              "HR_OFFER_ACCEPTED"
             ]
           },
           "title": {
@@ -47017,7 +49360,8 @@
               "SCHEDULING",
               "REPORT",
               "SECURITY",
-              "SYSTEM"
+              "SYSTEM",
+              "HR"
             ]
           },
           "severity": {
@@ -47077,7 +49421,11 @@
               "CARE_REVIEW_REMINDER",
               "MEDICATION_REVIEW_REMINDER",
               "ASSESSMENT_DUE_REMINDER",
-              "BIRTHDAY_REMINDER"
+              "BIRTHDAY_REMINDER",
+              "HR_APPLICATION_RECEIVED",
+              "HR_CANDIDATE_SHORTLISTED",
+              "HR_INTERVIEW_SCHEDULED",
+              "HR_OFFER_ACCEPTED"
             ]
           },
           "inAppEnabled": {
@@ -48404,6 +50752,340 @@
           }
         }
       },
+      "CreateHrProfileDto": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string"
+          },
+          "preferredName": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "profilePhoto": {
+            "type": "string"
+          },
+          "jobTitleId": {
+            "type": "string"
+          },
+          "contractTypeId": {
+            "type": "string"
+          },
+          "careWorkforceCategory": {
+            "type": "string",
+            "enum": [
+              "NEW_TO_CARE",
+              "CARE_OR_SUPPORT_WORKER",
+              "SUPERVISOR_OR_LEADER",
+              "PRACTITIONER",
+              "DEPUTY_MANAGER",
+              "REGISTERED_MANAGER",
+              "NON_DIRECT_CARE"
+            ]
+          },
+          "contractedHours": {
+            "type": "number"
+          },
+          "branchTeam": {
+            "type": "string"
+          },
+          "branchLocationId": {
+            "type": "string"
+          },
+          "reportingManagerId": {
+            "type": "string"
+          },
+          "employmentStartDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "employeeLifecycleStatus": {
+            "type": "string",
+            "enum": [
+              "PRE_EMPLOYMENT",
+              "CLEARED",
+              "ONBOARDING",
+              "ACTIVE",
+              "ACTIVE_PAUSED",
+              "LEAVING",
+              "LEFT",
+              "ALUMNI"
+            ]
+          },
+          "deploymentStatus": {
+            "type": "string",
+            "enum": [
+              "GREEN",
+              "AMBER",
+              "RED"
+            ]
+          }
+        }
+      },
+      "UpdateHrProfileDto": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string"
+          },
+          "preferredName": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "profilePhoto": {
+            "type": "string"
+          },
+          "jobTitleId": {
+            "type": "string"
+          },
+          "contractTypeId": {
+            "type": "string"
+          },
+          "careWorkforceCategory": {
+            "type": "string",
+            "enum": [
+              "NEW_TO_CARE",
+              "CARE_OR_SUPPORT_WORKER",
+              "SUPERVISOR_OR_LEADER",
+              "PRACTITIONER",
+              "DEPUTY_MANAGER",
+              "REGISTERED_MANAGER",
+              "NON_DIRECT_CARE"
+            ]
+          },
+          "contractedHours": {
+            "type": "number"
+          },
+          "branchTeam": {
+            "type": "string"
+          },
+          "branchLocationId": {
+            "type": "string"
+          },
+          "reportingManagerId": {
+            "type": "string"
+          },
+          "employmentStartDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "employeeLifecycleStatus": {
+            "type": "string",
+            "enum": [
+              "PRE_EMPLOYMENT",
+              "CLEARED",
+              "ONBOARDING",
+              "ACTIVE",
+              "ACTIVE_PAUSED",
+              "LEAVING",
+              "LEFT",
+              "ALUMNI"
+            ]
+          },
+          "deploymentStatus": {
+            "type": "string",
+            "enum": [
+              "GREEN",
+              "AMBER",
+              "RED"
+            ]
+          }
+        }
+      },
+      "CreateVacancyDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "jobTitleId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "PERMANENT",
+              "FIXED_TERM",
+              "BANK",
+              "AGENCY",
+              "APPRENTICE",
+              "VOLUNTEER"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "requirements": {
+            "type": "string"
+          },
+          "salaryRange": {
+            "type": "string"
+          },
+          "numberOfPositions": {
+            "type": "number",
+            "default": 1
+          },
+          "hiringManagerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "employmentType"
+        ]
+      },
+      "UpdateVacancyDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "jobTitleId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "PERMANENT",
+              "FIXED_TERM",
+              "BANK",
+              "AGENCY",
+              "APPRENTICE",
+              "VOLUNTEER"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "requirements": {
+            "type": "string"
+          },
+          "salaryRange": {
+            "type": "string"
+          },
+          "numberOfPositions": {
+            "type": "number",
+            "default": 1
+          },
+          "hiringManagerId": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateVacancyStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PAUSED",
+              "CLOSED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateCandidateDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "vacancyId": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "WEBSITE",
+              "REFERRAL",
+              "AGENCY",
+              "INTERNAL",
+              "MANUAL"
+            ]
+          },
+          "coverLetter": {
+            "type": "string"
+          },
+          "personalStatement": {
+            "type": "string"
+          },
+          "cvFileUrl": {
+            "type": "string"
+          },
+          "dataProcessingConsent": {
+            "type": "boolean",
+            "default": false
+          },
+          "consentDate": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "vacancyId",
+          "source"
+        ]
+      },
+      "UpdateCandidateStageDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "APPLIED",
+              "SCREENING",
+              "SHORTLISTED",
+              "INTERVIEW",
+              "ASSESSMENT",
+              "OFFER",
+              "VETTING",
+              "ACCEPTED",
+              "REJECTED",
+              "WITHDRAWN"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
       "CreateLookupNameDto": {
         "type": "object",
         "properties": {
@@ -48596,6 +51278,63 @@
           "markerColorHex": {
             "type": "string",
             "example": "#dc2626"
+          }
+        }
+      },
+      "CreateWelfareOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "seen-ok"
+          },
+          "label": {
+            "type": "string",
+            "example": "Person seen — as expected"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warn",
+              "bad"
+            ],
+            "default": "ok"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ]
+      },
+      "UpdateWelfareOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "seen-ok"
+          },
+          "label": {
+            "type": "string",
+            "example": "Person seen — as expected"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warn",
+              "bad"
+            ]
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -49987,6 +52726,12 @@
               "LEAD",
               "SECONDARY"
             ]
+          },
+          "requiredCarers": {
+            "type": "object",
+            "minimum": 1,
+            "maximum": 4,
+            "description": "Carers required for this row’s day(s); null = slot default"
           },
           "durationMinutes": {
             "type": "object",
@@ -54147,15 +56892,20 @@
             "type": "string",
             "maxLength": 200
           },
+          "reasonForMedication": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Why this medicine is prescribed"
+          },
           "instructions": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Reason for medication"
+            "description": "How to give this medicine (carer-facing)"
           },
           "notes": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Medication notes"
+            "description": "Office-only medication notes"
           },
           "expiryDate": {
             "type": "string"
@@ -54264,15 +57014,20 @@
             "type": "string",
             "maxLength": 200
           },
+          "reasonForMedication": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Why this medicine is prescribed"
+          },
           "instructions": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Reason for medication"
+            "description": "How to give this medicine (carer-facing)"
           },
           "notes": {
             "type": "string",
             "maxLength": 2000,
-            "description": "Medication notes"
+            "description": "Office-only medication notes"
           },
           "expiryDate": {
             "type": "string"
@@ -60184,13 +62939,577 @@
           "medicationSite"
         ]
       },
-      "RunIaSectionDto": {
+      "CreateIncidentDto": {
         "type": "object",
         "properties": {
-          "serviceUserId": {
+          "categoryId": {
             "type": "string",
-            "format": "uuid"
+            "description": "Incident category id (IncidentCategory)"
           },
+          "subtypeId": {
+            "type": "string",
+            "description": "Incident subtype id (must belong to the category)"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "When the incident occurred (ISO 8601 date-time)"
+          },
+          "locationId": {
+            "type": "string",
+            "description": "Location id (lookups.Location)"
+          },
+          "specificArea": {
+            "type": "string",
+            "description": "Specific area / location description"
+          },
+          "primaryServiceUserId": {
+            "type": "string",
+            "description": "Primary person affected — service user id"
+          },
+          "primaryEmployeeId": {
+            "type": "string",
+            "description": "Primary person affected — employee id"
+          },
+          "reporterEmployeeId": {
+            "type": "string",
+            "description": "Employee id of the reporter, if applicable"
+          },
+          "description": {
+            "type": "string",
+            "description": "What happened"
+          },
+          "contextBefore": {
+            "type": "string",
+            "description": "What happened immediately before"
+          },
+          "contextAfter": {
+            "type": "string",
+            "description": "What happened immediately afterwards"
+          },
+          "immediateActions": {
+            "type": "string",
+            "description": "Free-text immediate actions taken"
+          },
+          "immediateActionCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FIRST_AID",
+                "EMERGENCY_SERVICES",
+                "GP_CONTACTED",
+                "MANAGER_CONTACTED",
+                "FAMILY_INFORMED",
+                "AREA_MADE_SAFE",
+                "MEDICATION_WITHHELD",
+                "OTHER"
+              ]
+            }
+          },
+          "injuryOccurred": {
+            "type": "boolean",
+            "description": "Whether anyone was injured"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "default": "LOW"
+          },
+          "privacyLevel": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "RESTRICTED",
+              "HIGHLY_CONFIDENTIAL"
+            ],
+            "default": "NORMAL"
+          },
+          "shareWithHandover": {
+            "type": "boolean",
+            "description": "Share a safe summary with the shift handover"
+          }
+        },
+        "required": [
+          "categoryId",
+          "occurredAt",
+          "description"
+        ]
+      },
+      "ChangeIncidentStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "REPORTED",
+              "AWAITING_REVIEW",
+              "UNDER_INVESTIGATION",
+              "ACTIONS_REQUIRED",
+              "AWAITING_CLOSURE",
+              "CLOSED",
+              "REOPENED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason / note for the transition (audited)"
+          },
+          "overrideMandatoryActions": {
+            "type": "boolean",
+            "description": "Override the \"mandatory actions incomplete\" block when closing a High/Critical incident (requires incidents.close and an audited reason)"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ChangeIncidentSeverityDto": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the severity change (audited)"
+          }
+        },
+        "required": [
+          "severity"
+        ]
+      },
+      "AssignIncidentOwnerDto": {
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "string",
+            "description": "User id of the incident owner"
+          }
+        },
+        "required": [
+          "ownerId"
+        ]
+      },
+      "UpsertIncidentReviewDto": {
+        "type": "object",
+        "properties": {
+          "confirmedSeverity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "investigationRequired": {
+            "type": "boolean"
+          },
+          "safeguardingConcern": {
+            "type": "boolean"
+          },
+          "possibleAbuseOrNeglect": {
+            "type": "boolean"
+          },
+          "furtherMedicalAttention": {
+            "type": "boolean"
+          },
+          "externalNotificationRequired": {
+            "type": "boolean"
+          },
+          "escalationRequired": {
+            "type": "boolean"
+          },
+          "managementNotes": {
+            "type": "string"
+          }
+        }
+      },
+      "UpsertIncidentInvestigationDto": {
+        "type": "object",
+        "properties": {
+          "whatHappened": {
+            "type": "string"
+          },
+          "whyHappened": {
+            "type": "string"
+          },
+          "contributingFactors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CARE_PLAN",
+                "RISK_ASSESSMENT",
+                "STAFFING",
+                "TRAINING",
+                "COMMUNICATION",
+                "ENVIRONMENT",
+                "EQUIPMENT",
+                "MEDICATION",
+                "HUMAN_ERROR",
+                "PROCEDURE_NOT_FOLLOWED",
+                "BEHAVIOURAL_TRIGGER",
+                "HEALTH_DETERIORATION",
+                "UNKNOWN",
+                "OTHER"
+              ]
+            }
+          },
+          "rootCause": {
+            "type": "string"
+          },
+          "preventable": {
+            "type": "string",
+            "enum": [
+              "YES",
+              "NO",
+              "PARTIALLY",
+              "UNKNOWN"
+            ]
+          },
+          "conclusion": {
+            "type": "string"
+          },
+          "markComplete": {
+            "type": "boolean",
+            "description": "Mark the investigation as complete"
+          }
+        }
+      },
+      "UpsertIncidentOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "finalOutcome": {
+            "type": "string"
+          },
+          "lessonsLearned": {
+            "type": "string"
+          },
+          "preventability": {
+            "type": "string",
+            "enum": [
+              "YES",
+              "NO",
+              "PARTIALLY",
+              "UNKNOWN"
+            ]
+          },
+          "changesMade": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CARE_PLAN",
+                "RISK_ASSESSMENT",
+                "POLICY",
+                "PROCEDURE",
+                "STAFF_TRAINING",
+                "EQUIPMENT",
+                "STAFFING",
+                "ENVIRONMENT",
+                "OTHER"
+              ]
+            }
+          },
+          "informationSharedWithStaff": {
+            "type": "boolean"
+          },
+          "serviceUserInformed": {
+            "type": "boolean"
+          },
+          "nokInformed": {
+            "type": "boolean"
+          },
+          "finalManagementComments": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateIncidentActionDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "default": "MEDIUM"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "Due date (ISO 8601)"
+          },
+          "assignedEmployeeId": {
+            "type": "string",
+            "description": "Assigned employee id"
+          },
+          "isMandatory": {
+            "type": "boolean",
+            "description": "Mandatory actions block High/Critical closure"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateIncidentActionDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "assignedEmployeeId": {
+            "type": "string"
+          },
+          "isMandatory": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompleteIncidentActionDto": {
+        "type": "object",
+        "properties": {
+          "completionNotes": {
+            "type": "string",
+            "description": "Notes on how the action was completed"
+          }
+        }
+      },
+      "CreateIncidentInjuryDto": {
+        "type": "object",
+        "properties": {
+          "personKind": {
+            "type": "string",
+            "enum": [
+              "SERVICE_USER",
+              "EMPLOYEE",
+              "FAMILY",
+              "VISITOR",
+              "HEALTHCARE_PROFESSIONAL",
+              "CONTRACTOR",
+              "OTHER"
+            ]
+          },
+          "personServiceUserId": {
+            "type": "string"
+          },
+          "personEmployeeId": {
+            "type": "string"
+          },
+          "personName": {
+            "type": "string",
+            "description": "Name for an external person"
+          },
+          "injurySeverity": {
+            "type": "string",
+            "enum": [
+              "MINOR",
+              "MODERATE",
+              "SERIOUS",
+              "FATAL"
+            ]
+          },
+          "injuryType": {
+            "type": "string",
+            "example": "Bruising"
+          },
+          "bodyRegion": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "description": "LEFT / RIGHT / CENTRE"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "measurements": {
+            "type": "string",
+            "example": "2cm x 1.5cm"
+          },
+          "bodyMapRecordId": {
+            "type": "string",
+            "description": "Existing body-map record id to link"
+          }
+        },
+        "required": [
+          "personKind",
+          "injurySeverity",
+          "injuryType"
+        ]
+      },
+      "CreateIncidentWitnessDto": {
+        "type": "object",
+        "properties": {
+          "personKind": {
+            "type": "string",
+            "enum": [
+              "SERVICE_USER",
+              "EMPLOYEE",
+              "FAMILY",
+              "VISITOR",
+              "HEALTHCARE_PROFESSIONAL",
+              "CONTRACTOR",
+              "OTHER"
+            ]
+          },
+          "personServiceUserId": {
+            "type": "string"
+          },
+          "personEmployeeId": {
+            "type": "string"
+          },
+          "personName": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "statementDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "personKind"
+        ]
+      },
+      "LinkRelatedIncidentDto": {
+        "type": "object",
+        "properties": {
+          "relatedIncidentId": {
+            "type": "string",
+            "description": "The other incident to link"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "relatedIncidentId"
+        ]
+      },
+      "CreateRelatedCareRecordDto": {
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "type": "string",
+            "enum": [
+              "CARE_PLAN",
+              "RISK_ASSESSMENT",
+              "MEDICATION",
+              "BODY_MAP",
+              "DAILY_NOTES",
+              "VISIT",
+              "BEHAVIOUR",
+              "OTHER"
+            ]
+          },
+          "referenceLabel": {
+            "type": "string",
+            "example": "Falls Risk Assessment"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Id of the linked care record, if known"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REVIEW_REQUIRED",
+              "UPDATED"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recordType",
+          "referenceLabel"
+        ]
+      },
+      "UpdateRelatedCareRecordDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "REVIEW_REQUIRED",
+              "UPDATED"
+            ]
+          },
+          "updatedByLabel": {
+            "type": "string",
+            "description": "Who updated the record (label)"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateIncidentAttachmentMetaDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "INCIDENT_PHOTO",
+              "INJURY_PHOTO",
+              "WITNESS_EVIDENCE",
+              "MEDICAL_DOCUMENT",
+              "NOTIFICATION_EVIDENCE",
+              "INVESTIGATION_DOCUMENT",
+              "OTHER"
+            ]
+          }
+        }
+      },
+      "GenerateIaSectionDto": {
+        "type": "object",
+        "properties": {
           "level": {
             "type": "string",
             "enum": [
@@ -60215,7 +63534,6 @@
           }
         },
         "required": [
-          "serviceUserId",
           "level",
           "tabId",
           "questionIds"

@@ -1,5 +1,6 @@
 import { CarePathwayFormFieldType as T } from '@prisma/client';
 import type { CarePlanFormSeed } from './care-plan-forms.seed-data';
+import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
 
 /**
  * Final Days Care Plan template — the local palliative/end-of-life plan merged with the
@@ -103,6 +104,7 @@ export const FINAL_DAYS_CARE_PLAN_SEED: CarePlanFormSeed = {
           fieldType: T.YES_NO,
           fieldKey: 'final_days_area_risk',
         },
+        ...areaRiskFollowUpFields('final_days'),
         {
           label: 'Details of Advance Decision To Refuse Treatment (including DNACPR)',
           fieldType: T.TEXTAREA,

@@ -1,4 +1,5 @@
 import { SKIN_INTEGRITY_CARE_PLAN_SEED } from '../../../prisma/seeds/skin-integrity-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesResolvedByEngine } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /**
  * Documentation-and-guard registry for the Skin Integrity Care Plan.
@@ -38,71 +39,56 @@ export type SkinFieldRegistryEntry = {
 };
 
 export const SKIN_INTEGRITY_FIELD_REGISTRY: readonly SkinFieldRegistryEntry[] = [
-  // ---------- Skin profile (existing — auto-prefilled by the engine, by label) ----------
   {
     businessKey: 'skin_integrity_skin_type_issues',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['11.1'],
-        notes:
-          'IA §11.1 "Skin condition comment" / "Pressure ulcer risk assessment comment" / snapshot.skinTypeIssues.',
+        notes: 'Do not substring-match "skin". Skin condition comment may be suggested later.',
       },
-      { kind: 'SKIN_INTEGRITY_SNAPSHOT', notes: 'skinIntegritySnapshot.skinTypeIssues fallback.' },
     ],
   },
   {
     businessKey: 'skin_integrity_emollients_creams',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
-    sources: [
-      {
-        kind: 'INITIAL_ASSESSMENT',
-        iaSpecRefs: ['11.1'],
-        notes: 'IA §11.1 "emollien…" text / snapshot.emollientsCreams.',
-      },
-    ],
+    mode: 'MANUAL',
+    resolvedByEngine: false,
+    sources: [{ kind: 'MANUAL', notes: 'No IA emollient schedule. Do not AUTO from keyword "emollien".' }],
   },
   {
     businessKey: 'skin_integrity_previous_pressure_damage',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'MANUAL',
+    resolvedByEngine: false,
     sources: [
       {
-        kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['hasWounds'],
-        iaSpecRefs: ['11.1'],
-        notes:
-          'IA §11.1 "Currently has ulcers or wounds?" / "pressure damage" (boolean) / snapshot.previousPressureDamage.',
+        kind: 'MANUAL',
+        notes: 'Current hasWounds is not previous pressure damage. Do not AUTO.',
       },
     ],
   },
-
-  // ---------- Daily care (existing) ----------
   {
     businessKey: 'skin_integrity_cream_application',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'MANUAL',
+    resolvedByEngine: false,
     sources: [
       {
-        kind: 'INITIAL_ASSESSMENT',
-        iaSpecRefs: ['11.1'],
-        notes: 'IA §11.1 "pressure equipment details" / "equipment" text / snapshot.creamApplication.',
+        kind: 'MANUAL',
+        notes: 'Pressure equipment details are not a cream-application schedule. Do not AUTO.',
       },
     ],
   },
   {
     businessKey: 'skin_integrity_signs_to_report',
-    mode: 'AUTO_PREFILL',
-    resolvedByEngine: true,
+    mode: 'SUGGESTION',
+    resolvedByEngine: false,
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
         iaFieldKeys: ['skinIntegrityComments'],
         iaSpecRefs: ['11.1'],
-        notes: 'IA §11.1 "Skin / wound notes" / "wound" text / snapshot.signsToReport.',
+        notes: 'Do not substring-match "wound". skinIntegrityComments may be suggested later.',
       },
     ],
   },
@@ -110,8 +96,8 @@ export const SKIN_INTEGRITY_FIELD_REGISTRY: readonly SkinFieldRegistryEntry[] = 
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'skin_integrity_service_user_needs',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -122,14 +108,14 @@ export const SKIN_INTEGRITY_FIELD_REGISTRY: readonly SkinFieldRegistryEntry[] = 
   },
   {
     businessKey: 'skin_integrity_needs_person_centred',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [{ kind: 'MANUAL', notes: 'Free-text person-centred narrative for the needs question.' }],
   },
   {
     businessKey: 'skin_integrity_desired_goals_outcomes',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       {
         kind: 'MANUAL',
@@ -139,8 +125,8 @@ export const SKIN_INTEGRITY_FIELD_REGISTRY: readonly SkinFieldRegistryEntry[] = 
   },
   {
     businessKey: 'skin_integrity_support_required',
-    mode: 'MANUAL',
-    resolvedByEngine: false,
+    mode: 'SUGGESTION',
+    resolvedByEngine: true,
     sources: [
       { kind: 'MANUAL', notes: 'Generic Care 2020 support narrative; no skin-specific IA source.' },
     ],
@@ -157,6 +143,7 @@ export const SKIN_INTEGRITY_FIELD_REGISTRY: readonly SkinFieldRegistryEntry[] = 
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesResolvedByEngine('skin_integrity'),
 ];
 
 export type SkinFieldBusinessKey = (typeof SKIN_INTEGRITY_FIELD_REGISTRY)[number]['businessKey'];

@@ -18,9 +18,7 @@ import {
   type LabelFieldMapping,
 } from './label-mapped-compose.util';
 import { iaRoute, medRoute, profileRoute } from './compose-routes.util';
-import { getCarePlanReviewSchedule, computeNextReviewDueAt } from '../care-plan-review-schedule';
-
-const MASTER_CARE_PLAN_FORM_NAME = 'Risk Assessment and Care Plan';
+import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
 
 function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -389,16 +387,7 @@ export const MASTER_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
   },
   {
     fieldLabel: 'Next plan review date',
-    resolve: () => {
-      const schedule = getCarePlanReviewSchedule(MASTER_CARE_PLAN_FORM_NAME);
-      return {
-        fieldKey: '',
-        label: 'Next plan review date',
-        value: isoDateOnly(computeNextReviewDueAt(new Date(), schedule.defaultIntervalDays)),
-        source: 'static',
-        sourceLabel: 'Annual schedule',
-      };
-    },
+    resolve: (ctx) => resolveComposeNextReviewDate(ctx, 'Next plan review date'),
   },
 ];
 

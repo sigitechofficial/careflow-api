@@ -218,7 +218,7 @@ describe('Culture/Religion/Spirituality template', () => {
   it('contains no duplicate field keys and totals eleven', () => {
     const keys = seedFieldKeys();
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(11);
+    expect(keys).toHaveLength(17);
   });
 
   it('gives every field a crs_ prefixed key', () => {
@@ -293,7 +293,7 @@ describe('applyCultureReligionCarePlanSchema', () => {
 
     const activeKeys = state.fields.filter((f) => f.isActive).map((f) => f.fieldKey);
     expect(new Set(activeKeys).size).toBe(activeKeys.length);
-    expect(activeKeys).toHaveLength(11);
+    expect(activeKeys).toHaveLength(17);
     for (const key of seedFieldKeys()) {
       expect(activeKeys).toContain(key);
     }
@@ -355,7 +355,7 @@ describe('other care plans are unaffected', () => {
     expect(hcp).toHaveLength(36);
     expect(hsp).toHaveLength(45);
     expect(acp).toHaveLength(11);
-    expect(cog).toHaveLength(12);
+    expect(cog).toHaveLength(18);
     expect(hcp.every((k) => k.startsWith('hcp_'))).toBe(true);
     expect(cog.every((k) => k.startsWith('cog_'))).toBe(true);
   });

@@ -19,6 +19,7 @@ import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment
 import { seedServiceUserPersonas } from './seeds/service-user-personas.seed';
 import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
+import { applyCarePlanIaDemoOverlay } from './seeds/care-plan-ia-demo-overlay.seed';
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedEcmThresholdLookups } from './seeds/ecm-threshold-lookups.seed';
@@ -2158,6 +2159,32 @@ async function main() {
 
   if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
     await seedServiceUserPersonas(prisma);
+  }
+
+  try {
+    const overlay = await applyCarePlanIaDemoOverlay(prisma);
+    for (const person of overlay.people) {
+      if (person.skipped) {
+        console.warn(
+          `[seed] Care Plan IA demo overlay skipped ${person.displayName} (${person.serviceUserNumber}): ${person.skipped}`,
+        );
+        continue;
+      }
+      console.log(
+        `[seed] Care Plan IA demo overlay ${person.displayName} (${person.serviceUserNumber}): ${person.upserted} answers, aboutMe=${person.aboutMeUpdated}`,
+      );
+      if (person.unmatched.length > 0) {
+        console.warn(
+          `[seed] Care Plan IA demo overlay unmatched questions for ${person.serviceUserNumber}:`,
+          person.unmatched.join(', '),
+        );
+      }
+    }
+  } catch (err) {
+    console.warn(
+      '[seed] Care Plan IA demo overlay skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
   }
 
   if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {

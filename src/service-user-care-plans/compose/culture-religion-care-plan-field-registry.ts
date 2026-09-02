@@ -1,4 +1,5 @@
 import { CULTURE_RELIGION_CARE_PLAN_SEED } from '../../../prisma/seeds/culture-religion-care-plan.seed-data';
+import { areaRiskFollowUpManualEntriesWithSource } from '../../../prisma/seeds/area-risk-follow-up.seed';
 
 /** How a Culture/Religion/Spirituality field participates in compose. Mirrors the Advance contract. */
 export type CrsFieldMappingMode = 'AUTO_PREFILL' | 'SUGGESTION' | 'MANUAL';
@@ -126,8 +127,8 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
   // ---------- Needs, goals, support and risk (Care 2020) ----------
   {
     businessKey: 'crs_service_user_needs',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -138,8 +139,8 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
   },
   {
     businessKey: 'crs_needs_person_centred',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -150,8 +151,8 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
   },
   {
     businessKey: 'crs_desired_goals_outcomes',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -162,8 +163,8 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
   },
   {
     businessKey: 'crs_support_required',
-    mode: 'MANUAL',
-    source: 'MANUAL',
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
     sources: [
       {
         kind: 'MANUAL',
@@ -184,6 +185,7 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
       },
     ],
   },
+  ...areaRiskFollowUpManualEntriesWithSource('crs'),
 ];
 
 export type CrsFieldBusinessKey = (typeof CRS_FIELD_REGISTRY)[number]['businessKey'];

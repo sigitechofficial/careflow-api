@@ -17,6 +17,7 @@ import { FormBuilderQueryDto } from './dto/form-builder-query.dto';
 import { CreateCareFormDto } from './dto/create-care-form.dto';
 import { UpdateCareFormDto } from './dto/update-care-form.dto';
 import { SaveCareFormSchemaDto } from './dto/save-care-form-schema.dto';
+import { reviewFrequencyMonthsForCreate } from '../service-user-care-plans/care-plan-review-schedule';
 
 /**
  * Prisma include shape for reading a form for the UI/response. Fields are filtered to
@@ -76,7 +77,7 @@ function normalizeFieldKey(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function mapField(row: {
+export function mapField(row: {
   id: string;
   fieldKey: string | null;
   label: string;
@@ -86,6 +87,7 @@ function mapField(row: {
   required: boolean;
   optionsJson: unknown;
   validationJson: unknown;
+  conditionalLogicJson?: unknown;
   sortOrder: number;
 }) {
   return {
@@ -98,6 +100,8 @@ function mapField(row: {
     required: row.required,
     optionsJson: row.optionsJson ?? null,
     validationJson: (row.validationJson as Record<string, unknown> | null) ?? null,
+    conditionalLogicJson:
+      (row.conditionalLogicJson as Record<string, unknown> | null) ?? null,
     sortOrder: row.sortOrder,
   };
 }
@@ -128,6 +132,7 @@ function mapFormList(row: {
   publishedById: string | null;
   versionLabel: string;
   pictureUrl: string | null;
+  reviewFrequencyMonths?: number | null;
   currentVersionId: string | null;
   updatedAt: Date;
 }) {
@@ -141,6 +146,7 @@ function mapFormList(row: {
     publishedById: row.publishedById,
     versionLabel: row.versionLabel,
     pictureUrl: row.pictureUrl,
+    reviewFrequencyMonths: row.reviewFrequencyMonths ?? null,
     currentVersionId: row.currentVersionId,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -228,6 +234,10 @@ export class FormBuilderService {
           description: dto.description?.trim() || null,
           formType: dto.formType,
           pictureUrl: dto.pictureUrl?.trim() || null,
+          reviewFrequencyMonths: reviewFrequencyMonthsForCreate(
+            dto.formType,
+            dto.reviewFrequencyMonths,
+          ),
           status: CarePathwayFormStatus.DRAFT,
           createdById: userId,
           updatedById: userId,
@@ -293,6 +303,9 @@ export class FormBuilderService {
     }
     if (dto.pictureUrl !== undefined) {
       data.pictureUrl = dto.pictureUrl?.trim() || null;
+    }
+    if (dto.reviewFrequencyMonths !== undefined) {
+      data.reviewFrequencyMonths = dto.reviewFrequencyMonths;
     }
 
     const after = await this.prisma.$transaction(async tx => {
