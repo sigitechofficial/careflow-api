@@ -70,7 +70,8 @@ export function minutesBetween(start: Date, end: Date): number {
  * BRANCH = 3-character code from the service user’s branch (ScheduleArea.visitRefCode)
  * YYYYMMDD = original planned visit date
  * NNNN = daily sequence per branch (resets each day)
- * Immutable after creation (except one-time rewrite of legacy VIS-GEN-* refs).
+ * Immutable after creation (canonical refs never change on call-off / reschedule).
+ * Legacy VIS-GEN-* / non-canonical values may be repaired once on sync.
  * Separate from Rolling Rota / Timebank IDs.
  * Example: VIS-L01-20260901-0123
  */

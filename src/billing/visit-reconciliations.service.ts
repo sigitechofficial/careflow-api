@@ -48,6 +48,7 @@ import {
   listUnresolvedBlockingCodes,
   hasPayBlockingExceptions,
   listPayBlockingCodes,
+  isCanonicalVisitRef,
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
@@ -335,7 +336,12 @@ export class VisitReconciliationsService {
           });
 
       if (existing) {
-        // visitRef is immutable after creation (call-off / reschedule keep the same ref).
+        // Canonical visitRef is immutable (call-off / reschedule keep the same ref).
+        // Legacy / non-canonical refs may be repaired once to VIS-[BRANCH]-… format.
+        const existingRef = existing.visitRef?.trim() || '';
+        const canRepairRef =
+          sharedVisitRef !== existingRef &&
+          (!isCanonicalVisitRef(existingRef) || /^VIS-GEN-\d{8}-\d{4}$/.test(existingRef));
         const updated = await db.visitReconciliation.update({
           where: { id: existing.id },
           data: {
@@ -346,6 +352,7 @@ export class VisitReconciliationsService {
             employeeId: allocation.employeeId ?? existing.employeeId,
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
             ...(overrunReason != null ? { overrunReason } : {}),
+            ...(canRepairRef ? { visitRef: sharedVisitRef } : {}),
           },
         });
         await this.safeEvaluate(db, updated.id);
@@ -378,10 +385,11 @@ export class VisitReconciliationsService {
   /**
    * Reuse the visit reference already issued for this scheduled visit.
    * Otherwise allocate VIS-[BRANCH]-[YYYYMMDD]-[NNNN] once (immutable thereafter).
-   * BRANCH comes from the service user’s assigned branch (location → ScheduleArea),
-   * then service-user area’s schedule area, then the job’s schedule area.
-   * YYYYMMDD is taken from the original planned start at allocation time.
-   * Legacy VIS-GEN-* refs are rewritten once when a real branch code is available.
+   * BRANCH = service user’s branch ScheduleArea.visitRefCode (3 chars).
+   * YYYYMMDD = original planned visit date at first issuance.
+   * NNNN = daily sequence per branch (resets each day).
+   * Called-off / rescheduled visits keep the same reference.
+   * Legacy VIS-GEN-* / non-canonical refs are repaired once when a real branch exists.
    */
   private async resolveOrAllocateVisitRef(
     db: DbClient,
@@ -399,7 +407,8 @@ export class VisitReconciliationsService {
     });
     const existingRef = existing?.visitRef?.trim() || '';
     const isLegacyGen = /^VIS-GEN-\d{8}-\d{4}$/.test(existingRef);
-    if (existingRef && !isLegacyGen) return existingRef;
+    const needsRepair = !existingRef || isLegacyGen || !isCanonicalVisitRef(existingRef);
+    if (existingRef && !needsRepair) return existingRef;
 
     const branchCode = await this.resolveVisitRefBranchCode(db, visit);
     // Still no branch mapping — keep legacy GEN rather than minting another GEN seq.
@@ -408,12 +417,13 @@ export class VisitReconciliationsService {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     // Freeze the planned calendar day at first issuance (reschedules do not reissue).
     // For legacy GEN rewrite, keep the original day segment when present.
-    const dayKey = isLegacyGen
-      ? existingRef.slice(8, 16)
-      : visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
+    const dayKey =
+      isLegacyGen && /^\d{8}$/.test(existingRef.slice(8, 16))
+        ? existingRef.slice(8, 16)
+        : visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
     const nextRef = await this.allocateVisitRef(db, branchCode, dayKey);
 
-    if (isLegacyGen && nextRef !== existingRef) {
+    if (existingRef && nextRef !== existingRef) {
       await db.visitReconciliation.updateMany({
         where: { scheduledVisitId: visit.id, visitRef: existingRef },
         data: { visitRef: nextRef },
@@ -424,7 +434,8 @@ export class VisitReconciliationsService {
   }
 
   /**
-   * Prefer the service user’s branch ScheduleArea.visitRefCode / code.
+   * BRANCH for visit refs = service user’s branch (location → ScheduleArea.visitRefCode).
+   * Fallback: service-user area’s schedule area, then job schedule area.
    */
   private async resolveVisitRefBranchCode(
     db: DbClient,
@@ -437,19 +448,23 @@ export class VisitReconciliationsService {
         serviceUserArea: {
           select: {
             scheduleArea: {
-              select: { visitRefCode: true, code: true },
+              select: { visitRefCode: true, code: true, name: true },
             },
           },
         },
       },
     });
 
-    type BranchBits = { visitRefCode: string | null; code: string | null };
+    type BranchBits = {
+      visitRefCode: string | null;
+      code: string | null;
+      name?: string | null;
+    };
     let fromSuLocation: BranchBits | null = null;
     if (su?.locationId) {
       fromSuLocation = await db.scheduleArea.findFirst({
         where: { locationId: su.locationId, deletedAt: null, isActive: true },
-        select: { visitRefCode: true, code: true },
+        select: { visitRefCode: true, code: true, name: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       });
     }
@@ -459,7 +474,7 @@ export class VisitReconciliationsService {
     const job = await db.scheduledJob.findFirst({
       where: { id: visit.scheduledJobId },
       select: {
-        scheduleArea: { select: { visitRefCode: true, code: true } },
+        scheduleArea: { select: { visitRefCode: true, code: true, name: true } },
       },
     });
     const fromJob = job?.scheduleArea ?? null;
@@ -467,9 +482,11 @@ export class VisitReconciliationsService {
     const pick = (...candidates: Array<BranchBits | null | undefined>) => {
       for (const c of candidates) {
         if (!c) continue;
-        if (c.visitRefCode?.trim() || c.code?.trim()) {
-          return normalizeVisitRefBranchCode(c.visitRefCode ?? c.code);
-        }
+        // Prefer dedicated 3-char visitRefCode over long schedule-area codes.
+        const raw = c.visitRefCode?.trim() || c.code?.trim() || c.name?.trim() || '';
+        if (!raw) continue;
+        const normalized = normalizeVisitRefBranchCode(raw);
+        if (normalized !== 'GEN') return normalized;
       }
       return normalizeVisitRefBranchCode(null);
     };
