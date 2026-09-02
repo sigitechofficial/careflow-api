@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { syncMedicationVisitOutcomesFromStatusCodes } from './visit-outcome-medication.util';
 import { DEFAULT_JOB_TITLES } from './default-job-titles';
 import {
   parseLookupManageableResource,
@@ -21,6 +22,12 @@ import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dt
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
 import { CreateWelfareOutcomeDto } from './dto/create-welfare-outcome.dto';
 import { UpdateWelfareOutcomeDto } from './dto/update-welfare-outcome.dto';
+import { CreateClockInArrivalReasonDto } from './dto/create-clock-in-arrival-reason.dto';
+import { UpdateClockInArrivalReasonDto } from './dto/update-clock-in-arrival-reason.dto';
+import { CreateClockOutEndReasonDto } from './dto/create-clock-out-end-reason.dto';
+import { UpdateClockOutEndReasonDto } from './dto/update-clock-out-end-reason.dto';
+import { CreateVisitOutcomeReasonDto } from './dto/create-visit-outcome-reason.dto';
+import { UpdateVisitOutcomeReasonDto } from './dto/update-visit-outcome-reason.dto';
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
@@ -1039,6 +1046,294 @@ export class LookupsService implements OnModuleInit {
     sortOrder: true,
     isActive: true,
   } as const;
+
+  private readonly arrivalReasonSelect = {
+    id: true,
+    kind: true,
+    label: true,
+    requiresNotes: true,
+    sortOrder: true,
+    isActive: true,
+  } as const;
+
+  async listClockInArrivalReasons() {
+    return this.prisma.visitClockInArrivalReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { label: 'asc' }],
+      select: this.arrivalReasonSelect,
+    });
+  }
+
+  async createClockInArrivalReason(dto: CreateClockInArrivalReasonDto) {
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Label is required');
+
+    const existing = await this.prisma.visitClockInArrivalReasonCatalog.findFirst({
+      where: { kind: dto.kind, label },
+    });
+    if (existing?.isActive) {
+      throw new BadRequestException('This reason is already in the list');
+    }
+    if (existing) {
+      return this.prisma.visitClockInArrivalReasonCatalog.update({
+        where: { id: existing.id },
+        data: {
+          requiresNotes: dto.requiresNotes ?? existing.requiresNotes,
+          sortOrder: dto.sortOrder ?? existing.sortOrder,
+          isActive: true,
+        },
+        select: this.arrivalReasonSelect,
+      });
+    }
+
+    try {
+      return await this.prisma.visitClockInArrivalReasonCatalog.create({
+        data: {
+          kind: dto.kind,
+          label,
+          requiresNotes: dto.requiresNotes ?? false,
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: true,
+        },
+        select: this.arrivalReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async updateClockInArrivalReason(id: string, dto: UpdateClockInArrivalReasonDto) {
+    const existing = await this.prisma.visitClockInArrivalReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Arrival reason not found');
+    const data: Prisma.VisitClockInArrivalReasonCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.requiresNotes !== undefined) data.requiresNotes = dto.requiresNotes;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitClockInArrivalReasonCatalog.update({
+        where: { id },
+        data,
+        select: this.arrivalReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async deleteClockInArrivalReason(id: string) {
+    const existing = await this.prisma.visitClockInArrivalReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Arrival reason not found');
+    await this.prisma.visitClockInArrivalReasonCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listClockOutEndReasons() {
+    return this.prisma.visitClockOutEndReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { label: 'asc' }],
+      select: this.arrivalReasonSelect,
+    });
+  }
+
+  async createClockOutEndReason(dto: CreateClockOutEndReasonDto) {
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Label is required');
+
+    const existing = await this.prisma.visitClockOutEndReasonCatalog.findFirst({
+      where: { kind: dto.kind, label },
+    });
+    if (existing?.isActive) {
+      throw new BadRequestException('This reason is already in the list');
+    }
+    if (existing) {
+      return this.prisma.visitClockOutEndReasonCatalog.update({
+        where: { id: existing.id },
+        data: {
+          requiresNotes: dto.requiresNotes ?? existing.requiresNotes,
+          sortOrder: dto.sortOrder ?? existing.sortOrder,
+          isActive: true,
+        },
+        select: this.arrivalReasonSelect,
+      });
+    }
+
+    try {
+      return await this.prisma.visitClockOutEndReasonCatalog.create({
+        data: {
+          kind: dto.kind,
+          label,
+          requiresNotes: dto.requiresNotes ?? false,
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: true,
+        },
+        select: this.arrivalReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async updateClockOutEndReason(id: string, dto: UpdateClockOutEndReasonDto) {
+    const existing = await this.prisma.visitClockOutEndReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Clock-out reason not found');
+    const data: Prisma.VisitClockOutEndReasonCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.requiresNotes !== undefined) data.requiresNotes = dto.requiresNotes;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitClockOutEndReasonCatalog.update({
+        where: { id },
+        data,
+        select: this.arrivalReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async deleteClockOutEndReason(id: string) {
+    const existing = await this.prisma.visitClockOutEndReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Clock-out reason not found');
+    await this.prisma.visitClockOutEndReasonCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listVisitOutcomes() {
+    try {
+      await syncMedicationVisitOutcomesFromStatusCodes(this.prisma);
+    } catch (err) {
+      // Keep the admin list readable if MAR sync is unavailable.
+      this.logger.warn(
+        `Could not sync medication outcomes from MAR status codes: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return this.prisma.visitOutcomeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ area: 'asc' }, { sortOrder: 'asc' }, { label: 'asc' }],
+      select: {
+        id: true,
+        area: true,
+        code: true,
+        label: true,
+        allowsReasons: true,
+        sortOrder: true,
+        isActive: true,
+        reasons: {
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+          select: {
+            id: true,
+            label: true,
+            requiresNotes: true,
+            sortOrder: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createVisitOutcomeReason(outcomeId: string, dto: CreateVisitOutcomeReasonDto) {
+    const outcome = await this.prisma.visitOutcomeCatalog.findUnique({
+      where: { id: outcomeId },
+    });
+    if (!outcome?.isActive) throw new NotFoundException('Outcome not found');
+    if (!outcome.allowsReasons) {
+      throw new BadRequestException('This outcome does not use a reason list');
+    }
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Label is required');
+
+    const existing = await this.prisma.visitOutcomeReasonCatalog.findFirst({
+      where: { outcomeId, label },
+    });
+    if (existing?.isActive) {
+      throw new BadRequestException('This reason is already in the list');
+    }
+    if (existing) {
+      return this.prisma.visitOutcomeReasonCatalog.update({
+        where: { id: existing.id },
+        data: {
+          requiresNotes: dto.requiresNotes ?? existing.requiresNotes,
+          sortOrder: dto.sortOrder ?? existing.sortOrder,
+          isActive: true,
+        },
+      });
+    }
+
+    try {
+      return await this.prisma.visitOutcomeReasonCatalog.create({
+        data: {
+          outcomeId,
+          label,
+          requiresNotes: dto.requiresNotes ?? false,
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: true,
+        },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async updateVisitOutcomeReason(id: string, dto: UpdateVisitOutcomeReasonDto) {
+    const existing = await this.prisma.visitOutcomeReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Outcome reason not found');
+    const data: Prisma.VisitOutcomeReasonCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.requiresNotes !== undefined) data.requiresNotes = dto.requiresNotes;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitOutcomeReasonCatalog.update({
+        where: { id },
+        data,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async deleteVisitOutcomeReason(id: string) {
+    const existing = await this.prisma.visitOutcomeReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Outcome reason not found');
+    await this.prisma.visitOutcomeReasonCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
 
   async listWelfareOutcomes() {
     return this.prisma.visitWelfareOutcomeCatalog.findMany({

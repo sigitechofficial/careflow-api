@@ -76,6 +76,21 @@ export class MedicationAdministrationEventDto {
   @ApiPropertyOptional({ nullable: true })
   notes!: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  witnessPresent!: boolean | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  witnessName!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  witnessRelationCode!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  witnessRelationDetail!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  witnessNotes!: string | null;
+
   @ApiProperty({ example: false })
   isPrn!: boolean;
 

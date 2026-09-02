@@ -44,6 +44,28 @@ describe('employee-app-mar-echo.util', () => {
       timeGiven: '09:15',
       administeredAt: '2026-08-12T09:15:00.000Z',
       deviceRecordedAt: '2026-08-12T09:15:00.000Z',
+      witness: null,
+    });
+  });
+
+  it('echoes a saved CD witness on the same medication record', () => {
+    const echo = buildMarAdminEchoFields({
+      id: 'evt-cd',
+      status: MedicationAdministrationStatus.GIVEN,
+      statusCode: 'G',
+      witnessPresent: true,
+      witnessName: 'Aisha Khan',
+      witnessRelationCode: 'RELATIVE',
+      witnessRelationDetail: 'Daughter',
+      witnessNotes: null,
+    });
+    expect(echo.witness).toEqual({
+      present: true,
+      name: 'Aisha Khan',
+      relationCode: 'RELATIVE',
+      relationLabel: 'Relative',
+      relationDetail: 'Daughter',
+      notes: null,
     });
   });
 });

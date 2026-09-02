@@ -110,4 +110,36 @@ export class CreateMedicationAdministrationEventDto {
   @IsString()
   @MaxLength(1000)
   prnOutcome?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Controlled-drug witness. false = No. true = Yes (name + relation required).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  witnessPresent?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  witnessName?: string;
+
+  @ApiPropertyOptional({ example: 'RELATIVE' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  witnessRelationCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  witnessRelationDetail?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  witnessNotes?: string;
 }

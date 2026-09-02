@@ -24,6 +24,7 @@ import {
   resolveAdministrationFromStatusCode,
   type StatusCodeResolution,
 } from '../medication-status-codes/medication-status-code-resolution.util';
+import { resolveMedicationWitnessColumns } from '../medications/medication-witness.util';
 
 const eventInclude = {
   medication: {
@@ -222,6 +223,7 @@ export class MedicationAdministrationService {
     }
 
     const isPrn = dto.isPrn ?? med.medicationKind === MedicationKind.PRN;
+    const witness = resolveMedicationWitnessColumns(Boolean(med.isControlledMedication), dto);
 
     const created = await this.prisma.medicationAdministrationEvent.create({
       data: {
@@ -238,6 +240,7 @@ export class MedicationAdministrationService {
         notGivenReasonId: dto.notGivenReasonId,
         reason: dto.reason,
         notes: dto.notes,
+        ...witness,
         doseGiven: dto.doseGiven,
         routeId: dto.routeId,
         visitId: dto.visitId,

@@ -4,6 +4,7 @@ import {
   emptyMarAdminEchoFields,
   type MarAdminEventEchoSource,
 } from './employee-app-mar-echo.util';
+import type { MedicationWitnessEcho } from '../../medications/medication-witness.util';
 import {
   filterCompartmentsForVisitRound,
   medMatchesCompartmentDueTime,
@@ -47,6 +48,7 @@ export type EmployeeAppBlisterPackMedicine = {
   prnIndication: string | null;
   prnEffectiveness: string | null;
   savedAtLabel: string | null;
+  witness: MedicationWitnessEcho | null;
   dueStatus: 'due' | 'recorded';
   countsTowardScheduledProgress: true;
   reasonForMedication: string | null;

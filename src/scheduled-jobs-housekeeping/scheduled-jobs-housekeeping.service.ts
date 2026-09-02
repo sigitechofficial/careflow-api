@@ -26,7 +26,7 @@ import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../sche
 import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import {
-  isVisitTimingExceptionReasonCode,
+  isAcceptedVisitTimingExceptionReason,
   VISIT_TIMING_EXCEPTION_REASONS,
 } from '../scheduling/visit-timing-exception-reason.util';
 import {
@@ -813,7 +813,7 @@ export class ScheduledJobsHousekeepingService {
 
       if (deliveryAssessment.requiresExceptionReason && !careNotDelivered) {
         const code = dto.timingExceptionReasonCode?.trim() ?? '';
-        if (!isVisitTimingExceptionReasonCode(code)) {
+        if (!isAcceptedVisitTimingExceptionReason(code)) {
           throw new BadRequestException(
             `A structured timing exception reason is required for ${deliveryAssessment.timingLabel}${
               deliveryAssessment.durationExceptions.length

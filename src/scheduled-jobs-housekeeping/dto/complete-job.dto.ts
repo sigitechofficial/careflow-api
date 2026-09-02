@@ -103,11 +103,11 @@ export class CompleteJobDto {
 
   @ApiPropertyOptional({
     description:
-      'Structured reason code required for late/early/short/overrun timing exceptions (see VISIT_TIMING_EXCEPTION_REASON_CODES)',
+      'Structured reason code or admin catalog label (1–160 chars) for timing exceptions',
   })
   @IsOptional()
   @IsString()
-  @MaxLength(64)
+  @MaxLength(160)
   timingExceptionReasonCode?: string;
 
   @ApiPropertyOptional({
