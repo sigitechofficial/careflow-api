@@ -156,6 +156,9 @@ export class EmployeesService {
           ...employee,
           employment: {
             ...employee.employment,
+            baseLocationIds: employee.employment.floorLocations
+              .map((row) => row.locationId)
+              .filter((id) => id && id !== employee.employment!.locationId),
             serviceUserAreaIds: employee.employment.serviceUserAreas.map(
               (row) => row.serviceUserAreaId,
             ),
