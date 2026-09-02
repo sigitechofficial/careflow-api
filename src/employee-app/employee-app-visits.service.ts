@@ -21,10 +21,16 @@ import {
   ScheduledJobStatus,
   ScheduledVisitStatus,
   VisitCareConsentStatus,
+  VisitClockInArrivalKind,
+  VisitOutcomeArea,
   VisitAttendanceEventType,
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  mapMedicationOutcomesFromStatusCodes,
+  syncMedicationVisitOutcomesFromStatusCodes,
+} from '../lookups/visit-outcome-medication.util';
 import { ScheduledJobsHousekeepingService } from '../scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.service';
 import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-visit-job-tasks.dto';
 import { BodyMapService } from '../body-map/body-map.service';
@@ -96,6 +102,11 @@ import {
   emptyMarAdminEchoFields,
 } from './medication/employee-app-mar-echo.util';
 import {
+  buildMedicationWitnessEcho,
+  medicationWitnessTimelineDetail,
+  resolveMedicationWitnessColumns,
+} from '../medications/medication-witness.util';
+import {
   plannedHowAssistedLabel,
   resolveVisitMedicationRoundFromDb,
 } from './medication/employee-app-visit-medication-round.util';
@@ -148,10 +159,7 @@ import {
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
-import {
-  employeeAppEarlyArrivalReasons,
-  employeeAppLateArrivalReasons,
-} from './employee-app-check-in-arrival-reasons';
+import { mapClockInArrivalReasonRow } from './employee-app-check-in-arrival-reasons';
 import {
   buildUnableToStartBlock,
   employeeAppUnableToStartReasonLabel,
@@ -328,9 +336,10 @@ export class EmployeeAppVisitsService {
           timingGraceMinutes: 15,
           allowManualOverride: true,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
-          earlyArrivalReasons: employeeAppEarlyArrivalReasons(),
-          lateArrivalReasons: employeeAppLateArrivalReasons(),
+          ...(await this.getClockInArrivalReasons()),
         },
+        clockOutSettings: await this.getClockOutEndReasons(),
+        visitOutcomes: await this.getVisitOutcomesCatalog(),
       },
     };
   }
@@ -367,6 +376,8 @@ export class EmployeeAppVisitsService {
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
+        clockOutSettings: workspace.data.clockOutSettings,
+        visitOutcomes: workspace.data.visitOutcomes,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
         welfareOutcomes,
         careConsent,
@@ -386,6 +397,219 @@ export class EmployeeAppVisitsService {
       select: { code: true, label: true, tone: true },
     });
     return rows.map((r) => ({ id: r.code, label: r.label, tone: r.tone }));
+  }
+
+  async getVisitOutcomesCatalog() {
+    try {
+      await syncMedicationVisitOutcomesFromStatusCodes(this.prisma);
+    } catch {
+      // Fall through — medication pills still come from status codes below.
+    }
+    const [statusCodes, rows] = await Promise.all([
+      this.prisma.medicationStatusCode.findMany({
+        where: { deletedAt: null, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+        select: {
+          code: true,
+          label: true,
+          color: true,
+          textColor: true,
+          reasonRequirement: true,
+          sortOrder: true,
+        },
+      }),
+      this.prisma.visitOutcomeCatalog.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+        select: {
+          area: true,
+          code: true,
+          label: true,
+          allowsReasons: true,
+          sortOrder: true,
+          reasons: {
+            where: { isActive: true },
+            orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+            select: { label: true, requiresNotes: true, sortOrder: true },
+          },
+        },
+      }),
+    ]);
+    const reasonsByCode = new Map<
+      string,
+      Array<{ label: string; requiresNotes: boolean; sortOrder: number }>
+    >();
+    for (const row of rows) {
+      if (row.area !== VisitOutcomeArea.MEDICATION) continue;
+      reasonsByCode.set(row.code.toUpperCase(), row.reasons);
+    }
+    const mapRows = (area: VisitOutcomeArea) =>
+      rows
+        .filter((r) => r.area === area)
+        .map((r) => ({
+          code: r.code,
+          label: r.label,
+          allowsReasons: r.allowsReasons,
+          sortOrder: r.sortOrder,
+          reasons: r.reasons.map((reason) => ({
+            label: reason.label,
+            requiresNotes: reason.requiresNotes,
+            enabled: true,
+            sortOrder: reason.sortOrder,
+          })),
+        }));
+    return {
+      medication: mapMedicationOutcomesFromStatusCodes({
+        statusCodes,
+        reasonsByCode,
+      }),
+      task: mapRows(VisitOutcomeArea.TASK),
+      observation: mapRows(VisitOutcomeArea.OBSERVATION),
+    };
+  }
+
+  /** Admin Settings catalogues — empty lists mean the app shows no picker. */
+  async getClockOutEndReasons() {
+    const rows = await this.prisma.visitClockOutEndReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: {
+        kind: true,
+        label: true,
+        requiresNotes: true,
+        sortOrder: true,
+        isActive: true,
+      },
+    });
+    return {
+      earlyEndReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.EARLY)
+        .map(mapClockInArrivalReasonRow),
+      lateEndReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.LATE)
+        .map(mapClockInArrivalReasonRow),
+    };
+  }
+
+  /** Admin Settings catalogues — empty lists mean the app shows no picker. */
+  async getClockInArrivalReasons() {
+    const rows = await this.prisma.visitClockInArrivalReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: {
+        kind: true,
+        label: true,
+        requiresNotes: true,
+        sortOrder: true,
+        isActive: true,
+      },
+    });
+    return {
+      earlyArrivalReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.EARLY)
+        .map(mapClockInArrivalReasonRow),
+      lateArrivalReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.LATE)
+        .map(mapClockInArrivalReasonRow),
+    };
+  }
+
+  /** When a catalogue has rows, early/late check-in must pick one of those labels. */
+  private async assertCheckInArrivalReason(dto: EmployeeAppVisitCheckInDto) {
+    const status = dto.timingStatus?.trim().toLowerCase();
+    const kind =
+      status === 'early'
+        ? VisitClockInArrivalKind.EARLY
+        : status === 'late'
+          ? VisitClockInArrivalKind.LATE
+          : null;
+    if (!kind) return;
+
+    const rows = await this.prisma.visitClockInArrivalReasonCatalog.findMany({
+      where: { isActive: true, kind },
+      select: { label: true, requiresNotes: true },
+    });
+    if (rows.length === 0) {
+      if (!dto.timingExceptionNotes?.trim()) {
+        contractError(
+          'TIMING_NOTES_REQUIRED',
+          kind === VisitClockInArrivalKind.EARLY
+            ? 'Write why you arrived early'
+            : 'Write why you arrived late',
+        );
+      }
+      return;
+    }
+
+    const chosen = dto.timingExceptionReasonCode?.trim();
+    if (!chosen) {
+      contractError(
+        'TIMING_REASON_REQUIRED',
+        kind === VisitClockInArrivalKind.EARLY
+          ? 'Select a reason for early arrival'
+          : 'Select a reason for late arrival',
+      );
+    }
+    const match = rows.find((r) => r.label === chosen);
+    if (!match) {
+      contractError('INVALID_TIMING_REASON', 'Arrival reason is not in the office catalogue');
+    }
+    if (match.requiresNotes && !dto.timingExceptionNotes?.trim()) {
+      contractError('TIMING_NOTES_REQUIRED', `Add notes for “${match.label}”`);
+    }
+  }
+
+  /** Clock-out picker is end-only. Arrival reasons were already captured at check-in. */
+  private async assertClockOutEndReason(
+    dto: EmployeeAppVisitCompleteDto,
+    plannedEnd: Date | null | undefined,
+    actualEnd: Date,
+    graceMinutes: number,
+  ) {
+    if (!plannedEnd) return;
+    const graceMs = Math.max(0, graceMinutes) * 60_000;
+    const planned = plannedEnd.getTime();
+    const actual = actualEnd.getTime();
+    const kind =
+      actual < planned - graceMs
+        ? VisitClockInArrivalKind.EARLY
+        : actual > planned + graceMs
+          ? VisitClockInArrivalKind.LATE
+          : null;
+    if (!kind) return;
+
+    const rows = await this.prisma.visitClockOutEndReasonCatalog.findMany({
+      where: { isActive: true, kind },
+      select: { label: true, requiresNotes: true },
+    });
+    if (rows.length === 0) {
+      if (!dto.timingExceptionNotes?.trim()) {
+        contractError(
+          'TIMING_NOTES_REQUIRED',
+          kind === VisitClockInArrivalKind.EARLY
+            ? 'Write why you clocked out early'
+            : 'Write why you clocked out late',
+        );
+      }
+      return;
+    }
+
+    const chosen = dto.timingExceptionReasonCode?.trim();
+    if (!chosen) {
+      contractError(
+        'TIMING_REASON_REQUIRED',
+        kind === VisitClockInArrivalKind.EARLY
+          ? 'Select a reason for early clock-out'
+          : 'Select a reason for late clock-out',
+      );
+    }
+    const match = rows.find((r) => r.label === chosen);
+    if (!match) {
+      contractError('INVALID_TIMING_REASON', 'Clock-out reason is not in the office catalogue');
+    }
+    if (match.requiresNotes && !dto.timingExceptionNotes?.trim()) {
+      contractError('TIMING_NOTES_REQUIRED', `Add notes for “${match.label}”`);
+    }
   }
 
   private mapCareConsent(row: {
@@ -519,6 +743,8 @@ export class EmployeeAppVisitsService {
 
     // Single-carer: visit-level already-checked-in (unchanged).
     // Double-up: each carer clocks in independently via allocation actualStart.
+    await this.assertCheckInArrivalReason(dto);
+
     const alreadyCheckedIn = multi
       ? Boolean(myAllocation?.actualStartDateTime)
       : Boolean(visit.actualStartDateTime) ||
@@ -1470,6 +1696,36 @@ export class EmployeeAppVisitsService {
       myAllocation?.actualStartDateTime?.toISOString() ??
       ctx.primaryVisit.actualStartDateTime?.toISOString();
 
+    const endDate = new Date(endIso);
+    const plannedEnd =
+      ctx.job.scheduledEndDateTime ?? ctx.primaryVisit.scheduledEndDateTime ?? null;
+    await this.assertClockOutEndReason(dto, plannedEnd, endDate, 15);
+
+    const previousMetaForTiming = this.parseMetadata(ctx.job.metadata);
+    const eaMeta =
+      typeof previousMetaForTiming.employeeApp === 'object' && previousMetaForTiming.employeeApp
+        ? (previousMetaForTiming.employeeApp as Record<string, unknown>)
+        : {};
+    const checkInsMeta =
+      typeof eaMeta.checkIns === 'object' && eaMeta.checkIns
+        ? (eaMeta.checkIns as Record<string, unknown>)
+        : {};
+    const myCheckIn =
+      (typeof checkInsMeta[employeeId] === 'object' && checkInsMeta[employeeId]
+        ? (checkInsMeta[employeeId] as Record<string, unknown>)
+        : null) ??
+      (typeof eaMeta.checkIn === 'object' && eaMeta.checkIn
+        ? (eaMeta.checkIn as Record<string, unknown>)
+        : null);
+    const checkInReason =
+      typeof myCheckIn?.timingExceptionReasonCode === 'string'
+        ? myCheckIn.timingExceptionReasonCode.trim()
+        : '';
+    const checkInNotes =
+      typeof myCheckIn?.timingExceptionNotes === 'string'
+        ? myCheckIn.timingExceptionNotes.trim()
+        : '';
+
     const result = await this.housekeeping.completeJob('', jobId, {
       status,
       notes,
@@ -1479,8 +1735,8 @@ export class EmployeeAppVisitsService {
       actualStartDateTime: startIso,
       actualEndDateTime: endIso,
       overrunReason: dto.overrunReason,
-      timingExceptionReasonCode: dto.timingExceptionReasonCode,
-      timingExceptionNotes: dto.timingExceptionNotes,
+      timingExceptionReasonCode: dto.timingExceptionReasonCode?.trim() || checkInReason || undefined,
+      timingExceptionNotes: dto.timingExceptionNotes?.trim() || checkInNotes || undefined,
     });
 
     // Lead allocation clock-out only — do not force support allocation end if still on site.
@@ -2354,6 +2610,10 @@ export class EmployeeAppVisitsService {
     if (Number.isNaN(recordedAt.getTime())) {
       validationError('deviceRecordedAt must be a valid ISO date-time');
     }
+    const witness = resolveMedicationWitnessColumns(
+      Boolean(med.isControlledMedication),
+      dto,
+    );
     const timeGiven =
       dto.timeGiven?.trim() || formatHmUtc(recordedAt);
     const roundRow = ctx.medicationRoundCode
@@ -2379,6 +2639,7 @@ export class EmployeeAppVisitsService {
         supportLevel: dto.supportLevel?.trim() || null,
         timeGiven,
         outcomeLabel: dto.outcomeLabel?.trim() || null,
+        ...witness,
         visitId: ctx.primaryVisit.id,
         isPrn,
         prnReason: dto.prnIndication ?? null,
@@ -2429,7 +2690,12 @@ export class EmployeeAppVisitsService {
       sourceType: 'medication',
       sourceId: created.id,
       title: medTitle || 'Medication',
-      detail: medicationOutcomeLabel(dto.outcomeLabel, mapped.status),
+      detail: [
+        medicationOutcomeLabel(dto.outcomeLabel, mapped.status),
+        medicationWitnessTimelineDetail(buildMedicationWitnessEcho(witness)),
+      ]
+        .filter(Boolean)
+        .join(' · '),
       tone: medicationTimelineTone(mapped.status),
       occurredAt: parseOccurredAt(dto.deviceRecordedAt, recordedAt),
       createdByEmployeeId: employeeId,
@@ -4437,6 +4703,11 @@ export class EmployeeAppVisitsService {
                 supportLevel: true,
                 timeGiven: true,
                 outcomeLabel: true,
+                witnessPresent: true,
+                witnessName: true,
+                witnessRelationCode: true,
+                witnessRelationDetail: true,
+                witnessNotes: true,
                 actualDateTime: true,
                 prnReason: true,
                 prnOutcome: true,

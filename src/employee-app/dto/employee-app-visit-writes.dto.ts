@@ -213,6 +213,38 @@ export class EmployeeAppMedicationAdminDto {
   @IsBoolean()
   allergyAcknowledged?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      'Controlled-drug witness. false = No. true = Yes (name + relation required). Omitted = not asked.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  witnessPresent?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  witnessName?: string;
+
+  @ApiPropertyOptional({ example: 'RELATIVE', description: 'CO_CARER | RELATIVE | OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  witnessRelationCode?: string;
+
+  @ApiPropertyOptional({ description: 'Required when relation is RELATIVE (son, daughter, …)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  witnessRelationDetail?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  witnessNotes?: string;
+
   @ApiProperty()
   @IsBoolean()
   identityConfirmed!: boolean;

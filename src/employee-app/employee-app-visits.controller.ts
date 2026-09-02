@@ -62,7 +62,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Complete visit details bootstrap',
     description:
-      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map bootstrap (lookups, active records, diagram catalog) in one snapshot. Includes `data.unableToStart` (canReport, alreadyReported, summary, reasons[]) for post-check-in “Unable to start visit”, `data.careConsent` (required, status GRANTED/DECLINED/null), and `data.clockInSettings.earlyArrivalReasons` / `lateArrivalReasons` for check-in timing pickers.',
+      'Returns the shared visit shell plus overview, tasks, MAR, observations, log, and body-map bootstrap (lookups, active records, diagram catalog) in one snapshot. Includes `data.unableToStart`, `data.careConsent`, clock-in/out reason catalogues, and `data.visitOutcomes` (medication pills from MAR status codes plus nested reasons; task / observation outcomes from Settings).',
   })
   details(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getVisitDetails(user.employeeId!, jobId);

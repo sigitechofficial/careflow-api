@@ -5127,6 +5127,12 @@ model MedicationAdministrationEvent {
   timeGiven               String?                       @db.VarChar(5)
   /** Carer-app MAR echo: UI outcome label (Given, Refused, …). */
   outcomeLabel            String?                       @db.VarChar(128)
+  /** Optional CD witness entered on the visit — no catalog / default list. */
+  witnessPresent          Boolean?
+  witnessName             String?                       @db.VarChar(200)
+  witnessRelationCode     String?                       @db.VarChar(32)
+  witnessRelationDetail   String?                       @db.VarChar(128)
+  witnessNotes            String?                       @db.VarChar(2000)
   correctionReason        String?
   correctionNotes         String?
   medicationNameSnapshot  String?
@@ -6229,6 +6235,94 @@ enum LateVisitAlertKind {
   LATE_START
   NOT_STARTED_PAST_END
 
+  @@schema("scheduling")
+}
+
+enum VisitClockInArrivalKind {
+  EARLY
+  LATE
+
+  @@schema("scheduling")
+}
+
+enum VisitOutcomeArea {
+  MEDICATION
+  TASK
+  OBSERVATION
+
+  @@schema("scheduling")
+}
+
+/// Admin Settings “Outcome reasons” — Given / Refused / etc. per visit area.
+model VisitOutcomeCatalog {
+  id            String           @id @default(uuid()) @db.Uuid
+  area          VisitOutcomeArea
+  code          String
+  label         String
+  allowsReasons Boolean          @default(true)
+  sortOrder     Int              @default(0)
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  reasons       VisitOutcomeReasonCatalog[]
+
+  @@unique([area, code])
+  @@index([area, isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+/// Reasons shown after a carer picks an outcome (e.g. Refused → Client declined).
+model VisitOutcomeReasonCatalog {
+  id            String              @id @default(uuid()) @db.Uuid
+  outcomeId     String              @db.Uuid
+  outcome       VisitOutcomeCatalog @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+  label         String
+  requiresNotes Boolean             @default(false)
+  sortOrder     Int                 @default(0)
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@unique([outcomeId, label])
+  @@index([outcomeId, isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+/// Org-configurable early/late clock-out (end) reasons for the carer-app.
+/// Served via employee-app `clockOutSettings`; managed in admin Settings.
+model VisitClockOutEndReasonCatalog {
+  id            String                  @id @default(uuid()) @db.Uuid
+  kind          VisitClockInArrivalKind
+  label         String
+  requiresNotes Boolean                 @default(false)
+  sortOrder     Int                     @default(0)
+  isActive      Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@unique([kind, label])
+  @@index([kind, isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+/// Org-configurable early/late clock-in reasons for the carer-app.
+/// Served via employee-app `clockInSettings`; managed in admin Settings.
+model VisitClockInArrivalReasonCatalog {
+  id            String                  @id @default(uuid()) @db.Uuid
+  kind          VisitClockInArrivalKind
+  label         String
+  requiresNotes Boolean                 @default(false)
+  sortOrder     Int                     @default(0)
+  isActive      Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@unique([kind, label])
+  @@index([kind, isActive])
+  @@index([sortOrder])
   @@schema("scheduling")
 }
 
