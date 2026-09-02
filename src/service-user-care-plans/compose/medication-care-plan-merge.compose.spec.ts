@@ -76,17 +76,24 @@ function ctxWith(): CarePlanComposeContext {
 describe('Medication engine still auto-prefills after stable keys are added', () => {
   it('populates existing fields into values{} (label matching survives the key addition)', () => {
     const result = runCarePlanCompose(MEDICATION_FORM_NAME, ctxWith(), fieldRefsFromSeed());
-    // Support level auto-prefilled from the medication snapshot ("prompting" -> "Prompted").
-    expect(result.values[keyOf('medication_support_level')]).toBe('Prompted');
+    // Support level is a suggestion from the medication snapshot ("prompting" -> "Prompted").
+    expect(result.values[keyOf('medication_support_level')]).toBeUndefined();
+    expect(
+      result.suggestions?.some(
+        (s) => s.targetFieldKey === keyOf('medication_support_level') && s.suggestedValue === 'Prompted',
+      ),
+    ).toBe(true);
     // Known allergies auto-prefilled from the structured ServiceUserAllergy source (ctx.allergies).
     expect(result.values[keyOf('medication_known_allergies')]).toContain('Penicillin');
     expect(result.fieldSources?.[keyOf('medication_known_allergies')]).toBe('allergies');
   });
 
-  it('keeps writing into values{} and leaves suggestions[] unused (no conversion to suggestions)', () => {
+  it('keeps writing AUTO fields into values{} and emits a support-level suggestion', () => {
     const result = runCarePlanCompose(MEDICATION_FORM_NAME, ctxWith(), fieldRefsFromSeed());
     expect(Object.keys(result.values).length).toBeGreaterThan(0);
-    expect(result.suggestions).toBeUndefined();
+    expect(result.values[keyOf('medication_support_level')]).toBeUndefined();
+    expect(result.suggestions?.length).toBeGreaterThan(0);
+    expect(result.suggestionMode).toBe('hybrid');
   });
 
   it('routes to the existing Medication engine (auto-prefill composedFrom), not a new suggestion engine', () => {
@@ -129,17 +136,16 @@ describe('Care 2020 fields stay manual', () => {
 // --------------------------------------------------------------------------
 
 describe('Medication documentation registry', () => {
-  it('documents six auto-prefill fields, zero suggestions, and seven manual fields', () => {
+  it('documents five auto-prefill fields, one suggestion, and seven manual fields', () => {
     expect(MEDICATION_FIELD_REGISTRY).toHaveLength(17);
     expect(MEDICATION_AUTO_PREFILL_KEYS).toEqual([
-      'medication_support_level',
       'medication_known_allergies',
       'medication_prn_medicines',
       'medication_storage_blister_packs',
       'medication_refusal_missed_dose',
       'medication_pharmacy_gp_contact',
     ]);
-    expect(MEDICATION_SUGGESTION_KEYS).toHaveLength(0);
+    expect(MEDICATION_SUGGESTION_KEYS).toEqual(['medication_support_level']);
     expect(MEDICATION_MANUAL_KEYS).toEqual(CARE_2020_KEYS);
   });
 
@@ -159,5 +165,46 @@ describe('Medication documentation registry', () => {
 
   it('stays in lockstep with the seed template', () => {
     expect(() => assertMedicationRegistryMatchesTemplate()).not.toThrow();
+  });
+});
+
+describe('IA medicationSupportLevel → existing hybrid suggestion UI contract', () => {
+  it('produces a suggestion from IA selectedOptions and never writes medication_support_level into values', () => {
+    const ctx = {
+      ...ctxWith(),
+      ia: {
+        submissionId: 'ia-in-progress',
+        status: 'IN_PROGRESS' as const,
+        submittedAt: null,
+        answers: [
+          {
+            questionId: 'q-support',
+            questionText: 'Recommended medication support level',
+            checked: null,
+            booleanValue: null,
+            textValue: null,
+            selectedOptions: 'level_1a',
+            fieldKey: 'medicationSupportLevel',
+            specRef: '9.2',
+            sectionNumber: 9,
+            sectionTitle: 'Medication',
+            carePlanArea: 'Medication',
+          },
+        ],
+        medicationSnapshot: null,
+      },
+    } as unknown as CarePlanComposeContext;
+
+    const result = runCarePlanCompose(MEDICATION_FORM_NAME, ctx, fieldRefsFromSeed());
+    const supportKey = keyOf('medication_support_level');
+
+    expect(result.suggestionMode).toBe('hybrid');
+    expect(result.values[supportKey]).toBeUndefined();
+    expect(Object.keys(result.values)).not.toContain('medication_support_level');
+    expect(
+      result.suggestions?.some(
+        (s) => s.targetFieldKey === supportKey && s.suggestedValue === 'Prompted',
+      ),
+    ).toBe(true);
   });
 });

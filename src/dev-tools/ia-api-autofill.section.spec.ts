@@ -84,13 +84,19 @@ describe('IaApiAutofillService.generateSection', () => {
     const empty = await service.generateSection('critical', 1, ['plain', 'dob', 'keysafe']);
     expect(empty.answers.map((a) => a.questionId)).toEqual(expect.arrayContaining(['plain', 'dob']));
     expect(empty.answers.map((a) => a.questionId)).not.toContain('keysafe');
+    expect(empty.profilePatch.address?.addressLine1).toBeTruthy();
+    expect(empty.profilePatch.gp?.name).toBeTruthy();
 
     const occupied = await service.generateSection('critical', 1, ['plain', 'dob', 'keysafe'], {
       dateOfBirth: '1944-03-12',
+      addressLine1: '99 Existing Street',
+      gpName: 'Dr Existing',
     });
     expect(occupied.answers.map((a) => a.questionId)).toContain('plain');
     expect(occupied.answers.map((a) => a.questionId)).not.toContain('dob');
     expect(occupied.answers.map((a) => a.questionId)).not.toContain('keysafe');
+    expect(occupied.profilePatch.address?.addressLine1).toBeUndefined();
+    expect(occupied.profilePatch.gp?.name).toBeUndefined();
   });
 
   it('fills About Me prefill fields and empty identity fields such as date of birth', async () => {
@@ -115,10 +121,54 @@ describe('IaApiAutofillService.generateSection', () => {
     expect(res.answers.map((a) => a.questionId)).toEqual(['a1']);
   });
 
-  it.each([0, 19, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
+  it.each([0, 23, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
     const { service } = makeService([q('a1', 5)]);
     await expect(service.generateSection('critical', tabId, ['a1'])).rejects.toBeInstanceOf(
       BadRequestException,
+    );
+  });
+
+  it.each([19, 20, 21, 22])('accepts registered holistic tabId %p', async (tabId) => {
+    const sectionNumber = tabId === 19 ? 16 : tabId === 20 ? 17 : tabId === 21 ? 15 : 18;
+    const { service } = makeService([q('a1', sectionNumber)]);
+    const res = await service.generateSection('critical', tabId, ['a1']);
+    expect(res.answers.map((a) => a.questionId)).toContain('a1');
+  });
+
+  it('tab 11 Fill Demo writes nested therapyAideMemoire without a top-level key', async () => {
+    const { service } = makeService([]);
+    const res = await service.generateSection('critical', 11, []);
+    expect(res.metadata.therapyAideMemoire).toBeUndefined();
+    const pain = res.metadata.painAssessment as {
+      nrsScore?: number;
+      abbey?: unknown;
+      therapyAideMemoire?: {
+        furtherReferralRequired?: boolean;
+        mobilityChange?: { checked?: boolean; details?: string };
+        choking?: { checked?: boolean };
+      };
+    };
+    expect(pain.nrsScore).toBeUndefined();
+    expect(pain.abbey).toBeUndefined();
+    expect(pain.therapyAideMemoire?.furtherReferralRequired).toBe(false);
+    expect(pain.therapyAideMemoire?.choking?.checked).toBe(false);
+    expect(pain.therapyAideMemoire?.mobilityChange?.checked).toBe(true);
+    expect(pain.therapyAideMemoire?.mobilityChange?.details?.trim()).toBeTruthy();
+  });
+
+  it('tab 6 owns equipment selection and checklist; Stable does not invent hoist/bed', async () => {
+    const { service } = makeService([]);
+    const res = await service.generateSection('low', 6, []);
+    expect(res.metadata.equipmentSelection).toEqual(
+      expect.objectContaining({
+        selectedEquipment: 'Standard foam mattress — no additional pressure equipment',
+      }),
+    );
+    expect(res.metadata.equipmentChecklist).toEqual(
+      expect.objectContaining({
+        hoistServiced: false,
+        profilingBedServiced: false,
+      }),
     );
   });
 

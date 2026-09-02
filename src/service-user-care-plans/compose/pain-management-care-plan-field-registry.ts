@@ -24,9 +24,10 @@ export type PainFieldRegistryEntry = {
 /**
  * Approved mapping for every Pain Management field.
  *
- * The IA audit approved four suggestions, all from IA §5.3 (the pain section of the
- * assessment). Nothing auto-prefills — every suggestion is surfaced for a clinician to
- * review, and the remaining ten fields are deliberately manual with reasons recorded.
+ * The IA audit approved four suggestions from IA §5.3 (usual score, site, worsens,
+ * regular analgesia). A fifth suggestion surfaces the Abbey Pain Scale summary from
+ * the existing IA Pain Assessment Tool onto person-centred details — suggestion only,
+ * never auto-written, never mapped onto usual pain score (0–10), never driving area-risk.
  *
  * NOTE (identified future improvement, deliberately out of scope): a structured
  * ObservationType "Pain score" (PAIN, NUMERIC, 0-10) exists but currently has zero live
@@ -143,9 +144,16 @@ export const PAIN_FIELD_REGISTRY: readonly PainFieldRegistryEntry[] = [
   },
   {
     businessKey: 'pain_management_needs_person_centred',
-    mode: 'MANUAL',
-    source: 'MANUAL',
-    sources: [{ kind: 'MANUAL', notes: 'Free-text person-centred narrative for the needs question.' }],
+    mode: 'SUGGESTION',
+    source: 'INITIAL_ASSESSMENT',
+    sources: [
+      {
+        kind: 'INITIAL_ASSESSMENT',
+        notes:
+          'Abbey Pain Scale summary from the IA Pain Assessment Tool (holistic tab 10). Suggestion only — never auto-written, never mapped onto usual pain score (0–10), never drives area-risk.',
+      },
+    ],
+    resolverImplemented: true,
   },
   {
     businessKey: 'pain_management_desired_goals_outcomes',

@@ -1,9 +1,20 @@
 import { InitialAssessmentStatus } from '@prisma/client';
 import type { CarePlanComposeIaStatus } from './compose-context.types';
 
+/** Assessments that are preferred compose sources (signed-off). */
 export const COMPOSE_ELIGIBLE_IA_STATUSES: InitialAssessmentStatus[] = [
   InitialAssessmentStatus.SUBMITTED,
   InitialAssessmentStatus.REVIEWED,
+];
+
+/**
+ * Snapshots loaded for compose. IN_PROGRESS is a fallback only when no submitted/reviewed IA exists
+ * so Fill Demo Data / Create Plan before manager review can still read medicationSupportLevel.
+ */
+export const COMPOSE_IA_LOAD_STATUSES: InitialAssessmentStatus[] = [
+  InitialAssessmentStatus.SUBMITTED,
+  InitialAssessmentStatus.REVIEWED,
+  InitialAssessmentStatus.IN_PROGRESS,
 ];
 
 const PREVIOUS_ASSESSMENT_LIMIT = 10;
@@ -26,6 +37,7 @@ export function isEligibleComposeIaStatus(status: InitialAssessmentStatus): stat
 export function toComposeIaStatus(status: InitialAssessmentStatus): CarePlanComposeIaStatus | null {
   if (status === InitialAssessmentStatus.SUBMITTED) return 'SUBMITTED';
   if (status === InitialAssessmentStatus.REVIEWED) return 'REVIEWED';
+  if (status === InitialAssessmentStatus.IN_PROGRESS) return 'IN_PROGRESS';
   return null;
 }
 
@@ -44,8 +56,18 @@ export function splitLatestAndPreviousAssessments<T extends EligibleAssessmentRo
   rows: T[],
 ): { latest: T | null; previous: T[] } {
   const sorted = sortEligibleAssessmentsForCompose(rows);
+  if (sorted.length > 0) {
+    return {
+      latest: sorted[0] ?? null,
+      previous: sorted.slice(1, 1 + PREVIOUS_ASSESSMENT_LIMIT),
+    };
+  }
+
+  const inProgress = [...rows]
+    .filter((row) => row.status === InitialAssessmentStatus.IN_PROGRESS)
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   return {
-    latest: sorted[0] ?? null,
-    previous: sorted.slice(1, 1 + PREVIOUS_ASSESSMENT_LIMIT),
+    latest: inProgress[0] ?? null,
+    previous: [],
   };
 }

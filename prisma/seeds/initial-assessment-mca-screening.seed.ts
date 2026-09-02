@@ -1,5 +1,5 @@
 import { InitialAssessmentQuestionType } from '@prisma/client';
-import { iaMeta } from './initial-assessment-enterprise-metadata';
+import { iaMeta, whenYes } from './initial-assessment-enterprise-metadata';
 
 const Y = InitialAssessmentQuestionType.YES_NO;
 const A = InitialAssessmentQuestionType.TEXTAREA;
@@ -18,6 +18,8 @@ export const MCA_SCREENING_OUTCOME_OPTIONS = [
   },
 ];
 
+const MCA_WHEN_REQUIRED = whenYes('mca required');
+
 /** Initial Mental Capacity Act screening tool (document tab 3). Upserted by questionText. */
 export const MCA_SCREENING_QUESTIONS = [
   {
@@ -31,6 +33,7 @@ export const MCA_SCREENING_QUESTIONS = [
       screeningPart: 'two_stage',
       screeningOrder: 1,
       hint: 'It does not matter whether the impairment or disturbance is temporary or permanent.',
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -43,6 +46,7 @@ export const MCA_SCREENING_QUESTIONS = [
       fieldKey: 'mcaStage2UnableToDecide',
       screeningPart: 'two_stage',
       screeningOrder: 2,
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -54,6 +58,7 @@ export const MCA_SCREENING_QUESTIONS = [
       fieldKey: 'mcaFunctionalUnderstand',
       screeningPart: 'functional',
       screeningOrder: 1,
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -65,6 +70,7 @@ export const MCA_SCREENING_QUESTIONS = [
       fieldKey: 'mcaFunctionalRetain',
       screeningPart: 'functional',
       screeningOrder: 2,
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -77,6 +83,7 @@ export const MCA_SCREENING_QUESTIONS = [
       fieldKey: 'mcaFunctionalWeigh',
       screeningPart: 'functional',
       screeningOrder: 3,
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -89,6 +96,7 @@ export const MCA_SCREENING_QUESTIONS = [
       fieldKey: 'mcaFunctionalCommunicate',
       screeningPart: 'functional',
       screeningOrder: 4,
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
@@ -100,12 +108,17 @@ export const MCA_SCREENING_QUESTIONS = [
     metadata: iaMeta('2.mca', {
       fieldKey: 'mcaScreeningOutcome',
       screeningPart: 'outcome',
+      ...MCA_WHEN_REQUIRED,
     }),
   },
   {
     questionText: 'MCA screening tool comments',
     questionType: A,
     sortOrder: 58,
-    metadata: iaMeta('2.mca', { fieldKey: 'mcaScreeningComments', screeningPart: 'comments' }),
+    metadata: iaMeta('2.mca', {
+      fieldKey: 'mcaScreeningComments',
+      screeningPart: 'comments',
+      ...MCA_WHEN_REQUIRED,
+    }),
   },
 ];

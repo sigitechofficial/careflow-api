@@ -46,6 +46,11 @@ describe('mapMedicationSupportLevelToCarePlan', () => {
     expect(mapMedicationSupportLevelToCarePlan('prompting')).toBe('Prompted');
     expect(mapMedicationSupportLevelToCarePlan('full_admin')).toBe('Administered by carer');
     expect(mapMedicationSupportLevelToCarePlan('district_nurse')).toBe('Nurse only');
+    expect(mapMedicationSupportLevelToCarePlan('level_0')).toBe('Self-administers');
+    expect(mapMedicationSupportLevelToCarePlan('level_1a')).toBe('Prompted');
+    expect(mapMedicationSupportLevelToCarePlan('level_1b')).toBe('Administered by carer');
+    expect(mapMedicationSupportLevelToCarePlan('level_2a')).toBe('Administered by carer');
+    expect(mapMedicationSupportLevelToCarePlan('level_2b')).toBe('Nurse only');
   });
 });
 
@@ -139,7 +144,10 @@ describe('composeMedicationCarePlan', () => {
       'su-1',
     );
 
-    expect(result.values['sec:1']).toBe('Prompted');
+    expect(result.values['sec:1']).toBeUndefined();
+    expect(result.suggestions?.some((s) => s.targetFieldKey === 'sec:1' && s.suggestedValue === 'Prompted')).toBe(
+      true,
+    );
     expect(result.values['sec:2']).toContain('Penicillin');
     expect(result.values['sec:3']).toContain('Dr Smith');
     expect(result.evidence.some((e) => e.source === 'emar')).toBe(true);
@@ -271,7 +279,10 @@ describe('composeMedicationCarePlan', () => {
       'su-demo',
     );
 
-    expect(result.values['sec:support']).toBe('Prompted');
+    expect(result.values['sec:support']).toBeUndefined();
+    expect(result.suggestions?.some((s) => s.targetFieldKey === 'sec:support' && s.suggestedValue === 'Prompted')).toBe(
+      true,
+    );
     expect(result.values['sec:allergies']).toContain('No known allergies');
     expect(String(result.values['sec:prn'])).toContain('Paracetamol PRN');
     expect(String(result.values['sec:storage'])).toMatch(/Blister pack|packaging/i);
@@ -327,5 +338,72 @@ describe('composeMedicationCarePlan', () => {
 
     expect(result.values['sec:allergies']).toBe('No known allergies.');
     expect(result.gaps).toHaveLength(0);
+  });
+
+  it('emits a medicationSupportLevel SUGGESTION from IA answers without writing composed values', () => {
+    const supportField: CarePlanFormFieldRef = {
+      key: 'overview:support',
+      sectionId: 'overview',
+      fieldId: 'support',
+      fieldKey: 'medication_support_level',
+      label: 'Medication support level',
+      fieldType: 'SELECT',
+      required: true,
+    };
+    const ctx: CarePlanComposeContext = {
+      serviceUserId: 'su-colin',
+      serviceUserName: 'Colin Ashworth',
+      personalisation: buildCarePlanPersonalisationContext({
+        firstName: 'Colin',
+        lastName: 'Ashworth',
+      }),
+      ia: {
+        submissionId: 'ia-in-progress',
+        submittedAt: null,
+        status: 'IN_PROGRESS',
+        answers: [
+          {
+            questionId: 'q-med-support',
+            questionText: 'Recommended medication support level',
+            checked: null,
+            booleanValue: null,
+            textValue: null,
+            selectedOptions: 'level_2a',
+            fieldKey: 'medicationSupportLevel',
+            specRef: '9.2',
+            sectionNumber: 9,
+            sectionTitle: 'Medication',
+            carePlanArea: 'Medication',
+          },
+        ],
+      },
+      aboutMe: null,
+      emergencyContacts: [],
+      allergies: [],
+      emar: { activeCount: 0, scheduledCount: 0, prnCount: 0, medListText: '', prnText: '' },
+      pack: null,
+      gpPharmacyLine: null,
+    };
+
+    const result = composeMedicationCarePlan(
+      ctx,
+      [supportField],
+      MEDICATION_CARE_PLAN_FIELD_MAPPINGS,
+      'su-colin',
+    );
+
+    expect(result.suggestionMode).toBe('hybrid');
+    expect(result.values['overview:support']).toBeUndefined();
+    expect(result.values).not.toHaveProperty('medication_support_level');
+    const suggestion = result.suggestions?.find((s) => s.targetFieldKey === 'overview:support');
+    expect(suggestion).toEqual(
+      expect.objectContaining({
+        kind: 'value',
+        suggestedValue: 'Administered by carer',
+        displayText: 'Administered by carer',
+        sourceType: 'INITIAL_ASSESSMENT',
+        questionFieldKey: 'medicationSupportLevel',
+      }),
+    );
   });
 });

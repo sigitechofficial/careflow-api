@@ -2,22 +2,26 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InitialAssessmentTemplatesService } from '../initial-assessment-templates/initial-assessment-templates.service';
 import {
   buildAutofillAnswers,
+  buildDemoProfilePatch,
   buildHolisticWorksheetMetadata,
   collectWritableDemoQuestionIds,
+  profilePatchHasValues,
   type AnswerInput,
   type IaAutofillLevel,
+  type IaDemoProfilePatch,
   type TemplateQuestion,
 } from './ia-autofill-build.util';
-import { IA_HOLISTIC_TAB_COUNT } from './dto/generate-ia-section.dto';
+import { isRegisteredHolisticTabId } from './dto/generate-ia-section.dto';
 
 /**
- * Holistic document tab (1..18) → its primary DB section (`sectionNumber`). Mirrors
+ * Holistic document tab → its primary DB section (`sectionNumber`). Mirrors
  * `enterpriseSection` in the frontend `holistic-assessment-tabs.ts`. Used to scope the
  * section demo's `sectionComments`/`sectionFooters` metadata.
  */
 const TAB_ENTERPRISE_SECTION: Record<number, number> = {
   1: 1, 2: 12, 3: 2, 4: 11, 5: 11, 6: 12, 7: 6, 8: 12, 9: 12,
   10: 5, 11: 5, 12: 3, 13: 13, 14: 13, 15: 14, 16: 14, 17: 10, 18: 11,
+  19: 16, 20: 17, 21: 15, 22: 18,
 };
 
 /**
@@ -36,7 +40,6 @@ const TAB_METADATA_KEYS: Record<number, string[]> = {
   8: ['fallsScreening'],
   9: ['movingHandlingOperations', 'transfers'],
   10: ['painAssessment'],
-  11: ['therapyAideMemoire'],
   12: ['environmentAssessment'],
   13: ['advanceCarePlanning'],
   14: ['endOfLifeAssessment'],
@@ -57,6 +60,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  */
 function pickTabMetadata(full: Record<string, unknown>, tabId: number): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
+  if (tabId === 11) {
+    const pain = full.painAssessment;
+    if (isRecord(pain) && 'therapyAideMemoire' in pain) {
+      patch.painAssessment = { therapyAideMemoire: pain.therapyAideMemoire };
+    }
+  }
   for (const key of TAB_METADATA_KEYS[tabId] ?? []) {
     if (key in full) patch[key] = full[key];
   }
@@ -89,17 +98,23 @@ export class IaApiAutofillService {
     tabId: number,
     questionIds: string[],
     identity?: import('./ia-autofill-build.util').IaDemoIdentity | null,
-  ): Promise<{ answers: AnswerInput[]; metadata: Record<string, unknown> }> {
-    if (!Number.isInteger(tabId) || tabId < 1 || tabId > IA_HOLISTIC_TAB_COUNT) {
-      throw new BadRequestException(`tabId must be an integer between 1 and ${IA_HOLISTIC_TAB_COUNT}`);
+  ): Promise<{ answers: AnswerInput[]; metadata: Record<string, unknown>; profilePatch: IaDemoProfilePatch }> {
+    if (!isRegisteredHolisticTabId(tabId)) {
+      throw new BadRequestException(
+        `tabId must be a registered holistic tab id (1–18, 19, 20, 21, 22); received ${tabId}`,
+      );
     }
 
     const allQuestions = await this.loadTemplateQuestions();
     const writable = collectWritableDemoQuestionIds(tabId, allQuestions, questionIds, level, identity);
     const answers = buildAutofillAnswers(allQuestions, level, writable, identity);
     const metadata = pickTabMetadata(buildHolisticWorksheetMetadata(level, identity), tabId);
+    const profilePatch = buildDemoProfilePatch(identity);
+    if (!profilePatchHasValues(profilePatch)) {
+      return { answers, metadata, profilePatch: {} };
+    }
 
-    return { answers, metadata };
+    return { answers, metadata, profilePatch };
   }
 
   /** Load the default template's questions flattened with sectionNumber + metadata (no submission). */

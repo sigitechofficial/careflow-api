@@ -1,4 +1,8 @@
 import {
+  computeAbbeyTotal,
+  isAbbeyAssessmentComplete,
+} from '../initial-assessments/initial-assessment-abbey.util';
+import {
   buildAutofillAnswers,
   buildHolisticWorksheetMetadata,
   collectWritableDemoQuestionIds,
@@ -117,7 +121,12 @@ const FIXTURE: TemplateQuestion[] = [
   q('diabetes-type', 4, {
     questionText: 'Type of diabetes',
     questionType: 'SINGLE_SELECT',
-    options: ['Type A', 'Type B'],
+    options: [
+      { value: 'type_1', label: 'Type 1' },
+      { value: 'type_2', label: 'Type 2' },
+      { value: 'other', label: 'Other' },
+      { value: 'unknown', label: 'Unknown' },
+    ],
     metadata: {
       specRef: '4.4',
       fieldKey: 'diabetesType',
@@ -237,11 +246,11 @@ function generateTab(
 
 function mergeAllTabs(level: IaAutofillLevel) {
   const tabRequests: Record<number, string[]> = {
-    1: ['interpreter', 'diabetic', 'wounds', 'manage-home'],
+    1: ['interpreter', 'diabetic', 'wounds'],
     3: [],
     8: [],
     10: ['unrelated-pain'],
-    12: [],
+    12: ['manage-home'],
     13: [],
     16: ['assessor-s14'],
   };
@@ -414,10 +423,11 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
     expect(ids).not.toContain('lone-worker');
   });
 
-  it('manage-home is a tab-1 extra (template question, not only worksheet metadata)', () => {
-    const extras = extraQuestionsForHolisticTab(1, FIXTURE).map((x) => x.id);
+  it('manage-home is a tab-12 extra (Environment), not tab 1', () => {
+    expect(extraQuestionsForHolisticTab(1, FIXTURE).map((x) => x.id)).not.toContain('manage-home');
+    const extras = extraQuestionsForHolisticTab(12, FIXTURE).map((x) => x.id);
     expect(extras).toContain('manage-home');
-    const answers = generateTab(1, [], 'critical');
+    const answers = generateTab(12, [], 'critical');
     expect(answers.some((a) => a.questionId === 'manage-home')).toBe(true);
   });
 
@@ -487,5 +497,27 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
     const ids = answers.map((a) => a.questionId);
     expect(ids).toContain('key-safe-location');
     expect(ids).not.toContain('key-safe-code');
+    const location = answers.find((a) => a.questionId === 'key-safe-location')?.textValue ?? '';
+    expect(location).toMatch(/front door|letterbox/i);
+    expect(location).not.toMatch(/Significant needs identified|Some support needs identified/);
   });
+
+  it.each(['critical', 'normal', 'low'] as const)(
+    'pain demo %s populates six Abbey domains and calculates total',
+    (level) => {
+      const pain = buildHolisticWorksheetMetadata(level).painAssessment as {
+        nrsScore?: number;
+        abbey?: Record<string, number | string>;
+      };
+      expect(isAbbeyAssessmentComplete(pain.abbey)).toBe(true);
+      expect(pain.abbey?.total).toBe(computeAbbeyTotal(pain.abbey));
+      if (Number(pain.abbey?.total) > 0) {
+        expect(pain.nrsScore).not.toBe(Math.round(Number(pain.abbey?.total) / 2));
+      }
+      if (level === 'low') {
+        expect(pain.nrsScore).toBe(0);
+        expect(pain.abbey?.total).toBe(0);
+      }
+    },
+  );
 });

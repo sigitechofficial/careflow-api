@@ -3,10 +3,10 @@
  * (tests/e2e/helpers/initial-assessment-autofill.ts + ia-holistic-metadata-autofill.ts).
  */
 import { enrichWaterlowMetadata } from '../initial-assessments/initial-assessment-waterlow.util';
+import { enrichAbbeyMetadata } from '../initial-assessments/initial-assessment-abbey.util';
+import { IA_REGISTERED_HOLISTIC_TAB_IDS } from './dto/generate-ia-section.dto';
 
 export type IaAutofillLevel = 'low' | 'normal' | 'critical';
-
-const HOLISTIC_TAB_COUNT = 18;
 
 export type TemplateQuestion = {
   id: string;
@@ -83,11 +83,40 @@ export type IaDemoIdentity = {
   ethnicity?: string | null;
   language?: string | null;
   addressContact?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  town?: string | null;
+  county?: string | null;
+  postcode?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
   gpContact?: string | null;
   gpName?: string | null;
+  gpPhone?: string | null;
+  gpPractice?: string | null;
   emergencyContact?: string | null;
   allergies?: string | null;
   accessInstruction?: string | null;
+};
+
+/** Structured empty-profile values for IA address/GP widgets (never overwrite occupied keys). */
+export type IaDemoProfilePatch = {
+  address?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    town?: string;
+    county?: string;
+    postcode?: string;
+  };
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  gp?: {
+    name?: string;
+    phone?: string;
+    practice?: string;
+  };
 };
 
 /**
@@ -100,13 +129,68 @@ export const QA_DEMO_NI_NUMBER = 'QQ123456C';
 export const QA_DEMO_GENDER = 'female';
 export const QA_DEMO_ETHNICITY = 'white_english_welsh_scottish_northern_irish_or_british';
 export const QA_DEMO_LANGUAGE = 'english';
+export const QA_DEMO_PO_NUMBER = 'PO-QA-0001';
+export const QA_DEMO_LOCAL_AUTHORITY_ID = 'LA-QA-1001';
+export const QA_DEMO_SAFEGUARDING_REF = 'SG-QA-0142';
+export const QA_DEMO_ADDRESS_LINE1 = '12 Maple Close';
+export const QA_DEMO_ADDRESS_LINE2 = 'Little Woodhouse';
+export const QA_DEMO_TOWN = 'Leeds';
+export const QA_DEMO_COUNTY = 'West Yorkshire';
+export const QA_DEMO_POSTCODE = 'LS1 4AP';
+export const QA_DEMO_PHONE = '0113 496 0123';
+export const QA_DEMO_MOBILE = '07700 900123';
+export const QA_DEMO_EMAIL = 'qa.client@example.net';
+export const QA_DEMO_GP_NAME = 'Dr A. Patel';
+export const QA_DEMO_GP_PHONE = '0113 496 0456';
+export const QA_DEMO_GP_PRACTICE = 'Oak Tree Medical Practice';
+export const QA_DEMO_HOSPITAL = 'Leeds General Infirmary';
+export const QA_DEMO_KEY_SAFE_LOCATION = 'To the right of the front door, above the letterbox';
+export const QA_DEMO_FAMILY_NAME = 'Sarah Wright';
+export const QA_DEMO_LPOA_NAME = 'Alex Wright';
+
+export function formatQaAddressAssessmentText(parts?: {
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  town?: string | null;
+  county?: string | null;
+  postcode?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+}): string {
+  const p = parts ?? {};
+  const address = [
+    p.addressLine1 ?? QA_DEMO_ADDRESS_LINE1,
+    p.addressLine2 ?? QA_DEMO_ADDRESS_LINE2,
+    p.town ?? QA_DEMO_TOWN,
+    p.county ?? QA_DEMO_COUNTY,
+    p.postcode ?? QA_DEMO_POSTCODE,
+  ]
+    .filter((x): x is string => Boolean(x && x.trim()))
+    .join(', ');
+  return [
+    address,
+    `Tel: ${p.phone ?? QA_DEMO_PHONE}`,
+    `Mobile: ${p.mobile ?? QA_DEMO_MOBILE}`,
+    `Email: ${p.email ?? QA_DEMO_EMAIL}`,
+  ].join('\n');
+}
+
+/** Exact format `InitialAssessmentGpContactField.parseGpContactAssessmentText` consumes. */
+export function formatQaGpWidgetText(parts?: { name?: string; phone?: string; practice?: string }): string {
+  return [
+    `Name: ${parts?.name ?? QA_DEMO_GP_NAME}`,
+    `Tel: ${parts?.phone ?? QA_DEMO_GP_PHONE}`,
+    parts?.practice ?? QA_DEMO_GP_PRACTICE,
+  ].join('\n');
+}
 
 /**
  * All three QA scenarios fill every applicable (visible) field.
  * Hidden follow-ups, secure fields, and occupied profile values are excluded separately.
  */
 function shouldFillQuestion(q: TemplateQuestion, _level: IaAutofillLevel): boolean {
-  return q.sectionNumber >= 1 && q.sectionNumber <= HOLISTIC_TAB_COUNT;
+  return q.sectionNumber >= 1;
 }
 
 /** Profile identity keys. Fill only when the Service User has no existing value. */
@@ -163,9 +247,11 @@ const SKIP_INVENTED_MEASUREMENT_TEXT = [
   'weight (kg)',
   'mid upper arm circumference',
   'muac nutritional risk',
+  'waterlow score',
+  'waterlow numeric',
 ];
 
-function isSecureQuestion(q: TemplateQuestion): boolean {
+export function isSecureQuestion(q: TemplateQuestion): boolean {
   const m = q.metadata;
   if (!m || typeof m !== 'object' || Array.isArray(m)) return false;
   return m.secureField === true;
@@ -244,10 +330,20 @@ function identityDemoAnswer(q: TemplateQuestion, identity?: IaDemoIdentity | nul
     };
   }
   if (profileKey === 'addressContact') {
-    return { ...base, textValue: '12 Maple Close, Leeds, LS1 4AP\nTel: 0113 496 0123' };
+    return { ...base, textValue: formatQaAddressAssessmentText(identity ?? undefined) };
   }
-  if (profileKey === 'gpContact' || profileKey === 'gpName') {
-    return { ...base, textValue: 'Dr A. Patel, Oak Tree Medical Practice\nTel: 0113 496 0456' };
+  if (profileKey === 'gpName') {
+    return { ...base, textValue: identityText(identity?.gpName) ?? QA_DEMO_GP_NAME };
+  }
+  if (profileKey === 'gpContact') {
+    return {
+      ...base,
+      textValue: formatQaGpWidgetText({
+        name: identityText(identity?.gpName),
+        phone: identityText(identity?.gpPhone),
+        practice: identityText(identity?.gpPractice),
+      }),
+    };
   }
   if (profileKey === 'emergencyContact') {
     return { ...base, textValue: 'Sarah Wright · Daughter · 07700 900123' };
@@ -283,7 +379,7 @@ export function isOccupiedIdentityQuestion(
   return isIdentityPrefillQuestion(q) && hasOccupiedIdentityValue(q, identity);
 }
 
-function isInventedClinicalMeasurement(q: TemplateQuestion): boolean {
+export function isInventedClinicalMeasurement(q: TemplateQuestion): boolean {
   const key = fieldKey(q);
   if (key && SKIP_INVENTED_MEASUREMENT_KEYS.has(key)) return true;
   const text = q.questionText.toLowerCase();
@@ -291,7 +387,7 @@ function isInventedClinicalMeasurement(q: TemplateQuestion): boolean {
 }
 
 /** Visible but not applicable unless a parent "Other" option is selected — leave empty. */
-function isIntentionalBlankDemoQuestion(q: TemplateQuestion): boolean {
+export function isIntentionalBlankDemoQuestion(q: TemplateQuestion): boolean {
   return q.questionText.toLowerCase().includes('other accommodation');
 }
 
@@ -301,15 +397,20 @@ const FIRE_SAFETY_FIELD_KEYS = new Set([
   'fireSafetyRisks',
   'londonFireBrigadeInformed',
   'londonFireBrigadeDetails',
-  'manageHomeEnvironmentSafely',
-  'homeEnvironmentSafetyMeasures',
+  'smokeAlarmFittedWorking',
+  'smokeCoFireAlarmReferral',
+  'smokingInProperty',
+  'cookingLeftUnattendedRisk',
+  'cookingFireRiskDetails',
+  'primaryEscapeRoute',
+  'fireEmergencyArrangements',
 ]);
 
 function isFireSafetyQuestion(q: TemplateQuestion): boolean {
   const key = fieldKey(q);
   if (key && FIRE_SAFETY_FIELD_KEYS.has(key)) return true;
   const ref = specRef(q);
-  return ref === '3.1' || ref === '3.2' || ref === '3.3' || ref === '3.4';
+  return ref === '18.1' || ref === '18.2' || ref === '18.3' || ref === '18.4' || ref === '18.5' || ref === '18.6';
 }
 
 function isProfileOrSecureQuestion(q: TemplateQuestion): boolean {
@@ -321,6 +422,7 @@ type ShowWhenRule = {
   gateFieldKey?: string;
   yes?: boolean;
   no?: boolean;
+  selectedIncludes?: string;
 };
 
 /** Same follow-up gates as the admin `conditional-visibility` inferred rules + seed `showWhen`. */
@@ -341,6 +443,14 @@ const INFERRED_FOLLOW_UP_RULES: { questionTextIncludes: string; when: ShowWhenRu
   },
   { questionTextIncludes: 'key safe code', when: { gateTextIncludes: 'key safe present', yes: true } },
   { questionTextIncludes: 'key safe location', when: { gateTextIncludes: 'key safe present', yes: true } },
+  {
+    questionTextIncludes: 'other accommodation',
+    when: { gateFieldKey: 'accommodationType', selectedIncludes: 'other' },
+  },
+  {
+    questionTextIncludes: 'informal carer contact',
+    when: { gateFieldKey: 'informalCarerSupport', yes: true },
+  },
   { questionTextIncludes: 'pets secured during visits', when: { gateFieldKey: 'petsPresent', yes: true } },
   { questionTextIncludes: 'pet infestation', when: { gateFieldKey: 'petsPresent', yes: true } },
   { questionTextIncludes: 'oxygen care notes', when: { gateTextIncludes: 'oxygen dependent', yes: true } },
@@ -360,7 +470,6 @@ const INFERRED_FOLLOW_UP_RULES: { questionTextIncludes: string; when: ShowWhenRu
   { questionTextIncludes: 'salt referral made', when: { gateTextIncludes: 'salt referral required', yes: true } },
   { questionTextIncludes: 'salt referral date', when: { gateTextIncludes: 'salt referral made', yes: true } },
   { questionTextIncludes: 'hydration comment', when: { gateTextIncludes: 'adequately hydrated', no: true } },
-  { questionTextIncludes: 'food allergy details', when: { gateTextIncludes: 'food allergies documented', yes: true } },
   { questionTextIncludes: 'bmi value', when: { gateTextIncludes: 'bmi completed', yes: true } },
   { questionTextIncludes: 'must score', when: { gateTextIncludes: 'must assessment completed', yes: true } },
   {
@@ -406,6 +515,10 @@ const INFERRED_FOLLOW_UP_RULES: { questionTextIncludes: string; when: ShowWhenRu
     when: { gateTextIncludes: 'local authority safeguarding referral required', yes: true },
   },
   { questionTextIncludes: 'safeguarding referral date', when: { gateTextIncludes: 'safeguarding referral made', yes: true } },
+  {
+    questionTextIncludes: 'safeguarding reference',
+    when: { gateTextIncludes: 'safeguarding concerns identified', yes: true },
+  },
   { questionTextIncludes: 'type of diabetes', when: { gateTextIncludes: 'service user is diabetic', yes: true } },
   {
     questionTextIncludes: 'what should staff do if no answer',
@@ -497,6 +610,7 @@ function parseMetadataShowWhen(metadata: Record<string, unknown> | null): ShowWh
     gateFieldKey,
     yes: row.yes === true ? true : undefined,
     no: row.no === true ? true : undefined,
+    selectedIncludes: typeof row.selectedIncludes === 'string' ? row.selectedIncludes : undefined,
   };
 }
 
@@ -535,7 +649,19 @@ function answerIsNo(a: AnswerInput | undefined): boolean {
   return a?.checked === false || a?.booleanValue === false;
 }
 
+function answerSelectedValues(a: AnswerInput | undefined): string[] {
+  const opts: unknown = a?.selectedOptions;
+  if (!opts) return [];
+  if (Array.isArray(opts)) return opts.map(String);
+  if (typeof opts === 'string' && opts.trim()) return [opts.trim()];
+  return [];
+}
+
 function gateMatchesGeneratedAnswer(rule: ShowWhenRule, gateAnswer: AnswerInput | undefined): boolean {
+  if (rule.selectedIncludes) {
+    const needle = rule.selectedIncludes.toLowerCase();
+    return answerSelectedValues(gateAnswer).some((v) => v.toLowerCase() === needle);
+  }
   if (rule.yes) return answerIsYes(gateAnswer);
   if (rule.no) return answerIsNo(gateAnswer);
   return false;
@@ -543,18 +669,16 @@ function gateMatchesGeneratedAnswer(rule: ShowWhenRule, gateAnswer: AnswerInput 
 
 /**
  * Template questions this holistic tab owns beyond the IDs currently visible in the UI
- * (worksheet-only tabs, hidden §1 assessorName, fire §3.1–3.4 on tab 1, etc.).
+ * (worksheet-only tabs, hidden §1 assessorName, Environment §3 on tab 12, etc.).
  */
 export function extraQuestionsForHolisticTab(
   tabId: number,
   questions: TemplateQuestion[],
 ): TemplateQuestion[] {
-  const consentRefs = new Set(['2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8']);
+  const consentRefs = new Set(['2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '2.9']);
   switch (tabId) {
     case 1:
-      return questions.filter(
-        (q) => isFireSafetyQuestion(q) || (q.sectionNumber === 1 && fieldKey(q) === 'assessorName'),
-      );
+      return questions.filter((q) => q.sectionNumber === 1 && fieldKey(q) === 'assessorName');
     case 3:
       return questions.filter((q) => {
         const ref = specRef(q);
@@ -568,6 +692,14 @@ export function extraQuestionsForHolisticTab(
       return questions.filter((q) => q.sectionNumber === 13);
     case 16:
       return questions.filter((q) => specRef(q) === '14.1');
+    case 21:
+      return questions.filter((q) => q.sectionNumber === 15);
+    case 19:
+      return questions.filter((q) => q.sectionNumber === 16);
+    case 20:
+      return questions.filter((q) => q.sectionNumber === 17);
+    case 22:
+      return questions.filter((q) => q.sectionNumber === 18 || isFireSafetyQuestion(q));
     default:
       return [];
   }
@@ -679,7 +811,20 @@ function e2eYesNoValue(q: TemplateQuestion): { checked: boolean; booleanValue: b
     text.includes('bmi completed') ||
     text.includes('must assessment completed') ||
     text.includes('pets present') ||
-    text.includes('are there pets');
+    text.includes('are there pets') ||
+    text.includes('covert medication') ||
+    text.includes('controlled drugs in use') ||
+    text.includes('dols / lps authorisation') ||
+    text.includes('infection control precautions required') ||
+    text.includes('oral health concern') ||
+    key === 'covertMedicationRequired' ||
+    key === 'controlledDrugsInUse' ||
+    key === 'dolsLpsAuthorisationInPlace' ||
+    key === 'infectionPrecautionsRequired' ||
+    key === 'oralHealthConcern' ||
+    key === 'fireSafetyRisksIdentified' ||
+    key === 'cookingLeftUnattendedRisk' ||
+    key === 'insulinAdministrationRequired';
 
   const positive =
     ref === '2.1' ||
@@ -734,9 +879,12 @@ function severeYesNoValue(q: TemplateQuestion): { checked: boolean; booleanValue
     text.includes('pets present') ||
     text.includes('are there pets') ||
     text.includes('salt referral required') ||
-    text.includes('controlled drugs in use') ||
-    text.includes('covert medication required') ||
-    text.includes('local authority safeguarding referral required');
+    text.includes('local authority safeguarding referral required') ||
+    key === 'infectionPrecautionsRequired' ||
+    key === 'oralHealthConcern' ||
+    key === 'fireSafetyRisksIdentified' ||
+    key === 'cookingLeftUnattendedRisk' ||
+    key === 'insulinAdministrationRequired';
 
   if (riskNo) return { checked: false, booleanValue: false };
   if (riskYes) return { checked: true, booleanValue: true };
@@ -912,7 +1060,7 @@ function realisticFreeText(q: TemplateQuestion, level: IaAutofillLevel): string 
   if (t.includes('allergies')) {
     return 'Penicillin — causes a skin rash. No known food allergies.';
   }
-  if (t.includes('safeguarding')) {
+  if (t.includes('safeguarding') && !t.includes('reference')) {
     return critical
       ? 'Concerns raised about self-neglect and a recent unexplained bruise; safeguarding referral made to the local authority and being monitored.'
       : 'No current safeguarding concerns. Family and the care team maintain regular contact.';
@@ -920,7 +1068,10 @@ function realisticFreeText(q: TemplateQuestion, level: IaAutofillLevel): string 
   if (t.includes('review') && t.includes('sign')) {
     return 'Assessment discussed with the service user and reviewed by the registered manager; agreed as an accurate reflection of current needs.';
   }
-  if (t.includes('emotional') || t.includes('mood') || t.includes('mental health')) {
+  if (
+    (t.includes('emotional') || t.includes('mood') || t.includes('mental health')) &&
+    !t.includes('contact')
+  ) {
     return critical
       ? 'Low in mood recently, tearful at times and withdrawn from usual activities; GP review requested and being monitored closely.'
       : 'Generally settled in mood, enjoys company and a regular routine; no significant concerns at present.';
@@ -948,8 +1099,38 @@ function realisticFreeText(q: TemplateQuestion, level: IaAutofillLevel): string 
       ? 'Fragile skin with a Grade 2 pressure area to the sacrum; repositioning chart in place and the district nurse is involved.'
       : 'Skin intact and in good condition; encourage regular repositioning and daily skin checks.';
   }
+  if (t.includes('medication safety notes')) {
+    return 'Record any refused or missed dose in the MAR and inform the office. Keep medicines in original packaging in the kitchen cupboard.';
+  }
   if (t.includes('medication')) {
     return 'Takes regular medication via a monitored dosage system; needs prompting and observation at each visit.';
+  }
+  if (t.includes('mouth-care') || t.includes('mouth care')) {
+    return 'Needs prompting to brush twice daily. Staff offer a soft toothbrush and stay nearby if they become tired.';
+  }
+  if (t.includes('positioning or supervision') && t.includes('choking')) {
+    return 'Sit fully upright in the chair. One staff member stays with them until they have finished eating and drinking.';
+  }
+  if (t.includes('staff precautions') || t.includes('hygiene instructions')) {
+    return 'Wash hands on arrival and departure. Use gloves and an apron for personal care. Do not share towels.';
+  }
+  if (t.includes('escalation or reporting')) {
+    return 'If a high temperature, cough or diarrhoea is noticed, record it and inform the office and GP the same day.';
+  }
+  if (t.includes('primary escape') || t.includes('escape route from the property')) {
+    return 'The usual exit is the front door onto the pavement. The back door leads to a small yard with a side gate.';
+  }
+  if (t.includes('emergency fire')) {
+    return 'Smoke alarm in the hallway. Meeting point is the front garden away from the property. Call 999 from outside.';
+  }
+  if (t.includes('cooking-related fire') || t.includes('cooking left unattended')) {
+    return 'The hob is electric. Pans must not be left unattended. Staff switch the cooker off at the wall after use.';
+  }
+  if (t.includes('fire safety risks identified') && t.includes('please state')) {
+    return 'There is a plug-in heater in the living room. Keep it clear of furniture and switch it off when leaving.';
+  }
+  if (t.includes('wandering or exit-seeking support')) {
+    return 'If they walk towards the front door, walk with them, offer a cup of tea and redirect to the living room.';
   }
   if (t.includes('goal') || t.includes('outcome') || t.includes('wishes')) {
     return critical
@@ -965,11 +1146,8 @@ function realisticFreeText(q: TemplateQuestion, level: IaAutofillLevel): string 
     return 'Service user, their daughter (main family contact) and the assessing care coordinator.';
   }
 
-  return critical
-    ? 'Significant needs identified in this area; requires close support and regular review by the care team.'
-    : level === 'normal'
-      ? 'Some support needs identified in this area; being monitored as part of the ongoing care plan.'
-      : 'Stable and largely independent in this area; no additional support currently required.';
+  // Typed fields never reach here. Unclassified narrative must not receive a generic needs sentence.
+  return 'Documented during this assessment; see related notes for supporting detail.';
 }
 
 function buildPreferredVisitTimesAnswer(): Record<string, unknown> {
@@ -1031,6 +1209,214 @@ export function buildAutofillAnswers(
   return answers;
 }
 
+export type DemoTextRole =
+  | 'identifier'
+  | 'personName'
+  | 'professionalRole'
+  | 'phone'
+  | 'email'
+  | 'postcode'
+  | 'location'
+  | 'datetimeText'
+  | 'reference'
+  | 'contact'
+  | 'schedule'
+  | 'measurementBand'
+  | 'bodySite'
+  | 'narrative';
+
+function lookupKeys(q: TemplateQuestion): string[] {
+  return [fieldKey(q), typeof q.metadata?.prefillKey === 'string' ? q.metadata.prefillKey : ''].filter(
+    (k): k is string => Boolean(k),
+  );
+}
+
+/**
+ * Typed vs narrative role from fieldKey / prefillKey / structural label — not clinical topic words.
+ * Identifiers, names, phones, locations, and contacts must never use realisticFreeText().
+ */
+export function classifyDemoTextRole(q: TemplateQuestion): DemoTextRole {
+  if (isPersonCentredNarrative(q)) return 'narrative';
+
+  const keys = lookupKeys(q).map((k) => k.toLowerCase());
+  const text = q.questionText.toLowerCase().trim();
+
+  if (keys.some((k) => /email/.test(k)) || /^e-?mail$/.test(text)) return 'email';
+  if (keys.some((k) => /postcode|post_code/.test(k)) || /^post ?code$/.test(text)) return 'postcode';
+  if (
+    (keys.some((k) => /^(phone|mobile|tel)|phone$|mobile$/.test(k)) || /^(phone|mobile|telephone)$/.test(text)) &&
+    !/and phone/.test(text)
+  ) {
+    return 'phone';
+  }
+
+  if (keys.some((k) => k.includes('reference')) || /\breference number\b/.test(text)) return 'reference';
+
+  if (
+    keys.some(
+      (k) =>
+        k === 'ponumber' ||
+        k === 'nhsnumber' ||
+        k === 'nationalinsurancenumber' ||
+        k === 'localauthorityid' ||
+        (k.endsWith('number') && !/phone|mobile|reference/.test(k)),
+    ) ||
+    /\bpo number\b/.test(text) ||
+    /local authority id/.test(text)
+  ) {
+    return 'identifier';
+  }
+
+  if (/date and time/.test(text) || (q.questionType === 'TEXT' && keys.some((k) => /(date|time)$/.test(k)))) {
+    return 'datetimeText';
+  }
+  if (/height band|height \(cm\)/.test(text) || keys.some((k) => /(^|_)height/.test(k))) return 'measurementBand';
+  if (/monitoring schedule/.test(text) || keys.some((k) => k.includes('schedule'))) return 'schedule';
+  if (/pain location/.test(text) || keys.some((k) => k.includes('pain') && k.includes('location'))) {
+    return 'bodySite';
+  }
+  if (
+    keys.some((k) => /designation|assessorrole/.test(k) || k.endsWith('role')) ||
+    /designation$/.test(text)
+  ) {
+    return 'professionalRole';
+  }
+  if (
+    keys.some((k) => k.includes('contact')) ||
+    /contact details$|team contact|worker contact|manager contact|advocate contact|carer contact/.test(text) ||
+    /practice and phone|pharmacy name and phone/.test(text)
+  ) {
+    return 'contact';
+  }
+  if (
+    keys.some((k) => k.endsWith('name') || k === 'responsiblereviewer') ||
+    /prefer to be addressed/.test(text) ||
+    (q.questionType === 'TEXT' && / name$/.test(text) && !/organisation|pharmacy/.test(text))
+  ) {
+    return 'personName';
+  }
+  if (
+    keys.some((k) => /location|hospital/.test(k) && !k.includes('addresscontact')) ||
+    /key safe location|preferred hospital|personal care location/.test(text)
+  ) {
+    return 'location';
+  }
+
+  return 'narrative';
+}
+
+export function isTypedDemoTextRole(role: DemoTextRole): boolean {
+  return role !== 'narrative';
+}
+
+/** Clinical-needs fallback that typed fields must never contain. */
+export const CLINICAL_NEEDS_NARRATIVE_RE =
+  /Significant needs identified|Some support needs identified|Stable and largely independent in this area/;
+
+function typedDemoTextValue(q: TemplateQuestion, role: DemoTextRole, identity?: IaDemoIdentity | null): string {
+  const text = q.questionText.toLowerCase();
+  const key = (fieldKey(q) ?? '').toLowerCase();
+  const blob = `${key} ${text}`;
+
+  switch (role) {
+    case 'identifier':
+      if (/\bpo\b/.test(text) || key.includes('ponumber')) return QA_DEMO_PO_NUMBER;
+      if (/local.?authority/.test(blob)) return QA_DEMO_LOCAL_AUTHORITY_ID;
+      return 'QA-ID-0001';
+    case 'reference':
+      return QA_DEMO_SAFEGUARDING_REF;
+    case 'personName': {
+      if (key.includes('gp') || /^gp name$/.test(text)) return identityText(identity?.gpName) ?? QA_DEMO_GP_NAME;
+      if (key.includes('assessor') || /responsible reviewer/.test(text)) return realisticName(q.id);
+      if (key.includes('lpoa')) return QA_DEMO_LPOA_NAME;
+      if (key.includes('carer')) return QA_DEMO_FAMILY_NAME;
+      if (key.includes('preferred') || /prefer to be addressed|preferred name/.test(text)) {
+        return identity?.preferredName?.trim() || identity?.firstName?.trim() || 'Helen';
+      }
+      return QA_DEMO_FAMILY_NAME;
+    }
+    case 'professionalRole':
+      if (key.includes('lpoa') || /\blpoa\b/.test(text)) return 'Lasting Power of Attorney (Health & Welfare)';
+      return 'Registered Manager';
+    case 'phone':
+      return QA_DEMO_GP_PHONE;
+    case 'email':
+      return QA_DEMO_EMAIL;
+    case 'postcode':
+      return QA_DEMO_POSTCODE;
+    case 'location':
+      if (/key.?safe/.test(blob)) return QA_DEMO_KEY_SAFE_LOCATION;
+      if (/hospital/.test(blob)) return QA_DEMO_HOSPITAL;
+      if (/personal care location/.test(text)) return 'Bathroom on the ground floor';
+      return 'Own home, Leeds';
+    case 'datetimeText':
+      return `${isoDate()} 10:30`;
+    case 'contact': {
+      if (/gp/.test(blob) && !/pharmacy/.test(blob)) {
+        return formatQaGpWidgetText({
+          name: identityText(identity?.gpName),
+          phone: identityText(identity?.gpPhone),
+          practice: identityText(identity?.gpPractice),
+        });
+      }
+      if (/pharmacy/.test(blob)) return `Oak Tree Pharmacy\nTel: ${QA_DEMO_GP_PHONE}`;
+      if (/lpoa/.test(blob)) {
+        return `${QA_DEMO_LPOA_NAME}, Lasting Power of Attorney (Health & Welfare)\nTel: 07700 900456`;
+      }
+      if (/social.?worker/.test(blob)) return `Leeds Adult Social Care, duty desk\nTel: 0113 222 4444`;
+      if (/care.?manager/.test(blob)) return `Priya Nair, Care Coordinator\nTel: 0113 496 0789`;
+      if (/mental.?health/.test(blob)) return `Community Mental Health Team\nTel: 0113 206 1234`;
+      if (/advocate/.test(blob)) return `Independent advocate via VoiceAbility\nTel: 0300 303 1660`;
+      if (/carer/.test(blob)) return `${QA_DEMO_FAMILY_NAME}\nTel: ${QA_DEMO_MOBILE}`;
+      return `${QA_DEMO_FAMILY_NAME}\nTel: ${QA_DEMO_MOBILE}`;
+    }
+    case 'schedule':
+      return 'Twice daily with care visits, and as needed if unwell.';
+    case 'measurementBand':
+      return 'Average — 162 cm';
+    case 'bodySite':
+      return 'Lower back and both knees';
+    default:
+      return '';
+  }
+}
+
+function occupiedIdentityText(value?: string | null): string | undefined {
+  const t = value?.trim();
+  return t ? t : undefined;
+}
+
+/** Empty profile keys receive QA values; occupied profile keys are omitted. */
+export function buildDemoProfilePatch(identity?: IaDemoIdentity | null): IaDemoProfilePatch {
+  const patch: IaDemoProfilePatch = {};
+  const address: NonNullable<IaDemoProfilePatch['address']> = {};
+  if (!occupiedIdentityText(identity?.addressLine1)) address.addressLine1 = QA_DEMO_ADDRESS_LINE1;
+  if (!occupiedIdentityText(identity?.addressLine2)) address.addressLine2 = QA_DEMO_ADDRESS_LINE2;
+  if (!occupiedIdentityText(identity?.town)) address.town = QA_DEMO_TOWN;
+  if (!occupiedIdentityText(identity?.county)) address.county = QA_DEMO_COUNTY;
+  if (!occupiedIdentityText(identity?.postcode)) address.postcode = QA_DEMO_POSTCODE;
+  if (Object.keys(address).length) patch.address = address;
+  if (!occupiedIdentityText(identity?.phone)) patch.phone = QA_DEMO_PHONE;
+  if (!occupiedIdentityText(identity?.mobile)) patch.mobile = QA_DEMO_MOBILE;
+  if (!occupiedIdentityText(identity?.email)) patch.email = QA_DEMO_EMAIL;
+
+  const gp: NonNullable<IaDemoProfilePatch['gp']> = {};
+  if (!occupiedIdentityText(identity?.gpName)) gp.name = QA_DEMO_GP_NAME;
+  if (!occupiedIdentityText(identity?.gpPhone)) gp.phone = QA_DEMO_GP_PHONE;
+  if (!occupiedIdentityText(identity?.gpPractice)) gp.practice = QA_DEMO_GP_PRACTICE;
+  if (Object.keys(gp).length) patch.gp = gp;
+
+  return patch;
+}
+
+export function profilePatchHasValues(patch: IaDemoProfilePatch | undefined): boolean {
+  if (!patch) return false;
+  if (patch.phone || patch.mobile || patch.email) return true;
+  if (patch.address && Object.keys(patch.address).length) return true;
+  if (patch.gp && Object.keys(patch.gp).length) return true;
+  return false;
+}
+
 function buildAnswer(
   q: TemplateQuestion,
   level: IaAutofillLevel,
@@ -1063,6 +1449,33 @@ function buildAnswer(
   switch (q.questionType) {
     case 'YES_NO':
     case 'CHECKBOX': {
+      if (key === 'independentSelfAdministration') {
+        const independent = level === 'low';
+        return { ...base, checked: independent, booleanValue: independent };
+      }
+      if (key === 'canSelfEvacuate') {
+        const independent = level === 'low';
+        return { ...base, checked: independent, booleanValue: independent };
+      }
+      if (key === 'bedRailsInUseOrConsidered') {
+        const considered = level !== 'low';
+        return { ...base, checked: considered, booleanValue: considered };
+      }
+      if (key === 'bedRailsEntrapmentRisk') {
+        const risk = level === 'critical';
+        return { ...base, checked: risk, booleanValue: risk };
+      }
+      if (key === 'peepDiscussedWithPerson') {
+        return { ...base, checked: true, booleanValue: true };
+      }
+      if (
+        level === 'low' &&
+        (key === 'medicationPromptingRequired' ||
+          key === 'packagingHelpRequired' ||
+          key === 'medicationAssistanceAdministering')
+      ) {
+        return { ...base, checked: false, booleanValue: false };
+      }
       if (level === 'critical') return { ...base, ...severeYesNoValue(q) };
       if (level === 'normal' || level === 'low') return { ...base, ...e2eYesNoValue(q) };
       return { ...base, checked: false, booleanValue: false };
@@ -1079,7 +1492,7 @@ function buildAnswer(
         return { ...base, numberValue: level === 'critical' ? 2 : 1 };
       }
       if (textNeedle.includes('pain score')) {
-        return { ...base, numberValue: level === 'critical' ? 7 : level === 'normal' ? 4 : 1 };
+        return { ...base, numberValue: level === 'critical' ? 7 : level === 'normal' ? 4 : 0 };
       }
       if (textNeedle.includes('fluid target')) {
         return { ...base, numberValue: 1500 };
@@ -1090,8 +1503,8 @@ function buildAnswer(
       return { ...base, numberValue: 1 };
     }
     case 'DATE': {
-      if (key === 'nextReviewDate' || key === 'assessorSignDate') {
-        return { ...base, dateValue: isoDate(key === 'nextReviewDate' ? 6 : 0) };
+      if (key === 'nextReviewDate' || key === 'assessorSignDate' || key === 'peepReviewDate' || key === 'bedRailsReviewDate') {
+        return { ...base, dateValue: isoDate(key === 'assessorSignDate' ? 0 : 6) };
       }
       return { ...base, dateValue: isoDate() };
     }
@@ -1101,12 +1514,97 @@ function buildAnswer(
     case 'TEXTAREA': {
       if (key === 'assessorName') return { ...base, textValue: realisticName(q.id) };
       if (key === 'assessorRole' || key === 'assessorDesignation') return { ...base, textValue: 'Registered Manager' };
+      if (key === 'peepAssistanceRequired') {
+        return {
+          ...base,
+          textValue:
+            'I need one carer beside me on the stairs and a second person to carry my walking frame. Please give me extra time and do not rush me.',
+        };
+      }
+      if (key === 'peepEquipmentRequired') {
+        return { ...base, textValue: 'Walking frame. Keep it by the lounge chair so it is to hand if the alarm sounds.' };
+      }
+      if (key === 'peepEvacuationProcedure') {
+        return {
+          ...base,
+          textValue:
+            'Leave by the front door if it is clear. If the hall is blocked, wait at the top of the stairs until staff reach me. Do not use the back kitchen door at night because the step is uneven.',
+        };
+      }
+      if (key === 'peepAlarmWarningConsiderations') {
+        return {
+          ...base,
+          textValue:
+            'I hear the smoke alarm in the hall. Please also knock on the lounge door and say my name, because I may have the radio on.',
+        };
+      }
+      if (key === 'peepRefugeLocation') {
+        return { ...base, textValue: 'Top of the stairs, by the bedroom door, if the front hall is not clear.' };
+      }
+      if (key === 'bedRailsReason') {
+        return {
+          ...base,
+          textValue:
+            level === 'critical'
+              ? 'I have rolled towards the edge of the bed at night. Staff and I agreed rails while I settle, with the gap checked each visit.'
+              : 'We talked about rails after I felt unsteady getting into bed. They are not needed at present.',
+        };
+      }
+      if (key === 'bedRailsAlternativesConsidered') {
+        return {
+          ...base,
+          textValue:
+            'We considered a lower bed, a sensor mat, and leaving the rail down on my getting-out side. I prefer to try those first unless I start rolling in the night.',
+        };
+      }
+      if (key === 'bedRailsEntrapmentDetails') {
+        return {
+          ...base,
+          textValue:
+            'There is a gap at the head of the bed between the mattress and the rail. Staff must check the mattress sits flush before leaving.',
+        };
+      }
+      if (key === 'bedRailsConsentCapacityNotes') {
+        return {
+          ...base,
+          textValue:
+            'I was part of the discussion today. I understand the rails are to stop me rolling, not to stop me getting up, and I can ask for them to be reviewed.',
+        };
+      }
+      const role = classifyDemoTextRole(q);
+      if (role !== 'narrative') {
+        const typed = typedDemoTextValue(q, role, identity);
+        if (!typed.trim()) return null;
+        return { ...base, textValue: typed };
+      }
       return { ...base, textValue: realisticFreeText(q, level) };
     }
     case 'SINGLE_SELECT': {
       if (key === 'fundingType' || (typeof q.metadata?.optionsLookup === 'string' && q.metadata.optionsLookup === 'service_user_funding_types')) {
         const funding = opts.find((o) => o.value === 'local_authority') ?? opts[0];
         return { ...base, selectedOptions: (funding?.value ?? 'local_authority') as unknown as Record<string, unknown> };
+      }
+      if (key === 'bedRailsRequiredInPlace') {
+        const code = level === 'critical' ? 'required_in_place' : 'not_required';
+        const pick = opts.find((o) => o.value === code) ?? opts[0];
+        if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
+      }
+      if (key === 'medicationSupportLevel') {
+        const code = level === 'critical' ? 'level_2a' : level === 'normal' ? 'level_1a' : 'level_0';
+        const pick = opts.find((o) => o.value === code) ?? opts[0];
+        if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
+      }
+      if (key === 'medicationAdministeredBy') {
+        const code = level === 'critical' ? 'care_staff' : level === 'normal' ? 'family' : 'self';
+        const pick = opts.find((o) => o.value === code) ?? opts[0];
+        if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
+      }
+      if (key === 'diabetesType') {
+        const pick =
+          opts.find((o) => o.value === 'type_2' || o.label === 'Type 2') ??
+          opts.find((o) => o.value === 'type_1') ??
+          opts[0];
+        if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
       }
       if (key === 'lpoaAppointed') {
         const pick =
@@ -1156,6 +1654,396 @@ function conditionPrefix(level: IaAutofillLevel): string {
   if (level === 'critical') return 'High needs identified';
   if (level === 'normal') return 'Moderate needs identified';
   return 'Stable and largely independent';
+}
+
+const QA_FAMILY_NAME = 'Sarah Wright';
+const QA_FAMILY_TEL = '07700 900123';
+const QA_GP_DETAILS = 'Dr A. Patel, Oak Tree Medical Practice\nTel: 0113 496 0456';
+const QA_ADDRESS = '12 Maple Close, Leeds, LS1 4AP\nTel: 0113 496 0123';
+const QA_HOSPITAL_CONTACT = 'Leeds Teaching Hospitals NHS Trust, switchboard 0113 243 2799';
+const QA_PROFESSIONAL_NAME = 'Sarah Thompson';
+const QA_PROFESSIONAL_ROLE = 'Registered Manager';
+const QA_PROFESSIONAL_TEL = '0113 496 0789';
+
+function identityText(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function qaFamilyName(identity?: IaDemoIdentity | null): string {
+  const raw = identityText(identity?.emergencyContact);
+  if (!raw) return QA_FAMILY_NAME;
+  const name = raw.split('·')[0]?.trim();
+  return name || QA_FAMILY_NAME;
+}
+
+function qaFamilyTel(identity?: IaDemoIdentity | null): string {
+  const raw = identityText(identity?.emergencyContact) ?? '';
+  const match = raw.match(/(\+?\d[\d\s]{8,}\d)/);
+  return match ? match[1]!.replace(/\s+/g, ' ').trim() : QA_FAMILY_TEL;
+}
+
+/** Same shape as admin `AdvanceCarePlanningMetadata` (submission.metadata.advanceCarePlanning). */
+export type AdvanceCarePlanningDemoMetadata = {
+  patientName: string;
+  address: string;
+  dateOfBirth: string;
+  hospitalOrNhsNumber: string;
+  dateCompleted: string;
+  gpDetails: string;
+  hospitalContact: string;
+  familyMemberName: string;
+  familyContactTel: string;
+  professionalName: string;
+  professionalRole: string;
+  professionalContactTel: string;
+  patientSignature: string;
+  patientSignatureDate: string;
+  nextOfKinSignature: string;
+  nextOfKinSignatureDate: string;
+  homecareProfessionalSignature: string;
+  homecareProfessionalSignatureDate: string;
+  reviewDate: string;
+  personalValues: string;
+  carePreferences: string;
+  concernsAndFears: string;
+  legalAdvanceDecision: boolean;
+  legalAdvanceDecisionDetails?: string;
+  proxyContact1: { name: string; tel: string; lpoa: boolean };
+  proxyContact2: { name: string; tel: string; lpoa: boolean };
+  placeOfCareFirstChoice: string;
+  placeOfCareSecondChoice: string;
+  placeOfCareComments: string;
+  specialRequests: string;
+  thirdPartyComments: string;
+};
+
+/**
+ * End of Life worksheet question ids — must match admin `END_OF_LIFE_ASSESSMENT_QUESTIONS`.
+ * Persistence is submission.metadata.endOfLifeAssessment (`{id}Answer` / `{id}TriAnswer` / `{id}Notes`).
+ */
+export const EOL_YES_NO_QUESTION_IDS = [
+  'endOfLifeCarePlan',
+  'awareOfDying',
+  'medicationAssessed',
+  'medicationAvailable',
+  'interventionDiscussion',
+  'carersAwareWishes',
+  'capacityEndOfLife',
+  'comfortDiscussWishes',
+  'terminalResidence',
+  'hospiceHospitalTransfer',
+  'funeralArrangements',
+  'contactNextOfKin',
+  'reviewWishesFuture',
+  'capacityLastWishes',
+  'dnrInPlace',
+] as const;
+
+export const EOL_TRI_QUESTION_IDS = ['medicalAidRecovery', 'lastWill'] as const;
+
+export const EOL_NOTES_ONLY_QUESTION_IDS = ['significantBeliefs', 'consentMethod'] as const;
+
+export const EOL_ALL_QUESTION_IDS = [
+  ...EOL_YES_NO_QUESTION_IDS,
+  ...EOL_TRI_QUESTION_IDS,
+  ...EOL_NOTES_ONLY_QUESTION_IDS,
+] as const;
+
+export type EndOfLifeDemoTriAnswer = 'yes' | 'no' | 'unknown';
+
+export type EndOfLifeAssessmentDemoMetadata = Record<string, boolean | EndOfLifeDemoTriAnswer | string>;
+
+function firstPersonAcpValues(level: IaAutofillLevel): Pick<
+  AdvanceCarePlanningDemoMetadata,
+  | 'personalValues'
+  | 'carePreferences'
+  | 'concernsAndFears'
+  | 'placeOfCareComments'
+  | 'specialRequests'
+> {
+  if (level === 'critical') {
+    return {
+      personalValues:
+        'I want to stay in my own home for as long as I can, with my family nearby. Quiet time, my radio, and not being rushed matter most to me.',
+      carePreferences:
+        'If I become more unwell I want care to focus on comfort, dignity, and being kept informed. Please explain what you are doing and do not leave me alone when I am distressed.',
+      concernsAndFears:
+        'I do not want to be moved from home unless it is the only way to keep me comfortable. I worry about being in pain or about my family not being called in time.',
+      placeOfCareComments:
+        'My first wish is to remain at home with extra support. If that is no longer possible I would prefer a hospice to a busy hospital ward.',
+      specialRequests:
+        'Please keep a night light on, play the radio quietly in the morning, and call my daughter before any transfer is arranged.',
+    };
+  }
+  if (level === 'normal') {
+    return {
+      personalValues:
+        'I want to stay in my own home with a bit of help each day. Seeing my family and keeping my usual routine matter most to me.',
+      carePreferences:
+        'I would like staff to explain what they are doing, let me do what I can myself, and involve my family if decisions become harder.',
+      concernsAndFears:
+        'I worry about becoming a burden and about being moved without my family knowing. I do not want treatment that would only prolong distress.',
+      placeOfCareComments:
+        'Home is my first choice. If I needed more support I would consider a short hospital stay and then return home.',
+      specialRequests:
+        'Please keep me covered during personal care, offer a cup of tea in the morning, and speak to me before speaking about me.',
+    };
+  }
+  return {
+    personalValues:
+      'I like to do as much as I can for myself. A regular cup of tea, seeing my family, and staying in my own home are what matter most.',
+    carePreferences:
+      'I prefer a regular carer, to be told before anyone starts, and to keep my independence with only the help I ask for.',
+    concernsAndFears:
+      'I do not want to be rushed or spoken over. I worry a little about falling at night, but I am not looking for hospital care now.',
+    placeOfCareComments:
+      'I would like to stay at home. If I ever needed a short stay elsewhere I would prefer to be with family rather than in hospital.',
+    specialRequests:
+      'Please ring the bell and wait to be asked in. I like the curtains opened in the morning and my glasses left on the bedside table.',
+  };
+}
+
+/**
+ * Complete Advance Care Planning worksheet values (holistic tab 13).
+ * Identity fields reuse the Service User when present; empty profile keys get synthetic QA values.
+ * `legalAdvanceDecisionDetails` is only set when the ADRT answer is Yes (matches the live UI gate).
+ */
+export function buildAdvanceCarePlanningDemoMetadata(
+  level: IaAutofillLevel,
+  identity?: IaDemoIdentity | null,
+): AdvanceCarePlanningDemoMetadata {
+  const displayName = demoSubjectName(identity);
+  const familyName = qaFamilyName(identity);
+  const familyTel = qaFamilyTel(identity);
+  const completed = isoDate();
+  const review = isoDate(6);
+  const hasAdrt = false;
+  const wishes = firstPersonAcpValues(level);
+
+  const meta: AdvanceCarePlanningDemoMetadata = {
+    patientName: displayName,
+    address: identityText(identity?.addressContact) ?? QA_ADDRESS,
+    dateOfBirth: identityText(identity?.dateOfBirth)?.slice(0, 10) ?? QA_DEMO_DOB,
+    hospitalOrNhsNumber: identityText(identity?.nhsNumber) ?? QA_DEMO_NHS_NUMBER,
+    dateCompleted: completed,
+    gpDetails: identityText(identity?.gpContact) ?? identityText(identity?.gpName) ?? QA_GP_DETAILS,
+    hospitalContact: QA_HOSPITAL_CONTACT,
+    familyMemberName: familyName,
+    familyContactTel: familyTel,
+    professionalName: QA_PROFESSIONAL_NAME,
+    professionalRole: QA_PROFESSIONAL_ROLE,
+    professionalContactTel: QA_PROFESSIONAL_TEL,
+    patientSignature: displayName,
+    patientSignatureDate: completed,
+    nextOfKinSignature: familyName,
+    nextOfKinSignatureDate: completed,
+    homecareProfessionalSignature: QA_PROFESSIONAL_NAME,
+    homecareProfessionalSignatureDate: completed,
+    reviewDate: review,
+    ...wishes,
+    legalAdvanceDecision: hasAdrt,
+    proxyContact1: { name: familyName, tel: familyTel, lpoa: hasAdrt },
+    proxyContact2: {
+      name: 'James Wright',
+      tel: '07700 900456',
+      lpoa: false,
+    },
+    placeOfCareFirstChoice: level === 'critical' ? 'Home with full homecare support' : 'Own home',
+    placeOfCareSecondChoice: level === 'critical' ? 'Hospice' : level === 'normal' ? 'Hospital, then home' : 'With family',
+    thirdPartyComments: `${familyName} (daughter) agrees that remaining at home with familiar carers is the priority, and asked to be called first in an emergency.`,
+  };
+
+  if (hasAdrt) {
+    meta.legalAdvanceDecisionDetails = `A copy of the ADRT is held by the GP, the homecare office, and ${familyName}.`;
+  }
+
+  return meta;
+}
+
+function eolYesNoAnswers(level: IaAutofillLevel): Record<(typeof EOL_YES_NO_QUESTION_IDS)[number], boolean> {
+  const critical = level === 'critical';
+  const moderate = level === 'normal';
+  return {
+    endOfLifeCarePlan: critical,
+    awareOfDying: critical,
+    medicationAssessed: critical,
+    medicationAvailable: true,
+    interventionDiscussion: critical,
+    carersAwareWishes: true,
+    capacityEndOfLife: true,
+    comfortDiscussWishes: true,
+    terminalResidence: true,
+    hospiceHospitalTransfer: critical || moderate,
+    funeralArrangements: critical,
+    contactNextOfKin: true,
+    reviewWishesFuture: true,
+    capacityLastWishes: true,
+    dnrInPlace: false,
+  };
+}
+
+function eolTriAnswers(level: IaAutofillLevel): Record<(typeof EOL_TRI_QUESTION_IDS)[number], EndOfLifeDemoTriAnswer> {
+  if (level === 'critical') return { medicalAidRecovery: 'no', lastWill: 'yes' };
+  if (level === 'normal') return { medicalAidRecovery: 'unknown', lastWill: 'unknown' };
+  return { medicalAidRecovery: 'yes', lastWill: 'no' };
+}
+
+function eolNotesFor(
+  id: (typeof EOL_ALL_QUESTION_IDS)[number],
+  level: IaAutofillLevel,
+  yesNo: ReturnType<typeof eolYesNoAnswers>,
+  tri: ReturnType<typeof eolTriAnswers>,
+  familyName: string,
+  familyTel: string,
+): string {
+  switch (id) {
+    case 'endOfLifeCarePlan':
+      return yesNo.endOfLifeCarePlan
+        ? 'An end of life care plan is in place. The agreed objective is comfort at home, with district nurse support and family involvement.'
+        : 'No end of life care plan is in place at present. Current support is for day-to-day needs, and wishes can be reviewed if health changes.';
+    case 'awareOfDying':
+      return yesNo.awareOfDying
+        ? 'The person is aware that their condition is deteriorating and has asked to talk openly with family and the care team.'
+        : 'The person is not currently dying. They understand their long-term conditions and have agreed that this can be reviewed if their health changes.';
+    case 'medicationAssessed':
+      return yesNo.medicationAssessed
+        ? 'Medicines have been reviewed with the GP. Non-essential tablets have been stopped; analgesia and anticipatory medicines remain available.'
+        : 'A specific end-of-life medicines review has not been required. Regular medicines continue as prescribed and will be reviewed if needs change.';
+    case 'medicationAvailable':
+      return 'Prescribed medicines are in the home and are prompted or administered by homecare staff at each visit, with a MAR chart in place.';
+    case 'interventionDiscussion':
+      return yesNo.interventionDiscussion
+        ? 'The GP, family and the person have discussed avoiding burdensome interventions such as hospital transfer solely for feeding or turning when comfort can be maintained at home.'
+        : 'There has been no discussion about stopping feeding, turning or similar interventions. Current care remains active and is reviewed at each assessment.';
+    case 'significantBeliefs':
+      return level === 'critical'
+        ? 'Please allow quiet time in the morning. A local minister may be called if asked; no pork products. Family to be present for prayer if wished.'
+        : 'No specific religious rites are requested. Please offer quiet time and respect privacy; family will advise if a faith contact is needed.';
+    case 'carersAwareWishes':
+      return `Homecare staff and ${familyName} have been told about the recorded wishes, including preferred place of care and who to call in an emergency.`;
+    case 'capacityEndOfLife':
+      return 'The person can understand, retain and weigh information about future care and can communicate a decision. No Mental Capacity Act assessment is indicated for this decision.';
+    case 'comfortDiscussWishes':
+      return 'The person was comfortable discussing last wishes today and agreed that they should be written down and reviewed with family.';
+    case 'medicalAidRecovery':
+      return tri.medicalAidRecovery === 'yes'
+        ? 'They would want medical help to recover from a life-threatening event, including calling 999 and hospital treatment if needed.'
+        : tri.medicalAidRecovery === 'no'
+          ? 'They would not want aggressive treatment aimed only at prolonging life. Comfort measures and family contact are the priority.'
+          : `They have not made a firm decision about medical aid to recover. Staff should call ${familyName} and the GP if a life-threatening event occurs.`;
+    case 'terminalResidence':
+      return 'If a terminal illness developed they would want to remain at home for as long as it is safe and comfortable, with family nearby.';
+    case 'hospiceHospitalTransfer':
+      return yesNo.hospiceHospitalTransfer
+        ? 'If home care could no longer keep them comfortable they would accept transfer to a hospice, or to hospital if that is the only way to manage symptoms.'
+        : 'They would prefer not to be transferred to hospice or hospital if needs can still be met at home. This can be reviewed if support needs increase.';
+    case 'funeralArrangements':
+      return yesNo.funeralArrangements
+        ? `${familyName} holds the funeral plan with Co-op Funeralcare in Leeds. A simple service is preferred; details are in the household file.`
+        : 'No funeral plan has been arranged yet. The family will discuss this later; staff should not make funeral decisions.';
+    case 'lastWill':
+      return tri.lastWill === 'yes'
+        ? `${familyName} holds a copy of the will. The solicitor is at Oak Tree Legal, Leeds. Staff should direct enquiries to the family.`
+        : tri.lastWill === 'no'
+          ? 'No last will has been made. The family are aware and may seek advice later; this is not a care-team action.'
+          : 'It is not known whether a will is in place. Staff should ask the family before giving out any information.';
+    case 'contactNextOfKin':
+      return `Yes. If they become dangerously ill, call ${familyName} on ${familyTel} first, then the GP out-of-hours service.`;
+    case 'reviewWishesFuture':
+      return 'They are willing to review these wishes at the next assessment and sooner if their health or family situation changes.';
+    case 'capacityLastWishes':
+      return 'They have capacity to decide their last wishes. They understood the questions, took time to think, and signed the record.';
+    case 'dnrInPlace':
+      return yesNo.dnrInPlace
+        ? 'A DNACPR / ReSPECT form is in place and is kept in the homecare file and with the GP. Staff must follow the recorded decision.'
+        : 'No DNACPR or ReSPECT form is in place. If collapse occurs, staff should call 999 unless a later decision is recorded.';
+    case 'consentMethod':
+      return 'Consented verbally and by signing the assessment with the registered manager present. Family were invited and the person agreed they could see the record.';
+    default:
+      return 'Recorded during the initial assessment discussion with the person and their family.';
+  }
+}
+
+/**
+ * Complete End of Life Assessment worksheet values (holistic tab 14).
+ * Every visible question is answered. The live worksheet has no hidden follow-ups;
+ * notes sit beside every question and are therefore filled at every scenario.
+ */
+export function buildEndOfLifeAssessmentDemoMetadata(
+  level: IaAutofillLevel,
+  identity?: IaDemoIdentity | null,
+): EndOfLifeAssessmentDemoMetadata {
+  const familyName = qaFamilyName(identity);
+  const familyTel = qaFamilyTel(identity);
+  const yesNo = eolYesNoAnswers(level);
+  const tri = eolTriAnswers(level);
+  const out: EndOfLifeAssessmentDemoMetadata = {};
+
+  for (const id of EOL_YES_NO_QUESTION_IDS) {
+    out[`${id}Answer`] = yesNo[id];
+    out[`${id}Notes`] = eolNotesFor(id, level, yesNo, tri, familyName, familyTel);
+  }
+  for (const id of EOL_TRI_QUESTION_IDS) {
+    out[`${id}TriAnswer`] = tri[id];
+    out[`${id}Notes`] = eolNotesFor(id, level, yesNo, tri, familyName, familyTel);
+  }
+  for (const id of EOL_NOTES_ONLY_QUESTION_IDS) {
+    out[`${id}Notes`] = eolNotesFor(id, level, yesNo, tri, familyName, familyTel);
+  }
+
+  return out;
+}
+
+function buildTherapyAideMemoireDemo(level: IaAutofillLevel, prefix: string) {
+  const critical = level === 'critical';
+  return {
+    choking: { checked: false },
+    chestInfections: { checked: false },
+    speechConcern: { checked: false },
+    mobilityChange: {
+      checked: critical,
+      details: critical ? 'Walking and transfers have become slower this month. I need more time on the stairs.' : undefined,
+    },
+    selfCareChange: {
+      checked: critical,
+      details: critical ? 'I need more help to wash and dress than I did a few weeks ago.' : undefined,
+    },
+    carePackageConcern: { checked: false },
+    furtherReferralRequired: false,
+    additionalComments: `${prefix} — therapy aide memoire`,
+  };
+}
+
+function abbeyDomainScoresForLevel(level: IaAutofillLevel) {
+  if (level === 'critical') {
+    return {
+      vocalisation: 3 as const,
+      facialExpression: 3 as const,
+      bodyLanguage: 2 as const,
+      behaviouralChange: 3 as const,
+      physiologicalChange: 2 as const,
+      physicalChanges: 2 as const,
+    };
+  }
+  if (level === 'normal') {
+    return {
+      vocalisation: 2 as const,
+      facialExpression: 2 as const,
+      bodyLanguage: 2 as const,
+      behaviouralChange: 2 as const,
+      physiologicalChange: 2 as const,
+      physicalChanges: 1 as const,
+    };
+  }
+  return {
+    vocalisation: 0 as const,
+    facialExpression: 0 as const,
+    bodyLanguage: 0 as const,
+    behaviouralChange: 0 as const,
+    physiologicalChange: 0 as const,
+    physicalChanges: 0 as const,
+  };
 }
 
 export function buildHolisticWorksheetMetadata(
@@ -1221,7 +2109,8 @@ export function buildHolisticWorksheetMetadata(
 
   const sectionComments: Record<string, { text: string }> = {};
   const sectionFooters: Record<string, { dateCompleted?: string; assessorNameDesignation?: string }> = {};
-  for (let n = 1; n <= HOLISTIC_TAB_COUNT; n++) {
+  const commentKeys = new Set<number>([...IA_REGISTERED_HOLISTIC_TAB_IDS, 15, 16, 17, 18]);
+  for (const n of commentKeys) {
     sectionComments[String(n)] = { text: `${prefix} — holistic tab ${n}` };
     sectionFooters[String(n)] = {
       dateCompleted: isoDate(),
@@ -1308,11 +2197,14 @@ export function buildHolisticWorksheetMetadata(
     waterlow,
     transfers: { rows: transferRows, independentWithAll: false, comments: level === 'critical' ? 'Transfers with the assistance of two carers and a hoist.' : '' },
     equipmentChecklist: {
-      hoistServiced: true,
-      profilingBedServiced: true,
-      staffTrainingCoversHoist: true,
+      hoistServiced: level === 'critical',
+      profilingBedServiced: level === 'critical',
+      staffTrainingCoversHoist: level === 'critical',
       otGuidanceRequired: false,
-      comments: 'Equipment serviced and staff trained; no outstanding actions.',
+      comments:
+        level === 'critical'
+          ? 'Hoist and profiling bed are in use. Servicing and staff training were checked at this assessment.'
+          : 'No hoist or profiling bed is in use. No additional moving-handling equipment is required at present.',
     },
     dailyLivingAids: {
       aidsInUseOrRequired: false,
@@ -1347,13 +2239,17 @@ export function buildHolisticWorksheetMetadata(
       fallOrConcern: level === 'critical',
       firstScreenSinceLastFall: level === 'critical' ? 'yes' : 'na',
       consentToSixQuestions: level !== 'low',
-      q1FallsNeedInvestigating: level === 'critical',
-      q2DizzyOrBlackouts: false,
-      q3WalkingBalanceUnassessed: level === 'critical',
-      q4FourPlusMedsNoReview: false,
-      q5TrippingMore: level === 'critical',
-      q6FearOfFalling: false,
       additionalComments: `${prefix} — falls screening`,
+      ...(level === 'low'
+        ? {}
+        : {
+            q1FallsNeedInvestigating: level === 'critical',
+            q2DizzyOrBlackouts: false,
+            q3WalkingBalanceUnassessed: level === 'critical',
+            q4FourPlusMedsNoReview: false,
+            q5TrippingMore: level === 'critical',
+            q6FearOfFalling: false,
+          }),
     },
     movingHandlingOperations: {
       riskFilter: {
@@ -1368,23 +2264,19 @@ export function buildHolisticWorksheetMetadata(
       tasks: movingTasks,
     },
     painAssessment: {
-      nrsScore: level === 'critical' ? 7 : level === 'normal' ? 4 : 1,
-      therapyAideMemoire: {
-        furtherReferralRequired: false,
-        referralCompleted: false,
-        additionalComments: `${prefix} — therapy aide memoire`,
-      },
+      nrsScore: level === 'critical' ? 7 : level === 'normal' ? 4 : 0,
+      scaleUsed: 'both',
+      abbey: enrichAbbeyMetadata({
+        ...abbeyDomainScoresForLevel(level),
+        painType: level === 'critical' ? 'acute_on_chronic' : level === 'normal' ? 'chronic' : undefined,
+        dateCompleted: isoDate(),
+        assessorNameDesignation: 'Sarah Thompson — Registered Manager',
+      }),
+      therapyAideMemoire: buildTherapyAideMemoireDemo(level, prefix),
     },
     environmentAssessment,
-    advanceCarePlanning: {
-      patientName: displayName,
-      dateCompleted: isoDate(),
-      legalAdvanceDecision: false,
-      personalValues: `${prefix} — personal values`,
-      carePreferences: `${prefix} — care preferences`,
-      concernsAndFears: `${prefix} — concerns`,
-    },
-    endOfLifeAssessment: { endOfLifeCarePlanAnswer: level === 'critical' },
+    advanceCarePlanning: buildAdvanceCarePlanningDemoMetadata(level, identity),
+    endOfLifeAssessment: buildEndOfLifeAssessmentDemoMetadata(level, identity),
     clinicalOutcomeSummary: {
       initial: { assessmentDate: isoDate(), practitioner: 'Sarah Thompson' },
       reviews: Array(6).fill({}),
@@ -1428,9 +2320,13 @@ export function buildHolisticWorksheetMetadata(
     },
     equipmentSelection: {
       waterlowScore: level === 'critical' ? '18' : level === 'normal' ? '12' : '8',
-      selectedRiskLevel: level === 'critical' ? 'High risk' : 'At risk',
+      selectedRiskLevel: level === 'critical' ? 'High risk' : level === 'normal' ? 'At risk' : 'Low risk',
       selectedEquipment:
-        level === 'critical' ? 'Full replacement mattress' : 'High risk foam mattress / alternating overlay',
+        level === 'critical'
+          ? 'Full replacement mattress'
+          : level === 'normal'
+            ? 'High risk foam mattress / alternating overlay'
+            : 'Standard foam mattress — no additional pressure equipment',
       equipmentInPlace: level === 'low',
       otReferralRequired: level === 'critical',
       notes: `${prefix} — equipment selection`,

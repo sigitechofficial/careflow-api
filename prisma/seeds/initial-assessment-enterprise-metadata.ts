@@ -5,6 +5,7 @@ type ShowWhen = {
   gateFieldKey?: string;
   yes?: boolean;
   no?: boolean;
+  selectedIncludes?: string;
 };
 
 type ConditionalRule = {
@@ -46,6 +47,14 @@ export function whenFieldYes(gateFieldKey: string): {
   return { showWhen: { gateFieldKey, yes: true }, conditionalRules: [rule] };
 }
 
+export function whenFieldNo(gateFieldKey: string): {
+  showWhen: ShowWhen;
+  conditionalRules: ConditionalRule[];
+} {
+  const rule: ConditionalRule = { kind: 'showWhen', gateFieldKey, no: true };
+  return { showWhen: { gateFieldKey, no: true }, conditionalRules: [rule] };
+}
+
 /** Default specRef prefix for legacy catalog rows imported into a section subsection. */
 export const LEGACY_SPEC_REF_BY_CATALOG_SECTION: Record<string, string> = {
   sec_breathing_difficulties: '5.1',
@@ -85,19 +94,16 @@ export const SECTION_311_FLOORING_QUESTION_TEXT = new Set<string>([
  * Legacy sec_environment checkboxes are superseded by merged fields below.
  */
 export const SECTION_310_CANONICAL_QUESTION_TEXT = [
-  'Smoke alarm fitted and working?',
-  'Referral required for smoke, CO or fire alarm?',
   'Steps or uneven access at entrance?',
   'Level access throughout the property?',
   'Hoarding or clutter risk?',
   'Environment / access hazard notes',
 ] as const;
 
-/** §3.8 — pets and smoking; legacy sec_pets checkboxes superseded. */
+/** §3.8 — pets; smoking lives on Fire Safety (§18). */
 export const SECTION_38_CANONICAL_QUESTION_TEXT = [
   'Pets present?',
   'Pets secured during visits?',
-  'Smoking in property?',
   'Pet infestation or hygiene risk?',
 ] as const;
 

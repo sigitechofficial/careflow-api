@@ -28,6 +28,50 @@ describe('assessment-review-schedule', () => {
     expect(state.status).toBe('overdue');
   });
 
+  it('uses weekly interval for Abbey >= 8 or NRS >= 4', () => {
+    const last = new Date('2026-05-28T12:00:00.000Z');
+    const now = new Date('2026-06-05T12:00:00.000Z');
+    const abbey = computeAssessmentReviewState({
+      assessmentKey: 'pain-tool',
+      lastCompletedAt: last,
+      snapshot: {
+        painAssessment: {
+          abbey: {
+            vocalisation: 2,
+            facialExpression: 2,
+            bodyLanguage: 2,
+            behaviouralChange: 2,
+            physiologicalChange: 2,
+            physicalChanges: 1,
+            total: 11,
+          },
+        },
+      },
+      now,
+    });
+    expect(abbey.effectiveIntervalDays).toBe(7);
+
+    const nrs = computeAssessmentReviewState({
+      assessmentKey: 'pain-tool',
+      lastCompletedAt: last,
+      snapshot: { painAssessment: { nrsScore: 4 } },
+      now,
+    });
+    expect(nrs.effectiveIntervalDays).toBe(7);
+  });
+
+  it('keeps monthly pain review when NRS and Abbey are below elevated thresholds', () => {
+    const last = new Date('2026-05-01T12:00:00.000Z');
+    const now = new Date('2026-05-10T12:00:00.000Z');
+    const state = computeAssessmentReviewState({
+      assessmentKey: 'pain-tool',
+      lastCompletedAt: last,
+      snapshot: { painAssessment: { nrsScore: 2 } },
+      now,
+    });
+    expect(state.effectiveIntervalDays).toBe(30);
+  });
+
   it('does not alert for event-driven MCA screening', () => {
     const state = computeAssessmentReviewState({
       assessmentKey: 'mca-screening',

@@ -46,12 +46,13 @@ import {
   resolveIaDisplayValue,
 } from './ia-answer-resolver.util';
 import {
-  COMPOSE_ELIGIBLE_IA_STATUSES,
+  COMPOSE_IA_LOAD_STATUSES,
   splitLatestAndPreviousAssessments,
   toComposeIaStatus,
 } from './compose-ia-eligibility.util';
 import { readAdlMetadataFromSubmissionMetadata } from './compose-adl-metadata.util';
 import { readWaterlowFromSubmissionMetadata } from './compose-waterlow-metadata.util';
+import { readPainAssessmentFromSubmissionMetadata } from './compose-pain-assessment-metadata.util';
 import {
   composePressureUlcerCarePlan,
   PRESSURE_ULCER_CARE_PLAN_FORM_NAME,
@@ -338,7 +339,7 @@ async function loadComposeIaSnapshots(
     where: {
       serviceUserId,
       deletedAt: null,
-      status: { in: COMPOSE_ELIGIBLE_IA_STATUSES },
+      status: { in: COMPOSE_IA_LOAD_STATUSES },
     },
     select: { id: true, submittedAt: true, updatedAt: true, status: true, metadata: true },
   });
@@ -385,6 +386,7 @@ async function loadComposeIaSnapshots(
       communicationSnapshot: readCommunicationSnapshot(row.metadata),
       adlMetadata: readAdlMetadataFromSubmissionMetadata(row.metadata),
       waterlowMetadata: readWaterlowFromSubmissionMetadata(row.metadata),
+      painAssessmentMetadata: readPainAssessmentFromSubmissionMetadata(row.metadata),
     };
   };
 

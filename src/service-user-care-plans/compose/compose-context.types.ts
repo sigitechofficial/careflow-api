@@ -3,6 +3,7 @@ import type { CarePlanPersonalisationContext } from '../../care-plan-text/care-p
 import type { AboutMeComposeSummary } from './about-me-compose-summary.util';
 import type { AdlComposeMetadata } from './compose-adl-metadata.util';
 import type { CarePlanWaterlowComposeMetadata } from './compose-waterlow-metadata.util';
+import type { CarePlanPainAssessmentComposeMetadata } from './compose-pain-assessment-metadata.util';
 
 export type { AboutMeComposeSummary };
 
@@ -42,7 +43,7 @@ export type MedicationPackComposeSummary = {
   storageLine: string | null;
 };
 
-export type CarePlanComposeIaStatus = 'SUBMITTED' | 'REVIEWED';
+export type CarePlanComposeIaStatus = 'SUBMITTED' | 'REVIEWED' | 'IN_PROGRESS';
 
 export type CarePlanFallsSnapshotEvidence = {
   fallsLast12Months: boolean | null;
@@ -134,6 +135,11 @@ export type CarePlanComposeIaSnapshot = {
    * only the Pressure Ulcer compose reads it. Other plans ignore it.
    */
   waterlowMetadata?: CarePlanWaterlowComposeMetadata | null;
+  /**
+   * Enterprise IA Pain Assessment Tool (submission.metadata.painAssessment). Loaded additively;
+   * only the Pain Management compose reads it. Other plans ignore it.
+   */
+  painAssessmentMetadata?: CarePlanPainAssessmentComposeMetadata | null;
 };
 
 /**

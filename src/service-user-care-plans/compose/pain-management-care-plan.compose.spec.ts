@@ -78,11 +78,33 @@ function fullPainAnswers(scoreValue = 7): SubmissionAnswerForRules[] {
   ];
 }
 
-function ctxWith(answers: SubmissionAnswerForRules[] | null): CarePlanComposeContext {
+function ctxWith(
+  answers: SubmissionAnswerForRules[] | null,
+  painAssessmentMetadata?: {
+    nrsScore?: number;
+    abbey?: {
+      vocalisation?: number;
+      facialExpression?: number;
+      bodyLanguage?: number;
+      behaviouralChange?: number;
+      physiologicalChange?: number;
+      physicalChanges?: number;
+      total?: number;
+      severityBand?: string;
+      painType?: string;
+    };
+  } | null,
+): CarePlanComposeContext {
   return {
     serviceUserId: 'su-1',
     ia: answers
-      ? { submissionId: 'sub-1', status: 'REVIEWED', submittedAt: '2026-08-01T00:00:00.000Z', answers }
+      ? {
+          submissionId: 'sub-1',
+          status: 'REVIEWED',
+          submittedAt: '2026-08-01T00:00:00.000Z',
+          answers,
+          ...(painAssessmentMetadata ? { painAssessmentMetadata } : {}),
+        }
       : null,
   } as unknown as CarePlanComposeContext;
 }
@@ -140,7 +162,7 @@ describe('Pain Management IA suggestions', () => {
     expect(s?.sourceQuestions?.[0]?.sourceLabel).toBe(IA_Q_CURRENT_RELIEF);
   });
 
-  it('produces exactly four suggestions on a full §5.3 assessment', () => {
+  it('produces exactly four §5.3 suggestions when Abbey metadata is absent', () => {
     const result = composePainManagementCarePlan(ctxWith(fullPainAnswers()), fieldRefsFromSeed(), 'su-1');
     expect(result.suggestions).toHaveLength(4);
     expect(result.suggestions?.every((s) => s.sourceType === 'INITIAL_ASSESSMENT')).toBe(true);
@@ -176,7 +198,7 @@ describe('suggestions are never auto-filled', () => {
 // --------------------------------------------------------------------------
 
 describe('manual fields stay manual', () => {
-  it('never suggests any of the ten manual fields, even with a full assessment', () => {
+  it('never suggests remaining manual fields, even with a full assessment', () => {
     const ctx = ctxWith([
       ...fullPainAnswers(),
       // Generic content that must not be mapped onto Care 2020 / non-pharmacological fields.
@@ -192,10 +214,11 @@ describe('manual fields stay manual', () => {
     expect(result.values).toEqual({});
   });
 
-  it('keeps the NRS toggle, non-pharmacological methods and when-to-call-GP manual', () => {
+  it('keeps the NRS toggle, non-pharmacological methods, when-to-call-GP, and area-risk manual', () => {
     expect(painFieldRegistryEntry('pain_management_nrs_needed')?.mode).toBe('MANUAL');
     expect(painFieldRegistryEntry('pain_management_non_pharmacological')?.mode).toBe('MANUAL');
     expect(painFieldRegistryEntry('pain_management_when_to_call_gp')?.mode).toBe('MANUAL');
+    expect(painFieldRegistryEntry('pain_management_area_risk')?.mode).toBe('MANUAL');
   });
 
   it('registers every manual field with a recorded reason', () => {
@@ -268,14 +291,15 @@ describe('merged Pain Management template', () => {
     expect(seedField('pain_management_area_risk')?.fieldType).toBe('YES_NO');
   });
 
-  it('exposes exactly four suggestions and ten manual fields', () => {
+  it('exposes five suggestions (four §5.3 + Abbey) and thirteen manual fields', () => {
     expect(PAIN_SUGGESTION_KEYS).toEqual([
       'pain_management_usual_pain_score',
       'pain_management_site_and_character',
       'pain_management_worsens_relieves',
       'pain_management_regular_analgesia',
+      'pain_management_needs_person_centred',
     ]);
-    expect(PAIN_MANUAL_KEYS).toHaveLength(14);
+    expect(PAIN_MANUAL_KEYS).toHaveLength(13);
     expect(PAIN_FIELD_REGISTRY).toHaveLength(18);
   });
 
@@ -308,3 +332,85 @@ describe('compose dispatch and isolation', () => {
     }
   });
 });
+
+const ABBEY_11 = {
+  vocalisation: 2 as const,
+  facialExpression: 2 as const,
+  bodyLanguage: 2 as const,
+  behaviouralChange: 2 as const,
+  physiologicalChange: 2 as const,
+  physicalChanges: 1 as const,
+  total: 11,
+  severityBand: 'moderate',
+  painType: 'acute_on_chronic',
+};
+
+function applySuggestion(
+  values: Record<string, string | boolean>,
+  suggestion: { targetFieldKey: string; suggestedValue: string | boolean | null },
+): Record<string, string | boolean> {
+  if (suggestion.suggestedValue == null) return values;
+  const existing = values[suggestion.targetFieldKey];
+  if (existing != null && String(existing).trim() !== '') return values;
+  return { ...values, [suggestion.targetFieldKey]: suggestion.suggestedValue };
+}
+
+describe('Abbey Pain Scale suggestion is suggestion-only', () => {
+  it('does not map Abbey total into usual pain score (0–10)', () => {
+    const result = composePainManagementCarePlan(
+      ctxWith([], { abbey: ABBEY_11 }),
+      fieldRefsFromSeed(),
+      'su-1',
+    );
+    expect(suggestionFor(result, 'pain_management_usual_pain_score')).toBeUndefined();
+    expect(suggestionFor(result, 'pain_management_needs_person_centred')?.suggestedValue).toBe(
+      'Abbey 11/18 — moderate; acute on chronic (IA Pain Assessment Tool)',
+    );
+    expect(result.values).toEqual({});
+  });
+
+  it('keeps the four §5.3 mappings and adds one Abbey suggestion', () => {
+    const result = composePainManagementCarePlan(
+      ctxWith(fullPainAnswers(4), { abbey: ABBEY_11 }),
+      fieldRefsFromSeed(),
+      'su-1',
+    );
+    expect(suggestionFor(result, 'pain_management_usual_pain_score')?.suggestedValue).toBe('4');
+    expect(suggestionFor(result, 'pain_management_site_and_character')).toBeDefined();
+    expect(suggestionFor(result, 'pain_management_worsens_relieves')).toBeDefined();
+    expect(suggestionFor(result, 'pain_management_regular_analgesia')).toBeDefined();
+    expect(suggestionFor(result, 'pain_management_needs_person_centred')?.suggestedValue).toContain(
+      'Abbey 11/18',
+    );
+    expect(result.suggestions).toHaveLength(5);
+    expect(result.values).toEqual({});
+  });
+
+  it('never overwrites an existing Care Plan value on accept', () => {
+    const result = composePainManagementCarePlan(
+      ctxWith([], { abbey: ABBEY_11 }),
+      fieldRefsFromSeed(),
+      'su-1',
+    );
+    const suggestion = suggestionFor(result, 'pain_management_needs_person_centred');
+    expect(suggestion).toBeDefined();
+    const ref = fieldRefsFromSeed().find((f) => f.fieldKey === 'pain_management_needs_person_centred')!;
+    expect(
+      applySuggestion({ [ref.key]: 'Existing person-centred notes' }, suggestion!),
+    ).toEqual({ [ref.key]: 'Existing person-centred notes' });
+    expect(applySuggestion({}, suggestion!)[ref.key]).toBe(
+      'Abbey 11/18 — moderate; acute on chronic (IA Pain Assessment Tool)',
+    );
+  });
+
+  it('does not drive area-risk from Abbey', () => {
+    const result = composePainManagementCarePlan(
+      ctxWith(fullPainAnswers(), { abbey: ABBEY_11 }),
+      fieldRefsFromSeed(),
+      'su-1',
+    );
+    expect(suggestionFor(result, 'pain_management_area_risk')).toBeUndefined();
+    expect(painFieldRegistryEntry('pain_management_area_risk')?.mode).toBe('MANUAL');
+  });
+});
+

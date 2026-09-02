@@ -75,7 +75,6 @@ const INFERRED_FOLLOW_UP_RULES: { questionTextIncludes: string; when: ShowWhenRu
   { questionTextIncludes: 'salt referral made', when: { gateTextIncludes: 'salt referral required', yes: true } },
   { questionTextIncludes: 'salt referral date', when: { gateTextIncludes: 'salt referral made', yes: true } },
   { questionTextIncludes: 'hydration comment', when: { gateTextIncludes: 'adequately hydrated', no: true } },
-  { questionTextIncludes: 'food allergy details', when: { gateTextIncludes: 'food allergies documented', yes: true } },
   { questionTextIncludes: 'bmi value', when: { gateTextIncludes: 'bmi completed', yes: true } },
   { questionTextIncludes: 'must score', when: { gateTextIncludes: 'must assessment completed', yes: true } },
   {

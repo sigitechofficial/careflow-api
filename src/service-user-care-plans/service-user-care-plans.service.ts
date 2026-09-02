@@ -46,7 +46,7 @@ import {
 } from './care-plan-instance-display-status.util';
 import { sanitizeCarePlanDraftValuesForSave } from './compose/care-plan-draft-sanitize.util';
 import {
-  COMPOSE_ELIGIBLE_IA_STATUSES,
+  COMPOSE_IA_LOAD_STATUSES,
   splitLatestAndPreviousAssessments,
 } from './compose/compose-ia-eligibility.util';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -471,7 +471,7 @@ export class ServiceUserCarePlansService {
       where: {
         serviceUserId: input.serviceUserId,
         deletedAt: null,
-        status: { in: COMPOSE_ELIGIBLE_IA_STATUSES },
+        status: { in: COMPOSE_IA_LOAD_STATUSES },
       },
       select: { id: true, metadata: true, submittedAt: true, updatedAt: true, status: true },
     });

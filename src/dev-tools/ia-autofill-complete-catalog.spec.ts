@@ -1,19 +1,26 @@
 import { ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS } from '../../prisma/seeds/initial-assessment-enterprise.seed';
+import { IA_REGISTERED_HOLISTIC_TAB_IDS } from './dto/generate-ia-section.dto';
 import {
   CARE_PLAN_IA_DEMO_OVERLAYS,
 } from '../../prisma/seeds/care-plan-ia-demo-overlay.data';
 import {
   buildAutofillAnswers,
+  buildDemoProfilePatch,
   buildHolisticWorksheetMetadata,
+  classifyDemoTextRole,
+  CLINICAL_NEEDS_NARRATIVE_RE,
   collectWritableDemoQuestionIds,
-  isGenericDemoSkipQuestion,
-  isOccupiedIdentityQuestion,
+  isIntentionalBlankDemoQuestion,
+  isInventedClinicalMeasurement,
+  isSecureQuestion,
+  isTypedDemoTextRole,
   QA_DEMO_DOB,
   QA_DEMO_ETHNICITY,
   QA_DEMO_GENDER,
   QA_DEMO_LANGUAGE,
   QA_DEMO_NHS_NUMBER,
   QA_DEMO_NI_NUMBER,
+  QA_DEMO_PO_NUMBER,
   type AnswerInput,
   type IaAutofillLevel,
   type TemplateQuestion,
@@ -56,7 +63,7 @@ function fillAllTabs(
 ): Map<string, AnswerInput> {
   const requested = questions.map((q) => q.id);
   const merged = new Map<string, AnswerInput>();
-  for (let tabId = 1; tabId <= 18; tabId++) {
+  for (const tabId of IA_REGISTERED_HOLISTIC_TAB_IDS) {
     const writable = collectWritableDemoQuestionIds(tabId, questions, requested, level, identity);
     for (const a of buildAutofillAnswers(questions, level, writable, identity)) {
       merged.set(a.questionId, a);
@@ -88,58 +95,175 @@ function answerIsPopulated(q: TemplateQuestion, a: AnswerInput | undefined): boo
   }
 }
 
+const PERSONA_NAMES = /Margaret Hughes|Doris Clarke|James Okafor|Fatima Al-Rashid|Betty Henderson/;
+const MH_CLINICAL_PARAGRAPH = /low in mood recently|tearful at times|withdrawn from usual activities/;
+const SG_INCIDENT_NARRATIVE = /self-neglect and a recent unexplained bruise|safeguarding referral made to the local authority and being monitored/;
+
 function prohibitedPlaceholder(text: string): boolean {
   return /\bN\/A\b|\bnot applicable\b|\bdemo\b|\btest user\b|\blorem ipsum\b/i.test(text);
+}
+
+type CatalogBucket =
+  | 'FILLED_CORRECTLY'
+  | 'WRONG_VALUE'
+  | 'BLANK_BUT_SHOULD_BE_FILLED'
+  | 'CONDITIONAL_HIDDEN'
+  | 'SECURE'
+  | 'CLINICAL_MEASUREMENT';
+
+function typedValueIsCorrect(q: TemplateQuestion, text: string): boolean {
+  if (CLINICAL_NEEDS_NARRATIVE_RE.test(text)) return false;
+  if (PERSONA_NAMES.test(text)) return false;
+  const role = classifyDemoTextRole(q);
+  const label = q.questionText.toLowerCase();
+  const key = String((q.metadata as { fieldKey?: string } | null)?.fieldKey ?? '').toLowerCase();
+  switch (role) {
+    case 'identifier':
+      if (key === 'ponumber' || /\bpo number\b/.test(label)) return text === QA_DEMO_PO_NUMBER;
+      if (/local authority/.test(label)) return /^LA-/i.test(text);
+      return /^(QA|PO|LA|SG)-|\d{3}/.test(text);
+    case 'reference':
+      return /^(SG|QA|REF)-/i.test(text) && !SG_INCIDENT_NARRATIVE.test(text);
+    case 'personName':
+      return text.trim().length >= 2 && text.length < 80 && !/\bneeds identified\b/i.test(text);
+    case 'phone':
+      return /\d{5,}/.test(text);
+    case 'email':
+      return /@/.test(text);
+    case 'postcode':
+      return /[A-Z]{1,2}\d/i.test(text);
+    case 'contact':
+      if (/mental health/.test(label) && MH_CLINICAL_PARAGRAPH.test(text)) return false;
+      if (/safeguarding/.test(label) && SG_INCIDENT_NARRATIVE.test(text)) return false;
+      return /Tel:|\d{5,}/i.test(text);
+    case 'datetimeText':
+      return /\d{4}-\d{2}-\d{2}/.test(text);
+    case 'location':
+      return text.trim().length >= 4;
+    case 'schedule':
+      return /daily|visit|week|needed/i.test(text);
+    case 'measurementBand':
+      return /\d+\s*cm|average/i.test(text);
+    case 'bodySite':
+      return text.trim().length >= 4;
+    case 'professionalRole':
+      return text.trim().length >= 4;
+    default:
+      return text.trim().length > 0 && !CLINICAL_NEEDS_NARRATIVE_RE.test(text);
+  }
+}
+
+function classifyCatalogField(
+  q: TemplateQuestion,
+  answer: AnswerInput | undefined,
+  writable: Set<string>,
+): CatalogBucket {
+  const filled = answerIsPopulated(q, answer);
+  if (isSecureQuestion(q)) return filled ? 'WRONG_VALUE' : 'SECURE';
+  if (isInventedClinicalMeasurement(q)) return filled ? 'WRONG_VALUE' : 'CLINICAL_MEASUREMENT';
+  if (isIntentionalBlankDemoQuestion(q) || !writable.has(q.id)) {
+    return filled ? 'WRONG_VALUE' : 'CONDITIONAL_HIDDEN';
+  }
+  if (!filled) return 'BLANK_BUT_SHOULD_BE_FILLED';
+  if (q.questionType === 'TEXT' || q.questionType === 'TEXTAREA') {
+    const text = answer?.textValue ?? '';
+    const role = classifyDemoTextRole(q);
+    if (isTypedDemoTextRole(role) && !typedValueIsCorrect(q, text)) return 'WRONG_VALUE';
+    if (prohibitedPlaceholder(text) || PERSONA_NAMES.test(text)) return 'WRONG_VALUE';
+  }
+  return 'FILLED_CORRECTLY';
 }
 
 describe('generic IA QA demo generator — complete catalog (non-persona)', () => {
   const catalog = flattenCatalog();
 
-  it('enterprise catalog has questions across sections 1–14', () => {
+  it('enterprise catalog includes dedicated infection (§15) and fire safety (§18) sections', () => {
     const sections = new Set(catalog.map((q) => q.sectionNumber));
-    expect(sections.size).toBeGreaterThanOrEqual(14);
+    expect(sections.size).toBeGreaterThanOrEqual(16);
+    expect(sections.has(15)).toBe(true);
+    expect(sections.has(18)).toBe(true);
     expect(catalog.length).toBeGreaterThan(100);
   });
 
   it.each(['critical', 'normal', 'low'] as const)(
-    '%s fills every applicable field including empty identity, and leaves hidden/secure/measurement fields empty',
+    '%s classifies every catalog field (typed correctness, not merely non-empty text)',
     (level) => {
       const answers = fillAllTabs(catalog, level);
-      const byId = new Map(catalog.map((q) => [q.id, q]));
       const requested = catalog.map((q) => q.id);
       const writable = new Set<string>();
-      for (let tabId = 1; tabId <= 18; tabId++) {
+      for (const tabId of IA_REGISTERED_HOLISTIC_TAB_IDS) {
         for (const id of collectWritableDemoQuestionIds(tabId, catalog, requested, level)) {
           writable.add(id);
         }
       }
 
-      const missing: string[] = [];
-      const unexpected: string[] = [];
+      const counts: Record<CatalogBucket, number> = {
+        FILLED_CORRECTLY: 0,
+        WRONG_VALUE: 0,
+        BLANK_BUT_SHOULD_BE_FILLED: 0,
+        CONDITIONAL_HIDDEN: 0,
+        SECURE: 0,
+        CLINICAL_MEASUREMENT: 0,
+      };
+      const wrong: string[] = [];
+      const blank: string[] = [];
 
       for (const q of catalog) {
-        const filled = answers.get(q.id);
-        if (isGenericDemoSkipQuestion(q) || isOccupiedIdentityQuestion(q, undefined)) {
-          if (filled) unexpected.push(`${q.id} ${q.questionText}`);
-          continue;
+        const bucket = classifyCatalogField(q, answers.get(q.id), writable);
+        counts[bucket] += 1;
+        if (bucket === 'WRONG_VALUE') {
+          wrong.push(`${q.id} [${classifyDemoTextRole(q)}] ${q.questionText} => ${JSON.stringify(answers.get(q.id)?.textValue)}`);
         }
-        if (!writable.has(q.id)) {
-          if (filled) unexpected.push(`hidden ${q.id} ${q.questionText}`);
-          continue;
-        }
-        if (!answerIsPopulated(q, filled)) missing.push(`${q.id} [${q.questionType}] ${q.questionText}`);
-      }
-
-      expect(missing).toEqual([]);
-      expect(unexpected).toEqual([]);
-
-      for (const a of answers.values()) {
-        const q = byId.get(a.questionId);
-        if (!q) continue;
-        if (q.questionType === 'TEXT' || q.questionType === 'TEXTAREA') {
-          expect(prohibitedPlaceholder(a.textValue ?? '')).toBe(false);
+        if (bucket === 'BLANK_BUT_SHOULD_BE_FILLED') {
+          blank.push(`${q.id} [${q.questionType}] ${q.questionText}`);
         }
       }
+
+      expect(catalog.length).toBe(Object.values(counts).reduce((a, b) => a + b, 0));
+      expect(wrong).toEqual([]);
+      expect(blank).toEqual([]);
+      expect(counts.FILLED_CORRECTLY).toBeGreaterThan(0);
+      expect(counts.WRONG_VALUE).toBe(0);
+      expect(counts.BLANK_BUT_SHOULD_BE_FILLED).toBe(0);
+
+      const patch = buildDemoProfilePatch();
+
+      const report = {
+        catalog: catalog.length,
+        correctlyFilled: counts.FILLED_CORRECTLY,
+        wronglyFilled: counts.WRONG_VALUE,
+        blankButRequired: counts.BLANK_BUT_SHOULD_BE_FILLED,
+        hidden: counts.CONDITIONAL_HIDDEN,
+        secure: counts.SECURE,
+        clinicalMeasurement: counts.CLINICAL_MEASUREMENT,
+        profileBacked: [
+          patch.address?.addressLine1,
+          patch.address?.addressLine2,
+          patch.address?.town,
+          patch.address?.county,
+          patch.address?.postcode,
+          patch.phone,
+          patch.mobile,
+          patch.email,
+          patch.gp?.name,
+          patch.gp?.phone,
+          patch.gp?.practice,
+        ].filter(Boolean).length,
+      };
+      const expected = {
+        critical: { correctlyFilled: 511, hidden: 24 },
+        normal: { correctlyFilled: 459, hidden: 76 },
+        low: { correctlyFilled: 446, hidden: 89 },
+      } as const;
+      expect(report).toEqual({
+        catalog: 544,
+        wronglyFilled: 0,
+        blankButRequired: 0,
+        secure: 3,
+        clinicalMeasurement: 6,
+        profileBacked: 11,
+        ...expected[level],
+      });
     },
   );
 
@@ -262,6 +386,31 @@ describe('generic IA QA demo generator — complete catalog (non-persona)', () =
     expect(history).toBeTruthy();
     expect(history).not.toMatch(/^(I |I'm |Please |My )/i);
   });
+
+  it.each(['critical', 'normal', 'low'] as const)(
+    '%s worksheet metadata for tabs 13 and 14 is complete (ACP + EOL)',
+    (level) => {
+      const meta = buildHolisticWorksheetMetadata(level, GENERIC_IDENTITY);
+      const acp = meta.advanceCarePlanning as Record<string, unknown>;
+      const eol = meta.endOfLifeAssessment as Record<string, unknown>;
+
+      expect(String(acp.dateCompleted ?? '').trim()).toBeTruthy();
+      expect(acp.legalAdvanceDecision).toBe(false);
+      expect(String(acp.personalValues ?? '').trim()).toBeTruthy();
+      expect(String(acp.carePreferences ?? '').trim()).toBeTruthy();
+      expect(String(acp.concernsAndFears ?? '').trim()).toBeTruthy();
+      expect(String(acp.placeOfCareFirstChoice ?? '').trim()).toBeTruthy();
+      expect(String(acp.patientSignature ?? '').trim()).toBeTruthy();
+      expect(acp.patientName).toBe('Helen');
+
+      expect(eol.endOfLifeCarePlanAnswer === true || eol.endOfLifeCarePlanAnswer === false).toBe(true);
+      expect(eol.awareOfDyingAnswer === true || eol.awareOfDyingAnswer === false).toBe(true);
+      expect(eol.dnrInPlaceAnswer).toBe(false);
+      expect(['yes', 'no', 'unknown']).toContain(eol.medicalAidRecoveryTriAnswer);
+      expect(String(eol.significantBeliefsNotes ?? '').trim()).toBeTruthy();
+      expect(String(eol.consentMethodNotes ?? '').trim()).toBeTruthy();
+    },
+  );
 
   it('does not invent identity — photography metadata uses the Service User', () => {
     const meta = buildHolisticWorksheetMetadata('critical', GENERIC_IDENTITY);

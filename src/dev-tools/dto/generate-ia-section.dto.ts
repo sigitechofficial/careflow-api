@@ -1,12 +1,28 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsIn, IsInt, IsObject, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsObject, IsOptional, IsUUID, Min } from 'class-validator';
 
 /** QA demo severity scenarios. */
 export const IA_AUTOFILL_LEVELS = ['low', 'normal', 'critical'] as const;
 export type IaAutofillLevelDto = (typeof IA_AUTOFILL_LEVELS)[number];
 
-/** Number of holistic document tabs (1..18). Mirrors the frontend HOLISTIC_TAB_COUNT. */
-export const IA_HOLISTIC_TAB_COUNT = 18;
+/**
+ * Registered holistic tab IDs. Navigation order is independent; IDs 1–18 stay frozen.
+ * 21 = Infection, 22 = Fire Safety, 19 = PEEP, 20 = Bed Rails.
+ */
+export const IA_REGISTERED_HOLISTIC_TAB_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+] as const;
+
+export type IaRegisteredHolisticTabId = (typeof IA_REGISTERED_HOLISTIC_TAB_IDS)[number];
+
+/** Number of registered holistic tabs (not a 1..N ID range). */
+export const IA_HOLISTIC_TAB_COUNT = IA_REGISTERED_HOLISTIC_TAB_IDS.length;
+
+export const IA_MAX_HOLISTIC_TAB_ID = Math.max(...IA_REGISTERED_HOLISTIC_TAB_IDS);
+
+export function isRegisteredHolisticTabId(tabId: number): tabId is IaRegisteredHolisticTabId {
+  return (IA_REGISTERED_HOLISTIC_TAB_IDS as readonly number[]).includes(tabId);
+}
 
 /**
  * Generate (no-save) severity-aware demo values for ONE holistic tab. The frontend passes the
@@ -19,10 +35,10 @@ export class GenerateIaSectionDto {
   @IsIn(IA_AUTOFILL_LEVELS)
   level!: IaAutofillLevelDto;
 
-  @ApiProperty({ minimum: 1, maximum: IA_HOLISTIC_TAB_COUNT, description: 'Holistic document tab id (1..18)' })
+  @ApiProperty({ description: 'Registered holistic document tab id (1–18 frozen; 19 PEEP, 20 bed rails, 21 infection, 22 fire)' })
   @IsInt()
   @Min(1)
-  @Max(IA_HOLISTIC_TAB_COUNT)
+  @IsIn([...IA_REGISTERED_HOLISTIC_TAB_IDS])
   tabId!: number;
 
   @ApiProperty({ type: [String], format: 'uuid', description: 'Question IDs the tab renders (may be empty for tool-only tabs)' })
@@ -49,8 +65,18 @@ export class GenerateIaSectionDto {
     ethnicity?: string;
     language?: string;
     addressContact?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    town?: string;
+    county?: string;
+    postcode?: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
     gpContact?: string;
     gpName?: string;
+    gpPhone?: string;
+    gpPractice?: string;
     emergencyContact?: string;
     allergies?: string;
     accessInstruction?: string;

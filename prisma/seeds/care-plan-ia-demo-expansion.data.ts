@@ -3,7 +3,7 @@
  * Verified against enterprise questionText / fieldKey / option codes and persona seeds.
  * Does not invent ethnicity, N/A fillers, or dynamic “today” dates.
  */
-import { enrichWaterlowMetadata } from '../../src/initial-assessments/initial-assessment-waterlow.util';
+import { IA_REGISTERED_HOLISTIC_TAB_IDS } from '../../src/dev-tools/dto/generate-ia-section.dto';
 import {
   clearAnswer,
   dateAnswer,
@@ -310,7 +310,7 @@ function footers(number: string, displayName: string) {
   const d = IA_DEMO_DETERMINISTIC_DATES[number];
   const sectionComments: Record<string, { text: string }> = {};
   const sectionFooters: Record<string, { dateCompleted?: string; assessorNameDesignation?: string }> = {};
-  for (let n = 1; n <= 18; n++) {
+  for (const n of IA_REGISTERED_HOLISTIC_TAB_IDS) {
     sectionComments[String(n)] = { text: `${displayName} — section ${n} reviewed.` };
     sectionFooters[String(n)] = {
       dateCompleted: d.assessment,

@@ -48,6 +48,7 @@
     "seed:mar-30-api": "ts-node --transpile-only prisma/scripts/seed-mar-30-days-via-api.ts",
     "seed:medication-realistic": "ts-node --transpile-only prisma/scripts/reset-and-seed-realistic-medication-via-api.ts",
     "seed:section-311-flooring": "ts-node --transpile-only prisma/scripts/resync-section-311-flooring.ts",
+    "seed:ia-sections-16-17": "ts-node --transpile-only prisma/scripts/resync-ia-sections-16-17.ts",
     "seed:allergies": "ts-node --transpile-only prisma/scripts/seed-allergy-catalog.ts",
     "seed:ethnicities": "ts-node --transpile-only prisma/scripts/seed-ethnicities.ts",
     "seed:funding-types": "ts-node --transpile-only prisma/scripts/seed-funding-types.ts",

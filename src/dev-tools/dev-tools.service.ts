@@ -15,7 +15,11 @@ export class DevToolsService {
     tabId: number,
     questionIds: string[],
     identity?: import('./ia-autofill-build.util').IaDemoIdentity | null,
-  ): Promise<{ answers: AnswerInput[]; metadata: Record<string, unknown> }> {
+  ): Promise<{
+    answers: AnswerInput[];
+    metadata: Record<string, unknown>;
+    profilePatch: import('./ia-autofill-build.util').IaDemoProfilePatch;
+  }> {
     if (!['low', 'normal', 'critical'].includes(level)) {
       throw new BadRequestException('level must be low, normal, or critical');
     }

@@ -1,3 +1,4 @@
+import type { SubmissionAnswerForRules } from '../../initial-assessments/initial-assessment-care-plan-rules.util';
 import type {
   CarePlanComposeContext,
   CarePlanSuggestionSourceQuestion,
@@ -8,7 +9,7 @@ import {
   resolveIaNumberValue,
 } from './ia-answer-resolver.util';
 import { sanitizeComposeTextOrNull } from './compose-html-sanitize.util';
-import type { SubmissionAnswerForRules } from '../../initial-assessments/initial-assessment-care-plan-rules.util';
+import { abbeyCarePlanSuggestionText } from './compose-pain-assessment-metadata.util';
 
 export {
   PAIN_AUTO_PREFILL_KEYS,
@@ -89,6 +90,23 @@ function resolvePainScore(ctx: CarePlanComposeContext): PainSuggestionParts | nu
   return { suggestedValue: value, displayText: value, sources: [sourceFromIaAnswer(answer, value)] };
 }
 
+function resolveAbbeySummary(ctx: CarePlanComposeContext): PainSuggestionParts | null {
+  const text = abbeyCarePlanSuggestionText(ctx.ia?.painAssessmentMetadata);
+  if (!text || !ctx.ia) return null;
+  return {
+    suggestedValue: text,
+    displayText: text,
+    sources: [
+      {
+        questionId: `pain-tool-abbey:${ctx.ia.submissionId}`,
+        sourceSection: 'Pain Assessment Tool',
+        sourceLabel: 'IA Pain Assessment Tool (Abbey Pain Scale)',
+        sourceValue: text,
+      },
+    ],
+  };
+}
+
 /**
  * Suggestion mappings — surfaced as IA suggestion cards for a clinician to accept.
  * Values are never written into the draft by compose.
@@ -109,5 +127,9 @@ export const PAIN_SUGGESTION_MAPPINGS: PainSuggestionMapping[] = [
   {
     businessKey: 'pain_management_regular_analgesia',
     resolve: (ctx) => resolveIaText(ctx, PAIN_IA_QUERIES.currentPainRelief),
+  },
+  {
+    businessKey: 'pain_management_needs_person_centred',
+    resolve: resolveAbbeySummary,
   },
 ];
