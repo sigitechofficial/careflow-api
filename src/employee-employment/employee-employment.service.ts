@@ -153,6 +153,13 @@ export class EmployeeEmploymentService {
             skipDuplicates: true,
           });
         }
+
+        // Keep legacy singular baseLocationId in sync with primary. Stale values here used to
+        // reappear as a second "selected" branch on edit after saving one branch.
+        await tx.employeeEmployment.update({
+          where: { id: employment.id },
+          data: { baseLocationId: primaryLocationId },
+        });
       }
 
       if (serviceUserAreaIds !== undefined) {

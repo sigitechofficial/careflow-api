@@ -96,10 +96,10 @@ export class UpdateEmployeeEmploymentDto {
   @IsUUID()
   defaultPayCardId?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsUUID()
-  baseLocationId?: string;
+  baseLocationId?: string | null;
 
   @ApiPropertyOptional({ description: 'Multiple base/home sites for this employee' })
   @IsOptional()
