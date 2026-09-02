@@ -25,7 +25,7 @@ on:
         type: string
 
 concurrency:
-  group: careflow-api-production
+  group: careflow-api-allforcare-production
   cancel-in-progress: false
 
 permissions:
@@ -102,7 +102,7 @@ jobs:
             "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
           set -euo pipefail
 
-          APP_NAME="careflow-api"
+          APP_NAME="api-allforcare"
           LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
           APP_URL="${{ secrets.BACKEND_APP_URL }}"
           PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
@@ -110,18 +110,18 @@ jobs:
           TARGET="${{ github.event.inputs.target }}"
 
           if [ -z "$LIVE_PATH" ]; then
-            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+            LIVE_PATH="/home/sigisolutions/api-allforcare.sigisolutions.net"
           fi
 
           if [ -z "$APP_URL" ]; then
-            APP_URL="https://careflowbackend.sigisolutions.net/"
+            APP_URL="https://api-allforcare.sigisolutions.net/"
           fi
 
           if [ -z "$PM2_APP_NAME" ]; then
-            PM2_APP_NAME="main"
+            PM2_APP_NAME="api-allforcare"
           fi
 
-          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
           RELEASES_DIR="$DEPLOY_ROOT/releases"
           BACKUPS_DIR="$DEPLOY_ROOT/backups"
           DB_BACKUPS_DIR="$DEPLOY_ROOT/db-backups"

@@ -3,12 +3,12 @@ name: Deploy Careflow API
 on:
   push:
     branches:
-      - main
+      - production
 
   workflow_dispatch:
 
 concurrency:
-  group: careflow-api-production
+  group: careflow-api-allforcare-production
   cancel-in-progress: false
 
 permissions:
@@ -68,7 +68,7 @@ jobs:
         run: |
           cat > release.json <<EOF
           {
-            "app": "careflow-api",
+            "app": "api-allforcare",
             "commit": "${{ github.sha }}",
             "branch": "${{ github.ref_name }}",
             "deployedBy": "${{ github.actor }}",
@@ -107,9 +107,14 @@ jobs:
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_USER: ${{ secrets.VPS_USER }}
+      # Prefer secrets; fall back to api-allforcare document root on the VPS.
       BACKEND_DEPLOY_PATH: ${{ secrets.BACKEND_DEPLOY_PATH }}
       BACKEND_APP_URL: ${{ secrets.BACKEND_APP_URL }}
       BACKEND_PM2_APP_NAME: ${{ secrets.BACKEND_PM2_APP_NAME }}
+      DEPLOY_ROOT: /home/sigisolutions/deployments/api-allforcare
+      DEFAULT_LIVE_PATH: /home/sigisolutions/api-allforcare.sigisolutions.net
+      DEFAULT_APP_URL: https://api-allforcare.sigisolutions.net/
+      DEFAULT_PM2_APP_NAME: api-allforcare
       # Keep SSH alive during long remote tar / pg_dump (idle sessions often drop on cPanel).
       SSH_OPTS: -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -o TCPKeepAlive=yes -o ConnectTimeout=30
 
@@ -150,13 +155,17 @@ jobs:
           set -e
 
           VPS_PORT="${VPS_PORT:-22}"
+          LIVE_PATH="${BACKEND_DEPLOY_PATH:-}"
+          if [ -z "$LIVE_PATH" ]; then
+            LIVE_PATH="$DEFAULT_LIVE_PATH"
+          fi
 
           # shellcheck disable=SC2086
           ssh -i ~/.ssh/deploy_key \
             -p "$VPS_PORT" \
             $SSH_OPTS \
             "$VPS_USER@$VPS_HOST" \
-            "whoami && pwd && ls -ld '$BACKEND_DEPLOY_PATH'"
+            "whoami && pwd && ls -ld '$LIVE_PATH'"
 
       - name: Prepare remote deployment folders
         run: |
@@ -170,11 +179,11 @@ jobs:
             $SSH_OPTS \
             "$VPS_USER@$VPS_HOST" \
             "
-              mkdir -p /home/sigisolutions/deployments/careflow-api/incoming
-              mkdir -p /home/sigisolutions/deployments/careflow-api/releases
-              mkdir -p /home/sigisolutions/deployments/careflow-api/backups
-              mkdir -p /home/sigisolutions/deployments/careflow-api/db-backups
-              mkdir -p /home/sigisolutions/deployments/careflow-api/logs
+              mkdir -p '$DEPLOY_ROOT'/incoming
+              mkdir -p '$DEPLOY_ROOT'/releases
+              mkdir -p '$DEPLOY_ROOT'/backups
+              mkdir -p '$DEPLOY_ROOT'/db-backups
+              mkdir -p '$DEPLOY_ROOT'/logs
             "
 
       - name: Upload backend release package
@@ -188,7 +197,7 @@ jobs:
             -P "$VPS_PORT" \
             $SSH_OPTS \
             careflow-api-release.tar.gz \
-            "$VPS_USER@$VPS_HOST:/home/sigisolutions/deployments/careflow-api/incoming/${{ github.sha }}.tar.gz"
+            "$VPS_USER@$VPS_HOST:$DEPLOY_ROOT/incoming/${{ github.sha }}.tar.gz"
 
       - name: Deploy backend release with backup and rollback protection
         run: |
@@ -203,25 +212,25 @@ jobs:
             "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
           set -euo pipefail
 
-          APP_NAME="careflow-api"
+          APP_NAME="api-allforcare"
           RELEASE_ID="${{ github.sha }}"
           LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
           APP_URL="${{ secrets.BACKEND_APP_URL }}"
           PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
 
           if [ -z "$LIVE_PATH" ]; then
-            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+            LIVE_PATH="/home/sigisolutions/api-allforcare.sigisolutions.net"
           fi
 
           if [ -z "$APP_URL" ]; then
-            APP_URL="https://careflowbackend.sigisolutions.net/"
+            APP_URL="https://api-allforcare.sigisolutions.net/"
           fi
 
           if [ -z "$PM2_APP_NAME" ]; then
-            PM2_APP_NAME="main"
+            PM2_APP_NAME="api-allforcare"
           fi
 
-          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
           INCOMING_FILE="$DEPLOY_ROOT/incoming/$RELEASE_ID.tar.gz"
 
           DEPLOY_TS="$(date -u +%Y%m%d-%H%M%SZ)"
