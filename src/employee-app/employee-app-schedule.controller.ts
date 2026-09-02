@@ -12,6 +12,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { EmployeeVisitsService } from '../employees/employee-visits.service';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
+import {
+  formatUkDateRangeLabel,
+  formatUkMonthLabelFromKey,
+} from '../common/utils/uk-date-label.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppScheduleService } from './employee-app-schedule.service';
@@ -131,6 +135,10 @@ export class EmployeeAppScheduleController {
       data: {
         employeeId: result.data.employeeId,
         month: result.data.month,
+        monthLabel:
+          result.data.periodType === 'month'
+            ? formatUkMonthLabelFromKey(result.data.month) ?? result.data.month
+            : formatUkDateRangeLabel(result.data.dateFrom, result.data.dateTo),
         period: result.data.period,
         periodType: result.data.periodType,
         dateFrom: result.data.dateFrom,

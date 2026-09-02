@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PayrollRunsService } from '../billing/payroll-runs.service';
+import {
+  formatUkDateLabel,
+  formatUkDateRangeLabel,
+  formatUkMonthLabelFromKey,
+} from '../common/utils/uk-date-label.util';
 
 export type SalaryCalculationBasis = 'MONTHLY' | 'WEEKLY';
 
@@ -66,15 +71,7 @@ function weekDateRange(period: string): { dateFrom: string; dateTo: string } {
 }
 
 function utcMonthLabel(month: string): string {
-  const [yRaw, mRaw] = month.split('-');
-  const y = Number(yRaw);
-  const m = Number(mRaw);
-  if (!Number.isFinite(y) || !Number.isFinite(m) || y < 1 || m < 1) return month;
-  return new Intl.DateTimeFormat('en-GB', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(y, m - 1, 1)));
+  return formatUkMonthLabelFromKey(month) ?? month;
 }
 
 function utcWeekLabel(period: string): string {
@@ -82,13 +79,7 @@ function utcWeekLabel(period: string): string {
   if (Number.isNaN(monday.getTime())) return period;
   const sunday = new Date(monday);
   sunday.setUTCDate(monday.getUTCDate() + 6);
-  const fmt = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  });
-  const year = period.slice(0, 4);
-  return `Week ${period.slice(6)} · ${fmt.format(monday)} – ${fmt.format(sunday)} ${year}`;
+  return `Week ${period.slice(6)} · ${formatUkDateLabel(monday)} – ${formatUkDateLabel(sunday)}`;
 }
 
 @Injectable()
@@ -207,7 +198,7 @@ export class EmployeeAppSalaryService {
       }
       return {
         period: `${dateFrom}_${dateTo}`,
-        periodLabel: `${dateFrom} – ${dateTo}`,
+        periodLabel: formatUkDateRangeLabel(dateFrom!, dateTo!),
         dateFrom: dateFrom!,
         dateTo: dateTo!,
       };

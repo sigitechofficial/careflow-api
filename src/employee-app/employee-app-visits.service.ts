@@ -66,10 +66,15 @@ import {
   formatHmUtc,
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
+import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
+import {
+  isCheckInMethodEnabled,
+  resolveEnabledCheckInMethods,
+} from './employee-app-check-in-methods.util';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import type {
   EmployeeAppHandoverAcknowledgeDto,
@@ -315,12 +320,14 @@ export class EmployeeAppVisitsService {
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings] = await Promise.all([
-      this.resolveProgress(ctx),
-      this.loadOverviewExtras(ctx),
-      this.resolveMedicationProgress(ctx),
-      this.loadGeofenceSettings(),
-    ]);
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags] =
+      await Promise.all([
+        this.resolveProgress(ctx),
+        this.loadOverviewExtras(ctx),
+        this.resolveMedicationProgress(ctx),
+        this.loadGeofenceSettings(),
+        this.loadCheckInMethodFlags(),
+      ]);
 
     return {
       data: {
@@ -331,10 +338,10 @@ export class EmployeeAppVisitsService {
         },
         overview: overviewExtras,
         clockInSettings: {
-          enabledMethods: ['GPS', 'MANUAL'] as string[],
+          enabledMethods: resolveEnabledCheckInMethods(checkInFlags),
           maxLocationAccuracyMeters: 50,
           timingGraceMinutes: 15,
-          allowManualOverride: true,
+          allowManualOverride: checkInFlags.domCheckInManualEnabled !== false,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
           ...(await this.getClockInArrivalReasons()),
         },
@@ -744,6 +751,7 @@ export class EmployeeAppVisitsService {
     // Single-carer: visit-level already-checked-in (unchanged).
     // Double-up: each carer clocks in independently via allocation actualStart.
     await this.assertCheckInArrivalReason(dto);
+    await this.assertCheckInMethodEnabled(dto.method);
 
     const alreadyCheckedIn = multi
       ? Boolean(myAllocation?.actualStartDateTime)
@@ -3979,6 +3987,31 @@ export class EmployeeAppVisitsService {
     return { allowedRadiusMeters: EMPLOYEE_APP_ALLOWED_RADIUS_METERS };
   }
 
+  private async loadCheckInMethodFlags() {
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: {
+        domCheckInGpsEnabled: true,
+        domCheckInManualEnabled: true,
+        domCheckInNfcEnabled: true,
+        domCheckInQrEnabled: true,
+      },
+    });
+    return {
+      domCheckInGpsEnabled: settings?.domCheckInGpsEnabled,
+      domCheckInManualEnabled: settings?.domCheckInManualEnabled,
+      domCheckInNfcEnabled: settings?.domCheckInNfcEnabled,
+      domCheckInQrEnabled: settings?.domCheckInQrEnabled,
+    };
+  }
+
+  private async assertCheckInMethodEnabled(method?: string) {
+    const enabled = resolveEnabledCheckInMethods(await this.loadCheckInMethodFlags());
+    if (isCheckInMethodEnabled(method, enabled)) return;
+    validationError(
+      'This check-in method is not enabled for your organisation.',
+    );
+  }
+
   private buildProgress(
     progress: { tasksDone: number; tasksTotal: number; obsCount?: number },
     medProgress?: { dueCount: number; givenCount: number },
@@ -5161,8 +5194,7 @@ function initialsFromName(first: string | null | undefined, last: string | null 
 }
 
 function formatDob(d: Date) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return formatUkDateLabel(d);
 }
 
 function riskLabel(risk: InitialAssessmentRiskType) {

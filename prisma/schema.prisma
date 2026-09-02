@@ -826,6 +826,11 @@ model OrganisationGeneralSettings {
   domEmailTomorrowsSchedule     Boolean           @default(false)
   domAppShowHoursBefore         Int               @default(48)
   domRestrictJobOutsideGeofence Boolean         @default(true)
+  /// Carer-app clock-in methods (visit details `clockInSettings.enabledMethods`).
+  domCheckInGpsEnabled          Boolean           @default(true)
+  domCheckInManualEnabled       Boolean           @default(true)
+  domCheckInNfcEnabled          Boolean           @default(false)
+  domCheckInQrEnabled           Boolean           @default(false)
   domGeofenceToleranceMeters    Int               @default(150)
   domDownloadAllServiceUsers    Boolean           @default(false)
   domFutureVisitsDays           Int               @default(14)
