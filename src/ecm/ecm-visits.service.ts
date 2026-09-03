@@ -9,6 +9,11 @@ import {
   VisitAttendanceEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import {
+  OrgScopeService,
+  scheduledJobLocationIdsScope,
+} from '../common/org-scope/org-scope.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
@@ -189,9 +194,10 @@ export class EcmVisitsService {
     private readonly scheduleVersions: EcmScheduleVersionService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async getLiveDashboard(query: EcmLiveDashboardQueryDto) {
+  async getLiveDashboard(query: EcmLiveDashboardQueryDto, actor?: RequestUser) {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const { dateFrom, dateTo } = resolveLiveDateRange(query, timeZone);
     const singleDay = dateFrom === dateTo;
@@ -203,9 +209,35 @@ export class EcmVisitsService {
     const soonMs = windows.startingSoonMinutes * 60_000;
     const dueWindowMs = windows.dueNowWindowMinutes * 60_000;
 
+    const scope = actor ? this.orgScope.fromRequestUser(actor) : null;
+    const scopedLocationIds = scope
+      ? this.orgScope.resolveListLocationIds(scope, query.locationId, undefined)
+      : query.locationId
+        ? [query.locationId]
+        : undefined;
+
+    if (scopedLocationIds && scopedLocationIds.length === 0) {
+      return this.emptyLiveDashboard(dateFrom, dateTo, date, pageLimit);
+    }
+
+    if (scope && query.scheduleAreaId) {
+      await this.orgScope.assertScheduleAreaInScope(scope, query.scheduleAreaId);
+    }
+    if (scope && query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+    }
+
+    const effectiveLocationId =
+      scopedLocationIds?.length === 1 ? scopedLocationIds[0] : undefined;
+
     const scheduledJobAnd: Prisma.ScheduledJobWhereInput[] = [];
-    if (query.locationId) {
-      scheduledJobAnd.push(scheduledJobLocationScope(query.locationId));
+    if (effectiveLocationId) {
+      scheduledJobAnd.push(scheduledJobLocationScope(effectiveLocationId));
+    } else if (scopedLocationIds && scopedLocationIds.length > 1) {
+      scheduledJobAnd.push(scheduledJobLocationIdsScope(scopedLocationIds));
+    } else if (scope) {
+      const jobScope = this.orgScope.scheduledJobScopeWhere(scope);
+      if (jobScope) scheduledJobAnd.push(jobScope);
     }
     if (query.search?.trim()) {
       const q = query.search.trim();
@@ -264,7 +296,7 @@ export class EcmVisitsService {
         candidateLimit: 400,
         scheduleAreaId: query.scheduleAreaId,
         serviceUserId: query.serviceUserId,
-        locationId: query.locationId,
+        locationId: effectiveLocationId,
         timeZone,
       });
     }
@@ -531,6 +563,50 @@ export class EcmVisitsService {
     };
   }
 
+  private async emptyLiveDashboard(
+    dateFrom: string,
+    dateTo: string,
+    date: string,
+    _pageLimit: number,
+  ) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const now = new Date();
+    const windows = await this.thresholdLookups.getDashboardWindows();
+    const counts = {
+      dueNow: 0,
+      startingSoon: 0,
+      inProgress: 0,
+      earlyArrival: 0,
+      lateArrival: 0,
+      veryLateArrival: 0,
+      potentialMissed: 0,
+      confirmedMissed: 0,
+      missingCheckout: 0,
+      outsideGeofence: 0,
+      manualAttendance: 0,
+      completed: 0,
+      completedOnTime: 0,
+      completedLate: 0,
+      total: 0,
+    };
+    return {
+      data: {
+        date,
+        dateFrom,
+        dateTo,
+        operationalToday: operationalTodayIso(now, timeZone),
+        operationalTimezone: timeZone,
+        refreshedAt: now.toISOString(),
+        windows,
+        counts,
+        summary: this.buildSummary([], now),
+        total: 0,
+        nextCursor: null,
+        visits: [],
+      },
+    };
+  }
+
   private parseLiveCursor(
     cursor: string | undefined,
   ): { plannedStart: Date; scheduledJobId: string } | null {
@@ -623,7 +699,22 @@ export class EcmVisitsService {
     }
   }
 
-  async getVisitDetail(scheduledJobId: string, opts?: { refresh?: boolean }) {
+  /** Public guard for ECM nested routes (history/audit/notifications). */
+  async assertJobAccessible(actor: RequestUser, scheduledJobId: string): Promise<void> {
+    await this.orgScope.assertScheduledJobInScope(
+      this.orgScope.fromRequestUser(actor),
+      scheduledJobId,
+    );
+  }
+
+  async getVisitDetail(
+    scheduledJobId: string,
+    opts?: { refresh?: boolean },
+    actor?: RequestUser,
+  ) {
+    if (actor) {
+      await this.assertJobAccessible(actor, scheduledJobId);
+    }
     if (opts?.refresh !== false) {
       await this.evaluation.evaluateJobSafe(scheduledJobId);
     }

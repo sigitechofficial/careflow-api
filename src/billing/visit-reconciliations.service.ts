@@ -1587,20 +1587,24 @@ export class VisitReconciliationsService {
       }
     }
 
+    // Preserve human decisions only. Silent auto-pay (APPROVED_FOR_PAY with no
+    // approvedById) is demoted back to pending so the All / Carer Pay / Funders
+    // buttons remain the source of truth.
+    const humanPayOrBoth =
+      Boolean(row.approvedById) &&
+      (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
     const status =
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
       row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-      row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
-      row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE
+      row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE ||
+      humanPayOrBoth
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
     // A bill-only approval (APPROVED_FOR_INVOICE) is an exclusive choice: charge the
-    // client / funder, pay the carer £0. Previously this auto-promoted to
-    // APPROVED_FOR_BOTH (carer always paid once priced); that promotion is intentionally
-    // removed so "Funders only" truly excludes carer pay.
+    // client / funder, pay the carer £0. Do not auto-promote to BOTH.
     const promotedStatus = status;
 
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
@@ -1953,38 +1957,29 @@ export class VisitReconciliationsService {
       });
     }
 
-    // Once a visit is priced from the pay card, accept it for carer pay immediately.
-    // Invoice / overrun / funding exceptions stay on the row for finance review, but
-    // earnings and salary must not wait on a visit-reconciliation approve click.
+    // Once priced, keep amounts on the row for finance review — but never auto-approve
+    // carer pay / invoice. Status stays PENDING_REVIEW until All / Carer Pay / Funders.
     const lockedOrRejected =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE;
 
     let finalStatus = promotedStatus;
-    if (!lockedOrRejected && payableAmount != null && payMinutes > 0) {
-      if (
-        promotedStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
-      ) {
-        // Bill-only approval → keep it bill-only (carer £0). Do NOT auto-approve pay.
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_INVOICE;
-      } else if (
-        promotedStatus !== VisitReconciliationStatus.APPROVED_FOR_BOTH &&
-        row.status !== VisitReconciliationStatus.APPROVED_FOR_BOTH
-      ) {
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_PAY;
-      }
-    } else if (
+    if (
       !lockedOrRejected &&
       payCard &&
       payMinutes > 0 &&
       payableAmount == null &&
       activeExceptions.some((e) => e.code === FinanceExceptionCode.RATE_MISSING)
     ) {
-      // Clear a previously auto-approved pay status when no matching rate applies.
-      finalStatus = deriveReconciliationStatus(activeExceptions, row.status);
+      // Clear a previously approved pay status when no matching rate applies.
+      finalStatus = deriveReconciliationStatus(activeExceptions, undefined);
     }
+
+    const demotingSilentAutoPay =
+      finalStatus === VisitReconciliationStatus.PENDING_REVIEW &&
+      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
+      !row.approvedById;
 
     await db.visitReconciliation.update({
       where: { id },
@@ -2014,12 +2009,7 @@ export class VisitReconciliationsService {
             ? row.payCardVersion
             : null,
         lastEvaluatedAt: new Date(),
-        ...((finalStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-          finalStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
-        row.status !== finalStatus &&
-        !row.approvedAt
-          ? { approvedAt: new Date() }
-          : {}),
+        ...(demotingSilentAutoPay ? { approvedAt: null } : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }

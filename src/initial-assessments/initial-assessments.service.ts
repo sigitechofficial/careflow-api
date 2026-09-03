@@ -2573,6 +2573,9 @@ export class InitialAssessmentsService {
     const rows = await this.prisma.initialAssessmentSubmission.findMany({
       where: {
         deletedAt: null,
+        ...(query.locationId
+          ? { serviceUser: { deletedAt: null, locationId: query.locationId } }
+          : { serviceUser: { deletedAt: null } }),
         ...(overdueActionsOnly
           ? {
               actions: {
@@ -2625,7 +2628,11 @@ export class InitialAssessmentsService {
       action: AuditAction.INITIAL_ASSESSMENT_SUMMARY_VIEWED,
       recordType: 'InitialAssessmentReviewQueue',
       recordId: 'review-queue',
-      metadata: { overdueActionsOnly, count: rows.length },
+      metadata: {
+        overdueActionsOnly,
+        locationId: query.locationId ?? null,
+        count: rows.length,
+      },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });

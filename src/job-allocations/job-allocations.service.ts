@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -68,6 +70,7 @@ export class JobAllocationsService {
     private readonly audit: AuditLogsService,
     private readonly checks: AllocationChecksService,
     private readonly notifications: ScheduleAllocationNotificationHook,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   private jobWindow(job: {
@@ -216,7 +219,7 @@ export class JobAllocationsService {
     }
   }
 
-  async list(query: AllocationQueryDto) {
+  async list(query: AllocationQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -225,6 +228,17 @@ export class JobAllocationsService {
     if (query.scheduledVisitId) where.scheduledVisitId = query.scheduledVisitId;
     if (query.employeeId) where.employeeId = query.employeeId;
     if (query.status) where.status = query.status as PrismaAllocationStatus;
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      if (scope.locationIds?.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (query.scheduledJobId) {
+        await this.orgScope.assertScheduledJobInScope(scope, query.scheduledJobId);
+      }
+      andWhereFragment(where, this.orgScope.jobAllocationScopeWhere(scope));
+    }
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.jobAllocation.count({ where }),
@@ -242,7 +256,13 @@ export class JobAllocationsService {
     };
   }
 
-  async listForJob(scheduledJobId: string) {
+  async listForJob(scheduledJobId: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: scheduledJobId, deletedAt: null },
     });
@@ -255,7 +275,10 @@ export class JobAllocationsService {
     return { data: rows.map((r) => this.mapAllocation(r)) };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertJobAllocationInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.jobAllocation.findFirst({
       where: { id, deletedAt: null },
       include: allocationInclude,
@@ -319,7 +342,14 @@ export class JobAllocationsService {
     scheduledJobId: string,
     dto: AllocateJobDto,
     meta?: RequestAuditMeta,
+    actor?: RequestUser,
   ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: scheduledJobId, deletedAt: null, isActive: true },
     });
@@ -493,7 +523,14 @@ export class JobAllocationsService {
     allocationId: string,
     dto: ConfirmAllocationDto,
     meta?: RequestAuditMeta,
+    actor?: RequestUser,
   ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const allocation = await this.prisma.jobAllocation.findFirst({
       where: { id: allocationId, scheduledJobId, deletedAt: null },
       include: allocationInclude,
@@ -564,7 +601,14 @@ export class JobAllocationsService {
     scheduledJobId: string,
     dto: UnallocateJobDto,
     meta?: RequestAuditMeta,
+    actor?: RequestUser,
   ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const allocation = await this.prisma.jobAllocation.findFirst({
       where: {
         scheduledJobId,
@@ -629,7 +673,14 @@ export class JobAllocationsService {
     allocationId: string,
     dto: UpdateAllocationTimingDto,
     meta?: RequestAuditMeta,
+    actor?: RequestUser,
   ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const allocation = await this.prisma.jobAllocation.findFirst({
       where: { id: allocationId, scheduledJobId, deletedAt: null, isActive: true },
       include: allocationInclude,
@@ -738,7 +789,14 @@ export class JobAllocationsService {
     scheduledJobId: string,
     employeeId: string,
     meta?: RequestAuditMeta,
+    actor?: RequestUser,
   ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
     const allocation = await this.prisma.jobAllocation.findFirst({
       where: {
         scheduledJobId,

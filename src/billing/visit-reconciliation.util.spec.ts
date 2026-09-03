@@ -188,14 +188,14 @@ describe('calculatePayableAmount fixed slots vs day/time hourly', () => {
   });
 });
 
-describe('deriveReconciliationStatus — auto pay on complete', () => {
-  it('auto-approves pay when only invoice / overrun exceptions exist', () => {
+describe('deriveReconciliationStatus — manual approval required', () => {
+  it('stays pending when only invoice / overrun exceptions exist', () => {
     const status = deriveReconciliationStatus([
       { code: FinanceExceptionCode.CHARGE_CARD_MISSING, message: 'No charge card' },
       { code: FinanceExceptionCode.OVERRUN, message: '10 min overrun' },
       { code: FinanceExceptionCode.FUNDING_SETUP_INCOMPLETE, message: 'Funding incomplete' },
     ]);
-    expect(status).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
+    expect(status).toBe(VisitReconciliationStatus.PENDING_REVIEW);
   });
 
   it('stays pending when pay card is missing', () => {
@@ -206,6 +206,15 @@ describe('deriveReconciliationStatus — auto pay on complete', () => {
     expect(deriveReconciliationStatus(exceptions)).toBe(
       VisitReconciliationStatus.PENDING_REVIEW,
     );
+  });
+
+  it('preserves an existing human approval status', () => {
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_PAY),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_BOTH),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
   });
 });
 
@@ -316,7 +325,7 @@ describe('formatVisitRef', () => {
   });
 });
 
-describe('deriveReconciliationStatus — auto pay on complete', () => {
+describe('deriveReconciliationStatus — pay blocking helpers', () => {
   it('treats pay-card RATE_MISSING as pay blocking, not charge-card', () => {
     expect(
       hasPayBlockingExceptions([

@@ -47,7 +47,7 @@ export class SchedulesController {
     @Query() query: ScheduleStatusQueryDto,
     @Req() req: Request,
   ) {
-    return this.service.getStatusForDate(user.id, query.date, getRequestAuditMeta(req));
+    return this.service.getStatusForDate(user, query.date, getRequestAuditMeta(req));
   }
 
   @Get(':id')
@@ -63,7 +63,7 @@ export class SchedulesController {
     summary: 'Build schedule — batch/area status; optional jobs[] creates ScheduledJob/Visit rows',
   })
   build(@CurrentUser() user: RequestUser, @Body() dto: BuildScheduleDto, @Req() req: Request) {
-    return this.service.build(user.id, dto, getRequestAuditMeta(req));
+    return this.service.build(user, dto, getRequestAuditMeta(req));
   }
 
   @Patch(':id/status')
@@ -75,7 +75,7 @@ export class SchedulesController {
     @Body() dto: UpdateScheduleStatusDto,
     @Req() req: Request,
   ) {
-    return this.service.updateStatus(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.updateStatus(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Delete(':id')

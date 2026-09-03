@@ -8,14 +8,12 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
-import { scheduledJobLocationScope } from './ecm-location-scope.util';
-import {
-  resolveGraphBranch,
-  scheduledJobScheduleAreaScope,
-} from './ecm-graph-branch.util';
+import { resolveGraphBranch } from './ecm-graph-branch.util';
 import { ECM_REASON_CODES } from './ecm-reason-codes';
 
 export type EcmGraphDashboardQuery = {
@@ -301,9 +299,10 @@ export class EcmGraphAnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async graphDashboard(query: EcmGraphDashboardQuery) {
+  async graphDashboard(query: EcmGraphDashboardQuery, actor?: RequestUser) {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const dateTo = query.dateTo ?? operationalTodayIso(new Date(), timeZone);
     const dateFrom = query.dateFrom ?? addDaysIso(dateTo, -6);
@@ -311,26 +310,13 @@ export class EcmGraphAnalyticsService {
     const fromDate = parseIsoDate(dateFrom);
     const toDate = parseIsoDate(dateTo);
 
-    let scheduleAreaJobScope: Prisma.ScheduledJobWhereInput | undefined;
-    if (query.scheduleAreaId) {
-      const area = await this.prisma.scheduleArea.findFirst({
-        where: { id: query.scheduleAreaId, deletedAt: null },
-        select: { id: true, locationId: true },
-      });
-      scheduleAreaJobScope = scheduledJobScheduleAreaScope(
-        query.scheduleAreaId,
-        area?.locationId,
-      );
-    }
+    const jobFilter = await this.orgScope.resolveScheduledJobListFilter(actor, query);
+    const jobWhere =
+      'empty' in jobFilter ? { id: { in: [] as string[] } } : jobFilter.where;
 
     const where: Prisma.EcmVisitEvaluationWhereInput = {
       localVisitDate: { gte: fromDate, lte: toDate },
-      scheduledJob: {
-        deletedAt: null,
-        isActive: true,
-        ...(scheduleAreaJobScope ?? {}),
-        ...(query.locationId ? scheduledJobLocationScope(query.locationId) : {}),
-      },
+      scheduledJob: jobWhere,
     };
 
     const totalMatching = await this.prisma.ecmVisitEvaluation.count({ where });

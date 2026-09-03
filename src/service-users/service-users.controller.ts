@@ -33,8 +33,8 @@ export class ServiceUsersController {
   @Get()
   @Permissions('service_users.read')
   @ApiOperation({ summary: 'List service users' })
-  list(@Query() query: ServiceUserQueryDto) {
-    return this.serviceUsersService.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: ServiceUserQueryDto) {
+    return this.serviceUsersService.list(query, user);
   }
 
   @Get('portal-accounts')
@@ -92,7 +92,7 @@ export class ServiceUsersController {
   @ApiResponse({ status: 200 })
   get(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
     const m = getRequestAuditMeta(req);
-    return this.serviceUsersService.getById(id, { actorUserId: user.id, ...m });
+    return this.serviceUsersService.getById(id, { actorUserId: user.id, ...m }, user);
   }
 
   @Post()

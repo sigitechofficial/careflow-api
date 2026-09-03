@@ -24,8 +24,8 @@ export class ScheduledJobAllocationsController {
   @Get(':id/allocations')
   @Permissions('job_allocations.read')
   @ApiOperation({ summary: 'List allocations for a scheduled job' })
-  listForJob(@Param('id') id: string) {
-    return this.allocations.listForJob(id);
+  listForJob(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.allocations.listForJob(id, user);
   }
 
   @Post(':id/allocate')
@@ -37,7 +37,7 @@ export class ScheduledJobAllocationsController {
     @Body() dto: AllocateJobDto,
     @Req() req: Request,
   ) {
-    return this.allocations.allocate(user.id, id, dto, getRequestAuditMeta(req));
+    return this.allocations.allocate(user.id, id, dto, getRequestAuditMeta(req), user);
   }
 
   @Post(':id/unallocate')
@@ -49,7 +49,7 @@ export class ScheduledJobAllocationsController {
     @Body() dto: UnallocateJobDto,
     @Req() req: Request,
   ) {
-    return this.allocations.unallocate(user.id, id, dto, getRequestAuditMeta(req));
+    return this.allocations.unallocate(user.id, id, dto, getRequestAuditMeta(req), user);
   }
 
   @Patch(':id/allocations/:allocationId')
@@ -68,6 +68,7 @@ export class ScheduledJobAllocationsController {
       allocationId,
       dto,
       getRequestAuditMeta(req),
+      user,
     );
   }
 
@@ -80,7 +81,13 @@ export class ScheduledJobAllocationsController {
     @Body() dto: SetLeadCarerDto,
     @Req() req: Request,
   ) {
-    return this.allocations.setLeadCarer(user.id, id, dto.employeeId, getRequestAuditMeta(req));
+    return this.allocations.setLeadCarer(
+      user.id,
+      id,
+      dto.employeeId,
+      getRequestAuditMeta(req),
+      user,
+    );
   }
 
   @Post(':id/allocations/:allocationId/confirm')
@@ -93,6 +100,13 @@ export class ScheduledJobAllocationsController {
     @Body() dto: ConfirmAllocationDto,
     @Req() req: Request,
   ) {
-    return this.allocations.confirm(user.id, id, allocationId, dto, getRequestAuditMeta(req));
+    return this.allocations.confirm(
+      user.id,
+      id,
+      allocationId,
+      dto,
+      getRequestAuditMeta(req),
+      user,
+    );
   }
 }

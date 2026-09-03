@@ -16,6 +16,8 @@ export enum AuditAction {
   PERMISSION_ASSIGNED = 'permission_assigned',
   PERMISSION_REMOVED = 'permission_removed',
   USER_ROLE_CHANGED = 'user_role_changed',
+  USER_LOCATION_ASSIGNED = 'user_location_assigned',
+  USER_LOCATION_REMOVED = 'user_location_removed',
   EMPLOYEE_CREATED = 'employee_created',
   EMPLOYEE_UPDATED = 'employee_updated',
   EMPLOYEE_DELETED = 'employee_deleted',

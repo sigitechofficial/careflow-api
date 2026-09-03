@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { allowedPrivacyLevels } from './incident-access.util';
 import { OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
@@ -38,22 +39,47 @@ type LeanRow = Prisma.IncidentGetPayload<{
 
 @Injectable()
 export class IncidentAnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
-  private baseWhere(
+  private async baseWhere(
     user: RequestUser,
     q: IncidentAnalyticsQueryDto,
-  ): Prisma.IncidentWhereInput {
+  ): Promise<Prisma.IncidentWhereInput> {
+    const scope = this.orgScope.fromRequestUser(user);
+    const locationIds = this.orgScope.resolveListLocationIds(
+      scope,
+      q.locationId,
+      undefined,
+    );
     const where: Prisma.IncidentWhereInput = {
       deletedAt: null,
       isArchived: false,
       privacyLevel: { in: allowedPrivacyLevels(user) },
-      ...(q.locationId ? { locationId: q.locationId } : {}),
       ...(q.categoryId ? { categoryId: q.categoryId } : {}),
       ...(q.serviceUserId ? { primaryServiceUserId: q.serviceUserId } : {}),
       ...(q.severity ? { severity: q.severity } : {}),
       ...(q.status ? { status: q.status } : {}),
     };
+    if (locationIds?.length) {
+      const serviceUsers = await this.prisma.serviceUser.findMany({
+        where: { deletedAt: null, locationId: { in: locationIds } },
+        select: { id: true },
+      });
+      const suIds = serviceUsers.map((s) => s.id);
+      andWhereFragment(where, {
+        OR: [
+          { locationId: { in: locationIds } },
+          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+        ],
+      });
+    } else if (locationIds && locationIds.length === 0) {
+      andWhereFragment(where, { id: { in: [] } });
+    } else {
+      andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
+    }
     if (q.dateFrom || q.dateTo) {
       where.occurredAt = {
         ...(q.dateFrom ? { gte: new Date(q.dateFrom) } : {}),
@@ -66,7 +92,7 @@ export class IncidentAnalyticsService {
   }
 
   async getAnalytics(user: RequestUser, q: IncidentAnalyticsQueryDto) {
-    const where = this.baseWhere(user, q);
+    const where = await this.baseWhere(user, q);
 
     const rows: LeanRow[] = await this.prisma.incident.findMany({
       where,

@@ -4,9 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
+import type { EmployeeDocumentsRegistryQueryDto } from './dto/employee-documents-registry-query.dto';
 import { buildEmployeeListOrderBy } from './employee-list-order.util';
 import { buildEmployeeListWhere, hasEmployeeListCohortFilters } from './employee-list-where.util';
+import { buildEmployeeListEmploymentWhere } from './employee-list-filter.util';
 import {
   buildEmployeeListFacets,
   loadEmployeeListFacetLocationIds,
@@ -32,14 +36,23 @@ export class EmployeesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async list(query: EmployeeQueryDto) {
+  async list(query: EmployeeQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const { listWhere, isEmpty } = await buildEmployeeListWhere(this.prisma, query);
+    const scopedQuery = this.applyActorLocationScope(query, actor);
+    if (scopedQuery === null) {
+      return {
+        data: [],
+        meta: buildPaginationMeta({ page, limit, total: 0 }),
+      };
+    }
+
+    const { listWhere, isEmpty } = await buildEmployeeListWhere(this.prisma, scopedQuery);
 
     if (isEmpty) {
       return {
@@ -70,7 +83,7 @@ export class EmployeesService {
         },
         skip,
         take: limit,
-        orderBy: buildEmployeeListOrderBy(query),
+        orderBy: buildEmployeeListOrderBy(scopedQuery),
       }),
       this.prisma.organisationGeneralSettings.findFirst({
         select: { employeeVisaTypes: true },
@@ -91,13 +104,33 @@ export class EmployeesService {
     };
   }
 
-  async listFilterFacets(query: EmployeeQueryDto) {
+  async listFilterFacets(query: EmployeeQueryDto, actor?: RequestUser) {
+    const scopedQuery = this.applyActorLocationScope(query, actor);
+    if (scopedQuery === null) {
+      return {
+        data: {
+          branches: [],
+          roles: [],
+          jobTitles: [],
+          grades: [],
+          contractTypes: [],
+          visaTypes: [],
+          statuses: [],
+          cohortTotal: 0,
+          branchCohortTotal: 0,
+        },
+      };
+    }
     const locationCatalogIds = await loadEmployeeListFacetLocationIds(this.prisma);
-    const data = await buildEmployeeListFacets(this.prisma, query, locationCatalogIds);
+    const data = await buildEmployeeListFacets(this.prisma, scopedQuery, locationCatalogIds);
     return { data };
   }
 
-  async getById(id: string, audit?: EmployeeAuditMeta) {
+  async getById(id: string, audit?: EmployeeAuditMeta, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertEmployeeInScope(this.orgScope.fromRequestUser(actor), id);
+    }
+
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -444,11 +477,23 @@ export class EmployeesService {
   }
 
   /** Aggregates for employee management dashboard charts (staff list page). */
-  async chartSummary(query: EmployeeQueryDto = {}) {
-    const cohortFiltered = hasEmployeeListCohortFilters(query);
+  async chartSummary(query: EmployeeQueryDto = {}, actor?: RequestUser) {
+    const scopedQuery = this.applyActorLocationScope(query, actor);
+    if (scopedQuery === null) {
+      return {
+        data: {
+          staff: { total: 0, active: 0, inactive: 0 },
+          compliance: { upToDate: 0, needsAttention: 0 },
+          skills: [],
+          reviews: { reviewed: 0, outstanding: 0 },
+          meta: { cohortTotal: 0, scope: 'filtered' as const },
+        },
+      };
+    }
+    const cohortFiltered = hasEmployeeListCohortFilters(scopedQuery);
     const { listWhere, wherePersonal, isEmpty } = await buildEmployeeListWhere(
       this.prisma,
-      query,
+      scopedQuery,
     );
 
     const emptySummary = {
@@ -586,11 +631,18 @@ export class EmployeesService {
   }
 
   /** All employee documents (non-deleted employees only) for the General Employee Documents screen. */
-  async listDocumentsRegistry() {
+  async listDocumentsRegistry(query: EmployeeDocumentsRegistryQueryDto = {}) {
+    const { whereEmployment, hasEmploymentFilters } = buildEmployeeListEmploymentWhere({
+      locationIds: query.locationIds,
+    });
+
     const rows = await this.prisma.employeeDocument.findMany({
       where: {
         deletedAt: null,
-        employee: { deletedAt: null },
+        employee: {
+          deletedAt: null,
+          ...(hasEmploymentFilters ? { employment: whereEmployment } : {}),
+        },
       },
       orderBy: { uploadedDate: 'desc' },
       take: 2000,
@@ -632,5 +684,25 @@ export class EmployeesService {
   private async ensureExists(id: string) {
     const exists = await this.prisma.employee.findFirst({ where: { id, deletedAt: null } });
     if (!exists) throw new NotFoundException('Employee not found');
+  }
+
+  /**
+   * Intersect client locationIds with actor org scope.
+   * Returns null when intersection is empty (caller returns empty result).
+   */
+  private applyActorLocationScope(
+    query: EmployeeQueryDto,
+    actor?: RequestUser,
+  ): EmployeeQueryDto | null {
+    if (!actor) return query;
+    const scope = this.orgScope.fromRequestUser(actor);
+    const locationIds = this.orgScope.resolveListLocationIds(
+      scope,
+      undefined,
+      query.locationIds,
+    );
+    if (locationIds && locationIds.length === 0) return null;
+    if (!locationIds) return query;
+    return { ...query, locationIds };
   }
 }

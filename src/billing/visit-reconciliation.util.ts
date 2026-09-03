@@ -270,7 +270,7 @@ export function detectVisitExceptions(input: {
 }
 
 export function deriveReconciliationStatus(
-  exceptions: DetectedException[],
+  _exceptions: DetectedException[],
   currentStatus?: VisitReconciliationStatus,
 ): VisitReconciliationStatus {
   if (
@@ -282,14 +282,9 @@ export function deriveReconciliationStatus(
     return currentStatus;
   }
 
-  // Carer pay is accepted as soon as the visit can be priced from the pay card.
-  // Invoice / funding / overrun / GPS issues remain as exceptions for finance review,
-  // but must not withhold earnings until a separate reconciliation click.
-  if (hasPayBlockingExceptions(exceptions)) {
-    return VisitReconciliationStatus.PENDING_REVIEW;
-  }
-
-  return VisitReconciliationStatus.APPROVED_FOR_PAY;
+  // Stay pending until finance explicitly approves (All / Carer Pay / Funders).
+  // Pricing still runs on complete; approval is never silent.
+  return VisitReconciliationStatus.PENDING_REVIEW;
 }
 
 export function hasUnresolvedBlockingExceptions(exceptions: DetectedException[]): boolean {

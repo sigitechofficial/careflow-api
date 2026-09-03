@@ -25,6 +25,7 @@ import { EmployeesService } from './employees.service';
 import { EmployeePortalAccountsService } from './employee-portal-accounts.service';
 import { EmployeeVisitsService } from './employee-visits.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
+import { EmployeeDocumentsRegistryQueryDto } from './dto/employee-documents-registry-query.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
@@ -48,26 +49,26 @@ export class EmployeesController {
 
   @Get()
   @Permissions('employees.read')
-  async list(@Query() query: EmployeeQueryDto) {
-    return this.employeesService.list(query);
+  async list(@CurrentUser() user: RequestUser, @Query() query: EmployeeQueryDto) {
+    return this.employeesService.list(query, user);
   }
 
   @Get('list-facets')
   @Permissions('employees.read')
-  listFilterFacets(@Query() query: EmployeeQueryDto) {
-    return this.employeesService.listFilterFacets(query);
+  listFilterFacets(@CurrentUser() user: RequestUser, @Query() query: EmployeeQueryDto) {
+    return this.employeesService.listFilterFacets(query, user);
   }
 
   @Get('chart-summary')
   @Permissions('employees.read')
-  chartSummary(@Query() query: EmployeeQueryDto) {
-    return this.employeesService.chartSummary(query);
+  chartSummary(@CurrentUser() user: RequestUser, @Query() query: EmployeeQueryDto) {
+    return this.employeesService.chartSummary(query, user);
   }
 
   @Get('documents-registry')
   @Permissions('employees.documents.read')
-  documentsRegistry() {
-    return this.employeesService.listDocumentsRegistry();
+  documentsRegistry(@Query() query: EmployeeDocumentsRegistryQueryDto) {
+    return this.employeesService.listDocumentsRegistry(query);
   }
 
   @Get('skills-overview')
@@ -131,7 +132,7 @@ export class EmployeesController {
   @Permissions('employees.read')
   get(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
     const m = getRequestAuditMeta(req);
-    return this.employeesService.getById(id, { actorUserId: user.id, ...m });
+    return this.employeesService.getById(id, { actorUserId: user.id, ...m }, user);
   }
 
   @Post()

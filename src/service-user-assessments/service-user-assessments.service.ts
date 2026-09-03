@@ -497,13 +497,17 @@ export class ServiceUserAssessmentsService {
 
   async reviewQueue(opts?: {
     serviceUserId?: string;
+    locationId?: string;
     overdueOnly?: boolean;
     alertsOnly?: boolean;
   }) {
     const rows = await this.prisma.serviceUserAssessment.findMany({
       where: {
         ...(opts?.serviceUserId ? { serviceUserId: opts.serviceUserId } : {}),
-        serviceUser: { deletedAt: null },
+        serviceUser: {
+          deletedAt: null,
+          ...(opts?.locationId ? { locationId: opts.locationId } : {}),
+        },
       },
       include: {
         serviceUser: {

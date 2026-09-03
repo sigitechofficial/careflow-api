@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -78,6 +80,7 @@ export class ServiceUsersService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   private async ensureActiveEmployee(id: string | null | undefined): Promise<void> {
@@ -298,7 +301,7 @@ export class ServiceUsersService implements OnModuleInit {
     }
   }
 
-  async list(query: ServiceUserQueryDto) {
+  async list(query: ServiceUserQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.ServiceUserWhereInput = {};
@@ -314,13 +317,46 @@ export class ServiceUsersService implements OnModuleInit {
     if (query.careTypeId) where.careTypeId = query.careTypeId;
     if (query.fundingTypeId) where.fundingTypeId = query.fundingTypeId;
     if (query.riskLevelId) where.riskLevelId = query.riskLevelId;
-    if (query.locationId) {
+
+    const scopedLocationIds = actor
+      ? this.orgScope.resolveListLocationIds(
+          this.orgScope.fromRequestUser(actor),
+          query.locationId,
+          undefined,
+        )
+      : query.locationId
+        ? [query.locationId]
+        : undefined;
+
+    if (scopedLocationIds && scopedLocationIds.length === 0) {
+      return {
+        data: [],
+        meta: buildPaginationMeta({ page, limit, total: 0 }),
+      };
+    }
+
+    if (scopedLocationIds?.length === 1) {
+      const locationId = scopedLocationIds[0]!;
       where.AND = [
         ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
         {
           OR: [
-            { locationId: query.locationId },
-            { assignments: { some: { deletedAt: null, locationId: query.locationId } } },
+            { locationId },
+            { assignments: { some: { deletedAt: null, locationId } } },
+          ],
+        },
+      ];
+    } else if (scopedLocationIds && scopedLocationIds.length > 1) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { locationId: { in: scopedLocationIds } },
+            {
+              assignments: {
+                some: { deletedAt: null, locationId: { in: scopedLocationIds } },
+              },
+            },
           ],
         },
       ];
@@ -418,7 +454,11 @@ export class ServiceUsersService implements OnModuleInit {
     };
   }
 
-  async getById(id: string, audit?: ServiceUserAuditMeta) {
+  async getById(id: string, audit?: ServiceUserAuditMeta, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertServiceUserInScope(this.orgScope.fromRequestUser(actor), id);
+    }
+
     const actorId = audit?.actorUserId;
     if (actorId) {
       await this.reconcileServiceUserBranchLinks(id, actorId);

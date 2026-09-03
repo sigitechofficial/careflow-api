@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -35,9 +37,10 @@ export class ScheduledVisitsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly scheduledJobsService: ScheduledJobsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async list(query: ScheduledVisitQueryDto) {
+  async list(query: ScheduledVisitQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -59,6 +62,21 @@ export class ScheduledVisitsService {
       if (query.dateFrom) where.scheduledStartDateTime.gte = parseIsoDateTime(query.dateFrom, 'dateFrom');
       if (query.dateTo) where.scheduledStartDateTime.lte = parseIsoDateTime(query.dateTo, 'dateTo');
     }
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      if (scope.locationIds?.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (query.scheduledJobId) {
+        await this.orgScope.assertScheduledJobInScope(scope, query.scheduledJobId);
+      }
+      if (query.serviceUserId) {
+        await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+      }
+      andWhereFragment(where, this.orgScope.scheduledVisitScopeWhere(scope));
+    }
+
     const orderBy: Prisma.ScheduledVisitOrderByWithRelationInput = {
       [query.sortBy ?? 'scheduledStartDateTime']: query.sortOrder ?? 'asc',
     };
@@ -70,7 +88,10 @@ export class ScheduledVisitsService {
     return { data: rows.map((r) => this.mapVisit(r)), meta: buildPaginationMeta({ page, limit, total }) };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledVisitInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.scheduledVisit.findFirst({
       where: { id, deletedAt: null },
       include: visitInclude,

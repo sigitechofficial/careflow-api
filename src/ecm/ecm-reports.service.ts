@@ -7,10 +7,11 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
-import { scheduledJobLocationScope } from './ecm-location-scope.util';
 
 export type EcmReportsQuery = {
   dateFrom?: string;
@@ -110,9 +111,10 @@ export class EcmReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async dailyOperations(query: EcmReportsQuery) {
+  async dailyOperations(query: EcmReportsQuery, actor?: RequestUser) {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const dateFrom = (query.dateFrom ?? operationalTodayIso(new Date(), timeZone)).slice(0, 10);
     const dateTo = (query.dateTo ?? dateFrom).slice(0, 10);
@@ -126,15 +128,13 @@ export class EcmReportsService {
           lte: new Date(`${to}T00:00:00.000Z`),
         };
 
+    const jobFilter = await this.orgScope.resolveScheduledJobListFilter(actor, query);
+    const jobWhere =
+      'empty' in jobFilter ? { id: { in: [] as string[] } } : jobFilter.where;
+
     const where: Prisma.EcmVisitEvaluationWhereInput = {
       localVisitDate: localDateFilter,
-      scheduledJob: {
-        deletedAt: null,
-        isActive: true,
-        ...(query.scheduleAreaId ? { scheduleAreaId: query.scheduleAreaId } : {}),
-        ...(query.locationId ? scheduledJobLocationScope(query.locationId) : {}),
-        ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
-      },
+      scheduledJob: jobWhere,
       ...(query.criticality
         ? { criticality: query.criticality as never }
         : {}),
@@ -377,8 +377,11 @@ export class EcmReportsService {
     };
   }
 
-  async compliance(query: EcmReportsQuery) {
-    const ops = await this.dailyOperations(query);
+  async compliance(query: EcmReportsQuery, actor?: RequestUser) {
+    const ops = await this.dailyOperations(query, actor);
+    const jobFilter = await this.orgScope.resolveScheduledJobListFilter(actor, query);
+    const jobWhere =
+      'empty' in jobFilter ? { id: { in: [] as string[] } } : jobFilter.where;
     const openExceptions = await this.prisma.ecmException.count({
       where: {
         lifecycle: {
@@ -389,23 +392,7 @@ export class EcmReportsService {
             gte: new Date(`${ops.data.dateFrom}T00:00:00.000Z`),
             lte: new Date(`${ops.data.dateTo}T00:00:00.000Z`),
           },
-          ...(query.scheduleAreaId || query.locationId || query.serviceUserId
-            ? {
-                scheduledJob: {
-                  deletedAt: null,
-                  isActive: true,
-                  ...(query.scheduleAreaId
-                    ? { scheduleAreaId: query.scheduleAreaId }
-                    : {}),
-                  ...(query.locationId
-                    ? scheduledJobLocationScope(query.locationId)
-                    : {}),
-                  ...(query.serviceUserId
-                    ? { serviceUserId: query.serviceUserId }
-                    : {}),
-                },
-              }
-            : {}),
+          scheduledJob: jobWhere,
         },
       },
     });

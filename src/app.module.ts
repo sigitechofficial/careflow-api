@@ -7,6 +7,7 @@ import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { OrgScopeModule } from './common/org-scope/org-scope.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
@@ -139,6 +140,7 @@ import { LearningModule } from './learning/learning.module';
       }),
     }),
     PrismaModule,
+    OrgScopeModule,
     AuthModule,
     UsersModule,
     RolesModule,

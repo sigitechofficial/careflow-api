@@ -35,6 +35,10 @@ import {
   DEFAULT_SERVICE_USER_LANGUAGES,
 } from './seed-data/service-user-ethnicity-language.defaults';
 import { DEFAULT_VISIT_STATUS_REASONS } from './seed-data/visit-status-reasons.defaults';
+import {
+  ensureSuperAdminAllPermissions,
+  seedDemoOfficeUsers,
+} from './seeds/demo-office-users.seed';
 
 const prisma = new PrismaClient();
 
@@ -85,6 +89,8 @@ async function main() {
     'Privacy Officer',
     'Operation Management',
     'Staff Allocation',
+    'Master Staff Allocation',
+    'Branch Administrator',
     'Senior Carer/Nurse',
     'Carer/Domestic',
   ])
@@ -1311,6 +1317,9 @@ async function main() {
   await assignPermKeys('Manager', carePathwayManageKeys);
   await assignPermKeys('Admin', carePathwayAdminKeys);
 
+  // Company Admin: office user directory + role/branch assignment (Users & access).
+  await assignPermKeys('Admin', ['users.read', 'users.create', 'roles.manage']);
+
   // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
   const complianceTypeDefs = [
     ...CARE_COMPLIANCE_CATALOG,
@@ -2419,6 +2428,13 @@ async function main() {
     'hr.candidates.create',
     'hr.candidates.update',
     'hr.candidates.convert',
+    // Branch-scoped office use: list staff + service users (API enforces location ACL).
+    'employees.read',
+    'employees.documents.read',
+    'employees.compliance.read',
+    'service_users.read',
+    'service_users.lookups.read',
+    'lookups.read',
   ];
   const hrReadPermKeys = [
     'hr.read',
@@ -2454,6 +2470,90 @@ async function main() {
       });
     }
   }
+
+  // --- Approach A: hierarchical org roles (additive; existing roles unchanged) ---
+  const branchAdminRole = await prisma.role.upsert({
+    where: { name: 'Branch Admin' },
+    update: {
+      isActive: true,
+      deletedAt: null,
+      description:
+        'Branch-scoped administrator. Job titles (e.g. Registered Branch Manager) remain separate.',
+    },
+    create: {
+      name: 'Branch Admin',
+      description:
+        'Branch-scoped administrator. Job titles (e.g. Registered Branch Manager) remain separate.',
+      isActive: true,
+    },
+  });
+  const masterAllocRole = await prisma.role.upsert({
+    where: { name: 'Master Staff Allocation' },
+    update: {
+      isActive: true,
+      deletedAt: null,
+      description: 'Company-wide staff allocation across all branches (not full Company Admin).',
+    },
+    create: {
+      name: 'Master Staff Allocation',
+      description: 'Company-wide staff allocation across all branches (not full Company Admin).',
+      isActive: true,
+    },
+  });
+  roles.push(branchAdminRole, masterAllocRole);
+
+  const branchAdminPermKeys = [
+    'employees.read',
+    'employees.create',
+    'employees.update',
+    'employees.status.update',
+    'employees.documents.read',
+    'employees.documents.upload',
+    'employees.compliance.read',
+    'employees.reports.read',
+    'lookups.read',
+    ...serviceUserCoordinatorPermKeys,
+    ...incidentManagerKeys,
+    ...scheduleOperatorPermKeys,
+    ...ecmCoordPermKeys,
+    'notifications.read',
+    'users.read',
+    'users.create',
+    'roles.manage',
+  ];
+  await assignPermKeys('Branch Admin', branchAdminPermKeys);
+
+  const masterAllocPermKeys = [
+    'employees.read',
+    'service_users.read',
+    'service_users.assignments.read',
+    'lookups.read',
+    ...scheduleOperatorPermKeys,
+    'schedule_areas.read',
+    'notifications.read',
+  ];
+  await assignPermKeys('Master Staff Allocation', masterAllocPermKeys);
+
+  // Ensure Staff Allocation can view staff/SUs needed for allocation (additive).
+  await assignPermKeys('Staff Allocation', [
+    'employees.read',
+    'service_users.read',
+    'service_users.assignments.read',
+    'lookups.read',
+  ]);
+
+  // Optional employment RBAC levels (job title sync → identity role). Does not replace job titles.
+  for (const name of ['Branch Administrator', 'Master Staff Allocation']) {
+    await prisma.rBACLevel.upsert({
+      where: { name },
+      update: { isActive: true, deletedAt: null },
+      create: { name, isActive: true },
+    });
+  }
+
+  // Platform Super Admin = every permission; plus demo users for each hierarchy role.
+  await ensureSuperAdminAllPermissions(prisma);
+  await seedDemoOfficeUsers(prisma);
 }
 
 main()

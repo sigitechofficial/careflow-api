@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -90,11 +92,12 @@ export class ScheduledJobsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly ecmScheduleVersions: EcmScheduleVersionService,
+    private readonly orgScope: OrgScopeService,
     @Inject(forwardRef(() => JobAllocationsService))
     private readonly jobAllocations: JobAllocationsService,
   ) {}
 
-  async list(query: ScheduledJobQueryDto) {
+  async list(query: ScheduledJobQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -120,6 +123,21 @@ export class ScheduledJobsService {
         { notes: { contains: s, mode: 'insensitive' } },
       ];
     }
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      if (scope.locationIds?.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (query.scheduleAreaId) {
+        await this.orgScope.assertScheduleAreaInScope(scope, query.scheduleAreaId);
+      }
+      if (query.serviceUserId) {
+        await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+      }
+      andWhereFragment(where, this.orgScope.scheduledJobScopeWhere(scope));
+    }
+
     const sortBy = query.sortBy ?? 'scheduledStartDateTime';
     const sortOrder = query.sortOrder ?? 'asc';
     const orderBy: Prisma.ScheduledJobOrderByWithRelationInput = { [sortBy]: sortOrder };
@@ -131,7 +149,10 @@ export class ScheduledJobsService {
     return { data: rows.map((r) => this.mapJob(r)), meta: buildPaginationMeta({ page, limit, total }) };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null },
       include: jobDetailInclude,
@@ -142,7 +163,10 @@ export class ScheduledJobsService {
     return { data: withRef };
   }
 
-  async listCareConsents(jobId: string) {
+  async listCareConsents(jobId: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(actor), jobId);
+    }
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null },
       select: { id: true },

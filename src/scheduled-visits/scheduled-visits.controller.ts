@@ -23,15 +23,15 @@ export class ScheduledVisitsController {
   @Get()
   @Permissions('scheduled_visits.read')
   @ApiOperation({ summary: 'List scheduled visits' })
-  list(@Query() query: ScheduledVisitQueryDto) {
-    return this.service.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: ScheduledVisitQueryDto) {
+    return this.service.list(query, user);
   }
 
   @Get(':id')
   @Permissions('scheduled_visits.read')
   @ApiOperation({ summary: 'Get scheduled visit by id' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getById(id, user);
   }
 
   @Post()

@@ -10,6 +10,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import {
+  andWhereFragment,
+  OrgScopeService,
+  scheduledJobLocationIdsScope,
+} from '../common/org-scope/org-scope.service';
+import type { OrgScope } from '../common/org-scope/org-scope.types';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -46,8 +53,36 @@ export class CallOffVisitsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
     private readonly notifications: CallOffVisitNotificationHook,
   ) {}
+
+  private applyCallOffListScope(
+    where: Prisma.CallOffVisitWhereInput,
+    scope: OrgScope,
+  ): boolean {
+    if (scope.locationIds === null) return true;
+    if (scope.locationIds.length === 0) return false;
+    andWhereFragment(where, {
+      OR: [
+        { scheduledJob: scheduledJobLocationIdsScope(scope.locationIds) },
+        { serviceUser: { locationId: { in: scope.locationIds } } },
+      ],
+    });
+    return true;
+  }
+
+  private async assertCallOffInScope(scope: OrgScope, row: {
+    scheduledJobId: string | null;
+    serviceUserId: string;
+  }): Promise<void> {
+    if (scope.locationIds === null) return;
+    if (row.scheduledJobId) {
+      await this.orgScope.assertScheduledJobInScope(scope, row.scheduledJobId);
+      return;
+    }
+    await this.orgScope.assertServiceUserInScope(scope, row.serviceUserId);
+  }
 
   private mapCallOff(row: CallOffRow) {
     return {
@@ -163,13 +198,23 @@ export class CallOffVisitsService {
     return employeeIds;
   }
 
-  async list(query: CallOffVisitQueryDto) {
+  async list(user: RequestUser, query: CallOffVisitQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
+    const scope = this.orgScope.fromRequestUser(user);
     const where: Prisma.CallOffVisitWhereInput = { deletedAt: null, isActive: true };
-    if (query.serviceUserId) where.serviceUserId = query.serviceUserId;
-    if (query.scheduledJobId) where.scheduledJobId = query.scheduledJobId;
+    if (!this.applyCallOffListScope(where, scope)) {
+      return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+    }
+    if (query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+      where.serviceUserId = query.serviceUserId;
+    }
+    if (query.scheduledJobId) {
+      await this.orgScope.assertScheduledJobInScope(scope, query.scheduledJobId);
+      where.scheduledJobId = query.scheduledJobId;
+    }
     if (query.status) where.status = query.status as PrismaCallOffStatus;
     if (query.dateFrom || query.dateTo) {
       where.callOffDate = {};
@@ -191,17 +236,25 @@ export class CallOffVisitsService {
     return { data: rows.map((r) => this.mapCallOff(r)), meta: buildPaginationMeta({ page, limit, total }) };
   }
 
-  async getById(id: string) {
+  async getById(user: RequestUser, id: string) {
+    const scope = this.orgScope.fromRequestUser(user);
     const row = await this.prisma.callOffVisit.findFirst({
       where: { id, deletedAt: null },
       include: callOffInclude,
     });
     if (!row) throw new NotFoundException('Call-off visit not found');
+    await this.assertCallOffInScope(scope, row);
     return { data: this.mapCallOff(row) };
   }
 
-  async create(userId: string, dto: CreateCallOffVisitDto, meta?: RequestAuditMeta) {
+  async create(user: RequestUser, dto: CreateCallOffVisitDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const links = await this.resolveScheduleLinks(dto);
+    await this.assertCallOffInScope(scope, {
+      scheduledJobId: links.scheduledJobId,
+      serviceUserId: links.serviceUserId,
+    });
     const callOffDate = utcDayBounds(dto.callOffDate).start;
 
     const created = await this.prisma.callOffVisit.create({
@@ -239,12 +292,15 @@ export class CallOffVisitsService {
     return { message: 'Call-off visit created', data: this.mapCallOff(created) };
   }
 
-  async update(userId: string, id: string, dto: UpdateCallOffVisitDto, meta?: RequestAuditMeta) {
+  async update(user: RequestUser, id: string, dto: UpdateCallOffVisitDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const existing = await this.prisma.callOffVisit.findFirst({
       where: { id, deletedAt: null },
       include: callOffInclude,
     });
     if (!existing) throw new NotFoundException('Call-off visit not found');
+    await this.assertCallOffInScope(scope, existing);
     if (existing.status === PrismaCallOffStatus.APPROVED) {
       throw new BadRequestException('Approved call-off visits cannot be edited');
     }
@@ -281,12 +337,15 @@ export class CallOffVisitsService {
     return { message: 'Call-off visit updated', data: this.mapCallOff(updated) };
   }
 
-  async remove(userId: string, id: string, meta?: RequestAuditMeta) {
+  async remove(user: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const existing = await this.prisma.callOffVisit.findFirst({
       where: { id, deletedAt: null },
       include: callOffInclude,
     });
     if (!existing) throw new NotFoundException('Call-off visit not found');
+    await this.assertCallOffInScope(scope, existing);
 
     const deleted = await this.prisma.callOffVisit.update({
       where: { id },
@@ -308,12 +367,15 @@ export class CallOffVisitsService {
     return { message: 'Call-off visit deleted', data: this.mapCallOff(deleted) };
   }
 
-  async approve(userId: string, id: string, meta?: RequestAuditMeta) {
+  async approve(user: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const existing = await this.prisma.callOffVisit.findFirst({
       where: { id, deletedAt: null, isActive: true },
       include: callOffInclude,
     });
     if (!existing) throw new NotFoundException('Call-off visit not found');
+    await this.assertCallOffInScope(scope, existing);
     if (existing.status !== PrismaCallOffStatus.REQUESTED) {
       throw new BadRequestException(`Cannot approve call-off in status ${existing.status}`);
     }
@@ -359,11 +421,14 @@ export class CallOffVisitsService {
     });
   }
 
-  async reject(userId: string, id: string, meta?: RequestAuditMeta) {
+  async reject(user: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const existing = await this.prisma.callOffVisit.findFirst({
       where: { id, deletedAt: null, isActive: true },
     });
     if (!existing) throw new NotFoundException('Call-off visit not found');
+    await this.assertCallOffInScope(scope, existing);
     if (existing.status !== PrismaCallOffStatus.REQUESTED) {
       throw new BadRequestException(`Cannot reject call-off in status ${existing.status}`);
     }

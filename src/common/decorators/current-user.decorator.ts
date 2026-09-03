@@ -1,4 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { OrgScopeType } from '../org-scope/org-scope.types';
 
 export type AccountKind = 'user' | 'temporary_inspector' | 'service_user' | 'employee';
 
@@ -19,10 +20,14 @@ export type RequestUser = {
   preferredName?: string | null;
   profilePhotoUrl?: string | null;
   /**
-   * null/undefined = unrestricted header locations.
-   * string[] = restrict picker (and force a scoped selection).
+   * null/undefined = unrestricted header locations (company/platform scope).
+   * string[] = restrict picker and server-side list/detail queries.
    */
   assignedLocationIds?: string[] | null;
+  /** Display names for assigned branches (header); null when unrestricted. */
+  assignedLocations?: Array<{ id: string; name: string }> | null;
+  /** Organizational scope type derived from identity roles. */
+  scopeType?: OrgScopeType;
 };
 
 export const CurrentUser = createParamDecorator(
@@ -31,4 +36,3 @@ export const CurrentUser = createParamDecorator(
     return req.user;
   },
 );
-
