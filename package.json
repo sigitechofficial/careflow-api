@@ -40,6 +40,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "openapi:export": "ts-node --transpile-only --prefer-ts-exts scripts/export-openapi.ts",
     "seed:full-su": "ts-node --transpile-only prisma/scripts/seed-full-service-user-demo.ts",
+    "provision:ia-qa-demo-user": "ts-node --transpile-only prisma/scripts/provision-ia-qa-demo-user.ts",
     "seed:personas": "ts-node --transpile-only prisma/scripts/seed-service-user-personas.ts",
     "seed:persona-schedule": "ts-node --transpile-only prisma/scripts/seed-persona-schedule.ts",
     "seed:persona-runs": "ts-node --transpile-only prisma/scripts/seed-persona-schedule-runs.ts",

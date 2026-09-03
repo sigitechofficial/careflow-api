@@ -570,6 +570,13 @@ jobs:
             exit 1
           fi
 
+          echo "Ensuring ENABLE_IA_QA_DEMO=true in live .env (does not set ENABLE_DEV_TOOLS or SEED_DEMO_DATA)..."
+          if grep -qE '^ENABLE_IA_QA_DEMO=' "$LIVE_PATH/.env"; then
+            sed -i 's/^ENABLE_IA_QA_DEMO=.*/ENABLE_IA_QA_DEMO=true/' "$LIVE_PATH/.env"
+          else
+            printf '\nENABLE_IA_QA_DEMO=true\n' >> "$LIVE_PATH/.env"
+          fi
+
           echo "Loading DATABASE_URL from server .env..."
           set -a
           # shellcheck disable=SC1091

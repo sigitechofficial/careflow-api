@@ -19,8 +19,9 @@ export type IaAutofillLevelDto = (typeof IA_AUTOFILL_LEVELS)[number];
 /**
  * Generate (no-save) severity-aware demo values for ONE holistic tab. The frontend passes the
  * exact `questionIds` the tab renders; the backend computes the values (excluding profile/secure
- * fields) and RETURNS them without persisting anything. No `serviceUserId` is needed because no
- * submission is created and nothing is written.
+ * fields) and RETURNS them without persisting anything. IA answers are never written.
+ *
+ * `serviceUserId` is required in production so the allow-list can reject real customers.
  */
 export class GenerateIaSectionDto {
   @ApiProperty({ enum: IA_AUTOFILL_LEVELS })
@@ -38,6 +39,15 @@ export class GenerateIaSectionDto {
   @ArrayMaxSize(500)
   @IsUUID('all', { each: true })
   questionIds!: string[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Service User being assessed. Required in production; must be a designated QA Service User (SU-1042).',
+  })
+  @IsOptional()
+  @IsUUID('all')
+  serviceUserId?: string;
 
   @ApiPropertyOptional({
     description:

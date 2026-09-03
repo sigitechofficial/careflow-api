@@ -1,11 +1,18 @@
 /**
- * Demo service user for initial-assessment enterprise testing (Margaret Hughes).
- * Idempotent — keyed on serviceUserNumber SU-1042.
+ * Designated QA/demo Service User for Initial Assessment QA Demo Data (Margaret Hughes).
+ * Idempotent — keyed only on serviceUserNumber SU-1042. Never selects another Service User.
+ *
+ * Safe to call outside `SEED_DEMO_DATA`. Does not create personas, run the Care Plan IA overlay,
+ * reset body-map data, or modify arbitrary/real customers.
  */
 import type { PrismaClient } from '@prisma/client';
 import { MARGARET_ABOUT_ME_PATCH } from './care-plan-ia-demo-overlay.data';
 
 export const INITIAL_ASSESSMENT_DEMO_SU_NUMBER = 'SU-1042';
+
+/** Profile note so staff can recognise this record as QA/demo, not a live customer. */
+export const IA_QA_DEMO_SERVICE_USER_NOTES =
+  'QA/demo Service User for Initial Assessment QA Demo Data (not a live customer).';
 
 const ABOUT_ME_REF_TYPE = 'SU_ABOUT_ME_V1';
 
@@ -42,9 +49,17 @@ function aboutMeJson(): string {
   });
 }
 
+/**
+ * Create or update the designated QA Service User SU-1042 only.
+ * Does not require SEED_DEMO_DATA. Does not delete Service Users.
+ */
 export async function seedInitialAssessmentDemoServiceUser(
   prisma: PrismaClient,
 ): Promise<string | null> {
+  if (INITIAL_ASSESSMENT_DEMO_SU_NUMBER !== 'SU-1042') {
+    throw new Error('IA QA Demo provision refuses to run: designated number is not SU-1042');
+  }
+
   const [titleMrs, genderFemale, statusActive, careDomiciliary, relDaughter] = await Promise.all([
     prisma.serviceUserTitle.findUnique({ where: { code: 'MRS' } }),
     prisma.serviceUserGender.findUnique({ where: { code: 'FEMALE' } }),
@@ -53,8 +68,10 @@ export async function seedInitialAssessmentDemoServiceUser(
     prisma.relationshipType.findUnique({ where: { code: 'DAUGHTER' } }),
   ]);
 
+  // Number only — including a soft-deleted SU-1042 so we restore it instead of creating a duplicate.
+  // Never orderBy / oldest / arbitrary Service User.
   const existing = await prisma.serviceUser.findFirst({
-    where: { serviceUserNumber: INITIAL_ASSESSMENT_DEMO_SU_NUMBER, deletedAt: null },
+    where: { serviceUserNumber: INITIAL_ASSESSMENT_DEMO_SU_NUMBER },
   });
 
   const core = {
@@ -66,6 +83,7 @@ export async function seedInitialAssessmentDemoServiceUser(
     phone: '02084661234',
     mobile: '07700900123',
     email: 'margaret.hughes.demo@careflow.local',
+    notes: IA_QA_DEMO_SERVICE_USER_NOTES,
     serviceStartDate: new Date('2025-11-01'),
     titleId: titleMrs?.id ?? null,
     genderId: genderFemale?.id ?? null,
@@ -174,7 +192,7 @@ export async function seedInitialAssessmentDemoServiceUser(
   }
 
   console.log(
-    `[seed] Initial assessment demo SU: Margaret Hughes (${INITIAL_ASSESSMENT_DEMO_SU_NUMBER}) id=${suId}`,
+    `[ia-qa-demo] Designated QA/demo Service User Margaret Hughes (${INITIAL_ASSESSMENT_DEMO_SU_NUMBER}) id=${suId}`,
   );
   return suId;
 }
