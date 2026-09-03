@@ -1076,11 +1076,8 @@ export class VisitReconciliationsService {
         .filter((e) => !e.resolvedAt)
         .map((e) => ({ code: e.code, message: e.message ?? '' }));
 
-      if (
-        row.status === VisitReconciliationStatus.LOCKED ||
-        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH
-      ) {
-        skipped.push({ id: row.id, reason: 'Already locked or fully approved' });
+      if (row.status === VisitReconciliationStatus.LOCKED) {
+        skipped.push({ id: row.id, reason: 'Already locked' });
         continue;
       }
 
