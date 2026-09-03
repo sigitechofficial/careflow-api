@@ -21,7 +21,8 @@ export type IaAutofillLevelDto = (typeof IA_AUTOFILL_LEVELS)[number];
  * exact `questionIds` the tab renders; the backend computes the values (excluding profile/secure
  * fields) and RETURNS them without persisting anything. IA answers are never written.
  *
- * `serviceUserId` is required in production so the allow-list can reject real customers.
+ * Optional `serviceUserId` identifies the currently opened Service User for the client
+ * profile-patch path. It is not used as authorization.
  */
 export class GenerateIaSectionDto {
   @ApiProperty({ enum: IA_AUTOFILL_LEVELS })
@@ -43,7 +44,7 @@ export class GenerateIaSectionDto {
   @ApiPropertyOptional({
     format: 'uuid',
     description:
-      'Service User being assessed. Required in production; must be a designated QA Service User (SU-1042).',
+      'Currently opened Service User. Used by the client for empty-only profile patch; not an authorization allow-list.',
   })
   @IsOptional()
   @IsUUID('all')

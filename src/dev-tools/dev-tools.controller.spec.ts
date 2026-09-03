@@ -6,6 +6,7 @@ import { DevToolsGuard } from '../common/guards/dev-tools.guard';
 import { IaQaDemoGuard } from '../common/guards/ia-qa-demo.guard';
 import { VisitPlanGovernanceController } from '../service-user-visit-plans/visit-plan-governance.controller';
 import { DevToolsController } from './dev-tools.controller';
+import { IA_AUTOFILL_LEVELS } from './dto/generate-ia-section.dto';
 
 describe('DevToolsController authorization', () => {
   it('requires JWT + permissions on the controller, and IaQaDemoGuard on generate-ia-section only', () => {
@@ -45,5 +46,9 @@ describe('DevToolsController authorization', () => {
         VisitPlanGovernanceController.prototype.clearVisitPlansAndRota,
       ) as unknown[]) ?? [];
     expect([...classGuards, ...methodGuards]).not.toContain(IaQaDemoGuard);
+  });
+
+  it('keeps Critical / Moderate / Stable API values unchanged', () => {
+    expect(IA_AUTOFILL_LEVELS).toEqual(['low', 'normal', 'critical']);
   });
 });
