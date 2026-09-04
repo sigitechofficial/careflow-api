@@ -11,9 +11,11 @@ import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
 import {
   AcknowledgeEcmExceptionDto,
+  AllowVisitContinueDto,
   CloseEcmExceptionDto,
   ResolveEcmExceptionDto,
 } from './dto/ecm-exception.dto';
+import { VisitAreaLockService } from './visit-area-lock.service';
 import {
   CreateNotificationEvidenceDto,
   ManualAttendanceDto,
@@ -49,6 +51,7 @@ export class EcmVisitsController {
     private readonly audit: EcmAuditService,
     private readonly missedTriage: EcmMissedTriageService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
+    private readonly areaLocks: VisitAreaLockService,
   ) {}
 
   @Get('health')
@@ -222,6 +225,20 @@ export class EcmVisitsController {
       originalEventId: dto.originalEventId,
       approvedByUserId: user.id,
     });
+  }
+
+  @Post('visits/:jobId/allow-continue')
+  @Permissions('ecm.exceptions.manage')
+  @ApiOperation({
+    summary: 'Allow carer to continue after a mid-visit left-area lock',
+    description: 'Optional note. Unlocks employee-app writes; GET visit details returns operationsLocked false.',
+  })
+  allowContinue(
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: AllowVisitContinueDto,
+  ) {
+    return this.areaLocks.allowContinue(jobId, user.id, dto.note);
   }
 
   @Patch('visits/:jobId/missed-triage')

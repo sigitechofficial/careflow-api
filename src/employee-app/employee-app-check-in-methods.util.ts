@@ -10,7 +10,7 @@ export type OrgCheckInMethodFlags = {
   domCheckInQrEnabled?: boolean | null;
 };
 
-/** GPS + Manual default on when flags are missing (legacy row / no settings). */
+/** GPS only when flags are missing. Manual / NFC / QR are opt-in. */
 export function resolveEnabledCheckInMethods(
   settings?: OrgCheckInMethodFlags | null,
 ): string[] {
@@ -18,7 +18,7 @@ export function resolveEnabledCheckInMethods(
     GPS: settings?.domCheckInGpsEnabled !== false,
     NFC: Boolean(settings?.domCheckInNfcEnabled),
     QR: Boolean(settings?.domCheckInQrEnabled),
-    MANUAL: settings?.domCheckInManualEnabled !== false,
+    MANUAL: Boolean(settings?.domCheckInManualEnabled),
   };
   return CHECK_IN_METHOD_ORDER.filter((method) => flags[method]);
 }

@@ -41,6 +41,7 @@ import type {
 } from '../body-map/dto/create-body-map-record.dto';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
+import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
@@ -71,8 +72,10 @@ import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.u
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
+import type { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
 import {
   isCheckInMethodEnabled,
+  normalizeCheckInMethod,
   resolveEnabledCheckInMethods,
 } from './employee-app-check-in-methods.util';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
@@ -121,6 +124,7 @@ import {
   employeeAppTimingExceptionReasons,
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
+import { employeeAppKeySafePayload } from './employee-app-access.util';
 import {
   mobileTypeCode,
   resolveObservationTypeCode,
@@ -316,18 +320,22 @@ export class EmployeeAppVisitsService {
     private readonly visitTimeline: VisitTimelineService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly areaLocks: VisitAreaLockService,
   ) {}
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags] =
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock] =
       await Promise.all([
         this.resolveProgress(ctx),
         this.loadOverviewExtras(ctx),
         this.resolveMedicationProgress(ctx),
         this.loadGeofenceSettings(),
         this.loadCheckInMethodFlags(),
+        this.areaLocks.getState(jobId),
       ]);
+    const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
+    const gpsCheckIn = checkInMethod === 'GPS';
 
     return {
       data: {
@@ -335,13 +343,17 @@ export class EmployeeAppVisitsService {
           ...this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings),
           allergies: overviewExtras.allergies,
           flags: overviewExtras.flags,
+          operationsLocked: gpsCheckIn && areaLock.operationsLocked,
+          operationsLockedAt: gpsCheckIn ? areaLock.lockedAt : null,
+          areaContinueAllowed: gpsCheckIn && areaLock.continueAllowed,
+          checkInMethod,
         },
         overview: overviewExtras,
         clockInSettings: {
           enabledMethods: resolveEnabledCheckInMethods(checkInFlags),
           maxLocationAccuracyMeters: 50,
           timingGraceMinutes: 15,
-          allowManualOverride: checkInFlags.domCheckInManualEnabled !== false,
+          allowManualOverride: Boolean(checkInFlags.domCheckInManualEnabled),
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
           ...(await this.getClockInArrivalReasons()),
         },
@@ -733,6 +745,59 @@ export class EmployeeAppVisitsService {
     return { data };
   }
 
+  async reportAreaPresence(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppAreaPresenceDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const completed =
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      ctx.job.status === ScheduledJobStatus.COMPLETED ||
+      ctx.job.status === ScheduledJobStatus.PARTIALLY_COMPLETED;
+    if (completed) {
+      throw new BadRequestException('Visit is already completed');
+    }
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before reporting visit area presence');
+    }
+
+    const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
+    if (checkInMethod !== 'GPS') {
+      return {
+        data: {
+          operationsLocked: false,
+          operationsLockedAt: null,
+          withinArea: true,
+          skipped: true,
+          skipReason: 'CHECK_IN_METHOD',
+        },
+      };
+    }
+
+    const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
+    const outsideArea = Boolean(dto.outsideArea) || !geofence.withinArea;
+    const state = await this.areaLocks.syncOutsidePresence({
+      scheduledJobId: jobId,
+      employeeId,
+      outsideArea,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      distanceMeters: geofence.distanceMeters,
+    });
+
+    return {
+      data: {
+        operationsLocked: state.operationsLocked,
+        operationsLockedAt: state.lockedAt,
+        withinArea: state.withinArea,
+        continueAllowed: state.continueAllowed,
+      },
+    };
+  }
+
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const visit = ctx.primaryVisit;
@@ -752,6 +817,7 @@ export class EmployeeAppVisitsService {
     // Double-up: each carer clocks in independently via allocation actualStart.
     await this.assertCheckInArrivalReason(dto);
     await this.assertCheckInMethodEnabled(dto.method);
+    this.assertManualCheckInReason(dto);
 
     const alreadyCheckedIn = multi
       ? Boolean(myAllocation?.actualStartDateTime)
@@ -772,11 +838,18 @@ export class EmployeeAppVisitsService {
     const idempotencyKey = dto.idempotencyKey ?? dto.clientEventId ?? null;
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
 
-    await this.attendance.assertGeofencePolicy({
-      outsideGeofence: !geofence.withinArea,
-      outsideGeofenceReason: dto.outsideGeofenceReason ?? dto.manualOverrideNotes,
-      restrictOutside: geofence.restrictOutside,
-    });
+    const checkInMethod = normalizeCheckInMethod(dto.method);
+    // GPS is the only method that must be inside the visit area (or give a
+    // geofence reason). Manual / NFC / QR already carry their own exception
+    // evidence — do not fail them because last-known GPS is far from the job.
+    if (checkInMethod === 'GPS') {
+      await this.attendance.assertGeofencePolicy({
+        outsideGeofence: !geofence.withinArea,
+        outsideGeofenceReason:
+          dto.outsideGeofenceReason ?? dto.manualOverrideNotes,
+        restrictOutside: geofence.restrictOutside,
+      });
+    }
 
     const checkInPayload = {
       clientEventId: dto.clientEventId ?? null,
@@ -1064,6 +1137,7 @@ export class EmployeeAppVisitsService {
   }
 
   async saveTasks(employeeId: string, jobId: string, dto: SaveVisitJobTasksDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     await this.loadJobForEmployee(employeeId, jobId);
     const result = await this.housekeeping.saveVisitJobTasks('', jobId, dto);
 
@@ -1162,6 +1236,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: CreateServiceUserObservationDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const type = await this.prisma.observationType.findFirst({
       where: {
@@ -1369,6 +1444,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppBodyMapWizardSubmitDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -1498,6 +1574,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppCreateBodyMapRecordDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -1615,6 +1692,54 @@ export class EmployeeAppVisitsService {
     return this.bodyMap.patchRotationCheck(ctx.job.serviceUserId, opts);
   }
 
+  private resolveCheckInMethod(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    employeeId?: string,
+  ): string {
+    const checkIns =
+      typeof ctx.employeeAppMeta.checkIns === 'object' && ctx.employeeAppMeta.checkIns
+        ? (ctx.employeeAppMeta.checkIns as Record<string, unknown>)
+        : null;
+    const mine =
+      employeeId && checkIns && typeof checkIns[employeeId] === 'object' && checkIns[employeeId]
+        ? (checkIns[employeeId] as Record<string, unknown>)
+        : null;
+    const raw = mine?.method ?? ctx.checkIn?.method;
+    return normalizeCheckInMethod(typeof raw === 'string' ? raw : null);
+  }
+
+  private async assertOperationsUnlocked(employeeId: string, jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { metadata: true },
+    });
+    const metadata =
+      job?.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? (job.metadata as Record<string, unknown>)
+        : {};
+    const employeeApp =
+      typeof metadata.employeeApp === 'object' && metadata.employeeApp
+        ? (metadata.employeeApp as Record<string, unknown>)
+        : {};
+    const checkIns =
+      typeof employeeApp.checkIns === 'object' && employeeApp.checkIns
+        ? (employeeApp.checkIns as Record<string, unknown>)
+        : null;
+    const mine =
+      checkIns && typeof checkIns[employeeId] === 'object' && checkIns[employeeId]
+        ? (checkIns[employeeId] as Record<string, unknown>)
+        : null;
+    const checkIn =
+      typeof employeeApp.checkIn === 'object' && employeeApp.checkIn
+        ? (employeeApp.checkIn as Record<string, unknown>)
+        : null;
+    const raw = mine?.method ?? checkIn?.method;
+    if (normalizeCheckInMethod(typeof raw === 'string' ? raw : null) !== 'GPS') {
+      return;
+    }
+    await this.areaLocks.assertUnlocked(jobId);
+  }
+
   private isEmployeeCheckedInForVisit(
     employeeId: string,
     ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
@@ -1637,6 +1762,7 @@ export class EmployeeAppVisitsService {
   }
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
 
@@ -1778,6 +1904,7 @@ export class EmployeeAppVisitsService {
         latitude: dto.latitude ?? null,
         longitude: dto.longitude ?? null,
         accuracyMeters: dto.accuracyMeters ?? null,
+        isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
         withinArea: dto.withinArea ?? geofence.withinArea,
         distanceMeters: dto.distanceMeters ?? geofence.distanceMeters,
         completedAt: now.toISOString(),
@@ -1813,6 +1940,7 @@ export class EmployeeAppVisitsService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       outsideGeofence: !geofence.withinArea,
       distanceMeters: geofence.distanceMeters,
       clientEventId: dto.idempotencyKey ?? undefined,
@@ -1929,6 +2057,10 @@ export class EmployeeAppVisitsService {
       actualEndDateTime: endAt.toISOString(),
       deviceRecordedAt: dto.deviceRecordedAt ?? null,
       idempotencyKey: dto.idempotencyKey ?? null,
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
+      accuracyMeters: dto.accuracyMeters ?? null,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       employeeId,
       role: 'support',
     };
@@ -1956,6 +2088,7 @@ export class EmployeeAppVisitsService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       clientEventId: dto.idempotencyKey ?? undefined,
     });
 
@@ -2424,6 +2557,7 @@ export class EmployeeAppVisitsService {
     taskId: string,
     dto: EmployeeAppSaveTaskDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     await this.loadJobForEmployee(employeeId, jobId);
     const outcome = dto.outcome.toUpperCase();
     if (!['COMPLETED', 'PARTIAL', 'DECLINED'].includes(outcome)) {
@@ -2572,6 +2706,7 @@ export class EmployeeAppVisitsService {
     medicationKey: string,
     dto: EmployeeAppMedicationAdminDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -2718,6 +2853,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppObservationWriteDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     // Legacy path: admin CreateServiceUserObservationDto shape
     if (dto.observationTypeCode && dto.recordedAt && !dto.typeCode && !dto.definitionId) {
       return this.createObservation(employeeId, jobId, dto as CreateServiceUserObservationDto);
@@ -2874,6 +3010,7 @@ export class EmployeeAppVisitsService {
     observationId: string,
     dto: EmployeeAppObservationWriteDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
@@ -3007,6 +3144,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
      * Same `clientEntryId` + `idempotencyKey` may be reused to edit a note.
@@ -3076,6 +3214,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
      * Handover is a visit singleton. POST is always upsert: reuse of the same
@@ -3164,6 +3303,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogConcern(employeeId: string, jobId: string, dto: EmployeeAppLogConcernDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -3219,6 +3359,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createIncident(employeeId: string, jobId: string, dto: EmployeeAppIncidentDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -4012,6 +4153,17 @@ export class EmployeeAppVisitsService {
     );
   }
 
+  private assertManualCheckInReason(dto: EmployeeAppVisitCheckInDto) {
+    if (normalizeCheckInMethod(dto.method) !== 'MANUAL') return;
+    const code = dto.manualOverrideReasonCode?.trim();
+    if (!code) {
+      validationError('A reason is required for manual check-in.');
+    }
+    if (code.toUpperCase() === 'OTHER' && !dto.manualOverrideNotes?.trim()) {
+      validationError('Notes are required when the manual reason is Other.');
+    }
+  }
+
   private buildProgress(
     progress: { tasksDone: number; tasksTotal: number; obsCount?: number },
     medProgress?: { dueCount: number; givenCount: number },
@@ -4478,17 +4630,7 @@ export class EmployeeAppVisitsService {
       .filter((x): x is NonNullable<typeof x> => x != null)
       .slice(0, 4);
 
-    const addr = ctx.job.serviceUser.address;
-    const keySafe =
-      addr && !addr.deletedAt
-        ? {
-            address: [addr.addressLine1, addr.addressLine2, addr.town, addr.postcode]
-              .filter(Boolean)
-              .join(', ') || null,
-            code: addr.keySafeNumber ?? null,
-            accessNote: addr.accessInstructions ?? null,
-          }
-        : null;
+    const keySafe = employeeAppKeySafePayload(ctx.job.serviceUser.address);
 
     const medicationLocation =
       medSupport?.storageLocation != null && medSupport.storageLocation.trim()

@@ -146,7 +146,14 @@ export class ScheduledJobsHousekeepingService {
     });
     if (!job) throw new NotFoundException('Scheduled job not found');
     const timeline = await this.visitTimeline.listForJob(jobId);
-    return { jobId, timeline };
+    return {
+      jobId,
+      timeline: timeline.map((item) => {
+        if (item.type !== 'clock_in' || !item.detail) return item;
+        const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
+        return { ...item, detail: methodOnly, subtitle: methodOnly };
+      }),
+    };
   }
 
   /**

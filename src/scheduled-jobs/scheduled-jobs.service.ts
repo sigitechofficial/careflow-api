@@ -37,6 +37,10 @@ import {
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import { visitTimingExceptionReasonLabel } from '../scheduling/visit-timing-exception-reason.util';
 import { visitCareNotDeliveredReasonLabel } from '../scheduling/visit-care-not-delivered-reason.util';
+import {
+  buildAdminCheckInSummary,
+  extractEmployeeAppCheckIn,
+} from '../employee-app/check-in-display.util';
 
 const jobInclude = {
   serviceUser: {
@@ -787,6 +791,10 @@ export class ScheduledJobsService {
             notes: careNotDeliveredNotes,
           }
         : null,
+      checkIn: buildAdminCheckInSummary(extractEmployeeAppCheckIn(row.metadata), {
+        scheduledStart: timeline.scheduledStartDateTime,
+        actualStart: timeline.actualStartDateTime,
+      }),
     };
   }
 }

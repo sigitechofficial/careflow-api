@@ -29,6 +29,7 @@ import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-vi
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
+import { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
 import { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import {
   EmployeeAppHandoverAcknowledgeDto,
@@ -86,6 +87,20 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppCareConsentDto,
   ) {
     return this.visitsService.saveCareConsent(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/area-presence')
+  @ApiOperation({
+    summary: 'Report mid-visit geofence presence',
+    description:
+      'After clock-in, send current GPS (or outsideArea for sim). Outside the visit area creates a lock and ECM exception.',
+  })
+  reportAreaPresence(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppAreaPresenceDto,
+  ) {
+    return this.visitsService.reportAreaPresence(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/check-in')

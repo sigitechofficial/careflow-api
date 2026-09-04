@@ -5,9 +5,9 @@ import {
 } from './employee-app-check-in-methods.util';
 
 describe('employee-app-check-in-methods', () => {
-  it('defaults GPS + Manual when settings missing', () => {
-    expect(resolveEnabledCheckInMethods(null)).toEqual(['GPS', 'MANUAL']);
-    expect(resolveEnabledCheckInMethods({})).toEqual(['GPS', 'MANUAL']);
+  it('defaults GPS only when settings missing', () => {
+    expect(resolveEnabledCheckInMethods(null)).toEqual(['GPS']);
+    expect(resolveEnabledCheckInMethods({})).toEqual(['GPS']);
   });
 
   it('keeps GPS → NFC → QR → MANUAL order', () => {
