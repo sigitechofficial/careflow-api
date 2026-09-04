@@ -23,6 +23,8 @@ import {
   nightDutyHomeTag,
   resolveStoredNightDuty,
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
+import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -54,6 +56,7 @@ export class EmployeeAppHomeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly visitReconciliations: VisitReconciliationsService,
   ) {}
 
   async getHome(employeeId: string, dateParam?: string) {
@@ -213,6 +216,7 @@ export class EmployeeAppHomeService {
       return {
         jobId: job.id,
         visitId: primaryVisit?.id ?? null,
+        visitRef: null as string | null,
         clientId: su.id,
         status: uiStatus,
         scheduledStart,
@@ -250,6 +254,21 @@ export class EmployeeAppHomeService {
 
     applyTravelBetweenVisits(visitRows);
 
+    const visitIds = visitRows
+      .map((r) => r.visitId)
+      .filter((id): id is string => Boolean(id));
+    const visitRefById = await loadVisitRefsByScheduledVisitIds(this.prisma, visitIds);
+    const missing = visitIds.filter((id) => !visitRefById.get(id));
+    if (missing.length) {
+      const issued = await this.visitReconciliations.issueVisitRefsByScheduledVisitIds(
+        missing,
+      );
+      for (const [id, ref] of issued) visitRefById.set(id, ref);
+    }
+    for (const row of visitRows) {
+      row.visitRef = row.visitId ? visitRefById.get(row.visitId) ?? null : null;
+    }
+
     const countable = visitRows.filter(
       (v) => v.status !== 'missed' && v.status !== 'cancelled',
     );
@@ -259,6 +278,7 @@ export class EmployeeAppHomeService {
       const tags = buildVisitTags(row);
       return {
         visitId: row.visitId,
+        visitRef: row.visitRef,
         jobId: row.jobId,
         clientId: row.clientId,
         client: {
@@ -475,6 +495,7 @@ export class EmployeeAppHomeService {
 type VisitRow = {
   jobId: string;
   visitId: string | null;
+  visitRef?: string | null;
   clientId: string;
   status: HomeVisitUiStatus;
   scheduledStart: string;
@@ -526,6 +547,7 @@ function buildActiveVisit(row: VisitRow) {
 
   return {
     visitId: row.visitId,
+    visitRef: row.visitRef ?? null,
     jobId: row.jobId,
     clientId: row.clientId,
     status: row.status,

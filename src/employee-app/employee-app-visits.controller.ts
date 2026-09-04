@@ -30,6 +30,7 @@ import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
+import { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import {
   EmployeeAppHandoverAcknowledgeDto,
@@ -101,6 +102,20 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppAreaPresenceDto,
   ) {
     return this.visitsService.reportAreaPresence(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/sos')
+  @ApiOperation({
+    summary: 'Send a carer SOS alert with optional GPS and message',
+    description:
+      'Does not require clock-in. Each send creates a new CARER_SOS exception. Empty message is allowed. GPS failure still creates the alert.',
+  })
+  sendSos(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppSosDto,
+  ) {
+    return this.visitsService.sendSos(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/check-in')

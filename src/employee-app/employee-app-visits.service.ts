@@ -42,6 +42,8 @@ import type {
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
+import { EmployeeAppSosService } from './employee-app-sos.service';
+import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
@@ -69,6 +71,8 @@ import {
 } from '../common/utils/operational-day.util';
 import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
+import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
@@ -321,7 +325,14 @@ export class EmployeeAppVisitsService {
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly areaLocks: VisitAreaLockService,
+    private readonly sos: EmployeeAppSosService,
+    private readonly visitReconciliations: VisitReconciliationsService,
   ) {}
+
+  async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    return this.sos.send(employeeId, jobId, dto);
+  }
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
@@ -340,7 +351,7 @@ export class EmployeeAppVisitsService {
     return {
       data: {
         shell: {
-          ...this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings),
+          ...(await this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings)),
           allergies: overviewExtras.allergies,
           flags: overviewExtras.flags,
           operationsLocked: gpsCheckIn && areaLock.operationsLocked,
@@ -986,7 +997,7 @@ export class EmployeeAppVisitsService {
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
         serverReceivedAt: now.toISOString(),
-        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+        shell: await this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
         ...(timelineItem ? { timelineItem } : {}),
       },
     };
@@ -2404,7 +2415,7 @@ export class EmployeeAppVisitsService {
           present: existing.present,
           arrivedAt: existing.arrivedAt ?? null,
           leftAt: existing.leftAt ?? null,
-          shell: this.buildShell(ctx, progress, undefined, employeeId, geofenceSettings),
+          shell: await this.buildShell(ctx, progress, undefined, employeeId, geofenceSettings),
         },
       };
     }
@@ -2464,7 +2475,7 @@ export class EmployeeAppVisitsService {
         present: next.present,
         arrivedAt: next.arrivedAt ?? null,
         leftAt: next.leftAt ?? null,
-        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+        shell: await this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
       },
     };
   }
@@ -3907,7 +3918,7 @@ export class EmployeeAppVisitsService {
     };
   }
 
-  private buildShell(
+  private async buildShell(
     ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
     progress: Awaited<ReturnType<typeof this.resolveProgress>>,
     medProgress?: { dueCount: number; givenCount: number },
@@ -3991,10 +4002,15 @@ export class EmployeeAppVisitsService {
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: ctx.job.metadata,
     });
+    const visitRefById = await loadVisitRefsByScheduledVisitIds(this.prisma, [visit.id]);
+    const visitRef =
+      visitRefById.get(visit.id) ??
+      (await this.visitReconciliations.issueVisitRef(visit.id));
 
     return {
       jobId: ctx.job.id,
       visitId: visit.id,
+      visitRef: visitRef ?? null,
       clientId: su.id,
       organisationTimezone: ctx.timeZone,
       client: {
@@ -4553,7 +4569,7 @@ export class EmployeeAppVisitsService {
 
   private async loadOverviewExtras(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
     const suId = ctx.job.serviceUserId;
-    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport] =
+    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport, sosAlerts] =
       await Promise.all([
         this.loadAllergies(suId),
         this.prisma.initialAssessmentRiskRecord.findMany({
@@ -4566,6 +4582,7 @@ export class EmployeeAppVisitsService {
                 InitialAssessmentRiskType.HYDRATION,
                 InitialAssessmentRiskType.SKIN_INTEGRITY,
                 InitialAssessmentRiskType.MOVING_HANDLING,
+                InitialAssessmentRiskType.LONE_WORKER,
               ],
             },
           },
@@ -4600,6 +4617,7 @@ export class EmployeeAppVisitsService {
           where: { serviceUserId: suId, deletedAt: null, isActive: true },
           select: { storageLocation: true },
         }),
+        this.sos.listForJob(ctx.job.id),
       ]);
 
     const riskTags = openRisks.map((r) => ({
@@ -4609,6 +4627,9 @@ export class EmployeeAppVisitsService {
     }));
 
     const extraFlags = riskTags.filter((t) => !/allerg/i.test(t.label));
+    const hasLoneWorkerRisk = openRisks.some(
+      (r) => r.riskType === InitialAssessmentRiskType.LONE_WORKER,
+    );
     const communicationNotes = extractCommunicationNotes(ia?.careInstructions ?? '');
 
     const carePlanEssentials = carePlans
@@ -4692,16 +4713,19 @@ export class EmployeeAppVisitsService {
           value: String(progress.obsCount),
         },
       ],
-      safetyBriefing: {
-        title: 'Pre-visit safety briefing',
-        risks: riskTags.map((t) => t.label),
-        loneWorkerNote: 'Lone-worker & SOS',
-      },
+      safetyBriefing: hasLoneWorkerRisk
+        ? {
+            title: 'Pre-visit safety briefing',
+            risks: [],
+            loneWorkerNote: 'Lone-worker & SOS',
+          }
+        : null,
       communication: {
         title: 'Communication & sensory',
         items: communicationNotes,
       },
       carePlanEssentials,
+      sosAlerts,
       bodyMapHandover: bodyMapHandover
         ? {
             activeCount: bodyMapHandover.activeCount,
@@ -5349,6 +5373,8 @@ function riskLabel(risk: InitialAssessmentRiskType) {
       return 'Pressure ulcer risk';
     case InitialAssessmentRiskType.MOVING_HANDLING:
       return 'Moving & handling risk';
+    case InitialAssessmentRiskType.LONE_WORKER:
+      return 'Lone worker risk';
     default:
       return 'Risk flagged';
   }
