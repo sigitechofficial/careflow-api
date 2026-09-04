@@ -337,6 +337,19 @@ async function main() {
     'learning.settings.manage',
     'learning.me.read',
     'learning.me.progress',
+    'policies.read',
+    'policies.create',
+    'policies.update',
+    'policies.submit',
+    'policies.review',
+    'policies.approve',
+    'policies.publish',
+    'policies.archive',
+    'policies.categories.manage',
+    'policies.links.manage',
+    'policies.audit.read',
+    'policies.acknowledgements.manage',
+    'policies.acknowledgements.me',
     'service_users.live_in_profile.read',
     'service_users.live_in_profile.create',
     'service_users.live_in_profile.update',
@@ -822,6 +835,39 @@ async function main() {
     'learning.me.progress',
   ];
   await assignPermKeys('Admin', learningAdminKeys);
+
+  // Policy Management — Super Admin already receives all permissions above
+  const policyAdminKeys = [
+    'policies.read',
+    'policies.create',
+    'policies.update',
+    'policies.submit',
+    'policies.review',
+    'policies.approve',
+    'policies.publish',
+    'policies.archive',
+    'policies.categories.manage',
+    'policies.links.manage',
+    'policies.audit.read',
+    'policies.acknowledgements.manage',
+    'policies.acknowledgements.me',
+  ];
+  const policyCoordinatorKeys = [
+    'policies.read',
+    'policies.create',
+    'policies.update',
+    'policies.submit',
+    'policies.review',
+  ];
+  const policyReadAndAckKeys = ['policies.read', 'policies.acknowledgements.me'];
+  const policyInspectorKeys = ['policies.read', 'policies.audit.read'];
+  await assignPermKeys('Admin', policyAdminKeys);
+  await assignPermKeys('Manager', policyCoordinatorKeys);
+  await assignPermKeys('Care Coordinator', policyCoordinatorKeys);
+  await assignPermKeys('HR', policyReadAndAckKeys);
+  await assignPermKeys('Senior Carer/Nurse', policyReadAndAckKeys);
+  await assignPermKeys('Carer/Domestic', policyReadAndAckKeys);
+  await assignPermKeys('CQC Inspector', policyInspectorKeys);
 
   // Native UK Payroll foundation — Admin / Manager (distinct from billing.payroll_runs.*)
   const payrollPermKeys = [
@@ -2352,6 +2398,27 @@ async function main() {
         },
         update: {},
         create: { roleId: managerRole.id, permissionId: p.id },
+      });
+    }
+  }
+
+  const policyCategories: Array<{ name: string; code: string; displayOrder: number }> = [
+    { name: 'Safeguarding', code: 'SAFEGUARDING', displayOrder: 10 },
+    { name: 'Health and safety', code: 'HEALTH_AND_SAFETY', displayOrder: 20 },
+    { name: 'Medication', code: 'MEDICATION', displayOrder: 30 },
+    { name: 'HR', code: 'HR', displayOrder: 40 },
+  ];
+  for (const cat of policyCategories) {
+    const existing = await prisma.policyCategory.findFirst({ where: { code: cat.code, deletedAt: null } });
+    if (!existing) {
+      await prisma.policyCategory.create({
+        data: {
+          name: cat.name,
+          code: cat.code,
+          displayOrder: cat.displayOrder,
+          createdById: adminForSeed?.id,
+          updatedById: adminForSeed?.id,
+        },
       });
     }
   }

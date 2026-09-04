@@ -114,6 +114,7 @@ import { EmployeeAppModule } from './employee-app/employee-app.module';
 import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { LearningModule } from './learning/learning.module';
+import { PoliciesModule } from './policies/policies.module';
 
 @Module({
   imports: [
@@ -246,6 +247,7 @@ import { LearningModule } from './learning/learning.module';
     EcmModule,
     PayrollModule,
     LearningModule,
+    PoliciesModule,
   ],
   providers: [
     {
