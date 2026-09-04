@@ -19,7 +19,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const fallbackStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     const fallbackMessage = 'Unexpected error';
 
-    const { status, body } = this.toResponse(exception, fallbackStatus, fallbackMessage);
+    const { status, body } = this.toResponse(
+      exception,
+      fallbackStatus,
+      fallbackMessage,
+    );
     response.status(status).json(body);
   }
 
@@ -28,6 +32,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     fallbackStatus: number,
     fallbackMessage: string,
   ): { status: number; body: unknown } {
+    if (this.isMulterFileTooLarge(exception)) {
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        body: {
+          success: false,
+          message: 'File too large',
+        },
+      };
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const res = exception.getResponse() as any;
@@ -83,9 +97,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status: fallbackStatus,
       body: {
         success: false,
-        message: process.env.NODE_ENV === 'production' ? fallbackMessage : message,
+        message:
+          process.env.NODE_ENV === 'production' ? fallbackMessage : message,
       },
     };
+  }
+
+  private isMulterFileTooLarge(exception: unknown): boolean {
+    if (exception == null || typeof exception !== 'object') return false;
+    return (
+      'code' in exception &&
+      (exception as { code?: string }).code === 'LIMIT_FILE_SIZE'
+    );
   }
 
   private mapPrismaKnownError(e: Prisma.PrismaClientKnownRequestError): {
@@ -95,7 +118,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
   } {
     switch (e.code) {
       case 'P2002': {
-        const fields = this.prismaFields((e.meta as { target?: unknown })?.target);
+        const fields = this.prismaFields(
+          (e.meta as { target?: unknown })?.target,
+        );
         const message =
           fields.length === 1
             ? `${fields[0]} is already in use`
@@ -105,7 +130,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return {
           status: HttpStatus.CONFLICT,
           message,
-          errors: fields.length ? fields.map((field) => `${field} is already in use`) : [message],
+          errors: fields.length
+            ? fields.map((field) => `${field} is already in use`)
+            : [message],
         };
       }
       case 'P2025':
@@ -114,7 +141,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message: 'Resource not found',
         };
       case 'P2003': {
-        const field = this.prismaField((e.meta as { field_name?: string })?.field_name);
+        const field = this.prismaField(
+          (e.meta as { field_name?: string })?.field_name,
+        );
         const message = field
           ? `${field} is not a valid selection`
           : 'Related record not found (invalid reference)';
@@ -148,7 +177,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private prismaFields(target: unknown): string[] {
-    const items = Array.isArray(target) ? target : target != null ? [target] : [];
+    const items = Array.isArray(target)
+      ? target
+      : target != null
+        ? [target]
+        : [];
     const fields: string[] = [];
     for (const item of items) {
       const field = this.prismaField(String(item));
@@ -166,4 +199,3 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return value;
   }
 }
-

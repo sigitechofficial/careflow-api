@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies"]
 }
 
 enum DayOfWeek {
@@ -584,6 +584,11 @@ model User {
   candidatesConverted                Candidate[]                      @relation("CandidateConvertedBy")
   candidateDocumentsUploaded         CandidateDocument[]              @relation("CandidateDocumentUploadedBy")
   candidateStageChanges              CandidateStageHistory[]          @relation("CandidateStageChangedBy")
+  policyDocumentsOwned               PolicyDocument[]                 @relation("PolicyDocumentOwner")
+  policyDocumentsReviewed            PolicyDocument[]                 @relation("PolicyDocumentReviewer")
+  policyDocumentsApproved            PolicyDocument[]                 @relation("PolicyDocumentApprover")
+  policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
+  policyAcknowledgements             PolicyAcknowledgement[]
 
   @@index([email])
   @@index([deletedAt])
@@ -605,6 +610,7 @@ model Role {
 
   rolePermissions RolePermission[]
   userRoles       UserRole[]
+  policyAudiences PolicyAudience[]
 
   @@index([deletedAt])
   @@schema("identity")
@@ -702,6 +708,9 @@ model CompanyProfile {
   numberOfCarers       Int      @default(0)
   numberOfServiceUsers Int      @default(0)
   activeModules        String[] @default([])
+  /// Organisation-operated care settings (ServiceUserCareType codes, e.g. DOMICILIARY, RESIDENTIAL, SUPPORTED_LIVING).
+  /// Empty = not configured. Used for policy visibility; not inferred from service-user records.
+  careServiceTypes     String[] @default([])
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   updatedById          String?  @db.Uuid
@@ -2039,6 +2048,7 @@ model WorkArea {
 
   employments EmployeeEmployment[]
   complianceRequirements ComplianceRequirement[]
+  policyAudiences PolicyAudience[]
   @@schema("lookups")
 }
 
@@ -2066,6 +2076,7 @@ model JobTitle {
   employments EmployeeEmployment[]
   complianceRequirements ComplianceRequirement[]
   vacancies Vacancy[]
+  policyAudiences PolicyAudience[]
   @@schema("lookups")
 }
 
@@ -2135,6 +2146,8 @@ model Location {
   employmentFloorLocations  EmployeeEmploymentFloorLocation[]
   recruitmentVacancies      Vacancy[]
   userLocations             UserLocation[]
+  policyApplicabilities     PolicyApplicability[]
+  policyAudiences           PolicyAudience[]
   @@schema("lookups")
 }
 
@@ -10312,4 +10325,363 @@ model IncidentOutcome {
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@schema("incidents")
+}
+
+// ---- Policy Management ----
+
+enum PolicyDocumentType {
+  POLICY
+  PROCEDURE
+  PROTOCOL
+  GUIDELINE
+  FORM
+  TEMPLATE
+
+  @@schema("policies")
+}
+
+enum PolicyDocumentSource {
+  EDITOR
+  UPLOAD
+  CATALOGUE
+
+  @@schema("policies")
+}
+
+/// Shared by PolicyDocument (denormalised) and PolicyVersion.
+enum PolicyStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  SUPERSEDED
+  ARCHIVED
+
+  @@schema("policies")
+}
+
+enum PolicyLinkModuleType {
+  CARE_PLAN
+  INITIAL_ASSESSMENT
+  RISK_ASSESSMENT
+  MEDICATION
+  INCIDENT
+  SAFEGUARDING
+  VISIT
+  EMPLOYEE
+  HR
+  TRAINING
+  RECRUITMENT
+  AUDIT
+  BUSINESS_CONTINUITY
+  BRANCH
+  EQUIPMENT
+  INFECTION_CONTROL
+
+  @@schema("policies")
+}
+
+enum PolicyLinkScope {
+  MODULE
+  FORM_TEMPLATE
+  SECTION
+  RECORD
+
+  @@schema("policies")
+}
+
+enum PolicyAudienceTargetType {
+  ALL_EMPLOYEES
+  ROLE
+  JOB_TITLE
+  WORK_AREA
+  LOCATION
+
+  @@schema("policies")
+}
+
+enum PolicyApprovalKind {
+  REVIEW
+  APPROVAL
+
+  @@schema("policies")
+}
+
+enum PolicyApprovalDecision {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+
+  @@schema("policies")
+}
+
+enum PolicyAcknowledgementStatus {
+  PENDING
+  VIEWED
+  ACKNOWLEDGED
+
+  @@schema("policies")
+}
+
+model PolicyCategory {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  code         String
+  description  String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdById  String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  deletedById  String?   @db.Uuid
+
+  primaryDocuments PolicyDocument[]     @relation("PolicyDocumentPrimaryCategory")
+  categoryLinks    PolicyCategoryLink[]
+
+  @@unique([code])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@schema("policies")
+}
+
+model PolicyTag {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  tagLinks PolicyTagLink[]
+
+  @@unique([name])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@schema("policies")
+}
+
+model PolicyDocument {
+  id                String               @id @default(uuid()) @db.Uuid
+  reference         String
+  title             String
+  description       String?              @db.Text
+  documentType      PolicyDocumentType
+  source            PolicyDocumentSource @default(EDITOR)
+  primaryCategoryId String               @db.Uuid
+  parentDocumentId  String?              @db.Uuid
+  /// Plain UUID pointer to the current version (no FK — same cycle-avoidance as LearningCourse.currentVersionId).
+  currentVersionId  String?              @db.Uuid
+  status            PolicyStatus         @default(DRAFT)
+  isCatalogue       Boolean              @default(false)
+  ownerId           String?              @db.Uuid
+  reviewerId        String?              @db.Uuid
+  approverId        String?              @db.Uuid
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  deletedAt         DateTime?
+  createdById       String?              @db.Uuid
+  updatedById       String?              @db.Uuid
+  deletedById       String?              @db.Uuid
+
+  primaryCategory PolicyCategory       @relation("PolicyDocumentPrimaryCategory", fields: [primaryCategoryId], references: [id], onDelete: Restrict)
+  parent          PolicyDocument?      @relation("PolicyDocumentParent", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  children        PolicyDocument[]     @relation("PolicyDocumentParent")
+  owner           User?                @relation("PolicyDocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  reviewer        User?                @relation("PolicyDocumentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  approver        User?                @relation("PolicyDocumentApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  versions        PolicyVersion[]
+  categoryLinks   PolicyCategoryLink[]
+  tagLinks        PolicyTagLink[]
+
+  @@unique([reference])
+  @@index([status])
+  @@index([primaryCategoryId])
+  @@index([documentType])
+  @@index([parentDocumentId])
+  @@index([ownerId])
+  @@index([reviewerId])
+  @@index([approverId])
+  @@index([isCatalogue])
+  @@index([deletedAt])
+  @@schema("policies")
+}
+
+model PolicyCategoryLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  categoryId String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  document PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  category PolicyCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, categoryId])
+  @@index([documentId])
+  @@index([categoryId])
+  @@schema("policies")
+}
+
+model PolicyTagLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  tagId      String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  document PolicyDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag      PolicyTag      @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, tagId])
+  @@index([documentId])
+  @@index([tagId])
+  @@schema("policies")
+}
+
+model PolicyVersion {
+  id                      String       @id @default(uuid()) @db.Uuid
+  documentId              String       @db.Uuid
+  versionMajor            Int
+  versionMinor            Int
+  status                  PolicyStatus @default(DRAFT)
+  titleSnapshot           String
+  contentJson             Json?
+  contentHtml             String?      @db.Text
+  changeSummary           String?      @db.Text
+  fileName                String?
+  mimeType                String?
+  fileSize                Int?
+  storagePath             String?
+  effectiveDate           DateTime?    @db.Date
+  reviewDate              DateTime?    @db.Date
+  publishedAt             DateTime?
+  publishedById           String?      @db.Uuid
+  archivedAt              DateTime?
+  acknowledgementRequired Boolean      @default(false)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  document         PolicyDocument          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  links            PolicyLink[]
+  applicability    PolicyApplicability[]
+  audiences        PolicyAudience[]
+  approvals        PolicyApproval[]
+  acknowledgements PolicyAcknowledgement[]
+
+  @@unique([documentId, versionMajor, versionMinor])
+  @@index([documentId])
+  @@index([status])
+  @@index([reviewDate])
+  @@index([publishedAt])
+  @@schema("policies")
+}
+
+model PolicyApplicability {
+  id               String   @id @default(uuid()) @db.Uuid
+  versionId        String   @db.Uuid
+  organisationWide Boolean  @default(true)
+  locationId       String?  @db.Uuid
+  /// ServiceUserCareType.code (e.g. DOMICILIARY, RESIDENTIAL, SUPPORTED_LIVING). No FK — code reference only.
+  serviceTypeCode  String?
+  createdAt        DateTime @default(now())
+
+  version  PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  location Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([versionId])
+  @@index([locationId])
+  @@index([serviceTypeCode])
+  @@index([organisationWide])
+  @@schema("policies")
+}
+
+model PolicyAudience {
+  id         String                   @id @default(uuid()) @db.Uuid
+  versionId  String                   @db.Uuid
+  targetType PolicyAudienceTargetType
+  roleId     String?                  @db.Uuid
+  jobTitleId String?                  @db.Uuid
+  workAreaId String?                  @db.Uuid
+  locationId String?                  @db.Uuid
+  createdAt  DateTime                 @default(now())
+
+  version  PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  role     Role?         @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  jobTitle JobTitle?     @relation(fields: [jobTitleId], references: [id], onDelete: SetNull)
+  workArea WorkArea?     @relation(fields: [workAreaId], references: [id], onDelete: SetNull)
+  location Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([versionId])
+  @@index([targetType])
+  @@index([roleId])
+  @@index([jobTitleId])
+  @@index([workAreaId])
+  @@index([locationId])
+  @@schema("policies")
+}
+
+/// Polymorphic CareFlow link. recordId is a generic UUID — never a multi-table FK.
+model PolicyLink {
+  id          String               @id @default(uuid()) @db.Uuid
+  versionId   String               @db.Uuid
+  moduleType  PolicyLinkModuleType
+  scope       PolicyLinkScope
+  recordId    String?              @db.Uuid
+  sectionKey  String?
+  label       String?
+  createdAt   DateTime             @default(now())
+  createdById String?              @db.Uuid
+
+  version PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@index([moduleType, scope])
+  @@index([recordId])
+  @@schema("policies")
+}
+
+model PolicyApproval {
+  id        String                 @id @default(uuid()) @db.Uuid
+  versionId String                 @db.Uuid
+  kind      PolicyApprovalKind
+  decision  PolicyApprovalDecision
+  comments  String?                @db.Text
+  actorId   String?                @db.Uuid
+  decidedAt DateTime               @default(now())
+  createdAt DateTime               @default(now())
+
+  version PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  actor   User?         @relation("PolicyApprovalActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([versionId])
+  @@index([actorId])
+  @@index([kind])
+  @@index([decidedAt])
+  @@schema("policies")
+}
+
+model PolicyAcknowledgement {
+  id             String                      @id @default(uuid()) @db.Uuid
+  versionId      String                      @db.Uuid
+  userId         String                      @db.Uuid
+  status         PolicyAcknowledgementStatus @default(PENDING)
+  viewedAt       DateTime?
+  acknowledgedAt DateTime?
+  metadata       Json?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  version PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, userId])
+  @@index([versionId])
+  @@index([userId])
+  @@index([status])
+  @@schema("policies")
 }
