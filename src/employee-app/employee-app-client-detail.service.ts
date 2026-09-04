@@ -19,9 +19,11 @@ import {
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
+import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { plannedHowAssistedLabel } from './medication/employee-app-visit-medication-round.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
+import { employeeAppAccessPayload } from './employee-app-access.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import {
   aggregatePublishedCarePlanReview,
@@ -259,6 +261,7 @@ export class EmployeeAppClientDetailService {
         todayVisits,
         carePlanEssentials,
         date,
+        access: employeeAppAccessPayload(su.address),
       },
     };
   }
@@ -962,6 +965,17 @@ export class EmployeeAppClientDetailService {
         nhsNumber: true,
         socialServicesRef: true,
         careType: { select: { id: true, name: true, code: true } },
+        address: {
+          select: {
+            addressLine1: true,
+            addressLine2: true,
+            town: true,
+            postcode: true,
+            keySafeNumber: true,
+            accessInstructions: true,
+            deletedAt: true,
+          },
+        },
       },
     });
     if (!su) throw new NotFoundException('Client not found');
@@ -1045,12 +1059,11 @@ function ageFromDob(dob: Date | null): number | null {
 }
 
 function formatDisplayDate(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${String(date.getUTCDate()).padStart(2, '0')} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  return formatUkDateLabel(date);
 }
 
 function formatSlashDate(date: Date): string {
-  return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+  return formatUkDateLabel(date);
 }
 
 function weekdayLabel(date: Date): string {

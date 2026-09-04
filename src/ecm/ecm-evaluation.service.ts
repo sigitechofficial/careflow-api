@@ -209,7 +209,8 @@ export class EcmEvaluationService {
     if (checkInEvent?.outsideGeofence) {
       operationalExceptionCodes.push('OUTSIDE_GEOFENCE');
     }
-    if (checkInEvent?.isMockLocation) {
+    const isMockLocation = job.attendanceEvents.some((e) => e.isMockLocation);
+    if (isMockLocation) {
       operationalExceptionCodes.push('MOCK_LOCATION');
     }
 
@@ -250,7 +251,7 @@ export class EcmEvaluationService {
     const confidence = mapConfidence({
       verificationMethod: checkInEvent?.verificationMethod,
       outsideGeofence: checkInEvent?.outsideGeofence,
-      isMockLocation: checkInEvent?.isMockLocation,
+      isMockLocation,
       manual: manualAttendance,
       hasCheckIn: Boolean(actualStart),
       hasCheckOut: Boolean(actualEnd),

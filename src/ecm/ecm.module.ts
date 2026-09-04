@@ -19,6 +19,7 @@ import { EcmHealthService } from './ecm-health.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
 import { EcmMissedVisitDetectionJob } from './ecm-missed-visit.job';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
+import { VisitAreaLockService } from './visit-area-lock.service';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
     EcmAlertService,
     EcmExceptionsService,
     EcmThresholdLookupsService,
+    VisitAreaLockService,
     EcmEvaluationService,
     EcmVisitsService,
     EcmManualAttendanceService,
@@ -54,6 +56,7 @@ import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
     EcmAlertService,
     EcmManualAttendanceService,
     EcmThresholdLookupsService,
+    VisitAreaLockService,
   ],
 })
 export class EcmModule {}

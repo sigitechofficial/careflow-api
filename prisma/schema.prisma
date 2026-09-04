@@ -846,6 +846,12 @@ model OrganisationGeneralSettings {
   domEmailTomorrowsSchedule     Boolean           @default(false)
   domAppShowHoursBefore         Int               @default(48)
   domRestrictJobOutsideGeofence Boolean         @default(true)
+  /// Carer-app clock-in methods (visit details `clockInSettings.enabledMethods`).
+  /// Default live set is GPS only; Manual / NFC / QR are opt-in.
+  domCheckInGpsEnabled          Boolean           @default(true)
+  domCheckInManualEnabled       Boolean           @default(false)
+  domCheckInNfcEnabled          Boolean           @default(false)
+  domCheckInQrEnabled           Boolean           @default(false)
   domGeofenceToleranceMeters    Int               @default(150)
   domDownloadAllServiceUsers    Boolean           @default(false)
   domFutureVisitsDays           Int               @default(14)
@@ -5905,6 +5911,7 @@ model ScheduledJob {
   ecmExceptions    EcmException[]
   ecmScheduleVersions EcmScheduleVersion[]
   ecmNotificationEvidence EcmNotificationEvidence[]
+  visitAreaLocks   VisitAreaLock[]
   timelineEvents   VisitTimelineEvent[]
   careConsents     VisitCareConsent[]
 
@@ -6595,6 +6602,7 @@ enum EcmExceptionKind {
   CONFIRMED_MISSED
   MISSING_CHECKOUT
   OUTSIDE_GEOFENCE
+  LEFT_VISIT_AREA
   MANUAL_ATTENDANCE
   MOCK_LOCATION
   OTHER
@@ -6646,12 +6654,46 @@ model EcmException {
   scheduledJob       ScheduledJob        @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
   ecmVisitEvaluation EcmVisitEvaluation? @relation(fields: [ecmVisitEvaluationId], references: [id], onDelete: SetNull)
   notificationEvidence EcmNotificationEvidence[]
+  visitAreaLock      VisitAreaLock?
 
   @@index([scheduledJobId])
   @@index([lifecycle])
   @@index([kind])
   @@index([overdue])
   @@index([createdAt])
+  @@schema("scheduling")
+}
+
+enum VisitAreaLockStatus {
+  LOCKED
+  ALLOWED
+
+  @@schema("scheduling")
+}
+
+/// Mid-visit leave-area lock. Latest LOCKED row blocks carer writes until office allows.
+model VisitAreaLock {
+  id             String              @id @default(uuid()) @db.Uuid
+  scheduledJobId String              @db.Uuid
+  employeeId     String              @db.Uuid
+  status         VisitAreaLockStatus @default(LOCKED)
+  lockedAt       DateTime
+  latitude       Decimal?            @db.Decimal(10, 7)
+  longitude      Decimal?            @db.Decimal(10, 7)
+  distanceMeters Int?
+  ecmExceptionId String?             @unique @db.Uuid
+  allowedAt      DateTime?
+  allowedById    String?             @db.Uuid
+  allowedByName  String?
+  allowNote      String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId, status])
+  @@index([scheduledJobId, lockedAt])
   @@schema("scheduling")
 }
 

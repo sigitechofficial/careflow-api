@@ -9,6 +9,7 @@ import {
   formatHmInTimeZone,
   formatHmUtc,
 } from '../common/utils/operational-day.util';
+import { checkInMethodDetailLine } from './check-in-display.util';
 
 const DETAIL_MAX = 280;
 
@@ -124,11 +125,7 @@ export function handoverTimelineTone(priority?: string | null): VisitTimelineTon
 }
 
 export function checkInTimelineDetail(method?: string | null): string {
-  const m = (method ?? 'GPS').toUpperCase();
-  if (m === 'MANUAL') return 'Manual clock-in';
-  if (m === 'NFC') return 'NFC confirmed';
-  if (m === 'QR') return 'QR confirmed';
-  return 'GPS confirmed';
+  return checkInMethodDetailLine(method);
 }
 
 export function parseOccurredAt(

@@ -167,6 +167,16 @@ export class EmployeeAppVisitCompleteDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
+  isMockLocation?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isMockedLocation?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   withinArea?: boolean;
 
   @ApiPropertyOptional()
