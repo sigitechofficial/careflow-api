@@ -17,6 +17,7 @@ export class RolesService {
       orderBy: { name: 'asc' },
       include: {
         rolePermissions: {
+          where: { permission: { deletedAt: null } },
           include: { permission: { select: { id: true, key: true, description: true } } },
         },
         _count: { select: { userRoles: true } },
