@@ -42,7 +42,6 @@ import {
   detectVisitExceptions,
   formatDateOnly,
   formatTimeRange,
-  formatVisitRef,
   formatMinutesAsHours,
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
@@ -52,11 +51,8 @@ import {
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
-  normalizeVisitRefBranchCode,
   resolveDefaultApprovedWindows,
-  visitRefDayKey,
 } from './visit-reconciliation.util';
-import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
 import {
   formatTimeHhMmSs,
@@ -74,6 +70,7 @@ import {
   nightDutyAppLabel,
   resolveStoredNightDuty,
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
+import { ensureScheduledVisitRef } from '../scheduling/visit-ref-allocate.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -398,116 +395,10 @@ export class VisitReconciliationsService {
       scheduledJobId: string
       serviceUserId: string
       scheduledStartDateTime: Date
+      visitRef?: string | null
     },
   ): Promise<string> {
-    const existing = await db.visitReconciliation.findFirst({
-      where: { scheduledVisitId: visit.id },
-      select: { visitRef: true },
-      orderBy: { createdAt: 'asc' },
-    });
-    const existingRef = existing?.visitRef?.trim() || '';
-    const isLegacyGen = /^VIS-GEN-\d{8}-\d{4}$/.test(existingRef);
-    const needsRepair = !existingRef || isLegacyGen || !isCanonicalVisitRef(existingRef);
-    if (existingRef && !needsRepair) return existingRef;
-
-    const branchCode = await this.resolveVisitRefBranchCode(db, visit);
-    // Still no branch mapping — keep legacy GEN rather than minting another GEN seq.
-    if (isLegacyGen && branchCode === 'GEN') return existingRef;
-
-    const timeZone = await this.orgSettings.getOperationalTimezone();
-    // Freeze the planned calendar day at first issuance (reschedules do not reissue).
-    // For legacy GEN rewrite, keep the original day segment when present.
-    const dayKey =
-      isLegacyGen && /^\d{8}$/.test(existingRef.slice(8, 16))
-        ? existingRef.slice(8, 16)
-        : visitRefDayKey(dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone));
-    const nextRef = await this.allocateVisitRef(db, branchCode, dayKey);
-
-    if (existingRef && nextRef !== existingRef) {
-      await db.visitReconciliation.updateMany({
-        where: { scheduledVisitId: visit.id, visitRef: existingRef },
-        data: { visitRef: nextRef },
-      });
-    }
-
-    return nextRef;
-  }
-
-  /**
-   * BRANCH for visit refs = service user’s branch (location → ScheduleArea.visitRefCode).
-   * Fallback: service-user area’s schedule area, then job schedule area.
-   */
-  private async resolveVisitRefBranchCode(
-    db: DbClient,
-    visit: { scheduledJobId: string; serviceUserId: string },
-  ): Promise<string> {
-    const su = await db.serviceUser.findFirst({
-      where: { id: visit.serviceUserId, deletedAt: null },
-      select: {
-        locationId: true,
-        serviceUserArea: {
-          select: {
-            scheduleArea: {
-              select: { visitRefCode: true, code: true, name: true },
-            },
-          },
-        },
-      },
-    });
-
-    type BranchBits = {
-      visitRefCode: string | null;
-      code: string | null;
-      name?: string | null;
-    };
-    let fromSuLocation: BranchBits | null = null;
-    if (su?.locationId) {
-      fromSuLocation = await db.scheduleArea.findFirst({
-        where: { locationId: su.locationId, deletedAt: null, isActive: true },
-        select: { visitRefCode: true, code: true, name: true },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      });
-    }
-
-    const fromSuArea = su?.serviceUserArea?.scheduleArea ?? null;
-
-    const job = await db.scheduledJob.findFirst({
-      where: { id: visit.scheduledJobId },
-      select: {
-        scheduleArea: { select: { visitRefCode: true, code: true, name: true } },
-      },
-    });
-    const fromJob = job?.scheduleArea ?? null;
-
-    const pick = (...candidates: Array<BranchBits | null | undefined>) => {
-      for (const c of candidates) {
-        if (!c) continue;
-        // Prefer dedicated 3-char visitRefCode over long schedule-area codes.
-        const raw = c.visitRefCode?.trim() || c.code?.trim() || c.name?.trim() || '';
-        if (!raw) continue;
-        const normalized = normalizeVisitRefBranchCode(raw);
-        if (normalized !== 'GEN') return normalized;
-      }
-      return normalizeVisitRefBranchCode(null);
-    };
-
-    return pick(fromSuLocation, fromSuArea, fromJob);
-  }
-
-  private async allocateVisitRef(
-    db: DbClient,
-    branchCode: string,
-    dayKey: string,
-  ): Promise<string> {
-    const rows = await db.$queryRaw<Array<{ lastValue: number }>>(Prisma.sql`
-      INSERT INTO "billing"."VisitReferenceSequence" ("branchCode", "dayKey", "lastValue", "updatedAt")
-      VALUES (${branchCode}, ${dayKey}, 1, now())
-      ON CONFLICT ("branchCode", "dayKey")
-      DO UPDATE SET "lastValue" = "VisitReferenceSequence"."lastValue" + 1, "updatedAt" = now()
-      RETURNING "lastValue"
-    `);
-    const value = rows[0]?.lastValue ?? 1;
-    return formatVisitRef(branchCode, dayKey, value);
+    return ensureScheduledVisitRef(db, visit);
   }
 
   private async safeEvaluate(

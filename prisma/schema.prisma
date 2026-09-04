@@ -5977,6 +5977,12 @@ model ScheduledVisit {
   photoRequired          Boolean              @default(false)
   notesRequired          Boolean              @default(false)
   visitPlanSlotId        String?              @db.Uuid
+  /**
+   * Immutable EMONITORED visit reference VIS-[BRANCH]-YYYYMMDD-NNNN.
+   * Allocated when the visit is first exposed on schedule (or on reconciliation).
+   * Survives call-off / reschedule; shared with VisitReconciliation.visitRef.
+   */
+  visitRef               String?              @unique
   isActive               Boolean              @default(true)
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
