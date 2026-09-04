@@ -36,6 +36,15 @@ const SALARY_CALCULATION_BASES = ['MONTHLY', 'WEEKLY'] as const;
 const MULTI_CARER_FUNDER_CHARGE_MODES = ['COMBINED', 'FIXED'] as const;
 const COMPLIANCE_REQUIRED_BY = ['ROLE_WORK_AREA', 'CITIZENSHIP'] as const;
 const COMPLIANCE_APPROVAL_TYPES = ['MANAGER_APPROVAL', 'HR_APPROVAL'] as const;
+const COMPLIANCE_ALLOCATION_MODES = ['WARN', 'BLOCK'] as const;
+const COMPLIANCE_BLOCK_STATUSES = [
+  'MISSING',
+  'EXPIRED',
+  'REJECTED',
+  'EXPIRING_SOON',
+  'PENDING_REVIEW',
+  'REQUIRED',
+] as const;
 const WELLBEING_REGULARITIES = ['DAILY', 'WEEKLY', 'MONTHLY'] as const;
 const ACTIONS_DEFAULT_VIEWS = ['TASK_LIST', 'ACTIONS_LIST'] as const;
 const ALLOCATE_EMPLOYEE_BY = ['FLOOR', 'WARD', 'ZONE', 'UNIT'] as const;
@@ -143,6 +152,32 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsIn(COMPLIANCE_APPROVAL_TYPES)
   complianceApprovalForNewEmployee?: (typeof COMPLIANCE_APPROVAL_TYPES)[number];
+
+  @ApiPropertyOptional({
+    enum: COMPLIANCE_ALLOCATION_MODES,
+    description:
+      'WARN (default for existing orgs): compliance issues are warnings. BLOCK: missing/expired/rejected mandatory checks cannot be allocated.',
+  })
+  @IsOptional()
+  @IsIn(COMPLIANCE_ALLOCATION_MODES)
+  complianceAllocationMode?: (typeof COMPLIANCE_ALLOCATION_MODES)[number];
+
+  @ApiPropertyOptional({
+    type: [String],
+    enum: COMPLIANCE_BLOCK_STATUSES,
+    description: 'Computed statuses that block allocation when mode is BLOCK. Default MISSING, EXPIRED, REJECTED.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsIn(COMPLIANCE_BLOCK_STATUSES, { each: true })
+  complianceBlockStatuses?: (typeof COMPLIANCE_BLOCK_STATUSES)[number][];
+
+  @ApiPropertyOptional({
+    description: 'When true, overdue/expired learning snapshots are included in roster allocation checks.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  includeLearningInAllocationBlock?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

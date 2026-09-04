@@ -68,19 +68,33 @@ export function requirementSpecificity(
   return n;
 }
 
+export type RequirementMatchRow = Pick<
+  ComplianceRequirement,
+  | 'id'
+  | 'complianceTypeId'
+  | 'roleId'
+  | 'workAreaId'
+  | 'jobTitleId'
+  | 'contractTypeId'
+  | 'locationId'
+  | 'zoneId'
+  | 'renewalBeforeDays'
+  | 'isMandatory'
+>;
+
 /** For each compliance type id, pick the single best-matching requirement row. */
-export function pickBestRequirementsPerType(
-  requirements: ComplianceRequirement[],
+export function pickBestRequirementsPerType<T extends RequirementMatchRow>(
+  requirements: T[],
   dims: EmploymentDims,
-): Map<string, ComplianceRequirement> {
+): Map<string, T> {
   const matched = requirements.filter((r) => requirementMatchesEmployment(r, dims));
-  const byType = new Map<string, ComplianceRequirement[]>();
+  const byType = new Map<string, T[]>();
   for (const r of matched) {
     const list = byType.get(r.complianceTypeId) ?? [];
     list.push(r);
     byType.set(r.complianceTypeId, list);
   }
-  const best = new Map<string, ComplianceRequirement>();
+  const best = new Map<string, T>();
   for (const [typeId, arr] of byType) {
     arr.sort((a, b) => {
       const sb = requirementSpecificity(b);

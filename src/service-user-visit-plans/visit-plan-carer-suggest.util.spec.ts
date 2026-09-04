@@ -1,6 +1,7 @@
 import { DayOfWeek } from '@prisma/client';
 import {
   buildEmployeeEmploymentLocationWhere,
+  carerFitScore,
   evaluateCarerAvailability,
   resolveServiceUserLocationIds,
   scheduledJobOverlapsVisitPlanSlot,
@@ -184,5 +185,29 @@ describe('buildEmployeeEmploymentLocationWhere', () => {
         { floorLocations: { some: { locationId: { in: ['loc-a'] } } } },
       ],
     });
+  });
+});
+
+describe('carerFitScore compliance', () => {
+  const base = {
+    isBlocked: false,
+    unavailableDays: [] as number[],
+    slotDaysCount: 1,
+    missingSkills: [] as string[],
+    requiredSkillCount: 0,
+    complianceIssues: 0,
+    isPreferred: false,
+  };
+
+  it('treats blocking compliance as a poor match', () => {
+    expect(carerFitScore({ ...base, complianceIssues: 1, complianceBlocksAllocation: true })).toBe(
+      'poor',
+    );
+  });
+
+  it('treats warning-only compliance as a partial match', () => {
+    expect(carerFitScore({ ...base, complianceIssues: 1, complianceBlocksAllocation: false })).toBe(
+      'partial',
+    );
   });
 });

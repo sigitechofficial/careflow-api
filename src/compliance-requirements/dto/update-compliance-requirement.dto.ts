@@ -45,6 +45,11 @@ export class UpdateComplianceRequirementDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsBoolean()
+  blocksAllocation?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

@@ -470,10 +470,11 @@ export function carerFitScore(input: {
   missingSkills: string[];
   requiredSkillCount: number;
   complianceIssues: number;
+  complianceBlocksAllocation?: boolean;
   isPreferred: boolean;
   timeOutsidePattern?: boolean;
 }): 'good' | 'partial' | 'poor' {
-  if (input.isBlocked || input.hasRotaConflict) return 'poor';
+  if (input.isBlocked || input.hasRotaConflict || input.complianceBlocksAllocation) return 'poor';
   if (input.slotDaysCount > 0 && input.unavailableDays.length >= input.slotDaysCount) return 'poor';
   if (input.missingSkills.length > 0 && input.requiredSkillCount > 0) {
     if (input.missingSkills.length >= input.requiredSkillCount) return 'poor';

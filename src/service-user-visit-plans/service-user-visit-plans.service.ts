@@ -1,7 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocationStatus,
-  EmployeeComplianceStatus,
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
@@ -49,6 +48,11 @@ import {
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
+import {
+  EMPTY_COMPLIANCE_ALLOCATION_RESULT,
+  formatComplianceAllocationMessages,
+} from '../employee-compliance/allocation-compliance.util';
 import { combineOperationalDateAndHm } from '../common/utils/operational-day.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
@@ -160,6 +164,7 @@ export class ServiceUserVisitPlansService {
     private readonly amendmentImpact: VisitPlanAmendmentImpactService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly allocationCompliance: AllocationComplianceService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -591,6 +596,9 @@ export class ServiceUserVisitPlansService {
       employees.map((e) => e.id),
       dto,
     );
+    const complianceByEmployee = await this.allocationCompliance.evaluateForEmployees(
+      employees.map((e) => e.id),
+    );
     const candidates = [];
 
     for (const emp of employees) {
@@ -628,20 +636,10 @@ export class ServiceUserVisitPlansService {
       }));
       const skills = matchEmployeeSkills(skillRows, skillKeywords);
 
-      const complianceIssues = await this.prisma.employeeCompliance.count({
-        where: {
-          employeeId: emp.id,
-          deletedAt: null,
-          status: {
-            in: [
-              EmployeeComplianceStatus.EXPIRED,
-              EmployeeComplianceStatus.MISSING,
-              EmployeeComplianceStatus.REJECTED,
-              EmployeeComplianceStatus.EXPIRING_SOON,
-            ],
-          },
-        },
-      });
+      const compliance = complianceByEmployee.get(emp.id) ?? EMPTY_COMPLIANCE_ALLOCATION_RESULT;
+      const complianceMessages = formatComplianceAllocationMessages(compliance);
+      const complianceIssues = compliance.attentionCount;
+      const complianceBlocksAllocation = compliance.blocksAllocation;
 
       const warnings: string[] = [];
       if (isBlocked) warnings.push('Blocked for this service user');
@@ -665,7 +663,8 @@ export class ServiceUserVisitPlansService {
         warnings.push('Visit time outside working hours on some days');
       }
       if (skills.missing.length) warnings.push(`Missing skills: ${skills.missing.join(', ')}`);
-      if (complianceIssues > 0) warnings.push(`${complianceIssues} compliance item(s) need attention`);
+      if (complianceMessages.block) warnings.push(complianceMessages.block);
+      else if (complianceMessages.warn) warnings.push(complianceMessages.warn);
 
       const fit = carerFitScore({
         isBlocked,
@@ -675,6 +674,7 @@ export class ServiceUserVisitPlansService {
         missingSkills: skills.missing,
         requiredSkillCount: skillKeywords.length,
         complianceIssues,
+        complianceBlocksAllocation,
         isPreferred,
         timeOutsidePattern: !availability.timeWindowOk,
       });
@@ -692,6 +692,7 @@ export class ServiceUserVisitPlansService {
         availability,
         skills,
         complianceIssues,
+        complianceBlocksAllocation,
         warnings,
       });
     }

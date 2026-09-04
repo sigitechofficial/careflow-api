@@ -81,6 +81,9 @@ type SettingsRow = {
   recruitmentFunctionalityRequired: boolean;
   complianceRequiredBy: string;
   complianceApprovalForNewEmployee: string;
+  complianceAllocationMode: string;
+  complianceBlockStatuses: string[];
+  includeLearningInAllocationBlock: boolean;
   calculateSicknessBradfordScale: boolean;
   recordServiceUserWellbeing: boolean;
   recordEmployeeWellbeing: boolean;
@@ -209,6 +212,11 @@ function mapRow(row: SettingsRow) {
     recruitmentFunctionalityRequired: row.recruitmentFunctionalityRequired,
     complianceRequiredBy: row.complianceRequiredBy,
     complianceApprovalForNewEmployee: row.complianceApprovalForNewEmployee,
+    complianceAllocationMode: row.complianceAllocationMode === 'BLOCK' ? 'BLOCK' : 'WARN',
+    complianceBlockStatuses: Array.isArray(row.complianceBlockStatuses)
+      ? row.complianceBlockStatuses
+      : ['MISSING', 'EXPIRED', 'REJECTED'],
+    includeLearningInAllocationBlock: Boolean(row.includeLearningInAllocationBlock),
     calculateSicknessBradfordScale: row.calculateSicknessBradfordScale,
     recordServiceUserWellbeing: row.recordServiceUserWellbeing,
     recordEmployeeWellbeing: row.recordEmployeeWellbeing,
@@ -321,6 +329,11 @@ function buildUpdateData(
   set('recruitmentFunctionalityRequired', dto.recruitmentFunctionalityRequired);
   set('complianceRequiredBy', dto.complianceRequiredBy);
   set('complianceApprovalForNewEmployee', dto.complianceApprovalForNewEmployee);
+  set('complianceAllocationMode', dto.complianceAllocationMode);
+  if (dto.complianceBlockStatuses !== undefined) {
+    data.complianceBlockStatuses = dto.complianceBlockStatuses;
+  }
+  set('includeLearningInAllocationBlock', dto.includeLearningInAllocationBlock);
   set('calculateSicknessBradfordScale', dto.calculateSicknessBradfordScale);
   set('recordServiceUserWellbeing', dto.recordServiceUserWellbeing);
   set('recordEmployeeWellbeing', dto.recordEmployeeWellbeing);

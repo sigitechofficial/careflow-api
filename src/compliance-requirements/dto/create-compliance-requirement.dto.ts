@@ -42,6 +42,13 @@ export class CreateComplianceRequirementDto {
   @IsBoolean()
   isMandatory?: boolean = true;
 
+  @ApiPropertyOptional({
+    description: 'When omitted, defaults to isMandatory. Controls whether this requirement can block roster allocation.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  blocksAllocation?: boolean;
+
   @ApiPropertyOptional({ default: 30, minimum: 1, maximum: 3650 })
   @IsOptional()
   @Type(() => Number)

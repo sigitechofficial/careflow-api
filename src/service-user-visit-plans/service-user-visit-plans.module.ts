@@ -5,6 +5,7 @@ import { ScheduledJobsModule } from '../scheduled-jobs/scheduled-jobs.module';
 import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.module';
 import { BillingModule } from '../billing/billing.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
+import { EmployeeComplianceModule } from '../employee-compliance/employee-compliance.module';
 import { ServiceUserVisitPlansController } from './service-user-visit-plans.controller';
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
 import { VisitPlanBulkScheduleController } from './visit-plan-bulk-schedule.controller';
@@ -20,6 +21,7 @@ import { VisitPlanGovernanceController } from './visit-plan-governance.controlle
     ScheduleLifecycleImpactModule,
     BillingModule,
     OrganisationGeneralSettingsModule,
+    EmployeeComplianceModule,
   ],
   controllers: [ServiceUserVisitPlansController, VisitPlanBulkScheduleController, VisitPlanGovernanceController],
   providers: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
