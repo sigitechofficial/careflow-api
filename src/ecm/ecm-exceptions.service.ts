@@ -16,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
 const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
@@ -261,7 +262,9 @@ export class EcmExceptionsService {
     });
     const stale = open.filter(
       row =>
-        row.kind !== EcmExceptionKind.LEFT_VISIT_AREA && !keep.has(row.kind),
+        row.kind !== EcmExceptionKind.LEFT_VISIT_AREA &&
+        row.kind !== EcmExceptionKind.CARER_SOS &&
+        !keep.has(row.kind),
     );
     if (stale.length === 0) return;
 
@@ -359,7 +362,16 @@ export class EcmExceptionsService {
     } as const;
     // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
     // limit hide a later same-day lock behind older exceptions.
-    const [areaRows, mockRows, otherRows] = await Promise.all([
+    const [sosRows, areaRows, mockRows, otherRows] = await Promise.all([
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.CARER_SOS,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
       this.prisma.ecmException.findMany({
         where: {
           kind: EcmExceptionKind.LEFT_VISIT_AREA,
@@ -381,7 +393,11 @@ export class EcmExceptionsService {
       this.prisma.ecmException.findMany({
         where: {
           kind: {
-            notIn: [EcmExceptionKind.LEFT_VISIT_AREA, EcmExceptionKind.MOCK_LOCATION],
+            notIn: [
+              EcmExceptionKind.CARER_SOS,
+              EcmExceptionKind.LEFT_VISIT_AREA,
+              EcmExceptionKind.MOCK_LOCATION,
+            ],
           },
           lifecycle: { in: OPEN_LIFECYCLES },
           ...suWhere,
@@ -392,15 +408,31 @@ export class EcmExceptionsService {
       }),
     ]);
     const reservedIds = new Set(
-      [...areaRows, ...mockRows].map((row) => row.id),
+      [...sosRows, ...areaRows, ...mockRows].map((row) => row.id),
     );
     const rows = [
+      ...sosRows,
       ...areaRows,
       ...mockRows,
       ...otherRows.filter((row) => !reservedIds.has(row.id)),
     ];
     const mockedJobIds = await this.mockedVisitJobIds(
       rows.map((row) => row.scheduledJobId),
+    );
+    const ackIds = [
+      ...new Set(
+        rows.map((row) => row.acknowledgedById).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const ackUsers =
+      ackIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: ackIds } },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          });
+    const ackNames = new Map(
+      ackUsers.map((user) => [user.id, displayUserName(user) ?? user.id]),
     );
     return {
       data: rows.map((r) => {
@@ -428,6 +460,10 @@ export class EcmExceptionsService {
           responseTargetMinutes: r.responseTargetMinutes,
           escalationDeadlineAt: r.escalationDeadlineAt?.toISOString() ?? null,
           acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
+          acknowledgedById: r.acknowledgedById,
+          acknowledgedByName: r.acknowledgedById
+            ? ackNames.get(r.acknowledgedById) ?? null
+            : null,
           createdAt: r.createdAt.toISOString(),
           jobName: r.scheduledJob.jobName,
           jobStatus: r.scheduledJob.status,
@@ -445,7 +481,9 @@ export class EcmExceptionsService {
             r.scheduledJob.visits[0]?.actualStartDateTime?.toISOString() ?? null,
           hasMockLocation:
             r.kind === EcmExceptionKind.MOCK_LOCATION ||
-            mockedJobIds.has(r.scheduledJobId),
+            mockedJobIds.has(r.scheduledJobId) ||
+            (r.kind === EcmExceptionKind.CARER_SOS &&
+              Boolean(parseCarerSosContext(r.context).isMockedLocation)),
           areaLock: r.visitAreaLock
             ? {
                 status: r.visitAreaLock.status,
@@ -456,6 +494,14 @@ export class EcmExceptionsService {
                 employeeId: r.visitAreaLock.employeeId,
               }
             : null,
+          sos:
+            r.kind === EcmExceptionKind.CARER_SOS
+              ? mapCarerSosAlert(r, {
+                  acknowledgedByName: r.acknowledgedById
+                    ? ackNames.get(r.acknowledgedById) ?? null
+                    : null,
+                })
+              : null,
         };
       }),
     };

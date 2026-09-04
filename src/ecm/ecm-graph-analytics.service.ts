@@ -89,6 +89,7 @@ const OPS_REASON_LABELS: Record<string, string> = {
   MANUAL_ATTENDANCE: 'Admin completed visit',
   OUTSIDE_GEOFENCE: 'Outside geofence',
   LEFT_VISIT_AREA: 'Left visit area',
+  CARER_SOS: 'Carer SOS',
   MOCK_LOCATION: 'Mock location',
   LOW_GPS_ACCURACY: 'Low GPS accuracy',
   NO_ACCESS: 'No access',

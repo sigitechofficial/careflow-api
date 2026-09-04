@@ -6624,6 +6624,7 @@ enum EcmExceptionKind {
   LEFT_VISIT_AREA
   MANUAL_ATTENDANCE
   MOCK_LOCATION
+  CARER_SOS
   OTHER
 
   @@schema("scheduling")
@@ -6667,6 +6668,7 @@ model EcmException {
   responseTargetMinutes Int?
   escalationDeadlineAt DateTime?
   overdue              Boolean              @default(false)
+  context              Json?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 

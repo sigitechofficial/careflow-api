@@ -253,10 +253,42 @@ export class VisitReconciliationsService {
     return results;
   }
 
+  /**
+   * Issue the immutable EMONITORED visitRef even before the visit is billable.
+   * Creates (or reuses) reconciliation row(s) so employee-app / admin share
+   * the same VIS-[BRANCH]-[YYYYMMDD]-[NNNN]. Does not evaluate pay/bill.
+   */
+  async issueVisitRef(scheduledVisitId: string): Promise<string | null> {
+    const id = await this.ensureForVisit(scheduledVisitId, undefined, {
+      issueRefOnly: true,
+    });
+    if (!id) return null;
+    const row = await this.prisma.visitReconciliation.findFirst({
+      where: { scheduledVisitId },
+      select: { visitRef: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return row?.visitRef?.trim() || null;
+  }
+
+  async issueVisitRefsByScheduledVisitIds(
+    scheduledVisitIds: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const unique = [
+      ...new Set(scheduledVisitIds.map((id) => id?.trim()).filter(Boolean)),
+    ];
+    for (const id of unique) {
+      const ref = await this.issueVisitRef(id);
+      if (ref) map.set(id, ref);
+    }
+    return map;
+  }
+
   async ensureForVisit(
     scheduledVisitId: string,
     tx?: Prisma.TransactionClient,
-    options?: { overrunReason?: string | null },
+    options?: { overrunReason?: string | null; issueRefOnly?: boolean },
   ): Promise<string | null> {
     const db = this.client(tx);
     const visit = await db.scheduledVisit.findFirst({
@@ -266,7 +298,8 @@ export class VisitReconciliationsService {
         isActive: true,
       },
     });
-    if (!visit || !isBillingEligibleVisit(visit)) return null;
+    if (!visit) return null;
+    if (!options?.issueRefOnly && !isBillingEligibleVisit(visit)) return null;
 
     let overrunReason = options?.overrunReason?.trim() || null;
     if (overrunReason == null) {
@@ -352,7 +385,9 @@ export class VisitReconciliationsService {
             ...(canRepairRef ? { visitRef: sharedVisitRef } : {}),
           },
         });
-        await this.safeEvaluate(db, updated.id);
+        if (!options?.issueRefOnly) {
+          await this.safeEvaluate(db, updated.id);
+        }
         firstId ??= updated.id;
         continue;
       }
@@ -372,7 +407,9 @@ export class VisitReconciliationsService {
           overrunReason,
         },
       });
-      await this.safeEvaluate(db, created.id);
+      if (!options?.issueRefOnly) {
+        await this.safeEvaluate(db, created.id);
+      }
       firstId ??= created.id;
     }
 
