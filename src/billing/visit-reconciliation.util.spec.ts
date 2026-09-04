@@ -188,8 +188,8 @@ describe('calculatePayableAmount fixed slots vs day/time hourly', () => {
   });
 });
 
-describe('deriveReconciliationStatus — manual approval required', () => {
-  it('stays pending when only invoice / overrun exceptions exist', () => {
+describe('deriveReconciliationStatus — default approved for both', () => {
+  it('stays pending when any exceptions exist', () => {
     const status = deriveReconciliationStatus([
       { code: FinanceExceptionCode.CHARGE_CARD_MISSING, message: 'No charge card' },
       { code: FinanceExceptionCode.OVERRUN, message: '10 min overrun' },
@@ -208,13 +208,31 @@ describe('deriveReconciliationStatus — manual approval required', () => {
     );
   });
 
-  it('preserves an existing human approval status', () => {
+  it('defaults to approved for both when there are no exceptions', () => {
+    expect(deriveReconciliationStatus([])).toBe(
+      VisitReconciliationStatus.APPROVED_FOR_BOTH,
+    );
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.PENDING_REVIEW),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+  });
+
+  it('preserves an existing narrower or locked approval when clean', () => {
     expect(
       deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_PAY),
     ).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
     expect(
       deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_BOTH),
     ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_INVOICE),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_INVOICE);
+    expect(
+      deriveReconciliationStatus(
+        [{ code: FinanceExceptionCode.OVERRUN, message: 'over' }],
+        VisitReconciliationStatus.APPROVED_FOR_BOTH,
+      ),
+    ).toBe(VisitReconciliationStatus.PENDING_REVIEW);
   });
 });
 

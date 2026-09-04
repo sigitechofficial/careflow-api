@@ -270,21 +270,35 @@ export function detectVisitExceptions(input: {
 }
 
 export function deriveReconciliationStatus(
-  _exceptions: DetectedException[],
+  exceptions: DetectedException[],
   currentStatus?: VisitReconciliationStatus,
 ): VisitReconciliationStatus {
+  if (currentStatus === VisitReconciliationStatus.LOCKED) {
+    return VisitReconciliationStatus.LOCKED;
+  }
   if (
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
-    currentStatus === VisitReconciliationStatus.LOCKED
+    currentStatus === VisitReconciliationStatus.REJECTED_FOR_PAY ||
+    currentStatus === VisitReconciliationStatus.REJECTED_FOR_INVOICE
   ) {
     return currentStatus;
   }
 
-  // Stay pending until finance explicitly approves (All / Carer Pay / Funders).
-  // Pricing still runs on complete; approval is never silent.
-  return VisitReconciliationStatus.PENDING_REVIEW;
+  // Any finance exception → office must review before pay/invoice.
+  if (exceptions.length > 0) {
+    return VisitReconciliationStatus.PENDING_REVIEW;
+  }
+
+  // Keep a narrower / human approval when already set and the visit is clean.
+  if (
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH
+  ) {
+    return currentStatus;
+  }
+
+  // Clean visits default to approved for carer pay + funders.
+  return VisitReconciliationStatus.APPROVED_FOR_BOTH;
 }
 
 export function hasUnresolvedBlockingExceptions(exceptions: DetectedException[]): boolean {

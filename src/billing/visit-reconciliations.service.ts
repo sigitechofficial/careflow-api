@@ -1475,19 +1475,12 @@ export class VisitReconciliationsService {
       }
     }
 
-    // Preserve human decisions only. Silent auto-pay (APPROVED_FOR_PAY with no
-    // approvedById) is demoted back to pending so the All / Carer Pay / Funders
-    // buttons remain the source of truth.
-    const humanPayOrBoth =
-      Boolean(row.approvedById) &&
-      (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
+    // Default: clean visits → APPROVED_FOR_BOTH. Any exception → PENDING_REVIEW.
+    // Preserve LOCKED / REJECTED; derive keeps narrower human approvals when clean.
     const status =
-      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
-      row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE ||
-      humanPayOrBoth
+      row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
@@ -1845,8 +1838,8 @@ export class VisitReconciliationsService {
       });
     }
 
-    // Once priced, keep amounts on the row for finance review — but never auto-approve
-    // carer pay / invoice. Status stays PENDING_REVIEW until All / Carer Pay / Funders.
+    // Clean visits auto-approve BOTH; exceptions force PENDING_REVIEW.
+    // Manual All / Carer Pay / Funders still override and are preserved when clean.
     const lockedOrRejected =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
@@ -1864,10 +1857,11 @@ export class VisitReconciliationsService {
       finalStatus = deriveReconciliationStatus(activeExceptions, undefined);
     }
 
-    const demotingSilentAutoPay =
+    const becamePendingFromApproval =
       finalStatus === VisitReconciliationStatus.PENDING_REVIEW &&
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
-      !row.approvedById;
+      (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE);
 
     await db.visitReconciliation.update({
       where: { id },
@@ -1897,7 +1891,7 @@ export class VisitReconciliationsService {
             ? row.payCardVersion
             : null,
         lastEvaluatedAt: new Date(),
-        ...(demotingSilentAutoPay ? { approvedAt: null } : {}),
+        ...(becamePendingFromApproval ? { approvedAt: null, approvedById: null } : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
