@@ -781,6 +781,15 @@ enum AllocateEmployeeBy {
   @@schema("identity")
 }
 
+/// WARN = compliance issues surface as allocation warnings (existing-org default).
+/// BLOCK = missing/expired/rejected mandatory checks prevent allocation.
+enum ComplianceAllocationMode {
+  WARN
+  BLOCK
+
+  @@schema("identity")
+}
+
 /// Singleton organisation general settings (care rules, time display, etc.).
 model OrganisationGeneralSettings {
   id                            String            @id @default(uuid()) @db.Uuid
@@ -804,6 +813,11 @@ model OrganisationGeneralSettings {
   recruitmentFunctionalityRequired Boolean        @default(true)
   complianceRequiredBy          ComplianceRequiredBy @default(ROLE_WORK_AREA)
   complianceApprovalForNewEmployee ComplianceApprovalType @default(MANAGER_APPROVAL)
+  /// Existing orgs stay WARN so rotas are not surprise-blocked; switch to BLOCK in settings.
+  complianceAllocationMode      ComplianceAllocationMode @default(WARN)
+  /// Computed statuses that block when mode is BLOCK (always warn when mode is WARN).
+  complianceBlockStatuses       String[]          @default(["MISSING", "EXPIRED", "REJECTED"])
+  includeLearningInAllocationBlock Boolean        @default(false)
   calculateSicknessBradfordScale Boolean          @default(false)
   recordServiceUserWellbeing    Boolean           @default(false)
   recordEmployeeWellbeing       Boolean           @default(true)
@@ -1557,6 +1571,9 @@ model ComplianceRequirement {
   locationId         String?  @db.Uuid
   zoneId             String?  @db.Uuid
   isMandatory        Boolean  @default(true)
+  /// When true, this requirement is considered in roster allocation block/warn checks.
+  /// Existing rows are backfilled to match isMandatory.
+  blocksAllocation   Boolean  @default(true)
   renewalBeforeDays  Int      @default(30)
   notes              String?
 

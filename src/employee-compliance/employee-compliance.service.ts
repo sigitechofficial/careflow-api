@@ -31,7 +31,7 @@ import { CARE_COMPLIANCE_CODE_ORDER } from './care-compliance-catalog-order';
 const complianceInclude = {
   complianceType: true,
   requirement: true,
-  documents: { where: { deletedAt: null } },
+  documents: { where: { deletedAt: null }, orderBy: { uploadedAt: 'desc' } },
 } satisfies Prisma.EmployeeComplianceInclude;
 
 type ComplianceRowFull = Prisma.EmployeeComplianceGetPayload<{ include: typeof complianceInclude }>;

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EmployeeComplianceStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   employmentToCycleConfig,
@@ -23,6 +23,8 @@ import {
   intervalsOverlap,
   resolveAllocationWindow,
 } from './allocation-window.util';
+import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
+import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -60,7 +62,10 @@ const ORG_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 export class AllocationChecksService {
   private allocationRulesCache: DomCareAllocationRule[] | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly allocationCompliance: AllocationComplianceService,
+  ) {}
 
   private async loadAllocationRules(): Promise<DomCareAllocationRule[]> {
     if (this.allocationRulesCache) return this.allocationRulesCache;
@@ -101,7 +106,8 @@ export class AllocationChecksService {
       (w) =>
         w.severity === 'blocking' &&
         (w.type === AllocationWarningType.TIME_CONFLICT ||
-          w.type === AllocationWarningType.BLOCKED_CARER),
+          w.type === AllocationWarningType.BLOCKED_CARER ||
+          w.type === AllocationWarningType.COMPLIANCE_BLOCK),
     );
   }
 
@@ -453,24 +459,19 @@ export class AllocationChecksService {
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
   ): Promise<void> {
-    const issues = await this.prisma.employeeCompliance.count({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        status: {
-          in: [
-            EmployeeComplianceStatus.EXPIRED,
-            EmployeeComplianceStatus.MISSING,
-            EmployeeComplianceStatus.REJECTED,
-            EmployeeComplianceStatus.EXPIRING_SOON,
-          ],
-        },
-      },
-    });
-    if (issues > 0) {
+    const result = await this.allocationCompliance.evaluateForEmployee(ctx.employeeId);
+    const messages = formatComplianceAllocationMessages(result);
+    if (result.blocksAllocation && messages.block) {
+      push({
+        type: AllocationWarningType.COMPLIANCE_BLOCK,
+        message: messages.block,
+        severity: 'blocking',
+      });
+    }
+    if (messages.warn) {
       push({
         type: AllocationWarningType.COMPLIANCE_WARNING,
-        message: `Employee has ${issues} compliance item(s) requiring attention`,
+        message: messages.warn,
         severity: 'warning',
       });
     }
