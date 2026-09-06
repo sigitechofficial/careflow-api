@@ -247,6 +247,18 @@ export enum AuditAction {
   SCHEDULE_AREA_DELETED = 'schedule_area_deleted',
   SCHEDULE_AREA_STATUS_UPDATED = 'schedule_area_status_updated',
 
+  LOCATION_ZONE_CREATED = 'location.zone.created',
+  LOCATION_ZONE_UPDATED = 'location.zone.updated',
+  LOCATION_BRANCH_CREATED = 'location.branch.created',
+  LOCATION_BRANCH_UPDATED = 'location.branch.updated',
+  LOCATION_BRANCH_DELETED = 'location.branch.deleted',
+  LOCATION_AREA_CREATED = 'location.area.created',
+  LOCATION_AREA_UPDATED = 'location.area.updated',
+  LOCATION_AREA_DELETED = 'location.area.deleted',
+  LOCATION_AREA_POSTCODES_UPDATED = 'location.area.postcodes.updated',
+  LOCATION_SERVICE_USER_ASSIGNED = 'location.service_user.assigned',
+  LOCATION_EMPLOYEE_ASSIGNED = 'location.employee.assigned',
+
   SCHEDULED_JOB_CREATED = 'scheduled_job_created',
   SCHEDULED_JOB_UPDATED = 'scheduled_job_updated',
   SCHEDULED_JOB_DELETED = 'scheduled_job_deleted',

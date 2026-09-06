@@ -87,10 +87,12 @@ export class BodyMapController {
   reviewQueue(
     @Query('overdueOnly') overdueOnly?: string,
     @Query('serviceUserId') serviceUserId?: string,
+    @Query('locationId') locationId?: string,
   ) {
     return this.service.reviewQueue({
       overdueOnly: overdueOnly === 'true',
       serviceUserId: serviceUserId || undefined,
+      locationId: locationId?.trim() || undefined,
     });
   }
 

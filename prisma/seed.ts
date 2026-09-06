@@ -18,6 +18,8 @@ import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
 import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
 import { seedServiceUserPersonas } from './seeds/service-user-personas.seed';
+import { seedGreenwichBranchUsers } from './seeds/greenwich-branch-users.seed';
+import { seedGreenwichServiceUsers } from './seeds/greenwich-service-users.seed';
 import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { applyCarePlanIaDemoOverlay } from './seeds/care-plan-ia-demo-overlay.seed';
@@ -2270,6 +2272,27 @@ async function main() {
       err instanceof Error ? err.message : err,
     );
   }
+
+  // Greenwich staff + in-service caseload. Always-on and idempotent so production
+  // deploy (`SEED_DEMO_DATA=false`) still creates the branch roster. Location is
+  // resolved by name — server UUIDs will not match local.
+  try {
+    await seedGreenwichBranchUsers(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich branch users skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+  try {
+    await seedGreenwichServiceUsers(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich service users skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);

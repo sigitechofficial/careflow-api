@@ -314,10 +314,12 @@ export class EcmVisitsController {
   listExceptions(
     @Query('limit') limit?: string,
     @Query('serviceUserId') serviceUserId?: string,
+    @Query('locationId') locationId?: string,
   ) {
     return this.exceptions.listOpen(
       limit ? Number(limit) : 50,
       serviceUserId?.trim() || undefined,
+      locationId?.trim() || undefined,
     );
   }
 

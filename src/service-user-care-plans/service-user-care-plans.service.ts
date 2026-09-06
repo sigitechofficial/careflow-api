@@ -664,13 +664,18 @@ export class ServiceUserCarePlansService {
   async reviewQueue(params?: {
     status?: CarePlanReviewQueueStatusFilter;
     serviceUserId?: string;
+    locationId?: string;
   }) {
     const rows = await this.prisma.serviceUserCarePlanInstance.findMany({
       where: {
         status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
         nextReviewDueAt: { not: null },
         ...(params?.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
-        serviceUser: { deletedAt: null, isActive: true },
+        serviceUser: {
+          deletedAt: null,
+          isActive: true,
+          ...(params?.locationId ? { locationId: params.locationId } : {}),
+        },
       },
       select: {
         id: true,

@@ -1517,13 +1517,16 @@ export class BodyMapService {
     return buildBodyMapRecordTypeCatalogLookups(this.prisma);
   }
 
-  async reviewQueue(opts?: { overdueOnly?: boolean; serviceUserId?: string }) {
+  async reviewQueue(opts?: { overdueOnly?: boolean; serviceUserId?: string; locationId?: string }) {
     const now = new Date();
     const rows = await this.prisma.bodyMapRecord.findMany({
       where: {
         isArchived: false,
         status: { notIn: [BodyMapRecordStatus.CLOSED, BodyMapRecordStatus.RESOLVED] },
         ...(opts?.serviceUserId ? { serviceUserId: opts.serviceUserId } : {}),
+        ...(opts?.locationId
+          ? { serviceUser: { locationId: opts.locationId, deletedAt: null } }
+          : {}),
         OR: opts?.overdueOnly
           ? [{ nextReviewAt: { lte: now } }]
           : [

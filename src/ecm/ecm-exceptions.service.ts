@@ -16,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
@@ -314,11 +315,18 @@ export class EcmExceptionsService {
     }
   }
 
-  async listOpen(limit = 50, serviceUserId?: string) {
+  async listOpen(limit = 50, serviceUserId?: string, locationId?: string) {
     await this.alerts.refreshOverdueFlags(200);
-    const suWhere = serviceUserId
-      ? { scheduledJob: { serviceUserId, deletedAt: null } }
-      : {};
+    const suWhere =
+      serviceUserId || locationId
+        ? {
+            scheduledJob: {
+              deletedAt: null,
+              ...(serviceUserId ? { serviceUserId } : {}),
+              ...(locationId ? scheduledJobLocationScope(locationId) : {}),
+            },
+          }
+        : {};
     const include = {
       visitAreaLock: true,
       scheduledJob: {

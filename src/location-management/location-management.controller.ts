@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -117,8 +117,8 @@ export class LocationManagementController {
 
   @Get('service-users')
   @AnyPermission('lookups.read', 'service_users.read')
-  listServiceUserLocations() {
-    return this.service.listServiceUserLocations();
+  listServiceUserLocations(@Query('locationId') locationId?: string) {
+    return this.service.listServiceUserLocations(locationId);
   }
 
   @Patch('service-users/:id/location')
@@ -134,8 +134,8 @@ export class LocationManagementController {
 
   @Get('employees')
   @AnyPermission('lookups.read', 'employees.read')
-  listEmployeeLocations() {
-    return this.service.listEmployeeLocations();
+  listEmployeeLocations(@Query('locationId') locationId?: string) {
+    return this.service.listEmployeeLocations(locationId);
   }
 
   @Patch('employees/:id/location')

@@ -76,6 +76,22 @@ export function pickObservationSubjectFromAuditRow(row: {
   return name;
 }
 
+export function pickLocationSubjectFromAuditRow(row: {
+  action: string;
+  newValues?: unknown;
+  oldValues?: unknown;
+}): string | null {
+  if (!row.action.startsWith('location.')) return null;
+  const snap = asRecord(row.newValues) ?? asRecord(row.oldValues);
+  if (!snap) return null;
+  const name = str(snap.name);
+  if (name) return name;
+  const parts = [str(snap.zoneName), str(snap.branchName), str(snap.areaName), str(snap.postcode)].filter(
+    Boolean,
+  );
+  return parts.length ? parts.join(' / ') : null;
+}
+
 export function resolveServiceUserIdFromAuditRow(row: {
   recordType: string | null;
   recordId: string | null;
@@ -123,10 +139,21 @@ const ACTION_EVENT_LABELS: Record<string, string> = {
   service_user_observation_created: 'Recorded observation',
   service_user_observation_updated: 'Updated observation',
   service_user_observation_deleted: 'Removed observation',
+  'location.zone.created': 'Created zone',
+  'location.zone.updated': 'Updated zone',
+  'location.branch.created': 'Created branch',
+  'location.branch.updated': 'Updated branch',
+  'location.branch.deleted': 'Deleted branch',
+  'location.area.created': 'Created area',
+  'location.area.updated': 'Updated area',
+  'location.area.deleted': 'Deleted area',
+  'location.area.postcodes.updated': 'Updated area postcodes',
+  'location.service_user.assigned': 'Assigned service user location',
+  'location.employee.assigned': 'Assigned employee location',
 };
 
 function formatActionFallback(action: string): string {
-  return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return action.replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function buildEventLabel(row: { action: string; metadata: unknown }): string {
@@ -209,7 +236,7 @@ export function buildAuditLogContext(
   },
 ): AuditLogContext {
   let serviceUserId = resolveServiceUserIdFromAuditRow(row);
-  let subject = pickMedicationNameFromAuditRow(row);
+  let subject = pickMedicationNameFromAuditRow(row) ?? pickLocationSubjectFromAuditRow(row);
 
   const recordType = row.recordType ?? '';
   const recordId = str(row.recordId);

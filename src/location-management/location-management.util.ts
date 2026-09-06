@@ -133,3 +133,53 @@ export function slugifyAreaCode(name: string): string {
     .slice(0, 32);
   return base || 'AREA';
 }
+
+export const LOCATION_AUDIT_USER_SELECT = {
+  firstName: true,
+  lastName: true,
+  email: true,
+} as const;
+
+export type LocationAuditActor = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+} | null | undefined;
+
+export type LocationAuditDto = {
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdByName: string | null;
+  updatedByName: string | null;
+};
+
+export function actorDisplayName(user: LocationAuditActor): string | null {
+  if (!user) return null;
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return name || user.email?.trim() || null;
+}
+
+export function toIsoDate(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+export function toLocationAudit(row: {
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  createdBy?: LocationAuditActor;
+  updatedBy?: LocationAuditActor;
+}): LocationAuditDto {
+  return {
+    createdAt: toIsoDate(row.createdAt),
+    updatedAt: toIsoDate(row.updatedAt),
+    createdByName: actorDisplayName(row.createdBy),
+    updatedByName: actorDisplayName(row.updatedBy),
+  };
+}
+
+export function normalizeOptionalLocationId(locationId?: string | null): string | undefined {
+  const trimmed = locationId?.trim();
+  return trimmed ? trimmed : undefined;
+}
