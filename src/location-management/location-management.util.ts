@@ -88,3 +88,98 @@ export function formatFloorNames(
     .filter(Boolean)
     .join(', ');
 }
+
+/** Uppercase, strip all whitespace — for unique postcode keys. */
+export function normalizePostcodeKey(raw: string): string {
+  return raw.replace(/\s+/g, '').toUpperCase();
+}
+
+/** Display form: outward + inward with a single space when possible. */
+export function formatPostcodeDisplay(raw: string): string {
+  const key = normalizePostcodeKey(raw);
+  if (key.length > 3) {
+    return `${key.slice(0, key.length - 3)} ${key.slice(key.length - 3)}`;
+  }
+  return key;
+}
+
+export function parsePostcodeList(raw: string[] | undefined | null): Array<{
+  postcode: string;
+  normalizedPostcode: string;
+}> {
+  if (!raw?.length) return [];
+  const seen = new Set<string>();
+  const out: Array<{ postcode: string; normalizedPostcode: string }> = [];
+  for (const item of raw) {
+    const trimmed = typeof item === 'string' ? item.trim() : '';
+    if (!trimmed) continue;
+    const normalizedPostcode = normalizePostcodeKey(trimmed);
+    if (!normalizedPostcode || seen.has(normalizedPostcode)) continue;
+    seen.add(normalizedPostcode);
+    out.push({
+      postcode: formatPostcodeDisplay(trimmed),
+      normalizedPostcode,
+    });
+  }
+  return out;
+}
+
+export function slugifyAreaCode(name: string): string {
+  const base = name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 32);
+  return base || 'AREA';
+}
+
+export const LOCATION_AUDIT_USER_SELECT = {
+  firstName: true,
+  lastName: true,
+  email: true,
+} as const;
+
+export type LocationAuditActor = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+} | null | undefined;
+
+export type LocationAuditDto = {
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdByName: string | null;
+  updatedByName: string | null;
+};
+
+export function actorDisplayName(user: LocationAuditActor): string | null {
+  if (!user) return null;
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return name || user.email?.trim() || null;
+}
+
+export function toIsoDate(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+export function toLocationAudit(row: {
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  createdBy?: LocationAuditActor;
+  updatedBy?: LocationAuditActor;
+}): LocationAuditDto {
+  return {
+    createdAt: toIsoDate(row.createdAt),
+    updatedAt: toIsoDate(row.updatedAt),
+    createdByName: actorDisplayName(row.createdBy),
+    updatedByName: actorDisplayName(row.updatedBy),
+  };
+}
+
+export function normalizeOptionalLocationId(locationId?: string | null): string | undefined {
+  const trimmed = locationId?.trim();
+  return trimmed ? trimmed : undefined;
+}

@@ -11,9 +11,11 @@ import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
 import {
   AcknowledgeEcmExceptionDto,
+  AllowVisitContinueDto,
   CloseEcmExceptionDto,
   ResolveEcmExceptionDto,
 } from './dto/ecm-exception.dto';
+import { VisitAreaLockService } from './visit-area-lock.service';
 import {
   CreateNotificationEvidenceDto,
   ManualAttendanceDto,
@@ -49,6 +51,7 @@ export class EcmVisitsController {
     private readonly audit: EcmAuditService,
     private readonly missedTriage: EcmMissedTriageService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
+    private readonly areaLocks: VisitAreaLockService,
   ) {}
 
   @Get('health')
@@ -83,23 +86,28 @@ export class EcmVisitsController {
     summary: 'Graph-first ECM analytics aggregates (first-8 charts + drill-down visits)',
   })
   graphDashboard(
+    @CurrentUser() user: RequestUser,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('scheduleAreaId') scheduleAreaId?: string,
     @Query('locationId') locationId?: string,
   ) {
-    return this.graphAnalytics.graphDashboard({
-      dateFrom,
-      dateTo,
-      scheduleAreaId,
-      locationId,
-    });
+    return this.graphAnalytics.graphDashboard(
+      {
+        dateFrom,
+        dateTo,
+        scheduleAreaId,
+        locationId,
+      },
+      user,
+    );
   }
 
   @Get('reports/daily-operations')
   @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.reports.export')
   @ApiOperation({ summary: 'Daily ECM operations report with KPI numerator/denominator' })
   dailyOps(
+    @CurrentUser() user: RequestUser,
     @Query('date') date?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
@@ -109,20 +117,24 @@ export class EcmVisitsController {
     @Query('criticality') criticality?: string,
   ) {
     const from = dateFrom ?? date;
-    return this.reports.dailyOperations({
-      dateFrom: from,
-      dateTo: dateTo ?? from,
-      scheduleAreaId,
-      locationId,
-      serviceUserId,
-      criticality,
-    });
+    return this.reports.dailyOperations(
+      {
+        dateFrom: from,
+        dateTo: dateTo ?? from,
+        scheduleAreaId,
+        locationId,
+        serviceUserId,
+        criticality,
+      },
+      user,
+    );
   }
 
   @Get('reports/compliance')
   @AnyPermission('ecm.read', 'ecm.reports.export')
   @ApiOperation({ summary: 'ECM compliance report with confidence integrity metrics' })
   compliance(
+    @CurrentUser() user: RequestUser,
     @Query('date') date?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
@@ -131,40 +143,55 @@ export class EcmVisitsController {
     @Query('serviceUserId') serviceUserId?: string,
   ) {
     const from = dateFrom ?? date;
-    return this.reports.compliance({
-      dateFrom: from,
-      dateTo: dateTo ?? from,
-      scheduleAreaId,
-      locationId,
-      serviceUserId,
-    });
+    return this.reports.compliance(
+      {
+        dateFrom: from,
+        dateTo: dateTo ?? from,
+        scheduleAreaId,
+        locationId,
+        serviceUserId,
+      },
+      user,
+    );
   }
 
   @Get('visits/live-dashboard')
   @AnyPermission('ecm.read', 'ecm.monitor')
   @ApiOperation({ summary: 'Live ECM monitoring dashboard' })
-  liveDashboard(@Query() query: EcmLiveDashboardQueryDto) {
-    return this.visits.getLiveDashboard(query);
+  liveDashboard(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EcmLiveDashboardQueryDto,
+  ) {
+    return this.visits.getLiveDashboard(query, user);
   }
 
   @Get('visits/:jobId/schedule-history')
   @AnyPermission('ecm.read', 'ecm.monitor')
   @ApiOperation({ summary: 'Original vs revised schedule version history (GAP1)' })
-  scheduleHistory(@Param('jobId') jobId: string) {
+  async scheduleHistory(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+  ) {
+    await this.visits.assertJobAccessible(user, jobId);
     return this.scheduleVersions.listForJob(jobId);
   }
 
   @Get('visits/:jobId/audit')
   @AnyPermission('ecm.read', 'ecm.monitor')
   @ApiOperation({ summary: 'Immutable ECM audit trail for a visit' })
-  auditTrail(@Param('jobId') jobId: string) {
+  async auditTrail(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    await this.visits.assertJobAccessible(user, jobId);
     return this.audit.listForJob(jobId);
   }
 
   @Get('visits/:jobId/notifications')
   @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
   @ApiOperation({ summary: 'SU/family notification evidence for a visit' })
-  listNotifications(@Param('jobId') jobId: string) {
+  async listNotifications(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+  ) {
+    await this.visits.assertJobAccessible(user, jobId);
     return this.notifications.listForJob(jobId);
   }
 
@@ -176,11 +203,13 @@ export class EcmVisitsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateNotificationEvidenceDto,
   ) {
-    return this.notifications.create({
-      scheduledJobId: jobId,
-      contactedByUserId: user.id,
-      ...dto,
-    });
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.notifications.create({
+        scheduledJobId: jobId,
+        contactedByUserId: user.id,
+        ...dto,
+      }),
+    );
   }
 
   @Post('visits/:jobId/manual-attendance')
@@ -191,16 +220,18 @@ export class EcmVisitsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: ManualAttendanceDto,
   ) {
-    return this.manualAttendance.recordManual({
-      scheduledJobId: jobId,
-      employeeId: dto.employeeId,
-      eventType: dto.eventType,
-      occurredAt: dto.occurredAt,
-      reasonCode: dto.reasonCode,
-      note: dto.note,
-      overrideGeofence: dto.overrideGeofence,
-      approvedByUserId: user.id,
-    });
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.manualAttendance.recordManual({
+        scheduledJobId: jobId,
+        employeeId: dto.employeeId,
+        eventType: dto.eventType,
+        occurredAt: dto.occurredAt,
+        reasonCode: dto.reasonCode,
+        note: dto.note,
+        overrideGeofence: dto.overrideGeofence,
+        approvedByUserId: user.id,
+      }),
+    );
   }
 
   @Post('visits/:jobId/amend-attendance')
@@ -211,17 +242,33 @@ export class EcmVisitsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: ManualAttendanceDto,
   ) {
-    return this.manualAttendance.amendAttendance({
-      scheduledJobId: jobId,
-      employeeId: dto.employeeId,
-      eventType: dto.eventType,
-      occurredAt: dto.occurredAt,
-      reasonCode: dto.reasonCode,
-      note: dto.note,
-      overrideGeofence: dto.overrideGeofence,
-      originalEventId: dto.originalEventId,
-      approvedByUserId: user.id,
-    });
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.manualAttendance.amendAttendance({
+        scheduledJobId: jobId,
+        employeeId: dto.employeeId,
+        eventType: dto.eventType,
+        occurredAt: dto.occurredAt,
+        reasonCode: dto.reasonCode,
+        note: dto.note,
+        overrideGeofence: dto.overrideGeofence,
+        originalEventId: dto.originalEventId,
+        approvedByUserId: user.id,
+      }),
+    );
+  }
+
+  @Post('visits/:jobId/allow-continue')
+  @Permissions('ecm.exceptions.manage')
+  @ApiOperation({
+    summary: 'Allow carer to continue after a mid-visit left-area lock',
+    description: 'Optional note. Unlocks employee-app writes; GET visit details returns operationsLocked false.',
+  })
+  allowContinue(
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: AllowVisitContinueDto,
+  ) {
+    return this.areaLocks.allowContinue(jobId, user.id, dto.note);
   }
 
   @Patch('visits/:jobId/missed-triage')
@@ -232,20 +279,23 @@ export class EcmVisitsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: MissedTriageDto,
   ) {
-    return this.missedTriage.applyTriage(jobId, user.id, dto.outcome, dto.note);
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.missedTriage.applyTriage(jobId, user.id, dto.outcome, dto.note),
+    );
   }
 
   @Get('visits/:jobId')
   @AnyPermission('ecm.read', 'ecm.monitor')
   @ApiOperation({ summary: 'ECM visit detail' })
-  visitDetail(@Param('jobId') jobId: string) {
-    return this.visits.getVisitDetail(jobId);
+  visitDetail(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    return this.visits.getVisitDetail(jobId, undefined, user);
   }
 
   @Post('visits/:jobId/evaluate')
   @Permissions('ecm.monitor')
   @ApiOperation({ summary: 'Force re-evaluate ECM timing for a scheduled job' })
-  async reevaluate(@Param('jobId') jobId: string) {
+  async reevaluate(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    await this.visits.assertJobAccessible(user, jobId);
     const result = await this.evaluation.evaluateJob(jobId);
     return {
       data: {
@@ -264,10 +314,12 @@ export class EcmVisitsController {
   listExceptions(
     @Query('limit') limit?: string,
     @Query('serviceUserId') serviceUserId?: string,
+    @Query('locationId') locationId?: string,
   ) {
     return this.exceptions.listOpen(
       limit ? Number(limit) : 50,
       serviceUserId?.trim() || undefined,
+      locationId?.trim() || undefined,
     );
   }
 

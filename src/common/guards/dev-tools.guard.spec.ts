@@ -26,4 +26,14 @@ describe('DevToolsGuard', () => {
   it('defaults to development (allowed) when nodeEnv is unset', () => {
     expect(guardWith({}).canActivate()).toBe(true);
   });
+
+  it('does not honour ENABLE_IA_QA_DEMO — unrelated /dev tooling stays behind ENABLE_DEV_TOOLS', () => {
+    expect(() =>
+      guardWith({
+        'app.nodeEnv': 'production',
+        'app.enableDevTools': false,
+        'app.enableIaQaDemo': true,
+      }).canActivate(),
+    ).toThrow(NotFoundException);
+  });
 });

@@ -351,6 +351,26 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsBoolean()
   domRestrictJobOutsideGeofence?: boolean;
 
+  @ApiPropertyOptional({ description: 'Allow GPS check-in on the carer app' })
+  @IsOptional()
+  @IsBoolean()
+  domCheckInGpsEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Allow manual check-in on the carer app' })
+  @IsOptional()
+  @IsBoolean()
+  domCheckInManualEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Show NFC check-in on the carer app (scanner not shipped yet)' })
+  @IsOptional()
+  @IsBoolean()
+  domCheckInNfcEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Show QR check-in on the carer app (scanner not shipped yet)' })
+  @IsOptional()
+  @IsBoolean()
+  domCheckInQrEnabled?: boolean;
+
   @ApiPropertyOptional({ minimum: 0, maximum: 50000 })
   @IsOptional()
   @Type(() => Number)

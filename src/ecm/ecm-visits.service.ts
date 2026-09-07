@@ -6,9 +6,15 @@ import {
   EcmMissedClassification,
   Prisma,
   ScheduledJobStatus,
+  VisitAreaLockStatus,
   VisitAttendanceEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import {
+  OrgScopeService,
+  scheduledJobLocationIdsScope,
+} from '../common/org-scope/org-scope.service';
 import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
@@ -122,6 +128,7 @@ type DashboardBucket =
   | 'missingCheckout'
   | 'outsideGeofence'
   | 'manualAttendance'
+  | 'leftVisitArea'
   | 'completed'
   | 'completedOnTime'
   | 'completedLate';
@@ -189,9 +196,10 @@ export class EcmVisitsService {
     private readonly scheduleVersions: EcmScheduleVersionService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async getLiveDashboard(query: EcmLiveDashboardQueryDto) {
+  async getLiveDashboard(query: EcmLiveDashboardQueryDto, actor?: RequestUser) {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const { dateFrom, dateTo } = resolveLiveDateRange(query, timeZone);
     const singleDay = dateFrom === dateTo;
@@ -203,9 +211,35 @@ export class EcmVisitsService {
     const soonMs = windows.startingSoonMinutes * 60_000;
     const dueWindowMs = windows.dueNowWindowMinutes * 60_000;
 
+    const scope = actor ? this.orgScope.fromRequestUser(actor) : null;
+    const scopedLocationIds = scope
+      ? this.orgScope.resolveListLocationIds(scope, query.locationId, undefined)
+      : query.locationId
+        ? [query.locationId]
+        : undefined;
+
+    if (scopedLocationIds && scopedLocationIds.length === 0) {
+      return this.emptyLiveDashboard(dateFrom, dateTo, date, pageLimit);
+    }
+
+    if (scope && query.scheduleAreaId) {
+      await this.orgScope.assertScheduleAreaInScope(scope, query.scheduleAreaId);
+    }
+    if (scope && query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+    }
+
+    const effectiveLocationId =
+      scopedLocationIds?.length === 1 ? scopedLocationIds[0] : undefined;
+
     const scheduledJobAnd: Prisma.ScheduledJobWhereInput[] = [];
-    if (query.locationId) {
-      scheduledJobAnd.push(scheduledJobLocationScope(query.locationId));
+    if (effectiveLocationId) {
+      scheduledJobAnd.push(scheduledJobLocationScope(effectiveLocationId));
+    } else if (scopedLocationIds && scopedLocationIds.length > 1) {
+      scheduledJobAnd.push(scheduledJobLocationIdsScope(scopedLocationIds));
+    } else if (scope) {
+      const jobScope = this.orgScope.scheduledJobScopeWhere(scope);
+      if (jobScope) scheduledJobAnd.push(jobScope);
     }
     if (query.search?.trim()) {
       const q = query.search.trim();
@@ -264,7 +298,7 @@ export class EcmVisitsService {
         candidateLimit: 400,
         scheduleAreaId: query.scheduleAreaId,
         serviceUserId: query.serviceUserId,
-        locationId: query.locationId,
+        locationId: effectiveLocationId,
         timeZone,
       });
     }
@@ -295,6 +329,12 @@ export class EcmVisitsService {
         scheduledJob: { select: { status: true } },
       },
     });
+
+    const jobIdsForFlags = lightEvals.map((ev) => ev.scheduledJobId);
+    const [lockedVisitJobIds, mockedVisitJobIds] = await Promise.all([
+      this.lockedVisitJobIds(jobIdsForFlags),
+      this.mockedVisitJobIds(jobIdsForFlags),
+    ]);
 
     const summaryRows: EcmLiveVisitRow[] = lightEvals.map((ev) => {
       const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
@@ -335,7 +375,12 @@ export class EcmVisitsService {
         operationalExceptionCodes: ev.operationalExceptionCodes,
         buckets,
       };
-    });
+    }).map((row) =>
+      this.withMockLocation(
+        this.withLeftVisitArea(row, lockedVisitJobIds),
+        mockedVisitJobIds,
+      ),
+    );
 
     const cursor = this.parseLiveCursor(query.cursor);
     const pageWhere: Prisma.EcmVisitEvaluationWhereInput = cursor
@@ -486,7 +531,12 @@ export class EcmVisitsService {
         operationalExceptionCodes: ev.operationalExceptionCodes,
         buckets,
       };
-    });
+    }).map((row) =>
+      this.withMockLocation(
+        this.withLeftVisitArea(row, lockedVisitJobIds),
+        mockedVisitJobIds,
+      ),
+    );
 
     const counts = {
       dueNow: 0,
@@ -500,6 +550,7 @@ export class EcmVisitsService {
       missingCheckout: 0,
       outsideGeofence: 0,
       manualAttendance: 0,
+      leftVisitArea: 0,
       completed: 0,
       completedOnTime: 0,
       completedLate: 0,
@@ -527,6 +578,50 @@ export class EcmVisitsService {
         total,
         nextCursor,
         visits: rows,
+      },
+    };
+  }
+
+  private async emptyLiveDashboard(
+    dateFrom: string,
+    dateTo: string,
+    date: string,
+    _pageLimit: number,
+  ) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const now = new Date();
+    const windows = await this.thresholdLookups.getDashboardWindows();
+    const counts = {
+      dueNow: 0,
+      startingSoon: 0,
+      inProgress: 0,
+      earlyArrival: 0,
+      lateArrival: 0,
+      veryLateArrival: 0,
+      potentialMissed: 0,
+      confirmedMissed: 0,
+      missingCheckout: 0,
+      outsideGeofence: 0,
+      manualAttendance: 0,
+      completed: 0,
+      completedOnTime: 0,
+      completedLate: 0,
+      total: 0,
+    };
+    return {
+      data: {
+        date,
+        dateFrom,
+        dateTo,
+        operationalToday: operationalTodayIso(now, timeZone),
+        operationalTimezone: timeZone,
+        refreshedAt: now.toISOString(),
+        windows,
+        counts,
+        summary: this.buildSummary([], now),
+        total: 0,
+        nextCursor: null,
+        visits: [],
       },
     };
   }
@@ -623,7 +718,22 @@ export class EcmVisitsService {
     }
   }
 
-  async getVisitDetail(scheduledJobId: string, opts?: { refresh?: boolean }) {
+  /** Public guard for ECM nested routes (history/audit/notifications). */
+  async assertJobAccessible(actor: RequestUser, scheduledJobId: string): Promise<void> {
+    await this.orgScope.assertScheduledJobInScope(
+      this.orgScope.fromRequestUser(actor),
+      scheduledJobId,
+    );
+  }
+
+  async getVisitDetail(
+    scheduledJobId: string,
+    opts?: { refresh?: boolean },
+    actor?: RequestUser,
+  ) {
+    if (actor) {
+      await this.assertJobAccessible(actor, scheduledJobId);
+    }
     if (opts?.refresh !== false) {
       await this.evaluation.evaluateJobSafe(scheduledJobId);
     }
@@ -879,7 +989,10 @@ export class EcmVisitsService {
           criticality: evaluation.criticality,
           confidence: evaluation.confidence,
           missedClassification: evaluation.missedClassification,
-          operationalExceptionCodes: evaluation.operationalExceptionCodes,
+          operationalExceptionCodes: this.detailExceptionCodes(
+            evaluation.operationalExceptionCodes,
+            job.attendanceEvents,
+          ),
           planned: {
             start: evaluation.plannedStartDateTime.toISOString(),
             end: evaluation.plannedEndDateTime?.toISOString() ?? null,
@@ -1129,6 +1242,73 @@ export class EcmVisitsService {
     if (ev.operationalExceptionCodes.includes('MANUAL_ATTENDANCE')) {
       buckets.push('manualAttendance');
     }
+    if (ev.operationalExceptionCodes.includes('LEFT_VISIT_AREA')) {
+      buckets.push('leftVisitArea');
+    }
     return buckets;
+  }
+
+  /** Active mid-visit locks only — each scheduled job is independent. */
+  private async lockedVisitJobIds(jobIds: string[]): Promise<Set<string>> {
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    if (unique.length === 0) return new Set();
+    const locks = await this.prisma.visitAreaLock.findMany({
+      where: {
+        scheduledJobId: { in: unique },
+        status: VisitAreaLockStatus.LOCKED,
+      },
+      select: { scheduledJobId: true },
+    });
+    return new Set(locks.map((lock) => lock.scheduledJobId));
+  }
+
+  private withLeftVisitArea(
+    row: EcmLiveVisitRow,
+    lockedIds: Set<string>,
+  ): EcmLiveVisitRow {
+    if (!lockedIds.has(row.scheduledJobId)) return row;
+    const codes = row.operationalExceptionCodes.includes('LEFT_VISIT_AREA')
+      ? row.operationalExceptionCodes
+      : [...row.operationalExceptionCodes, 'LEFT_VISIT_AREA'];
+    const buckets: DashboardBucket[] = row.buckets.includes('leftVisitArea')
+      ? row.buckets
+      : [...row.buckets, 'leftVisitArea'];
+    return { ...row, operationalExceptionCodes: codes, buckets };
+  }
+
+  private detailExceptionCodes(
+    codes: string[],
+    events: Array<{ isMockLocation: boolean }>,
+  ): string[] {
+    if (!events.some((event) => event.isMockLocation)) return codes;
+    return ['MOCK_LOCATION', ...codes.filter((code) => code !== 'MOCK_LOCATION')];
+  }
+
+  /** Any check-in or check-out mock flag — independent of job status. */
+  private async mockedVisitJobIds(jobIds: string[]): Promise<Set<string>> {
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    if (unique.length === 0) return new Set();
+    const events = await this.prisma.visitAttendanceEvent.findMany({
+      where: {
+        scheduledJobId: { in: unique },
+        isMockLocation: true,
+      },
+      select: { scheduledJobId: true },
+    });
+    return new Set(events.map((event) => event.scheduledJobId));
+  }
+
+  private withMockLocation(
+    row: EcmLiveVisitRow,
+    mockedIds: Set<string>,
+  ): EcmLiveVisitRow {
+    if (!mockedIds.has(row.scheduledJobId)) return row;
+    const others = row.operationalExceptionCodes.filter(
+      (code) => code !== 'MOCK_LOCATION',
+    );
+    return {
+      ...row,
+      operationalExceptionCodes: ['MOCK_LOCATION', ...others],
+    };
   }
 }

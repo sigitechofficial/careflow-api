@@ -7,6 +7,7 @@ import {
   BillingRunExportStatus,
   InvoiceRunLineType,
   InvoiceRunStatus,
+  PaymentMatchStatus,
   Prisma,
   VisitReconciliationStatus,
 } from '@prisma/client';
@@ -160,6 +161,34 @@ export class InvoiceRunsService {
         byRun.set(line.invoiceRunId, { run: line.invoiceRun, lines: [line] });
     }
 
+    // Funder payments recorded against each run (paid vs the run's net total).
+    const paymentsByRun = await this.prisma.paymentAllocation.groupBy({
+      by: ['invoiceRunId'],
+      where: { invoiceRunId: { in: [...byRun.keys()] } },
+      _sum: { amount: true },
+    });
+    const paidByRun = new Map(
+      paymentsByRun.map((p) => [p.invoiceRunId, Number(p._sum.amount ?? 0)]),
+    );
+
+    // Per-funder paid: each payment carries the funder that sent it, so attribute
+    // allocations to (run, funder) to show how much each funder has settled.
+    const runFunderAllocations = await this.prisma.paymentAllocation.findMany({
+      where: { invoiceRunId: { in: [...byRun.keys()] } },
+      select: {
+        invoiceRunId: true,
+        amount: true,
+        payment: { select: { funderId: true } },
+      },
+    });
+    const runFunderKey = (runId: string, funderId: string | null) =>
+      `${runId}::${funderId ?? '__direct__'}`;
+    const paidByRunFunder = new Map<string, number>();
+    for (const a of runFunderAllocations) {
+      const key = runFunderKey(a.invoiceRunId, a.payment?.funderId ?? null);
+      paidByRunFunder.set(key, (paidByRunFunder.get(key) ?? 0) + Number(a.amount));
+    }
+
     const runs = [...byRun.values()]
       .sort((a, b) => b.run.periodEnd.getTime() - a.run.periodEnd.getTime())
       .map(({ run, lines: runLines }) => {
@@ -187,11 +216,50 @@ export class InvoiceRunsService {
             exceptionMessage: l.exceptionMessage,
           };
         });
-        const funderSummaries = this.buildFunderSummaries(mappedLines);
+        const funderSummaries = this.buildFunderSummaries(mappedLines).map(
+          (fs) => {
+            const paidF =
+              Math.round(
+                (paidByRunFunder.get(runFunderKey(run.id, fs.funderId)) ?? 0) *
+                  100,
+              ) / 100;
+            const outstandingF = Math.max(
+              0,
+              Math.round((fs.subtotalValue - paidF) * 100) / 100,
+            );
+            const fsStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
+              paidF <= 0
+                ? 'UNPAID'
+                : outstandingF <= 0.001
+                  ? 'PAID'
+                  : 'PART_PAID';
+            return {
+              ...fs,
+              paid: formatMoney(paidF),
+              paidValue: paidF,
+              outstanding: formatMoney(outstandingF),
+              outstandingValue: outstandingF,
+              paymentStatus: fsStatus,
+            };
+          },
+        );
         const subtotal = mappedLines.reduce((sum, l) => sum + l.amountValue, 0);
         const exceptionCount = mappedLines.filter(
           (l) => l.exceptionMessage,
         ).length;
+        const sent =
+          run.status === InvoiceRunStatus.SENT ||
+          run.status === InvoiceRunStatus.PART_PAID ||
+          run.status === InvoiceRunStatus.PAID ||
+          run.exportStatus === BillingRunExportStatus.SENT;
+        const runNetTotal = Number(run.netTotal ?? 0);
+        const paid = Math.round((paidByRun.get(run.id) ?? 0) * 100) / 100;
+        const outstanding = Math.max(
+          0,
+          Math.round((runNetTotal - paid) * 100) / 100,
+        );
+        const paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
+          paid <= 0 ? 'UNPAID' : outstanding <= 0.001 ? 'PAID' : 'PART_PAID';
         return {
           id: run.id,
           period: run.periodLabel,
@@ -208,6 +276,14 @@ export class InvoiceRunsService {
           funders: funderSummaries.length,
           funderSummaries,
           lines: mappedLines,
+          runNetTotal: formatMoney(runNetTotal),
+          runNetTotalValue: Math.round(runNetTotal * 100) / 100,
+          paid: formatMoney(paid),
+          paidValue: paid,
+          outstanding: formatMoney(outstanding),
+          outstandingValue: outstanding,
+          paymentStatus,
+          sent,
           canSend:
             run.status === InvoiceRunStatus.LOCKED ||
             run.status === InvoiceRunStatus.APPROVED,
@@ -273,6 +349,7 @@ export class InvoiceRunsService {
         status: true,
         exportStatus: true,
         sentAt: true,
+        netTotal: true,
       },
       orderBy: { periodStart: 'desc' },
     });
@@ -286,10 +363,61 @@ export class InvoiceRunsService {
     }
 
     const runMap = new Map(runs.map((r) => [r.id, r]));
+    const runIds = runs.map((r) => r.id);
+
+    // Funder payments recorded against each run (paid = sum of allocations vs the run's net total).
+    const paymentsByRun = await this.prisma.paymentAllocation.groupBy({
+      by: ['invoiceRunId'],
+      where: { invoiceRunId: { in: runIds } },
+      _sum: { amount: true },
+    });
+    const paidByRun = new Map(
+      paymentsByRun.map((p) => [p.invoiceRunId, Number(p._sum.amount ?? 0)]),
+    );
+
+    // Per-funder invoiced amount for each (service user, run) — the funder split of the invoice.
+    const funderGrouped = await this.prisma.invoiceRunLine.groupBy({
+      by: ['serviceUserId', 'invoiceRunId', 'funderId'],
+      where: { invoiceRunId: { in: runIds } },
+      _sum: { amount: true },
+    });
+
+    // Per-funder paid: allocations are recorded against a run, and each payment carries the
+    // funder that sent it. Attribute paid amounts to (run, funder) so we can show who has paid.
+    const funderAllocations = await this.prisma.paymentAllocation.findMany({
+      where: { invoiceRunId: { in: runIds } },
+      select: {
+        invoiceRunId: true,
+        amount: true,
+        payment: { select: { funderId: true } },
+      },
+    });
+    const runFunderKey = (runId: string, funderId: string | null) =>
+      `${runId}::${funderId ?? '__direct__'}`;
+    const paidByRunFunder = new Map<string, number>();
+    for (const a of funderAllocations) {
+      const key = runFunderKey(a.invoiceRunId, a.payment?.funderId ?? null);
+      paidByRunFunder.set(key, (paidByRunFunder.get(key) ?? 0) + Number(a.amount));
+    }
+
+    const overviewFunderIds = [
+      ...new Set(
+        funderGrouped
+          .map((f) => f.funderId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const overviewFunders = overviewFunderIds.length
+      ? await this.prisma.funder.findMany({
+          where: { id: { in: overviewFunderIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const funderNameMap = new Map(overviewFunders.map((f) => [f.id, f.name]));
 
     const grouped = await this.prisma.invoiceRunLine.groupBy({
       by: ['serviceUserId', 'invoiceRunId'],
-      where: { invoiceRunId: { in: runs.map((r) => r.id) } },
+      where: { invoiceRunId: { in: runIds } },
       _sum: { amount: true },
       _count: { _all: true },
     });
@@ -337,6 +465,27 @@ export class InvoiceRunsService {
       lineCount: number;
       subtotal: string;
       subtotalValue: number;
+      /** Run-level funder payment status (the whole invoice run is what the funder pays). */
+      runNetTotal: string;
+      runNetTotalValue: number;
+      paid: string;
+      paidValue: number;
+      outstanding: string;
+      outstandingValue: number;
+      paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID';
+      canRecordPayment: boolean;
+      /** Per-funder split of this invoice — who is invoiced, and how much each has paid. */
+      funders: {
+        funderId: string | null;
+        funderName: string;
+        invoiced: string;
+        invoicedValue: number;
+        paid: string;
+        paidValue: number;
+        outstanding: string;
+        outstandingValue: number;
+        paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID';
+      }[];
     };
     type SuRow = {
       serviceUserId: string;
@@ -357,6 +506,14 @@ export class InvoiceRunsService {
       if (!run) continue;
       const amount = Number(g._sum.amount ?? 0);
       const sent = isSent(run);
+      const runNetTotal = Number(run.netTotal ?? 0);
+      const paid = Math.round((paidByRun.get(run.id) ?? 0) * 100) / 100;
+      const outstanding = Math.max(
+        0,
+        Math.round((runNetTotal - paid) * 100) / 100,
+      );
+      const paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
+        paid <= 0 ? 'UNPAID' : outstanding <= 0.001 ? 'PAID' : 'PART_PAID';
       let row = bySu.get(g.serviceUserId);
       if (!row) {
         row = {
@@ -378,6 +535,41 @@ export class InvoiceRunsService {
       if (sent) row.sentCount += 1;
       else row.pendingCount += 1;
       row.totalInvoicedValue += amount;
+
+      const funders = funderGrouped
+        .filter(
+          (f) =>
+            f.serviceUserId === g.serviceUserId &&
+            f.invoiceRunId === g.invoiceRunId,
+        )
+        .map((f) => {
+          const invoiced = Math.round(Number(f._sum.amount ?? 0) * 100) / 100;
+          const paidF =
+            Math.round(
+              (paidByRunFunder.get(runFunderKey(run.id, f.funderId)) ?? 0) * 100,
+            ) / 100;
+          const outstandingF = Math.max(
+            0,
+            Math.round((invoiced - paidF) * 100) / 100,
+          );
+          const funderPaymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
+            paidF <= 0 ? 'UNPAID' : outstandingF <= 0.001 ? 'PAID' : 'PART_PAID';
+          return {
+            funderId: f.funderId,
+            funderName: f.funderId
+              ? (funderNameMap.get(f.funderId) ?? 'Unknown funder')
+              : 'Direct / family',
+            invoiced: formatMoney(invoiced),
+            invoicedValue: invoiced,
+            paid: formatMoney(paidF),
+            paidValue: paidF,
+            outstanding: formatMoney(outstandingF),
+            outstandingValue: outstandingF,
+            paymentStatus: funderPaymentStatus,
+          };
+        })
+        .sort((a, b) => b.invoicedValue - a.invoicedValue);
+
       row.months.push({
         runId: run.id,
         period: run.periodLabel,
@@ -390,6 +582,15 @@ export class InvoiceRunsService {
         lineCount: g._count._all,
         subtotal: formatMoney(amount),
         subtotalValue: Math.round(amount * 100) / 100,
+        runNetTotal: formatMoney(runNetTotal),
+        runNetTotalValue: Math.round(runNetTotal * 100) / 100,
+        paid: formatMoney(paid),
+        paidValue: paid,
+        outstanding: formatMoney(outstanding),
+        outstandingValue: outstanding,
+        paymentStatus,
+        canRecordPayment: sent && outstanding > 0.001,
+        funders,
       });
     }
 
@@ -641,10 +842,22 @@ export class InvoiceRunsService {
     });
 
     const periodEnd = endOfBillingDate(run.periodEnd);
+
+    // Visit reconciliations already sitting in ANOTHER invoice run's lines (draft or locked) must
+    // not be pulled in here — otherwise an overlapping period would bill the same visit twice.
+    const claimedElsewhere = await this.prisma.invoiceRunLine.findMany({
+      where: { invoiceRunId: { not: id } },
+      select: { visitReconciliationId: true },
+    });
+    const claimedReconIds = [
+      ...new Set(claimedElsewhere.map((l) => l.visitReconciliationId)),
+    ];
+
     const reconciliations = await this.prisma.visitReconciliation.findMany({
       where: {
         status: { in: INVOICE_ELIGIBLE_RECON },
         includedInInvoiceRunId: null,
+        ...(claimedReconIds.length ? { id: { notIn: claimedReconIds } } : {}),
         approvedBillStart: { gte: run.periodStart, lte: periodEnd },
       },
       orderBy: { approvedBillStart: 'asc' },
@@ -869,6 +1082,26 @@ export class InvoiceRunsService {
     return this.getById(id);
   }
 
+  /**
+   * Delete every invoice run (destructive reset). Payment allocations reference runs with an
+   * FK Restrict, so they are cleared first; reconciliations auto-unlink (SetNull) and run lines
+   * cascade. Affected payments are reset to unmatched.
+   */
+  async deleteAll() {
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await tx.paymentAllocation.deleteMany({});
+      await tx.payment.updateMany({
+        data: { matchedAmount: 0, matchStatus: PaymentMatchStatus.UNMATCHED },
+      });
+      const result = await tx.invoiceRun.deleteMany({});
+      return result.count;
+    });
+    return {
+      message: `Deleted ${deleted} invoice run${deleted === 1 ? '' : 's'}`,
+      data: { deleted },
+    };
+  }
+
   async lock(userId: string, id: string) {
     const run = await this.prisma.invoiceRun.findUnique({
       where: { id },
@@ -894,8 +1127,9 @@ export class InvoiceRunsService {
         },
       });
       if (reconIds.length) {
+        // Only claim reconciliations not already locked into another run — never steal one.
         await tx.visitReconciliation.updateMany({
-          where: { id: { in: reconIds } },
+          where: { id: { in: reconIds }, includedInInvoiceRunId: null },
           data: { includedInInvoiceRunId: id },
         });
       }

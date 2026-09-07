@@ -23,11 +23,13 @@ export class ServiceUserAssessmentsReviewController {
   })
   reviewQueue(
     @Query('serviceUserId') serviceUserId?: string,
+    @Query('locationId') locationId?: string,
     @Query('overdueOnly') overdueOnly?: string,
     @Query('includeNotStarted') includeNotStarted?: string,
   ) {
     return this.service.reviewQueue({
       serviceUserId: serviceUserId?.trim() || undefined,
+      locationId: locationId?.trim() || undefined,
       overdueOnly: overdueOnly === 'true',
       alertsOnly: includeNotStarted === 'true' ? false : true,
     });

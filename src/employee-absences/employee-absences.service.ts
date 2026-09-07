@@ -188,6 +188,17 @@ export class EmployeeAbsencesService {
       };
     }
     if (query.employeeId) where.employeeId = query.employeeId;
+    if (query.locationId) {
+      where.employee = {
+        employment: {
+          OR: [
+            { accessAllZones: true },
+            { locationId: query.locationId },
+            { floorLocations: { some: { locationId: query.locationId } } },
+          ],
+        },
+      };
+    }
     if (query.absenceType) where.absenceType = query.absenceType;
     if (query.permissionStatus) where.permissionStatus = query.permissionStatus;
     if (query.sicknessOnly) where.sicknessFlag = true;

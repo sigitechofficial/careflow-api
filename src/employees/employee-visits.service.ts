@@ -102,6 +102,45 @@ export class EmployeeVisitsService {
       totalPlannedMinutes: 0,
     };
 
+    const scheduledVisitIds = [
+      ...new Set(
+        allocations
+          .map((allocation) => {
+            const visits = allocation.scheduledJob?.visits ?? [];
+            return visits[0]?.id as string | undefined;
+          })
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const reconciliationRows =
+      scheduledVisitIds.length > 0
+        ? await this.prisma.visitReconciliation.findMany({
+            where: { scheduledVisitId: { in: scheduledVisitIds } },
+            select: {
+              scheduledVisitId: true,
+              jobAllocationId: true,
+              visitRef: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'asc' },
+          })
+        : [];
+
+    /** Prefer allocation-matched ref; fall back to any ref for the scheduled visit. */
+    const visitRefByAllocation = new Map<string, string>();
+    const visitRefByScheduledVisit = new Map<string, string>();
+    for (const row of reconciliationRows) {
+      const ref = row.visitRef?.trim();
+      if (!ref) continue;
+      if (!visitRefByScheduledVisit.has(row.scheduledVisitId)) {
+        visitRefByScheduledVisit.set(row.scheduledVisitId, ref);
+      }
+      if (row.jobAllocationId && !visitRefByAllocation.has(row.jobAllocationId)) {
+        visitRefByAllocation.set(row.jobAllocationId, ref);
+      }
+    }
+
     const visits = allocations.map((allocation) => {
       const baseJob = mapTimelineJob(allocation.scheduledJob);
       const resolved = resolveAllocationWindow(allocation, allocation.scheduledJob);
@@ -136,6 +175,10 @@ export class EmployeeVisitsService {
         deliveryAssessment,
       };
       const primaryVisit = job.visits[0] ?? null;
+      const visitRef =
+        visitRefByAllocation.get(allocation.id) ??
+        (primaryVisit?.id ? visitRefByScheduledVisit.get(primaryVisit.id) : undefined) ??
+        null;
       const bucket = classifyEmployeeVisit(job, now);
       const actualMinutes = minutesBetweenIso(job.actualStartDateTime, job.actualEndDateTime);
       const su = job.serviceUser;
@@ -150,6 +193,7 @@ export class EmployeeVisitsService {
       return {
         jobId: job.id,
         visitId: primaryVisit?.id ?? job.id,
+        visitRef,
         allocationId: allocation.id,
         bucket,
         status: job.status,

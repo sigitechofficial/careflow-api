@@ -22,15 +22,15 @@ export class CallOffVisitsController {
   @Get()
   @Permissions('call_off_visits.read')
   @ApiOperation({ summary: 'List call-off visits' })
-  list(@Query() query: CallOffVisitQueryDto) {
-    return this.service.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: CallOffVisitQueryDto) {
+    return this.service.list(user, query);
   }
 
   @Get(':id')
   @Permissions('call_off_visits.read')
   @ApiOperation({ summary: 'Get call-off visit by id' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getById(user, id);
   }
 
   @Post()
@@ -41,7 +41,7 @@ export class CallOffVisitsController {
     @Body() dto: CreateCallOffVisitDto,
     @Req() req: Request,
   ) {
-    return this.service.create(user.id, dto, getRequestAuditMeta(req));
+    return this.service.create(user, dto, getRequestAuditMeta(req));
   }
 
   @Patch(':id')
@@ -53,27 +53,27 @@ export class CallOffVisitsController {
     @Body() dto: UpdateCallOffVisitDto,
     @Req() req: Request,
   ) {
-    return this.service.update(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.update(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Delete(':id')
   @Permissions('call_off_visits.delete')
   @ApiOperation({ summary: 'Soft-delete call-off visit' })
   remove(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.remove(user.id, id, getRequestAuditMeta(req));
+    return this.service.remove(user, id, getRequestAuditMeta(req));
   }
 
   @Patch(':id/approve')
   @Permissions('call_off_visits.approve')
   @ApiOperation({ summary: 'Approve call-off and mark schedule as called off' })
   approve(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.approve(user.id, id, getRequestAuditMeta(req));
+    return this.service.approve(user, id, getRequestAuditMeta(req));
   }
 
   @Patch(':id/reject')
   @Permissions('call_off_visits.reject')
   @ApiOperation({ summary: 'Reject call-off request' })
   reject(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.reject(user.id, id, getRequestAuditMeta(req));
+    return this.service.reject(user, id, getRequestAuditMeta(req));
   }
 }

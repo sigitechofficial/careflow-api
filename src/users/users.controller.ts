@@ -1,12 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SetUserRolesDto } from './dto/set-user-roles.dto';
+import { SetUserLocationsDto } from './dto/set-user-locations.dto';
 import { hashPassword } from '../common/utils/password.util';
 
 @ApiTags('Users')
@@ -18,9 +21,12 @@ export class UsersController {
 
   @Get()
   @Permissions('users.read')
-  async list(@Query() _pagination: PaginationQueryDto) {
-    // Keep minimal for now (Admin panel typically uses a dedicated module later)
-    return { data: [] };
+  @ApiOperation({ summary: 'List office users with roles and branch assignments' })
+  async list(@CurrentUser() actor: RequestUser) {
+    return this.usersService.listUsers({
+      roles: actor.roles,
+      assignedLocationIds: actor.assignedLocationIds,
+    });
   }
 
   @Get(':id')
@@ -45,8 +51,45 @@ export class UsersController {
 
   @Patch(':id')
   @Permissions('users.create')
-  async update(@Param('id') _id: string, @Body() _dto: UpdateUserDto) {
-    return { message: 'Not implemented yet', data: {} };
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    const user = await this.usersService.updateProfile(id, {
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+    });
+    return { message: 'User updated', data: { id: user.id } };
+  }
+
+  @Put(':id/roles')
+  @Permissions('roles.manage')
+  @ApiOperation({ summary: 'Replace identity roles (anti-escalation enforced)' })
+  setRoles(
+    @CurrentUser() actor: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetUserRolesDto,
+  ) {
+    return this.usersService.setUserRoles(
+      { id: actor.id, roles: actor.roles, assignedLocationIds: actor.assignedLocationIds },
+      id,
+      dto.roleNames,
+    );
+  }
+
+  @Put(':id/locations')
+  @Permissions('roles.manage')
+  @ApiOperation({ summary: 'Replace authorization branch assignments (UserLocation)' })
+  setLocations(
+    @CurrentUser() actor: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetUserLocationsDto,
+  ) {
+    return this.usersService.setUserLocations(
+      {
+        id: actor.id,
+        roles: actor.roles,
+        assignedLocationIds: actor.assignedLocationIds,
+      },
+      id,
+      dto.locationIds,
+    );
   }
 }
-

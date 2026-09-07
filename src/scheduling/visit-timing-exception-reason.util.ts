@@ -94,6 +94,16 @@ export function isVisitTimingExceptionReasonCode(
   return Boolean(value && CODE_SET.has(value));
 }
 
+/** Legacy enum codes, or admin catalog labels (1–160 chars). */
+export function isAcceptedVisitTimingExceptionReason(
+  value: string | null | undefined,
+): boolean {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) return false;
+  if (CODE_SET.has(trimmed)) return true;
+  return trimmed.length >= 1 && trimmed.length <= 160;
+}
+
 export function visitTimingExceptionReasonLabel(
   code: string | null | undefined,
 ): string | null {

@@ -36,6 +36,7 @@ export class ServiceUserAddressesService {
     if (dto.county !== undefined) data.county = dto.county;
     if (dto.country !== undefined) data.country = dto.country;
     if (dto.postcode !== undefined) data.postcode = dto.postcode;
+    if (dto.secondaryPostcode !== undefined) data.secondaryPostcode = dto.secondaryPostcode;
     if (dto.accessInstructions !== undefined) data.accessInstructions = dto.accessInstructions;
     if (dto.keySafeNumber !== undefined) data.keySafeNumber = dto.keySafeNumber;
     if (dto.latitude !== undefined && dto.latitude !== null) {
@@ -66,6 +67,7 @@ export class ServiceUserAddressesService {
           county: dto.county ?? null,
           country: dto.country ?? null,
           postcode: dto.postcode ?? null,
+          secondaryPostcode: dto.secondaryPostcode ?? null,
           accessInstructions: dto.accessInstructions ?? null,
           keySafeNumber: dto.keySafeNumber ?? null,
           latitude:

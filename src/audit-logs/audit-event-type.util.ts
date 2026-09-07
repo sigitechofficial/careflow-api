@@ -68,6 +68,7 @@ export function resolveAuditEventType(
   if (
     a.includes('updated') ||
     a.includes('changed') ||
+    a.includes('assigned') ||
     a.includes('recorded') ||
     a.includes('corrected') ||
     a.includes('reviewed') ||

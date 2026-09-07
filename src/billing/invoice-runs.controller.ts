@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -107,6 +108,13 @@ export class InvoiceRunsController {
   @ApiOperation({ summary: 'Create invoice run draft' })
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateBillingRunDto) {
     return this.service.create(user.id, dto);
+  }
+
+  @Delete()
+  @Permissions('billing.invoice_runs.manage')
+  @ApiOperation({ summary: 'Delete ALL invoice runs (destructive reset)' })
+  deleteAll() {
+    return this.service.deleteAll();
   }
 
   @Post(':id/calculate')

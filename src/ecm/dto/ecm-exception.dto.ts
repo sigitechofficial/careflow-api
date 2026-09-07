@@ -34,6 +34,14 @@ export class ResolveEcmExceptionDto {
   note?: string;
 }
 
+export class AllowVisitContinueDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+}
+
 export class CloseEcmExceptionDto {
   @ApiPropertyOptional()
   @IsOptional()

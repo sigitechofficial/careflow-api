@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsISO8601,
   IsNumber,
   IsObject,
@@ -211,6 +212,38 @@ export class EmployeeAppMedicationAdminDto {
   @IsOptional()
   @IsBoolean()
   allergyAcknowledged?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Controlled-drug witness. false = No. true = Yes (name + relation required). Omitted = not asked.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  witnessPresent?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  witnessName?: string;
+
+  @ApiPropertyOptional({ example: 'RELATIVE', description: 'CO_CARER | RELATIVE | OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  witnessRelationCode?: string;
+
+  @ApiPropertyOptional({ description: 'Required when relation is RELATIVE (son, daughter, …)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  witnessRelationDetail?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  witnessNotes?: string;
 
   @ApiProperty()
   @IsBoolean()
@@ -635,6 +668,33 @@ export class EmployeeAppIncidentDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+}
+
+export const VISIT_CARE_CONSENT_STATUSES = ['GRANTED', 'DECLINED'] as const;
+
+export class EmployeeAppCareConsentDto {
+  @ApiProperty({ enum: VISIT_CARE_CONSENT_STATUSES, example: 'GRANTED' })
+  @IsIn(VISIT_CARE_CONSENT_STATUSES as unknown as string[])
+  status!: (typeof VISIT_CARE_CONSENT_STATUSES)[number];
+
+  @ApiPropertyOptional({
+    description: 'Required when status is DECLINED',
+    example: 'Person declined personal care this visit',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reason?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsISO8601()
+  deviceRecordedAt?: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(128)
+  idempotencyKey!: string;
 }
 
 export class EmployeeAppIdentityDto {

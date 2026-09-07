@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -21,9 +23,10 @@ export class ScheduleAreasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async list(query: ScheduleAreaQueryDto) {
+  async list(query: ScheduleAreaQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -39,6 +42,26 @@ export class ScheduleAreasService {
         { description: { contains: s, mode: 'insensitive' } },
       ];
     }
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      const locationIds = this.orgScope.resolveListLocationIds(
+        scope,
+        query.locationId,
+        undefined,
+      );
+      if (locationIds && locationIds.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (locationIds?.length === 1) {
+        where.locationId = locationIds[0];
+      } else if (locationIds && locationIds.length > 1) {
+        // Drop single client locationId; enforce multi-branch scope.
+        delete (where as { locationId?: string }).locationId;
+        andWhereFragment(where, { locationId: { in: locationIds } });
+      }
+    }
+
     const sortBy = query.sortBy ?? 'sortOrder';
     const sortOrder = query.sortOrder ?? 'asc';
     const orderBy: Prisma.ScheduleAreaOrderByWithRelationInput = { [sortBy]: sortOrder };
@@ -56,7 +79,10 @@ export class ScheduleAreasService {
     return { data: rows, meta: buildPaginationMeta({ page, limit, total }) };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduleAreaInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.scheduleArea.findFirst({
       where: { id, deletedAt: null },
       include: areaInclude,

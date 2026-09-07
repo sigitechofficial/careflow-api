@@ -148,6 +148,14 @@ export function mapServiceUserDetail(
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
   locationId: string | null;
   location: { id: string; name: string } | null;
+  serviceUserAreaId?: string | null;
+  serviceUserArea?: {
+    id: string;
+    name: string;
+    code: string;
+    scheduleAreaId: string;
+    postcodes: { postcode: string }[];
+  } | null;
   keyWorker: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   namedNurse: { id: string; personalDetail: { firstName: string; lastName: string } | null } | null;
   address:
@@ -159,6 +167,7 @@ export function mapServiceUserDetail(
         county: string | null;
         country: string | null;
         postcode: string | null;
+        secondaryPostcode: string | null;
         latitude: unknown;
         longitude: unknown;
         accessInstructions: string | null;
@@ -245,6 +254,16 @@ export function mapServiceUserDetail(
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
     location: mappedLocation,
+    serviceUserAreaId: user.serviceUserAreaId ?? null,
+    serviceUserArea: user.serviceUserArea
+      ? {
+          id: user.serviceUserArea.id,
+          name: user.serviceUserArea.name,
+          code: user.serviceUserArea.code,
+          scheduleAreaId: user.serviceUserArea.scheduleAreaId,
+          postcodes: user.serviceUserArea.postcodes.map((p) => p.postcode),
+        }
+      : null,
     keyWorker: mapEmployeeBrief(user.keyWorker),
     namedNurse: mapEmployeeBrief(user.namedNurse),
     address: user.address
@@ -256,6 +275,7 @@ export function mapServiceUserDetail(
           county: user.address.county,
           country: user.address.country,
           postcode: user.address.postcode,
+          secondaryPostcode: user.address.secondaryPostcode,
           latitude: user.address.latitude,
           longitude: user.address.longitude,
           accessInstructions: user.address.accessInstructions,

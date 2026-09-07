@@ -54,9 +54,15 @@ jobs:
           test -f package.json
           test -f package-lock.json
           echo "Backend build output verified."
-          ! grep -q "from '../src/" prisma/seed.ts
-          ! grep -R "from '../../src/" prisma/seeds/ || (echo "prisma/seeds must not import from src/ (not deployed to VPS)" && exit 1)
-          echo "prisma/seed.ts does not import from src/ (deploy artifact has no src)."
+          # The deploy artifact ships dist/ but NOT src/, yet the seed runs as raw TS via
+          # `ts-node prisma/seed.ts`. Any import from the seed path into src/ (at ANY depth,
+          # including prisma/seed-lib/) crashes `prisma db seed` at load time on the VPS and
+          # silently skips ALL seeding. Guard the whole seed path.
+          if grep -REn "from ['\"](\.\./)+src/" prisma/seed.ts prisma/seeds prisma/seed-lib; then
+            echo "ERROR: the prisma seed path imports from src/ (shown above). src/ is not in the deploy artifact, so this crashes 'prisma db seed' on the VPS. Move the dependency under prisma/."
+            exit 1
+          fi
+          echo "prisma seed path is self-contained (no src/ imports)."
 
       - name: Create release metadata
         run: |
@@ -564,6 +570,13 @@ jobs:
             exit 1
           fi
 
+          echo "Ensuring ENABLE_IA_QA_DEMO=true in live .env (does not set ENABLE_DEV_TOOLS or SEED_DEMO_DATA)..."
+          if grep -qE '^ENABLE_IA_QA_DEMO=' "$LIVE_PATH/.env"; then
+            sed -i 's/^ENABLE_IA_QA_DEMO=.*/ENABLE_IA_QA_DEMO=true/' "$LIVE_PATH/.env"
+          else
+            printf '\nENABLE_IA_QA_DEMO=true\n' >> "$LIVE_PATH/.env"
+          fi
+
           echo "Loading DATABASE_URL from server .env..."
           set -a
           # shellcheck disable=SC1091
@@ -596,7 +609,13 @@ jobs:
           npx prisma migrate status || true
 
           echo "Seeding database (idempotent upserts; failures are logged but do not block deploy)..."
+          # Never seed demo data on production. NODE_ENV=production already defaults it off in
+          # seed.ts; set this explicitly as a belt-and-suspenders guard for the deploy seed run.
+          export SEED_DEMO_DATA=false
           if ! bash prisma/scripts/run-deploy-seeds.sh "$LIVE_PATH" 2>&1 | tee "$DEPLOY_ROOT/logs/last-seed.log"; then
+            # Surface loudly as a GitHub error annotation so a broken seed can't silently skip
+            # data (e.g. care-plan form templates) while the deploy still shows green.
+            echo "::error title=Deploy seeders failed::prisma db seed / deploy seeders failed — reference/catalog/care-plan-form data may NOT have been applied. Check $DEPLOY_ROOT/logs/last-seed.log on the VPS."
             echo "WARN: deploy seeders failed — deployment will continue. Log: $DEPLOY_ROOT/logs/last-seed.log"
           fi
 

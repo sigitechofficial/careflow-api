@@ -13,6 +13,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
+import type { OrgScope } from '../common/org-scope/org-scope.types';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -26,7 +29,7 @@ import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../sche
 import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import {
-  isVisitTimingExceptionReasonCode,
+  isAcceptedVisitTimingExceptionReason,
   VISIT_TIMING_EXCEPTION_REASONS,
 } from '../scheduling/visit-timing-exception-reason.util';
 import {
@@ -126,6 +129,7 @@ export class ScheduledJobsHousekeepingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
     private readonly scheduledJobsService: ScheduledJobsService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
@@ -134,19 +138,40 @@ export class ScheduledJobsHousekeepingService {
     private readonly visitTimeline: VisitTimelineService,
   ) {}
 
+  /** Staff JWT actors get branch scope checks; employee-app may pass a userId string. */
+  private async assertJobForStaffActor(
+    actor: RequestUser | string,
+    jobId: string,
+  ): Promise<void> {
+    if (typeof actor === 'string') return;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(actor), jobId);
+  }
+
+  private actorUserId(actor: RequestUser | string): string {
+    return typeof actor === 'string' ? actor : actor.id;
+  }
+
   /**
    * Visit activity timeline for the admin workspace Log tab — same events the
    * carer app shows (clock in/out, tasks, medication, observations, visit
    * notes, handovers, concerns, incidents), oldest → newest.
    */
-  async getVisitTimeline(jobId: string) {
+  async getVisitTimeline(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null },
       select: { id: true },
     });
     if (!job) throw new NotFoundException('Scheduled job not found');
     const timeline = await this.visitTimeline.listForJob(jobId);
-    return { jobId, timeline };
+    return {
+      jobId,
+      timeline: timeline.map((item) => {
+        if (item.type !== 'clock_in' || !item.detail) return item;
+        const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
+        return { ...item, detail: methodOnly, subtitle: methodOnly };
+      }),
+    };
   }
 
   /**
@@ -213,7 +238,10 @@ export class ScheduledJobsHousekeepingService {
     }
   }
 
-  private buildBaseWhere(query: HousekeepingQueryDto): Prisma.ScheduledJobWhereInput {
+  private buildBaseWhere(
+    query: HousekeepingQueryDto,
+    scope: OrgScope,
+  ): Prisma.ScheduledJobWhereInput {
     const where: Prisma.ScheduledJobWhereInput = { deletedAt: null, isActive: true };
     if (query.scheduleBatchId) where.scheduleBatchId = query.scheduleBatchId;
     if (query.serviceUserId) where.serviceUserId = query.serviceUserId;
@@ -239,6 +267,7 @@ export class ScheduledJobsHousekeepingService {
       };
     }
 
+    andWhereFragment(where, this.orgScope.scheduledJobScopeWhere(scope));
     return where;
   }
 
@@ -306,12 +335,17 @@ export class ScheduledJobsHousekeepingService {
     return jobs.filter((j) => j.allocations.length < j.requiredCarers).map((j) => j.id);
   }
 
-  async jobsNotStarted(userId: string, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
+  async jobsNotStarted(user: RequestUser, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
+    const scope = this.orgScope.fromRequestUser(user);
+    if (scope.locationIds?.length === 0) {
+      return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+    }
     const now = new Date();
-    const base = this.buildBaseWhere(query);
+    const base = this.buildBaseWhere(query, scope);
 
     const where: Prisma.ScheduledJobWhereInput = {
       ...base,
@@ -366,11 +400,16 @@ export class ScheduledJobsHousekeepingService {
     };
   }
 
-  async jobsNeedingAttention(userId: string, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
+  async jobsNeedingAttention(user: RequestUser, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const base = this.buildBaseWhere(query);
+    const scope = this.orgScope.fromRequestUser(user);
+    if (scope.locationIds?.length === 0) {
+      return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+    }
+    const base = this.buildBaseWhere(query, scope);
     const understaffedIds = await this.findUnderstaffedJobIds(base);
 
     const where: Prisma.ScheduledJobWhereInput = {
@@ -450,13 +489,21 @@ export class ScheduledJobsHousekeepingService {
     return reasons;
   }
 
-  async dayJobs(userId: string, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
+  async dayJobs(user: RequestUser, query: HousekeepingQueryDto, meta?: RequestAuditMeta) {
     if (!query.date) throw new BadRequestException('date is required for day jobs');
+    const userId = user.id;
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
     const { date } = utcDayBounds(query.date);
-    const where = this.buildBaseWhere({ ...query, date });
+    const scope = this.orgScope.fromRequestUser(user);
+    if (scope.locationIds?.length === 0) {
+      return {
+        data: { date, jobs: [] },
+        meta: buildPaginationMeta({ page, limit, total: 0 }),
+      };
+    }
+    const where = this.buildBaseWhere({ ...query, date }, scope);
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.scheduledJob.count({ where }),
@@ -502,13 +549,13 @@ export class ScheduledJobsHousekeepingService {
   }
 
   async getCarePlanDeliveryTasks(
-    userId: string,
+    user: RequestUser,
     jobId: string,
     options?: { formIds?: string[] },
     meta?: RequestAuditMeta,
   ) {
-    void userId;
     void meta;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null, isActive: true },
       include: housekeepingInclude,
@@ -609,7 +656,14 @@ export class ScheduledJobsHousekeepingService {
     return map;
   }
 
-  async completeJob(userId: string, id: string, dto: CompleteJobDto, meta?: RequestAuditMeta) {
+  async completeJob(
+    actor: RequestUser | string,
+    id: string,
+    dto: CompleteJobDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const userId = this.actorUserId(actor);
+    await this.assertJobForStaffActor(actor, id);
     const existing = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null, isActive: true },
       include: housekeepingInclude,
@@ -813,7 +867,7 @@ export class ScheduledJobsHousekeepingService {
 
       if (deliveryAssessment.requiresExceptionReason && !careNotDelivered) {
         const code = dto.timingExceptionReasonCode?.trim() ?? '';
-        if (!isVisitTimingExceptionReasonCode(code)) {
+        if (!isAcceptedVisitTimingExceptionReason(code)) {
           throw new BadRequestException(
             `A structured timing exception reason is required for ${deliveryAssessment.timingLabel}${
               deliveryAssessment.durationExceptions.length
@@ -1127,7 +1181,9 @@ export class ScheduledJobsHousekeepingService {
     return result;
   }
 
-  async cancelJob(userId: string, id: string, dto: CancelJobDto, meta?: RequestAuditMeta) {
+  async cancelJob(user: RequestUser, id: string, dto: CancelJobDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
     const existing = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null, isActive: true },
       include: {
@@ -1295,7 +1351,9 @@ export class ScheduledJobsHousekeepingService {
     return cancelResult;
   }
 
-  async reinstateJob(userId: string, id: string, dto: ReinstateJobDto, meta?: RequestAuditMeta) {
+  async reinstateJob(user: RequestUser, id: string, dto: ReinstateJobDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
     const existing = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null, isActive: true },
       include: {
@@ -1431,8 +1489,8 @@ export class ScheduledJobsHousekeepingService {
    * Same Obs catalog + recorded-this-visit payload as carer
    * GET employee-app/visits/:jobId/details → observations (and GET …/observations).
    */
-  async getVisitObservations(userId: string, jobId: string) {
-    void userId;
+  async getVisitObservations(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null, isActive: true },
       include: {
@@ -1471,9 +1529,10 @@ export class ScheduledJobsHousekeepingService {
     };
   }
 
-  async getVisitJobTasks(userId: string, jobId: string, meta?: RequestAuditMeta) {
-    void userId;
+  async getVisitJobTasks(actor: RequestUser | string, jobId: string, meta?: RequestAuditMeta) {
     void meta;
+    const userId = this.actorUserId(actor);
+    await this.assertJobForStaffActor(actor, jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null, isActive: true },
       include: housekeepingInclude,
@@ -1692,13 +1751,15 @@ export class ScheduledJobsHousekeepingService {
   }
 
   async saveVisitJobTasks(
-    userId: string,
+    actor: RequestUser | string,
     jobId: string,
     dto: SaveVisitJobTasksDto,
     meta?: RequestAuditMeta,
     options?: { pruneMissingExtras?: boolean },
   ) {
     void meta;
+    const userId = this.actorUserId(actor);
+    await this.assertJobForStaffActor(actor, jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null, isActive: true },
       include: housekeepingInclude,

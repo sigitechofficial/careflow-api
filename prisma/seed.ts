@@ -7,6 +7,7 @@ import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-check
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
 import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
 import { seedScheduleAreas } from './seeds/schedule-areas.seed';
+import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
@@ -17,6 +18,9 @@ import { seedDemoServiceUserData } from './seeds/demo-service-user-data.seed';
 import { resetAndSeedBodyMapDemo } from './seeds/body-map-demo.seed';
 import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment-demo-service-user.seed';
 import { seedServiceUserPersonas } from './seeds/service-user-personas.seed';
+import { seedGreenwichBranchUsers } from './seeds/greenwich-branch-users.seed';
+import { seedGreenwichServiceUsers } from './seeds/greenwich-service-users.seed';
+import { seedGreenwichManagerAttention } from './seeds/greenwich-manager-attention.seed';
 import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { applyCarePlanIaDemoOverlay } from './seeds/care-plan-ia-demo-overlay.seed';
@@ -33,6 +37,11 @@ import {
   DEFAULT_SERVICE_USER_ETHNICITIES,
   DEFAULT_SERVICE_USER_LANGUAGES,
 } from './seed-data/service-user-ethnicity-language.defaults';
+import { DEFAULT_VISIT_STATUS_REASONS } from './seed-data/visit-status-reasons.defaults';
+import {
+  ensureSuperAdminAllPermissions,
+  seedDemoOfficeUsers,
+} from './seeds/demo-office-users.seed';
 
 const prisma = new PrismaClient();
 
@@ -83,6 +92,8 @@ async function main() {
     'Privacy Officer',
     'Operation Management',
     'Staff Allocation',
+    'Master Staff Allocation',
+    'Branch Administrator',
     'Senior Carer/Nurse',
     'Carer/Domestic',
   ])
@@ -99,6 +110,9 @@ async function main() {
     'Other',
   ])
     await upsertLookup(prisma.leavingReason, name);
+
+  for (const name of DEFAULT_VISIT_STATUS_REASONS)
+    await upsertLookup(prisma.visitStatusReason, name);
 
   for (const name of [
     'Grade1',
@@ -144,8 +158,77 @@ async function main() {
     'Transport - Croydon Transport',
   ]) {
     await upsertLookup(prisma.location, name);
-    await upsertLookup(prisma.zone, name);
   }
+
+  // Location-management zones = cities (not “Zone - Branch” location labels).
+  const CITY_ZONES: Array<{ name: string; country: string; city: string }> = [
+    { name: 'London', country: 'United Kingdom', city: 'London' },
+    { name: 'Birmingham', country: 'United Kingdom', city: 'Birmingham' },
+    { name: 'Manchester', country: 'United Kingdom', city: 'Manchester' },
+    { name: 'Leeds', country: 'United Kingdom', city: 'Leeds' },
+    { name: 'Glasgow', country: 'United Kingdom', city: 'Glasgow' },
+    { name: 'Edinburgh', country: 'United Kingdom', city: 'Edinburgh' },
+    { name: 'Liverpool', country: 'United Kingdom', city: 'Liverpool' },
+    { name: 'Bristol', country: 'United Kingdom', city: 'Bristol' },
+    { name: 'Sheffield', country: 'United Kingdom', city: 'Sheffield' },
+    { name: 'Newcastle', country: 'United Kingdom', city: 'Newcastle' },
+    { name: 'Cardiff', country: 'United Kingdom', city: 'Cardiff' },
+    { name: 'Belfast', country: 'United Kingdom', city: 'Belfast' },
+  ];
+  for (const zone of CITY_ZONES) {
+    await prisma.zone.upsert({
+      where: { name: zone.name },
+      update: {
+        country: zone.country,
+        city: zone.city,
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        name: zone.name,
+        country: zone.country,
+        city: zone.city,
+        isActive: true,
+      },
+    });
+  }
+
+  // Soft-deactivate legacy zone rows that were seeded as location labels / borough names.
+  const legacyZoneNames = [
+    'Croydon - Croydon 1',
+    'Croydon - Croydon 2',
+    'Croydon - Croydon 3',
+    'Croydon - Croydon 4',
+    'Croydon - Croydon 5',
+    'Merton - Merton',
+    'Hackney - Harrow 1',
+    'Haringey - Haringey',
+    'Croydon Private - Croydon 1 Private',
+    'Croydon admin - Croydon office',
+    'Bexley ISF - Bexley',
+    'Cleaners - Cleaning 1',
+    'ALF Private - ALF Private',
+    'Greenwich council - Greenwich',
+    'Transport - Croydon Transport',
+    'Croydon',
+    'Merton',
+    'Haringey',
+    'Bexley',
+    'Greenwich',
+    'Transport',
+    'Hackney',
+    'ALF Private',
+    'Cleaners',
+    'Croydon Private',
+    'Croydon admin',
+  ];
+  await prisma.zone.updateMany({
+    where: {
+      name: { in: legacyZoneNames },
+      deletedAt: null,
+    },
+    data: { isActive: false, deletedAt: new Date() },
+  });
 
   // Core permissions
   const permissionKeys = [
@@ -1283,6 +1366,9 @@ async function main() {
   await assignPermKeys('Manager', carePathwayManageKeys);
   await assignPermKeys('Admin', carePathwayAdminKeys);
 
+  // Company Admin: office user directory + role/branch assignment (Users & access).
+  await assignPermKeys('Admin', ['users.read', 'users.create', 'roles.manage']);
+
   // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
   const complianceTypeDefs = [
     ...CARE_COMPLIANCE_CATALOG,
@@ -1402,8 +1488,8 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log('[seed] Compliance types & requirements upserted.');
-  const email = 'admin@careadmin.local';
-  const password = 'Admin@12345';
+  const email = process.env.ADMIN_SEED_EMAIL?.trim() || 'admin@careadmin.local';
+  const password = process.env.ADMIN_SEED_PASSWORD?.trim() || 'Admin@12345';
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.upsert({
@@ -2142,8 +2228,10 @@ async function main() {
   const initialAssessmentReviewPerms = await prisma.permission.findMany({
     where: { key: { in: initialAssessmentReviewPermKeys }, deletedAt: null },
   });
-  for (const roleName of ['Admin', 'Manager', 'Senior Carer/Nurse']) {
-    const r = roles.find((x) => x.name === roleName);
+  for (const roleName of ['Admin', 'Manager', 'Branch Admin', 'Senior Carer/Nurse']) {
+    const r =
+      roles.find((x) => x.name === roleName) ??
+      (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
     if (!r) continue;
     for (const p of initialAssessmentReviewPerms) {
       await prisma.rolePermission.upsert({
@@ -2176,12 +2264,52 @@ async function main() {
   }
 
   await seedScheduleAreas(prisma);
+  try {
+    const sua = await seedServiceUserAreas(prisma);
+    console.log(
+      `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
+    );
+  } catch (err) {
+    console.warn(
+      '[seed] Service user areas skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  // Greenwich staff + in-service caseload. Always-on and idempotent so production
+  // deploy (`SEED_DEMO_DATA=false`) still creates the branch roster. Location is
+  // resolved by name — server UUIDs will not match local.
+  try {
+    await seedGreenwichBranchUsers(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich branch users skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+  try {
+    await seedGreenwichServiceUsers(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich service users skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
+  try {
+    await seedGreenwichManagerAttention(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich manager attention skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
   await seedTaskCatalogue(prisma);
   try {
     await seedInitialAssessmentCarePlanRules(prisma);
@@ -2192,49 +2320,63 @@ async function main() {
     );
   }
 
-  // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
-  const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
+  // Demo / sample seeding is for dev & test only. It creates demo service users and RESETS
+  // body-map data, so it must NEVER run against production — otherwise a deploy that runs
+  // `prisma db seed` would inject demo data into the live DB. Default OFF on production:
+  // an explicit SEED_DEMO_DATA flag wins; otherwise demo seeds everywhere EXCEPT production.
+  const seedDemoData =
+    process.env.SEED_DEMO_DATA === 'true' ||
+    (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production');
 
-  // Demo service-user data (medications, observations, allergies, inventory, etc.)
-  await seedDemoServiceUserData(prisma, demoSuId ? { serviceUserId: demoSuId } : {});
+  if (seedDemoData) {
+    // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
+    const demoSuId = await seedInitialAssessmentDemoServiceUser(prisma);
 
-  await resetAndSeedBodyMapDemo(prisma, {
-    serviceUserId: demoSuId ?? undefined,
-    includeSecondServiceUser: true,
-  });
+    // Demo service-user data (medications, observations, allergies, inventory, etc.)
+    await seedDemoServiceUserData(prisma, demoSuId ? { serviceUserId: demoSuId } : {});
 
-  if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
-    await seedServiceUserPersonas(prisma);
-  }
+    await resetAndSeedBodyMapDemo(prisma, {
+      serviceUserId: demoSuId ?? undefined,
+      includeSecondServiceUser: true,
+    });
 
-  try {
-    const overlay = await applyCarePlanIaDemoOverlay(prisma);
-    for (const person of overlay.people) {
-      if (person.skipped) {
-        console.warn(
-          `[seed] Care Plan IA demo overlay skipped ${person.displayName} (${person.serviceUserNumber}): ${person.skipped}`,
-        );
-        continue;
-      }
-      console.log(
-        `[seed] Care Plan IA demo overlay ${person.displayName} (${person.serviceUserNumber}): ${person.upserted} answers, aboutMe=${person.aboutMeUpdated}`,
-      );
-      if (person.unmatched.length > 0) {
-        console.warn(
-          `[seed] Care Plan IA demo overlay unmatched questions for ${person.serviceUserNumber}:`,
-          person.unmatched.join(', '),
-        );
-      }
+    if (process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+      await seedServiceUserPersonas(prisma);
     }
-  } catch (err) {
-    console.warn(
-      '[seed] Care Plan IA demo overlay skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
-  }
 
-  if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
-    await seedPersonaSchedule(prisma);
+    try {
+      const overlay = await applyCarePlanIaDemoOverlay(prisma);
+      for (const person of overlay.people) {
+        if (person.skipped) {
+          console.warn(
+            `[seed] Care Plan IA demo overlay skipped ${person.displayName} (${person.serviceUserNumber}): ${person.skipped}`,
+          );
+          continue;
+        }
+        console.log(
+          `[seed] Care Plan IA demo overlay ${person.displayName} (${person.serviceUserNumber}): ${person.upserted} answers, aboutMe=${person.aboutMeUpdated}`,
+        );
+        if (person.unmatched.length > 0) {
+          console.warn(
+            `[seed] Care Plan IA demo overlay unmatched questions for ${person.serviceUserNumber}:`,
+            person.unmatched.join(', '),
+          );
+        }
+      }
+    } catch (err) {
+      console.warn(
+        '[seed] Care Plan IA demo overlay skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+
+    if (process.env.SEED_PERSONA_SCHEDULE !== 'false' && process.env.SEED_SERVICE_USER_PERSONAS !== 'false') {
+      await seedPersonaSchedule(prisma);
+    }
+  } else {
+    console.log(
+      '[seed] Demo seeding disabled (SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
+    );
   }
 
   const scheduleOperatorPermKeys = [
@@ -2366,6 +2508,13 @@ async function main() {
     'hr.candidates.create',
     'hr.candidates.update',
     'hr.candidates.convert',
+    // Branch-scoped office use: list staff + service users (API enforces location ACL).
+    'employees.read',
+    'employees.documents.read',
+    'employees.compliance.read',
+    'service_users.read',
+    'service_users.lookups.read',
+    'lookups.read',
   ];
   const hrReadPermKeys = [
     'hr.read',
@@ -2401,6 +2550,90 @@ async function main() {
       });
     }
   }
+
+  // --- Approach A: hierarchical org roles (additive; existing roles unchanged) ---
+  const branchAdminRole = await prisma.role.upsert({
+    where: { name: 'Branch Admin' },
+    update: {
+      isActive: true,
+      deletedAt: null,
+      description:
+        'Branch-scoped administrator. Job titles (e.g. Registered Branch Manager) remain separate.',
+    },
+    create: {
+      name: 'Branch Admin',
+      description:
+        'Branch-scoped administrator. Job titles (e.g. Registered Branch Manager) remain separate.',
+      isActive: true,
+    },
+  });
+  const masterAllocRole = await prisma.role.upsert({
+    where: { name: 'Master Staff Allocation' },
+    update: {
+      isActive: true,
+      deletedAt: null,
+      description: 'Company-wide staff allocation across all branches (not full Company Admin).',
+    },
+    create: {
+      name: 'Master Staff Allocation',
+      description: 'Company-wide staff allocation across all branches (not full Company Admin).',
+      isActive: true,
+    },
+  });
+  roles.push(branchAdminRole, masterAllocRole);
+
+  const branchAdminPermKeys = [
+    'employees.read',
+    'employees.create',
+    'employees.update',
+    'employees.status.update',
+    'employees.documents.read',
+    'employees.documents.upload',
+    'employees.compliance.read',
+    'employees.reports.read',
+    'lookups.read',
+    ...serviceUserCoordinatorPermKeys,
+    ...incidentManagerKeys,
+    ...scheduleOperatorPermKeys,
+    ...ecmCoordPermKeys,
+    'notifications.read',
+    'users.read',
+    'users.create',
+    'roles.manage',
+  ];
+  await assignPermKeys('Branch Admin', branchAdminPermKeys);
+
+  const masterAllocPermKeys = [
+    'employees.read',
+    'service_users.read',
+    'service_users.assignments.read',
+    'lookups.read',
+    ...scheduleOperatorPermKeys,
+    'schedule_areas.read',
+    'notifications.read',
+  ];
+  await assignPermKeys('Master Staff Allocation', masterAllocPermKeys);
+
+  // Ensure Staff Allocation can view staff/SUs needed for allocation (additive).
+  await assignPermKeys('Staff Allocation', [
+    'employees.read',
+    'service_users.read',
+    'service_users.assignments.read',
+    'lookups.read',
+  ]);
+
+  // Optional employment RBAC levels (job title sync → identity role). Does not replace job titles.
+  for (const name of ['Branch Administrator', 'Master Staff Allocation']) {
+    await prisma.rBACLevel.upsert({
+      where: { name },
+      update: { isActive: true, deletedAt: null },
+      create: { name, isActive: true },
+    });
+  }
+
+  // Platform Super Admin = every permission; plus demo users for each hierarchy role.
+  await ensureSuperAdminAllPermissions(prisma);
+  await seedDemoOfficeUsers(prisma);
 
   const policyCategories: Array<{ name: string; code: string; displayOrder: number }> = [
     { name: 'Safeguarding', code: 'SAFEGUARDING', displayOrder: 10 },

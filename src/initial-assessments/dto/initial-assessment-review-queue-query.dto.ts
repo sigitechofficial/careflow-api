@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
 function toBool(value: unknown): boolean | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -15,4 +15,12 @@ export class InitialAssessmentReviewQueueQueryDto {
   @Transform(({ value }) => toBool(value))
   @IsBoolean()
   overdueActionsOnly?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Limit to service users at this branch location (header location scope)',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }

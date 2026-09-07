@@ -50,6 +50,7 @@ import {
   splitLatestAndPreviousAssessments,
 } from './compose/compose-ia-eligibility.util';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolveManagerUserIds } from '../notifications/resolve-manager-recipients';
 
 const instanceInclude = {
   draft: true,
@@ -664,13 +665,18 @@ export class ServiceUserCarePlansService {
   async reviewQueue(params?: {
     status?: CarePlanReviewQueueStatusFilter;
     serviceUserId?: string;
+    locationId?: string;
   }) {
     const rows = await this.prisma.serviceUserCarePlanInstance.findMany({
       where: {
         status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
         nextReviewDueAt: { not: null },
         ...(params?.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
-        serviceUser: { deletedAt: null, isActive: true },
+        serviceUser: {
+          deletedAt: null,
+          isActive: true,
+          ...(params?.locationId ? { locationId: params.locationId } : {}),
+        },
       },
       select: {
         id: true,
@@ -813,7 +819,7 @@ export class ServiceUserCarePlansService {
   private async resolveCareTeamUserIds(serviceUserId: string): Promise<string[]> {
     const su = await this.prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
-      select: { keyWorkerId: true, namedNurseId: true },
+      select: { keyWorkerId: true, namedNurseId: true, locationId: true },
     });
     if (!su) return [];
     const ids = new Set<string>();
@@ -824,6 +830,9 @@ export class ServiceUserCarePlansService {
     if (su.namedNurseId) {
       const uid = await this.userIdForEmployee(su.namedNurseId);
       if (uid) ids.add(uid);
+    }
+    for (const uid of await resolveManagerUserIds(this.prisma, { locationId: su.locationId })) {
+      ids.add(uid);
     }
     return [...ids];
   }

@@ -42,12 +42,12 @@ import {
   detectVisitExceptions,
   formatDateOnly,
   formatTimeRange,
-  formatVisitRef,
   formatMinutesAsHours,
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
   hasPayBlockingExceptions,
   listPayBlockingCodes,
+  isCanonicalVisitRef,
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
@@ -70,6 +70,7 @@ import {
   nightDutyAppLabel,
   resolveStoredNightDuty,
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
+import { ensureScheduledVisitRef } from '../scheduling/visit-ref-allocate.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -252,10 +253,42 @@ export class VisitReconciliationsService {
     return results;
   }
 
+  /**
+   * Issue the immutable EMONITORED visitRef even before the visit is billable.
+   * Creates (or reuses) reconciliation row(s) so employee-app / admin share
+   * the same VIS-[BRANCH]-[YYYYMMDD]-[NNNN]. Does not evaluate pay/bill.
+   */
+  async issueVisitRef(scheduledVisitId: string): Promise<string | null> {
+    const id = await this.ensureForVisit(scheduledVisitId, undefined, {
+      issueRefOnly: true,
+    });
+    if (!id) return null;
+    const row = await this.prisma.visitReconciliation.findFirst({
+      where: { scheduledVisitId },
+      select: { visitRef: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return row?.visitRef?.trim() || null;
+  }
+
+  async issueVisitRefsByScheduledVisitIds(
+    scheduledVisitIds: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const unique = [
+      ...new Set(scheduledVisitIds.map((id) => id?.trim()).filter(Boolean)),
+    ];
+    for (const id of unique) {
+      const ref = await this.issueVisitRef(id);
+      if (ref) map.set(id, ref);
+    }
+    return map;
+  }
+
   async ensureForVisit(
     scheduledVisitId: string,
     tx?: Prisma.TransactionClient,
-    options?: { overrunReason?: string | null },
+    options?: { overrunReason?: string | null; issueRefOnly?: boolean },
   ): Promise<string | null> {
     const db = this.client(tx);
     const visit = await db.scheduledVisit.findFirst({
@@ -265,7 +298,8 @@ export class VisitReconciliationsService {
         isActive: true,
       },
     });
-    if (!visit || !isBillingEligibleVisit(visit)) return null;
+    if (!visit) return null;
+    if (!options?.issueRefOnly && !isBillingEligibleVisit(visit)) return null;
 
     let overrunReason = options?.overrunReason?.trim() || null;
     if (overrunReason == null) {
@@ -295,11 +329,12 @@ export class VisitReconciliationsService {
             },
           ];
 
+    // Same scheduled visit → same immutable visitRef for every carer.
+    // VIS-[BRANCH]-[YYYYMMDD]-[NNNN]; never reallocated after first creation.
+    const sharedVisitRef = await this.resolveOrAllocateVisitRef(db, visit);
+
     let firstId: string | null = null;
     for (const allocation of targets) {
-      // Same scheduled visit → same visitRef for every carer (double-up / multi-allocation).
-      const visitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-
       const planned = resolveAllocationWindow(
         {
           scheduledStartDateTime: allocation.scheduledStartDateTime,
@@ -331,6 +366,12 @@ export class VisitReconciliationsService {
           });
 
       if (existing) {
+        // Canonical visitRef is immutable (call-off / reschedule keep the same ref).
+        // Legacy / non-canonical refs may be repaired once to VIS-[BRANCH]-… format.
+        const existingRef = existing.visitRef?.trim() || '';
+        const canRepairRef =
+          sharedVisitRef !== existingRef &&
+          (!isCanonicalVisitRef(existingRef) || /^VIS-GEN-\d{8}-\d{4}$/.test(existingRef));
         const updated = await db.visitReconciliation.update({
           where: { id: existing.id },
           data: {
@@ -340,11 +381,13 @@ export class VisitReconciliationsService {
             actualEndDateTime: actual.end,
             employeeId: allocation.employeeId ?? existing.employeeId,
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
-            visitRef,
             ...(overrunReason != null ? { overrunReason } : {}),
+            ...(canRepairRef ? { visitRef: sharedVisitRef } : {}),
           },
         });
-        await this.safeEvaluate(db, updated.id);
+        if (!options?.issueRefOnly) {
+          await this.safeEvaluate(db, updated.id);
+        }
         firstId ??= updated.id;
         continue;
       }
@@ -356,7 +399,7 @@ export class VisitReconciliationsService {
           serviceUserId: visit.serviceUserId,
           employeeId: allocation.employeeId,
           jobAllocationId: allocation.id,
-          visitRef,
+          visitRef: sharedVisitRef,
           plannedStartDateTime: planned.start,
           plannedEndDateTime: planned.end,
           actualStartDateTime: actual.start,
@@ -364,21 +407,35 @@ export class VisitReconciliationsService {
           overrunReason,
         },
       });
-      await this.safeEvaluate(db, created.id);
+      if (!options?.issueRefOnly) {
+        await this.safeEvaluate(db, created.id);
+      }
       firstId ??= created.id;
     }
 
-    // Keep every carer's reconciliation on the same shared visit id for this scheduled visit.
-    const sharedVisitRef = formatVisitRef(visit.id, visit.scheduledStartDateTime);
-    await db.visitReconciliation.updateMany({
-      where: {
-        scheduledVisitId: visit.id,
-        NOT: { visitRef: sharedVisitRef },
-      },
-      data: { visitRef: sharedVisitRef },
-    });
-
     return firstId;
+  }
+
+  /**
+   * Reuse the visit reference already issued for this scheduled visit.
+   * Otherwise allocate VIS-[BRANCH]-[YYYYMMDD]-[NNNN] once (immutable thereafter).
+   * BRANCH = service user’s branch ScheduleArea.visitRefCode (3 chars).
+   * YYYYMMDD = original planned visit date at first issuance.
+   * NNNN = daily sequence per branch (resets each day).
+   * Called-off / rescheduled visits keep the same reference.
+   * Legacy VIS-GEN-* / non-canonical refs are repaired once when a real branch exists.
+   */
+  private async resolveOrAllocateVisitRef(
+    db: DbClient,
+    visit: {
+      id: string
+      scheduledJobId: string
+      serviceUserId: string
+      scheduledStartDateTime: Date
+      visitRef?: string | null
+    },
+  ): Promise<string> {
+    return ensureScheduledVisitRef(db, visit);
   }
 
   private async safeEvaluate(
@@ -540,8 +597,11 @@ export class VisitReconciliationsService {
         take: 100,
       });
       const suIds = serviceUsers.map((r) => r.id);
+      const looksLikeUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
       where.OR = [
         { visitRef: { contains: s, mode: 'insensitive' } },
+        ...(looksLikeUuid ? [{ scheduledVisitId: s }] : []),
         ...(suIds.length ? [{ serviceUserId: { in: suIds } }] : []),
       ];
     }
@@ -780,16 +840,21 @@ export class VisitReconciliationsService {
       status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
     }
 
-    if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
-      dto.scope === 'INVOICE'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
-    } else if (
-      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      dto.scope === 'PAY'
-    ) {
-      status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+    // Additive default: approving one side when the other is already approved promotes
+    // to BOTH. The three-choice buttons pass `exclusive` to set the decision definitively
+    // (e.g. "Funders" always means bill-only / carer £0, even if pay was approved before).
+    if (!dto.exclusive) {
+      if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_PAY &&
+        dto.scope === 'INVOICE'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      } else if (
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
+        dto.scope === 'PAY'
+      ) {
+        status = VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      }
     }
 
     await this.prisma.visitReconciliation.update({
@@ -939,11 +1004,8 @@ export class VisitReconciliationsService {
         .filter((e) => !e.resolvedAt)
         .map((e) => ({ code: e.code, message: e.message ?? '' }));
 
-      if (
-        row.status === VisitReconciliationStatus.LOCKED ||
-        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH
-      ) {
-        skipped.push({ id: row.id, reason: 'Already locked or fully approved' });
+      if (row.status === VisitReconciliationStatus.LOCKED) {
+        skipped.push({ id: row.id, reason: 'Already locked' });
         continue;
       }
 
@@ -1276,6 +1338,7 @@ export class VisitReconciliationsService {
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: visit.scheduledJob?.metadata,
     });
+    const timeZone = await this.orgSettings.getOperationalTimezone();
 
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
@@ -1449,21 +1512,18 @@ export class VisitReconciliationsService {
       }
     }
 
+    // Default: clean visits → APPROVED_FOR_BOTH. Any exception → PENDING_REVIEW.
+    // Preserve LOCKED / REJECTED; derive keeps narrower human approvals when clean.
     const status =
-      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-      row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE
         ? row.status
         : deriveReconciliationStatus(activeExceptions, row.status);
 
-    const promotedStatus =
-      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE &&
-      !hasPayBlockingExceptions(activeExceptions)
-        ? VisitReconciliationStatus.APPROVED_FOR_BOTH
-        : status;
+    // A bill-only approval (APPROVED_FOR_INVOICE) is an exclusive choice: charge the
+    // client / funder, pay the carer £0. Do not auto-promote to BOTH.
+    const promotedStatus = status;
 
     // Overrun pending/rejected → planned pay window; APPROVED → actual pay window.
     // Early leave within org/slot tolerance → full planned pay + charge (flags unchanged).
@@ -1607,6 +1667,7 @@ export class VisitReconciliationsService {
           end: approvedPayEnd,
           stackingPolicy,
           isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+          timeZone,
         },
       );
       payableAmount = calc?.amount ?? null;
@@ -1634,6 +1695,7 @@ export class VisitReconciliationsService {
         isBankHoliday,
         isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
         nightDuty,
+        timeZone,
       });
     }
 
@@ -1716,6 +1778,7 @@ export class VisitReconciliationsService {
               start: approvedBillStart,
               end: approvedBillEnd,
               isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+              timeZone,
             }
           : undefined,
         nightDuty,
@@ -1812,37 +1875,30 @@ export class VisitReconciliationsService {
       });
     }
 
-    // Once a visit is priced from the pay card, accept it for carer pay immediately.
-    // Invoice / overrun / funding exceptions stay on the row for finance review, but
-    // earnings and salary must not wait on a visit-reconciliation approve click.
+    // Clean visits auto-approve BOTH; exceptions force PENDING_REVIEW.
+    // Manual All / Carer Pay / Funders still override and are preserved when clean.
     const lockedOrRejected =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE;
 
     let finalStatus = promotedStatus;
-    if (!lockedOrRejected && payableAmount != null && payMinutes > 0) {
-      if (
-        promotedStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE
-      ) {
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_BOTH;
-      } else if (
-        promotedStatus !== VisitReconciliationStatus.APPROVED_FOR_BOTH &&
-        row.status !== VisitReconciliationStatus.APPROVED_FOR_BOTH
-      ) {
-        finalStatus = VisitReconciliationStatus.APPROVED_FOR_PAY;
-      }
-    } else if (
+    if (
       !lockedOrRejected &&
       payCard &&
       payMinutes > 0 &&
       payableAmount == null &&
       activeExceptions.some((e) => e.code === FinanceExceptionCode.RATE_MISSING)
     ) {
-      // Clear a previously auto-approved pay status when no matching rate applies.
-      finalStatus = deriveReconciliationStatus(activeExceptions, row.status);
+      // Clear a previously approved pay status when no matching rate applies.
+      finalStatus = deriveReconciliationStatus(activeExceptions, undefined);
     }
+
+    const becamePendingFromApproval =
+      finalStatus === VisitReconciliationStatus.PENDING_REVIEW &&
+      (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+        row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE);
 
     await db.visitReconciliation.update({
       where: { id },
@@ -1872,12 +1928,7 @@ export class VisitReconciliationsService {
             ? row.payCardVersion
             : null,
         lastEvaluatedAt: new Date(),
-        ...((finalStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-          finalStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH) &&
-        row.status !== finalStatus &&
-        !row.approvedAt
-          ? { approvedAt: new Date() }
-          : {}),
+        ...(becamePendingFromApproval ? { approvedAt: null, approvedById: null } : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
@@ -2271,6 +2322,7 @@ export class VisitReconciliationsService {
             isBankHoliday,
             isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
             nightDuty,
+            timeZone,
           })
         : null;
 

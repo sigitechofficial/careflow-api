@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
@@ -8,10 +8,18 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { IsOnOrAfterDate } from '../../common/validators/date-order.validator';
 import { ServiceUserReferenceItemDto } from './service-user-reference-item.dto';
+
+/** Empty / whitespace optional dates → undefined so @IsOptional skips @IsDateString. */
+function emptyDateToUndefined({ value }: { value: unknown }): unknown {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'string' && value.trim() === '') return undefined;
+  return typeof value === 'string' ? value.trim() : value;
+}
 
 export class CreateServiceUserDto {
   @ApiProperty({ maxLength: 100 })
@@ -38,6 +46,7 @@ export class CreateServiceUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(emptyDateToUndefined)
   @IsDateString()
   dateOfBirth?: string;
 
@@ -79,11 +88,13 @@ export class CreateServiceUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(emptyDateToUndefined)
   @IsDateString()
   serviceStartDate?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(emptyDateToUndefined)
   @IsDateString()
   @IsOnOrAfterDate('serviceStartDate')
   serviceEndDate?: string;
@@ -127,6 +138,15 @@ export class CreateServiceUserDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Service user area under a branch (also sets locationId)',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  serviceUserAreaId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

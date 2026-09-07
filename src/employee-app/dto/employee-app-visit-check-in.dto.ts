@@ -97,7 +97,7 @@ export class EmployeeAppVisitCheckInDto {
   @IsOptional()
   @IsString()
   @MaxLength(64)
-  timingExceptionReasonCode?: string;
+  timingExceptionReasonCode?: string; // selected arrival-reason label (catalog has no codes)
 
   @ApiPropertyOptional()
   @IsOptional()

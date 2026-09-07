@@ -3,7 +3,11 @@ import {
   calculateBillableAmount,
   buildPayRateBreakdown,
   deriveReconciliationStatus,
+  formatVisitRef,
   hasPayBlockingExceptions,
+  isCanonicalVisitRef,
+  normalizeVisitRefBranchCode,
+  visitRefDayKey,
 } from './visit-reconciliation.util';
 import { FinanceExceptionCode, VisitReconciliationStatus } from '@prisma/client';
 
@@ -184,14 +188,14 @@ describe('calculatePayableAmount fixed slots vs day/time hourly', () => {
   });
 });
 
-describe('deriveReconciliationStatus — auto pay on complete', () => {
-  it('auto-approves pay when only invoice / overrun exceptions exist', () => {
+describe('deriveReconciliationStatus — default approved for both', () => {
+  it('stays pending when any exceptions exist', () => {
     const status = deriveReconciliationStatus([
       { code: FinanceExceptionCode.CHARGE_CARD_MISSING, message: 'No charge card' },
       { code: FinanceExceptionCode.OVERRUN, message: '10 min overrun' },
       { code: FinanceExceptionCode.FUNDING_SETUP_INCOMPLETE, message: 'Funding incomplete' },
     ]);
-    expect(status).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
+    expect(status).toBe(VisitReconciliationStatus.PENDING_REVIEW);
   });
 
   it('stays pending when pay card is missing', () => {
@@ -202,6 +206,33 @@ describe('deriveReconciliationStatus — auto pay on complete', () => {
     expect(deriveReconciliationStatus(exceptions)).toBe(
       VisitReconciliationStatus.PENDING_REVIEW,
     );
+  });
+
+  it('defaults to approved for both when there are no exceptions', () => {
+    expect(deriveReconciliationStatus([])).toBe(
+      VisitReconciliationStatus.APPROVED_FOR_BOTH,
+    );
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.PENDING_REVIEW),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+  });
+
+  it('preserves an existing narrower or locked approval when clean', () => {
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_PAY),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_BOTH),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+    expect(
+      deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_INVOICE),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_INVOICE);
+    expect(
+      deriveReconciliationStatus(
+        [{ code: FinanceExceptionCode.OVERRUN, message: 'over' }],
+        VisitReconciliationStatus.APPROVED_FOR_BOTH,
+      ),
+    ).toBe(VisitReconciliationStatus.PENDING_REVIEW);
   });
 });
 
@@ -294,7 +325,25 @@ describe('calculateBillableAmount night duty', () => {
   });
 });
 
-describe('deriveReconciliationStatus — auto pay on complete', () => {
+describe('formatVisitRef', () => {
+  it('builds VIS-[BRANCH]-[YYYYMMDD]-[NNNN] with 3-char branch', () => {
+    expect(formatVisitRef('L01', '20260901', 123)).toBe('VIS-L01-20260901-0123');
+    expect(formatVisitRef('croydon_1', '2026-09-01', 1)).toBe('VIS-C01-20260901-0001');
+  });
+
+  it('normalizes branch codes to exactly 3 characters', () => {
+    expect(normalizeVisitRefBranchCode('L01')).toBe('L01');
+    expect(normalizeVisitRefBranchCode('L-01')).toBe('L01');
+    expect(normalizeVisitRefBranchCode('MERTON')).toBe('MER');
+    expect(normalizeVisitRefBranchCode('')).toBe('GEN');
+    expect(isCanonicalVisitRef('VIS-L01-20260901-0123')).toBe(true);
+    expect(isCanonicalVisitRef('VIS-CROYDON1-20260901-0001')).toBe(false);
+    expect(isCanonicalVisitRef('V-2026-09-ABCD')).toBe(false);
+    expect(visitRefDayKey('2026-09-01')).toBe('20260901');
+  });
+});
+
+describe('deriveReconciliationStatus — pay blocking helpers', () => {
   it('treats pay-card RATE_MISSING as pay blocking, not charge-card', () => {
     expect(
       hasPayBlockingExceptions([
@@ -306,5 +355,36 @@ describe('deriveReconciliationStatus — auto pay on complete', () => {
         { code: FinanceExceptionCode.RATE_MISSING, message: 'Charge card has no charge rules configured' },
       ]),
     ).toBe(false);
+  });
+});
+
+describe('calculatePayableAmount operational timezone (BST)', () => {
+  it('matches Weekday daytime 07:00–19:00 for a London 07:00–10:00 visit stored as UTC', () => {
+    // 2026-09-02 07:00–10:00 Europe/London = 06:00–09:00Z
+    const start = new Date('2026-09-02T06:00:00.000Z');
+    const end = new Date('2026-09-02T09:00:00.000Z');
+    const rules = [
+      {
+        label: 'Weekday daytime',
+        dayType: 'WEEKDAY',
+        rateType: 'HOURLY',
+        amount: 25,
+        priority: 0,
+        sortOrder: 0,
+        startTime: '07:00',
+        endTime: '19:00',
+        appliesToVisit: true,
+      },
+    ];
+    const withoutTz = calculatePayableAmount(rules, start, 180, false, { start, end });
+    expect(withoutTz).toBeNull();
+
+    const withLondon = calculatePayableAmount(rules, start, 180, false, {
+      start,
+      end,
+      timeZone: 'Europe/London',
+    });
+    expect(withLondon?.amount).toBe(75);
+    expect(withLondon?.label).toBe('BANDED_HOURLY');
   });
 });

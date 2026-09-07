@@ -16,6 +16,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import { scheduledJobLocationScope } from './ecm-location-scope.util';
+import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
 const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
@@ -259,7 +261,12 @@ export class EcmExceptionsService {
         lifecycle: { in: OPEN_LIFECYCLES },
       },
     });
-    const stale = open.filter(row => !keep.has(row.kind));
+    const stale = open.filter(
+      row =>
+        row.kind !== EcmExceptionKind.LEFT_VISIT_AREA &&
+        row.kind !== EcmExceptionKind.CARER_SOS &&
+        !keep.has(row.kind),
+    );
     if (stale.length === 0) return;
 
     for (const row of stale) {
@@ -308,44 +315,51 @@ export class EcmExceptionsService {
     }
   }
 
-  async listOpen(limit = 50, serviceUserId?: string) {
+  async listOpen(limit = 50, serviceUserId?: string, locationId?: string) {
     await this.alerts.refreshOverdueFlags(200);
-    const rows = await this.prisma.ecmException.findMany({
-      where: {
-        lifecycle: { in: OPEN_LIFECYCLES },
-        ...(serviceUserId
-          ? { scheduledJob: { serviceUserId, deletedAt: null } }
-          : {}),
-      },
-      orderBy: [{ overdue: 'desc' }, { createdAt: 'desc' }],
-      take: Math.min(limit, 100),
-      include: {
-        scheduledJob: {
-          select: {
-            id: true,
-            jobName: true,
-            status: true,
-            scheduledStartDateTime: true,
-            scheduledEndDateTime: true,
-            serviceUserId: true,
-            serviceUser: {
-              select: { id: true, firstName: true, lastName: true, preferredName: true },
+    const suWhere =
+      serviceUserId || locationId
+        ? {
+            scheduledJob: {
+              deletedAt: null,
+              ...(serviceUserId ? { serviceUserId } : {}),
+              ...(locationId ? scheduledJobLocationScope(locationId) : {}),
             },
-            allocations: {
-              where: {
-                deletedAt: null,
-                isActive: true,
-                unallocatedAt: null,
-                status: { in: ACTIVE_ALLOCATION },
-              },
-              select: {
-                isLeadCarer: true,
-                employee: {
-                  select: {
-                    id: true,
-                    personalDetail: {
-                      select: { firstName: true, lastName: true },
-                    },
+          }
+        : {};
+    const include = {
+      visitAreaLock: true,
+      scheduledJob: {
+        select: {
+          id: true,
+          jobName: true,
+          status: true,
+          scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          serviceUserId: true,
+          visits: {
+            where: { deletedAt: null },
+            select: { actualStartDateTime: true },
+            orderBy: { scheduledStartDateTime: 'asc' as const },
+            take: 1,
+          },
+          serviceUser: {
+            select: { id: true, firstName: true, lastName: true, preferredName: true },
+          },
+          allocations: {
+            where: {
+              deletedAt: null,
+              isActive: true,
+              unallocatedAt: null,
+              status: { in: ACTIVE_ALLOCATION },
+            },
+            select: {
+              isLeadCarer: true,
+              employee: {
+                select: {
+                  id: true,
+                  personalDetail: {
+                    select: { firstName: true, lastName: true },
                   },
                 },
               },
@@ -353,7 +367,81 @@ export class EcmExceptionsService {
           },
         },
       },
-    });
+    } as const;
+    // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
+    // limit hide a later same-day lock behind older exceptions.
+    const [sosRows, areaRows, mockRows, otherRows] = await Promise.all([
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.CARER_SOS,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.LEFT_VISIT_AREA,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.MOCK_LOCATION,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: {
+            notIn: [
+              EcmExceptionKind.CARER_SOS,
+              EcmExceptionKind.LEFT_VISIT_AREA,
+              EcmExceptionKind.MOCK_LOCATION,
+            ],
+          },
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ overdue: 'desc' }, { createdAt: 'desc' }],
+        take: Math.min(limit, 100),
+        include,
+      }),
+    ]);
+    const reservedIds = new Set(
+      [...sosRows, ...areaRows, ...mockRows].map((row) => row.id),
+    );
+    const rows = [
+      ...sosRows,
+      ...areaRows,
+      ...mockRows,
+      ...otherRows.filter((row) => !reservedIds.has(row.id)),
+    ];
+    const mockedJobIds = await this.mockedVisitJobIds(
+      rows.map((row) => row.scheduledJobId),
+    );
+    const ackIds = [
+      ...new Set(
+        rows.map((row) => row.acknowledgedById).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const ackUsers =
+      ackIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: ackIds } },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          });
+    const ackNames = new Map(
+      ackUsers.map((user) => [user.id, displayUserName(user) ?? user.id]),
+    );
     return {
       data: rows.map((r) => {
         const start = r.scheduledJob.scheduledStartDateTime;
@@ -380,6 +468,10 @@ export class EcmExceptionsService {
           responseTargetMinutes: r.responseTargetMinutes,
           escalationDeadlineAt: r.escalationDeadlineAt?.toISOString() ?? null,
           acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
+          acknowledgedById: r.acknowledgedById,
+          acknowledgedByName: r.acknowledgedById
+            ? ackNames.get(r.acknowledgedById) ?? null
+            : null,
           createdAt: r.createdAt.toISOString(),
           jobName: r.scheduledJob.jobName,
           jobStatus: r.scheduledJob.status,
@@ -393,6 +485,31 @@ export class EcmExceptionsService {
             [r.scheduledJob.serviceUser.firstName, r.scheduledJob.serviceUser.lastName]
               .filter(Boolean)
               .join(' '),
+          clockedInAt:
+            r.scheduledJob.visits[0]?.actualStartDateTime?.toISOString() ?? null,
+          hasMockLocation:
+            r.kind === EcmExceptionKind.MOCK_LOCATION ||
+            mockedJobIds.has(r.scheduledJobId) ||
+            (r.kind === EcmExceptionKind.CARER_SOS &&
+              Boolean(parseCarerSosContext(r.context).isMockedLocation)),
+          areaLock: r.visitAreaLock
+            ? {
+                status: r.visitAreaLock.status,
+                lockedAt: r.visitAreaLock.lockedAt.toISOString(),
+                allowedAt: r.visitAreaLock.allowedAt?.toISOString() ?? null,
+                allowedByName: r.visitAreaLock.allowedByName,
+                allowNote: r.visitAreaLock.allowNote,
+                employeeId: r.visitAreaLock.employeeId,
+              }
+            : null,
+          sos:
+            r.kind === EcmExceptionKind.CARER_SOS
+              ? mapCarerSosAlert(r, {
+                  acknowledgedByName: r.acknowledgedById
+                    ? ackNames.get(r.acknowledgedById) ?? null
+                    : null,
+                })
+              : null,
         };
       }),
     };
@@ -485,5 +602,18 @@ export class EcmExceptionsService {
       throw new BadRequestException(`Exception is already ${row.lifecycle}`);
     }
     return row;
+  }
+
+  private async mockedVisitJobIds(jobIds: string[]): Promise<Set<string>> {
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    if (unique.length === 0) return new Set();
+    const events = await this.prisma.visitAttendanceEvent.findMany({
+      where: {
+        scheduledJobId: { in: unique },
+        isMockLocation: true,
+      },
+      select: { scheduledJobId: true },
+    });
+    return new Set(events.map((event) => event.scheduledJobId));
   }
 }

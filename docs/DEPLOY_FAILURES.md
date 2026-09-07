@@ -1,15 +1,28 @@
 # Backend deploy failures (GitHub Actions → VPS)
 
+Two sites, two branches (do not mix them):
+
+| Branch | Workflow | Live URL |
+| --- | --- | --- |
+| `main` | Deploy Careflow API | https://careflowbackend.sigisolutions.net/ |
+| `production` | Deploy Allforcare API | https://api-allforcare.sigisolutions.net/ |
+
 If deploy exits with code 1 and rolls back **files**, the database is **not** restored automatically.
 
 ## Find the real error
 
-SSH to the server and read:
+SSH to the server and read (pick the site you deployed):
 
 ```bash
+# main → careflowbackend
 tail -100 /home/sigisolutions/deployments/careflow-api/logs/last-migrate-deploy.log
 tail -100 /home/sigisolutions/deployments/careflow-api/logs/last-seed.log
 tail -50 /home/sigisolutions/deployments/careflow-api/logs/deployments.log
+
+# production → api-allforcare
+tail -100 /home/sigisolutions/deployments/api-allforcare/logs/last-migrate-deploy.log
+tail -100 /home/sigisolutions/deployments/api-allforcare/logs/last-seed.log
+tail -50 /home/sigisolutions/deployments/api-allforcare/logs/deployments.log
 ```
 
 Or re-run the GitHub Actions job and expand the **Deploy backend release** step (with `set -x` tracing).

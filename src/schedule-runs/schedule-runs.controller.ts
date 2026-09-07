@@ -24,15 +24,19 @@ export class ScheduleRunsController {
   @Get()
   @Permissions('schedule_runs.read')
   @ApiOperation({ summary: 'List schedule runs' })
-  list(@Query() query: ScheduleRunQueryDto) {
-    return this.service.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: ScheduleRunQueryDto) {
+    return this.service.list(query, user);
   }
 
   @Get(':id')
   @Permissions('schedule_runs.read')
   @ApiOperation({ summary: 'Get schedule run by id' })
-  getById(@Param('id') id: string, @Query('includeJobs') includeJobs?: string) {
-    return this.service.getById(id, includeJobs === 'true');
+  getById(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Query('includeJobs') includeJobs?: string,
+  ) {
+    return this.service.getById(id, includeJobs === 'true', user);
   }
 
   @Post()

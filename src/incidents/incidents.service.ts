@@ -24,6 +24,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { ListIncidentsQueryDto } from './dto/list-incidents-query.dto';
 import {
@@ -66,6 +67,7 @@ export class IncidentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly notifications: NotificationsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -172,6 +174,17 @@ export class IncidentsService {
     }
 
     await this.validateReferences(dto);
+
+    const scope = this.orgScope.fromRequestUser(user);
+    if (dto.locationId) {
+      this.orgScope.assertLocationAccess(scope, dto.locationId);
+    }
+    if (dto.primaryServiceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, dto.primaryServiceUserId);
+    }
+    if (dto.primaryEmployeeId) {
+      await this.orgScope.assertEmployeeInScope(scope, dto.primaryEmployeeId);
+    }
 
     const severity = dto.severity ?? IncidentSeverity.LOW;
     const privacyLevel = dto.privacyLevel ?? IncidentPrivacyLevel.NORMAL;
@@ -328,6 +341,43 @@ export class IncidentsService {
   async list(user: RequestUser, query: ListIncidentsQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 25;
+    const scope = this.orgScope.fromRequestUser(user);
+
+    if (scope.locationIds?.length === 0) {
+      return {
+        data: {
+          items: [],
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }
+
+    const locationIds = this.orgScope.resolveListLocationIds(
+      scope,
+      query.locationId,
+      undefined,
+    );
+    if (locationIds && locationIds.length === 0) {
+      return {
+        data: {
+          items: [],
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }
+
+    if (query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+    }
+    if (query.employeeId) {
+      await this.orgScope.assertEmployeeInScope(scope, query.employeeId);
+    }
 
     const where: Prisma.IncidentWhereInput = {
       deletedAt: null,
@@ -342,10 +392,25 @@ export class IncidentsService {
         ? { primaryServiceUserId: query.serviceUserId }
         : {}),
       ...(query.employeeId ? { primaryEmployeeId: query.employeeId } : {}),
-      ...(query.locationId ? { locationId: query.locationId } : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
       ...(query.openOnly ? { status: { in: OPEN_INCIDENT_STATUSES } } : {}),
     };
+
+    if (locationIds?.length) {
+      const serviceUsers = await this.prisma.serviceUser.findMany({
+        where: { deletedAt: null, locationId: { in: locationIds } },
+        select: { id: true },
+      });
+      const suIds = serviceUsers.map((s) => s.id);
+      andWhereFragment(where, {
+        OR: [
+          { locationId: { in: locationIds } },
+          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+        ],
+      });
+    } else {
+      andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
+    }
 
     if (query.dateFrom || query.dateTo) {
       where.occurredAt = {
@@ -388,6 +453,8 @@ export class IncidentsService {
   }
 
   async getById(user: RequestUser, id: string) {
+    await this.orgScope.assertIncidentInScope(this.orgScope.fromRequestUser(user), id);
+
     const incident = await this.prisma.incident.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -774,11 +841,13 @@ export class IncidentsService {
   // ---------------------------------------------------------------------------
 
   async getStats(user: RequestUser) {
+    const scope = this.orgScope.fromRequestUser(user);
     const base: Prisma.IncidentWhereInput = {
       deletedAt: null,
       isArchived: false,
       ...this.privacyWhere(user),
     };
+    andWhereFragment(base, await this.orgScope.incidentScopeWhere(scope));
     const startOfMonth = new Date();
     startOfMonth.setUTCDate(1);
     startOfMonth.setUTCHours(0, 0, 0, 0);
@@ -1095,11 +1164,15 @@ export class IncidentsService {
   private async loadActionForManage(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true } } },
     });
     if (!action || !this.canViewIncident(user, action.incident)) {
       throw new NotFoundException('Action not found');
     }
+    await this.orgScope.assertIncidentInScope(
+      this.orgScope.fromRequestUser(user),
+      action.incident.id,
+    );
     return action;
   }
 
@@ -1107,11 +1180,15 @@ export class IncidentsService {
   private async loadActionForComplete(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true } } },
     });
     if (!action || !this.canViewIncident(user, action.incident)) {
       throw new NotFoundException('Action not found');
     }
+    await this.orgScope.assertIncidentInScope(
+      this.orgScope.fromRequestUser(user),
+      action.incident.id,
+    );
     const isAssignee =
       user.employeeId != null && action.assignedEmployeeId === user.employeeId;
     if (!this.can(user, 'incidents.manage_actions') && !isAssignee) {
@@ -1163,6 +1240,7 @@ export class IncidentsService {
     user: RequestUser,
     id: string,
   ): Promise<IncidentWithRefs> {
+    await this.orgScope.assertIncidentInScope(this.orgScope.fromRequestUser(user), id);
     const incident = await this.prisma.incident.findFirst({
       where: { id, deletedAt: null },
       include: { category: true, subtype: true },

@@ -23,15 +23,15 @@ export class ScheduleAreasController {
   @Permissions('schedule_areas.read')
   @ApiOperation({ summary: 'List schedule areas (zones/groups)' })
   @ApiResponse({ status: 200 })
-  list(@Query() query: ScheduleAreaQueryDto) {
-    return this.service.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: ScheduleAreaQueryDto) {
+    return this.service.list(query, user);
   }
 
   @Get(':id')
   @Permissions('schedule_areas.read')
   @ApiOperation({ summary: 'Get schedule area by id' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getById(id, user);
   }
 
   @Post()

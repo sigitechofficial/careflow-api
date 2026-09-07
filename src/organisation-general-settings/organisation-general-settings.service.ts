@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { hasAnyCheckInMethodEnabled } from '../employee-app/employee-app-check-in-methods.util';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { UpdateOrganisationGeneralSettingsDto } from './dto/update-organisation-general-settings.dto';
@@ -111,6 +112,10 @@ type SettingsRow = {
   domEmailTomorrowsSchedule: boolean;
   domAppShowHoursBefore: number;
   domRestrictJobOutsideGeofence: boolean;
+  domCheckInGpsEnabled: boolean;
+  domCheckInManualEnabled: boolean;
+  domCheckInNfcEnabled: boolean;
+  domCheckInQrEnabled: boolean;
   domGeofenceToleranceMeters: number;
   domDownloadAllServiceUsers: boolean;
   domFutureVisitsDays: number;
@@ -244,6 +249,10 @@ function mapRow(row: SettingsRow) {
     domEmailTomorrowsSchedule: row.domEmailTomorrowsSchedule,
     domAppShowHoursBefore: row.domAppShowHoursBefore,
     domRestrictJobOutsideGeofence: row.domRestrictJobOutsideGeofence,
+    domCheckInGpsEnabled: row.domCheckInGpsEnabled,
+    domCheckInManualEnabled: row.domCheckInManualEnabled,
+    domCheckInNfcEnabled: row.domCheckInNfcEnabled,
+    domCheckInQrEnabled: row.domCheckInQrEnabled,
     domGeofenceToleranceMeters: row.domGeofenceToleranceMeters,
     domDownloadAllServiceUsers: row.domDownloadAllServiceUsers,
     domFutureVisitsDays: row.domFutureVisitsDays,
@@ -363,6 +372,10 @@ function buildUpdateData(
   set('domEmailTomorrowsSchedule', dto.domEmailTomorrowsSchedule);
   set('domAppShowHoursBefore', dto.domAppShowHoursBefore);
   set('domRestrictJobOutsideGeofence', dto.domRestrictJobOutsideGeofence);
+  set('domCheckInGpsEnabled', dto.domCheckInGpsEnabled);
+  set('domCheckInManualEnabled', dto.domCheckInManualEnabled);
+  set('domCheckInNfcEnabled', dto.domCheckInNfcEnabled);
+  set('domCheckInQrEnabled', dto.domCheckInQrEnabled);
   set('domGeofenceToleranceMeters', dto.domGeofenceToleranceMeters);
   set('domDownloadAllServiceUsers', dto.domDownloadAllServiceUsers);
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
@@ -502,6 +515,19 @@ export class OrganisationGeneralSettingsService {
 
   async update(userId: string, dto: UpdateOrganisationGeneralSettingsDto) {
     const existing = await this.getOrCreate();
+    const mergedCheckIn = {
+      domCheckInGpsEnabled:
+        dto.domCheckInGpsEnabled ?? existing.domCheckInGpsEnabled,
+      domCheckInManualEnabled:
+        dto.domCheckInManualEnabled ?? existing.domCheckInManualEnabled,
+      domCheckInNfcEnabled:
+        dto.domCheckInNfcEnabled ?? existing.domCheckInNfcEnabled,
+      domCheckInQrEnabled:
+        dto.domCheckInQrEnabled ?? existing.domCheckInQrEnabled,
+    };
+    if (!hasAnyCheckInMethodEnabled(mergedCheckIn)) {
+      throw new BadRequestException('Leave at least one check-in method on.');
+    }
     try {
       const row = await this.prisma.organisationGeneralSettings.update({
         where: { id: existing.id },

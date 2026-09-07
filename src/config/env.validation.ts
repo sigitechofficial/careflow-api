@@ -18,6 +18,11 @@ class EnvironmentVariables {
   @IsString()
   ENABLE_DEV_TOOLS?: string;
 
+  /** Narrow flag for POST /dev/generate-ia-section only. Does not enable ENABLE_DEV_TOOLS. */
+  @IsOptional()
+  @IsString()
+  ENABLE_IA_QA_DEMO?: string;
+
   @IsOptional()
   @IsInt()
   @Min(1)

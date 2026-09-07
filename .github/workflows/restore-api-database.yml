@@ -21,8 +21,17 @@ on:
         required: false
         type: string
 
+      deploy_target:
+        description: "Which API site database to restore (careflowbackend = main site, allforcare = production branch site)"
+        required: true
+        type: choice
+        default: careflowbackend
+        options:
+          - careflowbackend
+          - allforcare
+
 concurrency:
-  group: careflow-api-production
+  group: careflow-api-${{ github.event.inputs.deploy_target }}-ops
   cancel-in-progress: false
 
 permissions:
@@ -109,26 +118,36 @@ jobs:
             "$VPS_USER@$VPS_HOST" << 'REMOTE_SCRIPT'
           set -euo pipefail
 
-          APP_NAME="careflow-api"
-          LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
-          APP_URL="${{ secrets.BACKEND_APP_URL }}"
-          PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
+          DEPLOY_TARGET="${{ github.event.inputs.deploy_target }}"
           RESTORE_ACTION="${{ github.event.inputs.restore_action }}"
           TARGET="${{ github.event.inputs.target }}"
 
-          if [ -z "$LIVE_PATH" ]; then
-            LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
-          fi
+          if [ "$DEPLOY_TARGET" = "allforcare" ]; then
+            APP_NAME="api-allforcare"
+            LIVE_PATH="/home/sigisolutions/api-allforcare.sigisolutions.net"
+            APP_URL="https://api-allforcare.sigisolutions.net/"
+            PM2_APP_NAME="api-allforcare"
+            DEPLOY_ROOT="/home/sigisolutions/deployments/api-allforcare"
+          else
+            APP_NAME="careflow-api"
+            LIVE_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            APP_URL="${{ secrets.BACKEND_APP_URL }}"
+            PM2_APP_NAME="${{ secrets.BACKEND_PM2_APP_NAME }}"
 
-          if [ -z "$APP_URL" ]; then
-            APP_URL="https://careflowbackend.sigisolutions.net/"
-          fi
+            if [ -z "$LIVE_PATH" ]; then
+              LIVE_PATH="/home/sigisolutions/careflowbackend.sigisolutions.net"
+            fi
 
-          if [ -z "$PM2_APP_NAME" ]; then
-            PM2_APP_NAME="main"
-          fi
+            if [ -z "$APP_URL" ]; then
+              APP_URL="https://careflowbackend.sigisolutions.net/"
+            fi
 
-          DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+            if [ -z "$PM2_APP_NAME" ]; then
+              PM2_APP_NAME="main"
+            fi
+
+            DEPLOY_ROOT="/home/sigisolutions/deployments/careflow-api"
+          fi
           DB_BACKUPS_DIR="$DEPLOY_ROOT/db-backups"
           LOGS_DIR="$DEPLOY_ROOT/logs"
           RESTORE_LOG="$LOGS_DIR/database-restores.log"
@@ -404,6 +423,10 @@ jobs:
             echo "Smoke check attempt $ATTEMPT of $MAX_ATTEMPTS..."
 
             HTTP_CODE="$(curl -sS -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
+              echo "TLS verify failed or unreachable; retrying smoke check with insecure SSL (-k)..."
+              HTTP_CODE="$(curl -sS -k -L -I --max-time 20 "$APP_URL" | awk 'NR==1 {print $2}' || echo "000")"
+            fi
 
             if [ -z "$HTTP_CODE" ]; then
               HTTP_CODE="000"

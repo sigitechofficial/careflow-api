@@ -778,6 +778,11 @@ export class PayrollRunsService {
     const employeeIds = runEmployees.map((e) => e.employeeId);
     const periodStart = run.period.periodStart;
     const periodEnd = run.period.periodEnd;
+    // periodEnd is a @db.Date (midnight of the last day), so an inclusive `lte: periodEnd`
+    // wrongly drops any visit timed later that day. Use an exclusive next-day upper bound so
+    // the whole last calendar day of the period is covered.
+    const periodEndExclusive = new Date(periodEnd);
+    periodEndExclusive.setUTCDate(periodEndExclusive.getUTCDate() + 1);
     const runEmployeeByEmployeeId = new Map(runEmployees.map((e) => [e.employeeId, e]));
 
     const lockedLines = await this.prisma.payrollRunLine.findMany({
@@ -835,7 +840,7 @@ export class PayrollRunsService {
       where: {
         employeeId: { in: employeeIds },
         status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
-        approvedPayStart: { gte: periodStart, lte: periodEnd },
+        approvedPayStart: { gte: periodStart, lt: periodEndExclusive },
       },
     });
 

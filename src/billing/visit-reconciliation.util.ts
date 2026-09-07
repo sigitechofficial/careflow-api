@@ -65,11 +65,46 @@ export function minutesBetween(start: Date, end: Date): number {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000));
 }
 
-export function formatVisitRef(visitId: string, plannedStart: Date): string {
-  const y = plannedStart.getUTCFullYear();
-  const m = String(plannedStart.getUTCMonth() + 1).padStart(2, '0');
-  const suffix = visitId.replace(/-/g, '').slice(0, 4).toUpperCase();
-  return `V-${y}-${m}-${suffix}`;
+/**
+ * Human visit reference: VIS-[BRANCH]-[YYYYMMDD]-[NNNN]
+ * BRANCH = 3-character code from the service user’s branch (ScheduleArea.visitRefCode)
+ * YYYYMMDD = original planned visit date
+ * NNNN = daily sequence per branch (resets each day)
+ * Immutable after creation (canonical refs never change on call-off / reschedule).
+ * Legacy VIS-GEN-* / non-canonical values may be repaired once on sync.
+ * Separate from Rolling Rota / Timebank IDs.
+ * Example: VIS-L01-20260901-0123
+ */
+export function formatVisitRef(branchCode: string, dayKeyYyyymmdd: string, sequence: number): string {
+  const branch = normalizeVisitRefBranchCode(branchCode);
+  const day = dayKeyYyyymmdd.replace(/-/g, '').slice(0, 8);
+  const seq = Math.max(1, Math.floor(sequence));
+  return `VIS-${branch}-${day}-${String(seq).padStart(4, '0')}`;
+}
+
+/**
+ * Exactly 3 uppercase alphanumeric characters.
+ * Prefer ScheduleArea.visitRefCode; otherwise derive a stable 3-char token.
+ */
+export function normalizeVisitRefBranchCode(code: string | null | undefined): string {
+  const cleaned = (code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!cleaned) return 'GEN';
+  if (/^[A-Z0-9]{3}$/.test(cleaned)) return cleaned;
+  const withDigits = cleaned.match(/^([A-Z]+)(\d{1,2})$/);
+  if (withDigits) {
+    return `${withDigits[1][0]}${withDigits[2].padStart(2, '0')}`.slice(0, 3);
+  }
+  if (cleaned.length >= 3) return cleaned.slice(0, 3);
+  return cleaned.padEnd(3, 'X').slice(0, 3);
+}
+
+export function isCanonicalVisitRef(visitRef: string | null | undefined): boolean {
+  return /^VIS-[A-Z0-9]{3}-\d{8}-\d{4}$/.test((visitRef ?? '').trim());
+}
+
+/** YYYY-MM-DD → YYYYMMDD for visit ref day segment. */
+export function visitRefDayKey(dayKeyIso: string): string {
+  return dayKeyIso.replace(/-/g, '').slice(0, 8);
 }
 
 /** Format HH:mm–HH:mm in the organisation operational timezone. */
@@ -238,23 +273,32 @@ export function deriveReconciliationStatus(
   exceptions: DetectedException[],
   currentStatus?: VisitReconciliationStatus,
 ): VisitReconciliationStatus {
+  if (currentStatus === VisitReconciliationStatus.LOCKED) {
+    return VisitReconciliationStatus.LOCKED;
+  }
   if (
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
-    currentStatus === VisitReconciliationStatus.LOCKED
+    currentStatus === VisitReconciliationStatus.REJECTED_FOR_PAY ||
+    currentStatus === VisitReconciliationStatus.REJECTED_FOR_INVOICE
   ) {
     return currentStatus;
   }
 
-  // Carer pay is accepted as soon as the visit can be priced from the pay card.
-  // Invoice / funding / overrun / GPS issues remain as exceptions for finance review,
-  // but must not withhold earnings until a separate reconciliation click.
-  if (hasPayBlockingExceptions(exceptions)) {
+  // Any finance exception → office must review before pay/invoice.
+  if (exceptions.length > 0) {
     return VisitReconciliationStatus.PENDING_REVIEW;
   }
 
-  return VisitReconciliationStatus.APPROVED_FOR_PAY;
+  // Keep a narrower / human approval when already set and the visit is clean.
+  if (
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH
+  ) {
+    return currentStatus;
+  }
+
+  // Clean visits default to approved for carer pay + funders.
+  return VisitReconciliationStatus.APPROVED_FOR_BOTH;
 }
 
 export function hasUnresolvedBlockingExceptions(exceptions: DetectedException[]): boolean {
@@ -562,11 +606,22 @@ function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T 
   })[0] ?? null;
 }
 
-function ruleMatchesVisitClock(rule: RuleWithOptionalTime, visitDate: Date): boolean {
+function ruleMatchesVisitClock(
+  rule: RuleWithOptionalTime,
+  visitDate: Date,
+  timeZone: string = 'UTC',
+): boolean {
   const start = rule.startTime?.trim() || null;
   const end = rule.endTime?.trim() || null;
   if (!start && !end) return true;
-  const minuteOfDay = visitDate.getUTCHours() * 60 + visitDate.getUTCMinutes();
+  const minuteOfDay =
+    timeZone === 'UTC'
+      ? visitDate.getUTCHours() * 60 + visitDate.getUTCMinutes()
+      : (() => {
+          const hm = formatHmInTimeZone(visitDate, timeZone);
+          const [h, m] = hm.split(':').map(Number);
+          return (h ?? 0) * 60 + (m ?? 0);
+        })();
   return minuteInTimeBand(minuteOfDay, start, end);
 }
 
@@ -576,6 +631,7 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   visitDate: Date,
   visitMinutes: number,
   isBankHoliday = false,
+  timeZone: string = 'UTC',
 ): T | null {
   if (!rules.length || visitMinutes <= 0) return null;
 
@@ -585,7 +641,7 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixedSlots = dayMatches
       .filter((rule) => isFixedVisitSlotRule(rule))
-      .filter((rule) => ruleMatchesVisitClock(rule, visitDate));
+      .filter((rule) => ruleMatchesVisitClock(rule, visitDate, timeZone));
     const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
     if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
@@ -627,16 +683,19 @@ export function calculatePayableAmount(
     end: Date;
     stackingPolicy?: PayStackingPolicy;
     isBankHolidayFn?: (d: Date) => boolean;
+    /** IANA TZ for pay-card clock bands (e.g. Europe/London). */
+    timeZone?: string;
   },
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
   const bandRules = toTimeBandRules(rules);
+  const timeZone = window?.timeZone ?? 'UTC';
 
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Otherwise use hourly pro-rata (time-banded when a window is provided).
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -654,6 +713,7 @@ export function calculatePayableAmount(
       end,
       rules: bandRules,
       stackingPolicy: window.stackingPolicy ?? 'PRIORITY',
+      timeZone,
       isBankHolidayFn:
         window.isBankHolidayFn ??
         ((d) => {
@@ -678,8 +738,14 @@ export function calculatePayableAmount(
             rate: s.appliedHourlyRate,
             amount: s.amount,
             explanation: s.explanation,
-            startLabel: formatHhMmUtc(s.segment.start),
-            endLabel: formatHhMmUtc(s.segment.end),
+            startLabel:
+              timeZone === 'UTC'
+                ? formatHhMmUtc(s.segment.start)
+                : formatHmInTimeZone(s.segment.start, timeZone),
+            endLabel:
+              timeZone === 'UTC'
+                ? formatHhMmUtc(s.segment.end)
+                : formatHmInTimeZone(s.segment.end, timeZone),
             ruleLabel: s.ruleLabel,
             hoursLabel,
             lineFormula: `${hoursLabel} × ${rateLabel}/hr = ${formatGbp(s.amount)}`,
@@ -690,13 +756,13 @@ export function calculatePayableAmount(
   }
 
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
@@ -767,6 +833,7 @@ export function calculateBillableAmount(
     end: Date;
     stackingPolicy?: PayStackingPolicy;
     isBankHolidayFn?: (d: Date) => boolean;
+    timeZone?: string;
   },
   nightDuty?: string | null,
 ): PayableAmountResult | null {

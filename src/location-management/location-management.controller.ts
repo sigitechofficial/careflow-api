@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -9,8 +9,16 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { LocationManagementService } from './location-management.service';
 import { UpdateLocationZoneDto } from './dto/update-location-zone.dto';
+import {
+  CreateLocationBranchDto,
+  CreateLocationZoneDto,
+} from './dto/create-location-zone-branch.dto';
 import { UpdateMemberLocationDto } from './dto/update-member-location.dto';
 import { UpdateEmployeeLocationDto } from './dto/update-employee-location.dto';
+import {
+  CreateServiceUserAreaDto,
+  UpdateServiceUserAreaDto,
+} from './dto/service-user-area.dto';
 
 @ApiTags('Location Management')
 @ApiBearerAuth()
@@ -21,7 +29,7 @@ export class LocationManagementController {
 
   @Get('tree')
   @AnyPermission('lookups.read', 'schedule_areas.read')
-  @ApiOperation({ summary: 'Organisation location tree (zones, service users, employees)' })
+  @ApiOperation({ summary: 'Organisation location tree (zones, branches, service user areas)' })
   getTree() {
     return this.service.getTree();
   }
@@ -31,6 +39,17 @@ export class LocationManagementController {
   @ApiOperation({ summary: 'Active users for incident notification selection' })
   listActiveUsers() {
     return this.service.listActiveUsers();
+  }
+
+  @Post('zones')
+  @AnyPermission('lookups.manage', 'schedule_areas.create')
+  @ApiOperation({ summary: 'Create a zone (country + city)' })
+  createZone(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateLocationZoneDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createZone(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Get('zones/:id')
@@ -51,10 +70,55 @@ export class LocationManagementController {
     return this.service.updateZone(user.id, id, dto, getRequestAuditMeta(req));
   }
 
+  @Post('branches')
+  @AnyPermission('lookups.manage', 'schedule_areas.create')
+  @ApiOperation({ summary: 'Create a branch under a zone (with address)' })
+  createBranch(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateLocationBranchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createBranch(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('areas')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Create a service user area under a branch' })
+  createArea(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateServiceUserAreaDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createServiceUserArea(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('areas/:id')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Update a service user area and its postcodes' })
+  updateArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateServiceUserAreaDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateServiceUserArea(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('areas/:id')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({ summary: 'Soft-delete a service user area' })
+  deleteArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteServiceUserArea(user.id, id, getRequestAuditMeta(req));
+  }
+
   @Get('service-users')
   @AnyPermission('lookups.read', 'service_users.read')
-  listServiceUserLocations() {
-    return this.service.listServiceUserLocations();
+  listServiceUserLocations(@Query('locationId') locationId?: string) {
+    return this.service.listServiceUserLocations(locationId);
   }
 
   @Patch('service-users/:id/location')
@@ -70,8 +134,8 @@ export class LocationManagementController {
 
   @Get('employees')
   @AnyPermission('lookups.read', 'employees.read')
-  listEmployeeLocations() {
-    return this.service.listEmployeeLocations();
+  listEmployeeLocations(@Query('locationId') locationId?: string) {
+    return this.service.listEmployeeLocations(locationId);
   }
 
   @Patch('employees/:id/location')

@@ -33,7 +33,7 @@ export class ScheduledJobsHousekeepingController {
     @Query() query: HousekeepingQueryDto,
     @Req() req: Request,
   ) {
-    return this.service.jobsNotStarted(user.id, query, getRequestAuditMeta(req));
+    return this.service.jobsNotStarted(user, query, getRequestAuditMeta(req));
   }
 
   @Get('jobs-needing-attention')
@@ -44,7 +44,7 @@ export class ScheduledJobsHousekeepingController {
     @Query() query: HousekeepingQueryDto,
     @Req() req: Request,
   ) {
-    return this.service.jobsNeedingAttention(user.id, query, getRequestAuditMeta(req));
+    return this.service.jobsNeedingAttention(user, query, getRequestAuditMeta(req));
   }
 
   @Get('day-jobs')
@@ -55,7 +55,7 @@ export class ScheduledJobsHousekeepingController {
     @Query() query: HousekeepingQueryDto,
     @Req() req: Request,
   ) {
-    return this.service.dayJobs(user.id, query, getRequestAuditMeta(req));
+    return this.service.dayJobs(user, query, getRequestAuditMeta(req));
   }
 
   @Get('jobs/:id/care-plan-delivery-tasks')
@@ -74,7 +74,7 @@ export class ScheduledJobsHousekeepingController {
           .filter(Boolean)
       : undefined;
     return this.service.getCarePlanDeliveryTasks(
-      user.id,
+      user,
       id,
       parsedFormIds?.length ? { formIds: parsedFormIds } : undefined,
       getRequestAuditMeta(req),
@@ -89,7 +89,7 @@ export class ScheduledJobsHousekeepingController {
     @Param('id') id: string,
     @Req() req: Request,
   ) {
-    return this.service.getVisitJobTasks(user.id, id, getRequestAuditMeta(req));
+    return this.service.getVisitJobTasks(user, id, getRequestAuditMeta(req));
   }
 
   @Get('jobs/:id/visit-observations')
@@ -102,7 +102,7 @@ export class ScheduledJobsHousekeepingController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
   ) {
-    return this.service.getVisitObservations(user.id, id);
+    return this.service.getVisitObservations(user, id);
   }
 
   @Get('jobs/:id/timeline')
@@ -110,8 +110,8 @@ export class ScheduledJobsHousekeepingController {
   @ApiOperation({
     summary: 'Visit activity timeline (Log tab) — same events the carer app shows',
   })
-  visitJobTimeline(@Param('id') id: string) {
-    return this.service.getVisitTimeline(id);
+  visitJobTimeline(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getVisitTimeline(user, id);
   }
 
   @Patch('jobs/:id/visit-tasks')
@@ -123,7 +123,7 @@ export class ScheduledJobsHousekeepingController {
     @Body() dto: SaveVisitJobTasksDto,
     @Req() req: Request,
   ) {
-    return this.service.saveVisitJobTasks(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.saveVisitJobTasks(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Patch('jobs/:id/complete')
@@ -135,7 +135,7 @@ export class ScheduledJobsHousekeepingController {
     @Body() dto: CompleteJobDto,
     @Req() req: Request,
   ) {
-    return this.service.completeJob(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.completeJob(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Get('cancellation-options')
@@ -159,7 +159,7 @@ export class ScheduledJobsHousekeepingController {
     @Body() dto: CancelJobDto,
     @Req() req: Request,
   ) {
-    return this.service.cancelJob(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.cancelJob(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Patch('jobs/:id/reinstate')
@@ -171,6 +171,6 @@ export class ScheduledJobsHousekeepingController {
     @Body() dto: ReinstateJobDto,
     @Req() req: Request,
   ) {
-    return this.service.reinstateJob(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.reinstateJob(user, id, dto, getRequestAuditMeta(req));
   }
 }

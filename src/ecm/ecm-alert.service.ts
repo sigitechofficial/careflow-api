@@ -147,8 +147,9 @@ export class EcmAlertService {
       },
     });
 
+    const isCarerSos = row.kind === 'CARER_SOS';
     const channels: EcmAlertChannels = {
-      notification: Boolean(settings?.domLateVisitAlertNotification),
+      notification: isCarerSos || Boolean(settings?.domLateVisitAlertNotification),
       email: Boolean(settings?.domLateVisitAlertEmail),
       text: Boolean(settings?.domLateVisitAlertText),
     };
@@ -168,12 +169,14 @@ export class EcmAlertService {
         if (recipients.length) {
           await this.notifications.notifyUsers({
             recipientUserIds: recipients,
-            type: NotificationType.SCHEDULE_UNALLOCATED_VISIT,
-            title: `ECM alert — ${row.kind}`,
+            type: isCarerSos
+              ? NotificationType.SECURITY_ALERT
+              : NotificationType.SCHEDULE_UNALLOCATED_VISIT,
+            title: isCarerSos ? `Carer SOS — ${suName}` : `ECM alert — ${row.kind}`,
             message,
-            module: NotificationModule.SCHEDULING,
+            module: isCarerSos ? NotificationModule.SECURITY : NotificationModule.SCHEDULING,
             severity:
-              row.kind.includes('MISSED') || row.kind.includes('VERY_LATE')
+              isCarerSos || row.kind.includes('MISSED') || row.kind.includes('VERY_LATE')
                 ? NotificationSeverity.CRITICAL
                 : NotificationSeverity.WARNING,
             recordType: 'EcmException',
@@ -205,7 +208,7 @@ export class EcmAlertService {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Staff Allocation', 'Coordinator'] },
+        name: { in: ['Admin', 'Manager', 'Branch Admin', 'Staff Allocation', 'Coordinator'] },
         deletedAt: null,
       },
       select: { id: true },

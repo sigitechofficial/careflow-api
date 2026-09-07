@@ -14,6 +14,11 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { formatScheduleDate, parseScheduleDate } from '../schedules/schedules-date.util';
+import {
+  formatUkMonthShort,
+  formatUkWeekdayDate,
+  formatUkWeekdayShort,
+} from '../common/utils/uk-date-label.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
@@ -207,7 +212,7 @@ export class EmployeeAppScheduleService {
         isToday,
         selectedDateLabel: formatSelectedDateLabel(selected, isToday),
         totalsHeading: formatTotalsHeading(selected),
-        visitsHeading: isToday ? 'TODAY · VISITS' : `${formatShortDayDate(selected)} · VISITS`,
+        visitsHeading: isToday ? 'Today · Visits' : `${formatShortDayDate(selected)} · Visits`,
         hint: 'Tap any date · swipe across months',
         dateStrip: {
           from: stripFrom,
@@ -281,9 +286,9 @@ function buildDateStrip(
     const date = formatScheduleDate(d);
     dates.push({
       date,
-      dayName: DAY_NAMES[d.getUTCDay()],
+      dayName: formatUkWeekdayShort(d),
       dayNumber: d.getUTCDate(),
-      monthLabel: MONTH_LABELS[d.getUTCMonth()],
+      monthLabel: formatUkMonthShort(d),
       monthKey: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`,
       isSelected: date === selectedDate,
       isToday: date === today,
@@ -293,40 +298,17 @@ function buildDateStrip(
   return dates;
 }
 
-const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
-const MONTH_LABELS = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
-] as const;
-
 function formatSelectedDateLabel(date: Date, isToday: boolean): string {
-  const day = DAY_NAMES[date.getUTCDay()];
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const yyyy = date.getUTCFullYear();
-  const body = `${day} ${dd}/${mm}/${yyyy}`;
+  const body = formatUkWeekdayDate(date);
   return isToday ? `Today · ${body}` : body;
 }
 
 function formatTotalsHeading(date: Date): string {
-  return `${formatShortDayDate(date)} · TOTALS`;
+  return `${formatShortDayDate(date)} · Totals`;
 }
 
 function formatShortDayDate(date: Date): string {
-  const day = DAY_NAMES[date.getUTCDay()];
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${day} ${dd}/${mm}`;
+  return formatUkWeekdayDate(date, { year: false });
 }
 
 function mapUiStatus(

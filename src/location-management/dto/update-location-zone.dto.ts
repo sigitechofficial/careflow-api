@@ -25,4 +25,16 @@ export class UpdateLocationZoneDto {
   @IsArray()
   @IsUUID('4', { each: true })
   incidentEmailUserIds?: string[];
+
+  @ApiPropertyOptional({ maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  country?: string;
+
+  @ApiPropertyOptional({ maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string;
 }

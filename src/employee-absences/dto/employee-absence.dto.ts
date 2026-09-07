@@ -60,6 +60,11 @@ export class ListEmployeeAbsencesQueryDto {
   @MaxLength(120)
   search?: string;
 
+  @ApiPropertyOptional({ description: 'Filter absences to employees at this location' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
   @ApiPropertyOptional({ description: 'Only UKVI sponsored workers' })
   @IsOptional()
   @Transform(toBool)

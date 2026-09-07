@@ -2,6 +2,7 @@ import { AuditEventType } from '@prisma/client';
 import {
   buildAuditLogContext,
   formatServiceUserDisplayName,
+  pickLocationSubjectFromAuditRow,
   resolveServiceUserIdFromAuditRow,
 } from './audit-log-context.util';
 
@@ -87,5 +88,19 @@ describe('audit-log-context.util', () => {
         serviceUserNumber: '42',
       }),
     ).toBe('Janey (#42)');
+  });
+
+  it('builds a location assignment subject from zone/branch/area/postcode', () => {
+    expect(
+      pickLocationSubjectFromAuditRow({
+        action: 'location.service_user.assigned',
+        newValues: {
+          zoneName: 'North',
+          branchName: 'Leeds',
+          areaName: 'LS1',
+          postcode: 'LS1 1AA',
+        },
+      }),
+    ).toBe('North / Leeds / LS1 / LS1 1AA');
   });
 });

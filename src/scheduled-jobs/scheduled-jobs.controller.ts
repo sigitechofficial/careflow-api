@@ -23,15 +23,29 @@ export class ScheduledJobsController {
   @Get()
   @Permissions('scheduled_jobs.read')
   @ApiOperation({ summary: 'List scheduled jobs' })
-  list(@Query() query: ScheduledJobQueryDto) {
-    return this.service.list(query);
+  list(@CurrentUser() user: RequestUser, @Query() query: ScheduledJobQueryDto) {
+    return this.service.list(query, user);
+  }
+
+  @Get(':id/care-consents')
+  @Permissions('scheduled_jobs.read')
+  @ApiOperation({ summary: 'Consent-to-care record for this visit' })
+  listCareConsents(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.listCareConsents(id, user);
+  }
+
+  @Delete(':id/care-consents')
+  @Permissions('scheduled_jobs.update')
+  @ApiOperation({ summary: 'Clear consent to care for this visit (testing / office override)' })
+  clearCareConsents(@Param('id') id: string) {
+    return this.service.clearCareConsents(id);
   }
 
   @Get(':id')
   @Permissions('scheduled_jobs.read')
   @ApiOperation({ summary: 'Get scheduled job by id' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getById(id, user);
   }
 
   @Post()

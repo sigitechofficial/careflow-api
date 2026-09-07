@@ -24,14 +24,14 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 21, ttl: 60_000 } })
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.authService.login(dto, req);
   }
 
   @Public()
   @Post('login/temporary-inspector')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 21, ttl: 60_000 } })
   temporaryInspectorLogin(@Body() dto: TemporaryInspectorLoginDto, @Req() req: Request) {
     return this.authService.temporaryInspectorLogin(dto, req);
   }

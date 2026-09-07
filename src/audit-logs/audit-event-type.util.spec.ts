@@ -27,4 +27,18 @@ describe('resolveAuditEventType', () => {
       resolveAuditEventType('custom_action', null, AuditEventType.SECURITY),
     ).toBe(AuditEventType.SECURITY);
   });
+
+  it('classifies location-management mutations', () => {
+    expect(resolveAuditEventType('location.zone.created')).toBe(AuditEventType.CREATE);
+    expect(resolveAuditEventType('location.area.deleted')).toBe(AuditEventType.DELETE);
+    expect(resolveAuditEventType('location.area.postcodes.updated')).toBe(
+      AuditEventType.UPDATE,
+    );
+    expect(resolveAuditEventType('location.service_user.assigned')).toBe(
+      AuditEventType.UPDATE,
+    );
+    expect(resolveAuditEventType('location.employee.assigned')).toBe(
+      AuditEventType.UPDATE,
+    );
+  });
 });

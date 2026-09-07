@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -44,6 +46,7 @@ export class SchedulesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
     private readonly scheduledJobsService: ScheduledJobsService,
   ) {}
 
@@ -116,15 +119,23 @@ export class SchedulesService {
     };
   }
 
-  async getStatusForDate(userId: string, dateStr: string, meta?: RequestAuditMeta) {
+  async getStatusForDate(user: RequestUser, dateStr: string, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const scheduleDate = parseScheduleDate(dateStr);
     const batch = await this.prisma.scheduleBatch.findFirst({
       where: { scheduleDate, ...this.batchWhereActive() },
       include: batchInclude,
     });
 
+    const areaWhere: Prisma.ScheduleAreaWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      ...(this.orgScope.scheduleAreaScopeWhere(scope) ?? {}),
+    };
+
     const areas = await this.prisma.scheduleArea.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: areaWhere,
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       include: {
         location: { select: { id: true, name: true } },
@@ -196,16 +207,22 @@ export class SchedulesService {
     return { data: this.mapBatch(row) };
   }
 
-  async build(userId: string, dto: BuildScheduleDto, meta?: RequestAuditMeta) {
+  async build(user: RequestUser, dto: BuildScheduleDto, meta?: RequestAuditMeta) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const scheduleDate = parseScheduleDate(dto.scheduleDate);
     const now = new Date();
 
+    const areaScope = this.orgScope.scheduleAreaScopeWhere(scope);
     let targetAreas = await this.prisma.scheduleArea.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: { deletedAt: null, isActive: true, ...(areaScope ?? {}) },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
     if (dto.areaIds?.length) {
+      for (const areaId of dto.areaIds) {
+        await this.orgScope.assertScheduleAreaInScope(scope, areaId);
+      }
       const idSet = new Set(dto.areaIds);
       targetAreas = targetAreas.filter((a) => idSet.has(a.id));
       if (targetAreas.length !== dto.areaIds.length) {
@@ -395,16 +412,24 @@ export class SchedulesService {
   }
 
   async updateStatus(
-    userId: string,
+    user: RequestUser,
     id: string,
     dto: UpdateScheduleStatusDto,
     meta?: RequestAuditMeta,
   ) {
+    const userId = user.id;
+    const scope = this.orgScope.fromRequestUser(user);
     const existing = await this.prisma.scheduleBatch.findFirst({
       where: { id, ...this.batchWhereActive() },
       include: batchInclude,
     });
     if (!existing) throw new NotFoundException('Schedule batch not found');
+
+    if (dto.areaStatuses?.length) {
+      for (const item of dto.areaStatuses) {
+        await this.orgScope.assertScheduleAreaInScope(scope, item.scheduleAreaId);
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.areaStatuses?.length) {

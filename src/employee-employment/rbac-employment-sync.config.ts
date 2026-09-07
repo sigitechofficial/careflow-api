@@ -10,6 +10,8 @@ export const RBAC_LEVEL_TO_IDENTITY_ROLE_NAME: Record<string, string> = {
   'Privacy Officer': 'Admin',
   'Operation Management': 'Manager',
   'Staff Allocation': 'Staff Allocation',
+  'Master Staff Allocation': 'Master Staff Allocation',
+  'Branch Administrator': 'Branch Admin',
   'Senior Carer/Nurse': 'Senior Carer/Nurse',
   'Carer/Domestic': 'Carer/Domestic',
 }

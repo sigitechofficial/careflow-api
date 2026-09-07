@@ -112,12 +112,12 @@ export class EmployeeAppVisitCompleteDto {
 
   @ApiPropertyOptional({
     description:
-      'Required when actual times are early/late/short/overrun vs planned (e..g. CLIENT_REQUEST_OR_NEED).',
-    example: 'CLIENT_REQUEST_OR_NEED',
+      'Required when clock-out is early or late vs planned end. Value is the admin catalog label (or a legacy reason code).',
+    example: 'Client asked to finish early',
   })
   @IsOptional()
   @IsString()
-  @MaxLength(64)
+  @MaxLength(160)
   timingExceptionReasonCode?: string;
 
   @ApiPropertyOptional({
@@ -163,6 +163,16 @@ export class EmployeeAppVisitCompleteDto {
   @Type(() => Number)
   @IsNumber()
   accuracyMeters?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isMockLocation?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isMockedLocation?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

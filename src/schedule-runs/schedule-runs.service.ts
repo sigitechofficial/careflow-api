@@ -13,6 +13,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -74,9 +76,10 @@ export class ScheduleRunsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly allocations: JobAllocationsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
-  async list(query: ScheduleRunQueryDto) {
+  async list(query: ScheduleRunQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -92,6 +95,18 @@ export class ScheduleRunsService {
       if (query.runDateFrom) where.runDate.gte = parseScheduleDate(query.runDateFrom);
       if (query.runDateTo) where.runDate.lte = parseScheduleDate(query.runDateTo);
     }
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      if (scope.locationIds?.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (query.scheduleAreaId) {
+        await this.orgScope.assertScheduleAreaInScope(scope, query.scheduleAreaId);
+      }
+      andWhereFragment(where, this.orgScope.scheduleRunScopeWhere(scope));
+    }
+
     const orderBy: Prisma.ScheduleRunOrderByWithRelationInput = {
       [query.sortBy ?? 'sortOrder']: query.sortOrder ?? 'asc',
     };
@@ -108,7 +123,10 @@ export class ScheduleRunsService {
     };
   }
 
-  async getById(id: string, includeJobs = false) {
+  async getById(id: string, includeJobs = false, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduleRunInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.scheduleRun.findFirst({
       where: { id, deletedAt: null },
       include: includeJobs ? runIncludeWithJobs : runInclude,

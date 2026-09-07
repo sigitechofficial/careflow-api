@@ -23,6 +23,7 @@ export class ServiceUserCarePlansReviewController {
   reviewQueue(
     @Query('status') status?: string,
     @Query('serviceUserId') serviceUserId?: string,
+    @Query('locationId') locationId?: string,
   ) {
     const allowed: CarePlanReviewQueueStatusFilter[] = ['all', 'overdue', 'due_soon', 'ok'];
     const normalised = allowed.includes(status as CarePlanReviewQueueStatusFilter)
@@ -31,6 +32,7 @@ export class ServiceUserCarePlansReviewController {
     return this.service.reviewQueue({
       status: normalised,
       serviceUserId: serviceUserId?.trim() || undefined,
+      locationId: locationId?.trim() || undefined,
     });
   }
 

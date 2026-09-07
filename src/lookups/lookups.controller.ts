@@ -14,6 +14,12 @@ import { CreateBodyMapRecordTypeDto } from './dto/create-body-map-record-type.dt
 import { UpdateBodyMapRecordTypeDto } from './dto/update-body-map-record-type.dto';
 import { CreateWelfareOutcomeDto } from './dto/create-welfare-outcome.dto';
 import { UpdateWelfareOutcomeDto } from './dto/update-welfare-outcome.dto';
+import { CreateClockInArrivalReasonDto } from './dto/create-clock-in-arrival-reason.dto';
+import { UpdateClockInArrivalReasonDto } from './dto/update-clock-in-arrival-reason.dto';
+import { CreateClockOutEndReasonDto } from './dto/create-clock-out-end-reason.dto';
+import { UpdateClockOutEndReasonDto } from './dto/update-clock-out-end-reason.dto';
+import { CreateVisitOutcomeReasonDto } from './dto/create-visit-outcome-reason.dto';
+import { UpdateVisitOutcomeReasonDto } from './dto/update-visit-outcome-reason.dto';
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
@@ -109,6 +115,12 @@ export class LookupsController {
     return { data: await this.service.upsertLeavingReason(dto.name) };
   }
 
+  @Post('visit-status-reasons')
+  @Permissions('lookups.manage')
+  async createVisitStatusReason(@Body() dto: CreateLookupNameDto) {
+    return { data: await this.service.upsertVisitStatusReason(dto.name) };
+  }
+
   @Post('review-types')
   @Permissions('lookups.manage')
   async createReviewType(@Body() dto: CreateLookupNameDto) {
@@ -173,6 +185,12 @@ export class LookupsController {
   @Permissions('lookups.read')
   async leavingReasons() {
     return { data: await this.service.leavingReasons() };
+  }
+
+  @Get('visit-status-reasons')
+  @Permissions('lookups.read')
+  async visitStatusReasons() {
+    return { data: await this.service.visitStatusReasons() };
   }
 
   @Get('skill-types')
@@ -395,6 +413,105 @@ export class LookupsController {
   async deleteBodyMapRecordType(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.deleteBodyMapRecordType(id);
     return { message: 'Record type deleted' };
+  }
+
+  @Get('clock-in-arrival-reasons')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List clock-in early/late arrival reasons (carer-app)' })
+  async clockInArrivalReasons() {
+    return { data: await this.service.listClockInArrivalReasons() };
+  }
+
+  @Post('clock-in-arrival-reasons')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create a clock-in early or late arrival reason' })
+  async createClockInArrivalReason(@Body() dto: CreateClockInArrivalReasonDto) {
+    return { data: await this.service.createClockInArrivalReason(dto) };
+  }
+
+  @Patch('clock-in-arrival-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update a clock-in arrival reason' })
+  async updateClockInArrivalReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateClockInArrivalReasonDto,
+  ) {
+    return { data: await this.service.updateClockInArrivalReason(id, dto) };
+  }
+
+  @Delete('clock-in-arrival-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate a clock-in arrival reason' })
+  async deleteClockInArrivalReason(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteClockInArrivalReason(id);
+    return { message: 'Arrival reason deleted' };
+  }
+
+  @Get('clock-out-end-reasons')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List clock-out early/late end reasons (carer-app)' })
+  async clockOutEndReasons() {
+    return { data: await this.service.listClockOutEndReasons() };
+  }
+
+  @Post('clock-out-end-reasons')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create a clock-out early or late end reason' })
+  async createClockOutEndReason(@Body() dto: CreateClockOutEndReasonDto) {
+    return { data: await this.service.createClockOutEndReason(dto) };
+  }
+
+  @Patch('clock-out-end-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update a clock-out end reason' })
+  async updateClockOutEndReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateClockOutEndReasonDto,
+  ) {
+    return { data: await this.service.updateClockOutEndReason(id, dto) };
+  }
+
+  @Delete('clock-out-end-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate a clock-out end reason' })
+  async deleteClockOutEndReason(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteClockOutEndReason(id);
+    return { message: 'Clock-out reason deleted' };
+  }
+
+  @Get('visit-outcomes')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List visit outcomes with nested reasons (Medication / Task / Observation)' })
+  async visitOutcomes() {
+    return { data: await this.service.listVisitOutcomes() };
+  }
+
+  @Post('visit-outcomes/:outcomeId/reasons')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Add a reason under a visit outcome' })
+  async createVisitOutcomeReason(
+    @Param('outcomeId', ParseUUIDPipe) outcomeId: string,
+    @Body() dto: CreateVisitOutcomeReasonDto,
+  ) {
+    return { data: await this.service.createVisitOutcomeReason(outcomeId, dto) };
+  }
+
+  @Patch('visit-outcome-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update a visit outcome reason' })
+  async updateVisitOutcomeReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateVisitOutcomeReasonDto,
+  ) {
+    return { data: await this.service.updateVisitOutcomeReason(id, dto) };
+  }
+
+  @Delete('visit-outcome-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate a visit outcome reason' })
+  async deleteVisitOutcomeReason(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteVisitOutcomeReason(id);
+    return { message: 'Outcome reason deleted' };
   }
 
   @Get('welfare-outcomes')

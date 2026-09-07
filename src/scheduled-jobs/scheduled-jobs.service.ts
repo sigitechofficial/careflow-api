@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -34,9 +36,14 @@ import {
   mapTimelineJob,
   timelineJobInclude,
 } from '../scheduling/schedule-timeline.mapper';
+import { attachVisitRefsToJobs } from '../scheduling/visit-ref-lookup.util';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import { visitTimingExceptionReasonLabel } from '../scheduling/visit-timing-exception-reason.util';
 import { visitCareNotDeliveredReasonLabel } from '../scheduling/visit-care-not-delivered-reason.util';
+import {
+  buildAdminCheckInSummary,
+  extractEmployeeAppCheckIn,
+} from '../employee-app/check-in-display.util';
 
 const jobInclude = {
   serviceUser: {
@@ -89,11 +96,12 @@ export class ScheduledJobsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly ecmScheduleVersions: EcmScheduleVersionService,
+    private readonly orgScope: OrgScopeService,
     @Inject(forwardRef(() => JobAllocationsService))
     private readonly jobAllocations: JobAllocationsService,
   ) {}
 
-  async list(query: ScheduledJobQueryDto) {
+  async list(query: ScheduledJobQueryDto, actor?: RequestUser) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -119,6 +127,21 @@ export class ScheduledJobsService {
         { notes: { contains: s, mode: 'insensitive' } },
       ];
     }
+
+    if (actor) {
+      const scope = this.orgScope.fromRequestUser(actor);
+      if (scope.locationIds?.length === 0) {
+        return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
+      }
+      if (query.scheduleAreaId) {
+        await this.orgScope.assertScheduleAreaInScope(scope, query.scheduleAreaId);
+      }
+      if (query.serviceUserId) {
+        await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+      }
+      andWhereFragment(where, this.orgScope.scheduledJobScopeWhere(scope));
+    }
+
     const sortBy = query.sortBy ?? 'scheduledStartDateTime';
     const sortOrder = query.sortOrder ?? 'asc';
     const orderBy: Prisma.ScheduledJobOrderByWithRelationInput = { [sortBy]: sortOrder };
@@ -130,13 +153,100 @@ export class ScheduledJobsService {
     return { data: rows.map((r) => this.mapJob(r)), meta: buildPaginationMeta({ page, limit, total }) };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(actor), id);
+    }
     const row = await this.prisma.scheduledJob.findFirst({
       where: { id, deletedAt: null },
       include: jobDetailInclude,
     });
     if (!row) throw new NotFoundException('Scheduled job not found');
-    return { data: this.mapJobDetail(row) };
+    const detail = this.mapJobDetail(row);
+    const [withRef] = await attachVisitRefsToJobs(this.prisma, [detail]);
+    return { data: withRef };
+  }
+
+  async listCareConsents(jobId: string, actor?: RequestUser) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(actor), jobId);
+    }
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const rows = await this.prisma.visitCareConsent.findMany({
+      where: { scheduledJobId: jobId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        reason: true,
+        deviceRecordedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        capturedByEmployeeId: true,
+        capturedBy: {
+          select: {
+            personalDetail: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    return {
+      data: {
+        required: true,
+        consents: rows.map((row) => {
+          const first = row.capturedBy.personalDetail?.firstName?.trim() ?? '';
+          const last = row.capturedBy.personalDetail?.lastName?.trim() ?? '';
+          const name = `${first} ${last}`.trim();
+          return {
+            status: row.status,
+            reason: row.reason,
+            recordedAt: (row.deviceRecordedAt ?? row.updatedAt ?? row.createdAt).toISOString(),
+            capturedByEmployeeId: row.capturedByEmployeeId,
+            capturedByName: name || null,
+          };
+        }),
+      },
+    };
+  }
+
+  async clearCareConsents(jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true, metadata: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    await this.prisma.visitCareConsent.deleteMany({
+      where: { scheduledJobId: jobId },
+    });
+
+    const previousMeta =
+      job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? { ...(job.metadata as Record<string, unknown>) }
+        : {};
+    const previousEa =
+      previousMeta.employeeApp &&
+      typeof previousMeta.employeeApp === 'object' &&
+      !Array.isArray(previousMeta.employeeApp)
+        ? { ...(previousMeta.employeeApp as Record<string, unknown>) }
+        : {};
+    if ('careConsent' in previousEa) {
+      delete previousEa.careConsent;
+      await this.prisma.scheduledJob.update({
+        where: { id: jobId },
+        data: {
+          metadata: { ...previousMeta, employeeApp: previousEa } as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    return { data: { required: true, consents: [] as const } };
   }
 
   private jobDataFromDto(
@@ -708,6 +818,10 @@ export class ScheduledJobsService {
             notes: careNotDeliveredNotes,
           }
         : null,
+      checkIn: buildAdminCheckInSummary(extractEmployeeAppCheckIn(row.metadata), {
+        scheduledStart: timeline.scheduledStartDateTime,
+        actualStart: timeline.actualStartDateTime,
+      }),
     };
   }
 }

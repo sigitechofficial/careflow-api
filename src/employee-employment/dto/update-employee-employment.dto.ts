@@ -96,16 +96,25 @@ export class UpdateEmployeeEmploymentDto {
   @IsUUID()
   defaultPayCardId?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsUUID()
-  baseLocationId?: string;
+  baseLocationId?: string | null;
 
   @ApiPropertyOptional({ description: 'Multiple base/home sites for this employee' })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
   baseLocationIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Service user monitoring areas this employee can work in (multi)',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  serviceUserAreaIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

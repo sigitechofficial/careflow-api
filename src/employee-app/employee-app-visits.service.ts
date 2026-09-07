@@ -20,10 +20,17 @@ import {
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
+  VisitCareConsentStatus,
+  VisitClockInArrivalKind,
+  VisitOutcomeArea,
   VisitAttendanceEventType,
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  mapMedicationOutcomesFromStatusCodes,
+  syncMedicationVisitOutcomesFromStatusCodes,
+} from '../lookups/visit-outcome-medication.util';
 import { ScheduledJobsHousekeepingService } from '../scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.service';
 import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-visit-job-tasks.dto';
 import { BodyMapService } from '../body-map/body-map.service';
@@ -34,6 +41,9 @@ import type {
 } from '../body-map/dto/create-body-map-record.dto';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
+import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
+import { EmployeeAppSosService } from './employee-app-sos.service';
+import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
@@ -59,10 +69,19 @@ import {
   formatHmUtc,
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
+import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
+import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
+import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
+import type { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
+import {
+  isCheckInMethodEnabled,
+  normalizeCheckInMethod,
+  resolveEnabledCheckInMethods,
+} from './employee-app-check-in-methods.util';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import type {
   EmployeeAppHandoverAcknowledgeDto,
@@ -75,6 +94,7 @@ import type {
   EmployeeAppObservationWriteDto,
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
+  EmployeeAppCareConsentDto,
 } from './dto/employee-app-visit-writes.dto';
 import type { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
 import type { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
@@ -94,6 +114,11 @@ import {
   emptyMarAdminEchoFields,
 } from './medication/employee-app-mar-echo.util';
 import {
+  buildMedicationWitnessEcho,
+  medicationWitnessTimelineDetail,
+  resolveMedicationWitnessColumns,
+} from '../medications/medication-witness.util';
+import {
   plannedHowAssistedLabel,
   resolveVisitMedicationRoundFromDb,
 } from './medication/employee-app-visit-medication-round.util';
@@ -103,6 +128,7 @@ import {
   employeeAppTimingExceptionReasons,
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
+import { employeeAppKeySafePayload } from './employee-app-access.util';
 import {
   mobileTypeCode,
   resolveObservationTypeCode,
@@ -146,10 +172,7 @@ import {
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
-import {
-  employeeAppEarlyArrivalReasons,
-  employeeAppLateArrivalReasons,
-} from './employee-app-check-in-arrival-reasons';
+import { mapClockInArrivalReasonRow } from './employee-app-check-in-arrival-reasons';
 import {
   buildUnableToStartBlock,
   employeeAppUnableToStartReasonLabel,
@@ -301,34 +324,52 @@ export class EmployeeAppVisitsService {
     private readonly visitTimeline: VisitTimelineService,
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly areaLocks: VisitAreaLockService,
+    private readonly sos: EmployeeAppSosService,
+    private readonly visitReconciliations: VisitReconciliationsService,
   ) {}
+
+  async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    return this.sos.send(employeeId, jobId, dto);
+  }
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings] = await Promise.all([
-      this.resolveProgress(ctx),
-      this.loadOverviewExtras(ctx),
-      this.resolveMedicationProgress(ctx),
-      this.loadGeofenceSettings(),
-    ]);
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock] =
+      await Promise.all([
+        this.resolveProgress(ctx),
+        this.loadOverviewExtras(ctx),
+        this.resolveMedicationProgress(ctx),
+        this.loadGeofenceSettings(),
+        this.loadCheckInMethodFlags(),
+        this.areaLocks.getState(jobId),
+      ]);
+    const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
+    const gpsCheckIn = checkInMethod === 'GPS';
 
     return {
       data: {
         shell: {
-          ...this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings),
+          ...(await this.buildShell(ctx, progress, medProgress, employeeId, geofenceSettings)),
           allergies: overviewExtras.allergies,
           flags: overviewExtras.flags,
+          operationsLocked: gpsCheckIn && areaLock.operationsLocked,
+          operationsLockedAt: gpsCheckIn ? areaLock.lockedAt : null,
+          areaContinueAllowed: gpsCheckIn && areaLock.continueAllowed,
+          checkInMethod,
         },
         overview: overviewExtras,
         clockInSettings: {
-          enabledMethods: ['GPS', 'MANUAL'] as string[],
+          enabledMethods: resolveEnabledCheckInMethods(checkInFlags),
           maxLocationAccuracyMeters: 50,
           timingGraceMinutes: 15,
-          allowManualOverride: true,
+          allowManualOverride: Boolean(checkInFlags.domCheckInManualEnabled),
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
-          earlyArrivalReasons: employeeAppEarlyArrivalReasons(),
-          lateArrivalReasons: employeeAppLateArrivalReasons(),
+          ...(await this.getClockInArrivalReasons()),
         },
+        clockOutSettings: await this.getClockOutEndReasons(),
+        visitOutcomes: await this.getVisitOutcomesCatalog(),
       },
     };
   }
@@ -339,7 +380,7 @@ export class EmployeeAppVisitsService {
    */
   async getVisitDetails(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes] =
+    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
         this.getTasks(employeeId, jobId),
@@ -348,6 +389,7 @@ export class EmployeeAppVisitsService {
         this.getLog(employeeId, jobId),
         this.getBodyMapWizard(employeeId, jobId),
         this.getWelfareOutcomes(),
+        this.getCareConsent(employeeId, ctx.primaryVisit.id),
       ]);
 
     return {
@@ -364,8 +406,11 @@ export class EmployeeAppVisitsService {
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
+        clockOutSettings: workspace.data.clockOutSettings,
+        visitOutcomes: workspace.data.visitOutcomes,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
         welfareOutcomes,
+        careConsent,
       },
     };
   }
@@ -382,6 +427,386 @@ export class EmployeeAppVisitsService {
       select: { code: true, label: true, tone: true },
     });
     return rows.map((r) => ({ id: r.code, label: r.label, tone: r.tone }));
+  }
+
+  async getVisitOutcomesCatalog() {
+    try {
+      await syncMedicationVisitOutcomesFromStatusCodes(this.prisma);
+    } catch {
+      // Fall through — medication pills still come from status codes below.
+    }
+    const [statusCodes, rows] = await Promise.all([
+      this.prisma.medicationStatusCode.findMany({
+        where: { deletedAt: null, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+        select: {
+          code: true,
+          label: true,
+          color: true,
+          textColor: true,
+          reasonRequirement: true,
+          sortOrder: true,
+        },
+      }),
+      this.prisma.visitOutcomeCatalog.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+        select: {
+          area: true,
+          code: true,
+          label: true,
+          allowsReasons: true,
+          sortOrder: true,
+          reasons: {
+            where: { isActive: true },
+            orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+            select: { label: true, requiresNotes: true, sortOrder: true },
+          },
+        },
+      }),
+    ]);
+    const reasonsByCode = new Map<
+      string,
+      Array<{ label: string; requiresNotes: boolean; sortOrder: number }>
+    >();
+    for (const row of rows) {
+      if (row.area !== VisitOutcomeArea.MEDICATION) continue;
+      reasonsByCode.set(row.code.toUpperCase(), row.reasons);
+    }
+    const mapRows = (area: VisitOutcomeArea) =>
+      rows
+        .filter((r) => r.area === area)
+        .map((r) => ({
+          code: r.code,
+          label: r.label,
+          allowsReasons: r.allowsReasons,
+          sortOrder: r.sortOrder,
+          reasons: r.reasons.map((reason) => ({
+            label: reason.label,
+            requiresNotes: reason.requiresNotes,
+            enabled: true,
+            sortOrder: reason.sortOrder,
+          })),
+        }));
+    return {
+      medication: mapMedicationOutcomesFromStatusCodes({
+        statusCodes,
+        reasonsByCode,
+      }),
+      task: mapRows(VisitOutcomeArea.TASK),
+      observation: mapRows(VisitOutcomeArea.OBSERVATION),
+    };
+  }
+
+  /** Admin Settings catalogues — empty lists mean the app shows no picker. */
+  async getClockOutEndReasons() {
+    const rows = await this.prisma.visitClockOutEndReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: {
+        kind: true,
+        label: true,
+        requiresNotes: true,
+        sortOrder: true,
+        isActive: true,
+      },
+    });
+    return {
+      earlyEndReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.EARLY)
+        .map(mapClockInArrivalReasonRow),
+      lateEndReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.LATE)
+        .map(mapClockInArrivalReasonRow),
+    };
+  }
+
+  /** Admin Settings catalogues — empty lists mean the app shows no picker. */
+  async getClockInArrivalReasons() {
+    const rows = await this.prisma.visitClockInArrivalReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: {
+        kind: true,
+        label: true,
+        requiresNotes: true,
+        sortOrder: true,
+        isActive: true,
+      },
+    });
+    return {
+      earlyArrivalReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.EARLY)
+        .map(mapClockInArrivalReasonRow),
+      lateArrivalReasons: rows
+        .filter((r) => r.kind === VisitClockInArrivalKind.LATE)
+        .map(mapClockInArrivalReasonRow),
+    };
+  }
+
+  /** When a catalogue has rows, early/late check-in must pick one of those labels. */
+  private async assertCheckInArrivalReason(dto: EmployeeAppVisitCheckInDto) {
+    const status = dto.timingStatus?.trim().toLowerCase();
+    const kind =
+      status === 'early'
+        ? VisitClockInArrivalKind.EARLY
+        : status === 'late'
+          ? VisitClockInArrivalKind.LATE
+          : null;
+    if (!kind) return;
+
+    const rows = await this.prisma.visitClockInArrivalReasonCatalog.findMany({
+      where: { isActive: true, kind },
+      select: { label: true, requiresNotes: true },
+    });
+    if (rows.length === 0) {
+      if (!dto.timingExceptionNotes?.trim()) {
+        contractError(
+          'TIMING_NOTES_REQUIRED',
+          kind === VisitClockInArrivalKind.EARLY
+            ? 'Write why you arrived early'
+            : 'Write why you arrived late',
+        );
+      }
+      return;
+    }
+
+    const chosen = dto.timingExceptionReasonCode?.trim();
+    if (!chosen) {
+      contractError(
+        'TIMING_REASON_REQUIRED',
+        kind === VisitClockInArrivalKind.EARLY
+          ? 'Select a reason for early arrival'
+          : 'Select a reason for late arrival',
+      );
+    }
+    const match = rows.find((r) => r.label === chosen);
+    if (!match) {
+      contractError('INVALID_TIMING_REASON', 'Arrival reason is not in the office catalogue');
+    }
+    if (match.requiresNotes && !dto.timingExceptionNotes?.trim()) {
+      contractError('TIMING_NOTES_REQUIRED', `Add notes for “${match.label}”`);
+    }
+  }
+
+  /** Clock-out picker is end-only. Arrival reasons were already captured at check-in. */
+  private async assertClockOutEndReason(
+    dto: EmployeeAppVisitCompleteDto,
+    plannedEnd: Date | null | undefined,
+    actualEnd: Date,
+    graceMinutes: number,
+  ) {
+    if (!plannedEnd) return;
+    const graceMs = Math.max(0, graceMinutes) * 60_000;
+    const planned = plannedEnd.getTime();
+    const actual = actualEnd.getTime();
+    const kind =
+      actual < planned - graceMs
+        ? VisitClockInArrivalKind.EARLY
+        : actual > planned + graceMs
+          ? VisitClockInArrivalKind.LATE
+          : null;
+    if (!kind) return;
+
+    const rows = await this.prisma.visitClockOutEndReasonCatalog.findMany({
+      where: { isActive: true, kind },
+      select: { label: true, requiresNotes: true },
+    });
+    if (rows.length === 0) {
+      if (!dto.timingExceptionNotes?.trim()) {
+        contractError(
+          'TIMING_NOTES_REQUIRED',
+          kind === VisitClockInArrivalKind.EARLY
+            ? 'Write why you clocked out early'
+            : 'Write why you clocked out late',
+        );
+      }
+      return;
+    }
+
+    const chosen = dto.timingExceptionReasonCode?.trim();
+    if (!chosen) {
+      contractError(
+        'TIMING_REASON_REQUIRED',
+        kind === VisitClockInArrivalKind.EARLY
+          ? 'Select a reason for early clock-out'
+          : 'Select a reason for late clock-out',
+      );
+    }
+    const match = rows.find((r) => r.label === chosen);
+    if (!match) {
+      contractError('INVALID_TIMING_REASON', 'Clock-out reason is not in the office catalogue');
+    }
+    if (match.requiresNotes && !dto.timingExceptionNotes?.trim()) {
+      contractError('TIMING_NOTES_REQUIRED', `Add notes for “${match.label}”`);
+    }
+  }
+
+  private mapCareConsent(row: {
+    status: VisitCareConsentStatus;
+    reason: string | null;
+    deviceRecordedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    capturedByEmployeeId: string;
+  } | null) {
+    if (!row) {
+      return {
+        required: true,
+        status: null,
+        reason: null,
+        recordedAt: null,
+        capturedByEmployeeId: null,
+      };
+    }
+    return {
+      required: true,
+      status: row.status,
+      reason: row.reason,
+      recordedAt: (row.deviceRecordedAt ?? row.updatedAt ?? row.createdAt).toISOString(),
+      capturedByEmployeeId: row.capturedByEmployeeId,
+    };
+  }
+
+  async getCareConsent(_employeeId: string, scheduledVisitId: string) {
+    const row = await this.prisma.visitCareConsent.findUnique({
+      where: { scheduledVisitId },
+      select: {
+        status: true,
+        reason: true,
+        deviceRecordedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        capturedByEmployeeId: true,
+      },
+    });
+    return this.mapCareConsent(row);
+  }
+
+  async getCareConsentForJob(employeeId: string, jobId: string) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    return { data: await this.getCareConsent(employeeId, ctx.primaryVisit.id) };
+  }
+
+  async saveCareConsent(employeeId: string, jobId: string, dto: EmployeeAppCareConsentDto) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+
+    if (!isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)) {
+      validationError('Only the lead carer can record consent to care');
+    }
+
+    if (
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF
+    ) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
+
+    const checkedIn =
+      Boolean(myAllocation?.actualStartDateTime) || Boolean(ctx.checkIn);
+    if (!checkedIn) {
+      validationError('Clock in before recording consent to care');
+    }
+
+    if (dto.status === 'DECLINED' && !dto.reason?.trim()) {
+      validationError('A reason is required when consent is declined');
+    }
+
+    const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
+    if (replay) return { data: replay };
+
+    const deviceRecordedAt = dto.deviceRecordedAt ? new Date(dto.deviceRecordedAt) : new Date();
+    const status =
+      dto.status === 'DECLINED' ? VisitCareConsentStatus.DECLINED : VisitCareConsentStatus.GRANTED;
+    const reason = dto.status === 'DECLINED' ? dto.reason!.trim() : dto.reason?.trim() || null;
+
+    const row = await this.prisma.visitCareConsent.upsert({
+      where: { scheduledVisitId: visit.id },
+      create: {
+        scheduledVisitId: visit.id,
+        scheduledJobId: jobId,
+        serviceUserId: ctx.job.serviceUserId,
+        capturedByEmployeeId: employeeId,
+        status,
+        reason,
+        deviceRecordedAt,
+      },
+      update: {
+        capturedByEmployeeId: employeeId,
+        status,
+        reason,
+        deviceRecordedAt,
+      },
+    });
+
+    const data = this.mapCareConsent(row);
+    await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+      ...ea,
+      careConsent: data,
+      idempotency: {
+        ...((ea.idempotency as Record<string, unknown>) ?? {}),
+        [dto.idempotencyKey]: data,
+      },
+    }));
+
+    return { data };
+  }
+
+  async reportAreaPresence(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppAreaPresenceDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const completed =
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      ctx.job.status === ScheduledJobStatus.COMPLETED ||
+      ctx.job.status === ScheduledJobStatus.PARTIALLY_COMPLETED;
+    if (completed) {
+      throw new BadRequestException('Visit is already completed');
+    }
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before reporting visit area presence');
+    }
+
+    const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
+    if (checkInMethod !== 'GPS') {
+      return {
+        data: {
+          operationsLocked: false,
+          operationsLockedAt: null,
+          withinArea: true,
+          skipped: true,
+          skipReason: 'CHECK_IN_METHOD',
+        },
+      };
+    }
+
+    const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
+    const outsideArea = Boolean(dto.outsideArea) || !geofence.withinArea;
+    const state = await this.areaLocks.syncOutsidePresence({
+      scheduledJobId: jobId,
+      employeeId,
+      outsideArea,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      distanceMeters: geofence.distanceMeters,
+    });
+
+    return {
+      data: {
+        operationsLocked: state.operationsLocked,
+        operationsLockedAt: state.lockedAt,
+        withinArea: state.withinArea,
+        continueAllowed: state.continueAllowed,
+      },
+    };
   }
 
   async checkIn(employeeId: string, jobId: string, dto: EmployeeAppVisitCheckInDto) {
@@ -401,6 +826,10 @@ export class EmployeeAppVisitsService {
 
     // Single-carer: visit-level already-checked-in (unchanged).
     // Double-up: each carer clocks in independently via allocation actualStart.
+    await this.assertCheckInArrivalReason(dto);
+    await this.assertCheckInMethodEnabled(dto.method);
+    this.assertManualCheckInReason(dto);
+
     const alreadyCheckedIn = multi
       ? Boolean(myAllocation?.actualStartDateTime)
       : Boolean(visit.actualStartDateTime) ||
@@ -420,11 +849,18 @@ export class EmployeeAppVisitsService {
     const idempotencyKey = dto.idempotencyKey ?? dto.clientEventId ?? null;
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
 
-    await this.attendance.assertGeofencePolicy({
-      outsideGeofence: !geofence.withinArea,
-      outsideGeofenceReason: dto.outsideGeofenceReason ?? dto.manualOverrideNotes,
-      restrictOutside: geofence.restrictOutside,
-    });
+    const checkInMethod = normalizeCheckInMethod(dto.method);
+    // GPS is the only method that must be inside the visit area (or give a
+    // geofence reason). Manual / NFC / QR already carry their own exception
+    // evidence — do not fail them because last-known GPS is far from the job.
+    if (checkInMethod === 'GPS') {
+      await this.attendance.assertGeofencePolicy({
+        outsideGeofence: !geofence.withinArea,
+        outsideGeofenceReason:
+          dto.outsideGeofenceReason ?? dto.manualOverrideNotes,
+        restrictOutside: geofence.restrictOutside,
+      });
+    }
 
     const checkInPayload = {
       clientEventId: dto.clientEventId ?? null,
@@ -561,7 +997,7 @@ export class EmployeeAppVisitsService {
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
         serverReceivedAt: now.toISOString(),
-        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+        shell: await this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
         ...(timelineItem ? { timelineItem } : {}),
       },
     };
@@ -712,6 +1148,7 @@ export class EmployeeAppVisitsService {
   }
 
   async saveTasks(employeeId: string, jobId: string, dto: SaveVisitJobTasksDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     await this.loadJobForEmployee(employeeId, jobId);
     const result = await this.housekeeping.saveVisitJobTasks('', jobId, dto);
 
@@ -810,6 +1247,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: CreateServiceUserObservationDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const type = await this.prisma.observationType.findFirst({
       where: {
@@ -1017,6 +1455,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppBodyMapWizardSubmitDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -1146,6 +1585,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppCreateBodyMapRecordDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -1263,6 +1703,54 @@ export class EmployeeAppVisitsService {
     return this.bodyMap.patchRotationCheck(ctx.job.serviceUserId, opts);
   }
 
+  private resolveCheckInMethod(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    employeeId?: string,
+  ): string {
+    const checkIns =
+      typeof ctx.employeeAppMeta.checkIns === 'object' && ctx.employeeAppMeta.checkIns
+        ? (ctx.employeeAppMeta.checkIns as Record<string, unknown>)
+        : null;
+    const mine =
+      employeeId && checkIns && typeof checkIns[employeeId] === 'object' && checkIns[employeeId]
+        ? (checkIns[employeeId] as Record<string, unknown>)
+        : null;
+    const raw = mine?.method ?? ctx.checkIn?.method;
+    return normalizeCheckInMethod(typeof raw === 'string' ? raw : null);
+  }
+
+  private async assertOperationsUnlocked(employeeId: string, jobId: string) {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { metadata: true },
+    });
+    const metadata =
+      job?.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+        ? (job.metadata as Record<string, unknown>)
+        : {};
+    const employeeApp =
+      typeof metadata.employeeApp === 'object' && metadata.employeeApp
+        ? (metadata.employeeApp as Record<string, unknown>)
+        : {};
+    const checkIns =
+      typeof employeeApp.checkIns === 'object' && employeeApp.checkIns
+        ? (employeeApp.checkIns as Record<string, unknown>)
+        : null;
+    const mine =
+      checkIns && typeof checkIns[employeeId] === 'object' && checkIns[employeeId]
+        ? (checkIns[employeeId] as Record<string, unknown>)
+        : null;
+    const checkIn =
+      typeof employeeApp.checkIn === 'object' && employeeApp.checkIn
+        ? (employeeApp.checkIn as Record<string, unknown>)
+        : null;
+    const raw = mine?.method ?? checkIn?.method;
+    if (normalizeCheckInMethod(typeof raw === 'string' ? raw : null) !== 'GPS') {
+      return;
+    }
+    await this.areaLocks.assertUnlocked(jobId);
+  }
+
   private isEmployeeCheckedInForVisit(
     employeeId: string,
     ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
@@ -1285,6 +1773,7 @@ export class EmployeeAppVisitsService {
   }
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
 
@@ -1352,6 +1841,36 @@ export class EmployeeAppVisitsService {
       myAllocation?.actualStartDateTime?.toISOString() ??
       ctx.primaryVisit.actualStartDateTime?.toISOString();
 
+    const endDate = new Date(endIso);
+    const plannedEnd =
+      ctx.job.scheduledEndDateTime ?? ctx.primaryVisit.scheduledEndDateTime ?? null;
+    await this.assertClockOutEndReason(dto, plannedEnd, endDate, 15);
+
+    const previousMetaForTiming = this.parseMetadata(ctx.job.metadata);
+    const eaMeta =
+      typeof previousMetaForTiming.employeeApp === 'object' && previousMetaForTiming.employeeApp
+        ? (previousMetaForTiming.employeeApp as Record<string, unknown>)
+        : {};
+    const checkInsMeta =
+      typeof eaMeta.checkIns === 'object' && eaMeta.checkIns
+        ? (eaMeta.checkIns as Record<string, unknown>)
+        : {};
+    const myCheckIn =
+      (typeof checkInsMeta[employeeId] === 'object' && checkInsMeta[employeeId]
+        ? (checkInsMeta[employeeId] as Record<string, unknown>)
+        : null) ??
+      (typeof eaMeta.checkIn === 'object' && eaMeta.checkIn
+        ? (eaMeta.checkIn as Record<string, unknown>)
+        : null);
+    const checkInReason =
+      typeof myCheckIn?.timingExceptionReasonCode === 'string'
+        ? myCheckIn.timingExceptionReasonCode.trim()
+        : '';
+    const checkInNotes =
+      typeof myCheckIn?.timingExceptionNotes === 'string'
+        ? myCheckIn.timingExceptionNotes.trim()
+        : '';
+
     const result = await this.housekeeping.completeJob('', jobId, {
       status,
       notes,
@@ -1361,8 +1880,8 @@ export class EmployeeAppVisitsService {
       actualStartDateTime: startIso,
       actualEndDateTime: endIso,
       overrunReason: dto.overrunReason,
-      timingExceptionReasonCode: dto.timingExceptionReasonCode,
-      timingExceptionNotes: dto.timingExceptionNotes,
+      timingExceptionReasonCode: dto.timingExceptionReasonCode?.trim() || checkInReason || undefined,
+      timingExceptionNotes: dto.timingExceptionNotes?.trim() || checkInNotes || undefined,
     });
 
     // Lead allocation clock-out only — do not force support allocation end if still on site.
@@ -1396,6 +1915,7 @@ export class EmployeeAppVisitsService {
         latitude: dto.latitude ?? null,
         longitude: dto.longitude ?? null,
         accuracyMeters: dto.accuracyMeters ?? null,
+        isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
         withinArea: dto.withinArea ?? geofence.withinArea,
         distanceMeters: dto.distanceMeters ?? geofence.distanceMeters,
         completedAt: now.toISOString(),
@@ -1431,6 +1951,7 @@ export class EmployeeAppVisitsService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       outsideGeofence: !geofence.withinArea,
       distanceMeters: geofence.distanceMeters,
       clientEventId: dto.idempotencyKey ?? undefined,
@@ -1547,6 +2068,10 @@ export class EmployeeAppVisitsService {
       actualEndDateTime: endAt.toISOString(),
       deviceRecordedAt: dto.deviceRecordedAt ?? null,
       idempotencyKey: dto.idempotencyKey ?? null,
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
+      accuracyMeters: dto.accuracyMeters ?? null,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       employeeId,
       role: 'support',
     };
@@ -1574,6 +2099,7 @@ export class EmployeeAppVisitsService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
       clientEventId: dto.idempotencyKey ?? undefined,
     });
 
@@ -1889,7 +2415,7 @@ export class EmployeeAppVisitsService {
           present: existing.present,
           arrivedAt: existing.arrivedAt ?? null,
           leftAt: existing.leftAt ?? null,
-          shell: this.buildShell(ctx, progress, undefined, employeeId, geofenceSettings),
+          shell: await this.buildShell(ctx, progress, undefined, employeeId, geofenceSettings),
         },
       };
     }
@@ -1949,7 +2475,7 @@ export class EmployeeAppVisitsService {
         present: next.present,
         arrivedAt: next.arrivedAt ?? null,
         leftAt: next.leftAt ?? null,
-        shell: this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
+        shell: await this.buildShell(refreshed, progress, undefined, employeeId, geofenceSettings),
       },
     };
   }
@@ -2042,6 +2568,7 @@ export class EmployeeAppVisitsService {
     taskId: string,
     dto: EmployeeAppSaveTaskDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     await this.loadJobForEmployee(employeeId, jobId);
     const outcome = dto.outcome.toUpperCase();
     if (!['COMPLETED', 'PARTIAL', 'DECLINED'].includes(outcome)) {
@@ -2190,6 +2717,7 @@ export class EmployeeAppVisitsService {
     medicationKey: string,
     dto: EmployeeAppMedicationAdminDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -2236,6 +2764,10 @@ export class EmployeeAppVisitsService {
     if (Number.isNaN(recordedAt.getTime())) {
       validationError('deviceRecordedAt must be a valid ISO date-time');
     }
+    const witness = resolveMedicationWitnessColumns(
+      Boolean(med.isControlledMedication),
+      dto,
+    );
     const timeGiven =
       dto.timeGiven?.trim() || formatHmUtc(recordedAt);
     const roundRow = ctx.medicationRoundCode
@@ -2261,6 +2793,7 @@ export class EmployeeAppVisitsService {
         supportLevel: dto.supportLevel?.trim() || null,
         timeGiven,
         outcomeLabel: dto.outcomeLabel?.trim() || null,
+        ...witness,
         visitId: ctx.primaryVisit.id,
         isPrn,
         prnReason: dto.prnIndication ?? null,
@@ -2311,7 +2844,12 @@ export class EmployeeAppVisitsService {
       sourceType: 'medication',
       sourceId: created.id,
       title: medTitle || 'Medication',
-      detail: medicationOutcomeLabel(dto.outcomeLabel, mapped.status),
+      detail: [
+        medicationOutcomeLabel(dto.outcomeLabel, mapped.status),
+        medicationWitnessTimelineDetail(buildMedicationWitnessEcho(witness)),
+      ]
+        .filter(Boolean)
+        .join(' · '),
       tone: medicationTimelineTone(mapped.status),
       occurredAt: parseOccurredAt(dto.deviceRecordedAt, recordedAt),
       createdByEmployeeId: employeeId,
@@ -2326,6 +2864,7 @@ export class EmployeeAppVisitsService {
     jobId: string,
     dto: EmployeeAppObservationWriteDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     // Legacy path: admin CreateServiceUserObservationDto shape
     if (dto.observationTypeCode && dto.recordedAt && !dto.typeCode && !dto.definitionId) {
       return this.createObservation(employeeId, jobId, dto as CreateServiceUserObservationDto);
@@ -2482,6 +3021,7 @@ export class EmployeeAppVisitsService {
     observationId: string,
     dto: EmployeeAppObservationWriteDto,
   ) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
@@ -2615,6 +3155,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
      * Same `clientEntryId` + `idempotencyKey` may be reused to edit a note.
@@ -2684,6 +3225,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
      * Handover is a visit singleton. POST is always upsert: reuse of the same
@@ -2772,6 +3314,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogConcern(employeeId: string, jobId: string, dto: EmployeeAppLogConcernDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -2827,6 +3370,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createIncident(employeeId: string, jobId: string, dto: EmployeeAppIncidentDto) {
+    await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
@@ -3374,7 +3918,7 @@ export class EmployeeAppVisitsService {
     };
   }
 
-  private buildShell(
+  private async buildShell(
     ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
     progress: Awaited<ReturnType<typeof this.resolveProgress>>,
     medProgress?: { dueCount: number; givenCount: number },
@@ -3458,10 +4002,15 @@ export class EmployeeAppVisitsService {
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: ctx.job.metadata,
     });
+    const visitRefById = await loadVisitRefsByScheduledVisitIds(this.prisma, [visit.id]);
+    const visitRef =
+      visitRefById.get(visit.id) ??
+      (await this.visitReconciliations.issueVisitRef(visit.id));
 
     return {
       jobId: ctx.job.id,
       visitId: visit.id,
+      visitRef: visitRef ?? null,
       clientId: su.id,
       organisationTimezone: ctx.timeZone,
       client: {
@@ -3593,6 +4142,42 @@ export class EmployeeAppVisitsService {
 
   private async loadGeofenceSettings() {
     return { allowedRadiusMeters: EMPLOYEE_APP_ALLOWED_RADIUS_METERS };
+  }
+
+  private async loadCheckInMethodFlags() {
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: {
+        domCheckInGpsEnabled: true,
+        domCheckInManualEnabled: true,
+        domCheckInNfcEnabled: true,
+        domCheckInQrEnabled: true,
+      },
+    });
+    return {
+      domCheckInGpsEnabled: settings?.domCheckInGpsEnabled,
+      domCheckInManualEnabled: settings?.domCheckInManualEnabled,
+      domCheckInNfcEnabled: settings?.domCheckInNfcEnabled,
+      domCheckInQrEnabled: settings?.domCheckInQrEnabled,
+    };
+  }
+
+  private async assertCheckInMethodEnabled(method?: string) {
+    const enabled = resolveEnabledCheckInMethods(await this.loadCheckInMethodFlags());
+    if (isCheckInMethodEnabled(method, enabled)) return;
+    validationError(
+      'This check-in method is not enabled for your organisation.',
+    );
+  }
+
+  private assertManualCheckInReason(dto: EmployeeAppVisitCheckInDto) {
+    if (normalizeCheckInMethod(dto.method) !== 'MANUAL') return;
+    const code = dto.manualOverrideReasonCode?.trim();
+    if (!code) {
+      validationError('A reason is required for manual check-in.');
+    }
+    if (code.toUpperCase() === 'OTHER' && !dto.manualOverrideNotes?.trim()) {
+      validationError('Notes are required when the manual reason is Other.');
+    }
   }
 
   private buildProgress(
@@ -3984,7 +4569,7 @@ export class EmployeeAppVisitsService {
 
   private async loadOverviewExtras(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
     const suId = ctx.job.serviceUserId;
-    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport] =
+    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport, sosAlerts] =
       await Promise.all([
         this.loadAllergies(suId),
         this.prisma.initialAssessmentRiskRecord.findMany({
@@ -3997,6 +4582,7 @@ export class EmployeeAppVisitsService {
                 InitialAssessmentRiskType.HYDRATION,
                 InitialAssessmentRiskType.SKIN_INTEGRITY,
                 InitialAssessmentRiskType.MOVING_HANDLING,
+                InitialAssessmentRiskType.LONE_WORKER,
               ],
             },
           },
@@ -4031,6 +4617,7 @@ export class EmployeeAppVisitsService {
           where: { serviceUserId: suId, deletedAt: null, isActive: true },
           select: { storageLocation: true },
         }),
+        this.sos.listForJob(ctx.job.id),
       ]);
 
     const riskTags = openRisks.map((r) => ({
@@ -4040,6 +4627,9 @@ export class EmployeeAppVisitsService {
     }));
 
     const extraFlags = riskTags.filter((t) => !/allerg/i.test(t.label));
+    const hasLoneWorkerRisk = openRisks.some(
+      (r) => r.riskType === InitialAssessmentRiskType.LONE_WORKER,
+    );
     const communicationNotes = extractCommunicationNotes(ia?.careInstructions ?? '');
 
     const carePlanEssentials = carePlans
@@ -4061,17 +4651,7 @@ export class EmployeeAppVisitsService {
       .filter((x): x is NonNullable<typeof x> => x != null)
       .slice(0, 4);
 
-    const addr = ctx.job.serviceUser.address;
-    const keySafe =
-      addr && !addr.deletedAt
-        ? {
-            address: [addr.addressLine1, addr.addressLine2, addr.town, addr.postcode]
-              .filter(Boolean)
-              .join(', ') || null,
-            code: addr.keySafeNumber ?? null,
-            accessNote: addr.accessInstructions ?? null,
-          }
-        : null;
+    const keySafe = employeeAppKeySafePayload(ctx.job.serviceUser.address);
 
     const medicationLocation =
       medSupport?.storageLocation != null && medSupport.storageLocation.trim()
@@ -4133,16 +4713,19 @@ export class EmployeeAppVisitsService {
           value: String(progress.obsCount),
         },
       ],
-      safetyBriefing: {
-        title: 'Pre-visit safety briefing',
-        risks: riskTags.map((t) => t.label),
-        loneWorkerNote: 'Lone-worker & SOS',
-      },
+      safetyBriefing: hasLoneWorkerRisk
+        ? {
+            title: 'Pre-visit safety briefing',
+            risks: [],
+            loneWorkerNote: 'Lone-worker & SOS',
+          }
+        : null,
       communication: {
         title: 'Communication & sensory',
         items: communicationNotes,
       },
       carePlanEssentials,
+      sosAlerts,
       bodyMapHandover: bodyMapHandover
         ? {
             activeCount: bodyMapHandover.activeCount,
@@ -4319,6 +4902,11 @@ export class EmployeeAppVisitsService {
                 supportLevel: true,
                 timeGiven: true,
                 outcomeLabel: true,
+                witnessPresent: true,
+                witnessName: true,
+                witnessRelationCode: true,
+                witnessRelationDetail: true,
+                witnessNotes: true,
                 actualDateTime: true,
                 prnReason: true,
                 prnOutcome: true,
@@ -4772,8 +5360,7 @@ function initialsFromName(first: string | null | undefined, last: string | null 
 }
 
 function formatDob(d: Date) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return formatUkDateLabel(d);
 }
 
 function riskLabel(risk: InitialAssessmentRiskType) {
@@ -4786,6 +5373,8 @@ function riskLabel(risk: InitialAssessmentRiskType) {
       return 'Pressure ulcer risk';
     case InitialAssessmentRiskType.MOVING_HANDLING:
       return 'Moving & handling risk';
+    case InitialAssessmentRiskType.LONE_WORKER:
+      return 'Lone worker risk';
     default:
       return 'Risk flagged';
   }

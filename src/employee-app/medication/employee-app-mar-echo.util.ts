@@ -1,5 +1,9 @@
 import { formatHmInTimeZone, DEFAULT_OPERATIONAL_TIMEZONE } from '../../common/utils/operational-day.util';
 import { MedicationAdministrationStatus } from '@prisma/client';
+import {
+  buildMedicationWitnessEcho,
+  type MedicationWitnessEcho,
+} from '../../medications/medication-witness.util';
 
 export type MarAdminEventEchoSource = {
   id: string;
@@ -14,6 +18,11 @@ export type MarAdminEventEchoSource = {
   prnReason?: string | null;
   prnOutcome?: string | null;
   isPrn?: boolean;
+  witnessPresent?: boolean | null;
+  witnessName?: string | null;
+  witnessRelationCode?: string | null;
+  witnessRelationDetail?: string | null;
+  witnessNotes?: string | null;
 };
 
 export type MarAdminEchoFields = {
@@ -32,6 +41,7 @@ export type MarAdminEchoFields = {
   prnIndication: string | null;
   prnEffectiveness: string | null;
   savedAtLabel: string | null;
+  witness: MedicationWitnessEcho | null;
 };
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -188,6 +198,7 @@ export function buildMarAdminEchoFields(
     prnIndication: evt.isPrn ? evt.prnReason?.trim() || null : evt.prnReason?.trim() || null,
     prnEffectiveness: evt.isPrn ? evt.prnOutcome?.trim() || null : evt.prnOutcome?.trim() || null,
     savedAtLabel: timeGiven ? `Saved ${timeGiven}` : null,
+    witness: buildMedicationWitnessEcho(evt),
   };
 }
 
@@ -207,6 +218,7 @@ export function emptyMarAdminEchoFields(): {
   prnIndication: null;
   prnEffectiveness: null;
   savedAtLabel: null;
+  witness: null;
 } {
   return {
     administrationEventId: null,
@@ -224,5 +236,6 @@ export function emptyMarAdminEchoFields(): {
     prnIndication: null,
     prnEffectiveness: null,
     savedAtLabel: null,
+    witness: null,
   };
 }
