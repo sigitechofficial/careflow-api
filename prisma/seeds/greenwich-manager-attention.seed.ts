@@ -15,8 +15,8 @@ import {
   Prisma,
   type PrismaClient,
 } from '@prisma/client'
-import { computeAssessmentReviewState } from '../../src/service-user-assessments/assessment-review-schedule'
-import { computeCarePlanReviewState } from '../../src/service-user-care-plans/care-plan-review-schedule'
+import { computeAssessmentReviewState } from '../seed-lib/assessment-review-schedule'
+import { computeCarePlanReviewState } from '../seed-lib/care-plan-review-schedule'
 import { ENTERPRISE_TEMPLATE_NAME } from './initial-assessment-enterprise.seed'
 
 const PROMOTION_PREFIX = 'greenwich-attention:'
