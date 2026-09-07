@@ -567,6 +567,59 @@ export class UnassignPayCardEmployeeDto {
   employeeId!: string;
 }
 
+export class UpsertEmployeeFunderPayAssignmentDto {
+  @ApiProperty({ description: 'Carer / employee id' })
+  @IsString()
+  employeeId!: string;
+
+  @ApiProperty({ description: 'Council / funder id' })
+  @IsString()
+  funderId!: string;
+
+  @ApiProperty({ description: 'Pay card to use for visits funded by this funder' })
+  @IsString()
+  payCardId!: string;
+
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD; defaults to today (UTC)' })
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
+
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD inclusive end; omit for open-ended' })
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string | null;
+}
+
+export class UpdateEmployeeFunderPayAssignmentDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  payCardId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string | null;
+}
+
 export class AssignChargeCardMatchingDto {
   @ApiPropertyOptional({
     default: true,

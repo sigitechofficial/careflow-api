@@ -63,7 +63,34 @@ export type PayCardAssignmentTarget = Pick<
   'assignmentLevel' | 'assignmentTargetId' | 'assignmentTargetKey'
 >;
 
-export type PayCardResolveSource = 'EXPLICIT' | 'MATCHED' | 'NONE';
+export type PayCardResolveSource = 'EMPLOYEE_FUNDER' | 'EXPLICIT' | 'MATCHED' | 'NONE';
+
+export type EmployeeFunderPayAssignmentRow = {
+  id: string;
+  employeeId: string;
+  funderId: string;
+  payCardId: string;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  deletedAt?: Date | null;
+};
+
+/** Pick the active employee+funder pay assignment effective on `at` (UTC date). */
+export function pickEffectiveEmployeeFunderPayAssignment<
+  T extends EmployeeFunderPayAssignmentRow,
+>(assignments: T[], at = new Date()): T | null {
+  const day = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
+  const eligible = assignments
+    .filter((row) => !row.deletedAt)
+    .filter((row) => row.effectiveFrom <= day)
+    .filter((row) => !row.effectiveTo || row.effectiveTo >= day)
+    .sort((a, b) => {
+      const fromDiff = b.effectiveFrom.getTime() - a.effectiveFrom.getTime();
+      if (fromDiff !== 0) return fromDiff;
+      return b.id.localeCompare(a.id);
+    });
+  return eligible[0] ?? null;
+}
 
 export async function assertEmployeeDefaultPayCard(
   tx: Tx,

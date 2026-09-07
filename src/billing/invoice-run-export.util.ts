@@ -89,14 +89,7 @@ function csvRow(fields: (string | number | null | undefined)[]): string {
 
 export function buildInvoiceRunCsv(model: InvoiceRunExportModel): string {
   const lines = sortedLines(model);
-  const rows: string[] = [
-    csvRow(['Invoice Run', model.periodLabel]),
-    csvRow(['Period', `${model.periodStart} to ${model.periodEnd}`]),
-    csvRow(['Status', model.status]),
-    csvRow(['Currency', model.currency]),
-    '',
-    csvRow([...LINE_HEADERS]),
-  ];
+  const rows: string[] = [csvRow([...LINE_HEADERS])];
   for (const l of lines) {
     rows.push(
       csvRow([

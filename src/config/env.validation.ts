@@ -97,6 +97,36 @@ class EnvironmentVariables {
   @IsString()
   OPENDFDA_API_KEY?: string;
 
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  SMTP_PORT?: number;
+
+  @IsOptional()
+  @IsString()
+  SMTP_SECURE?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASS?: string;
+
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
+
+  /** `smtp` | `log` — log mode records emails without SMTP (local/dev). */
+  @IsOptional()
+  @IsString()
+  MAIL_MODE?: string;
+
 }
 
 export function validateEnv(config: Record<string, unknown>) {

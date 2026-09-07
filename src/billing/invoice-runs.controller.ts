@@ -8,6 +8,7 @@ import {
   Query,
   Res,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -29,6 +30,7 @@ import {
   CreateBillingRunDto,
   BillingRunsQueryDto,
 } from './dto/billing-runs.dto';
+import { EmailInvoiceToServiceUserDto } from './dto/email-invoice-service-user.dto';
 
 @ApiTags('Billing — Invoice runs')
 @ApiBearerAuth()
@@ -88,15 +90,21 @@ export class InvoiceRunsController {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
   @ApiOperation({
-    summary: 'Download invoice run lines as CSV or Excel (?format=csv|xlsx)',
+    summary:
+      'Download invoice run lines as CSV or Excel (?format=csv|xlsx&serviceUserId=optional)',
   })
   async export(
     @Param('id') id: string,
     @Query('format') format: string | undefined,
+    @Query('serviceUserId') serviceUserId: string | undefined,
     @Res() res: Response,
   ) {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const { filename, mime, body } = await this.service.exportRun(id, fmt);
+    const { filename, mime, body } = await this.service.exportRun(
+      id,
+      fmt,
+      serviceUserId?.trim() || undefined,
+    );
     res
       .type(mime)
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
@@ -143,5 +151,32 @@ export class InvoiceRunsController {
   @ApiOperation({ summary: 'Mark invoice run as sent to funders' })
   send(@Param('id') id: string) {
     return this.service.markSent(id);
+  }
+
+  @Get(':id/service-user-email-preview')
+  @Permissions('billing.invoice_runs.manage')
+  @ApiOperation({
+    summary: 'Preview recipient emails for sending a service user invoice',
+  })
+  serviceUserEmailPreview(
+    @Param('id') id: string,
+    @Query('serviceUserId') serviceUserId: string | undefined,
+  ) {
+    if (!serviceUserId?.trim()) {
+      throw new BadRequestException('serviceUserId is required');
+    }
+    return this.service.getServiceUserEmailPreview(id, serviceUserId.trim());
+  }
+
+  @Post(':id/email-service-user')
+  @Permissions('billing.invoice_runs.manage')
+  @ApiOperation({
+    summary: 'Email a service user invoice (CSV attachment) to a billing contact',
+  })
+  emailServiceUser(
+    @Param('id') id: string,
+    @Body() dto: EmailInvoiceToServiceUserDto,
+  ) {
+    return this.service.emailToServiceUser(id, dto);
   }
 }

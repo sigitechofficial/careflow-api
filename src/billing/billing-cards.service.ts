@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -11,7 +16,9 @@ import {
   CreatePayCardDto,
   PayCardRuleDto,
   UpdateChargeCardDto,
+  UpdateEmployeeFunderPayAssignmentDto,
   UpdatePayCardDto,
+  UpsertEmployeeFunderPayAssignmentDto,
 } from './dto/billing-cards.dto';
 import {
   buildEmploymentWhereForPayCard,
@@ -19,6 +26,7 @@ import {
   normalizePayCardAssignmentInput,
   payCardListInclude,
   pickBestMatchingPayCard,
+  pickEffectiveEmployeeFunderPayAssignment,
   resolveAssignmentLabel,
 } from './pay-card-assignment.util';
 import {
@@ -381,8 +389,33 @@ export class PayCardsService {
     };
   }
 
-  async resolveForEmployee(employeeId: string, at?: Date) {
+  /**
+   * Resolve pay card for a carer.
+   * When `funderId` is provided (visit context), employee+funder overrides win over the
+   * employment default and role/branch matching. Charge cards are never consulted.
+   */
+  async resolveForEmployee(
+    employeeId: string,
+    at?: Date,
+    options?: { funderId?: string | null },
+  ) {
     const asOf = at ?? new Date();
+    const funderId = options?.funderId?.trim() || null;
+
+    if (funderId) {
+      const funderOverride = await this.findEffectiveFunderPayCard(employeeId, funderId, asOf);
+      if (funderOverride) {
+        return {
+          data: {
+            source: 'EMPLOYEE_FUNDER' as const,
+            payCard: funderOverride,
+            matchedLevel: null,
+            funderId,
+          },
+        };
+      }
+    }
+
     const employment = await this.prisma.employeeEmployment.findFirst({
       where: { employeeId, deletedAt: null, employee: { deletedAt: null } },
       include: {
@@ -404,6 +437,7 @@ export class PayCardsService {
             source: 'EXPLICIT' as const,
             payCard: card,
             matchedLevel: null,
+            funderId,
           },
         };
       }
@@ -434,6 +468,7 @@ export class PayCardsService {
           source: 'NONE' as const,
           payCard: null,
           matchedLevel: null,
+          funderId,
         },
       };
     }
@@ -443,8 +478,244 @@ export class PayCardsService {
         source: 'MATCHED' as const,
         payCard: matched,
         matchedLevel: matched.assignmentLevel,
+        funderId,
       },
     };
+  }
+
+  private async findEffectiveFunderPayCard(employeeId: string, funderId: string, asOf: Date) {
+    const rows = await this.prisma.employeeFunderPayAssignment.findMany({
+      where: {
+        employeeId,
+        funderId,
+        deletedAt: null,
+      },
+      include: {
+        payCard: { include: payCardListInclude },
+      },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    const picked = pickEffectiveEmployeeFunderPayAssignment(rows, asOf);
+    if (!picked?.payCard || picked.payCard.deletedAt) return null;
+    if (picked.payCard.status !== 'ACTIVE') return null;
+    if (!isPayCardEffective(picked.payCard, asOf)) return null;
+    return picked.payCard;
+  }
+
+  async listEmployeeFunderAssignments(employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const rows = await this.prisma.employeeFunderPayAssignment.findMany({
+      where: { employeeId, deletedAt: null },
+      include: { payCard: { include: payCardListInclude } },
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+
+    const funderIds = [...new Set(rows.map((r) => r.funderId))];
+    const funders = funderIds.length
+      ? await this.prisma.funder.findMany({
+          where: { id: { in: funderIds }, deletedAt: null },
+          select: { id: true, name: true, code: true },
+        })
+      : [];
+    const funderById = new Map(funders.map((f) => [f.id, f]));
+
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        employeeId: row.employeeId,
+        funderId: row.funderId,
+        funder: funderById.get(row.funderId) ?? null,
+        payCardId: row.payCardId,
+        payCard: row.payCard,
+        effectiveFrom: row.effectiveFrom,
+        effectiveTo: row.effectiveTo,
+        notes: row.notes,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      })),
+    };
+  }
+
+  async upsertEmployeeFunderAssignment(
+    userId: string,
+    dto: UpsertEmployeeFunderPayAssignmentDto,
+    _meta?: RequestAuditMeta,
+  ) {
+    const employeeId = dto.employeeId.trim();
+    const funderId = dto.funderId.trim();
+    const payCardId = dto.payCardId.trim();
+
+    const [employee, funder, payCard] = await Promise.all([
+      this.prisma.employee.findFirst({
+        where: { id: employeeId, deletedAt: null },
+        select: { id: true },
+      }),
+      this.prisma.funder.findFirst({
+        where: { id: funderId, deletedAt: null },
+        select: { id: true, name: true, code: true },
+      }),
+      this.prisma.payCard.findFirst({
+        where: { id: payCardId, deletedAt: null },
+        include: payCardListInclude,
+      }),
+    ]);
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (!funder) throw new NotFoundException('Funder not found');
+    if (!payCard) throw new NotFoundException('Pay card not found');
+    if (payCard.status !== 'ACTIVE' && payCard.status !== 'DRAFT') {
+      throw new BadRequestException('Pay card must be active (or draft) to assign');
+    }
+
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDateOnly(dto.effectiveFrom)
+      : new Date(
+          Date.UTC(
+            new Date().getUTCFullYear(),
+            new Date().getUTCMonth(),
+            new Date().getUTCDate(),
+          ),
+        );
+    const effectiveTo =
+      dto.effectiveTo === undefined || dto.effectiveTo === null || dto.effectiveTo === ''
+        ? null
+        : parseDateOnly(dto.effectiveTo);
+    if (effectiveTo && effectiveTo < effectiveFrom) {
+      throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
+    }
+
+    const existing = await this.prisma.employeeFunderPayAssignment.findFirst({
+      where: { employeeId, funderId, deletedAt: null },
+    });
+
+    const row = existing
+      ? await this.prisma.employeeFunderPayAssignment.update({
+          where: { id: existing.id },
+          data: {
+            payCardId,
+            effectiveFrom,
+            effectiveTo,
+            notes: dto.notes === undefined ? existing.notes : dto.notes?.trim() || null,
+            updatedById: userId,
+          },
+          include: { payCard: { include: payCardListInclude } },
+        })
+      : await this.prisma.employeeFunderPayAssignment.create({
+          data: {
+            employeeId,
+            funderId,
+            payCardId,
+            effectiveFrom,
+            effectiveTo,
+            notes: dto.notes?.trim() || null,
+            createdById: userId,
+            updatedById: userId,
+          },
+          include: { payCard: { include: payCardListInclude } },
+        });
+
+    return {
+      message: existing ? 'Funder pay card assignment updated' : 'Funder pay card assignment created',
+      data: {
+        id: row.id,
+        employeeId: row.employeeId,
+        funderId: row.funderId,
+        funder,
+        payCardId: row.payCardId,
+        payCard: row.payCard,
+        effectiveFrom: row.effectiveFrom,
+        effectiveTo: row.effectiveTo,
+        notes: row.notes,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      },
+    };
+  }
+
+  async updateEmployeeFunderAssignment(
+    userId: string,
+    id: string,
+    dto: UpdateEmployeeFunderPayAssignmentDto,
+    _meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.prisma.employeeFunderPayAssignment.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Funder pay card assignment not found');
+
+    let payCardId = existing.payCardId;
+    if (dto.payCardId !== undefined) {
+      const payCard = await this.prisma.payCard.findFirst({
+        where: { id: dto.payCardId.trim(), deletedAt: null },
+        select: { id: true, status: true },
+      });
+      if (!payCard) throw new NotFoundException('Pay card not found');
+      payCardId = payCard.id;
+    }
+
+    const effectiveFrom =
+      dto.effectiveFrom !== undefined ? parseDateOnly(dto.effectiveFrom) : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo === undefined
+        ? existing.effectiveTo
+        : dto.effectiveTo === null || dto.effectiveTo === ''
+          ? null
+          : parseDateOnly(dto.effectiveTo);
+    if (effectiveTo && effectiveTo < effectiveFrom) {
+      throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
+    }
+
+    const row = await this.prisma.employeeFunderPayAssignment.update({
+      where: { id },
+      data: {
+        payCardId,
+        effectiveFrom,
+        effectiveTo,
+        ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
+        updatedById: userId,
+      },
+      include: { payCard: { include: payCardListInclude } },
+    });
+
+    const funder = await this.prisma.funder.findFirst({
+      where: { id: row.funderId, deletedAt: null },
+      select: { id: true, name: true, code: true },
+    });
+
+    return {
+      message: 'Funder pay card assignment updated',
+      data: {
+        id: row.id,
+        employeeId: row.employeeId,
+        funderId: row.funderId,
+        funder,
+        payCardId: row.payCardId,
+        payCard: row.payCard,
+        effectiveFrom: row.effectiveFrom,
+        effectiveTo: row.effectiveTo,
+        notes: row.notes,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      },
+    };
+  }
+
+  async removeEmployeeFunderAssignment(userId: string, id: string, _meta?: RequestAuditMeta) {
+    const existing = await this.prisma.employeeFunderPayAssignment.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Funder pay card assignment not found');
+
+    await this.prisma.employeeFunderPayAssignment.update({
+      where: { id },
+      data: { deletedAt: new Date(), updatedById: userId },
+    });
+
+    return { message: 'Funder pay card assignment removed', data: { id } };
   }
 
   async remove(userId: string, id: string, _meta?: RequestAuditMeta) {

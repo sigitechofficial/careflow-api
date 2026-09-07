@@ -319,9 +319,15 @@ export class EmployeesService {
         where: { id, deletedAt: null },
         include: { personalDetail: true, employment: true },
       });
+      const now = new Date();
       await tx.employee.update({
         where: { id },
-        data: { deletedAt: new Date(), deletedById: userId, isActive: false },
+        data: { deletedAt: now, deletedById: userId, isActive: false },
+      });
+      // Drop payroll readiness so deleted staff are not auto-enrolled on UK runs.
+      await tx.employeePayrollProfile.updateMany({
+        where: { employeeId: id, deletedAt: null },
+        data: { deletedAt: now, status: 'SUSPENDED', updatedById: userId },
       });
       await this.audit.logAudit({
         tx,

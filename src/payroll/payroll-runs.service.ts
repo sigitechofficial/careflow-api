@@ -601,8 +601,9 @@ export class PayrollRunsService {
       throw new BadRequestException('Only open runs can accept enrolments');
     }
 
+    const explicitIds = (dto.employeeIds?.filter(Boolean) ?? []).length > 0;
     let employeeIds = dto.employeeIds?.filter(Boolean) ?? [];
-    if (employeeIds.length === 0) {
+    if (!explicitIds) {
       const ready = await this.prisma.employeePayrollProfile.findMany({
         where: {
           deletedAt: null,
@@ -643,8 +644,14 @@ export class PayrollRunsService {
     });
     const validIds = new Set(validEmployees.map((e) => e.id));
     const missing = employeeIds.filter((id) => !validIds.has(id));
-    if (missing.length) {
+    // Auto-enrol skips soft-deleted / missing employees (orphan READY profiles).
+    // Explicit IDs still fail so callers know which IDs were invalid.
+    if (missing.length && explicitIds) {
       throw new BadRequestException(`Unknown employee IDs: ${missing.slice(0, 5).join(', ')}`);
+    }
+    employeeIds = employeeIds.filter((id) => validIds.has(id));
+    if (employeeIds.length === 0) {
+      throw new BadRequestException('No employees to enrol');
     }
 
     const profilesForEnrol = await this.prisma.employeePayrollProfile.findMany({

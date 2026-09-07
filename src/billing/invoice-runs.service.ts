@@ -12,7 +12,9 @@ import {
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreateBillingRunDto } from './dto/billing-runs.dto';
+import { EmailInvoiceToServiceUserDto } from './dto/email-invoice-service-user.dto';
 import {
   buildFundingSplits,
   endOfBillingDate,
@@ -61,6 +63,7 @@ export class InvoiceRunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly invoiceTemplates: InvoiceTemplatesService,
+    private readonly mail: MailService,
   ) {}
 
   async list(query?: BillingRunsQueryDto) {
@@ -719,14 +722,21 @@ export class InvoiceRunsService {
   async exportRun(
     id: string,
     format: 'csv' | 'xlsx',
+    serviceUserId?: string,
   ): Promise<{ filename: string; mime: string; body: string | Buffer }> {
     const row = await this.prisma.invoiceRun.findUnique({
       where: { id },
       include: {
-        lines: { orderBy: [{ visitRef: 'asc' }, { description: 'asc' }] },
+        lines: {
+          where: serviceUserId ? { serviceUserId } : undefined,
+          orderBy: [{ visitRef: 'asc' }, { description: 'asc' }],
+        },
       },
     });
     if (!row) throw new NotFoundException('Invoice run not found');
+    if (serviceUserId && row.lines.length === 0) {
+      throw new NotFoundException('No invoice lines for this service user on the run');
+    }
 
     const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
     const funderIds = [
@@ -1159,6 +1169,185 @@ export class InvoiceRunsService {
       },
     });
     return this.getById(id);
+  }
+
+  /**
+   * Resolve likely invoice email recipients for a service user on a run
+   * (funding billing contacts first, then service user email).
+   */
+  async getServiceUserEmailPreview(runId: string, serviceUserId: string) {
+    const run = await this.prisma.invoiceRun.findUnique({
+      where: { id: runId },
+      select: {
+        id: true,
+        periodLabel: true,
+        periodStart: true,
+        periodEnd: true,
+        status: true,
+        currency: true,
+      },
+    });
+    if (!run) throw new NotFoundException('Invoice run not found');
+
+    const su = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        serviceUserNumber: true,
+        email: true,
+      },
+    });
+    if (!su) throw new NotFoundException('Service user not found');
+
+    const lines = await this.prisma.invoiceRunLine.findMany({
+      where: { invoiceRunId: runId, serviceUserId },
+      select: { amount: true, funderId: true },
+    });
+    if (!lines.length) {
+      throw new NotFoundException('No invoice lines for this service user on the run');
+    }
+
+    const funderIds = [
+      ...new Set(lines.map((l) => l.funderId).filter((id): id is string => Boolean(id))),
+    ];
+    const [fundings, funders] = await Promise.all([
+      this.prisma.serviceUserFunding.findMany({
+        where: { serviceUserId, deletedAt: null },
+        select: {
+          billingContactEmail: true,
+          billingContactName: true,
+          funderId: true,
+        },
+      }),
+      funderIds.length
+        ? this.prisma.funder.findMany({
+            where: { id: { in: funderIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    type Suggestion = { email: string; source: string; label: string };
+    const suggestions: Suggestion[] = [];
+    const seen = new Set<string>();
+    const push = (email: string | null | undefined, source: string, label: string) => {
+      const e = email?.trim().toLowerCase();
+      if (!e || seen.has(e)) return;
+      seen.add(e);
+      suggestions.push({ email: e, source, label });
+    };
+
+    for (const f of fundings) {
+      push(
+        f.billingContactEmail,
+        'funding_billing_contact',
+        f.billingContactName?.trim() || 'Funding billing contact',
+      );
+    }
+    for (const f of funders) {
+      push(f.email, 'funder', f.name);
+    }
+    push(su.email, 'service_user', 'Service user');
+
+    const subtotal = lines.reduce((sum, l) => sum + Number(l.amount), 0);
+    const name =
+      su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim();
+
+    return {
+      data: {
+        runId: run.id,
+        period: run.periodLabel,
+        periodStart: run.periodStart.toISOString().slice(0, 10),
+        periodEnd: run.periodEnd.toISOString().slice(0, 10),
+        status: run.status,
+        currency: run.currency,
+        serviceUserId: su.id,
+        serviceUserName: name,
+        serviceUserNumber: su.serviceUserNumber,
+        subtotal: formatMoney(subtotal),
+        subtotalValue: subtotal,
+        defaultToEmail: suggestions[0]?.email ?? null,
+        suggestions,
+        canMarkSent:
+          run.status === InvoiceRunStatus.LOCKED ||
+          run.status === InvoiceRunStatus.APPROVED,
+      },
+    };
+  }
+
+  /** Email this service user's invoice CSV to a billing / service-user address. */
+  async emailToServiceUser(runId: string, dto: EmailInvoiceToServiceUserDto) {
+    const preview = await this.getServiceUserEmailPreview(runId, dto.serviceUserId);
+    const to =
+      dto.toEmail?.trim().toLowerCase() || preview.data.defaultToEmail;
+    if (!to) {
+      throw new BadRequestException(
+        'No email address found. Add a funding billing contact email or service user email, or enter an address manually.',
+      );
+    }
+
+    const exported = await this.exportRun(runId, 'csv', dto.serviceUserId);
+    const subject = `Invoice — ${preview.data.serviceUserName} — ${preview.data.period}`;
+    const text = [
+      `Dear recipient,`,
+      ``,
+      `Please find attached the invoice for ${preview.data.serviceUserName}`,
+      preview.data.serviceUserNumber
+        ? `(${preview.data.serviceUserNumber})`
+        : '',
+      `for the period ${preview.data.periodStart} to ${preview.data.periodEnd}.`,
+      ``,
+      `Amount: ${preview.data.subtotal} ${preview.data.currency}`,
+      ``,
+      `This message was sent from CareAdmin.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const sent = await this.mail.send({
+      to,
+      subject,
+      text,
+      html: `<p>Dear recipient,</p>
+<p>Please find attached the invoice for <strong>${preview.data.serviceUserName}</strong>${
+        preview.data.serviceUserNumber
+          ? ` (${preview.data.serviceUserNumber})`
+          : ''
+      } for the period <strong>${preview.data.periodStart}</strong> to <strong>${preview.data.periodEnd}</strong>.</p>
+<p>Amount: <strong>${preview.data.subtotal} ${preview.data.currency}</strong></p>
+<p>This message was sent from CareAdmin.</p>`,
+      attachments: [
+        {
+          filename: exported.filename,
+          content: exported.body,
+          contentType: exported.mime,
+        },
+      ],
+    });
+
+    const shouldMarkSent = dto.markSent !== false && preview.data.canMarkSent;
+    let markedSent = false;
+    if (shouldMarkSent) {
+      await this.markSent(runId);
+      markedSent = true;
+    }
+
+    return {
+      message: markedSent
+        ? 'Invoice emailed and run marked as sent'
+        : 'Invoice emailed',
+      data: {
+        to,
+        messageId: sent.messageId,
+        mode: sent.mode,
+        markedSent,
+        runId,
+        serviceUserId: dto.serviceUserId,
+      },
+    };
   }
 
   private buildFunderSummaries(

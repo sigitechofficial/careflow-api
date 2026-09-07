@@ -14,6 +14,8 @@ import {
   UpdatePayCardDto,
   AssignPayCardMatchingDto,
   UnassignPayCardEmployeeDto,
+  UpsertEmployeeFunderPayAssignmentDto,
+  UpdateEmployeeFunderPayAssignmentDto,
 } from './dto/billing-cards.dto';
 
 @ApiTags('Billing — Pay cards')
@@ -32,9 +34,56 @@ export class PayCardsController {
 
   @Get('resolve/:employeeId')
   @Permissions('billing.pay_cards.read')
-  @ApiOperation({ summary: 'Resolve pay card for an employee (explicit or auto-matched)' })
-  resolveForEmployee(@Param('employeeId') employeeId: string) {
-    return this.service.resolveForEmployee(employeeId);
+  @ApiOperation({
+    summary:
+      'Resolve pay card for an employee. Optional funderId applies employee+funder override first.',
+  })
+  resolveForEmployee(
+    @Param('employeeId') employeeId: string,
+    @Query('funderId') funderId?: string,
+  ) {
+    return this.service.resolveForEmployee(employeeId, undefined, { funderId });
+  }
+
+  @Get('employee-funder-assignments/:employeeId')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'List employee+funder pay card overrides for a carer' })
+  listEmployeeFunderAssignments(@Param('employeeId') employeeId: string) {
+    return this.service.listEmployeeFunderAssignments(employeeId);
+  }
+
+  @Post('employee-funder-assignments')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Create or update employee+funder pay card override' })
+  upsertEmployeeFunderAssignment(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpsertEmployeeFunderPayAssignmentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.upsertEmployeeFunderAssignment(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('employee-funder-assignments/:id')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Update employee+funder pay card override' })
+  updateEmployeeFunderAssignment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateEmployeeFunderPayAssignmentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateEmployeeFunderAssignment(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('employee-funder-assignments/:id')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Remove employee+funder pay card override' })
+  removeEmployeeFunderAssignment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.removeEmployeeFunderAssignment(user.id, id, getRequestAuditMeta(req));
   }
 
   @Get(':id/assignment-preview')

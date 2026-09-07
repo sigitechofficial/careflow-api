@@ -44,9 +44,13 @@ describe('invoice-run export', () => {
   describe('buildInvoiceRunCsv', () => {
     const csv = buildInvoiceRunCsv(model);
 
-    it('includes the run metadata header', () => {
-      expect(csv).toContain('Invoice Run,Week ending 20 Jul 2026');
-      expect(csv).toContain('Period,2026-07-14 to 2026-07-20');
+    it('starts with column headers (no run metadata preamble)', () => {
+      const body = csv.replace(/^\uFEFF/, '');
+      expect(body.startsWith('Funder,Funder Code,Service User,')).toBe(true);
+      expect(csv).not.toContain('Invoice Run,');
+      expect(csv).not.toContain('Period,2026-07-14');
+      expect(csv).not.toContain('Status,LOCKED');
+      expect(csv).not.toContain('Currency,GBP');
     });
 
     it('renders a row per line with the amount to 2dp', () => {

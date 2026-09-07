@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
+import { MailModule } from '../mail/mail.module';
 import { PayCardsController } from './pay-cards.controller';
 import { ChargeCardsController } from './charge-cards.controller';
 import { FundingContractsController } from './funding-contracts.controller';
@@ -22,7 +23,7 @@ import { EmployeePayoutsService } from './employee-payouts.service';
 import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule],
+  imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule],
   controllers: [
     PayCardsController,
     ChargeCardsController,

@@ -1388,6 +1388,7 @@ export class VisitReconciliationsService {
       const resolved = await this.payCardsService.resolveForEmployee(
         row.employeeId,
         row.plannedStartDateTime,
+        { funderId: funding?.funderId ?? null },
       );
       payCardSource = resolved.data.source;
       if (resolved.data.payCard) {
@@ -1977,6 +1978,7 @@ export class VisitReconciliationsService {
             status: true,
             isActive: true,
             funderId: true,
+            isPrimary: true,
             defaultChargeCardId: true,
             purchaseOrderNumber: true,
             purchaseOrderExpiresAt: true,
@@ -1984,18 +1986,39 @@ export class VisitReconciliationsService {
             funder: { select: { defaultChargeCardId: true } },
           },
         },
+        fundings: {
+          where: { deletedAt: null, isActive: true },
+          select: {
+            funderId: true,
+            isPrimary: true,
+            splitPriority: true,
+            status: true,
+          },
+          orderBy: [{ isPrimary: 'desc' }, { splitPriority: 'asc' }],
+          take: 20,
+        },
       },
     });
-    if (!su?.currentFunding) return null;
+    if (!su) return null;
+
+    // Pay resolve uses one funder per visit (primary / current). Invoice split stays on charge side.
+    const funding = su.currentFunding;
+    const fallbackFunding =
+      su.fundings.find((f) => f.isPrimary && f.funderId) ??
+      su.fundings.find((f) => f.funderId) ??
+      null;
+
+    if (!funding && !fallbackFunding) return null;
+
     return {
-      status: su.currentFunding.status,
-      isActive: su.currentFunding.isActive,
-      funderId: su.currentFunding.funderId,
-      defaultChargeCardId: su.currentFunding.defaultChargeCardId,
-      funderDefaultChargeCardId: su.currentFunding.funder?.defaultChargeCardId ?? null,
-      purchaseOrderNumber: su.currentFunding.purchaseOrderNumber,
-      purchaseOrderExpiresAt: su.currentFunding.purchaseOrderExpiresAt,
-      billingContactName: su.currentFunding.billingContactName,
+      status: funding?.status ?? fallbackFunding?.status ?? 'UNKNOWN',
+      isActive: funding?.isActive ?? true,
+      funderId: funding?.funderId ?? fallbackFunding?.funderId ?? null,
+      defaultChargeCardId: funding?.defaultChargeCardId ?? null,
+      funderDefaultChargeCardId: funding?.funder?.defaultChargeCardId ?? null,
+      purchaseOrderNumber: funding?.purchaseOrderNumber ?? null,
+      purchaseOrderExpiresAt: funding?.purchaseOrderExpiresAt ?? null,
+      billingContactName: funding?.billingContactName ?? null,
     };
   }
 

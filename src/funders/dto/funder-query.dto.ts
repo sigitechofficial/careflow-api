@@ -26,12 +26,12 @@ export class FunderQueryDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 200 })
+  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 500 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(200)
+  @Max(500)
   limit?: number = 20;
 
   @ApiPropertyOptional({ enum: ['name', 'code', 'createdAt', 'updatedAt'] })
