@@ -205,7 +205,7 @@ export class LateVisitAlertJob {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Staff Allocation', 'Coordinator'] },
+        name: { in: ['Admin', 'Manager', 'Branch Admin', 'Staff Allocation', 'Coordinator'] },
         deletedAt: null,
       },
       select: { id: true },

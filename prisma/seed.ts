@@ -20,6 +20,7 @@ import { seedInitialAssessmentDemoServiceUser } from './seeds/initial-assessment
 import { seedServiceUserPersonas } from './seeds/service-user-personas.seed';
 import { seedGreenwichBranchUsers } from './seeds/greenwich-branch-users.seed';
 import { seedGreenwichServiceUsers } from './seeds/greenwich-service-users.seed';
+import { seedGreenwichManagerAttention } from './seeds/greenwich-manager-attention.seed';
 import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-document-type-catalog.seed';
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { applyCarePlanIaDemoOverlay } from './seeds/care-plan-ia-demo-overlay.seed';
@@ -2227,8 +2228,10 @@ async function main() {
   const initialAssessmentReviewPerms = await prisma.permission.findMany({
     where: { key: { in: initialAssessmentReviewPermKeys }, deletedAt: null },
   });
-  for (const roleName of ['Admin', 'Manager', 'Senior Carer/Nurse']) {
-    const r = roles.find((x) => x.name === roleName);
+  for (const roleName of ['Admin', 'Manager', 'Branch Admin', 'Senior Carer/Nurse']) {
+    const r =
+      roles.find((x) => x.name === roleName) ??
+      (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
     if (!r) continue;
     for (const p of initialAssessmentReviewPerms) {
       await prisma.rolePermission.upsert({
@@ -2299,6 +2302,14 @@ async function main() {
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
+  try {
+    await seedGreenwichManagerAttention(prisma);
+  } catch (err) {
+    console.warn(
+      '[seed] Greenwich manager attention skipped (non-fatal):',
+      err instanceof Error ? err.message : err,
+    );
+  }
   await seedTaskCatalogue(prisma);
   try {
     await seedInitialAssessmentCarePlanRules(prisma);

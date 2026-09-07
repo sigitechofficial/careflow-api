@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolveManagerUserIds } from '../notifications/resolve-manager-recipients';
 
 @Injectable()
 export class InitialAssessmentNotificationHook {
@@ -12,17 +13,16 @@ export class InitialAssessmentNotificationHook {
     @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
-  private async managerUserIds(): Promise<string[]> {
-    const roles = await this.prisma.role.findMany({
-      where: { name: { in: ['Admin', 'Manager'] }, deletedAt: null },
-      select: { id: true },
-    });
-    if (!roles.length) return [];
-    const links = await this.prisma.userRole.findMany({
-      where: { roleId: { in: roles.map((r) => r.id) } },
-      select: { userId: true },
-    });
-    return [...new Set(links.map((l) => l.userId))];
+  private async managerUserIds(serviceUserId?: string): Promise<string[]> {
+    let locationId: string | null = null;
+    if (serviceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: serviceUserId, deletedAt: null },
+        select: { locationId: true },
+      });
+      locationId = su?.locationId ?? null;
+    }
+    return resolveManagerUserIds(this.prisma, { locationId });
   }
 
   async onSubmitted(params: {
@@ -43,7 +43,7 @@ export class InitialAssessmentNotificationHook {
     const notifyManagers = params.notifyManagers !== false && params.managerReviewRequired;
 
     if (notifyManagers) {
-      for (const id of await this.managerUserIds()) {
+      for (const id of await this.managerUserIds(params.serviceUserId)) {
         if (id !== params.submittedById) recipients.add(id);
       }
     }
