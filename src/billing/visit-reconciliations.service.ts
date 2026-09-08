@@ -43,6 +43,7 @@ import {
   formatDateOnly,
   formatTimeRange,
   formatMinutesAsHours,
+  alignRateBreakdownVisitSliceLabels,
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
   hasPayBlockingExceptions,
@@ -644,11 +645,63 @@ export class VisitReconciliationsService {
     const [enriched] = await this.enrichRows([row]);
     // Completed visits replay the pricing breakdown captured at completion, so later
     // pay/charge card rule edits do not retro-change how the visit was priced.
+    // Re-label visit-slice times into the org timezone (legacy snapshots used UTC).
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const preview =
       row.pricingSnapshot != null
-        ? row.pricingSnapshot
+        ? this.alignFrozenPricingSnapshot(row.pricingSnapshot, row, timeZone)
         : await this.buildCalculationPreview(row);
     return { data: { ...enriched, calculationPreview: preview } };
+  }
+
+  private alignFrozenPricingSnapshot(
+    snapshot: Prisma.JsonValue,
+    row: ReconciliationRow,
+    timeZone: string,
+  ) {
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+      return snapshot;
+    }
+    const preview = JSON.parse(JSON.stringify(snapshot)) as Record<string, unknown>;
+    const timeWindows =
+      preview.timeWindows && typeof preview.timeWindows === 'object'
+        ? (preview.timeWindows as Record<string, unknown>)
+        : {};
+    preview.timeWindows = {
+      ...timeWindows,
+      planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
+      actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
+      approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd, timeZone),
+      approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd, timeZone),
+    };
+    preview.carerPay = alignRateBreakdownVisitSliceLabels(
+      preview.carerPay as never,
+      row.approvedPayStart,
+      row.approvedPayEnd,
+      timeZone,
+    );
+    preview.clientCharge = alignRateBreakdownVisitSliceLabels(
+      preview.clientCharge as never,
+      row.approvedBillStart,
+      row.approvedBillEnd,
+      timeZone,
+    );
+    if (Array.isArray(preview.funderClientCharges)) {
+      preview.funderClientCharges = preview.funderClientCharges.map((line) => {
+        if (!line || typeof line !== 'object') return line;
+        const funder = line as Record<string, unknown>;
+        return {
+          ...funder,
+          breakdown: alignRateBreakdownVisitSliceLabels(
+            funder.breakdown as never,
+            row.approvedBillStart,
+            row.approvedBillEnd,
+            timeZone,
+          ),
+        };
+      });
+    }
+    return preview;
   }
 
   async evaluate(id: string) {
@@ -2386,7 +2439,7 @@ export class VisitReconciliationsService {
               cardSource: 'EXPLICIT_FUNDING',
             },
             isBankHoliday,
-            { start: billStart, end: billEnd },
+            { start: billStart, end: billEnd, timeZone },
             nightDuty,
           );
         }
@@ -2477,7 +2530,7 @@ export class VisitReconciliationsService {
           cardSource: row.chargeCardSource,
         },
         isBankHoliday,
-        { start: billStart, end: billEnd },
+        { start: billStart, end: billEnd, timeZone },
         nightDuty,
       );
       if (freezeBillable && row.billableAmount != null && clientCharge) {
@@ -2523,7 +2576,7 @@ export class VisitReconciliationsService {
           cardSource: row.payCardSource,
         },
         isBankHoliday,
-        { start: payStart, end: payEnd },
+        { start: payStart, end: payEnd, timeZone },
       );
       if (freezePayable && row.payableAmount != null) {
         carerPay = livePay

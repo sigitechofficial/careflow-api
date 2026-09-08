@@ -1105,7 +1105,7 @@ export function buildPayRateBreakdown(
     currency?: string;
   },
   isBankHoliday = false,
-  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
@@ -1224,7 +1224,7 @@ export function buildChargeRateBreakdown(
     cardSource?: string | null;
   },
   isBankHoliday = false,
-  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
   nightDuty?: string | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
@@ -1414,4 +1414,52 @@ export function buildChargeRateBreakdown(
     ruleLabel: ruleLabel ?? applied.label,
     appliedRules: [applied],
   };
+}
+
+const VISIT_SLICE_TIME_WINDOW_RE = /^\d{2}:\d{2}–\d{2}:\d{2}$/;
+const VISIT_SLICE_TIME_WINDOW_GLOBAL_RE = /\d{2}:\d{2}–\d{2}:\d{2}/g;
+
+/**
+ * Fix legacy pricing-snapshot labels that were frozen in UTC while Approved time
+ * uses the org timezone (e.g. 10:00–13:00Z shown next to 11:00–14:00 London).
+ * Safe for single-segment (full-window) visits; multi-band snapshots need force-recalc.
+ */
+export function alignRateBreakdownVisitSliceLabels(
+  breakdown: RateBreakdown | null | undefined,
+  windowStart: Date | null | undefined,
+  windowEnd: Date | null | undefined,
+  timeZone: string,
+): RateBreakdown | null | undefined {
+  if (!breakdown || !windowStart || !windowEnd) return breakdown;
+  const startHm = formatHmInTimeZone(windowStart, timeZone);
+  const endHm = formatHmInTimeZone(windowEnd, timeZone);
+  const range = `${startHm}–${endHm}`;
+  const next: RateBreakdown = { ...breakdown };
+
+  if (Array.isArray(breakdown.segments) && breakdown.segments.length === 1) {
+    const seg = breakdown.segments[0];
+    next.segments = [
+      {
+        ...seg,
+        startLabel: startHm,
+        endLabel: endHm,
+      },
+    ];
+  }
+
+  if (Array.isArray(breakdown.appliedRules) && breakdown.appliedRules.length) {
+    const segmentCount = next.segments?.length ?? breakdown.segments?.length ?? 0;
+    const canRelabelSlice = segmentCount === 1 || segmentCount === 0;
+    next.appliedRules = breakdown.appliedRules.map((rule) => {
+      const timeWindow = rule.timeWindow?.trim() ?? '';
+      if (!canRelabelSlice || !VISIT_SLICE_TIME_WINDOW_RE.test(timeWindow)) return rule;
+      return {
+        ...rule,
+        timeWindow: range,
+        detail: rule.detail.replace(VISIT_SLICE_TIME_WINDOW_GLOBAL_RE, range),
+      };
+    });
+  }
+
+  return next;
 }

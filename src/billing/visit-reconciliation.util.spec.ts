@@ -2,6 +2,7 @@ import {
   calculatePayableAmount,
   calculateBillableAmount,
   buildPayRateBreakdown,
+  alignRateBreakdownVisitSliceLabels,
   deriveReconciliationStatus,
   formatVisitRef,
   hasPayBlockingExceptions,
@@ -386,5 +387,85 @@ describe('calculatePayableAmount operational timezone (BST)', () => {
     });
     expect(withLondon?.amount).toBe(75);
     expect(withLondon?.label).toBe('BANDED_HOURLY');
+  });
+
+  it('labels pay breakdown segments in Europe/London, not UTC', () => {
+    // 2026-09-07 11:00–14:00 Europe/London = 10:00–13:00Z
+    const start = new Date('2026-09-07T10:00:00.000Z');
+    const end = new Date('2026-09-07T13:00:00.000Z');
+    const rules = [
+      {
+        label: 'Weekday daytime',
+        dayType: 'WEEKDAY',
+        rateType: 'HOURLY',
+        amount: 49,
+        priority: 0,
+        sortOrder: 0,
+        startTime: '07:00',
+        endTime: '19:00',
+        appliesToVisit: true,
+      },
+    ];
+    const breakdown = buildPayRateBreakdown(rules, start, 180, undefined, false, {
+      start,
+      end,
+      timeZone: 'Europe/London',
+    });
+    expect(breakdown?.segments?.[0]?.startLabel).toBe('11:00');
+    expect(breakdown?.segments?.[0]?.endLabel).toBe('14:00');
+    expect(breakdown?.appliedRules?.[0]?.timeWindow).toBe('11:00–14:00');
+  });
+});
+
+describe('alignRateBreakdownVisitSliceLabels', () => {
+  it('rewrites UTC visit-slice labels to the org timezone window', () => {
+    const start = new Date('2026-09-07T10:00:00.000Z');
+    const end = new Date('2026-09-07T13:00:00.000Z');
+    const aligned = alignRateBreakdownVisitSliceLabels(
+      {
+        minutes: 180,
+        hoursLabel: '3 hrs',
+        rateType: 'BANDED_HOURLY',
+        unitRate: '£49.00/hr',
+        amount: '£147.00',
+        formula: '3 hrs across 1 time band = £147.00',
+        cardName: 'test',
+        cardCode: 'T',
+        cardSource: null,
+        ruleLabel: 'Time-band split',
+        segments: [
+          {
+            startLabel: '10:00',
+            endLabel: '13:00',
+            hoursLabel: '3 hrs',
+            minutes: 180,
+            unitRate: '£49.00/hr',
+            ruleLabel: 'Weekday daytime',
+            lineFormula: '3 hrs × £49.00/hr = £147.00',
+            amount: '£147.00',
+          },
+        ],
+        appliedRules: [
+          {
+            label: 'Weekday daytime',
+            rateType: 'BANDED_HOURLY',
+            rateTypeLabel: 'Time-banded hourly',
+            dayType: null,
+            dayTypeLabel: null,
+            timeWindow: '10:00–13:00',
+            unitRate: '£49.00/hr',
+            amount: '£147.00',
+            detail: 'Weekday daytime · 10:00–13:00 · £49.00/hr',
+          },
+        ],
+      },
+      start,
+      end,
+      'Europe/London',
+    );
+    expect(aligned?.segments?.[0]?.startLabel).toBe('11:00');
+    expect(aligned?.segments?.[0]?.endLabel).toBe('14:00');
+    expect(aligned?.appliedRules?.[0]?.timeWindow).toBe('11:00–14:00');
+    expect(aligned?.appliedRules?.[0]?.detail).toContain('11:00–14:00');
   });
 });
