@@ -7351,6 +7351,8 @@ enum BillingRateType {
   UPLIFT
   PREMIUM
   DEDUCTION
+  SLEEP_IN
+  WAKING_NIGHT
 
   @@schema("billing")
 }

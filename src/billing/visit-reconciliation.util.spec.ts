@@ -469,3 +469,60 @@ describe('alignRateBreakdownVisitSliceLabels', () => {
     expect(aligned?.appliedRules?.[0]?.detail).toContain('11:00–14:00');
   });
 });
+
+describe('calculatePayableAmount night duty', () => {
+  const weekdayNight = new Date('2026-07-13T10:00:00.000Z'); // Monday
+  const dayHourly = {
+    label: 'Weekday daytime',
+    dayType: 'WEEKDAY',
+    rateType: 'HOURLY',
+    amount: 12,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 0,
+    startTime: '07:00',
+    endTime: '19:00',
+  };
+  const sleepIn = {
+    label: 'Sleeping night',
+    dayType: 'ANY',
+    rateType: 'SLEEP_IN',
+    amount: 80,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 1,
+  };
+  const waking = {
+    label: 'Waking night',
+    dayType: 'ANY',
+    rateType: 'WAKING_NIGHT',
+    amount: 18,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 2,
+  };
+
+  it('pays a flat sleeping night even when hourly day rules exist', () => {
+    const result = calculatePayableAmount(
+      [dayHourly, sleepIn, waking],
+      weekdayNight,
+      540,
+      false,
+      undefined,
+      'SLEEPING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 80, label: 'SLEEP_IN' });
+  });
+
+  it('pays waking night hourly from duration', () => {
+    const result = calculatePayableAmount(
+      [dayHourly, sleepIn, waking],
+      weekdayNight,
+      540,
+      false,
+      undefined,
+      'WAKING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 162, label: 'WAKING_NIGHT' });
+  });
+});

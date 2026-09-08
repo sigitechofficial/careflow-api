@@ -686,16 +686,30 @@ export function calculatePayableAmount(
     /** IANA TZ for pay-card clock bands (e.g. Europe/London). */
     timeZone?: string;
   },
+  nightDuty?: string | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
-  const bandRules = toTimeBandRules(rules);
+  if (nightDuty === 'SLEEPING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    if (!rule) return null;
+    return { amount: Number(rule.amount), label: 'SLEEP_IN' };
+  }
+  if (nightDuty === 'WAKING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    if (!rule) return null;
+    const hourly = Number(rule.amount) * (minutes / 60);
+    return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
+  }
+
+  const dayRules = rules.filter((rule) => !isNightDutyPayRateType(rule.rateType));
+  const bandRules = toTimeBandRules(dayRules);
   const timeZone = window?.timeZone ?? 'UTC';
 
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Otherwise use hourly pro-rata (time-banded when a window is provided).
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -756,13 +770,13 @@ export function calculatePayableAmount(
   }
 
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+  const rule = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
@@ -772,8 +786,57 @@ export function calculatePayableAmount(
   return { amount: Math.round(hourly * 100) / 100, label: 'HOURLY' };
 }
 
+function isNightDutyPayRateType(rateType?: string | null): boolean {
+  return rateType === 'SLEEP_IN' || rateType === 'WAKING_NIGHT';
+}
+
 function isNightDutyChargeMethod(chargeMethod?: string | null): boolean {
   return chargeMethod === 'SLEEP_IN' || chargeMethod === 'WAKING_NIGHT';
+}
+
+function pickNightDutyPayRule(
+  rules: PayCardRuleLike[],
+  rateType: 'SLEEP_IN' | 'WAKING_NIGHT',
+  visitDate: Date,
+  isBankHoliday: boolean,
+): PayCardRuleLike | null {
+  const matches = rules.filter(
+    (rule) =>
+      rule.rateType === rateType && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+  );
+  if (!matches.length) return null;
+  const dayTypeRank = (dayType: string): number => {
+    switch (dayType) {
+      case 'ANY':
+        return 0;
+      case 'WEEKDAY':
+        return 10;
+      case 'SATURDAY':
+        return 20;
+      case 'SUNDAY':
+        return 30;
+      case 'BANK_HOLIDAY':
+        return 100;
+      case 'SPECIAL':
+        return 105;
+      case 'EASTER':
+        return 108;
+      case 'CHRISTMAS':
+      case 'BOXING_DAY':
+      case 'NEW_YEAR':
+        return 110;
+      default:
+        return 0;
+    }
+  };
+  return (
+    [...matches].sort((a, b) => {
+      const ra = (a.priority ?? 0) || dayTypeRank(a.dayType);
+      const rb = (b.priority ?? 0) || dayTypeRank(b.dayType);
+      if (ra !== rb) return rb - ra;
+      return a.sortOrder - b.sortOrder;
+    })[0] ?? null
+  );
 }
 
 function pickNightDutyChargeRule(
@@ -1106,13 +1169,78 @@ export function buildPayRateBreakdown(
   },
   isBankHoliday = false,
   window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
+  nightDuty?: string | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
-  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window);
+  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window, nightDuty);
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
+
+  if (calc.label === 'SLEEP_IN') {
+    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? calc.amount);
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Sleeping night',
+        rateType: 'SLEEP_IN',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate, amount },
+    );
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'SLEEP_IN',
+      unitRate,
+      amount,
+      formula: `${formatGbp(unitAmount)} per sleeping night`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Sleeping night',
+      appliedRules: [applied],
+    };
+  }
+
+  if (calc.label === 'WAKING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? 0);
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Waking night',
+        rateType: 'WAKING_NIGHT',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate: `${unitRate}/hr`, amount },
+    );
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'WAKING_NIGHT',
+      unitRate: `${unitRate}/hr`,
+      amount,
+      formula: `${hoursLabel} × ${unitRate}/hr = ${formatGbp(calc.amount)}`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Waking night',
+      appliedRules: [applied],
+    };
+  }
 
   if (calc.label === 'BANDED_HOURLY' && calc.segments?.length) {
     const rates = [...new Set(calc.segments.map((s) => s.rate))];

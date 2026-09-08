@@ -1723,13 +1723,18 @@ export class VisitReconciliationsService {
           isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
           timeZone,
         },
+        nightDuty,
       );
       payableAmount = calc?.amount ?? null;
       if (payableAmount == null && payMinutes > 0) {
         activeExceptions.push({
           code: FinanceExceptionCode.RATE_MISSING,
           message:
-            'No pay card rate matches this visit’s day or time. Add a matching rule (e.g. weekday) or check Saturday/Sunday bands.',
+            nightDuty === 'SLEEPING_NIGHT'
+              ? 'No sleeping night rate on this pay card. Add a Sleeping night (£/night) rule.'
+              : nightDuty === 'WAKING_NIGHT'
+                ? 'No waking night rate on this pay card. Add a Waking night (£/hour) rule.'
+                : 'No pay card rate matches this visit’s day or time. Add a matching rule (e.g. weekday) or check Saturday/Sunday bands.',
         });
       }
     }
@@ -2577,6 +2582,7 @@ export class VisitReconciliationsService {
         },
         isBankHoliday,
         { start: payStart, end: payEnd, timeZone },
+        nightDuty,
       );
       if (freezePayable && row.payableAmount != null) {
         carerPay = livePay
