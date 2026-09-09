@@ -27,12 +27,17 @@ import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
 import { InvoiceTemplatesService } from './invoice-templates.service';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
 import {
+  buildInvoiceExportVisitRow,
   buildInvoiceRunCsv,
   buildInvoiceRunXlsx,
   invoiceRunExportFilename,
   type InvoiceRunExportModel,
 } from './invoice-run-export.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  getOperationalTimeZone,
+} from '../common/utils/operational-day.util';
 
 const MUTABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.DRAFT,
@@ -718,7 +723,7 @@ export class InvoiceRunsService {
     };
   }
 
-  /** Build a downloadable CSV or Excel of the invoice run's lines + funder totals. */
+  /** Build a downloadable CSV or Excel of the invoice run's visits (one row per visit × funder). */
   async exportRun(
     id: string,
     format: 'csv' | 'xlsx',
@@ -730,6 +735,13 @@ export class InvoiceRunsService {
         lines: {
           where: serviceUserId ? { serviceUserId } : undefined,
           orderBy: [{ visitRef: 'asc' }, { description: 'asc' }],
+          select: {
+            visitReconciliationId: true,
+            serviceUserId: true,
+            visitRef: true,
+            funderId: true,
+            amount: true,
+          },
         },
       },
     });
@@ -738,13 +750,105 @@ export class InvoiceRunsService {
       throw new NotFoundException('No invoice lines for this service user on the run');
     }
 
-    const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
+    const reconIds = [
+      ...new Set(row.lines.map((l) => l.visitReconciliationId).filter(Boolean)),
+    ];
     const funderIds = [
       ...new Set(
-        row.lines.map((l) => l.funderId).filter((f): f is string => Boolean(f)),
+        row.lines.map((l) => l.funderId).filter((fid): fid is string => Boolean(fid)),
       ),
     ];
-    const [serviceUsers, funders] = await Promise.all([
+    const [recons, orgTz, funders, allocations] = await Promise.all([
+      reconIds.length
+        ? this.prisma.visitReconciliation.findMany({
+            where: { id: { in: reconIds } },
+            select: {
+              id: true,
+              visitRef: true,
+              serviceUserId: true,
+              employeeId: true,
+              scheduledVisitId: true,
+              plannedStartDateTime: true,
+              plannedEndDateTime: true,
+              actualStartDateTime: true,
+              actualEndDateTime: true,
+            },
+          })
+        : Promise.resolve([]),
+      this.prisma.organisationGeneralSettings.findFirst({
+        select: { timezone: true },
+      }),
+      funderIds.length
+        ? this.prisma.funder.findMany({
+            where: { id: { in: funderIds } },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve([]),
+      this.prisma.paymentAllocation.findMany({
+        where: { invoiceRunId: id },
+        select: {
+          amount: true,
+          payment: { select: { funderId: true } },
+        },
+      }),
+    ]);
+    const timeZone = getOperationalTimeZone(orgTz?.timezone) || DEFAULT_OPERATIONAL_TIMEZONE;
+    const reconMap = new Map(recons.map((r) => [r.id, r]));
+    const funderNameMap = new Map(funders.map((f) => [f.id, f.name]));
+
+    const funderKey = (funderId: string | null | undefined) =>
+      funderId ?? '__direct__';
+    const funderLabel = (funderId: string | null | undefined) =>
+      funderId
+        ? (funderNameMap.get(funderId) ?? 'Unknown funder')
+        : 'Direct / family';
+
+    // Invoiced per funder within this export scope (optionally one service user).
+    const invoicedByFunder = new Map<string, number>();
+    for (const line of row.lines) {
+      const key = funderKey(line.funderId);
+      invoicedByFunder.set(
+        key,
+        (invoicedByFunder.get(key) ?? 0) + Number(line.amount),
+      );
+    }
+
+    // Payments recorded against this run, attributed by paying funder.
+    const paidByFunder = new Map<string, number>();
+    for (const a of allocations) {
+      const key = funderKey(a.payment?.funderId ?? null);
+      paidByFunder.set(key, (paidByFunder.get(key) ?? 0) + Number(a.amount));
+    }
+
+    const funderPayment = (funderId: string | null | undefined) => {
+      const key = funderKey(funderId);
+      const invoiced = Math.round((invoicedByFunder.get(key) ?? 0) * 100) / 100;
+      const paidRaw = Math.round((paidByFunder.get(key) ?? 0) * 100) / 100;
+      // Cap paid at invoiced for this export scope so a run-level remittance
+      // does not show more paid than this CSV's lines cover.
+      const paid = Math.min(paidRaw, invoiced);
+      const outstanding = Math.max(0, Math.round((invoiced - paid) * 100) / 100);
+      return { invoiced, paid, outstanding };
+    };
+
+    const serviceUserIds = [
+      ...new Set([
+        ...row.lines.map((l) => l.serviceUserId),
+        ...recons.map((r) => r.serviceUserId),
+      ]),
+    ];
+    const employeeIds = [
+      ...new Set(
+        recons
+          .map((r) => r.employeeId)
+          .filter((eid): eid is string => Boolean(eid)),
+      ),
+    ];
+    const scheduledVisitIds = [
+      ...new Set(recons.map((r) => r.scheduledVisitId).filter(Boolean)),
+    ];
+
+    const [serviceUsers, employees, scheduledVisits] = await Promise.all([
       serviceUserIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: serviceUserIds } },
@@ -753,28 +857,151 @@ export class InvoiceRunsService {
               firstName: true,
               lastName: true,
               preferredName: true,
-              serviceUserNumber: true,
+              address: {
+                select: {
+                  addressLine1: true,
+                  addressLine2: true,
+                  postcode: true,
+                },
+              },
             },
           })
         : Promise.resolve([]),
-      funderIds.length
-        ? this.prisma.funder.findMany({
-            where: { id: { in: funderIds } },
-            select: { id: true, name: true, code: true },
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds } },
+            select: {
+              id: true,
+              personalDetail: {
+                select: { firstName: true, lastName: true },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      scheduledVisitIds.length
+        ? this.prisma.scheduledVisit.findMany({
+            where: { id: { in: scheduledVisitIds } },
+            select: {
+              id: true,
+              visitName: true,
+              visitPlanSlot: {
+                select: {
+                  slotCode: true,
+                  medicationRoundCode: true,
+                },
+              },
+            },
           })
         : Promise.resolve([]),
     ]);
+
     const suMap = new Map(
-      serviceUsers.map((su) => [
-        su.id,
-        {
-          name:
-            su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim(),
-          number: su.serviceUserNumber,
-        },
-      ]),
+      serviceUsers.map((su) => {
+        const address = [
+          su.address?.addressLine1,
+          su.address?.addressLine2,
+          su.address?.postcode,
+        ]
+          .filter(Boolean)
+          .join(', ')
+          .trim();
+        return [
+          su.id,
+          {
+            name:
+              su.preferredName?.trim() ||
+              `${su.firstName} ${su.lastName}`.trim(),
+            address,
+          },
+        ] as const;
+      }),
     );
-    const funderMap = new Map(funders.map((f) => [f.id, f]));
+    const empMap = new Map(
+      employees.map((e) => {
+        const name = [
+          e.personalDetail?.firstName,
+          e.personalDetail?.lastName,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        return [e.id, name] as const;
+      }),
+    );
+    const visitMap = new Map(
+      scheduledVisits.map((v) => {
+        const slot =
+          v.visitName?.trim() ||
+          v.visitPlanSlot?.medicationRoundCode?.trim() ||
+          v.visitPlanSlot?.slotCode?.trim() ||
+          '';
+        return [v.id, slot] as const;
+      }),
+    );
+
+    // One CSV row per invoice line (visit × funder share).
+    const exportLines: InvoiceRunExportModel['lines'] = [];
+    for (const line of row.lines) {
+      const recon = reconMap.get(line.visitReconciliationId);
+      const su = suMap.get(recon?.serviceUserId ?? line.serviceUserId);
+      const pay = funderPayment(line.funderId);
+      const funderName = funderLabel(line.funderId);
+      const amountValue = Number(line.amount);
+      if (!recon) {
+        exportLines.push(
+          buildInvoiceExportVisitRow({
+            visitRef: line.visitRef,
+            plannedStart: row.periodStart,
+            plannedEnd: null,
+            actualStart: null,
+            actualEnd: null,
+            slot: '',
+            serviceUserName: su?.name ?? 'Unknown service user',
+            carerName: '',
+            address: su?.address ?? '',
+            funderName,
+            amountValue,
+            paidValue: pay.paid,
+            outstandingValue: pay.outstanding,
+            timeZone,
+          }),
+        );
+        continue;
+      }
+      exportLines.push(
+        buildInvoiceExportVisitRow({
+          visitRef: recon.visitRef || line.visitRef,
+          plannedStart: recon.plannedStartDateTime,
+          plannedEnd: recon.plannedEndDateTime,
+          actualStart: recon.actualStartDateTime,
+          actualEnd: recon.actualEndDateTime,
+          slot: visitMap.get(recon.scheduledVisitId) ?? '',
+          serviceUserName: su?.name ?? 'Unknown service user',
+          carerName: recon.employeeId
+            ? (empMap.get(recon.employeeId) ?? '')
+            : '',
+          address: su?.address ?? '',
+          funderName,
+          amountValue,
+          paidValue: pay.paid,
+          outstandingValue: pay.outstanding,
+          timeZone,
+        }),
+      );
+    }
+
+    const funderSummaries = [...invoicedByFunder.keys()]
+      .map((key) => {
+        const funderId = key === '__direct__' ? null : key;
+        const pay = funderPayment(funderId);
+        return {
+          funderName: funderLabel(funderId),
+          invoicedValue: pay.invoiced,
+          paidValue: pay.paid,
+          outstandingValue: pay.outstanding,
+        };
+      })
+      .sort((a, b) => a.funderName.localeCompare(b.funderName));
 
     const model: InvoiceRunExportModel = {
       periodLabel: row.periodLabel,
@@ -783,23 +1010,8 @@ export class InvoiceRunsService {
       status: row.status,
       currency: row.currency,
       netTotalValue: Number(row.netTotal),
-      lines: row.lines.map((l) => {
-        const su = suMap.get(l.serviceUserId);
-        const funder = l.funderId ? funderMap.get(l.funderId) : null;
-        return {
-          funderName:
-            funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
-          funderCode: funder?.code ?? null,
-          serviceUserName: su?.name ?? 'Unknown service user',
-          serviceUserNumber: su?.number ?? null,
-          visitRef: l.visitRef,
-          description: l.description,
-          minutes: l.minutes,
-          splitPercent: l.splitPercent != null ? Number(l.splitPercent) : null,
-          amountValue: Number(l.amount),
-          exceptionMessage: l.exceptionMessage,
-        };
-      }),
+      lines: exportLines,
+      funderSummaries,
     };
 
     if (format === 'xlsx') {
