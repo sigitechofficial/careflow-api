@@ -8229,6 +8229,9 @@ model Payment {
   matchedAmount Decimal             @default(0) @db.Decimal(12, 2)
   currency      String              @default("GBP")
   funderId      String?             @db.Uuid
+  /// When set, this payment was recorded against a specific service-user invoice
+  /// and should count fully toward that person's paid balance on the run.
+  serviceUserId String?             @db.Uuid
   notes         String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -8240,6 +8243,7 @@ model Payment {
   @@index([matchStatus])
   @@index([recordStatus])
   @@index([funderId])
+  @@index([serviceUserId])
   @@schema("billing")
 }
 

@@ -20,8 +20,19 @@ import { formatMoney, parseBillingDateOnly } from './billing-run.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const RECEIVABLE_STATUSES: InvoiceRunStatus[] = [
+  InvoiceRunStatus.READY_FOR_REVIEW,
+  InvoiceRunStatus.EXCEPTION_FOUND,
+  InvoiceRunStatus.APPROVED,
   InvoiceRunStatus.LOCKED,
   InvoiceRunStatus.SENT,
+  InvoiceRunStatus.PART_PAID,
+];
+
+/** Invoice run statuses that move between SENT / PART_PAID / PAID as money arrives. */
+const PAYMENT_PROGRESS_STATUSES: InvoiceRunStatus[] = [
+  InvoiceRunStatus.SENT,
+  InvoiceRunStatus.PART_PAID,
+  InvoiceRunStatus.PAID,
 ];
 
 const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
@@ -207,6 +218,7 @@ export class PaymentsService {
           recordStatus,
           currency: 'GBP',
           funderId: dto.funderId ?? null,
+          serviceUserId: dto.serviceUserId ?? null,
           notes: dto.notes?.trim() || null,
           createdById: userId,
           matchStatus:
@@ -235,6 +247,9 @@ export class PaymentsService {
       }
 
       if (matchedAmount > 0) {
+        for (const allocation of allocations) {
+          await this.syncInvoiceRunPaymentStatus(tx, allocation.invoiceRunId);
+        }
         return tx.payment.update({
           where: { id: payment.id },
           data: {
@@ -281,6 +296,7 @@ export class PaymentsService {
           createdById: userId,
         },
       });
+      await this.syncInvoiceRunPaymentStatus(tx, dto.invoiceRunId);
       return tx.payment.update({
         where: { id: paymentId },
         data: {
@@ -304,8 +320,10 @@ export class PaymentsService {
     if (!allocation) throw new NotFoundException('Allocation not found');
 
     const newMatched = Number(payment.matchedAmount) - Number(allocation.amount);
+    const invoiceRunId = allocation.invoiceRunId;
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.paymentAllocation.delete({ where: { id: allocationId } });
+      await this.syncInvoiceRunPaymentStatus(tx, invoiceRunId);
       return tx.payment.update({
         where: { id: paymentId },
         data: {
@@ -385,6 +403,36 @@ export class PaymentsService {
     }
   }
 
+  private async syncInvoiceRunPaymentStatus(
+    tx: Prisma.TransactionClient,
+    invoiceRunId: string,
+  ) {
+    const invoiceRun = await tx.invoiceRun.findUnique({
+      where: { id: invoiceRunId },
+      include: { paymentAllocations: true },
+    });
+    if (!invoiceRun) return;
+    if (!PAYMENT_PROGRESS_STATUSES.includes(invoiceRun.status)) return;
+
+    const paid = invoiceRun.paymentAllocations.reduce(
+      (sum, a) => sum + Number(a.amount),
+      0,
+    );
+    const outstanding = Math.max(0, Number(invoiceRun.netTotal) - paid);
+    const nextStatus: InvoiceRunStatus =
+      paid <= 0.001
+        ? InvoiceRunStatus.SENT
+        : outstanding <= 0.001
+          ? InvoiceRunStatus.PAID
+          : InvoiceRunStatus.PART_PAID;
+
+    if (nextStatus === invoiceRun.status) return;
+    await tx.invoiceRun.update({
+      where: { id: invoiceRunId },
+      data: { status: nextStatus },
+    });
+  }
+
   private async assertAllocatableInvoiceRun(
     tx: Prisma.TransactionClient,
     invoiceRunId: string,
@@ -396,7 +444,9 @@ export class PaymentsService {
     });
     if (!invoiceRun) throw new BadRequestException('Invoice run not found');
     if (!RECEIVABLE_STATUSES.includes(invoiceRun.status)) {
-      throw new BadRequestException('Invoice run must be locked or sent before payment allocation');
+      throw new BadRequestException(
+        'Invoice run must be calculated (or later) before payment allocation',
+      );
     }
 
     const paid = invoiceRun.paymentAllocations.reduce(
