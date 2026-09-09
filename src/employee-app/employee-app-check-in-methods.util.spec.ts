@@ -1,6 +1,8 @@
 import {
   isCheckInMethodEnabled,
+  mergeEnabledMethodsWithGrant,
   normalizeCheckInMethod,
+  orgHasOptInCheckInMethod,
   resolveEnabledCheckInMethods,
 } from './employee-app-check-in-methods.util';
 
@@ -36,5 +38,47 @@ describe('employee-app-check-in-methods', () => {
     expect(normalizeCheckInMethod('manual')).toBe('MANUAL');
     expect(isCheckInMethodEnabled('gps', ['GPS', 'MANUAL'])).toBe(true);
     expect(isCheckInMethodEnabled('NFC', ['GPS', 'MANUAL'])).toBe(false);
+  });
+
+  it('treats Manual / NFC / QR as opt-in methods that block Request office', () => {
+    expect(orgHasOptInCheckInMethod(null)).toBe(false);
+    expect(orgHasOptInCheckInMethod({})).toBe(false);
+    expect(orgHasOptInCheckInMethod({ domCheckInGpsEnabled: true })).toBe(false);
+    expect(orgHasOptInCheckInMethod({ domCheckInManualEnabled: true })).toBe(true);
+    expect(orgHasOptInCheckInMethod({ domCheckInNfcEnabled: true })).toBe(true);
+    expect(orgHasOptInCheckInMethod({ domCheckInQrEnabled: true })).toBe(true);
+  });
+
+  it('merges Manual onto GPS-only when office grant is authorised and unexpired', () => {
+    const expiresAt = new Date('2026-09-08T22:59:59.999Z');
+    const now = new Date('2026-09-08T12:00:00.000Z');
+    expect(
+      mergeEnabledMethodsWithGrant(
+        ['GPS'],
+        { status: 'AUTHORISED', expiresAt },
+        now,
+      ),
+    ).toEqual(['GPS', 'MANUAL']);
+    expect(
+      mergeEnabledMethodsWithGrant(
+        ['GPS'],
+        { status: 'PENDING', expiresAt },
+        now,
+      ),
+    ).toEqual(['GPS']);
+    expect(
+      mergeEnabledMethodsWithGrant(
+        ['GPS'],
+        { status: 'AUTHORISED', expiresAt, consumedAt: now },
+        now,
+      ),
+    ).toEqual(['GPS']);
+    expect(
+      mergeEnabledMethodsWithGrant(
+        ['GPS'],
+        { status: 'AUTHORISED', expiresAt: new Date('2026-09-08T11:00:00.000Z') },
+        now,
+      ),
+    ).toEqual(['GPS']);
   });
 });

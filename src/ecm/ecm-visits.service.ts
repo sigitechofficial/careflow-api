@@ -8,6 +8,7 @@ import {
   ScheduledJobStatus,
   VisitAreaLockStatus,
   VisitAttendanceEventType,
+  VisitCheckInMethodGrantStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -27,6 +28,8 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.service';
+import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 
 function resolveLiveDateRange(
   query: EcmLiveDashboardQueryDto,
@@ -197,6 +200,7 @@ export class EcmVisitsService {
     private readonly thresholdLookups: EcmThresholdLookupsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly orgScope: OrgScopeService,
+    private readonly checkInMethodGrants: VisitCheckInMethodGrantService,
   ) {}
 
   async getLiveDashboard(query: EcmLiveDashboardQueryDto, actor?: RequestUser) {
@@ -331,9 +335,10 @@ export class EcmVisitsService {
     });
 
     const jobIdsForFlags = lightEvals.map((ev) => ev.scheduledJobId);
-    const [lockedVisitJobIds, mockedVisitJobIds] = await Promise.all([
+    const [lockedVisitJobIds, mockedVisitJobIds, checkInRequestJobIds] = await Promise.all([
       this.lockedVisitJobIds(jobIdsForFlags),
       this.mockedVisitJobIds(jobIdsForFlags),
+      this.pendingCheckInGrantJobIds(jobIdsForFlags),
     ]);
 
     const summaryRows: EcmLiveVisitRow[] = lightEvals.map((ev) => {
@@ -376,9 +381,12 @@ export class EcmVisitsService {
         buckets,
       };
     }).map((row) =>
-      this.withMockLocation(
-        this.withLeftVisitArea(row, lockedVisitJobIds),
-        mockedVisitJobIds,
+      this.withCheckInMethodRequest(
+        this.withMockLocation(
+          this.withLeftVisitArea(row, lockedVisitJobIds),
+          mockedVisitJobIds,
+        ),
+        checkInRequestJobIds,
       ),
     );
 
@@ -532,9 +540,12 @@ export class EcmVisitsService {
         buckets,
       };
     }).map((row) =>
-      this.withMockLocation(
-        this.withLeftVisitArea(row, lockedVisitJobIds),
-        mockedVisitJobIds,
+      this.withCheckInMethodRequest(
+        this.withMockLocation(
+          this.withLeftVisitArea(row, lockedVisitJobIds),
+          mockedVisitJobIds,
+        ),
+        checkInRequestJobIds,
       ),
     );
 
@@ -835,19 +846,69 @@ export class EcmVisitsService {
     evaluation: Parameters<EcmVisitsService['shapeDetail']>[1],
     timingSummary: string,
   ) {
-    const shaped = this.shapeDetail(job, evaluation, timingSummary);
-    try {
-      const history = await this.scheduleVersions.listForJob(job.id);
-      return {
-        ...shaped,
-        data: {
-          ...shaped.data,
-          scheduleHistory: history.data,
+    const visitId = job.visits[0]?.id;
+    const [visitRefs, historyAndGrants] = await Promise.all([
+      visitId
+        ? loadVisitRefsByScheduledVisitIds(this.prisma, [visitId])
+        : Promise.resolve(new Map<string, string>()),
+      (async () => {
+        try {
+          const [history, checkInMethodGrants] = await Promise.all([
+            this.scheduleVersions.listForJob(job.id),
+            this.checkInMethodGrants.listForJob(job.id),
+          ]);
+          return { history: history.data, checkInMethodGrants };
+        } catch {
+          const checkInMethodGrants = await this.checkInMethodGrants.listForJob(job.id);
+          return { history: undefined, checkInMethodGrants };
+        }
+      })(),
+    ]);
+    const shaped = this.shapeDetail(job, evaluation, timingSummary, {
+      visitRef: visitId ? visitRefs.get(visitId) ?? null : null,
+    });
+    return this.withVisitDetailGrants(
+      shaped,
+      historyAndGrants.checkInMethodGrants,
+      historyAndGrants.history,
+    );
+  }
+
+  private withVisitDetailGrants(
+    shaped: ReturnType<EcmVisitsService['shapeDetail']>,
+    checkInMethodGrants: Awaited<ReturnType<VisitCheckInMethodGrantService['listForJob']>>,
+    scheduleHistory?: unknown,
+  ) {
+    return {
+      ...shaped,
+      data: {
+        ...shaped.data,
+        ...(scheduleHistory ? { scheduleHistory } : {}),
+        checkInMethodGrants,
+        ecm: {
+          ...shaped.data.ecm,
+          operationalExceptionCodes: this.overlayCheckInMethodRequestCodes(
+            shaped.data.ecm.operationalExceptionCodes,
+            checkInMethodGrants,
+          ),
         },
-      };
-    } catch {
-      return shaped;
-    }
+      },
+    };
+  }
+
+  private overlayCheckInMethodRequestCodes(
+    codes: string[],
+    grants: Array<{ status: string; consumedAt: string | null; expiresAt: string }>,
+    now = new Date(),
+  ): string[] {
+    const open = grants.some(
+      (grant) =>
+        (grant.status === 'PENDING' || grant.status === 'AUTHORISED') &&
+        !grant.consumedAt &&
+        new Date(grant.expiresAt).getTime() > now.getTime(),
+    );
+    if (!open || codes.includes('OUTSIDE_AREA_CHECK_IN_REQUEST')) return codes;
+    return ['OUTSIDE_AREA_CHECK_IN_REQUEST', ...codes];
   }
 
   private shapeDetail(
@@ -944,6 +1005,7 @@ export class EcmVisitsService {
       requiredCarers: number;
     },
     timingSummary: string,
+    opts?: { visitRef?: string | null },
   ) {
     const su = job.serviceUser;
     const serviceUserName =
@@ -980,6 +1042,7 @@ export class EcmVisitsService {
               status: job.visits[0].status,
               actualStartDateTime: job.visits[0].actualStartDateTime?.toISOString() ?? null,
               actualEndDateTime: job.visits[0].actualEndDateTime?.toISOString() ?? null,
+              visitRef: opts?.visitRef?.trim() || null,
               visitPlanSlot: job.visits[0].visitPlanSlot,
             }
           : null,
@@ -1246,6 +1309,43 @@ export class EcmVisitsService {
       buckets.push('leftVisitArea');
     }
     return buckets;
+  }
+
+  private async pendingCheckInGrantJobIds(jobIds: string[]): Promise<Set<string>> {
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    if (unique.length === 0) return new Set();
+    const grants = await this.prisma.visitCheckInMethodGrant.findMany({
+      where: {
+        scheduledJobId: { in: unique },
+        status: {
+          in: [
+            VisitCheckInMethodGrantStatus.PENDING,
+            VisitCheckInMethodGrantStatus.AUTHORISED,
+          ],
+        },
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: { scheduledJobId: true },
+    });
+    return new Set(grants.map((grant) => grant.scheduledJobId));
+  }
+
+  private withCheckInMethodRequest(
+    row: EcmLiveVisitRow,
+    requestIds: Set<string>,
+  ): EcmLiveVisitRow {
+    if (!requestIds.has(row.scheduledJobId)) return row;
+    if (row.operationalExceptionCodes.includes('OUTSIDE_AREA_CHECK_IN_REQUEST')) {
+      return row;
+    }
+    return {
+      ...row,
+      operationalExceptionCodes: [
+        'OUTSIDE_AREA_CHECK_IN_REQUEST',
+        ...row.operationalExceptionCodes,
+      ],
+    };
   }
 
   /** Active mid-visit locks only — each scheduled job is independent. */

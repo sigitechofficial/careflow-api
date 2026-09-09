@@ -1,3 +1,5 @@
+import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
+
 /** Stable order for clock-in sheet pills. */
 export const CHECK_IN_METHOD_ORDER = ['GPS', 'NFC', 'QR', 'MANUAL'] as const;
 
@@ -37,4 +39,29 @@ export function isCheckInMethodEnabled(
 
 export function hasAnyCheckInMethodEnabled(settings: OrgCheckInMethodFlags): boolean {
   return resolveEnabledCheckInMethods(settings).length > 0;
+}
+
+/** Manual / NFC / QR are org opt-in. When any is on, carer should use that — not Request office. */
+export function orgHasOptInCheckInMethod(
+  settings?: OrgCheckInMethodFlags | null,
+): boolean {
+  return Boolean(
+    settings?.domCheckInManualEnabled ||
+      settings?.domCheckInNfcEnabled ||
+      settings?.domCheckInQrEnabled,
+  );
+}
+
+export function mergeEnabledMethodsWithGrant(
+  enabled: string[],
+  grant:
+    | { status: string; expiresAt: Date | string; consumedAt?: Date | string | null }
+    | null
+    | undefined,
+  now = new Date(),
+): string[] {
+  if (!isAuthorisedManualGrantActive(grant, now)) return enabled;
+  const set = new Set(enabled);
+  set.add('MANUAL');
+  return CHECK_IN_METHOD_ORDER.filter((method) => set.has(method));
 }

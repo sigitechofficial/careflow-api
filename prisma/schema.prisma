@@ -5942,6 +5942,7 @@ model ScheduledJob {
   ecmScheduleVersions EcmScheduleVersion[]
   ecmNotificationEvidence EcmNotificationEvidence[]
   visitAreaLocks   VisitAreaLock[]
+  visitCheckInMethodGrants VisitCheckInMethodGrant[]
   timelineEvents   VisitTimelineEvent[]
   careConsents     VisitCareConsent[]
 
@@ -6642,6 +6643,7 @@ enum EcmExceptionKind {
   MANUAL_ATTENDANCE
   MOCK_LOCATION
   CARER_SOS
+  OUTSIDE_AREA_CHECK_IN_REQUEST
   OTHER
 
   @@schema("scheduling")
@@ -6693,6 +6695,7 @@ model EcmException {
   ecmVisitEvaluation EcmVisitEvaluation? @relation(fields: [ecmVisitEvaluationId], references: [id], onDelete: SetNull)
   notificationEvidence EcmNotificationEvidence[]
   visitAreaLock      VisitAreaLock?
+  checkInMethodGrant VisitCheckInMethodGrant?
 
   @@index([scheduledJobId])
   @@index([lifecycle])
@@ -6732,6 +6735,51 @@ model VisitAreaLock {
 
   @@index([scheduledJobId, status])
   @@index([scheduledJobId, lockedAt])
+  @@schema("scheduling")
+}
+
+enum VisitCheckInMethodGrantStatus {
+  PENDING
+  AUTHORISED
+  REJECTED
+  CONSUMED
+
+  @@schema("scheduling")
+}
+
+/// Office-authorised Manual clock-in for one carer, one visit, one operational day.
+/// Does not change organisation check-in method settings.
+model VisitCheckInMethodGrant {
+  id               String                          @id @default(uuid()) @db.Uuid
+  scheduledJobId   String                          @db.Uuid
+  employeeId       String                          @db.Uuid
+  /// Visit operational calendar day YYYY-MM-DD in organisation timezone.
+  operationalDay   String
+  status           VisitCheckInMethodGrantStatus   @default(PENDING)
+  carerNote        String?
+  latitude         Decimal?                        @db.Decimal(10, 7)
+  longitude        Decimal?                        @db.Decimal(10, 7)
+  accuracyMeters   Decimal?                        @db.Decimal(8, 2)
+  distanceMeters   Int?
+  isMockedLocation Boolean                         @default(false)
+  locationUnavailable Boolean                      @default(false)
+  requestedAt      DateTime                        @default(now())
+  expiresAt        DateTime
+  decidedAt        DateTime?
+  decidedById      String?                         @db.Uuid
+  decidedByName    String?
+  officeNote       String?
+  consumedAt       DateTime?
+  ecmExceptionId   String?                         @unique @db.Uuid
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId, employeeId, operationalDay])
+  @@index([scheduledJobId, status])
+  @@index([employeeId, status])
   @@schema("scheduling")
 }
 

@@ -200,13 +200,35 @@ function numericField(
   unit: string | null,
   opts: Partial<EmployeeAppObsFormField> = {},
 ): EmployeeAppObsFormField {
+  const example =
+    unit === 'mmHg'
+      ? key.toLowerCase().includes('dia')
+        ? 'Enter e.g. 80'
+        : 'Enter e.g. 120'
+      : unit === 'bpm'
+        ? 'Enter e.g. 72'
+        : unit === '%'
+          ? 'Enter e.g. 96'
+          : unit === 'rpm'
+            ? 'Enter e.g. 16'
+            : unit === '°C' || unit === 'C'
+              ? 'Enter e.g. 36.6'
+              : unit === 'mmol/L' || unit === 'MMOL/L'
+                ? 'Enter e.g. 5.5'
+                : unit === 'ml'
+                  ? 'Enter e.g. 200'
+                  : unit === 'kg'
+                    ? 'Enter e.g. 70'
+                    : unit
+                      ? `Enter ${unit}…`
+                      : 'Enter value…';
   return {
     key,
     label,
     inputType: 'number',
     required: true,
     unit,
-    placeholder: unit ? `Enter ${unit}` : 'Enter value',
+    placeholder: example,
     step: unit === '°C' || unit === 'C' || unit === 'mmol/L' || unit === 'MMOL/L' ? 0.1 : 1,
     ...opts,
   };
@@ -289,18 +311,26 @@ export function buildObsFormForType(input: {
   };
 
   if (code === 'BLOOD_PRESSURE') {
+    const bpUnit = unit ?? 'mmHg';
     return {
       ...base,
       fields: [
-        numericField('systolic', 'Systolic', unit, {
+        numericField('systolic', 'Systolic', bpUnit, {
           min: input.bounds.minAccepted,
           max: input.bounds.maxAccepted,
           payloadPath: 'systolic',
+          placeholder: 'Enter e.g. 120',
         }),
-        numericField('diastolic', 'Diastolic', unit, {
+        numericField('diastolic', 'Diastolic', bpUnit, {
           min: input.bounds.secondary?.minAccepted ?? null,
           max: input.bounds.secondary?.maxAccepted ?? null,
           payloadPath: 'diastolic',
+          placeholder: 'Enter e.g. 80',
+        }),
+        numericField('pulse', 'Pulse', 'bpm', {
+          required: false,
+          payloadPath: 'pulse',
+          placeholder: 'Enter pulse e.g. 72',
         }),
         {
           key: 'situation',
@@ -317,7 +347,11 @@ export function buildObsFormForType(input: {
             { value: 'OTHER', label: 'Other' },
           ],
         },
-        notesField(),
+        {
+          ...notesField(),
+          label: 'Observation notes',
+          placeholder: 'Add handover notes if needed…',
+        },
       ],
     };
   }

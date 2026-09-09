@@ -213,6 +213,12 @@ export function resolveVisitTaskCompletionInput(task: TaskInputSource): VisitTas
   return { inputMode: 'tick' };
 }
 
+function enterSpecField(label: string | undefined, fallback: string): string {
+  const raw = label?.trim();
+  if (!raw) return fallback;
+  return `Enter ${raw.charAt(0).toLowerCase()}${raw.slice(1)}`;
+}
+
 export function visitTaskCompletionInputMissing(
   spec: VisitTaskCompletionInputSpec,
   isCompleted: boolean,
@@ -222,12 +228,24 @@ export function visitTaskCompletionInputMissing(
   if (!isCompleted) return null;
   const value = recordedValue?.trim() ?? '';
   const note = notes?.trim() ?? '';
-  if (spec.inputMode === 'value' && !value) return 'Enter a recorded value';
-  if (spec.inputMode === 'note' && !note) return 'Enter a description';
+  if (spec.inputMode === 'value' && !value) {
+    return enterSpecField(spec.valueLabel, 'Enter a recorded value');
+  }
+  if (spec.inputMode === 'note' && !note) {
+    return enterSpecField(spec.noteLabel, 'Enter a description');
+  }
   if (spec.inputMode === 'value_and_note') {
-    if (!value && !note) return 'Enter a value and description';
-    if (!value) return 'Enter a recorded value';
-    if (!note) return 'Enter a description';
+    if (!value && !note) {
+      const valueBit = spec.valueLabel?.trim()
+        ? spec.valueLabel.trim().charAt(0).toLowerCase() + spec.valueLabel.trim().slice(1)
+        : 'a value';
+      const noteBit = spec.noteLabel?.trim()
+        ? spec.noteLabel.trim().charAt(0).toLowerCase() + spec.noteLabel.trim().slice(1)
+        : 'a description';
+      return `Enter ${valueBit} and ${noteBit}`;
+    }
+    if (!value) return enterSpecField(spec.valueLabel, 'Enter a recorded value');
+    if (!note) return enterSpecField(spec.noteLabel, 'Enter a description');
   }
   return null;
 }
