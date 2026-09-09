@@ -47,8 +47,9 @@ export type VisitObservationRecordedRow = {
   statusLabel: string | null;
   statusTone: 'success' | 'warning' | 'danger' | 'neutral';
   tone: 'success' | 'warning' | 'danger' | 'neutral';
-  /** Present when observation was saved with payload.bodyMapPins (skin / body map obs). */
   bodyMapPins?: EmployeeAppBodyMapPin[];
+  /** Raw observation payload for mobile form prefill (e.g. condition codes). */
+  payload?: Record<string, unknown>;
 };
 
 function readPayload(payload: Prisma.JsonValue | null): Record<string, unknown> {
@@ -287,10 +288,11 @@ function mapObservationRow(row: {
     typeCode,
     observationTypeCode: row.observationType.code,
     outcomeCode,
-    value: currentValue,
+    // Prefer valueLabel (e.g. "Intact" from condition) when raw value is empty.
+    value: currentValue ?? valueLabel,
     secondaryValue,
     valueLabel,
-    currentValue,
+    currentValue: currentValue ?? valueLabel,
     unit: row.unit ?? row.observationType.unitLabel ?? null,
     notes,
     unableReasonCode: resolvedUnable,
@@ -306,6 +308,25 @@ function mapObservationRow(row: {
     statusTone: tone,
     tone,
     ...(bodyMapPins ? { bodyMapPins } : {}),
+    // Structured fields so mobile can reselect chips (condition, bristol, …).
+    payload: Object.fromEntries(
+      Object.entries(payload).filter(
+        ([key]) =>
+          ![
+            'definitionId',
+            'outcome',
+            'value',
+            'secondaryValue',
+            'unableReasonCode',
+            'abnormal',
+            'critical',
+            'deviceRecordedAt',
+            'idempotencyKey',
+            'scheduledJobId',
+            'clientObservationId',
+          ].includes(key),
+      ),
+    ),
   };
 }
 
@@ -467,8 +488,9 @@ export class VisitObservationsCatalogService {
         instructions: form.subtitle,
         previousValue: previous?.valueLabel ?? null,
         previousRecordedAt: previous?.recordedAt ?? null,
+        previousNotes: previous?.notes ?? null,
         allowsUnableToRecord: true,
-        allowsMultipleReadings: true,
+        allowsMultipleReadings: Boolean(type.usesNews2),
         requiresNotesWhenAbnormal: form.requiresNotesWhenAbnormal,
         requiresNotesWhenCritical: form.requiresNotesWhenCritical,
         isOutstanding: false,
@@ -511,7 +533,7 @@ export class VisitObservationsCatalogService {
         criticalMin: bounds.criticalMin,
         criticalMax: bounds.criticalMax,
         allowsUnableToRecord: true,
-        allowsMultipleReadings: true,
+        allowsMultipleReadings: Boolean(type.usesNews2),
         done: false,
         outcomeCode: null,
         currentValue: null,
@@ -647,13 +669,17 @@ export class VisitObservationsCatalogService {
       include: { observationType: true },
       take: 80,
     });
-    const map = new Map<string, { valueLabel: string | null; recordedAt: string }>();
+    const map = new Map<
+      string,
+      { valueLabel: string | null; recordedAt: string; notes: string | null }
+    >();
     for (const row of rows) {
       const code = row.observationType.code.toUpperCase();
       if (map.has(code)) continue;
       map.set(code, {
         valueLabel: formatVisitObservationValue(row),
         recordedAt: row.recordedAt.toISOString(),
+        notes: row.notes?.trim() || null,
       });
     }
     return map;

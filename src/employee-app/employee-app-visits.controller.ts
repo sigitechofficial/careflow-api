@@ -31,6 +31,7 @@ import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
 import { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
+import { EmployeeAppCheckInMethodRequestDto } from './dto/employee-app-check-in-method-request.dto';
 import { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import {
   EmployeeAppHandoverAcknowledgeDto,
@@ -116,6 +117,20 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppSosDto,
   ) {
     return this.visitsService.sendSos(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/check-in-method-request')
+  @ApiOperation({
+    summary: 'Request office to enable Manual check-in for this visit',
+    description:
+      'GPS-only organisations. Creates an ECM exception. Office authorise enables Manual for this carer, this visit, this operational day only. Does not change organisation settings.',
+  })
+  requestCheckInMethod(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppCheckInMethodRequestDto,
+  ) {
+    return this.visitsService.requestCheckInMethod(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/check-in')

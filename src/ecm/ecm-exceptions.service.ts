@@ -11,6 +11,7 @@ import {
   EcmExceptionLifecycle,
   EcmMissedClassification,
   EcmAuditEventType,
+  VisitAttendanceEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
@@ -18,6 +19,8 @@ import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
+import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
+import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
 const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
@@ -36,6 +39,12 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.ALLOCATED,
   AllocationStatus.CONFIRMED,
 ];
+
+function toCoord(value: unknown): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 @Injectable()
 export class EcmExceptionsService {
@@ -265,6 +274,7 @@ export class EcmExceptionsService {
       row =>
         row.kind !== EcmExceptionKind.LEFT_VISIT_AREA &&
         row.kind !== EcmExceptionKind.CARER_SOS &&
+        row.kind !== EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST &&
         !keep.has(row.kind),
     );
     if (stale.length === 0) return;
@@ -329,6 +339,7 @@ export class EcmExceptionsService {
         : {};
     const include = {
       visitAreaLock: true,
+      checkInMethodGrant: true,
       scheduledJob: {
         select: {
           id: true,
@@ -339,7 +350,7 @@ export class EcmExceptionsService {
           serviceUserId: true,
           visits: {
             where: { deletedAt: null },
-            select: { actualStartDateTime: true },
+            select: { id: true, actualStartDateTime: true, visitRef: true },
             orderBy: { scheduledStartDateTime: 'asc' as const },
             take: 1,
           },
@@ -370,7 +381,7 @@ export class EcmExceptionsService {
     } as const;
     // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
     // limit hide a later same-day lock behind older exceptions.
-    const [sosRows, areaRows, mockRows, otherRows] = await Promise.all([
+    const [sosRows, areaRows, mockRows, checkInRequestRows, otherRows] = await Promise.all([
       this.prisma.ecmException.findMany({
         where: {
           kind: EcmExceptionKind.CARER_SOS,
@@ -400,11 +411,21 @@ export class EcmExceptionsService {
       }),
       this.prisma.ecmException.findMany({
         where: {
+          kind: EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      this.prisma.ecmException.findMany({
+        where: {
           kind: {
             notIn: [
               EcmExceptionKind.CARER_SOS,
               EcmExceptionKind.LEFT_VISIT_AREA,
               EcmExceptionKind.MOCK_LOCATION,
+              EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST,
             ],
           },
           lifecycle: { in: OPEN_LIFECYCLES },
@@ -416,17 +437,25 @@ export class EcmExceptionsService {
       }),
     ]);
     const reservedIds = new Set(
-      [...sosRows, ...areaRows, ...mockRows].map((row) => row.id),
+      [...sosRows, ...areaRows, ...mockRows, ...checkInRequestRows].map((row) => row.id),
     );
     const rows = [
       ...sosRows,
       ...areaRows,
       ...mockRows,
+      ...checkInRequestRows,
       ...otherRows.filter((row) => !reservedIds.has(row.id)),
     ];
     const mockedJobIds = await this.mockedVisitJobIds(
       rows.map((row) => row.scheduledJobId),
     );
+    const checkInLocations = await this.loadCheckInLocationsByJobIds(
+      rows.map((row) => row.scheduledJobId),
+    );
+    const visitIds = rows
+      .map((row) => row.scheduledJob.visits[0]?.id)
+      .filter((id): id is string => Boolean(id));
+    const visitRefs = await loadVisitRefsByScheduledVisitIds(this.prisma, visitIds);
     const ackIds = [
       ...new Set(
         rows.map((row) => row.acknowledgedById).filter((id): id is string => Boolean(id)),
@@ -475,6 +504,12 @@ export class EcmExceptionsService {
           createdAt: r.createdAt.toISOString(),
           jobName: r.scheduledJob.jobName,
           jobStatus: r.scheduledJob.status,
+          visitRef:
+            (r.scheduledJob.visits[0]?.id
+              ? visitRefs.get(r.scheduledJob.visits[0]!.id)
+              : null) ??
+            r.scheduledJob.visits[0]?.visitRef ??
+            null,
           plannedDate: start.toISOString().slice(0, 10),
           plannedStartDateTime: start.toISOString(),
           plannedEndDateTime: end?.toISOString() ?? null,
@@ -500,8 +535,12 @@ export class EcmExceptionsService {
                 allowedByName: r.visitAreaLock.allowedByName,
                 allowNote: r.visitAreaLock.allowNote,
                 employeeId: r.visitAreaLock.employeeId,
+                latitude: toCoord(r.visitAreaLock.latitude),
+                longitude: toCoord(r.visitAreaLock.longitude),
+                distanceMeters: r.visitAreaLock.distanceMeters,
               }
             : null,
+          checkInLocation: checkInLocations.get(r.scheduledJobId) ?? null,
           sos:
             r.kind === EcmExceptionKind.CARER_SOS
               ? mapCarerSosAlert(r, {
@@ -510,6 +549,13 @@ export class EcmExceptionsService {
                     : null,
                 })
               : null,
+          checkInMethodRequest: r.checkInMethodGrant
+            ? mapVisitCheckInMethodGrant(r.checkInMethodGrant, {
+                employeeName:
+                  carers.find((c) => c.employeeId === r.checkInMethodGrant?.employeeId)
+                    ?.name ?? null,
+              })
+            : null,
         };
       }),
     };
@@ -602,6 +648,73 @@ export class EcmExceptionsService {
       throw new BadRequestException(`Exception is already ${row.lifecycle}`);
     }
     return row;
+  }
+
+  private async loadCheckInLocationsByJobIds(jobIds: string[]): Promise<
+    Map<
+      string,
+      {
+        latitude: number
+        longitude: number
+        accuracyMeters: number | null
+        distanceMeters: number | null
+        outsideGeofence: boolean
+        isMockLocation: boolean
+        occurredAt: string
+        employeeId: string
+      }
+    >
+  > {
+    const unique = [...new Set(jobIds.filter(Boolean))];
+    const map = new Map<
+      string,
+      {
+        latitude: number
+        longitude: number
+        accuracyMeters: number | null
+        distanceMeters: number | null
+        outsideGeofence: boolean
+        isMockLocation: boolean
+        occurredAt: string
+        employeeId: string
+      }
+    >();
+    if (unique.length === 0) return map;
+    const events = await this.prisma.visitAttendanceEvent.findMany({
+      where: {
+        scheduledJobId: { in: unique },
+        eventType: VisitAttendanceEventType.CHECK_IN,
+      },
+      orderBy: { occurredAt: 'desc' },
+      select: {
+        scheduledJobId: true,
+        employeeId: true,
+        occurredAt: true,
+        latitude: true,
+        longitude: true,
+        accuracyMeters: true,
+        distanceMeters: true,
+        outsideGeofence: true,
+        isMockLocation: true,
+      },
+    });
+    for (const event of events) {
+      if (map.has(event.scheduledJobId)) continue;
+      const latitude = toCoord(event.latitude);
+      const longitude = toCoord(event.longitude);
+      if (latitude == null || longitude == null) continue;
+      map.set(event.scheduledJobId, {
+        latitude,
+        longitude,
+        accuracyMeters: toCoord(event.accuracyMeters),
+        distanceMeters: event.distanceMeters,
+        outsideGeofence: event.outsideGeofence,
+        isMockLocation: event.isMockLocation,
+        occurredAt: event.occurredAt.toISOString(),
+        employeeId: event.employeeId,
+      });
+    }
+    return map;
   }
 
   private async mockedVisitJobIds(jobIds: string[]): Promise<Set<string>> {

@@ -42,6 +42,8 @@ import type {
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
+import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-grant.service';
+import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
 import { EmployeeAppSosService } from './employee-app-sos.service';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -79,9 +81,12 @@ import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-
 import type { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
 import {
   isCheckInMethodEnabled,
+  mergeEnabledMethodsWithGrant,
   normalizeCheckInMethod,
+  orgHasOptInCheckInMethod,
   resolveEnabledCheckInMethods,
 } from './employee-app-check-in-methods.util';
+import type { EmployeeAppCheckInMethodRequestDto } from './dto/employee-app-check-in-method-request.dto';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import type {
   EmployeeAppHandoverAcknowledgeDto,
@@ -145,6 +150,7 @@ import {
   computeVisitTaskProgress,
   inferVisitTaskOutcome,
   isVisitTaskAddressed,
+  stripVisitTaskOutcomeNotes,
 } from './visit-task-progress.util';
 import {
   pickScheduleFromAssignment,
@@ -325,6 +331,7 @@ export class EmployeeAppVisitsService {
     private readonly visitObservationsCatalog: VisitObservationsCatalogService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly areaLocks: VisitAreaLockService,
+    private readonly checkInMethodGrants: VisitCheckInMethodGrantService,
     private readonly sos: EmployeeAppSosService,
     private readonly visitReconciliations: VisitReconciliationsService,
   ) {}
@@ -334,9 +341,45 @@ export class EmployeeAppVisitsService {
     return this.sos.send(employeeId, jobId, dto);
   }
 
+  async requestCheckInMethod(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppCheckInMethodRequestDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const visit = ctx.primaryVisit;
+    const multi = isMultiCarerVisit(ctx.job.requiredCarers, ctx.job.allocations);
+    const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
+    const visitClosed =
+      visit.status === ScheduledVisitStatus.COMPLETED ||
+      visit.status === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+      visit.status === ScheduledVisitStatus.CANCELLED ||
+      visit.status === ScheduledVisitStatus.CALLED_OFF;
+    const alreadyCheckedIn = multi
+      ? Boolean(myAllocation?.actualStartDateTime)
+      : Boolean(visit.actualStartDateTime) ||
+        visit.status === ScheduledVisitStatus.STARTED ||
+        Boolean(ctx.checkIn);
+    const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
+    return this.checkInMethodGrants.createRequest({
+      scheduledJobId: jobId,
+      employeeId,
+      note: dto.note,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracyMeters: dto.accuracyMeters,
+      isMockedLocation: dto.isMockedLocation,
+      locationUnavailable: dto.locationUnavailable,
+      withinArea: geofence.withinArea,
+      distanceMeters: geofence.distanceMeters,
+      alreadyCheckedIn,
+      visitClosed,
+    });
+  }
+
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock] =
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock, methodGrant] =
       await Promise.all([
         this.resolveProgress(ctx),
         this.loadOverviewExtras(ctx),
@@ -344,9 +387,18 @@ export class EmployeeAppVisitsService {
         this.loadGeofenceSettings(),
         this.loadCheckInMethodFlags(),
         this.areaLocks.getState(jobId),
+        this.checkInMethodGrants.getForCarerVisit(
+          jobId,
+          employeeId,
+          ctx.timeZone,
+          ctx.job.scheduledStartDateTime,
+        ),
       ]);
     const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
     const gpsCheckIn = checkInMethod === 'GPS';
+    const orgMethods = resolveEnabledCheckInMethods(checkInFlags);
+    const enabledMethods = mergeEnabledMethodsWithGrant(orgMethods, methodGrant);
+    const manualFromGrant = isAuthorisedManualGrantActive(methodGrant);
 
     return {
       data: {
@@ -361,11 +413,14 @@ export class EmployeeAppVisitsService {
         },
         overview: overviewExtras,
         clockInSettings: {
-          enabledMethods: resolveEnabledCheckInMethods(checkInFlags),
+          enabledMethods,
           maxLocationAccuracyMeters: 50,
           timingGraceMinutes: 15,
-          allowManualOverride: Boolean(checkInFlags.domCheckInManualEnabled),
+          allowManualOverride:
+            Boolean(checkInFlags.domCheckInManualEnabled) || manualFromGrant,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
+          requestOfficeAvailable: !orgHasOptInCheckInMethod(checkInFlags),
+          checkInMethodRequest: methodGrant,
           ...(await this.getClockInArrivalReasons()),
         },
         clockOutSettings: await this.getClockOutEndReasons(),
@@ -827,7 +882,7 @@ export class EmployeeAppVisitsService {
     // Single-carer: visit-level already-checked-in (unchanged).
     // Double-up: each carer clocks in independently via allocation actualStart.
     await this.assertCheckInArrivalReason(dto);
-    await this.assertCheckInMethodEnabled(dto.method);
+    await this.assertCheckInMethodEnabled(dto.method, jobId, employeeId);
     this.assertManualCheckInReason(dto);
 
     const alreadyCheckedIn = multi
@@ -964,6 +1019,8 @@ export class EmployeeAppVisitsService {
       identityConfirmed: dto.identityConfirmed ?? false,
     });
 
+    await this.checkInMethodGrants.consumeOnSuccessfulCheckIn(jobId, employeeId);
+
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
     const occurredAt = parseOccurredAt(deviceRecordedAt, now);
@@ -1089,7 +1146,9 @@ export class EmployeeAppVisitsService {
           ? `Completed · ${formatHmUtc(new Date(completedAt))}`
           : null,
         recordedValue: task.recordedValue ?? null,
-        notes: task.notes ?? null,
+        notes: stripVisitTaskOutcomeNotes(
+          task.notes != null ? String(task.notes) : null,
+        ),
         completionInput: task.completionInput,
         instruction:
           task.carerInstructions != null ? String(task.carerInstructions) : null,
@@ -4161,9 +4220,17 @@ export class EmployeeAppVisitsService {
     };
   }
 
-  private async assertCheckInMethodEnabled(method?: string) {
+  private async assertCheckInMethodEnabled(
+    method?: string,
+    jobId?: string,
+    employeeId?: string,
+  ) {
     const enabled = resolveEnabledCheckInMethods(await this.loadCheckInMethodFlags());
     if (isCheckInMethodEnabled(method, enabled)) return;
+    if (normalizeCheckInMethod(method) === 'MANUAL' && jobId && employeeId) {
+      const grant = await this.checkInMethodGrants.findActiveAuthorised(jobId, employeeId);
+      if (grant) return;
+    }
     validationError(
       'This check-in method is not enabled for your organisation.',
     );
@@ -4406,14 +4473,14 @@ export class EmployeeAppVisitsService {
       });
       if (existing?.isCompleted) continue;
 
-      const note = `Auto-completed: scheduled MAR round complete (${givenCount}/${dueCount})`;
+      const keptNotes = stripVisitTaskOutcomeNotes(existing?.notes) ?? null;
       if (existing) {
         await this.prisma.scheduledVisitTaskCompletion.update({
           where: { id: existing.id },
           data: {
             isCompleted: true,
             recordedValue: existing.recordedValue ?? 'COMPLETED',
-            notes: existing.notes?.trim() || note,
+            notes: keptNotes,
             completedAt: now,
             completedById: input.employeeId,
           },
@@ -4430,7 +4497,7 @@ export class EmployeeAppVisitsService {
           isAdHoc: false,
           isCompleted: true,
           recordedValue: 'COMPLETED',
-          notes: note,
+          notes: null,
           completedAt: now,
           completedById: input.employeeId,
         },
