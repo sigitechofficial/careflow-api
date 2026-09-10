@@ -43,6 +43,7 @@ export const DEFAULT_INCIDENT_CATEGORIES: IncidentCategorySeed[] = [
     subtypes: [
       { key: 'NEGLECT', label: 'Neglect' },
       { key: 'PHYSICAL_ABUSE', label: 'Physical Abuse' },
+      { key: 'DOMESTIC_ABUSE', label: 'Domestic Abuse / Violence' },
       { key: 'FINANCIAL_ABUSE', label: 'Financial Abuse' },
       { key: 'EMOTIONAL_ABUSE', label: 'Emotional / Psychological Abuse' },
       { key: 'OTHER', label: 'Other' },

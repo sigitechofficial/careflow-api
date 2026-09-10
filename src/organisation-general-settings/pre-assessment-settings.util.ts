@@ -17,7 +17,7 @@ export const DEFAULT_PRE_ASSESSMENT_COMPONENTS: PreAssessmentChecklistItem[] = [
 ];
 
 export const DEFAULT_PRE_ASSESSMENT_FORMS: PreAssessmentChecklistItem[] = [
-  { key: 'abbey_pain_scale', label: 'Abbey Pain Scale Tool', selected: false },
+  { key: 'abbey_pain_scale', label: 'Abbey Pain Scale Tool (Pain Assessment Tool — IA tab 10)', selected: false },
   {
     key: 'assessing_medication_home_care',
     label: 'Assessing For Medication in home care',
@@ -84,7 +84,7 @@ export const DEFAULT_PRE_ASSESSMENT_FORMS: PreAssessmentChecklistItem[] = [
     label: 'Nutritional Risk using Mid Upper Arm Circumference (MUAC)',
     selected: true,
   },
-  { key: 'pain_assessment', label: 'Pain Assessment', selected: false },
+  { key: 'pain_assessment', label: 'Pain Assessment (Pain Assessment Tool — IA tab 10)', selected: false },
   {
     key: 'personal_emergency_evacuation',
     label: 'Personal Emergency Evacuation Plan',

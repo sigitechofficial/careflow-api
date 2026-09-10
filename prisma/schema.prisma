@@ -2602,6 +2602,8 @@ model ServiceUser {
   lastName                 String
   preferredName            String?
   dateOfBirth              DateTime?
+  /// Verified date/time of death (synced from profile ref SU_PROFILE_DATE_OF_DEATH when set).
+  dateOfDeath              DateTime?
   titleId                  String?   @db.Uuid
   genderId                 String?   @db.Uuid
   maritalStatusId          String?   @db.Uuid
@@ -2654,6 +2656,11 @@ model ServiceUser {
   photos          ServiceUserPhoto[]
   inventoryItems  ServiceUserInventoryItem[]
   allergies       ServiceUserAllergy[]
+  medicalConditions ServiceUserMedicalCondition[]
+  reasonableAdjustments ServiceUserReasonableAdjustment[]
+  medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
+  monitoringConfigs ServiceUserMonitoringConfig[]
+  usualParameters ServiceUserUsualParameter[]
   legalDocument   ServiceUserLegalDocument?
   dolsRecords     ServiceUserDolsRecord[]
   documentRecords ServiceUserDocumentRecord[]
@@ -2703,6 +2710,7 @@ model ServiceUser {
   @@index([keyWorkerId])
   @@index([namedNurseId])
   @@index([lastName, firstName])
+  @@index([dateOfDeath])
   @@schema("service_users")
 }
 
@@ -3686,6 +3694,217 @@ model ServiceUserAllergy {
 
   @@index([serviceUserId])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+// ---------------------------------------------------------------------------
+// Medical Conditions & Alerts — clinical SoTs (NOT alerts.Alert / operational)
+// ---------------------------------------------------------------------------
+
+enum MedicalConditionCategory {
+  MENTAL_HEALTH
+  NEUROLOGICAL
+  CARDIOVASCULAR
+  RESPIRATORY
+  ENDOCRINE_METABOLIC
+  LEARNING_DISABILITY
+  DEVELOPMENTAL
+  PALLIATIVE
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum ServiceUserMedicalConditionStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+
+  @@schema("service_users")
+}
+
+enum ReasonableAdjustmentType {
+  COMMUNICATION
+  PHYSICAL_ACCESS
+  SENSORY
+  COGNITIVE
+  CULTURAL_RELIGIOUS
+  EQUIPMENT
+  ROUTINE_TIMING
+  OTHER
+
+  @@schema("service_users")
+}
+
+/// Provenance for clinical Medical & Alerts records (never written to alerts.Alert).
+enum ServiceUserClinicalDataSource {
+  MANUAL
+  INITIAL_ASSESSMENT
+  CARE_PLAN
+  DOCUMENTS
+  PROFILE
+  IMPORT
+  OTHER
+
+  @@schema("service_users")
+}
+
+model MedicalConditionCatalog {
+  id          String                   @id @default(uuid()) @db.Uuid
+  code        String                   @unique
+  name        String
+  category    MedicalConditionCategory @default(OTHER)
+  description String?                  @db.Text
+  sortOrder   Int                      @default(0)
+  isActive    Boolean                  @default(true)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  serviceUserConditions ServiceUserMedicalCondition[]
+
+  @@index([isActive])
+  @@index([category])
+  @@index([sortOrder])
+  @@schema("service_users")
+}
+
+/// Current medical conditions for a service user. One row per catalogue condition;
+/// change status rather than creating duplicates.
+model ServiceUserMedicalCondition {
+  id            String                            @id @default(uuid()) @db.Uuid
+  serviceUserId String                            @db.Uuid
+  conditionId   String                            @db.Uuid
+  status        ServiceUserMedicalConditionStatus @default(ACTIVE)
+  notes         String                            @default("") @db.Text
+  onsetDate     DateTime?
+  reviewDate    DateTime?
+  source        ServiceUserClinicalDataSource     @default(MANUAL)
+  isActive      Boolean                           @default(true)
+  createdAt     DateTime                          @default(now())
+  updatedAt     DateTime                          @updatedAt
+  deletedAt     DateTime?
+  createdById   String?                           @db.Uuid
+  updatedById   String?                           @db.Uuid
+  deletedById   String?                           @db.Uuid
+
+  serviceUser ServiceUser             @relation(fields: [serviceUserId], references: [id])
+  condition   MedicalConditionCatalog @relation(fields: [conditionId], references: [id])
+
+  @@unique([serviceUserId, conditionId])
+  @@index([serviceUserId])
+  @@index([conditionId])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserReasonableAdjustment {
+  id            String                       @id @default(uuid()) @db.Uuid
+  serviceUserId String                       @db.Uuid
+  type          ReasonableAdjustmentType     @default(OTHER)
+  description   String                       @db.Text
+  notes         String                       @default("") @db.Text
+  isActive      Boolean                      @default(true)
+  source        ServiceUserClinicalDataSource @default(MANUAL)
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+  deletedAt     DateTime?
+  createdById   String?                      @db.Uuid
+  updatedById   String?                      @db.Uuid
+  deletedById   String?                      @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([type])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Historical clinical events — distinct from current Medical Conditions.
+model ServiceUserMedicalHistoryEvent {
+  id               String                        @id @default(uuid()) @db.Uuid
+  serviceUserId    String                        @db.Uuid
+  title            String
+  eventDate        DateTime?
+  /// Free-text approximate date when an exact eventDate is unknown (e.g. "c. 2019").
+  approximateDate  String?
+  description      String                        @default("") @db.Text
+  notes            String                        @default("") @db.Text
+  source           ServiceUserClinicalDataSource @default(MANUAL)
+  isActive         Boolean                       @default(true)
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  deletedAt        DateTime?
+  createdById      String?                       @db.Uuid
+  updatedById      String?                       @db.Uuid
+  deletedById      String?                       @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([eventDate])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Per–service-user monitoring configuration (normalized key/value).
+/// Does not create alerts.Alert rows. Known keys are application constants
+/// (e.g. WEIGHT_CHANGE_THRESHOLD_KG, FLUID_TARGET_REQUIRED) — no invented
+/// clinical threshold defaults in schema.
+model ServiceUserMonitoringConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  serviceUserId     String   @db.Uuid
+  configKey         String
+  observationTypeId String?  @db.Uuid
+  enabled           Boolean  @default(true)
+  numericValue      Decimal? @db.Decimal(12, 4)
+  booleanValue      Boolean?
+  textValue         String?
+  notes             String   @default("") @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String?  @db.Uuid
+  updatedById       String?  @db.Uuid
+
+  serviceUser     ServiceUser      @relation(fields: [serviceUserId], references: [id])
+  observationType ObservationType? @relation(fields: [observationTypeId], references: [id])
+
+  @@unique([serviceUserId, configKey])
+  @@index([serviceUserId])
+  @@index([observationTypeId])
+  @@index([configKey])
+  @@schema("service_users")
+}
+
+/// Usual/baseline observation parameters — separate from ServiceUserObservation readings.
+/// Does not create alerts.Alert rows or modify observation history.
+model ServiceUserUsualParameter {
+  id                String   @id @default(uuid()) @db.Uuid
+  serviceUserId     String   @db.Uuid
+  observationTypeId String   @db.Uuid
+  enabled           Boolean  @default(true)
+  usualNumericValue Decimal? @db.Decimal(12, 4)
+  /// Optional free-form usual value (e.g. BP "120/80") when numeric alone is insufficient.
+  usualTextValue    String?
+  /// Optional structured usual payload (e.g. { systolic, diastolic }) for COMPOSITE types.
+  usualPayload      Json?
+  lowerBand         Decimal? @db.Decimal(12, 4)
+  upperBand         Decimal? @db.Decimal(12, 4)
+  notes             String   @default("") @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String?  @db.Uuid
+  updatedById       String?  @db.Uuid
+
+  serviceUser     ServiceUser     @relation(fields: [serviceUserId], references: [id])
+  observationType ObservationType @relation(fields: [observationTypeId], references: [id])
+
+  @@unique([serviceUserId, observationTypeId])
+  @@index([serviceUserId])
+  @@index([observationTypeId])
+  @@index([enabled])
   @@schema("service_users")
 }
 
@@ -5407,6 +5626,8 @@ model ObservationType {
   updatedAt  DateTime             @updatedAt
 
   observations ServiceUserObservation[]
+  monitoringConfigs ServiceUserMonitoringConfig[]
+  usualParameters   ServiceUserUsualParameter[]
 
   @@index([isActive])
   @@index([sortOrder])

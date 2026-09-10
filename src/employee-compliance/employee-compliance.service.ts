@@ -27,11 +27,23 @@ import {
   requirementMatchesEmployment,
 } from './compliance-requirement.matcher';
 import { CARE_COMPLIANCE_CODE_ORDER } from './care-compliance-catalog-order';
+import { applyImmigrationRtwRequirementFlags } from './immigration-rtw-requirement.util';
+
+const documentUploaderSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+} as const;
 
 const complianceInclude = {
   complianceType: true,
   requirement: true,
-  documents: { where: { deletedAt: null }, orderBy: { uploadedAt: 'desc' } },
+  documents: {
+    where: { deletedAt: null },
+    orderBy: { uploadedAt: 'desc' as const },
+    include: { uploadedBy: { select: documentUploaderSelect } },
+  },
 } satisfies Prisma.EmployeeComplianceInclude;
 
 type ComplianceRowFull = Prisma.EmployeeComplianceGetPayload<{ include: typeof complianceInclude }>;
@@ -554,7 +566,7 @@ export class EmployeeComplianceService {
       });
       if (!existing) throw new NotFoundException('Compliance record not found');
 
-      const doc = await tx.employeeComplianceDocument.create({
+      const createdDoc = await tx.employeeComplianceDocument.create({
         data: {
           employeeComplianceId: complianceId,
           fileName: file.filename,
@@ -564,6 +576,10 @@ export class EmployeeComplianceService {
           mimeType: file.mimetype,
           uploadedById: userId,
         },
+      });
+      const doc = await tx.employeeComplianceDocument.findFirstOrThrow({
+        where: { id: createdDoc.id },
+        include: { uploadedBy: { select: documentUploaderSelect } },
       });
 
       let updated = await tx.employeeCompliance.findFirst({
@@ -785,11 +801,17 @@ export class EmployeeComplianceService {
       const type = typeById.get(typeId);
       const req = best.get(typeId);
       const record = recordByTypeId.get(typeId) ?? null;
+      const baseMandatory = req?.isMandatory ?? type?.isMandatoryByDefault ?? false;
+      const { isMandatory } = applyImmigrationRtwRequirementFlags(
+        type?.code,
+        employee.employment?.visaTypeId,
+        { isMandatory: baseMandatory, blocksAllocation: baseMandatory },
+      );
       return {
         complianceTypeId: typeId,
         code: type?.code ?? null,
         name: type?.name ?? '—',
-        isMandatory: req?.isMandatory ?? type?.isMandatoryByDefault ?? false,
+        isMandatory,
         requirementId: req?.id ?? null,
         record,
       };

@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CarePathwayFormType, Prisma } from '@prisma/client';
+import { CarePathwayFormType, Prisma, ServiceUserMedicalConditionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CarePlanRecommendation } from './initial-assessment-care-plan.util';
 import { enrichCarePlanRecommendationsWithForms } from './initial-assessment-care-plan-area-map.util';
@@ -14,6 +14,10 @@ import {
   ruleConditionsFromJson,
   submissionAnswersForRules,
 } from './initial-assessment-care-plan-rules.util';
+import {
+  buildRecommendationsFromMedicalConditions,
+  mergeMedicalConditionRecommendations,
+} from './medical-condition-care-plan-map.util';
 import type { CarePlanRecommendationRuleRow } from './initial-assessment-care-plan-rules.types';
 import type {
   CreateCarePlanRecommendationRuleDto,
@@ -213,11 +217,57 @@ export class InitialAssessmentCarePlanRulesService {
     submissionId: string,
     legacyTriggerItems: CarePlanTriggerItem[],
   ): Promise<CarePlanRecommendation[]> {
+    const submission = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { id: submissionId, deletedAt: null },
+      select: { serviceUserId: true },
+    });
+    const serviceUserId = submission?.serviceUserId ?? null;
+
     const rules = await this.loadActiveRules();
-    if (rules.length === 0) {
-      return buildCarePlanRecommendations(legacyTriggerItems);
+    const catalogue = await this.prisma.carePathwayForm.findMany({
+      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    let merged =
+      rules.length === 0
+        ? buildCarePlanRecommendations(legacyTriggerItems)
+        : await this.resolveFromRulesAndLegacy(submissionId, rules, legacyTriggerItems);
+
+    enrichCarePlanRecommendationsWithForms(merged, catalogue);
+
+    if (serviceUserId) {
+      const activeConditions = await this.prisma.serviceUserMedicalCondition.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          status: ServiceUserMedicalConditionStatus.ACTIVE,
+          isActive: true,
+        },
+        select: {
+          condition: { select: { code: true, name: true } },
+        },
+      });
+      const fromConditions = buildRecommendationsFromMedicalConditions(
+        activeConditions
+          .map((row) => ({
+            code: row.condition?.code ?? '',
+            name: row.condition?.name ?? '',
+          }))
+          .filter((c) => c.code),
+        catalogue,
+      );
+      merged = mergeMedicalConditionRecommendations(merged, fromConditions);
     }
 
+    return merged;
+  }
+
+  private async resolveFromRulesAndLegacy(
+    submissionId: string,
+    rules: CarePlanRecommendationRuleRow[],
+    legacyTriggerItems: CarePlanTriggerItem[],
+  ) {
     const answers = await this.prisma.initialAssessmentAnswer.findMany({
       where: { submissionId },
       include: {
@@ -240,13 +290,7 @@ export class InitialAssessmentCarePlanRulesService {
       .filter((r) => r.suppressLegacyArea)
       .map((r) => r.suppressLegacyArea as string);
 
-    const merged = mergeCarePlanRecommendations(ruleBased, legacy, suppressAreas);
-    const catalogue = await this.prisma.carePathwayForm.findMany({
-      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
-      select: { id: true, name: true },
-    });
-    enrichCarePlanRecommendationsWithForms(merged, catalogue);
-    return merged;
+    return mergeCarePlanRecommendations(ruleBased, legacy, suppressAreas);
   }
 
   private async loadActiveRules(): Promise<CarePlanRecommendationRuleRow[]> {

@@ -24,7 +24,7 @@ export type CarePlanRecommendation = {
   status: 'pending' | 'accepted' | 'declined';
   carePathwayFormId?: string;
   carePathwayFormName?: string;
-  source?: 'rule' | 'legacy';
+  source?: 'rule' | 'legacy' | 'medical_condition';
   ruleId?: string;
 };
 

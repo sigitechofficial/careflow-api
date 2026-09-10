@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { employmentDimsFromEmployment } from './compliance-requirement.matcher';
+import { applyImmigrationRtwRequirementFlags } from './immigration-rtw-requirement.util';
 import {
   EMPTY_COMPLIANCE_ALLOCATION_RESULT,
   evaluateEmployeeAllocationCompliance,
@@ -43,7 +44,7 @@ export class AllocationComplianceService {
     const [requirements, employees, records, learning] = await Promise.all([
       this.prisma.complianceRequirement.findMany({
         where: { deletedAt: null, isActive: true, complianceType: { deletedAt: null, isActive: true } },
-        include: { complianceType: { select: { name: true } } },
+        include: { complianceType: { select: { name: true, code: true } } },
       }),
       this.prisma.employee.findMany({
         where: { id: { in: uniqueIds }, deletedAt: null },
@@ -57,6 +58,7 @@ export class AllocationComplianceService {
               contractTypeId: true,
               locationId: true,
               baseLocationId: true,
+              visaTypeId: true,
               deletedAt: true,
             },
           },
@@ -98,6 +100,7 @@ export class AllocationComplianceService {
       locationId: row.locationId,
       zoneId: row.zoneId,
       complianceTypeName: row.complianceType?.name ?? null,
+      complianceTypeCode: row.complianceType?.code ?? null,
     }));
 
     const recordsByEmployee = new Map<string, ComplianceRecordForAllocation[]>();
@@ -145,12 +148,20 @@ export class AllocationComplianceService {
     for (const employeeId of uniqueIds) {
       const employee = employeeById.get(employeeId);
       const employment = employee?.employment && !employee.employment.deletedAt ? employee.employment : null;
+      const visaTypeId = employment?.visaTypeId ?? null;
+      const requirementsForEmployee = requirementRows.map((row) => {
+        const flags = applyImmigrationRtwRequirementFlags(row.complianceTypeCode, visaTypeId, {
+          isMandatory: row.isMandatory,
+          blocksAllocation: row.blocksAllocation,
+        });
+        return { ...row, ...flags };
+      });
       results.set(
         employeeId,
         evaluateEmployeeAllocationCompliance({
           policy,
           dims: employment ? employmentDimsFromEmployment(employment) : null,
-          requirements: requirementRows,
+          requirements: requirementsForEmployee,
           records: recordsByEmployee.get(employeeId) ?? [],
           learning: learningByEmployee.get(employeeId) ?? [],
           today,

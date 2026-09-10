@@ -25,6 +25,7 @@ import { seedServiceUserDocumentTypeCatalog } from './seeds/service-user-documen
 import { seedPersonaSchedule } from './seeds/persona-schedule.seed';
 import { applyCarePlanIaDemoOverlay } from './seeds/care-plan-ia-demo-overlay.seed';
 import { seedAllergyCatalog } from './seeds/allergy-catalog.seed';
+import { seedMedicalConditionCatalog } from './seeds/medical-condition-catalog.seed';
 import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedEcmThresholdLookups } from './seeds/ecm-threshold-lookups.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
@@ -310,6 +311,22 @@ async function main() {
     'service_users.allergies.create',
     'service_users.allergies.update',
     'service_users.allergies.delete',
+    'service_users.medical_conditions.read',
+    'service_users.medical_conditions.create',
+    'service_users.medical_conditions.update',
+    'service_users.medical_conditions.delete',
+    'service_users.medical_adjustments.read',
+    'service_users.medical_adjustments.create',
+    'service_users.medical_adjustments.update',
+    'service_users.medical_adjustments.delete',
+    'service_users.medical_history.read',
+    'service_users.medical_history.create',
+    'service_users.medical_history.update',
+    'service_users.medical_history.delete',
+    'service_users.medical_monitoring.read',
+    'service_users.medical_monitoring.update',
+    'service_users.medical_usual_parameters.read',
+    'service_users.medical_usual_parameters.update',
     'service_users.documents.read',
     'service_users.documents.update',
     'service_users.documents.delete',
@@ -731,6 +748,22 @@ async function main() {
     'service_users.allergies.create',
     'service_users.allergies.update',
     'service_users.allergies.delete',
+    'service_users.medical_conditions.read',
+    'service_users.medical_conditions.create',
+    'service_users.medical_conditions.update',
+    'service_users.medical_conditions.delete',
+    'service_users.medical_adjustments.read',
+    'service_users.medical_adjustments.create',
+    'service_users.medical_adjustments.update',
+    'service_users.medical_adjustments.delete',
+    'service_users.medical_history.read',
+    'service_users.medical_history.create',
+    'service_users.medical_history.update',
+    'service_users.medical_history.delete',
+    'service_users.medical_monitoring.read',
+    'service_users.medical_monitoring.update',
+    'service_users.medical_usual_parameters.read',
+    'service_users.medical_usual_parameters.update',
     'service_users.documents.read',
     'service_users.documents.update',
     'service_users.documents.delete',
@@ -1440,6 +1473,7 @@ async function main() {
   ) {
     const complianceTypeId = typeByCode[code];
     if (!complianceTypeId) return;
+    const isMandatory = filters.isMandatory ?? true;
     const where = {
       complianceTypeId,
       roleId: filters.roleId ?? null,
@@ -1458,10 +1492,21 @@ async function main() {
           roleId: filters.roleId ?? undefined,
           workAreaId: filters.workAreaId ?? undefined,
           jobTitleId: filters.jobTitleId ?? undefined,
-          isMandatory: filters.isMandatory ?? true,
+          isMandatory,
+          blocksAllocation: isMandatory,
         },
       });
+      return;
     }
+    await prisma.complianceRequirement.update({
+      where: { id: exists.id },
+      data: {
+        isMandatory,
+        blocksAllocation: isMandatory,
+        isActive: true,
+        deletedAt: null,
+      },
+    });
   }
 
   if (careArea) {
@@ -1661,6 +1706,9 @@ async function main() {
 
   const allergyCount = await seedAllergyCatalog(prisma);
   console.log(`Allergy catalogue seeded (${allergyCount} entries).`);
+
+  const medicalConditionCount = await seedMedicalConditionCatalog(prisma);
+  console.log(`Medical condition catalogue seeded (${medicalConditionCount} entries).`);
 
   const vitalRangeCount = await seedVitalAcceptedRanges(prisma);
   console.log(`Vital accepted ranges seeded (${vitalRangeCount} entries).`);
