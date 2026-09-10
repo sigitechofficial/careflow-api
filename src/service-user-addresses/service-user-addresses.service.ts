@@ -39,6 +39,12 @@ export class ServiceUserAddressesService {
     if (dto.secondaryPostcode !== undefined) data.secondaryPostcode = dto.secondaryPostcode;
     if (dto.accessInstructions !== undefined) data.accessInstructions = dto.accessInstructions;
     if (dto.keySafeNumber !== undefined) data.keySafeNumber = dto.keySafeNumber;
+    if (dto.accessMethod !== undefined) {
+      data.accessMethod = dto.accessMethod?.trim() ? dto.accessMethod.trim() : null;
+    }
+    if (dto.keySafeLocation !== undefined) {
+      data.keySafeLocation = dto.keySafeLocation?.trim() ? dto.keySafeLocation.trim() : null;
+    }
     if (dto.latitude !== undefined && dto.latitude !== null) {
       data.latitude = new Prisma.Decimal(dto.latitude);
     }
@@ -70,6 +76,8 @@ export class ServiceUserAddressesService {
           secondaryPostcode: dto.secondaryPostcode ?? null,
           accessInstructions: dto.accessInstructions ?? null,
           keySafeNumber: dto.keySafeNumber ?? null,
+          accessMethod: dto.accessMethod?.trim() ? dto.accessMethod.trim() : null,
+          keySafeLocation: dto.keySafeLocation?.trim() ? dto.keySafeLocation.trim() : null,
           latitude:
             dto.latitude !== undefined && dto.latitude !== null ? new Prisma.Decimal(dto.latitude) : null,
           longitude:

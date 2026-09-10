@@ -160,16 +160,21 @@ export class ScheduledJobsHousekeepingService {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: jobId, deletedAt: null },
-      select: { id: true },
+      select: { id: true, metadata: true },
     });
     if (!job) throw new NotFoundException('Scheduled job not found');
     const timeline = await this.visitTimeline.listForJob(jobId);
+    const incidentPhotos = incidentPhotosBySourceId(this.parseJobMetadata(job.metadata));
     return {
       jobId,
       timeline: timeline.map((item) => {
-        if (item.type !== 'clock_in' || !item.detail) return item;
-        const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
-        return { ...item, detail: methodOnly, subtitle: methodOnly };
+        let next = item;
+        if (item.type === 'clock_in' && item.detail) {
+          const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
+          next = { ...item, detail: methodOnly, subtitle: methodOnly };
+        }
+        const photos = item.type === 'incident' ? incidentPhotos.get(item.sourceId) : undefined;
+        return photos?.length ? { ...next, photos } : next;
       }),
     };
   }
@@ -2082,4 +2087,38 @@ export class ScheduledJobsHousekeepingService {
 
     return this.getVisitJobTasks(userId, jobId, meta);
   }
+}
+
+function incidentPhotosBySourceId(
+  metadata: Record<string, unknown>,
+): Map<string, Array<{ id: string; fileUrl: string; caption: string | null }>> {
+  const map = new Map<string, Array<{ id: string; fileUrl: string; caption: string | null }>>();
+  const employeeApp =
+    typeof metadata.employeeApp === 'object' && metadata.employeeApp && !Array.isArray(metadata.employeeApp)
+      ? (metadata.employeeApp as Record<string, unknown>)
+      : {};
+  const incidents = Array.isArray(employeeApp.incidents)
+    ? (employeeApp.incidents as Array<Record<string, unknown>>)
+    : [];
+  for (const incident of incidents) {
+    const id = String(incident.id ?? '').trim();
+    if (!id) continue;
+    const attachments = Array.isArray(incident.attachments)
+      ? (incident.attachments as Array<Record<string, unknown>>)
+      : [];
+    const photos = attachments
+      .map((a) => {
+        const fileUrl = String(a.url ?? a.fileUrl ?? '').trim();
+        const photoId = String(a.attachmentId ?? a.id ?? '').trim();
+        if (!fileUrl) return null;
+        return {
+          id: photoId || fileUrl,
+          fileUrl,
+          caption: a.caption != null ? String(a.caption) : null,
+        };
+      })
+      .filter((p): p is { id: string; fileUrl: string; caption: string | null } => p != null);
+    if (photos.length) map.set(id, photos);
+  }
+  return map;
 }

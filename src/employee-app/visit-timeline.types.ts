@@ -69,4 +69,5 @@ export type VisitTimelineApiItem = {
   /** Legacy alias used by older mobile parsers */
   at: string;
   timeLabel: string;
+  photos?: Array<{ id: string; fileUrl: string; caption: string | null }>;
 };

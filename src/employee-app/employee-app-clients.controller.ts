@@ -82,8 +82,18 @@ export class EmployeeAppClientsController {
   }
 
   @Get('clients/:clientId/care-plan')
-  @ApiOperation({ summary: 'Care plan essentials / sections' })
+  @ApiOperation({ summary: 'Published care plans for a client (list)' })
   carePlan(@CurrentUser() user: RequestUser, @Param('clientId') clientId: string) {
     return this.clientDetailService.getCarePlan(user.employeeId!, clientId);
+  }
+
+  @Get('clients/:clientId/care-plan/:instanceId')
+  @ApiOperation({ summary: 'Latest published version of one care plan' })
+  carePlanDetail(
+    @CurrentUser() user: RequestUser,
+    @Param('clientId') clientId: string,
+    @Param('instanceId') instanceId: string,
+  ) {
+    return this.clientDetailService.getCarePlanDetail(user.employeeId!, clientId, instanceId);
   }
 }

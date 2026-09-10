@@ -994,6 +994,7 @@ model Employee {
   visitCareConsentsCaptured VisitCareConsent[]
   visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
+  observationPhotosUploaded ServiceUserObservationPhoto[]   @relation("ObservationPhotoUploadedByEmployee")
   scheduleRuns              ScheduleRun[]
   portalAccount             EmployeePortalAccount?
   hoursMonthlyReviews       EmployeeHoursMonthlyReview[]
@@ -3502,6 +3503,10 @@ model ServiceUserAddress {
   secondaryPostcode  String?
   latitude           Decimal? @db.Decimal(10, 7)
   longitude          Decimal? @db.Decimal(10, 7)
+  /// How carers enter: key_safe | answers_door | family_keyholder | agency_holds_key | intercom | other
+  accessMethod       String?  @db.VarChar(32)
+  /// Where the key safe is fitted (not the code).
+  keySafeLocation    String?
   accessInstructions String?
   keySafeNumber      String?
 
@@ -5485,11 +5490,32 @@ model ServiceUserObservation {
   recordedByEmployee Employee?          @relation("ObservationRecordedByEmployee", fields: [recordedByEmployeeId], references: [id])
   shares             ObservationRecordShare[]
   wellbeingScores  WellbeingObservationScore[]
+  photos             ServiceUserObservationPhoto[]
 
   @@index([serviceUserId])
   @@index([observationTypeId])
   @@index([recordedAt])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserObservationPhoto {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  observationId        String                    @db.Uuid
+  fileName             String
+  originalName         String?
+  fileUrl              String
+  fileSize             Int?
+  mimeType             String?
+  consentStatus        BodyMapPhotoConsentStatus
+  caption              String?
+  uploadedByEmployeeId String?                   @db.Uuid
+  createdAt            DateTime                  @default(now())
+
+  observation        ServiceUserObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  uploadedByEmployee Employee?              @relation("ObservationPhotoUploadedByEmployee", fields: [uploadedByEmployeeId], references: [id])
+
+  @@index([observationId])
   @@schema("service_users")
 }
 

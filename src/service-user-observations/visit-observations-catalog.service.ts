@@ -20,6 +20,13 @@ import { formatSleepObservationValue } from './observation-sleep.catalog';
 import { formatAlignedCareValue } from './observation-align.catalog';
 import { formatClinicalObservationValue } from './observation-clinical.catalog';
 
+export type VisitObservationPhoto = {
+  id: string;
+  fileUrl: string;
+  caption: string | null;
+  consentStatus: string;
+};
+
 export type VisitObservationRecordedRow = {
   id: string;
   definitionId: string;
@@ -48,6 +55,7 @@ export type VisitObservationRecordedRow = {
   statusTone: 'success' | 'warning' | 'danger' | 'neutral';
   tone: 'success' | 'warning' | 'danger' | 'neutral';
   bodyMapPins?: EmployeeAppBodyMapPin[];
+  photos?: VisitObservationPhoto[];
   /** Raw observation payload for mobile form prefill (e.g. condition codes). */
   payload?: Record<string, unknown>;
 };
@@ -230,6 +238,25 @@ function statusToneFor(status: string | null, payload: Record<string, unknown>):
   return 'neutral';
 }
 
+function mapObservationPhotos(
+  photos:
+    | Array<{
+        id: string;
+        fileUrl: string;
+        caption: string | null;
+        consentStatus: string;
+      }>
+    | undefined,
+): VisitObservationPhoto[] | undefined {
+  if (!photos?.length) return undefined;
+  return photos.map((p) => ({
+    id: p.id,
+    fileUrl: p.fileUrl,
+    caption: p.caption,
+    consentStatus: p.consentStatus,
+  }));
+}
+
 function mapObservationRow(row: {
   id: string;
   notes: string | null;
@@ -238,6 +265,12 @@ function mapObservationRow(row: {
   numericValue: Prisma.Decimal | number | null;
   payload: Prisma.JsonValue | null;
   observationType: { code: string; name: string; unitLabel: string | null };
+  photos?: Array<{
+    id: string;
+    fileUrl: string;
+    caption: string | null;
+    consentStatus: string;
+  }>;
 }): VisitObservationRecordedRow {
   const typeCode = mobileTypeCode(row.observationType.code);
   const payload = readPayload(row.payload);
@@ -278,6 +311,7 @@ function mapObservationRow(row: {
   }
 
   const resolvedUnable = unableReasonCode ?? legacyUnable;
+  const photos = mapObservationPhotos(row.photos);
 
   return {
     id: row.id,
@@ -308,6 +342,7 @@ function mapObservationRow(row: {
     statusTone: tone,
     tone,
     ...(bodyMapPins ? { bodyMapPins } : {}),
+    ...(photos ? { photos } : {}),
     // Structured fields so mobile can reselect chips (condition, bristol, …).
     payload: Object.fromEntries(
       Object.entries(payload).filter(
@@ -324,6 +359,7 @@ function mapObservationRow(row: {
             'idempotencyKey',
             'scheduledJobId',
             'clientObservationId',
+            'photos',
           ].includes(key),
       ),
     ),
@@ -607,7 +643,7 @@ export class VisitObservationsCatalogService {
         recordedAt: { gte: since },
       },
       orderBy: { recordedAt: 'desc' },
-      include: { observationType: true },
+      include: { observationType: true, photos: { orderBy: { createdAt: 'asc' } } },
       take: 20,
     });
 

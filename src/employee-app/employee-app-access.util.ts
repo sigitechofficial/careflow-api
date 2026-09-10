@@ -1,3 +1,5 @@
+import { homeAccessMethodLabel } from '../service-user-addresses/home-access.constants';
+
 type AddressLike = {
   addressLine1?: string | null;
   addressLine2?: string | null;
@@ -5,6 +7,8 @@ type AddressLike = {
   postcode?: string | null;
   keySafeNumber?: string | null;
   accessInstructions?: string | null;
+  accessMethod?: string | null;
+  keySafeLocation?: string | null;
   deletedAt?: Date | null;
 };
 
@@ -22,18 +26,26 @@ export function formatEmployeeAppAddressLine(addr?: AddressLike | null): string 
   return line || null;
 }
 
-/** Visit overview `keySafe` — office address fields only, no static copy. */
-export function employeeAppKeySafePayload(addr?: AddressLike | null): {
+export type EmployeeAppKeySafePayload = {
   address: string | null;
   code: string | null;
   accessNote: string | null;
-} | null {
+  accessMethod: string | null;
+  accessMethodLabel: string | null;
+  keySafeLocation: string | null;
+};
+
+/** Visit overview `keySafe` — office address fields only, no static copy. */
+export function employeeAppKeySafePayload(addr?: AddressLike | null): EmployeeAppKeySafePayload | null {
   if (!addr || addr.deletedAt) return null;
   const address = formatEmployeeAppAddressLine(addr);
   const code = trimOrNull(addr.keySafeNumber);
   const accessNote = trimOrNull(addr.accessInstructions);
-  if (!address && !code && !accessNote) return null;
-  return { address, code, accessNote };
+  const accessMethod = trimOrNull(addr.accessMethod);
+  const accessMethodLabel = homeAccessMethodLabel(accessMethod);
+  const keySafeLocation = trimOrNull(addr.keySafeLocation);
+  if (!address && !code && !accessNote && !accessMethod && !keySafeLocation) return null;
+  return { address, code, accessNote, accessMethod, accessMethodLabel, keySafeLocation };
 }
 
 /** Client profile `access` — same office fields, app-facing names. */
@@ -41,6 +53,9 @@ export function employeeAppAccessPayload(addr?: AddressLike | null): {
   keySafeCode: string | null;
   note: string | null;
   address: string | null;
+  accessMethod: string | null;
+  accessMethodLabel: string | null;
+  keySafeLocation: string | null;
 } | null {
   const keySafe = employeeAppKeySafePayload(addr);
   if (!keySafe) return null;
@@ -48,5 +63,9 @@ export function employeeAppAccessPayload(addr?: AddressLike | null): {
     keySafeCode: keySafe.code,
     note: keySafe.accessNote,
     address: keySafe.address,
+    accessMethod: keySafe.accessMethod,
+    accessMethodLabel: keySafe.accessMethodLabel,
+    keySafeLocation: keySafe.keySafeLocation,
   };
 }
+

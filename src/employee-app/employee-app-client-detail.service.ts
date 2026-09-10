@@ -7,7 +7,6 @@ import {
   MedicationRecordStatus,
   ScheduledJobStatus,
   ScheduledVisitStatus,
-  ServiceUserCarePlanInstanceStatus,
   ServiceUserDocumentAccessLevel,
   ServiceUserDocumentRecordStatus,
 } from '@prisma/client';
@@ -25,10 +24,7 @@ import { plannedHowAssistedLabel } from './medication/employee-app-visit-medicat
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { employeeAppAccessPayload } from './employee-app-access.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
-import {
-  aggregatePublishedCarePlanReview,
-  computeCarePlanReviewState,
-} from '../service-user-care-plans/care-plan-review-schedule';
+import { computeCarePlanReviewState } from '../service-user-care-plans/care-plan-review-schedule';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -852,43 +848,7 @@ export class EmployeeAppClientDetailService {
   async getCarePlan(employeeId: string, clientId: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
     const su = await this.loadClientOrThrow(clientId);
-
-    const instances = await this.prisma.serviceUserCarePlanInstance.findMany({
-      where: { serviceUserId: clientId },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        status: true,
-        nextReviewDueAt: true,
-        lastReviewedAt: true,
-        carePathwayForm: { select: { id: true, name: true } },
-        publishedVersions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            versionNumber: true,
-            summary: true,
-            publishedAt: true,
-            valuesJson: true,
-          },
-        },
-      },
-    });
-
-    const primary = instances.find((i) => i.publishedVersions.length > 0) ?? instances[0] ?? null;
-    const pub = primary?.publishedVersions[0] ?? null;
-    const openRisks = await this.prisma.initialAssessmentRiskRecord.findMany({
-      where: {
-        serviceUserId: clientId,
-        status: InitialAssessmentRiskStatus.OPEN,
-        riskType: InitialAssessmentRiskType.FALLS,
-      },
-      select: { id: true },
-      take: 1,
-    });
-
-    const sections = pub ? mapCarePlanSections(pub.valuesJson, primary!.carePathwayForm.name) : [];
+    const plans = await this.loadPublishedCarePlanList(clientId);
 
     return {
       data: {
@@ -896,61 +856,75 @@ export class EmployeeAppClientDetailService {
           clientId: su.id,
           fullName: displayName(su.firstName, su.lastName),
         },
-        header: {
-          title: 'Care plan',
-          subtitle: [
-            displayName(su.firstName, su.lastName),
-            pub ? `v${pub.versionNumber}` : null,
-            primary?.nextReviewDueAt
-              ? `review ${formatSlashDate(primary.nextReviewDueAt)}`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(' · '),
-          versionNumber: pub?.versionNumber ?? null,
-          reviewDueAt: primary?.nextReviewDueAt?.toISOString() ?? null,
-          reviewStatus: primary
-            ? computeCarePlanReviewState({ nextReviewDueAt: primary.nextReviewDueAt }).status
-            : 'none',
-        },
-        changeAlert: pub
-          ? {
-              enabled: true,
-              title: `PLAN CHANGED SINCE YOUR LAST VISIT (v${pub.versionNumber})`,
-              message:
-                (typeof pub.summary === 'string' && pub.summary.trim()) ||
-                'Review the latest published care plan before starting care.',
-              changedAt: pub.publishedAt?.toISOString() ?? null,
-              acknowledgeRequired: true,
-              acknowledgeLabel: 'Acknowledge current version',
-            }
-          : null,
-        consentLink: {
-          title: 'Consent & mental capacity',
-          subtitle: 'Decision-specific capacity & LPA',
-          path: 'consent-capacity',
-        },
-        readOnlyBanner: {
-          tone: 'info',
-          message: 'Read-only. Something not right? Flag an issue to the office.',
-        },
-        sections,
-        hasFallsRisk: openRisks.length > 0,
-        carePlanReviewRequired: aggregatePublishedCarePlanReview(
-          instances
-            .filter((i) => i.status === ServiceUserCarePlanInstanceStatus.PUBLISHED)
-            .map((i) => computeCarePlanReviewState({ nextReviewDueAt: i.nextReviewDueAt })),
-        ).carePlanReviewRequired,
-        plans: instances.map((i) => ({
-          id: i.id,
-          formName: i.carePathwayForm.name,
-          status: i.status,
-          versionNumber: i.publishedVersions[0]?.versionNumber ?? null,
-          nextReviewDueAt: i.nextReviewDueAt?.toISOString() ?? null,
-          reviewStatus: computeCarePlanReviewState({ nextReviewDueAt: i.nextReviewDueAt }).status,
-        })),
+        plans,
       },
     };
+  }
+
+  async getCarePlanDetail(employeeId: string, clientId: string, instanceId: string) {
+    await this.clientsService.assertClientOnRound(employeeId, clientId);
+    const su = await this.loadClientOrThrow(clientId);
+
+    const instance = await this.prisma.serviceUserCarePlanInstance.findFirst({
+      where: {
+        id: instanceId,
+        serviceUserId: clientId,
+        publishedVersions: { some: {} },
+      },
+      select: publishedCarePlanSelect,
+    });
+
+    const pub = instance?.publishedVersions[0];
+    if (!instance || !pub) {
+      throw new NotFoundException('Published care plan not found');
+    }
+
+    return {
+      data: {
+        client: {
+          clientId: su.id,
+          fullName: displayName(su.firstName, su.lastName),
+        },
+        plan: toPublishedPlanListItem(instance, pub),
+        sections: mapCarePlanSections(pub.valuesJson, instance.carePathwayForm.name).map(
+          carePlanSectionForApp,
+        ),
+      },
+    };
+  }
+
+  private async loadPublishedCarePlanList(clientId: string) {
+    const instances = await this.prisma.serviceUserCarePlanInstance.findMany({
+      where: {
+        serviceUserId: clientId,
+        publishedVersions: { some: {} },
+      },
+      select: {
+        id: true,
+        nextReviewDueAt: true,
+        carePathwayForm: { select: { name: true } },
+        publishedVersions: {
+          orderBy: [{ versionNumber: 'desc' }, { publishedAt: 'desc' }],
+          take: 1,
+          select: {
+            versionNumber: true,
+            summary: true,
+            publishedAt: true,
+          },
+        },
+      },
+    });
+
+    return instances
+      .flatMap((instance) => {
+        const pub = instance.publishedVersions[0];
+        return pub ? [toPublishedPlanListItem(instance, pub)] : [];
+      })
+      .sort((a, b) => {
+        const ta = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+        const tb = b.publishedAt ? Date.parse(b.publishedAt) : 0;
+        return tb - ta;
+      });
   }
 
   private async loadClientOrThrow(clientId: string) {
@@ -973,6 +947,8 @@ export class EmployeeAppClientDetailService {
             postcode: true,
             keySafeNumber: true,
             accessInstructions: true,
+            accessMethod: true,
+            keySafeLocation: true,
             deletedAt: true,
           },
         },
@@ -1289,18 +1265,66 @@ function mapCarePlanSections(valuesJson: unknown, fallbackTitle: string) {
 
   const entries = Object.entries(obj)
     .filter(([, v]) => typeof v === 'string' && String(v).trim())
-    .slice(0, 6);
+    .slice(0, 20);
   return [
     {
       id: 'overview',
       title: fallbackTitle || 'Care plan',
       iconType: iconForCarePlan(fallbackTitle),
-      goal: entries[0]?.[1] ? String(entries[0][1]).slice(0, 200) : null,
+      goal: entries[0]?.[1] ? String(entries[0][1]).slice(0, 400) : null,
       preferences: entries[1]?.[1]
-        ? { title: 'HOW I LIKE MY CARE', body: String(entries[1][1]).slice(0, 400) }
+        ? { title: 'HOW I LIKE MY CARE', body: String(entries[1][1]).slice(0, 600) }
         : null,
-      tasks: entries.slice(2).map(([, v]) => String(v).slice(0, 120)),
+      tasks: entries.slice(2).map(([, v]) => String(v).slice(0, 280)),
       tags: [],
     },
   ];
+}
+
+const publishedCarePlanSelect = {
+  id: true,
+  nextReviewDueAt: true,
+  carePathwayForm: { select: { name: true } },
+  publishedVersions: {
+    orderBy: [{ versionNumber: 'desc' as const }, { publishedAt: 'desc' as const }],
+    take: 1,
+    select: {
+      versionNumber: true,
+      summary: true,
+      publishedAt: true,
+      valuesJson: true,
+    },
+  },
+};
+
+function toPublishedPlanListItem(
+  instance: { id: string; nextReviewDueAt: Date | null; carePathwayForm: { name: string } },
+  pub: { versionNumber: number; summary: string | null; publishedAt: Date; valuesJson?: unknown },
+) {
+  const fromSummary =
+    typeof pub.summary === 'string' && pub.summary.trim() ? pub.summary.trim().slice(0, 180) : null;
+  const summary =
+    fromSummary ??
+    (pub.valuesJson != null ? extractCarePlanBlurb(pub.valuesJson)?.slice(0, 180) ?? null : null);
+
+  return {
+    id: instance.id,
+    formName: instance.carePathwayForm.name,
+    versionNumber: pub.versionNumber,
+    publishedAt: pub.publishedAt.toISOString(),
+    nextReviewDueAt: instance.nextReviewDueAt?.toISOString() ?? null,
+    reviewStatus: computeCarePlanReviewState({ nextReviewDueAt: instance.nextReviewDueAt }).status,
+    summary,
+  };
+}
+
+function carePlanSectionForApp(section: ReturnType<typeof mapCarePlanSections>[number]) {
+  const lines = [section.goal, section.preferences?.body, ...section.tasks].filter(
+    (s): s is string => typeof s === 'string' && Boolean(s.trim()),
+  );
+  return {
+    ...section,
+    iconKey: section.iconType,
+    lines,
+  };
 }

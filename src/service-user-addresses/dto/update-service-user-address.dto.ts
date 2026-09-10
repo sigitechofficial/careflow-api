@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { HOME_ACCESS_METHOD_VALUES } from '../home-access.constants';
 
 export class UpdateServiceUserAddressDto {
   @ApiPropertyOptional()
@@ -63,13 +64,28 @@ export class UpdateServiceUserAddressDto {
   @IsNumber()
   longitude?: number;
 
+  @ApiPropertyOptional({
+    enum: HOME_ACCESS_METHOD_VALUES,
+    description: 'How carers enter the property',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && v !== '')
+  @IsIn([...HOME_ACCESS_METHOD_VALUES])
+  accessMethod?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 200, description: 'Where the key safe is fitted (not the code)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  keySafeLocation?: string | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(2000)
   accessInstructions?: string;
 
-  @ApiPropertyOptional({ maxLength: 100 })
+  @ApiPropertyOptional({ maxLength: 100, description: 'Key safe code' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
