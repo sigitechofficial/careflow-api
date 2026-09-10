@@ -63,6 +63,14 @@ export class CreatePaymentDto {
   @IsUUID()
   funderId?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'When recording against a service-user invoice, tag the payment so paid is attributed to that person',
+  })
+  @IsOptional()
+  @IsUUID()
+  serviceUserId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(2000)
