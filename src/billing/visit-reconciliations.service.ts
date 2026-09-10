@@ -52,6 +52,7 @@ import {
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
+  isLegacyLateStartBillWindow,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
@@ -1396,8 +1397,15 @@ export class VisitReconciliationsService {
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
     const visitCompleted = isBillingEligibleVisit(visit);
+    const legacyLateStartBillWindow = isLegacyLateStartBillWindow({
+      plannedStartDateTime: row.plannedStartDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      approvedPayStart: row.approvedPayStart,
+      approvedBillStart: row.approvedBillStart,
+    });
     const freezeBillable =
       !options?.forceRecalculateAmounts &&
+      !legacyLateStartBillWindow &&
       visitCompleted &&
       row.billableAmount != null;
     const freezePayable =
@@ -1609,7 +1617,10 @@ export class VisitReconciliationsService {
       durationToleranceMinutes,
     });
 
-    const forceDefaultWindows = computedOverrun != null || withinDurationTolerance;
+    // Legacy bug: client charge used booked start → actual end (e.g. 07:00–07:41)
+    // while carer pay correctly used actual (07:11–07:41). Re-snap those rows.
+    const forceDefaultWindows =
+      computedOverrun != null || withinDurationTolerance || legacyLateStartBillWindow;
 
     const approvedPayStart = forceDefaultWindows
       ? defaultWindows.approvedPayStart

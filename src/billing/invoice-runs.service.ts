@@ -564,6 +564,9 @@ export class InvoiceRunsService {
     });
 
     const invoicedStatuses: InvoiceRunStatus[] = [
+      InvoiceRunStatus.DRAFT,
+      InvoiceRunStatus.READY_FOR_REVIEW,
+      InvoiceRunStatus.EXCEPTION_FOUND,
       InvoiceRunStatus.APPROVED,
       InvoiceRunStatus.LOCKED,
       InvoiceRunStatus.SENT,
@@ -571,13 +574,13 @@ export class InvoiceRunsService {
       InvoiceRunStatus.PAID,
     ];
     const totalInvoiced = runs
-      .filter((r) => invoicedStatuses.includes(r.status))
+      .filter((r) => invoicedStatuses.includes(r.status) && r.subtotalValue > 0)
       .reduce((sum, r) => sum + r.subtotalValue, 0);
     const totalPaid = runs
-      .filter((r) => invoicedStatuses.includes(r.status))
+      .filter((r) => r.subtotalValue > 0)
       .reduce((sum, r) => sum + r.paidValue, 0);
     const openBalance = runs
-      .filter((r) => invoicedStatuses.includes(r.status))
+      .filter((r) => r.subtotalValue > 0)
       .reduce((sum, r) => sum + r.outstandingValue, 0);
 
     return {

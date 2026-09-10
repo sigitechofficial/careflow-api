@@ -383,12 +383,13 @@ export function resolveDefaultApprovedWindows(input: {
     actualStartDateTime != null &&
     actualEndDateTime != null;
 
-  // Overrun pending/rejected: pay planned length. Approved: pay actual clock times.
+  // Overrun pending/rejected: pay + charge planned length only.
   if (hasOverrun && !payActualApproved) {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
-      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: plannedEnd,
     };
   }
 
@@ -418,7 +419,8 @@ export function resolveDefaultApprovedWindows(input: {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
-      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: plannedEnd,
     };
   }
 
@@ -438,8 +440,10 @@ export function resolveDefaultApprovedWindows(input: {
 }
 
 /**
- * Client charge window: normally planned start → actual end (booked start through departure).
- * When the visit ends before planned start (fully early), that would invert — bill actual worked time instead.
+ * Client charge window: actual worked time when available (same span as carer pay outside
+ * tolerance / unpaid-overrun snaps). Do not charge from booked start when the carer
+ * arrived late — that inflated funder hours (e.g. planned 07:00 + actual end 07:41).
+ * When the visit finished before planned start, fall back carefully so the window does not invert.
  */
 export function resolveBillWindow(
   plannedStartDateTime: Date,
@@ -447,17 +451,18 @@ export function resolveBillWindow(
   actualStartDateTime: Date | null,
   billEndCandidate: Date,
 ): { approvedBillStart: Date; approvedBillEnd: Date } {
-  if (billEndCandidate.getTime() > plannedStartDateTime.getTime()) {
+  const actualStart = actualStartDateTime ?? plannedStartDateTime;
+
+  if (billEndCandidate.getTime() > actualStart.getTime()) {
     return {
-      approvedBillStart: plannedStartDateTime,
+      approvedBillStart: actualStart,
       approvedBillEnd: billEndCandidate,
     };
   }
 
-  const actualStart = actualStartDateTime ?? plannedStartDateTime;
-  if (billEndCandidate.getTime() > actualStart.getTime()) {
+  if (billEndCandidate.getTime() > plannedStartDateTime.getTime()) {
     return {
-      approvedBillStart: actualStart,
+      approvedBillStart: plannedStartDateTime,
       approvedBillEnd: billEndCandidate,
     };
   }
@@ -472,6 +477,28 @@ export function resolveBillWindow(
 export function isInvertedDateWindow(start: Date | null | undefined, end: Date | null | undefined): boolean {
   if (!start || !end) return false;
   return end.getTime() <= start.getTime();
+}
+
+/**
+ * Stored bill start is still the booked slot start while pay/actual already use a later
+ * check-in — leftover from the old "planned start → actual end" charge rule.
+ */
+export function isLegacyLateStartBillWindow(input: {
+  plannedStartDateTime: Date;
+  actualStartDateTime: Date | null;
+  approvedPayStart: Date | null;
+  approvedBillStart: Date | null;
+}): boolean {
+  const { plannedStartDateTime, actualStartDateTime, approvedPayStart, approvedBillStart } =
+    input;
+  if (!actualStartDateTime || !approvedPayStart || !approvedBillStart) return false;
+  const lateByMs = actualStartDateTime.getTime() - plannedStartDateTime.getTime();
+  if (lateByMs < 60_000) return false;
+  const billMatchesPlanned =
+    Math.abs(approvedBillStart.getTime() - plannedStartDateTime.getTime()) < 2_000;
+  const payMatchesActual =
+    Math.abs(approvedPayStart.getTime() - actualStartDateTime.getTime()) < 2_000;
+  return billMatchesPlanned && payMatchesActual;
 }
 
 export type PayCardRuleLike = {

@@ -1,7 +1,37 @@
-import { resolveDefaultApprovedWindows } from './visit-reconciliation.util';
+import {
+  resolveDefaultApprovedWindows,
+  isLegacyLateStartBillWindow,
+} from './visit-reconciliation.util';
 import { FinanceExceptionCode } from '@prisma/client';
 import { calculateBandedPay } from './pay-time-band.util';
 import { ageInFullYears, validateMinimumWage } from './pay-compliance.util';
+
+describe('isLegacyLateStartBillWindow', () => {
+  const plannedStart = new Date('2026-09-10T06:00:00.000Z');
+  const actualStart = new Date('2026-09-10T06:11:00.000Z');
+
+  it('detects booked-start bill with actual pay after late check-in', () => {
+    expect(
+      isLegacyLateStartBillWindow({
+        plannedStartDateTime: plannedStart,
+        actualStartDateTime: actualStart,
+        approvedPayStart: actualStart,
+        approvedBillStart: plannedStart,
+      }),
+    ).toBe(true);
+  });
+
+  it('ignores rows already using actual bill start', () => {
+    expect(
+      isLegacyLateStartBillWindow({
+        plannedStartDateTime: plannedStart,
+        actualStartDateTime: actualStart,
+        approvedPayStart: actualStart,
+        approvedBillStart: actualStart,
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('resolveDefaultApprovedWindows overrun approval', () => {
   const plannedStart = new Date('2026-07-13T10:00:00.000Z');
@@ -100,6 +130,27 @@ describe('resolveDefaultApprovedWindows duration tolerance', () => {
     });
     expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
     expect(w.approvedBillEnd.getTime()).toBe(actualEnd.getTime());
+  });
+
+  it('late start + underrun bills actual worked time (not planned start → actual end)', () => {
+    const plannedStart = new Date('2026-09-10T06:00:00.000Z'); // 07:00 BST
+    const plannedEnd = new Date('2026-09-10T07:00:00.000Z'); // 08:00 BST
+    const actualStart = new Date('2026-09-10T06:11:00.000Z'); // 07:11
+    const actualEnd = new Date('2026-09-10T06:41:00.000Z'); // 07:41
+    const w = resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: actualStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+      durationToleranceMinutes: 15,
+    });
+    expect(w.approvedPayStart.getTime()).toBe(actualStart.getTime());
+    expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
+    expect(w.approvedBillStart.getTime()).toBe(actualStart.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(actualEnd.getTime());
+    // Must not charge empty pre-arrival time (old rule: plannedStart → actualEnd)
+    expect(w.approvedBillStart.getTime()).not.toBe(plannedStart.getTime());
   });
 
   it('UNDERRUN flag input does not block tolerance snap when shortfall ≤ tolerance', () => {
