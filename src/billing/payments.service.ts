@@ -485,10 +485,32 @@ export class PaymentsService {
     }
     const invoiceRuns = await this.prisma.invoiceRun.findMany({
       where,
-      include: { paymentAllocations: true },
+      include: {
+        paymentAllocations: true,
+        documents: {
+          select: { dueDate: true, serviceUserId: true },
+        },
+      },
       orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
     });
     return invoiceRuns;
+  }
+
+  private resolveRunDueDate(row: {
+    sentAt: Date | null;
+    lockedAt: Date | null;
+    periodEnd: Date;
+    documents?: Array<{ dueDate: Date | null }>;
+  }): Date {
+    const docDues = (row.documents ?? [])
+      .map((d) => d.dueDate)
+      .filter((d): d is Date => Boolean(d));
+    if (docDues.length) {
+      return docDues.reduce((earliest, d) =>
+        d.getTime() < earliest.getTime() ? d : earliest,
+      );
+    }
+    return row.sentAt ?? row.lockedAt ?? row.periodEnd;
   }
 
   private mapOutstandingInvoiceRun(row: {
@@ -499,11 +521,12 @@ export class PaymentsService {
     lockedAt: Date | null;
     periodEnd: Date;
     paymentAllocations: Array<{ amount: Prisma.Decimal | number }>;
+    documents?: Array<{ dueDate: Date | null }>;
   }): OutstandingInvoiceRun {
     const paid = row.paymentAllocations.reduce((sum, a) => sum + Number(a.amount), 0);
     const netTotal = Number(row.netTotal);
     const outstanding = Math.max(0, netTotal - paid);
-    const dueDate = row.sentAt ?? row.lockedAt ?? row.periodEnd;
+    const dueDate = this.resolveRunDueDate(row);
     return {
       id: row.id,
       period: row.periodLabel,
@@ -536,7 +559,7 @@ export class PaymentsService {
       const outstanding = this.parseMoney(outstandingRow.outstanding);
       if (outstanding <= 0) continue;
 
-      const due = run.sentAt ?? run.lockedAt ?? run.periodEnd;
+      const due = this.resolveRunDueDate(run);
       const dueUtc = Date.UTC(
         due.getUTCFullYear(),
         due.getUTCMonth(),

@@ -30,6 +30,7 @@ const fundingInclude = {
       id: true,
       name: true,
       code: true,
+      paymentTerms: true,
       defaultChargeCardId: true,
       defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
       defaultInvoiceTemplateId: true,

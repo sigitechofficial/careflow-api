@@ -90,6 +90,7 @@ export class FundersService {
             country: dto.country?.trim() ?? null,
             postcode: dto.postcode?.trim() ?? null,
             notes: dto.notes?.trim() ?? null,
+            paymentTerms: dto.paymentTerms?.trim() || null,
             defaultChargeCardId: dto.defaultChargeCardId ?? null,
             defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId ?? null,
             createdById: userId,
@@ -148,6 +149,9 @@ export class FundersService {
             ...(dto.country !== undefined ? { country: dto.country?.trim() ?? null } : {}),
             ...(dto.postcode !== undefined ? { postcode: dto.postcode?.trim() ?? null } : {}),
             ...(dto.notes !== undefined ? { notes: dto.notes?.trim() ?? null } : {}),
+            ...(dto.paymentTerms !== undefined
+              ? { paymentTerms: dto.paymentTerms?.trim() || null }
+              : {}),
             ...(dto.defaultChargeCardId !== undefined ? { defaultChargeCardId: dto.defaultChargeCardId } : {}),
             ...(dto.defaultInvoiceTemplateId !== undefined
               ? { defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId }

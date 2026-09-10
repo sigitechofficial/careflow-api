@@ -39,6 +39,10 @@ import {
   DEFAULT_OPERATIONAL_TIMEZONE,
   getOperationalTimeZone,
 } from '../common/utils/operational-day.util';
+import {
+  computeInvoiceDueDate,
+  utcDateOnly,
+} from './payment-terms.util';
 
 const MUTABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.DRAFT,
@@ -347,17 +351,42 @@ export class InvoiceRunsService {
     );
 
     const runIdsForDocs = [...byRun.keys()];
+    if (runIdsForDocs.length) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const runId of runIdsForDocs) {
+          await this.syncInvoiceDocuments(tx, runId, [serviceUserId]);
+        }
+      });
+    }
     const suInvoiceDocs = runIdsForDocs.length
       ? await this.prisma.invoiceDocument.findMany({
           where: {
             invoiceRunId: { in: runIdsForDocs },
             serviceUserId,
           },
-          select: { invoiceRunId: true, invoiceNumber: true },
+          select: {
+            invoiceRunId: true,
+            invoiceNumber: true,
+            dueDate: true,
+            invoiceDate: true,
+            paymentTerms: true,
+            lastSentAt: true,
+          },
         })
       : [];
     const invoiceNumberByRun = new Map(
       suInvoiceDocs.map((d) => [d.invoiceRunId, d.invoiceNumber]),
+    );
+    const dueMetaByRun = new Map(
+      suInvoiceDocs.map((d) => [
+        d.invoiceRunId,
+        {
+          dueDate: d.dueDate?.toISOString().slice(0, 10) ?? null,
+          invoiceDate: d.invoiceDate?.toISOString().slice(0, 10) ?? null,
+          paymentTerms: d.paymentTerms ?? null,
+          sentAt: d.lastSentAt?.toISOString() ?? null,
+        },
+      ]),
     );
 
     // Per-funder paid: each payment carries the funder that sent it, so attribute
@@ -521,6 +550,7 @@ export class InvoiceRunsService {
         );
         const paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
           paid <= 0 ? 'UNPAID' : outstanding <= 0.001 ? 'PAID' : 'PART_PAID';
+        const dueMeta = dueMetaByRun.get(run.id);
         return {
           id: run.id,
           period: run.periodLabel,
@@ -528,9 +558,12 @@ export class InvoiceRunsService {
           periodEnd: run.periodEnd.toISOString().slice(0, 10),
           status: run.status,
           exportStatus: run.exportStatus,
-          sentAt: run.sentAt?.toISOString() ?? null,
+          sentAt: dueMeta?.sentAt ?? run.sentAt?.toISOString() ?? null,
           lockedAt: run.lockedAt?.toISOString() ?? null,
           invoiceNumber: invoiceNumberByRun.get(run.id) ?? null,
+          dueDate: dueMeta?.dueDate ?? null,
+          invoiceDate: dueMeta?.invoiceDate ?? null,
+          paymentTerms: dueMeta?.paymentTerms ?? null,
           lineCount: mappedLines.length,
           subtotal: formatMoney(subtotal),
           subtotalValue: Math.round(subtotal * 100) / 100,
@@ -710,12 +743,25 @@ export class InvoiceRunsService {
         invoiceRunId: true,
         serviceUserId: true,
         invoiceNumber: true,
+        dueDate: true,
+        invoiceDate: true,
+        paymentTerms: true,
       },
     });
     const invoiceNumberByRunSu = new Map(
       invoiceDocs.map((d) => [
         `${d.invoiceRunId}::${d.serviceUserId}`,
         d.invoiceNumber,
+      ]),
+    );
+    const dueMetaByRunSu = new Map(
+      invoiceDocs.map((d) => [
+        `${d.invoiceRunId}::${d.serviceUserId}`,
+        {
+          dueDate: d.dueDate?.toISOString().slice(0, 10) ?? null,
+          invoiceDate: d.invoiceDate?.toISOString().slice(0, 10) ?? null,
+          paymentTerms: d.paymentTerms ?? null,
+        },
       ]),
     );
 
@@ -768,6 +814,9 @@ export class InvoiceRunsService {
       sentAt: string | null;
       /** QBO-style sequential number, e.g. INV-1001 */
       invoiceNumber: string | null;
+      dueDate: string | null;
+      invoiceDate: string | null;
+      paymentTerms: string | null;
       lineCount: number;
       subtotal: string;
       subtotalValue: number;
@@ -933,6 +982,14 @@ export class InvoiceRunsService {
         sentAt: run.sentAt?.toISOString() ?? null,
         invoiceNumber:
           invoiceNumberByRunSu.get(`${run.id}::${g.serviceUserId}`) ?? null,
+        dueDate:
+          dueMetaByRunSu.get(`${run.id}::${g.serviceUserId}`)?.dueDate ?? null,
+        invoiceDate:
+          dueMetaByRunSu.get(`${run.id}::${g.serviceUserId}`)?.invoiceDate ??
+          null,
+        paymentTerms:
+          dueMetaByRunSu.get(`${run.id}::${g.serviceUserId}`)?.paymentTerms ??
+          null,
         lineCount: g._count._all,
         subtotal: formatMoney(amount),
         subtotalValue: Math.round(amount * 100) / 100,
@@ -1007,10 +1064,38 @@ export class InvoiceRunsService {
 
     const documents = await this.prisma.invoiceDocument.findMany({
       where: { invoiceRunId: id },
-      select: { serviceUserId: true, invoiceNumber: true },
+      select: {
+        serviceUserId: true,
+        invoiceNumber: true,
+        lastSentAt: true,
+        dueDate: true,
+        invoiceDate: true,
+        paymentTerms: true,
+      },
     });
     const invoiceNumberBySu = new Map(
       documents.map((d) => [d.serviceUserId, d.invoiceNumber]),
+    );
+    const lastSentAtBySu = new Map(
+      documents
+        .filter((d) => d.lastSentAt)
+        .map((d) => [d.serviceUserId, d.lastSentAt!.toISOString()]),
+    );
+    const dueDateBySu = new Map(
+      documents
+        .filter((d) => d.dueDate)
+        .map((d) => [d.serviceUserId, d.dueDate!.toISOString().slice(0, 10)]),
+    );
+    const invoiceDateBySu = new Map(
+      documents.map((d) => [
+        d.serviceUserId,
+        (d.invoiceDate ?? d.lastSentAt)?.toISOString().slice(0, 10) ?? null,
+      ]),
+    );
+    const paymentTermsBySu = new Map(
+      documents
+        .filter((d) => d.paymentTerms)
+        .map((d) => [d.serviceUserId, d.paymentTerms!]),
     );
 
     const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
@@ -1209,19 +1294,8 @@ export class InvoiceRunsService {
         funderName: null,
       });
     }
-    if (row.sentAt) {
-      runMilestones.push({
-        id: `sent-${row.id}`,
-        type: 'SENT',
-        at: row.sentAt.toISOString(),
-        label: 'Invoice sent',
-        detail: null,
-        amount: null,
-        amountValue: null,
-        reference: null,
-        funderName: null,
-      });
-    }
+    // Per–service-user email times are attached below (InvoiceDocument.lastSentAt).
+    // Run-level sentAt remains a fallback when a document has never been emailed.
 
     const serviceUserSummaries = this.buildServiceUserSummaries(lines).map(
       (su) => {
@@ -1317,6 +1391,22 @@ export class InvoiceRunsService {
           };
         });
 
+        const sentAt = lastSentAtBySu.get(su.serviceUserId) ?? null;
+        if (sentAt) {
+          history.push({
+            id: `sent-${row.id}-${su.serviceUserId}`,
+            type: 'SENT',
+            at: sentAt,
+            label: 'Invoice emailed',
+            detail: null,
+            amount: null,
+            amountValue: null,
+            reference: null,
+            funderName: null,
+          });
+        }
+
+        let paidAt: string | null = null;
         for (const a of row.paymentAllocations) {
           const pay = a.payment;
           if (!pay) continue;
@@ -1346,6 +1436,7 @@ export class InvoiceRunsService {
           // Prefer allocation/payment createdAt so History shows real clock time,
           // not date-only receivedDate (which serialises as 00:00).
           const at = (a.createdAt ?? pay.createdAt).toISOString();
+          if (!paidAt || at > paidAt) paidAt = at;
           history.push({
             id: a.id,
             type: 'PAYMENT',
@@ -1374,6 +1465,11 @@ export class InvoiceRunsService {
           outstanding: formatMoney(outstandingSu),
           outstandingValue: outstandingSu,
           paymentStatus,
+          paidAt,
+          sentAt,
+          dueDate: dueDateBySu.get(su.serviceUserId) ?? null,
+          invoiceDate: invoiceDateBySu.get(su.serviceUserId) ?? null,
+          paymentTerms: paymentTermsBySu.get(su.serviceUserId) ?? null,
           exceptionCount: su.lines.filter((l) => l.exceptionMessage).length,
           history,
         };
@@ -2268,6 +2364,15 @@ export class InvoiceRunsService {
       ],
     });
 
+    const emailedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await this.syncInvoiceDocuments(tx, runId, [dto.serviceUserId]);
+      await tx.invoiceDocument.updateMany({
+        where: { invoiceRunId: runId, serviceUserId: dto.serviceUserId },
+        data: { lastSentAt: emailedAt },
+      });
+    });
+
     const shouldMarkSent = dto.markSent !== false && preview.data.canMarkSent;
     let markedSent = false;
     if (shouldMarkSent) {
@@ -2507,9 +2612,8 @@ export class InvoiceRunsService {
   }
 
   /**
-   * Ensure each service user on the run has a persisted QBO-style invoice number.
-   * Existing numbers are kept (stable across recalculate). Numbers for SUs no longer
-   * on the run are left in place for audit (sequence is not reused).
+   * Ensure each service user on the run has a persisted QBO-style invoice number
+   * and due date (invoiceDate + payment terms). Existing numbers are kept.
    */
   private async syncInvoiceDocuments(
     tx: Prisma.TransactionClient,
@@ -2521,21 +2625,113 @@ export class InvoiceRunsService {
 
     const existing = await tx.invoiceDocument.findMany({
       where: { invoiceRunId, serviceUserId: { in: uniqueIds } },
-      select: { serviceUserId: true },
+      select: {
+        id: true,
+        serviceUserId: true,
+        invoiceDate: true,
+        dueDate: true,
+        paymentTerms: true,
+        createdAt: true,
+      },
     });
     const have = new Set(existing.map((d) => d.serviceUserId));
     const missing = uniqueIds.filter((id) => !have.has(id));
+
+    const termsBySu = await this.resolvePaymentTermsByServiceUser(
+      tx,
+      uniqueIds,
+    );
+    const invoiceDate = utcDateOnly(new Date());
+
     for (const serviceUserId of missing) {
       const sequenceValue = await this.allocateInvoiceSequence(tx);
+      const termsRaw = termsBySu.get(serviceUserId) ?? null;
+      const { dueDate, paymentTermsLabel } = computeInvoiceDueDate(
+        invoiceDate,
+        termsRaw,
+      );
       await tx.invoiceDocument.create({
         data: {
           invoiceRunId,
           serviceUserId,
           sequenceValue,
           invoiceNumber: formatInvoiceNumber(sequenceValue),
+          invoiceDate,
+          dueDate,
+          paymentTerms: paymentTermsLabel,
         },
       });
     }
+
+    // Backfill due dates on existing docs that pre-date this feature.
+    for (const doc of existing) {
+      if (doc.dueDate && doc.paymentTerms) continue;
+      const termsRaw = doc.paymentTerms ?? termsBySu.get(doc.serviceUserId) ?? null;
+      const invDate = doc.invoiceDate
+        ? utcDateOnly(doc.invoiceDate)
+        : utcDateOnly(doc.createdAt);
+      const { dueDate, paymentTermsLabel } = computeInvoiceDueDate(
+        invDate,
+        termsRaw,
+      );
+      await tx.invoiceDocument.update({
+        where: { id: doc.id },
+        data: {
+          invoiceDate: invDate,
+          dueDate: doc.dueDate ?? dueDate,
+          paymentTerms: doc.paymentTerms ?? paymentTermsLabel,
+        },
+      });
+    }
+  }
+
+  /**
+   * Funder payment terms for service users (QBO: terms on customer/payer).
+   * Uses current funding's funder; falls back to primary active funding funder.
+   */
+  private async resolvePaymentTermsByServiceUser(
+    db: Prisma.TransactionClient | PrismaService,
+    serviceUserIds: string[],
+  ): Promise<Map<string, string | null>> {
+    const out = new Map<string, string | null>();
+    if (!serviceUserIds.length) return out;
+
+    const rows = await db.serviceUser.findMany({
+      where: { id: { in: serviceUserIds }, deletedAt: null },
+      select: {
+        id: true,
+        currentFunding: {
+          select: {
+            funder: { select: { paymentTerms: true } },
+          },
+        },
+        fundings: {
+          where: {
+            deletedAt: null,
+            status: { notIn: ['ENDED', 'REJECTED'] },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { splitPriority: 'asc' }, { createdAt: 'asc' }],
+          take: 5,
+          select: {
+            isPrimary: true,
+            funder: { select: { paymentTerms: true } },
+          },
+        },
+      },
+    });
+
+    for (const su of rows) {
+      const fromCurrent = su.currentFunding?.funder?.paymentTerms?.trim() || null;
+      const fromPrimary =
+        su.fundings.find((f) => f.isPrimary)?.funder?.paymentTerms?.trim() ||
+        su.fundings.find((f) => f.funder?.paymentTerms)?.funder?.paymentTerms?.trim() ||
+        null;
+      out.set(su.id, fromCurrent || fromPrimary || null);
+    }
+    for (const id of serviceUserIds) {
+      if (!out.has(id)) out.set(id, null);
+    }
+    return out;
   }
 
   /** Atomic global increment — same pattern as IncidentNumberSequence / QBO DocNumber. */

@@ -2490,6 +2490,8 @@ model Funder {
   country       String?
   postcode      String?
   notes         String?
+  /// QBO-style payment terms for this payer (e.g. Net 30, Due on receipt).
+  paymentTerms  String?
   defaultChargeCardId String? @db.Uuid
   defaultInvoiceTemplateId String? @db.Uuid
   isActive      Boolean   @default(true)
@@ -8461,21 +8463,30 @@ model InvoiceRun {
  * invoiceNumber is QBO-style: global sequential (INV-1001, INV-1002, …).
  */
 model InvoiceDocument {
-  id            String   @id @default(uuid()) @db.Uuid
-  invoiceRunId  String   @db.Uuid
-  serviceUserId String   @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
+  invoiceRunId  String    @db.Uuid
+  serviceUserId String    @db.Uuid
   /// Display number, e.g. INV-1001 — unique across the organisation.
-  invoiceNumber String   @unique
+  invoiceNumber String    @unique
   /// Numeric sequence used to allocate invoiceNumber.
   sequenceValue Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  /// QBO-style invoice date (date the document was created / issued).
+  invoiceDate   DateTime  @db.Date
+  /// QBO-style due date = invoiceDate + payment term days.
+  dueDate       DateTime? @db.Date
+  /// Snapshot of charge-card terms at issue (e.g. "Net 30", "Due on receipt").
+  paymentTerms  String?
+  /// Last time this service-user invoice was emailed from the run.
+  lastSentAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   invoiceRun InvoiceRun @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
 
   @@unique([invoiceRunId, serviceUserId])
   @@index([invoiceRunId])
   @@index([serviceUserId])
+  @@index([dueDate])
   @@schema("billing")
 }
 
