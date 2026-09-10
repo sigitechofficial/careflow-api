@@ -4277,6 +4277,8 @@ model ServiceUserVisitTaskAssignment {
   taskCatalogueTaskId String    @db.Uuid
   sortOrder           Int       @default(0)
   carerInstructions   String?   @db.Text
+  /// When true, the carer must add a body-map mark before this visit task can complete.
+  bodyMapRequired     Boolean   @default(false)
   priority            String    @default("routine")
   /// Per-task recurrence (same rules as visit-plan call slots). Defaults = every day.
   daysOfWeek             Int[]                       @default([0, 1, 2, 3, 4, 5, 6])
@@ -6389,6 +6391,41 @@ model VisitClockInArrivalReasonCatalog {
   @@unique([kind, label])
   @@index([kind, isActive])
   @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+/// Org-configurable emergency clinical protocols for the carer-app (info icon
+/// runner). Served via employee-app visit details; managed in admin Settings.
+model EmergencyProtocolCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(64)
+  title     String
+  subtitle  String   @default("")
+  version   String   @default("")
+  /// activity | droplet | wind | smile | heart | alert | brain | pulse
+  iconKey   String   @default("alert") @db.VarChar(32)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  steps     EmergencyProtocolStep[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+model EmergencyProtocolStep {
+  id         String                    @id @default(uuid()) @db.Uuid
+  protocolId String                    @db.Uuid
+  protocol   EmergencyProtocolCatalog  @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  action     String
+  detail     String                    @default("")
+  sortOrder  Int                       @default(0)
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+
+  @@index([protocolId, sortOrder])
   @@schema("scheduling")
 }
 

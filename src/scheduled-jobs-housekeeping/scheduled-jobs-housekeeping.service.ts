@@ -73,7 +73,7 @@ import {
   normalizeVisitTaskOutcomeCode,
   stripVisitTaskOutcomeNotes,
 } from '../employee-app/visit-task-progress.util';
-import { resolveTaskObsLink } from '../employee-app/visit-task-obs-link.util';
+import { catalogueFeedsBodyMap, resolveTaskObsLink } from '../employee-app/visit-task-obs-link.util';
 import { syncObservationFromCompletedVisitTask } from '../employee-app/visit-task-obs-sync.util';
 import { loadCarePlanFormFields } from '../service-user-care-plans/compose/compose-context.loader';
 import {
@@ -1655,6 +1655,7 @@ export class ScheduledJobsHousekeepingService {
         requiresMultipleCarers: Boolean(assignment.task.requiresMultipleCarers),
         completionInput,
         carerInstructions: assignment.carerInstructions,
+        bodyMapRequired: Boolean(assignment.bodyMapRequired),
         priority,
         isRequired: !['optional', 'low', 'nice_to_have'].includes(String(priority).toLowerCase()),
         flagsJson,
@@ -1718,6 +1719,7 @@ export class ScheduledJobsHousekeepingService {
           requiresMultipleCarers: Boolean(task.requiresMultipleCarers),
           completionInput,
           carerInstructions: null,
+          bodyMapRequired: catalogueFeedsBodyMap(flagsJson),
           priority: 'routine',
           isRequired: true,
           flagsJson,

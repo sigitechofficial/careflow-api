@@ -379,7 +379,7 @@ export class EmployeeAppVisitsService {
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock, methodGrant] =
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock, methodGrant, officeContact, emergencyProtocols] =
       await Promise.all([
         this.resolveProgress(ctx),
         this.loadOverviewExtras(ctx),
@@ -393,6 +393,8 @@ export class EmployeeAppVisitsService {
           ctx.timeZone,
           ctx.job.scheduledStartDateTime,
         ),
+        this.loadOfficeContact(),
+        this.getEmergencyProtocols(),
       ]);
     const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
     const gpsCheckIn = checkInMethod === 'GPS';
@@ -425,8 +427,29 @@ export class EmployeeAppVisitsService {
         },
         clockOutSettings: await this.getClockOutEndReasons(),
         visitOutcomes: await this.getVisitOutcomesCatalog(),
+        officeContact,
+        emergencyProtocols,
       },
     };
+  }
+
+  /** Admin Settings → Company details (contact name + phone). */
+  private async loadOfficeContact() {
+    const row = await this.prisma.companyProfile.findFirst({
+      select: {
+        contactName: true,
+        displayName: true,
+        companyName: true,
+        phoneNumber: true,
+      },
+    });
+    const phoneNumber = row?.phoneNumber?.trim() || null;
+    const name =
+      row?.contactName?.trim() ||
+      row?.displayName?.trim() ||
+      row?.companyName?.trim() ||
+      'Office';
+    return { name, phoneNumber };
   }
 
   /**
@@ -463,11 +486,47 @@ export class EmployeeAppVisitsService {
         clockInSettings: workspace.data.clockInSettings,
         clockOutSettings: workspace.data.clockOutSettings,
         visitOutcomes: workspace.data.visitOutcomes,
+        officeContact: workspace.data.officeContact,
+        emergencyProtocols: workspace.data.emergencyProtocols,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
         welfareOutcomes,
         careConsent,
       },
     };
+  }
+
+  /**
+   * Org emergency protocols for the carer-app runner.
+   * Maps catalog `code` → app `id`. Empty list → the app uses its built-in list.
+   */
+  async getEmergencyProtocols() {
+    try {
+      const rows = await this.prisma.emergencyProtocolCatalog.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+        select: {
+          code: true,
+          title: true,
+          subtitle: true,
+          version: true,
+          iconKey: true,
+          steps: {
+            orderBy: [{ sortOrder: 'asc' }, { action: 'asc' }],
+            select: { action: true, detail: true },
+          },
+        },
+      });
+      return rows.map((r) => ({
+        id: r.code,
+        title: r.title,
+        subtitle: r.subtitle,
+        version: r.version,
+        iconKey: r.iconKey,
+        steps: r.steps.map((s) => ({ action: s.action, detail: s.detail })),
+      }));
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -1153,6 +1212,7 @@ export class EmployeeAppVisitsService {
         instruction:
           task.carerInstructions != null ? String(task.carerInstructions) : null,
         carerInstructions: task.carerInstructions ?? null,
+        bodyMapRequired: Boolean(task.bodyMapRequired),
         iconType: iconForTaskGroup(groupCode),
         badge: moduleLink?.label ?? null,
         badgeTone: moduleLink?.tone ?? null,

@@ -1,4 +1,5 @@
 import {
+  catalogueFeedsBodyMap,
   parseObservationNumeric,
   resolveTaskObsLink,
 } from './visit-task-obs-link.util';
@@ -274,5 +275,12 @@ describe('visit-task-obs-link', () => {
     expect(parseObservationNumeric('5 mmol/L')).toBe(5);
     expect(parseObservationNumeric('5.2mmol/L')).toBe(5.2);
     expect(parseObservationNumeric(null)).toBeNull();
+  });
+
+  it('detects catalogue body_map feeds', () => {
+    expect(catalogueFeedsBodyMap({ feedsObservation: ['body_map'] })).toBe(true);
+    expect(catalogueFeedsBodyMap({ feedsObservation: ['BODY_MAP'] })).toBe(true);
+    expect(catalogueFeedsBodyMap({ feedsObservation: ['skin_integrity'] })).toBe(false);
+    expect(catalogueFeedsBodyMap(null)).toBe(false);
   });
 });
