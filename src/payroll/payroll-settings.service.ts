@@ -58,9 +58,17 @@ export class PayrollSettingsService {
         this.prisma.payrollTaxYear.count({ where: { deletedAt: null } }),
         this.prisma.payrollSchedule.count({ where: { deletedAt: null } }),
         this.prisma.payrollPeriod.count({ where: { deletedAt: null } }),
-        this.prisma.employeePayrollProfile.count({
-          where: { deletedAt: null, status: 'READY' },
-        }),
+        this.prisma.employeePayrollProfile
+          .findMany({
+            where: { deletedAt: null, status: 'READY' },
+            select: { employeeId: true },
+          })
+          .then(async (rows) => {
+            if (!rows.length) return 0;
+            return this.prisma.employee.count({
+              where: { id: { in: rows.map((r) => r.employeeId) }, deletedAt: null },
+            });
+          }),
         this.prisma.ukPayrollRun.count({
           where: {
             deletedAt: null,

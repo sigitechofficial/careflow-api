@@ -11,6 +11,8 @@ describe('employee-app-access.util', () => {
     postcode: 'SW1A 1AA',
     keySafeNumber: ' 4821 ',
     accessInstructions: '  Key safe left of front door. ',
+    accessMethod: 'key_safe',
+    keySafeLocation: '  Left of front door ',
     deletedAt: null,
   };
 
@@ -19,6 +21,9 @@ describe('employee-app-access.util', () => {
       address: '14 Elm Court, Riverside, SW1A 1AA',
       code: '4821',
       accessNote: 'Key safe left of front door.',
+      accessMethod: 'key_safe',
+      accessMethodLabel: 'Key safe',
+      keySafeLocation: 'Left of front door',
     });
   });
 
@@ -27,6 +32,9 @@ describe('employee-app-access.util', () => {
       keySafeCode: '4821',
       note: 'Key safe left of front door.',
       address: '14 Elm Court, Riverside, SW1A 1AA',
+      accessMethod: 'key_safe',
+      accessMethodLabel: 'Key safe',
+      keySafeLocation: 'Left of front door',
     });
   });
 

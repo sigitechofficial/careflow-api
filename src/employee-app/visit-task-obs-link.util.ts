@@ -107,6 +107,17 @@ function matchNameToObs(name: string): TaskObsLink | null {
   return null;
 }
 
+/** Catalogue `flagsJson.feedsObservation` includes `body_map`. */
+export function catalogueFeedsBodyMap(flagsJson: unknown): boolean {
+  const flags =
+    flagsJson && typeof flagsJson === 'object' && !Array.isArray(flagsJson)
+      ? (flagsJson as Record<string, unknown>)
+      : null;
+  const feeds = flags?.feedsObservation;
+  if (!Array.isArray(feeds)) return false;
+  return feeds.some((raw) => String(raw).toLowerCase() === 'body_map');
+}
+
 export function resolveTaskObsLink(input: {
   name: string;
   groupCode?: string | null;

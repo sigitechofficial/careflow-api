@@ -31,6 +31,7 @@ import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
 import { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
+import { EmployeeAppCheckInMethodRequestDto } from './dto/employee-app-check-in-method-request.dto';
 import { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import {
   EmployeeAppHandoverAcknowledgeDto,
@@ -116,6 +117,20 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppSosDto,
   ) {
     return this.visitsService.sendSos(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/check-in-method-request')
+  @ApiOperation({
+    summary: 'Request office to enable Manual check-in for this visit',
+    description:
+      'GPS-only organisations. Creates an ECM exception. Office authorise enables Manual for this carer, this visit, this operational day only. Does not change organisation settings.',
+  })
+  requestCheckInMethod(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppCheckInMethodRequestDto,
+  ) {
+    return this.visitsService.requestCheckInMethod(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/check-in')
@@ -240,6 +255,52 @@ export class EmployeeAppVisitsController {
       jobId,
       observationId,
       dto,
+    );
+  }
+
+  @Post(':jobId/observations/:observationId/photos')
+  @ApiOperation({ summary: 'Attach a consented clinical photo to a visit observation' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'idempotencyKey', 'consentStatus'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        idempotencyKey: { type: 'string' },
+        clientPhotoId: { type: 'string' },
+        consentStatus: { type: 'string', enum: ['GRANTED', 'DENIED', 'PENDING'] },
+        caption: { type: 'string' },
+        capturedAt: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 8 * 1024 * 1024 },
+    }),
+  )
+  addObservationPhoto(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Param('observationId') observationId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      idempotencyKey?: string;
+      clientPhotoId?: string;
+      consentStatus?: string;
+      caption?: string;
+      capturedAt?: string;
+    },
+  ) {
+    return this.visitsService.addObservationPhoto(
+      user.employeeId!,
+      jobId,
+      observationId,
+      file,
+      body,
     );
   }
 

@@ -5,8 +5,10 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
+import { mailConfig } from './config/mail.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { MailModule } from './mail/mail.module';
 import { OrgScopeModule } from './common/org-scope/org-scope.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -123,7 +125,7 @@ import { PoliciesModule } from './policies/policies.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig, openfdaConfig],
+      load: [appConfig, databaseConfig, openfdaConfig, mailConfig],
       validate: validateEnv,
     }),
     ThrottlerModule.forRootAsync({
@@ -142,6 +144,7 @@ import { PoliciesModule } from './policies/policies.module';
       }),
     }),
     PrismaModule,
+    MailModule,
     OrgScopeModule,
     AuthModule,
     UsersModule,

@@ -132,6 +132,42 @@ export class CreateServiceUserFundingDto {
   @MaxLength(40)
   billingContactPhone?: string | null;
 
+  @ApiPropertyOptional({ maxLength: 200, description: 'Invoice billing address line 1' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  billingAddressLine1?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  billingAddressLine2?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  billingTown?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  billingCounty?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  billingCountry?: string | null;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  billingPostcode?: string | null;
+
   @ApiPropertyOptional({ maxLength: 120 })
   @IsOptional()
   @IsString()

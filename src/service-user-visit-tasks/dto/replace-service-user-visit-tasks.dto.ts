@@ -124,6 +124,15 @@ export class ServiceUserVisitTaskItemDto {
   @ValidateNested()
   @Type(() => ServiceUserVisitTaskScheduleDto)
   schedule?: ServiceUserVisitTaskScheduleDto;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'When true, the carer must add a body-map mark before this task can complete.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  bodyMapRequired?: boolean;
 }
 
 export class ServiceUserVisitTaskRoundDto {

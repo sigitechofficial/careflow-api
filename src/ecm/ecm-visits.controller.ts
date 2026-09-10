@@ -13,9 +13,11 @@ import {
   AcknowledgeEcmExceptionDto,
   AllowVisitContinueDto,
   CloseEcmExceptionDto,
+  DecideCheckInMethodGrantDto,
   ResolveEcmExceptionDto,
 } from './dto/ecm-exception.dto';
 import { VisitAreaLockService } from './visit-area-lock.service';
+import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.service';
 import {
   CreateNotificationEvidenceDto,
   ManualAttendanceDto,
@@ -52,6 +54,7 @@ export class EcmVisitsController {
     private readonly missedTriage: EcmMissedTriageService,
     private readonly thresholdLookups: EcmThresholdLookupsService,
     private readonly areaLocks: VisitAreaLockService,
+    private readonly checkInMethodGrants: VisitCheckInMethodGrantService,
   ) {}
 
   @Get('health')
@@ -269,6 +272,41 @@ export class EcmVisitsController {
     @Body() dto: AllowVisitContinueDto,
   ) {
     return this.areaLocks.allowContinue(jobId, user.id, dto.note);
+  }
+
+  @Post('visits/:jobId/check-in-method-grants/:grantId/authorise')
+  @Permissions('ecm.exceptions.manage')
+  @ApiOperation({
+    summary: 'Authorise Manual check-in for the requesting carer on this visit',
+    description:
+      'Does not change organisation check-in settings. Grant is for this employee, this job, this operational day only.',
+  })
+  authoriseCheckInMethodGrant(
+    @Param('jobId') jobId: string,
+    @Param('grantId') grantId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: DecideCheckInMethodGrantDto,
+  ) {
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.checkInMethodGrants.authorise(jobId, grantId, user.id, dto?.note),
+    );
+  }
+
+  @Post('visits/:jobId/check-in-method-grants/:grantId/reject')
+  @Permissions('ecm.exceptions.manage')
+  @ApiOperation({
+    summary: 'Reject a carer outside-area Manual check-in request',
+    description: 'Carer stays GPS-only and may request again.',
+  })
+  rejectCheckInMethodGrant(
+    @Param('jobId') jobId: string,
+    @Param('grantId') grantId: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: DecideCheckInMethodGrantDto,
+  ) {
+    return this.visits.assertJobAccessible(user, jobId).then(() =>
+      this.checkInMethodGrants.reject(jobId, grantId, user.id, dto?.note),
+    );
   }
 
   @Patch('visits/:jobId/missed-triage')

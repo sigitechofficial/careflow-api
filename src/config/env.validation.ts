@@ -97,6 +97,54 @@ class EnvironmentVariables {
   @IsString()
   OPENDFDA_API_KEY?: string;
 
+  /** ZeptoMail REST send URL (default https://api.zeptomail.com/v1.1/email). */
+  @IsOptional()
+  @IsString()
+  MAIL_API_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  ZEPTOMAIL_API_URL?: string;
+
+  /** ZeptoMail Send Mail Token (`Zoho-enczapikey …`). */
+  @IsOptional()
+  @IsString()
+  MAIL_API_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  ZEPTOMAIL_API_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  SMTP_PORT?: number;
+
+  @IsOptional()
+  @IsString()
+  SMTP_SECURE?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASS?: string;
+
+  @IsOptional()
+  @IsString()
+  MAIL_FROM?: string;
+
+  /** `api` | `smtp` | `log` — prefer `api` (ZeptoMail HTTP). */
+  @IsOptional()
+  @IsString()
+  MAIL_MODE?: string;
+
 }
 
 export function validateEnv(config: Record<string, unknown>) {

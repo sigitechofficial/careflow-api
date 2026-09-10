@@ -12,6 +12,7 @@ import {
   isEmarMedicationPromptTask,
   syncEmarMedicationPromptsForServiceUser,
 } from '../visit-tasks/visit-task-emar-prompt.sync';
+import { catalogueFeedsBodyMap } from '../employee-app/visit-task-obs-link.util';
 
 const assignmentInclude = {
   task: {
@@ -120,6 +121,7 @@ export class ServiceUserVisitTasksService {
         carerInstructions: string | null;
         priority: string;
         schedule: VisitTaskScheduleShape;
+        bodyMapRequired: boolean | undefined;
       }>
     >();
     for (const round of dto.rounds) {
@@ -131,6 +133,7 @@ export class ServiceUserVisitTasksService {
         carerInstructions: string | null;
         priority: string;
         schedule: VisitTaskScheduleShape;
+        bodyMapRequired: boolean | undefined;
       }> = [];
       for (const task of round.tasks) {
         if (seen.has(task.taskCatalogueTaskId)) continue;
@@ -140,6 +143,7 @@ export class ServiceUserVisitTasksService {
           carerInstructions: normalizeInstructions(task.carerInstructions),
           priority: normalizePriority(task.priority),
           schedule: mergeVisitTaskSchedule(task.schedule ?? null),
+          bodyMapRequired: task.bodyMapRequired,
         });
       }
       desired.set(code, items);
@@ -150,14 +154,19 @@ export class ServiceUserVisitTasksService {
         dto.rounds.flatMap((round) => round.tasks.map((task) => task.taskCatalogueTaskId)),
       ),
     ];
-    if (taskIds.length > 0) {
-      const count = await this.prisma.taskCatalogueTask.count({
-        where: { id: { in: taskIds }, deletedAt: null, isActive: true },
-      });
-      if (count !== taskIds.length) {
-        throw new NotFoundException('One or more catalogue tasks were not found');
-      }
+    const catalogueRows =
+      taskIds.length > 0
+        ? await this.prisma.taskCatalogueTask.findMany({
+            where: { id: { in: taskIds }, deletedAt: null, isActive: true },
+            select: { id: true, flagsJson: true },
+          })
+        : [];
+    if (catalogueRows.length !== taskIds.length) {
+      throw new NotFoundException('One or more catalogue tasks were not found');
     }
+    const feedsBodyMapById = new Map(
+      catalogueRows.map((row) => [row.id, catalogueFeedsBodyMap(row.flagsJson)]),
+    );
 
     await this.prisma.$transaction(async (tx) => {
       // 24 Aug 2026: re-adding a removed task hit unique (serviceUser + slot + catalogue).
@@ -189,6 +198,12 @@ export class ServiceUserVisitTasksService {
             monthlyPatternOrdinal: item.schedule.monthlyPatternOrdinal,
             monthlyPatternWeekday: item.schedule.monthlyPatternWeekday,
           };
+          const bodyMapRequired =
+            item.bodyMapRequired !== undefined
+              ? Boolean(item.bodyMapRequired)
+              : prev != null
+                ? prev.bodyMapRequired
+                : Boolean(feedsBodyMapById.get(item.taskCatalogueTaskId));
           if (prev) {
             await tx.serviceUserVisitTaskAssignment.update({
               where: { id: prev.id },
@@ -198,6 +213,7 @@ export class ServiceUserVisitTasksService {
                 sortOrder,
                 carerInstructions: item.carerInstructions,
                 priority: item.priority,
+                bodyMapRequired,
                 ...scheduleData,
                 updatedById: userId,
               },
@@ -212,6 +228,7 @@ export class ServiceUserVisitTasksService {
                 sortOrder,
                 carerInstructions: item.carerInstructions,
                 priority: item.priority,
+                bodyMapRequired,
                 ...scheduleData,
                 createdById: userId,
                 updatedById: userId,
@@ -250,6 +267,7 @@ export class ServiceUserVisitTasksService {
       medicationRoundCode: row.medicationRoundCode,
       sortOrder: row.sortOrder,
       carerInstructions: row.carerInstructions,
+      bodyMapRequired: Boolean(row.bodyMapRequired),
       priority: row.priority,
       schedule: pickScheduleFromAssignment(row),
       isEmarPrompt: isEmarMedicationPromptTask({

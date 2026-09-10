@@ -43,6 +43,7 @@ import {
   formatDateOnly,
   formatTimeRange,
   formatMinutesAsHours,
+  alignRateBreakdownVisitSliceLabels,
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
   hasPayBlockingExceptions,
@@ -51,6 +52,7 @@ import {
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
+  isLegacyMismatchedBillWindow,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
@@ -644,11 +646,63 @@ export class VisitReconciliationsService {
     const [enriched] = await this.enrichRows([row]);
     // Completed visits replay the pricing breakdown captured at completion, so later
     // pay/charge card rule edits do not retro-change how the visit was priced.
+    // Re-label visit-slice times into the org timezone (legacy snapshots used UTC).
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const preview =
       row.pricingSnapshot != null
-        ? row.pricingSnapshot
+        ? this.alignFrozenPricingSnapshot(row.pricingSnapshot, row, timeZone)
         : await this.buildCalculationPreview(row);
     return { data: { ...enriched, calculationPreview: preview } };
+  }
+
+  private alignFrozenPricingSnapshot(
+    snapshot: Prisma.JsonValue,
+    row: ReconciliationRow,
+    timeZone: string,
+  ) {
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+      return snapshot;
+    }
+    const preview = JSON.parse(JSON.stringify(snapshot)) as Record<string, unknown>;
+    const timeWindows =
+      preview.timeWindows && typeof preview.timeWindows === 'object'
+        ? (preview.timeWindows as Record<string, unknown>)
+        : {};
+    preview.timeWindows = {
+      ...timeWindows,
+      planned: formatTimeRange(row.plannedStartDateTime, row.plannedEndDateTime, timeZone),
+      actual: formatTimeRange(row.actualStartDateTime, row.actualEndDateTime, timeZone),
+      approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd, timeZone),
+      approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd, timeZone),
+    };
+    preview.carerPay = alignRateBreakdownVisitSliceLabels(
+      preview.carerPay as never,
+      row.approvedPayStart,
+      row.approvedPayEnd,
+      timeZone,
+    );
+    preview.clientCharge = alignRateBreakdownVisitSliceLabels(
+      preview.clientCharge as never,
+      row.approvedBillStart,
+      row.approvedBillEnd,
+      timeZone,
+    );
+    if (Array.isArray(preview.funderClientCharges)) {
+      preview.funderClientCharges = preview.funderClientCharges.map((line) => {
+        if (!line || typeof line !== 'object') return line;
+        const funder = line as Record<string, unknown>;
+        return {
+          ...funder,
+          breakdown: alignRateBreakdownVisitSliceLabels(
+            funder.breakdown as never,
+            row.approvedBillStart,
+            row.approvedBillEnd,
+            timeZone,
+          ),
+        };
+      });
+    }
+    return preview;
   }
 
   async evaluate(id: string) {
@@ -1343,8 +1397,18 @@ export class VisitReconciliationsService {
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
     const visitCompleted = isBillingEligibleVisit(visit);
+    const legacyMismatchedBillWindow = isLegacyMismatchedBillWindow({
+      plannedStartDateTime: row.plannedStartDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      approvedPayStart: row.approvedPayStart,
+      approvedPayEnd: row.approvedPayEnd,
+      approvedBillStart: row.approvedBillStart,
+      approvedBillEnd: row.approvedBillEnd,
+    });
     const freezeBillable =
       !options?.forceRecalculateAmounts &&
+      !legacyMismatchedBillWindow &&
       visitCompleted &&
       row.billableAmount != null;
     const freezePayable =
@@ -1388,6 +1452,7 @@ export class VisitReconciliationsService {
       const resolved = await this.payCardsService.resolveForEmployee(
         row.employeeId,
         row.plannedStartDateTime,
+        { funderId: funding?.funderId ?? null },
       );
       payCardSource = resolved.data.source;
       if (resolved.data.payCard) {
@@ -1512,8 +1577,9 @@ export class VisitReconciliationsService {
       }
     }
 
-    // Default: clean visits → APPROVED_FOR_BOTH. Any exception → PENDING_REVIEW.
-    // Preserve LOCKED / REJECTED; derive keeps narrower human approvals when clean.
+    // Default: clean visits → APPROVED_FOR_BOTH. Soft exceptions → PENDING_REVIEW until
+    // finance clicks All / Pay / Bill; those human approvals are preserved on re-evaluate
+    // unless a blocking setup exception appears.
     const status =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
@@ -1554,7 +1620,10 @@ export class VisitReconciliationsService {
       durationToleranceMinutes,
     });
 
-    const forceDefaultWindows = computedOverrun != null || withinDurationTolerance;
+    // Legacy bug: client charge used booked start → actual end (late inflate or early clip)
+    // while carer pay correctly used actual. Re-snap those rows.
+    const forceDefaultWindows =
+      computedOverrun != null || withinDurationTolerance || legacyMismatchedBillWindow;
 
     const approvedPayStart = forceDefaultWindows
       ? defaultWindows.approvedPayStart
@@ -1669,13 +1738,18 @@ export class VisitReconciliationsService {
           isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
           timeZone,
         },
+        nightDuty,
       );
       payableAmount = calc?.amount ?? null;
       if (payableAmount == null && payMinutes > 0) {
         activeExceptions.push({
           code: FinanceExceptionCode.RATE_MISSING,
           message:
-            'No pay card rate matches this visit’s day or time. Add a matching rule (e.g. weekday) or check Saturday/Sunday bands.',
+            nightDuty === 'SLEEPING_NIGHT'
+              ? 'No sleeping night rate on this pay card. Add a Sleeping night (£/night) rule.'
+              : nightDuty === 'WAKING_NIGHT'
+                ? 'No waking night rate on this pay card. Add a Waking night (£/hour) rule.'
+                : 'No pay card rate matches this visit’s day or time. Add a matching rule (e.g. weekday) or check Saturday/Sunday bands.',
         });
       }
     }
@@ -1875,8 +1949,8 @@ export class VisitReconciliationsService {
       });
     }
 
-    // Clean visits auto-approve BOTH; exceptions force PENDING_REVIEW.
-    // Manual All / Carer Pay / Funders still override and are preserved when clean.
+    // Clean visits auto-approve BOTH; soft exceptions stay pending until human approve.
+    // Manual All / Carer Pay / Funders are preserved on re-evaluate (soft flags stay).
     const lockedOrRejected =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
@@ -1977,6 +2051,7 @@ export class VisitReconciliationsService {
             status: true,
             isActive: true,
             funderId: true,
+            isPrimary: true,
             defaultChargeCardId: true,
             purchaseOrderNumber: true,
             purchaseOrderExpiresAt: true,
@@ -1984,18 +2059,39 @@ export class VisitReconciliationsService {
             funder: { select: { defaultChargeCardId: true } },
           },
         },
+        fundings: {
+          where: { deletedAt: null, isActive: true },
+          select: {
+            funderId: true,
+            isPrimary: true,
+            splitPriority: true,
+            status: true,
+          },
+          orderBy: [{ isPrimary: 'desc' }, { splitPriority: 'asc' }],
+          take: 20,
+        },
       },
     });
-    if (!su?.currentFunding) return null;
+    if (!su) return null;
+
+    // Pay resolve uses one funder per visit (primary / current). Invoice split stays on charge side.
+    const funding = su.currentFunding;
+    const fallbackFunding =
+      su.fundings.find((f) => f.isPrimary && f.funderId) ??
+      su.fundings.find((f) => f.funderId) ??
+      null;
+
+    if (!funding && !fallbackFunding) return null;
+
     return {
-      status: su.currentFunding.status,
-      isActive: su.currentFunding.isActive,
-      funderId: su.currentFunding.funderId,
-      defaultChargeCardId: su.currentFunding.defaultChargeCardId,
-      funderDefaultChargeCardId: su.currentFunding.funder?.defaultChargeCardId ?? null,
-      purchaseOrderNumber: su.currentFunding.purchaseOrderNumber,
-      purchaseOrderExpiresAt: su.currentFunding.purchaseOrderExpiresAt,
-      billingContactName: su.currentFunding.billingContactName,
+      status: funding?.status ?? fallbackFunding?.status ?? 'UNKNOWN',
+      isActive: funding?.isActive ?? true,
+      funderId: funding?.funderId ?? fallbackFunding?.funderId ?? null,
+      defaultChargeCardId: funding?.defaultChargeCardId ?? null,
+      funderDefaultChargeCardId: funding?.funder?.defaultChargeCardId ?? null,
+      purchaseOrderNumber: funding?.purchaseOrderNumber ?? null,
+      purchaseOrderExpiresAt: funding?.purchaseOrderExpiresAt ?? null,
+      billingContactName: funding?.billingContactName ?? null,
     };
   }
 
@@ -2363,7 +2459,7 @@ export class VisitReconciliationsService {
               cardSource: 'EXPLICIT_FUNDING',
             },
             isBankHoliday,
-            { start: billStart, end: billEnd },
+            { start: billStart, end: billEnd, timeZone },
             nightDuty,
           );
         }
@@ -2454,7 +2550,7 @@ export class VisitReconciliationsService {
           cardSource: row.chargeCardSource,
         },
         isBankHoliday,
-        { start: billStart, end: billEnd },
+        { start: billStart, end: billEnd, timeZone },
         nightDuty,
       );
       if (freezeBillable && row.billableAmount != null && clientCharge) {
@@ -2500,7 +2596,8 @@ export class VisitReconciliationsService {
           cardSource: row.payCardSource,
         },
         isBankHoliday,
-        { start: payStart, end: payEnd },
+        { start: payStart, end: payEnd, timeZone },
+        nightDuty,
       );
       if (freezePayable && row.payableAmount != null) {
         carerPay = livePay

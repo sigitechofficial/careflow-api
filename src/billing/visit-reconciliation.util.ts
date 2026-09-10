@@ -283,18 +283,23 @@ export function deriveReconciliationStatus(
     return currentStatus;
   }
 
-  // Any finance exception → office must review before pay/invoice.
-  if (exceptions.length > 0) {
-    return VisitReconciliationStatus.PENDING_REVIEW;
-  }
-
-  // Keep a narrower / human approval when already set and the visit is clean.
-  if (
+  const humanApproved =
     currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
     currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH
-  ) {
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+
+  // Soft flags (UNDERRUN / OVERRUN / etc.) still need office review before the first
+  // approval — but once finance clicks All / Pay / Bill, keep that choice unless a
+  // blocking setup exception appears (missing cards, funding, PO, tasks, …).
+  if (humanApproved) {
+    if (hasUnresolvedBlockingExceptions(exceptions)) {
+      return VisitReconciliationStatus.PENDING_REVIEW;
+    }
     return currentStatus;
+  }
+
+  if (exceptions.length > 0) {
+    return VisitReconciliationStatus.PENDING_REVIEW;
   }
 
   // Clean visits default to approved for carer pay + funders.
@@ -378,12 +383,13 @@ export function resolveDefaultApprovedWindows(input: {
     actualStartDateTime != null &&
     actualEndDateTime != null;
 
-  // Overrun pending/rejected: pay planned length. Approved: pay actual clock times.
+  // Overrun pending/rejected: pay + charge planned length only.
   if (hasOverrun && !payActualApproved) {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
-      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: plannedEnd,
     };
   }
 
@@ -413,7 +419,8 @@ export function resolveDefaultApprovedWindows(input: {
     return {
       approvedPayStart: plannedStartDateTime,
       approvedPayEnd: plannedEnd,
-      ...resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, plannedEnd),
+      approvedBillStart: plannedStartDateTime,
+      approvedBillEnd: plannedEnd,
     };
   }
 
@@ -433,8 +440,10 @@ export function resolveDefaultApprovedWindows(input: {
 }
 
 /**
- * Client charge window: normally planned start → actual end (booked start through departure).
- * When the visit ends before planned start (fully early), that would invert — bill actual worked time instead.
+ * Client charge window: actual worked time when available (same span as carer pay outside
+ * tolerance / unpaid-overrun snaps). Do not charge from booked start when the carer
+ * arrived late — that inflated funder hours (e.g. planned 07:00 + actual end 07:41).
+ * When the visit finished before planned start, fall back carefully so the window does not invert.
  */
 export function resolveBillWindow(
   plannedStartDateTime: Date,
@@ -442,17 +451,18 @@ export function resolveBillWindow(
   actualStartDateTime: Date | null,
   billEndCandidate: Date,
 ): { approvedBillStart: Date; approvedBillEnd: Date } {
-  if (billEndCandidate.getTime() > plannedStartDateTime.getTime()) {
+  const actualStart = actualStartDateTime ?? plannedStartDateTime;
+
+  if (billEndCandidate.getTime() > actualStart.getTime()) {
     return {
-      approvedBillStart: plannedStartDateTime,
+      approvedBillStart: actualStart,
       approvedBillEnd: billEndCandidate,
     };
   }
 
-  const actualStart = actualStartDateTime ?? plannedStartDateTime;
-  if (billEndCandidate.getTime() > actualStart.getTime()) {
+  if (billEndCandidate.getTime() > plannedStartDateTime.getTime()) {
     return {
-      approvedBillStart: actualStart,
+      approvedBillStart: plannedStartDateTime,
       approvedBillEnd: billEndCandidate,
     };
   }
@@ -467,6 +477,74 @@ export function resolveBillWindow(
 export function isInvertedDateWindow(start: Date | null | undefined, end: Date | null | undefined): boolean {
   if (!start || !end) return false;
   return end.getTime() <= start.getTime();
+}
+
+/**
+ * Stored bill window still follows the old "booked start → actual end" rule while
+ * carer pay correctly uses actual worked time — covers late check-in (inflated bill)
+ * and early check-in clipped to planned start (under-billed).
+ */
+export function isLegacyMismatchedBillWindow(input: {
+  plannedStartDateTime: Date;
+  actualStartDateTime: Date | null;
+  actualEndDateTime: Date | null;
+  approvedPayStart: Date | null;
+  approvedPayEnd: Date | null;
+  approvedBillStart: Date | null;
+  approvedBillEnd: Date | null;
+}): boolean {
+  const {
+    plannedStartDateTime,
+    actualStartDateTime,
+    actualEndDateTime,
+    approvedPayStart,
+    approvedPayEnd,
+    approvedBillStart,
+    approvedBillEnd,
+  } = input;
+  if (
+    !actualStartDateTime ||
+    !actualEndDateTime ||
+    !approvedPayStart ||
+    !approvedPayEnd ||
+    !approvedBillStart ||
+    !approvedBillEnd
+  ) {
+    return false;
+  }
+
+  const near = (a: Date, b: Date) => Math.abs(a.getTime() - b.getTime()) < 2_000;
+
+  const payMatchesActual =
+    near(approvedPayStart, actualStartDateTime) && near(approvedPayEnd, actualEndDateTime);
+  if (!payMatchesActual) return false;
+
+  const billMatchesActual =
+    near(approvedBillStart, actualStartDateTime) && near(approvedBillEnd, actualEndDateTime);
+  if (billMatchesActual) return false;
+
+  // Old rule: bill start = planned start, bill end = actual end
+  // (late: 07:00–07:41; early clip: 11:00–11:14).
+  return near(approvedBillStart, plannedStartDateTime) && near(approvedBillEnd, actualEndDateTime);
+}
+
+/** @deprecated Use {@link isLegacyMismatchedBillWindow} */
+export function isLegacyLateStartBillWindow(input: {
+  plannedStartDateTime: Date;
+  actualStartDateTime: Date | null;
+  approvedPayStart: Date | null;
+  approvedBillStart: Date | null;
+}): boolean {
+  const { plannedStartDateTime, actualStartDateTime, approvedPayStart, approvedBillStart } =
+    input;
+  if (!actualStartDateTime || !approvedPayStart || !approvedBillStart) return false;
+  const lateByMs = actualStartDateTime.getTime() - plannedStartDateTime.getTime();
+  if (lateByMs < 60_000) return false;
+  const billMatchesPlanned =
+    Math.abs(approvedBillStart.getTime() - plannedStartDateTime.getTime()) < 2_000;
+  const payMatchesActual =
+    Math.abs(approvedPayStart.getTime() - actualStartDateTime.getTime()) < 2_000;
+  return billMatchesPlanned && payMatchesActual;
 }
 
 export type PayCardRuleLike = {
@@ -686,16 +764,30 @@ export function calculatePayableAmount(
     /** IANA TZ for pay-card clock bands (e.g. Europe/London). */
     timeZone?: string;
   },
+  nightDuty?: string | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
-  const bandRules = toTimeBandRules(rules);
+  if (nightDuty === 'SLEEPING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    if (!rule) return null;
+    return { amount: Number(rule.amount), label: 'SLEEP_IN' };
+  }
+  if (nightDuty === 'WAKING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    if (!rule) return null;
+    const hourly = Number(rule.amount) * (minutes / 60);
+    return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
+  }
+
+  const dayRules = rules.filter((rule) => !isNightDutyPayRateType(rule.rateType));
+  const bandRules = toTimeBandRules(dayRules);
   const timeZone = window?.timeZone ?? 'UTC';
 
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Otherwise use hourly pro-rata (time-banded when a window is provided).
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -756,13 +848,13 @@ export function calculatePayableAmount(
   }
 
   if (minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, timeZone);
+  const rule = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
@@ -772,8 +864,57 @@ export function calculatePayableAmount(
   return { amount: Math.round(hourly * 100) / 100, label: 'HOURLY' };
 }
 
+function isNightDutyPayRateType(rateType?: string | null): boolean {
+  return rateType === 'SLEEP_IN' || rateType === 'WAKING_NIGHT';
+}
+
 function isNightDutyChargeMethod(chargeMethod?: string | null): boolean {
   return chargeMethod === 'SLEEP_IN' || chargeMethod === 'WAKING_NIGHT';
+}
+
+function pickNightDutyPayRule(
+  rules: PayCardRuleLike[],
+  rateType: 'SLEEP_IN' | 'WAKING_NIGHT',
+  visitDate: Date,
+  isBankHoliday: boolean,
+): PayCardRuleLike | null {
+  const matches = rules.filter(
+    (rule) =>
+      rule.rateType === rateType && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+  );
+  if (!matches.length) return null;
+  const dayTypeRank = (dayType: string): number => {
+    switch (dayType) {
+      case 'ANY':
+        return 0;
+      case 'WEEKDAY':
+        return 10;
+      case 'SATURDAY':
+        return 20;
+      case 'SUNDAY':
+        return 30;
+      case 'BANK_HOLIDAY':
+        return 100;
+      case 'SPECIAL':
+        return 105;
+      case 'EASTER':
+        return 108;
+      case 'CHRISTMAS':
+      case 'BOXING_DAY':
+      case 'NEW_YEAR':
+        return 110;
+      default:
+        return 0;
+    }
+  };
+  return (
+    [...matches].sort((a, b) => {
+      const ra = (a.priority ?? 0) || dayTypeRank(a.dayType);
+      const rb = (b.priority ?? 0) || dayTypeRank(b.dayType);
+      if (ra !== rb) return rb - ra;
+      return a.sortOrder - b.sortOrder;
+    })[0] ?? null
+  );
 }
 
 function pickNightDutyChargeRule(
@@ -1105,14 +1246,79 @@ export function buildPayRateBreakdown(
     currency?: string;
   },
   isBankHoliday = false,
-  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
+  nightDuty?: string | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
-  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window);
+  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window, nightDuty);
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
+
+  if (calc.label === 'SLEEP_IN') {
+    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? calc.amount);
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Sleeping night',
+        rateType: 'SLEEP_IN',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate, amount },
+    );
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'SLEEP_IN',
+      unitRate,
+      amount,
+      formula: `${formatGbp(unitAmount)} per sleeping night`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Sleeping night',
+      appliedRules: [applied],
+    };
+  }
+
+  if (calc.label === 'WAKING_NIGHT') {
+    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const unitAmount = Number(rule?.amount ?? 0);
+    const unitRate = formatGbp(unitAmount);
+    const amount = formatGbp(calc.amount);
+    const applied = buildAppliedRuleFromPick(
+      {
+        label: rule?.label ?? 'Waking night',
+        rateType: 'WAKING_NIGHT',
+        dayType: rule?.dayType,
+        startTime: null,
+        endTime: null,
+        minimumMinutes: null,
+        amount: unitAmount,
+      },
+      { unitRate: `${unitRate}/hr`, amount },
+    );
+    return {
+      minutes,
+      hoursLabel,
+      rateType: 'WAKING_NIGHT',
+      unitRate: `${unitRate}/hr`,
+      amount,
+      formula: `${hoursLabel} × ${unitRate}/hr = ${formatGbp(calc.amount)}`,
+      cardName: meta?.cardName ?? null,
+      cardCode: meta?.cardCode ?? null,
+      cardSource: meta?.cardSource ?? null,
+      ruleLabel: rule?.label ?? 'Waking night',
+      appliedRules: [applied],
+    };
+  }
 
   if (calc.label === 'BANDED_HOURLY' && calc.segments?.length) {
     const rates = [...new Set(calc.segments.map((s) => s.rate))];
@@ -1224,7 +1430,7 @@ export function buildChargeRateBreakdown(
     cardSource?: string | null;
   },
   isBankHoliday = false,
-  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy },
+  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
   nightDuty?: string | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
@@ -1414,4 +1620,52 @@ export function buildChargeRateBreakdown(
     ruleLabel: ruleLabel ?? applied.label,
     appliedRules: [applied],
   };
+}
+
+const VISIT_SLICE_TIME_WINDOW_RE = /^\d{2}:\d{2}–\d{2}:\d{2}$/;
+const VISIT_SLICE_TIME_WINDOW_GLOBAL_RE = /\d{2}:\d{2}–\d{2}:\d{2}/g;
+
+/**
+ * Fix legacy pricing-snapshot labels that were frozen in UTC while Approved time
+ * uses the org timezone (e.g. 10:00–13:00Z shown next to 11:00–14:00 London).
+ * Safe for single-segment (full-window) visits; multi-band snapshots need force-recalc.
+ */
+export function alignRateBreakdownVisitSliceLabels(
+  breakdown: RateBreakdown | null | undefined,
+  windowStart: Date | null | undefined,
+  windowEnd: Date | null | undefined,
+  timeZone: string,
+): RateBreakdown | null | undefined {
+  if (!breakdown || !windowStart || !windowEnd) return breakdown;
+  const startHm = formatHmInTimeZone(windowStart, timeZone);
+  const endHm = formatHmInTimeZone(windowEnd, timeZone);
+  const range = `${startHm}–${endHm}`;
+  const next: RateBreakdown = { ...breakdown };
+
+  if (Array.isArray(breakdown.segments) && breakdown.segments.length === 1) {
+    const seg = breakdown.segments[0];
+    next.segments = [
+      {
+        ...seg,
+        startLabel: startHm,
+        endLabel: endHm,
+      },
+    ];
+  }
+
+  if (Array.isArray(breakdown.appliedRules) && breakdown.appliedRules.length) {
+    const segmentCount = next.segments?.length ?? breakdown.segments?.length ?? 0;
+    const canRelabelSlice = segmentCount === 1 || segmentCount === 0;
+    next.appliedRules = breakdown.appliedRules.map((rule) => {
+      const timeWindow = rule.timeWindow?.trim() ?? '';
+      if (!canRelabelSlice || !VISIT_SLICE_TIME_WINDOW_RE.test(timeWindow)) return rule;
+      return {
+        ...rule,
+        timeWindow: range,
+        detail: rule.detail.replace(VISIT_SLICE_TIME_WINDOW_GLOBAL_RE, range),
+      };
+    });
+  }
+
+  return next;
 }

@@ -32,6 +32,9 @@ import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
 import { VITAL_ACCEPTED_RANGE_DEFAULTS } from './vital-accepted-ranges.defaults';
+import { CreateEmergencyProtocolDto } from './dto/create-emergency-protocol.dto';
+import { UpdateEmergencyProtocolDto } from './dto/update-emergency-protocol.dto';
+import { DEFAULT_EMERGENCY_PROTOCOLS } from './emergency-protocols.defaults';
 
 @Injectable()
 export class LookupsService implements OnModuleInit {
@@ -66,6 +69,7 @@ export class LookupsService implements OnModuleInit {
         });
       }
       this.logger.log(`Vital accepted range lookups ensured (${VITAL_ACCEPTED_RANGE_DEFAULTS.length} rows).`);
+      await this.ensureEmergencyProtocols();
     } catch (e) {
       this.logger.error('Failed to seed default lookups', e instanceof Error ? e.stack : e);
     }
@@ -1398,6 +1402,160 @@ export class LookupsService implements OnModuleInit {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  // ─── Emergency protocols (carer-app runner) ───────────────────────────────
+
+  private readonly emergencyProtocolSelect = {
+    id: true,
+    code: true,
+    title: true,
+    subtitle: true,
+    version: true,
+    iconKey: true,
+    sortOrder: true,
+    isActive: true,
+    steps: {
+      orderBy: [
+        { sortOrder: 'asc' },
+        { action: 'asc' },
+      ] as Prisma.EmergencyProtocolStepOrderByWithRelationInput[],
+      select: { id: true, action: true, detail: true, sortOrder: true },
+    },
+  };
+
+  /** Create missing seed rows only — never overwrite admin-edited protocols. */
+  private async ensureEmergencyProtocols() {
+    try {
+      const existing = await this.prisma.emergencyProtocolCatalog.findMany({
+        select: { code: true },
+      });
+      const have = new Set(existing.map((r) => r.code));
+      const missing = DEFAULT_EMERGENCY_PROTOCOLS.filter((p) => !have.has(p.code));
+      for (const seed of missing) {
+        await this.prisma.emergencyProtocolCatalog.create({
+          data: {
+            code: seed.code,
+            title: seed.title,
+            subtitle: seed.subtitle,
+            version: seed.version,
+            iconKey: seed.iconKey,
+            sortOrder: seed.sortOrder,
+            isActive: true,
+            steps: {
+              create: seed.steps.map((step, i) => ({
+                action: step.action,
+                detail: step.detail,
+                sortOrder: (i + 1) * 10,
+              })),
+            },
+          },
+        });
+      }
+      if (missing.length > 0) {
+        this.logger.log(`Emergency protocols seeded (${missing.length} new).`);
+      }
+    } catch (e) {
+      this.logger.error(
+        'Failed to seed emergency protocols',
+        e instanceof Error ? e.stack : e,
+      );
+    }
+  }
+
+  async listEmergencyProtocols() {
+    return this.prisma.emergencyProtocolCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+      select: this.emergencyProtocolSelect,
+    });
+  }
+
+  async createEmergencyProtocol(dto: CreateEmergencyProtocolDto) {
+    const title = dto.title.trim();
+    const code = dto.code.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!title || !code) throw new BadRequestException('Title and code are required');
+    const steps = this.normalizeProtocolSteps(dto.steps);
+    try {
+      return await this.prisma.emergencyProtocolCatalog.create({
+        data: {
+          code,
+          title,
+          subtitle: dto.subtitle?.trim() ?? '',
+          version: dto.version?.trim() ?? '',
+          iconKey: dto.iconKey ?? 'alert',
+          sortOrder: dto.sortOrder ?? 0,
+          isActive: true,
+          steps: { create: steps },
+        },
+        select: this.emergencyProtocolSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A protocol with this code already exists');
+    }
+  }
+
+  async updateEmergencyProtocol(id: string, dto: UpdateEmergencyProtocolDto) {
+    const existing = await this.prisma.emergencyProtocolCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Emergency protocol not found');
+    const data: Prisma.EmergencyProtocolCatalogUpdateInput = {};
+    if (dto.title !== undefined) {
+      const title = dto.title.trim();
+      if (!title) throw new BadRequestException('Title is required');
+      data.title = title;
+    }
+    if (dto.code !== undefined) {
+      const code = dto.code.trim().toLowerCase().replace(/\s+/g, '-');
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.subtitle !== undefined) data.subtitle = dto.subtitle.trim();
+    if (dto.version !== undefined) data.version = dto.version.trim();
+    if (dto.iconKey !== undefined) data.iconKey = dto.iconKey;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (dto.steps) {
+          const steps = this.normalizeProtocolSteps(dto.steps);
+          await tx.emergencyProtocolStep.deleteMany({ where: { protocolId: id } });
+          await tx.emergencyProtocolStep.createMany({
+            data: steps.map((s) => ({ ...s, protocolId: id })),
+          });
+        }
+        return tx.emergencyProtocolCatalog.update({
+          where: { id },
+          data,
+          select: this.emergencyProtocolSelect,
+        });
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A protocol with this code already exists');
+    }
+  }
+
+  async deleteEmergencyProtocol(id: string) {
+    const existing = await this.prisma.emergencyProtocolCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Emergency protocol not found');
+    await this.prisma.emergencyProtocolCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  private normalizeProtocolSteps(steps: { action: string; detail?: string }[]) {
+    const cleaned = steps
+      .map((s, i) => ({
+        action: s.action.trim(),
+        detail: (s.detail ?? '').trim(),
+        sortOrder: (i + 1) * 10,
+      }))
+      .filter((s) => s.action.length > 0);
+    if (cleaned.length === 0) {
+      throw new BadRequestException('At least one protocol step is required');
+    }
+    return cleaned;
   }
 
   async employeeLookups() {

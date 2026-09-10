@@ -42,6 +42,14 @@ export class AllowVisitContinueDto {
   note?: string;
 }
 
+export class DecideCheckInMethodGrantDto {
+  @ApiPropertyOptional({ description: 'Office note recorded with authorise / reject' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+}
+
 export class CloseEcmExceptionDto {
   @ApiPropertyOptional()
   @IsOptional()

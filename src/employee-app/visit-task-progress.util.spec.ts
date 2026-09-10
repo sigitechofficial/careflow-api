@@ -132,6 +132,14 @@ describe('encodeVisitTaskOutcomeFields / stripVisitTaskOutcomeNotes', () => {
     ).toBe('Asked later');
   });
 
+  it('hides MAR auto-complete system notes', () => {
+    expect(
+      stripVisitTaskOutcomeNotes(
+        'Auto-completed: scheduled MAR round complete (2/2)',
+      ),
+    ).toBeNull();
+  });
+
   it('clears PARTIAL sentinel when outcome is COMPLETED', () => {
     expect(
       encodeVisitTaskOutcomeFields({

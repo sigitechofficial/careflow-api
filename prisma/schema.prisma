@@ -994,6 +994,7 @@ model Employee {
   visitCareConsentsCaptured VisitCareConsent[]
   visitPlanSlotCarerAssignments VisitPlanSlotCarerAssignment[]
   observationsRecorded      ServiceUserObservation[]        @relation("ObservationRecordedByEmployee")
+  observationPhotosUploaded ServiceUserObservationPhoto[]   @relation("ObservationPhotoUploadedByEmployee")
   scheduleRuns              ScheduleRun[]
   portalAccount             EmployeePortalAccount?
   hoursMonthlyReviews       EmployeeHoursMonthlyReview[]
@@ -2534,6 +2535,13 @@ model ServiceUserFunding {
   billingContactName String?
   billingContactEmail String?
   billingContactPhone String?
+  /// Postal address where invoices for this funding line should be sent.
+  billingAddressLine1 String?
+  billingAddressLine2 String?
+  billingTown         String?
+  billingCounty       String?
+  billingCountry      String?
+  billingPostcode     String?
   invoiceGroupingRule String?
   isPrimary          Boolean        @default(false)
   isActive           Boolean        @default(true)
@@ -2628,6 +2636,8 @@ model ServiceUser {
 
   currentFundingId       String?   @unique @db.Uuid
   defaultChargeCardId    String?   @db.Uuid
+  /// How often this client is invoiced (weekly vs monthly invoice runs).
+  invoiceBillingFrequency BillingFrequency @default(WEEKLY)
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -3510,6 +3520,10 @@ model ServiceUserAddress {
   secondaryPostcode  String?
   latitude           Decimal? @db.Decimal(10, 7)
   longitude          Decimal? @db.Decimal(10, 7)
+  /// How carers enter: key_safe | answers_door | family_keyholder | agency_holds_key | intercom | other
+  accessMethod       String?  @db.VarChar(32)
+  /// Where the key safe is fitted (not the code).
+  keySafeLocation    String?
   accessInstructions String?
   keySafeNumber      String?
 
@@ -4496,6 +4510,8 @@ model ServiceUserVisitTaskAssignment {
   taskCatalogueTaskId String    @db.Uuid
   sortOrder           Int       @default(0)
   carerInstructions   String?   @db.Text
+  /// When true, the carer must add a body-map mark before this visit task can complete.
+  bodyMapRequired     Boolean   @default(false)
   priority            String    @default("routine")
   /// Per-task recurrence (same rules as visit-plan call slots). Defaults = every day.
   daysOfWeek             Int[]                       @default([0, 1, 2, 3, 4, 5, 6])
@@ -5704,11 +5720,32 @@ model ServiceUserObservation {
   recordedByEmployee Employee?          @relation("ObservationRecordedByEmployee", fields: [recordedByEmployeeId], references: [id])
   shares             ObservationRecordShare[]
   wellbeingScores  WellbeingObservationScore[]
+  photos             ServiceUserObservationPhoto[]
 
   @@index([serviceUserId])
   @@index([observationTypeId])
   @@index([recordedAt])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserObservationPhoto {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  observationId        String                    @db.Uuid
+  fileName             String
+  originalName         String?
+  fileUrl              String
+  fileSize             Int?
+  mimeType             String?
+  consentStatus        BodyMapPhotoConsentStatus
+  caption              String?
+  uploadedByEmployeeId String?                   @db.Uuid
+  createdAt            DateTime                  @default(now())
+
+  observation        ServiceUserObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  uploadedByEmployee Employee?              @relation("ObservationPhotoUploadedByEmployee", fields: [uploadedByEmployeeId], references: [id])
+
+  @@index([observationId])
   @@schema("service_users")
 }
 
@@ -6163,6 +6200,7 @@ model ScheduledJob {
   ecmScheduleVersions EcmScheduleVersion[]
   ecmNotificationEvidence EcmNotificationEvidence[]
   visitAreaLocks   VisitAreaLock[]
+  visitCheckInMethodGrants VisitCheckInMethodGrant[]
   timelineEvents   VisitTimelineEvent[]
   careConsents     VisitCareConsent[]
 
@@ -6612,6 +6650,41 @@ model VisitClockInArrivalReasonCatalog {
   @@schema("scheduling")
 }
 
+/// Org-configurable emergency clinical protocols for the carer-app (info icon
+/// runner). Served via employee-app visit details; managed in admin Settings.
+model EmergencyProtocolCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(64)
+  title     String
+  subtitle  String   @default("")
+  version   String   @default("")
+  /// activity | droplet | wind | smile | heart | alert | brain | pulse
+  iconKey   String   @default("alert") @db.VarChar(32)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  steps     EmergencyProtocolStep[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+model EmergencyProtocolStep {
+  id         String                    @id @default(uuid()) @db.Uuid
+  protocolId String                    @db.Uuid
+  protocol   EmergencyProtocolCatalog  @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  action     String
+  detail     String                    @default("")
+  sortOrder  Int                       @default(0)
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+
+  @@index([protocolId, sortOrder])
+  @@schema("scheduling")
+}
+
 /// Org-configurable on-entry welfare outcomes shown in the carer-app clock-in
 /// sheet. Served via employee-app visit details; managed in admin Settings.
 model VisitWelfareOutcomeCatalog {
@@ -6863,6 +6936,7 @@ enum EcmExceptionKind {
   MANUAL_ATTENDANCE
   MOCK_LOCATION
   CARER_SOS
+  OUTSIDE_AREA_CHECK_IN_REQUEST
   OTHER
 
   @@schema("scheduling")
@@ -6914,6 +6988,7 @@ model EcmException {
   ecmVisitEvaluation EcmVisitEvaluation? @relation(fields: [ecmVisitEvaluationId], references: [id], onDelete: SetNull)
   notificationEvidence EcmNotificationEvidence[]
   visitAreaLock      VisitAreaLock?
+  checkInMethodGrant VisitCheckInMethodGrant?
 
   @@index([scheduledJobId])
   @@index([lifecycle])
@@ -6953,6 +7028,51 @@ model VisitAreaLock {
 
   @@index([scheduledJobId, status])
   @@index([scheduledJobId, lockedAt])
+  @@schema("scheduling")
+}
+
+enum VisitCheckInMethodGrantStatus {
+  PENDING
+  AUTHORISED
+  REJECTED
+  CONSUMED
+
+  @@schema("scheduling")
+}
+
+/// Office-authorised Manual clock-in for one carer, one visit, one operational day.
+/// Does not change organisation check-in method settings.
+model VisitCheckInMethodGrant {
+  id               String                          @id @default(uuid()) @db.Uuid
+  scheduledJobId   String                          @db.Uuid
+  employeeId       String                          @db.Uuid
+  /// Visit operational calendar day YYYY-MM-DD in organisation timezone.
+  operationalDay   String
+  status           VisitCheckInMethodGrantStatus   @default(PENDING)
+  carerNote        String?
+  latitude         Decimal?                        @db.Decimal(10, 7)
+  longitude        Decimal?                        @db.Decimal(10, 7)
+  accuracyMeters   Decimal?                        @db.Decimal(8, 2)
+  distanceMeters   Int?
+  isMockedLocation Boolean                         @default(false)
+  locationUnavailable Boolean                      @default(false)
+  requestedAt      DateTime                        @default(now())
+  expiresAt        DateTime
+  decidedAt        DateTime?
+  decidedById      String?                         @db.Uuid
+  decidedByName    String?
+  officeNote       String?
+  consumedAt       DateTime?
+  ecmExceptionId   String?                         @unique @db.Uuid
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+  ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledJobId, employeeId, operationalDay])
+  @@index([scheduledJobId, status])
+  @@index([employeeId, status])
   @@schema("scheduling")
 }
 
@@ -7572,6 +7692,8 @@ enum BillingRateType {
   UPLIFT
   PREMIUM
   DEDUCTION
+  SLEEP_IN
+  WAKING_NIGHT
 
   @@schema("billing")
 }
@@ -7712,12 +7834,42 @@ model PayCard {
   rules              PayCardRule[]
   defaultEmployments EmployeeEmployment[] @relation("EmployeeDefaultPayCard")
   payComponents      PayComponent[]
+  employeeFunderAssignments EmployeeFunderPayAssignment[]
 
   @@index([deletedAt])
   @@index([status])
   @@index([assignmentLevel, assignmentTargetId])
   @@index([assignmentLevel, assignmentTargetKey])
   @@unique([code, version])
+  @@schema("billing")
+}
+
+/**
+ * Per-carer pay card override for work funded by a specific council/funder.
+ * Visit pay resolve: Employee+Funder → Employee default → role/branch/… match.
+ * Charge cards remain independent.
+ */
+model EmployeeFunderPayAssignment {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @db.Uuid
+  funderId      String    @db.Uuid
+  payCardId     String    @db.Uuid
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+
+  payCard PayCard @relation(fields: [payCardId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([funderId])
+  @@index([payCardId])
+  @@index([deletedAt])
+  @@index([employeeId, funderId])
   @@schema("billing")
 }
 
@@ -8295,11 +8447,44 @@ model InvoiceRun {
   createdById       String?                @db.Uuid
 
   lines                    InvoiceRunLine[]
+  documents                InvoiceDocument[]
   lockedReconciliations    VisitReconciliation[] @relation("ReconciliationInvoiceRun")
   paymentAllocations       PaymentAllocation[]
 
   @@index([status])
   @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+/**
+ * One billable invoice document per service user on a run.
+ * invoiceNumber is QBO-style: global sequential (INV-1001, INV-1002, …).
+ */
+model InvoiceDocument {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceRunId  String   @db.Uuid
+  serviceUserId String   @db.Uuid
+  /// Display number, e.g. INV-1001 — unique across the organisation.
+  invoiceNumber String   @unique
+  /// Numeric sequence used to allocate invoiceNumber.
+  sequenceValue Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invoiceRun InvoiceRun @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceRunId, serviceUserId])
+  @@index([invoiceRunId])
+  @@index([serviceUserId])
+  @@schema("billing")
+}
+
+/// Single-row global counter for InvoiceDocument.invoiceNumber (starts at 1000 → next INV-1001).
+model InvoiceNumberSequence {
+  id        Int      @id @default(1)
+  lastValue Int      @default(1000)
+  updatedAt DateTime @updatedAt
+
   @@schema("billing")
 }
 
@@ -8370,6 +8555,9 @@ model Payment {
   matchedAmount Decimal             @default(0) @db.Decimal(12, 2)
   currency      String              @default("GBP")
   funderId      String?             @db.Uuid
+  /// When set, this payment was recorded against a specific service-user invoice
+  /// and should count fully toward that person's paid balance on the run.
+  serviceUserId String?             @db.Uuid
   notes         String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -8381,6 +8569,7 @@ model Payment {
   @@index([matchStatus])
   @@index([recordStatus])
   @@index([funderId])
+  @@index([serviceUserId])
   @@schema("billing")
 }
 

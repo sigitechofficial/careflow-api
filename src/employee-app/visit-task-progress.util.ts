@@ -92,7 +92,8 @@ export function stripVisitTaskOutcomeNotes(notes: string | null | undefined): st
         part.length > 0 &&
         !/^Outcome:\s*/i.test(part) &&
         !/^Reason:\s*/i.test(part) &&
-        !/^Checklist:\s*/i.test(part),
+        !/^Checklist:\s*/i.test(part) &&
+        !/^Auto-completed:/i.test(part),
     )
     .join(' · ')
     .trim();

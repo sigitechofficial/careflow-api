@@ -219,6 +219,18 @@ export class ServiceUserFundingService {
       data.billingContactEmail = dto.billingContactEmail?.trim() || null;
     if (dto.billingContactPhone !== undefined)
       data.billingContactPhone = dto.billingContactPhone?.trim() || null;
+    if (dto.billingAddressLine1 !== undefined)
+      data.billingAddressLine1 = dto.billingAddressLine1?.trim() || null;
+    if (dto.billingAddressLine2 !== undefined)
+      data.billingAddressLine2 = dto.billingAddressLine2?.trim() || null;
+    if (dto.billingTown !== undefined)
+      data.billingTown = dto.billingTown?.trim() || null;
+    if (dto.billingCounty !== undefined)
+      data.billingCounty = dto.billingCounty?.trim() || null;
+    if (dto.billingCountry !== undefined)
+      data.billingCountry = dto.billingCountry?.trim() || null;
+    if (dto.billingPostcode !== undefined)
+      data.billingPostcode = dto.billingPostcode?.trim() || null;
     if (dto.invoiceGroupingRule !== undefined)
       data.invoiceGroupingRule = dto.invoiceGroupingRule?.trim() || null;
     if (dto.isPrimary !== undefined) data.isPrimary = dto.isPrimary;

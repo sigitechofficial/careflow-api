@@ -23,6 +23,8 @@ import { UpdateVisitOutcomeReasonDto } from './dto/update-visit-outcome-reason.d
 import { CreateAllergyCatalogDto } from './dto/create-allergy-catalog.dto';
 import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
+import { CreateEmergencyProtocolDto } from './dto/create-emergency-protocol.dto';
+import { UpdateEmergencyProtocolDto } from './dto/update-emergency-protocol.dto';
 
 @ApiTags('Lookups')
 @ApiBearerAuth()
@@ -544,6 +546,38 @@ export class LookupsController {
   async deleteWelfareOutcome(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.deleteWelfareOutcome(id);
     return { message: 'Welfare outcome deleted' };
+  }
+
+  @Get('emergency-protocols')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List emergency protocols for the carer-app runner' })
+  async emergencyProtocols() {
+    return { data: await this.service.listEmergencyProtocols() };
+  }
+
+  @Post('emergency-protocols')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create an emergency protocol' })
+  async createEmergencyProtocol(@Body() dto: CreateEmergencyProtocolDto) {
+    return { data: await this.service.createEmergencyProtocol(dto) };
+  }
+
+  @Patch('emergency-protocols/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update an emergency protocol and optionally replace steps' })
+  async updateEmergencyProtocol(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateEmergencyProtocolDto,
+  ) {
+    return { data: await this.service.updateEmergencyProtocol(id, dto) };
+  }
+
+  @Delete('emergency-protocols/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate an emergency protocol' })
+  async deleteEmergencyProtocol(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteEmergencyProtocol(id);
+    return { message: 'Emergency protocol deleted' };
   }
 
   @Get('vital-accepted-ranges')

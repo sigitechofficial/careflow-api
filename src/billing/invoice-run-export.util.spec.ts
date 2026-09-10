@@ -1,9 +1,17 @@
 import {
+  buildInvoiceExportVisitRow,
   buildInvoiceRunCsv,
   buildInvoiceRunXlsx,
+  formatExportDurationMinutes,
   invoiceRunExportFilename,
+  resolveExportDurationVariance,
   type InvoiceRunExportModel,
 } from './invoice-run-export.util';
+
+const plannedStart = new Date('2026-07-20T08:00:00.000Z');
+const plannedEnd = new Date('2026-07-20T08:45:00.000Z');
+const actualStart = new Date('2026-07-20T08:05:00.000Z');
+const actualEnd = new Date('2026-07-20T08:40:00.000Z');
 
 const model: InvoiceRunExportModel = {
   periodLabel: 'Week ending 20 Jul 2026',
@@ -13,29 +21,51 @@ const model: InvoiceRunExportModel = {
   currency: 'GBP',
   netTotalValue: 143.34,
   lines: [
-    {
-      funderName: 'NHS Continuing Healthcare',
-      funderCode: 'NHS_CHC',
+    buildInvoiceExportVisitRow({
+      visitRef: 'VIS-L09-20260720-0001',
+      plannedStart,
+      plannedEnd,
+      actualStart,
+      actualEnd,
+      slot: 'Morning',
       serviceUserName: 'John Smith',
-      serviceUserNumber: 'SU-001',
-      visitRef: 'V-2026-07-AB',
-      description: 'Morning call, 45 min',
-      minutes: 45,
-      splitPercent: 30,
+      carerName: 'Amy Carer',
+      address: '12 High Street, SW1A 1AA',
+      funderName: 'Family Funded',
       amountValue: 50,
-      exceptionMessage: null,
-    },
+      paidValue: 3,
+      outstandingValue: 47,
+      timeZone: 'UTC',
+    }),
+    buildInvoiceExportVisitRow({
+      visitRef: 'VIS-L09-20260720-0002',
+      plannedStart: new Date('2026-07-20T12:00:00.000Z'),
+      plannedEnd: new Date('2026-07-20T13:00:00.000Z'),
+      actualStart: new Date('2026-07-20T12:00:00.000Z'),
+      actualEnd: new Date('2026-07-20T13:20:00.000Z'),
+      slot: 'Lunch',
+      serviceUserName: 'John Smith',
+      carerName: 'Amy Carer',
+      address: '12 High Street, SW1A 1AA',
+      funderName: 'NHS Continuing Healthcare',
+      amountValue: 93.34,
+      paidValue: 0,
+      outstandingValue: 93.34,
+      timeZone: 'UTC',
+    }),
+  ],
+  funderSummaries: [
     {
       funderName: 'Family Funded',
-      funderCode: null,
-      serviceUserName: 'John Smith',
-      serviceUserNumber: 'SU-001',
-      visitRef: 'V-2026-07-AB',
-      description: 'Morning call, 45 min',
-      minutes: 45,
-      splitPercent: 50,
-      amountValue: 93.34,
-      exceptionMessage: 'Rate estimated',
+      invoicedValue: 50,
+      paidValue: 3,
+      outstandingValue: 47,
+    },
+    {
+      funderName: 'NHS Continuing Healthcare',
+      invoicedValue: 93.34,
+      paidValue: 0,
+      outstandingValue: 93.34,
     },
   ],
 };
@@ -44,29 +74,34 @@ describe('invoice-run export', () => {
   describe('buildInvoiceRunCsv', () => {
     const csv = buildInvoiceRunCsv(model);
 
-    it('includes the run metadata header', () => {
-      expect(csv).toContain('Invoice Run,Week ending 20 Jul 2026');
-      expect(csv).toContain('Period,2026-07-14 to 2026-07-20');
+    it('starts with visit-detail column headers including funder payment', () => {
+      const body = csv.replace(/^\uFEFF/, '');
+      expect(body.startsWith('Visit reference,Date,Slot,Service user,Carer,')).toBe(
+        true,
+      );
+      expect(csv).toContain(
+        'Address,Funder,Amount,Paid,Outstanding',
+      );
+      expect(csv).not.toContain('Invoice Run,');
     });
 
-    it('renders a row per line with the amount to 2dp', () => {
-      expect(csv).toContain('NHS Continuing Healthcare,NHS_CHC,John Smith,SU-001,V-2026-07-AB');
+    it('renders a row per visit with funder paid and outstanding', () => {
+      expect(csv).toContain('VIS-L09-20260720-0001');
+      expect(csv).toContain('Family Funded');
+      expect(csv).toContain('NHS Continuing Healthcare');
       expect(csv).toContain('50.00');
+      expect(csv).toContain('3.00');
+      expect(csv).toContain('47.00');
       expect(csv).toContain('93.34');
     });
 
-    it('appends the exception note to the description', () => {
-      expect(csv).toContain('Morning call, 45 min [Rate estimated]');
-    });
-
-    it('emits per-funder subtotals and a grand total', () => {
-      expect(csv).toContain('Subtotal');
-      expect(csv).toContain('Total,143.34');
+    it('appends a funder payments summary section', () => {
+      expect(csv).toContain('Funder payments');
+      expect(csv).toContain('Funder,Invoiced,Paid,Outstanding');
     });
 
     it('quotes fields containing commas', () => {
-      // "Morning call, 45 min" contains a comma so must be quoted.
-      expect(csv).toContain('"Morning call, 45 min');
+      expect(csv).toContain('"12 High Street, SW1A 1AA"');
     });
 
     it('starts with a UTF-8 BOM for Excel', () => {
@@ -74,11 +109,54 @@ describe('invoice-run export', () => {
     });
   });
 
+  describe('duration helpers', () => {
+    it('formats duration minutes', () => {
+      expect(formatExportDurationMinutes(45)).toBe('45m');
+      expect(formatExportDurationMinutes(60)).toBe('1h');
+      expect(formatExportDurationMinutes(75)).toBe('1h 15m');
+      expect(formatExportDurationMinutes(null)).toBe('');
+    });
+
+    it('classifies duration variance', () => {
+      expect(
+        resolveExportDurationVariance({
+          plannedStart,
+          plannedEnd,
+          actualStart,
+          actualEnd,
+        }),
+      ).toMatch(/^On time/);
+      expect(
+        resolveExportDurationVariance({
+          plannedStart,
+          plannedEnd,
+          actualStart: plannedStart,
+          actualEnd: new Date('2026-07-20T09:10:00.000Z'),
+        }),
+      ).toMatch(/^Exceeded/);
+      expect(
+        resolveExportDurationVariance({
+          plannedStart,
+          plannedEnd,
+          actualStart: plannedStart,
+          actualEnd: new Date('2026-07-20T08:20:00.000Z'),
+        }),
+      ).toMatch(/^Short/);
+      expect(
+        resolveExportDurationVariance({
+          plannedStart,
+          plannedEnd,
+          actualStart: null,
+          actualEnd: null,
+        }),
+      ).toBe('Not assessed');
+    });
+  });
+
   describe('buildInvoiceRunXlsx', () => {
     it('produces a valid xlsx (zip) buffer', async () => {
       const buf = await buildInvoiceRunXlsx(model);
       expect(Buffer.isBuffer(buf)).toBe(true);
-      // xlsx is a zip archive — starts with the PK signature.
       expect(buf[0]).toBe(0x50);
       expect(buf[1]).toBe(0x4b);
       expect(buf.length).toBeGreaterThan(1000);
@@ -87,8 +165,12 @@ describe('invoice-run export', () => {
 
   describe('invoiceRunExportFilename', () => {
     it('slugs the period label', () => {
-      expect(invoiceRunExportFilename(model, 'csv')).toBe('invoice-Week-ending-20-Jul-2026.csv');
-      expect(invoiceRunExportFilename(model, 'xlsx')).toBe('invoice-Week-ending-20-Jul-2026.xlsx');
+      expect(invoiceRunExportFilename(model, 'csv')).toBe(
+        'invoice-Week-ending-20-Jul-2026.csv',
+      );
+      expect(invoiceRunExportFilename(model, 'xlsx')).toBe(
+        'invoice-Week-ending-20-Jul-2026.xlsx',
+      );
     });
   });
 });
