@@ -218,7 +218,7 @@ describe('deriveReconciliationStatus — default approved for both', () => {
     ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
   });
 
-  it('preserves an existing narrower or locked approval when clean', () => {
+  it('preserves human approval when only soft exceptions remain', () => {
     expect(
       deriveReconciliationStatus([], VisitReconciliationStatus.APPROVED_FOR_PAY),
     ).toBe(VisitReconciliationStatus.APPROVED_FOR_PAY);
@@ -231,6 +231,21 @@ describe('deriveReconciliationStatus — default approved for both', () => {
     expect(
       deriveReconciliationStatus(
         [{ code: FinanceExceptionCode.OVERRUN, message: 'over' }],
+        VisitReconciliationStatus.APPROVED_FOR_BOTH,
+      ),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+    expect(
+      deriveReconciliationStatus(
+        [{ code: FinanceExceptionCode.UNDERRUN, message: 'short' }],
+        VisitReconciliationStatus.APPROVED_FOR_BOTH,
+      ),
+    ).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+  });
+
+  it('resets human approval when a blocking exception appears', () => {
+    expect(
+      deriveReconciliationStatus(
+        [{ code: FinanceExceptionCode.CHARGE_CARD_MISSING, message: 'No charge card' }],
         VisitReconciliationStatus.APPROVED_FOR_BOTH,
       ),
     ).toBe(VisitReconciliationStatus.PENDING_REVIEW);

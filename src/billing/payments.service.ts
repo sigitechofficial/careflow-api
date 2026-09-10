@@ -20,8 +20,6 @@ import { formatMoney, parseBillingDateOnly } from './billing-run.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 
 const RECEIVABLE_STATUSES: InvoiceRunStatus[] = [
-  InvoiceRunStatus.READY_FOR_REVIEW,
-  InvoiceRunStatus.EXCEPTION_FOUND,
   InvoiceRunStatus.APPROVED,
   InvoiceRunStatus.LOCKED,
   InvoiceRunStatus.SENT,
@@ -445,7 +443,7 @@ export class PaymentsService {
     if (!invoiceRun) throw new BadRequestException('Invoice run not found');
     if (!RECEIVABLE_STATUSES.includes(invoiceRun.status)) {
       throw new BadRequestException(
-        'Invoice run must be calculated (or later) before payment allocation',
+        'Invoice run must be approved before payment can be recorded',
       );
     }
 

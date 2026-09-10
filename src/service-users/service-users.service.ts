@@ -539,6 +539,7 @@ export class ServiceUsersService implements OnModuleInit {
           : undefined,
         keyWorker: dto.keyWorkerId ? { connect: { id: dto.keyWorkerId } } : undefined,
         namedNurse: dto.namedNurseId ? { connect: { id: dto.namedNurseId } } : undefined,
+        invoiceBillingFrequency: dto.invoiceBillingFrequency,
       };
 
       const created = await tx.serviceUser.create({ data });
@@ -715,6 +716,9 @@ export class ServiceUsersService implements OnModuleInit {
         data.defaultChargeCard = dto.defaultChargeCardId
           ? { connect: { id: dto.defaultChargeCardId } }
           : { disconnect: true };
+      }
+      if (dto.invoiceBillingFrequency !== undefined) {
+        data.invoiceBillingFrequency = dto.invoiceBillingFrequency;
       }
 
       const updated = await tx.serviceUser.update({ where: { id }, data });

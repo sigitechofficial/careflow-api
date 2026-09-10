@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -168,6 +169,14 @@ export class CreateServiceUserDto {
   @IsOptional()
   @IsUUID()
   defaultChargeCardId?: string | null;
+
+  @ApiPropertyOptional({
+    enum: ['WEEKLY', 'MONTHLY'],
+    description: 'How often this client is invoiced (weekly vs monthly invoice runs)',
+  })
+  @IsOptional()
+  @IsIn(['WEEKLY', 'MONTHLY'])
+  invoiceBillingFrequency?: 'WEEKLY' | 'MONTHLY';
 
   @ApiPropertyOptional({ type: [ServiceUserReferenceItemDto] })
   @IsOptional()

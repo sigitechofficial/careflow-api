@@ -136,6 +136,7 @@ export function mapServiceUserDetail(
   notes: string | null;
   defaultChargeCardId: string | null;
   defaultChargeCard: { id: string; name: string; code: string; status: string } | null;
+  invoiceBillingFrequency: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -243,6 +244,7 @@ export function mapServiceUserDetail(
     notes: user.notes,
     defaultChargeCardId: user.defaultChargeCardId,
     defaultChargeCard: user.defaultChargeCard,
+    invoiceBillingFrequency: user.invoiceBillingFrequency,
     isActive: user.isActive,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

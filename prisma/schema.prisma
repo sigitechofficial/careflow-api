@@ -2534,6 +2534,13 @@ model ServiceUserFunding {
   billingContactName String?
   billingContactEmail String?
   billingContactPhone String?
+  /// Postal address where invoices for this funding line should be sent.
+  billingAddressLine1 String?
+  billingAddressLine2 String?
+  billingTown         String?
+  billingCounty       String?
+  billingCountry      String?
+  billingPostcode     String?
   invoiceGroupingRule String?
   isPrimary          Boolean        @default(false)
   isActive           Boolean        @default(true)
@@ -2626,6 +2633,8 @@ model ServiceUser {
 
   currentFundingId       String?   @unique @db.Uuid
   defaultChargeCardId    String?   @db.Uuid
+  /// How often this client is invoiced (weekly vs monthly invoice runs).
+  invoiceBillingFrequency BillingFrequency @default(WEEKLY)
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -8191,11 +8200,44 @@ model InvoiceRun {
   createdById       String?                @db.Uuid
 
   lines                    InvoiceRunLine[]
+  documents                InvoiceDocument[]
   lockedReconciliations    VisitReconciliation[] @relation("ReconciliationInvoiceRun")
   paymentAllocations       PaymentAllocation[]
 
   @@index([status])
   @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+/**
+ * One billable invoice document per service user on a run.
+ * invoiceNumber is QBO-style: global sequential (INV-1001, INV-1002, …).
+ */
+model InvoiceDocument {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceRunId  String   @db.Uuid
+  serviceUserId String   @db.Uuid
+  /// Display number, e.g. INV-1001 — unique across the organisation.
+  invoiceNumber String   @unique
+  /// Numeric sequence used to allocate invoiceNumber.
+  sequenceValue Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invoiceRun InvoiceRun @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceRunId, serviceUserId])
+  @@index([invoiceRunId])
+  @@index([serviceUserId])
+  @@schema("billing")
+}
+
+/// Single-row global counter for InvoiceDocument.invoiceNumber (starts at 1000 → next INV-1001).
+model InvoiceNumberSequence {
+  id        Int      @id @default(1)
+  lastValue Int      @default(1000)
+  updatedAt DateTime @updatedAt
+
   @@schema("billing")
 }
 

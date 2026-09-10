@@ -283,18 +283,23 @@ export function deriveReconciliationStatus(
     return currentStatus;
   }
 
-  // Any finance exception → office must review before pay/invoice.
-  if (exceptions.length > 0) {
-    return VisitReconciliationStatus.PENDING_REVIEW;
-  }
-
-  // Keep a narrower / human approval when already set and the visit is clean.
-  if (
+  const humanApproved =
     currentStatus === VisitReconciliationStatus.APPROVED_FOR_PAY ||
     currentStatus === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH
-  ) {
+    currentStatus === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+
+  // Soft flags (UNDERRUN / OVERRUN / etc.) still need office review before the first
+  // approval — but once finance clicks All / Pay / Bill, keep that choice unless a
+  // blocking setup exception appears (missing cards, funding, PO, tasks, …).
+  if (humanApproved) {
+    if (hasUnresolvedBlockingExceptions(exceptions)) {
+      return VisitReconciliationStatus.PENDING_REVIEW;
+    }
     return currentStatus;
+  }
+
+  if (exceptions.length > 0) {
+    return VisitReconciliationStatus.PENDING_REVIEW;
   }
 
   // Clean visits default to approved for carer pay + funders.

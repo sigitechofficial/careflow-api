@@ -1566,8 +1566,9 @@ export class VisitReconciliationsService {
       }
     }
 
-    // Default: clean visits → APPROVED_FOR_BOTH. Any exception → PENDING_REVIEW.
-    // Preserve LOCKED / REJECTED; derive keeps narrower human approvals when clean.
+    // Default: clean visits → APPROVED_FOR_BOTH. Soft exceptions → PENDING_REVIEW until
+    // finance clicks All / Pay / Bill; those human approvals are preserved on re-evaluate
+    // unless a blocking setup exception appears.
     const status =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
@@ -1934,8 +1935,8 @@ export class VisitReconciliationsService {
       });
     }
 
-    // Clean visits auto-approve BOTH; exceptions force PENDING_REVIEW.
-    // Manual All / Carer Pay / Funders still override and are preserved when clean.
+    // Clean visits auto-approve BOTH; soft exceptions stay pending until human approve.
+    // Manual All / Carer Pay / Funders are preserved on re-evaluate (soft flags stay).
     const lockedOrRejected =
       row.status === VisitReconciliationStatus.LOCKED ||
       row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||

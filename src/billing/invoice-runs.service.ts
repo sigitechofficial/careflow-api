@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BillingFrequency,
   BillingRunExportStatus,
   InvoiceRunLineType,
   InvoiceRunStatus,
@@ -50,6 +51,35 @@ const INVOICE_ELIGIBLE_RECON: VisitReconciliationStatus[] = [
   VisitReconciliationStatus.APPROVED_FOR_BOTH,
 ];
 
+/** QBO-style display number from the global sequence (INV-1001, INV-1002, …). */
+function formatInvoiceNumber(sequenceValue: number): string {
+  return `INV-${sequenceValue}`;
+}
+
+/**
+ * Infer invoice-run cadence from period span (matches BillingRunPeriodDialog).
+ * Returns null for custom spans so calculate does not filter by SU cadence.
+ */
+function resolveInvoiceRunCadence(
+  periodStart: Date,
+  periodEnd: Date,
+): 'WEEKLY' | 'MONTHLY' | null {
+  const start = Date.UTC(
+    periodStart.getUTCFullYear(),
+    periodStart.getUTCMonth(),
+    periodStart.getUTCDate(),
+  );
+  const end = Date.UTC(
+    periodEnd.getUTCFullYear(),
+    periodEnd.getUTCMonth(),
+    periodEnd.getUTCDate(),
+  );
+  const days = Math.round((end - start) / 86_400_000) + 1;
+  if (days >= 6 && days <= 8) return 'WEEKLY';
+  if (days >= 28 && days <= 31) return 'MONTHLY';
+  return null;
+}
+
 export type InvoiceRunRow = {
   id: string;
   period: string;
@@ -61,6 +91,15 @@ export type InvoiceRunRow = {
   netTotal: string;
   exceptions: number;
   exportStatus: BillingRunExportStatus;
+  /** Per–service-user invoices on the run that are fully paid. */
+  invoicesPaid: number;
+  /** Per–service-user invoices with no payment yet. */
+  invoicesUnpaid: number;
+  /** Per–service-user invoices with some but not all payment. */
+  invoicesPartPaid: number;
+  /** Sum of payment allocations on the run. */
+  paidAmount: string;
+  paidAmountValue: number;
 };
 
 @Injectable()
@@ -88,8 +127,33 @@ export class InvoiceRunsService {
     const rows = await this.prisma.invoiceRun.findMany({
       where,
       orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        lines: {
+          select: {
+            serviceUserId: true,
+            funderId: true,
+            amount: true,
+          },
+        },
+        paymentAllocations: {
+          select: {
+            amount: true,
+            payment: {
+              select: { serviceUserId: true, funderId: true },
+            },
+          },
+        },
+      },
     });
-    return { data: rows.map((r) => this.mapRow(r)) };
+    return {
+      data: rows.map((r) => {
+        const paymentStats = this.computeListPaymentStats(
+          r.lines,
+          r.paymentAllocations,
+        );
+        return this.mapRow(r, paymentStats);
+      }),
+    };
   }
 
   async getSummary(locationId?: string) {
@@ -282,10 +346,24 @@ export class InvoiceRunsService {
       paymentsByRun.map((p) => [p.invoiceRunId, Number(p._sum.amount ?? 0)]),
     );
 
+    const runIdsForDocs = [...byRun.keys()];
+    const suInvoiceDocs = runIdsForDocs.length
+      ? await this.prisma.invoiceDocument.findMany({
+          where: {
+            invoiceRunId: { in: runIdsForDocs },
+            serviceUserId,
+          },
+          select: { invoiceRunId: true, invoiceNumber: true },
+        })
+      : [];
+    const invoiceNumberByRun = new Map(
+      suInvoiceDocs.map((d) => [d.invoiceRunId, d.invoiceNumber]),
+    );
+
     // Per-funder paid: each payment carries the funder that sent it, so attribute
     // allocations to (run, funder) to show how much each funder has settled.
     const runFunderAllocations = await this.prisma.paymentAllocation.findMany({
-      where: { invoiceRunId: { in: [...byRun.keys()] } },
+      where: { invoiceRunId: { in: runIdsForDocs } },
       select: {
         invoiceRunId: true,
         amount: true,
@@ -452,6 +530,7 @@ export class InvoiceRunsService {
           exportStatus: run.exportStatus,
           sentAt: run.sentAt?.toISOString() ?? null,
           lockedAt: run.lockedAt?.toISOString() ?? null,
+          invoiceNumber: invoiceNumberByRun.get(run.id) ?? null,
           lineCount: mappedLines.length,
           subtotal: formatMoney(subtotal),
           subtotalValue: Math.round(subtotal * 100) / 100,
@@ -468,8 +547,11 @@ export class InvoiceRunsService {
           paymentStatus,
           sent,
           canSend:
+            run.status === InvoiceRunStatus.APPROVED ||
             run.status === InvoiceRunStatus.LOCKED ||
-            run.status === InvoiceRunStatus.APPROVED,
+            run.status === InvoiceRunStatus.SENT ||
+            run.status === InvoiceRunStatus.PART_PAID ||
+            run.status === InvoiceRunStatus.PAID,
         };
       });
 
@@ -482,6 +564,7 @@ export class InvoiceRunsService {
     });
 
     const invoicedStatuses: InvoiceRunStatus[] = [
+      InvoiceRunStatus.APPROVED,
       InvoiceRunStatus.LOCKED,
       InvoiceRunStatus.SENT,
       InvoiceRunStatus.PART_PAID,
@@ -490,6 +573,12 @@ export class InvoiceRunsService {
     const totalInvoiced = runs
       .filter((r) => invoicedStatuses.includes(r.status))
       .reduce((sum, r) => sum + r.subtotalValue, 0);
+    const totalPaid = runs
+      .filter((r) => invoicedStatuses.includes(r.status))
+      .reduce((sum, r) => sum + r.paidValue, 0);
+    const openBalance = runs
+      .filter((r) => invoicedStatuses.includes(r.status))
+      .reduce((sum, r) => sum + r.outstandingValue, 0);
 
     return {
       data: {
@@ -501,6 +590,10 @@ export class InvoiceRunsService {
         readyToInvoiceCount,
         totalInvoiced: formatMoney(totalInvoiced),
         totalInvoicedValue: Math.round(totalInvoiced * 100) / 100,
+        totalPaid: formatMoney(totalPaid),
+        totalPaidValue: Math.round(totalPaid * 100) / 100,
+        openBalance: formatMoney(openBalance),
+        openBalanceValue: Math.round(openBalance * 100) / 100,
         runCount: runs.length,
         runs,
       },
@@ -608,6 +701,21 @@ export class InvoiceRunsService {
       : [];
     const funderNameMap = new Map(overviewFunders.map((f) => [f.id, f.name]));
 
+    const invoiceDocs = await this.prisma.invoiceDocument.findMany({
+      where: { invoiceRunId: { in: runIds } },
+      select: {
+        invoiceRunId: true,
+        serviceUserId: true,
+        invoiceNumber: true,
+      },
+    });
+    const invoiceNumberByRunSu = new Map(
+      invoiceDocs.map((d) => [
+        `${d.invoiceRunId}::${d.serviceUserId}`,
+        d.invoiceNumber,
+      ]),
+    );
+
     const grouped = await this.prisma.invoiceRunLine.groupBy({
       by: ['serviceUserId', 'invoiceRunId'],
       where: { invoiceRunId: { in: runIds } },
@@ -655,6 +763,8 @@ export class InvoiceRunsService {
       exportStatus: BillingRunExportStatus;
       sent: boolean;
       sentAt: string | null;
+      /** QBO-style sequential number, e.g. INV-1001 */
+      invoiceNumber: string | null;
       lineCount: number;
       subtotal: string;
       subtotalValue: number;
@@ -803,6 +913,11 @@ export class InvoiceRunsService {
       );
       const suPaymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
         suPaid <= 0 ? 'UNPAID' : suOutstanding <= 0.001 ? 'PAID' : 'PART_PAID';
+      const receivable =
+        run.status === InvoiceRunStatus.APPROVED ||
+        run.status === InvoiceRunStatus.LOCKED ||
+        run.status === InvoiceRunStatus.SENT ||
+        run.status === InvoiceRunStatus.PART_PAID;
 
       row.months.push({
         runId: run.id,
@@ -813,6 +928,8 @@ export class InvoiceRunsService {
         exportStatus: run.exportStatus,
         sent,
         sentAt: run.sentAt?.toISOString() ?? null,
+        invoiceNumber:
+          invoiceNumberByRunSu.get(`${run.id}::${g.serviceUserId}`) ?? null,
         lineCount: g._count._all,
         subtotal: formatMoney(amount),
         subtotalValue: Math.round(amount * 100) / 100,
@@ -823,7 +940,7 @@ export class InvoiceRunsService {
         outstanding: formatMoney(suOutstanding),
         outstandingValue: suOutstanding,
         paymentStatus: suPaymentStatus,
-        canRecordPayment: sent && suOutstanding > 0.001,
+        canRecordPayment: receivable && suOutstanding > 0.001,
         serviceUserId: g.serviceUserId,
         funders,
       });
@@ -877,6 +994,22 @@ export class InvoiceRunsService {
     });
     if (!row) throw new NotFoundException('Invoice run not found');
 
+    // Backfill QBO-style numbers for runs calculated before InvoiceDocument existed.
+    const suIdsOnRun = [...new Set(row.lines.map((l) => l.serviceUserId))];
+    if (suIdsOnRun.length) {
+      await this.prisma.$transaction(async (tx) => {
+        await this.syncInvoiceDocuments(tx, id, suIdsOnRun);
+      });
+    }
+
+    const documents = await this.prisma.invoiceDocument.findMany({
+      where: { invoiceRunId: id },
+      select: { serviceUserId: true, invoiceNumber: true },
+    });
+    const invoiceNumberBySu = new Map(
+      documents.map((d) => [d.serviceUserId, d.invoiceNumber]),
+    );
+
     const serviceUserIds = [...new Set(row.lines.map((l) => l.serviceUserId))];
     const funderIds = [
       ...new Set(
@@ -896,6 +1029,7 @@ export class InvoiceRunsService {
               lastName: true,
               preferredName: true,
               serviceUserNumber: true,
+              invoiceBillingFrequency: true,
             },
           })
         : Promise.resolve([]),
@@ -914,6 +1048,7 @@ export class InvoiceRunsService {
           name:
             su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim(),
           number: su.serviceUserNumber,
+          invoiceBillingFrequency: su.invoiceBillingFrequency,
         },
       ]),
     );
@@ -969,6 +1104,8 @@ export class InvoiceRunsService {
         serviceUserId: l.serviceUserId,
         serviceUserName: su?.name ?? 'Unknown service user',
         serviceUserNumber: su?.number ?? null,
+        invoiceBillingFrequency:
+          su?.invoiceBillingFrequency ?? BillingFrequency.WEEKLY,
         funderId: l.funderId,
         funderName:
           funder?.name ?? (l.funderId ? 'Unknown funder' : 'Direct / family'),
@@ -1000,8 +1137,9 @@ export class InvoiceRunsService {
       );
       const paymentStatus: 'UNPAID' | 'PART_PAID' | 'PAID' =
         paid <= 0 ? 'UNPAID' : outstandingF <= 0.001 ? 'PAID' : 'PART_PAID';
+      const { lines: _funderLines, ...funderRest } = fs;
       return {
-        ...fs,
+        ...funderRest,
         paid: formatMoney(paid),
         paidValue: paid,
         outstanding: formatMoney(outstandingF),
@@ -1222,14 +1360,18 @@ export class InvoiceRunsService {
 
         history.sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
 
+        const { lines: _lines, ...summary } = su;
         return {
-          ...su,
+          ...summary,
+          invoiceNumber:
+            invoiceNumberBySu.get(su.serviceUserId) ?? null,
           funders: fundersWithPaid,
           paid: formatMoney(paid),
           paidValue: paid,
           outstanding: formatMoney(outstandingSu),
           outstandingValue: outstandingSu,
           paymentStatus,
+          exceptionCount: su.lines.filter((l) => l.exceptionMessage).length,
           history,
         };
       },
@@ -1237,7 +1379,18 @@ export class InvoiceRunsService {
 
     return {
       data: {
-        ...this.mapRow(row),
+        ...this.mapRow(row, {
+          invoicesPaid: serviceUserSummaries.filter(
+            (s) => s.paymentStatus === 'PAID',
+          ).length,
+          invoicesUnpaid: serviceUserSummaries.filter(
+            (s) => s.paymentStatus === 'UNPAID',
+          ).length,
+          invoicesPartPaid: serviceUserSummaries.filter(
+            (s) => s.paymentStatus === 'PART_PAID',
+          ).length,
+          paidAmountValue: paidAmount,
+        }),
         notes: row.notes,
         lineCount: row.lines.length,
         createdAt: row.createdAt.toISOString(),
@@ -1618,6 +1771,25 @@ export class InvoiceRunsService {
       orderBy: { approvedBillStart: 'asc' },
     });
 
+    const runCadence = resolveInvoiceRunCadence(run.periodStart, run.periodEnd);
+    let eligibleRecons = reconciliations;
+    if (runCadence) {
+      const reconSuIds = [...new Set(reconciliations.map((r) => r.serviceUserId))];
+      const suCadenceRows = reconSuIds.length
+        ? await this.prisma.serviceUser.findMany({
+            where: { id: { in: reconSuIds } },
+            select: { id: true, invoiceBillingFrequency: true },
+          })
+        : [];
+      const cadenceBySu = new Map(
+        suCadenceRows.map((s) => [s.id, s.invoiceBillingFrequency]),
+      );
+      eligibleRecons = reconciliations.filter((r) => {
+        const freq = cadenceBySu.get(r.serviceUserId) ?? BillingFrequency.WEEKLY;
+        return freq === runCadence;
+      });
+    }
+
     const lineData: Prisma.InvoiceRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
     let templateMissingCount = 0;
@@ -1627,7 +1799,7 @@ export class InvoiceRunsService {
     // Ensure an organisation-wide default exists for funders/contracts with no template.
     await this.invoiceTemplates.ensureOrganisationDefaultTemplate();
 
-    for (const recon of reconciliations) {
+    for (const recon of eligibleRecons) {
       const billMins = recon.billableMinutes ?? 0;
       const billAmt =
         recon.billableAmount != null ? Number(recon.billableAmount) : 0;
@@ -1809,6 +1981,11 @@ export class InvoiceRunsService {
           exportStatus,
         },
       });
+      await this.syncInvoiceDocuments(
+        tx,
+        id,
+        [...serviceUserIds],
+      );
     });
 
     return this.getById(id);
@@ -2025,6 +2202,21 @@ export class InvoiceRunsService {
 
   /** Email this service user's invoice CSV to a billing / service-user address. */
   async emailToServiceUser(runId: string, dto: EmailInvoiceToServiceUserDto) {
+    const run = await this.prisma.invoiceRun.findUnique({ where: { id: runId } });
+    if (!run) throw new NotFoundException('Invoice run not found');
+    const sendable: InvoiceRunStatus[] = [
+      InvoiceRunStatus.APPROVED,
+      InvoiceRunStatus.LOCKED,
+      InvoiceRunStatus.SENT,
+      InvoiceRunStatus.PART_PAID,
+      InvoiceRunStatus.PAID,
+    ];
+    if (!sendable.includes(run.status)) {
+      throw new BadRequestException(
+        'Approve the invoice run before sending invoices',
+      );
+    }
+
     const preview = await this.getServiceUserEmailPreview(runId, dto.serviceUserId);
     const to =
       dto.toEmail?.trim().toLowerCase() || preview.data.defaultToEmail;
@@ -2208,6 +2400,7 @@ export class InvoiceRunsService {
       serviceUserId: string;
       serviceUserName: string;
       serviceUserNumber: string | null;
+      invoiceBillingFrequency?: BillingFrequency | string | null;
       visitRef: string | null;
       description: string;
       minutes: number | null;
@@ -2223,6 +2416,7 @@ export class InvoiceRunsService {
         serviceUserId: string;
         serviceUserName: string;
         serviceUserNumber: string | null;
+        invoiceBillingFrequency: string;
         lines: typeof lines;
         subtotal: number;
         funders: Map<
@@ -2235,6 +2429,11 @@ export class InvoiceRunsService {
     for (const line of lines) {
       const existing = groups.get(line.serviceUserId);
       const funderKey = line.funderId ?? '__direct__';
+      const cadence =
+        line.invoiceBillingFrequency === BillingFrequency.MONTHLY ||
+        line.invoiceBillingFrequency === 'MONTHLY'
+          ? 'MONTHLY'
+          : 'WEEKLY';
       if (existing) {
         existing.lines.push(line);
         existing.subtotal += line.amountValue;
@@ -2253,6 +2452,7 @@ export class InvoiceRunsService {
           serviceUserId: line.serviceUserId,
           serviceUserName: line.serviceUserName,
           serviceUserNumber: line.serviceUserNumber,
+          invoiceBillingFrequency: cadence,
           lines: [line],
           subtotal: line.amountValue,
           funders: new Map([
@@ -2286,6 +2486,7 @@ export class InvoiceRunsService {
           serviceUserId: g.serviceUserId,
           serviceUserName: g.serviceUserName,
           serviceUserNumber: g.serviceUserNumber,
+          invoiceBillingFrequency: g.invoiceBillingFrequency,
           lineCount: g.lines.length,
           funderCount: funders.length,
           funderLabel:
@@ -2302,18 +2503,174 @@ export class InvoiceRunsService {
       });
   }
 
-  private mapRow(row: {
-    id: string;
-    periodLabel: string;
-    periodStart: Date;
-    periodEnd: Date;
-    status: InvoiceRunStatus;
-    serviceUserCount: number;
-    funderCount: number;
-    netTotal: Prisma.Decimal;
-    exceptionCount: number;
-    exportStatus: BillingRunExportStatus;
-  }): InvoiceRunRow {
+  /**
+   * Ensure each service user on the run has a persisted QBO-style invoice number.
+   * Existing numbers are kept (stable across recalculate). Numbers for SUs no longer
+   * on the run are left in place for audit (sequence is not reused).
+   */
+  private async syncInvoiceDocuments(
+    tx: Prisma.TransactionClient,
+    invoiceRunId: string,
+    serviceUserIds: string[],
+  ): Promise<void> {
+    const uniqueIds = [...new Set(serviceUserIds.filter(Boolean))];
+    if (!uniqueIds.length) return;
+
+    const existing = await tx.invoiceDocument.findMany({
+      where: { invoiceRunId, serviceUserId: { in: uniqueIds } },
+      select: { serviceUserId: true },
+    });
+    const have = new Set(existing.map((d) => d.serviceUserId));
+    const missing = uniqueIds.filter((id) => !have.has(id));
+    for (const serviceUserId of missing) {
+      const sequenceValue = await this.allocateInvoiceSequence(tx);
+      await tx.invoiceDocument.create({
+        data: {
+          invoiceRunId,
+          serviceUserId,
+          sequenceValue,
+          invoiceNumber: formatInvoiceNumber(sequenceValue),
+        },
+      });
+    }
+  }
+
+  /** Atomic global increment — same pattern as IncidentNumberSequence / QBO DocNumber. */
+  private async allocateInvoiceSequence(
+    tx: Prisma.TransactionClient,
+  ): Promise<number> {
+    const rows = await tx.$queryRaw<Array<{ lastValue: number }>>(Prisma.sql`
+      INSERT INTO "billing"."InvoiceNumberSequence" ("id", "lastValue", "updatedAt")
+      VALUES (1, 1001, now())
+      ON CONFLICT ("id")
+      DO UPDATE SET "lastValue" = "InvoiceNumberSequence"."lastValue" + 1, "updatedAt" = now()
+      RETURNING "lastValue"
+    `);
+    return rows[0]?.lastValue ?? 1001;
+  }
+
+  /**
+   * List-row payment rollup: count of per–service-user invoices by payment
+   * status + total allocated paid amount (same attribution rules as getById).
+   */
+  private computeListPaymentStats(
+    lines: Array<{
+      serviceUserId: string;
+      funderId: string | null;
+      amount: Prisma.Decimal | number;
+    }>,
+    allocations: Array<{
+      amount: Prisma.Decimal | number;
+      payment: {
+        serviceUserId: string | null;
+        funderId: string | null;
+      } | null;
+    }>,
+  ): {
+    invoicesPaid: number;
+    invoicesUnpaid: number;
+    invoicesPartPaid: number;
+    paidAmountValue: number;
+  } {
+    const paidAmountValue = Math.round(
+      allocations.reduce((sum, a) => sum + Number(a.amount), 0) * 100,
+    ) / 100;
+
+    const suTotals = new Map<string, number>();
+    const funderTotals = new Map<string, number>();
+    const linesBySu = new Map<
+      string,
+      Array<{ funderId: string | null; amountValue: number }>
+    >();
+
+    for (const l of lines) {
+      const amountValue = Number(l.amount);
+      suTotals.set(
+        l.serviceUserId,
+        (suTotals.get(l.serviceUserId) ?? 0) + amountValue,
+      );
+      const funderKey = l.funderId ?? '__direct__';
+      funderTotals.set(
+        funderKey,
+        (funderTotals.get(funderKey) ?? 0) + amountValue,
+      );
+      const suLines = linesBySu.get(l.serviceUserId) ?? [];
+      suLines.push({ funderId: l.funderId, amountValue });
+      linesBySu.set(l.serviceUserId, suLines);
+    }
+
+    const paidByServiceUserDirect = new Map<string, number>();
+    const paidByFunderUnscoped = new Map<string, number>();
+    for (const a of allocations) {
+      const amount = Number(a.amount);
+      const funderKey = a.payment?.funderId ?? '__direct__';
+      const suId = a.payment?.serviceUserId ?? null;
+      if (suId) {
+        paidByServiceUserDirect.set(
+          suId,
+          (paidByServiceUserDirect.get(suId) ?? 0) + amount,
+        );
+      } else {
+        paidByFunderUnscoped.set(
+          funderKey,
+          (paidByFunderUnscoped.get(funderKey) ?? 0) + amount,
+        );
+      }
+    }
+
+    let invoicesPaid = 0;
+    let invoicesUnpaid = 0;
+    let invoicesPartPaid = 0;
+
+    for (const [serviceUserId, subtotalValue] of suTotals) {
+      let paidRaw = paidByServiceUserDirect.get(serviceUserId) ?? 0;
+      for (const line of linesBySu.get(serviceUserId) ?? []) {
+        const key = line.funderId ?? '__direct__';
+        const funderTotal = funderTotals.get(key) ?? 0;
+        const funderPaid = paidByFunderUnscoped.get(key) ?? 0;
+        if (funderTotal > 0.001 && funderPaid > 0) {
+          paidRaw += (line.amountValue / funderTotal) * funderPaid;
+        }
+      }
+      const paid = Math.min(Math.round(paidRaw * 100) / 100, subtotalValue);
+      const outstanding = Math.max(
+        0,
+        Math.round((subtotalValue - paid) * 100) / 100,
+      );
+      if (paid <= 0) invoicesUnpaid += 1;
+      else if (outstanding <= 0.001) invoicesPaid += 1;
+      else invoicesPartPaid += 1;
+    }
+
+    return {
+      invoicesPaid,
+      invoicesUnpaid,
+      invoicesPartPaid,
+      paidAmountValue,
+    };
+  }
+
+  private mapRow(
+    row: {
+      id: string;
+      periodLabel: string;
+      periodStart: Date;
+      periodEnd: Date;
+      status: InvoiceRunStatus;
+      serviceUserCount: number;
+      funderCount: number;
+      netTotal: Prisma.Decimal;
+      exceptionCount: number;
+      exportStatus: BillingRunExportStatus;
+    },
+    paymentStats?: {
+      invoicesPaid: number;
+      invoicesUnpaid: number;
+      invoicesPartPaid: number;
+      paidAmountValue: number;
+    },
+  ): InvoiceRunRow {
+    const paidAmountValue = paymentStats?.paidAmountValue ?? 0;
     return {
       id: row.id,
       period: row.periodLabel,
@@ -2325,6 +2682,11 @@ export class InvoiceRunsService {
       netTotal: formatMoney(Number(row.netTotal)),
       exceptions: row.exceptionCount,
       exportStatus: row.exportStatus,
+      invoicesPaid: paymentStats?.invoicesPaid ?? 0,
+      invoicesUnpaid: paymentStats?.invoicesUnpaid ?? 0,
+      invoicesPartPaid: paymentStats?.invoicesPartPaid ?? 0,
+      paidAmount: formatMoney(paidAmountValue),
+      paidAmountValue,
     };
   }
 }
