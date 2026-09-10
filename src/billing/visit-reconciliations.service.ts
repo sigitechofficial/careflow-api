@@ -52,7 +52,7 @@ import {
   minutesBetween,
   isInvertedDateWindow,
   isDurationShortfallWithinTolerance,
-  isLegacyLateStartBillWindow,
+  isLegacyMismatchedBillWindow,
   resolveDefaultApprovedWindows,
 } from './visit-reconciliation.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
@@ -1397,15 +1397,18 @@ export class VisitReconciliationsService {
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
     const visitCompleted = isBillingEligibleVisit(visit);
-    const legacyLateStartBillWindow = isLegacyLateStartBillWindow({
+    const legacyMismatchedBillWindow = isLegacyMismatchedBillWindow({
       plannedStartDateTime: row.plannedStartDateTime,
       actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
       approvedPayStart: row.approvedPayStart,
+      approvedPayEnd: row.approvedPayEnd,
       approvedBillStart: row.approvedBillStart,
+      approvedBillEnd: row.approvedBillEnd,
     });
     const freezeBillable =
       !options?.forceRecalculateAmounts &&
-      !legacyLateStartBillWindow &&
+      !legacyMismatchedBillWindow &&
       visitCompleted &&
       row.billableAmount != null;
     const freezePayable =
@@ -1617,10 +1620,10 @@ export class VisitReconciliationsService {
       durationToleranceMinutes,
     });
 
-    // Legacy bug: client charge used booked start → actual end (e.g. 07:00–07:41)
-    // while carer pay correctly used actual (07:11–07:41). Re-snap those rows.
+    // Legacy bug: client charge used booked start → actual end (late inflate or early clip)
+    // while carer pay correctly used actual. Re-snap those rows.
     const forceDefaultWindows =
-      computedOverrun != null || withinDurationTolerance || legacyLateStartBillWindow;
+      computedOverrun != null || withinDurationTolerance || legacyMismatchedBillWindow;
 
     const approvedPayStart = forceDefaultWindows
       ? defaultWindows.approvedPayStart

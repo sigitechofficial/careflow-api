@@ -480,9 +480,55 @@ export function isInvertedDateWindow(start: Date | null | undefined, end: Date |
 }
 
 /**
- * Stored bill start is still the booked slot start while pay/actual already use a later
- * check-in — leftover from the old "planned start → actual end" charge rule.
+ * Stored bill window still follows the old "booked start → actual end" rule while
+ * carer pay correctly uses actual worked time — covers late check-in (inflated bill)
+ * and early check-in clipped to planned start (under-billed).
  */
+export function isLegacyMismatchedBillWindow(input: {
+  plannedStartDateTime: Date;
+  actualStartDateTime: Date | null;
+  actualEndDateTime: Date | null;
+  approvedPayStart: Date | null;
+  approvedPayEnd: Date | null;
+  approvedBillStart: Date | null;
+  approvedBillEnd: Date | null;
+}): boolean {
+  const {
+    plannedStartDateTime,
+    actualStartDateTime,
+    actualEndDateTime,
+    approvedPayStart,
+    approvedPayEnd,
+    approvedBillStart,
+    approvedBillEnd,
+  } = input;
+  if (
+    !actualStartDateTime ||
+    !actualEndDateTime ||
+    !approvedPayStart ||
+    !approvedPayEnd ||
+    !approvedBillStart ||
+    !approvedBillEnd
+  ) {
+    return false;
+  }
+
+  const near = (a: Date, b: Date) => Math.abs(a.getTime() - b.getTime()) < 2_000;
+
+  const payMatchesActual =
+    near(approvedPayStart, actualStartDateTime) && near(approvedPayEnd, actualEndDateTime);
+  if (!payMatchesActual) return false;
+
+  const billMatchesActual =
+    near(approvedBillStart, actualStartDateTime) && near(approvedBillEnd, actualEndDateTime);
+  if (billMatchesActual) return false;
+
+  // Old rule: bill start = planned start, bill end = actual end
+  // (late: 07:00–07:41; early clip: 11:00–11:14).
+  return near(approvedBillStart, plannedStartDateTime) && near(approvedBillEnd, actualEndDateTime);
+}
+
+/** @deprecated Use {@link isLegacyMismatchedBillWindow} */
 export function isLegacyLateStartBillWindow(input: {
   plannedStartDateTime: Date;
   actualStartDateTime: Date | null;
