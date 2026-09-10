@@ -51,6 +51,7 @@ export type RequirementForAllocation = {
   locationId: string | null;
   zoneId: string | null;
   complianceTypeName?: string | null;
+  complianceTypeCode?: string | null;
 };
 
 export type ComplianceRecordForAllocation = EmployeeComplianceCalc & {

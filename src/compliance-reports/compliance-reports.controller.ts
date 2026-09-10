@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { Permissions, AnyPermission } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -16,6 +16,25 @@ import { EmployeeComplianceReportQueryDto } from './dto/employee-compliance-repo
 @Controller('employee-compliance')
 export class ComplianceReportsController {
   constructor(private readonly service: ComplianceReportsService) {}
+
+  @Get('board')
+  @AnyPermission(
+    'employees.compliance.reports.read',
+    'employees.compliance.read',
+    'employees.read',
+  )
+  @ApiOperation({
+    summary:
+      'Staff compliance board matrix (employee × type) with days remaining and allocation Blocked/Clear',
+  })
+  board(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeComplianceReportQueryDto,
+    @Req() req: Request,
+  ) {
+    const m = getRequestAuditMeta(req);
+    return this.service.board(query, { actorUserId: user.id, ...m });
+  }
 
   @Get('summary')
   @Permissions('employees.compliance.reports.read')

@@ -6,12 +6,34 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { calculateComplianceStatus } from '../employee-compliance/compliance-status.calculator';
+import {
+  calculateComplianceStatus,
+  startOfUtcDay,
+} from '../employee-compliance/compliance-status.calculator';
 import {
   employmentDimsFromEmployment,
   pickBestRequirementsPerType,
 } from '../employee-compliance/compliance-requirement.matcher';
+import {
+  applyImmigrationRtwRequirementFlags,
+  isImmigrationRtwDocCode,
+  matchesNeedsImmigrationRtwFilter,
+  requiresImmigrationRtwDocuments,
+} from '../employee-compliance/immigration-rtw-requirement.util';
+import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { EmployeeComplianceReportQueryDto } from './dto/employee-compliance-report-query.dto';
+import {
+  buildBoardEmployeeSummaries,
+  cellMatchesDocumentState,
+  computeCompliancePercent,
+  computeNextAction,
+  computeOverallDisplayStatus,
+  countBoardIssues,
+  countOffBoardAllocationIssues,
+  nearestExpiry,
+  urgencySortKey,
+  type BoardCellLike,
+} from './compliance-board-enrichment.util';
 
 type RequirementWithType = Prisma.ComplianceRequirementGetPayload<{
   include: { complianceType: true };
@@ -25,11 +47,46 @@ const complianceInclude = {
 
 type CompRow = Prisma.EmployeeComplianceGetPayload<{ include: typeof complianceInclude }>;
 
+/** Stable board columns for care workforce (short labels for the matrix header). */
+const BOARD_COLUMN_DEFS: Array<{
+  code: string;
+  shortLabel: string;
+  group: string;
+}> = [
+  { code: 'DBS', shortLabel: 'DBS', group: 'IDENTITY & RIGHT TO WORK' },
+  { code: 'DBS_CODE', shortLabel: 'DBS CODE', group: 'IDENTITY & RIGHT TO WORK' },
+  { code: 'BIOMETRIC_CARD', shortLabel: 'RTW', group: 'IDENTITY & RIGHT TO WORK' },
+  { code: 'ANNUAL_APPRAISAL', shortLabel: 'APPRSL', group: 'PERFORMANCE' },
+  { code: 'SUPERVISION', shortLabel: 'SUPVSN', group: 'PERFORMANCE' },
+  { code: 'REFERENCE_1', shortLabel: 'REF 1', group: 'REFERENCES' },
+  { code: 'REFERENCE_2', shortLabel: 'REF 2', group: 'REFERENCES' },
+  { code: 'MEDICAL_QUESTIONNAIRE', shortLabel: 'MED', group: 'EMPLOYMENT' },
+  { code: 'ID_PASSPORT', shortLabel: 'ID', group: 'EMPLOYMENT' },
+  { code: 'INDUCTION_CHECKLIST', shortLabel: 'INDUCT', group: 'EMPLOYMENT' },
+  { code: 'EMPLOYMENT_CONTRACT', shortLabel: 'CONTRACT', group: 'EMPLOYMENT' },
+  { code: 'PROBATION', shortLabel: 'PROB', group: 'EMPLOYMENT' },
+];
+
+const CRITICAL_BOARD_STATUSES = new Set<EmployeeComplianceStatus>([
+  EmployeeComplianceStatus.MISSING,
+  EmployeeComplianceStatus.REQUIRED,
+  EmployeeComplianceStatus.EXPIRED,
+  EmployeeComplianceStatus.REJECTED,
+]);
+
+function daysRemaining(expiryDate: Date | null | undefined, today: Date): number | null {
+  if (!expiryDate) return null;
+  const t0 = startOfUtcDay(today).getTime();
+  const exp = startOfUtcDay(expiryDate).getTime();
+  return Math.round((exp - t0) / 86_400_000);
+}
+
 @Injectable()
 export class ComplianceReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly allocation: AllocationComplianceService,
   ) {}
 
   private statusOf(row: CompRow): EmployeeComplianceStatus {
@@ -64,7 +121,12 @@ export class ComplianceReportsService {
     if (query.employeeId) w.id = query.employeeId;
 
     const hasEmploymentScope = Boolean(
-      query.roleId || query.workAreaId || query.jobTitleId || query.contractTypeId || query.locationId,
+      query.roleId ||
+        query.workAreaId ||
+        query.jobTitleId ||
+        query.contractTypeId ||
+        query.locationId ||
+        query.visaTypeIds?.length,
     );
     if (hasEmploymentScope) {
       const empFilters: Prisma.EmployeeEmploymentWhereInput = { deletedAt: null };
@@ -72,6 +134,7 @@ export class ComplianceReportsService {
       if (query.workAreaId) empFilters.workAreaId = query.workAreaId;
       if (query.jobTitleId) empFilters.jobTitleId = query.jobTitleId;
       if (query.contractTypeId) empFilters.contractTypeId = query.contractTypeId;
+      if (query.visaTypeIds?.length) empFilters.visaTypeId = { in: query.visaTypeIds };
       if (query.locationId) {
         empFilters.OR = [{ locationId: query.locationId }, { baseLocationId: query.locationId }];
       }
@@ -203,7 +266,7 @@ export class ComplianceReportsService {
   }
 
   private async loadEmployeesForReports(query: EmployeeComplianceReportQueryDto) {
-    return this.prisma.employee.findMany({
+    const employees = await this.prisma.employee.findMany({
       where: this.employeeWhere(query),
       include: {
         personalDetail: true,
@@ -223,6 +286,9 @@ export class ComplianceReportsService {
         },
       },
     });
+    return employees.filter((emp) =>
+      matchesNeedsImmigrationRtwFilter(emp.employment?.visaTypeId, query.needsImmigrationRtw),
+    );
   }
 
   async missing(query: EmployeeComplianceReportQueryDto, audit?: RequestAuditMeta & { actorUserId?: string }) {
@@ -242,6 +308,19 @@ export class ComplianceReportsService {
         const type = (req as RequirementWithType).complianceType;
         if (query.complianceTypeId && typeId !== query.complianceTypeId) continue;
         if (query.category && type?.category !== query.category) continue;
+        const { isMandatory, blocksAllocation } = applyImmigrationRtwRequirementFlags(
+          type?.code,
+          emp.employment.visaTypeId,
+          {
+            isMandatory: Boolean(req.isMandatory),
+            blocksAllocation: Boolean(
+              (req as RequirementWithType & { blocksAllocation?: boolean }).blocksAllocation,
+            ),
+          },
+        );
+        // Skip immigration RTW gaps for British/Irish (etc.) when no mandatory requirement.
+        if (!isMandatory && !blocksAllocation && isImmigrationRtwDocCode(type?.code)) continue;
+
         const row = emp.complianceRecords.find((c) => c.complianceTypeId === typeId) as CompRow | undefined;
         if (!row) {
           rows.push({
@@ -398,6 +477,427 @@ export class ComplianceReportsService {
     }
     await this.logReportView(audit?.actorUserId, 'detail-report', audit, items.length);
     return this.paginate(items, query);
+  }
+
+  /**
+   * Staff compliance board: employee × preferred compliance types, days remaining,
+   * and allocation Blocked/Clear (reuses existing status + allocation engines).
+   */
+  async board(query: EmployeeComplianceReportQueryDto, audit?: RequestAuditMeta & { actorUserId?: string }) {
+    const today = new Date();
+    const employees = await this.loadEmployeesForReports(query);
+    const [allReqs, types] = await Promise.all([
+      this.prisma.complianceRequirement.findMany({
+        where: { deletedAt: null, isActive: true, complianceType: { deletedAt: null, isActive: true } },
+        include: { complianceType: true },
+      }) as Promise<RequirementWithType[]>,
+      this.prisma.complianceType.findMany({
+        where: { deletedAt: null, isActive: true },
+        select: { id: true, code: true, name: true },
+      }),
+    ]);
+
+    const typeByCode = new Map(
+      types
+        .filter((t) => Boolean(t.code?.trim()))
+        .map((t) => [t.code!.toUpperCase(), t]),
+    );
+    const columns = BOARD_COLUMN_DEFS.filter((def) => typeByCode.has(def.code)).map((def) => {
+      const t = typeByCode.get(def.code)!;
+      return {
+        code: def.code,
+        shortLabel: def.shortLabel,
+        name: t.name,
+        complianceTypeId: t.id,
+        group: def.group,
+      };
+    });
+    const columnCodes = new Set(columns.map((c) => c.code));
+
+    const allocationMap = await this.allocation.evaluateForEmployees(employees.map((e) => e.id), today);
+    const allocationPolicy = await this.allocation.loadPolicy();
+
+    type BoardCell = {
+      code: string;
+      typeName: string | null;
+      complianceTypeId: string;
+      applicable: boolean;
+      effectiveStatus: EmployeeComplianceStatus | 'NOT_APPLICABLE';
+      employeeComplianceId: string | null;
+      expiryDate: string | null;
+      daysRemaining: number | null;
+      critical: boolean;
+      /** Requirement flags rostering when org policy mode is BLOCK. */
+      blocksRostering: boolean;
+      isMandatory: boolean;
+    };
+
+    type BoardAlert = {
+      employeeId: string;
+      employeeName: string;
+      message: string;
+      severity: 'critical' | 'warning';
+      complianceTypeCode?: string | null;
+    };
+
+    const alerts: BoardAlert[] = [];
+    const rows: Array<{
+      employeeId: string;
+      employeeName: string;
+      jobTitle: string | null;
+      roleName: string | null;
+      locationId: string | null;
+      visaTypeId: string | null;
+      needsImmigrationRtw: boolean;
+      blocksAllocation: boolean;
+      attentionCount: number;
+      compliancePercent: number | null;
+      overallDisplayStatus: 'BLOCKED' | 'ATTENTION' | 'COMPLIANT';
+      blockingIssueCount: number;
+      warningIssueCount: number;
+      totalIssueCount: number;
+      additionalOffBoardIssueCount: number;
+      nextAction: ReturnType<typeof computeNextAction>;
+      nearestExpiryDate: string | null;
+      nearestExpiryDays: number | null;
+      cells: BoardCell[];
+    }> = [];
+
+    for (const emp of employees) {
+      const name = this.empName(emp);
+      const alloc = allocationMap.get(emp.id);
+      const blocksAllocation = Boolean(alloc?.blocksAllocation);
+      const attentionCount = alloc?.attentionCount ?? 0;
+
+      const cellsByCode = new Map<string, BoardCell>();
+      for (const col of columns) {
+        cellsByCode.set(col.code, {
+          code: col.code,
+          typeName: col.name,
+          complianceTypeId: col.complianceTypeId,
+          applicable: false,
+          effectiveStatus: 'NOT_APPLICABLE',
+          employeeComplianceId: null,
+          expiryDate: null,
+          daysRemaining: null,
+          critical: false,
+          blocksRostering: false,
+          isMandatory: false,
+        });
+      }
+
+      if (emp.employment) {
+        const best = pickBestRequirementsPerType(
+          allReqs as unknown as ComplianceRequirement[],
+          employmentDimsFromEmployment(emp.employment),
+        );
+        for (const [typeId, req] of best) {
+          const type = (req as RequirementWithType).complianceType;
+          const code = type?.code?.toUpperCase();
+          if (!code || !columnCodes.has(code)) continue;
+          if (query.complianceTypeId && typeId !== query.complianceTypeId) continue;
+          if (query.category && type?.category !== query.category) continue;
+
+          const visaTypeId = emp.employment.visaTypeId;
+          const baseBlocks = Boolean(
+            (req as RequirementWithType & { blocksAllocation?: boolean }).blocksAllocation,
+          );
+          const baseMandatory = Boolean(
+            (req as RequirementWithType & { isMandatory?: boolean }).isMandatory,
+          );
+          const { isMandatory, blocksAllocation: blocksRostering } =
+            applyImmigrationRtwRequirementFlags(code, visaTypeId, {
+              isMandatory: baseMandatory,
+              blocksAllocation: baseBlocks,
+            });
+
+          // British/Irish (etc.): immigration RTW column is N/A unless a record already exists.
+          if (
+            isImmigrationRtwDocCode(code) &&
+            !requiresImmigrationRtwDocuments(visaTypeId) &&
+            !emp.complianceRecords.some((c) => c.complianceTypeId === typeId)
+          ) {
+            cellsByCode.set(code, {
+              code,
+              typeName: type?.name ?? code,
+              complianceTypeId: typeId,
+              applicable: false,
+              effectiveStatus: 'NOT_APPLICABLE',
+              employeeComplianceId: null,
+              expiryDate: null,
+              daysRemaining: null,
+              critical: false,
+              blocksRostering: false,
+              isMandatory: false,
+            });
+            continue;
+          }
+
+          const alertSeverity =
+            blocksRostering && allocationPolicy.mode === 'BLOCK' ? 'critical' : 'warning';
+
+          const row = emp.complianceRecords.find((c) => c.complianceTypeId === typeId) as CompRow | undefined;
+          if (!row) {
+            const cell: BoardCell = {
+              code,
+              typeName: type?.name ?? code,
+              complianceTypeId: typeId,
+              applicable: true,
+              effectiveStatus: EmployeeComplianceStatus.MISSING,
+              employeeComplianceId: null,
+              expiryDate: null,
+              daysRemaining: null,
+              critical: isMandatory || blocksRostering,
+              blocksRostering,
+              isMandatory,
+            };
+            cellsByCode.set(code, cell);
+            if (isMandatory || blocksRostering) {
+              alerts.push({
+                employeeId: emp.id,
+                employeeName: name,
+                message: `${name} — ${type?.name ?? code} missing`,
+                severity: alertSeverity,
+                complianceTypeCode: code,
+              });
+            }
+            continue;
+          }
+
+          if (query.hideNoLongerRequired && row.isNoLongerRequired) {
+            cellsByCode.set(code, {
+              code,
+              typeName: type?.name ?? code,
+              complianceTypeId: typeId,
+              applicable: true,
+              effectiveStatus: EmployeeComplianceStatus.NO_LONGER_REQUIRED,
+              employeeComplianceId: row.id,
+              expiryDate: null,
+              daysRemaining: null,
+              critical: false,
+              blocksRostering,
+              isMandatory,
+            });
+            continue;
+          }
+
+          const st = this.statusOf(row);
+          const days = daysRemaining(row.expiryDate, today);
+          const critical =
+            (isMandatory || blocksRostering) && CRITICAL_BOARD_STATUSES.has(st);
+          cellsByCode.set(code, {
+            code,
+            typeName: type?.name ?? code,
+            complianceTypeId: typeId,
+            applicable: true,
+            effectiveStatus: st,
+            employeeComplianceId: row.id,
+            expiryDate: row.expiryDate ? row.expiryDate.toISOString().slice(0, 10) : null,
+            daysRemaining: days,
+            critical,
+            blocksRostering,
+            isMandatory,
+          });
+
+          if (critical) {
+            const label =
+              st === EmployeeComplianceStatus.EXPIRED
+                ? `${type?.name ?? code} expired`
+                : st === EmployeeComplianceStatus.REJECTED
+                  ? `${type?.name ?? code} rejected`
+                  : `${type?.name ?? code} missing`;
+            alerts.push({
+              employeeId: emp.id,
+              employeeName: name,
+              message: `${name} — ${label}`,
+              severity: alertSeverity,
+              complianceTypeCode: code,
+            });
+          } else if (st === EmployeeComplianceStatus.EXPIRING_SOON && (isMandatory || blocksRostering)) {
+            alerts.push({
+              employeeId: emp.id,
+              employeeName: name,
+              message: `${name} — ${type?.name ?? code} expiring soon`,
+              severity: 'warning',
+              complianceTypeCode: code,
+            });
+          }
+        }
+      }
+
+      if (blocksAllocation) {
+        const firstIssue = alloc?.blockingIssues[0]?.label;
+        alerts.unshift({
+          employeeId: emp.id,
+          employeeName: name,
+          message: firstIssue ? `${name} — blocked (${firstIssue})` : `${name} — blocked from rostering`,
+          severity: 'critical',
+          complianceTypeCode: null,
+        });
+      }
+
+      const cells = columns.map((c) => cellsByCode.get(c.code)!);
+      const cellLikes: BoardCellLike[] = cells.map((c) => ({
+        code: c.code,
+        typeName: c.typeName,
+        applicable: c.applicable,
+        effectiveStatus: c.effectiveStatus,
+        expiryDate: c.expiryDate,
+        daysRemaining: c.daysRemaining,
+        critical: c.critical,
+        blocksRostering: c.blocksRostering,
+        isMandatory: c.isMandatory,
+      }));
+      const issueCounts = countBoardIssues(cellLikes);
+      const blockingIssueCount = issueCounts.blockingIssueCount;
+      const warningIssueCount = issueCounts.warningIssueCount;
+      const totalIssueCount = issueCounts.totalIssueCount;
+      const additionalOffBoardIssueCount = countOffBoardAllocationIssues({
+        cells: cellLikes,
+        blockingLabels: (alloc?.blockingIssues ?? []).map((i) => i.label),
+        warningLabels: (alloc?.warningIssues ?? []).map((i) => i.label),
+      });
+      const overallDisplayStatus = computeOverallDisplayStatus({
+        blocksAllocation,
+        cells: cellLikes,
+        warningIssueCount: warningIssueCount + additionalOffBoardIssueCount,
+      });
+      const compliancePercent = computeCompliancePercent(cellLikes);
+      const nextAction = computeNextAction({
+        cells: cellLikes,
+        blocksAllocation,
+        blockingLabels: (alloc?.blockingIssues ?? []).map((i) => i.label),
+      });
+      const nearest = nearestExpiry(cellLikes);
+
+      rows.push({
+        employeeId: emp.id,
+        employeeName: name,
+        jobTitle: emp.employment?.jobTitle?.name ?? null,
+        roleName: emp.employment?.role?.name ?? null,
+        locationId: emp.employment?.locationId ?? emp.employment?.baseLocationId ?? null,
+        visaTypeId: emp.employment?.visaTypeId ?? null,
+        needsImmigrationRtw: requiresImmigrationRtwDocuments(emp.employment?.visaTypeId),
+        blocksAllocation,
+        attentionCount: totalIssueCount || attentionCount,
+        compliancePercent,
+        overallDisplayStatus,
+        blockingIssueCount,
+        warningIssueCount,
+        totalIssueCount,
+        additionalOffBoardIssueCount,
+        nextAction,
+        nearestExpiryDate: nearest.nearestExpiryDate,
+        nearestExpiryDays: nearest.nearestExpiryDays,
+        cells,
+      });
+    }
+
+    let filtered = rows;
+
+    const search = query.search?.trim().toLowerCase();
+    if (search) {
+      filtered = filtered.filter(
+        (r) =>
+          r.employeeName.toLowerCase().includes(search) ||
+          (r.jobTitle?.toLowerCase().includes(search) ?? false) ||
+          (r.roleName?.toLowerCase().includes(search) ?? false),
+      );
+    }
+    if (query.displayStatus) {
+      filtered = filtered.filter((r) => r.overallDisplayStatus === query.displayStatus);
+    }
+    if (query.issuesOnly) {
+      filtered = filtered.filter((r) => r.overallDisplayStatus !== 'COMPLIANT');
+    }
+    if (query.documentState) {
+      filtered = filtered.filter((r) =>
+        cellMatchesDocumentState(
+          r.cells.map((c) => ({
+            code: c.code,
+            typeName: c.typeName,
+            applicable: c.applicable,
+            effectiveStatus: c.effectiveStatus,
+            expiryDate: c.expiryDate,
+            daysRemaining: c.daysRemaining,
+            critical: c.critical,
+            blocksRostering: c.blocksRostering,
+            isMandatory: c.isMandatory,
+          })),
+          query.documentState!,
+        ),
+      );
+    }
+
+    const boardSort = query.boardSort ?? 'urgent';
+    filtered.sort((a, b) => {
+      if (boardSort === 'name') return a.employeeName.localeCompare(b.employeeName);
+      if (boardSort === 'nearest_expiry') {
+        const da = a.nearestExpiryDays ?? Number.POSITIVE_INFINITY;
+        const db = b.nearestExpiryDays ?? Number.POSITIVE_INFINITY;
+        if (da !== db) return da - db;
+        return a.employeeName.localeCompare(b.employeeName);
+      }
+      const ka = urgencySortKey(a);
+      const kb = urgencySortKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0];
+      if (ka[1] !== kb[1]) return ka[1] - kb[1];
+      return ka[2].localeCompare(kb[2]);
+    });
+
+    // Prefer roster-blocking alerts first, then other critical, then warnings
+    alerts.sort((a, b) => {
+      const rank = (s: 'critical' | 'warning') => (s === 'critical' ? 0 : 1);
+      return rank(a.severity) - rank(b.severity);
+    });
+
+    const filteredIds = new Set(filtered.map((r) => r.employeeId));
+    const seenAlert = new Set<string>();
+    const uniqueAlerts = alerts
+      .filter((a) => filteredIds.has(a.employeeId))
+      .filter((a) => {
+        const key = `${a.employeeId}:${a.message}`;
+        if (seenAlert.has(key)) return false;
+        seenAlert.add(key);
+        return true;
+      })
+      .slice(0, 60);
+
+    const blockedCount = filtered.filter((r) => r.blocksAllocation).length;
+    const gapCellCount = filtered.reduce(
+      (n, r) => n + r.cells.filter((c) => c.applicable && c.critical).length,
+      0,
+    );
+    const employeeSummaries = buildBoardEmployeeSummaries(filtered);
+
+    await this.logReportView(audit?.actorUserId, 'board', audit, filtered.length);
+    return {
+      data: {
+        columns,
+        rows: filtered,
+        alerts: uniqueAlerts,
+        allocationPolicy: {
+          mode: allocationPolicy.mode,
+          blockStatuses: allocationPolicy.blockStatuses,
+          includeLearning: allocationPolicy.includeLearning,
+        },
+        summary: {
+          employeeCount: filtered.length,
+          blockedCount,
+          clearCount: filtered.length - blockedCount,
+          criticalAlertCount: uniqueAlerts.filter((a) => a.severity === 'critical').length,
+          warningAlertCount: uniqueAlerts.filter((a) => a.severity === 'warning').length,
+          gapCellCount,
+          alertTotal: uniqueAlerts.length,
+          needsActionCount: employeeSummaries.needsActionCount,
+          expiredCount: employeeSummaries.expiredCount,
+          expiring7Count: employeeSummaries.expiring7Count,
+          expiring8To30Count: employeeSummaries.expiring8To30Count,
+          fullyCompliantCount: employeeSummaries.fullyCompliantCount,
+        },
+        asOf: today.toISOString(),
+      },
+    };
   }
 
   private empName(emp: { personalDetail: { firstName: string; lastName: string } | null }) {

@@ -26,6 +26,25 @@ import {
   loadScheduleAreaByLocationMap,
   pickDefaultBranchForIndex,
 } from '../location-management/service-user-branch.util';
+import {
+  activeFlashMessageListWhere,
+  activeMedicalConditionListWhere,
+  appendWhereAnd,
+  BEHAVIOUR_INCIDENT_SUBTYPE_KEYS,
+  carePlanListStatusWhere,
+  findServiceUserIdsWithBehaviourIncident,
+  findServiceUserIdsWithConfirmedMissedVisitsAtLeast,
+  findServiceUserIdsWithSafeguardingIncidents,
+  hospitalisedListWhere,
+  initialAssessmentStatusWhere,
+  mergeDateOfBirthFilter,
+  openLoneWorkerRiskWhere,
+  SAFEGUARDING_INCIDENT_SUBTYPE_KEYS,
+} from './service-user-list-filters.util';
+import {
+  parseServiceUserDateOfDeath,
+  SU_PROFILE_DATE_OF_DEATH_REF,
+} from './service-user-date-of-death.util';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -363,16 +382,110 @@ export class ServiceUsersService implements OnModuleInit {
     }
     if (query.keyWorkerId) where.keyWorkerId = query.keyWorkerId;
     if (query.namedNurseId) where.namedNurseId = query.namedNurseId;
-    if (query.dateOfBirthFrom || query.dateOfBirthTo) {
-      where.dateOfBirth = {};
-      if (query.dateOfBirthFrom) where.dateOfBirth.gte = new Date(query.dateOfBirthFrom);
-      if (query.dateOfBirthTo) where.dateOfBirth.lte = new Date(query.dateOfBirthTo);
-    }
+    if (query.unassignedKeyWorker === true) where.keyWorkerId = null;
+
+    mergeDateOfBirthFilter(where, {
+      dateOfBirthFrom: query.dateOfBirthFrom,
+      dateOfBirthTo: query.dateOfBirthTo,
+      ageMin: query.ageMin,
+      ageMax: query.ageMax,
+    });
+
     if (query.serviceStartDateFrom || query.serviceStartDateTo) {
       where.serviceStartDate = {};
       if (query.serviceStartDateFrom) where.serviceStartDate.gte = new Date(query.serviceStartDateFrom);
       if (query.serviceStartDateTo) where.serviceStartDate.lte = new Date(query.serviceStartDateTo);
     }
+
+    if (query.dateOfDeathFrom || query.dateOfDeathTo) {
+      where.dateOfDeath = {};
+      if (query.dateOfDeathFrom) {
+        const from = new Date(query.dateOfDeathFrom);
+        if (!query.dateOfDeathFrom.includes('T')) from.setUTCHours(0, 0, 0, 0);
+        where.dateOfDeath.gte = from;
+      }
+      if (query.dateOfDeathTo) {
+        const to = new Date(query.dateOfDeathTo);
+        if (!query.dateOfDeathTo.includes('T')) to.setUTCHours(23, 59, 59, 999);
+        where.dateOfDeath.lte = to;
+      }
+    }
+
+    if (query.hasActiveFlashMessage === true) {
+      appendWhereAnd(where, activeFlashMessageListWhere());
+    }
+    if (query.hospitalisedOnly === true) {
+      appendWhereAnd(where, hospitalisedListWhere());
+    }
+    if (query.carePlanListStatus) {
+      appendWhereAnd(where, carePlanListStatusWhere(query.carePlanListStatus));
+    }
+    if (query.medicalConditionId) {
+      appendWhereAnd(where, activeMedicalConditionListWhere(query.medicalConditionId));
+    }
+    if (query.initialAssessmentStatus) {
+      appendWhereAnd(where, initialAssessmentStatusWhere(query.initialAssessmentStatus));
+    }
+    if (query.loneWorkerRisk === true) {
+      appendWhereAnd(where, openLoneWorkerRiskWhere());
+    }
+
+    const idIntersections: string[][] = [];
+
+    if (query.missedVisitsMin != null && query.missedVisitsMin >= 1) {
+      const missedIds = await findServiceUserIdsWithConfirmedMissedVisitsAtLeast(
+        this.prisma,
+        query.missedVisitsMin,
+        {
+          from: query.missedVisitsFrom ? new Date(query.missedVisitsFrom) : undefined,
+          to: query.missedVisitsTo ? new Date(query.missedVisitsTo) : undefined,
+        },
+      );
+      idIntersections.push(missedIds);
+    }
+
+    const behaviourKeys: string[] = [];
+    if (query.verbalAltercation === true) {
+      behaviourKeys.push(BEHAVIOUR_INCIDENT_SUBTYPE_KEYS.verbal);
+    }
+    if (query.physicalAltercation === true) {
+      behaviourKeys.push(BEHAVIOUR_INCIDENT_SUBTYPE_KEYS.physical);
+    }
+    if (behaviourKeys.length > 0) {
+      idIntersections.push(await findServiceUserIdsWithBehaviourIncident(this.prisma, behaviourKeys));
+    }
+
+    const safeguardingSubtypeKeys: string[] = [];
+    if (query.physicalAbuseToSu === true) {
+      safeguardingSubtypeKeys.push(SAFEGUARDING_INCIDENT_SUBTYPE_KEYS.physicalAbuse);
+    }
+    if (query.domesticViolence === true) {
+      safeguardingSubtypeKeys.push(SAFEGUARDING_INCIDENT_SUBTYPE_KEYS.domesticAbuse);
+    }
+    if (safeguardingSubtypeKeys.length > 0 || query.safeguardingHistory === true) {
+      idIntersections.push(
+        await findServiceUserIdsWithSafeguardingIncidents(this.prisma, {
+          subtypeKeys: safeguardingSubtypeKeys,
+          anySafeguardingCategory: query.safeguardingHistory === true,
+        }),
+      );
+    }
+
+    if (idIntersections.length > 0) {
+      let intersected = idIntersections[0] ?? [];
+      for (let i = 1; i < idIntersections.length; i++) {
+        const set = new Set(idIntersections[i]);
+        intersected = intersected.filter((id) => set.has(id));
+      }
+      if (intersected.length === 0) {
+        return {
+          data: [],
+          meta: buildPaginationMeta({ page, limit, total: 0 }),
+        };
+      }
+      appendWhereAnd(where, { id: { in: intersected } });
+    }
+
     if (query.search?.trim()) {
       const s = query.search.trim();
       where.OR = [
@@ -636,6 +749,16 @@ export class ServiceUsersService implements OnModuleInit {
           },
         });
       }
+    }
+
+    const deathRef = references.find(
+      (r) => r.referenceType === SU_PROFILE_DATE_OF_DEATH_REF,
+    );
+    if (deathRef !== undefined) {
+      await tx.serviceUser.update({
+        where: { id: serviceUserId },
+        data: { dateOfDeath: parseServiceUserDateOfDeath(deathRef.referenceValue) },
+      });
     }
   }
 

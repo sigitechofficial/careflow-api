@@ -44,8 +44,14 @@ export class EcmAlertService {
           select: {
             id: true,
             jobName: true,
+            serviceUserId: true,
             serviceUser: {
-              select: { firstName: true, lastName: true, preferredName: true },
+              select: {
+                firstName: true,
+                lastName: true,
+                preferredName: true,
+                locationId: true,
+              },
             },
           },
         },

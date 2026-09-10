@@ -11,7 +11,12 @@ import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
 
 @Module({
-  imports: [PrismaModule, AuditLogsModule, NotificationsModule, ServiceUserVisitPlansModule],
+  imports: [
+    PrismaModule,
+    AuditLogsModule,
+    NotificationsModule,
+    ServiceUserVisitPlansModule,
+  ],
   controllers: [
     InitialAssessmentsController,
     InitialAssessmentsAdminController,

@@ -180,6 +180,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
   ) {
     const complianceTypeId = typeByCode[code];
     if (!complianceTypeId) return;
+    const isMandatory = filters.isMandatory ?? true;
     const where = {
       complianceTypeId,
       roleId: filters.roleId ?? null,
@@ -199,7 +200,8 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
           workAreaId: filters.workAreaId ?? undefined,
           jobTitleId: filters.jobTitleId ?? undefined,
           contractTypeId: filters.contractTypeId ?? undefined,
-          isMandatory: filters.isMandatory ?? true,
+          isMandatory,
+          blocksAllocation: isMandatory,
           renewalBeforeDays: filters.renewalBeforeDays ?? 30,
         },
       });
@@ -209,7 +211,8 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
     await prisma.complianceRequirement.update({
       where: { id: exists.id },
       data: {
-        isMandatory: filters.isMandatory ?? exists.isMandatory,
+        isMandatory,
+        blocksAllocation: isMandatory,
         renewalBeforeDays: filters.renewalBeforeDays ?? exists.renewalBeforeDays,
         isActive: true,
         deletedAt: null,

@@ -49,6 +49,7 @@ import { ServiceUserPhotosModule } from './service-user-photos/service-user-phot
 import { ServiceUserLookupsModule } from './service-user-lookups/service-user-lookups.module';
 import { ServiceUserInventoryModule } from './service-user-inventory/service-user-inventory.module';
 import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
+import { ServiceUsersMedicalModule } from './service-users-medical/service-users-medical.module';
 import { ObservationLookupsModule } from './observation-lookups/observation-lookups.module';
 import { ServiceUserObservationsModule } from './service-user-observations/service-user-observations.module';
 import { ServiceUserFlashMessagesModule } from './service-user-flash-messages/service-user-flash-messages.module';
@@ -184,6 +185,7 @@ import { PoliciesModule } from './policies/policies.module';
     ServiceUserLookupsModule,
     ServiceUserInventoryModule,
     ServiceUserAllergiesModule,
+    ServiceUsersMedicalModule,
     ObservationLookupsModule,
     ServiceUserObservationsModule,
     ServiceUserFlashMessagesModule,

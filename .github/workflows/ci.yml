@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: careflow-api-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build NestJS API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout API repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build NestJS API
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Validate backend build output
+        run: |
+          test -f dist/src/main.js
+          test -f prisma/schema.prisma
+          test -d prisma/migrations
+          echo "Backend build output verified."
+          if grep -REn "from ['\"](\.\./)+src/" prisma/seed.ts prisma/seeds prisma/seed-lib; then
+            echo "ERROR: the prisma seed path imports from src/ (shown above). src/ is not in the deploy artifact, so this crashes 'prisma db seed' on the VPS. Move the dependency under prisma/."
+            exit 1
+          fi
+          echo "prisma seed path is self-contained (no src/ imports)."
