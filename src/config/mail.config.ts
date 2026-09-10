@@ -1,16 +1,34 @@
 import { registerAs } from '@nestjs/config';
 
 /**
- * Outbound email (SMTP). When SMTP_HOST is unset, MailService runs in `log` mode
- * (dev-friendly: logs the message and succeeds without sending).
+ * Outbound email. Prefer ZeptoMail HTTP API (`MAIL_MODE=api`).
+ * `smtp` kept as optional fallback; `log` succeeds without sending (local/dev).
  */
 export const mailConfig = registerAs('mail', () => {
+  const apiUrl =
+    (process.env.MAIL_API_URL ?? process.env.ZEPTOMAIL_API_URL ?? '')
+      .trim() || 'https://api.zeptomail.com/v1.1/email';
+  const apiToken = (
+    process.env.MAIL_API_TOKEN ??
+    process.env.ZEPTOMAIL_API_TOKEN ??
+    process.env.SMTP_PASS ??
+    ''
+  ).trim();
   const host = (process.env.SMTP_HOST ?? '').trim();
+  const rawMode = (process.env.MAIL_MODE ?? '').trim().toLowerCase();
   const mode =
-    (process.env.MAIL_MODE ?? '').trim().toLowerCase() ||
-    (host ? 'smtp' : 'log');
+    rawMode === 'api' || rawMode === 'smtp' || rawMode === 'log'
+      ? rawMode
+      : apiToken
+        ? 'api'
+        : host
+          ? 'smtp'
+          : 'log';
+
   return {
-    mode: mode === 'smtp' || mode === 'log' ? mode : 'log',
+    mode,
+    apiUrl,
+    apiToken: apiToken || undefined,
     host,
     port: Number(process.env.SMTP_PORT ?? 587),
     secure: process.env.SMTP_SECURE === 'true',
