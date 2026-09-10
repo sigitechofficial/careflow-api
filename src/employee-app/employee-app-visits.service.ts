@@ -275,6 +275,8 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
             longitude: true;
             accessInstructions: true;
             keySafeNumber: true;
+            accessMethod: true;
+            keySafeLocation: true;
             deletedAt: true;
           };
         };
@@ -3273,6 +3275,112 @@ export class EmployeeAppVisitsService {
     return { data: response };
   }
 
+  async addObservationPhoto(
+    employeeId: string,
+    jobId: string,
+    observationId: string,
+    file: Express.Multer.File | undefined,
+    body: {
+      idempotencyKey?: string;
+      clientPhotoId?: string;
+      consentStatus?: string;
+      caption?: string;
+      capturedAt?: string;
+    },
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
+      contractError('NOT_CHECKED_IN', 'Clock in before adding an observation photo');
+    }
+    if (!file) validationError('file is required');
+    const idempotencyKey = body.idempotencyKey?.trim() ?? '';
+    if (!idempotencyKey) validationError('idempotencyKey is required');
+
+    const consent = body.consentStatus?.trim().toUpperCase();
+    if (
+      !consent ||
+      !Object.values(BodyMapPhotoConsentStatus).includes(consent as BodyMapPhotoConsentStatus)
+    ) {
+      validationError('Valid consentStatus is required (GRANTED, DENIED, PENDING)');
+    }
+    if (consent !== BodyMapPhotoConsentStatus.GRANTED) {
+      validationError('Photo consent must be granted before upload');
+    }
+
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    if (!allowed.has(file.mimetype)) {
+      validationError('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    const replay = await this.findIdempotentReplay(jobId, idempotencyKey);
+    if (replay) return { data: replay };
+
+    const observation = await this.prisma.serviceUserObservation.findFirst({
+      where: {
+        id: observationId,
+        serviceUserId: ctx.job.serviceUserId,
+        deletedAt: null,
+      },
+      select: { id: true, payload: true },
+    });
+    if (!observation) throw new NotFoundException('Observation not found');
+
+    const payload =
+      observation.payload && typeof observation.payload === 'object' && !Array.isArray(observation.payload)
+        ? (observation.payload as Record<string, unknown>)
+        : {};
+    const payloadJobId = typeof payload.scheduledJobId === 'string' ? payload.scheduledJobId : null;
+    if (payloadJobId && payloadJobId !== jobId) {
+      throw new NotFoundException('Observation not found');
+    }
+
+    const dir = path.join(process.cwd(), 'uploads', 'employee-app-observations', jobId);
+    await fs.mkdir(dir, { recursive: true });
+    const ext = path.extname(file.originalname) || '.jpg';
+    const storedName = `${randomUUID()}${ext}`;
+    const abs = path.join(dir, storedName);
+    await fs.writeFile(abs, file.buffer);
+    const fileUrl = `/uploads/employee-app-observations/${jobId}/${storedName}`;
+    const now = new Date().toISOString();
+
+    const created = await this.prisma.serviceUserObservationPhoto.create({
+      data: {
+        observationId,
+        fileName: storedName,
+        originalName: file.originalname,
+        fileUrl,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        consentStatus: BodyMapPhotoConsentStatus.GRANTED,
+        caption: body.caption?.trim() || null,
+        uploadedByEmployeeId: employeeId,
+      },
+    });
+
+    const response = {
+      id: created.id,
+      photoId: created.id,
+      fileUrl: created.fileUrl,
+      url: created.fileUrl,
+      consentStatus: created.consentStatus,
+      caption: created.caption,
+      mimeType: created.mimeType,
+      sizeBytes: created.fileSize,
+      serverConfirmedAt: now,
+      capturedAt: body.capturedAt ?? null,
+    };
+
+    await this.mergeEmployeeAppMeta(jobId, (current) => ({
+      ...current,
+      idempotency: {
+        ...((current.idempotency as Record<string, unknown>) ?? {}),
+        [idempotencyKey]: response,
+      },
+    }));
+
+    return { data: response };
+  }
+
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
@@ -3954,6 +4062,8 @@ export class EmployeeAppVisitsService {
                 longitude: true,
                 accessInstructions: true,
                 keySafeNumber: true,
+                accessMethod: true,
+                keySafeLocation: true,
                 deletedAt: true,
               },
             },

@@ -173,6 +173,8 @@ export function mapServiceUserDetail(
         longitude: unknown;
         accessInstructions: string | null;
         keySafeNumber: string | null;
+        accessMethod?: string | null;
+        keySafeLocation?: string | null;
       } | null)
     | undefined;
   contacts: Array<{
@@ -282,6 +284,8 @@ export function mapServiceUserDetail(
           longitude: user.address.longitude,
           accessInstructions: user.address.accessInstructions,
           keySafeNumber: user.address.keySafeNumber,
+          accessMethod: user.address.accessMethod ?? null,
+          keySafeLocation: user.address.keySafeLocation ?? null,
         }
       : null,
     contacts: user.contacts.map((c) => ({

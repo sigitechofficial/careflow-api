@@ -258,6 +258,52 @@ export class EmployeeAppVisitsController {
     );
   }
 
+  @Post(':jobId/observations/:observationId/photos')
+  @ApiOperation({ summary: 'Attach a consented clinical photo to a visit observation' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'idempotencyKey', 'consentStatus'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        idempotencyKey: { type: 'string' },
+        clientPhotoId: { type: 'string' },
+        consentStatus: { type: 'string', enum: ['GRANTED', 'DENIED', 'PENDING'] },
+        caption: { type: 'string' },
+        capturedAt: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 8 * 1024 * 1024 },
+    }),
+  )
+  addObservationPhoto(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Param('observationId') observationId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      idempotencyKey?: string;
+      clientPhotoId?: string;
+      consentStatus?: string;
+      caption?: string;
+      capturedAt?: string;
+    },
+  ) {
+    return this.visitsService.addObservationPhoto(
+      user.employeeId!,
+      jobId,
+      observationId,
+      file,
+      body,
+    );
+  }
+
   @Get(':jobId/log')
   @ApiOperation({ summary: 'Visit log tab (timeline + handover note)' })
   log(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
