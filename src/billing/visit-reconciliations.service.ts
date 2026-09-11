@@ -1739,6 +1739,7 @@ export class VisitReconciliationsService {
           timeZone,
         },
         nightDuty,
+        plannedMinutes,
       );
       payableAmount = calc?.amount ?? null;
       if (payableAmount == null && payMinutes > 0) {
@@ -1763,6 +1764,7 @@ export class VisitReconciliationsService {
       perFunderCharges = await loadPerFunderChargeCalculation(db, {
         serviceUserId: row.serviceUserId,
         billMinutes,
+        rateBasisMinutes: plannedMinutes,
         billRateAnchor,
         approvedBillStart,
         approvedBillEnd,
@@ -1856,6 +1858,7 @@ export class VisitReconciliationsService {
             }
           : undefined,
         nightDuty,
+        plannedMinutes,
       );
       billableAmount = calc?.amount ?? null;
       if (
@@ -2412,6 +2415,7 @@ export class VisitReconciliationsService {
         ? await loadPerFunderChargeCalculation(db, {
             serviceUserId: row.serviceUserId,
             billMinutes,
+            rateBasisMinutes: plannedMinutes,
             billRateAnchor,
             approvedBillStart: billStart,
             approvedBillEnd: billEnd,
@@ -2461,6 +2465,7 @@ export class VisitReconciliationsService {
             isBankHoliday,
             { start: billStart, end: billEnd, timeZone },
             nightDuty,
+            plannedMinutes,
           );
         }
         funderClientCharges.push({
@@ -2552,6 +2557,7 @@ export class VisitReconciliationsService {
         isBankHoliday,
         { start: billStart, end: billEnd, timeZone },
         nightDuty,
+        plannedMinutes,
       );
       if (freezeBillable && row.billableAmount != null && clientCharge) {
         clientCharge = {
@@ -2598,6 +2604,7 @@ export class VisitReconciliationsService {
         isBankHoliday,
         { start: payStart, end: payEnd, timeZone },
         nightDuty,
+        plannedMinutes,
       );
       if (freezePayable && row.payableAmount != null) {
         carerPay = livePay
