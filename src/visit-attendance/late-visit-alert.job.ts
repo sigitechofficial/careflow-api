@@ -91,7 +91,6 @@ export class LateVisitAlertJob {
         scheduledStartDateTime: true,
         scheduledEndDateTime: true,
         estimatedDurationMinutes: true,
-        serviceUserId: true,
         serviceUser: {
           select: {
             firstName: true,
