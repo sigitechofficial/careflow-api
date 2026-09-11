@@ -95,9 +95,9 @@ describe('invoice-run export', () => {
       expect(csv).toContain('93.34');
     });
 
-    it('appends a funder payments summary section', () => {
-      expect(csv).toContain('Funder payments');
-      expect(csv).toContain('Funder,Invoiced,Paid,Outstanding');
+    it('does not append a funder payments summary section', () => {
+      expect(csv).not.toContain('Funder payments');
+      expect(csv).not.toContain('Funder,Invoiced,Paid,Outstanding');
     });
 
     it('quotes fields containing commas', () => {

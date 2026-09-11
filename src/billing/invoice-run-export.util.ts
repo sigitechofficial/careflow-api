@@ -72,13 +72,6 @@ const LINE_HEADERS = [
   'Outstanding',
 ] as const;
 
-const FUNDER_SUMMARY_HEADERS = [
-  'Funder',
-  'Invoiced',
-  'Paid',
-  'Outstanding',
-] as const;
-
 /** Lines sorted by date then visit ref for stable output. */
 function sortedLines(model: InvoiceRunExportModel): InvoiceRunExportLine[] {
   return [...model.lines].sort(
@@ -259,28 +252,9 @@ function lineToFields(l: InvoiceRunExportLine): (string | number | null)[] {
 
 export function buildInvoiceRunCsv(model: InvoiceRunExportModel): string {
   const lines = sortedLines(model);
-  const summaries =
-    model.funderSummaries.length > 0
-      ? model.funderSummaries
-      : buildFunderSummariesFromLines(lines);
   const rows: string[] = [csvRow([...LINE_HEADERS])];
   for (const l of lines) {
     rows.push(csvRow(lineToFields(l)));
-  }
-  if (summaries.length > 0) {
-    rows.push('');
-    rows.push(csvRow(['Funder payments']));
-    rows.push(csvRow([...FUNDER_SUMMARY_HEADERS]));
-    for (const f of summaries) {
-      rows.push(
-        csvRow([
-          f.funderName,
-          money(f.invoicedValue),
-          money(f.paidValue),
-          money(f.outstandingValue),
-        ]),
-      );
-    }
   }
   // Prepend a UTF-8 BOM so Excel opens the file with correct encoding.
   const bom = String.fromCharCode(0xfeff);
@@ -293,10 +267,6 @@ export async function buildInvoiceRunXlsx(
   model: InvoiceRunExportModel,
 ): Promise<Buffer> {
   const lines = sortedLines(model);
-  const summaries =
-    model.funderSummaries.length > 0
-      ? model.funderSummaries
-      : buildFunderSummariesFromLines(lines);
   const wb = new ExcelJS.Workbook();
   wb.creator = 'CareAdmin';
   const ws = wb.addWorksheet('Invoice visits');
@@ -343,25 +313,6 @@ export async function buildInvoiceRunXlsx(
     row.getCell(15).numFmt = currencyFmt;
     row.getCell(16).numFmt = currencyFmt;
     row.getCell(17).numFmt = currencyFmt;
-  }
-
-  if (summaries.length > 0) {
-    ws.addRow([]);
-    const section = ws.addRow(['Funder payments']);
-    section.font = { bold: true };
-    const sumHeader = ws.addRow([...FUNDER_SUMMARY_HEADERS]);
-    sumHeader.font = { bold: true };
-    for (const f of summaries) {
-      const row = ws.addRow([
-        f.funderName,
-        f.invoicedValue,
-        f.paidValue,
-        f.outstandingValue,
-      ]);
-      row.getCell(2).numFmt = currencyFmt;
-      row.getCell(3).numFmt = currencyFmt;
-      row.getCell(4).numFmt = currencyFmt;
-    }
   }
 
   const widths = [
