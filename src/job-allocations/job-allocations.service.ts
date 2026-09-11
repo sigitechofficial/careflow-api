@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocationStatus as PrismaAllocationStatus,
+  CarerVisitPushKind,
   Prisma,
   ScheduledJobStatus as PrismaJobStatus,
 } from '@prisma/client';
@@ -20,6 +21,7 @@ import {
 import { AllocationChecksService } from './allocation-checks.service';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
@@ -71,6 +73,7 @@ export class JobAllocationsService {
     private readonly checks: AllocationChecksService,
     private readonly notifications: ScheduleAllocationNotificationHook,
     private readonly orgScope: OrgScopeService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   private jobWindow(job: {
@@ -483,6 +486,14 @@ export class JobAllocationsService {
         userAgent: meta?.userAgent,
       });
 
+      void this.notifications.notifyAllocated({
+        employeeId: dto.employeeId,
+        scheduledJobId,
+        jobName: job.jobName,
+        serviceUserId: job.serviceUserId,
+        scheduledStartDateTime: assignment.start,
+        scheduledEndDateTime: assignment.end,
+      });
       if (needsConfirmation) {
         void this.notifications.notifyRequiresConfirmation({
           scheduledJobId,
@@ -493,15 +504,6 @@ export class JobAllocationsService {
           scheduledJobId,
           jobName: job.jobName,
           serviceUserId: job.serviceUserId,
-        });
-      } else {
-        void this.notifications.notifyAllocated({
-          employeeId: dto.employeeId,
-          scheduledJobId,
-          jobName: job.jobName,
-          serviceUserId: job.serviceUserId,
-          scheduledStartDateTime: assignment.start,
-          scheduledEndDateTime: assignment.end,
         });
       }
 
@@ -578,16 +580,6 @@ export class JobAllocationsService {
         userAgent: meta?.userAgent,
       });
 
-      const resolved = resolveAllocationWindow(allocation, allocation.scheduledJob);
-      void this.notifications.notifyAllocated({
-        employeeId: allocation.employeeId,
-        scheduledJobId,
-        jobName: allocation.scheduledJob.jobName,
-        serviceUserId: allocation.scheduledJob.serviceUserId,
-        scheduledStartDateTime: resolved.start,
-        scheduledEndDateTime: resolved.end,
-      });
-
       return {
         message: 'Allocation confirmed',
         data: this.mapAllocation(updated),
@@ -657,6 +649,15 @@ export class JobAllocationsService {
         },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
+      });
+
+      this.carerPush.notify({
+        employeeIds: [dto.employeeId],
+        kind: CarerVisitPushKind.VISIT_REMOVED,
+        title: 'Removed from visit',
+        body: `You have been taken off "${allocation.scheduledJob.jobName}".`,
+        scheduledJobId,
+        serviceUserId: allocation.scheduledJob.serviceUserId,
       });
 
       return {
@@ -776,6 +777,17 @@ export class JobAllocationsService {
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
+
+      if (assignment) {
+        this.carerPush.notify({
+          employeeIds: [allocation.employeeId],
+          kind: CarerVisitPushKind.VISIT_CHANGE,
+          title: 'Visit updated',
+          body: `Time changed for "${job.jobName}".`,
+          scheduledJobId,
+          serviceUserId: job.serviceUserId,
+        });
+      }
 
       return {
         message: 'Allocation updated',

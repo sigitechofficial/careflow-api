@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CarerVisitPushKind,
   EcmAuditEventType,
   EcmExceptionKind,
   EcmExceptionLifecycle,
@@ -24,6 +25,7 @@ import {
 import { orgHasOptInCheckInMethod } from '../employee-app/employee-app-check-in-methods.util';
 import { dayKeyInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 export type CreateCheckInMethodRequestInput = {
   scheduledJobId: string;
@@ -47,6 +49,7 @@ export class VisitCheckInMethodGrantService {
     private readonly audit: EcmAuditService,
     private readonly alerts: EcmAlertService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   async getForCarerVisit(
@@ -314,6 +317,14 @@ export class VisitCheckInMethodGrantService {
       },
     });
 
+    this.carerPush.notify({
+      employeeIds: [grant.employeeId],
+      kind: CarerVisitPushKind.MANUAL_AUTHORISED,
+      title: 'Manual check-in allowed',
+      body: 'Office authorised Manual check-in for this visit.',
+      scheduledJobId,
+    });
+
     const employeeName = await this.employeeName(grant.employeeId);
     return {
       data: mapVisitCheckInMethodGrant(updated, { employeeName }),
@@ -383,6 +394,14 @@ export class VisitCheckInMethodGrantService {
         decidedByName,
         officeNote,
       },
+    });
+
+    this.carerPush.notify({
+      employeeIds: [grant.employeeId],
+      kind: CarerVisitPushKind.MANUAL_REJECTED,
+      title: 'Manual check-in declined',
+      body: 'Office declined Manual check-in for this visit.',
+      scheduledJobId,
     });
 
     const employeeName = await this.employeeName(grant.employeeId);

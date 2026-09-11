@@ -1003,8 +1003,31 @@ model Employee {
   hrDirectReports           EmployeeHRProfile[] @relation("HrReportingManager")
   vacanciesAsHiringManager  Vacancy[]           @relation("VacancyHiringManager")
   convertedCandidates       Candidate[]         @relation("CandidateConvertedEmployee")
+  deviceTokens              EmployeeDeviceToken[]
+  visitPushReceipts         CarerVisitPushReceipt[]
 
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+enum DevicePushPlatform {
+  ANDROID
+  IOS
+
+  @@schema("employees")
+}
+
+model EmployeeDeviceToken {
+  id         String             @id @default(uuid()) @db.Uuid
+  employeeId String             @db.Uuid
+  token      String             @unique
+  platform   DevicePushPlatform
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
   @@schema("employees")
 }
 
@@ -6203,6 +6226,7 @@ model ScheduledJob {
   ecmNotificationEvidence EcmNotificationEvidence[]
   visitAreaLocks   VisitAreaLock[]
   visitCheckInMethodGrants VisitCheckInMethodGrant[]
+  visitPushReceipts CarerVisitPushReceipt[]
   timelineEvents   VisitTimelineEvent[]
   careConsents     VisitCareConsent[]
 
@@ -6217,6 +6241,38 @@ model ScheduledJob {
   @@index([postcode])
   @@index([deletedAt])
   @@index([isActive])
+  @@schema("scheduling")
+}
+
+enum CarerVisitPushKind {
+  VISIT_ASSIGN
+  VISIT_CHANGE
+  VISIT_CALLED_OFF
+  VISIT_REMOVED
+  VISIT_START_REMINDER
+  VISIT_LATE
+  AREA_PAUSED
+  AREA_RESUMED
+  MANUAL_AUTHORISED
+  MANUAL_REJECTED
+  VISIT_COMPLETE
+  SOS_ACKNOWLEDGED
+
+  @@schema("scheduling")
+}
+
+model CarerVisitPushReceipt {
+  id             String             @id @default(uuid()) @db.Uuid
+  employeeId     String             @db.Uuid
+  scheduledJobId String             @db.Uuid
+  kind           CarerVisitPushKind
+  createdAt      DateTime          @default(now())
+
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, scheduledJobId, kind])
+  @@index([scheduledJobId])
   @@schema("scheduling")
 }
 

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   EcmArrivalClassification,
   EcmDurationClassification,
   EcmExceptionKind,
@@ -21,6 +22,7 @@ import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
 const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
@@ -52,6 +54,7 @@ export class EcmExceptionsService {
     private readonly prisma: PrismaService,
     private readonly audit: EcmAuditService,
     private readonly alerts: EcmAlertService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   /**
@@ -563,6 +566,7 @@ export class EcmExceptionsService {
 
   async acknowledge(id: string, userId: string, note?: string) {
     const row = await this.requireOpen(id);
+    const firstAck = !row.acknowledgedAt;
     const updated = await this.prisma.ecmException.update({
       where: { id },
       data: {
@@ -582,6 +586,18 @@ export class EcmExceptionsService {
       summary: `Exception acknowledged: ${updated.kind}`,
       detail: { note: note ?? null },
     });
+    if (firstAck && updated.kind === EcmExceptionKind.CARER_SOS) {
+      const employeeId = parseCarerSosContext(updated.context).employeeId?.trim();
+      if (employeeId) {
+        this.carerPush.notify({
+          employeeIds: [employeeId],
+          kind: CarerVisitPushKind.SOS_ACKNOWLEDGED,
+          title: 'Office acknowledged your SOS',
+          body: 'The office has seen your alert and is responding.',
+          scheduledJobId: updated.scheduledJobId,
+        });
+      }
+    }
     return updated;
   }
 

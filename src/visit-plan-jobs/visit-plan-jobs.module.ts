@@ -7,6 +7,7 @@ import { OrganisationGeneralSettingsModule } from '../organisation-general-setti
 import { VisitPlanScheduledEndJob } from '../service-user-visit-plans/visit-plan-scheduled-end.job';
 import { VisitPlanRollingRotaJob } from '../service-user-visit-plans/visit-plan-rolling-rota.job';
 import { LateVisitAlertJob } from '../visit-attendance/late-visit-alert.job';
+import { VisitStartReminderJob } from '../visit-attendance/visit-start-reminder.job';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { LateVisitAlertJob } from '../visit-attendance/late-visit-alert.job';
     NotificationsModule,
     OrganisationGeneralSettingsModule,
   ],
-  providers: [VisitPlanScheduledEndJob, VisitPlanRollingRotaJob, LateVisitAlertJob],
+  providers: [VisitPlanScheduledEndJob, VisitPlanRollingRotaJob, LateVisitAlertJob, VisitStartReminderJob],
 })
 export class VisitPlanJobsModule {}

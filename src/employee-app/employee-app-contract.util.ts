@@ -73,3 +73,16 @@ export function mapMarOutcomeCode(outcomeCode: string): {
 export function newAuditRecordId(): string {
   return randomUUID();
 }
+
+/** `uuid:08:00` — split only on the first colon so due-time `08:00` stays intact. */
+export function parseMedicationAdministrationKey(medicationKey: string): {
+  medId: string;
+  doseKey: string | null;
+} {
+  const trimmed = medicationKey.trim();
+  const colon = trimmed.indexOf(':');
+  if (colon <= 0) return { medId: trimmed, doseKey: null };
+  const medId = trimmed.slice(0, colon);
+  const doseKey = trimmed.slice(colon + 1).trim() || null;
+  return { medId, doseKey };
+}

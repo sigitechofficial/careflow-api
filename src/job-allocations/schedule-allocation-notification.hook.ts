@@ -1,7 +1,8 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import { NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
+import { CarerVisitPushKind, NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 @Injectable()
 export class ScheduleAllocationNotificationHook {
@@ -10,6 +11,7 @@ export class ScheduleAllocationNotificationHook {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly carerPush?: CarerVisitPushHook,
   ) {}
 
   private async userIdForEmployee(employeeId: string): Promise<string | null> {
@@ -44,14 +46,22 @@ export class ScheduleAllocationNotificationHook {
     scheduledStartDateTime?: Date;
     scheduledEndDateTime?: Date;
   }): Promise<void> {
+    const timeSuffix =
+      params.scheduledStartDateTime && params.scheduledEndDateTime
+        ? ` (${params.scheduledStartDateTime.toISOString().slice(11, 16)}–${params.scheduledEndDateTime.toISOString().slice(11, 16)} UTC)`
+        : '';
+    this.carerPush?.notify({
+      employeeIds: [params.employeeId],
+      kind: CarerVisitPushKind.VISIT_ASSIGN,
+      title: 'New visit assigned',
+      body: `You have been allocated to "${params.jobName}"${timeSuffix}.`,
+      scheduledJobId: params.scheduledJobId,
+      serviceUserId: params.serviceUserId,
+    });
     if (!this.notifications) return;
     try {
       const userId = await this.userIdForEmployee(params.employeeId);
       if (userId) {
-        const timeSuffix =
-          params.scheduledStartDateTime && params.scheduledEndDateTime
-            ? ` (${params.scheduledStartDateTime.toISOString().slice(11, 16)}–${params.scheduledEndDateTime.toISOString().slice(11, 16)} UTC)`
-            : '';
         await this.notifications.notifyUsers({
           recipientUserIds: [userId],
           type: NotificationType.SYSTEM_MESSAGE,

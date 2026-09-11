@@ -403,7 +403,7 @@ export class MedicationChartsService {
           const prnKey = `${med.id}:${date}`;
           const event = eventsByPrnDay.get(prnKey);
           let cell: MarChartCell;
-          if (!activeOnDay) {
+          if (!activeOnDay && !event) {
             const na = displayForCode('N/A', statusByCode);
             cell = {
               day: d,
@@ -548,21 +548,7 @@ export class MedicationChartsService {
           );
 
           let cell: MarChartCell;
-
-          if (!activeOnDay || !scheduleApplies) {
-            const na = displayForCode('N/A', statusByCode);
-            cell = {
-              day: d,
-              date,
-              cellState: 'na',
-              recordId: null,
-              statusCode: null,
-              statusLabel: na.label,
-              color: na.color,
-              textColor: na.textColor,
-              requiresReview: false,
-            };
-          } else if (event) {
+          if (event) {
             const code = resolveEventMarStatusCode(event);
             const display = displayForCode(code, statusByCode);
             cell = {
@@ -575,6 +561,19 @@ export class MedicationChartsService {
               color: display.color,
               textColor: display.textColor,
               requiresReview: eventPendingManagerReview(display, event),
+            };
+          } else if (!activeOnDay || !scheduleApplies) {
+            const na = displayForCode('N/A', statusByCode);
+            cell = {
+              day: d,
+              date,
+              cellState: 'na',
+              recordId: null,
+              statusCode: null,
+              statusLabel: na.label,
+              color: na.color,
+              textColor: na.textColor,
+              requiresReview: false,
             };
           } else {
             const due = displayForCode('Due', statusByCode);

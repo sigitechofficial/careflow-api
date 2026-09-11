@@ -145,6 +145,10 @@ class EnvironmentVariables {
   @IsString()
   MAIL_MODE?: string;
 
+  @IsOptional()
+  @IsString()
+  FIREBASE_SERVICE_ACCOUNT_PATH?: string;
+
 }
 
 export function validateEnv(config: Record<string, unknown>) {

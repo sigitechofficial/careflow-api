@@ -129,4 +129,52 @@ describe('employee-app-visit-blister-packs.util', () => {
       timeGiven: '09:15',
     });
   });
+
+  it('hides ended pack medicines unless already recorded today', () => {
+    const packs = buildVisitBlisterPacks({
+      visitRound: { code: 'MORNING', name: 'Morning', dueTime: '08:00' },
+      allergyLower: [],
+      eventByMed: new Map(),
+      visitAt: new Date('2026-09-11T06:00:00.000Z'),
+      packs: [
+        {
+          id: 'pack-1',
+          name: 'Morning blister',
+          packType: MedicationPackType.BLISTER,
+          status: MedicationPackStatus.ACTIVE,
+          roundLabel: 'Morning',
+          compartments: [
+            {
+              id: 'comp-am',
+              label: 'Morning',
+              dueTime: '08:00',
+              windowStart: '07:00',
+              windowEnd: '10:00',
+              witnessRequired: false,
+            },
+          ],
+          members: [
+            {
+              id: 'member-1',
+              serviceUserMedicationId: 'med-1',
+              serviceUserMedication: {
+                id: 'med-1',
+                medicationName: 'Ramipril',
+                dose: '1 tablet',
+                strength: '2.5 mg',
+                instructions: null,
+                isControlledMedication: false,
+                route: { name: 'Oral' },
+                medicationPack: null,
+                endDate: new Date('2026-09-10T23:19:33.795Z'),
+                schedules: [{ id: 'sch-1', dueTime: '08:00', round: { name: 'Morning' } }],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(packs).toHaveLength(0);
+  });
 });

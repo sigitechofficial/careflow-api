@@ -5,16 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CarerVisitPushKind,
   EcmAuditEventType,
   EcmExceptionKind,
   EcmExceptionLifecycle,
+  Prisma,
   VisitAreaLockStatus,
 } from '@prisma/client';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 export type VisitAreaLockState = {
   operationsLocked: boolean;
@@ -30,6 +32,7 @@ export class VisitAreaLockService {
     private readonly prisma: PrismaService,
     private readonly audit: EcmAuditService,
     private readonly alerts: EcmAlertService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   async getState(scheduledJobId: string): Promise<VisitAreaLockState> {
@@ -170,6 +173,13 @@ export class VisitAreaLockService {
       criticality: job.ecmEvaluation?.criticality ?? 'STANDARD',
       notify: true,
     });
+    this.carerPush.notify({
+      employeeIds: [input.employeeId],
+      kind: CarerVisitPushKind.AREA_PAUSED,
+      title: 'Operations paused',
+      body: 'You left the visit area. Contact the office to continue.',
+      scheduledJobId: input.scheduledJobId,
+    });
 
     return {
       operationsLocked: true,
@@ -236,6 +246,13 @@ export class VisitAreaLockService {
         lockedAt: lock.lockedAt.toISOString(),
         employeeId: lock.employeeId,
       },
+    });
+    this.carerPush.notify({
+      employeeIds: [lock.employeeId],
+      kind: CarerVisitPushKind.AREA_RESUMED,
+      title: 'Operations resumed',
+      body: 'Office allowed you to continue this visit.',
+      scheduledJobId,
     });
 
     return {

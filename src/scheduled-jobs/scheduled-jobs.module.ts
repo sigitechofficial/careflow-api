@@ -5,6 +5,7 @@ import { ScheduledJobsController } from './scheduled-jobs.controller';
 import { ScheduledJobsService } from './scheduled-jobs.service';
 import { EcmModule } from '../ecm/ecm.module';
 import { JobAllocationsModule } from '../job-allocations/job-allocations.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { JobAllocationsModule } from '../job-allocations/job-allocations.module'
     AuditLogsModule,
     forwardRef(() => EcmModule),
     forwardRef(() => JobAllocationsModule),
+    NotificationsModule,
   ],
   controllers: [ScheduledJobsController],
   providers: [ScheduledJobsService],

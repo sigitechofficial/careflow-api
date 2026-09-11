@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   LateVisitAlertKind,
   NotificationModule,
   NotificationSeverity,
@@ -12,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 
 const CLOSED_JOB: ScheduledJobStatus[] = [
@@ -42,6 +44,7 @@ export class LateVisitAlertJob {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly carerPush?: CarerVisitPushHook,
   ) {}
 
   @Cron('*/5 * * * *', { timeZone: 'UTC' })
@@ -84,6 +87,7 @@ export class LateVisitAlertJob {
       select: {
         id: true,
         jobName: true,
+        serviceUserId: true,
         scheduledStartDateTime: true,
         scheduledEndDateTime: true,
         estimatedDurationMinutes: true,
@@ -109,6 +113,7 @@ export class LateVisitAlertJob {
             },
           },
           select: {
+            employeeId: true,
             scheduledStartDateTime: true,
             scheduledEndDateTime: true,
             durationMinutes: true,
@@ -167,6 +172,19 @@ export class LateVisitAlertJob {
           this.logger.warn(`Failed to notify for late job ${job.id}: ${String(err)}`);
         }
       }
+
+      const carerIds = [
+        ...new Set(job.allocations.map((a) => a.employeeId).filter(Boolean)),
+      ];
+      this.carerPush?.notify({
+        employeeIds: carerIds,
+        kind: CarerVisitPushKind.VISIT_LATE,
+        title: 'Visit not started',
+        body: `You have not clocked in to "${job.jobName}".`,
+        scheduledJobId: job.id,
+        serviceUserId: job.serviceUserId,
+        once: true,
+      });
 
       if (settings.domLateVisitAlertEmail) {
         this.logger.warn(`[ECM late alert EMAIL channel enabled] ${message}`);

@@ -105,6 +105,25 @@ function asQualifierText(v: unknown): string | null {
   return s || null;
 }
 
+function labeledQualifier(label: string, value: unknown): string | null {
+  const text = asQualifierText(value);
+  return text ? `${label}: ${text}` : null;
+}
+
+/** SpO2 "Oxygen" chip — how the reading was taken, not the % itself. */
+function spo2HowTakenLabel(value: unknown): string | null {
+  const raw = asQualifierText(value);
+  if (!raw) return null;
+  const key = raw.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const howTaken: Record<string, string> = {
+    ON_AIR: 'Room air (no extra oxygen)',
+    OXYGEN: 'Supplemental oxygen',
+    NASAL_CANNULA: 'Nasal cannula',
+    MASK: 'Face mask (extra oxygen)',
+  };
+  return `Taken while: ${howTaken[key] ?? raw}`;
+}
+
 /** Reading + qualifier fields for vitals / single-value-with-qualifier types. */
 function formatVitalsQualifierValue(
   typeCode: string,
@@ -112,9 +131,10 @@ function formatVitalsQualifierValue(
 ): string | null {
   const reading = asQualifierText(p.reading);
   const join = (base: string | null, quals: Array<string | null>): string | null => {
-    if (!base) return null;
     const q = quals.filter((x): x is string => Boolean(x));
-    return q.length ? `${base} · ${q.join(' · ')}` : base;
+    if (base && q.length) return `${base} · ${q.join(' · ')}`;
+    if (base) return base;
+    return q.length ? q.join(' · ') : null;
   };
   switch (typeCode) {
     case 'RESPIRATORY_RATE':
@@ -123,35 +143,37 @@ function formatVitalsQualifierValue(
       const spo2 = asQualifierText(p.spo2);
       const lpm = asQualifierText(p.oxygen_lpm);
       return join(base, [
-        asQualifierText(p.breathless),
-        spo2 ? `SpO2 ${spo2}%` : null,
-        asQualifierText(p.oxygen),
-        lpm ? `${lpm} L/min` : null,
+        labeledQualifier('Breathless', p.breathless),
+        spo2 ? `SpO2: ${spo2}%` : null,
+        labeledQualifier('On oxygen?', p.oxygen),
+        lpm ? `L/min: ${lpm}` : null,
       ]);
     }
     case 'OXYGEN_SATURATION':
-      return join(reading ? `${reading}%` : null, [asQualifierText(p.context)]);
+      return join(reading ? `${reading}%` : null, [spo2HowTakenLabel(p.context)]);
     case 'BLOOD_GLUCOSE':
     case 'BLOOD_SUGAR':
-      return join(reading ? `${reading} mmol/L` : null, [asQualifierText(p.timing)]);
+      return join(reading ? `${reading} mmol/L` : null, [labeledQualifier('Timing', p.timing)]);
     case 'SOFT_SIGNS': {
       const signs = asQualifierText(p.signs);
       return signs ? `Signs: ${signs}` : null;
     }
     case 'URINE_OUTPUT':
       return join(reading ? `${reading} ml` : null, [
-        asQualifierText(p.route),
-        asQualifierText(p.appearance),
+        labeledQualifier('Route', p.route),
+        labeledQualifier('Appearance', p.appearance),
       ]);
     case 'WEIGHT':
-      return join(reading ? `${reading} kg` : null, [asQualifierText(p.method)]);
+      return join(reading ? `${reading} kg` : null, [labeledQualifier('How weighed', p.method)]);
     case 'PAIN_SCORE':
     case 'PAIN': {
       const score = asQualifierText(p.score);
-      return join(score ? `${score}/10` : null, [asQualifierText(p.pattern)]);
+      return join(score ? `${score}/10` : null, [labeledQualifier('Pattern', p.pattern)]);
     }
     case 'ORAL_MOUTH_CARE':
-      return join(asQualifierText(p.status), [asQualifierText(p.actions)]);
+      return join(labeledQualifier('Mouth condition', p.status), [
+        labeledQualifier('Care given', p.actions),
+      ]);
     default:
       return null;
   }

@@ -11,6 +11,7 @@ import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 import { EmployeePortalAccountsService } from '../employees/employee-portal-accounts.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import type { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
+import { FcmPushService } from '../notifications/fcm-push.service';
 
 @Injectable()
 export class EmployeeAppAuthService {
@@ -19,6 +20,7 @@ export class EmployeeAppAuthService {
     private readonly config: ConfigService,
     private readonly auditLogs: AuditLogsService,
     private readonly portalAccounts: EmployeePortalAccountsService,
+    private readonly fcm: FcmPushService,
   ) {}
 
   async login(dto: EmployeeAppLoginDto, req: Request) {
@@ -154,8 +156,11 @@ export class EmployeeAppAuthService {
     };
   }
 
-  async logout(user: RequestUser, req: Request) {
+  async logout(user: RequestUser, req: Request, deviceToken?: string) {
     const meta = this.auditLogs.getRequestMeta(req);
+    if (deviceToken?.trim() && user.employeeId) {
+      await this.fcm.deleteToken(user.employeeId, deviceToken);
+    }
     await this.portalAccounts.clearRefreshToken(user.id);
     await this.auditLogs.logLogin({
       userId: undefined,
