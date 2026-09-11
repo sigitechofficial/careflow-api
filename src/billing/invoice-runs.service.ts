@@ -2307,30 +2307,37 @@ export class InvoiceRunsService {
         funderId == null
           ? 'Direct / family'
           : (funderMap.get(funderId)?.name ?? 'Unknown funder');
-      const suggestions: Suggestion[] = [];
-      const seen = new Set<string>();
+
+      // Invoice email goes to the funding billing contact for that funder.
+      // Do not fall back to funder master email or service-user email as the default.
+      let billingEmail: string | null = null;
+      let billingLabel = 'Funding billing contact';
       for (const f of fundings) {
         if ((f.funderId ?? null) !== funderId) continue;
-        pushSuggestion(
-          suggestions,
-          seen,
-          f.billingContactEmail,
-          'funding_billing_contact',
-          f.billingContactName?.trim() || 'Funding billing contact',
-        );
+        const email = f.billingContactEmail?.trim().toLowerCase() || null;
+        if (email) {
+          billingEmail = email;
+          billingLabel = f.billingContactName?.trim() || 'Funding billing contact';
+          break;
+        }
       }
-      if (funderId) {
-        const funder = funderMap.get(funderId);
-        pushSuggestion(suggestions, seen, funder?.email, 'funder', funderName);
+
+      const suggestions: Suggestion[] = [];
+      if (billingEmail) {
+        suggestions.push({
+          email: billingEmail,
+          source: 'funding_billing_contact',
+          label: billingLabel,
+        });
       }
-      pushSuggestion(suggestions, seen, su.email, 'service_user', 'Service user');
+
       const subtotalValue = Math.round((amountByFunder.get(key) ?? 0) * 100) / 100;
       funderShares.push({
         funderId,
         funderName,
         subtotal: formatMoney(subtotalValue),
         subtotalValue,
-        defaultToEmail: suggestions[0]?.email ?? null,
+        defaultToEmail: billingEmail,
         suggestions,
       });
     }
