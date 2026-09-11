@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsIn,
@@ -12,6 +14,7 @@ import {
   Min,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { TransformStringArrayQuery } from '../../common/transformers/string-array-query.transform';
 import { CARE_PLAN_LIST_STATUS_FILTERS, INITIAL_ASSESSMENT_STATUS_FILTERS } from '../service-user-list-filters.util';
 
 const SORT_FIELDS = [
@@ -158,10 +161,34 @@ export class ServiceUserQueryDto extends PaginationQueryDto {
   @IsIn([...CARE_PLAN_LIST_STATUS_FILTERS])
   carePlanListStatus?: (typeof CARE_PLAN_LIST_STATUS_FILTERS)[number];
 
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Published care-plan form ids; service users matching any selected plan (comma-separated or repeated)',
+  })
+  @IsOptional()
+  @TransformStringArrayQuery()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('4', { each: true })
+  carePlanFormIds?: string[];
+
   @ApiPropertyOptional({ description: 'Active medical condition catalogue id' })
   @IsOptional()
   @IsUUID()
   medicalConditionId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Active medical condition catalogue ids; service users matching any selected condition (comma-separated or repeated)',
+  })
+  @IsOptional()
+  @TransformStringArrayQuery()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('4', { each: true })
+  medicalConditionIds?: string[];
 
   @ApiPropertyOptional({
     enum: INITIAL_ASSESSMENT_STATUS_FILTERS,

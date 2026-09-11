@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@jest/globals';
 import {
+  activeMedicalConditionListWhere,
+  carePlanFormIdsWhere,
   carePlanListStatusWhere,
   dateOfBirthRangeFromAges,
   initialAssessmentStatusWhere,
@@ -48,6 +50,52 @@ describe('carePlanListStatusWhere', () => {
   it('filters overdue with nextReviewDueAt before today', () => {
     const where = carePlanListStatusWhere('overdue', new Date('2026-09-10T12:00:00.000Z'));
     expect(where.carePlanInstances).toBeTruthy();
+  });
+});
+
+describe('carePlanFormIdsWhere', () => {
+  it('matches published instances of any selected form', () => {
+    expect(carePlanFormIdsWhere(['  id-a ', 'id-b', 'id-a'])).toEqual({
+      carePlanInstances: {
+        some: {
+          status: 'PUBLISHED',
+          carePathwayFormId: { in: ['id-a', 'id-b'] },
+        },
+      },
+    });
+  });
+
+  it('returns empty where when no ids', () => {
+    expect(carePlanFormIdsWhere([])).toEqual({});
+    expect(carePlanFormIdsWhere(['  '])).toEqual({});
+  });
+});
+
+describe('activeMedicalConditionListWhere', () => {
+  it('matches any selected active condition', () => {
+    expect(activeMedicalConditionListWhere(['  id-a ', 'id-b', 'id-a'])).toEqual({
+      medicalConditions: {
+        some: {
+          deletedAt: null,
+          isActive: true,
+          status: 'ACTIVE',
+          conditionId: { in: ['id-a', 'id-b'] },
+        },
+      },
+    });
+  });
+
+  it('uses a single id when only one is selected', () => {
+    expect(activeMedicalConditionListWhere('id-a')).toEqual({
+      medicalConditions: {
+        some: {
+          deletedAt: null,
+          isActive: true,
+          status: 'ACTIVE',
+          conditionId: 'id-a',
+        },
+      },
+    });
   });
 });
 

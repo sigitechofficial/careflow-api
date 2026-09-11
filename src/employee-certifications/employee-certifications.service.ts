@@ -28,7 +28,17 @@ export class EmployeeCertificationsService {
     await this.ensureEmployee(employeeId);
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeWorkCertification.create({
-        data: { employeeId, ...dto, createdById: userId },
+        data: {
+          employeeId,
+          certificationTypeId: dto.certificationTypeId,
+          reference: dto.reference,
+          issueDate: dto.issueDate,
+          expiryDate: dto.expiryDate,
+          notes: dto.notes,
+          certificateUrl: dto.certificateUrl,
+          createdById: userId,
+        },
+        include: { certificationType: true },
       });
       await this.audit.logAudit({
         tx,

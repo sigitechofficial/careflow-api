@@ -1,6 +1,7 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { defaultJobTitles } from './seed-data/default-job-titles';
+import { WORKFORCE_CERTIFICATION_NAMES, WORKFORCE_SKILL_NAMES } from './seed-data/workforce-catalog';
 import { DEFAULT_INCIDENT_CATEGORIES } from './seed-data/incident-categories';
 import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
@@ -1827,17 +1828,12 @@ async function main() {
     await upsertLookup(prisma.nationality, name);
   }
 
-  for (const name of [
-    'Dementia Care',
-    'First Aid',
-    'Manual Handling',
-    'Safeguarding Adults',
-    'Medication Administration',
-    'Infection control',
-    'Epilepsy awareness',
-    'Food hygiene',
-  ]) {
+  for (const name of WORKFORCE_SKILL_NAMES) {
     await upsertLookup(prisma.skillType, name);
+  }
+
+  for (const name of WORKFORCE_CERTIFICATION_NAMES) {
+    await upsertLookup(prisma.certificationType, name);
   }
 
   const skillTypes = await prisma.skillType.findMany({
