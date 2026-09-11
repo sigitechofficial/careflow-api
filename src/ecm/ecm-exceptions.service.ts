@@ -12,6 +12,7 @@ import {
   EcmExceptionLifecycle,
   EcmMissedClassification,
   EcmAuditEventType,
+  Prisma,
   VisitAttendanceEventType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -278,6 +279,7 @@ export class EcmExceptionsService {
         row.kind !== EcmExceptionKind.LEFT_VISIT_AREA &&
         row.kind !== EcmExceptionKind.CARER_SOS &&
         row.kind !== EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST &&
+        row.kind !== EcmExceptionKind.UNABLE_TO_START &&
         !keep.has(row.kind),
     );
     if (stale.length === 0) return;
@@ -326,6 +328,70 @@ export class EcmExceptionsService {
         },
       });
     }
+  }
+
+  async raiseUnableToStart(params: {
+    scheduledJobId: string;
+    employeeId: string;
+    reasonCode: string;
+    reasonLabel: string;
+    notes: string;
+  }) {
+    const existing = await this.prisma.ecmException.findFirst({
+      where: {
+        scheduledJobId: params.scheduledJobId,
+        kind: EcmExceptionKind.UNABLE_TO_START,
+        lifecycle: { in: OPEN_LIFECYCLES },
+      },
+      select: { id: true },
+    });
+    if (existing) return existing;
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: params.scheduledJobId, deletedAt: null },
+      select: { ecmEvaluation: { select: { id: true, criticality: true } } },
+    });
+    const sla = slaTargetsForCriticality(job?.ecmEvaluation?.criticality ?? 'PRIORITY');
+    const title = `Unable to start — ${params.reasonLabel}`;
+    const detail = params.notes.trim() || params.reasonLabel;
+    const exception = await this.prisma.ecmException.create({
+      data: {
+        scheduledJobId: params.scheduledJobId,
+        ecmVisitEvaluationId: job?.ecmEvaluation?.id ?? null,
+        kind: EcmExceptionKind.UNABLE_TO_START,
+        lifecycle: EcmExceptionLifecycle.DETECTED,
+        title,
+        detail,
+        context: {
+          employeeId: params.employeeId,
+          reasonCode: params.reasonCode,
+          reasonLabel: params.reasonLabel,
+          notes: params.notes,
+        } as Prisma.InputJsonValue,
+        responseTargetMinutes: sla.responseTargetMinutes,
+        escalationDeadlineAt:
+          sla.escalationMinutes > 0
+            ? new Date(Date.now() + sla.escalationMinutes * 60_000)
+            : new Date(),
+      },
+    });
+    await this.audit.append({
+      eventType: EcmAuditEventType.EXCEPTION_DETECTED,
+      scheduledJobId: params.scheduledJobId,
+      ecmExceptionId: exception.id,
+      actorUserId: null,
+      summary: title,
+      detail: {
+        employeeId: params.employeeId,
+        reasonCode: params.reasonCode,
+      },
+    });
+    await this.alerts.applySlaAndAlert({
+      exceptionId: exception.id,
+      criticality: job?.ecmEvaluation?.criticality ?? 'PRIORITY',
+      notify: true,
+    });
+    return exception;
   }
 
   async listOpen(limit = 50, serviceUserId?: string, locationId?: string) {
@@ -384,7 +450,8 @@ export class EcmExceptionsService {
     } as const;
     // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
     // limit hide a later same-day lock behind older exceptions.
-    const [sosRows, areaRows, mockRows, checkInRequestRows, otherRows] = await Promise.all([
+    const [sosRows, areaRows, mockRows, checkInRequestRows, unableToStartRows, otherRows] =
+      await Promise.all([
       this.prisma.ecmException.findMany({
         where: {
           kind: EcmExceptionKind.CARER_SOS,
@@ -423,12 +490,22 @@ export class EcmExceptionsService {
       }),
       this.prisma.ecmException.findMany({
         where: {
+          kind: EcmExceptionKind.UNABLE_TO_START,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      this.prisma.ecmException.findMany({
+        where: {
           kind: {
             notIn: [
               EcmExceptionKind.CARER_SOS,
               EcmExceptionKind.LEFT_VISIT_AREA,
               EcmExceptionKind.MOCK_LOCATION,
               EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST,
+              EcmExceptionKind.UNABLE_TO_START,
             ],
           },
           lifecycle: { in: OPEN_LIFECYCLES },
@@ -440,13 +517,16 @@ export class EcmExceptionsService {
       }),
     ]);
     const reservedIds = new Set(
-      [...sosRows, ...areaRows, ...mockRows, ...checkInRequestRows].map((row) => row.id),
+      [...sosRows, ...areaRows, ...mockRows, ...checkInRequestRows, ...unableToStartRows].map(
+        (row) => row.id,
+      ),
     );
     const rows = [
       ...sosRows,
       ...areaRows,
       ...mockRows,
       ...checkInRequestRows,
+      ...unableToStartRows,
       ...otherRows.filter((row) => !reservedIds.has(row.id)),
     ];
     const mockedJobIds = await this.mockedVisitJobIds(

@@ -91,6 +91,7 @@ const OPS_REASON_LABELS: Record<string, string> = {
   LEFT_VISIT_AREA: 'Left visit area',
   CARER_SOS: 'Carer SOS',
   OUTSIDE_AREA_CHECK_IN_REQUEST: 'Outside area check-in request',
+  UNABLE_TO_START: 'Unable to start',
   MOCK_LOCATION: 'Mock location',
   LOW_GPS_ACCURACY: 'Low GPS accuracy',
   NO_ACCESS: 'No access',

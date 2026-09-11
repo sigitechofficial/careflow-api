@@ -33,6 +33,8 @@ import {
 } from './employee-app-client-profile.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { computeCarePlanReviewState } from '../service-user-care-plans/care-plan-review-schedule';
+import { sanitizeComposeTextOrNull } from '../service-user-care-plans/compose/compose-html-sanitize.util';
+import { mapPublishedCarePlanForCarer } from './employee-app-care-plan-detail.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -926,7 +928,16 @@ export class EmployeeAppClientDetailService {
         serviceUserId: clientId,
         publishedVersions: { some: {} },
       },
-      select: publishedCarePlanSelect,
+      select: {
+        ...publishedCarePlanSelect,
+        carePathwayFormVersion: { select: carePlanFormVersionForCarerSelect },
+        carePathwayForm: {
+          select: {
+            name: true,
+            currentVersion: { select: carePlanFormVersionForCarerSelect },
+          },
+        },
+      },
     });
 
     const pub = instance?.publishedVersions[0];
@@ -934,16 +945,29 @@ export class EmployeeAppClientDetailService {
       throw new NotFoundException('Published care plan not found');
     }
 
+    const formSections = (
+      instance.carePathwayFormVersion?.sections?.length
+        ? instance.carePathwayFormVersion.sections
+        : instance.carePathwayForm.currentVersion?.sections
+    ) ?? [];
+    const plan = toPublishedPlanListItem(instance, pub);
+    const fullSummary = sanitizeComposeTextOrNull(pub.summary);
+
     return {
       data: {
         client: {
           clientId: su.id,
           fullName: displayName(su.firstName, su.lastName),
         },
-        plan: toPublishedPlanListItem(instance, pub),
-        sections: mapCarePlanSections(pub.valuesJson, instance.carePathwayForm.name).map(
-          carePlanSectionForApp,
-        ),
+        plan: {
+          ...plan,
+          summary: fullSummary ?? plan.summary,
+        },
+        sections: mapPublishedCarePlanForCarer({
+          valuesJson: pub.valuesJson,
+          formName: instance.carePathwayForm.name,
+          formSections,
+        }),
       },
     };
   }
@@ -1274,67 +1298,31 @@ function mapCapacityDecision(
   };
 }
 
-function mapCarePlanSections(valuesJson: unknown, fallbackTitle: string) {
-  if (!valuesJson || typeof valuesJson !== 'object') {
-    return [
-      {
-        id: 'overview',
-        title: fallbackTitle || 'Care plan',
-        iconType: iconForCarePlan(fallbackTitle),
-        goal: null as string | null,
-        preferences: null as { title: string; body: string } | null,
-        tasks: [] as string[],
-        tags: [] as Array<{ id: string; label: string; tone: Tone }>,
+const carePlanFormVersionForCarerSelect = {
+  sections: {
+    where: { deletedAt: null },
+    orderBy: { sortOrder: 'asc' as const },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      sortOrder: true,
+      fields: {
+        where: { deletedAt: null, isActive: true },
+        orderBy: { sortOrder: 'asc' as const },
+        select: {
+          id: true,
+          sectionId: true,
+          fieldKey: true,
+          label: true,
+          fieldType: true,
+          conditionalLogicJson: true,
+          sortOrder: true,
+        },
       },
-    ];
-  }
-  const obj = valuesJson as Record<string, unknown>;
-  if (Array.isArray(obj.sections)) {
-    return obj.sections.map((s, idx) => {
-      const section = s && typeof s === 'object' ? (s as Record<string, unknown>) : {};
-      const tasks = Array.isArray(section.tasks)
-        ? section.tasks.map((t) => String(t)).filter(Boolean)
-        : [];
-      return {
-        id: String(section.id ?? `section-${idx}`),
-        title: String(section.title ?? `Section ${idx + 1}`),
-        iconType: iconForCarePlan(String(section.title ?? '')),
-        goal: typeof section.goal === 'string' ? section.goal : null,
-        preferences:
-          typeof section.preferences === 'string'
-            ? { title: 'HOW I LIKE MY CARE', body: section.preferences }
-            : section.howILikeMyCare && typeof section.howILikeMyCare === 'string'
-              ? { title: 'HOW I LIKE MY CARE', body: section.howILikeMyCare }
-              : null,
-        tasks,
-        tags: Array.isArray(section.tags)
-          ? section.tags.map((t, i) => ({
-              id: `tag-${i}`,
-              label: String(t),
-              tone: 'warning' as Tone,
-            }))
-          : [],
-      };
-    });
-  }
-
-  const entries = Object.entries(obj)
-    .filter(([, v]) => typeof v === 'string' && String(v).trim())
-    .slice(0, 20);
-  return [
-    {
-      id: 'overview',
-      title: fallbackTitle || 'Care plan',
-      iconType: iconForCarePlan(fallbackTitle),
-      goal: entries[0]?.[1] ? String(entries[0][1]).slice(0, 400) : null,
-      preferences: entries[1]?.[1]
-        ? { title: 'HOW I LIKE MY CARE', body: String(entries[1][1]).slice(0, 600) }
-        : null,
-      tasks: entries.slice(2).map(([, v]) => String(v).slice(0, 280)),
-      tags: [],
     },
-  ];
-}
+  },
+};
 
 const publishedCarePlanSelect = {
   id: true,
@@ -1370,16 +1358,5 @@ function toPublishedPlanListItem(
     nextReviewDueAt: instance.nextReviewDueAt?.toISOString() ?? null,
     reviewStatus: computeCarePlanReviewState({ nextReviewDueAt: instance.nextReviewDueAt }).status,
     summary,
-  };
-}
-
-function carePlanSectionForApp(section: ReturnType<typeof mapCarePlanSections>[number]) {
-  const lines = [section.goal, section.preferences?.body, ...section.tasks].filter(
-    (s): s is string => typeof s === 'string' && Boolean(s.trim()),
-  );
-  return {
-    ...section,
-    iconKey: section.iconType,
-    lines,
   };
 }
