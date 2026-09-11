@@ -91,20 +91,25 @@ export class InvoiceRunsController {
   )
   @ApiOperation({
     summary:
-      'Download invoice run lines as CSV or Excel (?format=csv|xlsx&serviceUserId=optional)',
+      'Download invoice run lines as CSV or Excel (?format=csv|xlsx&serviceUserId=&funderId=optional)',
   })
   async export(
     @Param('id') id: string,
     @Query('format') format: string | undefined,
     @Query('serviceUserId') serviceUserId: string | undefined,
+    @Query('funderId') funderId: string | undefined,
     @Res() res: Response,
   ) {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const { filename, mime, body } = await this.service.exportRun(
-      id,
-      fmt,
-      serviceUserId?.trim() || undefined,
-    );
+    const { filename, mime, body } = await this.service.exportRun(id, fmt, {
+      serviceUserId: serviceUserId?.trim() || undefined,
+      ...(funderId?.trim()
+        ? {
+            funderId:
+              funderId.trim() === 'direct' ? null : funderId.trim(),
+          }
+        : {}),
+    });
     res
       .type(mime)
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)

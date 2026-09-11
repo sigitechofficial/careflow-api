@@ -1512,13 +1512,19 @@ export class InvoiceRunsService {
   async exportRun(
     id: string,
     format: 'csv' | 'xlsx',
-    serviceUserId?: string,
+    opts?: { serviceUserId?: string; funderId?: string | null },
   ): Promise<{ filename: string; mime: string; body: string | Buffer }> {
+    const serviceUserId = opts?.serviceUserId;
+    const funderScoped = opts != null && 'funderId' in opts;
+    const funderId = funderScoped ? opts!.funderId ?? null : undefined;
     const row = await this.prisma.invoiceRun.findUnique({
       where: { id },
       include: {
         lines: {
-          where: serviceUserId ? { serviceUserId } : undefined,
+          where: {
+            ...(serviceUserId ? { serviceUserId } : {}),
+            ...(funderScoped ? { funderId: funderId ?? null } : {}),
+          },
           orderBy: [{ visitRef: 'asc' }, { description: 'asc' }],
           select: {
             visitReconciliationId: true,
@@ -1531,8 +1537,12 @@ export class InvoiceRunsService {
       },
     });
     if (!row) throw new NotFoundException('Invoice run not found');
-    if (serviceUserId && row.lines.length === 0) {
-      throw new NotFoundException('No invoice lines for this service user on the run');
+    if ((serviceUserId || funderScoped) && row.lines.length === 0) {
+      throw new NotFoundException(
+        funderScoped
+          ? 'No invoice lines for this funder on the run'
+          : 'No invoice lines for this service user on the run',
+      );
     }
 
     const reconIds = [
@@ -2193,8 +2203,9 @@ export class InvoiceRunsService {
   }
 
   /**
-   * Resolve likely invoice email recipients for a service user on a run
-   * (funding billing contacts first, then service user email).
+   * Resolve likely invoice email recipients for a service user on a run.
+   * When the SU has multiple funders, returns per-funder totals and suggested emails
+   * so each funder can be billed separately.
    */
   async getServiceUserEmailPreview(runId: string, serviceUserId: string) {
     const run = await this.prisma.invoiceRun.findUnique({
@@ -2234,6 +2245,7 @@ export class InvoiceRunsService {
     const funderIds = [
       ...new Set(lines.map((l) => l.funderId).filter((id): id is string => Boolean(id))),
     ];
+    const hasDirect = lines.some((l) => !l.funderId);
     const [fundings, funders] = await Promise.all([
       this.prisma.serviceUserFunding.findMany({
         where: { serviceUserId, deletedAt: null },
@@ -2250,32 +2262,93 @@ export class InvoiceRunsService {
           })
         : Promise.resolve([]),
     ]);
+    const funderMap = new Map(funders.map((f) => [f.id, f]));
 
     type Suggestion = { email: string; source: string; label: string };
-    const suggestions: Suggestion[] = [];
-    const seen = new Set<string>();
-    const push = (email: string | null | undefined, source: string, label: string) => {
+    const pushSuggestion = (
+      list: Suggestion[],
+      seen: Set<string>,
+      email: string | null | undefined,
+      source: string,
+      label: string,
+    ) => {
       const e = email?.trim().toLowerCase();
       if (!e || seen.has(e)) return;
       seen.add(e);
-      suggestions.push({ email: e, source, label });
+      list.push({ email: e, source, label });
     };
 
-    for (const f of fundings) {
-      push(
-        f.billingContactEmail,
-        'funding_billing_contact',
-        f.billingContactName?.trim() || 'Funding billing contact',
-      );
+    const amountByFunder = new Map<string, number>();
+    for (const line of lines) {
+      const key = line.funderId ?? '__direct__';
+      amountByFunder.set(key, (amountByFunder.get(key) ?? 0) + Number(line.amount));
     }
-    for (const f of funders) {
-      push(f.email, 'funder', f.name);
+
+    const funderShares: Array<{
+      funderId: string | null;
+      funderName: string;
+      subtotal: string;
+      subtotalValue: number;
+      defaultToEmail: string | null;
+      suggestions: Suggestion[];
+    }> = [];
+
+    const keys = [...amountByFunder.keys()].sort((a, b) => {
+      if (a === '__direct__') return 1;
+      if (b === '__direct__') return -1;
+      const na = funderMap.get(a)?.name ?? a;
+      const nb = funderMap.get(b)?.name ?? b;
+      return na.localeCompare(nb);
+    });
+
+    for (const key of keys) {
+      const funderId = key === '__direct__' ? null : key;
+      const funderName =
+        funderId == null
+          ? 'Direct / family'
+          : (funderMap.get(funderId)?.name ?? 'Unknown funder');
+      const suggestions: Suggestion[] = [];
+      const seen = new Set<string>();
+      for (const f of fundings) {
+        if ((f.funderId ?? null) !== funderId) continue;
+        pushSuggestion(
+          suggestions,
+          seen,
+          f.billingContactEmail,
+          'funding_billing_contact',
+          f.billingContactName?.trim() || 'Funding billing contact',
+        );
+      }
+      if (funderId) {
+        const funder = funderMap.get(funderId);
+        pushSuggestion(suggestions, seen, funder?.email, 'funder', funderName);
+      }
+      pushSuggestion(suggestions, seen, su.email, 'service_user', 'Service user');
+      const subtotalValue = Math.round((amountByFunder.get(key) ?? 0) * 100) / 100;
+      funderShares.push({
+        funderId,
+        funderName,
+        subtotal: formatMoney(subtotalValue),
+        subtotalValue,
+        defaultToEmail: suggestions[0]?.email ?? null,
+        suggestions,
+      });
     }
-    push(su.email, 'service_user', 'Service user');
+
+    const allSuggestions: Suggestion[] = [];
+    const allSeen = new Set<string>();
+    for (const share of funderShares) {
+      for (const s of share.suggestions) {
+        pushSuggestion(allSuggestions, allSeen, s.email, s.source, s.label);
+      }
+    }
 
     const subtotal = lines.reduce((sum, l) => sum + Number(l.amount), 0);
     const name =
       su.preferredName?.trim() || `${su.firstName} ${su.lastName}`.trim();
+
+    const preferredShare =
+      funderShares.find((s) => s.defaultToEmail) ?? funderShares[0] ?? null;
 
     return {
       data: {
@@ -2289,17 +2362,22 @@ export class InvoiceRunsService {
         serviceUserName: name,
         serviceUserNumber: su.serviceUserNumber,
         subtotal: formatMoney(subtotal),
-        subtotalValue: subtotal,
-        defaultToEmail: suggestions[0]?.email ?? null,
-        suggestions,
+        subtotalValue: Math.round(subtotal * 100) / 100,
+        defaultToEmail:
+          preferredShare?.defaultToEmail ?? allSuggestions[0]?.email ?? null,
+        suggestions: allSuggestions,
+        funders: funderShares,
+        defaultFunderId: preferredShare?.funderId ?? null,
+        requiresFunderSelection: funderShares.length > 1,
         canMarkSent:
           run.status === InvoiceRunStatus.LOCKED ||
           run.status === InvoiceRunStatus.APPROVED,
+        hasDirectLines: hasDirect,
       },
     };
   }
 
-  /** Email this service user's invoice CSV to a billing / service-user address. */
+  /** Email this service user's invoice CSV (optionally one funder's share). */
   async emailToServiceUser(runId: string, dto: EmailInvoiceToServiceUserDto) {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id: runId } });
     if (!run) throw new NotFoundException('Invoice run not found');
@@ -2317,16 +2395,56 @@ export class InvoiceRunsService {
     }
 
     const preview = await this.getServiceUserEmailPreview(runId, dto.serviceUserId);
+    const rawFunder = dto.funderId?.trim();
+    const funderScoped = rawFunder !== undefined && rawFunder !== '';
+    const isDirect = rawFunder === 'direct';
+    const funderId = !funderScoped ? undefined : isDirect ? null : rawFunder;
+
+    if (preview.data.requiresFunderSelection && !funderScoped) {
+      throw new BadRequestException(
+        'This invoice has multiple funders — choose which funder to email',
+      );
+    }
+
+    const share = funderScoped
+      ? preview.data.funders.find((f) =>
+          isDirect ? f.funderId == null : f.funderId === funderId,
+        )
+      : preview.data.funders.length === 1
+        ? preview.data.funders[0]
+        : null;
+    if (funderScoped && !share) {
+      throw new BadRequestException(
+        'Selected funder has no lines on this invoice for the service user',
+      );
+    }
+
     const to =
-      dto.toEmail?.trim().toLowerCase() || preview.data.defaultToEmail;
+      dto.toEmail?.trim().toLowerCase() ||
+      share?.defaultToEmail ||
+      preview.data.defaultToEmail;
     if (!to) {
       throw new BadRequestException(
         'No email address found. Add a funding billing contact email or service user email, or enter an address manually.',
       );
     }
 
-    const exported = await this.exportRun(runId, 'csv', dto.serviceUserId);
-    const subject = `Invoice — ${preview.data.serviceUserName} — ${preview.data.period}`;
+    const amountLabel = share?.subtotal ?? preview.data.subtotal;
+    const funderLabel = share?.funderName;
+    const exportFunderId =
+      funderScoped
+        ? funderId ?? null
+        : share?.funderId !== undefined
+          ? share.funderId
+          : undefined;
+    const exported = await this.exportRun(runId, 'csv', {
+      serviceUserId: dto.serviceUserId,
+      ...(exportFunderId !== undefined ? { funderId: exportFunderId } : {}),
+    });
+
+    const subject = funderLabel
+      ? `Invoice — ${preview.data.serviceUserName} — ${funderLabel} — ${preview.data.period}`
+      : `Invoice — ${preview.data.serviceUserName} — ${preview.data.period}`;
     const text = [
       `Dear recipient,`,
       ``,
@@ -2334,9 +2452,10 @@ export class InvoiceRunsService {
       preview.data.serviceUserNumber
         ? `(${preview.data.serviceUserNumber})`
         : '',
+      funderLabel ? `— funder share: ${funderLabel}` : '',
       `for the period ${preview.data.periodStart} to ${preview.data.periodEnd}.`,
       ``,
-      `Amount: ${preview.data.subtotal} ${preview.data.currency}`,
+      `Amount: ${amountLabel} ${preview.data.currency}`,
       ``,
       `This message was sent from CareAdmin.`,
     ]
@@ -2352,8 +2471,10 @@ export class InvoiceRunsService {
         preview.data.serviceUserNumber
           ? ` (${preview.data.serviceUserNumber})`
           : ''
+      }${
+        funderLabel ? ` — <strong>${funderLabel}</strong>` : ''
       } for the period <strong>${preview.data.periodStart}</strong> to <strong>${preview.data.periodEnd}</strong>.</p>
-<p>Amount: <strong>${preview.data.subtotal} ${preview.data.currency}</strong></p>
+<p>Amount: <strong>${amountLabel} ${preview.data.currency}</strong></p>
 <p>This message was sent from CareAdmin.</p>`,
       attachments: [
         {
@@ -2391,6 +2512,8 @@ export class InvoiceRunsService {
         markedSent,
         runId,
         serviceUserId: dto.serviceUserId,
+        funderId: share?.funderId ?? null,
+        funderName: funderLabel ?? null,
       },
     };
   }
