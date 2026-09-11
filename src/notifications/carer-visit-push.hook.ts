@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FcmPushService } from './fcm-push.service';
+import { fcmReport, type FcmSendReport } from './fcm-send-report';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -49,19 +50,26 @@ export class CarerVisitPushHook {
     void this.notifySafe(params);
   }
 
-  async notifySafe(params: CarerVisitPushParams): Promise<void> {
+  async notifySafe(params: CarerVisitPushParams): Promise<FcmSendReport> {
     try {
-      await this.send(params);
+      return await this.send(params);
     } catch (err) {
       this.logger.warn(
         `Carer visit push ${params.kind} failed for job ${params.scheduledJobId}: ${String(err)}`,
       );
+      return fcmReport({
+        ready: this.fcm.isReady(),
+        reason: 'SEND_FAILED',
+        error: String(err),
+      });
     }
   }
 
-  private async send(params: CarerVisitPushParams): Promise<void> {
+  private async send(params: CarerVisitPushParams): Promise<FcmSendReport> {
     const employeeIds = [...new Set(params.employeeIds.filter(Boolean))];
-    if (!employeeIds.length) return;
+    if (!employeeIds.length) {
+      return fcmReport({ ready: this.fcm.isReady(), reason: 'NO_EMPLOYEE' });
+    }
 
     let targets = employeeIds;
     if (params.once) {
@@ -88,9 +96,15 @@ export class CarerVisitPushHook {
       }
       targets = claimed;
     }
-    if (!targets.length) return;
+    if (!targets.length) {
+      return fcmReport({
+        ready: this.fcm.isReady(),
+        reason: 'NO_DEVICE_TOKEN',
+        error: 'No new push targets after receipt claim',
+      });
+    }
 
-    await this.fcm.sendToEmployees(targets, {
+    return this.fcm.sendToEmployees(targets, {
       title: params.title,
       body: params.body,
       data: {

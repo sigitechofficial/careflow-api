@@ -24,6 +24,7 @@ import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer
 import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
+import { fcmReport, type FcmSendReport } from '../notifications/fcm-send-report';
 
 /** Open queue includes RESOLVED so managers can still Close (audit close gate). */
 const OPEN_LIFECYCLES: EcmExceptionLifecycle[] = [
@@ -666,10 +667,17 @@ export class EcmExceptionsService {
       summary: `Exception acknowledged: ${updated.kind}`,
       detail: { note: note ?? null },
     });
-    if (firstAck && updated.kind === EcmExceptionKind.CARER_SOS) {
+    let fcm: FcmSendReport;
+    if (!firstAck) {
+      fcm = fcmReport({ ready: false, reason: 'NOT_FIRST_ACK' });
+    } else if (updated.kind !== EcmExceptionKind.CARER_SOS) {
+      fcm = fcmReport({ ready: false, reason: 'NOT_SOS' });
+    } else {
       const employeeId = parseCarerSosContext(updated.context).employeeId?.trim();
-      if (employeeId) {
-        this.carerPush.notify({
+      if (!employeeId) {
+        fcm = fcmReport({ ready: false, reason: 'NO_EMPLOYEE' });
+      } else {
+        fcm = await this.carerPush.notifySafe({
           employeeIds: [employeeId],
           kind: CarerVisitPushKind.SOS_ACKNOWLEDGED,
           title: 'Office acknowledged your SOS',
@@ -678,7 +686,7 @@ export class EcmExceptionsService {
         });
       }
     }
-    return updated;
+    return { ...updated, fcm };
   }
 
   async resolve(id: string, userId: string, reasonCode: string, note?: string) {

@@ -55,7 +55,9 @@ describe('FcmPushService', () => {
       title: 'T',
       body: 'B',
     })
-    expect(result).toEqual({ sent: 0, skipped: 1 })
+    expect(result.reason).toBe('NO_DEVICE_TOKEN')
+    expect(result.sent).toBe(0)
+    expect(result.skipped).toBe(1)
   })
 
   it('sendToEmployees skips when firebase is not initialised', async () => {
@@ -66,7 +68,9 @@ describe('FcmPushService', () => {
       title: 'T',
       body: 'B',
     })
+    expect(result.reason).toBe('FIREBASE_NOT_READY')
     expect(result.sent).toBe(0)
     expect(result.skipped).toBe(1)
+    expect(result.ready).toBe(false)
   })
 })

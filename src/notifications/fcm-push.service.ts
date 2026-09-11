@@ -6,6 +6,7 @@ import { DevicePushPlatform } from '@prisma/client';
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getMessaging, type TokenMessage } from 'firebase-admin/messaging';
 import { PrismaService } from '../prisma/prisma.service';
+import { fcmReport, type FcmSendReport } from './fcm-send-report';
 
 export type FcmPushPayload = {
   title: string;
@@ -28,6 +29,10 @@ export class FcmPushService {
     private readonly prisma: PrismaService,
   ) {
     this.ready = this.initAdmin();
+  }
+
+  isReady(): boolean {
+    return this.ready;
   }
 
   private initAdmin(): boolean {
@@ -85,18 +90,31 @@ export class FcmPushService {
   async sendToEmployees(
     employeeIds: string[],
     payload: FcmPushPayload,
-  ): Promise<{ sent: number; skipped: number }> {
+  ): Promise<FcmSendReport> {
     const unique = [...new Set(employeeIds.filter(Boolean))];
-    if (!unique.length) return { sent: 0, skipped: 0 };
+    if (!unique.length) {
+      return fcmReport({ ready: this.ready, reason: 'NO_EMPLOYEE' });
+    }
 
     const rows = await this.prisma.employeeDeviceToken.findMany({
       where: { employeeId: { in: unique } },
       select: { id: true, token: true },
     });
-    if (!rows.length) return { sent: 0, skipped: unique.length };
+    if (!rows.length) {
+      return fcmReport({
+        ready: this.ready,
+        skipped: unique.length,
+        reason: 'NO_DEVICE_TOKEN',
+      });
+    }
     if (!this.ready) {
-      this.logger.debug('FCM not ready — skip send');
-      return { sent: 0, skipped: unique.length };
+      this.logger.warn('FCM not ready — skip send');
+      return fcmReport({
+        ready: false,
+        tokens: rows.length,
+        skipped: unique.length,
+        reason: 'FIREBASE_NOT_READY',
+      });
     }
 
     const data: Record<string, string> = {};
@@ -131,10 +149,25 @@ export class FcmPushService {
           where: { token: { in: stale } },
         });
       }
-      return { sent: result.successCount, skipped: result.failureCount };
+      const sent = result.successCount;
+      const skipped = result.failureCount;
+      return fcmReport({
+        ready: true,
+        tokens: rows.length,
+        sent,
+        skipped,
+        reason: sent > 0 ? 'SENT' : 'SEND_FAILED',
+        error: sent > 0 ? undefined : 'Firebase returned no successful deliveries',
+      });
     } catch (err) {
       this.logger.warn(`FCM sendEach failed: ${String(err)}`);
-      return { sent: 0, skipped: rows.length };
+      return fcmReport({
+        ready: true,
+        tokens: rows.length,
+        skipped: rows.length,
+        reason: 'SEND_FAILED',
+        error: String(err),
+      });
     }
   }
 }
