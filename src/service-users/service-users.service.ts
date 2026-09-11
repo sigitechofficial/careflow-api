@@ -31,6 +31,7 @@ import {
   activeMedicalConditionListWhere,
   appendWhereAnd,
   BEHAVIOUR_INCIDENT_SUBTYPE_KEYS,
+  carePlanFormIdsWhere,
   carePlanListStatusWhere,
   findServiceUserIdsWithBehaviourIncident,
   findServiceUserIdsWithConfirmedMissedVisitsAtLeast,
@@ -321,6 +322,15 @@ export class ServiceUsersService implements OnModuleInit {
   }
 
   async list(query: ServiceUserQueryDto, actor?: RequestUser) {
+    if (query.ageMin != null && query.ageMax != null && query.ageMin > query.ageMax) {
+      throw new BadRequestException('Age from must be less than or equal to age to.');
+    }
+    if (query.dateOfDeathFrom && query.dateOfDeathTo && query.dateOfDeathFrom > query.dateOfDeathTo) {
+      throw new BadRequestException('Date of death from must be on or before date of death to.');
+    }
+    if (query.missedVisitsFrom && query.missedVisitsTo && query.missedVisitsFrom > query.missedVisitsTo) {
+      throw new BadRequestException('Visit from date must be on or before the to date.');
+    }
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.ServiceUserWhereInput = {};
@@ -420,8 +430,18 @@ export class ServiceUsersService implements OnModuleInit {
     if (query.carePlanListStatus) {
       appendWhereAnd(where, carePlanListStatusWhere(query.carePlanListStatus));
     }
-    if (query.medicalConditionId) {
-      appendWhereAnd(where, activeMedicalConditionListWhere(query.medicalConditionId));
+    if (query.carePlanFormIds?.length) {
+      appendWhereAnd(where, carePlanFormIdsWhere(query.carePlanFormIds));
+    }
+    const medicalConditionIds = [
+      ...new Set(
+        [...(query.medicalConditionIds ?? []), query.medicalConditionId]
+          .map((id) => id?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (medicalConditionIds.length) {
+      appendWhereAnd(where, activeMedicalConditionListWhere(medicalConditionIds));
     }
     if (query.initialAssessmentStatus) {
       appendWhereAnd(where, initialAssessmentStatusWhere(query.initialAssessmentStatus));

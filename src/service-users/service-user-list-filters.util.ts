@@ -182,6 +182,20 @@ export function carePlanListStatusWhere(
   }
 }
 
+/** Service users with a published instance of any of the given care-plan forms. */
+export function carePlanFormIdsWhere(formIds: string[]): Prisma.ServiceUserWhereInput {
+  const ids = [...new Set(formIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return {};
+  return {
+    carePlanInstances: {
+      some: {
+        status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
+        carePathwayFormId: { in: ids },
+      },
+    },
+  };
+}
+
 export function activeFlashMessageListWhere(
   now = new Date(),
 ): Prisma.ServiceUserWhereInput {
@@ -208,15 +222,17 @@ export function hospitalisedListWhere(
 }
 
 export function activeMedicalConditionListWhere(
-  conditionId: string,
+  conditionIds: string | string[],
 ): Prisma.ServiceUserWhereInput {
+  const ids = [...new Set((Array.isArray(conditionIds) ? conditionIds : [conditionIds]).map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return {};
   return {
     medicalConditions: {
       some: {
         deletedAt: null,
         isActive: true,
         status: ServiceUserMedicalConditionStatus.ACTIVE,
-        conditionId,
+        conditionId: ids.length === 1 ? ids[0] : { in: ids },
       },
     },
   };

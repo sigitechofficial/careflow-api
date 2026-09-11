@@ -14,6 +14,20 @@ import { UpdateEmployeeReviewDto } from './dto/update-employee-review.dto';
 @ApiTags('Employee Reviews')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('employee-reviews')
+export class EmployeeReviewsOverviewController {
+  constructor(private readonly service: EmployeeReviewsService) {}
+
+  @Get('overview')
+  @Permissions('employees.read')
+  overview() {
+    return this.service.overview();
+  }
+}
+
+@ApiTags('Employee Reviews')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('employees/:id/reviews')
 export class EmployeeReviewsController {
   constructor(private readonly service: EmployeeReviewsService) {}

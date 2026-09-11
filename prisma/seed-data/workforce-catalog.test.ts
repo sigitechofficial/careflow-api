@@ -47,6 +47,18 @@ describe('workforce-catalog', () => {
     expect(new Set(WORKFORCE_CERTIFICATION_NAMES).size).toBe(WORKFORCE_CERTIFICATION_NAMES.length);
   });
 
+  it('includes All For Care skill names missing from the original operational list', () => {
+    expect(WORKFORCE_SKILL_NAMES).toHaveLength(89);
+    expect(WORKFORCE_SKILL_NAMES).toEqual(expect.arrayContaining([
+      'Safeguarding Children',
+      'Care Certificate',
+      'Basic Life Support',
+      'GDPR',
+      'NVQ 3',
+      'Deprivation of Liberty (DOLS)',
+    ]));
+  });
+
   it('review type codes are unique', () => {
     const codes = WORKFORCE_REVIEW_TYPES.map((r) => r.code);
     expect(new Set(codes).size).toBe(codes.length);

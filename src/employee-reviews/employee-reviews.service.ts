@@ -24,6 +24,32 @@ export class EmployeeReviewsService {
     return { data: items };
   }
 
+  /** Organisation-wide staff reviews for Employee → Review Status. */
+  async overview() {
+    const items = await this.prisma.employeeReview.findMany({
+      where: {
+        deletedAt: null,
+        employee: { deletedAt: null },
+      },
+      include: {
+        reviewType: true,
+        employee: {
+          select: {
+            id: true,
+            personalDetail: {
+              select: { firstName: true, lastName: true, username: true },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { nextDue: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+    return { data: items };
+  }
+
   async create(userId: string, employeeId: string, dto: CreateEmployeeReviewDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
     return this.prisma.$transaction(async (tx) => {

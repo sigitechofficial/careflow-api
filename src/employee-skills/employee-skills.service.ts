@@ -29,6 +29,7 @@ export class EmployeeSkillsService {
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeSkill.create({
         data: { employeeId, ...dto, createdById: userId },
+        include: { skillType: true },
       });
       await this.audit.logAudit({
         tx,
@@ -61,6 +62,7 @@ export class EmployeeSkillsService {
       const updated = await tx.employeeSkill.update({
         where: { id: skillId },
         data: { ...dto, updatedById: userId },
+        include: { skillType: true },
       });
       const oldS = auditSnapshot(existing);
       const newS = auditSnapshot(updated);
