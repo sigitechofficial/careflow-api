@@ -153,7 +153,18 @@ const LABEL: Record<string, string> = {
   BARRIER_CREAM: 'Barrier cream',
   WASH_DRY: 'Wash & dry',
   WASH_AND_DRY: 'Wash & dry',
-};
+  // Meals — amount / refused / texture (carer app field values)
+  NORMAL: 'Normal',
+  SOFT: 'Soft',
+  PUREED: 'Pureed',
+  THICKENED_FLUIDS: 'Thickened fluids',
+  ASSISTED: 'Assisted',
+  NOT_HUNGRY: 'Not hungry',
+  UNWELL: 'Unwell',
+  DISLIKES: 'Dislikes',
+  TEXTURE: 'Texture',
+  UNKNOWN: 'Unknown',
+}
 
 function labelOf(code: string): string {
   return LABEL[code] ?? code.replace(/_/g, ' ');
@@ -199,42 +210,44 @@ export function formatAlignedCareValue(
       pushLabeled(parts, 'Skin condition', payload.skin);
       break;
     case 'PEG_ENTERAL':
-      push(parts, payload.feed_given);
+      pushLabeled(parts, 'Feed given', payload.feed_given);
       if (payload.volume_ml != null && payload.volume_ml !== '')
-        parts.push(`${payload.volume_ml} ml`);
-      push(parts, payload.flush);
-      push(parts, payload.tube_status);
-      push(parts, payload.site);
+        parts.push(`Volume: ${payload.volume_ml} ml`);
+      pushLabeled(parts, 'Flush given', payload.flush);
+      pushLabeled(parts, 'Tube', payload.tube_status);
+      pushLabeled(parts, 'Site', payload.site);
       break;
     case 'SKIN_INTEGRITY':
     case 'BODY_MAP':
-      push(parts, payload.condition);
+      pushLabeled(parts, 'Skin condition', payload.condition);
       break;
     case 'BOWEL_MOVEMENT':
       push(parts, payload.bristol ?? payload.bowelType);
-      push(parts, payload.continence);
+      pushLabeled(parts, 'Continence', payload.continence);
       break;
     case 'FALLS': {
       const occurred = asString(payload.fall_occurred);
-      if (occurred) push(parts, occurred);
-      else if (payload.hadFall === true || payload.hadFall === 'true') parts.push('Yes');
-      else if (payload.hadFall === false || payload.hadFall === 'false') parts.push('No');
-      push(parts, payload.location);
-      push(parts, payload.witnessed);
-      push(parts, payload.injury);
-      push(parts, payload.help);
+      if (occurred) pushLabeled(parts, 'Did a fall occur?', occurred);
+      else if (payload.hadFall === true || payload.hadFall === 'true')
+        parts.push('Did a fall occur?: Yes');
+      else if (payload.hadFall === false || payload.hadFall === 'false')
+        parts.push('Did a fall occur?: No');
+      pushLabeled(parts, 'Location', payload.location);
+      pushLabeled(parts, 'Witnessed', payload.witnessed);
+      pushLabeled(parts, 'Injury', payload.injury);
+      pushLabeled(parts, 'Help given', payload.help);
       break;
     }
     case 'REPOSITIONING':
-      push(parts, payload.position);
-      push(parts, payload.tolerated);
-      push(parts, payload.skin_glance);
+      pushLabeled(parts, 'Position', payload.position);
+      pushLabeled(parts, 'Tolerated', payload.tolerated);
+      pushLabeled(parts, 'Skin glance', payload.skin_glance);
       break;
     case 'MEALS':
-      push(parts, payload.amount ?? payload.mealType);
-      if (payload.intakeLevel) push(parts, payload.intakeLevel);
-      push(parts, payload.refused_reason);
-      push(parts, asCodes(payload.texture));
+      // Labels match the carer-app form (Amount eaten / Texture / support).
+      pushLabeled(parts, 'Amount eaten', payload.amount ?? payload.mealType ?? payload.intakeLevel);
+      pushLabeled(parts, 'Why refused', payload.refused_reason);
+      pushLabeled(parts, 'Texture / support', asCodes(payload.texture));
       break;
     default:
       return null;

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   Prisma,
   ScheduledJobStatus as PrismaJobStatus,
   ScheduledVisitStatus as PrismaVisitStatus,
@@ -28,6 +29,7 @@ import {
   type ScheduleImpactSource,
 } from './schedule-lifecycle-impact.util';
 import { ScheduleLifecycleNotificationHook } from './schedule-lifecycle-notification.hook';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 export type CancelServiceUserJobsParams = {
   serviceUserId: string;
@@ -67,6 +69,7 @@ export class ScheduleLifecycleImpactService {
     private readonly audit: AuditLogsService,
     private readonly jobAllocations: JobAllocationsService,
     private readonly notifications: ScheduleLifecycleNotificationHook,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   async isServiceUserAbsentOnDay(serviceUserId: string, day: Date): Promise<boolean> {
@@ -512,7 +515,11 @@ export class ScheduleLifecycleImpactService {
     const run = async (client: Prisma.TransactionClient) => {
       const allocations = await client.jobAllocation.findMany({
         where: buildUnallocateEmployeeJobsWhere(params.employeeId, from, to),
-        select: { id: true, scheduledJobId: true },
+        select: {
+          id: true,
+          scheduledJobId: true,
+          scheduledJob: { select: { jobName: true, serviceUserId: true } },
+        },
       });
 
       const jobIdSet = new Set<string>();
@@ -568,6 +575,19 @@ export class ScheduleLifecycleImpactService {
           actorUserId: userId,
         });
       }
+      const notifiedJobs = new Set<string>();
+      for (const row of allocations) {
+        if (notifiedJobs.has(row.scheduledJobId)) continue;
+        notifiedJobs.add(row.scheduledJobId);
+        this.carerPush.notify({
+          employeeIds: [params.employeeId],
+          kind: CarerVisitPushKind.VISIT_REMOVED,
+          title: 'Removed from visit',
+          body: `You have been taken off "${row.scheduledJob.jobName}".`,
+          scheduledJobId: row.scheduledJobId,
+          serviceUserId: row.scheduledJob.serviceUserId,
+        });
+      }
       return result;
     };
 
@@ -609,6 +629,16 @@ export class ScheduleLifecycleImpactService {
     const jobStatus =
       outcome === 'CALLED_OFF' ? PrismaJobStatus.CALLED_OFF : PrismaJobStatus.CANCELLED;
 
+    const allocations = await tx.jobAllocation.findMany({
+      where: {
+        scheduledJobId: jobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_ALLOCATION_STATUSES },
+      },
+      select: { employeeId: true },
+    });
+
     await tx.scheduledVisit.updateMany({
       where: { scheduledJobId: jobId, deletedAt: null, isActive: true },
       data: { status: visitStatus, updatedById: userId },
@@ -630,6 +660,18 @@ export class ScheduleLifecycleImpactService {
         ...(notes?.trim() ? { notes: notes.trim() } : {}),
         updatedById: userId,
       },
+    });
+
+    const calledOff = outcome === 'CALLED_OFF';
+    this.carerPush.notify({
+      employeeIds: [...new Set(allocations.map((a) => a.employeeId))],
+      kind: CarerVisitPushKind.VISIT_CALLED_OFF,
+      title: calledOff ? 'Visit called off' : 'Visit cancelled',
+      body: calledOff
+        ? `Your visit "${existing.jobName}" has been called off.`
+        : `Your visit "${existing.jobName}" has been cancelled.`,
+      scheduledJobId: jobId,
+      serviceUserId: existing.serviceUserId,
     });
   }
 }

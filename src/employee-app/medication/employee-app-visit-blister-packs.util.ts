@@ -90,6 +90,8 @@ type PackMemberMed = {
   instructions: string | null;
   howAssisted?: string | null;
   isControlledMedication: boolean;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
   route: { name: string } | null;
   medicationPack: { adminRules: unknown } | null;
   schedules: Array<{ id: string; dueTime: string | null; round: { name: string } | null }>;
@@ -184,6 +186,22 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
   };
 }
 
+function medicationActiveOnVisitDay(
+  med: { startDate?: Date | string | null; endDate?: Date | string | null },
+  visitAt: Date,
+): boolean {
+  const day = new Date(Date.UTC(visitAt.getUTCFullYear(), visitAt.getUTCMonth(), visitAt.getUTCDate()));
+  if (med.startDate) {
+    const start = new Date(med.startDate);
+    if (!Number.isNaN(start.getTime()) && start > day) return false;
+  }
+  if (med.endDate) {
+    const end = new Date(med.endDate);
+    if (!Number.isNaN(end.getTime()) && end < day) return false;
+  }
+  return true;
+}
+
 export function buildVisitBlisterPacks(input: {
   packs: PackInput[];
   visitRound: VisitMedicationRound | null;
@@ -191,20 +209,28 @@ export function buildVisitBlisterPacks(input: {
   eventByMed: Map<string, MarAdminEventEchoSource>;
   bodyMapSiteByMedId?: Map<string, MarBodyMapSite>;
   timeZone?: string;
+  visitAt?: Date;
 }): EmployeeAppBlisterPack[] {
-  const { packs, visitRound, allergyLower, eventByMed, bodyMapSiteByMedId, timeZone } = input;
+  const { packs, visitRound, allergyLower, eventByMed, bodyMapSiteByMedId, timeZone, visitAt } = input;
 
   return packs
     .map((pack) => {
       const activeMembers = pack.members.filter((m) => m.serviceUserMedication);
       const compartments = filterCompartmentsForVisitRound(pack.compartments, visitRound)
         .map((compartment) => {
-          const slotMembers = activeMembers.filter((member) =>
-            medMatchesCompartmentDueTime(
-              member.serviceUserMedication.schedules,
-              compartment.dueTime,
-            ),
-          );
+          const slotMembers = activeMembers.filter((member) => {
+            if (
+              !medMatchesCompartmentDueTime(
+                member.serviceUserMedication.schedules,
+                compartment.dueTime,
+              )
+            ) {
+              return false;
+            }
+            if (!visitAt) return true;
+            const recorded = eventByMed.has(member.serviceUserMedication.id);
+            return recorded || medicationActiveOnVisitDay(member.serviceUserMedication, visitAt);
+          });
           const medicines = slotMembers.map((member) =>
             mapPackMedicine({
               memberId: member.id,

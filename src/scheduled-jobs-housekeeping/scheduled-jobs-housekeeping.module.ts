@@ -8,6 +8,7 @@ import { EcmModule } from '../ecm/ecm.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { VisitTimelineService } from '../employee-app/visit-timeline.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ScheduledJobsHousekeepingController } from './scheduled-jobs-housekeeping.controller';
 import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.service';
 
@@ -20,6 +21,7 @@ import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.
     ServiceUserObservationsModule,
     VisitAttendanceModule,
     OrganisationGeneralSettingsModule,
+    NotificationsModule,
     forwardRef(() => EcmModule),
   ],
   controllers: [ScheduledJobsHousekeepingController],

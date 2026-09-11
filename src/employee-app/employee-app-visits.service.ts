@@ -9,6 +9,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   BodyMapPhotoConsentStatus,
   BodyMapRecordStatus,
   InitialAssessmentRiskStatus,
@@ -45,6 +46,7 @@ import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
 import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-grant.service';
 import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
 import { EmployeeAppSosService } from './employee-app-sos.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
@@ -143,9 +145,11 @@ import {
   mapMarOutcomeCode,
   mapVisitOutcomeToStatus,
   newAuditRecordId,
+  parseMedicationAdministrationKey,
   statusToContractLabel,
   validationError,
 } from './employee-app-contract.util';
+import { formatHm } from '../medication-charts/medication-chart-rounds.util';
 import {
   computeVisitTaskProgress,
   inferVisitTaskOutcome,
@@ -336,6 +340,7 @@ export class EmployeeAppVisitsService {
     private readonly checkInMethodGrants: VisitCheckInMethodGrantService,
     private readonly sos: EmployeeAppSosService,
     private readonly visitReconciliations: VisitReconciliationsService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
@@ -2094,6 +2099,15 @@ export class EmployeeAppVisitsService {
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
+    this.carerPush.notify({
+      employeeIds: [employeeId],
+      kind: CarerVisitPushKind.VISIT_COMPLETE,
+      title: 'Visit completed',
+      body: `"${ctx.job.jobName}" is complete.`,
+      scheduledJobId: jobId,
+      serviceUserId: ctx.job.serviceUserId,
+    });
+
     return this.buildCompleteResponse(employeeId, jobId, ctx, {
       status,
       message: result.message,
@@ -2843,7 +2857,7 @@ export class EmployeeAppVisitsService {
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
-    const [medId, doseKey] = medicationKey.split(':');
+    const { medId, doseKey } = parseMedicationAdministrationKey(medicationKey);
     if (!medId) validationError('Invalid medicationKey');
 
     const med = await this.prisma.serviceUserMedication.findFirst({
@@ -2876,9 +2890,10 @@ export class EmployeeAppVisitsService {
 
     const mapped = mapMarOutcomeCode(dto.outcomeCode);
     const isPrn = doseKey === 'prn' || med.medicationKind === MedicationKind.PRN;
+    const doseHm = doseKey && doseKey !== 'dose' ? formatHm(doseKey) : null;
     const schedule =
-      !isPrn && doseKey && doseKey !== 'dose'
-        ? med.schedules.find((s) => String(s.dueTime) === doseKey) ?? med.schedules[0]
+      !isPrn && doseHm
+        ? med.schedules.find((s) => formatHm(s.dueTime) === doseHm) ?? med.schedules[0]
         : med.schedules[0];
 
     const recordedAt = new Date(dto.deviceRecordedAt);
@@ -4864,9 +4879,6 @@ export class EmployeeAppVisitsService {
     }));
 
     const extraFlags = riskTags.filter((t) => !/allerg/i.test(t.label));
-    const hasLoneWorkerRisk = openRisks.some(
-      (r) => r.riskType === InitialAssessmentRiskType.LONE_WORKER,
-    );
     const communicationNotes = extractCommunicationNotes(ia?.careInstructions ?? '');
 
     const carePlanEssentials = carePlans
@@ -4950,13 +4962,11 @@ export class EmployeeAppVisitsService {
           value: String(progress.obsCount),
         },
       ],
-      safetyBriefing: hasLoneWorkerRisk
-        ? {
-            title: 'Pre-visit safety briefing',
-            risks: [],
-            loneWorkerNote: 'Lone-worker & SOS',
-          }
-        : null,
+      safetyBriefing: {
+        title: 'Pre-visit safety briefing',
+        risks: [],
+        loneWorkerNote: 'Lone-worker & SOS',
+      },
       communication: {
         title: 'Communication & sensory',
         items: communicationNotes,
@@ -5094,6 +5104,8 @@ export class EmployeeAppVisitsService {
                   isControlledMedication: true,
                   route: { select: { name: true } },
                   medicationPack: { select: { adminRules: true } },
+                  startDate: true,
+                  endDate: true,
                   schedules: {
                     where: { deletedAt: null, isActive: true },
                     select: { id: true, dueTime: true, round: { select: { name: true } } },
@@ -5309,6 +5321,7 @@ export class EmployeeAppVisitsService {
       eventByMed,
       bodyMapSiteByMedId,
       timeZone: ctx.timeZone,
+      visitAt: ctx.primaryVisit.scheduledStartDateTime,
     });
 
     return { sections, blisterPacks };

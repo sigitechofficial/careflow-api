@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import {
   AllocationStatus,
   CallOffVisitStatus as PrismaCallOffStatus,
+  CarerVisitPushKind,
   Prisma,
   ScheduledJobStatus as PrismaJobStatus,
   ScheduledVisitStatus as PrismaVisitStatus,
@@ -54,6 +55,7 @@ import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
 import { VisitObservationsCatalogService } from '../service-user-observations/visit-observations-catalog.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -136,6 +138,7 @@ export class ScheduledJobsHousekeepingService {
     private readonly ecmEvaluation: EcmEvaluationService,
     private readonly visitAttendance: VisitAttendanceService,
     private readonly visitTimeline: VisitTimelineService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   /** Staff JWT actors get branch scope checks; employee-app may pass a userId string. */
@@ -1353,6 +1356,24 @@ export class ScheduledJobsHousekeepingService {
     });
 
     await this.ecmEvaluation.evaluateJobSafe(id);
+    const employeeIds = [
+      ...new Set(
+        (existing.allocations ?? [])
+          .filter((a) => ACTIVE_ALLOCATION.includes(a.status))
+          .map((a) => a.employeeId),
+      ),
+    ];
+    const calledOff = dto.outcome === 'CALLED_OFF';
+    this.carerPush.notify({
+      employeeIds,
+      kind: CarerVisitPushKind.VISIT_CALLED_OFF,
+      title: calledOff ? 'Visit called off' : 'Visit cancelled',
+      body: calledOff
+        ? `Your visit "${existing.jobName}" has been called off.`
+        : `Your visit "${existing.jobName}" has been cancelled.`,
+      scheduledJobId: id,
+      serviceUserId: existing.serviceUserId,
+    });
     return cancelResult;
   }
 

@@ -4,6 +4,7 @@ import {
   InitialAssessmentRiskStatus,
   InitialAssessmentRiskType,
   MedicationKind,
+  MedicationPackStatus,
   MedicationRecordStatus,
   ScheduledJobStatus,
   ScheduledVisitStatus,
@@ -23,6 +24,13 @@ import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/vi
 import { plannedHowAssistedLabel } from './medication/employee-app-visit-medication-round.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { employeeAppAccessPayload } from './employee-app-access.util';
+import {
+  gpAsContact,
+  mapProfileCommunication,
+  mapProfileContact,
+  mapProfileGp,
+  profileRiskLabel,
+} from './employee-app-client-profile.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { computeCarePlanReviewState } from '../service-user-care-plans/care-plan-review-schedule';
 
@@ -63,6 +71,8 @@ export class EmployeeAppClientDetailService {
       carePlans,
       ia,
       asRef,
+      nokContacts,
+      gpPack,
     ] = await Promise.all([
       this.prisma.serviceUserAllergy.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
@@ -157,12 +167,38 @@ export class EmployeeAppClientDetailService {
         },
         select: { referenceValue: true },
       }),
+      this.prisma.serviceUserContact.findMany({
+        where: { serviceUserId: clientId, deletedAt: null, isActive: true },
+        select: {
+          firstName: true,
+          lastName: true,
+          phone: true,
+          mobile: true,
+          isPrimary: true,
+          isEmergencyContact: true,
+          relationshipType: { select: { name: true } },
+        },
+        orderBy: [{ isEmergencyContact: 'desc' }, { isPrimary: 'desc' }, { firstName: 'asc' }],
+        take: 8,
+      }),
+      this.prisma.medicationPack.findFirst({
+        where: {
+          serviceUserId: clientId,
+          deletedAt: null,
+          status: { in: [MedicationPackStatus.ACTIVE, MedicationPackStatus.DRAFT] },
+          OR: [{ gpName: { not: '' } }, { gpSurgery: { not: '' } }],
+        },
+        orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+        select: { gpName: true, gpSurgery: true },
+      }),
     ]);
 
     const allergyNames = allergies.map((a) => a.allergyName.trim()).filter(Boolean);
     const age = ageFromDob(su.dateOfBirth);
     const fullName = displayName(su.firstName, su.lastName);
+    const preferredName = su.preferredName?.trim() || null;
     const forCpr = !(legal?.dnacprInPlace === true);
+    const dnacprLocation = !forCpr ? legal?.dnacprPhysicalLocation?.trim() || null : null;
     const historyText = `${ia?.previousMedicalHistory ?? ''} ${ia?.careInstructions ?? ''}`.toLowerCase();
     const conditions: Array<{ id: string; label: string }> = [];
     if (/diabet/.test(historyText) || carePlans.some((p) => /diabet/i.test(p.carePathwayForm.name))) {
@@ -171,6 +207,18 @@ export class EmployeeAppClientDetailService {
     if (/dement/.test(historyText) || carePlans.some((p) => /dement/i.test(p.carePathwayForm.name))) {
       conditions.push({ id: 'early_dementia', label: 'Early dementia' });
     }
+    const seenRisks = new Set<InitialAssessmentRiskType>();
+    for (const risk of openRisks) {
+      if (seenRisks.has(risk.riskType)) continue;
+      seenRisks.add(risk.riskType);
+      conditions.push({ id: risk.riskType.toLowerCase(), label: profileRiskLabel(risk.riskType) });
+    }
+    const communication = mapProfileCommunication(ia?.careInstructions);
+    const gp = mapProfileGp(gpPack);
+    const contacts = [
+      ...nokContacts.map(mapProfileContact),
+      ...(gp ? [gpAsContact(gp)] : []),
+    ];
 
     const jobs = todayJobs.map((a) => a.scheduledJob);
     const taskProgress = await this.loadTaskProgress(jobs);
@@ -226,12 +274,14 @@ export class EmployeeAppClientDetailService {
           fullName,
           firstName: su.firstName,
           lastName: su.lastName,
+          preferredName,
           initials: initialsFromName(su.firstName, su.lastName),
           age,
           nhsNumber: su.nhsNumber,
           nhsNumberLabel: su.nhsNumber ? `NHS ${su.nhsNumber}` : null,
           asNumber: asRef?.referenceValue ?? su.socialServicesRef ?? null,
           subtitle: [
+            preferredName && preferredName !== fullName ? fullName : null,
             age != null ? `${age} yrs` : null,
             su.nhsNumber ? `NHS ${su.nhsNumber}` : null,
           ]
@@ -251,11 +301,16 @@ export class EmployeeAppClientDetailService {
             id: forCpr ? 'for_cpr' : 'dnacpr',
             label: forCpr ? 'For CPR' : 'DNACPR in place',
             tone: forCpr ? ('success' as Tone) : ('warning' as Tone),
+            location: dnacprLocation,
           },
+          dnacprLocation,
           conditions,
         },
         todayVisits,
         carePlanEssentials,
+        communication,
+        contacts,
+        gp,
         date,
         access: employeeAppAccessPayload(su.address),
       },

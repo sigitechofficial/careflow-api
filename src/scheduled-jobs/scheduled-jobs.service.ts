@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   Prisma,
   ScheduledJobPriority as PrismaPriority,
   ScheduledJobStatus as PrismaJobStatus,
@@ -17,6 +18,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { EcmScheduleVersionService } from '../ecm/ecm-schedule-version.service';
 import { JobAllocationsService } from '../job-allocations/job-allocations.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import {
   assertDateRange,
   assertRequiredCarers,
@@ -99,6 +101,7 @@ export class ScheduledJobsService {
     private readonly orgScope: OrgScopeService,
     @Inject(forwardRef(() => JobAllocationsService))
     private readonly jobAllocations: JobAllocationsService,
+    private readonly carerPush: CarerVisitPushHook,
   ) {}
 
   async list(query: ScheduledJobQueryDto, actor?: RequestUser) {
@@ -421,6 +424,28 @@ export class ScheduledJobsService {
           previousEndDateTime: existing.scheduledEndDateTime,
           changedById: userId,
           reasonNote: dto.notes?.trim() || null,
+        });
+      }
+      const startChanged =
+        existing.scheduledStartDateTime.getTime() !== updated.scheduledStartDateTime.getTime();
+      const endChanged =
+        (existing.scheduledEndDateTime?.getTime() ?? 0) !==
+        (updated.scheduledEndDateTime?.getTime() ?? 0);
+      const durationChanged =
+        (existing.estimatedDurationMinutes ?? null) !==
+        (updated.estimatedDurationMinutes ?? null);
+      const addressChanged =
+        (existing.address ?? '') !== (updated.address ?? '') ||
+        (existing.postcode ?? '') !== (updated.postcode ?? '');
+      if (startChanged || endChanged || durationChanged || addressChanged) {
+        const employeeIds = await this.carerPush.activeEmployeeIdsForJob(id);
+        this.carerPush.notify({
+          employeeIds,
+          kind: CarerVisitPushKind.VISIT_CHANGE,
+          title: 'Visit updated',
+          body: `Time or address changed for "${updated.jobName}".`,
+          scheduledJobId: id,
+          serviceUserId: updated.serviceUserId,
         });
       }
       return { message: 'Scheduled job updated', data: this.mapJob(updated) };

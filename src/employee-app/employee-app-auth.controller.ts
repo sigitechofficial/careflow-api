@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
 import { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
+import { EmployeeAppLogoutDto } from './dto/employee-app-device-token.dto';
 
 /**
  * Carer / employee mobile app auth — kept separate from web `/auth/*`.
@@ -38,8 +39,12 @@ export class EmployeeAppAuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, EmployeeAppAuthGuard)
   @ApiOperation({ summary: 'Logout employee app session' })
-  logout(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.authService.logout(user, req);
+  logout(
+    @CurrentUser() user: RequestUser,
+    @Req() req: Request,
+    @Body() dto?: EmployeeAppLogoutDto,
+  ) {
+    return this.authService.logout(user, req, dto?.token);
   }
 
   @Get('me')

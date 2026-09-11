@@ -1,7 +1,8 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import { NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
+import { CarerVisitPushKind, NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 
 @Injectable()
 export class CallOffVisitNotificationHook {
@@ -10,6 +11,7 @@ export class CallOffVisitNotificationHook {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly carerPush?: CarerVisitPushHook,
   ) {}
 
   private async managerUserIds(): Promise<string[]> {
@@ -69,6 +71,13 @@ export class CallOffVisitNotificationHook {
     jobName: string;
     employeeIds: string[];
   }): Promise<void> {
+    this.carerPush?.notify({
+      employeeIds: params.employeeIds,
+      kind: CarerVisitPushKind.VISIT_CALLED_OFF,
+      title: 'Visit called off',
+      body: `Your visit "${params.jobName}" has been called off.`,
+      scheduledJobId: params.scheduledJobId,
+    });
     if (!this.notifications) return;
     try {
       const userIds: string[] = [];

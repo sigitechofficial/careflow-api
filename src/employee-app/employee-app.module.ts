@@ -27,6 +27,8 @@ import { ScheduledJobsHousekeepingModule } from '../scheduled-jobs-housekeeping/
 import { BodyMapModule } from '../body-map/body-map.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
 import { EcmModule } from '../ecm/ecm.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { EmployeeAppDeviceTokenController } from './employee-app-device-token.controller';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { EcmModule } from '../ecm/ecm.module';
     BodyMapModule,
     VisitAttendanceModule,
     EcmModule,
+    NotificationsModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
@@ -57,6 +60,7 @@ import { EcmModule } from '../ecm/ecm.module';
     EmployeeAppVisitsController,
     EmployeeAppBodyMapController,
     EmployeeAppSalaryController,
+    EmployeeAppDeviceTokenController,
   ],
   providers: [
     EmployeeAppAuthService,

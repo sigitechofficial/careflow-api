@@ -62,3 +62,6 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
+
+# Firebase Admin private key
+serviceAccount.json
