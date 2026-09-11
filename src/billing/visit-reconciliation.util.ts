@@ -750,6 +750,11 @@ export type PayableAmountResult = {
 /**
  * Calculate visit pay. When `window` is provided and the card has time-banded hourly rules,
  * the activity is split across bands; otherwise a single day-type rule is used (legacy path).
+ *
+ * @param minutes Minutes used for the money calculation (approved pay window).
+ * @param rateBasisMinutes When planned duration is provided and exceeds 60 minutes, fixed
+ *   duration slots are skipped and hourly/banded rates apply even if `minutes` is ≤ 60
+ *   (e.g. 3h planned visit completed in 30 minutes → hourly × 0.5h, not the 30m fixed slot).
  */
 export function calculatePayableAmount(
   rules: PayCardRuleLike[],
@@ -765,6 +770,7 @@ export function calculatePayableAmount(
     timeZone?: string;
   },
   nightDuty?: string | null,
+  rateBasisMinutes?: number | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
@@ -783,10 +789,13 @@ export function calculatePayableAmount(
   const dayRules = rules.filter((rule) => !isNightDutyPayRateType(rule.rateType));
   const bandRules = toTimeBandRules(dayRules);
   const timeZone = window?.timeZone ?? 'UTC';
+  const forceHourlyFromPlan =
+    rateBasisMinutes != null &&
+    rateBasisMinutes > MAX_FIXED_VISIT_MINUTES;
 
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
-  // Otherwise use hourly pro-rata (time-banded when a window is provided).
-  if (minutes <= MAX_FIXED_VISIT_MINUTES) {
+  // Planned visits longer than 1 hour always use hourly/banded (even if actual is short).
+  if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
@@ -847,17 +856,23 @@ export function calculatePayableAmount(
     }
   }
 
-  if (minutes <= MAX_FIXED_VISIT_MINUTES) {
+  if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
   }
 
-  const rule = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
+  // When planned is long, pick an hourly rule even if actual minutes would match a fixed slot.
+  const rule = forceHourlyFromPlan
+    ? pickBestRule(dayRules, visitDate, rateBasisMinutes!, isBankHoliday, timeZone)
+    : pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
   if (!rule) return null;
   const amount = Number(rule.amount);
-  if (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE') {
+  if (
+    !forceHourlyFromPlan &&
+    (rule.rateType === 'FIXED' || rule.rateType === 'PER_VISIT_FEE')
+  ) {
     return { amount, label: rule.rateType };
   }
   const hourly = amount * (minutes / 60);
@@ -977,6 +992,7 @@ export function calculateBillableAmount(
     timeZone?: string;
   },
   nightDuty?: string | null,
+  rateBasisMinutes?: number | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
 
@@ -1013,7 +1029,15 @@ export function calculateBillableAmount(
     appliesToTravel: rule.appliesToTravel ?? false,
   }));
 
-  const calc = calculatePayableAmount(asPayRules, visitDate, minutes, isBankHoliday, window);
+  const calc = calculatePayableAmount(
+    asPayRules,
+    visitDate,
+    minutes,
+    isBankHoliday,
+    window,
+    null,
+    rateBasisMinutes,
+  );
   if (!calc) return null;
 
   if (calc.label === 'BANDED_HOURLY') {
@@ -1248,10 +1272,19 @@ export function buildPayRateBreakdown(
   isBankHoliday = false,
   window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
   nightDuty?: string | null,
+  rateBasisMinutes?: number | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
-  const calc = calculatePayableAmount(rules, visitDate, minutes, isBankHoliday, window, nightDuty);
+  const calc = calculatePayableAmount(
+    rules,
+    visitDate,
+    minutes,
+    isBankHoliday,
+    window,
+    nightDuty,
+    rateBasisMinutes,
+  );
   if (!calc) return null;
 
   const hoursLabel = formatMinutesAsHours(minutes);
@@ -1432,6 +1465,7 @@ export function buildChargeRateBreakdown(
   isBankHoliday = false,
   window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
   nightDuty?: string | null,
+  rateBasisMinutes?: number | null,
 ): RateBreakdown | null {
   if (minutes <= 0) return null;
 
@@ -1443,6 +1477,7 @@ export function buildChargeRateBreakdown(
     isBankHoliday,
     window,
     nightDuty,
+    rateBasisMinutes,
   );
   if (!calc) return null;
 

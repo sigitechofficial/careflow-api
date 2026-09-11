@@ -149,6 +149,8 @@ export async function loadPerFunderChargeCalculation(
   params: {
     serviceUserId: string;
     billMinutes: number;
+    /** Planned visit minutes — drives fixed vs hourly rate selection. */
+    rateBasisMinutes?: number | null;
     billRateAnchor: Date;
     approvedBillStart: Date;
     approvedBillEnd: Date;
@@ -213,6 +215,7 @@ export async function loadPerFunderChargeCalculation(
           timeZone: params.timeZone,
         },
         params.nightDuty,
+        params.rateBasisMinutes,
       );
       cardGrossAmount = calc?.amount ?? null;
     }

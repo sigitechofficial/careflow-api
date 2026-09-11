@@ -84,6 +84,59 @@ describe('pickBestRule exact fixed slot then hourly', () => {
     expect(result).toEqual({ amount: 15, label: 'HOURLY' });
   });
 
+  it('uses hourly for short actual when planned duration is over 60 minutes', () => {
+    const result = calculatePayableAmount(
+      [
+        fixedRule(30, 8),
+        fixedRule(45, 12),
+        fixedRule(60, 15),
+        {
+          dayType: 'WEEKDAY',
+          rateType: 'HOURLY',
+          amount: 24,
+          multiplier: 1,
+          minimumMinutes: null,
+          priority: 0,
+          sortOrder: 0,
+          label: 'Hourly',
+        },
+      ],
+      weekday,
+      30, // actual / payable minutes
+      false,
+      undefined,
+      null,
+      180, // planned 3 hours → force hourly
+    );
+    // 30/60 × £24 = £12 (not the £8 fixed 30m slot)
+    expect(result).toEqual({ amount: 12, label: 'HOURLY' });
+  });
+
+  it('still uses fixed 30m slot when planned is also ≤ 60 minutes', () => {
+    const result = calculatePayableAmount(
+      [
+        fixedRule(30, 8),
+        {
+          dayType: 'WEEKDAY',
+          rateType: 'HOURLY',
+          amount: 24,
+          multiplier: 1,
+          minimumMinutes: null,
+          priority: 0,
+          sortOrder: 0,
+          label: 'Hourly',
+        },
+      ],
+      weekday,
+      30,
+      false,
+      undefined,
+      null,
+      30,
+    );
+    expect(result).toEqual({ amount: 8, label: 'FIXED' });
+  });
+
   it('prefers fixed slot whose From/Until covers the visit clock', () => {
     const daytime = {
       ...fixedRule(30, 12),
