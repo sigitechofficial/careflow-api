@@ -1,6 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import {
   AllocationStatus,
+  CarerVisitPushKind,
   Prisma,
   ScheduledJobStatus,
   ScheduledVisitStatus,
@@ -8,6 +9,8 @@ import {
   VisitPlanStatus,
   VisitPlanStatusEventType,
 } from '@prisma/client';
+import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
+import { groupRotaGeneratedCarerPushes } from './visit-plan-rota-carer-push.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -156,6 +159,8 @@ type PlanRow = Prisma.ServiceUserVisitPlanGetPayload<{ include: typeof planInclu
 
 @Injectable()
 export class ServiceUserVisitPlansService {
+  private readonly logger = new Logger(ServiceUserVisitPlansService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
@@ -165,6 +170,7 @@ export class ServiceUserVisitPlansService {
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly allocationCompliance: AllocationComplianceService,
+    @Optional() private readonly carerPush?: CarerVisitPushHook,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -2161,6 +2167,7 @@ export class ServiceUserVisitPlansService {
     let visitsCreated = 0;
     let visitsSkipped = 0;
     let visitsWithPatternWarnings = 0;
+    const createdJobIds: string[] = [];
     const patternWarnings: string[] = [];
     let visitsWithRotaConflicts = 0;
     const rotaConflictWarnings: string[] = [];
@@ -2351,6 +2358,7 @@ export class ServiceUserVisitPlansService {
                 createdById: userId,
               },
             });
+            createdJobIds.push(job.id);
             await tx.scheduledVisit.update({
               where: { id: existingVisit.id },
               data: {
@@ -2413,6 +2421,7 @@ export class ServiceUserVisitPlansService {
               createdById: userId,
             },
           });
+          createdJobIds.push(job.id);
 
           const visit = await tx.scheduledVisit.create({
             data: {
@@ -2568,6 +2577,10 @@ export class ServiceUserVisitPlansService {
       timeout: 120_000,
     });
 
+    if (assignCarers) {
+      await this.notifyCarersOfGeneratedRota(createdJobIds, serviceUserId);
+    }
+
     return {
       message: 'Schedule generated from visit plan',
       data: {
@@ -2582,6 +2595,64 @@ export class ServiceUserVisitPlansService {
         backfillDays,
       },
     };
+  }
+
+  private async notifyCarersOfGeneratedRota(createdJobIds: string[], serviceUserId: string) {
+    if (!this.carerPush || createdJobIds.length === 0) return;
+    try {
+      const allocations = await this.prisma.jobAllocation.findMany({
+        where: {
+          scheduledJobId: { in: createdJobIds },
+          deletedAt: null,
+          isActive: true,
+          status: {
+            in: [
+              AllocationStatus.PENDING_CONFIRMATION,
+              AllocationStatus.ALLOCATED,
+              AllocationStatus.CONFIRMED,
+            ],
+          },
+        },
+        select: {
+          employeeId: true,
+          scheduledJobId: true,
+          scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          scheduledJob: {
+            select: {
+              jobName: true,
+              serviceUserId: true,
+              scheduledStartDateTime: true,
+              scheduledEndDateTime: true,
+            },
+          },
+        },
+      });
+      const pushes = groupRotaGeneratedCarerPushes(
+        allocations.map((row) => ({
+          employeeId: row.employeeId,
+          scheduledJobId: row.scheduledJobId,
+          jobName: row.scheduledJob.jobName,
+          serviceUserId: row.scheduledJob.serviceUserId || serviceUserId,
+          scheduledStartDateTime: row.scheduledStartDateTime ?? row.scheduledJob.scheduledStartDateTime,
+          scheduledEndDateTime: row.scheduledEndDateTime ?? row.scheduledJob.scheduledEndDateTime,
+        })),
+      );
+      for (const push of pushes) {
+        this.carerPush.notify({
+          employeeIds: [push.employeeId],
+          kind: CarerVisitPushKind.VISIT_ASSIGN,
+          title: push.title,
+          body: push.body,
+          scheduledJobId: push.scheduledJobId,
+          serviceUserId: push.serviceUserId,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Rota generate carer push failed for service user ${serviceUserId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   async listCalendarVisits(

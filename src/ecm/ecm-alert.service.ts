@@ -11,6 +11,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import {
+  ecmExceptionQueueHref,
+  isUrgentOfficeAlertKind,
+} from './ecm-urgent-alert.util';
+import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
+
+const OFFICE_ALERT_ROLE_NAMES: string[] = [
+  IDENTITY_ROLE.SUPER_ADMIN,
+  IDENTITY_ROLE.ADMIN,
+  IDENTITY_ROLE.BRANCH_ADMIN,
+  IDENTITY_ROLE.MANAGER,
+  IDENTITY_ROLE.CARE_COORDINATOR,
+  IDENTITY_ROLE.STAFF_ALLOCATION,
+  IDENTITY_ROLE.MASTER_STAFF_ALLOCATION,
+];
 
 export type EcmAlertChannels = {
   notification: boolean;
@@ -154,8 +169,9 @@ export class EcmAlertService {
     });
 
     const isCarerSos = row.kind === 'CARER_SOS';
+    const urgent = isUrgentOfficeAlertKind(row.kind);
     const channels: EcmAlertChannels = {
-      notification: isCarerSos || Boolean(settings?.domLateVisitAlertNotification),
+      notification: urgent || Boolean(settings?.domLateVisitAlertNotification),
       email: Boolean(settings?.domLateVisitAlertEmail),
       text: Boolean(settings?.domLateVisitAlertText),
     };
@@ -167,6 +183,13 @@ export class EcmAlertService {
         .join(' ') ||
       'Service user';
     const message = `ECM ${row.kind}: ${row.title} — ${row.scheduledJob.jobName} (${suName})`;
+    const title = isCarerSos
+      ? `Carer SOS — ${suName}`
+      : row.kind === 'LEFT_VISIT_AREA'
+        ? `Carer left visit area — ${suName}`
+        : row.kind === 'UNABLE_TO_START'
+          ? `Unable to start visit — ${suName}`
+          : `ECM alert — ${row.kind}`;
 
     let recipientCount = 0;
     if (channels.notification && this.notifications) {
@@ -178,11 +201,11 @@ export class EcmAlertService {
             type: isCarerSos
               ? NotificationType.SECURITY_ALERT
               : NotificationType.SCHEDULE_UNALLOCATED_VISIT,
-            title: isCarerSos ? `Carer SOS — ${suName}` : `ECM alert — ${row.kind}`,
+            title,
             message,
             module: isCarerSos ? NotificationModule.SECURITY : NotificationModule.SCHEDULING,
             severity:
-              isCarerSos || row.kind.includes('MISSED') || row.kind.includes('VERY_LATE')
+              urgent || row.kind.includes('MISSED') || row.kind.includes('VERY_LATE')
                 ? NotificationSeverity.CRITICAL
                 : NotificationSeverity.WARNING,
             recordType: 'EcmException',
@@ -190,9 +213,14 @@ export class EcmAlertService {
             metadata: {
               kind: row.kind,
               scheduledJobId: row.scheduledJobId,
+              href: ecmExceptionQueueHref(row.scheduledJobId),
             },
           });
           recipientCount = recipients.length;
+        } else {
+          this.logger.warn(
+            `ECM notify skipped for ${exceptionId}: no office users found for roles ${OFFICE_ALERT_ROLE_NAMES.join(', ')}`,
+          );
         }
       } catch (err) {
         this.logger.warn(`ECM notify failed for ${exceptionId}: ${String(err)}`);
@@ -206,7 +234,7 @@ export class EcmAlertService {
       this.logger.warn(`[ECM alert SMS channel] ${message}`);
     }
 
-    this.logger.debug(
+    this.logger.log(
       `ECM alert routed exception=${exceptionId} channels=${JSON.stringify(channels)} recipients=${recipientCount}`,
     );
   }
@@ -214,7 +242,7 @@ export class EcmAlertService {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Branch Admin', 'Staff Allocation', 'Coordinator'] },
+        name: { in: OFFICE_ALERT_ROLE_NAMES },
         deletedAt: null,
       },
       select: { id: true },

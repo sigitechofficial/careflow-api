@@ -42,6 +42,7 @@ import type {
 } from '../body-map/dto/create-body-map-record.dto';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
+import { EcmExceptionsService } from '../ecm/ecm-exceptions.service';
 import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
 import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-grant.service';
 import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
@@ -341,6 +342,7 @@ export class EmployeeAppVisitsService {
     private readonly sos: EmployeeAppSosService,
     private readonly visitReconciliations: VisitReconciliationsService,
     private readonly carerPush: CarerVisitPushHook,
+    private readonly ecmExceptions: EcmExceptionsService,
   ) {}
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
@@ -2483,6 +2485,18 @@ export class EmployeeAppVisitsService {
       createdByEmployeeId: employeeId,
       writeIdempotencyKey: dto.idempotencyKey,
     });
+
+    try {
+      await this.ecmExceptions.raiseUnableToStart({
+        scheduledJobId: jobId,
+        employeeId,
+        reasonCode: dto.reasonCode,
+        reasonLabel,
+        notes,
+      });
+    } catch {
+      // Visit is already closed; office alert is best-effort.
+    }
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
     return { data: response };
