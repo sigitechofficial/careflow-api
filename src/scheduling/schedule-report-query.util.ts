@@ -1,5 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma, ScheduledJobStatus, ScheduledVisitStatus } from '@prisma/client';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 import { assertDateRangeMaxDays, utcDayBounds } from './schedule-date-range.util';
 import type { ScheduleReportQueryDto } from '../schedule-reports/dto/schedule-report-query.dto';
 
@@ -13,12 +17,17 @@ const CANCELLED_VISIT_STATUSES: ScheduledVisitStatus[] = [
   ScheduledVisitStatus.CALLED_OFF,
 ];
 
+/**
+ * Inclusive UTC instants for report dateFrom/dateTo civil days in the
+ * organisation operational timezone (not raw Z midnight).
+ */
 export function parseReportDateRange(
   query: Pick<ScheduleReportQueryDto, 'dateFrom' | 'dateTo'>,
   maxDays = 93,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): { from: Date; to: Date } {
-  const from = utcDayBounds(query.dateFrom).start;
-  const to = utcDayBounds(query.dateTo).end;
+  const from = operationalDayBounds(query.dateFrom, timeZone).start;
+  const to = operationalDayBounds(query.dateTo, timeZone).end;
   if (from > to) throw new BadRequestException('dateFrom must be on or before dateTo');
   assertDateRangeMaxDays(from, to, maxDays);
   return { from, to };
@@ -38,8 +47,9 @@ export function buildScheduleAreaFilter(
 export function buildScheduledJobReportWhere(
   query: ScheduleReportQueryDto,
   maxDays = 93,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): Prisma.ScheduledJobWhereInput {
-  const { from, to } = parseReportDateRange(query, maxDays);
+  const { from, to } = parseReportDateRange(query, maxDays, timeZone);
   const where: Prisma.ScheduledJobWhereInput = {
     deletedAt: null,
     isActive: true,
@@ -75,9 +85,10 @@ export function buildScheduledJobReportWhere(
 export function buildScheduledVisitReportWhere(
   query: ScheduleReportQueryDto,
   maxDays = 93,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): Prisma.ScheduledVisitWhereInput {
-  const { from, to } = parseReportDateRange(query, maxDays);
-  const jobFilter = buildScheduledJobReportWhere(query, maxDays);
+  const { from, to } = parseReportDateRange(query, maxDays, timeZone);
+  const jobFilter = buildScheduledJobReportWhere(query, maxDays, timeZone);
 
   const where: Prisma.ScheduledVisitWhereInput = {
     deletedAt: null,
@@ -98,8 +109,13 @@ export function buildScheduledVisitReportWhere(
 export function buildCallOffVisitReportWhere(
   query: ScheduleReportQueryDto,
   maxDays = 93,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): Prisma.CallOffVisitWhereInput {
-  const { from, to } = parseReportDateRange(query, maxDays);
+  // Validate max span using operational calendar; filter date-only column at UTC civil midnight
+  // (same storage convention as call-off create/update).
+  parseReportDateRange(query, maxDays, timeZone);
+  const from = utcDayBounds(query.dateFrom).start;
+  const to = utcDayBounds(query.dateTo).end;
   const where: Prisma.CallOffVisitWhereInput = {
     deletedAt: null,
     isActive: true,

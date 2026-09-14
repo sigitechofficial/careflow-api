@@ -15,6 +15,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   assertDateRangeMaxDays,
   jobDurationMinutes,
+  weekdayIndexInTimeZone,
 } from '../scheduling/schedule-date-range.util';
 import {
   buildCallOffVisitReportWhere,
@@ -23,6 +24,8 @@ import {
   parseReportDateRange,
 } from '../scheduling/schedule-report-query.util';
 import { mapEmployeeBrief } from '../scheduling/schedule-timeline.mapper';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   SCHEDULE_REPORT_TYPE_CATALOG,
   ScheduleReportType,
@@ -77,6 +80,7 @@ export class ScheduleReportsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly exportHook: ScheduleReportExportHook,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   reportTypes() {
@@ -185,10 +189,11 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const where = buildScheduledVisitReportWhere(query);
+    const where = buildScheduledVisitReportWhere(query, 93, timeZone);
 
     const [total, visits] = await this.prisma.$transaction([
       this.prisma.scheduledVisit.count({ where }),
@@ -238,6 +243,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         rows,
       },
       meta: buildPaginationMeta({ page, limit, total }),
@@ -252,8 +258,9 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
-    parseReportDateRange(query);
-    const jobWhere = buildScheduledJobReportWhere(query);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    parseReportDateRange(query, 93, timeZone);
+    const jobWhere = buildScheduledJobReportWhere(query, 93, timeZone);
 
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {
@@ -303,7 +310,7 @@ export class ScheduleReportsService {
 
     for (const a of allocations) {
       const job = a.scheduledJob;
-      const dateKey = job.scheduledStartDateTime.toISOString().slice(0, 10);
+      const dateKey = dayKeyInTimeZone(job.scheduledStartDateTime, timeZone);
       if (!byEmployee.has(a.employeeId)) {
         byEmployee.set(a.employeeId, {
           employee: mapEmployeeBrief(a.employee),
@@ -353,6 +360,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         employees: paged,
       },
       meta: buildPaginationMeta({ page, limit, total: employees.length }),
@@ -373,10 +381,11 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const where = buildCallOffVisitReportWhere(query);
+    const where = buildCallOffVisitReportWhere(query, 93, timeZone);
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.callOffVisit.count({ where }),
@@ -419,6 +428,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         rows: data,
       },
       meta: buildPaginationMeta({ page, limit, total }),
@@ -439,7 +449,8 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
-    const { from, to } = parseReportDateRange(query, 31);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { from, to } = parseReportDateRange(query, 31, timeZone);
     assertDateRangeMaxDays(from, to, 31);
 
     const page = query.page ?? 1;
@@ -448,7 +459,7 @@ export class ScheduleReportsService {
     const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null, isActive: true };
     if (query.employeeId) empWhere.id = query.employeeId;
 
-    const jobWhere = buildScheduledJobReportWhere(query, 31);
+    const jobWhere = buildScheduledJobReportWhere(query, 31, timeZone);
 
     const [total, employees] = await this.prisma.$transaction([
       this.prisma.employee.count({ where: empWhere }),
@@ -487,7 +498,7 @@ export class ScheduleReportsService {
         for (const a of allocations) {
           const mins = jobDurationMinutes(a.scheduledJob);
           weeklyMinutes += mins;
-          const dowKey = DOW_KEYS[a.scheduledJob.scheduledStartDateTime.getUTCDay()];
+          const dowKey = DOW_KEYS[weekdayIndexInTimeZone(a.scheduledJob.scheduledStartDateTime, timeZone)];
           if (dowKey in dayHours) dayHours[dowKey] += mins / 60;
         }
 
@@ -517,6 +528,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         rows,
       },
       meta: buildPaginationMeta({ page, limit, total }),
@@ -537,7 +549,8 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
-    const where = buildScheduledVisitReportWhere(query);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const where = buildScheduledVisitReportWhere(query, 93, timeZone);
     const visits = await this.prisma.scheduledVisit.findMany({
       where,
       orderBy: this.visitOrderBy(query),
@@ -612,6 +625,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         serviceUsers: paged,
       },
       meta: buildPaginationMeta({ page, limit, total: serviceUsers.length }),
@@ -632,7 +646,8 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
-    const where = buildScheduledVisitReportWhere(query);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const where = buildScheduledVisitReportWhere(query, 93, timeZone);
     const visits = await this.prisma.scheduledVisit.findMany({
       where,
       select: {
@@ -721,6 +736,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         rows: paged,
       },
       meta: buildPaginationMeta({ page, limit, total: rows.length }),
@@ -741,10 +757,11 @@ export class ScheduleReportsService {
     userPermissions?: string[],
   ) {
     this.assertExportPermission(query, userPermissions);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
-    const where = buildScheduledJobReportWhere(query);
+    const where = buildScheduledJobReportWhere(query, 93, timeZone);
 
     const [statusGroups, total, jobs] = await this.prisma.$transaction([
       this.prisma.scheduledJob.groupBy({
@@ -795,6 +812,7 @@ export class ScheduleReportsService {
         supported: true,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo,
+        organisationTimezone: timeZone,
         countsByStatus,
         jobs: jobRows,
       },

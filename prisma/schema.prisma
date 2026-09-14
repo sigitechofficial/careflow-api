@@ -822,7 +822,7 @@ model OrganisationGeneralSettings {
   timeDisplayFormat             TimeDisplayFormat @default(HH_MM)
   dateDisplayFormat             DateDisplayFormat @default(DD_MM_YYYY)
   /// IANA timezone for operational calendar days (schedules, ECM, "today").
-  timezone                      String            @default("Europe/London")
+  timezone                      String            @default("Asia/Karachi")
   defaultCarerStatus            DefaultCarerStatus @default(ACTIVE)
   sendEmailWhenEmployeeActive   Boolean           @default(true)
   allowMultipleRoles            Boolean           @default(true)
@@ -6930,7 +6930,7 @@ model EcmVisitEvaluation {
   requiredCarers     Int            @default(1)
   /// Calendar date used for operational reporting (local timezone).
   localVisitDate     DateTime       @db.Date
-  timezone           String         @default("Europe/London")
+  timezone           String         @default("Asia/Karachi")
 
   actualCheckInAt        DateTime?
   actualCheckOutAt       DateTime?
@@ -8303,6 +8303,19 @@ enum InvoiceRunStatus {
   @@schema("billing")
 }
 
+enum InvoiceRunAuditAction {
+  CREATED
+  CALCULATED
+  APPROVED
+  LOCKED
+  SENT
+  EMAIL_SENT
+  EXPORTED
+  PAYMENT_ALLOCATED
+
+  @@schema("billing")
+}
+
 enum InvoiceRunLineType {
   VISIT_CHARGE
   ADJUSTMENT
@@ -8499,19 +8512,43 @@ model InvoiceRun {
   approvedAt        DateTime?
   approvedById      String?                @db.Uuid
   lockedAt          DateTime?
+  lockedById        String?                @db.Uuid
   sentAt            DateTime?
+  sentById          String?                @db.Uuid
   notes             String?
+  /// Run-level QBO-style number assigned on create (kept even when the run has no lines yet).
+  invoiceNumber     String?                @unique
+  sequenceValue     Int?
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   createdById       String?                @db.Uuid
 
   lines                    InvoiceRunLine[]
   documents                InvoiceDocument[]
+  auditEvents              InvoiceRunAuditEvent[]
   lockedReconciliations    VisitReconciliation[] @relation("ReconciliationInvoiceRun")
   paymentAllocations       PaymentAllocation[]
 
   @@index([status])
   @@index([periodStart, periodEnd])
+  @@schema("billing")
+}
+
+/// Append-only audit trail for invoice run actions (who / what / when).
+model InvoiceRunAuditEvent {
+  id           String                @id @default(uuid()) @db.Uuid
+  invoiceRunId String                @db.Uuid
+  action       InvoiceRunAuditAction
+  actorUserId  String?               @db.Uuid
+  occurredAt   DateTime              @default(now())
+  detail       String?
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+
+  invoiceRun InvoiceRun @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceRunId, occurredAt])
+  @@index([action])
   @@schema("billing")
 }
 

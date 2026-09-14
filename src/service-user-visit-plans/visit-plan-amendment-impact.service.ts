@@ -3,6 +3,8 @@ import { VisitPlanStatus } from '@prisma/client';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
 import {
   diffVisitPlanSnapshots,
   resolveEndFromStartAndTimes,
@@ -18,7 +20,15 @@ export type AmendmentImpactPreview = {
 
 @Injectable()
 export class VisitPlanAmendmentImpactService {
-  constructor(private readonly scheduleImpact: ScheduleLifecycleImpactService) {}
+  constructor(
+    private readonly scheduleImpact: ScheduleLifecycleImpactService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
+
+  private async opsTodayStart(): Promise<Date> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    return operationalDayBounds(operationalTodayIso(new Date(), timeZone), timeZone).start;
+  }
 
   async previewAmendmentImpact(params: {
     serviceUserId: string;
@@ -35,8 +45,7 @@ export class VisitPlanAmendmentImpactService {
       };
     }
 
-    const from = new Date();
-    from.setUTCHours(0, 0, 0, 0);
+    const from = await this.opsTodayStart();
     let jobsCancelled = 0;
     let jobsRescheduled = 0;
     const jobIds: string[] = [];
@@ -77,15 +86,12 @@ export class VisitPlanAmendmentImpactService {
         jobIds.push(...preview.jobIds);
         if (preview.truncated) truncated = true;
       } else if (action.type === 'skip_exception' && action.exceptionDate) {
-        const day = new Date(`${action.exceptionDate}T12:00:00.000Z`);
-        const dayStart = new Date(day);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const dayEnd = new Date(day);
-        dayEnd.setUTCHours(23, 59, 59, 999);
+        const timeZone = await this.orgSettings.getOperationalTimezone();
+        const dayBounds = operationalDayBounds(action.exceptionDate, timeZone);
         const preview = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
           serviceUserId: params.serviceUserId,
-          fromDate: dayStart,
-          toDate: dayEnd,
+          fromDate: dayBounds.start,
+          toDate: dayBounds.end,
           scope: { visitPlanSlotId: action.visitPlanSlotId },
         });
         action.jobCount = preview.jobsCancelled;
@@ -124,8 +130,7 @@ export class VisitPlanAmendmentImpactService {
       after: params.after,
     });
 
-    const from = new Date();
-    from.setUTCHours(0, 0, 0, 0);
+    const from = await this.opsTodayStart();
     let jobsCancelled = 0;
     let jobsRescheduled = 0;
     const jobIds: string[] = [];
@@ -167,15 +172,12 @@ export class VisitPlanAmendmentImpactService {
         jobsRescheduled += result.jobsRescheduled ?? 0;
         jobIds.push(...result.jobIds);
       } else if (action.type === 'skip_exception' && action.exceptionDate) {
-        const day = new Date(`${action.exceptionDate}T12:00:00.000Z`);
-        const dayStart = new Date(day);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const dayEnd = new Date(day);
-        dayEnd.setUTCHours(23, 59, 59, 999);
+        const timeZone = await this.orgSettings.getOperationalTimezone();
+        const dayBounds = operationalDayBounds(action.exceptionDate, timeZone);
         const result = await this.scheduleImpact.cancelScopedServiceUserJobs(userId, {
           serviceUserId: params.serviceUserId,
-          fromDate: dayStart,
-          toDate: dayEnd,
+          fromDate: dayBounds.start,
+          toDate: dayBounds.end,
           reason: `SKIP exception: ${params.amendmentReason}`,
           source: 'visit_plan_skip_exception',
           scope: { visitPlanSlotId: action.visitPlanSlotId },

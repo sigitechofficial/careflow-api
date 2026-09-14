@@ -56,7 +56,7 @@ import {
   EMPTY_COMPLIANCE_ALLOCATION_RESULT,
   formatComplianceAllocationMessages,
 } from '../employee-compliance/allocation-compliance.util';
-import { combineOperationalDateAndHm } from '../common/utils/operational-day.util';
+import { combineOperationalDateAndHm, operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import {
@@ -788,8 +788,10 @@ export class ServiceUserVisitPlansService {
     const slotDays = [...new Set(dto.daysOfWeek ?? [])];
     if (!slotDays.length) return conflicts;
 
-    const rangeStart = new Date();
-    rangeStart.setUTCHours(0, 0, 0, 0);
+    const rangeStart = operationalDayBounds(
+      operationalTodayIso(new Date(), timeZone),
+      timeZone,
+    ).start;
     const rangeEnd = visitPlanPatternRotaLookaheadEnd(rangeStart);
 
     const rows = await this.prisma.jobAllocation.findMany({
@@ -1427,15 +1429,13 @@ export class ServiceUserVisitPlansService {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     const slot = plan.slots.find((s) => s.id === slotId);
     if (!slot) throw new NotFoundException('Visit plan slot not found');
-    const day = this.parseDateOnly(query.date, 'date');
-    const dayStart = new Date(day);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(day);
-    dayEnd.setUTCHours(23, 59, 59, 999);
+    this.parseDateOnly(query.date, 'date');
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const dayBounds = operationalDayBounds(query.date, timeZone);
     const scheduleImpact = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
       serviceUserId,
-      fromDate: dayStart,
-      toDate: dayEnd,
+      fromDate: dayBounds.start,
+      toDate: dayBounds.end,
       scope: { visitPlanSlotId: slotId },
     });
     return { data: { scheduleImpact, slotLabel: slotLabel(slot.medicationRoundCode ?? slot.slotCode) } };
@@ -2263,12 +2263,8 @@ export class ServiceUserVisitPlansService {
 
           const { start, end, requiredCarers, carerWindows, durationMinutes, isOvernight } = occurrence;
 
-          const dayStart = new Date(
-            Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 0, 0, 0, 0),
-          );
-          const dayEnd = new Date(
-            Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 23, 59, 59, 999),
-          );
+          const dayIso = day.toISOString().slice(0, 10);
+          const { start: dayStart, end: dayEnd } = operationalDayBounds(dayIso, timeZone);
           const existingVisit = await tx.scheduledVisit.findFirst({
             where: {
               visitPlanSlotId: slot.id,
@@ -2600,6 +2596,7 @@ export class ServiceUserVisitPlansService {
   private async notifyCarersOfGeneratedRota(createdJobIds: string[], serviceUserId: string) {
     if (!this.carerPush || createdJobIds.length === 0) return;
     try {
+      const timeZone = await this.orgSettings.getOperationalTimezone();
       const allocations = await this.prisma.jobAllocation.findMany({
         where: {
           scheduledJobId: { in: createdJobIds },
@@ -2637,6 +2634,7 @@ export class ServiceUserVisitPlansService {
           scheduledStartDateTime: row.scheduledStartDateTime ?? row.scheduledJob.scheduledStartDateTime,
           scheduledEndDateTime: row.scheduledEndDateTime ?? row.scheduledJob.scheduledEndDateTime,
         })),
+        timeZone,
       );
       for (const push of pushes) {
         this.carerPush.notify({
@@ -2672,8 +2670,9 @@ export class ServiceUserVisitPlansService {
       return { data: [] as ReturnType<ServiceUserVisitPlansService['mapCalendarVisit']>[] };
     }
 
-    const endInclusive = new Date(to);
-    endInclusive.setUTCHours(23, 59, 59, 999);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const fromBound = operationalDayBounds(query.from, timeZone).start;
+    const toBound = operationalDayBounds(query.to, timeZone).end;
 
     const rows = await this.prisma.scheduledVisit.findMany({
       where: {
@@ -2681,7 +2680,7 @@ export class ServiceUserVisitPlansService {
         visitPlanSlotId: { in: slotIds },
         deletedAt: null,
         isActive: true,
-        scheduledStartDateTime: { gte: from, lte: endInclusive },
+        scheduledStartDateTime: { gte: fromBound, lte: toBound },
       },
       orderBy: { scheduledStartDateTime: 'asc' },
       include: calendarVisitInclude,

@@ -1,4 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+  dayKeyInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 import { parseScheduleDate, formatScheduleDate } from '../schedules/schedules-date.util';
 
 export function utcDayBounds(dateStr: string): { start: Date; end: Date; date: string } {
@@ -45,6 +49,59 @@ export function utcMonthBounds(yearMonth: string): {
   const monthStart = new Date(Date.UTC(y, mo - 1, 1, 0, 0, 0, 0));
   const monthEnd = new Date(Date.UTC(y, mo, 0, 23, 59, 59, 999));
   return { monthStart, monthEnd, label: yearMonth };
+}
+
+/**
+ * Inclusive UTC instants covering a civil YYYY-MM-DD in the organisation timezone.
+ * Use for filtering scheduledStartDateTime onto the schedule-jobs board day.
+ */
+export function operationalScheduleDayBounds(
+  dateStr: string,
+  timeZone: string,
+): { start: Date; end: Date; date: string } {
+  const civil = utcDayBounds(dateStr);
+  return operationalDayBounds(civil.date, timeZone);
+}
+
+/** Monday–Sunday civil week, with instants spanning those days in the organisation timezone. */
+export function operationalScheduleWeekBounds(
+  weekStartStr: string,
+  timeZone: string,
+): {
+  weekStart: Date;
+  weekEnd: Date;
+  weekStartLabel: string;
+  weekEndLabel: string;
+} {
+  const civil = utcWeekBounds(weekStartStr);
+  return {
+    weekStart: operationalDayBounds(civil.weekStartLabel, timeZone).start,
+    weekEnd: operationalDayBounds(civil.weekEndLabel, timeZone).end,
+    weekStartLabel: civil.weekStartLabel,
+    weekEndLabel: civil.weekEndLabel,
+  };
+}
+
+/** Calendar month in organisation timezone (civil YYYY-MM labels unchanged). */
+export function operationalScheduleMonthBounds(
+  yearMonth: string,
+  timeZone: string,
+): { monthStart: Date; monthEnd: Date; label: string } {
+  const civil = utcMonthBounds(yearMonth);
+  const startLabel = formatScheduleDate(civil.monthStart);
+  const endLabel = formatScheduleDate(civil.monthEnd);
+  return {
+    monthStart: operationalDayBounds(startLabel, timeZone).start,
+    monthEnd: operationalDayBounds(endLabel, timeZone).end,
+    label: civil.label,
+  };
+}
+
+/** Weekday index (0=Sun … 6=Sat) of an instant on the organisation calendar. */
+export function weekdayIndexInTimeZone(instant: Date, timeZone: string): number {
+  const key = dayKeyInTimeZone(instant, timeZone);
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1)).getUTCDay();
 }
 
 export function assertDateRangeMaxDays(from: Date, to: Date, maxDays: number): void {

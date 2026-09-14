@@ -4,9 +4,9 @@
  * Browser / server local TZ must never define "today" for visits/schedules/ECM.
  */
 
-export const DEFAULT_OPERATIONAL_TIMEZONE = 'Europe/London';
+export const DEFAULT_OPERATIONAL_TIMEZONE = 'Asia/Karachi';
 
-/** Resolve org ops TZ from settings (falls back to Europe/London). */
+/** Resolve org ops TZ from settings (falls back to Asia/Karachi). */
 export function getOperationalTimeZone(_orgTimezone?: string | null): string {
   const trimmed = _orgTimezone?.trim();
   return trimmed || DEFAULT_OPERATIONAL_TIMEZONE;

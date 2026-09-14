@@ -20,6 +20,8 @@ import {
   derivePeriodKeyFromRange,
   periodRangeFromKey,
 } from './employee-payout-period.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 
 const OPEN_BATCH_STATUSES: EmployeePayoutBatchStatus[] = [
   EmployeePayoutBatchStatus.DRAFT,
@@ -34,11 +36,19 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-/** Previous calendar month as YYYY-MM (UTC). */
-export function previousMonthPeriodKey(asOf: Date = new Date()): string {
-  const y = asOf.getUTCFullYear();
-  const m = asOf.getUTCMonth();
-  const prev = new Date(Date.UTC(y, m - 1, 1));
+/** Previous calendar month as YYYY-MM in the given IANA timezone. */
+export function previousMonthPeriodKey(
+  asOf: Date = new Date(),
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(asOf);
+  const y = Number(parts.find((p) => p.type === 'year')?.value);
+  const m = Number(parts.find((p) => p.type === 'month')?.value);
+  const prev = new Date(Date.UTC(y, m - 2, 1));
   return `${prev.getUTCFullYear()}-${pad2(prev.getUTCMonth() + 1)}`;
 }
 
@@ -61,7 +71,10 @@ function periodKeyFromDates(periodStart: Date, periodEnd: Date): string {
 export class EmployeePayoutsService {
   private readonly logger = new Logger(EmployeePayoutsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async list(query: EmployeePayoutsQueryDto) {
     const where: Prisma.EmployeePayoutBatchWhereInput = {};
@@ -405,7 +418,8 @@ export class EmployeePayoutsService {
     batchId?: string;
     paidBatchIds?: string[];
   }> {
-    const periodKey = previousMonthPeriodKey(asOf);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const periodKey = previousMonthPeriodKey(asOf, timeZone);
     const range = periodRangeFromKey(periodKey);
     const actorId = await this.resolveSystemActorId();
     if (!actorId) {

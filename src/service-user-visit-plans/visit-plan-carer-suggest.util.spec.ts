@@ -126,11 +126,12 @@ describe('scheduledJobOverlapsVisitPlanSlot', () => {
   it('detects overlap on a matching weekday and time', () => {
     expect(
       scheduledJobOverlapsVisitPlanSlot({
-        jobStart: new Date('2026-06-29T07:00:00.000Z'),
-        jobEnd: new Date('2026-06-29T10:00:00.000Z'),
+        jobStart: new Date('2026-06-29T02:00:00.000Z'),
+        jobEnd: new Date('2026-06-29T05:00:00.000Z'),
         slotDaysOfWeek: [1],
         plannedStartTime: '07:00',
         plannedEndTime: '10:00',
+        timeZone: 'Asia/Karachi',
       }),
     ).toBe(true);
   });
@@ -138,11 +139,12 @@ describe('scheduledJobOverlapsVisitPlanSlot', () => {
   it('ignores jobs on non-matching weekdays', () => {
     expect(
       scheduledJobOverlapsVisitPlanSlot({
-        jobStart: new Date('2026-06-30T07:00:00.000Z'),
-        jobEnd: new Date('2026-06-30T10:00:00.000Z'),
+        jobStart: new Date('2026-06-30T02:00:00.000Z'),
+        jobEnd: new Date('2026-06-30T05:00:00.000Z'),
         slotDaysOfWeek: [1],
         plannedStartTime: '07:00',
         plannedEndTime: '10:00',
+        timeZone: 'Asia/Karachi',
       }),
     ).toBe(false);
   });
@@ -150,11 +152,12 @@ describe('scheduledJobOverlapsVisitPlanSlot', () => {
   it('ignores jobs that do not overlap the slot time', () => {
     expect(
       scheduledJobOverlapsVisitPlanSlot({
-        jobStart: new Date('2026-06-29T11:00:00.000Z'),
-        jobEnd: new Date('2026-06-29T12:00:00.000Z'),
+        jobStart: new Date('2026-06-29T06:00:00.000Z'),
+        jobEnd: new Date('2026-06-29T07:00:00.000Z'),
         slotDaysOfWeek: [1],
         plannedStartTime: '07:00',
         plannedEndTime: '10:00',
+        timeZone: 'Asia/Karachi',
       }),
     ).toBe(false);
   });
