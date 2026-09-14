@@ -7,6 +7,8 @@ Two sites, two branches (do not mix them):
 | `main` | Deploy Careflow API | https://careflowbackend.sigisolutions.net/ |
 | `production` | Deploy Allforcare API | https://api-allforcare.sigisolutions.net/ |
 
+Carer FCM / `serviceAccount.json` / accidental `pm2 restart` on Node 16: see [LIVE_CARER_FCM.md](./LIVE_CARER_FCM.md).
+
 If deploy exits with code 1 and rolls back **files**, the database is **not** restored automatically.
 
 ## Find the real error
