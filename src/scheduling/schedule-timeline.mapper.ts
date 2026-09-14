@@ -4,6 +4,10 @@ import { jobDurationMinutes } from './schedule-date-range.util';
 import { assessVisitDeliveryFromJobLike } from './visit-delivery-assessment.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { visitCareNotDeliveredReasonLabel } from './visit-care-not-delivered-reason.util';
+import {
+  buildAdminCheckInSummary,
+  extractEmployeeAppCheckIn,
+} from '../employee-app/check-in-display.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -274,6 +278,13 @@ export function mapTimelineJob(row: TimelineJobRow) {
     allocations,
     careNotDelivered,
     ...visitPlanContext,
+    checkIn: buildAdminCheckInSummary(
+      extractEmployeeAppCheckIn(parseJobMetadata(row.metadata)),
+      {
+        scheduledStart: row.scheduledStartDateTime,
+        actualStart: primaryVisit?.actualStartDateTime ?? null,
+      },
+    ),
   };
 
   return {

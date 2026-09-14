@@ -17,6 +17,7 @@ import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
+import { composeManualAuthorisationOfficeNote } from './visit-check-in-method-grant.util';
 
 export type VisitAreaLockState = {
   operationsLocked: boolean;
@@ -191,13 +192,34 @@ export class VisitAreaLockService {
     };
   }
 
-  async allowContinue(scheduledJobId: string, adminUserId: string, note?: string) {
+  async allowContinue(
+    scheduledJobId: string,
+    adminUserId: string,
+    input: { reasonId: string; note?: string },
+  ) {
     const lock = await this.prisma.visitAreaLock.findFirst({
       where: { scheduledJobId, status: VisitAreaLockStatus.LOCKED },
       orderBy: { lockedAt: 'desc' },
     });
     if (!lock) {
       throw new BadRequestException('This visit is not waiting for an area-lock allow.');
+    }
+
+    const reason = await this.prisma.visitLeftAreaAllowReasonCatalog.findFirst({
+      where: { id: input.reasonId, isActive: true },
+    });
+    if (!reason) {
+      throw new BadRequestException({
+        code: 'REASON_REQUIRED',
+        message: 'Select a reason for allowing this visit to continue.',
+      });
+    }
+    const allowNote = composeManualAuthorisationOfficeNote(reason, input.note);
+    if (!allowNote) {
+      throw new BadRequestException({
+        code: 'REASON_NOTE_REQUIRED',
+        message: 'Enter the reason for allowing this visit to continue.',
+      });
     }
 
     const admin = await this.prisma.user.findUnique({
@@ -208,7 +230,6 @@ export class VisitAreaLockService {
       [admin?.firstName, admin?.lastName].filter(Boolean).join(' ').trim() ||
       admin?.email ||
       adminUserId;
-    const allowNote = note?.trim() || null;
     const allowedAt = new Date();
 
     const updated = await this.prisma.visitAreaLock.update({
@@ -219,6 +240,7 @@ export class VisitAreaLockService {
         allowedById: adminUserId,
         allowedByName,
         allowNote,
+        allowReasonId: reason.id,
       },
     });
 
@@ -243,6 +265,8 @@ export class VisitAreaLockService {
       detail: {
         allowedByName,
         allowNote,
+        allowReasonId: reason.id,
+        allowReasonLabel: reason.label,
         lockedAt: lock.lockedAt.toISOString(),
         employeeId: lock.employeeId,
       },
@@ -263,6 +287,7 @@ export class VisitAreaLockService {
         allowedAt: updated.allowedAt?.toISOString() ?? allowedAt.toISOString(),
         allowedByName,
         allowNote,
+        allowReasonId: reason.id,
       },
     };
   }

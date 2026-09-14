@@ -75,6 +75,7 @@ export function statusCodeToAdministrationStatus(
   if (row?.administrationStatus) return row.administrationStatus;
   switch (code) {
     case 'G':
+    case 'PG':
     case 'F':
     case 'I':
     case 'S':

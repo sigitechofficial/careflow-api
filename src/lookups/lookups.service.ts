@@ -35,6 +35,16 @@ import { VITAL_ACCEPTED_RANGE_DEFAULTS } from './vital-accepted-ranges.defaults'
 import { CreateEmergencyProtocolDto } from './dto/create-emergency-protocol.dto';
 import { UpdateEmergencyProtocolDto } from './dto/update-emergency-protocol.dto';
 import { DEFAULT_EMERGENCY_PROTOCOLS } from './emergency-protocols.defaults';
+import { CreateManualAuthorisationReasonDto } from './dto/create-manual-authorisation-reason.dto';
+import { UpdateManualAuthorisationReasonDto } from './dto/update-manual-authorisation-reason.dto';
+import {
+  DEFAULT_MANUAL_AUTHORISATION_REASONS,
+  OTHER_MANUAL_AUTHORISATION_REASON_CODE,
+} from './manual-authorisation-reasons.defaults';
+import {
+  DEFAULT_LEFT_AREA_ALLOW_REASONS,
+  OTHER_LEFT_AREA_ALLOW_REASON_CODE,
+} from './left-area-allow-reasons.defaults';
 
 @Injectable()
 export class LookupsService implements OnModuleInit {
@@ -70,6 +80,8 @@ export class LookupsService implements OnModuleInit {
       }
       this.logger.log(`Vital accepted range lookups ensured (${VITAL_ACCEPTED_RANGE_DEFAULTS.length} rows).`);
       await this.ensureEmergencyProtocols();
+      await this.ensureManualAuthorisationReasons();
+      await this.ensureLeftAreaAllowReasons();
     } catch (e) {
       this.logger.error('Failed to seed default lookups', e instanceof Error ? e.stack : e);
     }
@@ -1142,6 +1154,271 @@ export class LookupsService implements OnModuleInit {
     });
   }
 
+  private readonly manualAuthorisationReasonSelect = {
+    id: true,
+    code: true,
+    label: true,
+    requiresNotes: true,
+    sortOrder: true,
+    isActive: true,
+  } as const;
+
+  async listManualAuthorisationReasons() {
+    return this.prisma.visitManualAuthorisationReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: this.manualAuthorisationReasonSelect,
+    });
+  }
+
+  async createManualAuthorisationReason(dto: CreateManualAuthorisationReasonDto) {
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Label is required');
+
+    const existing = await this.prisma.visitManualAuthorisationReasonCatalog.findFirst({
+      where: { label },
+    });
+    if (existing?.isActive) {
+      throw new BadRequestException('This reason is already in the list');
+    }
+    if (existing) {
+      return this.prisma.visitManualAuthorisationReasonCatalog.update({
+        where: { id: existing.id },
+        data: {
+          requiresNotes:
+            existing.code === OTHER_MANUAL_AUTHORISATION_REASON_CODE
+              ? true
+              : (dto.requiresNotes ?? existing.requiresNotes),
+          sortOrder: dto.sortOrder ?? existing.sortOrder,
+          isActive: true,
+        },
+        select: this.manualAuthorisationReasonSelect,
+      });
+    }
+
+    try {
+      return await this.prisma.visitManualAuthorisationReasonCatalog.create({
+        data: {
+          code: await this.nextManualAuthorisationReasonCode(label),
+          label,
+          requiresNotes: dto.requiresNotes ?? false,
+          sortOrder: dto.sortOrder ?? (await this.nextManualAuthorisationSortOrder()),
+          isActive: true,
+        },
+        select: this.manualAuthorisationReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async updateManualAuthorisationReason(id: string, dto: UpdateManualAuthorisationReasonDto) {
+    const existing = await this.prisma.visitManualAuthorisationReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Authorisation reason not found');
+    const isOther = existing.code === OTHER_MANUAL_AUTHORISATION_REASON_CODE;
+    if (isOther && dto.isActive === false) {
+      throw new BadRequestException('Other reason cannot be removed');
+    }
+    const data: Prisma.VisitManualAuthorisationReasonCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.requiresNotes !== undefined) {
+      data.requiresNotes = isOther ? true : dto.requiresNotes;
+    }
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitManualAuthorisationReasonCatalog.update({
+        where: { id },
+        data,
+        select: this.manualAuthorisationReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async deleteManualAuthorisationReason(id: string) {
+    const existing = await this.prisma.visitManualAuthorisationReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Authorisation reason not found');
+    if (existing.code === OTHER_MANUAL_AUTHORISATION_REASON_CODE) {
+      throw new BadRequestException('Other reason cannot be removed');
+    }
+    await this.prisma.visitManualAuthorisationReasonCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  private async nextManualAuthorisationSortOrder() {
+    const last = await this.prisma.visitManualAuthorisationReasonCatalog.findFirst({
+      where: {
+        isActive: true,
+        code: { not: OTHER_MANUAL_AUTHORISATION_REASON_CODE },
+      },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+    return (last?.sortOrder ?? 0) + 10;
+  }
+
+  private async nextManualAuthorisationReasonCode(label: string) {
+    const base =
+      label
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'REASON';
+    let code = base;
+    let n = 2;
+    while (
+      await this.prisma.visitManualAuthorisationReasonCatalog.findUnique({
+        where: { code },
+        select: { id: true },
+      })
+    ) {
+      code = `${base}_${n}`.slice(0, 48);
+      n += 1;
+    }
+    return code;
+  }
+
+  async listLeftAreaAllowReasons() {
+    return this.prisma.visitLeftAreaAllowReasonCatalog.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      select: this.manualAuthorisationReasonSelect,
+    });
+  }
+
+  async createLeftAreaAllowReason(dto: CreateManualAuthorisationReasonDto) {
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Label is required');
+
+    const existing = await this.prisma.visitLeftAreaAllowReasonCatalog.findFirst({
+      where: { label },
+    });
+    if (existing?.isActive) {
+      throw new BadRequestException('This reason is already in the list');
+    }
+    if (existing) {
+      return this.prisma.visitLeftAreaAllowReasonCatalog.update({
+        where: { id: existing.id },
+        data: {
+          requiresNotes:
+            existing.code === OTHER_LEFT_AREA_ALLOW_REASON_CODE
+              ? true
+              : (dto.requiresNotes ?? existing.requiresNotes),
+          sortOrder: dto.sortOrder ?? existing.sortOrder,
+          isActive: true,
+        },
+        select: this.manualAuthorisationReasonSelect,
+      });
+    }
+
+    try {
+      return await this.prisma.visitLeftAreaAllowReasonCatalog.create({
+        data: {
+          code: await this.nextLeftAreaAllowReasonCode(label),
+          label,
+          requiresNotes: dto.requiresNotes ?? false,
+          sortOrder: dto.sortOrder ?? (await this.nextLeftAreaAllowSortOrder()),
+          isActive: true,
+        },
+        select: this.manualAuthorisationReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async updateLeftAreaAllowReason(id: string, dto: UpdateManualAuthorisationReasonDto) {
+    const existing = await this.prisma.visitLeftAreaAllowReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Allow reason not found');
+    const isOther = existing.code === OTHER_LEFT_AREA_ALLOW_REASON_CODE;
+    if (isOther && dto.isActive === false) {
+      throw new BadRequestException('Other reason cannot be removed');
+    }
+    const data: Prisma.VisitLeftAreaAllowReasonCatalogUpdateInput = {};
+    if (dto.label !== undefined) {
+      const label = dto.label.trim();
+      if (!label) throw new BadRequestException('Label is required');
+      data.label = label;
+    }
+    if (dto.requiresNotes !== undefined) {
+      data.requiresNotes = isOther ? true : dto.requiresNotes;
+    }
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.visitLeftAreaAllowReasonCatalog.update({
+        where: { id },
+        data,
+        select: this.manualAuthorisationReasonSelect,
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'This reason is already in the list');
+    }
+  }
+
+  async deleteLeftAreaAllowReason(id: string) {
+    const existing = await this.prisma.visitLeftAreaAllowReasonCatalog.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException('Allow reason not found');
+    if (existing.code === OTHER_LEFT_AREA_ALLOW_REASON_CODE) {
+      throw new BadRequestException('Other reason cannot be removed');
+    }
+    await this.prisma.visitLeftAreaAllowReasonCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  private async nextLeftAreaAllowSortOrder() {
+    const last = await this.prisma.visitLeftAreaAllowReasonCatalog.findFirst({
+      where: {
+        isActive: true,
+        code: { not: OTHER_LEFT_AREA_ALLOW_REASON_CODE },
+      },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+    return (last?.sortOrder ?? 0) + 10;
+  }
+
+  private async nextLeftAreaAllowReasonCode(label: string) {
+    const base =
+      label
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'REASON';
+    let code = base;
+    let n = 2;
+    while (
+      await this.prisma.visitLeftAreaAllowReasonCatalog.findUnique({
+        where: { code },
+        select: { id: true },
+      })
+    ) {
+      code = `${base}_${n}`.slice(0, 48);
+      n += 1;
+    }
+    return code;
+  }
+
   async listClockOutEndReasons() {
     return this.prisma.visitClockOutEndReasonCatalog.findMany({
       where: { isActive: true },
@@ -1458,6 +1735,64 @@ export class LookupsService implements OnModuleInit {
     } catch (e) {
       this.logger.error(
         'Failed to seed emergency protocols',
+        e instanceof Error ? e.stack : e,
+      );
+    }
+  }
+
+  private async ensureManualAuthorisationReasons() {
+    try {
+      const existing = await this.prisma.visitManualAuthorisationReasonCatalog.findMany({
+        select: { code: true },
+      });
+      const have = new Set(existing.map((r) => r.code));
+      const missing = DEFAULT_MANUAL_AUTHORISATION_REASONS.filter((r) => !have.has(r.code));
+      for (const seed of missing) {
+        await this.prisma.visitManualAuthorisationReasonCatalog.create({
+          data: {
+            code: seed.code,
+            label: seed.label,
+            requiresNotes: seed.requiresNotes,
+            sortOrder: seed.sortOrder,
+            isActive: true,
+          },
+        });
+      }
+      if (missing.length > 0) {
+        this.logger.log(`Manual authorisation reasons seeded (${missing.length} new).`);
+      }
+    } catch (e) {
+      this.logger.error(
+        'Failed to seed manual authorisation reasons',
+        e instanceof Error ? e.stack : e,
+      );
+    }
+  }
+
+  private async ensureLeftAreaAllowReasons() {
+    try {
+      const existing = await this.prisma.visitLeftAreaAllowReasonCatalog.findMany({
+        select: { code: true },
+      });
+      const have = new Set(existing.map((r) => r.code));
+      const missing = DEFAULT_LEFT_AREA_ALLOW_REASONS.filter((r) => !have.has(r.code));
+      for (const seed of missing) {
+        await this.prisma.visitLeftAreaAllowReasonCatalog.create({
+          data: {
+            code: seed.code,
+            label: seed.label,
+            requiresNotes: seed.requiresNotes,
+            sortOrder: seed.sortOrder,
+            isActive: true,
+          },
+        });
+      }
+      if (missing.length > 0) {
+        this.logger.log(`Left-area allow reasons seeded (${missing.length} new).`);
+      }
+    } catch (e) {
+      this.logger.error(
+        'Failed to seed left-area allow reasons',
         e instanceof Error ? e.stack : e,
       );
     }

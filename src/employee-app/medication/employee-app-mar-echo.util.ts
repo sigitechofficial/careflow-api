@@ -46,6 +46,7 @@ export type MarAdminEchoFields = {
 
 const OUTCOME_LABELS: Record<string, string> = {
   G: 'Given',
+  PG: 'Partially given',
   F: 'Given (family)',
   I: 'Given (self)',
   S: 'Given (self)',

@@ -50,6 +50,7 @@ import { EmployeeAppSosService } from './employee-app-sos.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
+import { parseTaskResets } from '../scheduled-jobs-housekeeping/visit-task-reset.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
 import { validateObservationCreate } from '../service-user-observations/observation-payload.validation';
@@ -149,6 +150,7 @@ import {
   parseMedicationAdministrationKey,
   statusToContractLabel,
   validationError,
+  assertMarCarerAdministrationFields,
 } from './employee-app-contract.util';
 import { formatHm } from '../medication-charts/medication-chart-rounds.util';
 import {
@@ -346,7 +348,10 @@ export class EmployeeAppVisitsService {
   ) {}
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    if (isVisitClosedForCarerSos(ctx.primaryVisit.status, ctx.job.status)) {
+      contractError('VISIT_COMPLETED', 'Visit is already closed');
+    }
     return this.sos.send(employeeId, jobId, dto);
   }
 
@@ -998,7 +1003,7 @@ export class EmployeeAppVisitsService {
       outsideGeofence: !geofence.withinArea,
       outsideGeofenceReason: dto.outsideGeofenceReason?.trim() ?? null,
       identityConfirmed: dto.identityConfirmed ?? false,
-      method: dto.method ?? 'GPS',
+      method: checkInMethod,
       timingStatus: dto.timingStatus ?? null,
       timingExceptionReasonCode: dto.timingExceptionReasonCode ?? null,
       timingExceptionNotes: dto.timingExceptionNotes ?? null,
@@ -2903,6 +2908,30 @@ export class EmployeeAppVisitsService {
     }
 
     const mapped = mapMarOutcomeCode(dto.outcomeCode);
+    let catalogReasonRequiresNotes = false;
+    const reasonLabel = dto.reasonCode?.trim();
+    if (reasonLabel) {
+      const catalogReason = await this.prisma.visitOutcomeReasonCatalog.findFirst({
+        where: {
+          isActive: true,
+          label: { equals: reasonLabel, mode: 'insensitive' },
+          outcome: {
+            isActive: true,
+            area: VisitOutcomeArea.MEDICATION,
+            code: mapped.statusCode,
+          },
+        },
+        select: { requiresNotes: true },
+      });
+      catalogReasonRequiresNotes = catalogReason?.requiresNotes === true;
+    }
+    assertMarCarerAdministrationFields({
+      outcomeCode: mapped.statusCode,
+      supportLevel: dto.supportLevel,
+      notes: dto.notes,
+      reasonCode: dto.reasonCode,
+      catalogReasonRequiresNotes,
+    });
     const isPrn = doseKey === 'prn' || med.medicationKind === MedicationKind.PRN;
     const doseHm = doseKey && doseKey !== 'dose' ? formatHm(doseKey) : null;
     const schedule =
@@ -4264,6 +4293,10 @@ export class EmployeeAppVisitsService {
     const visitRef =
       visitRefById.get(visit.id) ??
       (await this.visitReconciliations.issueVisitRef(visit.id));
+    const jobMeta = this.parseMetadata(ctx.job.metadata);
+    const deliveryResetAt =
+      typeof jobMeta.deliveryResetAt === 'string' ? jobMeta.deliveryResetAt : null;
+    const taskResets = parseTaskResets(jobMeta.taskResets);
 
     return {
       jobId: ctx.job.id,
@@ -4303,6 +4336,8 @@ export class EmployeeAppVisitsService {
       isCheckedIn,
       checkedInAt: checkedInAt?.toISOString() ?? null,
       checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
+      deliveryResetAt,
+      taskResets,
       progress: this.buildProgress(progress, medProgress),
       location: buildShellLocation({
         latitude: destinationLatitude,
@@ -4670,22 +4705,9 @@ export class EmployeeAppVisitsService {
       const existing = await this.prisma.scheduledVisitTaskCompletion.findFirst({
         where: { scheduledJobId: input.jobId, assignmentId: match.id },
       });
-      if (existing?.isCompleted) continue;
-
-      const keptNotes = stripVisitTaskOutcomeNotes(existing?.notes) ?? null;
-      if (existing) {
-        await this.prisma.scheduledVisitTaskCompletion.update({
-          where: { id: existing.id },
-          data: {
-            isCompleted: true,
-            recordedValue: existing.recordedValue ?? 'COMPLETED',
-            notes: keptNotes,
-            completedAt: now,
-            completedById: input.employeeId,
-          },
-        });
-        continue;
-      }
+      // Do not overwrite an existing row — office unmark (isCompleted false)
+      // must survive GET details. Heal only fills a missing completion.
+      if (existing) continue;
 
       await this.prisma.scheduledVisitTaskCompletion.create({
         data: {
@@ -5591,6 +5613,14 @@ function mapUiStatus(
   jobStatus: ScheduledJobStatus,
   visitStatus: ScheduledVisitStatus,
 ): string {
+  if (
+    jobStatus === ScheduledJobStatus.CANCELLED ||
+    jobStatus === ScheduledJobStatus.CALLED_OFF ||
+    visitStatus === ScheduledVisitStatus.CANCELLED ||
+    visitStatus === ScheduledVisitStatus.CALLED_OFF
+  ) {
+    return 'cancelled';
+  }
   if (jobStatus === ScheduledJobStatus.IN_PROGRESS || visitStatus === ScheduledVisitStatus.STARTED) {
     return 'in_progress';
   }
@@ -5611,6 +5641,24 @@ function mapUiStatus(
     return 'needs_attention';
   }
   return 'upcoming';
+}
+
+export function isVisitClosedForCarerSos(
+  visitStatus: ScheduledVisitStatus,
+  jobStatus: ScheduledJobStatus,
+): boolean {
+  return (
+    visitStatus === ScheduledVisitStatus.COMPLETED ||
+    visitStatus === ScheduledVisitStatus.PARTIALLY_COMPLETED ||
+    visitStatus === ScheduledVisitStatus.CANCELLED ||
+    visitStatus === ScheduledVisitStatus.CALLED_OFF ||
+    visitStatus === ScheduledVisitStatus.MISSED ||
+    jobStatus === ScheduledJobStatus.COMPLETED ||
+    jobStatus === ScheduledJobStatus.PARTIALLY_COMPLETED ||
+    jobStatus === ScheduledJobStatus.CANCELLED ||
+    jobStatus === ScheduledJobStatus.CALLED_OFF ||
+    jobStatus === ScheduledJobStatus.MISSED
+  );
 }
 
 function displayName(first: string | null | undefined, last: string | null | undefined) {

@@ -55,7 +55,7 @@ export function mapMarOutcomeCode(outcomeCode: string): {
   if (upper === 'PENDING' || code === 'Pending') {
     validationError('Pending is not a recordable administration outcome');
   }
-  if (['G', 'F', 'I', 'S', 'T'].includes(upper)) {
+  if (['G', 'PG', 'F', 'I', 'S', 'T'].includes(upper)) {
     return { status: MedicationAdministrationStatus.GIVEN, statusCode: upper };
   }
   if (upper === 'R') {
@@ -85,4 +85,51 @@ export function parseMedicationAdministrationKey(medicationKey: string): {
   const medId = trimmed.slice(0, colon);
   const doseKey = trimmed.slice(colon + 1).trim() || null;
   return { medId, doseKey };
+}
+
+const MAR_SUPPORT_REQUIRED_CODES = new Set(['G', 'PG', 'F', 'I', 'S', 'T']);
+
+export function isMarOtherReason(reason?: string | null): boolean {
+  const t = reason?.trim().toLowerCase() ?? '';
+  return t === 'other' || t === 'other reason' || t === 'other_reason';
+}
+
+export function marCarerSupportRequired(outcomeCode: string): boolean {
+  return MAR_SUPPORT_REQUIRED_CODES.has(outcomeCode.trim().toUpperCase());
+}
+
+export function marCarerNotesRequired(params: {
+  outcomeCode: string;
+  reasonCode?: string | null;
+  catalogReasonRequiresNotes?: boolean | null;
+}): boolean {
+  const upper = params.outcomeCode.trim().toUpperCase();
+  if (upper === 'PG') return true;
+  if (isMarOtherReason(params.reasonCode)) return true;
+  return params.catalogReasonRequiresNotes === true;
+}
+
+export function assertMarCarerAdministrationFields(params: {
+  outcomeCode: string;
+  supportLevel?: string | null;
+  notes?: string | null;
+  reasonCode?: string | null;
+  catalogReasonRequiresNotes?: boolean | null;
+}): void {
+  if (marCarerSupportRequired(params.outcomeCode) && !params.supportLevel?.trim()) {
+    validationError('supportLevel is required for this outcome');
+  }
+  if (params.outcomeCode.trim().toUpperCase() === 'PG' && !params.reasonCode?.trim()) {
+    validationError('reason is required for this outcome');
+  }
+  if (
+    marCarerNotesRequired({
+      outcomeCode: params.outcomeCode,
+      reasonCode: params.reasonCode,
+      catalogReasonRequiresNotes: params.catalogReasonRequiresNotes,
+    }) &&
+    !params.notes?.trim()
+  ) {
+    validationError('notes are required for this outcome');
+  }
 }

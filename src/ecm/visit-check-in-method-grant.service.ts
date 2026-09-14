@@ -18,6 +18,7 @@ import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
 import { displayUserName } from './carer-sos.util';
 import {
+  composeManualAuthorisationOfficeNote,
   mapVisitCheckInMethodGrant,
   shouldReuseCheckInMethodGrant,
   type VisitCheckInMethodGrantDto,
@@ -256,7 +257,12 @@ export class VisitCheckInMethodGrantService {
     };
   }
 
-  async authorise(scheduledJobId: string, grantId: string, adminUserId: string, note?: string) {
+  async authorise(
+    scheduledJobId: string,
+    grantId: string,
+    adminUserId: string,
+    input: { reasonId: string; note?: string },
+  ) {
     const grant = await this.requireGrant(scheduledJobId, grantId);
     if (grant.status !== VisitCheckInMethodGrantStatus.PENDING) {
       throw new BadRequestException({
@@ -271,12 +277,28 @@ export class VisitCheckInMethodGrantService {
       });
     }
 
+    const reason = await this.prisma.visitManualAuthorisationReasonCatalog.findFirst({
+      where: { id: input.reasonId, isActive: true },
+    });
+    if (!reason) {
+      throw new BadRequestException({
+        code: 'REASON_REQUIRED',
+        message: 'Select a reason for this authorisation.',
+      });
+    }
+    const officeNote = composeManualAuthorisationOfficeNote(reason, input.note);
+    if (!officeNote) {
+      throw new BadRequestException({
+        code: 'REASON_NOTE_REQUIRED',
+        message: 'Enter the reason for this authorisation.',
+      });
+    }
+
     const admin = await this.prisma.user.findUnique({
       where: { id: adminUserId },
       select: { firstName: true, lastName: true, email: true },
     });
     const decidedByName = displayUserName(admin) ?? adminUserId;
-    const officeNote = note?.trim() || null;
     const decidedAt = new Date();
 
     const updated = await this.prisma.visitCheckInMethodGrant.update({
@@ -287,6 +309,7 @@ export class VisitCheckInMethodGrantService {
         decidedById: adminUserId,
         decidedByName,
         officeNote,
+        officeReasonId: reason.id,
       },
     });
 
@@ -313,6 +336,8 @@ export class VisitCheckInMethodGrantService {
         employeeId: grant.employeeId,
         decidedByName,
         officeNote,
+        officeReasonId: reason.id,
+        officeReasonLabel: reason.label,
         expiresAt: grant.expiresAt.toISOString(),
       },
     });

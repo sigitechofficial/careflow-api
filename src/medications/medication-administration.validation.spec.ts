@@ -51,4 +51,30 @@ describe('validateMedicationAdministrationPayload', () => {
       ),
     ).not.toThrow();
   });
+
+  it('requires reason and notes for Partially given', () => {
+    expect(() =>
+      validateMedicationAdministrationPayload(
+        {
+          status: MedicationAdministrationStatus.GIVEN,
+          statusCode: 'PG',
+          actualDateTime: '2026-05-01T10:00:00.000Z',
+          reason: 'Client spat out / did not swallow',
+        },
+        MedicationKind.REGULAR,
+      ),
+    ).toThrow(BadRequestException);
+    expect(() =>
+      validateMedicationAdministrationPayload(
+        {
+          status: MedicationAdministrationStatus.GIVEN,
+          statusCode: 'PG',
+          actualDateTime: '2026-05-01T10:00:00.000Z',
+          reason: 'Client spat out / did not swallow',
+          notes: 'Half the tablet left',
+        },
+        MedicationKind.REGULAR,
+      ),
+    ).not.toThrow();
+  });
 });

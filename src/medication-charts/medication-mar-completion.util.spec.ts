@@ -64,5 +64,7 @@ describe('outcome code helpers', () => {
   it('classifies refused and missed', () => {
     expect(isMarNotGivenOutcomeCode('R')).toBe(true);
     expect(isMarNotGivenOutcomeCode('N')).toBe(true);
+    expect(isMarNotGivenOutcomeCode('PG')).toBe(true);
+    expect(isMarGivenOutcomeCode('PG')).toBe(false);
   });
 });

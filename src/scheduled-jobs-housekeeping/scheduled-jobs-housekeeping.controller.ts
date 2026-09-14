@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -12,6 +12,8 @@ import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import { ResetJobDeliveryDto } from './dto/reset-job-delivery.dto';
+import { ResetJobTaskDto } from './dto/reset-job-task.dto';
 import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import {
   VISIT_CANCELLATION_REASONS,
@@ -172,5 +174,38 @@ export class ScheduledJobsHousekeepingController {
     @Req() req: Request,
   ) {
     return this.service.reinstateJob(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('jobs/:id/reset-delivery')
+  @Permissions('scheduled_jobs_housekeeping.complete')
+  @ApiOperation({
+    summary: 'Reset visit delivery to planned (wipe clock-in and this-visit care writes)',
+    description:
+      'Office-only. Returns the visit to the carer initial Clock-in state. Does not change allocations or planned times. Cancelled visits must be reinstated first.',
+  })
+  resetDelivery(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: ResetJobDeliveryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.resetJobDelivery(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('jobs/:id/tasks/:assignmentId/reset')
+  @Permissions('scheduled_jobs_housekeeping.complete')
+  @ApiOperation({
+    summary: 'Reset one visit task (wipe completion and linked MAR/obs for this visit)',
+    description:
+      'Office-only. Returns that task to the carer initial state. Linked this-visit MAR or observations are cleared when the task is an eMAR prompt or obs-linked. Clock-in stays.',
+  })
+  resetTask(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('assignmentId') assignmentId: string,
+    @Body() dto: ResetJobTaskDto,
+    @Req() req: Request,
+  ) {
+    return this.service.resetJobTask(user, id, assignmentId, dto, getRequestAuditMeta(req));
   }
 }

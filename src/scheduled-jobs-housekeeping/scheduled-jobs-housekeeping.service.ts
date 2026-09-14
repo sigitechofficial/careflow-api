@@ -50,6 +50,17 @@ import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
 import { CancelJobDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
+import { ResetJobDeliveryDto } from './dto/reset-job-delivery.dto';
+import { ResetJobTaskDto } from './dto/reset-job-task.dto';
+import {
+  applyVisitDeliveryResetMetadata,
+  jobHasDeliveryToReset,
+} from './visit-delivery-reset.util';
+import {
+  applyVisitTaskResetMetadata,
+  parseVisitTaskAssignmentKey,
+  taskCompletionHasDeliveryToReset,
+} from './visit-task-reset.util';
 import { SaveVisitJobTasksDto } from './dto/save-visit-job-tasks.dto';
 import { resolveJobMedicationRoundCode } from './visit-job-tasks.util';
 import { VisitObservationsCatalogService } from '../service-user-observations/visit-observations-catalog.service';
@@ -1512,6 +1523,374 @@ export class ScheduledJobsHousekeepingService {
   }
 
   /**
+   * Wipe clock-in and this-visit care writes so the carer app shows the
+   * initial Clock-in screen again. Allocations and planned times stay.
+   */
+  async resetJobDelivery(
+    user: RequestUser,
+    id: string,
+    dto: ResetJobDeliveryDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const userId = user.id;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
+    const existing = await this.prisma.scheduledJob.findFirst({
+      where: { id, deletedAt: null, isActive: true },
+      include: housekeepingInclude,
+    });
+    if (!existing) throw new NotFoundException('Scheduled job not found');
+    if (
+      existing.status === PrismaJobStatus.CANCELLED ||
+      existing.status === PrismaJobStatus.CALLED_OFF
+    ) {
+      throw new BadRequestException('Reinstate a cancelled visit before resetting delivery');
+    }
+
+    const visits = existing.visits ?? [];
+    const employeeApp = jsonObject(this.parseJobMetadata(existing.metadata).employeeApp);
+    const checkIns = jsonObject(employeeApp?.checkIns);
+    const eligible = jobHasDeliveryToReset({
+      status: existing.status,
+      allocations: existing.allocations,
+      visits,
+      checkIn: employeeApp?.checkIn ?? (checkIns && Object.keys(checkIns).length > 0 ? checkIns : null),
+    });
+    if (!eligible) {
+      throw new BadRequestException('This visit has no clock-in or delivery to reset');
+    }
+
+    const reason = dto.reason.trim();
+    const resetAt = new Date();
+    const resetAtIso = resetAt.toISOString();
+    const visitIds = visits.map((visit) => visit.id);
+
+    const resetResult = await this.prisma.$transaction(async (tx) => {
+      await tx.scheduledVisit.updateMany({
+        where: { scheduledJobId: id, deletedAt: null, isActive: true },
+        data: {
+          status: PrismaVisitStatus.PLANNED,
+          actualStartDateTime: null,
+          actualEndDateTime: null,
+          updatedById: userId,
+        },
+      });
+
+      await tx.jobAllocation.updateMany({
+        where: { scheduledJobId: id, deletedAt: null, isActive: true },
+        data: { actualStartDateTime: null, actualEndDateTime: null },
+      });
+
+      await tx.visitCareConsent.deleteMany({ where: { scheduledJobId: id } });
+      await tx.scheduledVisitTaskCompletion.deleteMany({ where: { scheduledJobId: id } });
+      await tx.visitTimelineEvent.deleteMany({ where: { scheduledJobId: id } });
+      await tx.visitAreaLock.deleteMany({ where: { scheduledJobId: id } });
+      await tx.visitCheckInMethodGrant.deleteMany({ where: { scheduledJobId: id } });
+      await tx.ecmNotificationEvidence.deleteMany({ where: { scheduledJobId: id } });
+      await tx.lateVisitAlertLog.deleteMany({ where: { scheduledJobId: id } });
+      await tx.carerVisitPushReceipt.deleteMany({ where: { scheduledJobId: id } });
+      await tx.ecmException.deleteMany({ where: { scheduledJobId: id } });
+      await tx.ecmVisitEvaluation.updateMany({
+        where: { scheduledJobId: id },
+        data: {
+          actualCheckInAt: null,
+          actualCheckOutAt: null,
+          actualDurationMinutes: null,
+          startVarianceMinutes: null,
+          endVarianceMinutes: null,
+          durationVarianceMinutes: null,
+        },
+      });
+
+      await tx.visitAction.updateMany({
+        where: { scheduledJobId: id, deletedAt: null },
+        data: { completedAt: null, completedById: null, status: null },
+      });
+
+      if (visitIds.length > 0) {
+        await tx.medicationAdministrationEvent.updateMany({
+          where: { visitId: { in: visitIds }, deletedAt: null },
+          data: { deletedAt: resetAt, isActive: false, deletedById: userId },
+        });
+      }
+
+      const observations = await tx.serviceUserObservation.findMany({
+        where: { serviceUserId: existing.serviceUserId, deletedAt: null },
+        select: { id: true, payload: true },
+      });
+      const observationIds = observations
+        .filter((row) => observationPayloadJobId(row.payload) === id)
+        .map((row) => row.id);
+      if (observationIds.length > 0) {
+        await tx.serviceUserObservation.updateMany({
+          where: { id: { in: observationIds } },
+          data: { deletedAt: resetAt, isActive: false, deletedById: userId },
+        });
+      }
+
+      const bodyMapRows = await tx.bodyMapRecord.findMany({
+        where: { serviceUserId: existing.serviceUserId },
+        select: { id: true, observationDetails: true },
+      });
+      for (const row of bodyMapRows) {
+        const details = jsonObject(row.observationDetails);
+        if (!details || details.scheduledJobId !== id) continue;
+        const next = { ...details };
+        delete next.scheduledJobId;
+        delete next.scheduledVisitId;
+        await tx.bodyMapRecord.update({
+          where: { id: row.id },
+          data: { observationDetails: next as Prisma.InputJsonValue, updatedById: userId },
+        });
+      }
+
+      const activeAllocations = await tx.jobAllocation.count({
+        where: {
+          scheduledJobId: id,
+          deletedAt: null,
+          isActive: true,
+          status: { in: ACTIVE_ALLOCATION },
+        },
+      });
+      let nextJobStatus: PrismaJobStatus = PrismaJobStatus.UNALLOCATED;
+      if (activeAllocations >= existing.requiredCarers) {
+        nextJobStatus = PrismaJobStatus.ALLOCATED;
+      } else if (activeAllocations > 0) {
+        nextJobStatus = PrismaJobStatus.NEEDS_ATTENTION;
+      }
+
+      const metadata = applyVisitDeliveryResetMetadata(this.parseJobMetadata(existing.metadata), {
+        resetAt: resetAtIso,
+        reason,
+        resetById: userId,
+      });
+
+      const updated = await tx.scheduledJob.update({
+        where: { id },
+        data: {
+          status: nextJobStatus,
+          metadata: metadata as Prisma.InputJsonValue,
+          updatedById: userId,
+        },
+        include: housekeepingInclude,
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.SCHEDULED_JOB_DELIVERY_RESET,
+        recordType: 'ScheduledJob',
+        recordId: id,
+        oldValues: auditSnapshot({
+          status: existing.status,
+          visitStatuses: visits.map((visit) => visit.status),
+        }),
+        newValues: auditSnapshot({
+          status: updated.status,
+          deliveryResetAt: resetAtIso,
+          reason,
+        }),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      return {
+        message: 'Visit reset to planned',
+        data: this.mapDayJob(updated),
+      };
+    });
+
+    await this.ecmEvaluation.evaluateJobSafe(id);
+    return resetResult;
+  }
+
+  /**
+   * Wipe one task completion (and linked this-visit MAR / obs) so the carer
+   * sees that task at its initial state. Clock-in and other tasks stay.
+   */
+  async resetJobTask(
+    user: RequestUser,
+    jobId: string,
+    assignmentKey: string,
+    dto: ResetJobTaskDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const userId = user.id;
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    const parsed = parseVisitTaskAssignmentKey(assignmentKey);
+    if (!parsed.stampKey || (parsed.kind === 'planned' && !parsed.assignmentId) || (parsed.kind === 'extra' && !parsed.taskCatalogueTaskId)) {
+      throw new BadRequestException('Task id is required');
+    }
+
+    const existing = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null, isActive: true },
+      include: housekeepingInclude,
+    });
+    if (!existing) throw new NotFoundException('Scheduled job not found');
+    if (
+      existing.status === PrismaJobStatus.CANCELLED ||
+      existing.status === PrismaJobStatus.CALLED_OFF
+    ) {
+      throw new BadRequestException('Reinstate a cancelled visit before resetting a task');
+    }
+
+    const completion = parsed.kind === 'planned'
+      ? await this.prisma.scheduledVisitTaskCompletion.findFirst({
+          where: { scheduledJobId: jobId, assignmentId: parsed.assignmentId! },
+        })
+      : await this.prisma.scheduledVisitTaskCompletion.findFirst({
+          where: {
+            scheduledJobId: jobId,
+            assignmentId: null,
+            taskCatalogueTaskId: parsed.taskCatalogueTaskId!,
+          },
+        });
+    if (!completion || !taskCompletionHasDeliveryToReset(completion)) {
+      throw new BadRequestException('This task has nothing to reset');
+    }
+
+    const catalogueTaskId = completion.taskCatalogueTaskId;
+    const assignment = parsed.assignmentId
+      ? await this.prisma.serviceUserVisitTaskAssignment.findFirst({
+          where: { id: parsed.assignmentId, deletedAt: null },
+          include: { task: { include: { category: { include: { group: true } } } } },
+        })
+      : null;
+    const catalogueTask = assignment
+      ? assignment.task
+      : catalogueTaskId
+        ? await this.prisma.taskCatalogueTask.findFirst({
+            where: { id: catalogueTaskId, deletedAt: null },
+            include: { category: { include: { group: true } } },
+          })
+        : null;
+    if (!catalogueTask) throw new NotFoundException('Visit task not found');
+
+    const flagsJson =
+      catalogueTask.flagsJson && typeof catalogueTask.flagsJson === 'object'
+        ? (catalogueTask.flagsJson as Record<string, unknown>)
+        : null;
+    const taskName = catalogueTask.name;
+    const groupCode = catalogueTask.category?.group?.code ?? null;
+    const wipeMar = isEmarMedicationPromptTask({ name: taskName, flagsJson });
+    const obsLink = resolveTaskObsLink({ name: taskName, groupCode, flagsJson });
+    const wipeBodyMap =
+      catalogueFeedsBodyMap(flagsJson) || obsLink?.observationTypeCode === 'BODY_MAP';
+
+    const reason = dto.reason.trim();
+    const resetAt = new Date();
+    const resetAtIso = resetAt.toISOString();
+    const visitIds = (existing.visits ?? []).map((visit) => visit.id);
+    const timelineSourceIds = [parsed.stampKey, parsed.assignmentId, catalogueTaskId].filter(
+      (value): value is string => Boolean(value),
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.scheduledVisitTaskCompletion.delete({ where: { id: completion.id } });
+
+      if (timelineSourceIds.length > 0) {
+        await tx.visitTimelineEvent.deleteMany({
+          where: {
+            scheduledJobId: jobId,
+            sourceType: 'task',
+            sourceId: { in: timelineSourceIds },
+          },
+        });
+      }
+
+      if (wipeMar && visitIds.length > 0) {
+        await tx.medicationAdministrationEvent.updateMany({
+          where: { visitId: { in: visitIds }, deletedAt: null },
+          data: { deletedAt: resetAt, isActive: false, deletedById: userId },
+        });
+      }
+
+      if (obsLink) {
+        const type = await tx.observationType.findFirst({
+          where: { code: obsLink.observationTypeCode, isActive: true },
+          select: { id: true },
+        });
+        if (type) {
+          const observations = await tx.serviceUserObservation.findMany({
+            where: {
+              serviceUserId: existing.serviceUserId,
+              observationTypeId: type.id,
+              deletedAt: null,
+            },
+            select: { id: true, payload: true },
+          });
+          const observationIds = observations
+            .filter((row) => observationPayloadJobId(row.payload) === jobId)
+            .map((row) => row.id);
+          if (observationIds.length > 0) {
+            await tx.serviceUserObservation.updateMany({
+              where: { id: { in: observationIds } },
+              data: { deletedAt: resetAt, isActive: false, deletedById: userId },
+            });
+          }
+        }
+      }
+
+      if (wipeBodyMap) {
+        const bodyMapRows = await tx.bodyMapRecord.findMany({
+          where: { serviceUserId: existing.serviceUserId },
+          select: { id: true, observationDetails: true },
+        });
+        for (const row of bodyMapRows) {
+          const details = jsonObject(row.observationDetails);
+          if (!details || details.scheduledJobId !== jobId) continue;
+          const next = { ...details };
+          delete next.scheduledJobId;
+          delete next.scheduledVisitId;
+          await tx.bodyMapRecord.update({
+            where: { id: row.id },
+            data: { observationDetails: next as Prisma.InputJsonValue, updatedById: userId },
+          });
+        }
+      }
+
+      const metadata = applyVisitTaskResetMetadata(this.parseJobMetadata(existing.metadata), {
+        assignmentId: parsed.stampKey,
+        resetAt: resetAtIso,
+        reason,
+        resetById: userId,
+      });
+      await tx.scheduledJob.update({
+        where: { id: jobId },
+        data: {
+          metadata: metadata as Prisma.InputJsonValue,
+          updatedById: userId,
+        },
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.SCHEDULED_JOB_TASK_RESET,
+        recordType: 'ScheduledVisitTaskCompletion',
+        recordId: completion.id,
+        oldValues: auditSnapshot({
+          assignmentId: parsed.stampKey,
+          taskName,
+          isCompleted: completion.isCompleted,
+        }),
+        newValues: auditSnapshot({
+          assignmentId: parsed.stampKey,
+          taskResetAt: resetAtIso,
+          reason,
+          wipedMar: wipeMar,
+          wipedObservationType: obsLink?.observationTypeCode ?? null,
+        }),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    return this.getVisitJobTasks(user, jobId, meta);
+  }
+
+  /**
    * Same Obs catalog + recorded-this-visit payload as carer
    * GET employee-app/visits/:jobId/details → observations (and GET …/observations).
    */
@@ -2142,4 +2521,15 @@ function incidentPhotosBySourceId(
     if (photos.length) map.set(id, photos);
   }
   return map;
+}
+
+function jsonObject(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  return raw as Record<string, unknown>;
+}
+
+function observationPayloadJobId(raw: unknown): string | null {
+  const payload = jsonObject(raw);
+  const jobId = payload?.scheduledJobId;
+  return typeof jobId === 'string' && jobId.trim() ? jobId.trim() : null;
 }

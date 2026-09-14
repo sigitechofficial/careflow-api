@@ -305,6 +305,8 @@ export enum AuditAction {
   SCHEDULED_JOB_COMPLETED = 'scheduled_job_completed',
   SCHEDULED_JOB_CANCELLED = 'scheduled_job_cancelled',
   SCHEDULED_JOB_REINSTATED = 'scheduled_job_reinstated',
+  SCHEDULED_JOB_DELIVERY_RESET = 'scheduled_job_delivery_reset',
+  SCHEDULED_JOB_TASK_RESET = 'scheduled_job_task_reset',
   CALL_OFF_VISIT_CREATED = 'call_off_visit_created',
   CALL_OFF_VISIT_UPDATED = 'call_off_visit_updated',
   CALL_OFF_VISIT_DELETED = 'call_off_visit_deleted',

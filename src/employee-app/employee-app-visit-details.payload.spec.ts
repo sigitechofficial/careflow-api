@@ -1,6 +1,11 @@
 import {
+  ScheduledJobStatus,
+  ScheduledVisitStatus,
+} from '@prisma/client';
+import {
   buildShellLocation,
   EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS,
+  isVisitClosedForCarerSos,
 } from './employee-app-visits.service';
 
 describe('buildShellLocation', () => {
@@ -65,5 +70,22 @@ describe('visit details payload keys', () => {
     expect(detailsData.shell.location).not.toHaveProperty('serviceUser');
     expect(detailsData.shell.location.latitude).toBe('51.5000');
     expect(detailsData.shell.location.longitude).toBe('-0.1000');
+  });
+});
+
+describe('isVisitClosedForCarerSos', () => {
+  it('blocks SOS after the visit is completed or cancelled', () => {
+    expect(
+      isVisitClosedForCarerSos(ScheduledVisitStatus.COMPLETED, ScheduledJobStatus.COMPLETED),
+    ).toBe(true);
+    expect(
+      isVisitClosedForCarerSos(ScheduledVisitStatus.CANCELLED, ScheduledJobStatus.ALLOCATED),
+    ).toBe(true);
+    expect(
+      isVisitClosedForCarerSos(ScheduledVisitStatus.CALLED_OFF, ScheduledJobStatus.ALLOCATED),
+    ).toBe(true);
+    expect(
+      isVisitClosedForCarerSos(ScheduledVisitStatus.STARTED, ScheduledJobStatus.IN_PROGRESS),
+    ).toBe(false);
   });
 });

@@ -40,6 +40,17 @@ function isCheckInMethodGrantExpired(
   return !Number.isFinite(expires.getTime()) || expires.getTime() <= now.getTime();
 }
 
+export function composeManualAuthorisationOfficeNote(
+  reason: { label: string; requiresNotes: boolean },
+  note?: string | null,
+): string | null {
+  if (reason.requiresNotes) {
+    const text = note?.trim() ?? '';
+    return text || null;
+  }
+  return reason.label.trim() || null;
+}
+
 export function toNullableNumber(value: unknown): number | null {
   if (value == null) return null;
   const n = typeof value === 'number' ? value : Number(value);
@@ -55,6 +66,7 @@ export type VisitCheckInMethodGrantDto = {
   status: string;
   carerNote: string | null;
   officeNote: string | null;
+  officeReasonId: string | null;
   latitude: number | null;
   longitude: number | null;
   accuracyMeters: number | null;
@@ -80,6 +92,7 @@ export function mapVisitCheckInMethodGrant(
     status: string;
     carerNote: string | null;
     officeNote: string | null;
+    officeReasonId?: string | null;
     latitude: unknown;
     longitude: unknown;
     accuracyMeters: unknown;
@@ -106,6 +119,7 @@ export function mapVisitCheckInMethodGrant(
     status: row.status,
     carerNote: row.carerNote,
     officeNote: row.officeNote,
+    officeReasonId: row.officeReasonId ?? null,
     latitude: toNullableNumber(row.latitude),
     longitude: toNullableNumber(row.longitude),
     accuracyMeters: toNullableNumber(row.accuracyMeters),

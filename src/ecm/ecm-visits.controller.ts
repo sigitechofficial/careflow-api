@@ -12,6 +12,7 @@ import { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
 import {
   AcknowledgeEcmExceptionDto,
   AllowVisitContinueDto,
+  AuthoriseCheckInMethodGrantDto,
   CloseEcmExceptionDto,
   DecideCheckInMethodGrantDto,
   ResolveEcmExceptionDto,
@@ -264,14 +265,18 @@ export class EcmVisitsController {
   @Permissions('ecm.exceptions.manage')
   @ApiOperation({
     summary: 'Allow carer to continue after a mid-visit left-area lock',
-    description: 'Optional note. Unlocks employee-app writes; GET visit details returns operationsLocked false.',
+    description:
+      'Required reason from Settings → Left-area allow reasons. Unlocks employee-app writes; GET visit details returns operationsLocked false.',
   })
   allowContinue(
     @Param('jobId') jobId: string,
     @CurrentUser() user: RequestUser,
     @Body() dto: AllowVisitContinueDto,
   ) {
-    return this.areaLocks.allowContinue(jobId, user.id, dto.note);
+    return this.areaLocks.allowContinue(jobId, user.id, {
+      reasonId: dto.reasonId,
+      note: dto.note,
+    });
   }
 
   @Post('visits/:jobId/check-in-method-grants/:grantId/authorise')
@@ -285,10 +290,13 @@ export class EcmVisitsController {
     @Param('jobId') jobId: string,
     @Param('grantId') grantId: string,
     @CurrentUser() user: RequestUser,
-    @Body() dto: DecideCheckInMethodGrantDto,
+    @Body() dto: AuthoriseCheckInMethodGrantDto,
   ) {
     return this.visits.assertJobAccessible(user, jobId).then(() =>
-      this.checkInMethodGrants.authorise(jobId, grantId, user.id, dto?.note),
+      this.checkInMethodGrants.authorise(jobId, grantId, user.id, {
+        reasonId: dto.reasonId,
+        note: dto.note,
+      }),
     );
   }
 

@@ -6708,6 +6708,42 @@ model VisitClockInArrivalReasonCatalog {
   @@schema("scheduling")
 }
 
+/// Org-configurable reasons when office allows a carer to continue after
+/// leaving the visit area mid-visit. Managed in admin Settings.
+model VisitLeftAreaAllowReasonCatalog {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique
+  label         String   @unique
+  requiresNotes Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  locks         VisitAreaLock[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
+/// Org-configurable reasons when office authorises Manual check-in
+/// for a carer outside the visit area. Managed in admin Settings.
+model VisitManualAuthorisationReasonCatalog {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique
+  label         String   @unique
+  requiresNotes Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  grants        VisitCheckInMethodGrant[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@schema("scheduling")
+}
+
 /// Org-configurable emergency clinical protocols for the carer-app (info icon
 /// runner). Served via employee-app visit details; managed in admin Settings.
 model EmergencyProtocolCatalog {
@@ -7079,11 +7115,13 @@ model VisitAreaLock {
   allowedById    String?             @db.Uuid
   allowedByName  String?
   allowNote      String?
+  allowReasonId  String?             @db.Uuid
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
   scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
   ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+  allowReason VisitLeftAreaAllowReasonCatalog? @relation(fields: [allowReasonId], references: [id], onDelete: SetNull)
 
   @@index([scheduledJobId, status])
   @@index([scheduledJobId, lockedAt])
@@ -7121,6 +7159,7 @@ model VisitCheckInMethodGrant {
   decidedById      String?                         @db.Uuid
   decidedByName    String?
   officeNote       String?
+  officeReasonId   String?                         @db.Uuid
   consumedAt       DateTime?
   ecmExceptionId   String?                         @unique @db.Uuid
   createdAt        DateTime                        @default(now())
@@ -7128,6 +7167,7 @@ model VisitCheckInMethodGrant {
 
   scheduledJob ScheduledJob  @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
   ecmException EcmException? @relation(fields: [ecmExceptionId], references: [id], onDelete: SetNull)
+  officeReason VisitManualAuthorisationReasonCatalog? @relation(fields: [officeReasonId], references: [id], onDelete: SetNull)
 
   @@index([scheduledJobId, employeeId, operationalDay])
   @@index([scheduledJobId, status])

@@ -109,24 +109,52 @@ export function checkInArrivalNotesLabel(kind: CheckInArrivalKind | null): strin
   return 'More detail';
 }
 
+function parseCheckInBlob(raw: unknown): EmployeeAppCheckInBlob | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const method = readString(row.method);
+  const manualOverrideReasonCode = readString(row.manualOverrideReasonCode);
+  const manualOverrideNotes = readString(row.manualOverrideNotes);
+  const timingStatus = readString(row.timingStatus);
+  const timingExceptionReasonCode = readString(row.timingExceptionReasonCode);
+  const timingExceptionNotes = readString(row.timingExceptionNotes);
+  const outsideGeofenceReason = readString(row.outsideGeofenceReason);
+  if (
+    !method &&
+    !manualOverrideReasonCode &&
+    !manualOverrideNotes &&
+    !timingStatus &&
+    !timingExceptionReasonCode &&
+    !timingExceptionNotes &&
+    !outsideGeofenceReason
+  ) {
+    return null;
+  }
+  return {
+    method,
+    manualOverrideReasonCode,
+    manualOverrideNotes,
+    timingStatus,
+    timingExceptionReasonCode,
+    timingExceptionNotes,
+    outsideGeofenceReason,
+  };
+}
+
 export function extractEmployeeAppCheckIn(metadata: unknown): EmployeeAppCheckInBlob | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
   const employeeApp = (metadata as Record<string, unknown>).employeeApp;
   if (!employeeApp || typeof employeeApp !== 'object' || Array.isArray(employeeApp)) {
     return null;
   }
-  const checkIn = (employeeApp as Record<string, unknown>).checkIn;
-  if (!checkIn || typeof checkIn !== 'object' || Array.isArray(checkIn)) return null;
-  const row = checkIn as Record<string, unknown>;
-  return {
-    method: readString(row.method),
-    manualOverrideReasonCode: readString(row.manualOverrideReasonCode),
-    manualOverrideNotes: readString(row.manualOverrideNotes),
-    timingStatus: readString(row.timingStatus),
-    timingExceptionReasonCode: readString(row.timingExceptionReasonCode),
-    timingExceptionNotes: readString(row.timingExceptionNotes),
-    outsideGeofenceReason: readString(row.outsideGeofenceReason),
-  };
+  const fromLast = parseCheckInBlob((employeeApp as Record<string, unknown>).checkIn);
+  if (fromLast) return fromLast;
+  const checkIns = (employeeApp as Record<string, unknown>).checkIns;
+  if (!checkIns || typeof checkIns !== 'object' || Array.isArray(checkIns)) return null;
+  const blobs = Object.values(checkIns as Record<string, unknown>)
+    .map(parseCheckInBlob)
+    .filter((row): row is EmployeeAppCheckInBlob => Boolean(row));
+  return blobs[blobs.length - 1] ?? null;
 }
 
 export function buildAdminCheckInSummary(

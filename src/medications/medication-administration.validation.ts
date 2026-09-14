@@ -3,6 +3,7 @@ import { MedicationAdministrationStatus, MedicationKind } from '@prisma/client';
 
 export type AdministrationInput = {
   status: MedicationAdministrationStatus;
+  statusCode?: string | null;
   actualDateTime?: string | Date | null;
   notGivenReasonId?: string | null;
   reason?: string | null;
@@ -43,6 +44,17 @@ export function validateMedicationAdministrationPayload(
     const hasPrnNotes = Boolean(dto.prnReason?.trim()) || Boolean(dto.notes?.trim());
     if (!hasPrnNotes) {
       throw new BadRequestException('PRN administrations require prnReason or notes');
+    }
+  }
+
+  const code = dto.statusCode?.trim().toUpperCase();
+  if (code === 'PG') {
+    const hasReason = Boolean(dto.notGivenReasonId) || Boolean(dto.reason?.trim());
+    if (!hasReason) {
+      throw new BadRequestException('reason is required for Partially given');
+    }
+    if (!dto.notes?.trim()) {
+      throw new BadRequestException('notes are required for Partially given');
     }
   }
 }
