@@ -1107,7 +1107,11 @@ export class VisitReconciliationsService {
       }
 
       try {
-        await this.approve(userId, row.id, { scope: dto.scope });
+        await this.approve(userId, row.id, {
+          scope: dto.scope,
+          exclusive: true,
+          approvalNotes: dto.approvalNotes,
+        });
         approved.push(row.id);
       } catch (e) {
         skipped.push({
