@@ -25,6 +25,8 @@ import { UpdateAllergyCatalogDto } from './dto/update-allergy-catalog.dto';
 import { UpdateVitalAcceptedRangeDto } from './dto/update-vital-accepted-range.dto';
 import { CreateEmergencyProtocolDto } from './dto/create-emergency-protocol.dto';
 import { UpdateEmergencyProtocolDto } from './dto/update-emergency-protocol.dto';
+import { CreateManualAuthorisationReasonDto } from './dto/create-manual-authorisation-reason.dto';
+import { UpdateManualAuthorisationReasonDto } from './dto/update-manual-authorisation-reason.dto';
 
 @ApiTags('Lookups')
 @ApiBearerAuth()
@@ -447,6 +449,70 @@ export class LookupsController {
   async deleteClockInArrivalReason(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.deleteClockInArrivalReason(id);
     return { message: 'Arrival reason deleted' };
+  }
+
+  @Get('manual-authorisation-reasons')
+  @AnyPermission('lookups.read', 'ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
+  @ApiOperation({ summary: 'List office Manual check-in authorisation reasons' })
+  async manualAuthorisationReasons() {
+    return { data: await this.service.listManualAuthorisationReasons() };
+  }
+
+  @Post('manual-authorisation-reasons')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create a Manual check-in authorisation reason' })
+  async createManualAuthorisationReason(@Body() dto: CreateManualAuthorisationReasonDto) {
+    return { data: await this.service.createManualAuthorisationReason(dto) };
+  }
+
+  @Patch('manual-authorisation-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update a Manual check-in authorisation reason' })
+  async updateManualAuthorisationReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateManualAuthorisationReasonDto,
+  ) {
+    return { data: await this.service.updateManualAuthorisationReason(id, dto) };
+  }
+
+  @Delete('manual-authorisation-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate a Manual check-in authorisation reason' })
+  async deleteManualAuthorisationReason(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteManualAuthorisationReason(id);
+    return { message: 'Authorisation reason deleted' };
+  }
+
+  @Get('left-area-allow-reasons')
+  @AnyPermission('lookups.read', 'ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
+  @ApiOperation({ summary: 'List office left-area allow reasons' })
+  async leftAreaAllowReasons() {
+    return { data: await this.service.listLeftAreaAllowReasons() };
+  }
+
+  @Post('left-area-allow-reasons')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create a left-area allow reason' })
+  async createLeftAreaAllowReason(@Body() dto: CreateManualAuthorisationReasonDto) {
+    return { data: await this.service.createLeftAreaAllowReason(dto) };
+  }
+
+  @Patch('left-area-allow-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update a left-area allow reason' })
+  async updateLeftAreaAllowReason(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateManualAuthorisationReasonDto,
+  ) {
+    return { data: await this.service.updateLeftAreaAllowReason(id, dto) };
+  }
+
+  @Delete('left-area-allow-reasons/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate a left-area allow reason' })
+  async deleteLeftAreaAllowReason(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteLeftAreaAllowReason(id);
+    return { message: 'Allow reason deleted' };
   }
 
   @Get('clock-out-end-reasons')

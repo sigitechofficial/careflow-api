@@ -11,6 +11,7 @@ export const MAR_NOT_GIVEN_CODES = new Set([
   'A',
   'O',
   'P',
+  'PG',
   'PCI',
 ]);
 

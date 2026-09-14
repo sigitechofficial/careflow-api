@@ -36,6 +36,18 @@ describe('check-in-display.util', () => {
     expect(extractEmployeeAppCheckIn({})).toBeNull();
   });
 
+  it('falls back to employeeApp.checkIns when legacy checkIn is missing', () => {
+    expect(
+      extractEmployeeAppCheckIn({
+        employeeApp: {
+          checkIns: {
+            'emp-1': { method: 'MANUAL', manualOverrideReasonCode: 'GPS_UNAVAILABLE' },
+          },
+        },
+      }),
+    ).toMatchObject({ method: 'MANUAL', manualOverrideReasonCode: 'GPS_UNAVAILABLE' })
+  });
+
   it('builds an admin summary for overview', () => {
     const summary = buildAdminCheckInSummary({
       method: 'manual',

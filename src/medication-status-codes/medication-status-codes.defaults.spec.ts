@@ -3,12 +3,13 @@ import { statusCodeToAdministrationStatus } from '../medication-charts/medicatio
 import { DEFAULT_MEDICATION_STATUS_CODES } from './medication-status-codes.defaults';
 
 describe('DEFAULT_MEDICATION_STATUS_CODES', () => {
-  it('seeds all 15 spec status codes with required display fields', () => {
-    expect(DEFAULT_MEDICATION_STATUS_CODES).toHaveLength(15);
+  it('seeds all 16 spec status codes with required display fields', () => {
+    expect(DEFAULT_MEDICATION_STATUS_CODES).toHaveLength(16);
 
     const codes = DEFAULT_MEDICATION_STATUS_CODES.map((row) => row.code);
     expect(codes).toEqual([
       'G',
+      'PG',
       'R',
       'N',
       'U',

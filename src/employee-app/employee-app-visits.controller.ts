@@ -109,7 +109,7 @@ export class EmployeeAppVisitsController {
   @ApiOperation({
     summary: 'Send a carer SOS alert with optional GPS and message',
     description:
-      'Does not require clock-in. Each send creates a new CARER_SOS exception. Empty message is allowed. GPS failure still creates the alert.',
+      'Does not require clock-in. Each send creates a new CARER_SOS exception. Empty message is allowed. GPS failure still creates the alert. Rejected when the visit is completed, cancelled, called off, or missed.',
   })
   sendSos(
     @CurrentUser() user: RequestUser,

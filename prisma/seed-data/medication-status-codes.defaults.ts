@@ -30,6 +30,17 @@ export const DEFAULT_MEDICATION_STATUS_CODES: MedicationStatusCodeSeedRow[] = [
     sortOrder: 10,
   },
   {
+    code: 'PG',
+    label: 'Partially given',
+    color: '#EF6C00',
+    textColor: '#FFFFFF',
+    category: MedicationStatusCodeCategory.EXCEPTION,
+    administrationStatus: MedicationAdministrationStatus.GIVEN,
+    reasonRequirement: MedicationStatusCodeFieldRequirement.REQUIRED,
+    managerReviewRequirement: MedicationStatusCodeFieldRequirement.REQUIRED,
+    sortOrder: 15,
+  },
+  {
     code: 'R',
     label: 'Refused',
     color: '#E53935',

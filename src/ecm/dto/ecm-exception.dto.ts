@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export enum EcmExceptionLifecycleDto {
   DETECTED = 'DETECTED',
@@ -35,7 +35,13 @@ export class ResolveEcmExceptionDto {
 }
 
 export class AllowVisitContinueDto {
-  @ApiPropertyOptional()
+  @ApiProperty({ description: 'Catalog id of the selected left-area allow reason' })
+  @IsUUID()
+  reasonId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when the selected reason needs a custom note (Other reason)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(2000)
@@ -43,7 +49,21 @@ export class AllowVisitContinueDto {
 }
 
 export class DecideCheckInMethodGrantDto {
-  @ApiPropertyOptional({ description: 'Office note recorded with authorise / reject' })
+  @ApiPropertyOptional({ description: 'Office note recorded with reject' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+}
+
+export class AuthoriseCheckInMethodGrantDto {
+  @ApiProperty({ description: 'Catalog id of the selected authorisation reason' })
+  @IsUUID()
+  reasonId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when the selected reason needs a custom note (Other reason)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(2000)

@@ -196,7 +196,7 @@ export class MedicationAdministrationService {
       throw new BadRequestException('Pending is not a recordable status');
     }
 
-    const payload = { ...dto, status: resolved.status };
+    const payload = { ...dto, status: resolved.status, statusCode: resolved.statusCode };
     validateMedicationAdministrationPayload(payload, med.medicationKind);
 
     if (dto.medicationScheduleId && dto.scheduledDateTime) {

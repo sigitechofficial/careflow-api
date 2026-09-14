@@ -1,5 +1,6 @@
 import { VisitCheckInMethodGrantStatus } from '@prisma/client';
 import {
+  composeManualAuthorisationOfficeNote,
   isAuthorisedManualGrantActive,
   mapVisitCheckInMethodGrant,
   shouldReuseCheckInMethodGrant,
@@ -99,5 +100,26 @@ describe('visit-check-in-method-grant.util', () => {
     expect(dto.latitude).toBe(51.5);
     expect(dto.employeeName).toBe('James Doyle');
     expect(dto.decidedByName).toBe('Office Manager');
+  });
+
+  it('uses the catalog label unless the reason requires a typed note', () => {
+    expect(
+      composeManualAuthorisationOfficeNote(
+        { label: 'GPS not working', requiresNotes: false },
+        'ignored',
+      ),
+    ).toBe('GPS not working');
+    expect(
+      composeManualAuthorisationOfficeNote(
+        { label: 'Other reason', requiresNotes: true },
+        '  Wait at the gate  ',
+      ),
+    ).toBe('Wait at the gate');
+    expect(
+      composeManualAuthorisationOfficeNote(
+        { label: 'Other reason', requiresNotes: true },
+        '   ',
+      ),
+    ).toBeNull();
   });
 });
