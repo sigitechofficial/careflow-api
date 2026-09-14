@@ -55,13 +55,25 @@ describe('visit-plan-slot-carer-sync.util', () => {
       },
     ];
 
-    it('picks the Monday carer for a Monday visit', () => {
+    it('picks the Monday carer for a Monday visit in organisation timezone', () => {
       expect(
         desiredEmployeeIdsForVisitSync({
           visitStart: monday,
           requiredCarers: 1,
           assignedEmployeeIds: ['legacy'],
           carerAssignments: assignments,
+        }),
+      ).toEqual(['mon-carer']);
+    });
+
+    it('uses operational weekday when UTC weekday differs (early Karachi Monday)', () => {
+      expect(
+        desiredEmployeeIdsForVisitSync({
+          visitStart: new Date('2026-08-23T19:30:00.000Z'), // Mon 00:30 Asia/Karachi
+          requiredCarers: 1,
+          assignedEmployeeIds: ['legacy'],
+          carerAssignments: assignments,
+          timeZone: 'Asia/Karachi',
         }),
       ).toEqual(['mon-carer']);
     });
@@ -91,8 +103,10 @@ describe('visit-plan-slot-carer-sync.util', () => {
   });
 
   describe('visitPlanCarerSyncFromDateTime', () => {
-    it('uses start of the requested UTC day when fromDate is provided', () => {
-      expect(visitPlanCarerSyncFromDateTime('2026-06-19').toISOString()).toBe('2026-06-19T00:00:00.000Z');
+    it('uses start of the requested operational day when fromDate is provided', () => {
+      expect(visitPlanCarerSyncFromDateTime('2026-06-19', 'Asia/Karachi').toISOString()).toBe(
+        '2026-06-18T19:00:00.000Z',
+      );
     });
   });
 
@@ -171,8 +185,8 @@ describe('visit-plan-slot-carer-sync.util', () => {
         },
       };
       const visit = {
-        scheduledStartDateTime: new Date('2026-06-22T07:00:00.000Z'),
-        scheduledEndDateTime: new Date('2026-06-22T08:00:00.000Z'),
+        scheduledStartDateTime: new Date('2026-06-22T02:00:00.000Z'),
+        scheduledEndDateTime: new Date('2026-06-22T03:00:00.000Z'),
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', weekdayCtx]]);

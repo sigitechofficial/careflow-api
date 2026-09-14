@@ -3,7 +3,7 @@
  * Splits payable activities across day/time bands and applies absolute, plus, %, or multiplier rates.
  *
  * Clock bands (e.g. 07:00–19:00) are interpreted in the organisation operational timezone
- * (default Europe/London), not UTC — otherwise BST visits miss daytime rules by one hour.
+ * (default Asia/Karachi), not UTC — otherwise local visits miss daytime rules by the offset.
  */
 
 import {

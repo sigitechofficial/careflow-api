@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  InvoiceRunAuditAction,
   InvoiceRunStatus,
   PaymentMatchStatus,
   PaymentRecordStatus,
@@ -18,6 +19,7 @@ import {
 } from './dto/payments.dto';
 import { formatMoney, parseBillingDateOnly } from './billing-run.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { recordInvoiceRunAuditEvent } from './invoice-run-audit.util';
 
 const RECEIVABLE_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.APPROVED,
@@ -242,6 +244,17 @@ export class PaymentsService {
           },
         });
         matchedAmount += allocation.amount;
+        await recordInvoiceRunAuditEvent(tx, {
+          invoiceRunId: allocation.invoiceRunId,
+          action: InvoiceRunAuditAction.PAYMENT_ALLOCATED,
+          actorUserId: userId,
+          detail: `${formatMoney(allocation.amount)} · ${dto.reference.trim()}`,
+          metadata: {
+            paymentId: payment.id,
+            amount: allocation.amount,
+            reference: dto.reference.trim(),
+          },
+        });
       }
 
       if (matchedAmount > 0) {
@@ -292,6 +305,17 @@ export class PaymentsService {
           amount: dto.amount,
           notes: dto.notes?.trim() || null,
           createdById: userId,
+        },
+      });
+      await recordInvoiceRunAuditEvent(tx, {
+        invoiceRunId: dto.invoiceRunId,
+        action: InvoiceRunAuditAction.PAYMENT_ALLOCATED,
+        actorUserId: userId,
+        detail: `${formatMoney(dto.amount)} · ${payment.reference}`,
+        metadata: {
+          paymentId,
+          amount: dto.amount,
+          reference: payment.reference,
         },
       });
       await this.syncInvoiceRunPaymentStatus(tx, dto.invoiceRunId);

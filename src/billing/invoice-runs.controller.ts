@@ -94,6 +94,7 @@ export class InvoiceRunsController {
       'Download invoice run lines as CSV or Excel (?format=csv|xlsx&serviceUserId=&funderId=optional)',
   })
   async export(
+    @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Query('format') format: string | undefined,
     @Query('serviceUserId') serviceUserId: string | undefined,
@@ -101,15 +102,20 @@ export class InvoiceRunsController {
     @Res() res: Response,
   ) {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const { filename, mime, body } = await this.service.exportRun(id, fmt, {
-      serviceUserId: serviceUserId?.trim() || undefined,
-      ...(funderId?.trim()
-        ? {
-            funderId:
-              funderId.trim() === 'direct' ? null : funderId.trim(),
-          }
-        : {}),
-    });
+    const { filename, mime, body } = await this.service.exportRun(
+      id,
+      fmt,
+      {
+        serviceUserId: serviceUserId?.trim() || undefined,
+        ...(funderId?.trim()
+          ? {
+              funderId:
+                funderId.trim() === 'direct' ? null : funderId.trim(),
+            }
+          : {}),
+      },
+      user.id,
+    );
     res
       .type(mime)
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
@@ -133,8 +139,8 @@ export class InvoiceRunsController {
   @Post(':id/calculate')
   @Permissions('billing.invoice_runs.manage')
   @ApiOperation({ summary: 'Calculate invoice lines from approved visits' })
-  calculate(@Param('id') id: string) {
-    return this.service.calculate(id);
+  calculate(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.calculate(user.id, id);
   }
 
   @Post(':id/approve')
@@ -154,8 +160,8 @@ export class InvoiceRunsController {
   @Post(':id/send')
   @Permissions('billing.invoice_runs.manage')
   @ApiOperation({ summary: 'Mark invoice run as sent to funders' })
-  send(@Param('id') id: string) {
-    return this.service.markSent(id);
+  send(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.markSent(user.id, id);
   }
 
   @Get(':id/service-user-email-preview')
@@ -179,9 +185,10 @@ export class InvoiceRunsController {
     summary: 'Email a service user invoice (CSV attachment) to a billing contact',
   })
   emailServiceUser(
+    @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: EmailInvoiceToServiceUserDto,
   ) {
-    return this.service.emailToServiceUser(id, dto);
+    return this.service.emailToServiceUser(user.id, id, dto);
   }
 }

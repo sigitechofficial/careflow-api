@@ -12,11 +12,14 @@ import {
   resolveBranchFromLocation,
   type ScheduleAreaBranchLookup,
 } from '../location-management/service-user-branch.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   assertDateRangeMaxDays,
+  operationalScheduleDayBounds,
+  operationalScheduleMonthBounds,
+  operationalScheduleWeekBounds,
   utcDayBounds,
-  utcMonthBounds,
-  utcWeekBounds,
+  weekdayIndexInTimeZone,
   jobDurationMinutes,
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
@@ -48,7 +51,14 @@ export class ScheduleTimelinesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
+
+  /** Board / timeline job window for a civil date in the organisation operational timezone. */
+  private async opsDayBounds(dateStr: string) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    return { ...operationalScheduleDayBounds(dateStr, timeZone), timeZone };
+  }
 
   private async logView(
     userId: string,
@@ -129,6 +139,7 @@ export class ScheduleTimelinesService {
     if (!jobs.length) return [];
     const scheduleAreaByLocation = await loadScheduleAreaByLocationMap(this.prisma);
     const withBranches = this.applyBranchLabelsToTimelineJobs(jobs, scheduleAreaByLocation);
+    // Date-only absence/holiday rows are stored as UTC calendar days — do not use ops-TZ midnight.
     const dayDate = utcDayBounds(day).start;
     const flags = await this.scheduleImpact.loadTimelineOperationalFlags(withBranches, dayDate);
     const withFlags = withBranches.map((job) => {
@@ -163,7 +174,7 @@ export class ScheduleTimelinesService {
   }
 
   async jobsDayRuns(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const { jobs } = await this.fetchJobs(
       this.jobWhereForRange(start, end, query),
       query.page ?? 1,
@@ -193,14 +204,14 @@ export class ScheduleTimelinesService {
   }
 
   async jobsDayTimeline(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const result = await this.fetchJobs(this.jobWhereForRange(start, end, query), query.page ?? 1, query.limit ?? 100, date);
     await this.logView(userId, 'jobs_day_timeline', meta, { date });
     return { data: { date, jobs: result.jobs }, meta: result.meta };
   }
 
   async employeesDayRuns(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {
         deletedAt: null,
@@ -252,7 +263,7 @@ export class ScheduleTimelinesService {
   }
 
   async jobCarerDayStarts(userId: string, query: JobsDayTimelineQueryDto, meta?: RequestAuditMeta) {
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {
         deletedAt: null,
@@ -407,7 +418,7 @@ export class ScheduleTimelinesService {
 
   async employeesDay(userId: string, query: EmployeeTimelineQueryDto, meta?: RequestAuditMeta) {
     if (!query.date) throw new BadRequestException('date is required');
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const { employees, meta: pagination } = await this.buildEmployeeTimeline(start, end, query);
     await this.logView(userId, 'employees_day', meta, { date });
     return { data: { date, employees }, meta: pagination };
@@ -415,7 +426,9 @@ export class ScheduleTimelinesService {
 
   async employeesWeek(userId: string, query: EmployeeTimelineQueryDto, meta?: RequestAuditMeta) {
     if (!query.weekStart) throw new BadRequestException('weekStart is required');
-    const { weekStart, weekEnd, weekStartLabel, weekEndLabel } = utcWeekBounds(query.weekStart);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { weekStart, weekEnd, weekStartLabel, weekEndLabel } =
+      operationalScheduleWeekBounds(query.weekStart, timeZone);
     const { employees, meta: pagination } = await this.buildEmployeeTimeline(weekStart, weekEnd, query);
     await this.logView(userId, 'employees_week', meta, { weekStart: weekStartLabel, weekEnd: weekEndLabel });
     return {
@@ -426,7 +439,8 @@ export class ScheduleTimelinesService {
 
   async employeesMonth(userId: string, query: EmployeeTimelineQueryDto, meta?: RequestAuditMeta) {
     if (!query.month) throw new BadRequestException('month is required (YYYY-MM)');
-    const { monthStart, monthEnd, label } = utcMonthBounds(query.month);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { monthStart, monthEnd, label } = operationalScheduleMonthBounds(query.month, timeZone);
     const { employees, meta: pagination } = await this.buildEmployeeTimeline(monthStart, monthEnd, query);
     await this.logView(userId, 'employees_month', meta, { month: label });
     return { data: { month: label, employees }, meta: pagination };
@@ -464,7 +478,7 @@ export class ScheduleTimelinesService {
 
   async serviceUsersDay(userId: string, query: ServiceUserTimelineQueryDto, meta?: RequestAuditMeta) {
     if (!query.date) throw new BadRequestException('date is required');
-    const { start, end, date } = utcDayBounds(query.date);
+    const { start, end, date } = await this.opsDayBounds(query.date);
     const { serviceUsers, meta: paginationMeta } = await this.buildServiceUserTimeline(start, end, query);
     await this.logView(userId, 'service_users_day', meta, { date });
     return { data: { date, serviceUsers }, meta: paginationMeta };
@@ -472,7 +486,9 @@ export class ScheduleTimelinesService {
 
   async serviceUsersWeek(userId: string, query: ServiceUserTimelineQueryDto, meta?: RequestAuditMeta) {
     if (!query.weekStart) throw new BadRequestException('weekStart is required');
-    const { weekStart, weekEnd, weekStartLabel, weekEndLabel } = utcWeekBounds(query.weekStart);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { weekStart, weekEnd, weekStartLabel, weekEndLabel } =
+      operationalScheduleWeekBounds(query.weekStart, timeZone);
     const { serviceUsers, meta: paginationMeta } = await this.buildServiceUserTimeline(weekStart, weekEnd, query);
     await this.logView(userId, 'service_users_week', meta, { weekStart: weekStartLabel });
     return {
@@ -482,8 +498,9 @@ export class ScheduleTimelinesService {
   }
 
   async employeeCapacity(userId: string, query: EmployeeCapacityQueryDto, meta?: RequestAuditMeta) {
-    const from = utcDayBounds(query.dateFrom).start;
-    const to = utcDayBounds(query.dateTo).end;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const from = operationalScheduleDayBounds(query.dateFrom, timeZone).start;
+    const to = operationalScheduleDayBounds(query.dateTo, timeZone).end;
     assertDateRangeMaxDays(from, to, 31);
 
     const page = query.page ?? 1;
@@ -536,7 +553,7 @@ export class ScheduleTimelinesService {
         for (const a of allocations) {
           const mins = jobDurationMinutes(a.scheduledJob);
           weeklyMinutes += mins;
-          const dowKey = DOW_KEYS[a.scheduledJob.scheduledStartDateTime.getUTCDay()];
+          const dowKey = DOW_KEYS[weekdayIndexInTimeZone(a.scheduledJob.scheduledStartDateTime, timeZone)];
           if (dowKey in dayHours) dayHours[dowKey] += mins / 60;
         }
 

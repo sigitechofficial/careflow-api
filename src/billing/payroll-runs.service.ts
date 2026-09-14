@@ -11,6 +11,7 @@ import {
   VisitReconciliationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { EmployeePayoutsService } from './employee-payouts.service';
 import {
   CreateBillingRunDto,
@@ -61,6 +62,7 @@ import {
   type PayrollVisitExportRow,
 } from './payroll-run-export-csv.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { operationalDayBounds } from '../common/utils/operational-day.util';
 
 const MUTABLE_STATUSES: PayrollRunStatus[] = [
   PayrollRunStatus.DRAFT,
@@ -181,7 +183,28 @@ export class PayrollRunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly employeePayouts: EmployeePayoutsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
+
+  /**
+   * Convert YYYY-MM-DD salary/earnings filters into UTC instants for the
+   * organisation operational timezone (not raw Z midnight).
+   */
+  private async operationalVisitDateFilter(
+    dateFrom?: string,
+    dateTo?: string,
+  ): Promise<Prisma.DateTimeFilter | undefined> {
+    if (!dateFrom && !dateTo) return undefined;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const out: Prisma.DateTimeFilter = {};
+    if (dateFrom) {
+      out.gte = operationalDayBounds(dateFrom.slice(0, 10), timeZone).start;
+    }
+    if (dateTo) {
+      out.lte = operationalDayBounds(dateTo.slice(0, 10), timeZone).end;
+    }
+    return out;
+  }
 
   async list(query?: BillingRunsQueryDto) {
     const where: Prisma.PayrollRunWhereInput = {};
@@ -1155,13 +1178,10 @@ export class PayrollRunsService {
    * Org-wide salary overview for a period (visit pay, paid, rejected, fines, penalties, net).
    */
   async listEmployeeSalaries(query: EmployeeEarningsQueryDto) {
-    const plannedDateFilter: Prisma.DateTimeFilter | undefined =
-      query.dateFrom || query.dateTo
-        ? {
-            ...(query.dateFrom ? { gte: parseBillingDateOnly(query.dateFrom) } : {}),
-            ...(query.dateTo ? { lte: endOfBillingDate(query.dateTo) } : {}),
-          }
-        : undefined;
+    const plannedDateFilter = await this.operationalVisitDateFilter(
+      query.dateFrom,
+      query.dateTo,
+    );
 
     const paidStatuses: PayrollRunStatus[] = [
       PayrollRunStatus.LOCKED,
@@ -1446,13 +1466,10 @@ export class PayrollRunsService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const plannedDateFilter: Prisma.DateTimeFilter | undefined =
-      query.dateFrom || query.dateTo
-        ? {
-            ...(query.dateFrom ? { gte: parseBillingDateOnly(query.dateFrom) } : {}),
-            ...(query.dateTo ? { lte: endOfBillingDate(query.dateTo) } : {}),
-          }
-        : undefined;
+    const plannedDateFilter = await this.operationalVisitDateFilter(
+      query.dateFrom,
+      query.dateTo,
+    );
 
     const visitDateWhere: Prisma.VisitReconciliationWhereInput = {
       employeeId,

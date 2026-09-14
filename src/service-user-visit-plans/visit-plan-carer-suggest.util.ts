@@ -388,7 +388,9 @@ export function evaluateCarerAvailability(
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
   combineOperationalDateAndHm,
+  dayKeyInTimeZone,
 } from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
 export function combineUtcDateAndHm(
   dateIso: string,
@@ -443,13 +445,14 @@ export function scheduledJobOverlapsVisitPlanSlot(input: {
 }): boolean {
   const slotDays = new Set(input.slotDaysOfWeek);
   if (!slotDays.size) return false;
-  if (!slotDays.has(input.jobStart.getUTCDay())) return false;
+  const tz = input.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
+  if (!slotDays.has(weekdayIndexInTimeZone(input.jobStart, tz))) return false;
 
   const slotWindow = visitPlanSuggestJobWindow(
-    input.jobStart.toISOString().slice(0, 10),
+    dayKeyInTimeZone(input.jobStart, tz),
     input.plannedStartTime,
     input.plannedEndTime,
-    input.timeZone,
+    tz,
   );
   if (!slotWindow) return false;
 

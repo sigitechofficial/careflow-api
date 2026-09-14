@@ -18,7 +18,7 @@ describe('groupRotaGeneratedCarerPushes', () => {
         scheduledJobId: 'job-1',
         serviceUserId: 'su-1',
         title: 'New visit assigned',
-        body: 'You have been allocated to "Morning — Harry" (08:00–09:00 UTC).',
+        body: 'You have been allocated to "Morning — Harry" (13:00–14:00).',
       },
     ])
   })
@@ -42,7 +42,7 @@ describe('groupRotaGeneratedCarerPushes', () => {
         scheduledJobId: 'job-3',
         serviceUserId: 'su-1',
         title: 'New visit assigned',
-        body: 'You have been allocated to "Morning — Harry" (08:00–09:00 UTC).',
+        body: 'You have been allocated to "Morning — Harry" (13:00–14:00).',
       },
     ])
   })

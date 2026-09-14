@@ -30,6 +30,12 @@ import {
   resolveCarerAssignmentsForDay,
   type VisitPlanSlotCarerAssignmentShape,
 } from './visit-plan-slot-carer-resolve.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
 type VisitPlanSlotCarerSyncParams = {
   scheduledJobId: string;
@@ -115,8 +121,10 @@ export type SyncVisitPlanSlotCarersParams = {
   requiredCarers: number;
   userId: string;
   scheduledVisitId?: string;
-  /** Lower bound for bulk sync; ignored when `scheduledVisitId` is set. Defaults to start of today (UTC). */
+  /** Lower bound for bulk sync; ignored when `scheduledVisitId` is set. Defaults to start of ops today. */
   fromDateTime?: Date;
+  /** Organisation timezone for day-of-week carer assignment. */
+  timeZone?: string;
   /** When true (default), only assign carers on days/times that match their working pattern. */
   respectWorkingPattern?: boolean;
   /** Optional per-carer windows; when present, new allocations inherit these times. */
@@ -136,6 +144,7 @@ export function desiredEmployeeIdsForVisitSync(params: {
   assignedEmployeeIds: string[];
   carerAssignments?: VisitPlanSlotCarerAssignmentShape[] | null;
   carerWindows?: Array<{ employeeId: string }> | null;
+  timeZone?: string;
 }): string[] {
   const required = Math.max(1, params.requiredCarers);
   if (params.carerWindows?.length) {
@@ -147,9 +156,10 @@ export function desiredEmployeeIdsForVisitSync(params: {
     if (fromWindows.length) return fromWindows;
   }
   if (params.carerAssignments?.length) {
+    const tz = params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
     const resolved = resolveCarerAssignmentsForDay(
       params.carerAssignments,
-      params.visitStart.getUTCDay(),
+      weekdayIndexInTimeZone(params.visitStart, tz),
       required,
       params.assignedEmployeeIds,
     );
@@ -236,7 +246,7 @@ export function visitCarerPatternMismatchWarnings(
   const visitEnd = visitEndDateTime(visitStart, visit.scheduledEndDateTime);
   const startHm = hmFromJobDate(visitStart);
   const endHm = hmFromJobDate(visitEnd);
-  const dayLabel = DAY_LABEL[visitStart.getUTCDay()] ?? 'this day';
+  const dayLabel = DAY_LABEL[weekdayIndexInTimeZone(visitStart, DEFAULT_OPERATIONAL_TIMEZONE)] ?? 'this day';
   const messages: string[] = [];
 
   for (const employeeId of employeeIds) {
@@ -400,14 +410,12 @@ export function visitPlanCarerEmployeeIds(
     .slice(0, Math.max(1, requiredCarers));
 }
 
-export function visitPlanCarerSyncFromDateTime(fromDate?: string): Date {
-  if (fromDate) {
-    const parsed = new Date(`${fromDate}T00:00:00.000Z`);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  const start = new Date();
-  start.setUTCHours(0, 0, 0, 0);
-  return start;
+export function visitPlanCarerSyncFromDateTime(
+  fromDate?: string,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  const day = fromDate?.trim() || operationalTodayIso(new Date(), timeZone);
+  return operationalDayBounds(day, timeZone).start;
 }
 
 /** Push visit-plan slot carer defaults onto matching scheduled jobs. */
@@ -415,7 +423,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   tx: Prisma.TransactionClient,
   params: SyncVisitPlanSlotCarersParams,
 ): Promise<{ jobsUpdated: number }> {
-  const from = params.fromDateTime ?? visitPlanCarerSyncFromDateTime();
+  const from = params.fromDateTime ?? visitPlanCarerSyncFromDateTime(undefined, params.timeZone);
   const required = Math.max(1, params.requiredCarers);
   const respectWorkingPattern = params.respectWorkingPattern !== false;
   const legacyAssigned = (params.assignedEmployeeIds ?? [])
@@ -462,6 +470,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
       assignedEmployeeIds: legacyAssigned,
       carerAssignments: params.carerAssignments,
       carerWindows: params.carerWindows,
+      timeZone: params.timeZone,
     });
 
     const resolved = await resolveVisitCarerAssignment(tx, desiredForVisit, visit, required, {

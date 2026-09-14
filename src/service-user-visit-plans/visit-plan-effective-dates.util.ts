@@ -1,9 +1,15 @@
 import { parseVisitPlanDateOnly } from './visit-plan-pause.util';
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 
-export function visitPlanTodayUtc(): Date {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+/** Civil "today" as UTC midnight of the organisation operational calendar date. */
+export function visitPlanTodayUtc(
+  now = new Date(),
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  return parseVisitPlanDateOnly(operationalTodayIso(now, timeZone), 'today');
 }
 
 export function parseOptionalVisitPlanDateOnly(

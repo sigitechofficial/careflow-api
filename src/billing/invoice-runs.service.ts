@@ -6,6 +6,7 @@ import {
 import {
   BillingFrequency,
   BillingRunExportStatus,
+  InvoiceRunAuditAction,
   InvoiceRunLineType,
   InvoiceRunStatus,
   PaymentMatchStatus,
@@ -18,12 +19,16 @@ import { CreateBillingRunDto } from './dto/billing-runs.dto';
 import { EmailInvoiceToServiceUserDto } from './dto/email-invoice-service-user.dto';
 import {
   buildFundingSplits,
-  endOfBillingDate,
   formatMoney,
   formatPeriodLabel,
   parseBillingDateOnly,
   splitAmount,
 } from './billing-run.util';
+import {
+  formatInvoiceAuditActorName,
+  recordInvoiceRunAuditEvent,
+  type InvoiceRunAuditTrailItem,
+} from './invoice-run-audit.util';
 import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
 import { InvoiceTemplatesService } from './invoice-templates.service';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
@@ -35,10 +40,8 @@ import {
   type InvoiceRunExportModel,
 } from './invoice-run-export.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
-import {
-  DEFAULT_OPERATIONAL_TIMEZONE,
-  getOperationalTimeZone,
-} from '../common/utils/operational-day.util';
+import { operationalDayBounds } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   computeInvoiceDueDate,
   utcDateOnly,
@@ -104,6 +107,17 @@ export type InvoiceRunRow = {
   /** Sum of payment allocations on the run. */
   paidAmount: string;
   paidAmountValue: number;
+  createdAt?: string | null;
+  createdById?: string | null;
+  createdByName?: string | null;
+  approvedById?: string | null;
+  approvedByName?: string | null;
+  lockedById?: string | null;
+  lockedByName?: string | null;
+  sentById?: string | null;
+  sentByName?: string | null;
+  /** QBO-style invoice document numbers on the run (one per service user). */
+  invoiceNumbers?: string[];
 };
 
 @Injectable()
@@ -112,6 +126,7 @@ export class InvoiceRunsService {
     private readonly prisma: PrismaService,
     private readonly invoiceTemplates: InvoiceTemplatesService,
     private readonly mail: MailService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async list(query?: BillingRunsQueryDto) {
@@ -147,15 +162,57 @@ export class InvoiceRunsService {
             },
           },
         },
+        documents: {
+          select: { invoiceNumber: true },
+          orderBy: { sequenceValue: 'asc' },
+        },
       },
     });
+    const actorIds = [
+      ...new Set(
+        rows
+          .flatMap((r) => [
+            r.createdById,
+            r.approvedById,
+            r.lockedById,
+            r.sentById,
+          ])
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const actorMap = await this.loadUserNameMap(actorIds);
+    // Legacy empty drafts: assign a run-level invoice number if none exists yet.
+    const needsNumber = rows.filter(
+      (r) => !r.invoiceNumber && r.documents.length === 0,
+    );
+    if (needsNumber.length) {
+      await this.prisma.$transaction(async (tx) => {
+        for (const r of needsNumber) {
+          const sequenceValue = await this.allocateInvoiceSequence(tx);
+          const invoiceNumber = formatInvoiceNumber(sequenceValue);
+          await tx.invoiceRun.update({
+            where: { id: r.id },
+            data: { sequenceValue, invoiceNumber },
+          });
+          r.invoiceNumber = invoiceNumber;
+          r.sequenceValue = sequenceValue;
+        }
+      });
+    }
     return {
       data: rows.map((r) => {
         const paymentStats = this.computeListPaymentStats(
           r.lines,
           r.paymentAllocations,
         );
-        return this.mapRow(r, paymentStats);
+        const docNumbers = r.documents.map((d) => d.invoiceNumber);
+        const invoiceNumbers =
+          docNumbers.length > 0
+            ? docNumbers
+            : r.invoiceNumber
+              ? [r.invoiceNumber]
+              : [];
+        return this.mapRow(r, paymentStats, actorMap, invoiceNumbers);
       }),
     };
   }
@@ -237,7 +294,7 @@ export class InvoiceRunsService {
     const reconIds = [
       ...new Set(lines.map((l) => l.visitReconciliationId).filter(Boolean)),
     ];
-    const [funders, recons, orgTz] = await Promise.all([
+    const [funders, recons, timeZone] = await Promise.all([
       funderIds.length
         ? this.prisma.funder.findMany({
             where: { id: { in: funderIds } },
@@ -259,12 +316,8 @@ export class InvoiceRunsService {
             },
           })
         : Promise.resolve([]),
-      this.prisma.organisationGeneralSettings.findFirst({
-        select: { timezone: true },
-      }),
+      this.orgSettings.getOperationalTimezone(),
     ]);
-    const timeZone =
-      getOperationalTimeZone(orgTz?.timezone) || DEFAULT_OPERATIONAL_TIMEZONE;
     const funderMap = new Map(funders.map((f) => [f.id, f]));
     const reconMap = new Map(recons.map((r) => [r.id, r]));
 
@@ -1035,6 +1088,7 @@ export class InvoiceRunsService {
             id: true,
             amount: true,
             createdAt: true,
+            createdById: true,
             notes: true,
             payment: {
               select: {
@@ -1046,9 +1100,13 @@ export class InvoiceRunsService {
                 paymentType: true,
                 funderId: true,
                 serviceUserId: true,
+                createdById: true,
               },
             },
           },
+        },
+        auditEvents: {
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
         },
       },
     });
@@ -1059,6 +1117,18 @@ export class InvoiceRunsService {
     if (suIdsOnRun.length) {
       await this.prisma.$transaction(async (tx) => {
         await this.syncInvoiceDocuments(tx, id, suIdsOnRun);
+      });
+    } else if (!row.invoiceNumber) {
+      // Empty draft: still ensure a run-level invoice number exists.
+      await this.prisma.$transaction(async (tx) => {
+        const sequenceValue = await this.allocateInvoiceSequence(tx);
+        const invoiceNumber = formatInvoiceNumber(sequenceValue);
+        await tx.invoiceRun.update({
+          where: { id },
+          data: { sequenceValue, invoiceNumber },
+        });
+        row.invoiceNumber = invoiceNumber;
+        row.sequenceValue = sequenceValue;
       });
     }
 
@@ -1253,7 +1323,22 @@ export class InvoiceRunsService {
       amountValue: number | null;
       reference: string | null;
       funderName: string | null;
+      actorUserId: string | null;
+      actorName: string | null;
     };
+
+    const actorMap = await this.loadUserNameMap(
+      [
+        row.createdById,
+        row.approvedById,
+        row.lockedById,
+        row.sentById,
+        ...row.paymentAllocations.map(
+          (a) => a.createdById ?? a.payment?.createdById ?? null,
+        ),
+        ...row.auditEvents.map((e) => e.actorUserId),
+      ].filter((id): id is string => Boolean(id)),
+    );
 
     const runMilestones: HistoryEvent[] = [
       {
@@ -1266,6 +1351,8 @@ export class InvoiceRunsService {
         amountValue: null,
         reference: null,
         funderName: null,
+        actorUserId: row.createdById,
+        actorName: actorMap.get(row.createdById ?? '') ?? null,
       },
     ];
     if (row.approvedAt) {
@@ -1279,6 +1366,8 @@ export class InvoiceRunsService {
         amountValue: null,
         reference: null,
         funderName: null,
+        actorUserId: row.approvedById,
+        actorName: actorMap.get(row.approvedById ?? '') ?? null,
       });
     }
     if (row.lockedAt) {
@@ -1292,6 +1381,8 @@ export class InvoiceRunsService {
         amountValue: null,
         reference: null,
         funderName: null,
+        actorUserId: row.lockedById,
+        actorName: actorMap.get(row.lockedById ?? '') ?? null,
       });
     }
     // Per–service-user email times are attached below (InvoiceDocument.lastSentAt).
@@ -1403,6 +1494,8 @@ export class InvoiceRunsService {
             amountValue: null,
             reference: null,
             funderName: null,
+            actorUserId: row.sentById,
+            actorName: actorMap.get(row.sentById ?? '') ?? null,
           });
         }
 
@@ -1449,6 +1542,9 @@ export class InvoiceRunsService {
             amountValue: displayAmount,
             reference: pay.reference,
             funderName,
+            actorUserId: a.createdById ?? pay.createdById ?? null,
+            actorName:
+              actorMap.get(a.createdById ?? pay.createdById ?? '') ?? null,
           });
         }
 
@@ -1476,20 +1572,31 @@ export class InvoiceRunsService {
       },
     );
 
+    const auditTrail = await this.buildAuditTrail(row, actorMap);
+
     return {
       data: {
-        ...this.mapRow(row, {
-          invoicesPaid: serviceUserSummaries.filter(
-            (s) => s.paymentStatus === 'PAID',
-          ).length,
-          invoicesUnpaid: serviceUserSummaries.filter(
-            (s) => s.paymentStatus === 'UNPAID',
-          ).length,
-          invoicesPartPaid: serviceUserSummaries.filter(
-            (s) => s.paymentStatus === 'PART_PAID',
-          ).length,
-          paidAmountValue: paidAmount,
-        }),
+        ...this.mapRow(
+          row,
+          {
+            invoicesPaid: serviceUserSummaries.filter(
+              (s) => s.paymentStatus === 'PAID',
+            ).length,
+            invoicesUnpaid: serviceUserSummaries.filter(
+              (s) => s.paymentStatus === 'UNPAID',
+            ).length,
+            invoicesPartPaid: serviceUserSummaries.filter(
+              (s) => s.paymentStatus === 'PART_PAID',
+            ).length,
+            paidAmountValue: paidAmount,
+          },
+          actorMap,
+          (() => {
+            const docNumbers = documents.map((d) => d.invoiceNumber);
+            if (docNumbers.length) return docNumbers;
+            return row.invoiceNumber ? [row.invoiceNumber] : [];
+          })(),
+        ),
         notes: row.notes,
         lineCount: row.lines.length,
         createdAt: row.createdAt.toISOString(),
@@ -1504,6 +1611,7 @@ export class InvoiceRunsService {
         lines,
         funderSummaries,
         serviceUserSummaries,
+        auditTrail,
       },
     };
   }
@@ -1513,6 +1621,7 @@ export class InvoiceRunsService {
     id: string,
     format: 'csv' | 'xlsx',
     opts?: { serviceUserId?: string; funderId?: string | null },
+    actorUserId?: string,
   ): Promise<{ filename: string; mime: string; body: string | Buffer }> {
     const serviceUserId = opts?.serviceUserId;
     const funderScoped = opts != null && 'funderId' in opts;
@@ -1553,7 +1662,7 @@ export class InvoiceRunsService {
         row.lines.map((l) => l.funderId).filter((fid): fid is string => Boolean(fid)),
       ),
     ];
-    const [recons, orgTz, funders, allocations] = await Promise.all([
+    const [recons, timeZone, funders, allocations] = await Promise.all([
       reconIds.length
         ? this.prisma.visitReconciliation.findMany({
             where: { id: { in: reconIds } },
@@ -1570,9 +1679,7 @@ export class InvoiceRunsService {
             },
           })
         : Promise.resolve([]),
-      this.prisma.organisationGeneralSettings.findFirst({
-        select: { timezone: true },
-      }),
+      this.orgSettings.getOperationalTimezone(),
       funderIds.length
         ? this.prisma.funder.findMany({
             where: { id: { in: funderIds } },
@@ -1587,7 +1694,6 @@ export class InvoiceRunsService {
         },
       }),
     ]);
-    const timeZone = getOperationalTimeZone(orgTz?.timezone) || DEFAULT_OPERATIONAL_TIMEZONE;
     const reconMap = new Map(recons.map((r) => [r.id, r]));
     const funderNameMap = new Map(funders.map((f) => [f.id, f.name]));
 
@@ -1810,17 +1916,41 @@ export class InvoiceRunsService {
     };
 
     if (format === 'xlsx') {
-      return {
+      const result = {
         filename: invoiceRunExportFilename(model, 'xlsx'),
         mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         body: await buildInvoiceRunXlsx(model),
       };
+      await recordInvoiceRunAuditEvent(this.prisma, {
+        invoiceRunId: id,
+        action: InvoiceRunAuditAction.EXPORTED,
+        actorUserId: actorUserId ?? null,
+        detail: `Excel export${serviceUserId ? ' (service user filter)' : ''}`,
+        metadata: {
+          format: 'xlsx',
+          serviceUserId: serviceUserId ?? null,
+          funderId: funderScoped ? funderId ?? null : null,
+        },
+      });
+      return result;
     }
-    return {
+    const csvResult = {
       filename: invoiceRunExportFilename(model, 'csv'),
       mime: 'text/csv; charset=utf-8',
       body: buildInvoiceRunCsv(model),
     };
+    await recordInvoiceRunAuditEvent(this.prisma, {
+      invoiceRunId: id,
+      action: InvoiceRunAuditAction.EXPORTED,
+      actorUserId: actorUserId ?? null,
+      detail: `CSV export${serviceUserId ? ' (service user filter)' : ''}`,
+      metadata: {
+        format: 'csv',
+        serviceUserId: serviceUserId ?? null,
+        funderId: funderScoped ? funderId ?? null : null,
+      },
+    });
+    return csvResult;
   }
 
   async create(userId: string, dto: CreateBillingRunDto) {
@@ -1832,19 +1962,36 @@ export class InvoiceRunsService {
       );
     }
 
-    const created = await this.prisma.invoiceRun.create({
-      data: {
-        periodLabel: formatPeriodLabel(periodEnd),
-        periodStart,
-        periodEnd,
-        notes: dto.notes?.trim() || null,
-        createdById: userId,
-      },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const sequenceValue = await this.allocateInvoiceSequence(tx);
+      const invoiceNumber = formatInvoiceNumber(sequenceValue);
+      const run = await tx.invoiceRun.create({
+        data: {
+          periodLabel: formatPeriodLabel(periodEnd),
+          periodStart,
+          periodEnd,
+          notes: dto.notes?.trim() || null,
+          createdById: userId,
+          sequenceValue,
+          invoiceNumber,
+        },
+      });
+      await recordInvoiceRunAuditEvent(tx, {
+        invoiceRunId: run.id,
+        action: InvoiceRunAuditAction.CREATED,
+        actorUserId: userId,
+        detail: `${run.periodLabel} · ${invoiceNumber}`,
+      });
+      return run;
     });
-    return { message: 'Invoice run created', data: this.mapRow(created) };
+    const actorMap = await this.loadUserNameMap([userId]);
+    return {
+      message: 'Invoice run created',
+      data: this.mapRow(created, undefined, actorMap, [created.invoiceNumber!]),
+    };
   }
 
-  async calculate(id: string) {
+  async calculate(userId: string, id: string) {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Invoice run not found');
     if (!MUTABLE_STATUSES.includes(run.status)) {
@@ -1858,7 +2005,11 @@ export class InvoiceRunsService {
       data: { status: InvoiceRunStatus.CALCULATING },
     });
 
-    const periodEnd = endOfBillingDate(run.periodEnd);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const periodStartIso = run.periodStart.toISOString().slice(0, 10);
+    const periodEndIso = run.periodEnd.toISOString().slice(0, 10);
+    const periodStartBound = operationalDayBounds(periodStartIso, timeZone).start;
+    const periodEndBound = operationalDayBounds(periodEndIso, timeZone).end;
 
     // Visit reconciliations already sitting in ANOTHER invoice run's lines (draft or locked) must
     // not be pulled in here — otherwise an overlapping period would bill the same visit twice.
@@ -1875,7 +2026,7 @@ export class InvoiceRunsService {
         status: { in: INVOICE_ELIGIBLE_RECON },
         includedInInvoiceRunId: null,
         ...(claimedReconIds.length ? { id: { notIn: claimedReconIds } } : {}),
-        approvedBillStart: { gte: run.periodStart, lte: periodEnd },
+        approvedBillStart: { gte: periodStartBound, lte: periodEndBound },
       },
       orderBy: { approvedBillStart: 'asc' },
     });
@@ -2097,6 +2248,19 @@ export class InvoiceRunsService {
       );
     });
 
+    await recordInvoiceRunAuditEvent(this.prisma, {
+      invoiceRunId: id,
+      action: InvoiceRunAuditAction.CALCULATED,
+      actorUserId: userId,
+      detail: `${serviceUserIds.size} service user${serviceUserIds.size === 1 ? '' : 's'} · ${formatMoney(Number(netTotal))}`,
+      metadata: {
+        serviceUserCount: serviceUserIds.size,
+        funderCount: funderIds.size,
+        netTotal: Number(netTotal),
+        exceptionCount,
+      },
+    });
+
     return this.getById(id);
   }
 
@@ -2112,13 +2276,20 @@ export class InvoiceRunsService {
       );
     }
 
+    const approvedAt = new Date();
     await this.prisma.invoiceRun.update({
       where: { id },
       data: {
         status: InvoiceRunStatus.APPROVED,
-        approvedAt: new Date(),
+        approvedAt,
         approvedById: userId,
       },
+    });
+    await recordInvoiceRunAuditEvent(this.prisma, {
+      invoiceRunId: id,
+      action: InvoiceRunAuditAction.APPROVED,
+      actorUserId: userId,
+      occurredAt: approvedAt,
     });
     return this.getById(id);
   }
@@ -2158,11 +2329,13 @@ export class InvoiceRunsService {
     ];
 
     await this.prisma.$transaction(async (tx) => {
+      const lockedAt = new Date();
       await tx.invoiceRun.update({
         where: { id },
         data: {
           status: InvoiceRunStatus.LOCKED,
-          lockedAt: new Date(),
+          lockedAt,
+          lockedById: userId,
           approvedById: run.approvedById ?? userId,
           exportStatus: BillingRunExportStatus.EXPORTED,
         },
@@ -2174,12 +2347,18 @@ export class InvoiceRunsService {
           data: { includedInInvoiceRunId: id },
         });
       }
+      await recordInvoiceRunAuditEvent(tx, {
+        invoiceRunId: id,
+        action: InvoiceRunAuditAction.LOCKED,
+        actorUserId: userId,
+        occurredAt: lockedAt,
+      });
     });
 
     return this.getById(id);
   }
 
-  async markSent(id: string) {
+  async markSent(userId: string, id: string) {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Invoice run not found');
     if (
@@ -2191,13 +2370,21 @@ export class InvoiceRunsService {
       );
     }
 
+    const sentAt = new Date();
     await this.prisma.invoiceRun.update({
       where: { id },
       data: {
         status: InvoiceRunStatus.SENT,
-        sentAt: new Date(),
+        sentAt,
+        sentById: userId,
         exportStatus: BillingRunExportStatus.SENT,
       },
+    });
+    await recordInvoiceRunAuditEvent(this.prisma, {
+      invoiceRunId: id,
+      action: InvoiceRunAuditAction.SENT,
+      actorUserId: userId,
+      occurredAt: sentAt,
     });
     return this.getById(id);
   }
@@ -2385,7 +2572,11 @@ export class InvoiceRunsService {
   }
 
   /** Email this service user's invoice CSV (optionally one funder's share). */
-  async emailToServiceUser(runId: string, dto: EmailInvoiceToServiceUserDto) {
+  async emailToServiceUser(
+    userId: string,
+    runId: string,
+    dto: EmailInvoiceToServiceUserDto,
+  ) {
     const run = await this.prisma.invoiceRun.findUnique({ where: { id: runId } });
     if (!run) throw new NotFoundException('Invoice run not found');
     const sendable: InvoiceRunStatus[] = [
@@ -2444,10 +2635,15 @@ export class InvoiceRunsService {
         : share?.funderId !== undefined
           ? share.funderId
           : undefined;
-    const exported = await this.exportRun(runId, 'csv', {
-      serviceUserId: dto.serviceUserId,
-      ...(exportFunderId !== undefined ? { funderId: exportFunderId } : {}),
-    });
+    const exported = await this.exportRun(
+      runId,
+      'csv',
+      {
+        serviceUserId: dto.serviceUserId,
+        ...(exportFunderId !== undefined ? { funderId: exportFunderId } : {}),
+      },
+      userId,
+    );
 
     const subject = funderLabel
       ? `Invoice — ${preview.data.serviceUserName} — ${funderLabel} — ${preview.data.period}`
@@ -2499,12 +2695,25 @@ export class InvoiceRunsService {
         where: { invoiceRunId: runId, serviceUserId: dto.serviceUserId },
         data: { lastSentAt: emailedAt },
       });
+      await recordInvoiceRunAuditEvent(tx, {
+        invoiceRunId: runId,
+        action: InvoiceRunAuditAction.EMAIL_SENT,
+        actorUserId: userId,
+        occurredAt: emailedAt,
+        detail: `To ${to}${funderLabel ? ` · ${funderLabel}` : ''}`,
+        metadata: {
+          to,
+          serviceUserId: dto.serviceUserId,
+          funderId: share?.funderId ?? null,
+          funderName: funderLabel ?? null,
+        },
+      });
     });
 
     const shouldMarkSent = dto.markSent !== false && preview.data.canMarkSent;
     let markedSent = false;
     if (shouldMarkSent) {
-      await this.markSent(runId);
+      await this.markSent(userId, runId);
       markedSent = true;
     }
 
@@ -2744,6 +2953,8 @@ export class InvoiceRunsService {
   /**
    * Ensure each service user on the run has a persisted QBO-style invoice number
    * and due date (invoiceDate + payment terms). Existing numbers are kept.
+   * If the run already has a run-level number (assigned on create) and no
+   * documents yet, the first service-user document reuses that number.
    */
   private async syncInvoiceDocuments(
     tx: Prisma.TransactionClient,
@@ -2752,6 +2963,11 @@ export class InvoiceRunsService {
   ): Promise<void> {
     const uniqueIds = [...new Set(serviceUserIds.filter(Boolean))];
     if (!uniqueIds.length) return;
+
+    const run = await tx.invoiceRun.findUnique({
+      where: { id: invoiceRunId },
+      select: { invoiceNumber: true, sequenceValue: true },
+    });
 
     const existing = await tx.invoiceDocument.findMany({
       where: { invoiceRunId, serviceUserId: { in: uniqueIds } },
@@ -2767,14 +2983,33 @@ export class InvoiceRunsService {
     const have = new Set(existing.map((d) => d.serviceUserId));
     const missing = uniqueIds.filter((id) => !have.has(id));
 
+    const anyDocsOnRun = await tx.invoiceDocument.count({
+      where: { invoiceRunId },
+    });
+
     const termsBySu = await this.resolvePaymentTermsByServiceUser(
       tx,
       uniqueIds,
     );
     const invoiceDate = utcDateOnly(new Date());
 
+    let reusedRunNumber = false;
     for (const serviceUserId of missing) {
-      const sequenceValue = await this.allocateInvoiceSequence(tx);
+      let sequenceValue: number;
+      let invoiceNumber: string;
+      if (
+        !reusedRunNumber &&
+        anyDocsOnRun === 0 &&
+        run?.sequenceValue != null &&
+        run.invoiceNumber
+      ) {
+        sequenceValue = run.sequenceValue;
+        invoiceNumber = run.invoiceNumber;
+        reusedRunNumber = true;
+      } else {
+        sequenceValue = await this.allocateInvoiceSequence(tx);
+        invoiceNumber = formatInvoiceNumber(sequenceValue);
+      }
       const termsRaw = termsBySu.get(serviceUserId) ?? null;
       const { dueDate, paymentTermsLabel } = computeInvoiceDueDate(
         invoiceDate,
@@ -2785,7 +3020,7 @@ export class InvoiceRunsService {
           invoiceRunId,
           serviceUserId,
           sequenceValue,
-          invoiceNumber: formatInvoiceNumber(sequenceValue),
+          invoiceNumber,
           invoiceDate,
           dueDate,
           paymentTerms: paymentTermsLabel,
@@ -2979,6 +3214,111 @@ export class InvoiceRunsService {
     };
   }
 
+  private async loadUserNameMap(
+    userIds: string[],
+  ): Promise<Map<string, string>> {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    const map = new Map<string, string>();
+    if (!ids.length) return map;
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    for (const user of users) {
+      const name = formatInvoiceAuditActorName(user);
+      if (name) map.set(user.id, name);
+    }
+    return map;
+  }
+
+  private buildAuditTrail(
+    row: {
+      id: string;
+      periodLabel: string;
+      createdAt: Date;
+      createdById: string | null;
+      approvedAt: Date | null;
+      approvedById: string | null;
+      lockedAt: Date | null;
+      lockedById: string | null;
+      sentAt: Date | null;
+      sentById: string | null;
+      auditEvents: Array<{
+        id: string;
+        action: InvoiceRunAuditAction;
+        actorUserId: string | null;
+        occurredAt: Date;
+        detail: string | null;
+        metadata: Prisma.JsonValue | null;
+      }>;
+    },
+    actorMap: Map<string, string>,
+  ): InvoiceRunAuditTrailItem[] {
+    if (row.auditEvents.length > 0) {
+      return row.auditEvents.map((event) => ({
+        id: event.id,
+        action: event.action,
+        at: event.occurredAt.toISOString(),
+        actorUserId: event.actorUserId,
+        actorName: actorMap.get(event.actorUserId ?? '') ?? null,
+        detail: event.detail,
+        metadata:
+          event.metadata &&
+          typeof event.metadata === 'object' &&
+          !Array.isArray(event.metadata)
+            ? (event.metadata as Record<string, unknown>)
+            : null,
+      }));
+    }
+
+    // Legacy runs: synthesise milestones from columns so history is never empty.
+    const legacy: InvoiceRunAuditTrailItem[] = [
+      {
+        id: `legacy-created-${row.id}`,
+        action: InvoiceRunAuditAction.CREATED,
+        at: row.createdAt.toISOString(),
+        actorUserId: row.createdById,
+        actorName: actorMap.get(row.createdById ?? '') ?? null,
+        detail: row.periodLabel,
+        metadata: null,
+      },
+    ];
+    if (row.approvedAt) {
+      legacy.push({
+        id: `legacy-approved-${row.id}`,
+        action: InvoiceRunAuditAction.APPROVED,
+        at: row.approvedAt.toISOString(),
+        actorUserId: row.approvedById,
+        actorName: actorMap.get(row.approvedById ?? '') ?? null,
+        detail: null,
+        metadata: null,
+      });
+    }
+    if (row.lockedAt) {
+      legacy.push({
+        id: `legacy-locked-${row.id}`,
+        action: InvoiceRunAuditAction.LOCKED,
+        at: row.lockedAt.toISOString(),
+        actorUserId: row.lockedById,
+        actorName: actorMap.get(row.lockedById ?? '') ?? null,
+        detail: null,
+        metadata: null,
+      });
+    }
+    if (row.sentAt) {
+      legacy.push({
+        id: `legacy-sent-${row.id}`,
+        action: InvoiceRunAuditAction.SENT,
+        at: row.sentAt.toISOString(),
+        actorUserId: row.sentById,
+        actorName: actorMap.get(row.sentById ?? '') ?? null,
+        detail: null,
+        metadata: null,
+      });
+    }
+    return legacy;
+  }
+
   private mapRow(
     row: {
       id: string;
@@ -2991,6 +3331,11 @@ export class InvoiceRunsService {
       netTotal: Prisma.Decimal;
       exceptionCount: number;
       exportStatus: BillingRunExportStatus;
+      createdAt?: Date;
+      createdById?: string | null;
+      approvedById?: string | null;
+      lockedById?: string | null;
+      sentById?: string | null;
     },
     paymentStats?: {
       invoicesPaid: number;
@@ -2998,6 +3343,8 @@ export class InvoiceRunsService {
       invoicesPartPaid: number;
       paidAmountValue: number;
     },
+    actorMap?: Map<string, string>,
+    invoiceNumbers?: string[],
   ): InvoiceRunRow {
     const paidAmountValue = paymentStats?.paidAmountValue ?? 0;
     return {
@@ -3016,6 +3363,16 @@ export class InvoiceRunsService {
       invoicesPartPaid: paymentStats?.invoicesPartPaid ?? 0,
       paidAmount: formatMoney(paidAmountValue),
       paidAmountValue,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      createdById: row.createdById ?? null,
+      createdByName: actorMap?.get(row.createdById ?? '') ?? null,
+      approvedById: row.approvedById ?? null,
+      approvedByName: actorMap?.get(row.approvedById ?? '') ?? null,
+      lockedById: row.lockedById ?? null,
+      lockedByName: actorMap?.get(row.lockedById ?? '') ?? null,
+      sentById: row.sentById ?? null,
+      sentByName: actorMap?.get(row.sentById ?? '') ?? null,
+      invoiceNumbers: invoiceNumbers ?? [],
     };
   }
 }

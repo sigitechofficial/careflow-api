@@ -3,7 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { EmployeePayoutsService } from './employee-payouts.service';
 
 /**
- * Runs at 06:00 UTC on the 4th of every month.
+ * Runs at 06:00 in the organisation default timezone (Asia/Karachi) on the 4th.
  * Pays UK net for statutory/closed UK payroll runs in the previous calendar month.
  */
 @Injectable()
@@ -12,7 +12,7 @@ export class EmployeePayoutAutoJob {
 
   constructor(private readonly payouts: EmployeePayoutsService) {}
 
-  @Cron('0 6 4 * *', { timeZone: 'UTC' })
+  @Cron('0 6 4 * *', { timeZone: 'Asia/Karachi' })
   async handleMonthlyAutoPayout(): Promise<void> {
     this.logger.log('Starting scheduled UK-net employee payout (4th of month)');
     try {

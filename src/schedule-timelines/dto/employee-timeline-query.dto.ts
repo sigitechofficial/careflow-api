@@ -9,7 +9,7 @@ export class EmployeeTimelineQueryDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   date?: string;
 
-  @ApiPropertyOptional({ example: '2026-05-05', description: 'Week view anchor (normalizes to Monday UTC)' })
+  @ApiPropertyOptional({ example: '2026-05-05', description: 'Week view anchor (normalizes to Monday of that civil week)' })
   @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)

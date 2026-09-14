@@ -226,6 +226,12 @@ export class BulkApproveVisitReconciliationsDto {
   @ApiProperty({ enum: ['PAY', 'INVOICE', 'BOTH'] })
   @IsEnum(['PAY', 'INVOICE', 'BOTH'])
   scope!: 'PAY' | 'INVOICE' | 'BOTH';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  approvalNotes?: string;
 }
 
 export class BackfillVisitReconciliationsDto {

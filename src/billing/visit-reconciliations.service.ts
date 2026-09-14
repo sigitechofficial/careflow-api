@@ -73,6 +73,10 @@ import {
   resolveStoredNightDuty,
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
 import { ensureScheduledVisitRef } from '../scheduling/visit-ref-allocate.util';
+import {
+  dayKeyInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -161,23 +165,33 @@ export type VisitReconciliationListRow = {
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
-async function isVisitOnBankHoliday(db: DbClient, date: Date): Promise<boolean> {
-  const set = await loadBankHolidayDateSet(db, date, date);
-  return set.has(utcDateKey(date));
+async function isVisitOnBankHoliday(
+  db: DbClient,
+  date: Date,
+  timeZone: string,
+): Promise<boolean> {
+  const set = await loadBankHolidayDateSet(db, date, date, timeZone);
+  return set.has(dayKeyInTimeZone(date, timeZone));
 }
 
-function utcDateKey(date: Date): string {
+/** Calendar day key for a stored bank-holiday Date (date-only column → UTC Y-M-D). */
+function bankHolidayCalendarKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Load active bank-holiday UTC date keys covering [from, to] inclusive. */
+/**
+ * Load active bank-holiday calendar keys covering [from, to] (expanded for TZ edges).
+ * Visit matching must use dayKeyInTimeZone(instant, orgTz) against this set.
+ */
 async function loadBankHolidayDateSet(
   db: DbClient,
   from: Date,
   to: Date,
+  _timeZone?: string,
 ): Promise<Set<string>> {
-  const start = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
-  const end = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()));
+  const padMs = 36 * 60 * 60 * 1000; // ±36h so ops-day edges never miss a holiday row
+  const start = new Date(from.getTime() - padMs);
+  const end = new Date(to.getTime() + padMs);
   const rows = await db.bankHoliday.findMany({
     where: {
       isActive: true,
@@ -185,7 +199,7 @@ async function loadBankHolidayDateSet(
     },
     select: { holidayDate: true },
   });
-  return new Set(rows.map((r) => utcDateKey(r.holidayDate)));
+  return new Set(rows.map((r) => bankHolidayCalendarKey(r.holidayDate)));
 }
 
 @Injectable()
@@ -201,6 +215,26 @@ export class VisitReconciliationsService {
 
   private client(tx?: Prisma.TransactionClient): DbClient {
     return tx ?? this.prisma;
+  }
+
+  /**
+   * Convert YYYY-MM-DD filter bounds into UTC instants for the organisation
+   * operational timezone (not raw Z midnight).
+   */
+  private async operationalDateTimeFilter(
+    dateFrom?: string,
+    dateTo?: string,
+  ): Promise<{ gte?: Date; lte?: Date } | undefined> {
+    if (!dateFrom && !dateTo) return undefined;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const out: { gte?: Date; lte?: Date } = {};
+    if (dateFrom) {
+      out.gte = operationalDayBounds(dateFrom.slice(0, 10), timeZone).start;
+    }
+    if (dateTo) {
+      out.lte = operationalDayBounds(dateTo.slice(0, 10), timeZone).end;
+    }
+    return out;
   }
 
   /** Same hierarchy as punctuality: time-critical slot → late alert → global → 15. */
@@ -555,13 +589,8 @@ export class VisitReconciliationsService {
     }
 
     if (query.dateFrom || query.dateTo) {
-      where.plannedStartDateTime = {};
-      if (query.dateFrom) {
-        where.plannedStartDateTime.gte = new Date(`${query.dateFrom}T00:00:00.000Z`);
-      }
-      if (query.dateTo) {
-        where.plannedStartDateTime.lte = new Date(`${query.dateTo}T23:59:59.999Z`);
-      }
+      const range = await this.operationalDateTimeFilter(query.dateFrom, query.dateTo);
+      if (range) where.plannedStartDateTime = range;
     }
 
     if (query.hasExceptions === true) {
@@ -1078,7 +1107,11 @@ export class VisitReconciliationsService {
       }
 
       try {
-        await this.approve(userId, row.id, { scope: dto.scope });
+        await this.approve(userId, row.id, {
+          scope: dto.scope,
+          exclusive: true,
+          approvalNotes: dto.approvalNotes,
+        });
         approved.push(row.id);
       } catch (e) {
         skipped.push({
@@ -1100,13 +1133,8 @@ export class VisitReconciliationsService {
     };
 
     if (dto.dateFrom || dto.dateTo) {
-      where.scheduledStartDateTime = {};
-      if (dto.dateFrom) {
-        where.scheduledStartDateTime.gte = new Date(`${dto.dateFrom}T00:00:00.000Z`);
-      }
-      if (dto.dateTo) {
-        where.scheduledStartDateTime.lte = new Date(`${dto.dateTo}T23:59:59.999Z`);
-      }
+      const range = await this.operationalDateTimeFilter(dto.dateFrom, dto.dateTo);
+      if (range) where.scheduledStartDateTime = range;
     }
 
     const visits = await this.prisma.scheduledVisit.findMany({
@@ -1153,10 +1181,8 @@ export class VisitReconciliationsService {
     }
 
     if (dto.dateFrom || dto.dateTo) {
-      where.plannedStartDateTime = {
-        ...(dto.dateFrom ? { gte: new Date(`${dto.dateFrom}T00:00:00.000Z`) } : {}),
-        ...(dto.dateTo ? { lte: new Date(`${dto.dateTo}T23:59:59.999Z`) } : {}),
-      };
+      const range = await this.operationalDateTimeFilter(dto.dateFrom, dto.dateTo);
+      if (range) where.plannedStartDateTime = range;
     }
 
     const pending = await this.prisma.visitReconciliation.findMany({
@@ -1713,8 +1739,11 @@ export class VisitReconciliationsService {
       db,
       approvedPayStart,
       approvedPayEnd ?? approvedPayStart,
+      timeZone,
     );
-    const isBankHoliday = bankHolidayDates.has(utcDateKey(row.plannedStartDateTime));
+    const isBankHoliday = bankHolidayDates.has(
+      dayKeyInTimeZone(row.plannedStartDateTime, timeZone),
+    );
 
     if (freezePayable) {
       payableAmount = Number(row.payableAmount);
@@ -1735,7 +1764,8 @@ export class VisitReconciliationsService {
           start: approvedPayStart,
           end: approvedPayEnd,
           stackingPolicy,
-          isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+          isBankHolidayFn: (d) =>
+            bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
           timeZone,
         },
         nightDuty,
@@ -1769,7 +1799,8 @@ export class VisitReconciliationsService {
         approvedBillStart,
         approvedBillEnd,
         isBankHoliday,
-        isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+        isBankHolidayFn: (d) =>
+          bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
         nightDuty,
         timeZone,
       });
@@ -1853,7 +1884,8 @@ export class VisitReconciliationsService {
           ? {
               start: approvedBillStart,
               end: approvedBillEnd,
-              isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+              isBankHolidayFn: (d) =>
+                bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
               timeZone,
             }
           : undefined,
@@ -2378,10 +2410,14 @@ export class VisitReconciliationsService {
       reason: string | null;
     }> | null = null;
 
-    const isBankHoliday = await isVisitOnBankHoliday(db, row.plannedStartDateTime);
+    const isBankHoliday = await isVisitOnBankHoliday(
+      db,
+      row.plannedStartDateTime,
+      timeZone,
+    );
     const bankHolidayDates =
       billStart && billEnd
-        ? await loadBankHolidayDateSet(db, billStart, billEnd)
+        ? await loadBankHolidayDateSet(db, billStart, billEnd, timeZone)
         : new Set<string>();
     const nightVisit = await db.scheduledVisit.findUnique({
       where: { id: row.scheduledVisitId },
@@ -2420,7 +2456,8 @@ export class VisitReconciliationsService {
             approvedBillStart: billStart,
             approvedBillEnd: billEnd,
             isBankHoliday,
-            isBankHolidayFn: (d) => bankHolidayDates.has(utcDateKey(d)),
+            isBankHolidayFn: (d) =>
+              bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
             nightDuty,
             timeZone,
           })

@@ -15,14 +15,24 @@ export type RotaGeneratedCarerPush = {
   body: string
 }
 
-function visitTimeSuffix(start: Date | null, end: Date | null): string {
+import {
+  DEFAULT_OPERATIONAL_TIMEZONE,
+  formatHmInTimeZone,
+} from '../common/utils/operational-day.util'
+
+function visitTimeSuffix(
+  start: Date | null,
+  end: Date | null,
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+): string {
   if (!start || !end) return ''
-  return ` (${start.toISOString().slice(11, 16)}–${end.toISOString().slice(11, 16)} UTC)`
+  return ` (${formatHmInTimeZone(start, timeZone)}–${formatHmInTimeZone(end, timeZone)})`
 }
 
 /** One FCM per carer after rota generate (digest when many visits). */
 export function groupRotaGeneratedCarerPushes(
   rows: RotaGeneratedAllocation[],
+  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): RotaGeneratedCarerPush[] {
   const byEmployee = new Map<string, RotaGeneratedAllocation[]>()
   for (const row of rows) {
@@ -48,7 +58,7 @@ export function groupRotaGeneratedCarerPushes(
         scheduledJobId: first.scheduledJobId,
         serviceUserId: first.serviceUserId,
         title: 'New visit assigned',
-        body: `You have been allocated to "${first.jobName}"${visitTimeSuffix(first.scheduledStartDateTime, first.scheduledEndDateTime)}.`,
+        body: `You have been allocated to "${first.jobName}"${visitTimeSuffix(first.scheduledStartDateTime, first.scheduledEndDateTime, timeZone)}.`,
       })
       continue
     }

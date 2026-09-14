@@ -25,6 +25,7 @@ import { localVisitDateFromStart } from './ecm-evaluation.mapper';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import {
   addDaysToOperationalIso,
+  operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
@@ -664,10 +665,15 @@ export class EcmVisitsService {
     locationId?: string;
     timeZone?: string;
   }): Promise<void> {
-    const padStart = new Date(`${params.dateFrom}T00:00:00.000Z`);
-    padStart.setUTCDate(padStart.getUTCDate() - 1);
-    const padEnd = new Date(`${params.dateTo}T23:59:59.999Z`);
-    padEnd.setUTCDate(padEnd.getUTCDate() + 1);
+    const timeZone = params.timeZone ?? (await this.orgSettings.getOperationalTimezone());
+    const padStart = operationalDayBounds(
+      addDaysToOperationalIso(params.dateFrom, -1),
+      timeZone,
+    ).start;
+    const padEnd = operationalDayBounds(
+      addDaysToOperationalIso(params.dateTo, 1),
+      timeZone,
+    ).end;
 
     const candidateJobs = await this.prisma.scheduledJob.findMany({
       where: {
@@ -693,7 +699,6 @@ export class EcmVisitsService {
       },
     });
 
-    const timeZone = params.timeZone ?? (await this.orgSettings.getOperationalTimezone());
     const jobsInPeriod = candidateJobs.filter((job) => {
       const plannedStart =
         job.visits[0]?.scheduledStartDateTime ?? job.scheduledStartDateTime;
