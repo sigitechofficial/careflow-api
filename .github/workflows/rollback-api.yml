@@ -430,6 +430,7 @@ jobs:
                 --exclude="node_modules" \
                 --exclude="*.pem" \
                 --exclude="*.key" \
+                --exclude="serviceAccount.json" \
                 "$RECOVERY_TEMP/" "$LIVE_PATH/"
 
               cd "$LIVE_PATH"
@@ -579,6 +580,7 @@ jobs:
             --exclude="node_modules" \
             --exclude="*.pem" \
             --exclude="*.key" \
+            --exclude="serviceAccount.json" \
             "$DEPLOY_SOURCE/" "$LIVE_PATH/"
 
           cd "$LIVE_PATH"

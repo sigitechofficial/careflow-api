@@ -178,7 +178,7 @@ Then `pm2 restart main --update-env` **only after** `nvm use 20`.
 
 ## After the next GitHub deploy
 
-`rsync --delete` does **not** exclude `serviceAccount.json`. A deploy can wipe `dist/src/serviceAccount.json` (and a root copy if it was not excluded). `.env` is excluded and survives.
+`rsync --delete` excludes `serviceAccount.json` (same as `.env`). A deploy must not wipe a live root or `dist/src` copy. If the file is missing, copy it back once; later deploys leave it in place.
 
 After deploy:
 

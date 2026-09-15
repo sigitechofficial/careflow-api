@@ -312,6 +312,7 @@ jobs:
                 --exclude="node_modules" \
                 --exclude="*.pem" \
                 --exclude="*.key" \
+                --exclude="serviceAccount.json" \
                 "$ROLLBACK_DIR/" "$LIVE_PATH/"
 
               cd "$LIVE_PATH"
@@ -545,6 +546,7 @@ jobs:
             --exclude="node_modules" \
             --exclude="*.pem" \
             --exclude="*.key" \
+            --exclude="serviceAccount.json" \
             "$RELEASE_PATH/" "$LIVE_PATH/"
 
           cd "$LIVE_PATH"
