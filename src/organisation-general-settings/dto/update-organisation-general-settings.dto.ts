@@ -712,6 +712,11 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsBoolean()
   appSettingFingerprintLoginCareApp?: boolean;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  appSettingSingleDeviceLoginCareApp?: boolean;
+
   @ApiPropertyOptional({ minimum: 1, maximum: 3650 })
   @IsOptional()
   @Type(() => Number)

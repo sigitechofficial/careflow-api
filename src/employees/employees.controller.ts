@@ -128,6 +128,14 @@ export class EmployeesController {
     return this.portalAccountsService.setPassword(user.id, id, dto.password);
   }
 
+  @Post(':id/portal-account/revoke-session')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('employees.update')
+  @ApiOperation({ summary: 'Sign out the current employee app session' })
+  revokePortalSession(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.portalAccountsService.revokeSession(user.id, id);
+  }
+
   @Get(':id')
   @Permissions('employees.read')
   get(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {

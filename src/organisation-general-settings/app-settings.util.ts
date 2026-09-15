@@ -4,6 +4,7 @@ export type OrganisationAppSettings = {
   viewPoliciesRosterApp: boolean;
   bookHolidaysCareApp: boolean;
   fingerprintLoginCareApp: boolean;
+  singleDeviceLoginCareApp: boolean;
 };
 
 export const DEFAULT_APP_SETTINGS: OrganisationAppSettings = {
@@ -12,6 +13,7 @@ export const DEFAULT_APP_SETTINGS: OrganisationAppSettings = {
   viewPoliciesRosterApp: true,
   bookHolidaysCareApp: true,
   fingerprintLoginCareApp: true,
+  singleDeviceLoginCareApp: false,
 };
 
 export function parseOrganisationAppSettings(
@@ -21,6 +23,7 @@ export function parseOrganisationAppSettings(
     appSettingViewPoliciesRosterApp: boolean;
     appSettingBookHolidaysCareApp: boolean;
     appSettingFingerprintLoginCareApp: boolean;
+    appSettingSingleDeviceLoginCareApp: boolean;
   }>,
 ): OrganisationAppSettings {
   return {
@@ -33,5 +36,7 @@ export function parseOrganisationAppSettings(
       row.appSettingBookHolidaysCareApp ?? DEFAULT_APP_SETTINGS.bookHolidaysCareApp,
     fingerprintLoginCareApp:
       row.appSettingFingerprintLoginCareApp ?? DEFAULT_APP_SETTINGS.fingerprintLoginCareApp,
+    singleDeviceLoginCareApp:
+      row.appSettingSingleDeviceLoginCareApp ?? DEFAULT_APP_SETTINGS.singleDeviceLoginCareApp,
   };
 }

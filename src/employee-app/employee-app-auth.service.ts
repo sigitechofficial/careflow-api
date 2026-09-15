@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -9,9 +9,14 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 import { EmployeePortalAccountsService } from '../employees/employee-portal-accounts.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import type { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
 import { FcmPushService } from '../notifications/fcm-push.service';
+import {
+  EMPLOYEE_APP_SESSION_BLOCK_MESSAGE,
+  shouldBlockSecondEmployeeAppLogin,
+} from './employee-app-single-session.util';
 
 @Injectable()
 export class EmployeeAppAuthService {
@@ -21,6 +26,7 @@ export class EmployeeAppAuthService {
     private readonly auditLogs: AuditLogsService,
     private readonly portalAccounts: EmployeePortalAccountsService,
     private readonly fcm: FcmPushService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async login(dto: EmployeeAppLoginDto, req: Request) {
@@ -65,10 +71,37 @@ export class EmployeeAppAuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const [policyEnabled, pushTokensDead] = await Promise.all([
+      this.orgSettings.isSingleDeviceLoginCareApp(),
+      this.fcm.areEmployeePushTokensDead(row.employeeId),
+    ]);
+    if (
+      shouldBlockSecondEmployeeAppLogin({
+        policyEnabled,
+        hasRefreshToken: Boolean(row.refreshTokenHash),
+        lastSeenAt: row.lastSeenAt,
+        lastLoginAt: row.lastLoginAt,
+        pushTokensDead,
+      })
+    ) {
+      await this.auditLogs.logSecurityEvent({
+        eventType: SecurityEventType.FAILED_LOGIN,
+        severity: SecuritySeverity.LOW,
+        description: 'Employee app login blocked — other session active',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        metadata: { portalAccountId: row.id, employeeId: row.employeeId, channel: 'employee_app' },
+      });
+      throw new ConflictException(EMPLOYEE_APP_SESSION_BLOCK_MESSAGE);
+    }
+
     const tokens = await this.issueTokens(row.id);
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
     await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
-    await this.portalAccounts.touchLastLogin(row.id);
+    await this.portalAccounts.activateSession(row.id, {
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
 
     await this.auditLogs.logLogin({
       userId: undefined,
@@ -127,6 +160,7 @@ export class EmployeeAppAuthService {
     const tokens = await this.issueTokens(row.id);
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
     await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
+    await this.portalAccounts.touchLastSeen(row.id);
 
     await this.auditLogs.logLogin({
       userId: undefined,

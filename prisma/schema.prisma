@@ -937,6 +937,8 @@ model OrganisationGeneralSettings {
   appSettingViewPoliciesRosterApp Boolean         @default(true)
   appSettingBookHolidaysCareApp Boolean           @default(true)
   appSettingFingerprintLoginCareApp Boolean       @default(true)
+  /// When true, a second Care-app login is blocked while a refresh session is active.
+  appSettingSingleDeviceLoginCareApp Boolean      @default(false)
   privacyNonActiveServiceUserDays Int             @default(60)
   privacyNotifyInternalMessage  Boolean           @default(true)
   privacyNotifyEmail            Boolean           @default(false)
@@ -1275,6 +1277,9 @@ model EmployeePortalAccount {
   isEnabled        Boolean   @default(false)
   refreshTokenHash String?
   lastLoginAt      DateTime?
+  lastSeenAt       DateTime?
+  lastLoginIp      String?
+  lastLoginUserAgent String?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
