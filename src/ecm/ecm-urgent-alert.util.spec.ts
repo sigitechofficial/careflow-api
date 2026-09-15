@@ -8,6 +8,7 @@ describe('ecm-urgent-alert.util', () => {
     expect(isUrgentOfficeAlertKind('CARER_SOS')).toBe(true)
     expect(isUrgentOfficeAlertKind('LEFT_VISIT_AREA')).toBe(true)
     expect(isUrgentOfficeAlertKind('UNABLE_TO_START')).toBe(true)
+    expect(isUrgentOfficeAlertKind('OUTSIDE_AREA_CHECK_IN_REQUEST')).toBe(true)
     expect(isUrgentOfficeAlertKind('LATE_ARRIVAL')).toBe(false)
     expect(isUrgentOfficeAlertKind(null)).toBe(false)
   })
