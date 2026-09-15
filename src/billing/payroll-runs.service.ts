@@ -1192,6 +1192,24 @@ export class PayrollRunsService {
       ? { plannedStartDateTime: plannedDateFilter }
       : {};
 
+    // Visits already enrolled in a UK payroll run are not "remaining" (same as
+    // getEmployeeEarnings) — bank payout / UK net tracks those separately.
+    const ukCoveredInputs = await this.prisma.ukPayrollInputLine.findMany({
+      where: { sourceVisitReconciliationId: { not: null } },
+      select: { sourceVisitReconciliationId: true },
+      distinct: ['sourceVisitReconciliationId'],
+    });
+    const ukCoveredReconIds = ukCoveredInputs
+      .map((l) => l.sourceVisitReconciliationId)
+      .filter((id): id is string => Boolean(id));
+
+    const remainingWhere: Prisma.VisitReconciliationWhereInput = {
+      ...earningsRemainingWhere(dateOnVisit),
+      ...(ukCoveredReconIds.length
+        ? { id: { notIn: ukCoveredReconIds } }
+        : {}),
+    };
+
     const [
       salaryGroups,
       paidGroups,
@@ -1230,7 +1248,7 @@ export class PayrollRunsService {
       }),
       this.prisma.visitReconciliation.groupBy({
         by: ['employeeId'],
-        where: earningsRemainingWhere(dateOnVisit),
+        where: remainingWhere,
         _sum: { payableAmount: true },
         _count: { _all: true },
       }),

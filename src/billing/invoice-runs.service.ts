@@ -39,6 +39,7 @@ import {
   invoiceRunExportFilename,
   type InvoiceRunExportModel,
 } from './invoice-run-export.util';
+import { formatOrganisationIsoDate } from '../common/utils/organisation-display-format.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 import { operationalDayBounds } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
@@ -1662,7 +1663,7 @@ export class InvoiceRunsService {
         row.lines.map((l) => l.funderId).filter((fid): fid is string => Boolean(fid)),
       ),
     ];
-    const [recons, timeZone, funders, allocations] = await Promise.all([
+    const [recons, displaySettings, funders, allocations] = await Promise.all([
       reconIds.length
         ? this.prisma.visitReconciliation.findMany({
             where: { id: { in: reconIds } },
@@ -1679,7 +1680,7 @@ export class InvoiceRunsService {
             },
           })
         : Promise.resolve([]),
-      this.orgSettings.getOperationalTimezone(),
+      this.orgSettings.getOperationalDisplaySettings(),
       funderIds.length
         ? this.prisma.funder.findMany({
             where: { id: { in: funderIds } },
@@ -1694,6 +1695,7 @@ export class InvoiceRunsService {
         },
       }),
     ]);
+    const { timeZone, dateDisplayFormat, timeDisplayFormat } = displaySettings;
     const reconMap = new Map(recons.map((r) => [r.id, r]));
     const funderNameMap = new Map(funders.map((f) => [f.id, f.name]));
 
@@ -1865,6 +1867,8 @@ export class InvoiceRunsService {
             paidValue: pay.paid,
             outstandingValue: pay.outstanding,
             timeZone,
+            dateDisplayFormat,
+            timeDisplayFormat,
           }),
         );
         continue;
@@ -1887,6 +1891,8 @@ export class InvoiceRunsService {
           paidValue: pay.paid,
           outstandingValue: pay.outstanding,
           timeZone,
+          dateDisplayFormat,
+          timeDisplayFormat,
         }),
       );
     }
@@ -1904,13 +1910,20 @@ export class InvoiceRunsService {
       })
       .sort((a, b) => a.funderName.localeCompare(b.funderName));
 
+    const periodStart = row.periodStart.toISOString().slice(0, 10);
+    const periodEnd = row.periodEnd.toISOString().slice(0, 10);
     const model: InvoiceRunExportModel = {
       periodLabel: row.periodLabel,
-      periodStart: row.periodStart.toISOString().slice(0, 10),
-      periodEnd: row.periodEnd.toISOString().slice(0, 10),
+      periodStart,
+      periodEnd,
+      periodStartLabel: formatOrganisationIsoDate(periodStart, dateDisplayFormat),
+      periodEndLabel: formatOrganisationIsoDate(periodEnd, dateDisplayFormat),
       status: row.status,
       currency: row.currency,
       netTotalValue: Number(row.netTotal),
+      timeZone,
+      dateDisplayFormat,
+      timeDisplayFormat,
       lines: exportLines,
       funderSummaries,
     };

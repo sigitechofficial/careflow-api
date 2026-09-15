@@ -17,9 +17,14 @@ const model: InvoiceRunExportModel = {
   periodLabel: 'Week ending 20 Jul 2026',
   periodStart: '2026-07-14',
   periodEnd: '2026-07-20',
+  periodStartLabel: '14/07/2026',
+  periodEndLabel: '20/07/2026',
   status: 'LOCKED',
   currency: 'GBP',
   netTotalValue: 143.34,
+  timeZone: 'UTC',
+  dateDisplayFormat: 'DD_MM_YYYY',
+  timeDisplayFormat: 'HH_MM',
   lines: [
     buildInvoiceExportVisitRow({
       visitRef: 'VIS-L09-20260720-0001',
@@ -36,6 +41,8 @@ const model: InvoiceRunExportModel = {
       paidValue: 3,
       outstandingValue: 47,
       timeZone: 'UTC',
+      dateDisplayFormat: 'DD_MM_YYYY',
+      timeDisplayFormat: 'HH_MM',
     }),
     buildInvoiceExportVisitRow({
       visitRef: 'VIS-L09-20260720-0002',
@@ -52,6 +59,8 @@ const model: InvoiceRunExportModel = {
       paidValue: 0,
       outstandingValue: 93.34,
       timeZone: 'UTC',
+      dateDisplayFormat: 'DD_MM_YYYY',
+      timeDisplayFormat: 'HH_MM',
     }),
   ],
   funderSummaries: [
@@ -89,10 +98,17 @@ describe('invoice-run export', () => {
       expect(csv).toContain('VIS-L09-20260720-0001');
       expect(csv).toContain('Family Funded');
       expect(csv).toContain('NHS Continuing Healthcare');
-      expect(csv).toContain('50.00');
-      expect(csv).toContain('3.00');
-      expect(csv).toContain('47.00');
-      expect(csv).toContain('93.34');
+      expect(csv).toContain('£50.00');
+      expect(csv).toContain('£3.00');
+      expect(csv).toContain('£47.00');
+      expect(csv).toContain('£93.34');
+    });
+
+    it('uses organisation date display format and operational timezone clocks', () => {
+      expect(csv).toContain('20/07/2026');
+      expect(csv).toContain('08:00');
+      expect(csv).toContain('08:45');
+      expect(csv).not.toContain('2026-07-20');
     });
 
     it('does not append a funder payments summary section', () => {
@@ -106,6 +122,57 @@ describe('invoice-run export', () => {
 
     it('starts with a UTF-8 BOM for Excel', () => {
       expect(csv.charCodeAt(0)).toBe(0xfeff);
+    });
+  });
+
+  describe('buildInvoiceExportVisitRow timezone + date format', () => {
+    it('converts UTC instants into Asia/Karachi wall clock and DD/MM/YYYY', () => {
+      const row = buildInvoiceExportVisitRow({
+        visitRef: 'VIS-1',
+        // 08:00 UTC = 13:00 Asia/Karachi
+        plannedStart: new Date('2026-07-20T08:00:00.000Z'),
+        plannedEnd: new Date('2026-07-20T08:45:00.000Z'),
+        actualStart: new Date('2026-07-20T08:05:00.000Z'),
+        actualEnd: new Date('2026-07-20T08:40:00.000Z'),
+        slot: 'Morning',
+        serviceUserName: 'John Smith',
+        carerName: 'Amy Carer',
+        address: '',
+        funderName: 'Family Funded',
+        amountValue: 50,
+        paidValue: 0,
+        outstandingValue: 50,
+        timeZone: 'Asia/Karachi',
+        dateDisplayFormat: 'DD_MM_YYYY',
+        timeDisplayFormat: 'HH_MM',
+      });
+      expect(row.dateKey).toBe('2026-07-20');
+      expect(row.date).toBe('20/07/2026');
+      expect(row.plannedStart).toBe('13:00');
+      expect(row.plannedEnd).toBe('13:45');
+      expect(row.actualStart).toBe('13:05');
+      expect(row.actualEnd).toBe('13:40');
+    });
+
+    it('supports MM/DD/YYYY date display format', () => {
+      const row = buildInvoiceExportVisitRow({
+        visitRef: 'VIS-1',
+        plannedStart: new Date('2026-07-20T08:00:00.000Z'),
+        plannedEnd: null,
+        actualStart: null,
+        actualEnd: null,
+        slot: '',
+        serviceUserName: 'John Smith',
+        carerName: '',
+        address: '',
+        funderName: 'Family Funded',
+        amountValue: 10,
+        paidValue: 0,
+        outstandingValue: 10,
+        timeZone: 'UTC',
+        dateDisplayFormat: 'MM_DD_YYYY',
+      });
+      expect(row.date).toBe('07/20/2026');
     });
   });
 

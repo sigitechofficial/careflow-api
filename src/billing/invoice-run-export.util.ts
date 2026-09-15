@@ -4,15 +4,27 @@ import {
   formatHmInTimeZone,
 } from '../common/utils/operational-day.util';
 import {
+  DEFAULT_DATE_DISPLAY_FORMAT,
+  DEFAULT_TIME_DISPLAY_FORMAT,
+  formatOrganisationHm,
+  formatOrganisationIsoDate,
+  type DateDisplayFormat,
+  type TimeDisplayFormat,
+} from '../common/utils/organisation-display-format.util';
+import {
   formatDateOnly,
   minutesBetween,
 } from './visit-reconciliation.util';
+import { formatMoney } from './billing-run.util';
 
 /** Align with admin visits export: underrun under this is still "On time". */
 export const INVOICE_EXPORT_DURATION_UNDERRUN_TOLERANCE_MINUTES = 15;
 
 export type InvoiceRunExportLine = {
   visitRef: string | null;
+  /** YYYY-MM-DD in org timezone — used for sorting only. */
+  dateKey: string;
+  /** Organisation date display format for CSV/Excel. */
   date: string;
   slot: string;
   serviceUserName: string;
@@ -45,9 +57,15 @@ export type InvoiceRunExportModel = {
   periodLabel: string;
   periodStart: string; // YYYY-MM-DD
   periodEnd: string;
+  /** Period bounds formatted with organisation date display format. */
+  periodStartLabel: string;
+  periodEndLabel: string;
   status: string;
   currency: string;
   netTotalValue: number;
+  timeZone: string;
+  dateDisplayFormat: DateDisplayFormat;
+  timeDisplayFormat: TimeDisplayFormat;
   lines: InvoiceRunExportLine[];
   funderSummaries: InvoiceRunExportFunderSummary[];
 };
@@ -76,7 +94,7 @@ const LINE_HEADERS = [
 function sortedLines(model: InvoiceRunExportModel): InvoiceRunExportLine[] {
   return [...model.lines].sort(
     (a, b) =>
-      a.date.localeCompare(b.date) ||
+      a.dateKey.localeCompare(b.dateKey) ||
       (a.visitRef ?? '').localeCompare(b.visitRef ?? '') ||
       a.serviceUserName.localeCompare(b.serviceUserName) ||
       a.funderName.localeCompare(b.funderName),
@@ -103,8 +121,8 @@ function csvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(escapeCsv).join(',');
 }
 
-function money(n: number): string {
-  return (Math.round(n * 100) / 100).toFixed(2);
+function money(n: number, currency = 'GBP'): string {
+  return formatMoney(n, currency);
 }
 
 export function formatExportDurationMinutes(minutes: number | null): string {
@@ -118,9 +136,13 @@ export function formatExportDurationMinutes(minutes: number | null): string {
 export function formatExportClockTime(
   date: Date | null | undefined,
   timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+  timeDisplayFormat: TimeDisplayFormat = DEFAULT_TIME_DISPLAY_FORMAT,
 ): string {
   if (!date) return '';
-  return formatHmInTimeZone(date, timeZone);
+  return formatOrganisationHm(
+    formatHmInTimeZone(date, timeZone),
+    timeDisplayFormat,
+  );
 }
 
 /**
@@ -143,10 +165,15 @@ export function resolveExportDurationVariance(input: {
   if (actualMinutes > plannedMinutes) {
     return delta > 0 ? `Exceeded (+${delta})` : 'Exceeded';
   }
-  if (actualMinutes < plannedMinutes - INVOICE_EXPORT_DURATION_UNDERRUN_TOLERANCE_MINUTES) {
+  if (
+    actualMinutes <
+    plannedMinutes - INVOICE_EXPORT_DURATION_UNDERRUN_TOLERANCE_MINUTES
+  ) {
     return `Short (${delta})`;
   }
-  return delta === 0 ? 'On time' : `On time (${delta > 0 ? '+' : ''}${delta})`;
+  return delta === 0
+    ? 'On time'
+    : `On time (${delta > 0 ? '+' : ''}${delta})`;
 }
 
 export function buildInvoiceExportVisitRow(input: {
@@ -164,8 +191,15 @@ export function buildInvoiceExportVisitRow(input: {
   paidValue: number;
   outstandingValue: number;
   timeZone?: string;
+  dateDisplayFormat?: DateDisplayFormat;
+  timeDisplayFormat?: TimeDisplayFormat;
 }): InvoiceRunExportLine {
   const timeZone = input.timeZone ?? DEFAULT_OPERATIONAL_TIMEZONE;
+  const dateDisplayFormat =
+    input.dateDisplayFormat ?? DEFAULT_DATE_DISPLAY_FORMAT;
+  const timeDisplayFormat =
+    input.timeDisplayFormat ?? DEFAULT_TIME_DISPLAY_FORMAT;
+  const dateKey = formatDateOnly(input.plannedStart, timeZone);
   const plannedMinutes =
     input.plannedEnd != null
       ? minutesBetween(input.plannedStart, input.plannedEnd)
@@ -177,14 +211,31 @@ export function buildInvoiceExportVisitRow(input: {
 
   return {
     visitRef: input.visitRef,
-    date: formatDateOnly(input.plannedStart, timeZone),
+    dateKey,
+    date: formatOrganisationIsoDate(dateKey, dateDisplayFormat),
     slot: input.slot,
     serviceUserName: input.serviceUserName,
     carerName: input.carerName,
-    plannedStart: formatExportClockTime(input.plannedStart, timeZone),
-    plannedEnd: formatExportClockTime(input.plannedEnd, timeZone),
-    actualStart: formatExportClockTime(input.actualStart, timeZone),
-    actualEnd: formatExportClockTime(input.actualEnd, timeZone),
+    plannedStart: formatExportClockTime(
+      input.plannedStart,
+      timeZone,
+      timeDisplayFormat,
+    ),
+    plannedEnd: formatExportClockTime(
+      input.plannedEnd,
+      timeZone,
+      timeDisplayFormat,
+    ),
+    actualStart: formatExportClockTime(
+      input.actualStart,
+      timeZone,
+      timeDisplayFormat,
+    ),
+    actualEnd: formatExportClockTime(
+      input.actualEnd,
+      timeZone,
+      timeDisplayFormat,
+    ),
     plannedDuration: formatExportDurationMinutes(plannedMinutes),
     actualDuration: formatExportDurationMinutes(actualMinutes),
     durationVariance: resolveExportDurationVariance({
@@ -226,7 +277,10 @@ export function buildFunderSummariesFromLines(
   );
 }
 
-function lineToFields(l: InvoiceRunExportLine): (string | number | null)[] {
+function lineToFields(
+  l: InvoiceRunExportLine,
+  currency: string,
+): (string | number | null)[] {
   return [
     l.visitRef,
     l.date,
@@ -242,9 +296,9 @@ function lineToFields(l: InvoiceRunExportLine): (string | number | null)[] {
     l.durationVariance,
     l.address,
     l.funderName,
-    money(l.amountValue),
-    money(l.paidValue),
-    money(l.outstandingValue),
+    money(l.amountValue, currency),
+    money(l.paidValue, currency),
+    money(l.outstandingValue, currency),
   ];
 }
 
@@ -254,7 +308,7 @@ export function buildInvoiceRunCsv(model: InvoiceRunExportModel): string {
   const lines = sortedLines(model);
   const rows: string[] = [csvRow([...LINE_HEADERS])];
   for (const l of lines) {
-    rows.push(csvRow(lineToFields(l)));
+    rows.push(csvRow(lineToFields(l, model.currency)));
   }
   // Prepend a UTF-8 BOM so Excel opens the file with correct encoding.
   const bom = String.fromCharCode(0xfeff);
@@ -275,8 +329,11 @@ export async function buildInvoiceRunXlsx(
 
   const title = ws.addRow([`Invoice — ${model.periodLabel}`]);
   title.font = { bold: true, size: 14 };
-  ws.addRow([`Period: ${model.periodStart} to ${model.periodEnd}`]);
+  ws.addRow([
+    `Period: ${model.periodStartLabel} to ${model.periodEndLabel}`,
+  ]);
   ws.addRow([`Status: ${model.status}`]);
+  ws.addRow([`Times in ${model.timeZone}`]);
   ws.addRow([]);
 
   const header = ws.addRow([...LINE_HEADERS]);
