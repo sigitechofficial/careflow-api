@@ -5314,6 +5314,9 @@ model ServiceUserMedication {
   notes                    String?
   isControlledMedication   Boolean                @default(false)
   isDecongestantMedication Boolean               @default(false)
+  /// Must be given within timeToleranceMinutes of the due time (CQC time-sensitive).
+  timeCritical             Boolean                @default(false)
+  timeToleranceMinutes     Int                    @default(30)
   medicationKind           MedicationKind
   status                   MedicationRecordStatus @default(ACTIVE)
   statusEndReason          MedicationStatusEndReason?

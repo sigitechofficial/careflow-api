@@ -158,6 +158,21 @@ export class CreateServiceUserMedicationDto {
   @IsBoolean()
   isDecongestantMedication?: boolean;
 
+  @ApiPropertyOptional({
+    description: 'Time-sensitive medicine — must be given within the tolerance of the due time',
+  })
+  @IsOptional()
+  @IsBoolean()
+  timeCritical?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 240, default: 30 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(240)
+  timeToleranceMinutes?: number;
+
   @ApiProperty({ enum: MedicationKind })
   @IsEnum(MedicationKind)
   medicationKind!: MedicationKind;

@@ -441,6 +441,7 @@ export class EmployeeAppClientDetailService {
           frequencyText: true,
           medicationKind: true,
           isControlledMedication: true,
+          timeCritical: true,
           instructions: true,
           howAssisted: true,
           route: { select: { name: true } },
@@ -492,7 +493,10 @@ export class EmployeeAppClientDetailService {
           ? (m.medicationPack.adminRules as Record<string, unknown>)
           : {};
       const isCovert = Boolean(adminRules.covert);
-      const timeCritical = Boolean(adminRules.timeCritical) || /insulin|lantus/i.test(m.medicationName);
+      const timeCritical =
+        Boolean(m.timeCritical) ||
+        Boolean(adminRules.timeCritical) ||
+        /insulin|lantus/i.test(m.medicationName);
       const allergyHit = allergyLower.some((a) => m.medicationName.toLowerCase().includes(a));
       const tags: Array<{ id: string; label: string; tone: Tone }> = [];
       if (timeCritical) tags.push({ id: 'time_critical', label: 'Time-critical', tone: 'warning' });

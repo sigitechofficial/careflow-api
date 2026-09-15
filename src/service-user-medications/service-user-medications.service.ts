@@ -352,6 +352,8 @@ export class ServiceUserMedicationsService {
           notes: dto.notes,
           isControlledMedication: dto.isControlledMedication ?? false,
           isDecongestantMedication: dto.isDecongestantMedication ?? false,
+          timeCritical: dto.timeCritical ?? false,
+          timeToleranceMinutes: dto.timeToleranceMinutes ?? 30,
           medicationKind: dto.medicationKind,
           status: dto.status ?? MedicationRecordStatus.ACTIVE,
           createdById: userId,
@@ -509,6 +511,8 @@ export class ServiceUserMedicationsService {
       notes: dto.notes,
       isControlledMedication: dto.isControlledMedication,
       isDecongestantMedication: dto.isDecongestantMedication,
+      timeCritical: dto.timeCritical,
+      timeToleranceMinutes: dto.timeToleranceMinutes,
       medicationKind: dto.medicationKind,
       ...(convertingToPrn
         ? {
