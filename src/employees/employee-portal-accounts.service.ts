@@ -5,17 +5,22 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, SecuritySeverity } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../common/utils/password.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 
 export const EMPLOYEE_PORTAL_SESSION_PERMISSION = 'employee.portal.session' as const;
 
 @Injectable()
 export class EmployeePortalAccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogs: AuditLogsService,
+  ) {}
 
   async findByEmailForLogin(email: string) {
     const e = email.trim().toLowerCase();
@@ -75,14 +80,30 @@ export class EmployeePortalAccountsService {
   async clearRefreshToken(id: string) {
     await this.prisma.employeePortalAccount.update({
       where: { id },
-      data: { refreshTokenHash: null },
+      data: { refreshTokenHash: null, lastSeenAt: null },
     });
   }
 
-  async touchLastLogin(id: string) {
+  async activateSession(
+    id: string,
+    meta?: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
+    const now = new Date();
     await this.prisma.employeePortalAccount.update({
       where: { id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: now,
+        lastSeenAt: now,
+        lastLoginIp: meta?.ipAddress ?? null,
+        lastLoginUserAgent: meta?.userAgent ?? null,
+      },
+    });
+  }
+
+  async touchLastSeen(id: string) {
+    await this.prisma.employeePortalAccount.update({
+      where: { id },
+      data: { lastSeenAt: new Date() },
     });
   }
 
@@ -147,6 +168,9 @@ export class EmployeePortalAccountsService {
         email: true,
         isEnabled: true,
         lastLoginAt: true,
+        lastSeenAt: true,
+        lastLoginUserAgent: true,
+        refreshTokenHash: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -161,6 +185,9 @@ export class EmployeePortalAccountsService {
         isEnabled: false,
         email: personal?.email ?? null,
         lastLoginAt: null as string | null,
+        lastSeenAt: null as string | null,
+        lastLoginUserAgent: null as string | null,
+        hasActiveSession: false,
       };
     }
     return {
@@ -168,6 +195,9 @@ export class EmployeePortalAccountsService {
       isEnabled: row.isEnabled,
       email: row.email,
       lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+      lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+      lastLoginUserAgent: row.lastLoginUserAgent,
+      hasActiveSession: Boolean(row.refreshTokenHash),
     };
   }
 
@@ -212,6 +242,9 @@ export class EmployeePortalAccountsService {
         data: {
           ...(email !== undefined ? { email } : {}),
           ...(dto.isEnabled !== undefined ? { isEnabled: dto.isEnabled } : {}),
+          ...(dto.isEnabled === false
+            ? { refreshTokenHash: null, lastSeenAt: null }
+            : {}),
           updatedById: actorUserId,
         },
       });
@@ -238,10 +271,35 @@ export class EmployeePortalAccountsService {
       data: {
         passwordHash,
         refreshTokenHash: null,
+        lastSeenAt: null,
         updatedById: actorUserId,
       },
     });
     return { message: 'Employee app password updated', data: {} };
+  }
+
+  async revokeSession(actorUserId: string, employeeId: string) {
+    await this.ensureEmployeeExists(employeeId);
+    const existing = await this.prisma.employeePortalAccount.findFirst({
+      where: { employeeId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Employee app account not configured for this employee');
+
+    await this.prisma.employeePortalAccount.update({
+      where: { id: existing.id },
+      data: {
+        refreshTokenHash: null,
+        lastSeenAt: null,
+        updatedById: actorUserId,
+      },
+    });
+    await this.auditLogs.logSecurityEvent({
+      eventType: SecurityEventType.SESSION_REVOKED,
+      severity: SecuritySeverity.MEDIUM,
+      description: 'Employee app session signed out by admin',
+      metadata: { portalAccountId: existing.id, employeeId, actorUserId },
+    });
+    return this.getAdminStatus(employeeId);
   }
 
   private async ensureEmployeeExists(employeeId: string) {

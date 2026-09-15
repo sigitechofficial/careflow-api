@@ -177,6 +177,7 @@ type SettingsRow = {
   appSettingViewPoliciesRosterApp: boolean;
   appSettingBookHolidaysCareApp: boolean;
   appSettingFingerprintLoginCareApp: boolean;
+  appSettingSingleDeviceLoginCareApp: boolean;
   privacyNonActiveServiceUserDays: number;
   privacyNotifyInternalMessage: boolean;
   privacyNotifyEmail: boolean;
@@ -471,6 +472,7 @@ function buildUpdateData(
   set('appSettingViewPoliciesRosterApp', dto.appSettingViewPoliciesRosterApp);
   set('appSettingBookHolidaysCareApp', dto.appSettingBookHolidaysCareApp);
   set('appSettingFingerprintLoginCareApp', dto.appSettingFingerprintLoginCareApp);
+  set('appSettingSingleDeviceLoginCareApp', dto.appSettingSingleDeviceLoginCareApp);
 
   set('privacyNonActiveServiceUserDays', dto.privacyNonActiveServiceUserDays);
   set('privacyNotifyInternalMessage', dto.privacyNotifyInternalMessage);
@@ -502,6 +504,15 @@ export class OrganisationGeneralSettingsService {
   async get() {
     const row = await this.getOrCreate();
     return { data: mapRow(row as SettingsRow) };
+  }
+
+  /** Care-app: block a second login while a refresh session is still live. Default off. */
+  async isSingleDeviceLoginCareApp(): Promise<boolean> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { appSettingSingleDeviceLoginCareApp: true },
+    });
+    return row?.appSettingSingleDeviceLoginCareApp ?? false;
   }
 
   /** Operational IANA timezone for schedules / ECM / calendar "today". */

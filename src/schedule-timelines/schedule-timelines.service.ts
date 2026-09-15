@@ -23,6 +23,7 @@ import {
   jobDurationMinutes,
 } from '../scheduling/schedule-date-range.util';
 import { mapEmployeeBrief, mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
+import { attachTimeSensitiveToTimelineJobs } from '../scheduling/time-sensitive-timeline.attach';
 import { attachVisitRefsToJobs } from '../scheduling/visit-ref-lookup.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import {
@@ -146,7 +147,14 @@ export class ScheduleTimelinesService {
       const f = flags.get(job.id);
       return f ? { ...job, ...f } : job;
     });
-    return attachVisitRefsToJobs(this.prisma, withFlags);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const withTimeSensitive = await attachTimeSensitiveToTimelineJobs(
+      this.prisma,
+      withFlags,
+      day,
+      timeZone,
+    );
+    return attachVisitRefsToJobs(this.prisma, withTimeSensitive);
   }
 
   private async fetchJobs(

@@ -90,6 +90,7 @@ type PackMemberMed = {
   instructions: string | null;
   howAssisted?: string | null;
   isControlledMedication: boolean;
+  timeCritical?: boolean;
   startDate?: Date | string | null;
   endDate?: Date | string | null;
   route: { name: string } | null;
@@ -146,7 +147,7 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
   const tags: EmployeeAppBlisterPackMedicine['tags'] = [];
   if (allergyHit) tags.push({ id: 'allergy', label: 'Allergy', tone: 'danger' });
   if (med.isControlledMedication) tags.push({ id: 'cd', label: 'CD', tone: 'warning' });
-  if (Boolean(adminRules.timeCritical)) {
+  if (Boolean(med.timeCritical) || Boolean(adminRules.timeCritical)) {
     tags.push({ id: 'time_critical', label: 'Time-critical', tone: 'warning' });
   }
 
@@ -170,7 +171,7 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
     detail: detailParts.join(' · '),
     isPrn: false,
     controlled: Boolean(med.isControlledMedication),
-    timeCritical: Boolean(adminRules.timeCritical),
+    timeCritical: Boolean(med.timeCritical) || Boolean(adminRules.timeCritical),
     allergyWarning: Boolean(allergyHit),
     allergyWarningMessage: relatedAllergy ? `Related allergy: ${relatedAllergy}` : null,
     relatedAllergy,

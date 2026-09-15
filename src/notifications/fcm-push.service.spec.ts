@@ -49,6 +49,18 @@ describe('FcmPushService', () => {
     expect(result.token).toBe('abc')
   })
 
+  it('areEmployeePushTokensDead is false when there are no tokens', async () => {
+    ;(prismaMock.employeeDeviceToken.findMany as jest.Mock).mockResolvedValue([])
+    await expect(service.areEmployeePushTokensDead('emp-1')).resolves.toBe(false)
+  })
+
+  it('areEmployeePushTokensDead is false when firebase is not ready', async () => {
+    ;(prismaMock.employeeDeviceToken.findMany as jest.Mock).mockResolvedValue([
+      { token: 'abc' },
+    ])
+    await expect(service.areEmployeePushTokensDead('emp-1')).resolves.toBe(false)
+  })
+
   it('sendToEmployees is a no-op when there are no tokens', async () => {
     ;(prismaMock.employeeDeviceToken.findMany as jest.Mock).mockResolvedValue([])
     const result = await service.sendToEmployees(['emp-1'], {

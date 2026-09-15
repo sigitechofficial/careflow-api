@@ -3,6 +3,7 @@ export const URGENT_OFFICE_ALERT_KINDS = [
   'CARER_SOS',
   'LEFT_VISIT_AREA',
   'UNABLE_TO_START',
+  'OUTSIDE_AREA_CHECK_IN_REQUEST',
 ] as const
 
 export type UrgentOfficeAlertKind = (typeof URGENT_OFFICE_ALERT_KINDS)[number]

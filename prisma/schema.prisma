@@ -937,6 +937,8 @@ model OrganisationGeneralSettings {
   appSettingViewPoliciesRosterApp Boolean         @default(true)
   appSettingBookHolidaysCareApp Boolean           @default(true)
   appSettingFingerprintLoginCareApp Boolean       @default(true)
+  /// When true, a second Care-app login is blocked while a refresh session is active.
+  appSettingSingleDeviceLoginCareApp Boolean      @default(false)
   privacyNonActiveServiceUserDays Int             @default(60)
   privacyNotifyInternalMessage  Boolean           @default(true)
   privacyNotifyEmail            Boolean           @default(false)
@@ -1275,6 +1277,9 @@ model EmployeePortalAccount {
   isEnabled        Boolean   @default(false)
   refreshTokenHash String?
   lastLoginAt      DateTime?
+  lastSeenAt       DateTime?
+  lastLoginIp      String?
+  lastLoginUserAgent String?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -5314,6 +5319,9 @@ model ServiceUserMedication {
   notes                    String?
   isControlledMedication   Boolean                @default(false)
   isDecongestantMedication Boolean               @default(false)
+  /// Must be given within timeToleranceMinutes of the due time (CQC time-sensitive).
+  timeCritical             Boolean                @default(false)
+  timeToleranceMinutes     Int                    @default(30)
   medicationKind           MedicationKind
   status                   MedicationRecordStatus @default(ACTIVE)
   statusEndReason          MedicationStatusEndReason?

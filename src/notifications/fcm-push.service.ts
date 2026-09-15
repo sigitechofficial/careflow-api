@@ -78,6 +78,40 @@ export class FcmPushService {
     return { id: row.id, token: row.token, platform: row.platform };
   }
 
+  /**
+   * True only when this employee has FCM tokens and every token is unregistered/invalid.
+   * No tokens or Firebase not ready → false (not a signal to treat the session as gone).
+   */
+  async areEmployeePushTokensDead(employeeId: string): Promise<boolean> {
+    const rows = await this.prisma.employeeDeviceToken.findMany({
+      where: { employeeId },
+      select: { token: true },
+    });
+    if (!rows.length || !this.ready) return false;
+
+    const stale: string[] = [];
+    let live = 0;
+    for (const row of rows) {
+      try {
+        await getMessaging().send({ token: row.token, data: { k: '1' } }, true);
+        live += 1;
+      } catch (err) {
+        const code = (err as { code?: string } | undefined)?.code;
+        if (code && INVALID_TOKEN_CODES.has(code)) {
+          stale.push(row.token);
+        } else {
+          return false;
+        }
+      }
+    }
+    if (stale.length) {
+      await this.prisma.employeeDeviceToken.deleteMany({
+        where: { token: { in: stale } },
+      });
+    }
+    return live === 0 && stale.length === rows.length;
+  }
+
   async deleteToken(employeeId: string, token: string) {
     const trimmed = token.trim();
     if (!trimmed) return { deleted: 0 };

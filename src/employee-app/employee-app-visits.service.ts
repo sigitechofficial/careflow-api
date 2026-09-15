@@ -5067,6 +5067,7 @@ export class EmployeeAppVisitsService {
           reasonForMedication: true,
           howAssisted: true,
           isControlledMedication: true,
+          timeCritical: true,
           medicationPackId: true,
           route: { select: { name: true } },
           schedules: {
@@ -5095,6 +5096,7 @@ export class EmployeeAppVisitsService {
           reasonForMedication: true,
           howAssisted: true,
           isControlledMedication: true,
+          timeCritical: true,
           route: { select: { name: true } },
         },
       }),
@@ -5138,6 +5140,7 @@ export class EmployeeAppVisitsService {
                   reasonForMedication: true,
                   howAssisted: true,
                   isControlledMedication: true,
+                  timeCritical: true,
                   route: { select: { name: true } },
                   medicationPack: { select: { adminRules: true } },
                   startDate: true,
@@ -5277,7 +5280,7 @@ export class EmployeeAppVisitsService {
       const tags: Array<{ id: string; label: string; tone: Tone }> = [];
       if (allergyHit) tags.push({ id: 'allergy', label: 'Allergy', tone: 'danger' });
       if (m.isControlledMedication) tags.push({ id: 'cd', label: 'CD', tone: 'warning' });
-      if (Boolean(adminRules.timeCritical)) {
+      if (Boolean(m.timeCritical) || Boolean(adminRules.timeCritical)) {
         tags.push({ id: 'time_critical', label: 'Time-critical', tone: 'warning' });
       }
 
@@ -5303,7 +5306,7 @@ export class EmployeeAppVisitsService {
         detail: detailParts.join(' · '),
         isPrn,
         controlled: Boolean(m.isControlledMedication),
-        timeCritical: Boolean(adminRules.timeCritical),
+        timeCritical: Boolean(m.timeCritical) || Boolean(adminRules.timeCritical),
         allergyWarning: Boolean(allergyHit),
         allergyWarningMessage: relatedAllergy ? `Related allergy: ${relatedAllergy}` : null,
         relatedAllergy,

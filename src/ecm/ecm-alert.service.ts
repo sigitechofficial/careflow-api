@@ -189,7 +189,9 @@ export class EcmAlertService {
         ? `Carer left visit area — ${suName}`
         : row.kind === 'UNABLE_TO_START'
           ? `Unable to start visit — ${suName}`
-          : `ECM alert — ${row.kind}`;
+          : row.kind === 'OUTSIDE_AREA_CHECK_IN_REQUEST'
+            ? `Manual check-in needs approval — ${suName}`
+            : `ECM alert — ${row.kind}`;
 
     let recipientCount = 0;
     if (channels.notification && this.notifications) {
