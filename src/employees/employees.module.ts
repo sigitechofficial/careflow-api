@@ -5,9 +5,10 @@ import { EmployeePortalAccountsService } from './employee-portal-accounts.servic
 import { EmployeeVisitsService } from './employee-visits.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 
 @Module({
-  imports: [AuditLogsModule, ScheduleLifecycleImpactModule],
+  imports: [AuditLogsModule, ScheduleLifecycleImpactModule, OrganisationGeneralSettingsModule],
   controllers: [EmployeesController],
   providers: [EmployeesService, EmployeePortalAccountsService, EmployeeVisitsService],
   exports: [EmployeesService, EmployeePortalAccountsService, EmployeeVisitsService],

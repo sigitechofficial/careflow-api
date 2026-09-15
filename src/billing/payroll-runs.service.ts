@@ -32,6 +32,7 @@ import {
   formatMinutesAsHours,
   formatTimeRange,
 } from './visit-reconciliation.util';
+import { formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
 import { calculateUkMileage } from './pay-mileage.util';
 import {
   detectInterVisitTravel,
@@ -62,7 +63,6 @@ import {
   type PayrollVisitExportRow,
 } from './payroll-run-export-csv.util';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
-import { operationalDayBounds } from '../common/utils/operational-day.util';
 
 const MUTABLE_STATUSES: PayrollRunStatus[] = [
   PayrollRunStatus.DRAFT,
@@ -1466,6 +1466,7 @@ export class PayrollRunsService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const plannedDateFilter = await this.operationalVisitDateFilter(
       query.dateFrom,
       query.dateTo,
@@ -1574,6 +1575,8 @@ export class PayrollRunsService {
           serviceUserId: true,
           plannedStartDateTime: true,
           plannedEndDateTime: true,
+          actualStartDateTime: true,
+          actualEndDateTime: true,
           approvedPayStart: true,
           approvedPayEnd: true,
           payableAmount: true,
@@ -1683,12 +1686,7 @@ export class PayrollRunsService {
 
     const formatHm = (d: Date | null | undefined) => {
       if (!d) return null;
-      return new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'UTC',
-      }).format(d);
+      return formatHmInTimeZone(d, timeZone);
     };
 
     const visits = visitRows.map((row) => {
@@ -1728,12 +1726,22 @@ export class PayrollRunsService {
           row.plannedEndDateTime
             ? `${formatHm(row.plannedStartDateTime)}–${formatHm(row.plannedEndDateTime)}`
             : formatHm(row.plannedStartDateTime),
+        actualStart: row.actualStartDateTime?.toISOString() ?? null,
+        actualEnd: row.actualEndDateTime?.toISOString() ?? null,
+        actualTime:
+          row.actualStartDateTime && row.actualEndDateTime
+            ? `${formatHm(row.actualStartDateTime)}–${formatHm(row.actualEndDateTime)}`
+            : row.actualStartDateTime
+              ? formatHm(row.actualStartDateTime)
+              : null,
         approvedPayStart: row.approvedPayStart?.toISOString() ?? null,
         approvedPayEnd: row.approvedPayEnd?.toISOString() ?? null,
         approvedPayTime:
           row.approvedPayStart && row.approvedPayEnd
             ? `${formatHm(row.approvedPayStart)}–${formatHm(row.approvedPayEnd)}`
-            : null,
+            : row.approvedPayStart
+              ? formatHm(row.approvedPayStart)
+              : null,
         payableAmount: formatMoney(Number(row.payableAmount ?? 0)),
         payableAmountValue: Math.round(Number(row.payableAmount ?? 0) * 100) / 100,
         payableMinutes: row.payableMinutes,
@@ -1805,6 +1813,7 @@ export class PayrollRunsService {
         employeeId,
         dateFrom: query.dateFrom ?? null,
         dateTo: query.dateTo ?? null,
+        organisationTimezone: timeZone,
         currency: 'GBP',
         /** Gross monthly salary from accepted visits (before fines/penalties). */
         salaryAmount: formatMoney(visitSalary),

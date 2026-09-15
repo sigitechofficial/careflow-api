@@ -182,7 +182,8 @@ export class ServiceUserDocumentStoreService {
   async getStore(serviceUserId: string) {
     await this.ensureServiceUser(serviceUserId);
 
-    const [documentTypes, documents, legal, mcaAssessment, activeMedicationCount] = await Promise.all([
+    const [documentTypes, documents, legal, mcaAssessment, activeMedicationCount, activeDolsCount] =
+      await Promise.all([
       this.prisma.serviceUserDocumentTypeCatalog.findMany({
         where: { deletedAt: null, isActive: true },
         orderBy: { sortOrder: 'asc' },
@@ -200,6 +201,14 @@ export class ServiceUserDocumentStoreService {
       this.prisma.serviceUserMedication.count({
         where: { serviceUserId, deletedAt: null, status: 'ACTIVE' },
       }),
+      this.prisma.serviceUserDolsRecord.count({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          isActive: true,
+          isCurrent: true,
+        },
+      }),
     ]);
 
     const mappedDocuments = documents.map(mapDocumentRecord);
@@ -209,6 +218,7 @@ export class ServiceUserDocumentStoreService {
       legal,
       mcaAssessmentComplete: Boolean(mcaAssessment?.completions?.length),
       medicationSupportRequired: activeMedicationCount > 0,
+      hasActiveDols: activeDolsCount > 0,
     });
 
     return {

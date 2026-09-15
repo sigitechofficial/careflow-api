@@ -565,22 +565,39 @@ export class ServiceUsersService implements OnModuleInit {
     ]);
 
     const pageIds = rows.map((row) => row.id);
-    const publishedCarePlans =
+    const creatorIds = [
+      ...new Set(rows.map((row) => row.createdById).filter((id): id is string => Boolean(id))),
+    ];
+    const [publishedCarePlans, creators] = await Promise.all([
       pageIds.length === 0
-        ? []
-        : await this.prisma.serviceUserCarePlanInstance.findMany({
+        ? Promise.resolve([])
+        : this.prisma.serviceUserCarePlanInstance.findMany({
             where: {
               serviceUserId: { in: pageIds },
               status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
             },
             select: { serviceUserId: true, nextReviewDueAt: true },
-          });
+          }),
+      creatorIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.user.findMany({
+            where: { id: { in: creatorIds } },
+            select: { id: true, firstName: true, lastName: true, email: true, username: true },
+          }),
+    ]);
     const carePlanListStatusByUserId = carePlanListStatusByServiceUser(pageIds, publishedCarePlans);
+    const creatorNameById = new Map(
+      creators.map((u) => {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+        return [u.id, name || u.email || u.username || null] as const;
+      }),
+    );
 
     return {
       data: rows.map((row) =>
         mapServiceUserListRow(row, scheduleAreaByLocation, {
           carePlanListStatus: carePlanListStatusByUserId.get(row.id) ?? 'none',
+          createdByName: row.createdById ? creatorNameById.get(row.createdById) ?? null : null,
         }),
       ),
       meta: buildPaginationMeta({ page, limit, total }),

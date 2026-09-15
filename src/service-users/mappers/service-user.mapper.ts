@@ -71,6 +71,8 @@ export function mapServiceUserListRow(
   isActive: boolean;
   serviceStartDate: Date | null;
   profilePhotoUrl: string | null;
+  createdAt?: Date;
+  createdById?: string | null;
   title: { id: string; name: string; code: string } | null;
   gender: { id: string; name: string; code: string } | null;
   status: { id: string; name: string; code: string } | null;
@@ -86,7 +88,7 @@ export function mapServiceUserListRow(
   assignments?: ServiceUserAssignmentSlice[];
 },
   scheduleAreaByLocation?: Map<string, ScheduleAreaBranchLookup>,
-  extras?: { carePlanListStatus?: CarePlanListStatus },
+  extras?: { carePlanListStatus?: CarePlanListStatus; createdByName?: string | null },
 ) {
   return {
     id: user.id,
@@ -98,6 +100,9 @@ export function mapServiceUserListRow(
     isActive: user.isActive,
     serviceStartDate: user.serviceStartDate,
     profilePhotoUrl: user.profilePhotoUrl,
+    createdAt: user.createdAt ?? null,
+    createdById: user.createdById ?? null,
+    createdByName: extras?.createdByName ?? null,
     title: mapLookup(user.title),
     gender: mapLookup(user.gender),
     status: mapLookup(user.status),

@@ -13,6 +13,7 @@ import {
   syncEmarMedicationPromptsForServiceUser,
 } from '../visit-tasks/visit-task-emar-prompt.sync';
 import { catalogueFeedsBodyMap } from '../employee-app/visit-task-obs-link.util';
+import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
 
 const assignmentInclude = {
   task: {
@@ -24,7 +25,32 @@ const assignmentInclude = {
       },
     },
   },
+  createdBy: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      username: true,
+    },
+  },
 } satisfies Prisma.ServiceUserVisitTaskAssignmentInclude;
+
+function userDisplayName(
+  user:
+    | {
+        firstName: string | null;
+        lastName: string | null;
+        email: string;
+        username: string | null;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (!user) return null;
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return name || user.email || user.username || null;
+}
 
 function normalizeInstructions(value: string | null | undefined): string | null {
   const trimmed = value?.trim() ?? '';
@@ -50,6 +76,37 @@ export class ServiceUserVisitTasksService {
     if (!row) throw new NotFoundException('Service user not found');
   }
 
+  /** Temporary fallback for legacy visit tasks created before createdBy was stored. */
+  private async resolveSuperAdminFallback(): Promise<{
+    id: string;
+    name: string;
+  } | null> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        userRoles: {
+          some: {
+            role: { name: IDENTITY_ROLE.SUPER_ADMIN, deletedAt: null, isActive: true },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        username: true,
+      },
+    });
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: userDisplayName(user) || 'Super Admin',
+    };
+  }
+
   async list(serviceUserId: string, actorUserId?: string | null) {
     await this.ensureServiceUser(serviceUserId);
 
@@ -59,7 +116,7 @@ export class ServiceUserVisitTasksService {
       actorUserId,
     );
 
-    const [assignments, rounds] = await Promise.all([
+    const [assignments, rounds, superAdmin] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
         where: { serviceUserId, deletedAt: null, isActive: true },
         orderBy: [
@@ -82,13 +139,14 @@ export class ServiceUserVisitTasksService {
           sortOrder: true,
         },
       }),
+      this.resolveSuperAdminFallback(),
     ]);
 
     const byRound = new Map<string, ReturnType<typeof this.mapAssignment>[]>();
     for (const assignment of assignments) {
       const code = assignment.medicationRoundCode;
       const list = byRound.get(code) ?? [];
-      list.push(this.mapAssignment(assignment));
+      list.push(this.mapAssignment(assignment, superAdmin));
       byRound.set(code, list);
     }
 
@@ -261,7 +319,10 @@ export class ServiceUserVisitTasksService {
 
   private mapAssignment(
     row: Prisma.ServiceUserVisitTaskAssignmentGetPayload<{ include: typeof assignmentInclude }>,
+    superAdminFallback?: { id: string; name: string } | null,
   ) {
+    const createdByName = userDisplayName(row.createdBy);
+    const useFallback = !row.createdById || !createdByName;
     return {
       id: row.id,
       medicationRoundCode: row.medicationRoundCode,
@@ -270,6 +331,13 @@ export class ServiceUserVisitTasksService {
       bodyMapRequired: Boolean(row.bodyMapRequired),
       priority: row.priority,
       schedule: pickScheduleFromAssignment(row),
+      createdAt: row.createdAt.toISOString(),
+      createdById: useFallback
+        ? (superAdminFallback?.id ?? row.createdById ?? null)
+        : row.createdById,
+      createdByName: useFallback
+        ? (superAdminFallback?.name ?? 'Super Admin')
+        : createdByName,
       isEmarPrompt: isEmarMedicationPromptTask({
         name: row.task.name,
         flagsJson: row.task.flagsJson,

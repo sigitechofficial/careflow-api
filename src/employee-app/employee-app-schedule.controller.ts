@@ -114,22 +114,20 @@ export class EmployeeAppScheduleController {
   @ApiOperation({
     summary: 'My visits history (read-only)',
     description:
-      'All allocated visits for the authenticated carer in a UTC month (or custom dateFrom/dateTo, max 366 days) — summary buckets, planned/actual times, and delivery assessment. Same data as admin Employee → Visits tab. Scoped to the logged-in employee only. Open a visit via GET /employee-app/visits/:jobId.',
+      'All allocated visits for the authenticated carer in an organisation-operational month (or custom dateFrom/dateTo, max 366 days) — summary buckets, planned/actual times, and delivery assessment. Same data as admin Employee → Visits tab. Scoped to the logged-in employee only. Open a visit via GET /employee-app/visits/:jobId.',
   })
   @ApiQuery({ name: 'month', required: false, example: '2026-07' })
   @ApiQuery({ name: 'dateFrom', required: false, example: '2026-01-01' })
   @ApiQuery({ name: 'dateTo', required: false, example: '2026-07-31' })
   async myVisits(@CurrentUser() user: RequestUser, @Query() query: EmployeeAppMyVisitsQueryDto) {
-    const resolved = this.employeeVisitsService.resolveVisitQuery({
+    const resolved = await this.employeeVisitsService.resolveVisitQuery({
       month: query.month,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
     });
 
-    const [result, timeZone] = await Promise.all([
-      this.employeeVisitsService.getVisitsInRange(user.employeeId!, resolved),
-      this.orgSettings.getOperationalTimezone(),
-    ]);
+    const result = await this.employeeVisitsService.getVisitsInRange(user.employeeId!, resolved);
+    const timeZone = resolved.organisationTimezone;
 
     return {
       data: {

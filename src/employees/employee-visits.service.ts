@@ -3,12 +3,18 @@ import { AllocationStatus, ScheduledJobStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   assertDateRangeMaxDays,
+  operationalScheduleMonthBounds,
   utcMonthBounds,
 } from '../scheduling/schedule-date-range.util';
-import { parseScheduleDate, formatScheduleDate } from '../schedules/schedules-date.util';
+import { formatScheduleDate } from '../schedules/schedules-date.util';
 import { mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -25,22 +31,28 @@ export type EmployeeVisitBucket = 'completed' | 'ongoing' | 'upcoming' | 'other'
 
 @Injectable()
 export class EmployeeVisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async getVisitsForMonth(employeeId: string, month: string) {
-    const { monthStart, monthEnd, label } = utcMonthBounds(month);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { monthStart, monthEnd, label } = operationalScheduleMonthBounds(month, timeZone);
+    const civil = utcMonthBounds(month);
     return this.getVisitsInRange(employeeId, {
       rangeStart: monthStart,
       rangeEnd: monthEnd,
       period: label,
       periodType: 'month',
-      dateFrom: formatScheduleDate(monthStart),
-      dateTo: formatScheduleDate(monthEnd),
+      dateFrom: formatScheduleDate(civil.monthStart),
+      dateTo: formatScheduleDate(civil.monthEnd),
+      organisationTimezone: timeZone,
     });
   }
 
   /**
-   * Allocated visits for an employee in a UTC date range (inclusive).
+   * Allocated visits for an employee in an inclusive datetime range.
    * Used by admin Employee → Visits and carer `GET /employee-app/me/visits`.
    */
   async getVisitsInRange(
@@ -52,6 +64,7 @@ export class EmployeeVisitsService {
       periodType: 'month' | 'custom';
       dateFrom?: string;
       dateTo?: string;
+      organisationTimezone?: string;
     },
   ) {
     const employee = await this.prisma.employee.findFirst({
@@ -225,6 +238,7 @@ export class EmployeeVisitsService {
         periodType: opts.periodType,
         dateFrom: opts.dateFrom ?? formatScheduleDate(opts.rangeStart),
         dateTo: opts.dateTo ?? formatScheduleDate(opts.rangeEnd),
+        organisationTimezone: opts.organisationTimezone ?? null,
         summary,
         visits,
       },
@@ -232,18 +246,20 @@ export class EmployeeVisitsService {
   }
 
   /** Resolve month or custom range for carer / admin callers. */
-  resolveVisitQuery(query: {
+  async resolveVisitQuery(query: {
     month?: string;
     dateFrom?: string;
     dateTo?: string;
-  }): {
+  }): Promise<{
     rangeStart: Date;
     rangeEnd: Date;
     period: string;
     periodType: 'month' | 'custom';
     dateFrom: string;
     dateTo: string;
-  } {
+    organisationTimezone: string;
+  }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const dateFrom = query.dateFrom?.trim();
     const dateTo = query.dateTo?.trim();
 
@@ -251,9 +267,8 @@ export class EmployeeVisitsService {
       if (!dateFrom || !dateTo) {
         throw new BadRequestException('Provide both dateFrom and dateTo, or use month');
       }
-      const rangeStart = parseScheduleDate(dateFrom);
-      const rangeEnd = parseScheduleDate(dateTo);
-      rangeEnd.setUTCHours(23, 59, 59, 999);
+      const rangeStart = operationalDayBounds(dateFrom, timeZone).start;
+      const rangeEnd = operationalDayBounds(dateTo, timeZone).end;
       if (rangeStart.getTime() > rangeEnd.getTime()) {
         throw new BadRequestException('dateFrom must be on or before dateTo');
       }
@@ -265,23 +280,26 @@ export class EmployeeVisitsService {
         periodType: 'custom',
         dateFrom,
         dateTo,
+        organisationTimezone: timeZone,
       };
     }
 
     const month =
       query.month?.trim() ||
       (() => {
-        const now = new Date();
-        return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+        const today = operationalTodayIso(new Date(), timeZone);
+        return today.slice(0, 7);
       })();
-    const { monthStart, monthEnd, label } = utcMonthBounds(month);
+    const { monthStart, monthEnd, label } = operationalScheduleMonthBounds(month, timeZone);
+    const civil = utcMonthBounds(month);
     return {
       rangeStart: monthStart,
       rangeEnd: monthEnd,
       period: label,
       periodType: 'month',
-      dateFrom: formatScheduleDate(monthStart),
-      dateTo: formatScheduleDate(monthEnd),
+      dateFrom: formatScheduleDate(civil.monthStart),
+      dateTo: formatScheduleDate(civil.monthEnd),
+      organisationTimezone: timeZone,
     };
   }
 }
