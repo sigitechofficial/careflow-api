@@ -65,8 +65,11 @@ export class InvoiceRunsController {
     summary:
       'Per-service-user invoice status across periods (sent vs outstanding)',
   })
-  serviceUsersOverview(@Query('month') month?: string) {
-    return this.service.getServiceUserInvoicesOverview({ month });
+  serviceUsersOverview(
+    @Query('month') month?: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.service.getServiceUserInvoicesOverview({ month, locationId });
   }
 
   @Get()
@@ -79,8 +82,11 @@ export class InvoiceRunsController {
   @Get(':id')
   @Permissions('billing.invoice_runs.read')
   @ApiOperation({ summary: 'Get invoice run with lines' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(
+    @Param('id') id: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.service.getById(id, locationId);
   }
 
   @Get(':id/export')

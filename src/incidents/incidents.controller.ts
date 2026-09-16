@@ -63,8 +63,11 @@ export class IncidentsController {
   @Get('stats')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'Dashboard summary statistics (privacy-filtered)' })
-  getStats(@CurrentUser() user: RequestUser) {
-    return this.service.getStats(user);
+  getStats(
+    @CurrentUser() user: RequestUser,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.service.getStats(user, locationId);
   }
 
   @Get('analytics')

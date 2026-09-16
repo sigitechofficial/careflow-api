@@ -840,14 +840,52 @@ export class IncidentsService {
   // Dashboard statistics (privacy-filtered)
   // ---------------------------------------------------------------------------
 
-  async getStats(user: RequestUser) {
+  async getStats(user: RequestUser, locationId?: string) {
     const scope = this.orgScope.fromRequestUser(user);
     const base: Prisma.IncidentWhereInput = {
       deletedAt: null,
       isArchived: false,
       ...this.privacyWhere(user),
     };
-    andWhereFragment(base, await this.orgScope.incidentScopeWhere(scope));
+
+    const locationIds = this.orgScope.resolveListLocationIds(
+      scope,
+      locationId,
+      undefined,
+    );
+    if (locationIds && locationIds.length === 0) {
+      return {
+        data: {
+          total: 0,
+          open: 0,
+          closedThisMonth: 0,
+          overdueActions: 0,
+          awaitingReview: 0,
+          underInvestigation: 0,
+          actionsRequired: 0,
+          highOrCritical: 0,
+          byStatus: {},
+          bySeverity: {},
+        },
+      };
+    }
+
+    if (locationIds?.length) {
+      const serviceUsers = await this.prisma.serviceUser.findMany({
+        where: { deletedAt: null, locationId: { in: locationIds } },
+        select: { id: true },
+      });
+      const suIds = serviceUsers.map((s) => s.id);
+      andWhereFragment(base, {
+        OR: [
+          { locationId: { in: locationIds } },
+          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+        ],
+      });
+    } else {
+      andWhereFragment(base, await this.orgScope.incidentScopeWhere(scope));
+    }
+
     const startOfMonth = new Date();
     startOfMonth.setUTCDate(1);
     startOfMonth.setUTCHours(0, 0, 0, 0);

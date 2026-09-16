@@ -49,6 +49,12 @@ import {
   isOrganisationTimezone,
 } from './organisation-timezone';
 import { getOperationalTimeZone } from '../common/utils/operational-day.util';
+import {
+  resolveDateDisplayFormat,
+  resolveTimeDisplayFormat,
+  type DateDisplayFormat,
+  type TimeDisplayFormat,
+} from '../common/utils/organisation-display-format.util';
 
 const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
@@ -522,6 +528,27 @@ export class OrganisationGeneralSettingsService {
       select: { timezone: true },
     });
     return getOperationalTimeZone(row?.timezone);
+  }
+
+  /** Operational timezone + date/time display formats for exports and UI helpers. */
+  async getOperationalDisplaySettings(): Promise<{
+    timeZone: string;
+    dateDisplayFormat: DateDisplayFormat;
+    timeDisplayFormat: TimeDisplayFormat;
+  }> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: {
+        timezone: true,
+        dateDisplayFormat: true,
+        timeDisplayFormat: true,
+      },
+    });
+    return {
+      timeZone: getOperationalTimeZone(row?.timezone),
+      dateDisplayFormat: resolveDateDisplayFormat(row?.dateDisplayFormat),
+      timeDisplayFormat: resolveTimeDisplayFormat(row?.timeDisplayFormat),
+    };
   }
 
   async update(userId: string, dto: UpdateOrganisationGeneralSettingsDto) {

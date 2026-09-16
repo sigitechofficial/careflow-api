@@ -62,7 +62,7 @@ import {
   resolveEmonitored,
   type PayrollVisitExportRow,
 } from './payroll-run-export-csv.util';
-import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { serviceUserIdsForLocation, employeeIdsForLocation } from './billing-location-scope.util';
 
 const MUTABLE_STATUSES: PayrollRunStatus[] = [
   PayrollRunStatus.DRAFT,
@@ -1192,6 +1192,48 @@ export class PayrollRunsService {
       ? { plannedStartDateTime: plannedDateFilter }
       : {};
 
+    const scopedLocationId = query.locationId?.trim() || undefined;
+    let locationEmployeeFilter: Prisma.StringFilter | undefined;
+    if (scopedLocationId) {
+      const locationEmployeeIds = await employeeIdsForLocation(
+        this.prisma,
+        scopedLocationId,
+      );
+      if (!locationEmployeeIds.length) {
+        return {
+          data: {
+            dateFrom: query.dateFrom ?? null,
+            dateTo: query.dateTo ?? null,
+            periodKey: derivePeriodKeyFromRange(query.dateFrom, query.dateTo),
+            hasEligibleUkRun: false,
+            currency: 'GBP',
+            employeeCount: 0,
+            rows: [],
+          },
+        };
+      }
+      locationEmployeeFilter = { in: locationEmployeeIds };
+    }
+
+    // Visits already enrolled in a UK payroll run are not "remaining" (same as
+    // getEmployeeEarnings) — bank payout / UK net tracks those separately.
+    const ukCoveredInputs = await this.prisma.ukPayrollInputLine.findMany({
+      where: { sourceVisitReconciliationId: { not: null } },
+      select: { sourceVisitReconciliationId: true },
+      distinct: ['sourceVisitReconciliationId'],
+    });
+    const ukCoveredReconIds = ukCoveredInputs
+      .map((l) => l.sourceVisitReconciliationId)
+      .filter((id): id is string => Boolean(id));
+
+    const remainingWhere: Prisma.VisitReconciliationWhereInput = {
+      ...earningsRemainingWhere(dateOnVisit),
+      ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
+      ...(ukCoveredReconIds.length
+        ? { id: { notIn: ukCoveredReconIds } }
+        : {}),
+    };
+
     const [
       salaryGroups,
       paidGroups,
@@ -1203,6 +1245,7 @@ export class PayrollRunsService {
         by: ['employeeId'],
         where: {
           ...dateOnVisit,
+          ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
           OR: [
             { includedInPayrollRunId: { not: null } },
             { status: { in: PAYROLL_ELIGIBLE_RECON } },
@@ -1219,7 +1262,7 @@ export class PayrollRunsService {
       this.prisma.payrollRunLine.groupBy({
         by: ['employeeId'],
         where: {
-          employeeId: { not: null },
+          employeeId: locationEmployeeFilter ?? { not: null },
           payrollRun: { status: { in: paidStatuses } },
           ...(plannedDateFilter
             ? { visitReconciliation: { plannedStartDateTime: plannedDateFilter } }
@@ -1230,7 +1273,7 @@ export class PayrollRunsService {
       }),
       this.prisma.visitReconciliation.groupBy({
         by: ['employeeId'],
-        where: earningsRemainingWhere(dateOnVisit),
+        where: remainingWhere,
         _sum: { payableAmount: true },
         _count: { _all: true },
       }),
@@ -1238,6 +1281,7 @@ export class PayrollRunsService {
         by: ['employeeId'],
         where: {
           ...dateOnVisit,
+          ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
           status: VisitReconciliationStatus.REJECTED_FOR_PAY,
         },
         _sum: { payableAmount: true },
@@ -1247,6 +1291,7 @@ export class PayrollRunsService {
         by: ['employeeId'],
         where: {
           ...dateOnVisit,
+          ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
           includedInPayrollRunId: null,
           status: {
             in: [
@@ -1264,6 +1309,7 @@ export class PayrollRunsService {
       where: {
         deletedAt: null,
         isActive: true,
+        ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
         ...(salaryMonths ? { salaryMonth: { in: salaryMonths } } : {}),
       },
       select: {

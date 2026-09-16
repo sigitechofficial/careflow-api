@@ -1,11 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AllocationStatus, Prisma, VisitReconciliationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { jobDurationMinutes } from '../scheduling/schedule-date-range.util';
+import { jobDurationMinutes, operationalScheduleMonthBounds } from '../scheduling/schedule-date-range.util';
 import {
   ENTERPRISE_EMPLOYEE_VISA_TYPES,
   LEGACY_VISA_TYPE_ID_MAP,
 } from '../organisation-general-settings/employee-visa-catalog.constants';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  addDaysToOperationalIso,
+  dayKeyInTimeZone,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
 import type {
   EmployeeHourBand,
   EmployeeHourMetric,
@@ -26,7 +33,7 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
 
 const OVERTIME_THRESHOLD_HOURS = 40;
 
-/** Monday 00:00 UTC of the ISO week containing `date` (UTC calendar date). */
+/** Monday 00:00 UTC of the ISO week containing a civil YYYY-MM-DD label. */
 function mondayOfIsoWeekContaining(date: Date): Date {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dow = d.getUTCDay() || 7; // Mon=1 … Sun=7
@@ -42,8 +49,17 @@ function parseUtcDateOnly(iso: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function endOfUtcDay(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
+function mondayIsoOfCivilDate(iso: string): string | null {
+  const d = parseUtcDateOnly(iso.slice(0, 10));
+  if (!d) return null;
+  return mondayOfIsoWeekContaining(d).toISOString().slice(0, 10);
+}
+
+function weekdayIndexFromMonday(mondayIso: string, dayIso: string): number {
+  const a = parseUtcDateOnly(mondayIso);
+  const b = parseUtcDateOnly(dayIso);
+  if (!a || !b) return 0;
+  return Math.min(6, Math.max(0, Math.round((b.getTime() - a.getTime()) / 86_400_000)));
 }
 
 function round2(n: number): number {
@@ -113,8 +129,13 @@ function sortedFacet(map: Map<string, FacetOption>): FacetOption[] {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Calendar month week blocks: W1=1–7, W2=8–14, W3=15–21, W4=22–28, W5=29–end. */
-function calendarMonthWeekBlocks(year: number, month: number): Array<{
+/** Calendar month week blocks: W1=1–7, W2=8–14, W3=15–21, W4=22–28, W5=29–end.
+ * Instant bounds use the organisation operational timezone. */
+function calendarMonthWeekBlocks(
+  year: number,
+  month: number,
+  timeZone: string,
+): Array<{
   weekNumber: number;
   dayFrom: number;
   dayTo: number;
@@ -135,11 +156,16 @@ function calendarMonthWeekBlocks(year: number, month: number): Array<{
     blocks.push({ dayFrom: 29, dayTo: daysInMonth });
   }
 
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const y = String(year);
+
   return blocks
     .filter((b) => b.dayFrom <= daysInMonth && b.dayFrom <= b.dayTo)
     .map((b, index) => {
-      const weekStart = new Date(Date.UTC(year, month - 1, b.dayFrom, 0, 0, 0, 0));
-      const weekEnd = endOfUtcDay(new Date(Date.UTC(year, month - 1, b.dayTo)));
+      const startIso = `${y}-${pad2(month)}-${pad2(b.dayFrom)}`;
+      const endIso = `${y}-${pad2(month)}-${pad2(b.dayTo)}`;
+      const weekStart = operationalDayBounds(startIso, timeZone).start;
+      const weekEnd = operationalDayBounds(endIso, timeZone).end;
       const dayLabels: string[] = [];
       for (let d = b.dayFrom; d <= b.dayTo; d += 1) {
         dayLabels.push(String(d));
@@ -150,8 +176,8 @@ function calendarMonthWeekBlocks(year: number, month: number): Array<{
         dayTo: b.dayTo,
         weekStart,
         weekEnd,
-        weekStartIso: weekStart.toISOString().slice(0, 10),
-        weekEndIso: weekEnd.toISOString().slice(0, 10),
+        weekStartIso: startIso,
+        weekEndIso: endIso,
         dayLabels,
       };
     });
@@ -184,18 +210,23 @@ function reconciliationPayableMinutes(r: {
 
 @Injectable()
 export class EmployeeHoursService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async weeklySummary(query: EmployeeHoursWeeklyQueryDto) {
-    const anchor = query.weekStart
-      ? parseUtcDateOnly(query.weekStart) ?? new Date()
-      : new Date();
-    const weekStart = mondayOfIsoWeekContaining(anchor);
-    const weekEnd = endOfUtcDay(
-      new Date(Date.UTC(weekStart.getUTCFullYear(), weekStart.getUTCMonth(), weekStart.getUTCDate() + 6)),
-    );
-    const weekStartIso = weekStart.toISOString().slice(0, 10);
-    const weekEndIso = weekEnd.toISOString().slice(0, 10);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const today = operationalTodayIso(new Date(), timeZone);
+    const mondayIso =
+      (query.weekStart ? mondayIsoOfCivilDate(query.weekStart) : null) ??
+      mondayIsoOfCivilDate(today) ??
+      today;
+    const sundayIso = addDaysToOperationalIso(mondayIso, 6);
+    const weekStart = operationalDayBounds(mondayIso, timeZone).start;
+    const weekEnd = operationalDayBounds(sundayIso, timeZone).end;
+    const weekStartIso = mondayIso;
+    const weekEndIso = sundayIso;
 
     const employmentWhere: Prisma.EmployeeEmploymentWhereInput = {};
     if (query.roleId) employmentWhere.roleId = query.roleId;
@@ -331,13 +362,8 @@ export class EmployeeHoursService {
         if (mins > 0) {
           workedMinutes.set(r.employeeId, (workedMinutes.get(r.employeeId) ?? 0) + mins);
           workedVisits.set(r.employeeId, (workedVisits.get(r.employeeId) ?? 0) + 1);
-          const dayIdx = Math.min(
-            6,
-            Math.max(
-              0,
-              Math.floor((r.plannedStartDateTime.getTime() - weekStart.getTime()) / 86_400_000),
-            ),
-          );
+          const dayKey = dayKeyInTimeZone(r.plannedStartDateTime, timeZone);
+          const dayIdx = weekdayIndexFromMonday(weekStartIso, dayKey);
           const days = dayMinutes.get(r.employeeId) ?? [0, 0, 0, 0, 0, 0, 0];
           days[dayIdx] += mins;
           dayMinutes.set(r.employeeId, days);
@@ -541,6 +567,7 @@ export class EmployeeHoursService {
       data: {
         weekStart: weekStartIso,
         weekEnd: weekEndIso,
+        organisationTimezone: timeZone,
         overtimeThresholdHours: OVERTIME_THRESHOLD_HOURS,
         bandMetric,
         hourBand: query.hourBand ?? null,
@@ -583,18 +610,18 @@ export class EmployeeHoursService {
    * Weeks are day-of-month blocks: W1 = 1–7, W2 = 8–14, W3 = 15–21, W4 = 22–28, W5 = 29–end.
    */
   async monthlySummary(query: EmployeeHoursMonthlyQueryDto) {
-    const now = new Date();
-    const m = query.month ? /^(\d{4})-(\d{2})$/.exec(query.month) : null;
-    const year = m ? Number(m[1]) : now.getUTCFullYear();
-    const month = m ? Number(m[2]) : now.getUTCMonth() + 1;
-    const monthStart = new Date(Date.UTC(year, month - 1, 1));
-    const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const today = operationalTodayIso(new Date(), timeZone);
+    const m = query.month ? /^(\d{4})-(\d{2})$/.exec(query.month) : /^(\d{4})-(\d{2})/.exec(today);
+    const year = m ? Number(m[1]) : Number(today.slice(0, 4));
+    const month = m ? Number(m[2]) : Number(today.slice(5, 7));
     const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const { monthStart, monthEnd } = operationalScheduleMonthBounds(monthKey, timeZone);
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
     const monthName = new Intl.DateTimeFormat('en-GB', {
       month: 'long',
       timeZone: 'UTC',
-    }).format(monthStart);
+    }).format(new Date(Date.UTC(year, month - 1, 1)));
 
     const empWhere: Prisma.EmployeeWhereInput = {
       deletedAt: null,
@@ -707,7 +734,8 @@ export class EmployeeHoursService {
           );
         }
         if (mins <= 0) continue;
-        const weekIdx = Math.min(4, Math.floor((r.plannedStartDateTime.getUTCDate() - 1) / 7));
+        const dayOfMonth = Number(dayKeyInTimeZone(r.plannedStartDateTime, timeZone).slice(8, 10));
+        const weekIdx = Math.min(4, Math.floor((dayOfMonth - 1) / 7));
         const weeks = weekMinutes.get(r.employeeId) ?? [0, 0, 0, 0, 0];
         weeks[weekIdx] += mins;
         weekMinutes.set(r.employeeId, weeks);
@@ -879,6 +907,7 @@ export class EmployeeHoursService {
         monthName,
         year,
         daysInMonth,
+        organisationTimezone: timeZone,
         smsUnderHoursRatio: SMS_UNDER_HOURS_RATIO,
         employeeCount: rows.length,
         totals: {
@@ -903,18 +932,18 @@ export class EmployeeHoursService {
    * (1–7, 8–14, 15–21, 22–28, 29–end), with contracted / assigned / worked hours.
    */
   async monthlyDetail(query: EmployeeHoursMonthlyDetailQueryDto) {
-    const now = new Date();
-    const m = query.month ? /^(\d{4})-(\d{2})$/.exec(query.month) : null;
-    const year = m ? Number(m[1]) : now.getUTCFullYear();
-    const month = m ? Number(m[2]) : now.getUTCMonth() + 1;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const today = operationalTodayIso(new Date(), timeZone);
+    const m = query.month ? /^(\d{4})-(\d{2})$/.exec(query.month) : /^(\d{4})-(\d{2})/.exec(today);
+    const year = m ? Number(m[1]) : Number(today.slice(0, 4));
+    const month = m ? Number(m[2]) : Number(today.slice(5, 7));
     const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-    const monthStart = new Date(Date.UTC(year, month - 1, 1));
-    const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const { monthStart, monthEnd } = operationalScheduleMonthBounds(monthKey, timeZone);
     const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
     const monthName = new Intl.DateTimeFormat('en-GB', {
       month: 'long',
       timeZone: 'UTC',
-    }).format(monthStart);
+    }).format(new Date(Date.UTC(year, month - 1, 1)));
 
     const emp = await this.prisma.employee.findFirst({
       where: { id: query.employeeId, deletedAt: null },
@@ -962,7 +991,7 @@ export class EmployeeHoursService {
       ? round2(Number(employment!.weeklyHoursCapOverride))
       : (visa?.capHours ?? null);
     const branch = employment?.baseLocation ?? employment?.location ?? null;
-    const weeksMeta = calendarMonthWeekBlocks(year, month);
+    const weeksMeta = calendarMonthWeekBlocks(year, month, timeZone);
 
     const [allocations, reconciliations] = await Promise.all([
       this.prisma.jobAllocation.findMany({
@@ -1024,7 +1053,7 @@ export class EmployeeHoursService {
         if (mins <= 0) continue;
         workedMins += mins;
         workedVisits += 1;
-        const dayOfMonth = r.plannedStartDateTime.getUTCDate();
+        const dayOfMonth = Number(dayKeyInTimeZone(r.plannedStartDateTime, timeZone).slice(8, 10));
         const dayIdx = dayOfMonth - week.dayFrom;
         if (dayIdx >= 0 && dayIdx < dayMins.length) {
           dayMins[dayIdx] += mins;
@@ -1115,6 +1144,7 @@ export class EmployeeHoursService {
         monthName,
         year,
         daysInMonth,
+        organisationTimezone: timeZone,
         weekScheme: '1–7 · 8–14 · 15–21 · 22–28 · 29+',
         employee: {
           employeeId: emp.id,

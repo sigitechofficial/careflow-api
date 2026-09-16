@@ -53,6 +53,11 @@ export class EmployeeEarningsQueryDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @ApiPropertyOptional({ description: 'Scope salary rows to employees at this branch' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
 export class CreateEmployeeSalaryDeductionDto {

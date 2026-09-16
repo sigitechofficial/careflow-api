@@ -24,8 +24,8 @@ export class PayrollEmployeesController {
   @Get('employees')
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'List employees with payroll setup status' })
-  list() {
-    return this.service.listEmployeeSetup();
+  list(@Query('locationId') locationId?: string) {
+    return this.service.listEmployeeSetup(locationId);
   }
 
   @Get('employees/:employeeId/ytd')

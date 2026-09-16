@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { FundingContractsQueryDto } from './dto/funding-contracts.dto';
+import { serviceUserIdsForLocation } from './billing-location-scope.util';
 import {
   assessFundingBillingReadiness,
   formatAuthorisedHours,
@@ -151,8 +152,27 @@ export class FundingContractsService {
     const limit = query.limit ?? 50;
     const search = query.search?.trim().toLowerCase();
 
+    let scopedServiceUserIds: string[] | undefined;
+    if (query.locationId) {
+      scopedServiceUserIds = await serviceUserIdsForLocation(
+        this.prisma,
+        query.locationId,
+      );
+      if (!scopedServiceUserIds.length) {
+        return {
+          data: [],
+          meta: buildPaginationMeta({ page, limit, total: 0 }),
+        };
+      }
+    }
+
     const fundings = await this.prisma.serviceUserFunding.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(scopedServiceUserIds
+          ? { serviceUserId: { in: scopedServiceUserIds } }
+          : {}),
+      },
       include: fundingLineInclude,
       orderBy: [{ serviceUserId: 'asc' }, { splitPriority: 'asc' }, { createdAt: 'asc' }],
     });
@@ -195,11 +215,37 @@ export class FundingContractsService {
     };
   }
 
-  async getSummary() {
+  async getSummary(locationId?: string) {
+    let scopedServiceUserIds: string[] | undefined;
+    if (locationId) {
+      scopedServiceUserIds = await serviceUserIdsForLocation(this.prisma, locationId);
+      if (!scopedServiceUserIds.length) {
+        return {
+          activeServiceUsers: 0,
+          serviceUsersWithFunding: 0,
+          ready: 0,
+          incomplete: 0,
+          ended: 0,
+          missingFundingContracts: 0,
+        };
+      }
+    }
+
+    const suWhere: Prisma.ServiceUserWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      ...(scopedServiceUserIds ? { id: { in: scopedServiceUserIds } } : {}),
+    };
+
     const [activeServiceUsers, fundings] = await Promise.all([
-      this.prisma.serviceUser.count({ where: { deletedAt: null, isActive: true } }),
+      this.prisma.serviceUser.count({ where: suWhere }),
       this.prisma.serviceUserFunding.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          ...(scopedServiceUserIds
+            ? { serviceUserId: { in: scopedServiceUserIds } }
+            : {}),
+        },
         include: fundingLineInclude,
       }),
     ]);

@@ -9,6 +9,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   ValidateNested,
@@ -549,6 +550,14 @@ export class BillingCardQueryDto {
   @IsOptional()
   @IsEnum(BillingCardStatus)
   status?: BillingCardStatus;
+
+  @ApiPropertyOptional({
+    description:
+      'When set, hide BRANCH / BRANCH_REGION cards targeted at other locations',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
 export class AssignPayCardMatchingDto {
