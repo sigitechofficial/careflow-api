@@ -1,3 +1,5 @@
+import { sosActionLabel, sosOutcomeLabel } from './ecm-reason-codes';
+
 export type CarerSosContext = {
   employeeId: string;
   employeeName: string;
@@ -9,6 +11,8 @@ export type CarerSosContext = {
   locationUnavailable: boolean;
   idempotencyKey: string | null;
   deviceRecordedAt: string | null;
+  officeActionCode?: string | null;
+  officeActionNote?: string | null;
 };
 
 export type CarerSosAlertDto = {
@@ -27,6 +31,14 @@ export type CarerSosAlertDto = {
   acknowledgedAt: string | null;
   acknowledgedById: string | null;
   acknowledgedByName: string | null;
+  actionCode: string | null;
+  actionLabel: string | null;
+  actionNote: string | null;
+  outcomeCode: string | null;
+  outcomeLabel: string | null;
+  resolutionNote: string | null;
+  closedAt: string | null;
+  closedByName: string | null;
 };
 
 export function displayUserName(user: {
@@ -53,13 +65,21 @@ export function mapCarerSosAlert(
     context: unknown;
     acknowledgedAt?: Date | null;
     acknowledgedById?: string | null;
+    reasonCode?: string | null;
+    resolutionNote?: string | null;
+    closedAt?: Date | null;
   },
-  names?: { acknowledgedByName?: string | null },
+  names?: { acknowledgedByName?: string | null; closedByName?: string | null },
 ): CarerSosAlertDto {
   const ctx = parseCarerSosContext(row.context);
   const message =
     (typeof ctx.message === 'string' && ctx.message.trim()) ||
     (row.detail && row.detail !== 'No message' ? row.detail : null);
+  const actionCode =
+    typeof ctx.officeActionCode === 'string' && ctx.officeActionCode.trim()
+      ? ctx.officeActionCode.trim()
+      : null;
+  const outcomeCode = row.reasonCode?.trim() || null;
   return {
     id: row.id,
     createdAt: row.createdAt.toISOString(),
@@ -76,5 +96,16 @@ export function mapCarerSosAlert(
     acknowledgedAt: row.acknowledgedAt?.toISOString() ?? null,
     acknowledgedById: row.acknowledgedById ?? null,
     acknowledgedByName: names?.acknowledgedByName ?? null,
+    actionCode,
+    actionLabel: sosActionLabel(actionCode),
+    actionNote:
+      typeof ctx.officeActionNote === 'string' && ctx.officeActionNote.trim()
+        ? ctx.officeActionNote.trim()
+        : null,
+    outcomeCode,
+    outcomeLabel: sosOutcomeLabel(outcomeCode),
+    resolutionNote: row.resolutionNote?.trim() || null,
+    closedAt: row.closedAt?.toISOString() ?? null,
+    closedByName: names?.closedByName ?? null,
   };
 }

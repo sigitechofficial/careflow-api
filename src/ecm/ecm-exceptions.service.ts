@@ -19,6 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
+import { isSosOutcomeCode, parseSosClosePayload, sosOutcomeLabel } from './ecm-reason-codes';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
@@ -690,9 +691,16 @@ export class EcmExceptionsService {
   }
 
   async resolve(id: string, userId: string, reasonCode: string, note?: string) {
-    await this.requireOpen(id);
+    const row = await this.requireOpen(id);
     if (!reasonCode?.trim()) {
       throw new BadRequestException('reasonCode is required');
+    }
+    if (row.kind === EcmExceptionKind.CARER_SOS) {
+      const outcome = reasonCode.trim().toUpperCase();
+      if (!isSosOutcomeCode(outcome) && !sosOutcomeLabel(outcome)) {
+        throw new BadRequestException('Choose a SOS outcome');
+      }
+      reasonCode = outcome;
     }
     const updated = await this.prisma.ecmException.update({
       where: { id },
@@ -702,7 +710,7 @@ export class EcmExceptionsService {
         resolutionNote: note?.trim() || null,
         resolvedAt: new Date(),
         resolvedById: userId,
-        firstActionAt: new Date(),
+        firstActionAt: row.firstActionAt ?? new Date(),
       },
     });
     await this.audit.append({
@@ -714,6 +722,117 @@ export class EcmExceptionsService {
       detail: { reasonCode: reasonCode.trim(), note: note ?? null },
     });
     return updated;
+  }
+
+  async closeSos(
+    id: string,
+    userId: string,
+    actionCode: string,
+    outcomeCode: string,
+    note?: string,
+    actionNote?: string,
+  ) {
+    const row = await this.requireOpen(id);
+    if (row.kind !== EcmExceptionKind.CARER_SOS) {
+      throw new BadRequestException('Only a carer SOS can be closed with an outcome');
+    }
+    if (!row.acknowledgedAt) {
+      throw new BadRequestException('Acknowledge the SOS before closing');
+    }
+    const parsed = parseSosClosePayload(actionCode, outcomeCode, note, actionNote);
+    if (!parsed.ok) throw new BadRequestException(parsed.message);
+
+    const now = new Date();
+    const nextContext = {
+      ...parseCarerSosContext(row.context),
+      officeActionCode: parsed.actionCode,
+      officeActionNote: parsed.actionNote,
+    };
+    const updated = await this.prisma.ecmException.update({
+      where: { id },
+      data: {
+        lifecycle: EcmExceptionLifecycle.CLOSED,
+        reasonCode: parsed.outcomeCode,
+        resolutionNote: parsed.note ?? row.resolutionNote,
+        context: nextContext as Prisma.InputJsonValue,
+        resolvedAt: row.resolvedAt ?? now,
+        resolvedById: row.resolvedById ?? userId,
+        closedAt: now,
+        closedById: userId,
+        firstActionAt: row.firstActionAt ?? now,
+      },
+    });
+    await this.audit.append({
+      eventType: EcmAuditEventType.EXCEPTION_RESOLVED,
+      scheduledJobId: updated.scheduledJobId,
+      ecmExceptionId: updated.id,
+      actorUserId: userId,
+      summary: `SOS resolved: ${updated.kind} (${parsed.outcomeCode})`,
+      detail: {
+        actionCode: parsed.actionCode,
+        reasonCode: parsed.outcomeCode,
+        note: parsed.note,
+      },
+    });
+    await this.audit.append({
+      eventType: EcmAuditEventType.EXCEPTION_CLOSED,
+      scheduledJobId: updated.scheduledJobId,
+      ecmExceptionId: updated.id,
+      actorUserId: userId,
+      summary: `SOS closed: ${parsed.outcomeCode}`,
+      detail: {
+        actionCode: parsed.actionCode,
+        reasonCode: parsed.outcomeCode,
+        note: parsed.note,
+      },
+    });
+    return updated;
+  }
+
+  async listSosForVisit(scheduledJobId: string) {
+    const rows = await this.prisma.ecmException.findMany({
+      where: { scheduledJobId, kind: EcmExceptionKind.CARER_SOS },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        detail: true,
+        lifecycle: true,
+        createdAt: true,
+        context: true,
+        acknowledgedAt: true,
+        acknowledgedById: true,
+        reasonCode: true,
+        resolutionNote: true,
+        closedAt: true,
+        closedById: true,
+      },
+    });
+    const nameIds = [
+      ...new Set(
+        rows
+          .flatMap((row) => [row.acknowledgedById, row.closedById])
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users =
+      nameIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: nameIds } },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          });
+    const names = new Map(users.map((user) => [user.id, displayUserName(user) ?? user.id]));
+    return {
+      data: rows.map((row) =>
+        mapCarerSosAlert(row, {
+          acknowledgedByName: row.acknowledgedById
+            ? names.get(row.acknowledgedById) ?? null
+            : null,
+          closedByName: row.closedById ? names.get(row.closedById) ?? null : null,
+        }),
+      ),
+    };
   }
 
   async close(id: string, userId: string, note?: string) {

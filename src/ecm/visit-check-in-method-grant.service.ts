@@ -17,6 +17,7 @@ import { EcmAuditService } from './ecm-audit.service';
 import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
 import { displayUserName } from './carer-sos.util';
+import { findManualRejectReason } from './manual-reject-reasons';
 import {
   composeManualAuthorisationOfficeNote,
   mapVisitCheckInMethodGrant,
@@ -52,6 +53,20 @@ export class VisitCheckInMethodGrantService {
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly carerPush: CarerVisitPushHook,
   ) {}
+
+  async listForCarerVisit(
+    scheduledJobId: string,
+    employeeId: string,
+    now = new Date(),
+  ): Promise<VisitCheckInMethodGrantDto[]> {
+    const rows = await this.prisma.visitCheckInMethodGrant.findMany({
+      where: { scheduledJobId, employeeId },
+      orderBy: { requestedAt: 'desc' },
+    });
+    if (rows.length === 0) return [];
+    const employeeName = await this.employeeName(employeeId);
+    return rows.map((row) => mapVisitCheckInMethodGrant(row, { employeeName, now }));
+  }
 
   async getForCarerVisit(
     scheduledJobId: string,
@@ -356,7 +371,12 @@ export class VisitCheckInMethodGrantService {
     };
   }
 
-  async reject(scheduledJobId: string, grantId: string, adminUserId: string, note?: string) {
+  async reject(
+    scheduledJobId: string,
+    grantId: string,
+    adminUserId: string,
+    input: { reasonCode: string; note?: string },
+  ) {
     const grant = await this.requireGrant(scheduledJobId, grantId);
     if (grant.status !== VisitCheckInMethodGrantStatus.PENDING) {
       throw new BadRequestException({
@@ -365,12 +385,26 @@ export class VisitCheckInMethodGrantService {
       });
     }
 
+    const reason = findManualRejectReason(input.reasonCode);
+    if (!reason) {
+      throw new BadRequestException({
+        code: 'REASON_REQUIRED',
+        message: 'Select a reason for this rejection.',
+      });
+    }
+    const officeNote = composeManualAuthorisationOfficeNote(reason, input.note);
+    if (!officeNote) {
+      throw new BadRequestException({
+        code: 'REASON_NOTE_REQUIRED',
+        message: 'Enter the reason for this rejection.',
+      });
+    }
+
     const admin = await this.prisma.user.findUnique({
       where: { id: adminUserId },
       select: { firstName: true, lastName: true, email: true },
     });
     const decidedByName = displayUserName(admin) ?? adminUserId;
-    const officeNote = note?.trim() || null;
     const decidedAt = new Date();
 
     const updated = await this.prisma.visitCheckInMethodGrant.update({
@@ -418,6 +452,8 @@ export class VisitCheckInMethodGrantService {
         employeeId: grant.employeeId,
         decidedByName,
         officeNote,
+        rejectReasonCode: reason.code,
+        rejectReasonLabel: reason.label,
       },
     });
 

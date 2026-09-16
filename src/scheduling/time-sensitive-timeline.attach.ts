@@ -15,6 +15,7 @@ import {
   classifyTimeSensitiveTiming,
   EMPTY_TIME_SENSITIVE_FLAG,
   isEndedVisitStatus,
+  isStartedVisitStatus,
   medicineIsTimeSensitive,
   medicineToleranceMinutes,
   type TimeSensitiveItem,
@@ -26,13 +27,27 @@ type TimelineJobLike = {
   serviceUserId: string
   status: string
   scheduledStartDateTime: string
+  actualStartDateTime?: string | null
   visitPlan?: {
     slotCode?: string
     medicationRoundCode?: string | null
     timeCritical?: boolean
     timeToleranceMinutes?: number
   } | null
-  visits?: Array<{ status?: string }>
+  visits?: Array<{ status?: string; actualStartDateTime?: string | null }>
+}
+
+function jobVisitStarted(job: TimelineJobLike): boolean {
+  if (isStartedVisitStatus(job.status) || isEndedVisitStatus(job.status)) return true
+  if (job.actualStartDateTime) return true
+  return Boolean(
+    job.visits?.some(
+      (visit) =>
+        isStartedVisitStatus(visit.status) ||
+        isEndedVisitStatus(visit.status) ||
+        Boolean(visit.actualStartDateTime),
+    ),
+  )
 }
 
 function jobRoundCode(job: TimelineJobLike): string | null {
@@ -181,6 +196,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
     const round = jobRoundCode(job)
     const visitEnded =
       isEndedVisitStatus(job.status) || job.visits?.some((visit) => isEndedVisitStatus(visit.status))
+    const visitStarted = jobVisitStarted(job)
     const dueFallback = new Date(job.scheduledStartDateTime)
     const items: TimeSensitiveItem[] = []
 
@@ -234,6 +250,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
               toleranceMinutes,
               now,
               visitEnded: Boolean(visitEnded),
+              visitStarted,
             }),
       })
     }
@@ -256,6 +273,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
           toleranceMinutes: assignment.timeToleranceMinutes,
           now,
           visitEnded: Boolean(visitEnded),
+          visitStarted,
         }),
       })
     }

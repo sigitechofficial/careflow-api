@@ -14,6 +14,7 @@ import {
   AllowVisitContinueDto,
   AuthoriseCheckInMethodGrantDto,
   CloseEcmExceptionDto,
+  CloseSosEcmExceptionDto,
   DecideCheckInMethodGrantDto,
   ResolveEcmExceptionDto,
 } from './dto/ecm-exception.dto';
@@ -188,6 +189,14 @@ export class EcmVisitsController {
     return this.audit.listForJob(jobId);
   }
 
+  @Get('visits/:jobId/sos')
+  @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
+  @ApiOperation({ summary: 'Carer SOS alerts for a visit, including closed outcomes' })
+  async listVisitSos(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    await this.visits.assertJobAccessible(user, jobId);
+    return this.exceptions.listSosForVisit(jobId);
+  }
+
   @Get('visits/:jobId/notifications')
   @AnyPermission('ecm.read', 'ecm.monitor', 'ecm.exceptions.manage')
   @ApiOperation({ summary: 'SU/family notification evidence for a visit' })
@@ -313,7 +322,10 @@ export class EcmVisitsController {
     @Body() dto: DecideCheckInMethodGrantDto,
   ) {
     return this.visits.assertJobAccessible(user, jobId).then(() =>
-      this.checkInMethodGrants.reject(jobId, grantId, user.id, dto?.note),
+      this.checkInMethodGrants.reject(jobId, grantId, user.id, {
+        reasonCode: dto.reasonCode,
+        note: dto.note,
+      }),
     );
   }
 
@@ -400,6 +412,24 @@ export class EcmVisitsController {
     @Body() dto: CloseEcmExceptionDto,
   ) {
     return this.exceptions.close(id, user.id, dto.note);
+  }
+
+  @Patch('exceptions/:id/close-sos')
+  @Permissions('ecm.exceptions.manage')
+  @ApiOperation({ summary: 'Close an acknowledged carer SOS with an outcome' })
+  closeSos(
+    @Param('id') id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CloseSosEcmExceptionDto,
+  ) {
+    return this.exceptions.closeSos(
+      id,
+      user.id,
+      dto.actionCode,
+      dto.outcomeCode,
+      dto.note,
+      dto.actionNote,
+    );
   }
 
   @Get('reason-codes')

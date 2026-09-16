@@ -45,8 +45,19 @@ describe('time-sensitive-visit.util', () => {
         toleranceMinutes: 15,
         now: new Date('2026-09-15T08:20:00.000Z'),
         visitEnded: false,
+        visitStarted: true,
       }),
     ).toBe('delayed')
+    expect(
+      classifyTimeSensitiveTiming({
+        due,
+        given: null,
+        toleranceMinutes: 15,
+        now: new Date('2026-09-15T08:20:00.000Z'),
+        visitEnded: false,
+        visitStarted: false,
+      }),
+    ).toBe('due')
     expect(
       classifyTimeSensitiveTiming({
         due,

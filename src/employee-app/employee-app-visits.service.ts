@@ -401,20 +401,17 @@ export class EmployeeAppVisitsService {
         this.loadGeofenceSettings(),
         this.loadCheckInMethodFlags(),
         this.areaLocks.getState(jobId),
-        this.checkInMethodGrants.getForCarerVisit(
-          jobId,
-          employeeId,
-          ctx.timeZone,
-          ctx.job.scheduledStartDateTime,
-        ),
+        this.checkInMethodGrants.listForCarerVisit(jobId, employeeId),
         this.loadOfficeContact(),
         this.getEmergencyProtocols(),
       ]);
+    const methodGrants = methodGrant;
+    const latestGrant = methodGrants[0] ?? null;
     const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
     const gpsCheckIn = checkInMethod === 'GPS';
     const orgMethods = resolveEnabledCheckInMethods(checkInFlags);
-    const enabledMethods = mergeEnabledMethodsWithGrant(orgMethods, methodGrant);
-    const manualFromGrant = isAuthorisedManualGrantActive(methodGrant);
+    const enabledMethods = mergeEnabledMethodsWithGrant(orgMethods, latestGrant);
+    const manualFromGrant = isAuthorisedManualGrantActive(latestGrant);
 
     return {
       data: {
@@ -436,7 +433,8 @@ export class EmployeeAppVisitsService {
             Boolean(checkInFlags.domCheckInManualEnabled) || manualFromGrant,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
           requestOfficeAvailable: !orgHasOptInCheckInMethod(checkInFlags),
-          checkInMethodRequest: methodGrant,
+          checkInMethodRequest: latestGrant,
+          checkInMethodRequests: methodGrants,
           ...(await this.getClockInArrivalReasons()),
         },
         clockOutSettings: await this.getClockOutEndReasons(),
@@ -837,7 +835,7 @@ export class EmployeeAppVisitsService {
     const checkedIn =
       Boolean(myAllocation?.actualStartDateTime) || Boolean(ctx.checkIn);
     if (!checkedIn) {
-      validationError('Clock in before recording consent to care');
+      contractError('NOT_CHECKED_IN', 'Clock in before recording consent to care');
     }
 
     if (dto.status === 'DECLINED' && !dto.reason?.trim()) {

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { MANUAL_REJECT_REASON_CODES } from '../manual-reject-reasons';
 
 export enum EcmExceptionLifecycleDto {
   DETECTED = 'DETECTED',
@@ -49,7 +50,14 @@ export class AllowVisitContinueDto {
 }
 
 export class DecideCheckInMethodGrantDto {
-  @ApiPropertyOptional({ description: 'Office note recorded with reject' })
+  @ApiProperty({ description: 'Selected reject reason code' })
+  @IsString()
+  @IsIn(MANUAL_REJECT_REASON_CODES)
+  reasonCode!: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when the selected reason is Other',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(2000)
@@ -75,5 +83,29 @@ export class CloseEcmExceptionDto {
   @IsOptional()
   @IsString()
   @MaxLength(2000)
+  note?: string;
+}
+
+export class CloseSosEcmExceptionDto {
+  @ApiProperty({ description: 'What the office did' })
+  @IsString()
+  @MaxLength(80)
+  actionCode!: string;
+
+  @ApiProperty({ description: 'What resulted after that action' })
+  @IsString()
+  @MaxLength(80)
+  outcomeCode!: string;
+
+  @ApiPropertyOptional({ description: 'Required when the action is Other' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  actionNote?: string;
+
+  @ApiPropertyOptional({ description: 'Required when the outcome is Other' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
   note?: string;
 }

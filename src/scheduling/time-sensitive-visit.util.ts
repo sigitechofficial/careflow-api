@@ -39,8 +39,20 @@ const VISIT_ENDED = new Set([
   'CALLED_OFF',
 ])
 
+const VISIT_STARTED = new Set([
+  'STARTED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'PARTIALLY_COMPLETED',
+  'MISSED',
+])
+
 export function isEndedVisitStatus(status: string | null | undefined): boolean {
   return VISIT_ENDED.has(String(status ?? '').toUpperCase())
+}
+
+export function isStartedVisitStatus(status: string | null | undefined): boolean {
+  return VISIT_STARTED.has(String(status ?? '').toUpperCase())
 }
 
 export function classifyTimeSensitiveTiming(input: {
@@ -49,6 +61,8 @@ export function classifyTimeSensitiveTiming(input: {
   toleranceMinutes: number
   now: Date
   visitEnded: boolean
+  /** Clock-in / in-progress / finished. Planned visits stay `due` until then. */
+  visitStarted?: boolean
 }): TimeSensitiveStatus {
   const tolMs = Math.max(0, input.toleranceMinutes) * 60_000
   if (input.given && Number.isFinite(input.given.getTime())) {
@@ -58,6 +72,7 @@ export function classifyTimeSensitiveTiming(input: {
     return 'due'
   }
   if (input.visitEnded) return 'missed'
+  if (input.visitStarted === false) return 'due'
   if (input.now.getTime() > input.due.getTime() + tolMs) return 'delayed'
   return 'due'
 }
