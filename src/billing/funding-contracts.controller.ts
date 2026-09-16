@@ -23,7 +23,7 @@ export class FundingContractsController {
   @Get('summary')
   @Permissions('billing.funding_contracts.read')
   @ApiOperation({ summary: 'Funding contract readiness summary for billing dashboard' })
-  summary() {
-    return this.service.getSummary();
+  summary(@Query('locationId') locationId?: string) {
+    return this.service.getSummary(locationId);
   }
 }

@@ -13,6 +13,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
+import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
 import {
   accumulateGrossLine,
@@ -176,9 +177,20 @@ export class PayrollRunsService {
     private readonly audit: AuditLogsService,
   ) {}
 
-  async list() {
+  async list(locationId?: string) {
+    const where: Prisma.UkPayrollRunWhereInput = { deletedAt: null };
+    if (locationId) {
+      const empIds = await employeeIdsForLocation(this.prisma, locationId);
+      where.OR = [
+        { employees: { none: {} } },
+        ...(empIds.length
+          ? [{ employees: { some: { employeeId: { in: empIds } } } }]
+          : []),
+      ];
+    }
+
     const rows = await this.prisma.ukPayrollRun.findMany({
-      where: { deletedAt: null },
+      where,
       include: {
         period: true,
         schedule: true,
@@ -253,10 +265,29 @@ export class PayrollRunsService {
     };
   }
 
-  async getById(id: string) {
+  async getById(id: string, locationId?: string) {
     const row = await this.requireRun(id);
+    const locationEmpIds = locationId
+      ? await employeeIdsForLocation(this.prisma, locationId)
+      : undefined;
+    if (locationId && locationEmpIds && !locationEmpIds.length) {
+      return {
+        message: 'UK payroll run',
+        data: {
+          ...mapRun(row),
+          period: mapPeriod(row.period),
+          schedule: mapSchedule(row.schedule),
+          taxYear: mapTaxYear(row.taxYear),
+          employees: [],
+        },
+      };
+    }
+
     const employees = await this.prisma.ukPayrollRunEmployee.findMany({
-      where: { runId: id },
+      where: {
+        runId: id,
+        ...(locationEmpIds ? { employeeId: { in: locationEmpIds } } : {}),
+      },
       orderBy: { enrolledAt: 'asc' },
     });
     const employeeIds = employees.map((e) => e.employeeId);

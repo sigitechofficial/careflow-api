@@ -695,7 +695,10 @@ export class InvoiceRunsService {
    * it returns how many invoices they have, how many are sent vs still outstanding, and a
    * month-by-month breakdown. Optional `month` (YYYY-MM) filters to a single billing period.
    */
-  async getServiceUserInvoicesOverview(params: { month?: string } = {}) {
+  async getServiceUserInvoicesOverview(params: {
+    month?: string;
+    locationId?: string;
+  } = {}) {
     const runWhere: Prisma.InvoiceRunWhereInput = {};
     if (params.month && /^\d{4}-\d{2}$/.test(params.month)) {
       const [year, month] = params.month.split('-').map(Number);
@@ -703,6 +706,13 @@ export class InvoiceRunsService {
         gte: new Date(Date.UTC(year, month - 1, 1)),
         lt: new Date(Date.UTC(year, month, 1)),
       };
+    }
+
+    const locationSuIds = params.locationId
+      ? await serviceUserIdsForLocation(this.prisma, params.locationId)
+      : undefined;
+    if (params.locationId && locationSuIds && !locationSuIds.length) {
+      return { data: { months: [], serviceUsers: [] } };
     }
 
     const runs = await this.prisma.invoiceRun.findMany({
@@ -730,11 +740,15 @@ export class InvoiceRunsService {
 
     const runMap = new Map(runs.map((r) => [r.id, r]));
     const runIds = runs.map((r) => r.id);
+    const lineScope: Prisma.InvoiceRunLineWhereInput = {
+      invoiceRunId: { in: runIds },
+      ...(locationSuIds ? { serviceUserId: { in: locationSuIds } } : {}),
+    };
 
     // Per-funder invoiced amount for each (service user, run) — the funder split of the invoice.
     const funderGrouped = await this.prisma.invoiceRunLine.groupBy({
       by: ['serviceUserId', 'invoiceRunId', 'funderId'],
-      where: { invoiceRunId: { in: runIds } },
+      where: lineScope,
       _sum: { amount: true },
     });
 
@@ -792,7 +806,10 @@ export class InvoiceRunsService {
     const funderNameMap = new Map(overviewFunders.map((f) => [f.id, f.name]));
 
     const invoiceDocs = await this.prisma.invoiceDocument.findMany({
-      where: { invoiceRunId: { in: runIds } },
+      where: {
+        invoiceRunId: { in: runIds },
+        ...(locationSuIds ? { serviceUserId: { in: locationSuIds } } : {}),
+      },
       select: {
         invoiceRunId: true,
         serviceUserId: true,
@@ -821,7 +838,7 @@ export class InvoiceRunsService {
 
     const grouped = await this.prisma.invoiceRunLine.groupBy({
       by: ['serviceUserId', 'invoiceRunId'],
-      where: { invoiceRunId: { in: runIds } },
+      where: lineScope,
       _sum: { amount: true },
       _count: { _all: true },
     });
@@ -1076,7 +1093,7 @@ export class InvoiceRunsService {
     return { data: { months, serviceUsers } };
   }
 
-  async getById(id: string) {
+  async getById(id: string, locationId?: string) {
     const row = await this.prisma.invoiceRun.findUnique({
       where: { id },
       include: {
@@ -1112,6 +1129,22 @@ export class InvoiceRunsService {
       },
     });
     if (!row) throw new NotFoundException('Invoice run not found');
+
+    const scopedLocationId = locationId?.trim() || undefined;
+    if (scopedLocationId) {
+      const locationSuIds = await serviceUserIdsForLocation(
+        this.prisma,
+        scopedLocationId,
+      );
+      const locationSuSet = new Set(locationSuIds);
+      row.lines = row.lines.filter((line) =>
+        locationSuSet.has(line.serviceUserId),
+      );
+      row.paymentAllocations = row.paymentAllocations.filter((allocation) => {
+        const suId = allocation.payment?.serviceUserId;
+        return Boolean(suId && locationSuSet.has(suId));
+      });
+    }
 
     // Backfill QBO-style numbers for runs calculated before InvoiceDocument existed.
     const suIdsOnRun = [...new Set(row.lines.map((l) => l.serviceUserId))];
@@ -1217,7 +1250,9 @@ export class InvoiceRunsService {
       (sum, a) => sum + Number(a.amount),
       0,
     );
-    const netTotal = Number(row.netTotal);
+    const netTotal = scopedLocationId
+      ? row.lines.reduce((sum, line) => sum + Number(line.amount), 0)
+      : Number(row.netTotal);
     const outstanding = Math.max(0, netTotal - paidAmount);
 
     const paidByFunder = new Map<string, number>();
@@ -1574,11 +1609,30 @@ export class InvoiceRunsService {
     );
 
     const auditTrail = await this.buildAuditTrail(row, actorMap);
+    const scopedInvoiceNumbers = scopedLocationId
+      ? documents
+          .filter((d) =>
+            serviceUserSummaries.some((s) => s.serviceUserId === d.serviceUserId),
+          )
+          .map((d) => d.invoiceNumber)
+      : documents.map((d) => d.invoiceNumber);
+    const invoiceNumbers =
+      scopedInvoiceNumbers.length > 0
+        ? scopedInvoiceNumbers
+        : !scopedLocationId && row.invoiceNumber
+          ? [row.invoiceNumber]
+          : [];
 
     return {
       data: {
         ...this.mapRow(
-          row,
+          {
+            ...row,
+            netTotal: netTotal as unknown as Prisma.Decimal,
+            serviceUserCount: serviceUserSummaries.length,
+            funderCount: funderSummaries.length,
+            exceptionCount: lines.filter((l) => l.exceptionMessage).length,
+          },
           {
             invoicesPaid: serviceUserSummaries.filter(
               (s) => s.paymentStatus === 'PAID',
@@ -1592,12 +1646,9 @@ export class InvoiceRunsService {
             paidAmountValue: paidAmount,
           },
           actorMap,
-          (() => {
-            const docNumbers = documents.map((d) => d.invoiceNumber);
-            if (docNumbers.length) return docNumbers;
-            return row.invoiceNumber ? [row.invoiceNumber] : [];
-          })(),
+          invoiceNumbers,
         ),
+        netTotal: formatMoney(netTotal),
         notes: row.notes,
         lineCount: row.lines.length,
         createdAt: row.createdAt.toISOString(),

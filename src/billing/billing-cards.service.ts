@@ -161,6 +161,17 @@ export class PayCardsService {
         { assignmentLabel: { contains: s, mode: 'insensitive' } },
       ];
     }
+    if (query.locationId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { assignmentLevel: 'BRANCH', assignmentTargetId: query.locationId },
+            { assignmentLevel: { not: 'BRANCH' } },
+          ],
+        },
+      ];
+    }
     const rows = await this.prisma.payCard.findMany({
       where,
       orderBy: [{ status: 'asc' }, { name: 'asc' }],
@@ -742,6 +753,20 @@ export class ChargeCardsService {
         { name: { contains: s, mode: 'insensitive' } },
         { code: { contains: s, mode: 'insensitive' } },
         { assignmentLabel: { contains: s, mode: 'insensitive' } },
+      ];
+    }
+    if (query.locationId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            {
+              assignmentLevel: 'BRANCH_REGION',
+              assignmentTargetId: query.locationId,
+            },
+            { assignmentLevel: { not: 'BRANCH_REGION' } },
+          ],
+        },
       ];
     }
     const rows = await this.prisma.chargeCard.findMany({

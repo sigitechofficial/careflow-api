@@ -12,6 +12,14 @@ export class EmployeePayoutsQueryDto {
   @IsOptional()
   @IsUUID()
   ukPayrollRunId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Scope to batches with at least one payout line for an employee employed at this location',
+  })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 }
 
 export class CreateEmployeePayoutBatchDto {

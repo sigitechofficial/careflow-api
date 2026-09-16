@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -30,8 +30,8 @@ export class PayrollRunsController {
   @Get()
   @Permissions('payroll.runs.read')
   @ApiOperation({ summary: 'List UK payroll runs (shell)' })
-  list() {
-    return this.service.list();
+  list(@Query('locationId') locationId?: string) {
+    return this.service.list(locationId);
   }
 
   @Delete()
@@ -47,8 +47,11 @@ export class PayrollRunsController {
   @Get(':id')
   @Permissions('payroll.runs.read')
   @ApiOperation({ summary: 'Get UK payroll run detail' })
-  getById(@Param('id') id: string) {
-    return this.service.getById(id);
+  getById(
+    @Param('id') id: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.service.getById(id, locationId);
   }
 
   @Get(':id/fps')

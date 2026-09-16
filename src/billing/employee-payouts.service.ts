@@ -16,6 +16,7 @@ import {
   EmployeePayoutsQueryDto,
 } from './dto/employee-payouts.dto';
 import { formatMoney, parseBillingDateOnly } from './billing-run.util';
+import { employeeIdsForLocation } from './billing-location-scope.util';
 import {
   derivePeriodKeyFromRange,
   periodRangeFromKey,
@@ -80,6 +81,14 @@ export class EmployeePayoutsService {
     const where: Prisma.EmployeePayoutBatchWhereInput = {};
     if (query.periodKey) where.periodKey = query.periodKey;
     if (query.ukPayrollRunId) where.ukPayrollRunId = query.ukPayrollRunId;
+
+    if (query.locationId) {
+      const empIds = await employeeIdsForLocation(this.prisma, query.locationId);
+      if (!empIds.length) {
+        return { data: [] };
+      }
+      where.lines = { some: { employeeId: { in: empIds } } };
+    }
 
     const rows = await this.prisma.employeePayoutBatch.findMany({
       where,

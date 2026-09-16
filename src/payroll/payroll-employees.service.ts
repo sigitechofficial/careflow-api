@@ -9,6 +9,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import {
   CreateEmployeePayAgreementDto,
   UpdateEmployeePayAgreementDto,
@@ -112,10 +113,21 @@ export class PayrollEmployeesService {
     },
   } as const
 
-  async listEmployeeSetup() {
+  async listEmployeeSetup(locationId?: string) {
+    let scopedEmployeeIds: string[] | undefined;
+    if (locationId) {
+      scopedEmployeeIds = await employeeIdsForLocation(this.prisma, locationId);
+      if (!scopedEmployeeIds.length) {
+        return { message: 'Employee payroll setup', data: [] };
+      }
+    }
+
     const [employees, profiles, agreements] = await Promise.all([
       this.prisma.employee.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          ...(scopedEmployeeIds ? { id: { in: scopedEmployeeIds } } : {}),
+        },
         select: this.employeeIdentitySelect,
         orderBy: { createdAt: 'desc' },
         take: 500,
