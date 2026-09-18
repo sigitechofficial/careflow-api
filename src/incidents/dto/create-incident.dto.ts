@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IncidentPrivacyLevel, IncidentSeverity } from '@prisma/client';
+import {
+  IncidentPersonKind,
+  IncidentPrivacyLevel,
+  IncidentSeverity,
+} from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -54,6 +58,34 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsUUID()
   primaryEmployeeId?: string;
+
+  @ApiPropertyOptional({
+    enum: IncidentPersonKind,
+    description: 'Kind of primary person affected',
+  })
+  @IsOptional()
+  @IsEnum(IncidentPersonKind)
+  primaryPersonKind?: IncidentPersonKind;
+
+  @ApiPropertyOptional({
+    enum: IncidentPersonKind,
+    isArray: true,
+    description: 'All kinds of person affected (multi-select)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsEnum(IncidentPersonKind, { each: true })
+  affectedPersonKinds?: IncidentPersonKind[];
+
+  @ApiPropertyOptional({
+    description:
+      'Name of the primary person affected when not a platform record (Family/Visitor/Other)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  primaryPersonName?: string;
 
   @ApiPropertyOptional({
     description: 'Employee id of the reporter, if applicable',

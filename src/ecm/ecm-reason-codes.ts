@@ -100,14 +100,13 @@ export function parseSosClosePayload(
   if (!isSosOutcomeCode(outcome)) {
     return { ok: false, message: 'Choose a SOS outcome' };
   }
-  const actionRequires = SOS_ACTION_CODES.some((row) => row.code === action && row.requiresNotes);
-  const outcomeRequires = SOS_OUTCOME_CODES.some((row) => row.code === outcome && row.requiresNotes);
+  // Notes are always required for both the action taken and the outcome.
   const trimmedAction = actionNote?.trim() || null;
   const trimmedNote = note?.trim() || null;
-  if (actionRequires && !trimmedAction) {
+  if (!trimmedAction) {
     return { ok: false, message: 'Add a note for this action' };
   }
-  if (outcomeRequires && !trimmedNote) {
+  if (!trimmedNote) {
     return { ok: false, message: 'Add a note for this outcome' };
   }
   return {

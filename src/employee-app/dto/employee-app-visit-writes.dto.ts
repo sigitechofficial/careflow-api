@@ -563,6 +563,12 @@ export class EmployeeAppIncidentDto {
   @MaxLength(64)
   incidentTypeKey?: string;
 
+  @ApiPropertyOptional({ description: 'Incident subtype id (belongs to the type/category)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  subtypeKey?: string;
+
   @ApiProperty()
   @IsString()
   @MaxLength(8000)
@@ -627,6 +633,36 @@ export class EmployeeAppIncidentDto {
   @IsString()
   @MaxLength(2000)
   witnesses?: string;
+
+  @ApiPropertyOptional({ description: 'What happened immediately before' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  contextBefore?: string;
+
+  @ApiPropertyOptional({ description: 'What happened afterwards' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  contextAfter?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Kinds of person affected (SERVICE_USER/EMPLOYEE/FAMILY/VISITOR/HEALTHCARE_PROFESSIONAL/CONTRACTOR/OTHER) — multi-select',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  affectedPersonKinds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Name of the primary person affected when not a platform record',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  affectedPersonName?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

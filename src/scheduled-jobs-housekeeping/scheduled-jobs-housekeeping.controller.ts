@@ -181,7 +181,7 @@ export class ScheduledJobsHousekeepingController {
   @ApiOperation({
     summary: 'Reset visit delivery to planned (wipe clock-in and this-visit care writes)',
     description:
-      'Office-only. Returns the visit to the carer initial Clock-in state. Does not change allocations or planned times. Cancelled visits must be reinstated first.',
+      'Office-only. Returns the visit to the carer initial Clock-in state — hard-deletes attendance events (incl. SOS), tasks, MAR, observations, body maps and the visit reconciliation (pay/charge). Does not change allocations or planned times. Works whether or not the visit was completed. Cancelled visits must be reinstated first, and visits already in a payroll or invoice run cannot be reset until removed from that run.',
   })
   resetDelivery(
     @CurrentUser() user: RequestUser,

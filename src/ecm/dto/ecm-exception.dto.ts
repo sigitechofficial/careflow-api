@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { MANUAL_REJECT_REASON_CODES } from '../manual-reject-reasons';
 
 export enum EcmExceptionLifecycleDto {
@@ -97,15 +105,15 @@ export class CloseSosEcmExceptionDto {
   @MaxLength(80)
   outcomeCode!: string;
 
-  @ApiPropertyOptional({ description: 'Required when the action is Other' })
-  @IsOptional()
+  @ApiProperty({ description: 'Notes on the action taken (always required)' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(4000)
-  actionNote?: string;
+  actionNote!: string;
 
-  @ApiPropertyOptional({ description: 'Required when the outcome is Other' })
-  @IsOptional()
+  @ApiProperty({ description: 'Notes on the outcome (always required)' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(4000)
-  note?: string;
+  note!: string;
 }

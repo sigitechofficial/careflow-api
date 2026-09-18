@@ -1524,7 +1524,11 @@ export class ScheduledJobsHousekeepingService {
 
   /**
    * Wipe clock-in and this-visit care writes so the carer app shows the
-   * initial Clock-in screen again. Allocations and planned times stay.
+   * initial Clock-in screen again. Hard-deletes attendance events (incl. SOS),
+   * tasks, MAR, observations, body maps and the visit reconciliation (pay/charge)
+   * for this job. Allocations and planned times stay. Works whether or not the
+   * visit was completed, but is blocked once the visit is in a payroll or
+   * invoice run (remove it from that run first).
    */
   async resetJobDelivery(
     user: RequestUser,
@@ -1559,6 +1563,27 @@ export class ScheduledJobsHousekeepingService {
       throw new BadRequestException('This visit has no clock-in or delivery to reset');
     }
 
+    // Financial guard — once a visit's reconciliation is pulled into a payroll
+    // or invoice run those lines hold it with onDelete: Restrict, and the run
+    // may already be paid or invoiced. Block the reset and make the office
+    // remove the visit from that run first, rather than silently unwinding
+    // committed pay/billing.
+    const [payrollLine, invoiceLine] = await Promise.all([
+      this.prisma.payrollRunLine.findFirst({
+        where: { visitReconciliation: { scheduledJobId: id } },
+        select: { id: true },
+      }),
+      this.prisma.invoiceRunLine.findFirst({
+        where: { visitReconciliation: { scheduledJobId: id } },
+        select: { id: true },
+      }),
+    ]);
+    if (payrollLine || invoiceLine) {
+      throw new BadRequestException(
+        'This visit is already in a payroll or invoice run. Remove it from that run before resetting.',
+      );
+    }
+
     const reason = dto.reason.trim();
     const resetAt = new Date();
     const resetAtIso = resetAt.toISOString();
@@ -1589,6 +1614,12 @@ export class ScheduledJobsHousekeepingService {
       await tx.lateVisitAlertLog.deleteMany({ where: { scheduledJobId: id } });
       await tx.carerVisitPushReceipt.deleteMany({ where: { scheduledJobId: id } });
       await tx.ecmException.deleteMany({ where: { scheduledJobId: id } });
+      // Clock-in/out + SOS live here (VisitAttendanceEventType.CARER_SOS), not
+      // just in metadata — wipe them so nothing reappears after refresh.
+      await tx.visitAttendanceEvent.deleteMany({ where: { scheduledJobId: id } });
+      // Pay/charge outcome for this visit — safe to delete now the payroll /
+      // invoice guard above has confirmed the visit is in no financial run.
+      await tx.visitReconciliation.deleteMany({ where: { scheduledJobId: id } });
       await tx.ecmVisitEvaluation.updateMany({
         where: { scheduledJobId: id },
         data: {
@@ -1607,9 +1638,8 @@ export class ScheduledJobsHousekeepingService {
       });
 
       if (visitIds.length > 0) {
-        await tx.medicationAdministrationEvent.updateMany({
-          where: { visitId: { in: visitIds }, deletedAt: null },
-          data: { deletedAt: resetAt, isActive: false, deletedById: userId },
+        await tx.medicationAdministrationEvent.deleteMany({
+          where: { visitId: { in: visitIds } },
         });
       }
 
@@ -1621,9 +1651,9 @@ export class ScheduledJobsHousekeepingService {
         .filter((row) => observationPayloadJobId(row.payload) === id)
         .map((row) => row.id);
       if (observationIds.length > 0) {
-        await tx.serviceUserObservation.updateMany({
+        // Hard delete — child readings cascade (onDelete: Cascade).
+        await tx.serviceUserObservation.deleteMany({
           where: { id: { in: observationIds } },
-          data: { deletedAt: resetAt, isActive: false, deletedById: userId },
         });
       }
 
@@ -1631,16 +1661,14 @@ export class ScheduledJobsHousekeepingService {
         where: { serviceUserId: existing.serviceUserId },
         select: { id: true, observationDetails: true },
       });
-      for (const row of bodyMapRows) {
-        const details = jsonObject(row.observationDetails);
-        if (!details || details.scheduledJobId !== id) continue;
-        const next = { ...details };
-        delete next.scheduledJobId;
-        delete next.scheduledVisitId;
-        await tx.bodyMapRecord.update({
-          where: { id: row.id },
-          data: { observationDetails: next as Prisma.InputJsonValue, updatedById: userId },
-        });
+      const bodyMapIds = bodyMapRows
+        .filter((row) => jsonObject(row.observationDetails)?.scheduledJobId === id)
+        .map((row) => row.id);
+      if (bodyMapIds.length > 0) {
+        // Hard delete the visit's body maps — markers, photos, wound/pressure
+        // assessments, reviews, safeguarding checks and alerts all cascade
+        // (onDelete: Cascade), so the visit returns to its initial state.
+        await tx.bodyMapRecord.deleteMany({ where: { id: { in: bodyMapIds } } });
       }
 
       const activeAllocations = await tx.jobAllocation.count({
