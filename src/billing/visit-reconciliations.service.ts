@@ -7,6 +7,7 @@ import {
 import {
   AllocationStatus,
   FinanceExceptionCode,
+  InvoiceRunStatus,
   Prisma,
   ScheduledVisitStatus,
   VisitOverrunDecision,
@@ -25,6 +26,7 @@ import {
   RecalculateVisitReconciliationsDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
+  SetVisitBillableAmountDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
@@ -89,6 +91,22 @@ const COMPLETED_VISIT_STATUSES: ScheduledVisitStatus[] = [
   ScheduledVisitStatus.PARTIALLY_COMPLETED,
 ];
 
+/**
+ * Invoice-run statuses at or past approval: once a visit's invoice reaches these,
+ * its charge is frozen (the run can no longer be recalculated), so the visit's
+ * billable amount must not be edited or a mismatch appears between the
+ * reconciliation and the issued invoice. `includedInInvoiceRunId` is only set at
+ * LOCK, so APPROVED runs are otherwise unguarded.
+ */
+const APPROVED_INVOICE_RUN_STATUSES: InvoiceRunStatus[] = [
+  InvoiceRunStatus.APPROVED,
+  InvoiceRunStatus.LOCKED,
+  InvoiceRunStatus.SENT,
+  InvoiceRunStatus.PART_PAID,
+  InvoiceRunStatus.PAID,
+  InvoiceRunStatus.DISPUTED,
+];
+
 function isBillingEligibleVisit(visit: {
   status: ScheduledVisitStatus;
   actualStartDateTime: Date | null;
@@ -96,6 +114,83 @@ function isBillingEligibleVisit(visit: {
 }): boolean {
   if (COMPLETED_VISIT_STATUSES.includes(visit.status)) return true;
   return Boolean(visit.actualStartDateTime && visit.actualEndDateTime);
+}
+
+function parseMoneyAmount(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.round(value * 100) / 100;
+  }
+  if (typeof value === 'string') {
+    const n = Number(value.replace(/[£,\s]/g, ''));
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+  }
+  return null;
+}
+
+function snapshotRecord(snapshot: Prisma.JsonValue | null | undefined): Record<string, unknown> | null {
+  if (snapshot == null || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+  return snapshot as Record<string, unknown>;
+}
+
+function snapshotSideManualAmount(
+  snapshot: Prisma.JsonValue | null | undefined,
+  side: 'carerPay' | 'clientCharge',
+): number | null {
+  const snap = snapshotRecord(snapshot);
+  if (!snap) return null;
+  const sideObj = snap[side];
+  if (!sideObj || typeof sideObj !== 'object' || Array.isArray(sideObj)) return null;
+  const rec = sideObj as Record<string, unknown>;
+  if (rec.manualOverride !== true) return null;
+  return parseMoneyAmount(rec.amount);
+}
+
+function approvalNotesManualAmount(
+  notes: string | null | undefined,
+  side: 'pay' | 'bill',
+): number | null {
+  if (!notes?.trim()) return null;
+  const label = side === 'pay' ? 'Payable amount set to' : 'Billable amount set to';
+  const match = notes.match(new RegExp(`${label}\\s*£\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i'));
+  return match ? parseMoneyAmount(match[1]) : null;
+}
+
+/** Manual carer-pay override from snapshot or approval notes (survives evaluate wipes). */
+function resolveManualPayableAmount(row: {
+  payableAmount?: unknown;
+  pricingSnapshot?: Prisma.JsonValue | null;
+  approvalNotes?: string | null;
+}): number | null {
+  return (
+    snapshotSideManualAmount(row.pricingSnapshot, 'carerPay') ??
+    approvalNotesManualAmount(row.approvalNotes, 'pay')
+  );
+}
+
+/** Manual client-charge override from snapshot or approval notes. */
+function resolveManualBillableAmount(row: {
+  billableAmount?: unknown;
+  pricingSnapshot?: Prisma.JsonValue | null;
+  approvalNotes?: string | null;
+}): number | null {
+  return (
+    snapshotSideManualAmount(row.pricingSnapshot, 'clientCharge') ??
+    approvalNotesManualAmount(row.approvalNotes, 'bill')
+  );
+}
+
+function hasManualPayableOverride(row: {
+  pricingSnapshot?: Prisma.JsonValue | null;
+  approvalNotes?: string | null;
+}): boolean {
+  return resolveManualPayableAmount(row) != null;
+}
+
+function hasManualBillableOverride(row: {
+  pricingSnapshot?: Prisma.JsonValue | null;
+  approvalNotes?: string | null;
+}): boolean {
+  return resolveManualBillableAmount(row) != null;
 }
 
 function billingEligibleVisitWhere(): Prisma.ScheduledVisitWhereInput {
@@ -834,6 +929,7 @@ export class VisitReconciliationsService {
     const data: Prisma.VisitReconciliationUpdateInput = {
       payableAmount: amount,
       approvalNotes: combinedNotes || null,
+      pricingSnapshot: this.patchManualAmountSnapshot(existing.pricingSnapshot, 'pay', amount),
     };
 
     if (approveForPay) {
@@ -852,6 +948,168 @@ export class VisitReconciliationsService {
 
     await this.prisma.visitReconciliation.update({ where: { id }, data });
     return this.getById(id);
+  }
+
+  /**
+   * Block editing a visit's client charge once it sits on an approved-or-later
+   * invoice run. `includedInInvoiceRunId` only covers LOCKED+ runs, so this catches
+   * the APPROVED window where the invoice is frozen but the flag is not yet set.
+   */
+  private async assertBillableNotOnApprovedInvoice(reconciliationId: string) {
+    const line = await this.prisma.invoiceRunLine.findFirst({
+      where: {
+        visitReconciliationId: reconciliationId,
+        invoiceRun: { status: { in: APPROVED_INVOICE_RUN_STATUSES } },
+      },
+      select: {
+        invoiceRun: { select: { status: true, invoiceNumber: true, periodLabel: true } },
+      },
+    });
+    if (!line) return;
+
+    const run = line.invoiceRun;
+    const ref = run.invoiceNumber ? ` ${run.invoiceNumber}` : '';
+    throw new BadRequestException(
+      `This visit's charge is already on an approved invoice run${ref} (${run.periodLabel}). ` +
+        'The invoice amount is locked and cannot be recalculated, so the client charge cannot be ' +
+        'changed here — it would no longer match the issued invoice. Delete or re-run that invoice ' +
+        'run first if the charge must change.',
+    );
+  }
+
+  /**
+   * Manually set billable (client/funder) amount. Optionally accept the visit for invoice.
+   * Stores the visit total; multi-funder % splits continue from that total on invoice runs.
+   */
+  async setBillableAmount(userId: string, id: string, dto: SetVisitBillableAmountDto) {
+    const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Visit reconciliation not found');
+    if (existing.status === VisitReconciliationStatus.LOCKED) {
+      throw new BadRequestException('Reconciliation is locked');
+    }
+    if (existing.includedInInvoiceRunId) {
+      throw new BadRequestException(
+        'Visit is already included in an invoice run — unlock or remove it before changing the amount',
+      );
+    }
+
+    // Approved (but not yet locked) invoice runs do not set includedInInvoiceRunId,
+    // so guard against them here — the invoice charge is already frozen and cannot be
+    // recalculated, so editing the amount would desync the reconciliation and invoice.
+    await this.assertBillableNotOnApprovedInvoice(id);
+
+    const amount = Math.round(Number(dto.billableAmount) * 100) / 100;
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new BadRequestException('Billable amount must be a valid non-negative number');
+    }
+
+    const approveForInvoice = dto.approveForInvoice !== false;
+    const note = dto.notes?.trim() || null;
+    const existingNote = existing.approvalNotes?.trim() || '';
+    const amountNote = `Billable amount set to £${amount.toFixed(2)}`;
+    const combinedNotes = [existingNote, note ? `${amountNote}: ${note}` : amountNote]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 2000);
+
+    const data: Prisma.VisitReconciliationUpdateInput = {
+      billableAmount: amount,
+      approvalNotes: combinedNotes || null,
+      pricingSnapshot: this.patchManualAmountSnapshot(existing.pricingSnapshot, 'bill', amount),
+    };
+
+    if (approveForInvoice) {
+      const invoiceApproved =
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+      if (!invoiceApproved) {
+        data.status =
+          existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY
+            ? VisitReconciliationStatus.APPROVED_FOR_BOTH
+            : VisitReconciliationStatus.APPROVED_FOR_INVOICE;
+        data.approvedById = userId;
+        data.approvedAt = new Date();
+      }
+    }
+
+    await this.prisma.visitReconciliation.update({ where: { id }, data });
+    return this.getById(id);
+  }
+
+  /** Keep frozen pricing preview totals in sync with a manual amount override. */
+  private patchManualAmountSnapshot(
+    snapshot: Prisma.JsonValue | null,
+    side: 'pay' | 'bill',
+    amount: number,
+  ): Prisma.InputJsonValue {
+    const snap =
+      snapshot != null && typeof snapshot === 'object' && !Array.isArray(snapshot)
+        ? (JSON.parse(JSON.stringify(snapshot)) as Record<string, unknown>)
+        : ({} as Record<string, unknown>);
+    const money = formatMoney(amount);
+    if (side === 'pay') {
+      if (snap.carerPay && typeof snap.carerPay === 'object' && !Array.isArray(snap.carerPay)) {
+        const carerPay = snap.carerPay as Record<string, unknown>;
+        carerPay.amount = money;
+        carerPay.manualOverride = true;
+        carerPay.explanation = 'Manual payable amount override';
+      } else {
+        snap.carerPay = {
+          amount: money,
+          minutes: 0,
+          hoursLabel: '—',
+          rateType: 'MANUAL',
+          unitRate: null,
+          formula: 'Manual override',
+          cardName: null,
+          cardCode: null,
+          cardSource: null,
+          ruleLabel: 'Manual payable amount',
+          manualOverride: true,
+          explanation: 'Manual payable amount override',
+          appliedRules: [],
+          segments: [],
+        };
+      }
+    } else {
+      if (
+        snap.clientCharge &&
+        typeof snap.clientCharge === 'object' &&
+        !Array.isArray(snap.clientCharge)
+      ) {
+        const clientCharge = snap.clientCharge as Record<string, unknown>;
+        clientCharge.amount = money;
+        clientCharge.manualOverride = true;
+        clientCharge.explanation = 'Manual billable amount override';
+      } else {
+        snap.clientCharge = {
+          amount: money,
+          minutes: 0,
+          hoursLabel: '—',
+          rateType: 'MANUAL',
+          unitRate: null,
+          formula: 'Manual override',
+          cardName: null,
+          cardCode: null,
+          cardSource: null,
+          ruleLabel: 'Manual billable amount',
+          manualOverride: true,
+          explanation: 'Manual billable amount override',
+          appliedRules: [],
+          segments: [],
+        };
+      }
+      // Total was set by hand — drop stale per-funder card breakdowns.
+      snap.funderClientCharges = null;
+      snap.funderChargeNote =
+        'Client charge was set manually as a visit total. Multi-funder % splits still apply on invoice runs from this total.';
+    }
+    snap.pricingFrozen = true;
+    snap.pricingFrozenNote =
+      side === 'pay'
+        ? 'Carer pay includes a manual amount override.'
+        : 'Client charge includes a manual amount override.';
+    return snap as Prisma.InputJsonValue;
   }
 
   async approve(userId: string, id: string, dto: ApproveVisitReconciliationDto) {
@@ -1170,6 +1428,7 @@ export class VisitReconciliationsService {
   /**
    * Re-run card resolution and payable/billable amount calculation for unlocked rows.
    * Does not create new reconciliations — use backfill/sync for that.
+   * Manual carer/client amount overrides are preserved (only card-derived amounts reprice).
    */
   async recalculateAmounts(dto: RecalculateVisitReconciliationsDto) {
     const where: Prisma.VisitReconciliationWhereInput = {
@@ -1422,6 +1681,9 @@ export class VisitReconciliationsService {
 
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
+    // Manual overrides always freeze — including during force recalculate — so
+    // "Recalculate amounts" only reprices card-derived sides and never wipes
+    // finance-entered carer/client amounts (list page reads these columns).
     const visitCompleted = isBillingEligibleVisit(visit);
     const legacyMismatchedBillWindow = isLegacyMismatchedBillWindow({
       plannedStartDateTime: row.plannedStartDateTime,
@@ -1432,15 +1694,19 @@ export class VisitReconciliationsService {
       approvedBillStart: row.approvedBillStart,
       approvedBillEnd: row.approvedBillEnd,
     });
+    const manualPayableOverride = hasManualPayableOverride(row);
+    const manualBillableOverride = hasManualBillableOverride(row);
     const freezeBillable =
-      !options?.forceRecalculateAmounts &&
-      !legacyMismatchedBillWindow &&
-      visitCompleted &&
-      row.billableAmount != null;
+      manualBillableOverride ||
+      (!options?.forceRecalculateAmounts &&
+        !legacyMismatchedBillWindow &&
+        visitCompleted &&
+        row.billableAmount != null);
     const freezePayable =
-      !options?.forceRecalculateAmounts &&
-      visitCompleted &&
-      row.payableAmount != null;
+      manualPayableOverride ||
+      (!options?.forceRecalculateAmounts &&
+        visitCompleted &&
+        row.payableAmount != null);
 
     const tasksIncomplete = await this.hasIncompleteTasks(db, row.scheduledJobId);
     const funding = await this.loadFundingSnapshot(db, row.serviceUserId);
@@ -1746,7 +2012,10 @@ export class VisitReconciliationsService {
     );
 
     if (freezePayable) {
-      payableAmount = Number(row.payableAmount);
+      payableAmount =
+        row.payableAmount != null
+          ? Number(row.payableAmount)
+          : resolveManualPayableAmount(row);
     } else if (payCard && payMinutes) {
       const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
       const stackingPolicy =
@@ -1810,10 +2079,15 @@ export class VisitReconciliationsService {
     let keepFrozenBillable = freezeBillable;
 
     if (freezeBillable) {
-      billableAmount = Number(row.billableAmount);
+      billableAmount =
+        row.billableAmount != null
+          ? Number(row.billableAmount)
+          : resolveManualBillableAmount(row);
+      const manualBillable = manualBillableOverride;
       // Repair visits that were priced on the primary card only while 2+ funders
       // with split % should have used per-funder charge cards.
-      if (perFunderCharges) {
+      // Never rewrite a finance manual override.
+      if (perFunderCharges && !manualBillable) {
         const primaryGross =
           perFunderCharges.lines.find((line) => line.isPrimary)?.cardGrossAmount ??
           perFunderCharges.lines.find((line) => line.chargeCardId === row.chargeCardId)
@@ -2292,9 +2566,19 @@ export class VisitReconciliationsService {
         approvedPayable: formatTimeRange(row.approvedPayStart, row.approvedPayEnd, timeZone),
         approvedBillable: formatTimeRange(row.approvedBillStart, row.approvedBillEnd, timeZone),
         payableAmount:
-          row.payableAmount != null ? `£${Number(row.payableAmount).toFixed(2)}` : null,
+          row.payableAmount != null
+            ? `£${Number(row.payableAmount).toFixed(2)}`
+            : (() => {
+                const manual = resolveManualPayableAmount(row);
+                return manual != null ? `£${manual.toFixed(2)}` : null;
+              })(),
         billableAmount:
-          row.billableAmount != null ? `£${Number(row.billableAmount).toFixed(2)}` : null,
+          row.billableAmount != null
+            ? `£${Number(row.billableAmount).toFixed(2)}`
+            : (() => {
+                const manual = resolveManualBillableAmount(row);
+                return manual != null ? `£${manual.toFixed(2)}` : null;
+              })(),
         travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
         travelMinutes: row.travelMinutes ?? null,
         currency: row.currency,
@@ -2443,8 +2727,10 @@ export class VisitReconciliationsService {
           actualEndDateTime: nightVisit.actualEndDateTime,
         })
       : false;
-    const freezeBillable = visitCompleted && row.billableAmount != null;
-    const freezePayable = visitCompleted && row.payableAmount != null;
+    const freezeBillable =
+      hasManualBillableOverride(row) || (visitCompleted && row.billableAmount != null);
+    const freezePayable =
+      hasManualPayableOverride(row) || (visitCompleted && row.payableAmount != null);
 
     const perFunderCharges =
       billMinutes > 0 && billStart && billEnd
@@ -2463,7 +2749,11 @@ export class VisitReconciliationsService {
           })
         : null;
 
-    const frozenBillable = freezeBillable ? Number(row.billableAmount) : null;
+    const frozenBillable = freezeBillable
+      ? row.billableAmount != null
+        ? Number(row.billableAmount)
+        : resolveManualBillableAmount(row)
+      : null;
     const liveBillableTotal = perFunderCharges?.totalAmount ?? null;
     const frozenDiffersFromLive =
       frozenBillable != null &&
@@ -2596,29 +2886,38 @@ export class VisitReconciliationsService {
         nightDuty,
         plannedMinutes,
       );
-      if (freezeBillable && row.billableAmount != null && clientCharge) {
+      if (freezeBillable && frozenBillable != null && clientCharge) {
+        const manual = hasManualBillableOverride(row);
         clientCharge = {
           ...clientCharge,
-          amount: formatMoney(Number(row.billableAmount)),
-          formula: `${clientCharge.formula} (stored total frozen at completion)`,
+          amount: formatMoney(frozenBillable),
+          manualOverride: manual || undefined,
+          formula: `${clientCharge.formula} (${manual ? 'manual override' : 'stored total frozen at completion'})`,
           ruleLabel: clientCharge.ruleLabel
-            ? `${clientCharge.ruleLabel} · frozen total`
-            : 'Frozen at completion',
+            ? `${clientCharge.ruleLabel} · ${manual ? 'manual' : 'frozen total'}`
+            : manual
+              ? 'Manual billable amount'
+              : 'Frozen at completion',
+          explanation: manual ? 'Manual billable amount override' : clientCharge.explanation,
         };
       }
-    } else if (freezeBillable && row.billableAmount != null) {
+    } else if (freezeBillable && frozenBillable != null) {
+      const manual = hasManualBillableOverride(row);
       clientCharge = {
         minutes: billMinutes,
         hoursLabel: formatMinutesAsHours(billMinutes),
-        rateType: 'FROZEN',
+        rateType: manual ? 'MANUAL' : 'FROZEN',
         unitRate: null,
-        amount: formatMoney(Number(row.billableAmount)),
-        formula:
-          'Priced at visit completion — charge-card changes no longer update this amount',
+        amount: formatMoney(frozenBillable),
+        formula: manual
+          ? 'Manual billable amount override'
+          : 'Priced at visit completion — charge-card changes no longer update this amount',
         cardName: null,
         cardCode: null,
         cardSource: row.chargeCardSource,
-        ruleLabel: 'Frozen at completion',
+        ruleLabel: manual ? 'Manual billable amount' : 'Frozen at completion',
+        manualOverride: manual || undefined,
+        explanation: manual ? 'Manual billable amount override' : null,
       };
     }
     if (row.payCardId && payMinutes > 0) {
@@ -2643,31 +2942,49 @@ export class VisitReconciliationsService {
         nightDuty,
         plannedMinutes,
       );
-      if (freezePayable && row.payableAmount != null) {
-        carerPay = livePay
-          ? {
-              ...livePay,
-              amount: formatMoney(Number(row.payableAmount)),
-              formula: livePay.formula
-                ? `${livePay.formula} (stored total frozen at completion)`
-                : 'Priced at visit completion — pay-card changes no longer update this amount',
-              ruleLabel: livePay.ruleLabel
-                ? `${livePay.ruleLabel} · frozen total`
-                : 'Frozen at completion',
-            }
-          : {
-              minutes: payMinutes,
-              hoursLabel: formatMinutesAsHours(payMinutes),
-              rateType: 'FROZEN',
-              unitRate: null,
-              amount: formatMoney(Number(row.payableAmount)),
-              formula:
-                'Priced at visit completion — pay-card changes no longer update this amount',
-              cardName: payCard?.name ?? null,
-              cardCode: payCard?.code ?? null,
-              cardSource: row.payCardSource,
-              ruleLabel: 'Frozen at completion',
-            };
+      if (freezePayable) {
+        const frozenPayable =
+          row.payableAmount != null
+            ? Number(row.payableAmount)
+            : resolveManualPayableAmount(row);
+        if (frozenPayable != null) {
+          const manual = hasManualPayableOverride(row);
+          carerPay = livePay
+            ? {
+                ...livePay,
+                amount: formatMoney(frozenPayable),
+                manualOverride: manual || undefined,
+                formula: livePay.formula
+                  ? `${livePay.formula} (${manual ? 'manual override' : 'stored total frozen at completion'})`
+                  : manual
+                    ? 'Manual payable amount override'
+                    : 'Priced at visit completion — pay-card changes no longer update this amount',
+                ruleLabel: livePay.ruleLabel
+                  ? `${livePay.ruleLabel} · ${manual ? 'manual' : 'frozen total'}`
+                  : manual
+                    ? 'Manual payable amount'
+                    : 'Frozen at completion',
+                explanation: manual ? 'Manual payable amount override' : livePay.explanation,
+              }
+            : {
+                minutes: payMinutes,
+                hoursLabel: formatMinutesAsHours(payMinutes),
+                rateType: manual ? 'MANUAL' : 'FROZEN',
+                unitRate: null,
+                amount: formatMoney(frozenPayable),
+                formula: manual
+                  ? 'Manual payable amount override'
+                  : 'Priced at visit completion — pay-card changes no longer update this amount',
+                cardName: payCard?.name ?? null,
+                cardCode: payCard?.code ?? null,
+                cardSource: row.payCardSource,
+                ruleLabel: manual ? 'Manual payable amount' : 'Frozen at completion',
+                manualOverride: manual || undefined,
+                explanation: manual ? 'Manual payable amount override' : null,
+              };
+        } else {
+          carerPay = livePay;
+        }
       } else {
         carerPay = livePay;
       }

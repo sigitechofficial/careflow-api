@@ -305,13 +305,13 @@ export function openLoneWorkerRiskWhere(): Prisma.ServiceUserWhereInput {
   };
 }
 
-/** Service users with ≥ min confirmed ECM missed visits in an optional date window. */
+/** Service users with more than `moreThan` confirmed ECM missed visits in an optional date window. */
 export async function findServiceUserIdsWithConfirmedMissedVisitsAtLeast(
   prisma: PrismaService,
-  minCount: number,
+  moreThan: number,
   opts?: { from?: Date; to?: Date },
 ): Promise<string[]> {
-  if (!Number.isFinite(minCount) || minCount < 1) return [];
+  if (!Number.isFinite(moreThan) || moreThan < 0) return [];
 
   const localVisitDate: Prisma.DateTimeFilter = {};
   if (opts?.from) localVisitDate.gte = opts.from;
@@ -335,7 +335,7 @@ export async function findServiceUserIdsWithConfirmedMissedVisitsAtLeast(
     if (!id) continue;
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
-  return [...counts.entries()].filter(([, n]) => n >= minCount).map(([id]) => id);
+  return [...counts.entries()].filter(([, n]) => n > moreThan).map(([id]) => id);
 }
 
 /** Incidents link via primaryServiceUserId (no Prisma FK on ServiceUser). */

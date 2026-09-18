@@ -39,9 +39,17 @@ import {
   postRunEmployeesToYtd,
   reverseRunEmployeesFromYtd,
 } from './payroll-ytd.util';
-import { buildCareFpsPayload } from './payroll-fps.util'
+import { buildCareFpsPayload } from './payroll-fps.util';
 import { buildFpsPreviewExcelBuffer } from './payroll-fps-excel.util';
 import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
+import { buildPayslipPdf } from './payroll-payslip-pdf.util';
+import {
+  buildCarePayslipData,
+  buildPayslipPeriodCaption,
+  payFrequencyLabel,
+  payslipPdfFilename,
+  resolvePayslipBankPayment,
+} from './payroll-payslip.util';
 import { PAYROLL_EMPLOYER_SETTINGS_ID } from './payroll-settings.service';
 
 const OPEN_RUN_STATUSES = [
@@ -210,9 +218,141 @@ export class PayrollRunsService {
   }
 
   /**
+   * Index of downloadable payslips from CLOSED runs (statutory calculated employees).
+   */
+  async listPayslips(locationId?: string) {
+    const locationEmpIds = locationId
+      ? await employeeIdsForLocation(this.prisma, locationId)
+      : undefined;
+    if (locationId && locationEmpIds && !locationEmpIds.length) {
+      return { message: 'UK payroll payslips', data: [] };
+    }
+
+    const runEmployees = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        statutoryCalculatedAt: { not: null },
+        ...(locationEmpIds ? { employeeId: { in: locationEmpIds } } : {}),
+        run: { status: 'CLOSED', deletedAt: null },
+      },
+      include: {
+        run: {
+          include: {
+            period: true,
+            schedule: true,
+            taxYear: true,
+          },
+        },
+      },
+      orderBy: [{ run: { period: { paymentDate: 'desc' } } }, { enrolledAt: 'asc' }],
+    });
+
+    const employeeIds = [...new Set(runEmployees.map((e) => e.employeeId))];
+    const runEmployeeIds = runEmployees.map((e) => e.id);
+    const [people, payoutLines] = await Promise.all([
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds }, deletedAt: null },
+            select: {
+              id: true,
+              personalDetail: { select: { firstName: true, lastName: true } },
+              employment: { select: { payrollNumber: true } },
+            },
+          })
+        : Promise.resolve([]),
+      runEmployeeIds.length
+        ? this.prisma.employeePayoutLine.findMany({
+            where: { ukPayrollRunEmployeeId: { in: runEmployeeIds } },
+            select: {
+              ukPayrollRunEmployeeId: true,
+              status: true,
+              createdAt: true,
+              batch: { select: { status: true, paidAt: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        : Promise.resolve([]),
+    ]);
+    const peopleById = new Map(people.map((p) => [p.id, p]));
+    const payoutByRunEmployeeId = new Map<
+      string,
+      { lineStatus: string; batchStatus: string; paidAt: string | null }
+    >();
+    for (const line of payoutLines) {
+      if (payoutByRunEmployeeId.has(line.ukPayrollRunEmployeeId)) continue;
+      payoutByRunEmployeeId.set(line.ukPayrollRunEmployeeId, {
+        lineStatus: line.status,
+        batchStatus: line.batch.status,
+        paidAt: line.batch.paidAt?.toISOString() ?? null,
+      });
+    }
+
+    return {
+      message: 'UK payroll payslips',
+      data: runEmployees.map((e) => {
+        const person = peopleById.get(e.employeeId);
+        const first = person?.personalDetail?.firstName ?? '';
+        const last = person?.personalDetail?.lastName ?? '';
+        const bank = resolvePayslipBankPayment(
+          payoutByRunEmployeeId.get(e.id) ?? null,
+        );
+        return {
+          runEmployeeId: e.id,
+          ukPayrollRunId: e.runId,
+          employeeId: e.employeeId,
+          displayName: `${first} ${last}`.trim() || e.employeeId,
+          payrollNumber: person?.employment?.payrollNumber ?? null,
+          runLabel: e.run.label,
+          periodLabel: e.run.period.label,
+          periodStart: dateToIsoDate(e.run.period.periodStart),
+          periodEnd: dateToIsoDate(e.run.period.periodEnd),
+          paymentDate: dateToIsoDate(e.run.period.paymentDate),
+          taxYearCode: e.run.taxYear.code,
+          scheduleName: e.run.schedule.name,
+          frequency: e.run.schedule.frequency,
+          frequencyLabel: payFrequencyLabel(e.run.schedule.frequency),
+          periodCaption: buildPayslipPeriodCaption({
+            frequency: e.run.schedule.frequency,
+            periodLabel: e.run.period.label,
+            periodStart: dateToIsoDate(e.run.period.periodStart) ?? '',
+            periodEnd: dateToIsoDate(e.run.period.periodEnd) ?? '',
+          }),
+          totalGross: decimalNum(e.totalGross),
+          incomeTax: decimalNum(e.incomeTax),
+          employeeNi: decimalNum(e.employeeNi),
+          netPay: decimalNum(e.netPay),
+          taxCodeApplied: e.taxCodeApplied,
+          niCategoryApplied: e.niCategoryApplied,
+          bankStatus: bank.bankStatus,
+          bankStatusLabel: bank.bankStatusLabel,
+          bankPaidAt: bank.paidAt,
+        };
+      }),
+    };
+  }
+
+  /** Resolve payslip PDF via run-employee id (CLOSED run only). */
+  async exportPayslipByRunEmployeeId(
+    runEmployeeId: string,
+    userId?: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const runEmployee = await this.prisma.ukPayrollRunEmployee.findFirst({
+      where: { id: runEmployeeId },
+      select: { id: true, runId: true },
+    });
+    if (!runEmployee) {
+      throw new NotFoundException('Payslip employee row not found');
+    }
+    return this.exportEmployeePayslip(runEmployee.runId, runEmployee.id, userId, meta);
+  }
+
+  /**
    * Test/ops: hard-delete all UK payroll runs and dependent rows.
    * Also removes employee payout batches that reference those runs (FK Restrict).
    * Reopens pay periods (IN_RUN / CLOSED → OPEN) so they can be selected again.
+   * Clears the year-to-date (YTD) ledgers and per-run contributions — since every
+   * run is being wiped, cumulative PAYE totals must reset to zero, otherwise
+   * employee Gross/Tax/NI YTD would stay inflated behind runs that no longer exist.
    * Leaves tax years, schedules, and employee payroll profiles intact.
    */
   async deleteAll(userId: string, meta?: RequestAuditMeta) {
@@ -223,6 +363,11 @@ export class PayrollRunsService {
       const inputLines = await tx.ukPayrollInputLine.deleteMany({});
       const runEmployees = await tx.ukPayrollRunEmployee.deleteMany({});
       const runs = await tx.ukPayrollRun.deleteMany({});
+      // Clear both the per-run YTD contributions and the accumulated ledgers so
+      // cumulative PAYE starts fresh (deleting ledgers alone would cascade the
+      // contributions, but removing them explicitly gives an accurate count).
+      const ytdContributions = await tx.employeePayrollYtdContribution.deleteMany({});
+      const ytdLedgers = await tx.employeePayrollYtdLedger.deleteMany({});
       const periodsReopened = await tx.payrollPeriod.updateMany({
         where: {
           deletedAt: null,
@@ -239,13 +384,15 @@ export class PayrollRunsService {
         inputLines: inputLines.count,
         runEmployees: runEmployees.count,
         runs: runs.count,
+        ytdContributions: ytdContributions.count,
+        ytdLedgers: ytdLedgers.count,
         periodsReopened: periodsReopened.count,
       };
     });
 
     this.logger.warn(
       `Deleted all UK payroll runs: ${counts.runs} run(s), ${counts.payoutBatches} payout batch(es), ` +
-        `${counts.periodsReopened} period(s) reopened`,
+        `${counts.ytdLedgers} YTD ledger(s) reset, ${counts.periodsReopened} period(s) reopened`,
     );
 
     await this.audit.logAudit({
@@ -557,6 +704,164 @@ export class PayrollRunsService {
       buffer,
       filename: `care-fps-${runId.slice(0, 8)}.xlsx`,
     };
+  }
+
+  /**
+   * ERA 1996 s.8 itemised pay statement PDF for one CLOSED-run employee.
+   */
+  async exportEmployeePayslip(
+    runId: string,
+    runEmployeeId: string,
+    userId?: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const row = await this.requireRun(runId);
+    if (row.status !== 'CLOSED') {
+      throw new BadRequestException(
+        'Payslips are only available for CLOSED runs. Close the run after statutory calculation first.',
+      );
+    }
+
+    const runEmployee = await this.prisma.ukPayrollRunEmployee.findFirst({
+      where: { id: runEmployeeId, runId },
+    });
+    if (!runEmployee) {
+      throw new NotFoundException('Employee not found on this UK payroll run');
+    }
+    if (!runEmployee.statutoryCalculatedAt) {
+      throw new BadRequestException(
+        'Statutory tax & NI have not been calculated for this employee. Recalculate statutory before downloading a payslip.',
+      );
+    }
+
+    const [employerRow, person, ytd, inputLines, payoutLine] = await Promise.all([
+      this.prisma.payrollEmployerSettings.findUnique({
+        where: { id: PAYROLL_EMPLOYER_SETTINGS_ID },
+      }),
+      this.prisma.employee.findFirst({
+        where: { id: runEmployee.employeeId, deletedAt: null },
+        select: {
+          id: true,
+          personalDetail: { select: { firstName: true, lastName: true } },
+          employment: {
+            select: { payrollNumber: true, nationalInsuranceNo: true },
+          },
+        },
+      }),
+      this.prisma.employeePayrollYtdLedger.findUnique({
+        where: {
+          employeeId_taxYearId: {
+            employeeId: runEmployee.employeeId,
+            taxYearId: row.taxYearId,
+          },
+        },
+      }),
+      this.prisma.ukPayrollInputLine.findMany({
+        where: { runEmployeeId: runEmployee.id, isExpense: false },
+        select: { minutes: true },
+      }),
+      this.prisma.employeePayoutLine.findFirst({
+        where: { ukPayrollRunEmployeeId: runEmployee.id },
+        select: {
+          status: true,
+          batch: { select: { status: true, paidAt: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    if (!person) {
+      throw new NotFoundException('Employee record not found');
+    }
+
+    const employer = employerRow
+      ? mapEmployerSettings(employerRow)
+      : {
+          employerTradingName: null as string | null,
+          fullPayeReference: null as string | null,
+          accountsOfficeReference: null as string | null,
+        };
+
+    const first = person.personalDetail?.firstName ?? '';
+    const last = person.personalDetail?.lastName ?? '';
+    const displayName = `${first} ${last}`.trim() || runEmployee.employeeId;
+    const paidMinutes = inputLines.reduce((sum, line) => sum + (line.minutes ?? 0), 0);
+
+    const payslip = buildCarePayslipData({
+      run: { id: row.id, status: row.status },
+      runEmployee: {
+        id: runEmployee.id,
+        employeeId: runEmployee.employeeId,
+        visitPay: decimalNum(runEmployee.visitPay),
+        salaryPay: decimalNum(runEmployee.salaryPay),
+        travelPay: decimalNum(runEmployee.travelPay),
+        nmwTopUp: decimalNum(runEmployee.nmwTopUp),
+        otherPay: decimalNum(runEmployee.otherPay),
+        expenseTotal: decimalNum(runEmployee.expenseTotal),
+        deductionTotal: decimalNum(runEmployee.deductionTotal),
+        totalGross: decimalNum(runEmployee.totalGross),
+        taxablePay: decimalNum(runEmployee.taxablePay),
+        incomeTax: decimalNum(runEmployee.incomeTax),
+        employeeNi: decimalNum(runEmployee.employeeNi),
+        employerNi: decimalNum(runEmployee.employerNi),
+        netPay: decimalNum(runEmployee.netPay),
+        taxCodeApplied: runEmployee.taxCodeApplied,
+        niCategoryApplied: runEmployee.niCategoryApplied,
+      },
+      employee: {
+        displayName,
+        payrollNumber: person.employment?.payrollNumber ?? null,
+        nationalInsuranceNo: person.employment?.nationalInsuranceNo ?? null,
+      },
+      employer: {
+        employerTradingName: employer.employerTradingName,
+        fullPayeReference: employer.fullPayeReference,
+        accountsOfficeReference: employer.accountsOfficeReference,
+      },
+      period: {
+        taxYearCode: row.taxYear.code,
+        taxYearLabel: row.taxYear.label,
+        scheduleName: row.schedule.name,
+        frequency: row.schedule.frequency,
+        periodLabel: row.period.label,
+        periodStart: dateToIsoDate(row.period.periodStart)!,
+        periodEnd: dateToIsoDate(row.period.periodEnd)!,
+        paymentDate: dateToIsoDate(row.period.paymentDate)!,
+      },
+      paidMinutes,
+      ytd: ytd ? mapYtdLedger(ytd) : null,
+      bankPayment: payoutLine
+        ? {
+            lineStatus: payoutLine.status,
+            batchStatus: payoutLine.batch.status,
+            paidAt: payoutLine.batch.paidAt?.toISOString() ?? null,
+          }
+        : null,
+    });
+
+    const buffer = await buildPayslipPdf(payslip);
+    const filename = payslipPdfFilename(payslip);
+
+    if (userId) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAYSLIP_DOWNLOADED,
+        recordType: 'UkPayrollRunEmployee',
+        recordId: runEmployee.id,
+        newValues: {
+          ukPayrollRunId: row.id,
+          employeeId: runEmployee.employeeId,
+          paymentDate: payslip.period.paymentDate,
+          netPay: payslip.totals.netPay,
+          filename,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+
+    return { buffer, filename };
   }
 
   async create(userId: string, dto: CreateUkPayrollRunDto, meta?: RequestAuditMeta) {

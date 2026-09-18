@@ -1,0 +1,80 @@
+/** Care statutory payslip snapshot (ERA 1996 s.8 — first slice). */
+
+export type PayslipMoneyLine = {
+  label: string
+  amount: number
+  /** When true, amount reduces net (shown under deductions). */
+  isDeduction: boolean
+}
+
+export type PayslipYtdSnapshot = {
+  grossPayYtd: number
+  taxablePayYtd: number
+  incomeTaxYtd: number
+  employeeNiYtd: number
+  employerNiYtd: number
+  netPayYtd: number
+}
+
+export type CarePayslipData = {
+  meta: {
+    schemaVersion: 'care-payslip-1'
+    generatedAt: string
+    ukPayrollRunId: string
+    runEmployeeId: string
+    purpose: 'ITEMISED_PAY_STATEMENT'
+  }
+  employer: {
+    name: string
+    fullPayeReference: string | null
+    accountsOfficeReference: string | null
+  }
+  employee: {
+    employeeId: string
+    displayName: string
+    payrollNumber: string | null
+    nationalInsuranceNo: string | null
+    taxCode: string | null
+    niCategory: string | null
+  }
+  period: {
+    taxYearCode: string
+    taxYearLabel: string
+    scheduleName: string
+    frequency: string
+    /** Human label e.g. "April 2026" or "P1 …" */
+    periodLabel: string
+    /** e.g. "Monthly · April 2026 (01/04/2026 – 30/04/2026)" */
+    periodCaption: string
+    frequencyLabel: string
+    periodStart: string
+    periodEnd: string
+    paymentDate: string
+  }
+  earnings: PayslipMoneyLine[]
+  deductions: PayslipMoneyLine[]
+  /** Informational — not deducted from employee net. */
+  employerCosts: PayslipMoneyLine[]
+  totals: {
+    grossPay: number
+    totalDeductions: number
+    netPay: number
+    expenseTotal: number
+  }
+  /** ERA 2019 hours rule — only when pay varies by time worked. */
+  hoursWorked: {
+    required: boolean
+    totalHours: number | null
+    source: 'INPUT_LINE_MINUTES' | 'NONE'
+  }
+  payment: {
+    netPay: number
+    methodLabel: string
+    /** Bank disbursement via Employee payouts — separate from statutory calculation. */
+    bankStatus: 'CALCULATED' | 'APPROVED' | 'PAID'
+    bankStatusLabel: string
+    paidAt: string | null
+  }
+  ytd: PayslipYtdSnapshot | null
+  notes: string[]
+}

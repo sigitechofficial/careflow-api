@@ -199,12 +199,13 @@ export class ServiceUserQueryDto extends PaginationQueryDto {
   initialAssessmentStatus?: (typeof INITIAL_ASSESSMENT_STATUS_FILTERS)[number];
 
   @ApiPropertyOptional({
-    description: 'Minimum confirmed ECM missed visits (requires aggregation)',
+    description:
+      'Confirmed ECM missed visits strictly greater than this value (requires aggregation)',
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(10_000)
   missedVisitsMin?: number;
 
@@ -236,12 +237,16 @@ export class ServiceUserQueryDto extends PaginationQueryDto {
   @IsBoolean()
   physicalAltercation?: boolean;
 
-  @ApiPropertyOptional({ description: 'Date of death from (inclusive)' })
+  @ApiPropertyOptional({
+    description: 'Date/time of death from (inclusive). YYYY-MM-DD or ISO datetime.',
+  })
   @IsOptional()
   @IsDateString()
   dateOfDeathFrom?: string;
 
-  @ApiPropertyOptional({ description: 'Date of death to (inclusive)' })
+  @ApiPropertyOptional({
+    description: 'Date/time of death to (inclusive). YYYY-MM-DD or ISO datetime.',
+  })
   @IsOptional()
   @IsDateString()
   dateOfDeathTo?: string;

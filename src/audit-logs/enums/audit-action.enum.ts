@@ -390,6 +390,7 @@ export enum AuditAction {
   PAYROLL_RUN_REACTIVATED = 'payroll_run_reactivated',
   PAYROLL_RUN_GROSS_CALCULATED = 'payroll_run_gross_calculated',
   PAYROLL_RUN_STATUTORY_CALCULATED = 'payroll_run_statutory_calculated',
+  PAYROLL_PAYSLIP_DOWNLOADED = 'payroll_payslip_downloaded',
   PAYROLL_RUNS_DELETED = 'payroll_runs_deleted',
   PAYROLL_DATA_PURGED = 'payroll_data_purged',
   PAYROLL_HMRC_FPS_DRY_RUN = 'payroll_hmrc_fps_dry_run',

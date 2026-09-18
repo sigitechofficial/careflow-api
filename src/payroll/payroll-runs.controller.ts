@@ -38,7 +38,7 @@ export class PayrollRunsController {
   @Permissions('payroll.runs.manage')
   @ApiOperation({
     summary:
-      'Delete all UK payroll runs (test/ops). Also removes linked employee payout batches. Does not delete tax years, schedules, or employee payroll profiles.',
+      'Delete all UK payroll runs (test/ops). Also removes linked employee payout batches and resets employee year-to-date (YTD) ledgers. Does not delete tax years, schedules, or employee payroll profiles.',
   })
   deleteAll(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.service.deleteAll(user.id, getRequestAuditMeta(req));
@@ -76,6 +76,31 @@ export class PayrollRunsController {
     const { buffer, filename } = await this.service.exportFpsExcel(id);
     res
       .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(buffer);
+  }
+
+  @Get(':id/employees/:runEmployeeId/payslip')
+  @Permissions('payroll.runs.read')
+  @ApiOperation({
+    summary:
+      'Download ERA 1996 itemised pay statement PDF for one CLOSED-run employee (Care payslip v1)',
+  })
+  async exportEmployeePayslip(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('runEmployeeId') runEmployeeId: string,
+    @Req() req: Request,
+    @Res({ passthrough: false }) res: Response,
+  ) {
+    const { buffer, filename } = await this.service.exportEmployeePayslip(
+      id,
+      runEmployeeId,
+      user.id,
+      getRequestAuditMeta(req),
+    );
+    res
+      .type('application/pdf')
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)
       .send(buffer);
   }

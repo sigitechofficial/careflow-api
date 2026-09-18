@@ -15,6 +15,7 @@ import {
   ClearVisitReconciliationsDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
+  SetVisitBillableAmountDto,
   UpdateVisitReconciliationDto,
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
@@ -114,6 +115,19 @@ export class VisitReconciliationsController {
     @Body() dto: SetVisitPayableAmountDto,
   ) {
     return this.service.setPayableAmount(user.id, id, dto);
+  }
+
+  @Post(':id/billable-amount')
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({
+    summary: 'Set visit billable amount (client/funder charge when accepted for invoice)',
+  })
+  setBillableAmount(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetVisitBillableAmountDto,
+  ) {
+    return this.service.setBillableAmount(user.id, id, dto);
   }
 
   @Post(':id/approve')

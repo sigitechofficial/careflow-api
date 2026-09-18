@@ -2172,6 +2172,61 @@ export class InvoiceRunsService {
 
       if (issues.length) exceptionCount += 1;
 
+      // Prefer the reconciliation's stored billable total for invoicing.
+      // Manual overrides and frozen visit totals must not be repriced from charge cards.
+      const useStoredBillableTotal = recon.billableAmount != null && !issues.length;
+      const snapshotFunderLines = useStoredBillableTotal
+        ? this.funderChargeLinesFromSnapshot(recon.pricingSnapshot, total, splits)
+        : null;
+
+      if (useStoredBillableTotal) {
+        const allocatedFromStored =
+          snapshotFunderLines ??
+          splitAmount(total, splits).map((split) => ({
+            id: split.id,
+            funderId: split.funderId,
+            funderName: split.funderName,
+            splitPercent: split.splitPercent,
+            amount: split.amount,
+            chargeCardId: recon.chargeCardId as string | null,
+          }));
+
+        for (const split of allocatedFromStored) {
+          if (split.amount <= 0) continue;
+          if (split.funderId) funderIds.add(split.funderId);
+
+          const lineIssues = [...issues];
+          const resolved = await this.invoiceTemplates.resolveForServiceUser(
+            recon.serviceUserId,
+            split.id,
+          );
+          if (!resolved.data.invoiceTemplate) {
+            templateMissingCount += 1;
+            lineIssues.push('Invoice template missing');
+            if (!issues.length) exceptionCount += 1;
+          }
+
+          lineData.push({
+            invoiceRunId: id,
+            visitReconciliationId: recon.id,
+            serviceUserId: recon.serviceUserId,
+            serviceUserFundingId: split.id,
+            funderId: split.funderId,
+            lineType: InvoiceRunLineType.VISIT_CHARGE,
+            description: split.funderName
+              ? `Visit charge — ${recon.visitRef} (${split.funderName})`
+              : `Visit charge — ${recon.visitRef}`,
+            minutes: recon.billableMinutes,
+            splitPercent: split.splitPercent,
+            amount: split.amount,
+            chargeCardId: split.chargeCardId ?? recon.chargeCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
+          });
+        }
+        continue;
+      }
+
       const perFunderCharges =
         !issues.length &&
         recon.approvedBillStart &&
@@ -2796,6 +2851,73 @@ export class InvoiceRunsService {
         funderName: funderLabel ?? null,
       },
     };
+  }
+
+  /**
+   * Prefer frozen per-funder shares from the pricing snapshot when they match the
+   * stored visit total. Manual overrides clear funderClientCharges, so callers
+   * fall back to funding-% splits of the stored total.
+   */
+  private funderChargeLinesFromSnapshot(
+    pricingSnapshot: Prisma.JsonValue | null,
+    expectedTotal: number,
+    splits: ReturnType<typeof buildFundingSplits>,
+  ): Array<{
+    id: string;
+    funderId: string | null;
+    funderName: string | null;
+    splitPercent: number | null;
+    amount: number;
+    chargeCardId: string | null;
+  }> | null {
+    if (
+      pricingSnapshot == null ||
+      typeof pricingSnapshot !== 'object' ||
+      Array.isArray(pricingSnapshot)
+    ) {
+      return null;
+    }
+    const snap = pricingSnapshot as Record<string, unknown>;
+    const raw = snap.funderClientCharges;
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+
+    const byFunderName = new Map(splits.map((s) => [s.funderName?.trim().toLowerCase() ?? '', s]));
+    const lines: Array<{
+      id: string;
+      funderId: string | null;
+      funderName: string | null;
+      splitPercent: number | null;
+      amount: number;
+      chargeCardId: string | null;
+    }> = [];
+
+    for (const entry of raw) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+      const row = entry as Record<string, unknown>;
+      const funderName = typeof row.funderName === 'string' ? row.funderName : null;
+      const shareRaw = typeof row.shareAmount === 'string' ? row.shareAmount : '';
+      const amount = Number(String(shareRaw).replace(/[^0-9.-]/g, ''));
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      const key = funderName?.trim().toLowerCase() ?? '';
+      const split = byFunderName.get(key) ?? splits.find((s) => s.isPrimary) ?? splits[0];
+      if (!split) continue;
+      lines.push({
+        id: split.id,
+        funderId: split.funderId,
+        funderName: funderName ?? split.funderName,
+        splitPercent:
+          typeof row.splitPercent === 'number'
+            ? row.splitPercent
+            : split.splitPercent,
+        amount: Math.round(amount * 100) / 100,
+        chargeCardId: null,
+      });
+    }
+
+    if (!lines.length) return null;
+    const sum = Math.round(lines.reduce((s, l) => s + l.amount, 0) * 100) / 100;
+    if (Math.abs(sum - expectedTotal) > 0.05) return null;
+    return lines;
   }
 
   /**

@@ -452,7 +452,7 @@ export class ServiceUsersService implements OnModuleInit {
 
     const idIntersections: string[][] = [];
 
-    if (query.missedVisitsMin != null && query.missedVisitsMin >= 1) {
+    if (query.missedVisitsMin != null && query.missedVisitsMin >= 0) {
       const missedIds = await findServiceUserIdsWithConfirmedMissedVisitsAtLeast(
         this.prisma,
         query.missedVisitsMin,

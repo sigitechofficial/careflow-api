@@ -1161,6 +1161,9 @@ export type RateBreakdown = {
     lineFormula: string;
     amount: string;
   }>;
+  /** True when finance set the amount manually rather than from card rules. */
+  manualOverride?: boolean;
+  explanation?: string | null;
 };
 
 function formatGbp(amount: number): string {

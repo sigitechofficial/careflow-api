@@ -168,6 +168,30 @@ export class SetVisitPayableAmountDto {
   approveForPay?: boolean;
 }
 
+export class SetVisitBillableAmountDto {
+  @ApiProperty({ example: 32.0, description: 'Manual billable (client/funder) amount in GBP' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  billableAmount!: number;
+
+  @ApiPropertyOptional({ description: 'Optional note explaining the amount change' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'When true (default), accept the visit for invoice so the amount counts toward billing',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  approveForInvoice?: boolean;
+}
+
 export class ApproveVisitReconciliationDto {
   @ApiProperty({ enum: ['PAY', 'INVOICE', 'BOTH'] })
   @IsEnum(['PAY', 'INVOICE', 'BOTH'])
