@@ -10505,6 +10505,15 @@ model Incident {
   /// Primary person affected — a service user OR an employee (or neither for external).
   primaryServiceUserId String? @db.Uuid
   primaryEmployeeId    String? @db.Uuid
+  /// Kind of primary person affected. For FAMILY/VISITOR/HEALTHCARE_PROFESSIONAL/CONTRACTOR/OTHER
+  /// the person is not a platform record, so their name is captured in primaryPersonName.
+  primaryPersonKind IncidentPersonKind?
+  primaryPersonName String?             @db.Text
+  /// All kinds of person affected (multi-select). primaryPersonKind holds the first for back-compat.
+  affectedPersonKinds IncidentPersonKind[]
+  /// The visit (scheduling.ScheduledJob) this incident was reported during, if any.
+  /// Scalar UUID validated in the service layer (no cross-schema FK), like other external refs.
+  scheduledJobId String? @db.Uuid
 
   description    String  @default("") @db.Text
   contextBefore  String? @db.Text

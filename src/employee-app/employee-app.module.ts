@@ -28,6 +28,7 @@ import { BodyMapModule } from '../body-map/body-map.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
 import { EcmModule } from '../ecm/ecm.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { IncidentsModule } from '../incidents/incidents.module';
 import { EmployeeAppDeviceTokenController } from './employee-app-device-token.controller';
 
 @Module({
@@ -42,6 +43,7 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     VisitAttendanceModule,
     EcmModule,
     NotificationsModule,
+    IncidentsModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({

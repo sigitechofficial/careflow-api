@@ -10,28 +10,31 @@ describe('SOS close codes', () => {
     expect(reasonCodesForExceptionKind('CARER_SOS')).toEqual(SOS_OUTCOME_CODES);
   });
 
-  it('requires both action and outcome, and a note for Other', () => {
-    expect(parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_FALSE_ALARM')).toEqual({
+  it('requires both action and outcome, and a note for each', () => {
+    // Both notes are now always required, even for non-Other codes.
+    expect(parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_FALSE_ALARM').ok).toBe(false);
+    expect(
+      parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_FALSE_ALARM', 'all safe', 'called carer'),
+    ).toEqual({
       ok: true,
       actionCode: 'SOS_ACTION_CALLED_CARER',
       outcomeCode: 'SOS_FALSE_ALARM',
-      actionNote: null,
-      note: null,
+      actionNote: 'called carer',
+      note: 'all safe',
     });
-    expect(parseSosClosePayload('', 'SOS_FALSE_ALARM').ok).toBe(false);
-    expect(parseSosClosePayload('SOS_ACTION_CALLED_CARER', '').ok).toBe(false);
-    expect(parseSosClosePayload('SOS_ACTION_OTHER', 'SOS_FALSE_ALARM').ok).toBe(false);
+    expect(parseSosClosePayload('', 'SOS_FALSE_ALARM', 'n', 'n').ok).toBe(false);
+    expect(parseSosClosePayload('SOS_ACTION_CALLED_CARER', '', 'n', 'n').ok).toBe(false);
+    // Missing action note → blocked.
     expect(
-      parseSosClosePayload('SOS_ACTION_OTHER', 'SOS_FALSE_ALARM', undefined, '  pocket dial  '),
+      parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_FALSE_ALARM', 'all safe', '  ').ok,
+    ).toBe(false);
+    // Missing outcome note → blocked.
+    expect(
+      parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_FALSE_ALARM', '', 'called carer').ok,
+    ).toBe(false);
+    expect(
+      parseSosClosePayload('SOS_ACTION_OTHER', 'SOS_OTHER', 'result', '  called neighbour  '),
     ).toEqual({
-      ok: true,
-      actionCode: 'SOS_ACTION_OTHER',
-      outcomeCode: 'SOS_FALSE_ALARM',
-      actionNote: 'pocket dial',
-      note: null,
-    });
-    expect(parseSosClosePayload('SOS_ACTION_CALLED_CARER', 'SOS_OTHER').ok).toBe(false);
-    expect(parseSosClosePayload('SOS_ACTION_OTHER', 'SOS_OTHER', 'result', 'called neighbour')).toEqual({
       ok: true,
       actionCode: 'SOS_ACTION_OTHER',
       outcomeCode: 'SOS_OTHER',

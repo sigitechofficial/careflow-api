@@ -347,7 +347,7 @@ export class EmployeeAppVisitsController {
     @Param('jobId') jobId: string,
     @Body() dto: EmployeeAppIncidentDto,
   ) {
-    return this.visitsService.createIncident(user.employeeId!, jobId, dto);
+    return this.visitsService.createIncident(user.employeeId!, jobId, dto, user.id);
   }
 
   @Post(':jobId/incidents/:incidentId/attachments')

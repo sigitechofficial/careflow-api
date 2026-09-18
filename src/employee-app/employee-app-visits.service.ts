@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -17,6 +18,8 @@ import {
   MedicationAdministrationStatus,
   MedicationKind,
   MedicationPackStatus,
+  IncidentPersonKind,
+  IncidentSeverity,
   MedicationRecordStatus,
   Prisma,
   ScheduledJobStatus,
@@ -67,11 +70,9 @@ import {
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   DEFAULT_INCIDENT_SEVERITY_SETTINGS,
-  DEFAULT_INCIDENT_TYPE_SETTINGS,
   DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
   incidentCatalogForApp,
   parseIncidentSeveritySettings,
-  parseIncidentTypeSettings,
   parseIncidentWhoInformedSettings,
 } from '../organisation-general-settings/incident-management.util';
 import {
@@ -178,6 +179,7 @@ import {
 } from './visit-task-obs-link.util';
 import { syncObservationFromCompletedVisitTask } from './visit-task-obs-sync.util';
 import { VisitTimelineService } from './visit-timeline.service';
+import { IncidentsService } from '../incidents/incidents.service';
 import {
   HANDOVER_TIMELINE_SOURCE_ID,
   VISIT_NOTE_TIMELINE_SOURCE_ID,
@@ -340,6 +342,8 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
 
 @Injectable()
 export class EmployeeAppVisitsService {
+  private readonly logger = new Logger(EmployeeAppVisitsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly housekeeping: ScheduledJobsHousekeepingService,
@@ -355,6 +359,7 @@ export class EmployeeAppVisitsService {
     private readonly visitReconciliations: VisitReconciliationsService,
     private readonly carerPush: CarerVisitPushHook,
     private readonly ecmExceptions: EcmExceptionsService,
+    private readonly incidents: IncidentsService,
   ) {}
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
@@ -463,18 +468,36 @@ export class EmployeeAppVisitsService {
    */
   private async loadIncidentCatalog() {
     try {
-      const settings = await this.prisma.organisationGeneralSettings.findFirst({
-        select: {
-          incidentTypeSettings: true,
-          incidentSeveritySettings: true,
-          incidentWhoInformedSettings: true,
-        },
-      });
+      // Types come from the admin IncidentCategory catalog (same taxonomy as the
+      // office incidents module) so the app's type == a real categoryId. Each
+      // option carries its subtypes so the app can offer a subtype picker.
+      const [settings, categories] = await Promise.all([
+        this.prisma.organisationGeneralSettings.findFirst({
+          select: {
+            incidentSeveritySettings: true,
+            incidentWhoInformedSettings: true,
+          },
+        }),
+        this.prisma.incidentCategory.findMany({
+          where: { isActive: true, deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            label: true,
+            subtypes: {
+              where: { isActive: true, deletedAt: null },
+              orderBy: { sortOrder: 'asc' },
+              select: { id: true, label: true },
+            },
+          },
+        }),
+      ]);
       return {
-        types: incidentCatalogForApp(
-          parseIncidentTypeSettings(settings?.incidentTypeSettings),
-          DEFAULT_INCIDENT_TYPE_SETTINGS,
-        ),
+        types: categories.map((c) => ({
+          key: c.id,
+          label: c.label,
+          subtypes: c.subtypes.map((s) => ({ key: s.id, label: s.label })),
+        })),
         severities: incidentCatalogForApp(
           parseIncidentSeveritySettings(settings?.incidentSeveritySettings),
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
@@ -486,10 +509,7 @@ export class EmployeeAppVisitsService {
       };
     } catch {
       return {
-        types: incidentCatalogForApp(
-          DEFAULT_INCIDENT_TYPE_SETTINGS,
-          DEFAULT_INCIDENT_TYPE_SETTINGS,
-        ),
+        types: [],
         severities: incidentCatalogForApp(
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
@@ -3732,7 +3752,12 @@ export class EmployeeAppVisitsService {
     return { data: response };
   }
 
-  async createIncident(employeeId: string, jobId: string, dto: EmployeeAppIncidentDto) {
+  async createIncident(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppIncidentDto,
+    userId?: string,
+  ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
@@ -3790,7 +3815,63 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
+    // Mirror the submitted (non-draft) incident into the real Incident register so it
+    // appears in the admin Accident & Incident module, linked to this visit. The blob
+    // above is kept for offline sync + the visit timeline. A failure here must never
+    // break the carer's submit (the incident is already saved locally/on the blob).
+    if (!dto.isDraft && userId) {
+      try {
+        const kinds = (dto.affectedPersonKinds ?? []) as IncidentPersonKind[];
+        const created = await this.incidents.createFromCarerApp({
+          userId,
+          employeeId,
+          scheduledJobId: jobId,
+          categoryId: dto.incidentTypeKey ?? '',
+          subtypeId: dto.subtypeKey ?? null,
+          occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+          severity: this.mapAppIncidentSeverity(dto.severityKey),
+          primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
+            ? ctx.job.serviceUserId ?? null
+            : null,
+          primaryEmployeeId: kinds.includes(IncidentPersonKind.EMPLOYEE)
+            ? employeeId
+            : null,
+          affectedPersonKinds: kinds,
+          primaryPersonName: dto.affectedPersonName ?? null,
+          description: dto.body,
+          contextBefore: dto.contextBefore ?? null,
+          contextAfter: dto.contextAfter ?? null,
+          immediateActions: dto.immediateAction ?? null,
+          injuryOccurred:
+            Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap),
+        });
+        this.logger.log(
+          `Carer-app incident ${incidentId} mirrored to register as ${created.referenceNumber}`,
+        );
+      } catch (e) {
+        this.logger.warn(
+          `Failed to mirror carer-app incident ${incidentId} to the register: ${e}`,
+        );
+      }
+    }
+
     return { data: response };
+  }
+
+  /** Map the carer-app severity key to the office IncidentSeverity enum. */
+  private mapAppIncidentSeverity(key?: string | null): IncidentSeverity {
+    switch ((key ?? '').toLowerCase()) {
+      case 'moderate':
+        return IncidentSeverity.MEDIUM;
+      case 'severe':
+        return IncidentSeverity.HIGH;
+      case 'death':
+        return IncidentSeverity.CRITICAL;
+      case 'no_harm':
+      case 'low':
+      default:
+        return IncidentSeverity.LOW;
+    }
   }
 
   async addIncidentAttachment(

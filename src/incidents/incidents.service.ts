@@ -8,6 +8,7 @@ import {
 import {
   IncidentActionPriority,
   IncidentActionStatus,
+  IncidentPersonKind,
   IncidentPrivacyLevel,
   IncidentSeverity,
   IncidentStatus,
@@ -212,6 +213,10 @@ export class IncidentsService {
                 dto.reporterEmployeeId ?? user.employeeId ?? null,
               primaryServiceUserId: dto.primaryServiceUserId ?? null,
               primaryEmployeeId: dto.primaryEmployeeId ?? null,
+              affectedPersonKinds: dto.affectedPersonKinds ?? [],
+              primaryPersonKind:
+                dto.primaryPersonKind ?? dto.affectedPersonKinds?.[0] ?? null,
+              primaryPersonName: dto.primaryPersonName?.trim() || null,
               description: dto.description.trim(),
               contextBefore: dto.contextBefore?.trim() || null,
               contextAfter: dto.contextAfter?.trim() || null,
@@ -279,6 +284,133 @@ export class IncidentsService {
     );
 
     return { message: 'Incident reported', data: this.mapIncident(created) };
+  }
+
+  /**
+   * Create a real Incident row from a carer-app submission. Mirrors create() but is
+   * driven by the trusted employee-app visit context: it skips the office org-scope
+   * permission checks and links the incident to the visit (scheduledJobId). Returns
+   * the created incident so the caller can surface its reference number.
+   */
+  async createFromCarerApp(params: {
+    userId: string;
+    employeeId: string;
+    scheduledJobId: string;
+    categoryId: string;
+    subtypeId?: string | null;
+    occurredAt: Date;
+    severity: IncidentSeverity;
+    primaryServiceUserId?: string | null;
+    primaryEmployeeId?: string | null;
+    affectedPersonKinds?: IncidentPersonKind[];
+    primaryPersonName?: string | null;
+    description: string;
+    contextBefore?: string | null;
+    contextAfter?: string | null;
+    immediateActions?: string | null;
+    injuryOccurred?: boolean;
+  }): Promise<IncidentWithRefs> {
+    const category = await this.prisma.incidentCategory.findFirst({
+      where: { id: params.categoryId, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new BadRequestException('Invalid or inactive incident category');
+    }
+
+    const year = new Date().getUTCFullYear();
+    let created: IncidentWithRefs | null = null;
+    for (let attempt = 0; attempt < REFERENCE_MAX_RETRIES; attempt++) {
+      try {
+        created = await this.prisma.$transaction(async (tx) => {
+          const referenceNumber = await this.allocateReference(tx, year);
+          const incident = await tx.incident.create({
+            data: {
+              referenceNumber,
+              categoryId: params.categoryId,
+              subtypeId: params.subtypeId ?? null,
+              status: IncidentStatus.REPORTED,
+              severity: params.severity,
+              privacyLevel: IncidentPrivacyLevel.NORMAL,
+              shareWithHandover: false,
+              occurredAt: params.occurredAt,
+              scheduledJobId: params.scheduledJobId,
+              // The carer is an employee-app account, not a platform User, so we do
+              // not set reportedById/createdById (User FK). reporterEmployeeId links
+              // the actual reporter.
+              reportedById: null,
+              reporterEmployeeId: params.employeeId,
+              primaryServiceUserId: params.primaryServiceUserId ?? null,
+              primaryEmployeeId: params.primaryEmployeeId ?? null,
+              affectedPersonKinds: params.affectedPersonKinds ?? [],
+              primaryPersonKind: params.affectedPersonKinds?.[0] ?? null,
+              primaryPersonName: params.primaryPersonName?.trim() || null,
+              description: params.description.trim(),
+              contextBefore: params.contextBefore?.trim() || null,
+              contextAfter: params.contextAfter?.trim() || null,
+              immediateActions: params.immediateActions?.trim() || null,
+              injuryOccurred: params.injuryOccurred ?? false,
+              createdById: null,
+            },
+            include: { category: true, subtype: true },
+          });
+
+          await tx.incidentStatusHistory.create({
+            data: {
+              incidentId: incident.id,
+              toStatus: IncidentStatus.REPORTED,
+              changedById: null,
+            },
+          });
+          await tx.incidentSeverityHistory.create({
+            data: {
+              incidentId: incident.id,
+              toSeverity: params.severity,
+              changedById: null,
+            },
+          });
+
+          // Carer has no platform User row, so the audit entry is recorded without a
+          // linked userId (AuditLog.userId is nullable); reporterEmployeeId on the
+          // incident preserves who reported it.
+          await this.audit.logAudit({
+            tx,
+            userId: undefined,
+            module: AuditModule.INCIDENT,
+            action: AuditAction.INCIDENT_CREATED,
+            recordType: 'Incident',
+            recordId: incident.id,
+            description: `Incident ${incident.referenceNumber} reported from carer app`,
+            newValues: auditSnapshot(incident),
+          });
+
+          return incident;
+        });
+        break;
+      } catch (err) {
+        if (
+          this.isUniqueViolation(err) &&
+          attempt < REFERENCE_MAX_RETRIES - 1
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!created) {
+      throw new BadRequestException(
+        'Could not allocate an incident reference — please retry',
+      );
+    }
+
+    void this.notifyManagersOfNewIncident(created, params.userId).catch((e) =>
+      this.logger.warn(
+        `Incident notification failed for ${created?.referenceNumber}: ${e}`,
+      ),
+    );
+
+    return created;
   }
 
   private async validateReferences(dto: CreateIncidentDto): Promise<void> {
@@ -1374,6 +1506,10 @@ export class IncidentsService {
       specificArea: incident.specificArea,
       primaryServiceUserId: incident.primaryServiceUserId,
       primaryEmployeeId: incident.primaryEmployeeId,
+      primaryPersonKind: incident.primaryPersonKind,
+      primaryPersonName: incident.primaryPersonName,
+      affectedPersonKinds: incident.affectedPersonKinds,
+      scheduledJobId: incident.scheduledJobId,
       reportedById: incident.reportedById,
       ownerId: incident.ownerId,
       description: incident.description,
