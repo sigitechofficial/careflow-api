@@ -510,6 +510,20 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Type(() => IncidentTypeSettingDto)
   incidentTypeSettings?: IncidentTypeSettingDto[];
 
+  @ApiPropertyOptional({ type: [IncidentTypeSettingDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTypeSettingDto)
+  incidentSeveritySettings?: IncidentTypeSettingDto[];
+
+  @ApiPropertyOptional({ type: [IncidentTypeSettingDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTypeSettingDto)
+  incidentWhoInformedSettings?: IncidentTypeSettingDto[];
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

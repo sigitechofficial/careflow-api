@@ -8,6 +8,11 @@ import {
   buildAdminCheckInSummary,
   extractEmployeeAppCheckIn,
 } from '../employee-app/check-in-display.util';
+import {
+  allocationPresenceView,
+  readCoCarerPresenceMap,
+  readEmployeeAppMeta,
+} from '../employee-app/employee-app-multi-carer.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -220,6 +225,17 @@ export function mapTimelineJob(row: TimelineJobRow) {
   const actualStartDateTime = primaryVisit?.actualStartDateTime?.toISOString() ?? null;
   const actualEndDateTime = primaryVisit?.actualEndDateTime?.toISOString() ?? null;
   const careNotDelivered = mapCareNotDelivered(row);
+  const presenceMap = readCoCarerPresenceMap(
+    readEmployeeAppMeta(parseJobMetadata(row.metadata)),
+  );
+  const presenceNameById: Record<string, string> = {};
+  for (const a of row.allocations) {
+    const name = [a.employee?.personalDetail?.firstName, a.employee?.personalDetail?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    if (name) presenceNameById[a.employeeId] = name;
+  }
   const allocations = row.allocations.map((a) => {
     const resolved = resolveAllocationWindow(a, {
       scheduledStartDateTime: row.scheduledStartDateTime,
@@ -243,6 +259,7 @@ export function mapTimelineJob(row: TimelineJobRow) {
       resolvedDurationMinutes: resolved.durationMinutes,
       hasExplicitTiming: resolved.hasExplicitTiming,
       employee: mapEmployeeBrief(a.employee),
+      presence: allocationPresenceView(a.employeeId, presenceMap, presenceNameById),
     };
   });
 

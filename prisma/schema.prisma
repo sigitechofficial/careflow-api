@@ -900,6 +900,10 @@ model OrganisationGeneralSettings {
   incidentDisplayHours          Int               @default(12)
   incidentDefaultStatus         String            @default("REPORTED")
   incidentTypeSettings          Json              @default("[]")
+  /// Carer Report-an-incident severity chips (fixed keys: low/medium/high/critical).
+  incidentSeveritySettings      Json              @default("[]")
+  /// Carer Report-an-incident "who was informed" chips (defaults + org extras).
+  incidentWhoInformedSettings   Json              @default("[]")
   optionalEmarIntegration       Boolean           @default(false)
   optionalMedicationListRequired Boolean          @default(true)
   optionalMedicationAmendRoles  Json              @default("[]")
@@ -6760,7 +6764,7 @@ model EmergencyProtocolCatalog {
   title     String
   subtitle  String   @default("")
   version   String   @default("")
-  /// activity | droplet | wind | smile | heart | alert | brain | pulse
+  /// activity | droplet | wind | smile | heart | alert | brain | pulse | foot
   iconKey   String   @default("alert") @db.VarChar(32)
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)

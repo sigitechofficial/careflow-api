@@ -2,6 +2,7 @@ import {
   buildTimelineUpsertData,
   checkInTimelineDetail,
   formatTimelineHm,
+  observationTimelineDetail,
   mapRowToTimelineApiItem,
   sortTimelineRows,
   summarizeTimelineDetail,
@@ -47,6 +48,44 @@ describe('visit-timeline.util', () => {
   it('maps check-in method detail', () => {
     expect(checkInTimelineDetail('GPS')).toBe('GPS confirmed');
     expect(checkInTimelineDetail('MANUAL')).toBe('Manual clock-in');
+  });
+
+  it('formats blood pressure as systolic/diastolic, not systolic-only', () => {
+    expect(
+      observationTimelineDetail({
+        typeCode: 'BLOOD_PRESSURE',
+        numericValue: 95,
+        unit: 'mmHg',
+        payload: { systolic: 95, diastolic: 62 },
+        value: '95/62 mmHg',
+        outcome: 'recorded',
+      }),
+    ).toBe('95/62 mmHg');
+  });
+
+
+  it('appends a range warning for abnormal observations', () => {
+    expect(
+      observationTimelineDetail({
+        typeCode: 'BLOOD_PRESSURE',
+        numericValue: 1000,
+        unit: 'mmHg',
+        payload: { systolic: 1000, diastolic: 80, abnormal: true },
+        value: '1000/80 mmHg',
+        outcome: 'recorded',
+      }),
+    ).toBe('1000/80 mmHg · Outside expected range');
+  });
+
+  it('keeps unable observations as a reason, not a reading', () => {
+    expect(
+      observationTimelineDetail({
+        typeCode: 'BLOOD_PRESSURE',
+        payload: { systolic: 120, diastolic: 80 },
+        outcome: 'unable',
+        unableReasonCode: 'equipment_unavailable',
+      }),
+    ).toBe('equipment_unavailable');
   });
 
   it('sorts ascending by occurredAt then id', () => {

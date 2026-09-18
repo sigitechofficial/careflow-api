@@ -5,7 +5,9 @@ import type { VisitTimelineApiItem, VisitTimelineUpsertInput } from './visit-tim
 import {
   buildTimelineUpsertData,
   mapRowToTimelineApiItem,
+  observationTimelineDetail,
   sortTimelineRows,
+  summarizeTimelineDetail,
 } from './visit-timeline.util';
 
 @Injectable()
@@ -69,6 +71,59 @@ export class VisitTimelineService {
       where: { scheduledJobId, isDraft: false },
       orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
     });
-    return sortTimelineRows(rows).map((row) => mapRowToTimelineApiItem(row, timeZone));
+    const items = sortTimelineRows(rows).map((row) => mapRowToTimelineApiItem(row, timeZone));
+    return this.enrichObservationDetails(items);
+  }
+
+  /** Re-format observation rows from stored payload so BP shows systolic/diastolic. */
+  private async enrichObservationDetails(
+    items: VisitTimelineApiItem[],
+  ): Promise<VisitTimelineApiItem[]> {
+    const ids = [
+      ...new Set(
+        items
+          .filter((item) => item.sourceType === 'observation' || item.type === 'observation')
+          .map((item) => item.sourceId)
+          .filter((id) => id.length > 0),
+      ),
+    ];
+    if (ids.length === 0) return items;
+
+    const observations = await this.prisma.serviceUserObservation.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        numericValue: true,
+        unit: true,
+        payload: true,
+        observationType: { select: { code: true } },
+      },
+    });
+    if (observations.length === 0) return items;
+
+    const byId = new Map(observations.map((row) => [row.id, row]));
+    return items.map((item) => {
+      if (item.sourceType !== 'observation' && item.type !== 'observation') return item;
+      const row = byId.get(item.sourceId);
+      if (!row) return item;
+      const payload =
+        row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+          ? (row.payload as Record<string, unknown>)
+          : null;
+      const detail = summarizeTimelineDetail(
+        observationTimelineDetail({
+          typeCode: row.observationType.code,
+          numericValue: row.numericValue != null ? Number(row.numericValue) : null,
+          unit: row.unit,
+          payload,
+          value: payload?.value,
+          outcome: typeof payload?.outcome === 'string' ? payload.outcome : 'recorded',
+          unableReasonCode:
+            typeof payload?.unableReasonCode === 'string' ? payload.unableReasonCode : null,
+        }),
+      );
+      if (!detail || detail === item.detail) return item;
+      return { ...item, detail, subtitle: detail };
+    });
   }
 }

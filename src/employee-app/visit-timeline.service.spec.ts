@@ -5,8 +5,10 @@ import type { OrganisationGeneralSettingsService } from '../organisation-general
 describe('VisitTimelineService', () => {
   const upsert = jest.fn();
   const findMany = jest.fn();
+  const findObservations = jest.fn();
   const prisma = {
     visitTimelineEvent: { upsert, findMany },
+    serviceUserObservation: { findMany: findObservations },
   } as unknown as PrismaService;
   const orgSettings = {
     getOperationalTimezone: jest.fn().mockResolvedValue('UTC'),
@@ -17,6 +19,8 @@ describe('VisitTimelineService', () => {
   beforeEach(() => {
     upsert.mockReset();
     findMany.mockReset();
+    findObservations.mockReset();
+    findObservations.mockResolvedValue([]);
     (orgSettings.getOperationalTimezone as jest.Mock).mockResolvedValue('UTC');
   });
 
@@ -146,6 +150,38 @@ describe('VisitTimelineService', () => {
   it('returns empty timeline when no events', async () => {
     findMany.mockResolvedValue([]);
     await expect(service.listForJob('job-fresh')).resolves.toEqual([]);
+  });
+
+  it('rewrites blood-pressure observation detail from stored systolic/diastolic', async () => {
+    findMany.mockResolvedValue([
+      {
+        id: 'tl-bp',
+        eventType: 'observation',
+        occurredAt: new Date('2026-09-16T10:24:00.000Z'),
+        timeLabel: '10:24',
+        title: 'Blood pressure',
+        detail: '95',
+        tone: 'danger',
+        sourceType: 'observation',
+        sourceId: 'obs-bp-1',
+        logEntryId: null,
+        isDraft: false,
+      },
+    ]);
+    findObservations.mockResolvedValue([
+      {
+        id: 'obs-bp-1',
+        numericValue: 95,
+        unit: 'mmHg',
+        payload: { systolic: 95, diastolic: 62, outcome: 'recorded' },
+        observationType: { code: 'BLOOD_PRESSURE' },
+      },
+    ]);
+
+    const items = await service.listForJob('job-1');
+    expect(items).toHaveLength(1);
+    expect(items[0].detail).toBe('95/62 mmHg');
+    expect(items[0].subtitle).toBe('95/62 mmHg');
   });
 
   it('formats timeLabel in organisation timezone', async () => {

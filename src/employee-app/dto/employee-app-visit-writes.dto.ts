@@ -557,6 +557,12 @@ export class EmployeeAppIncidentDto {
   @MaxLength(128)
   incidentType!: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  incidentTypeKey?: string;
+
   @ApiProperty()
   @IsString()
   @MaxLength(8000)
@@ -565,8 +571,14 @@ export class EmployeeAppIncidentDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(16)
+  @MaxLength(64)
   severity?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  severityKey?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -642,6 +654,12 @@ export class EmployeeAppIncidentDto {
   @IsArray()
   @IsString({ each: true })
   whoInformed?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  whoInformedKeys?: string[];
 
   @ApiPropertyOptional({ type: EmployeeAppIncidentBodyMapDto })
   @IsOptional()

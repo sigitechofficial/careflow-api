@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import type {
   VisitTimelineApiItem,
   VisitTimelineEventType,
@@ -9,6 +10,7 @@ import {
   formatHmInTimeZone,
   formatHmUtc,
 } from '../common/utils/operational-day.util';
+import { formatVisitObservationValue } from '../service-user-observations/visit-observations-catalog.service';
 import { checkInMethodDetailLine } from './check-in-display.util';
 
 const DETAIL_MAX = 280;
@@ -107,8 +109,64 @@ export function observationTimelineTone(opts: {
   abnormal?: boolean | null;
   critical?: boolean | null;
 }): VisitTimelineTone {
-  if (opts.critical || opts.abnormal) return 'danger';
+  if (opts.critical) return 'danger';
+  if (opts.abnormal) return 'warning';
   return 'teal';
+}
+
+function observationRangeWarning(opts: {
+  payload?: Record<string, unknown> | null;
+  abnormal?: boolean | null;
+  critical?: boolean | null;
+}): string | null {
+  const payload = opts.payload ?? {};
+  const critical = Boolean(opts.critical ?? payload.critical);
+  const abnormal = Boolean(opts.abnormal ?? payload.abnormal);
+  if (critical) return 'Critical — outside expected range';
+  if (abnormal) return 'Outside expected range';
+  return null;
+}
+
+/** Log-tab detail: BP must be systolic/diastolic, not the systolic-only numericValue. */
+export function observationTimelineDetail(input: {
+  typeCode?: string | null;
+  numericValue?: number | null;
+  unit?: string | null;
+  payload?: Record<string, unknown> | null;
+  value?: unknown;
+  outcome?: string | null;
+  unableReasonCode?: string | null;
+  abnormal?: boolean | null;
+  critical?: boolean | null;
+}): string | null {
+  const outcome = (input.outcome ?? '').trim().toLowerCase();
+  if (outcome === 'unable') {
+    return input.unableReasonCode?.trim() || 'Unable';
+  }
+  const formatted = formatVisitObservationValue({
+    numericValue: input.numericValue ?? null,
+    unit: input.unit ?? null,
+    payload: (input.payload ?? null) as Prisma.JsonValue | null,
+    observationType: input.typeCode ? { code: input.typeCode } : undefined,
+  });
+  const warn = observationRangeWarning({
+    payload: input.payload,
+    abnormal: input.abnormal,
+    critical: input.critical,
+  });
+  if (formatted?.trim()) {
+    const value = formatted.trim();
+    return warn ? `${value} · ${warn}` : value;
+  }
+  if (input.value != null) {
+    const raw = String(input.value).trim();
+    if (raw) return warn ? `${raw} · ${warn}` : raw;
+  }
+  if (input.numericValue != null && Number.isFinite(input.numericValue)) {
+    const raw = String(input.numericValue);
+    return warn ? `${raw} · ${warn}` : raw;
+  }
+  return warn ?? (input.outcome?.trim() || null);
 }
 
 export function concernTimelineTone(severity?: string | null): VisitTimelineTone {

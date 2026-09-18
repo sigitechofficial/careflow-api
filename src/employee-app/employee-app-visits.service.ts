@@ -66,6 +66,15 @@ import {
 } from '../service-user-observations/visit-observations-catalog.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
+  DEFAULT_INCIDENT_SEVERITY_SETTINGS,
+  DEFAULT_INCIDENT_TYPE_SETTINGS,
+  DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
+  incidentCatalogForApp,
+  parseIncidentSeveritySettings,
+  parseIncidentTypeSettings,
+  parseIncidentWhoInformedSettings,
+} from '../organisation-general-settings/incident-management.util';
+import {
   jobMetadataIsOvernight,
   nightDutyAppLabel,
   resolveStoredNightDuty,
@@ -179,6 +188,7 @@ import {
   handoverTimelineTone,
   medicationOutcomeLabel,
   medicationTimelineTone,
+  observationTimelineDetail,
   observationTimelineTone,
   parseOccurredAt,
   summarizeTimelineDetail,
@@ -393,7 +403,7 @@ export class EmployeeAppVisitsService {
 
   async getWorkspace(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock, methodGrant, officeContact, emergencyProtocols] =
+    const [progress, overviewExtras, medProgress, geofenceSettings, checkInFlags, areaLock, methodGrant, officeContact, emergencyProtocols, incidentCatalog] =
       await Promise.all([
         this.resolveProgress(ctx),
         this.loadOverviewExtras(ctx),
@@ -404,6 +414,7 @@ export class EmployeeAppVisitsService {
         this.checkInMethodGrants.listForCarerVisit(jobId, employeeId),
         this.loadOfficeContact(),
         this.getEmergencyProtocols(),
+        this.loadIncidentCatalog(),
       ]);
     const methodGrants = methodGrant;
     const latestGrant = methodGrants[0] ?? null;
@@ -441,8 +452,54 @@ export class EmployeeAppVisitsService {
         visitOutcomes: await this.getVisitOutcomesCatalog(),
         officeContact,
         emergencyProtocols,
+        incidentCatalog,
       },
     };
+  }
+
+  /**
+   * Admin Settings → Incident Management catalogs for Report an incident.
+   * `required: false` hides a row; empty enabled set falls back to defaults.
+   */
+  private async loadIncidentCatalog() {
+    try {
+      const settings = await this.prisma.organisationGeneralSettings.findFirst({
+        select: {
+          incidentTypeSettings: true,
+          incidentSeveritySettings: true,
+          incidentWhoInformedSettings: true,
+        },
+      });
+      return {
+        types: incidentCatalogForApp(
+          parseIncidentTypeSettings(settings?.incidentTypeSettings),
+          DEFAULT_INCIDENT_TYPE_SETTINGS,
+        ),
+        severities: incidentCatalogForApp(
+          parseIncidentSeveritySettings(settings?.incidentSeveritySettings),
+          DEFAULT_INCIDENT_SEVERITY_SETTINGS,
+        ),
+        whoInformed: incidentCatalogForApp(
+          parseIncidentWhoInformedSettings(settings?.incidentWhoInformedSettings),
+          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
+        ),
+      };
+    } catch {
+      return {
+        types: incidentCatalogForApp(
+          DEFAULT_INCIDENT_TYPE_SETTINGS,
+          DEFAULT_INCIDENT_TYPE_SETTINGS,
+        ),
+        severities: incidentCatalogForApp(
+          DEFAULT_INCIDENT_SEVERITY_SETTINGS,
+          DEFAULT_INCIDENT_SEVERITY_SETTINGS,
+        ),
+        whoInformed: incidentCatalogForApp(
+          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
+          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
+        ),
+      };
+    }
   }
 
   /** Admin Settings → Company details (contact name + phone). */
@@ -500,6 +557,7 @@ export class EmployeeAppVisitsService {
         visitOutcomes: workspace.data.visitOutcomes,
         officeContact: workspace.data.officeContact,
         emergencyProtocols: workspace.data.emergencyProtocols,
+        incidentCatalog: workspace.data.incidentCatalog,
         unableToStart: this.buildUnableToStartPayload(ctx, employeeId),
         welfareOutcomes,
         careConsent,
@@ -3164,14 +3222,17 @@ export class EmployeeAppVisitsService {
       }));
     }
 
-    const valueSummary =
-      numericValue != null
-        ? String(numericValue)
-        : dto.value != null
-          ? String(dto.value)
-          : dto.outcome === 'unable'
-            ? dto.unableReasonCode ?? 'Unable'
-            : dto.outcome ?? null;
+    const valueSummary = observationTimelineDetail({
+      typeCode: type.code,
+      numericValue,
+      unit: dto.unit ?? type.unitLabel,
+      payload: payloadRecord,
+      value: dto.value,
+      outcome: dto.outcome,
+      unableReasonCode: dto.unableReasonCode,
+      abnormal: dto.abnormal,
+      critical: dto.critical,
+    });
     await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: ctx.primaryVisit.id,
@@ -3306,11 +3367,30 @@ export class EmployeeAppVisitsService {
       }));
     }
 
-    const updateValueSummary =
-      (numericValue !== undefined ? String(numericValue) : null) ||
-      (dto.value != null ? String(dto.value) : null) ||
-      (existing.numericValue != null ? String(existing.numericValue) : null) ||
-      String(response.outcome);
+    const mergedPayload = {
+      ...prevPayload,
+      ...(dto.payload ?? {}),
+    };
+    const updateValueSummary = observationTimelineDetail({
+      typeCode: existing.observationType.code,
+      numericValue:
+        numericValue !== undefined
+          ? numericValue
+          : existing.numericValue != null
+            ? Number(existing.numericValue)
+            : null,
+      unit: dto.unit !== undefined ? dto.unit : existing.unit,
+      payload: mergedPayload,
+      value: dto.value ?? prevPayload.value,
+      outcome: String(dto.outcome ?? prevPayload.outcome ?? response.outcome),
+      unableReasonCode:
+        dto.unableReasonCode ??
+        (typeof prevPayload.unableReasonCode === 'string'
+          ? prevPayload.unableReasonCode
+          : null),
+      abnormal: Boolean(dto.abnormal ?? prevPayload.abnormal),
+      critical: Boolean(dto.critical ?? prevPayload.critical),
+    });
     await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: ctx.primaryVisit.id,

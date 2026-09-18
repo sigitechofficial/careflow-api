@@ -47,4 +47,18 @@ export class IncidentManagementFieldsDto {
   @ValidateNested({ each: true })
   @Type(() => IncidentTypeSettingDto)
   incidentTypeSettings?: IncidentTypeSettingDto[];
+
+  @ApiPropertyOptional({ type: [IncidentTypeSettingDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTypeSettingDto)
+  incidentSeveritySettings?: IncidentTypeSettingDto[];
+
+  @ApiPropertyOptional({ type: [IncidentTypeSettingDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTypeSettingDto)
+  incidentWhoInformedSettings?: IncidentTypeSettingDto[];
 }

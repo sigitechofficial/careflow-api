@@ -1,8 +1,11 @@
 import { employeeAppUnableToStartReasons } from './employee-app-unable-to-start.util';
 import {
+  allocationPresenceView,
   isLeadCarerOnVisit,
   isMultiCarerVisit,
   mapTwoPersonTaskFlags,
+  readCoCarerPresenceMap,
+  readEmployeeAppMeta,
   resolveCarerRole,
   resolveLeadEmployeeId,
   buildSupportClockedOutBeforeLeadComplete,
@@ -85,5 +88,31 @@ describe('employee-app-multi-carer.util', () => {
 
   it('unable-to-start catalogue still available for lead path', () => {
     expect(employeeAppUnableToStartReasons().length).toBeGreaterThan(0);
+  });
+
+  it('maps partner presence with marker name for admin workspace', () => {
+    const ea = readEmployeeAppMeta({
+      employeeApp: {
+        coCarerPresence: {
+          'support-1': {
+            present: true,
+            arrivedAt: '2026-09-16T09:08:00.000Z',
+            leftAt: null,
+            markedByEmployeeId: 'lead-1',
+            updatedAt: '2026-09-16T09:08:01.000Z',
+          },
+        },
+      },
+    });
+    const map = readCoCarerPresenceMap(ea);
+    expect(allocationPresenceView('support-1', map, { 'lead-1': 'Ali Khan' })).toEqual({
+      present: true,
+      arrivedAt: '2026-09-16T09:08:00.000Z',
+      leftAt: null,
+      markedByEmployeeId: 'lead-1',
+      markedByName: 'Ali Khan',
+      updatedAt: '2026-09-16T09:08:01.000Z',
+    });
+    expect(allocationPresenceView('lead-1', map, { 'lead-1': 'Ali Khan' })).toBeNull();
   });
 });

@@ -14,6 +14,8 @@ import {
 import {
   parseIncidentDefaultStatus,
   parseIncidentTypeSettings,
+  parseIncidentSeveritySettings,
+  parseIncidentWhoInformedSettings,
   serializeIncidentTypeSettings,
   incidentStatusLabel,
   type IncidentTypeSetting,
@@ -146,6 +148,8 @@ type SettingsRow = {
   incidentDisplayHours: number;
   incidentDefaultStatus: string;
   incidentTypeSettings: unknown;
+  incidentSeveritySettings: unknown;
+  incidentWhoInformedSettings: unknown;
   optionalEmarIntegration: boolean;
   optionalMedicationListRequired: boolean;
   optionalMedicationAmendRoles: unknown;
@@ -293,6 +297,12 @@ function mapRow(row: SettingsRow) {
     incidentTypeSettings: parseIncidentTypeSettings(
       row.incidentTypeSettings as Parameters<typeof parseIncidentTypeSettings>[0],
     ),
+    incidentSeveritySettings: parseIncidentSeveritySettings(
+      row.incidentSeveritySettings as Parameters<typeof parseIncidentSeveritySettings>[0],
+    ),
+    incidentWhoInformedSettings: parseIncidentWhoInformedSettings(
+      row.incidentWhoInformedSettings as Parameters<typeof parseIncidentWhoInformedSettings>[0],
+    ),
     optionalSettings: parseOrganisationOptionalSettings(row),
     preAssessmentSettings: parseOrganisationPreAssessmentSettings(row),
     alertsSettings: parseOrganisationAlertsSettings(row),
@@ -419,6 +429,16 @@ function buildUpdateData(
   if (dto.incidentTypeSettings !== undefined) {
     data.incidentTypeSettings = serializeIncidentTypeSettings(
       dto.incidentTypeSettings as IncidentTypeSetting[],
+    );
+  }
+  if (dto.incidentSeveritySettings !== undefined) {
+    data.incidentSeveritySettings = serializeIncidentTypeSettings(
+      dto.incidentSeveritySettings as IncidentTypeSetting[],
+    );
+  }
+  if (dto.incidentWhoInformedSettings !== undefined) {
+    data.incidentWhoInformedSettings = serializeIncidentTypeSettings(
+      dto.incidentWhoInformedSettings as IncidentTypeSetting[],
     );
   }
 

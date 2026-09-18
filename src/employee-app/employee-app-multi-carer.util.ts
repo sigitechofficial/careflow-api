@@ -85,6 +85,43 @@ export type CoCarerPresenceRecord = {
   updatedAt?: string | null;
 };
 
+export type AllocationPresenceView = {
+  present: boolean;
+  arrivedAt: string | null;
+  leftAt: string | null;
+  markedByEmployeeId: string | null;
+  markedByName: string | null;
+  updatedAt: string | null;
+};
+
+export function readEmployeeAppMeta(
+  metadata: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  const ea = metadata?.employeeApp;
+  if (!ea || typeof ea !== 'object' || Array.isArray(ea)) return null;
+  return ea as Record<string, unknown>;
+}
+
+export function allocationPresenceView(
+  employeeId: string,
+  presenceMap: Record<string, CoCarerPresenceRecord>,
+  nameByEmployeeId: Record<string, string>,
+): AllocationPresenceView | null {
+  const row = presenceMap[employeeId];
+  if (!row) return null;
+  const markedByEmployeeId = row.markedByEmployeeId?.trim() || null;
+  return {
+    present: row.present,
+    arrivedAt: row.arrivedAt ?? null,
+    leftAt: row.leftAt ?? null,
+    markedByEmployeeId,
+    markedByName: markedByEmployeeId
+      ? nameByEmployeeId[markedByEmployeeId] ?? null
+      : null,
+    updatedAt: row.updatedAt ?? null,
+  };
+}
+
 export function readCoCarerPresenceMap(
   employeeAppMeta: Record<string, unknown> | null | undefined,
 ): Record<string, CoCarerPresenceRecord> {

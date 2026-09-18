@@ -7,6 +7,7 @@ export const EMERGENCY_PROTOCOL_ICON_KEYS = [
   'alert',
   'brain',
   'pulse',
+  'foot',
 ] as const;
 
 export type EmergencyProtocolIconKey = (typeof EMERGENCY_PROTOCOL_ICON_KEYS)[number];
@@ -280,6 +281,107 @@ export const DEFAULT_EMERGENCY_PROTOCOLS: EmergencyProtocolSeed[] = [
       {
         action: 'Document and inform',
         detail: 'Record duration, what you saw, rescue medication given, 999/office informed, and recovery.',
+      },
+    ],
+  },
+  {
+    code: 'fall',
+    title: 'Fall',
+    subtitle: 'Do not rush to get them up',
+    version: 'v1.0',
+    iconKey: 'foot',
+    sortOrder: 90,
+    steps: [
+      {
+        action: 'Stay with them — do not rush to get them up',
+        detail:
+          'Make the scene safe. Ask if they have pain. Do not hoist, pull or walk them until you have checked for injury.',
+      },
+      {
+        action: 'Check for red flags',
+        detail:
+          'Head hit, new confusion, vomiting, severe pain, suspected hip/neck/back injury, they cannot get up, chest pain, or they are on blood thinners and hit their head.',
+      },
+      {
+        action: 'Call 999 if any red flag',
+        detail:
+          'Keep them still and warm. Do not move them if you suspect a fracture or spinal injury. Put the phone on speaker and stay with them.',
+      },
+      {
+        action: 'If there are no red flags and they can get up',
+        detail:
+          'Follow the care plan and your moving-and-handling training. Use prescribed equipment. Recheck pain and skin once they are up.',
+      },
+      {
+        action: 'Document and inform',
+        detail:
+          'Record time, witnessed or not, what you found, 999/office, and how they got up. Report the incident when it is safe.',
+      },
+    ],
+  },
+  {
+    code: 'bleeding',
+    title: 'Severe bleeding',
+    subtitle: 'Pressure + 999',
+    version: 'v1.0',
+    iconKey: 'alert',
+    sortOrder: 100,
+    steps: [
+      {
+        action: 'Call 999 for severe bleeding',
+        detail:
+          'Blood that spurts, soaks through cloth, will not stop, or is from the chest, abdomen or a large wound is an emergency. Put the phone on speaker.',
+      },
+      {
+        action: 'Apply firm direct pressure',
+        detail:
+          'Use a clean cloth or dressing and press continuously. Do not keep lifting it to look. Add another cloth on top if it soaks through.',
+      },
+      {
+        action: 'Do not remove an embedded object',
+        detail: 'Leave it in place and press around it. Lie them down and keep them warm. Do not give food or drink.',
+      },
+      {
+        action: 'If they become unresponsive',
+        detail: 'Follow the collapse protocol: airway, breathing, and CPR if indicated. Stay on the line with 999.',
+      },
+      {
+        action: 'Document and handover',
+        detail: 'Record where they were bleeding, what you used, times, and what 999 advised. Report the incident when safe.',
+      },
+    ],
+  },
+  {
+    code: 'breathlessness',
+    title: 'Severe breathlessness',
+    subtitle: 'Sit upright + 999 if severe',
+    version: 'v1.0',
+    iconKey: 'wind',
+    sortOrder: 110,
+    steps: [
+      {
+        action: 'Call 999 if this is severe',
+        detail:
+          'Cannot finish a sentence, blue lips, sudden tightness, silent chest, collapse, or they are struggling to breathe — do not wait.',
+      },
+      {
+        action: 'Sit them upright and stay with them',
+        detail:
+          'Loosen tight clothing. Open a window if it helps. Do not leave them alone. Keep them sitting unless they become unresponsive.',
+      },
+      {
+        action: 'Use only prescribed inhaler or oxygen',
+        detail:
+          'Follow the care plan. Help them take their own prescribed reliever inhaler if they can. Do not start oxygen unless it is prescribed for them and you are trained.',
+      },
+      {
+        action: 'If this looks like anaphylaxis',
+        detail: 'Swelling of the tongue/throat, widespread rash, or known allergen — switch to the anaphylaxis protocol.',
+      },
+      {
+        action: 'Document and handover',
+        detail:
+          'Record onset, what you saw, inhaler/oxygen used, 999/office, and response. Report the incident when safe.',
       },
     ],
   },
