@@ -430,7 +430,10 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
         sortOrder: 16,
         metadata: { specRef: '3.8', fieldKey: 'petInfestationRisk', ...whenFieldYes('petsPresent') },
       },
-      { questionText: 'Lone worker risk identified?', questionType: YES_NO, isRequired: true, riskFlag: true, sortOrder: 17, metadata: { specRef: '3.9' } },
+      // Lone-worker risk is now captured via the Environment Assessment control field
+      // (loneWorkerRiskIdentified) and scored by the aggregated LONE_WORKER path, so this
+      // legacy question no longer carries riskFlag (would otherwise double-emit a risk).
+      { questionText: 'Lone worker risk identified?', questionType: YES_NO, sortOrder: 17, metadata: { specRef: '3.9' } },
       { questionText: 'Staff safety instructions', questionType: TEXTAREA, sortOrder: 18, metadata: { specRef: '3.9' } },
       { questionText: 'Steps or uneven access at entrance?', questionType: YES_NO, sortOrder: 21, metadata: { specRef: '3.10' } },
       { questionText: 'Level access throughout the property?', questionType: YES_NO, sortOrder: 22, metadata: { specRef: '3.10' } },

@@ -2155,6 +2155,18 @@ export function buildHolisticWorksheetMetadata(
   environmentAssessment.referralRequired = level === 'critical';
   environmentAssessment.equipmentAvailable = true;
   environmentAssessment.staffNotes = 'Home environment assessed; minor hazards addressed with the family.';
+  // Lone worker / staff safety factors (feed the aggregated LONE_WORKER risk)
+  environmentAssessment.isolatedProperty = level === 'critical';
+  environmentAssessment.unsafeArea = level === 'critical';
+  environmentAssessment.carerWorksAlone = true;
+  environmentAssessment.nightVisits = level === 'critical';
+  environmentAssessment.pastSafeguardingIncident = level === 'critical';
+  environmentAssessment.loneWorkerRiskIdentified = level === 'critical';
+  environmentAssessment.loneWorkerRiskLevel = level === 'critical' ? 'High' : undefined;
+  environmentAssessment.staffSafetyInstructions =
+    level === 'critical'
+      ? 'Two-carer visits; ring office on arrival and departure; do not visit alone after dark.'
+      : 'Standard lone-worker precautions apply.';
 
   const visitIds = ['morning', 'lunch', 'tea', 'evening', 'night'];
   const visits = visitIds.reduce<Record<string, unknown>>((acc, id) => {
