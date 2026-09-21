@@ -56,14 +56,30 @@ export function calculateRiskLevel(
   return InitialAssessmentRiskLevel.LOW;
 }
 
-function addDays(from: Date, days: number): Date {
+export function addDays(from: Date, days: number): Date {
   const d = new Date(from);
   d.setDate(d.getDate() + days);
   return d;
 }
 
-function isPositiveAnswer(answer?: AnswerRow): boolean {
+export function isPositiveAnswer(answer?: AnswerRow): boolean {
   return answer?.checked === true || answer?.booleanValue === true || answer?.riskFlag === true;
+}
+
+/**
+ * A question tagged `metadata.loneWorkerFactor: true` feeds the aggregated
+ * lone-worker risk (see initial-assessment-lone-worker-risk.util.ts) instead of
+ * emitting its own per-question risk. Kept as a shared helper so the per-question
+ * engine below can skip these and never double-count them.
+ */
+export function isLoneWorkerFactorQuestion(q: { metadata: Prisma.JsonValue }): boolean {
+  const m = q.metadata;
+  return (
+    !!m &&
+    typeof m === 'object' &&
+    !Array.isArray(m) &&
+    (m as Record<string, unknown>).loneWorkerFactor === true
+  );
 }
 
 function inferRiskType(q: QuestionRow): InitialAssessmentRiskType {
@@ -111,7 +127,7 @@ function severityFor(q: QuestionRow, riskType: InitialAssessmentRiskType): Initi
   return InitialAssessmentRiskLevel.LOW;
 }
 
-function reviewDaysFor(level: InitialAssessmentRiskLevel): number {
+export function reviewDaysFor(level: InitialAssessmentRiskLevel): number {
   switch (level) {
     case InitialAssessmentRiskLevel.HIGH:
       return 14;
@@ -132,6 +148,9 @@ export function buildAutoRiskRecordsFromSubmission(params: {
   const now = new Date();
 
   for (const q of params.questions) {
+    // Lone-worker factor questions are aggregated into a single scored risk by
+    // buildLoneWorkerRiskDraft — skip them here so they never emit a per-question risk.
+    if (isLoneWorkerFactorQuestion(q)) continue;
     const answer = answerMap.get(q.id);
     if (!isPositiveAnswer(answer)) continue;
     if (!q.riskFlag && !answer?.riskFlag) continue;
