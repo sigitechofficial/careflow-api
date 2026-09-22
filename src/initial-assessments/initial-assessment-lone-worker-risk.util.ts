@@ -6,6 +6,7 @@ import {
 import type { RiskRecordDraft } from './initial-assessment-risk-generation.util';
 import {
   addDays,
+  calculateRiskLevel,
   isLoneWorkerFactorQuestion,
   isPositiveAnswer,
   reviewDaysFor,
@@ -28,7 +29,7 @@ import {
  * are never double-counted.
  */
 
-export type LoneWorkerWeight = 'high' | 'medium' | 'minor';
+export type AxisWeight = 'high' | 'medium' | 'low';
 
 type QuestionRow = {
   id: string;
@@ -46,29 +47,67 @@ type AnswerRow = {
 };
 
 /**
- * Environment Assessment snapshot factor keys → weight. These keys are written by
- * the admin Environment Assessment panel
- * (careflow-admin/.../utils/environment-assessment.ts). Keep in sync.
+ * Lone-worker risk is placed on the same Likelihood × Severity matrix (§13.7) as
+ * all other IA risks: each present factor contributes to a LIKELIHOOD axis (how
+ * likely an incident is) and/or a SEVERITY axis (how bad / how hard to get help).
+ * Each axis is rated by its worst contributing factor, then
+ * calculateRiskLevel(likelihood, severity) decides Low/Med/High
+ * (product >= 6 High, 3-5 Medium, < 3 Low).
+ *
+ * Keys MUST match the factor ids + LONE_WORKER_FACTOR_WEIGHT mirror in
+ * careflow-admin/.../utils/environment-assessment.ts. Keep in sync.
  */
-const ENV_FACTOR_WEIGHTS: Record<string, LoneWorkerWeight> = {
-  isolatedProperty: 'minor',
-  poorLightingAccess: 'minor',
-  unsafeArea: 'medium',
-  noMobileSignal: 'medium',
+const LIKELIHOOD_WEIGHT: Record<string, AxisWeight> = {
+  aggression: 'high',
+  physicalViolence: 'high',
+  refusedCare: 'high',
+  previousSosEvent: 'high',
+  pastSafeguardingIncident: 'high',
+  verbalAbuse: 'medium',
+  unpredictable: 'medium',
+  mentalHealthRisk: 'medium',
+  substanceMisuse: 'medium',
   othersPresentRisk: 'medium',
+  previousCarerComplaints: 'medium',
+  unsafeArea: 'medium',
+  dementiaBehaviour: 'low',
+  newServiceUser: 'low',
+};
+
+const SEVERITY_WEIGHT: Record<string, AxisWeight> = {
+  physicalViolence: 'high',
+  pastSafeguardingIncident: 'high',
+  previousSosEvent: 'high',
+  noMobileSignal: 'high',
+  aggression: 'medium',
+  refusedCare: 'medium',
+  mentalHealthRisk: 'medium',
+  substanceMisuse: 'medium',
+  othersPresentRisk: 'medium',
+  isolatedProperty: 'medium',
+  unsafeArea: 'medium',
   carerWorksAlone: 'medium',
   nightVisits: 'medium',
-  longDurationVisits: 'minor',
-  newServiceUser: 'minor',
-  pastSafeguardingIncident: 'high',
-  previousCarerComplaints: 'medium',
-  previousSosEvent: 'high',
   unsafeMovingHandlingAlone: 'medium',
   twoCarerRecommended: 'medium',
+  poorLightingAccess: 'low',
+  longDurationVisits: 'low',
+  newServiceUser: 'low',
+  verbalAbuse: 'low',
+  unpredictable: 'low',
+  dementiaBehaviour: 'low',
 };
 
 /** Human labels for the env snapshot factors (used in the risk description). */
 const ENV_FACTOR_LABELS: Record<string, string> = {
+  aggression: 'aggression towards carers',
+  verbalAbuse: 'verbal abuse / threats towards staff',
+  physicalViolence: 'history of physical violence',
+  unpredictable: 'unpredictable / challenging behaviour',
+  dementiaBehaviour: 'dementia / cognitive impairment affecting behaviour',
+  mentalHealthRisk: 'mental health condition posing a risk to staff',
+  substanceMisuse: 'substance / alcohol misuse in the household',
+  refusedCare: 'previously refused care / prevented carers leaving',
   isolatedProperty: 'isolated / remote property',
   poorLightingAccess: 'poor lighting or difficult access',
   unsafeArea: 'unsafe area / neighbourhood',
@@ -81,25 +120,17 @@ const ENV_FACTOR_LABELS: Record<string, string> = {
   pastSafeguardingIncident: 'past safeguarding incident involving staff',
   previousCarerComplaints: 'previous carer complaints / concerns',
   previousSosEvent: 'previous SOS / emergency event',
-  unsafeMovingHandlingAlone: 'moving & handling unsafe alone',
-  twoCarerRecommended: 'two-carer (double-up) recommended',
+  unsafeMovingHandlingAlone: 'moving & handling needs two carers',
+  twoCarerRecommended: 'two-carer (double-up) visit required',
 };
 
 /** Control fields stored in the Environment Assessment snapshot (Staff Only). */
 const CONTROL_IDENTIFIED_KEY = 'loneWorkerRiskIdentified';
 const CONTROL_LEVEL_KEY = 'loneWorkerRiskLevel';
 
-type Contribution = { weight: LoneWorkerWeight; label: string };
-
 function asObject(value: Prisma.JsonValue | undefined | null): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
-}
-
-function factorWeight(metadata: Prisma.JsonValue): LoneWorkerWeight | null {
-  const m = asObject(metadata);
-  const w = m?.loneWorkerWeight;
-  return w === 'high' || w === 'medium' || w === 'minor' ? w : null;
 }
 
 /** Map a manual 'Low' | 'Med' | 'High' control value to the enum, if valid. */
@@ -112,32 +143,40 @@ function parseManualLevel(value: unknown): InitialAssessmentRiskLevel | null {
   return null;
 }
 
-function levelFromScore(contributions: Contribution[], aloneAtNight: boolean): InitialAssessmentRiskLevel | null {
-  if (contributions.length === 0) return null;
-  const high = contributions.filter((c) => c.weight === 'high').length;
-  const medium = contributions.filter((c) => c.weight === 'medium').length;
-  if (high >= 1 || aloneAtNight) return InitialAssessmentRiskLevel.HIGH;
-  if (medium >= 2) return InitialAssessmentRiskLevel.MEDIUM;
-  return InitialAssessmentRiskLevel.LOW;
+/** Rate one axis by the worst intensity among the present factors (else LOW). */
+function axisLevel(
+  presentKeys: Set<string>,
+  weights: Record<string, AxisWeight>,
+): InitialAssessmentRiskLevel {
+  let hasMedium = false;
+  for (const key of presentKeys) {
+    const w = weights[key];
+    if (w === 'high') return InitialAssessmentRiskLevel.HIGH;
+    if (w === 'medium') hasMedium = true;
+  }
+  return hasMedium ? InitialAssessmentRiskLevel.MEDIUM : InitialAssessmentRiskLevel.LOW;
 }
 
-function likelihoodSeverityFor(level: InitialAssessmentRiskLevel): {
+/** Likelihood/severity pair that reproduces a chosen level on the matrix. */
+function axesForLevel(level: InitialAssessmentRiskLevel): {
   likelihood: InitialAssessmentRiskLevel;
   severity: InitialAssessmentRiskLevel;
 } {
-  switch (level) {
-    case InitialAssessmentRiskLevel.HIGH:
-      return { likelihood: InitialAssessmentRiskLevel.HIGH, severity: InitialAssessmentRiskLevel.HIGH };
-    case InitialAssessmentRiskLevel.MEDIUM:
-      return { likelihood: InitialAssessmentRiskLevel.MEDIUM, severity: InitialAssessmentRiskLevel.MEDIUM };
-    default:
-      return { likelihood: InitialAssessmentRiskLevel.LOW, severity: InitialAssessmentRiskLevel.MEDIUM };
-  }
+  if (level === InitialAssessmentRiskLevel.HIGH)
+    return { likelihood: InitialAssessmentRiskLevel.HIGH, severity: InitialAssessmentRiskLevel.HIGH };
+  if (level === InitialAssessmentRiskLevel.MEDIUM)
+    return { likelihood: InitialAssessmentRiskLevel.MEDIUM, severity: InitialAssessmentRiskLevel.MEDIUM };
+  return { likelihood: InitialAssessmentRiskLevel.LOW, severity: InitialAssessmentRiskLevel.MEDIUM };
 }
 
 /**
  * Build the aggregated lone-worker risk draft, or null when there is no evidence
  * and the risk has not been explicitly flagged by staff.
+ *
+ * Placed on the Likelihood × Severity matrix (§13.7): likelihood and severity are
+ * each rated by their worst present factor, then calculateRiskLevel decides the
+ * level. A manual control level overrides; the explicit "risk identified" flag
+ * forces a risk to exist.
  */
 export function buildLoneWorkerRiskDraft(params: {
   questions: QuestionRow[];
@@ -147,46 +186,61 @@ export function buildLoneWorkerRiskDraft(params: {
 }): RiskRecordDraft | null {
   const now = params.now ?? new Date();
   const answerMap = new Map(params.answers.map((a) => [a.questionId, a]));
-  const contributions: Contribution[] = [];
 
-  // (1) DB tagged factor questions (positive answer = present).
+  const presentKeys = new Set<string>();
+  const labels: string[] = [];
+
+  // (1) DB tagged factor questions (legacy path; none exist after consolidation).
   for (const q of params.questions) {
     if (!isLoneWorkerFactorQuestion(q)) continue;
     if (!isPositiveAnswer(answerMap.get(q.id))) continue;
-    const weight = factorWeight(q.metadata) ?? 'medium';
-    contributions.push({ weight, label: q.questionText });
+    labels.push(q.questionText);
   }
 
-  // (2) Environment Assessment snapshot factor booleans.
+  // (2) Environment Assessment snapshot factor booleans (the 22 factors).
   const meta = asObject(params.metadata);
   const env = asObject(meta?.environmentAssessment as Prisma.JsonValue | undefined);
-  for (const [key, weight] of Object.entries(ENV_FACTOR_WEIGHTS)) {
+  for (const key of Object.keys(ENV_FACTOR_LABELS)) {
     if (env?.[key] === true) {
-      contributions.push({ weight, label: ENV_FACTOR_LABELS[key] ?? key });
+      presentKeys.add(key);
+      labels.push(ENV_FACTOR_LABELS[key] ?? key);
     }
   }
-
-  // Special combo: working alone + out-of-hours visits → High.
-  const aloneAtNight = env?.carerWorksAlone === true && env?.nightVisits === true;
 
   // (3) Staff-Only control fields.
   const identified = env?.[CONTROL_IDENTIFIED_KEY] === true;
   const manualLevel = parseManualLevel(env?.[CONTROL_LEVEL_KEY]);
 
-  const computed = levelFromScore(contributions, aloneAtNight);
+  const hasFactors = presentKeys.size > 0 || labels.length > 0;
 
   // No evidence and not flagged → no risk.
-  if (computed === null && !identified) return null;
+  if (!hasFactors && !identified) return null;
 
-  // Manual level always wins; otherwise the computed level; otherwise (flagged
-  // with no evidence) default to MEDIUM.
-  const level = manualLevel ?? computed ?? InitialAssessmentRiskLevel.MEDIUM;
-  const { likelihood, severity } = likelihoodSeverityFor(level);
+  let likelihood: InitialAssessmentRiskLevel;
+  let severity: InitialAssessmentRiskLevel;
+  let level: InitialAssessmentRiskLevel;
 
-  const factorList = contributions.map((c) => c.label);
+  if (manualLevel) {
+    // Assessor override — reflect it on the matrix cell too.
+    ({ likelihood, severity } = axesForLevel(manualLevel));
+    level = manualLevel;
+  } else if (hasFactors) {
+    likelihood = axisLevel(presentKeys, LIKELIHOOD_WEIGHT);
+    severity = axisLevel(presentKeys, SEVERITY_WEIGHT);
+    // Working alone + out-of-hours makes help harder to reach → escalate severity.
+    if (env?.carerWorksAlone === true && env?.nightVisits === true) {
+      severity = InitialAssessmentRiskLevel.HIGH;
+    }
+    level = calculateRiskLevel(likelihood, severity);
+  } else {
+    // Flagged with no factors — default to a Medium matrix cell.
+    ({ likelihood, severity } = axesForLevel(InitialAssessmentRiskLevel.MEDIUM));
+    level = InitialAssessmentRiskLevel.MEDIUM;
+  }
+
   const description =
-    factorList.length > 0
-      ? `Lone worker / staff safety risk — contributing factors: ${factorList.join('; ')}.`
+    labels.length > 0
+      ? `Lone worker / staff safety risk — contributing factors: ${labels.join('; ')}.`
       : 'Lone worker / staff safety risk identified by assessor.';
 
   return {
@@ -201,4 +255,32 @@ export function buildLoneWorkerRiskDraft(params: {
     sourceQuestionText: undefined,
     reviewDate: addDays(now, reviewDaysFor(level)),
   };
+}
+
+export type LoneWorkerBriefingFactor = { label: string; detail: string | null };
+
+/**
+ * Presentation bits for the carer-app visit briefing: the Yes factors (with any
+ * "Risk Details / Notes") and the "Control Measures / Safety Actions", read from
+ * the Environment Assessment snapshot. Level itself comes from the risk record.
+ */
+export function extractLoneWorkerBriefing(metadata: Prisma.JsonValue): {
+  factors: LoneWorkerBriefingFactor[];
+  controlMeasures: string | null;
+} {
+  const meta = asObject(metadata);
+  const env = asObject(meta?.environmentAssessment as Prisma.JsonValue | undefined);
+  const factors: LoneWorkerBriefingFactor[] = [];
+  if (env) {
+    for (const key of Object.keys(ENV_FACTOR_LABELS)) {
+      if (env[key] !== true) continue;
+      const raw = env[`${key}Details`];
+      const detail = typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+      factors.push({ label: ENV_FACTOR_LABELS[key] ?? key, detail });
+    }
+  }
+  const ctrlRaw = env?.staffSafetyInstructions;
+  const controlMeasures =
+    typeof ctrlRaw === 'string' && ctrlRaw.trim() ? ctrlRaw.trim() : null;
+  return { factors, controlMeasures };
 }

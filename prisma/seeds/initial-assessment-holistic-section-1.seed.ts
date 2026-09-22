@@ -71,16 +71,7 @@ export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'Instructions for gaining access to client’s home', questionType: TEXTAREA, sortOrder: 125, metadata: { specRef: '1.2', fieldKey: 'homeAccessInstructions', prefillKey: 'accessInstruction' } },
   { questionText: 'Any identified risks to visiting staff members?', questionType: TEXTAREA, sortOrder: 126, metadata: { specRef: '1.2', fieldKey: 'staffVisitRisks' } },
   { questionText: 'Lifestyle, role and choices', questionType: TEXTAREA, sortOrder: 127, metadata: { specRef: '1.2', fieldKey: 'lifestyleRoleChoices' } },
-
-  // ── Lone worker / staff safety factors (feed the aggregated LONE_WORKER risk) ──
-  // Tagged loneWorkerFactor:true so they are scored by buildLoneWorkerRiskDraft and
-  // suppressed from the per-question risk engine. Optional (never block submission).
-  { questionText: 'Has the service user or anyone in the household shown aggression towards carers?', questionType: YES_NO, sortOrder: 200, metadata: { specRef: '1.21', fieldKey: 'lwAggression', loneWorkerFactor: true, loneWorkerWeight: 'high' } },
-  { questionText: 'Any history of verbal abuse or threats towards staff?', questionType: YES_NO, sortOrder: 201, metadata: { specRef: '1.21', fieldKey: 'lwVerbalAbuse', loneWorkerFactor: true, loneWorkerWeight: 'medium' } },
-  { questionText: 'Any history of physical violence?', questionType: YES_NO, sortOrder: 202, metadata: { specRef: '1.21', fieldKey: 'lwPhysicalViolence', loneWorkerFactor: true, loneWorkerWeight: 'high' } },
-  { questionText: 'Does the service user show unpredictable or challenging behaviour?', questionType: YES_NO, sortOrder: 203, metadata: { specRef: '1.21', fieldKey: 'lwUnpredictable', loneWorkerFactor: true, loneWorkerWeight: 'medium' } },
-  { questionText: 'Does the service user have dementia / cognitive impairment affecting behaviour?', questionType: YES_NO, sortOrder: 204, metadata: { specRef: '1.21', fieldKey: 'lwDementiaBehaviour', loneWorkerFactor: true, loneWorkerWeight: 'minor' } },
-  { questionText: 'Any mental health condition that may pose a risk to staff?', questionType: YES_NO, sortOrder: 205, metadata: { specRef: '1.21', fieldKey: 'lwMentalHealthRisk', loneWorkerFactor: true, loneWorkerWeight: 'medium' } },
-  { questionText: 'Any substance / alcohol misuse in the household?', questionType: YES_NO, sortOrder: 206, metadata: { specRef: '1.21', fieldKey: 'lwSubstanceMisuse', loneWorkerFactor: true, loneWorkerWeight: 'medium' } },
-  { questionText: 'Has the service user previously refused care or prevented carers from leaving?', questionType: YES_NO, sortOrder: 207, metadata: { specRef: '1.21', fieldKey: 'lwRefusedCare', loneWorkerFactor: true, loneWorkerWeight: 'high' } },
+  // NOTE: lone-worker behaviour/condition factors were consolidated into the
+  // Environment Assessment "Lone Worker & Staff Safety" block (tool snapshot),
+  // so they are no longer §1 DB questions. See environment-assessment.ts.
 ] as const;
