@@ -3846,10 +3846,37 @@ export class EmployeeAppVisitsService {
           immediateActions: dto.immediateAction ?? null,
           injuryOccurred:
             Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap),
+          witnesses: dto.witnesses ?? null,
+          injuryType: dto.incidentType ?? null,
+          bodyMap: dto.bodyMap
+            ? {
+                marks: (dto.bodyMap.marks ?? []).map((m) => ({
+                  view: m.view ?? null,
+                  recordView: m.recordView ?? null,
+                  canvasView: m.canvasView ?? null,
+                  x: m.x,
+                  y: m.y,
+                  part: m.part ?? null,
+                })),
+              }
+            : null,
         });
         this.logger.log(
           `Carer-app incident ${incidentId} mirrored to register as ${created.referenceNumber}`,
         );
+        // Remember the register incident id on the blob so later photo uploads
+        // (a separate endpoint) can be mirrored as IncidentAttachment rows.
+        const registerIncidentId = created.id;
+        await this.mergeEmployeeAppMeta(jobId, (current) => {
+          const list = Array.isArray(current.incidents)
+            ? [...(current.incidents as Array<Record<string, unknown>>)]
+            : [];
+          const idx = list.findIndex((i) => String(i.id) === incidentId);
+          if (idx >= 0) {
+            list[idx] = { ...list[idx], registerIncidentId };
+          }
+          return { ...current, incidents: list };
+        });
       } catch (e) {
         this.logger.warn(
           `Failed to mirror carer-app incident ${incidentId} to the register: ${e}`,
@@ -3862,15 +3889,21 @@ export class EmployeeAppVisitsService {
 
   /** Map the carer-app severity key to the office IncidentSeverity enum. */
   private mapAppIncidentSeverity(key?: string | null): IncidentSeverity {
+    // The carer app sends the catalog severity keys low/medium/high/critical
+    // (DEFAULT_INCIDENT_SEVERITY_SETTINGS). Legacy keys (no_harm/moderate/
+    // severe/death) are kept for backward compatibility.
     switch ((key ?? '').toLowerCase()) {
-      case 'moderate':
-        return IncidentSeverity.MEDIUM;
-      case 'severe':
-        return IncidentSeverity.HIGH;
+      case 'critical':
       case 'death':
         return IncidentSeverity.CRITICAL;
-      case 'no_harm':
+      case 'high':
+      case 'severe':
+        return IncidentSeverity.HIGH;
+      case 'medium':
+      case 'moderate':
+        return IncidentSeverity.MEDIUM;
       case 'low':
+      case 'no_harm':
       default:
         return IncidentSeverity.LOW;
     }
@@ -3936,6 +3969,26 @@ export class EmployeeAppVisitsService {
         },
       };
     });
+
+    // Mirror the photo onto the real incident register (if this incident was
+    // submitted, not a draft) so it shows in the admin "Documents & attachments"
+    // section. Non-fatal — the carer's photo is already saved on the blob.
+    const registerIncidentId =
+      typeof incident.registerIncidentId === 'string' ? incident.registerIncidentId : null;
+    if (registerIncidentId) {
+      await this.incidents
+        .addCarerAppAttachment(registerIncidentId, {
+          sourceAbsolutePath: abs,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+        })
+        .catch((e) =>
+          this.logger.warn(
+            `Failed to mirror carer-app incident photo to register ${registerIncidentId}: ${e}`,
+          ),
+        );
+    }
 
     return { data: response };
   }
