@@ -91,6 +91,7 @@ import {
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
+import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
 import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
 import { VisitPlanAmendmentImpactService } from './visit-plan-amendment-impact.service';
@@ -170,6 +171,7 @@ export class ServiceUserVisitPlansService {
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly allocationCompliance: AllocationComplianceService,
+    private readonly hoursApprovals: EmployeeHoursApprovalsService,
     @Optional() private readonly carerPush?: CarerVisitPushHook,
   ) {}
 
@@ -605,6 +607,52 @@ export class ServiceUserVisitPlansService {
     const complianceByEmployee = await this.allocationCompliance.evaluateForEmployees(
       employees.map((e) => e.id),
     );
+
+    // Weekly assigned hours per carer across all ACTIVE visit plans — used to flag
+    // carers whose total assigned hours would exceed their contracted weekly hours.
+    const assignedMinutesByEmployee = new Map<string, number>();
+    const assignmentRows = await this.prisma.visitPlanSlotCarerAssignment.findMany({
+      where: {
+        employeeId: { in: employees.map((e) => e.id) },
+        visitPlanSlot: { isActive: true, visitPlan: { status: { in: ['ACTIVE', 'DRAFT'] } } },
+      },
+      select: {
+        employeeId: true,
+        dayOfWeek: true,
+        durationMinutes: true,
+        plannedStartTime: true,
+        plannedEndTime: true,
+        visitPlanSlot: {
+          select: {
+            daysOfWeek: true,
+            plannedStartTime: true,
+            plannedEndTime: true,
+            durationMinutes: true,
+            slotKind: true,
+          },
+        },
+      },
+    });
+    for (const a of assignmentRows) {
+      const slot = a.visitPlanSlot;
+      const start = a.plannedStartTime ?? slot.plannedStartTime;
+      const end = a.plannedEndTime ?? slot.plannedEndTime;
+      const perDay =
+        a.durationMinutes ??
+        slot.durationMinutes ??
+        deriveDurationFromTimes(start, end, slot.slotKind ?? undefined);
+      const days = a.dayOfWeek != null ? 1 : slot.daysOfWeek?.length ?? 0;
+      assignedMinutesByEmployee.set(
+        a.employeeId,
+        (assignedMinutesByEmployee.get(a.employeeId) ?? 0) + perDay * days,
+      );
+    }
+    const proposedPerDayMinutes = deriveDurationFromTimes(
+      dto.plannedStartTime,
+      dto.plannedEndTime,
+    );
+    const proposedWeeklyMinutes = proposedPerDayMinutes * slotDays.length;
+
     const candidates = [];
 
     for (const emp of employees) {
@@ -672,6 +720,24 @@ export class ServiceUserVisitPlansService {
       if (complianceMessages.block) warnings.push(complianceMessages.block);
       else if (complianceMessages.warn) warnings.push(complianceMessages.warn);
 
+      // Contracted-hours flag: total assigned + this visit would exceed contracted weekly hours.
+      const contractedWeeklyHours = emp.employment?.contractedWeeklyHours ?? null;
+      const assignedWeeklyHours =
+        Math.round(((assignedMinutesByEmployee.get(emp.id) ?? 0) / 60) * 10) / 10;
+      const projectedWeeklyHours =
+        Math.round(
+          (((assignedMinutesByEmployee.get(emp.id) ?? 0) + proposedWeeklyMinutes) / 60) * 10,
+        ) / 10;
+      const exceedsContractedHours =
+        contractedWeeklyHours != null &&
+        contractedWeeklyHours > 0 &&
+        projectedWeeklyHours > contractedWeeklyHours + 0.01;
+      if (exceedsContractedHours) {
+        warnings.push(
+          `Exceeds contracted hours (~${projectedWeeklyHours}h of ${contractedWeeklyHours}h/wk)`,
+        );
+      }
+
       const fit = carerFitScore({
         isBlocked,
         hasRotaConflict,
@@ -699,6 +765,10 @@ export class ServiceUserVisitPlansService {
         skills,
         complianceIssues,
         complianceBlocksAllocation,
+        contractedWeeklyHours,
+        assignedWeeklyHours,
+        projectedWeeklyHours,
+        exceedsContractedHours,
         warnings,
       });
     }
@@ -1144,6 +1214,8 @@ export class ServiceUserVisitPlansService {
     });
 
     const snapshotAfter = this.snapshot(updated, roundNameByCode) as VisitPlanSnapshotShape;
+    // Flag carers now assigned beyond their contracted weekly hours for manager approval.
+    await this.hoursApprovals.reconcileForPlan(userId, serviceUserId, planId);
     let scheduleImpact: ScheduleImpactResult | undefined;
     if (existing.status === VisitPlanStatus.ACTIVE && dto.applyScheduleImpact) {
       scheduleImpact = await this.amendmentImpact.applyAmendmentImpact(userId, {

@@ -464,11 +464,46 @@ export class ServiceUserMedicationsService {
     const convertingToPrn =
       existing.medicationKind !== MedicationKind.PRN && nextKind === MedicationKind.PRN;
 
+    // Replace administration times when a timed medicine is saved with schedules
+    // (covers editing times and reverting PRN → timed). PRN meds keep no times.
+    const replacingSchedules =
+      dto.schedules !== undefined && nextKind !== MedicationKind.PRN;
+    let scheduleFrequencyId: string | undefined;
+    let scheduleFrequencyText: string | undefined;
+    let scheduleTimesPattern: MedicationSchedulePattern | null | undefined;
+    if (replacingSchedules) {
+      const timesPerDay = dto.schedules?.length ?? 0;
+      const freqDto = {
+        ...dto,
+        schedulePattern:
+          dto.schedulePattern ??
+          (existing.schedulePattern as MedicationSchedulePattern | null) ??
+          MedicationSchedulePattern.DAILY,
+        frequencyIntervalDays:
+          dto.frequencyIntervalDays ?? existing.frequencyIntervalDays ?? 1,
+        monthlyDayOfMonth: dto.monthlyDayOfMonth ?? existing.monthlyDayOfMonth ?? undefined,
+        monthlyAnchorToStartDate:
+          dto.monthlyAnchorToStartDate ?? existing.monthlyAnchorToStartDate ?? undefined,
+        startDate:
+          dto.startDate ??
+          (existing.startDate ? existing.startDate.toISOString().slice(0, 10) : undefined),
+      } as CreateServiceUserMedicationDto;
+      scheduleTimesPattern = freqDto.schedulePattern ?? null;
+      scheduleFrequencyId = await this.resolveFrequencyId(freqDto, timesPerDay);
+      scheduleFrequencyText = this.buildMedicationFrequencyText(freqDto, timesPerDay);
+    }
+
     const nextEndDate =
       dto.endDate === undefined
         ? existing.endDate
         : dto.endDate
           ? new Date(dto.endDate)
+          : null;
+    const nextStartDate =
+      dto.startDate === undefined
+        ? existing.startDate
+        : dto.startDate
+          ? new Date(dto.startDate)
           : null;
     const nextStatus = dto.status ?? existing.status;
     const today = startOfUtcDay(new Date());
@@ -499,9 +534,9 @@ export class ServiceUserMedicationsService {
       medicationTypeId: dto.medicationTypeId,
       routeId: dto.routeId,
       categoryId: dto.categoryId,
-      frequencyId: dto.frequencyId,
-      frequencyText: dto.frequencyText,
-      schedulePattern: dto.schedulePattern,
+      frequencyId: replacingSchedules ? scheduleFrequencyId : dto.frequencyId,
+      frequencyText: replacingSchedules ? scheduleFrequencyText : dto.frequencyText,
+      schedulePattern: replacingSchedules ? scheduleTimesPattern : dto.schedulePattern,
       frequencyIntervalDays: dto.frequencyIntervalDays,
       monthlyDayOfMonth: dto.monthlyDayOfMonth,
       monthlyAnchorToStartDate: dto.monthlyAnchorToStartDate,
@@ -533,6 +568,48 @@ export class ServiceUserMedicationsService {
           where: { serviceUserMedicationId: medicationId, deletedAt: null },
           data: { deletedAt: new Date(), isActive: false, updatedById: userId },
         });
+      } else if (replacingSchedules) {
+        // Retire the current times, then recreate from the submitted slots.
+        await tx.medicationSchedule.updateMany({
+          where: { serviceUserMedicationId: medicationId, deletedAt: null },
+          data: { deletedAt: new Date(), isActive: false, updatedById: userId },
+        });
+        const administrationRounds = await tx.medicationAdministrationRound.findMany({
+          where: { deletedAt: null, isActive: true },
+          orderBy: [{ sortOrder: 'asc' }],
+        });
+        for (const slot of dto.schedules ?? []) {
+          const roundId =
+            slot.roundId ?? matchRoundIdByDueTime(administrationRounds, slot.dueTime) ?? undefined;
+          const schedule = await tx.medicationSchedule.create({
+            data: {
+              serviceUserMedicationId: medicationId,
+              roundId,
+              dueTime: slot.dueTime,
+              dose: slot.dose?.trim() || dto.dose?.trim() || existing.dose?.trim() || undefined,
+              dueVisitName: slot.dueVisitName,
+              startDate: nextStartDate ?? undefined,
+              endDate: nextEndDate ?? undefined,
+              frequencyId: scheduleFrequencyId,
+              frequencyText: scheduleFrequencyText,
+              daysOfWeek: slot.daysOfWeek ?? [],
+              instructions: dto.instructions ?? existing.instructions ?? undefined,
+              createdById: userId,
+              updatedById: userId,
+            },
+          });
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.MEDICATION,
+            action: AuditAction.MEDICATION_SCHEDULE_CREATED,
+            recordType: 'MedicationSchedule',
+            recordId: schedule.id,
+            newValues: auditSnapshot(schedule),
+            metadata: { serviceUserId, medicationId, dueTime: slot.dueTime },
+            ...meta,
+          });
+        }
       }
       return tx.serviceUserMedication.update({
         where: { id: medicationId },

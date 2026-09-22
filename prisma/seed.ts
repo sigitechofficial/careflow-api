@@ -626,6 +626,13 @@ async function main() {
     'incidents.view_highly_confidential',
     'incidents.view_analytics',
     'incidents.manage_settings',
+    // Surveys
+    'surveys.read',
+    'surveys.manage',
+    'surveys.respond',
+    // Employee hours approvals (over-contracted-hours workflow)
+    'hours_approvals.read',
+    'hours_approvals.manage',
   ];
 
   for (const key of permissionKeys) {
@@ -703,6 +710,14 @@ async function main() {
   await assignPermKeys('Senior Carer/Nurse', incidentFrontlineKeys);
   await assignPermKeys('Care Coordinator', [...incidentFrontlineKeys, 'incidents.manage_actions', 'incidents.view_analytics']);
   await assignPermKeys('Manager', incidentManagerKeys);
+
+  // Surveys — managers build/send, coordinators can read
+  await assignPermKeys('Care Coordinator', ['surveys.read']);
+  await assignPermKeys('Manager', ['surveys.read', 'surveys.manage']);
+
+  // Hours approvals — managers approve/reject over-contracted-hours requests
+  await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
+  await assignPermKeys('Manager', ['hours_approvals.read', 'hours_approvals.manage']);
   await assignPermKeys('Admin', incidentAdminKeys);
 
   // Incident Management — configurable categories & subtypes (idempotent).

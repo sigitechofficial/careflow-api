@@ -59,7 +59,8 @@
     "seed:funding-types": "ts-node --transpile-only prisma/scripts/seed-funding-types.ts",
     "seed:assign-billing-cards": "ts-node --transpile-only prisma/scripts/assign-billing-cards.ts",
     "seed:pay-cards": "ts-node --transpile-only prisma/scripts/seed-pay-cards.ts",
-    "seed:charge-cards": "ts-node --transpile-only prisma/scripts/seed-charge-cards.ts"
+    "seed:charge-cards": "ts-node --transpile-only prisma/scripts/seed-charge-cards.ts",
+    "seed:surveys": "ts-node --transpile-only prisma/scripts/seed-surveys.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

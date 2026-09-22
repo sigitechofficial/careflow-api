@@ -7,6 +7,7 @@ import { BillingModule } from '../billing/billing.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { EmployeeComplianceModule } from '../employee-compliance/employee-compliance.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { EmployeeHoursApprovalsModule } from '../employee-hours-approvals/employee-hours-approvals.module';
 import { ServiceUserVisitPlansController } from './service-user-visit-plans.controller';
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
 import { VisitPlanBulkScheduleController } from './visit-plan-bulk-schedule.controller';
@@ -24,6 +25,7 @@ import { VisitPlanGovernanceController } from './visit-plan-governance.controlle
     OrganisationGeneralSettingsModule,
     EmployeeComplianceModule,
     NotificationsModule,
+    EmployeeHoursApprovalsModule,
   ],
   controllers: [ServiceUserVisitPlansController, VisitPlanBulkScheduleController, VisitPlanGovernanceController],
   providers: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],

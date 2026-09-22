@@ -418,4 +418,13 @@ export enum AuditAction {
   INCIDENT_ARCHIVED = 'incident_archived',
   INCIDENT_REOPENED = 'incident_reopened',
   INCIDENT_CLOSED = 'incident_closed',
+  SURVEY_CREATED = 'survey_created',
+  SURVEY_UPDATED = 'survey_updated',
+  SURVEY_DELETED = 'survey_deleted',
+  SURVEY_SENT = 'survey_sent',
+  SURVEY_QUESTION_CREATED = 'survey_question_created',
+  SURVEY_QUESTION_UPDATED = 'survey_question_updated',
+  SURVEY_QUESTION_DELETED = 'survey_question_deleted',
+  SURVEY_RESPONSE_SUBMITTED = 'survey_response_submitted',
+  EMPLOYEE_HOURS_APPROVAL_DECIDED = 'employee_hours_approval_decided',
 }

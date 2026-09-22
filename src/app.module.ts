@@ -112,6 +112,8 @@ import { PathwayActionsModule } from './pathway-actions/pathway-actions.module';
 import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
+import { SurveysModule } from './surveys/surveys.module';
+import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
@@ -248,6 +250,8 @@ import { PoliciesModule } from './policies/policies.module';
     PictureGalleryModule,
     BodyMapModule,
     IncidentsModule,
+    SurveysModule,
+    EmployeeHoursApprovalsModule,
     DevToolsModule,
     BillingModule,
     EmployeeAppModule,

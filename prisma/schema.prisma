@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies", "surveys"]
 }
 
 enum DayOfWeek {
@@ -4215,6 +4215,44 @@ enum VisitPlanStatus {
   SUSPENDED
   ENDED
 
+  @@schema("service_users")
+}
+
+enum EmployeeHoursApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("service_users")
+}
+
+/// Manager/admin approval for assigning a carer beyond their contracted weekly
+/// hours. Created when an over-contracted assignment is saved; the carer is
+/// assigned immediately but stays PENDING until decided. Independent of the
+/// slot's carer-assignment rows (which are replaced on every slot save).
+model EmployeeHoursApproval {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  employeeId            String                      @db.Uuid
+  serviceUserId         String                      @db.Uuid
+  visitPlanId           String                      @db.Uuid
+  visitPlanSlotId       String?                     @db.Uuid
+  status                EmployeeHoursApprovalStatus @default(PENDING)
+  contractedWeeklyHours Float?
+  projectedWeeklyHours  Float?
+  extraHours            Float?
+  reason                String?                     @db.Text
+  requestedById         String?                     @db.Uuid
+  requestedAt           DateTime                    @default(now())
+  decidedById           String?                     @db.Uuid
+  decidedAt             DateTime?
+  decisionNotes         String?                     @db.Text
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  @@index([status])
+  @@index([employeeId])
+  @@index([serviceUserId])
+  @@index([visitPlanSlotId])
   @@schema("service_users")
 }
 
@@ -11279,4 +11317,157 @@ model PolicyAcknowledgement {
   @@index([userId])
   @@index([status])
   @@schema("policies")
+}
+
+// ---------------------------------------------------------------------------
+// Surveys — staff-authored questionnaires sent to employees (and, later,
+// service users). Mirrors the initial-assessment template/question/answer
+// shape. Recipient identity is polymorphic (employeeId / serviceUserId are
+// plain UUID columns, no FK) like the incidents primary-person pattern.
+// ---------------------------------------------------------------------------
+
+enum SurveyTargetKind {
+  EMPLOYEE
+  SERVICE_USER
+
+  @@schema("surveys")
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+
+  @@schema("surveys")
+}
+
+enum SurveyQuestionType {
+  YES_NO
+  SINGLE_SELECT
+  MULTI_SELECT
+  TEXT
+  TEXTAREA
+  NUMBER
+  RATING
+  LIKERT
+
+  @@schema("surveys")
+}
+
+enum SurveyRecipientStatus {
+  PENDING
+  SENT
+  STARTED
+  COMPLETED
+
+  @@schema("surveys")
+}
+
+model Survey {
+  id          String           @id @default(uuid()) @db.Uuid
+  title       String
+  description String?          @db.Text
+  targetKind  SurveyTargetKind @default(EMPLOYEE)
+  status      SurveyStatus     @default(DRAFT)
+  isAnonymous Boolean          @default(false)
+  opensAt     DateTime?
+  closesAt    DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+  createdById String?          @db.Uuid
+  updatedById String?          @db.Uuid
+  deletedById String?          @db.Uuid
+
+  questions  SurveyQuestion[]
+  recipients SurveyRecipient[]
+
+  @@index([targetKind])
+  @@index([status])
+  @@index([deletedAt])
+  @@schema("surveys")
+}
+
+model SurveyQuestion {
+  id           String             @id @default(uuid()) @db.Uuid
+  surveyId     String             @db.Uuid
+  questionText String             @db.Text
+  helpText     String?            @db.Text
+  questionType SurveyQuestionType
+  options      Json?
+  isRequired   Boolean            @default(false)
+  sortOrder    Int                @default(0)
+  config       Json?
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  deletedAt    DateTime?
+
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId])
+  @@index([deletedAt])
+  @@schema("surveys")
+}
+
+model SurveyRecipient {
+  id            String                @id @default(uuid()) @db.Uuid
+  surveyId      String                @db.Uuid
+  targetKind    SurveyTargetKind
+  employeeId    String?               @db.Uuid
+  serviceUserId String?               @db.Uuid
+  status        SurveyRecipientStatus @default(PENDING)
+  token         String                @unique
+  sentAt        DateTime?
+  remindedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  createdById   String?               @db.Uuid
+
+  survey   Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  response SurveyResponse?
+
+  @@unique([surveyId, employeeId])
+  @@index([surveyId])
+  @@index([employeeId])
+  @@index([serviceUserId])
+  @@index([status])
+  @@schema("surveys")
+}
+
+model SurveyResponse {
+  id            String    @id @default(uuid()) @db.Uuid
+  recipientId   String    @unique @db.Uuid
+  submittedById String?   @db.Uuid
+  submittedAt   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  recipient SurveyRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  answers   SurveyAnswer[]
+
+  @@index([recipientId])
+  @@schema("surveys")
+}
+
+model SurveyAnswer {
+  id              String   @id @default(uuid()) @db.Uuid
+  responseId      String   @db.Uuid
+  questionId      String   @db.Uuid
+  booleanValue    Boolean?
+  textValue       String?  @db.Text
+  numberValue     Decimal? @db.Decimal(12, 4)
+  selectedOptions Json?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question SurveyQuestion @relation(fields: [questionId], references: [id])
+
+  @@unique([responseId, questionId])
+  @@index([responseId])
+  @@index([questionId])
+  @@schema("surveys")
 }
