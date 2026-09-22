@@ -1,8 +1,10 @@
 import {
+  InitialAssessmentRiskLevel,
   MedicationRecordStatus,
   Prisma,
 } from '@prisma/client';
 import { submissionAnswersForRules } from '../../initial-assessments/initial-assessment-care-plan-rules.util';
+import { buildLoneWorkerRiskDraft } from '../../initial-assessments/initial-assessment-lone-worker-risk.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   CarePlanComposeContext,
@@ -265,21 +267,65 @@ function readSkinIntegritySnapshot(
   };
 }
 
-function readPersonalSafetySnapshot(
+function riskLevelWord(level: InitialAssessmentRiskLevel): string {
+  if (level === InitialAssessmentRiskLevel.HIGH) return 'High';
+  if (level === InitialAssessmentRiskLevel.MEDIUM) return 'Medium';
+  return 'Low';
+}
+
+export function readPersonalSafetySnapshot(
   metadata: Prisma.JsonValue | null | undefined,
 ): CarePlanPersonalSafetySnapshotEvidence | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
   const safety = (metadata as Record<string, unknown>).personalSafety;
-  if (!safety || typeof safety !== 'object' || Array.isArray(safety)) return null;
-  const row = safety as Record<string, unknown>;
-  return {
+  const row: Record<string, unknown> =
+    safety && typeof safety === 'object' && !Array.isArray(safety)
+      ? (safety as Record<string, unknown>)
+      : {};
+
+  let loneWorkerRisk = readStringField(row, 'loneWorkerRisk');
+  let actionsInPlace = readStringField(row, 'actionsInPlace');
+
+  // Fallback: derive from the Environment Assessment "Lone Worker & Staff Safety"
+  // block so the level + control measures flow into the Personal Safety care plan
+  // even when no explicit personalSafety snapshot was written.
+  const envRaw = (metadata as Record<string, unknown>).environmentAssessment;
+  const env =
+    envRaw && typeof envRaw === 'object' && !Array.isArray(envRaw)
+      ? (envRaw as Record<string, unknown>)
+      : null;
+  if (env) {
+    if (!loneWorkerRisk) {
+      const draft = buildLoneWorkerRiskDraft({ questions: [], answers: [], metadata });
+      if (draft) loneWorkerRisk = riskLevelWord(draft.riskLevel);
+    }
+    if (
+      !actionsInPlace &&
+      typeof env.staffSafetyInstructions === 'string' &&
+      env.staffSafetyInstructions.trim()
+    ) {
+      actionsInPlace = env.staffSafetyInstructions.trim();
+    }
+  }
+
+  const snapshot: CarePlanPersonalSafetySnapshotEvidence = {
     homeHazards: readStringField(row, 'homeHazards'),
     fireSafety: readStringField(row, 'fireSafety'),
-    loneWorkerRisk: readStringField(row, 'loneWorkerRisk'),
+    loneWorkerRisk,
     safeguardingOnFile: readBooleanField(row, 'safeguardingOnFile'),
-    actionsInPlace: readStringField(row, 'actionsInPlace'),
+    actionsInPlace,
     emergencyContacts: readStringField(row, 'emergencyContacts'),
   };
+
+  // Preserve prior behaviour: no personal-safety evidence at all → null.
+  const hasAny =
+    snapshot.homeHazards != null ||
+    snapshot.fireSafety != null ||
+    snapshot.loneWorkerRisk != null ||
+    snapshot.safeguardingOnFile != null ||
+    snapshot.actionsInPlace != null ||
+    snapshot.emergencyContacts != null;
+  return hasAny ? snapshot : null;
 }
 
 function readCommunicationSnapshot(

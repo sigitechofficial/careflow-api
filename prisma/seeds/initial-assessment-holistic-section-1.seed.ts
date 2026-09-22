@@ -71,4 +71,7 @@ export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'Instructions for gaining access to client’s home', questionType: TEXTAREA, sortOrder: 125, metadata: { specRef: '1.2', fieldKey: 'homeAccessInstructions', prefillKey: 'accessInstruction' } },
   { questionText: 'Any identified risks to visiting staff members?', questionType: TEXTAREA, sortOrder: 126, metadata: { specRef: '1.2', fieldKey: 'staffVisitRisks' } },
   { questionText: 'Lifestyle, role and choices', questionType: TEXTAREA, sortOrder: 127, metadata: { specRef: '1.2', fieldKey: 'lifestyleRoleChoices' } },
+  // NOTE: lone-worker behaviour/condition factors were consolidated into the
+  // Environment Assessment "Lone Worker & Staff Safety" block (tool snapshot),
+  // so they are no longer §1 DB questions. See environment-assessment.ts.
 ] as const;

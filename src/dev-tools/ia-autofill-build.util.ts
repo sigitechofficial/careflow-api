@@ -2155,6 +2155,33 @@ export function buildHolisticWorksheetMetadata(
   environmentAssessment.referralRequired = level === 'critical';
   environmentAssessment.equipmentAvailable = true;
   environmentAssessment.staffNotes = 'Home environment assessed; minor hazards addressed with the family.';
+  // Lone worker / staff safety factors (feed the aggregated LONE_WORKER risk).
+  // A factor answered Yes must carry Risk Details / Notes (see environment-assessment.ts).
+  environmentAssessment.aggression = level === 'critical';
+  environmentAssessment.physicalViolence = level === 'critical';
+  if (level === 'critical') {
+    environmentAssessment.aggressionDetails = 'Verbally aggressive towards a carer during personal care.';
+    environmentAssessment.physicalViolenceDetails = 'One reported incident of pushing a carer last month.';
+  }
+  environmentAssessment.isolatedProperty = level === 'critical';
+  environmentAssessment.unsafeArea = level === 'critical';
+  environmentAssessment.carerWorksAlone = true;
+  environmentAssessment.nightVisits = level === 'critical';
+  environmentAssessment.pastSafeguardingIncident = level === 'critical';
+  environmentAssessment.carerWorksAloneDetails = 'Single-handed visits; no other carer scheduled.';
+  if (level === 'critical') {
+    environmentAssessment.isolatedPropertyDetails = 'Rural property, nearest neighbour ~1 mile away.';
+    environmentAssessment.unsafeAreaDetails = 'Reports of anti-social behaviour in the area.';
+    environmentAssessment.nightVisitsDetails = 'Last call scheduled after 21:00.';
+    environmentAssessment.pastSafeguardingIncidentDetails =
+      'Verbal aggression towards a carer reported last month.';
+  }
+  environmentAssessment.loneWorkerRiskIdentified = level === 'critical';
+  environmentAssessment.loneWorkerRiskLevel = level === 'critical' ? 'High' : undefined;
+  environmentAssessment.staffSafetyInstructions =
+    level === 'critical'
+      ? 'Two-carer visits; ring office on arrival and departure; do not visit alone after dark.'
+      : 'Standard lone-worker precautions apply.';
 
   const visitIds = ['morning', 'lunch', 'tea', 'evening', 'night'];
   const visits = visitIds.reduce<Record<string, unknown>>((acc, id) => {

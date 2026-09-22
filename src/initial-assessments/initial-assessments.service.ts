@@ -35,6 +35,7 @@ import {
 } from './initial-assessment-validation.util';
 import { buildAutoActionsFromSubmission } from './initial-assessment-action-generation.util';
 import { buildAutoRiskRecordsFromSubmission, calculateRiskLevel } from './initial-assessment-risk-generation.util';
+import { buildLoneWorkerRiskDraft } from './initial-assessment-lone-worker-risk.util';
 import {
   bodyMapMetadataPatch,
   bodyMapRequiredFromSubmission,
@@ -1828,6 +1829,15 @@ export class InitialAssessmentsService {
       answers,
       metadata: params.metadata,
     });
+
+    // Aggregated lone-worker / staff-safety risk, scored across tagged DB
+    // questions and the Environment Assessment snapshot (single risk record).
+    const loneWorkerDraft = buildLoneWorkerRiskDraft({
+      questions,
+      answers,
+      metadata: params.metadata,
+    });
+    if (loneWorkerDraft) drafts.push(loneWorkerDraft);
 
     for (const draft of drafts) {
       const key = `${draft.sourceQuestionId ?? 'none'}:${draft.riskType}`;

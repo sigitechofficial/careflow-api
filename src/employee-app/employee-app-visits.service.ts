@@ -13,6 +13,7 @@ import {
   CarerVisitPushKind,
   BodyMapPhotoConsentStatus,
   BodyMapRecordStatus,
+  InitialAssessmentRiskLevel,
   InitialAssessmentRiskStatus,
   InitialAssessmentRiskType,
   MedicationAdministrationStatus,
@@ -31,6 +32,7 @@ import {
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { extractLoneWorkerBriefing } from '../initial-assessments/initial-assessment-lone-worker-risk.util';
 import {
   mapMedicationOutcomesFromStatusCodes,
   syncMedicationVisitOutcomesFromStatusCodes,
@@ -5016,7 +5018,7 @@ export class EmployeeAppVisitsService {
 
   private async loadOverviewExtras(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
     const suId = ctx.job.serviceUserId;
-    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport, sosAlerts] =
+    const [allergies, openRisks, flash, carePlans, ia, progress, medProgress, bodyMapHandover, medSupport, sosAlerts, iaSubmissionMeta] =
       await Promise.all([
         this.loadAllergies(suId),
         this.prisma.initialAssessmentRiskRecord.findMany({
@@ -5033,7 +5035,7 @@ export class EmployeeAppVisitsService {
               ],
             },
           },
-          select: { riskType: true },
+          select: { riskType: true, riskLevel: true, description: true },
         }),
         this.prisma.serviceUserFlashMessage.findFirst({
           where: { serviceUserId: suId, ...activeServiceUserFlashMessageWhere() },
@@ -5065,6 +5067,11 @@ export class EmployeeAppVisitsService {
           select: { storageLocation: true },
         }),
         this.sos.listForJob(ctx.job.id),
+        this.prisma.initialAssessmentSubmission.findFirst({
+          where: { serviceUserId: suId, deletedAt: null },
+          orderBy: [{ submittedAt: 'desc' }, { updatedAt: 'desc' }],
+          select: { metadata: true },
+        }),
       ]);
 
     const riskTags = openRisks.map((r) => ({
@@ -5075,6 +5082,29 @@ export class EmployeeAppVisitsService {
 
     const extraFlags = riskTags.filter((t) => !/allerg/i.test(t.label));
     const communicationNotes = extractCommunicationNotes(ia?.careInstructions ?? '');
+
+    // Lone worker / staff safety briefing for the carer (level from the open risk
+    // record; factors + control measures from the IA Environment Assessment snapshot).
+    // Pick the most severe open lone-worker risk (a service user can have more
+    // than one, e.g. a manually-added record alongside the auto-generated one).
+    const loneWorkerLevelRank = (l: InitialAssessmentRiskLevel): number =>
+      l === InitialAssessmentRiskLevel.HIGH ? 3 : l === InitialAssessmentRiskLevel.MEDIUM ? 2 : 1;
+    const loneWorkerRiskRecord = openRisks
+      .filter((r) => r.riskType === InitialAssessmentRiskType.LONE_WORKER)
+      .sort((a, b) => loneWorkerLevelRank(b.riskLevel) - loneWorkerLevelRank(a.riskLevel))[0];
+    const loneWorkerBriefing = loneWorkerRiskRecord
+      ? (() => {
+          const { factors, controlMeasures } = extractLoneWorkerBriefing(
+            iaSubmissionMeta?.metadata ?? null,
+          );
+          return {
+            level: riskLevelWord(loneWorkerRiskRecord.riskLevel),
+            summary: loneWorkerRiskRecord.description ?? null,
+            factors,
+            controlMeasures,
+          };
+        })()
+      : null;
 
     const carePlanEssentials = carePlans
       .map((plan) => {
@@ -5161,6 +5191,7 @@ export class EmployeeAppVisitsService {
         title: 'Pre-visit safety briefing',
         risks: [],
         loneWorkerNote: 'Lone-worker & SOS',
+        loneWorker: loneWorkerBriefing,
       },
       communication: {
         title: 'Communication & sensory',
@@ -5835,6 +5866,12 @@ function initialsFromName(first: string | null | undefined, last: string | null 
 
 function formatDob(d: Date) {
   return formatUkDateLabel(d);
+}
+
+function riskLevelWord(level: InitialAssessmentRiskLevel): string {
+  if (level === InitialAssessmentRiskLevel.HIGH) return 'High';
+  if (level === InitialAssessmentRiskLevel.MEDIUM) return 'Medium';
+  return 'Low';
 }
 
 function riskLabel(risk: InitialAssessmentRiskType) {
