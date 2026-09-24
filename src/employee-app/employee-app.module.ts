@@ -16,6 +16,7 @@ import { EmployeeAppScheduleService } from './employee-app-schedule.service';
 import { EmployeeAppClientsController } from './employee-app-clients.controller';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { EmployeeAppClientDetailService } from './employee-app-client-detail.service';
+import { EmployeeAppAlertsService } from './employee-app-alerts.service';
 import { EmployeeAppVisitsController } from './employee-app-visits.controller';
 import { EmployeeAppBodyMapController } from './employee-app-body-map.controller';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
@@ -71,6 +72,7 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     EmployeeAppScheduleService,
     EmployeeAppClientsService,
     EmployeeAppClientDetailService,
+    EmployeeAppAlertsService,
     EmployeeAppVisitsService,
     EmployeeAppSosService,
     VisitTimelineService,

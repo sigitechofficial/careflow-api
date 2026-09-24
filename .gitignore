@@ -41,7 +41,12 @@ tmp/
 temp/
 
 # ─── Local file uploads (dev / runtime) ───────────────────────
-# uploads/
+# Runtime-generated upload dirs — never commit these test/runtime artifacts.
+# (uploads/care-pathway/* holds intentional committed assets, so keep it tracked.)
+uploads/body-map/photos/
+uploads/employee-app-incidents/
+uploads/employee-app-observations/
+uploads/incidents/attachments/
 
 # ─── Local documentation (not pushed to git) ────────────────────
 Dcoumentation/

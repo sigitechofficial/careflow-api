@@ -594,6 +594,7 @@ export class IncidentCareService {
       originalName: a.originalName,
       mimeType: a.mimeType,
       fileSize: a.fileSize,
+      caption: a.caption,
       uploadedById: a.uploadedById,
       createdAt: a.createdAt.toISOString(),
       downloadUrl: `/incidents/attachments/${a.id}/download`,

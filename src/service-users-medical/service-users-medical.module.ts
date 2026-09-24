@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { OrgScopeModule } from '../common/org-scope/org-scope.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { MedicalAlertsService } from './medical-alerts.service';
 import { MedicalConditionsService } from './medical-conditions.service';
 import { MedicalHistoryService } from './medical-history.service';
 import { MedicalSafetySummaryService } from './medical-safety-summary.service';
@@ -9,6 +10,7 @@ import { MonitoringConfigService } from './monitoring-config.service';
 import { ReasonableAdjustmentsService } from './reasonable-adjustments.service';
 import {
   MedicalConditionCatalogController,
+  ServiceUserMedicalAlertsController,
   ServiceUserMedicalConditionsController,
   ServiceUserMedicalHistoryController,
   ServiceUserMedicalSafetySummaryController,
@@ -25,6 +27,7 @@ import { UsualParametersService } from './usual-parameters.service';
     ServiceUserMedicalConditionsController,
     ServiceUserReasonableAdjustmentsController,
     ServiceUserMedicalHistoryController,
+    ServiceUserMedicalAlertsController,
     ServiceUserMonitoringConfigController,
     ServiceUserUsualParametersController,
     ServiceUserMedicalSafetySummaryController,
@@ -33,6 +36,7 @@ import { UsualParametersService } from './usual-parameters.service';
     MedicalConditionsService,
     ReasonableAdjustmentsService,
     MedicalHistoryService,
+    MedicalAlertsService,
     MonitoringConfigService,
     UsualParametersService,
     MedicalSafetySummaryService,
@@ -41,6 +45,7 @@ import { UsualParametersService } from './usual-parameters.service';
     MedicalConditionsService,
     ReasonableAdjustmentsService,
     MedicalHistoryService,
+    MedicalAlertsService,
     MonitoringConfigService,
     UsualParametersService,
     MedicalSafetySummaryService,

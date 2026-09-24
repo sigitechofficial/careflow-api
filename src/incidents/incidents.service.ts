@@ -7,7 +7,14 @@ import {
 } from '@nestjs/common';
 import {
   IncidentActionPriority,
+  BodyMapBodyView,
+  BodyMapLinkedModule,
+  BodyMapRecordType,
+  BodyMapRiskLevel,
+  BodyMapSide,
   IncidentActionStatus,
+  IncidentAttachmentCategory,
+  IncidentInjurySeverity,
   IncidentPersonKind,
   IncidentPrivacyLevel,
   IncidentSeverity,
@@ -22,6 +29,11 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BodyMapService } from '../body-map/body-map.service';
+import { promises as fsp } from 'fs';
+import { extname, join } from 'path';
+import { randomUUID } from 'crypto';
+import { incidentAttachmentRoot } from './incident-attachment.config';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -69,6 +81,7 @@ export class IncidentsService {
     private readonly audit: AuditLogsService,
     private readonly notifications: NotificationsService,
     private readonly orgScope: OrgScopeService,
+    private readonly bodyMap: BodyMapService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -309,6 +322,36 @@ export class IncidentsService {
     contextAfter?: string | null;
     immediateActions?: string | null;
     injuryOccurred?: boolean;
+    specificArea?: string | null;
+    /** Free-text witnesses captured in the carer app; mirrored as IncidentWitness rows. */
+    witnesses?: string | null;
+    /** Optional injury type label for injuries derived from body-map marks. */
+    injuryType?: string | null;
+    injuryDetails?: string | null;
+    peopleInvolved?: string | null;
+    whoInformedKeys?: string[];
+    carerSafeguardingConcern?: boolean | null;
+    followUpRequired?: boolean;
+    emergencyServicesDetails?: string | null;
+    familyInformed?: boolean;
+    carerNotes?: string | null;
+    /**
+     * Body-map marks captured on the carer-app incident. When a primary service
+     * user is present, each mark is mirrored as a real BodyMapRecord (type
+     * INJURY) linked to the incident, plus an IncidentInjury row — so the mark
+     * renders in the admin incident "Injuries" section (same shape as an
+     * admin-added injury).
+     */
+    bodyMap?: {
+      marks?: Array<{
+        view?: string | null;
+        recordView?: string | null;
+        canvasView?: string | null;
+        x: number;
+        y: number;
+        part?: string | null;
+      }>;
+    } | null;
   }): Promise<IncidentWithRefs> {
     const category = await this.prisma.incidentCategory.findFirst({
       where: { id: params.categoryId, deletedAt: null, isActive: true },
@@ -335,6 +378,7 @@ export class IncidentsService {
               shareWithHandover: false,
               occurredAt: params.occurredAt,
               scheduledJobId: params.scheduledJobId,
+              specificArea: params.specificArea?.trim() || null,
               // The carer is an employee-app account, not a platform User, so we do
               // not set reportedById/createdById (User FK). reporterEmployeeId links
               // the actual reporter.
@@ -350,6 +394,14 @@ export class IncidentsService {
               contextAfter: params.contextAfter?.trim() || null,
               immediateActions: params.immediateActions?.trim() || null,
               injuryOccurred: params.injuryOccurred ?? false,
+              injuryDetails: params.injuryDetails?.trim() || null,
+              peopleInvolved: params.peopleInvolved?.trim() || null,
+              whoInformedKeys: params.whoInformedKeys ?? [],
+              carerSafeguardingConcern: params.carerSafeguardingConcern ?? null,
+              followUpRequired: params.followUpRequired ?? false,
+              emergencyServicesDetails: params.emergencyServicesDetails?.trim() || null,
+              familyInformed: params.familyInformed ?? false,
+              carerNotes: params.carerNotes?.trim() || null,
               createdById: null,
             },
             include: { category: true, subtype: true },
@@ -410,7 +462,230 @@ export class IncidentsService {
       ),
     );
 
+    // Mirror any body-map marks as real injuries + body-map records so they show
+    // in the admin incident "Injuries" section. Non-fatal: the incident is
+    // already created, so a failure here must not fail the carer submit.
+    await this.mirrorCarerAppInjuries(created.id, params).catch((e) =>
+      this.logger.warn(
+        `Failed to mirror carer-app injuries for ${created?.referenceNumber}: ${e}`,
+      ),
+    );
+
+    // Mirror free-text witnesses as IncidentWitness rows (admin "Witnesses"
+    // section). Non-fatal, same rationale as injuries.
+    await this.mirrorCarerAppWitnesses(created.id, params.witnesses).catch((e) =>
+      this.logger.warn(
+        `Failed to mirror carer-app witnesses for ${created?.referenceNumber}: ${e}`,
+      ),
+    );
+
     return created;
+  }
+
+  /**
+   * Turn the carer app's free-text "witnesses" field into IncidentWitness rows.
+   * Splits on newlines / semicolons / commas so "John Smith, Jane Doe" becomes
+   * two witnesses; a single sentence becomes one row.
+   */
+  private async mirrorCarerAppWitnesses(
+    incidentId: string,
+    witnesses?: string | null,
+  ): Promise<void> {
+    const raw = witnesses?.trim();
+    if (!raw) return;
+    const names = raw
+      .split(/[\n;,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const list = names.length > 0 ? names : [raw];
+    for (const name of list) {
+      try {
+        await this.prisma.incidentWitness.create({
+          data: {
+            incidentId,
+            personKind: IncidentPersonKind.OTHER,
+            personName: name.slice(0, 255),
+          },
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to mirror one carer-app witness: ${e}`);
+      }
+    }
+  }
+
+  /**
+   * Create an IncidentAttachment row from a carer-app incident photo. The source
+   * file (already saved by the employee-app) is copied into the incident
+   * attachment store so the authenticated admin download endpoint can serve it.
+   */
+  async addCarerAppAttachment(
+    incidentId: string,
+    input: {
+      sourceAbsolutePath: string;
+      originalName: string;
+      mimeType: string;
+      fileSize: number;
+      caption?: string | null;
+    },
+  ): Promise<void> {
+    const incident = await this.prisma.incident.findFirst({
+      where: { id: incidentId },
+      select: { id: true },
+    });
+    if (!incident) return;
+
+    const root = incidentAttachmentRoot();
+    await fsp.mkdir(root, { recursive: true });
+    const ext = extname(input.originalName) || '.jpg';
+    const fileName = `${randomUUID()}${ext}`;
+    await fsp.copyFile(input.sourceAbsolutePath, join(root, fileName));
+
+    await this.prisma.incidentAttachment.create({
+      data: {
+        incidentId,
+        category: IncidentAttachmentCategory.INCIDENT_PHOTO,
+        fileName,
+        originalName: input.originalName.slice(0, 255),
+        fileUrl: `incidents/attachments/${fileName}`,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize,
+        caption: input.caption?.trim() || null,
+      },
+    });
+  }
+
+  /** Map a carer-app body-map view/recordView string to the BodyMapBodyView enum. */
+  private resolveBodyView(view?: string | null, recordView?: string | null): BodyMapBodyView {
+    const v = `${recordView ?? ''} ${view ?? ''}`.toLowerCase();
+    if (v.includes('back')) return BodyMapBodyView.BACK;
+    if (v.includes('face') || v.includes('head')) return BodyMapBodyView.FACE;
+    if (v.includes('hand')) return BodyMapBodyView.HAND;
+    if (v.includes('foot')) return BodyMapBodyView.FOOT;
+    if (v.includes('left')) return BodyMapBodyView.LEFT;
+    if (v.includes('right')) return BodyMapBodyView.RIGHT;
+    return BodyMapBodyView.FRONT;
+  }
+
+  /** Derive a body side from a body-part label (e.g. "Right upper arm" → RIGHT). */
+  private resolveSideFromPart(part?: string | null): BodyMapSide | null {
+    const p = (part ?? '').toLowerCase();
+    if (p.startsWith('left')) return BodyMapSide.LEFT;
+    if (p.startsWith('right')) return BodyMapSide.RIGHT;
+    if (p.startsWith('centre') || p.startsWith('center')) return BodyMapSide.CENTRE;
+    return null;
+  }
+
+  private mapIncidentSeverityToInjury(severity: IncidentSeverity): IncidentInjurySeverity {
+    switch (severity) {
+      case IncidentSeverity.CRITICAL:
+        return IncidentInjurySeverity.FATAL;
+      case IncidentSeverity.HIGH:
+        return IncidentInjurySeverity.SERIOUS;
+      case IncidentSeverity.MEDIUM:
+        return IncidentInjurySeverity.MODERATE;
+      default:
+        return IncidentInjurySeverity.MINOR;
+    }
+  }
+
+  private mapInjurySeverityToRisk(severity: IncidentInjurySeverity): BodyMapRiskLevel {
+    switch (severity) {
+      case IncidentInjurySeverity.FATAL:
+        return BodyMapRiskLevel.URGENT;
+      case IncidentInjurySeverity.SERIOUS:
+        return BodyMapRiskLevel.HIGH;
+      case IncidentInjurySeverity.MODERATE:
+        return BodyMapRiskLevel.MEDIUM;
+      default:
+        return BodyMapRiskLevel.LOW;
+    }
+  }
+
+  /**
+   * For each body-map mark on a carer-app incident with a primary service user,
+   * create a BodyMapRecord (type INJURY) + BodyMapLink (INCIDENT) + IncidentInjury
+   * row — mirroring the admin "Add injury with body map" flow so the mark renders
+   * in the incident "Injuries" section and the service user's body-map module.
+   */
+  private async mirrorCarerAppInjuries(
+    incidentId: string,
+    params: {
+      primaryServiceUserId?: string | null;
+      severity: IncidentSeverity;
+      injuryType?: string | null;
+      description: string;
+      bodyMap?: {
+        marks?: Array<{
+          view?: string | null;
+          recordView?: string | null;
+          canvasView?: string | null;
+          x: number;
+          y: number;
+          part?: string | null;
+        }>;
+      } | null;
+    },
+  ): Promise<void> {
+    const serviceUserId = params.primaryServiceUserId;
+    const marks = params.bodyMap?.marks ?? [];
+    if (!serviceUserId || marks.length === 0) return;
+
+    const injurySeverity = this.mapIncidentSeverityToInjury(params.severity);
+    const riskLevel = this.mapInjurySeverityToRisk(injurySeverity);
+    const injuryType = params.injuryType?.trim() || 'Injury';
+
+    for (const mark of marks) {
+      const x = Number(mark.x);
+      const y = Number(mark.y);
+      if (Number.isNaN(x) || Number.isNaN(y)) continue;
+      const bodyPart = (mark.part ?? '').trim() || 'Marked site';
+      const side = this.resolveSideFromPart(bodyPart);
+      try {
+        const record = await this.bodyMap.createRecord(undefined, {
+          serviceUserId,
+          recordType: BodyMapRecordType.INJURY,
+          subType: injuryType,
+          description: params.description?.trim() || injuryType,
+          riskLevel,
+          bodyView: this.resolveBodyView(mark.view, mark.recordView),
+          side: side ?? undefined,
+          bodyPart,
+          specificLocation: bodyPart,
+          xCoordinate: x,
+          yCoordinate: y,
+          safeguardingTriggered: false,
+          observationDetails: {
+            recordView: mark.recordView ?? undefined,
+            canvasView: mark.canvasView ?? undefined,
+            source: 'incident',
+            incidentId,
+          },
+        });
+        await this.prisma.bodyMapLink.create({
+          data: {
+            bodyMapRecordId: record.id,
+            linkedModule: BodyMapLinkedModule.INCIDENT,
+            linkedRecordId: incidentId,
+            label: 'Incident injury',
+          },
+        });
+        await this.prisma.incidentInjury.create({
+          data: {
+            incidentId,
+            personKind: IncidentPersonKind.SERVICE_USER,
+            personServiceUserId: serviceUserId,
+            injurySeverity,
+            injuryType,
+            bodyRegion: bodyPart,
+            side: side ?? null,
+            notes: null,
+            bodyMapRecordId: record.id,
+          },
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to mirror one carer-app injury mark: ${e}`);
+      }
+    }
   }
 
   private async validateReferences(dto: CreateIncidentDto): Promise<void> {
@@ -1518,6 +1793,14 @@ export class IncidentsService {
       immediateActions: incident.immediateActions,
       immediateActionCodes: incident.immediateActionCodes,
       injuryOccurred: incident.injuryOccurred,
+      injuryDetails: incident.injuryDetails,
+      peopleInvolved: incident.peopleInvolved,
+      whoInformedKeys: incident.whoInformedKeys,
+      carerSafeguardingConcern: incident.carerSafeguardingConcern,
+      followUpRequired: incident.followUpRequired,
+      emergencyServicesDetails: incident.emergencyServicesDetails,
+      familyInformed: incident.familyInformed,
+      carerNotes: incident.carerNotes,
       isArchived: incident.isArchived,
       closedAt: incident.closedAt ? incident.closedAt.toISOString() : null,
       closedById: incident.closedById,

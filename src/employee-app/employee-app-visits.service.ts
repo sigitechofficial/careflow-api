@@ -86,8 +86,9 @@ import {
   dayKeyInTimeZone,
   formatHmUtc,
   operationalDayBounds,
+  operationalTodayIso,
 } from '../common/utils/operational-day.util';
-import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
+import { formatUkDateLabel, parseUkDateTimeLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
@@ -391,6 +392,8 @@ export class EmployeeAppVisitsService {
       : Boolean(visit.actualStartDateTime) ||
         visit.status === ScheduledVisitStatus.STARTED ||
         Boolean(ctx.checkIn);
+    // Same-day only: past stuck check-ins are flagged in admin, not blocked here.
+    await this.assertNoOtherSameDayActiveVisit(employeeId, jobId, ctx.timeZone);
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
     return this.checkInMethodGrants.createRequest({
       scheduledJobId: jobId,
@@ -406,6 +409,63 @@ export class EmployeeAppVisitsService {
       alreadyCheckedIn,
       visitClosed,
     });
+  }
+
+  /**
+   * Blocks office manual-grant requests when the carer is already clocked into
+   * another visit on today's operational day. Mirrors the app active-visit gate
+   * so request → authorise cannot succeed only to fail on final clock-in.
+   */
+  private async assertNoOtherSameDayActiveVisit(
+    employeeId: string,
+    currentJobId: string,
+    timeZone: string,
+  ): Promise<void> {
+    const today = operationalTodayIso(new Date(), timeZone);
+    const { start, end } = operationalDayBounds(today, timeZone);
+    const other = await this.prisma.jobAllocation.findFirst({
+      where: {
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+        scheduledJobId: { not: currentJobId },
+        actualStartDateTime: { not: null },
+        actualEndDateTime: null,
+        scheduledJob: {
+          deletedAt: null,
+          isActive: true,
+          scheduledStartDateTime: { gte: start, lte: end },
+        },
+      },
+      select: {
+        scheduledJobId: true,
+        scheduledJob: {
+          select: {
+            jobName: true,
+            serviceUser: { select: { firstName: true, lastName: true } },
+            visits: {
+              where: { deletedAt: null, isActive: true },
+              orderBy: { scheduledStartDateTime: 'asc' },
+              take: 1,
+              select: { visitName: true },
+            },
+          },
+        },
+      },
+    });
+    if (!other) return;
+
+    const su = other.scheduledJob.serviceUser;
+    const clientName = [su.firstName, su.lastName].filter(Boolean).join(' ').trim();
+    const visitLabel =
+      other.scheduledJob.visits[0]?.visitName?.trim() ||
+      other.scheduledJob.jobName?.trim() ||
+      clientName;
+    const who = visitLabel ? ` (${visitLabel})` : '';
+    contractError(
+      'OTHER_VISIT_ACTIVE',
+      `Another visit is already active. Resume that visit before clocking in${who}.`,
+    );
   }
 
   async getWorkspace(employeeId: string, jobId: string) {
@@ -3830,7 +3890,11 @@ export class EmployeeAppVisitsService {
           scheduledJobId: jobId,
           categoryId: dto.incidentTypeKey ?? '',
           subtypeId: dto.subtypeKey ?? null,
-          occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+          occurredAt: parseUkDateTimeLabel(
+            dto.incidentDate,
+            dto.incidentTime,
+            parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+          ),
           severity: this.mapAppIncidentSeverity(dto.severityKey),
           primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
             ? ctx.job.serviceUserId ?? null
@@ -3846,10 +3910,46 @@ export class EmployeeAppVisitsService {
           immediateActions: dto.immediateAction ?? null,
           injuryOccurred:
             Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap),
+          witnesses: dto.witnesses ?? null,
+          injuryType: dto.incidentType ?? null,
+          specificArea: dto.location ?? null,
+          injuryDetails: dto.injuryInfo ?? null,
+          peopleInvolved: dto.peopleInvolved ?? null,
+          whoInformedKeys: dto.whoInformedKeys ?? [],
+          carerSafeguardingConcern: dto.safeguardingConcern ?? null,
+          followUpRequired: dto.followUpRequired ?? false,
+          emergencyServicesDetails: dto.emergencyServices ?? null,
+          familyInformed: dto.familyInformed ?? false,
+          carerNotes: dto.notes ?? null,
+          bodyMap: dto.bodyMap
+            ? {
+                marks: (dto.bodyMap.marks ?? []).map((m) => ({
+                  view: m.view ?? null,
+                  recordView: m.recordView ?? null,
+                  canvasView: m.canvasView ?? null,
+                  x: m.x,
+                  y: m.y,
+                  part: m.part ?? null,
+                })),
+              }
+            : null,
         });
         this.logger.log(
           `Carer-app incident ${incidentId} mirrored to register as ${created.referenceNumber}`,
         );
+        // Remember the register incident id on the blob so later photo uploads
+        // (a separate endpoint) can be mirrored as IncidentAttachment rows.
+        const registerIncidentId = created.id;
+        await this.mergeEmployeeAppMeta(jobId, (current) => {
+          const list = Array.isArray(current.incidents)
+            ? [...(current.incidents as Array<Record<string, unknown>>)]
+            : [];
+          const idx = list.findIndex((i) => String(i.id) === incidentId);
+          if (idx >= 0) {
+            list[idx] = { ...list[idx], registerIncidentId };
+          }
+          return { ...current, incidents: list };
+        });
       } catch (e) {
         this.logger.warn(
           `Failed to mirror carer-app incident ${incidentId} to the register: ${e}`,
@@ -3862,15 +3962,21 @@ export class EmployeeAppVisitsService {
 
   /** Map the carer-app severity key to the office IncidentSeverity enum. */
   private mapAppIncidentSeverity(key?: string | null): IncidentSeverity {
+    // The carer app sends the catalog severity keys low/medium/high/critical
+    // (DEFAULT_INCIDENT_SEVERITY_SETTINGS). Legacy keys (no_harm/moderate/
+    // severe/death) are kept for backward compatibility.
     switch ((key ?? '').toLowerCase()) {
-      case 'moderate':
-        return IncidentSeverity.MEDIUM;
-      case 'severe':
-        return IncidentSeverity.HIGH;
+      case 'critical':
       case 'death':
         return IncidentSeverity.CRITICAL;
-      case 'no_harm':
+      case 'high':
+      case 'severe':
+        return IncidentSeverity.HIGH;
+      case 'medium':
+      case 'moderate':
+        return IncidentSeverity.MEDIUM;
       case 'low':
+      case 'no_harm':
       default:
         return IncidentSeverity.LOW;
     }
@@ -3884,6 +3990,7 @@ export class EmployeeAppVisitsService {
     idempotencyKey: string,
     clientAttachmentId?: string,
     capturedAt?: string,
+    caption?: string,
   ) {
     await this.loadJobForEmployee(employeeId, jobId);
     if (!file) validationError('file is required');
@@ -3936,6 +4043,27 @@ export class EmployeeAppVisitsService {
         },
       };
     });
+
+    // Mirror the photo onto the real incident register (if this incident was
+    // submitted, not a draft) so it shows in the admin "Documents & attachments"
+    // section. Non-fatal — the carer's photo is already saved on the blob.
+    const registerIncidentId =
+      typeof incident.registerIncidentId === 'string' ? incident.registerIncidentId : null;
+    if (registerIncidentId) {
+      await this.incidents
+        .addCarerAppAttachment(registerIncidentId, {
+          sourceAbsolutePath: abs,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          caption: caption ?? null,
+        })
+        .catch((e) =>
+          this.logger.warn(
+            `Failed to mirror carer-app incident photo to register ${registerIncidentId}: ${e}`,
+          ),
+        );
+    }
 
     return { data: response };
   }

@@ -18,6 +18,7 @@ import { EcmGraphAnalyticsService } from './ecm-graph-analytics.service';
 import { EcmHealthService } from './ecm-health.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
 import { EcmMissedVisitDetectionJob } from './ecm-missed-visit.job';
+import { EcmMissingCheckoutDetectionJob } from './ecm-missing-checkout.job';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 import { VisitAreaLockService } from './visit-area-lock.service';
 import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.service';
@@ -48,6 +49,7 @@ import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.se
     EcmHealthService,
     EcmMissedTriageService,
     EcmMissedVisitDetectionJob,
+    EcmMissingCheckoutDetectionJob,
   ],
   exports: [
     EcmEvaluationService,

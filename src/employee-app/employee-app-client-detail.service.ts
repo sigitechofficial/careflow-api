@@ -10,6 +10,7 @@ import {
   ScheduledVisitStatus,
   ServiceUserDocumentAccessLevel,
   ServiceUserDocumentRecordStatus,
+  ServiceUserMedicalConditionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
@@ -50,6 +51,7 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
 
 type Tone = 'danger' | 'warning' | 'primary' | 'success' | 'neutral';
 
+
 @Injectable()
 export class EmployeeAppClientDetailService {
   constructor(
@@ -75,6 +77,9 @@ export class EmployeeAppClientDetailService {
       asRef,
       nokContacts,
       gpPack,
+      medicalConditions,
+      reasonableAdjustments,
+      medicalAlerts,
     ] = await Promise.all([
       this.prisma.serviceUserAllergy.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
@@ -192,6 +197,42 @@ export class EmployeeAppClientDetailService {
         },
         orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
         select: { gpName: true, gpSurgery: true },
+      }),
+      this.prisma.serviceUserMedicalCondition.findMany({
+        where: {
+          serviceUserId: clientId,
+          deletedAt: null,
+          isActive: true,
+          status: ServiceUserMedicalConditionStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          notes: true,
+          condition: { select: { code: true, name: true, category: true } },
+        },
+        orderBy: { condition: { name: 'asc' } },
+      }),
+      this.prisma.serviceUserReasonableAdjustment.findMany({
+        where: { serviceUserId: clientId, deletedAt: null, isActive: true },
+        select: { id: true, type: true, description: true, notes: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.serviceUserMedicalAlert.findMany({
+        where: {
+          serviceUserId: clientId,
+          deletedAt: null,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          severity: true,
+          description: true,
+          actionForCarer: true,
+          notes: true,
+        },
+        orderBy: [{ severity: 'asc' }, { updatedAt: 'desc' }],
       }),
     ]);
 
@@ -315,6 +356,27 @@ export class EmployeeAppClientDetailService {
         gp,
         date,
         access: employeeAppAccessPayload(su.address),
+        medicalConditions: medicalConditions
+          .filter((c) => c.condition)
+          .map((c) => ({
+            name: c.condition!.name,
+            category: c.condition!.category,
+            notes: c.notes?.trim() || null,
+          })),
+        reasonableAdjustments: reasonableAdjustments.map((a) => ({
+          type: a.type,
+          description: a.description,
+          notes: a.notes?.trim() || null,
+        })),
+        medicalAlerts: medicalAlerts.map((a) => ({
+          id: a.id,
+          title: a.title,
+          category: a.category,
+          severity: a.severity,
+          description: a.description?.trim() || null,
+          actionForCarer: a.actionForCarer?.trim() || null,
+          notes: a.notes?.trim() || null,
+        })),
       },
     };
   }

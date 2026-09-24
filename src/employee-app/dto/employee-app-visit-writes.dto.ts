@@ -193,7 +193,9 @@ export class EmployeeAppMedicationAdminDto {
   @ApiPropertyOptional({ example: '09:15', description: 'Clock-face time given (HH:mm)' })
   @IsOptional()
   @IsString()
-  @MaxLength(5)
+  // The app sends HH:mm (5 chars); allow headroom so a future time format
+  // (e.g. with seconds or a locale AM/PM suffix) does not silently 400.
+  @MaxLength(8)
   timeGiven?: string;
 
   @ApiPropertyOptional()
@@ -696,6 +698,12 @@ export class EmployeeAppIncidentDto {
   @IsArray()
   @IsString({ each: true })
   whoInformedKeys?: string[];
+
+  @ApiPropertyOptional({ description: 'Additional notes from the carer' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  notes?: string;
 
   @ApiPropertyOptional({ type: EmployeeAppIncidentBodyMapDto })
   @IsOptional()

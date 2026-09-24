@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -21,9 +22,13 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  CreateMedicalAlertDto,
+  CreateMedicalConditionCatalogDto,
   CreateMedicalHistoryEventDto,
   CreateReasonableAdjustmentDto,
   CreateServiceUserMedicalConditionDto,
+  UpdateMedicalAlertDto,
+  UpdateMedicalConditionCatalogDto,
   UpdateMedicalHistoryEventDto,
   UpdateReasonableAdjustmentDto,
   UpdateServiceUserMedicalConditionDto,
@@ -31,6 +36,7 @@ import {
   UpsertMonitoringConfigDto,
   UpsertUsualParameterDto,
 } from './dto/medical.dto';
+import { MedicalAlertsService } from './medical-alerts.service';
 import { MedicalConditionsService } from './medical-conditions.service';
 import { MedicalHistoryService } from './medical-history.service';
 import { MedicalSafetySummaryService } from './medical-safety-summary.service';
@@ -61,6 +67,31 @@ export class MedicalConditionCatalogController {
       includeInactive: includeInactive === 'true' || includeInactive === '1',
       search,
     });
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create medical condition catalogue entry' })
+  create(@Body() dto: CreateMedicalConditionCatalogDto) {
+    return this.conditions.createCatalogItem(dto);
+  }
+
+  @Patch(':id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update medical condition catalogue entry' })
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMedicalConditionCatalogDto,
+  ) {
+    return this.conditions.updateCatalogItem(id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate medical condition catalogue entry' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.conditions.deleteCatalogItem(id);
   }
 }
 
@@ -366,6 +397,59 @@ export class ServiceUserUsualParametersController {
       { enabled: false },
       getRequestAuditMeta(req),
     );
+  }
+}
+
+@ApiTags('Service User Medical Alerts')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('service-users/:id/medical-alerts')
+export class ServiceUserMedicalAlertsController {
+  constructor(private readonly alerts: MedicalAlertsService) {}
+
+  @Get()
+  @Permissions('service_users.medical_alerts.read')
+  @ApiOperation({ summary: 'List medical alerts' })
+  list(@CurrentUser() user: RequestUser, @Param('id') serviceUserId: string) {
+    return this.alerts.list(user, serviceUserId);
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Permissions('service_users.medical_alerts.create')
+  @ApiOperation({ summary: 'Create a medical alert' })
+  create(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Body() dto: CreateMedicalAlertDto,
+    @Req() req: Request,
+  ) {
+    return this.alerts.create(user, serviceUserId, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch(':alertId')
+  @Permissions('service_users.medical_alerts.update')
+  @ApiOperation({ summary: 'Update a medical alert' })
+  update(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('alertId') alertId: string,
+    @Body() dto: UpdateMedicalAlertDto,
+    @Req() req: Request,
+  ) {
+    return this.alerts.update(user, serviceUserId, alertId, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete(':alertId')
+  @Permissions('service_users.medical_alerts.delete')
+  @ApiOperation({ summary: 'Deactivate a medical alert' })
+  remove(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('alertId') alertId: string,
+    @Req() req: Request,
+  ) {
+    return this.alerts.deactivate(user, serviceUserId, alertId, getRequestAuditMeta(req));
   }
 }
 
