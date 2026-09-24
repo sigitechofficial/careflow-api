@@ -362,6 +362,7 @@ export class EmployeeAppVisitsController {
         idempotencyKey: { type: 'string' },
         clientAttachmentId: { type: 'string' },
         capturedAt: { type: 'string' },
+        caption: { type: 'string' },
       },
     },
   })
@@ -381,6 +382,7 @@ export class EmployeeAppVisitsController {
       idempotencyKey?: string;
       clientAttachmentId?: string;
       capturedAt?: string;
+      caption?: string;
     },
   ) {
     return this.visitsService.addIncidentAttachment(
@@ -391,6 +393,7 @@ export class EmployeeAppVisitsController {
       body.idempotencyKey ?? '',
       body.clientAttachmentId,
       body.capturedAt,
+      body.caption,
     );
   }
 

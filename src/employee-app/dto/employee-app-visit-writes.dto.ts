@@ -699,6 +699,12 @@ export class EmployeeAppIncidentDto {
   @IsString({ each: true })
   whoInformedKeys?: string[];
 
+  @ApiPropertyOptional({ description: 'Additional notes from the carer' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  notes?: string;
+
   @ApiPropertyOptional({ type: EmployeeAppIncidentBodyMapDto })
   @IsOptional()
   @ValidateNested()

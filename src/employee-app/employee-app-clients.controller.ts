@@ -7,6 +7,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { EmployeeAppClientDetailService } from './employee-app-client-detail.service';
+import { EmployeeAppAlertsService } from './employee-app-alerts.service';
 
 class EmployeeAppClientsQueryDto {
   @ApiPropertyOptional({ example: 'Mary' })
@@ -32,6 +33,7 @@ export class EmployeeAppClientsController {
   constructor(
     private readonly clientsService: EmployeeAppClientsService,
     private readonly clientDetailService: EmployeeAppClientDetailService,
+    private readonly alertsService: EmployeeAppAlertsService,
   ) {}
 
   @Get('clients')
@@ -49,6 +51,12 @@ export class EmployeeAppClientsController {
     @Query() query: EmployeeAppClientDateQueryDto,
   ) {
     return this.clientDetailService.getProfile(user.employeeId!, clientId, query.date);
+  }
+
+  @Get('clients/:clientId/alerts')
+  @ApiOperation({ summary: 'Service-user safety alerts (prioritised feed for visit details)' })
+  alerts(@CurrentUser() user: RequestUser, @Param('clientId') clientId: string) {
+    return this.alertsService.getAlerts(user.employeeId!, clientId);
   }
 
   @Get('clients/:clientId/documents')

@@ -2703,6 +2703,7 @@ model ServiceUser {
   medicalConditions ServiceUserMedicalCondition[]
   reasonableAdjustments ServiceUserReasonableAdjustment[]
   medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
+  medicalAlerts        ServiceUserMedicalAlert[]
   monitoringConfigs ServiceUserMonitoringConfig[]
   usualParameters ServiceUserUsualParameter[]
   legalDocument   ServiceUserLegalDocument?
@@ -3893,6 +3894,62 @@ model ServiceUserMedicalHistoryEvent {
 
   @@index([serviceUserId])
   @@index([eventDate])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum MedicalAlertCategory {
+  CAPABILITIES
+  GENERAL_ALERT
+  COMMUNICATION
+  DIABETES
+  DIETARY
+  PALLIATIVE
+  BEHAVIOUR
+  FALLS
+  DOLS
+  CHOKING
+  COPD
+  DNACPR
+  RISK_LEVEL
+  ALLERGIES
+  CUSTOM
+
+  @@schema("service_users")
+}
+
+enum MedicalAlertSeverity {
+  CRITICAL
+  IMPORTANT
+  INFO
+
+  @@schema("service_users")
+}
+
+model ServiceUserMedicalAlert {
+  id             String                        @id @default(uuid()) @db.Uuid
+  serviceUserId  String                        @db.Uuid
+  title          String                        @db.VarChar(255)
+  category       MedicalAlertCategory          @default(CUSTOM)
+  severity       MedicalAlertSeverity          @default(IMPORTANT)
+  description    String                        @default("") @db.Text
+  actionForCarer String                        @default("") @db.Text
+  notes          String                        @default("") @db.Text
+  source         ServiceUserClinicalDataSource @default(MANUAL)
+  isActive       Boolean                       @default(true)
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?                       @db.Uuid
+  updatedById    String?                       @db.Uuid
+  deletedById    String?                       @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@index([category])
+  @@index([severity])
+  @@index([isActive])
   @@index([deletedAt])
   @@schema("service_users")
 }
@@ -10523,6 +10580,22 @@ model Incident {
   immediateActionCodes String[]
 
   injuryOccurred Boolean @default(false)
+  /// Carer-supplied free-text injury description (beyond the boolean flag).
+  injuryDetails  String? @db.Text
+  /// Carer-supplied free-text describing other people involved.
+  peopleInvolved String? @db.Text
+  /// Keys of parties the carer informed (office, gp, emergency_999, family_nok, etc.).
+  whoInformedKeys String[]
+  /// Whether the carer flagged a safeguarding concern at time of report.
+  carerSafeguardingConcern Boolean?
+  /// Whether the carer flagged follow-up as required.
+  followUpRequired Boolean @default(false)
+  /// Details about emergency services involvement.
+  emergencyServicesDetails String?
+  /// Whether the service user's family was informed.
+  familyInformed Boolean @default(false)
+  /// Carer's additional notes captured at time of report.
+  carerNotes String? @db.Text
 
   /// Manager who owns the incident once triaged.
   ownerId String? @db.Uuid
@@ -10884,6 +10957,7 @@ model IncidentAttachment {
   fileUrl      String
   mimeType     String
   fileSize     Int
+  caption      String?
   uploadedById String?                    @db.Uuid
 
   createdAt DateTime  @default(now())

@@ -86,8 +86,9 @@ import {
   dayKeyInTimeZone,
   formatHmUtc,
   operationalDayBounds,
+  operationalTodayIso,
 } from '../common/utils/operational-day.util';
-import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
+import { formatUkDateLabel, parseUkDateTimeLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
@@ -391,6 +392,8 @@ export class EmployeeAppVisitsService {
       : Boolean(visit.actualStartDateTime) ||
         visit.status === ScheduledVisitStatus.STARTED ||
         Boolean(ctx.checkIn);
+    // Same-day only: past stuck check-ins are flagged in admin, not blocked here.
+    await this.assertNoOtherSameDayActiveVisit(employeeId, jobId, ctx.timeZone);
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
     return this.checkInMethodGrants.createRequest({
       scheduledJobId: jobId,
@@ -406,6 +409,63 @@ export class EmployeeAppVisitsService {
       alreadyCheckedIn,
       visitClosed,
     });
+  }
+
+  /**
+   * Blocks office manual-grant requests when the carer is already clocked into
+   * another visit on today's operational day. Mirrors the app active-visit gate
+   * so request → authorise cannot succeed only to fail on final clock-in.
+   */
+  private async assertNoOtherSameDayActiveVisit(
+    employeeId: string,
+    currentJobId: string,
+    timeZone: string,
+  ): Promise<void> {
+    const today = operationalTodayIso(new Date(), timeZone);
+    const { start, end } = operationalDayBounds(today, timeZone);
+    const other = await this.prisma.jobAllocation.findFirst({
+      where: {
+        employeeId,
+        deletedAt: null,
+        isActive: true,
+        scheduledJobId: { not: currentJobId },
+        actualStartDateTime: { not: null },
+        actualEndDateTime: null,
+        scheduledJob: {
+          deletedAt: null,
+          isActive: true,
+          scheduledStartDateTime: { gte: start, lte: end },
+        },
+      },
+      select: {
+        scheduledJobId: true,
+        scheduledJob: {
+          select: {
+            jobName: true,
+            serviceUser: { select: { firstName: true, lastName: true } },
+            visits: {
+              where: { deletedAt: null, isActive: true },
+              orderBy: { scheduledStartDateTime: 'asc' },
+              take: 1,
+              select: { visitName: true },
+            },
+          },
+        },
+      },
+    });
+    if (!other) return;
+
+    const su = other.scheduledJob.serviceUser;
+    const clientName = [su.firstName, su.lastName].filter(Boolean).join(' ').trim();
+    const visitLabel =
+      other.scheduledJob.visits[0]?.visitName?.trim() ||
+      other.scheduledJob.jobName?.trim() ||
+      clientName;
+    const who = visitLabel ? ` (${visitLabel})` : '';
+    contractError(
+      'OTHER_VISIT_ACTIVE',
+      `Another visit is already active. Resume that visit before clocking in${who}.`,
+    );
   }
 
   async getWorkspace(employeeId: string, jobId: string) {
@@ -3830,7 +3890,11 @@ export class EmployeeAppVisitsService {
           scheduledJobId: jobId,
           categoryId: dto.incidentTypeKey ?? '',
           subtypeId: dto.subtypeKey ?? null,
-          occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+          occurredAt: parseUkDateTimeLabel(
+            dto.incidentDate,
+            dto.incidentTime,
+            parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+          ),
           severity: this.mapAppIncidentSeverity(dto.severityKey),
           primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
             ? ctx.job.serviceUserId ?? null
@@ -3848,6 +3912,15 @@ export class EmployeeAppVisitsService {
             Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap),
           witnesses: dto.witnesses ?? null,
           injuryType: dto.incidentType ?? null,
+          specificArea: dto.location ?? null,
+          injuryDetails: dto.injuryInfo ?? null,
+          peopleInvolved: dto.peopleInvolved ?? null,
+          whoInformedKeys: dto.whoInformedKeys ?? [],
+          carerSafeguardingConcern: dto.safeguardingConcern ?? null,
+          followUpRequired: dto.followUpRequired ?? false,
+          emergencyServicesDetails: dto.emergencyServices ?? null,
+          familyInformed: dto.familyInformed ?? false,
+          carerNotes: dto.notes ?? null,
           bodyMap: dto.bodyMap
             ? {
                 marks: (dto.bodyMap.marks ?? []).map((m) => ({
@@ -3917,6 +3990,7 @@ export class EmployeeAppVisitsService {
     idempotencyKey: string,
     clientAttachmentId?: string,
     capturedAt?: string,
+    caption?: string,
   ) {
     await this.loadJobForEmployee(employeeId, jobId);
     if (!file) validationError('file is required');
@@ -3982,6 +4056,7 @@ export class EmployeeAppVisitsService {
           originalName: file.originalname,
           mimeType: file.mimetype,
           fileSize: file.size,
+          caption: caption ?? null,
         })
         .catch((e) =>
           this.logger.warn(

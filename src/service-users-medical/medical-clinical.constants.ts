@@ -70,4 +70,8 @@ export const MEDICAL_CLINICAL_PERMISSION_KEYS = [
   'service_users.medical_monitoring.update',
   'service_users.medical_usual_parameters.read',
   'service_users.medical_usual_parameters.update',
+  'service_users.medical_alerts.read',
+  'service_users.medical_alerts.create',
+  'service_users.medical_alerts.update',
+  'service_users.medical_alerts.delete',
 ] as const;

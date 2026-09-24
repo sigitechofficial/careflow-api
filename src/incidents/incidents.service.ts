@@ -322,10 +322,19 @@ export class IncidentsService {
     contextAfter?: string | null;
     immediateActions?: string | null;
     injuryOccurred?: boolean;
+    specificArea?: string | null;
     /** Free-text witnesses captured in the carer app; mirrored as IncidentWitness rows. */
     witnesses?: string | null;
     /** Optional injury type label for injuries derived from body-map marks. */
     injuryType?: string | null;
+    injuryDetails?: string | null;
+    peopleInvolved?: string | null;
+    whoInformedKeys?: string[];
+    carerSafeguardingConcern?: boolean | null;
+    followUpRequired?: boolean;
+    emergencyServicesDetails?: string | null;
+    familyInformed?: boolean;
+    carerNotes?: string | null;
     /**
      * Body-map marks captured on the carer-app incident. When a primary service
      * user is present, each mark is mirrored as a real BodyMapRecord (type
@@ -369,6 +378,7 @@ export class IncidentsService {
               shareWithHandover: false,
               occurredAt: params.occurredAt,
               scheduledJobId: params.scheduledJobId,
+              specificArea: params.specificArea?.trim() || null,
               // The carer is an employee-app account, not a platform User, so we do
               // not set reportedById/createdById (User FK). reporterEmployeeId links
               // the actual reporter.
@@ -384,6 +394,14 @@ export class IncidentsService {
               contextAfter: params.contextAfter?.trim() || null,
               immediateActions: params.immediateActions?.trim() || null,
               injuryOccurred: params.injuryOccurred ?? false,
+              injuryDetails: params.injuryDetails?.trim() || null,
+              peopleInvolved: params.peopleInvolved?.trim() || null,
+              whoInformedKeys: params.whoInformedKeys ?? [],
+              carerSafeguardingConcern: params.carerSafeguardingConcern ?? null,
+              followUpRequired: params.followUpRequired ?? false,
+              emergencyServicesDetails: params.emergencyServicesDetails?.trim() || null,
+              familyInformed: params.familyInformed ?? false,
+              carerNotes: params.carerNotes?.trim() || null,
               createdById: null,
             },
             include: { category: true, subtype: true },
@@ -507,6 +525,7 @@ export class IncidentsService {
       originalName: string;
       mimeType: string;
       fileSize: number;
+      caption?: string | null;
     },
   ): Promise<void> {
     const incident = await this.prisma.incident.findFirst({
@@ -530,6 +549,7 @@ export class IncidentsService {
         fileUrl: `incidents/attachments/${fileName}`,
         mimeType: input.mimeType,
         fileSize: input.fileSize,
+        caption: input.caption?.trim() || null,
       },
     });
   }
@@ -1773,6 +1793,14 @@ export class IncidentsService {
       immediateActions: incident.immediateActions,
       immediateActionCodes: incident.immediateActionCodes,
       injuryOccurred: incident.injuryOccurred,
+      injuryDetails: incident.injuryDetails,
+      peopleInvolved: incident.peopleInvolved,
+      whoInformedKeys: incident.whoInformedKeys,
+      carerSafeguardingConcern: incident.carerSafeguardingConcern,
+      followUpRequired: incident.followUpRequired,
+      emergencyServicesDetails: incident.emergencyServicesDetails,
+      familyInformed: incident.familyInformed,
+      carerNotes: incident.carerNotes,
       isArchived: incident.isArchived,
       closedAt: incident.closedAt ? incident.closedAt.toISOString() : null,
       closedById: incident.closedById,

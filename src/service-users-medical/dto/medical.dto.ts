@@ -1,4 +1,7 @@
 import {
+  MedicalAlertCategory,
+  MedicalAlertSeverity,
+  MedicalConditionCategory,
   ReasonableAdjustmentType,
   ServiceUserClinicalDataSource,
   ServiceUserMedicalConditionStatus,
@@ -9,6 +12,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsObject,
   IsOptional,
@@ -284,4 +288,131 @@ export class UpdateUsualParameterDto {
   @IsString()
   @MaxLength(20_000)
   notes?: string;
+}
+
+// ─── Medical Condition Catalog DTOs ────────────────────────────────────────
+
+export class CreateMedicalConditionCatalogDto {
+  @ApiProperty({ example: 'Dementia' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  name!: string;
+
+  @ApiProperty({ example: 'DEMENTIA' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  code!: string;
+
+  @ApiProperty({ enum: MedicalConditionCategory, example: MedicalConditionCategory.NEUROLOGICAL })
+  @IsEnum(MedicalConditionCategory)
+  category!: MedicalConditionCategory;
+
+  @ApiPropertyOptional({ maxLength: 2000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
+
+export class UpdateMedicalConditionCatalogDto extends PartialType(CreateMedicalConditionCatalogDto) {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class CreateMedicalAlertDto {
+  @ApiProperty({ maxLength: 255 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  title!: string;
+
+  @ApiPropertyOptional({ enum: MedicalAlertCategory })
+  @IsOptional()
+  @IsEnum(MedicalAlertCategory)
+  category?: MedicalAlertCategory;
+
+  @ApiPropertyOptional({ enum: MedicalAlertSeverity })
+  @IsOptional()
+  @IsEnum(MedicalAlertSeverity)
+  severity?: MedicalAlertSeverity;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  description?: string;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  actionForCarer?: string;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  notes?: string;
+
+  @ApiPropertyOptional({ enum: ServiceUserClinicalDataSource })
+  @IsOptional()
+  @IsEnum(ServiceUserClinicalDataSource)
+  source?: ServiceUserClinicalDataSource;
+}
+
+export class UpdateMedicalAlertDto {
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  title?: string;
+
+  @ApiPropertyOptional({ enum: MedicalAlertCategory })
+  @IsOptional()
+  @IsEnum(MedicalAlertCategory)
+  category?: MedicalAlertCategory;
+
+  @ApiPropertyOptional({ enum: MedicalAlertSeverity })
+  @IsOptional()
+  @IsEnum(MedicalAlertSeverity)
+  severity?: MedicalAlertSeverity;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  description?: string;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  actionForCarer?: string;
+
+  @ApiPropertyOptional({ maxLength: 20_000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ enum: ServiceUserClinicalDataSource })
+  @IsOptional()
+  @IsEnum(ServiceUserClinicalDataSource)
+  source?: ServiceUserClinicalDataSource;
 }

@@ -88,3 +88,33 @@ function parseUtcYmd(ymd: string): Date | null {
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   return new Date(Date.UTC(year, month - 1, day));
 }
+
+/** Parse `"23 Sep 2026"` back into a UTC Date (midnight). Returns null on bad input. */
+export function parseUkDateLabel(label: string): Date | null {
+  const match = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/.exec(label.trim());
+  if (!match) return null;
+  const day = Number(match[1]);
+  const monthIdx = UK_MONTHS.indexOf(match[2] as (typeof UK_MONTHS)[number]);
+  const year = Number(match[3]);
+  if (monthIdx < 0 || day < 1 || day > 31) return null;
+  return new Date(Date.UTC(year, monthIdx, day));
+}
+
+/** Combine a UK date label (`"23 Sep 2026"`) and time (`"14:30"`) into a UTC Date.
+ *  Falls back to `fallback` when either part is missing or unparseable. */
+export function parseUkDateTimeLabel(
+  dateLabel: string | null | undefined,
+  timeLabel: string | null | undefined,
+  fallback: Date,
+): Date {
+  if (!dateLabel) return fallback;
+  const d = parseUkDateLabel(dateLabel);
+  if (!d) return fallback;
+  if (timeLabel) {
+    const tm = /^(\d{1,2}):(\d{2})$/.exec(timeLabel.trim());
+    if (tm) {
+      d.setUTCHours(Number(tm[1]), Number(tm[2]), 0, 0);
+    }
+  }
+  return d;
+}

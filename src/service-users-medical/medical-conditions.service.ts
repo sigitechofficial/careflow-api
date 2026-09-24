@@ -20,7 +20,9 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertServiceUserAccessible } from './medical-access.util';
 import type {
+  CreateMedicalConditionCatalogDto,
   CreateServiceUserMedicalConditionDto,
+  UpdateMedicalConditionCatalogDto,
   UpdateServiceUserMedicalConditionDto,
 } from './dto/medical.dto';
 import { buildRecommendationsFromMedicalConditions } from '../initial-assessments/medical-condition-care-plan-map.util';
@@ -100,6 +102,92 @@ export class MedicalConditionsService {
         isActive: r.isActive,
       })),
     };
+  }
+
+  private readonly catalogSelect = {
+    id: true,
+    code: true,
+    name: true,
+    category: true,
+    description: true,
+    sortOrder: true,
+    isActive: true,
+  } as const;
+
+  private normalizeCatalogCode(raw: string): string {
+    return raw.trim().toUpperCase().replace(/\s+/g, '_');
+  }
+
+  async createCatalogItem(dto: CreateMedicalConditionCatalogDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeCatalogCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    const maxSort = await this.prisma.medicalConditionCatalog.aggregate({
+      _max: { sortOrder: true },
+    });
+    const sortOrder = dto.sortOrder ?? (maxSort._max.sortOrder ?? -1) + 1;
+    try {
+      const created = await this.prisma.medicalConditionCatalog.create({
+        data: {
+          name,
+          code,
+          category: dto.category,
+          description: dto.description?.trim() ?? null,
+          sortOrder,
+          isActive: true,
+        },
+        select: this.catalogSelect,
+      });
+      return { data: created };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('A medical condition with this code already exists');
+      }
+      throw e;
+    }
+  }
+
+  async updateCatalogItem(id: string, dto: UpdateMedicalConditionCatalogDto) {
+    const existing = await this.prisma.medicalConditionCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Medical condition catalogue entry not found');
+    const data: Prisma.MedicalConditionCatalogUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeCatalogCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.description !== undefined) data.description = dto.description?.trim() ?? null;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      const updated = await this.prisma.medicalConditionCatalog.update({
+        where: { id },
+        data,
+        select: this.catalogSelect,
+      });
+      return { data: updated };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('A medical condition with this code already exists');
+      }
+      throw e;
+    }
+  }
+
+  async deleteCatalogItem(id: string) {
+    const existing = await this.prisma.medicalConditionCatalog.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Medical condition catalogue entry not found');
+    await this.prisma.medicalConditionCatalog.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    return { message: 'Medical condition catalogue entry deactivated' };
   }
 
   async list(user: RequestUser, serviceUserId: string) {
