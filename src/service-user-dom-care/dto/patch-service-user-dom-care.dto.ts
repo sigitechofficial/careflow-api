@@ -41,4 +41,14 @@ export class PatchServiceUserDomCareDto {
   @IsArray()
   @IsUUID('4', { each: true })
   blockedEmployeeIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  staffGenderPreference?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  accommodationType?: string[] | null;
 }

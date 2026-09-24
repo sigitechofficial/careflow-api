@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -9,6 +9,9 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PatchServiceUserDomCareDto } from './dto/patch-service-user-dom-care.dto';
 
 const DOC_SEGMENTS = ['service-users', 'dom-care', 'contracts'] as const;
+const GENDER_PREF_QUESTION_NEEDLE = 'gender preference';
+const ACCOMMODATION_QUESTION_NEEDLE = 'living accommodation';
+const KEY_SAFE_CODE_NEEDLE = 'key safe code';
 
 type CarerBrief = { id: string; firstName: string; lastName: string };
 
@@ -34,6 +37,8 @@ function mapDomPayload(
     weeklyContractedHours: string | null;
     contractDocumentUrl: string | null;
     numberOfCarers: number;
+    staffGenderPreference: string | null;
+    accommodationType: unknown;
     preferredCarerLinks: Array<{ employee: { id: string; personalDetail: { firstName: string; lastName: string } | null } }>;
     blockedCarerLinks: Array<{ employee: { id: string; personalDetail: { firstName: string; lastName: string } | null } }>;
   },
@@ -47,6 +52,8 @@ function mapDomPayload(
     weeklyContractedHours: row.weeklyContractedHours,
     contractDocumentUrl: row.contractDocumentUrl,
     numberOfCarers: row.numberOfCarers,
+    staffGenderPreference: row.staffGenderPreference,
+    accommodationType: Array.isArray(row.accommodationType) ? row.accommodationType as string[] : null,
     preferredCarers: row.preferredCarerLinks.map((l) => mapEmployeeToCarer(l.employee)),
     blockedCarers: row.blockedCarerLinks.map((l) => mapEmployeeToCarer(l.employee)),
   };
@@ -62,6 +69,8 @@ function defaultPayload(serviceUserId: string) {
     weeklyContractedHours: null as string | null,
     contractDocumentUrl: null as string | null,
     numberOfCarers: 1,
+    staffGenderPreference: null as string | null,
+    accommodationType: null as string[] | null,
     preferredCarers: [] as CarerBrief[],
     blockedCarers: [] as CarerBrief[],
   };
@@ -81,6 +90,182 @@ export class ServiceUserDomCareService {
   private async ensureServiceUser(serviceUserId: string) {
     const u = await this.prisma.serviceUser.findFirst({ where: { id: serviceUserId, deletedAt: null } });
     if (!u) throw new NotFoundException('Service user not found');
+  }
+
+  /**
+   * Read staff gender preference from the IA answer table (fallback when DOM Care field is null).
+   */
+  private async readGenderPreferenceFromIa(serviceUserId: string): Promise<string | null> {
+    const submission = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return null;
+
+    const answer = await this.prisma.initialAssessmentAnswer.findFirst({
+      where: {
+        submissionId: submission.id,
+        question: {
+          questionText: { contains: GENDER_PREF_QUESTION_NEEDLE, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      },
+      select: { selectedOptions: true },
+    });
+    if (!answer?.selectedOptions) return null;
+
+    // selectedOptions is stored as JSON: ["male"], "male", or { value: "male" }
+    const opts = answer.selectedOptions;
+    if (Array.isArray(opts)) return typeof opts[0] === 'string' ? opts[0] : null;
+    if (typeof opts === 'string') return opts;
+    if (typeof opts === 'object' && opts !== null && 'value' in opts) {
+      return typeof (opts as Record<string, unknown>).value === 'string'
+        ? (opts as Record<string, unknown>).value as string
+        : null;
+    }
+    return null;
+  }
+
+  /**
+   * Sync the gender preference value back to the IA answer table.
+   */
+  private async syncGenderPreferenceToIa(
+    tx: Prisma.TransactionClient,
+    serviceUserId: string,
+    value: string | null,
+  ): Promise<void> {
+    const submission = await tx.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return; // no IA submission yet — nothing to sync
+
+    const question = await tx.initialAssessmentQuestion.findFirst({
+      where: {
+        questionText: { contains: GENDER_PREF_QUESTION_NEEDLE, mode: 'insensitive' },
+        deletedAt: null,
+        section: { deletedAt: null },
+      },
+      select: { id: true },
+    });
+    if (!question) return;
+
+    const selectedOptions = value ? [value] : [];
+    await tx.initialAssessmentAnswer.upsert({
+      where: {
+        submissionId_questionId: { submissionId: submission.id, questionId: question.id },
+      },
+      create: {
+        submissionId: submission.id,
+        questionId: question.id,
+        selectedOptions,
+      },
+      update: { selectedOptions },
+    });
+  }
+
+  private async readAccommodationTypeFromIa(serviceUserId: string): Promise<string[] | null> {
+    const submission = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return null;
+    const answer = await this.prisma.initialAssessmentAnswer.findFirst({
+      where: {
+        submissionId: submission.id,
+        question: {
+          questionText: { contains: ACCOMMODATION_QUESTION_NEEDLE, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      },
+      select: { selectedOptions: true },
+    });
+    if (!answer?.selectedOptions) return null;
+    const opts = answer.selectedOptions;
+    if (Array.isArray(opts) && opts.length) return opts.filter((v): v is string => typeof v === 'string');
+    return null;
+  }
+
+  private async syncAccommodationTypeToIa(
+    tx: Prisma.TransactionClient,
+    serviceUserId: string,
+    value: string[] | null,
+  ): Promise<void> {
+    const submission = await tx.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return;
+    const question = await tx.initialAssessmentQuestion.findFirst({
+      where: {
+        questionText: { contains: ACCOMMODATION_QUESTION_NEEDLE, mode: 'insensitive' },
+        deletedAt: null,
+        section: { deletedAt: null },
+      },
+      select: { id: true },
+    });
+    if (!question) return;
+    const selectedOptions = value?.length ? value : [];
+    await tx.initialAssessmentAnswer.upsert({
+      where: {
+        submissionId_questionId: { submissionId: submission.id, questionId: question.id },
+      },
+      create: { submissionId: submission.id, questionId: question.id, selectedOptions },
+      update: { selectedOptions },
+    });
+  }
+
+  private async readKeySafeCodeFromIa(serviceUserId: string): Promise<string | null> {
+    const submission = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return null;
+    const answer = await this.prisma.initialAssessmentAnswer.findFirst({
+      where: {
+        submissionId: submission.id,
+        question: {
+          questionText: { contains: KEY_SAFE_CODE_NEEDLE, mode: 'insensitive' },
+          deletedAt: null,
+        },
+      },
+      select: { textValue: true },
+    });
+    return answer?.textValue?.trim() || null;
+  }
+
+  private async syncKeySafeCodeToIa(
+    tx: Prisma.TransactionClient,
+    serviceUserId: string,
+    value: string | null,
+  ): Promise<void> {
+    const submission = await tx.initialAssessmentSubmission.findFirst({
+      where: { serviceUserId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!submission) return;
+    const question = await tx.initialAssessmentQuestion.findFirst({
+      where: {
+        questionText: { contains: KEY_SAFE_CODE_NEEDLE, mode: 'insensitive' },
+        deletedAt: null,
+        section: { deletedAt: null },
+      },
+      select: { id: true },
+    });
+    if (!question) return;
+    await tx.initialAssessmentAnswer.upsert({
+      where: {
+        submissionId_questionId: { submissionId: submission.id, questionId: question.id },
+      },
+      create: { submissionId: submission.id, questionId: question.id, textValue: value },
+      update: { textValue: value },
+    });
   }
 
   private async ensureEmployeesExist(tx: Prisma.TransactionClient, employeeIds: string[]) {
@@ -107,8 +292,24 @@ export class ServiceUserDomCareService {
       where: { serviceUserId },
       include: this.domInclude(),
     });
-    if (!row) return { data: defaultPayload(serviceUserId) };
-    return { data: mapDomPayload(serviceUserId, row) };
+    if (!row) {
+      const payload = defaultPayload(serviceUserId);
+      payload.staffGenderPreference = await this.readGenderPreferenceFromIa(serviceUserId);
+      payload.accommodationType = await this.readAccommodationTypeFromIa(serviceUserId);
+      payload.doorCode = await this.readKeySafeCodeFromIa(serviceUserId);
+      return { data: payload };
+    }
+    const payload = mapDomPayload(serviceUserId, row);
+    if (!payload.staffGenderPreference) {
+      payload.staffGenderPreference = await this.readGenderPreferenceFromIa(serviceUserId);
+    }
+    if (!payload.accommodationType) {
+      payload.accommodationType = await this.readAccommodationTypeFromIa(serviceUserId);
+    }
+    if (!payload.doorCode) {
+      payload.doorCode = await this.readKeySafeCodeFromIa(serviceUserId);
+    }
+    return { data: payload };
   }
 
   /** Active employees with personal details; scoped to DOM care read (no `employees.read` required). */
@@ -177,6 +378,18 @@ export class ServiceUserDomCareService {
                   ? null
                   : dto.weeklyContractedHours.trim(),
             numberOfCarers: dto.numberOfCarers ?? 1,
+            staffGenderPreference:
+              dto.staffGenderPreference === undefined
+                ? null
+                : dto.staffGenderPreference === null || dto.staffGenderPreference === ''
+                  ? null
+                  : dto.staffGenderPreference.trim(),
+            accommodationType:
+              dto.accommodationType === undefined
+                ? Prisma.JsonNull
+                : dto.accommodationType?.length
+                  ? dto.accommodationType
+                  : Prisma.JsonNull,
             createdById: userId,
           },
           include: this.domInclude(),
@@ -198,6 +411,17 @@ export class ServiceUserDomCareService {
                 }
               : {}),
             ...(dto.numberOfCarers !== undefined ? { numberOfCarers: dto.numberOfCarers } : {}),
+            ...(dto.staffGenderPreference !== undefined
+              ? {
+                  staffGenderPreference:
+                    dto.staffGenderPreference === null || dto.staffGenderPreference === ''
+                      ? null
+                      : dto.staffGenderPreference.trim(),
+                }
+              : {}),
+            ...(dto.accommodationType !== undefined
+              ? { accommodationType: dto.accommodationType?.length ? dto.accommodationType : Prisma.JsonNull }
+              : {}),
             updatedById: userId,
           },
           include: this.domInclude(),
@@ -233,6 +457,16 @@ export class ServiceUserDomCareService {
             skipDuplicates: true,
           });
         }
+      }
+
+      if (dto.staffGenderPreference !== undefined) {
+        await this.syncGenderPreferenceToIa(tx, serviceUserId, dto.staffGenderPreference ?? null);
+      }
+      if (dto.accommodationType !== undefined) {
+        await this.syncAccommodationTypeToIa(tx, serviceUserId, dto.accommodationType ?? null);
+      }
+      if (dto.doorCode !== undefined) {
+        await this.syncKeySafeCodeToIa(tx, serviceUserId, dto.doorCode ?? null);
       }
 
       const fresh = await tx.serviceUserDomCare.findUniqueOrThrow({

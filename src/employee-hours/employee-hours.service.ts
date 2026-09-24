@@ -32,6 +32,8 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
 ];
 
 const OVERTIME_THRESHOLD_HOURS = 40;
+/** A visit started more than this many minutes after its planned start counts as late. */
+const LATE_TOLERANCE_MINUTES = 15;
 
 /** Monday 00:00 UTC of the ISO week containing a civil YYYY-MM-DD label. */
 function mondayOfIsoWeekContaining(date: Date): Date {
@@ -287,6 +289,8 @@ export class EmployeeHoursService {
     const workedMinutes = new Map<string, number>();
     const assignedVisits = new Map<string, number>();
     const workedVisits = new Map<string, number>();
+    /** Visits started more than LATE_TOLERANCE_MINUTES after the planned start. */
+    const lateVisits = new Map<string, number>();
     /** Worked minutes per weekday, Monday = index 0. */
     const dayMinutes = new Map<string, number[]>();
 
@@ -362,6 +366,14 @@ export class EmployeeHoursService {
         if (mins > 0) {
           workedMinutes.set(r.employeeId, (workedMinutes.get(r.employeeId) ?? 0) + mins);
           workedVisits.set(r.employeeId, (workedVisits.get(r.employeeId) ?? 0) + 1);
+          if (
+            r.actualStartDateTime &&
+            r.plannedStartDateTime &&
+            (r.actualStartDateTime.getTime() - r.plannedStartDateTime.getTime()) / 60_000 >
+              LATE_TOLERANCE_MINUTES
+          ) {
+            lateVisits.set(r.employeeId, (lateVisits.get(r.employeeId) ?? 0) + 1);
+          }
           const dayKey = dayKeyInTimeZone(r.plannedStartDateTime, timeZone);
           const dayIdx = weekdayIndexFromMonday(weekStartIso, dayKey);
           const days = dayMinutes.get(r.employeeId) ?? [0, 0, 0, 0, 0, 0, 0];
@@ -471,6 +483,7 @@ export class EmployeeHoursService {
         remainingCapHours,
         assignedVisits: assignedVisits.get(emp.id) ?? 0,
         workedVisits: workedVisits.get(emp.id) ?? 0,
+        lateVisits: lateVisits.get(emp.id) ?? 0,
         dayHours: (dayMinutes.get(emp.id) ?? [0, 0, 0, 0, 0, 0, 0]).map((m) => round2(m / 60)),
         hourBand: bandForHours(hoursWorked),
         visaTypeId: visa?.id ?? null,

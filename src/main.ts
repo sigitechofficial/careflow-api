@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import type { ValidationError } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import type { Server } from 'http';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -48,6 +49,17 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transformOptions: { enableImplicitConversion: true },
+      // Return the human-readable constraint messages (recursing into nested
+      // DTOs) instead of technical paths like "slots.0.durationMinutes must not…".
+      exceptionFactory: (errors: ValidationError[]) => {
+        const collect = (errs: ValidationError[]): string[] =>
+          errs.flatMap((e) => [
+            ...(e.constraints ? Object.values(e.constraints) : []),
+            ...(e.children?.length ? collect(e.children) : []),
+          ]);
+        const messages = collect(errors);
+        return new BadRequestException(messages.length ? messages : ['Validation failed']);
+      },
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());

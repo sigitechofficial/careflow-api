@@ -4159,6 +4159,8 @@ model ServiceUserDomCare {
   weeklyContractedHours  String?
   contractDocumentUrl    String?
   numberOfCarers         Int     @default(1)
+  staffGenderPreference  String?
+  accommodationType      Json?    @db.JsonB
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())

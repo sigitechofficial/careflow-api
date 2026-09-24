@@ -707,6 +707,56 @@ export class InitialAssessmentsService {
       }
     });
 
+    const domSyncFields: Record<string, unknown> = {};
+
+    const genderPrefQuestion = questions.find(
+      (q) => q.questionText.toLowerCase().includes('gender preference'),
+    );
+    if (genderPrefQuestion) {
+      const genderAnswer = expandedAnswers.find((a) => a.questionId === genderPrefQuestion.id);
+      if (genderAnswer?.selectedOptions) {
+        const opts = genderAnswer.selectedOptions as unknown;
+        const value = Array.isArray(opts) ? (opts[0] as string) ?? null : typeof opts === 'string' ? opts : null;
+        domSyncFields.staffGenderPreference = value || null;
+      }
+    }
+
+    const accommodationQuestion = questions.find(
+      (q) => q.questionText.toLowerCase().includes('living accommodation'),
+    );
+    if (accommodationQuestion) {
+      const accomAnswer = expandedAnswers.find((a) => a.questionId === accommodationQuestion.id);
+      if (accomAnswer?.selectedOptions) {
+        const opts = accomAnswer.selectedOptions as unknown;
+        const value = Array.isArray(opts) && opts.length ? opts : null;
+        domSyncFields.accommodationType = value ?? Prisma.JsonNull;
+      }
+    }
+
+    const keySafeQuestion = questions.find(
+      (q) => q.questionText.toLowerCase().includes('key safe code'),
+    );
+    if (keySafeQuestion) {
+      const keySafeAnswer = expandedAnswers.find((a) => a.questionId === keySafeQuestion.id);
+      if (keySafeAnswer !== undefined) {
+        domSyncFields.doorCode = keySafeAnswer.textValue?.trim() || null;
+      }
+    }
+
+    if (Object.keys(domSyncFields).length) {
+      const existingDom = await this.prisma.serviceUserDomCare.findUnique({ where: { serviceUserId } });
+      if (existingDom) {
+        await this.prisma.serviceUserDomCare.update({
+          where: { id: existingDom.id },
+          data: domSyncFields,
+        });
+      } else {
+        await this.prisma.serviceUserDomCare.create({
+          data: { serviceUserId, numberOfCarers: 1, createdById: userId, ...domSyncFields },
+        });
+      }
+    }
+
     return { message: 'Answers saved', data: { submissionId, savedCount: dto.answers.length } };
   }
 

@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EmployeeHoursApprovalStatus, Prisma } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { AllocationStatus, EmployeeHoursApprovalStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -8,6 +8,9 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { deriveDurationFromTimes } from '../service-user-visit-plans/visit-plan-slot-window.util';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Hard weekly cap — extra hours pushing a carer above this can never be approved. */
+export const MAX_APPROVABLE_WEEKLY_HOURS = 60;
 
 @Injectable()
 export class EmployeeHoursApprovalsService {
@@ -149,6 +152,15 @@ export class EmployeeHoursApprovalsService {
     }
   }
 
+  /** Employee ids with a PENDING hours approval for a plan (blocked from rostering). */
+  async pendingEmployeeIdsForPlan(planId: string): Promise<Set<string>> {
+    const rows = await this.prisma.employeeHoursApproval.findMany({
+      where: { visitPlanId: planId, status: EmployeeHoursApprovalStatus.PENDING },
+      select: { employeeId: true },
+    });
+    return new Set(rows.map((r) => r.employeeId));
+  }
+
   async list(status?: EmployeeHoursApprovalStatus) {
     const rows = await this.prisma.employeeHoursApproval.findMany({
       where: status ? { status } : {},
@@ -209,6 +221,11 @@ export class EmployeeHoursApprovalsService {
 
   async approve(userId: string, id: string, notes?: string, meta?: RequestAuditMeta) {
     const row = await this.requireApproval(id);
+    if ((row.projectedWeeklyHours ?? 0) > MAX_APPROVABLE_WEEKLY_HOURS) {
+      throw new BadRequestException(
+        `Cannot approve — ${round1(row.projectedWeeklyHours ?? 0)}h exceeds the ${MAX_APPROVABLE_WEEKLY_HOURS}h weekly maximum. Reduce this carer's assigned hours first, then re-check.`,
+      );
+    }
     const updated = await this.prisma.employeeHoursApproval.update({
       where: { id },
       data: {
@@ -249,14 +266,48 @@ export class EmployeeHoursApprovalsService {
         where: { employeeId: row.employeeId, visitPlanSlot: { visitPlanId: row.visitPlanId } },
       });
       const slots = await tx.visitPlanSlot.findMany({
-        where: { visitPlanId: row.visitPlanId, assignedEmployeeIds: { has: row.employeeId } },
+        where: { visitPlanId: row.visitPlanId },
         select: { id: true, assignedEmployeeIds: true },
       });
       for (const s of slots) {
-        await tx.visitPlanSlot.update({
-          where: { id: s.id },
-          data: { assignedEmployeeIds: s.assignedEmployeeIds.filter((e) => e !== row.employeeId) },
+        if (s.assignedEmployeeIds.includes(row.employeeId)) {
+          await tx.visitPlanSlot.update({
+            where: { id: s.id },
+            data: { assignedEmployeeIds: s.assignedEmployeeIds.filter((e) => e !== row.employeeId) },
+          });
+        }
+      }
+
+      // Strip the carer from the already-generated rota for this plan (upcoming,
+      // non-locked visits only — past/completed allocations are left intact).
+      const now = new Date();
+      const slotIds = slots.map((s) => s.id);
+      if (slotIds.length) {
+        const visits = await tx.scheduledVisit.findMany({
+          where: {
+            visitPlanSlotId: { in: slotIds },
+            deletedAt: null,
+            scheduledStartDateTime: { gte: now },
+          },
+          select: { scheduledJobId: true },
         });
+        const jobIds = [...new Set(visits.map((v) => v.scheduledJobId))];
+        if (jobIds.length) {
+          await tx.jobAllocation.updateMany({
+            where: {
+              scheduledJobId: { in: jobIds },
+              employeeId: row.employeeId,
+              isActive: true,
+            },
+            data: {
+              status: AllocationStatus.UNALLOCATED,
+              isActive: false,
+              unallocatedAt: now,
+              unallocatedById: userId,
+              unallocationReason: 'Extra hours rejected — over contracted weekly hours',
+            },
+          });
+        }
       }
     });
     await this.audit.logAudit({

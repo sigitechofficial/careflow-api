@@ -48,8 +48,8 @@ export class VisitPlanSlotCarerAssignmentDto {
   @ApiPropertyOptional({ minimum: 1, maximum: 720 })
   @IsOptional()
   @IsInt()
-  @Min(1)
-  @Max(720)
+  @Min(1, { message: 'Visit duration must be at least 1 minute.' })
+  @Max(720, { message: 'Visit duration cannot be more than 12 hours (720 minutes).' })
   durationMinutes?: number | null;
 
   @ApiPropertyOptional({ example: '07:00' })

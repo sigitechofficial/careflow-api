@@ -2219,6 +2219,20 @@ export class ServiceUserVisitPlansService {
       throw new BadRequestException('No enabled visit slots on this plan');
     }
 
+    // Carers with a PENDING over-contracted-hours approval must not be rostered
+    // until a manager approves — strip them from the slots used for generation.
+    if (assignCarers) {
+      const pending = await this.hoursApprovals.pendingEmployeeIdsForPlan(planId);
+      if (pending.size) {
+        for (const s of enabledSlots) {
+          s.assignedEmployeeIds = (s.assignedEmployeeIds ?? []).filter((id) => !pending.has(id));
+          s.carerAssignments = (s.carerAssignments ?? []).filter(
+            (a) => !pending.has(a.employeeId),
+          );
+        }
+      }
+    }
+
     if (dto.scheduleAreaId) {
       const area = await this.prisma.scheduleArea.findFirst({
         where: { id: dto.scheduleAreaId, deletedAt: null, isActive: true },
