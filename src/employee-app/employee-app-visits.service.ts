@@ -5287,14 +5287,7 @@ export class EmployeeAppVisitsService {
             badgeLabel: String(lastHandoverMeta.badgeLabel ?? 'Temporary note'),
             acknowledged: Boolean(lastHandoverMeta.acknowledged),
           }
-        : flash
-          ? {
-              message: flash.message,
-              requiresAck: true,
-              badgeLabel: 'Temporary note',
-              acknowledged: false,
-            }
-          : null,
+        : null,
       flashMessage: flash
         ? { id: flash.id, message: flash.message, displayUntil: flash.displayUntil.toISOString() }
         : null,

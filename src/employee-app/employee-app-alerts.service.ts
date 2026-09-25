@@ -5,24 +5,24 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
-import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import {
   compareAlertsByTier,
   countCriticalAlerts,
   mapAllergiesToAlert,
   mapDnacprToAlert,
-  mapFlashMessageToAlert,
   mapIaRiskToAlert,
+  mapMedicalAlertToAlert,
   mapMedicalConditionToAlert,
   mapReasonableAdjustmentToAlert,
   type ServiceUserAlertItem,
 } from './service-user-alert-mapping.util';
 
 /**
- * Aggregates all service-user alerts for the carer app into one prioritised feed.
- * Read-only surfacing of existing data — nothing is captured here.
- * Sources: allergies, DNACPR, admin medical conditions, reasonable adjustments,
- * active flash message, and open Initial Assessment risk records.
+ * Aggregates service-user safety alerts for the carer app into one prioritised feed.
+ * Read-only. Office flash messages are not included here — they appear on the visit
+ * overview as a dedicated Office note.
+ * Sources: allergies, DNACPR, medical conditions, medical alerts, reasonable
+ * adjustments, and open IA risk records.
  */
 @Injectable()
 export class EmployeeAppAlertsService {
@@ -34,7 +34,8 @@ export class EmployeeAppAlertsService {
   async getAlerts(employeeId: string, clientId: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
 
-    const [allergies, legal, conditions, adjustments, flash, risks] = await Promise.all([
+    const [allergies, legal, conditions, medicalAlerts, adjustments, risks] =
+      await Promise.all([
       this.prisma.serviceUserAllergy.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
         select: { allergyName: true },
@@ -53,13 +54,26 @@ export class EmployeeAppAlertsService {
         },
         select: { id: true, notes: true, condition: { select: { code: true, name: true } } },
       }),
+      this.prisma.serviceUserMedicalAlert.findMany({
+        where: {
+          serviceUserId: clientId,
+          deletedAt: null,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          severity: true,
+          description: true,
+          actionForCarer: true,
+          notes: true,
+        },
+        orderBy: [{ severity: 'asc' }, { updatedAt: 'desc' }],
+      }),
       this.prisma.serviceUserReasonableAdjustment.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
         select: { id: true, description: true, notes: true },
-      }),
-      this.prisma.serviceUserFlashMessage.findFirst({
-        where: { serviceUserId: clientId, ...activeServiceUserFlashMessageWhere() },
-        select: { id: true, message: true },
       }),
       this.prisma.initialAssessmentRiskRecord.findMany({
         where: { serviceUserId: clientId, status: InitialAssessmentRiskStatus.OPEN },
@@ -92,6 +106,11 @@ export class EmployeeAppAlertsService {
       );
     }
 
+    for (const row of medicalAlerts) {
+      const a = mapMedicalAlertToAlert(row);
+      if (a) alerts.push(a);
+    }
+
     for (const adj of adjustments) {
       const a = mapReasonableAdjustmentToAlert({
         id: adj.id,
@@ -101,10 +120,8 @@ export class EmployeeAppAlertsService {
       if (a) alerts.push(a);
     }
 
-    if (flash) {
-      const f = mapFlashMessageToAlert({ id: flash.id, message: flash.message });
-      if (f) alerts.push(f);
-    }
+    // Active flash / office note is surfaced on the visit overview as its own
+    // "Office note" card — keep it out of the Safety & alerts feed.
 
     for (const r of risks) {
       const a = mapIaRiskToAlert({

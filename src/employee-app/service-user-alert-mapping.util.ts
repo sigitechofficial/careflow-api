@@ -199,3 +199,37 @@ export function mapFlashMessageToAlert(input: {
     requiresAck: false,
   };
 }
+
+// ── Admin medical alerts (CRUD) ──────────────────────────────────────────────
+export function mapMedicalAlertToAlert(input: {
+  id: string;
+  title: string;
+  category?: string | null;
+  severity?: string | null;
+  description?: string | null;
+  actionForCarer?: string | null;
+  notes?: string | null;
+}): ServiceUserAlertItem | null {
+  const title = input.title.trim();
+  if (!title) return null;
+  const severity = (input.severity ?? 'IMPORTANT').toUpperCase();
+  const tier: AlertTier =
+    severity === 'CRITICAL' ? 'CRITICAL' : severity === 'INFO' ? 'INFO' : 'IMPORTANT';
+  const action =
+    input.actionForCarer?.trim() ||
+    input.description?.trim() ||
+    'Follow the care plan for this alert.';
+  const detailParts = [input.description?.trim(), input.notes?.trim()].filter(Boolean);
+  return {
+    id: input.id,
+    category: input.category?.trim()
+      ? `MEDICAL_ALERT_${input.category.trim()}`
+      : 'MEDICAL_ALERT',
+    title,
+    actionLine: action,
+    detail: detailParts.length > 0 ? detailParts.join('\n') : null,
+    tier,
+    source: 'ADMIN',
+    requiresAck: false,
+  };
+}
