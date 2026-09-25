@@ -1,52 +1,49 @@
 import {
-  loadRoundsWithScheduledMedication,
+  loadScheduledMedicationDueTimes,
   resolveMedicationRequiredForSlot,
 } from './visit-medication-required.util';
 
 describe('visit-medication-required.util', () => {
-  it('is false when slot has a round code but no scheduled meds for that round', () => {
+  it('is true when a dueTime falls in the slot window', () => {
     expect(
       resolveMedicationRequiredForSlot({
-        medicationRoundCode: 'MORNING',
-        slotCode: 'MORNING',
-        roundsWithScheduledMedication: new Set(['MIDDAY']),
-      }),
-    ).toBe(false);
-  });
-
-  it('is true when SU has scheduled meds for the slot round', () => {
-    expect(
-      resolveMedicationRequiredForSlot({
-        medicationRoundCode: 'MORNING',
-        slotCode: 'MORNING',
-        roundsWithScheduledMedication: new Set(['MORNING', 'EVENING']),
+        plannedStartTime: '09:00',
+        plannedEndTime: '10:00',
+        scheduledDueTimes: ['07:00', '09:30'],
       }),
     ).toBe(true);
   });
 
-  it('is false when there is no round/slot code', () => {
+  it('is false when no dueTime falls in the slot window', () => {
     expect(
       resolveMedicationRequiredForSlot({
-        medicationRoundCode: null,
-        slotCode: null,
-        roundsWithScheduledMedication: new Set(['MORNING']),
+        plannedStartTime: '06:00',
+        plannedEndTime: '08:00',
+        scheduledDueTimes: ['09:30', '18:00'],
       }),
     ).toBe(false);
   });
 
-  it('loads round codes from active non-PRN schedules', async () => {
+  it('is false when slot times are missing', () => {
+    expect(
+      resolveMedicationRequiredForSlot({
+        plannedStartTime: null,
+        plannedEndTime: '10:00',
+        scheduledDueTimes: ['09:30'],
+      }),
+    ).toBe(false);
+  });
+
+  it('loads due times from active non-PRN schedules', async () => {
     const findMany = jest.fn().mockResolvedValue([
       {
-        schedules: [
-          { round: { code: 'morning' } },
-          { round: { code: 'EVENING' } },
-        ],
+        schedules: [{ dueTime: '09:30' }, { dueTime: '18:00' }],
       },
     ]);
-    const rounds = await loadRoundsWithScheduledMedication(
+    const times = await loadScheduledMedicationDueTimes(
       { serviceUserMedication: { findMany } } as never,
       'su-1',
     );
-    expect([...rounds].sort()).toEqual(['EVENING', 'MORNING']);
+    expect(times.sort()).toEqual(['09:30', '18:00']);
   });
 });

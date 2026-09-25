@@ -2,10 +2,13 @@ import type { PrismaClient } from '@prisma/client';
 
 const ENTERPRISE_TEMPLATE_NAME = 'Initial Assessment — Enterprise';
 
-/** Retired wording / mojibake duplicates superseded by canonical §3.5 / §3.6 fields. */
+/** Retired wording / mojibake duplicates superseded by canonical §3.5 / §3.6 / §1.2 fields. */
 export const SECTION_35_SUPERSEDED_QUESTION_TEXT = [
   'Door entry code (secure â€” from DOM Care)',
   'Key safe location / reference (code stored securely)',
+  // Exact duplicates of Social history (§1.2) key-safe fields — keep location only on §3.
+  'Key safe present?',
+  'Key safe code',
 ] as const;
 
 export async function pruneSection35AccessDuplicates(prisma: PrismaClient): Promise<number> {

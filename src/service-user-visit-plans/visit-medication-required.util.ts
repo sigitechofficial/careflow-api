@@ -1,11 +1,51 @@
 import { MedicationKind, MedicationRecordStatus } from '@prisma/client';
+import { dueTimeFallsInHmWindow } from './visit-medication-window.util';
 
 /**
- * Visit plan slots reuse medication round codes as visit window labels (MORNING, etc.).
- * That does NOT mean MAR is required — only that the slot is named after a round.
- * medicationRequired must reflect whether the service user has active scheduled
- * (non-PRN) medication for that round.
+ * Active non-PRN schedule due times for a service user (HH:mm).
+ * Used to decide medicationRequired per visit slot by window, not by round code.
  */
+export async function loadScheduledMedicationDueTimes(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  serviceUserId: string,
+): Promise<string[]> {
+  const meds = (await db.serviceUserMedication.findMany({
+    where: {
+      serviceUserId,
+      deletedAt: null,
+      isActive: true,
+      status: MedicationRecordStatus.ACTIVE,
+      medicationKind: { not: MedicationKind.PRN },
+      schedules: {
+        some: {
+          deletedAt: null,
+          isActive: true,
+          dueTime: { not: null },
+        },
+      },
+    },
+    select: {
+      schedules: {
+        where: { deletedAt: null, isActive: true, dueTime: { not: null } },
+        select: { dueTime: true },
+      },
+    },
+  })) as Array<{
+    schedules?: Array<{ dueTime: string | null } | null> | null;
+  }>;
+
+  const times: string[] = [];
+  for (const med of meds) {
+    for (const schedule of med.schedules ?? []) {
+      const t = schedule?.dueTime?.trim();
+      if (t) times.push(t);
+    }
+  }
+  return times;
+}
+
+/** @deprecated Prefer loadScheduledMedicationDueTimes + resolveMedicationRequiredForSlot window match. */
 export async function loadRoundsWithScheduledMedication(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
@@ -46,12 +86,20 @@ export async function loadRoundsWithScheduledMedication(
   return rounds;
 }
 
+/**
+ * True when any scheduled dueTime falls inside this visit slot's planned window.
+ */
 export function resolveMedicationRequiredForSlot(input: {
+  plannedStartTime?: string | null;
+  plannedEndTime?: string | null;
+  scheduledDueTimes: string[];
+  /** @deprecated ignored — kept for call-site compatibility during migration */
   medicationRoundCode?: string | null;
   slotCode?: string | null;
-  roundsWithScheduledMedication: Set<string>;
+  roundsWithScheduledMedication?: Set<string>;
 }): boolean {
-  const code = (input.medicationRoundCode ?? input.slotCode)?.trim();
-  if (!code) return false;
-  return input.roundsWithScheduledMedication.has(code.toUpperCase());
+  const start = input.plannedStartTime?.trim();
+  const end = input.plannedEndTime?.trim();
+  if (!start || !end) return false;
+  return input.scheduledDueTimes.some((due) => dueTimeFallsInHmWindow(due, start, end));
 }

@@ -114,8 +114,6 @@ export const SECTION_13_QUESTIONS: EnterpriseQuestionSeed[] = [
 
 export const SECTION_14_EXTRA_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Representative involved in sign-off?', questionType: Y, sortOrder: 7, metadata: iaMeta('14.6', { fieldKey: 'representativeInvolved', syncKey: 'representativeInvolved' }) },
-  { questionText: 'Representative name', questionType: T, sortOrder: 8, metadata: iaMeta('14.6', { syncKey: 'representativeName', ...whenYes('representative involved in sign-off') }) },
-  { questionText: 'Representative relationship', questionType: T, sortOrder: 9, metadata: iaMeta('14.6', { syncKey: 'representativeRelationship', ...whenYes('representative involved in sign-off') }) },
   { questionText: 'Service user / representative signature obtained?', questionType: Y, isRequired: true, sortOrder: 10, metadata: iaMeta('14.6', { fieldKey: 'suSignatureObtained' }) },
   { questionText: 'Care plan recommendations reviewed?', questionType: Y, sortOrder: 11, metadata: iaMeta('14.3') },
   { questionText: 'Actions generated and reviewed?', questionType: Y, sortOrder: 12, metadata: iaMeta('14.4') },

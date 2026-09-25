@@ -9,6 +9,7 @@ import {
   formatHmInTimeZone,
   operationalDayBounds,
 } from '../common/utils/operational-day.util'
+import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util'
 import { visitTaskMatchesDay } from '../visit-tasks/visit-task-schedule.util'
 import {
   buildTimeSensitiveFlag,
@@ -27,10 +28,13 @@ type TimelineJobLike = {
   serviceUserId: string
   status: string
   scheduledStartDateTime: string
+  scheduledEndDateTime?: string | null
   actualStartDateTime?: string | null
   visitPlan?: {
     slotCode?: string
     medicationRoundCode?: string | null
+    plannedStartTime?: string | null
+    plannedEndTime?: string | null
     timeCritical?: boolean
     timeToleranceMinutes?: number
   } | null
@@ -55,19 +59,35 @@ function jobRoundCode(job: TimelineJobLike): string | null {
   return code ? code.toUpperCase() : null
 }
 
-function scheduleForRound(
+function jobVisitWindowHm(
+  job: TimelineJobLike,
+  timeZone: string,
+): { startHm: string; endHm: string } | null {
+  const plannedStart = job.visitPlan?.plannedStartTime?.trim()
+  const plannedEnd = job.visitPlan?.plannedEndTime?.trim()
+  if (plannedStart && plannedEnd) return { startHm: plannedStart, endHm: plannedEnd }
+
+  const startIso = job.scheduledStartDateTime
+  const endIso = job.scheduledEndDateTime
+  if (!startIso || !endIso) return null
+  const startHm = formatHmInTimeZone(new Date(startIso), timeZone)
+  const endHm = formatHmInTimeZone(new Date(endIso), timeZone)
+  if (!startHm || !endHm) return null
+  return { startHm, endHm }
+}
+
+function scheduleForVisitWindow(
   schedules: Array<{
     dueTime: string | null
     dueVisitName: string | null
     round: { code: string } | null
   }>,
-  roundCode: string | null,
+  window: { startHm: string; endHm: string } | null,
 ) {
   if (!schedules.length) return null
-  if (!roundCode) return schedules[0]
+  if (!window) return null
   return (
-    schedules.find((row) => row.round?.code?.toUpperCase() === roundCode) ??
-    schedules.find((row) => row.dueVisitName?.trim().toUpperCase() === roundCode) ??
+    schedules.find((row) => dueTimeFallsInHmWindow(row.dueTime, window.startHm, window.endHm)) ??
     null
   )
 }
@@ -194,6 +214,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
 
   return jobs.map((job) => {
     const round = jobRoundCode(job)
+    const visitWindow = jobVisitWindowHm(job, timeZone)
     const visitEnded =
       isEndedVisitStatus(job.status) || job.visits?.some((visit) => isEndedVisitStatus(visit.status))
     const visitStarted = jobVisitStarted(job)
@@ -210,7 +231,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
       ) {
         continue
       }
-      const schedule = scheduleForRound(med.schedules, round)
+      const schedule = scheduleForVisitWindow(med.schedules, visitWindow)
       if (!schedule) continue
       const event = eventsByMed.get(med.id)
       const due =

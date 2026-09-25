@@ -84,10 +84,12 @@ import {
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
 import {
   dayKeyInTimeZone,
+  formatHmInTimeZone,
   formatHmUtc,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
+import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
 import { formatUkDateLabel, parseUkDateTimeLabel } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
@@ -1278,9 +1280,11 @@ export class EmployeeAppVisitsService {
       employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
-      medicationRoundCode: ctx.medicationRoundCode,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
+      visitEnd:
+        ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
       timeZone: ctx.timeZone,
+      medicationRoundCode: ctx.medicationRoundCode,
     });
 
     const since =
@@ -3128,9 +3132,11 @@ export class EmployeeAppVisitsService {
       employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
-      medicationRoundCode: ctx.medicationRoundCode,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
+      visitEnd:
+        ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
       timeZone: ctx.timeZone,
+      medicationRoundCode: ctx.medicationRoundCode,
     });
 
     const auditRecordId = newAuditRecordId();
@@ -4904,7 +4910,7 @@ export class EmployeeAppVisitsService {
   }
 
   /**
-   * When every scheduled (non-PRN) dose for the visit round has been recorded,
+   * When every scheduled (non-PRN) dose for this visit window has been recorded,
    * mark eMAR-linked planned tasks (e.g. "Medication prompt") complete so Home
    * and Details share the same tasksDone count.
    */
@@ -4912,19 +4918,17 @@ export class EmployeeAppVisitsService {
     employeeId: string;
     jobId: string;
     serviceUserId: string;
-    medicationRoundCode: string | null;
     visitStart: Date;
+    visitEnd: Date | null;
     timeZone: string;
+    medicationRoundCode?: string | null;
   }) {
-    if (!input.medicationRoundCode) return;
+    if (!input.visitEnd) return;
 
     const visitDate = dayKeyInTimeZone(input.visitStart, input.timeZone);
     const { start, end } = operationalDayBounds(visitDate, input.timeZone);
-    const round = await this.prisma.medicationAdministrationRound.findFirst({
-      where: { code: input.medicationRoundCode, deletedAt: null, isActive: true },
-      select: { id: true },
-    });
-    if (!round) return;
+    const startHm = formatHmInTimeZone(input.visitStart, input.timeZone);
+    const endHm = formatHmInTimeZone(input.visitEnd, input.timeZone);
 
     const meds = await this.prisma.serviceUserMedication.findMany({
       where: {
@@ -4937,34 +4941,45 @@ export class EmployeeAppVisitsService {
           some: {
             deletedAt: null,
             isActive: true,
-            round: { code: input.medicationRoundCode },
+            dueTime: { not: null },
           },
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        schedules: {
+          where: { deletedAt: null, isActive: true, dueTime: { not: null } },
+          select: { dueTime: true },
+        },
+      },
     });
-    const dueCount = meds.length;
+    const dueMeds = meds.filter((m) =>
+      m.schedules.some((s) => dueTimeFallsInHmWindow(s.dueTime, startHm, endHm)),
+    );
+    const dueCount = dueMeds.length;
     if (dueCount === 0) return;
 
     const givenCount = await this.prisma.medicationAdministrationEvent.count({
       where: {
         serviceUserId: input.serviceUserId,
         deletedAt: null,
-        roundId: round.id,
         status: MedicationAdministrationStatus.GIVEN,
         OR: [
           { scheduledDateTime: { gte: start, lte: end } },
           { actualDateTime: { gte: start, lte: end } },
         ],
-        serviceUserMedicationId: { in: meds.map((m) => m.id) },
+        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
       },
     });
     if (givenCount < dueCount) return;
 
+    // Visit tasks are still organised by round code on the plan; use it when present.
     const assignments = await this.prisma.serviceUserVisitTaskAssignment.findMany({
       where: {
         serviceUserId: input.serviceUserId,
-        medicationRoundCode: input.medicationRoundCode,
+        ...(input.medicationRoundCode
+          ? { medicationRoundCode: input.medicationRoundCode }
+          : {}),
         deletedAt: null,
         isActive: true,
       },
@@ -5003,7 +5018,8 @@ export class EmployeeAppVisitsService {
           scheduledJobId: input.jobId,
           assignmentId: match.id,
           taskCatalogueTaskId: match.task.id,
-          medicationRoundCode: input.medicationRoundCode,
+          medicationRoundCode:
+            input.medicationRoundCode ?? match.medicationRoundCode ?? undefined,
           isAdHoc: false,
           isCompleted: true,
           recordedValue: 'COMPLETED',
@@ -5097,14 +5113,8 @@ export class EmployeeAppVisitsService {
       ctx.timeZone,
     );
     const { start, end } = operationalDayBounds(visitDate, ctx.timeZone);
-    const roundCode = ctx.medicationRoundCode;
-    if (!roundCode) return { dueCount: 0, givenCount: 0 };
-
-    const round = await this.prisma.medicationAdministrationRound.findFirst({
-      where: { code: roundCode, deletedAt: null, isActive: true },
-      select: { id: true },
-    });
-    if (!round) return { dueCount: 0, givenCount: 0 };
+    const visitWindow = this.resolveVisitMedicationHmWindow(ctx);
+    if (!visitWindow) return { dueCount: 0, givenCount: 0 };
 
     const meds = await this.prisma.serviceUserMedication.findMany({
       where: {
@@ -5117,31 +5127,57 @@ export class EmployeeAppVisitsService {
           some: {
             deletedAt: null,
             isActive: true,
-            round: { code: roundCode },
+            dueTime: { not: null },
           },
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        schedules: {
+          where: { deletedAt: null, isActive: true, dueTime: { not: null } },
+          select: { dueTime: true, roundId: true },
+        },
+      },
     });
 
-    const dueCount = meds.length;
+    const dueMeds = meds.filter((m) =>
+      m.schedules.some((s) =>
+        dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
+      ),
+    );
+    const dueCount = dueMeds.length;
     if (dueCount === 0) return { dueCount: 0, givenCount: 0 };
 
     const givenCount = await this.prisma.medicationAdministrationEvent.count({
       where: {
         serviceUserId: ctx.job.serviceUserId,
         deletedAt: null,
-        roundId: round.id,
         status: MedicationAdministrationStatus.GIVEN,
         OR: [
           { scheduledDateTime: { gte: start, lte: end } },
           { actualDateTime: { gte: start, lte: end } },
         ],
-        serviceUserMedicationId: { in: meds.map((m) => m.id) },
+        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
       },
     });
 
     return { dueCount, givenCount };
+  }
+
+  /** Visit planned clock window as HH:mm in org TZ — used to attach meds by dueTime. */
+  private resolveVisitMedicationHmWindow(
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+  ): { startHm: string; endHm: string } | null {
+    const startAt = ctx.primaryVisit.scheduledStartDateTime;
+    const endAt =
+      ctx.primaryVisit.scheduledEndDateTime ??
+      ctx.job.scheduledEndDateTime ??
+      null;
+    if (!startAt || !endAt) return null;
+    return {
+      startHm: formatHmInTimeZone(startAt, ctx.timeZone),
+      endHm: formatHmInTimeZone(endAt, ctx.timeZone),
+    };
   }
 
   private async loadOverviewExtras(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
@@ -5337,6 +5373,7 @@ export class EmployeeAppVisitsService {
     );
     const { start, end } = operationalDayBounds(visitDate, ctx.timeZone);
     const roundCode = ctx.medicationRoundCode;
+    const visitWindow = this.resolveVisitMedicationHmWindow(ctx);
     const allergies = await this.loadAllergies(ctx.job.serviceUserId);
     const allergyLower = allergies.map((a) => a.toLowerCase());
 
@@ -5348,7 +5385,7 @@ export class EmployeeAppVisitsService {
       : null;
     const visitRound = resolveVisitMedicationRoundFromDb(round);
 
-    const [scheduledMeds, prnMeds, activePacks] = await Promise.all([
+    const [scheduledMedsRaw, prnMeds, activePacks] = await Promise.all([
       this.prisma.serviceUserMedication.findMany({
         where: {
           serviceUserId: ctx.job.serviceUserId,
@@ -5356,17 +5393,13 @@ export class EmployeeAppVisitsService {
           isActive: true,
           status: MedicationRecordStatus.ACTIVE,
           medicationKind: { not: MedicationKind.PRN },
-          ...(round
-            ? {
-                schedules: {
-                  some: {
-                    deletedAt: null,
-                    isActive: true,
-                    roundId: round.id,
-                  },
-                },
-              }
-            : {}),
+          schedules: {
+            some: {
+              deletedAt: null,
+              isActive: true,
+              dueTime: { not: null },
+            },
+          },
         },
         orderBy: { medicationName: 'asc' },
         select: {
@@ -5382,9 +5415,8 @@ export class EmployeeAppVisitsService {
           medicationPackId: true,
           route: { select: { name: true } },
           schedules: {
-            where: { deletedAt: null, isActive: true, ...(round ? { roundId: round.id } : {}) },
-            select: { dueTime: true, round: { select: { name: true } } },
-            take: 1,
+            where: { deletedAt: null, isActive: true },
+            select: { dueTime: true, dose: true, round: { select: { name: true } } },
           },
           medicationPack: { select: { adminRules: true } },
         },
@@ -5467,6 +5499,24 @@ export class EmployeeAppVisitsService {
         },
       }),
     ]);
+
+    // Attach meds whose dueTime falls in this visit's clock window only (1A: no window → none).
+    const scheduledMeds = visitWindow
+      ? scheduledMedsRaw
+          .map((m) => {
+            const inWindow = m.schedules.filter((s) =>
+              dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
+            );
+            if (!inWindow.length) return null;
+            const primary = inWindow[0]!;
+            return {
+              ...m,
+              dose: primary.dose?.trim() || m.dose,
+              schedules: [primary],
+            };
+          })
+          .filter((m): m is NonNullable<typeof m> => m != null)
+      : [];
 
     const packMedicationIds = collectActivePackMedicationIds(activePacks);
     const standaloneScheduledMeds = scheduledMeds.filter((m) => !packMedicationIds.has(m.id));
@@ -5667,6 +5717,7 @@ export class EmployeeAppVisitsService {
     const blisterPacks = buildVisitBlisterPacks({
       packs: activePacks,
       visitRound,
+      visitWindow,
       allergyLower,
       eventByMed,
       bodyMapSiteByMedId,

@@ -42,6 +42,8 @@ export const timelineVisitSelect = {
       slotCode: true,
       medicationRoundCode: true,
       linkedCarePlanFormIds: true,
+      plannedStartTime: true,
+      plannedEndTime: true,
       timeCritical: true,
       timeToleranceMinutes: true,
     },
@@ -177,6 +179,8 @@ function mapVisitPlanContext(row: TimelineJobRow) {
           medicationRoundCode: slot.medicationRoundCode ?? slot.slotCode,
           label: primaryVisit?.visitName ?? slot.slotCode,
           linkedCarePlanFormIds: slot.linkedCarePlanFormIds ?? [],
+          plannedStartTime: slot.plannedStartTime,
+          plannedEndTime: slot.plannedEndTime,
           timeCritical: slot.timeCritical,
           timeToleranceMinutes: slot.timeToleranceMinutes,
         }

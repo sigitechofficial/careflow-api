@@ -10,7 +10,7 @@ import { pruneSection38ActiveExtras } from './initial-assessment-section-38-pets
 import { pruneSection5ActiveExtras } from './initial-assessment-section-5-clinical.seed';
 import { pruneSection6ActiveExtras } from './initial-assessment-section-6-nutrition.seed';
 import { pruneSection12ActiveExtras } from './initial-assessment-section-12-mobility.seed';
-import { pruneSection10ActiveExtras } from './initial-assessment-section-10-mental-health.seed';
+import { pruneSection10ActiveExtras, migrateMcaRequiredFromCognitionDuplicate } from './initial-assessment-section-10-mental-health.seed';
 import {
   pruneSection1ActiveExtras,
   pruneSection4ActiveExtras,
@@ -306,7 +306,7 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
   { questionText: 'Interpreter required?', questionType: YES_NO, isRequired: true, sortOrder: 39, metadata: { specRef: '1.8', syncKey: 'interpreterRequired' } },
   { questionText: 'Language required', questionType: TEXT, sortOrder: 40, metadata: { specRef: '1.8', prefillKey: 'language', syncKey: 'languageRequired' } },
   { questionText: 'Easy read or large print required?', questionType: YES_NO, sortOrder: 41, metadata: { specRef: '1.8' } },
-  { questionText: 'BSL required?', questionType: YES_NO, sortOrder: 42, metadata: { specRef: '1.8' } },
+  { questionText: 'BSL required?', questionType: YES_NO, sortOrder: 42, metadata: { specRef: '1.8', syncKey: 'signLanguageRequired' } },
   { questionText: 'Hearing support required?', questionType: YES_NO, sortOrder: 43, metadata: { specRef: '1.8' } },
   { questionText: 'Visual support required?', questionType: YES_NO, sortOrder: 44, metadata: { specRef: '1.8' } },
   // 1.0 â€” Care starting context (last in Â§1)
@@ -410,9 +410,7 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
         },
       },
       { questionText: 'Access instructions for staff', questionType: TEXTAREA, isRequired: true, sortOrder: 6, metadata: { specRef: '3.5', fieldKey: 'accessInstructions', prefillKey: 'accessInstruction', syncKey: 'accessInstructions' } },
-      { questionText: 'Key safe present?', questionType: YES_NO, sortOrder: 7, metadata: { specRef: '3.5', fieldKey: 'keySafePresent' } },
       { questionText: 'Door entry code (secure — from DOM Care)', questionType: TEXT, sortOrder: 8, metadata: { specRef: '3.5', fieldKey: 'doorCode', prefillKey: 'doorCode', secureField: true } },
-      { questionText: 'Key safe code', questionType: TEXT, sortOrder: 10, metadata: { specRef: '3.6', fieldKey: 'keySafeCode', secureField: true } },
       { questionText: 'Key safe location', questionType: TEXT, sortOrder: 9, metadata: { specRef: '3.6', fieldKey: 'keySafeLocation' } },
       { questionText: 'Trip hazards identified?', questionType: YES_NO, sortOrder: 10, metadata: { specRef: '3.7' } },
       { questionText: 'Poor lighting?', questionType: YES_NO, sortOrder: 11, metadata: { specRef: '3.7' } },
@@ -798,6 +796,11 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
   const pruned6 = await pruneSection6ActiveExtras(prisma);
   if (pruned6 > 0) {
     console.log(`[seed] Pruned ${pruned6} non-canonical §6 nutrition/hydration question(s).`);
+  }
+
+  const migratedMca = await migrateMcaRequiredFromCognitionDuplicate(prisma);
+  if (migratedMca > 0) {
+    console.log(`[seed] Migrated ${migratedMca} cognition MCA-required answer(s) → Consent §2.5.`);
   }
 
   const pruned10 = await pruneSection10ActiveExtras(prisma);

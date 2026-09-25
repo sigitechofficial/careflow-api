@@ -45,7 +45,7 @@ import {
   visitPlanTodayUtc,
 } from './visit-plan-effective-dates.util';
 import {
-  loadRoundsWithScheduledMedication,
+  loadScheduledMedicationDueTimes,
   resolveMedicationRequiredForSlot,
 } from './visit-medication-required.util';
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
@@ -2245,7 +2245,7 @@ export class ServiceUserVisitPlansService {
       include: { address: true },
     });
     const roundNameByCode = await this.loadRoundNameMap();
-    const roundsWithScheduledMedication = await loadRoundsWithScheduledMedication(
+    const scheduledDueTimes = await loadScheduledMedicationDueTimes(
       this.prisma,
       serviceUserId,
     );
@@ -2515,9 +2515,9 @@ export class ServiceUserVisitPlansService {
               requiredCarers,
               status: ScheduledVisitStatus.PLANNED,
               medicationRequired: resolveMedicationRequiredForSlot({
-                medicationRoundCode: slot.medicationRoundCode,
-                slotCode: slot.slotCode,
-                roundsWithScheduledMedication,
+                plannedStartTime: slot.plannedStartTime,
+                plannedEndTime: slot.plannedEndTime,
+                scheduledDueTimes,
               }),
               notesRequired: slot.notesRequired,
               photoRequired: slot.photoAllowed,
@@ -2798,7 +2798,7 @@ export class ServiceUserVisitPlansService {
     }
 
     const roundNameByCode = await this.loadRoundNameMap();
-    const roundsWithScheduledMedication = await loadRoundsWithScheduledMedication(
+    const scheduledDueTimes = await loadScheduledMedicationDueTimes(
       this.prisma,
       serviceUserId,
     );
@@ -2872,9 +2872,9 @@ export class ServiceUserVisitPlansService {
             requiredCarers,
             status: ScheduledVisitStatus.PLANNED,
             medicationRequired: resolveMedicationRequiredForSlot({
-              medicationRoundCode: slot.medicationRoundCode,
-              slotCode: slot.slotCode,
-              roundsWithScheduledMedication,
+              plannedStartTime: slot.plannedStartTime,
+              plannedEndTime: slot.plannedEndTime,
+              scheduledDueTimes,
             }),
             notesRequired: slot.notesRequired,
             photoRequired: slot.photoAllowed,

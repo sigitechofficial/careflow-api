@@ -36,7 +36,6 @@ export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'GP contact details', questionType: TEXTAREA, sortOrder: 88, metadata: { specRef: '1.1', fieldKey: 'gpContactDetails', prefillKey: 'gpContact' } },
   { questionText: 'Pendant / telecare in use?', questionType: YES_NO, sortOrder: 91, metadata: { specRef: '1.1', fieldKey: 'pendantTelecare' } },
   { questionText: 'Assessment completed date and time', questionType: DATE, sortOrder: 92, metadata: { specRef: '1.1', fieldKey: 'assessmentCompletedAt' } },
-  { questionText: 'Assessor name', questionType: TEXT, sortOrder: 93, metadata: { specRef: '1.1', fieldKey: 'assessorName' } },
   { questionText: 'Assessor designation', questionType: TEXT, sortOrder: 94, metadata: { specRef: '1.1', fieldKey: 'assessorDesignation' } },
   { questionText: 'LPOA appointed?', questionType: SINGLE_SELECT, sortOrder: 95, options: LPOA_SCOPE_OPTIONS, metadata: { specRef: '1.1', fieldKey: 'lpoaAppointed' } },
   { questionText: 'LPOA contact details', questionType: TEXTAREA, sortOrder: 96, metadata: { specRef: '1.1', fieldKey: 'lpoaContactDetails' } },

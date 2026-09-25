@@ -12,7 +12,21 @@ import {
   plannedHowAssistedLabel,
   type VisitMedicationRound,
 } from './employee-app-visit-medication-round.util';
+import { dueTimeFallsInHmWindow } from '../../service-user-visit-plans/visit-medication-window.util';
 import type { MarBodyMapSite } from './employee-app-mar-body-map-site.util';
+
+function filterCompartmentsForVisit(
+  compartments: Array<{ label: string; dueTime: string; windowStart?: string | null; windowEnd?: string | null; witnessRequired: boolean; id: string }>,
+  visitRound: VisitMedicationRound | null,
+  visitWindow?: { startHm: string; endHm: string } | null,
+) {
+  if (visitWindow?.startHm && visitWindow?.endHm) {
+    return compartments.filter((c) =>
+      dueTimeFallsInHmWindow(c.dueTime, visitWindow.startHm, visitWindow.endHm),
+    );
+  }
+  return filterCompartmentsForVisitRound(compartments, visitRound);
+}
 
 type Tone = 'danger' | 'warning' | 'primary' | 'success' | 'neutral';
 
@@ -206,18 +220,28 @@ function medicationActiveOnVisitDay(
 export function buildVisitBlisterPacks(input: {
   packs: PackInput[];
   visitRound: VisitMedicationRound | null;
+  visitWindow?: { startHm: string; endHm: string } | null;
   allergyLower: string[];
   eventByMed: Map<string, MarAdminEventEchoSource>;
   bodyMapSiteByMedId?: Map<string, MarBodyMapSite>;
   timeZone?: string;
   visitAt?: Date;
 }): EmployeeAppBlisterPack[] {
-  const { packs, visitRound, allergyLower, eventByMed, bodyMapSiteByMedId, timeZone, visitAt } = input;
+  const {
+    packs,
+    visitRound,
+    visitWindow,
+    allergyLower,
+    eventByMed,
+    bodyMapSiteByMedId,
+    timeZone,
+    visitAt,
+  } = input;
 
   return packs
     .map((pack) => {
       const activeMembers = pack.members.filter((m) => m.serviceUserMedication);
-      const compartments = filterCompartmentsForVisitRound(pack.compartments, visitRound)
+      const compartments = filterCompartmentsForVisit(pack.compartments, visitRound, visitWindow)
         .map((compartment) => {
           const slotMembers = activeMembers.filter((member) => {
             if (
