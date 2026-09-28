@@ -1,10 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsISO8601,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { SurveyTargetKind } from '@prisma/client';
@@ -40,4 +42,10 @@ export class CreateSurveyDto {
   @IsOptional()
   @IsISO8601()
   closesAt?: string;
+
+  @ApiPropertyOptional({ description: 'Location (branch) IDs to scope the survey to', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  locationIds?: string[];
 }

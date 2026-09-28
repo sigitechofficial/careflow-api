@@ -51,6 +51,8 @@ export class SurveysService {
         isAnonymous: r.isAnonymous,
         opensAt: r.opensAt?.toISOString() ?? null,
         closesAt: r.closesAt?.toISOString() ?? null,
+        publishedAt: r.publishedAt?.toISOString() ?? null,
+        locationIds: r.locationIds,
         questionCount: r._count.questions,
         recipientCount: r._count.recipients,
         createdAt: r.createdAt.toISOString(),
@@ -87,6 +89,8 @@ export class SurveysService {
         isAnonymous: row.isAnonymous,
         opensAt: row.opensAt?.toISOString() ?? null,
         closesAt: row.closesAt?.toISOString() ?? null,
+        publishedAt: row.publishedAt?.toISOString() ?? null,
+        locationIds: row.locationIds,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         recipientCount,
@@ -114,6 +118,7 @@ export class SurveysService {
         isAnonymous: dto.isAnonymous ?? false,
         opensAt: dto.opensAt ? new Date(dto.opensAt) : null,
         closesAt: dto.closesAt ? new Date(dto.closesAt) : null,
+        locationIds: dto.locationIds ?? [],
         createdById: userId,
         updatedById: userId,
       },
@@ -146,6 +151,7 @@ export class SurveysService {
         opensAt: dto.opensAt === undefined ? undefined : dto.opensAt ? new Date(dto.opensAt) : null,
         closesAt:
           dto.closesAt === undefined ? undefined : dto.closesAt ? new Date(dto.closesAt) : null,
+        locationIds: dto.locationIds,
         updatedById: userId,
       },
     });
@@ -306,8 +312,12 @@ export class SurveysService {
 
     let employeeIds = dto.employeeIds ?? [];
     if (employeeIds.length === 0) {
+      const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
+      if (survey.locationIds.length > 0) {
+        empWhere.employment = { locationId: { in: survey.locationIds } };
+      }
       const employees = await this.prisma.employee.findMany({
-        where: { deletedAt: null },
+        where: empWhere,
         select: { id: true },
       });
       employeeIds = employees.map((e) => e.id);
@@ -341,7 +351,11 @@ export class SurveysService {
 
     const updated = await this.prisma.survey.update({
       where: { id: surveyId },
-      data: { status: SurveyStatus.ACTIVE, updatedById: userId },
+      data: {
+        status: SurveyStatus.ACTIVE,
+        publishedAt: survey.publishedAt ?? now,
+        updatedById: userId,
+      },
     });
 
     await this.audit.logAudit({

@@ -11479,6 +11479,8 @@ model Survey {
   isAnonymous Boolean          @default(false)
   opensAt     DateTime?
   closesAt    DateTime?
+  publishedAt DateTime?
+  locationIds String[]         @default([]) @db.Uuid
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
