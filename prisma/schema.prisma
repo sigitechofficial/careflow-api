@@ -529,6 +529,8 @@ model User {
   serviceUserAreasCreated            ServiceUserArea[]                 @relation("ServiceUserAreaCreatedBy")
   serviceUserAreasUpdated            ServiceUserArea[]                 @relation("ServiceUserAreaUpdatedBy")
   serviceUserAreasDeleted            ServiceUserArea[]                 @relation("ServiceUserAreaDeletedBy")
+  communicationNotesCreated          ServiceUserCommunicationNote[]    @relation("ServiceUserCommunicationNoteCreatedBy")
+  communicationNotesDeleted          ServiceUserCommunicationNote[]    @relation("ServiceUserCommunicationNoteDeletedBy")
   scheduleBatchesCreated             ScheduleBatch[]                   @relation("ScheduleBatchCreatedBy")
   scheduleBatchesUpdated             ScheduleBatch[]                   @relation("ScheduleBatchUpdatedBy")
   scheduleBatchesDeleted             ScheduleBatch[]                   @relation("ScheduleBatchDeletedBy")
@@ -2704,6 +2706,7 @@ model ServiceUser {
   reasonableAdjustments ServiceUserReasonableAdjustment[]
   medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
   medicalAlerts        ServiceUserMedicalAlert[]
+  communicationNotes   ServiceUserCommunicationNote[]
   monitoringConfigs ServiceUserMonitoringConfig[]
   usualParameters ServiceUserUsualParameter[]
   legalDocument   ServiceUserLegalDocument?
@@ -3950,6 +3953,34 @@ model ServiceUserMedicalAlert {
   @@index([category])
   @@index([severity])
   @@index([isActive])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserCommunicationNote {
+  id            String    @id @default(uuid()) @db.Uuid
+  serviceUserId String    @db.Uuid
+  name          String
+  position      String
+  reason        String
+  outcome       String
+  signature     String?
+  recordedAt    DateTime
+  isPrivate     Boolean   @default(false)
+  shareWith     Json      @default("[]")
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdById   String?   @db.Uuid
+  deletedById   String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+  createdBy   User?       @relation("ServiceUserCommunicationNoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedBy   User?       @relation("ServiceUserCommunicationNoteDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([recordedAt])
   @@index([deletedAt])
   @@schema("service_users")
 }
