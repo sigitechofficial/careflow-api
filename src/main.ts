@@ -14,6 +14,9 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useWebSocketAdapter(new IoAdapter(app));
+  // Containers get SIGTERM on restart / new revision: run Nest shutdown hooks (stop cron jobs,
+  // finish in-flight requests, disconnect Prisma) instead of being killed mid-request.
+  app.enableShutdownHooks();
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads
