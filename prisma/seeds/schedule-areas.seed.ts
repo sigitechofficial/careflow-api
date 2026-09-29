@@ -106,6 +106,60 @@ const SCHEDULE_AREAS: ScheduleAreaSeed[] = [
   },
 ];
 
+/** Sample branch Location labels (lookups.Location) — demo data only (see SEED_SAMPLE_BRANCHES). */
+export const SAMPLE_LOCATION_NAMES: readonly string[] = [
+  'Croydon - Croydon 1',
+  'Croydon - Croydon 2',
+  'Croydon - Croydon 3',
+  'Croydon - Croydon 4',
+  'Croydon - Croydon 5',
+  'Merton - Merton',
+  'Hackney - Harrow 1',
+  'Haringey - Haringey',
+  'Croydon Private - Croydon 1 Private',
+  'Croydon admin - Croydon office',
+  'Bexley ISF - Bexley',
+  'Cleaners - Cleaning 1',
+  'ALF Private - ALF Private',
+  'Greenwich council - Greenwich',
+  'Transport - Croydon Transport',
+];
+
+/** Generic UK city zones (lookups.Zone) — demo data only (see SEED_SAMPLE_BRANCHES). */
+export const SAMPLE_CITY_ZONES: ReadonlyArray<{ name: string; country: string; city: string }> = [
+  { name: 'London', country: 'United Kingdom', city: 'London' },
+  { name: 'Birmingham', country: 'United Kingdom', city: 'Birmingham' },
+  { name: 'Manchester', country: 'United Kingdom', city: 'Manchester' },
+  { name: 'Leeds', country: 'United Kingdom', city: 'Leeds' },
+  { name: 'Glasgow', country: 'United Kingdom', city: 'Glasgow' },
+  { name: 'Edinburgh', country: 'United Kingdom', city: 'Edinburgh' },
+  { name: 'Liverpool', country: 'United Kingdom', city: 'Liverpool' },
+  { name: 'Bristol', country: 'United Kingdom', city: 'Bristol' },
+  { name: 'Sheffield', country: 'United Kingdom', city: 'Sheffield' },
+  { name: 'Newcastle', country: 'United Kingdom', city: 'Newcastle' },
+  { name: 'Cardiff', country: 'United Kingdom', city: 'Cardiff' },
+  { name: 'Belfast', country: 'United Kingdom', city: 'Belfast' },
+];
+
+/** Legacy zone rows once seeded as location labels / borough names (soft-deactivated by seed.ts). */
+export const LEGACY_SAMPLE_ZONE_NAMES: readonly string[] = [
+  ...SAMPLE_LOCATION_NAMES,
+  'Croydon',
+  'Merton',
+  'Haringey',
+  'Bexley',
+  'Greenwich',
+  'Transport',
+  'Hackney',
+  'ALF Private',
+  'Cleaners',
+  'Croydon Private',
+  'Croydon admin',
+];
+
+/** ScheduleArea.code of every sample branch above. */
+export const SAMPLE_SCHEDULE_AREA_CODES: readonly string[] = SCHEDULE_AREAS.map((a) => a.code);
+
 export async function seedScheduleAreas(prisma: PrismaClient): Promise<void> {
   for (const item of SCHEDULE_AREAS) {
     let locationId: string | null = null;
