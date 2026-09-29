@@ -1,5 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IncidentPreventability, IncidentSeverity } from '@prisma/client';
+import {
+  IncidentExternalInvestigationType,
+  IncidentInvestigationScope,
+  IncidentPreventability,
+  IncidentSeverity,
+} from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -9,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { INCIDENT_CONTRIBUTING_FACTORS } from '../incident-review.constants';
 
@@ -56,6 +62,21 @@ export class UpsertIncidentReviewDto {
 }
 
 export class UpsertIncidentInvestigationDto {
+  @ApiPropertyOptional({ enum: IncidentInvestigationScope })
+  @IsOptional()
+  @IsEnum(IncidentInvestigationScope)
+  investigationScope?: IncidentInvestigationScope;
+
+  @ApiPropertyOptional({
+    enum: IncidentExternalInvestigationType,
+    description: 'Required when investigationScope is EXTERNAL; cleared when INTERNAL',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsEnum(IncidentExternalInvestigationType)
+  externalType?: IncidentExternalInvestigationType | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

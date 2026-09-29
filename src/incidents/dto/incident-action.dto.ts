@@ -8,6 +8,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateIncidentActionDto {
@@ -55,11 +56,11 @@ export class UpdateIncidentActionDto {
   @MaxLength(300)
   title?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(8000)
-  description?: string;
+  description?: string | null;
 
   @ApiPropertyOptional({ enum: IncidentActionPriority })
   @IsOptional()
@@ -71,15 +72,21 @@ export class UpdateIncidentActionDto {
   @IsEnum(IncidentActionStatus)
   status?: IncidentActionStatus;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Due date (ISO 8601). Null or empty clears the due date.',
+    nullable: true,
+  })
+  @ValidateIf((_, v) => v !== null && v !== undefined && v !== '')
   @IsISO8601()
-  dueDate?: string;
+  dueDate?: string | null;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Assigned employee id. Null or empty clears the assignee.',
+    nullable: true,
+  })
+  @ValidateIf((_, v) => v !== null && v !== undefined && v !== '')
   @IsUUID()
-  assignedEmployeeId?: string;
+  assignedEmployeeId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

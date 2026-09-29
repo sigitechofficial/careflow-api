@@ -9,7 +9,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { SurveyTargetKind } from '@prisma/client';
+import { SurveyRecurrence, SurveyTargetKind } from '@prisma/client';
 
 export class CreateSurveyDto {
   @ApiProperty({ maxLength: 200 })
@@ -42,6 +42,20 @@ export class CreateSurveyDto {
   @IsOptional()
   @IsISO8601()
   closesAt?: string;
+
+  @ApiPropertyOptional({ description: 'ISO date-time to auto-send the survey to employees' })
+  @IsOptional()
+  @IsISO8601()
+  distributeAt?: string;
+
+  @ApiPropertyOptional({
+    enum: SurveyRecurrence,
+    description:
+      'When set with distributeAt, each due run clones this survey and sends the clone (weekly/monthly/quarterly/yearly).',
+  })
+  @IsOptional()
+  @IsEnum(SurveyRecurrence)
+  recurrence?: SurveyRecurrence;
 
   @ApiPropertyOptional({ description: 'Location (branch) IDs to scope the survey to', type: [String] })
   @IsOptional()
