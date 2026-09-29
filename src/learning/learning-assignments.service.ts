@@ -118,8 +118,18 @@ export class LearningAssignmentsService {
     pathwayId?: string | null;
     parentAssignmentId?: string | null;
     refresherOfAssignmentId?: string | null;
+    sourceEntityType?: string | null;
+    sourceEntityId?: string | null;
+    allowInactiveEmployee?: boolean;
   }) {
-    await this.validateActiveEmployee(params.employeeId);
+    if (params.allowInactiveEmployee) {
+      const employee = await this.prisma.employee.findFirst({
+        where: { id: params.employeeId, deletedAt: null },
+      });
+      if (!employee) throw new NotFoundException('Employee not found');
+    } else {
+      await this.validateActiveEmployee(params.employeeId);
+    }
     const duplicate = await this.hasActiveAssignment(params.employeeId, params.courseId);
     if (duplicate) return { skipped: true as const, reason: 'duplicate_active_assignment' as const };
 
@@ -133,6 +143,8 @@ export class LearningAssignmentsService {
           pathwayId: params.pathwayId,
           parentAssignmentId: params.parentAssignmentId,
           refresherOfAssignmentId: params.refresherOfAssignmentId,
+          sourceEntityType: params.sourceEntityType ?? null,
+          sourceEntityId: params.sourceEntityId ?? null,
           assignedById: params.assignedById,
           dueAt: params.dueAt,
           isMandatory: params.isMandatory ?? true,
@@ -261,6 +273,74 @@ export class LearningAssignmentsService {
     const course = await this.prisma.learningCourse.findUnique({ where: { id: dto.courseId } });
     await this.notifications.notifyAssignmentCreated({
       employeeIds: [dto.employeeId],
+      assignmentId: result.assignment.id,
+      courseTitle: course?.title ?? 'Course',
+      dueAt,
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.LEARNING,
+      action: 'learning_assignment_created',
+      recordType: 'LearningAssignment',
+      recordId: result.assignment.id,
+      newValues: this.mapAssignment(result.assignment),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return this.mapAssignment(result.assignment);
+  }
+
+  /**
+   * Create an individual assignment linked to an external source (e.g. incident).
+   * Allows inactive employees so courses can be recommended after carer suspension.
+   */
+  async createFromSource(
+    userId: string,
+    params: {
+      employeeId: string;
+      courseId: string;
+      dueAt?: string | null;
+      isMandatory?: boolean;
+      assignmentReason?: string | null;
+      sourceEntityType: string;
+      sourceEntityId: string;
+      allowInactiveEmployee?: boolean;
+    },
+    meta?: RequestAuditMeta,
+  ) {
+    const versionId = await this.resolveCourseVersionId(params.courseId);
+    const settings = await this.settings.getOrCreate();
+    const dueAt = params.dueAt
+      ? new Date(params.dueAt)
+      : new Date(Date.now() + settings.defaultAssignmentDueDays * 86_400_000);
+
+    const result = await this.createAssignmentForEmployee({
+      employeeId: params.employeeId,
+      courseId: params.courseId,
+      courseVersionId: versionId,
+      assignedById: userId,
+      assignmentType: LearningAssignmentType.INDIVIDUAL,
+      dueAt,
+      isMandatory: params.isMandatory ?? true,
+      assignmentReason: params.assignmentReason,
+      sourceEntityType: params.sourceEntityType,
+      sourceEntityId: params.sourceEntityId,
+      allowInactiveEmployee: params.allowInactiveEmployee ?? true,
+    });
+
+    if (result.skipped) {
+      throw new BadRequestException(
+        'Employee already has an active assignment for this course',
+      );
+    }
+
+    const course = await this.prisma.learningCourse.findUnique({
+      where: { id: params.courseId },
+    });
+    await this.notifications.notifyAssignmentCreated({
+      employeeIds: [params.employeeId],
       assignmentId: result.assignment.id,
       courseTitle: course?.title ?? 'Course',
       dueAt,
