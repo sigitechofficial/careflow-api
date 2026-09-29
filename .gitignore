@@ -41,12 +41,13 @@ tmp/
 temp/
 
 # ─── Local file uploads (dev / runtime) ───────────────────────
-# Runtime-generated upload dirs — never commit these test/runtime artifacts.
-# (uploads/care-pathway/* holds intentional committed assets, so keep it tracked.)
-uploads/body-map/photos/
-uploads/employee-app-incidents/
-uploads/employee-app-observations/
-uploads/incidents/attachments/
+# Everything users upload (service-user documents, staff files, photos, incident
+# attachments, company logos …) is runtime data and must never be committed — in
+# production it lives only in Azure Files. Only the bundled reference images that
+# the seeds point at are tracked.
+uploads/*
+!uploads/care-pathway/
+!uploads/gallery-images/
 
 # ─── Local documentation (not pushed to git) ────────────────────
 Dcoumentation/
