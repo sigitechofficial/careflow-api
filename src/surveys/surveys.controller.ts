@@ -59,6 +59,20 @@ export class SurveysController {
     return this.service.results(id);
   }
 
+  @Get(':id/responses')
+  @AnyPermission('surveys.read', 'surveys.manage')
+  @ApiOperation({ summary: 'List submitted survey responses with answers' })
+  listResponses(@Param('id') id: string) {
+    return this.service.listResponses(id);
+  }
+
+  @Get(':id/recipients')
+  @AnyPermission('surveys.read', 'surveys.manage')
+  @ApiOperation({ summary: 'List survey recipients with share tokens' })
+  listRecipients(@Param('id') id: string) {
+    return this.service.listRecipients(id);
+  }
+
   @Post()
   @Permissions('surveys.manage')
   @ApiOperation({ summary: 'Create a survey' })
@@ -140,5 +154,16 @@ export class SurveysController {
     @Req() req: Request,
   ) {
     return this.service.send(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/publish')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Publish a survey and enable its shareable link' })
+  publish(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.publish(user.id, id, getRequestAuditMeta(req));
   }
 }

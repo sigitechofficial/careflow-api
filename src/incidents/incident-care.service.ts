@@ -392,6 +392,23 @@ export class IncidentCareService {
   ) {
     await this.loadIncident(user, incidentId);
     this.requirePermission(user, 'incidents.update');
+
+    if (dto.externalId) {
+      const duplicate = await this.prisma.incidentRelatedCareRecord.findFirst({
+        where: {
+          incidentId,
+          externalId: dto.externalId,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (duplicate) {
+        throw new BadRequestException(
+          'This care record is already linked to this incident',
+        );
+      }
+    }
+
     const record = await this.prisma.incidentRelatedCareRecord.create({
       data: {
         incidentId,

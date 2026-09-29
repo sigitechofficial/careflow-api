@@ -38,6 +38,8 @@ import {
   UpdateIncidentActionDto,
 } from './dto/incident-action.dto';
 import { UpsertIncidentOutcomeDto } from './dto/incident-outcome.dto';
+import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
+import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
 import { IncidentAnalyticsService } from './incident-analytics.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
 
@@ -183,6 +185,77 @@ export class IncidentsController {
       user,
       id,
       dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Post(':id/suspend-carer')
+  @Permissions('incidents.investigate')
+  @ApiOperation({
+    summary: 'Suspend a carer after investigation (deactivates employee)',
+  })
+  suspendCarer(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SuspendIncidentCarerDto,
+    @Req() req: Request,
+  ) {
+    return this.service.suspendCarer(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/carer-suspensions/:suspensionId/remove')
+  @Permissions('incidents.investigate')
+  @ApiOperation({
+    summary: 'Remove a carer suspension and reactivate when no other suspensions remain',
+  })
+  removeCarerSuspension(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('suspensionId') suspensionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.removeCarerSuspension(
+      user,
+      id,
+      suspensionId,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Post(':id/recommend-carer-course')
+  @Permissions('incidents.investigate')
+  @ApiOperation({
+    summary: 'Recommend a learning course for a carer after investigation',
+  })
+  recommendCarerCourse(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: RecommendIncidentCarerCourseDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recommendCarerCourse(
+      user,
+      id,
+      dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Post(':id/carer-course-recommendations/:recommendationId/remove')
+  @Permissions('incidents.investigate')
+  @ApiOperation({
+    summary: 'Remove a carer course recommendation and cancel its assignment',
+  })
+  removeCarerCourseRecommendation(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('recommendationId') recommendationId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.removeCarerCourseRecommendation(
+      user,
+      id,
+      recommendationId,
       getRequestAuditMeta(req),
     );
   }

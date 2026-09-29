@@ -10792,6 +10792,8 @@ model Incident {
   investigation   IncidentInvestigation?
   outcome         IncidentOutcome?
   actions         IncidentAction[]
+  carerSuspensions IncidentCarerSuspension[]
+  courseRecommendations IncidentCarerCourseRecommendation[]
   injuries        IncidentInjury[]
   witnesses       IncidentWitness[]
   attachments     IncidentAttachment[]
@@ -10858,6 +10860,23 @@ enum IncidentPreventability {
   @@schema("incidents")
 }
 
+/// Whether the investigation is handled internally or externally.
+enum IncidentInvestigationScope {
+  INTERNAL
+  EXTERNAL
+
+  @@schema("incidents")
+}
+
+/// When scope is EXTERNAL — who is leading / involved.
+enum IncidentExternalInvestigationType {
+  POLICE
+  AGENCY
+  COMBINED
+
+  @@schema("incidents")
+}
+
 /// Manager triage / review — one per incident (upserted). Captures the triage
 /// questions used to decide investigation, safeguarding and escalation routing.
 model IncidentReview {
@@ -10889,6 +10908,10 @@ model IncidentReview {
 model IncidentInvestigation {
   id                  String                  @id @default(uuid()) @db.Uuid
   incidentId          String                  @unique @db.Uuid
+  /// Internal vs external investigation.
+  investigationScope  IncidentInvestigationScope?
+  /// Required when investigationScope is EXTERNAL (Police / Agency / Combined).
+  externalType        IncidentExternalInvestigationType?
   whatHappened        String?                 @db.Text
   whyHappened         String?                 @db.Text
   contributingFactors String[]
@@ -10904,6 +10927,60 @@ model IncidentInvestigation {
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
+  @@schema("incidents")
+}
+
+/// One carer suspension recorded against an incident after investigation.
+model IncidentCarerSuspension {
+  id          String   @id @default(uuid()) @db.Uuid
+  incidentId  String   @db.Uuid
+  employeeId  String   @db.Uuid
+  reason      String   @db.Text
+  /// Inclusive suspension window (dates).
+  suspendFrom DateTime @db.Date
+  suspendTo   DateTime @db.Date
+  suspendedAt DateTime @default(now())
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, employeeId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Course recommended / assigned to a carer after an incident investigation.
+model IncidentCarerCourseRecommendation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  incidentId           String   @db.Uuid
+  employeeId           String   @db.Uuid
+  courseId             String   @db.Uuid
+  learningAssignmentId String?  @db.Uuid
+  reason               String?  @db.Text
+  dueAt                DateTime?
+  recommendedAt        DateTime @default(now())
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, employeeId, courseId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([courseId])
+  @@index([learningAssignmentId])
+  @@index([deletedAt])
   @@schema("incidents")
 }
 
@@ -11567,6 +11644,15 @@ enum SurveyRecipientStatus {
   @@schema("surveys")
 }
 
+enum SurveyRecurrence {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+
+  @@schema("surveys")
+}
+
 model Survey {
   id          String           @id @default(uuid()) @db.Uuid
   title       String
@@ -11576,6 +11662,18 @@ model Survey {
   isAnonymous Boolean          @default(false)
   opensAt     DateTime?
   closesAt    DateTime?
+  publishedAt DateTime?
+  locationIds String[]         @default([]) @db.Uuid
+  /// When to auto-send this survey to employees (scheduled distribution).
+  distributeAt DateTime?
+  /// When scheduled distribution actually ran (one-shot only).
+  distributedAt DateTime?
+  /// When set, each due run clones this survey and sends the clone.
+  recurrence  SurveyRecurrence?
+  /// Period instance created from a recurring template.
+  clonedFromId String?         @db.Uuid
+  /// Public shareable link token — one link for many respondents.
+  shareToken  String           @unique @default(uuid())
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
@@ -11583,12 +11681,16 @@ model Survey {
   updatedById String?          @db.Uuid
   deletedById String?          @db.Uuid
 
+  clonedFrom Survey?  @relation("SurveyClones", fields: [clonedFromId], references: [id], onDelete: SetNull)
+  clones     Survey[] @relation("SurveyClones")
   questions  SurveyQuestion[]
   recipients SurveyRecipient[]
 
   @@index([targetKind])
   @@index([status])
   @@index([deletedAt])
+  @@index([distributeAt])
+  @@index([clonedFromId])
   @@schema("surveys")
 }
 
