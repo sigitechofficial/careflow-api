@@ -145,6 +145,11 @@ class EnvironmentVariables {
   @IsString()
   MAIL_MODE?: string;
 
+  /** Admin site origin used for password reset links (`<base>/auth/reset-password?token=…`). */
+  @IsOptional()
+  @IsString()
+  PASSWORD_RESET_URL_BASE?: string;
+
   @IsOptional()
   @IsString()
   FIREBASE_SERVICE_ACCOUNT_PATH?: string;

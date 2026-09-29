@@ -591,9 +591,30 @@ model User {
   policyDocumentsApproved            PolicyDocument[]                 @relation("PolicyDocumentApprover")
   policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
   policyAcknowledgements             PolicyAcknowledgement[]
+  passwordResetTokens                PasswordResetToken[]
 
   @@index([email])
   @@index([deletedAt])
+  @@schema("identity")
+}
+
+/// Single-use password reset token (POST /auth/forgot-password → /auth/reset-password).
+/// Only the SHA-256 hash of the emailed token is stored.
+model PasswordResetToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  /// Set when consumed, or when superseded by a newer request / a completed reset.
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  requestedIp String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, usedAt])
+  @@index([expiresAt])
   @@schema("identity")
 }
 
