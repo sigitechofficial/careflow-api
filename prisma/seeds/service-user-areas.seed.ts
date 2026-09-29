@@ -293,7 +293,8 @@ export async function seedServiceUserAreas(prisma: PrismaClient): Promise<{
   postcodes: number;
 }> {
   const branches = await prisma.scheduleArea.findMany({
-    where: { deletedAt: null, isActive: true },
+    // Real CQC-registered branches never get demo areas / postcodes.
+    where: { deletedAt: null, isActive: true, cqcLocationId: null },
     select: {
       id: true,
       code: true,

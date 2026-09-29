@@ -5,17 +5,18 @@ import {
 } from '@prisma/client';
 
 /**
- * Allowed workflow transitions. The reporting → closure lifecycle plus the
- * pragmatic short-circuit paths for simple incidents and the reopen path.
- * Enforced in the service so statuses can never move arbitrarily.
+ * Allowed workflow transitions.
+ * Primary path: Raise (REPORTED) → Investigate → AWAITING_CLOSURE → CLOSED.
+ * Re-investigate returns to UNDER_INVESTIGATION from CLOSED / AWAITING_CLOSURE.
+ * Legacy statuses remain reachable for existing rows.
  */
 export const INCIDENT_STATUS_TRANSITIONS: Record<
   IncidentStatus,
   IncidentStatus[]
 > = {
   [IncidentStatus.REPORTED]: [
-    IncidentStatus.AWAITING_REVIEW,
     IncidentStatus.UNDER_INVESTIGATION,
+    IncidentStatus.AWAITING_REVIEW,
   ],
   [IncidentStatus.AWAITING_REVIEW]: [
     IncidentStatus.UNDER_INVESTIGATION,
@@ -23,8 +24,8 @@ export const INCIDENT_STATUS_TRANSITIONS: Record<
     IncidentStatus.AWAITING_CLOSURE,
   ],
   [IncidentStatus.UNDER_INVESTIGATION]: [
-    IncidentStatus.ACTIONS_REQUIRED,
     IncidentStatus.AWAITING_CLOSURE,
+    IncidentStatus.ACTIONS_REQUIRED,
   ],
   [IncidentStatus.ACTIONS_REQUIRED]: [
     IncidentStatus.UNDER_INVESTIGATION,
@@ -32,16 +33,36 @@ export const INCIDENT_STATUS_TRANSITIONS: Record<
   ],
   [IncidentStatus.AWAITING_CLOSURE]: [
     IncidentStatus.CLOSED,
-    IncidentStatus.ACTIONS_REQUIRED,
     IncidentStatus.UNDER_INVESTIGATION,
+    IncidentStatus.ACTIONS_REQUIRED,
   ],
-  [IncidentStatus.CLOSED]: [IncidentStatus.REOPENED],
+  [IncidentStatus.CLOSED]: [
+    IncidentStatus.UNDER_INVESTIGATION,
+    IncidentStatus.REOPENED,
+  ],
   [IncidentStatus.REOPENED]: [
     IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.ACTIONS_REQUIRED,
     IncidentStatus.AWAITING_CLOSURE,
+    IncidentStatus.ACTIONS_REQUIRED,
   ],
 };
+
+/** Statuses from which moving to UNDER_INVESTIGATION counts as re-investigate. */
+export const REINVESTIGATE_FROM_STATUSES: IncidentStatus[] = [
+  IncidentStatus.CLOSED,
+  IncidentStatus.AWAITING_CLOSURE,
+  IncidentStatus.REOPENED,
+];
+
+export function isReinvestigateTransition(
+  from: IncidentStatus,
+  to: IncidentStatus,
+): boolean {
+  return (
+    to === IncidentStatus.UNDER_INVESTIGATION &&
+    REINVESTIGATE_FROM_STATUSES.includes(from)
+  );
+}
 
 export function canTransitionIncidentStatus(
   from: IncidentStatus,
