@@ -41,11 +41,18 @@ import {
 } from './seed-data/service-user-ethnicity-language.defaults';
 import { DEFAULT_VISIT_STATUS_REASONS } from './seed-data/visit-status-reasons.defaults';
 import {
+  ensureHierarchyRoles,
   ensureSuperAdminAllPermissions,
   seedDemoOfficeUsers,
 } from './seeds/demo-office-users.seed';
 
 const prisma = new PrismaClient();
+
+// Sample people — demo staff, carers, service users, office logins, and demo records
+// attached to existing people — belong in dev/test databases only. Default OFF so any
+// database where nobody set the flag (e.g. Azure production) gets reference data only.
+// Environments that want the Greenwich roster / demo data set SEED_SAMPLE_PEOPLE=true.
+const seedSamplePeople = process.env.SEED_SAMPLE_PEOPLE === 'true';
 
 async function upsertLookup(model: any, name: string) {
   return model.upsert({
@@ -1549,26 +1556,42 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log('[seed] Compliance types & requirements upserted.');
+  // Super admin is create-only: an existing account (and its password) is never touched,
+  // so a deploy can't reset the live admin password. Production has no default password.
+  // Matched by email OR the fixed `superadmin` username, so an admin who later changes
+  // their email in the app is still recognised instead of a duplicate being attempted.
   const email = process.env.ADMIN_SEED_EMAIL?.trim() || 'admin@careadmin.local';
-  const password = process.env.ADMIN_SEED_PASSWORD?.trim() || 'Admin@12345';
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      passwordHash,
-      isActive: true,
-      deletedAt: null,
-    },
-    create: {
-      email,
-      username: 'superadmin',
-      passwordHash,
-      firstName: 'Super',
-      lastName: 'Admin',
-      isActive: true,
-    },
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ email }, { username: 'superadmin' }] },
   });
+  if (user) {
+    // eslint-disable-next-line no-console
+    console.log(`[seed] Super admin ${user.email} already exists — password left unchanged.`);
+  } else {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const password =
+      process.env.ADMIN_SEED_PASSWORD?.trim() || (isProduction ? '' : 'Admin@12345');
+    if (!password) {
+      throw new Error(
+        '[seed] ADMIN_SEED_PASSWORD is required to create the first super admin in production (there is no default password).',
+      );
+    }
+    if (isProduction && password.length < 12) {
+      throw new Error('[seed] ADMIN_SEED_PASSWORD must be at least 12 characters in production.');
+    }
+    user = await prisma.user.create({
+      data: {
+        email,
+        username: 'superadmin',
+        passwordHash: await bcrypt.hash(password, 12),
+        firstName: 'Super',
+        lastName: 'Admin',
+        isActive: true,
+      },
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[seed] Super admin ${email} created.`);
+  }
 
   if (superAdminRole) {
     await prisma.userRole.upsert({
@@ -1863,7 +1886,10 @@ async function main() {
     take: 15,
     orderBy: { createdAt: 'asc' },
   });
-  if (skillTypes.length > 0 && employeesForSkills.length > 0) {
+  if (!seedSamplePeople) {
+    // eslint-disable-next-line no-console
+    console.log('[seed] Employee skills: skipped (SEED_SAMPLE_PEOPLE is not true).');
+  } else if (skillTypes.length > 0 && employeesForSkills.length > 0) {
     let seeded = 0;
     for (let i = 0; i < employeesForSkills.length; i++) {
       const emp = employeesForSkills[i];
@@ -2206,7 +2232,11 @@ async function main() {
     }
   }
 
-  const demoSu = await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
+  // Demo calendar events + blister pack are attached to the first service user, which on a
+  // real database is a real person — sample-people databases only.
+  const demoSu = seedSamplePeople
+    ? await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } })
+    : null;
   if (demoSu) {
     const birthdayType = await prisma.calendarEventType.findFirst({ where: { code: 'BIRTHDAY' } });
     const careReviewType = await prisma.calendarEventType.findFirst({ where: { code: 'CARE_REVIEW' } });
@@ -2335,24 +2365,27 @@ async function main() {
     );
   }
 
-  // Greenwich staff + in-service caseload. Always-on and idempotent so production
-  // deploy (`SEED_DEMO_DATA=false`) still creates the branch roster. Location is
+  // Greenwich staff + in-service caseload (sample people). Idempotent; location is
   // resolved by name — server UUIDs will not match local.
-  try {
-    await seedGreenwichBranchUsers(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich branch users skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
-  }
-  try {
-    await seedGreenwichServiceUsers(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich service users skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSamplePeople) {
+    try {
+      await seedGreenwichBranchUsers(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich branch users skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+    try {
+      await seedGreenwichServiceUsers(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich service users skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  } else {
+    console.log('[seed] Greenwich staff/service users: skipped (SEED_SAMPLE_PEOPLE is not true).');
   }
 
   await seedServiceUserObservations(prisma);
@@ -2361,13 +2394,15 @@ async function main() {
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
-  try {
-    await seedGreenwichManagerAttention(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich manager attention skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSamplePeople) {
+    try {
+      await seedGreenwichManagerAttention(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich manager attention skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
   await seedTaskCatalogue(prisma);
   try {
@@ -2383,9 +2418,11 @@ async function main() {
   // body-map data, so it must NEVER run against production — otherwise a deploy that runs
   // `prisma db seed` would inject demo data into the live DB. Default OFF on production:
   // an explicit SEED_DEMO_DATA flag wins; otherwise demo seeds everywhere EXCEPT production.
+  // Demo service users are sample people, so SEED_SAMPLE_PEOPLE=true is required as well.
   const seedDemoData =
-    process.env.SEED_DEMO_DATA === 'true' ||
-    (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production');
+    seedSamplePeople &&
+    (process.env.SEED_DEMO_DATA === 'true' ||
+      (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production'));
 
   if (seedDemoData) {
     // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
@@ -2434,7 +2471,7 @@ async function main() {
     }
   } else {
     console.log(
-      '[seed] Demo seeding disabled (SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
+      '[seed] Demo seeding disabled (SEED_SAMPLE_PEOPLE!=true, SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
     );
   }
 
@@ -2690,9 +2727,13 @@ async function main() {
     });
   }
 
-  // Platform Super Admin = every permission; plus demo users for each hierarchy role.
+  // Hierarchy roles are reference data (always); Platform Super Admin = every permission.
+  // The demo office logins for each hierarchy role are sample people.
+  await ensureHierarchyRoles(prisma);
   await ensureSuperAdminAllPermissions(prisma);
-  await seedDemoOfficeUsers(prisma);
+  if (seedSamplePeople) {
+    await seedDemoOfficeUsers(prisma);
+  }
 
   const policyCategories: Array<{ name: string; code: string; displayOrder: number }> = [
     { name: 'Safeguarding', code: 'SAFEGUARDING', displayOrder: 10 },
