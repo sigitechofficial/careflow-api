@@ -8,6 +8,7 @@ import { openfdaConfig } from './config/openfda.config';
 import { mailConfig } from './config/mail.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { OrgScopeModule } from './common/org-scope/org-scope.module';
 import { AuthModule } from './auth/auth.module';
@@ -146,6 +147,7 @@ import { PoliciesModule } from './policies/policies.module';
       }),
     }),
     PrismaModule,
+    HealthModule,
     MailModule,
     OrgScopeModule,
     AuthModule,
