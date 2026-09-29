@@ -71,6 +71,13 @@ const seedSampleBranches =
   process.env.SEED_SAMPLE_BRANCHES === 'true' ||
   (process.env.SEED_SAMPLE_BRANCHES !== 'false' && seedSamplePeople);
 
+// Sample pay / charge rate cards (PAY-*-2026, CHG-*-2026) use made-up demo rates. They follow
+// SEED_SAMPLE_PEOPLE by default; SEED_SAMPLE_BILLING_CARDS=true|false overrides. Azure production
+// forces this off — real rate cards are set up by the office in Billing.
+const seedSampleBillingCards =
+  process.env.SEED_SAMPLE_BILLING_CARDS === 'true' ||
+  (process.env.SEED_SAMPLE_BILLING_CARDS !== 'false' && seedSamplePeople);
+
 async function upsertLookup(model: any, name: string) {
   return model.upsert({
     where: { name },
@@ -1650,7 +1657,11 @@ async function main() {
   }
 
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
-  await seedBillingCards(prisma);
+  if (seedSampleBillingCards) {
+    await seedBillingCards(prisma);
+  } else {
+    console.log('[seed] Sample pay/charge rate cards: skipped (SEED_SAMPLE_BILLING_CARDS is not true).');
+  }
   await seedInvoiceTemplates(prisma);
   await seedLearningCatalog(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
