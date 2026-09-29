@@ -23,10 +23,9 @@ export function getPublicOrigin(req: Request): string {
 }
 
 export function getRequestAuditMeta(req: Request): RequestAuditMeta {
-  const forwarded = req.headers['x-forwarded-for'];
-  const fromForwarded =
-    typeof forwarded === 'string' ? forwarded.split(',')[0]?.trim() : Array.isArray(forwarded) ? forwarded[0] : undefined;
-  const ip = fromForwarded ?? req.ip ?? req.socket?.remoteAddress ?? null;
+  // Use Express' `req.ip` (same value the rate limiter keys on). It honours X-Forwarded-For only
+  // for the proxy hops configured via TRUST_PROXY_HOPS, so a client-supplied header can't spoof it.
+  const ip = req.ip ?? req.socket?.remoteAddress ?? null;
   const ua = req.headers['user-agent'];
   return {
     ipAddress: ip,

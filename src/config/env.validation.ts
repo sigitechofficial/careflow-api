@@ -93,6 +93,12 @@ class EnvironmentVariables {
   @Min(1000)
   HTTP_REQUEST_TIMEOUT_MS?: number;
 
+  /** Reverse-proxy hops in front of the API to trust for X-Forwarded-For (0 = none; Azure Container Apps = 1). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  TRUST_PROXY_HOPS?: number;
+
   @IsOptional()
   @IsString()
   OPENDFDA_API_KEY?: string;
