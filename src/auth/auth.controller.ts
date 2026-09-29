@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -59,13 +59,15 @@ export class AuthController {
 
   @Post('forgot-password')
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 15 * 60_000 } })
   forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
     return this.authService.forgotPassword(dto, req);
   }
 
   @Post('reset-password')
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 15, ttl: 60_000 } })
   resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     return this.authService.resetPassword(dto, req);
