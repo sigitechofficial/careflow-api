@@ -17,10 +17,11 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { NotificationsService } from './notifications.service';
+import { corsOrigin } from '../config/cors-origins.util';
 
 @WebSocketGateway({
   namespace: '/notifications',
-  cors: { origin: true, credentials: true },
+  cors: { origin: corsOrigin(), credentials: true },
 })
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(NotificationsGateway.name);

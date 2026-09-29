@@ -149,6 +149,16 @@ class EnvironmentVariables {
   @IsString()
   FIREBASE_SERVICE_ACCOUNT_PATH?: string;
 
+  /** Comma-separated browser origins allowed by CORS (HTTP + Socket.io). */
+  @IsOptional()
+  @IsString()
+  ALLOWED_ORIGINS?: string;
+
+  /** `true` / `false` to force Swagger UI on/off (default: off in production). */
+  @IsOptional()
+  @IsString()
+  SWAGGER_ENABLED?: string;
+
 }
 
 export function validateEnv(config: Record<string, unknown>) {

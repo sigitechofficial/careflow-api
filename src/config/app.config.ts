@@ -16,6 +16,10 @@ export const appConfig = registerAs('app', () => ({
   swaggerDescription: process.env.SWAGGER_DESCRIPTION ?? 'CareAdmin backend API',
   swaggerVersion: process.env.SWAGGER_VERSION ?? '1.0.0',
   swaggerPath: process.env.SWAGGER_PATH ?? 'api/docs',
+  /** Serve Swagger UI; defaults to off in production, on elsewhere. SWAGGER_ENABLED overrides. */
+  swaggerEnabled: process.env.SWAGGER_ENABLED
+    ? process.env.SWAGGER_ENABLED === 'true'
+    : (process.env.NODE_ENV ?? 'development') !== 'production',
   uploadMaxFileSizeBytes: (() => {
     const fromMb = Number(process.env.MAX_UPLOAD_FILE_SIZE_MB ?? 10) * 1024 * 1024;
     const explicit = Number(process.env.UPLOAD_MAX_FILE_SIZE_BYTES ?? 0);
