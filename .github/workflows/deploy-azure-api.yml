@@ -1,0 +1,125 @@
+name: Deploy API to Azure
+
+# Every merge into `azure` (or a manual run): build both images, test them end to end
+# against a throwaway Postgres, and only then push, migrate and roll out.
+# Signs in with OIDC (managed identity id-careflow-github-deploy) — no stored credentials.
+on:
+  push:
+    branches: [azure]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-azure-api
+  cancel-in-progress: false
+
+env:
+  RG: rg-careflow-prod
+  ACR: acrcareflowprod.azurecr.io
+  APP: allforcare-api
+  JOB: job-careflow-migrate
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image tag = short commit
+        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          load: true
+          tags: ${{ env.ACR }}/careflow-migrate:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: api
+          load: true
+          tags: ${{ env.ACR }}/careflow-api:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (throwaway Postgres — nothing in production is touched)
+        run: |
+          set -euo pipefail
+          MIG=$ACR/careflow-migrate:$TAG; API=$ACR/careflow-api:$TAG
+          DB_URL='postgresql://postgres:smoke@db:5432/careflow?schema=public'
+          docker network create smoke
+          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=careflow postgres:16-alpine
+          for i in $(seq 1 30); do docker exec db pg_isready -U postgres -d careflow && break; sleep 2; done
+
+          echo "::group::migrations + reference seeds"
+          docker run --rm --network smoke -e DATABASE_URL="$DB_URL" \
+            -e ADMIN_SEED_EMAIL=smoke-admin@example.test -e ADMIN_SEED_PASSWORD=smoke-test-password-123 "$MIG"
+          echo "::endgroup::"
+          q() { docker exec db psql -U postgres -d careflow -At -c "$1"; }
+          users=$(q 'select count(*) from identity."User"'); emps=$(q 'select count(*) from employees."Employee"'); sus=$(q 'select count(*) from service_users."ServiceUser"')
+          echo "users=$users employees=$emps service_users=$sus"
+          [ "$users" = 1 ] && [ "$emps" = 0 ] && [ "$sus" = 0 ] || { echo "::error::seeding created unexpected people"; exit 1; }
+
+          docker run -d --name api --network smoke -p 3000:3000 -e DATABASE_URL="$DB_URL" \
+            -e JWT_ACCESS_TOKEN_SECRET=smoke -e JWT_REFRESH_TOKEN_SECRET=smoke \
+            -e FIELD_ENCRYPTION_KEY=c21va2UtdGVzdC1rZXktMzItYnl0ZXMtbG9uZyEhISE= -e MAIL_MODE=log "$API"
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:3000/health/ready; echo
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/health/live)" = 200 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/docs)" = 404 ] || { echo "::error::Swagger is exposed in production mode"; exit 1; }
+
+          docker run --rm -w /app "$API" node -e "require('./dist/src/common/utils/html-to-pdf.util').renderHtmlToPdfBuffer('<p>Zoë Łukasz مرحبا</p>').then(b => { if (b.subarray(0,5).toString() !== '%PDF-') throw new Error('not a PDF'); console.log('PDF ok: ' + b.length + ' bytes'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
+
+      - name: Smoke test logs (on failure)
+        if: failure()
+        run: docker logs api 2>&1 | tail -80 || true
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push images to ACR
+        run: |
+          az acr login --name "${ACR%%.*}"
+          docker push "$ACR/careflow-migrate:$TAG"
+          docker push "$ACR/careflow-api:$TAG"
+
+      - name: Run database migrations (Container Apps Job)
+        run: |
+          set -euo pipefail
+          az containerapp job update -g "$RG" -n "$JOB" --image "$ACR/careflow-migrate:$TAG" -o none
+          EXE=$(az containerapp job start -g "$RG" -n "$JOB" --query name -o tsv)
+          echo "execution: $EXE"
+          for i in $(seq 1 80); do
+            st=$(az containerapp job execution show -g "$RG" -n "$JOB" --job-execution-name "$EXE" --query properties.status -o tsv)
+            case "$st" in Succeeded) echo "migrations: Succeeded"; exit 0;; Failed|Stopped|Degraded) echo "::error::migration job $EXE ended $st — API not updated"; exit 1;; esac
+            sleep 15
+          done
+          echo "::error::migration job $EXE timed out"; exit 1
+
+      - name: Roll out new API revision
+        run: |
+          set -euo pipefail
+          az containerapp update -g "$RG" -n "$APP" --image "$ACR/careflow-api:$TAG" -o none
+          FQDN=$(az containerapp show -g "$RG" -n "$APP" --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 60); do
+            live=$(az containerapp revision list -g "$RG" -n "$APP" --query "[?properties.trafficWeight==\`100\` && properties.healthState=='Healthy'].properties.template.containers[0].image | [0]" -o tsv)
+            [ "$live" = "$ACR/careflow-api:$TAG" ] && break; sleep 10
+          done
+          [ "$live" = "$ACR/careflow-api:$TAG" ] || { echo "::error::new revision did not become healthy; previous revision keeps serving"; exit 1; }
+          curl -fsS --retry 10 --retry-delay 3 "https://$FQDN/health/ready"; echo
+          echo "### ✅ API $TAG live at https://$FQDN" >> "$GITHUB_STEP_SUMMARY"
