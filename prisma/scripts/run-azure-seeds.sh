@@ -19,11 +19,16 @@ if [ "${SEED_SAMPLE_BRANCHES:-}" = "true" ]; then
   echo "Refusing to run: SEED_SAMPLE_BRANCHES=true is not allowed for Azure production seeding." >&2
   exit 1
 fi
+if [ "${SEED_SAMPLE_BILLING_CARDS:-}" = "true" ]; then
+  echo "Refusing to run: SEED_SAMPLE_BILLING_CARDS=true is not allowed for Azure production seeding." >&2
+  exit 1
+fi
 export SEED_SAMPLE_PEOPLE=false
 export SEED_SAMPLE_BRANCHES=false
+export SEED_SAMPLE_BILLING_CARDS=false
 export SEED_DEMO_DATA=false
 
-echo ">>> [azure-seed 1/3] prisma db seed (reference data + real branches; sample people/branches disabled)"
+echo ">>> [azure-seed 1/3] prisma db seed (reference data + real branches; sample people/branches/rate cards disabled)"
 npx prisma db seed
 
 echo ">>> [azure-seed 2/3] immigration status catalog (employee visa types + hour caps)"

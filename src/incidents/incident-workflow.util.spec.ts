@@ -3,49 +3,62 @@ import {
   canTransitionIncidentStatus,
   formatIncidentReference,
   INCIDENT_PRIVACY_RANK,
+  isReinvestigateTransition,
   OPEN_INCIDENT_STATUSES,
 } from './incident-workflow.util';
 
 describe('incident workflow util', () => {
   describe('canTransitionIncidentStatus', () => {
-    it('allows the standard reporting → review path', () => {
+    it('allows Raise → Investigate as the primary path', () => {
       expect(
         canTransitionIncidentStatus(
           IncidentStatus.REPORTED,
-          IncidentStatus.AWAITING_REVIEW,
+          IncidentStatus.UNDER_INVESTIGATION,
         ),
       ).toBe(true);
     });
 
-    it('allows the short-circuit review → awaiting closure path for simple incidents', () => {
+    it('allows Investigate → Awaiting Closure', () => {
       expect(
         canTransitionIncidentStatus(
-          IncidentStatus.AWAITING_REVIEW,
+          IncidentStatus.UNDER_INVESTIGATION,
           IncidentStatus.AWAITING_CLOSURE,
         ),
       ).toBe(true);
     });
 
-    it('rejects skipping straight from awaiting review to closed', () => {
+    it('allows Awaiting Closure → Closed', () => {
       expect(
         canTransitionIncidentStatus(
-          IncidentStatus.AWAITING_REVIEW,
+          IncidentStatus.AWAITING_CLOSURE,
           IncidentStatus.CLOSED,
-        ),
-      ).toBe(false);
-    });
-
-    it('only permits closed → reopened', () => {
-      expect(
-        canTransitionIncidentStatus(
-          IncidentStatus.CLOSED,
-          IncidentStatus.REOPENED,
         ),
       ).toBe(true);
+    });
+
+    it('allows Closed → Under Investigation for re-investigate', () => {
       expect(
         canTransitionIncidentStatus(
           IncidentStatus.CLOSED,
           IncidentStatus.UNDER_INVESTIGATION,
+        ),
+      ).toBe(true);
+    });
+
+    it('allows Awaiting Closure → Under Investigation for re-investigate', () => {
+      expect(
+        canTransitionIncidentStatus(
+          IncidentStatus.AWAITING_CLOSURE,
+          IncidentStatus.UNDER_INVESTIGATION,
+        ),
+      ).toBe(true);
+    });
+
+    it('rejects skipping straight from reported to closed', () => {
+      expect(
+        canTransitionIncidentStatus(
+          IncidentStatus.REPORTED,
+          IncidentStatus.CLOSED,
         ),
       ).toBe(false);
     });
@@ -55,6 +68,38 @@ describe('incident workflow util', () => {
         canTransitionIncidentStatus(
           IncidentStatus.REPORTED,
           IncidentStatus.REPORTED,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('isReinvestigateTransition', () => {
+    it('detects re-investigate from closed / awaiting closure / reopened', () => {
+      expect(
+        isReinvestigateTransition(
+          IncidentStatus.CLOSED,
+          IncidentStatus.UNDER_INVESTIGATION,
+        ),
+      ).toBe(true);
+      expect(
+        isReinvestigateTransition(
+          IncidentStatus.AWAITING_CLOSURE,
+          IncidentStatus.UNDER_INVESTIGATION,
+        ),
+      ).toBe(true);
+      expect(
+        isReinvestigateTransition(
+          IncidentStatus.REOPENED,
+          IncidentStatus.UNDER_INVESTIGATION,
+        ),
+      ).toBe(true);
+    });
+
+    it('does not treat Raise → Investigate as re-investigate', () => {
+      expect(
+        isReinvestigateTransition(
+          IncidentStatus.REPORTED,
+          IncidentStatus.UNDER_INVESTIGATION,
         ),
       ).toBe(false);
     });

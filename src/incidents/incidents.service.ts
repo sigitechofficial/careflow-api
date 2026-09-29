@@ -14,7 +14,9 @@ import {
   BodyMapSide,
   IncidentActionStatus,
   IncidentAttachmentCategory,
+  IncidentExternalInvestigationType,
   IncidentInjurySeverity,
+  IncidentInvestigationScope,
   IncidentPersonKind,
   IncidentPrivacyLevel,
   IncidentSeverity,
@@ -55,6 +57,10 @@ import {
   UpdateIncidentActionDto,
 } from './dto/incident-action.dto';
 import { UpsertIncidentOutcomeDto } from './dto/incident-outcome.dto';
+import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
+import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
+import { EmployeesService } from '../employees/employees.service';
+import { LearningAssignmentsService } from '../learning/learning-assignments.service';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
 import {
   INCIDENT_PRIVACY_RANK,
@@ -62,6 +68,7 @@ import {
   INCIDENT_STATUS_LABELS,
   OPEN_INCIDENT_STATUSES,
   canTransitionIncidentStatus,
+  isReinvestigateTransition,
   formatIncidentReference,
 } from './incident-workflow.util';
 
@@ -82,6 +89,8 @@ export class IncidentsService {
     private readonly notifications: NotificationsService,
     private readonly orgScope: OrgScopeService,
     private readonly bodyMap: BodyMapService,
+    private readonly employees: EmployeesService,
+    private readonly learningAssignments: LearningAssignmentsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -873,6 +882,14 @@ export class IncidentsService {
         investigation: true,
         outcome: true,
         actions: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } },
+        carerSuspensions: {
+          where: { deletedAt: null },
+          orderBy: { suspendedAt: 'asc' },
+        },
+        courseRecommendations: {
+          where: { deletedAt: null },
+          orderBy: { recommendedAt: 'asc' },
+        },
         injuries: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } },
         witnesses: {
           where: { deletedAt: null },
@@ -897,11 +914,17 @@ export class IncidentsService {
     return {
       data: {
         ...this.mapIncident(incident),
-        history: this.buildTimeline(incident),
+        history: await this.enrichTimelineWithActors(this.buildTimeline(incident)),
         review: incident.review ?? null,
         investigation: incident.investigation ?? null,
         outcome: incident.outcome ?? null,
         actions: incident.actions.map((a) => this.mapAction(a)),
+        carerSuspensions: incident.carerSuspensions.map((s) =>
+          this.mapCarerSuspension(s),
+        ),
+        courseRecommendations: await this.mapCourseRecommendations(
+          incident.courseRecommendations,
+        ),
         injuries: incident.injuries,
         witnesses: incident.witnesses,
         relatedCareRecords: incident.relatedCareRecords,
@@ -927,15 +950,21 @@ export class IncidentsService {
         `Cannot move incident from ${INCIDENT_STATUS_LABELS[incident.status]} to ${INCIDENT_STATUS_LABELS[dto.status]}`,
       );
     }
-    if (dto.status === IncidentStatus.REOPENED) {
+    const reinvestigate = isReinvestigateTransition(incident.status, dto.status);
+
+    if (dto.status === IncidentStatus.REOPENED || reinvestigate) {
       if (!this.can(user, 'incidents.reopen')) {
         throw new ForbiddenException(
-          'You do not have permission to reopen incidents',
+          reinvestigate
+            ? 'You do not have permission to submit an incident for re-investigation'
+            : 'You do not have permission to reopen incidents',
         );
       }
       if (!dto.reason?.trim()) {
         throw new BadRequestException(
-          'A reason is required to reopen an incident',
+          reinvestigate
+            ? 'A reason is required to submit an incident for re-investigation'
+            : 'A reason is required to reopen an incident',
         );
       }
     }
@@ -961,6 +990,9 @@ export class IncidentsService {
     }
 
     const isClosing = dto.status === IncidentStatus.CLOSED;
+    const isLeavingClosed =
+      incident.status === IncidentStatus.CLOSED &&
+      dto.status !== IncidentStatus.CLOSED;
     const updated = await this.prisma.$transaction(async (tx) => {
       const next = await tx.incident.update({
         where: { id },
@@ -968,6 +1000,7 @@ export class IncidentsService {
           status: dto.status,
           updatedById: user.id,
           ...(isClosing ? { closedAt: new Date(), closedById: user.id } : {}),
+          ...(isLeavingClosed ? { closedAt: null, closedById: null } : {}),
         },
         include: { category: true, subtype: true },
       });
@@ -985,14 +1018,16 @@ export class IncidentsService {
         userId: user.id,
         module: AuditModule.INCIDENT,
         action:
-          dto.status === IncidentStatus.REOPENED
+          dto.status === IncidentStatus.REOPENED || reinvestigate
             ? AuditAction.INCIDENT_REOPENED
             : dto.status === IncidentStatus.CLOSED
               ? AuditAction.INCIDENT_CLOSED
               : AuditAction.INCIDENT_STATUS_CHANGED,
         recordType: 'Incident',
         recordId: id,
-        description: `Status ${incident.status} → ${dto.status}`,
+        description: reinvestigate
+          ? `Submitted for re-investigation: ${incident.status} → ${dto.status}`
+          : `Status ${incident.status} → ${dto.status}`,
         oldValues: { status: incident.status },
         newValues: { status: dto.status, reason: dto.reason ?? null },
         ipAddress: meta?.ipAddress,
@@ -1158,7 +1193,35 @@ export class IncidentsService {
     const existing = await this.prisma.incidentInvestigation.findUnique({
       where: { incidentId: id },
     });
+
+    const nextScope =
+      dto.investigationScope !== undefined
+        ? dto.investigationScope
+        : (existing?.investigationScope ?? null);
+
+    let nextExternalType: IncidentExternalInvestigationType | null;
+    if (dto.investigationScope === IncidentInvestigationScope.INTERNAL) {
+      nextExternalType = null;
+    } else if (dto.externalType !== undefined) {
+      nextExternalType = dto.externalType;
+    } else if (dto.investigationScope === IncidentInvestigationScope.EXTERNAL) {
+      nextExternalType = existing?.externalType ?? null;
+    } else {
+      nextExternalType = existing?.externalType ?? null;
+    }
+
+    if (nextScope === IncidentInvestigationScope.EXTERNAL && !nextExternalType) {
+      throw new BadRequestException(
+        'Select an external investigation type (Police, Agency, or Combined)',
+      );
+    }
+    if (nextScope === IncidentInvestigationScope.INTERNAL) {
+      nextExternalType = null;
+    }
+
     const data = {
+      investigationScope: nextScope,
+      externalType: nextExternalType,
       whatHappened: dto.whatHappened?.trim() || null,
       whyHappened: dto.whyHappened?.trim() || null,
       contributingFactors: dto.contributingFactors ?? [],
@@ -1192,6 +1255,452 @@ export class IncidentsService {
       userAgent: meta?.userAgent,
     });
     return { message: 'Investigation saved', data: investigation };
+  }
+
+  /**
+   * Suspend a carer as a post-investigation decision.
+   * Deactivates the employee (unallocates future rota) and records the decision.
+   * Multiple carers can be suspended on the same incident.
+   */
+  async suspendCarer(
+    user: RequestUser,
+    id: string,
+    dto: SuspendIncidentCarerDto,
+    meta?: RequestAuditMeta,
+  ) {
+    if (!this.can(user, 'incidents.investigate')) {
+      throw new ForbiddenException(
+        'You do not have permission to suspend a carer from an investigation',
+      );
+    }
+    const incident = await this.loadForManage(user, id);
+    const employeeId = dto.employeeId ?? incident.primaryEmployeeId;
+    if (!employeeId) {
+      throw new BadRequestException(
+        'Select a carer to suspend (no primary employee on this incident)',
+      );
+    }
+    await this.assertEmployeeExists(employeeId);
+    await this.orgScope.assertEmployeeInScope(
+      this.orgScope.fromRequestUser(user),
+      employeeId,
+    );
+
+    const existingRow = await this.prisma.incidentCarerSuspension.findFirst({
+      where: { incidentId: id, employeeId },
+    });
+    if (existingRow && !existingRow.deletedAt) {
+      throw new BadRequestException(
+        'This carer has already been suspended for this incident',
+      );
+    }
+
+    const reason = dto.reason.trim();
+    const suspendFrom = this.parseDateOnly(dto.suspendFrom);
+    const suspendTo = this.parseDateOnly(dto.suspendTo);
+    if (suspendTo.getTime() < suspendFrom.getTime()) {
+      throw new BadRequestException(
+        'Suspension end date must be on or after the start date',
+      );
+    }
+
+    await this.employees.update(
+      user.id,
+      employeeId,
+      { isActive: false },
+      meta,
+    );
+
+    const inactiveStatus = await this.prisma.employeeStatus.findFirst({
+      where: { deletedAt: null, name: { equals: 'Inactive', mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (inactiveStatus) {
+      await this.employees.updateStatus(
+        user.id,
+        employeeId,
+        { statusId: inactiveStatus.id },
+        meta,
+      );
+    }
+
+    // Ensure an investigation row exists so the workflow step has somewhere to hang.
+    await this.prisma.incidentInvestigation.upsert({
+      where: { incidentId: id },
+      create: {
+        incidentId: id,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+      update: { updatedById: user.id },
+    });
+
+    const now = new Date();
+    const suspension = existingRow
+      ? await this.prisma.incidentCarerSuspension.update({
+          where: { id: existingRow.id },
+          data: {
+            reason,
+            suspendFrom,
+            suspendTo,
+            suspendedAt: now,
+            deletedAt: null,
+            updatedById: user.id,
+          },
+        })
+      : await this.prisma.incidentCarerSuspension.create({
+          data: {
+            incidentId: id,
+            employeeId,
+            reason,
+            suspendFrom,
+            suspendTo,
+            suspendedAt: now,
+            createdById: user.id,
+            updatedById: user.id,
+          },
+        });
+
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentCarerSuspension',
+      recordId: suspension.id,
+      description: `Carer suspended after investigation`,
+      newValues: {
+        employeeId,
+        reason,
+        suspendFrom: suspendFrom.toISOString().slice(0, 10),
+        suspendTo: suspendTo.toISOString().slice(0, 10),
+      },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return {
+      message: 'Carer suspended',
+      data: this.mapCarerSuspension(suspension),
+    };
+  }
+
+  /**
+   * Remove a carer suspension from this incident and reactivate the employee
+   * when they have no other active incident suspensions.
+   */
+  async removeCarerSuspension(
+    user: RequestUser,
+    id: string,
+    suspensionId: string,
+    meta?: RequestAuditMeta,
+  ) {
+    if (!this.can(user, 'incidents.investigate')) {
+      throw new ForbiddenException(
+        'You do not have permission to remove a carer suspension',
+      );
+    }
+    await this.loadForManage(user, id);
+
+    const suspension = await this.prisma.incidentCarerSuspension.findFirst({
+      where: { id: suspensionId, incidentId: id, deletedAt: null },
+    });
+    if (!suspension) {
+      throw new NotFoundException('Carer suspension not found');
+    }
+
+    await this.prisma.incidentCarerSuspension.update({
+      where: { id: suspension.id },
+      data: { deletedAt: new Date(), updatedById: user.id },
+    });
+
+    const otherActive = await this.prisma.incidentCarerSuspension.count({
+      where: {
+        employeeId: suspension.employeeId,
+        deletedAt: null,
+        id: { not: suspension.id },
+      },
+    });
+
+    if (otherActive === 0) {
+      await this.employees.update(
+        user.id,
+        suspension.employeeId,
+        { isActive: true },
+        meta,
+      );
+      const activeStatus = await this.prisma.employeeStatus.findFirst({
+        where: { deletedAt: null, name: { equals: 'Active', mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (activeStatus) {
+        await this.employees.updateStatus(
+          user.id,
+          suspension.employeeId,
+          { statusId: activeStatus.id },
+          meta,
+        );
+      }
+    }
+
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentCarerSuspension',
+      recordId: suspension.id,
+      description: 'Carer suspension removed',
+      oldValues: {
+        employeeId: suspension.employeeId,
+        suspendFrom: suspension.suspendFrom.toISOString().slice(0, 10),
+        suspendTo: suspension.suspendTo.toISOString().slice(0, 10),
+      },
+      newValues: { deletedAt: new Date().toISOString() },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Carer suspension removed', data: { id: suspension.id } };
+  }
+
+  /** Parse YYYY-MM-DD (or ISO datetime) as a UTC date-only value. */
+  private parseDateOnly(value: string): Date {
+    const day = value.trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      throw new BadRequestException('Invalid suspension date');
+    }
+    const parsed = new Date(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException('Invalid suspension date');
+    }
+    return parsed;
+  }
+
+  private mapCarerSuspension(
+    row: import('@prisma/client').IncidentCarerSuspension,
+  ) {
+    return {
+      id: row.id,
+      incidentId: row.incidentId,
+      employeeId: row.employeeId,
+      reason: row.reason,
+      suspendFrom: row.suspendFrom.toISOString().slice(0, 10),
+      suspendTo: row.suspendTo.toISOString().slice(0, 10),
+      suspendedAt: row.suspendedAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Recommend a learning course for a carer after investigation.
+   * Creates a LearningAssignment (allows inactive carers) and records the recommendation.
+   */
+  async recommendCarerCourse(
+    user: RequestUser,
+    id: string,
+    dto: RecommendIncidentCarerCourseDto,
+    meta?: RequestAuditMeta,
+  ) {
+    if (!this.can(user, 'incidents.investigate')) {
+      throw new ForbiddenException(
+        'You do not have permission to recommend a course from an investigation',
+      );
+    }
+    const incident = await this.loadForManage(user, id);
+    const employeeId = dto.employeeId ?? incident.primaryEmployeeId;
+    if (!employeeId) {
+      throw new BadRequestException(
+        'Select a carer to recommend a course to (no primary employee on this incident)',
+      );
+    }
+    await this.assertEmployeeExists(employeeId);
+    await this.orgScope.assertEmployeeInScope(
+      this.orgScope.fromRequestUser(user),
+      employeeId,
+    );
+
+    const existingRow = await this.prisma.incidentCarerCourseRecommendation.findFirst({
+      where: { incidentId: id, employeeId, courseId: dto.courseId },
+    });
+    if (existingRow && !existingRow.deletedAt) {
+      throw new BadRequestException(
+        'This course has already been recommended to this carer for this incident',
+      );
+    }
+
+    // Ensure an investigation row exists so the workflow step has somewhere to hang.
+    await this.prisma.incidentInvestigation.upsert({
+      where: { incidentId: id },
+      create: {
+        incidentId: id,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+      update: { updatedById: user.id },
+    });
+
+    const reason = dto.reason?.trim() || null;
+    const assignment = await this.learningAssignments.createFromSource(
+      user.id,
+      {
+        employeeId,
+        courseId: dto.courseId,
+        dueAt: dto.dueAt ?? null,
+        isMandatory: dto.isMandatory ?? true,
+        assignmentReason:
+          reason ??
+          `Recommended after incident investigation (${incident.referenceNumber})`,
+        sourceEntityType: 'Incident',
+        sourceEntityId: id,
+        allowInactiveEmployee: true,
+      },
+      meta,
+    );
+
+    const now = new Date();
+    const dueAt = dto.dueAt ? new Date(dto.dueAt) : null;
+    const recommendation = existingRow
+      ? await this.prisma.incidentCarerCourseRecommendation.update({
+          where: { id: existingRow.id },
+          data: {
+            reason,
+            dueAt,
+            learningAssignmentId: assignment.id,
+            recommendedAt: now,
+            deletedAt: null,
+            updatedById: user.id,
+          },
+        })
+      : await this.prisma.incidentCarerCourseRecommendation.create({
+          data: {
+            incidentId: id,
+            employeeId,
+            courseId: dto.courseId,
+            learningAssignmentId: assignment.id,
+            reason,
+            dueAt,
+            recommendedAt: now,
+            createdById: user.id,
+            updatedById: user.id,
+          },
+        });
+
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentCarerCourseRecommendation',
+      recordId: recommendation.id,
+      description: 'Course recommended for carer after investigation',
+      newValues: {
+        employeeId,
+        courseId: dto.courseId,
+        learningAssignmentId: assignment.id,
+        reason,
+        dueAt: dueAt?.toISOString() ?? null,
+      },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    const [mapped] = await this.mapCourseRecommendations([recommendation]);
+    return { message: 'Course recommended', data: mapped };
+  }
+
+  /**
+   * Soft-delete a course recommendation and cancel its learning assignment when present.
+   */
+  async removeCarerCourseRecommendation(
+    user: RequestUser,
+    id: string,
+    recommendationId: string,
+    meta?: RequestAuditMeta,
+  ) {
+    if (!this.can(user, 'incidents.investigate')) {
+      throw new ForbiddenException(
+        'You do not have permission to remove a course recommendation',
+      );
+    }
+    await this.loadForManage(user, id);
+
+    const recommendation =
+      await this.prisma.incidentCarerCourseRecommendation.findFirst({
+        where: { id: recommendationId, incidentId: id, deletedAt: null },
+      });
+    if (!recommendation) {
+      throw new NotFoundException('Course recommendation not found');
+    }
+
+    await this.prisma.incidentCarerCourseRecommendation.update({
+      where: { id: recommendation.id },
+      data: { deletedAt: new Date(), updatedById: user.id },
+    });
+
+    if (recommendation.learningAssignmentId) {
+      try {
+        await this.learningAssignments.cancel(
+          recommendation.learningAssignmentId,
+          user.id,
+          { cancellationReason: 'Removed from incident investigation recommendation' },
+          meta,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Could not cancel learning assignment ${recommendation.learningAssignmentId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentCarerCourseRecommendation',
+      recordId: recommendation.id,
+      description: 'Course recommendation removed',
+      oldValues: {
+        employeeId: recommendation.employeeId,
+        courseId: recommendation.courseId,
+        learningAssignmentId: recommendation.learningAssignmentId,
+      },
+      newValues: { deletedAt: new Date().toISOString() },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return {
+      message: 'Course recommendation removed',
+      data: { id: recommendation.id },
+    };
+  }
+
+  private async mapCourseRecommendations(
+    rows: import('@prisma/client').IncidentCarerCourseRecommendation[],
+  ) {
+    if (rows.length === 0) return [];
+    const courseIds = [...new Set(rows.map((r) => r.courseId))];
+    const courses = await this.prisma.learningCourse.findMany({
+      where: { id: { in: courseIds } },
+      select: { id: true, title: true, code: true },
+    });
+    const byId = new Map(courses.map((c) => [c.id, c]));
+    return rows.map((row) => {
+      const course = byId.get(row.courseId);
+      return {
+        id: row.id,
+        incidentId: row.incidentId,
+        employeeId: row.employeeId,
+        courseId: row.courseId,
+        courseTitle: course?.title ?? null,
+        courseCode: course?.code ?? null,
+        learningAssignmentId: row.learningAssignmentId,
+        reason: row.reason,
+        dueAt: row.dueAt?.toISOString() ?? null,
+        recommendedAt: row.recommendedAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+      };
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1459,7 +1968,7 @@ export class IncidentsService {
       data: {
         ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
         ...(dto.description !== undefined
-          ? { description: dto.description.trim() || null }
+          ? { description: dto.description?.trim() || null }
           : {}),
         ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
@@ -1845,5 +2354,35 @@ export class IncidentsService {
       });
     }
     return events.sort((a, b) => a.at.localeCompare(b.at));
+  }
+
+  private async enrichTimelineWithActors(
+    events: Array<{
+      at: string;
+      kind: string;
+      detail: string;
+      byId: string | null;
+    }>,
+  ) {
+    const ids = [
+      ...new Set(events.map((e) => e.byId).filter((id): id is string => Boolean(id))),
+    ];
+    if (ids.length === 0) {
+      return events.map((e) => ({ ...e, byName: null as string | null }));
+    }
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    const nameById = new Map(
+      users.map((u) => {
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+        return [u.id, name || u.email] as const;
+      }),
+    );
+    return events.map((e) => ({
+      ...e,
+      byName: e.byId ? (nameById.get(e.byId) ?? null) : null,
+    }));
   }
 }
