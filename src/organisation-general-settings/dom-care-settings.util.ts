@@ -34,27 +34,6 @@ export const DEFAULT_DOM_JOB_CANCELLATION_RULES: DomJobCancellationRule[] = [
   },
 ];
 
-export const DEFAULT_DOM_LATE_VISIT_ZONE_LABELS = [
-  'Croydon - Croydon 2',
-  'Croydon - Croydon 3',
-  'Croydon - Croydon 4',
-  'Croydon - Croydon 5',
-  'Croydon - Croydon 1',
-  'Merton - Merton',
-  'Hackney - Harrow 1',
-  'Haringey - Haringey',
-  'Croydon Private - Croydon 2 Private',
-  'Croydon Private - Croydon 5 Private',
-  'Croydon Private - Croydon 4 Private',
-  'Croydon Private - Croydon 3 Private',
-  'Croydon Private - Croydon 1 Private',
-  'Croydon admin - Croydon office',
-  'Bexley ISF - Bexley',
-  'Cleaners - Cleaning 1',
-  'ALF Private - ALF Private',
-  'Greenwich council - Greenwich',
-  'Transport - Croydon Transport',
-] as const;
 
 export function domCareZoneKey(label: string): string {
   return label
@@ -64,14 +43,37 @@ export function domCareZoneKey(label: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function defaultDomLateVisitZoneAlerts(): DomLateVisitZoneAlert[] {
-  return DEFAULT_DOM_LATE_VISIT_ZONE_LABELS.map((label) => ({
-    zoneKey: domCareZoneKey(label),
-    label,
-    scheduleAreaId: null,
-    emailEmployeeIds: [],
-    notificationEmployeeIds: [],
-  }));
+/** A live branch (scheduling.ScheduleArea) the late-visit alert list is built from. */
+export type DomLateVisitBranch = {
+  id: string;
+  name: string;
+  location?: { name: string } | null;
+  zone?: { name: string } | null;
+};
+
+/** Same label rule as the admin (`scheduleAreaDisplayLabel`): Location name, else "Zone - Branch". */
+export function domLateVisitBranchLabel(area: DomLateVisitBranch): string {
+  const location = area.location?.name?.trim();
+  if (location) return location;
+  const zone = area.zone?.name?.trim();
+  if (zone) return `${zone} - ${area.name}`;
+  return area.name;
+}
+
+/** One empty alert entry per real branch (no hard-coded sample branch names). */
+export function defaultDomLateVisitZoneAlerts(
+  branches: DomLateVisitBranch[] = [],
+): DomLateVisitZoneAlert[] {
+  return branches.map((area) => {
+    const label = domLateVisitBranchLabel(area);
+    return {
+      zoneKey: domCareZoneKey(label),
+      label,
+      scheduleAreaId: area.id,
+      emailEmployeeIds: [],
+      notificationEmployeeIds: [],
+    };
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -125,16 +127,42 @@ function parseZoneAlert(raw: unknown): DomLateVisitZoneAlert | null {
   return { zoneKey, label, scheduleAreaId, emailEmployeeIds, notificationEmployeeIds };
 }
 
-export function parseDomLateVisitZoneAlerts(value: Prisma.JsonValue | null | undefined): DomLateVisitZoneAlert[] {
-  const defaults = defaultDomLateVisitZoneAlerts();
-  if (!Array.isArray(value) || value.length === 0) return defaults;
-  const parsed = value.map(parseZoneAlert).filter((z): z is DomLateVisitZoneAlert => z !== null);
-  const byKey = new Map<string, DomLateVisitZoneAlert>();
-  for (const zone of parsed) byKey.set(zone.zoneKey, zone);
-  for (const zone of defaults) {
-    if (!byKey.has(zone.zoneKey)) byKey.set(zone.zoneKey, zone);
+/**
+ * Late-visit alert list for the live branches, in branch order.
+ * Saved per-branch recipients are matched by scheduleAreaId first, then (legacy rows saved before
+ * scheduleAreaId was set) by the label-derived zoneKey. Saved entries whose branch no longer
+ * exists (e.g. the old sample branches) are dropped; branches without an entry get an empty one.
+ * Without `branches` (unknown) the saved entries are returned as they are.
+ */
+export function parseDomLateVisitZoneAlerts(
+  value: Prisma.JsonValue | null | undefined,
+  branches?: DomLateVisitBranch[],
+): DomLateVisitZoneAlert[] {
+  const parsed = Array.isArray(value)
+    ? value.map(parseZoneAlert).filter((z): z is DomLateVisitZoneAlert => z !== null)
+    : [];
+  if (!branches) {
+    const byKey = new Map<string, DomLateVisitZoneAlert>();
+    for (const zone of parsed) byKey.set(zone.zoneKey, zone);
+    return [...byKey.values()];
   }
-  return [...byKey.values()];
+
+  const byAreaId = new Map<string, DomLateVisitZoneAlert>();
+  const byKey = new Map<string, DomLateVisitZoneAlert>();
+  for (const zone of parsed) {
+    if (zone.scheduleAreaId) byAreaId.set(zone.scheduleAreaId, zone);
+    else byKey.set(zone.zoneKey, zone);
+  }
+
+  return defaultDomLateVisitZoneAlerts(branches).map((fresh) => {
+    const saved = byAreaId.get(fresh.scheduleAreaId as string) ?? byKey.get(fresh.zoneKey);
+    if (!saved) return fresh;
+    return {
+      ...fresh,
+      emailEmployeeIds: saved.emailEmployeeIds,
+      notificationEmployeeIds: saved.notificationEmployeeIds,
+    };
+  });
 }
 
 export function serializeDomJobCancellationRules(rules: DomJobCancellationRule[]): Prisma.InputJsonValue {

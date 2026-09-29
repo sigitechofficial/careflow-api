@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -12,6 +24,7 @@ import { UpdateLocationZoneDto } from './dto/update-location-zone.dto';
 import {
   CreateLocationBranchDto,
   CreateLocationZoneDto,
+  UpdateLocationBranchDto,
 } from './dto/create-location-zone-branch.dto';
 import { UpdateMemberLocationDto } from './dto/update-member-location.dto';
 import { UpdateEmployeeLocationDto } from './dto/update-employee-location.dto';
@@ -79,6 +92,20 @@ export class LocationManagementController {
     @Req() req: Request,
   ) {
     return this.service.createBranch(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('branches/:id')
+  @AnyPermission('lookups.manage', 'schedule_areas.update')
+  @ApiOperation({
+    summary: 'Update a branch (name, address, CQC registration, locale). code/visitRefCode are read-only',
+  })
+  updateBranch(
+    @CurrentUser() user: RequestUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateLocationBranchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateBranch(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post('areas')
