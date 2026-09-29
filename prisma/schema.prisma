@@ -734,6 +734,26 @@ model CompanyProfile {
   /// Organisation-operated care settings (ServiceUserCareType codes, e.g. DOMICILIARY, RESIDENTIAL, SUPPORTED_LIVING).
   /// Empty = not configured. Used for policy visibility; not inferred from service-user records.
   careServiceTypes     String[] @default([])
+  /// Registered legal name at Companies House (companyNumber holds the Companies House number).
+  legalName            String?
+  /// CQC provider id (e.g. 1-101656545) — one per organisation; branches carry cqcLocationId.
+  cqcProviderId        String?
+  /// Companies House status / type as published (e.g. "Active", "Private Limited Company").
+  companyStatus        String?
+  companyType          String?
+  incorporationDate    DateTime? @db.Date
+  /// UK SIC 2007 codes (e.g. 86900).
+  sicCodes             String[] @default([])
+  registeredAddressLine1 String?
+  registeredAddressLine2 String?
+  registeredTown       String?
+  registeredCounty     String?
+  registeredPostcode   String?
+  registeredCountry    String?
+  /// ISO 3166-1 alpha-2 / ISO 4217 / BCP 47 organisation defaults (timezone lives on OrganisationGeneralSettings).
+  countryCode          String   @default("GB")
+  currency             String   @default("GBP")
+  locale               String   @default("en-GB")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   updatedById          String?  @db.Uuid
@@ -6101,6 +6121,32 @@ enum ScheduleBuildSource {
   @@schema("scheduling")
 }
 
+/** Branch lifecycle (ScheduleArea.status). */
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+/** CQC overall rating of a registered branch. */
+enum CqcRating {
+  OUTSTANDING
+  GOOD
+  REQUIRES_IMPROVEMENT
+  INADEQUATE
+
+  @@schema("scheduling")
+}
+
+enum CqcRatingStatus {
+  RATED
+  NOT_YET_RATED
+
+  @@schema("scheduling")
+}
+
 enum ScheduleRunStatus {
   DRAFT
   PUBLISHED
@@ -6128,6 +6174,36 @@ model ScheduleArea {
   incidentMessageUserIds  Json     @default("[]")
   incidentEmailUserIds    Json     @default("[]")
   parentZoneName          String?
+  /** CQC registration of this branch (null for unregistered branches). Stable seed key. */
+  cqcLocationId           String?  @unique
+  officialCqcName         String?
+  /** Structured postal address (`address` keeps the single-line form shown in the UI). */
+  addressLine1            String?
+  addressLine2            String?
+  town                    String?
+  county                  String?
+  postcode                String?
+  country                 String?
+  countryCode             String   @default("GB")
+  localAuthority          String?
+  phone                   String?
+  email                   String?
+  website                 String?
+  serviceTypes            String[] @default([])
+  regulatedActivities     String[] @default([])
+  /** A branch can have several CQC registered managers. */
+  registeredManagers      String[] @default([])
+  nominatedIndividual     String?
+  cqcRegistrationDate     DateTime? @db.Date
+  cqcRating               CqcRating?
+  cqcRatingStatus         CqcRatingStatus?
+  status                  BranchStatus @default(ACTIVE)
+  timezone                String   @default("Europe/London")
+  currency                String   @default("GBP")
+  locale                  String   @default("en-GB")
+  /** Set by geocoding (prisma/scripts/geocode-branches.ts); never guessed. */
+  latitude                Decimal? @db.Decimal(10, 7)
+  longitude               Decimal? @db.Decimal(10, 7)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?

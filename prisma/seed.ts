@@ -7,10 +7,19 @@ import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
 import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
-import { seedScheduleAreas } from './seeds/schedule-areas.seed';
+import {
+  LEGACY_SAMPLE_ZONE_NAMES,
+  SAMPLE_CITY_ZONES,
+  SAMPLE_LOCATION_NAMES,
+  seedScheduleAreas,
+} from './seeds/schedule-areas.seed';
 import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
+import {
+  seedAllforCareOrganisation,
+  summariseAllforCareChanges,
+} from './seeds/allforcare-branches.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 import { seedCarePathway } from './seeds/care-pathway.seed';
 import { seedTaskCatalogue } from './seeds/task-catalogue.seed';
@@ -53,6 +62,21 @@ const prisma = new PrismaClient();
 // database where nobody set the flag (e.g. Azure production) gets reference data only.
 // Environments that want the Greenwich roster / demo data set SEED_SAMPLE_PEOPLE=true.
 const seedSamplePeople = process.env.SEED_SAMPLE_PEOPLE === 'true';
+
+// Sample branches / service-user areas / postcodes (Croydon 1–5, Merton, Greenwich…) are demo
+// data too. The sample people are attached to them, so by default they follow SEED_SAMPLE_PEOPLE;
+// SEED_SAMPLE_BRANCHES=true|false overrides. Azure production forces both off
+// (prisma/scripts/run-azure-seeds.sh). The real organisation + branches always seed.
+const seedSampleBranches =
+  process.env.SEED_SAMPLE_BRANCHES === 'true' ||
+  (process.env.SEED_SAMPLE_BRANCHES !== 'false' && seedSamplePeople);
+
+// Sample pay / charge rate cards (PAY-*-2026, CHG-*-2026) use made-up demo rates. They follow
+// SEED_SAMPLE_PEOPLE by default; SEED_SAMPLE_BILLING_CARDS=true|false overrides. Azure production
+// forces this off — real rate cards are set up by the office in Billing.
+const seedSampleBillingCards =
+  process.env.SEED_SAMPLE_BILLING_CARDS === 'true' ||
+  (process.env.SEED_SAMPLE_BILLING_CARDS !== 'false' && seedSamplePeople);
 
 async function upsertLookup(model: any, name: string) {
   return model.upsert({
@@ -149,91 +173,42 @@ async function main() {
   ])
     await upsertLookup(prisma.nonCoreActivityReason, name);
 
-  for (const name of [
-    'Croydon - Croydon 1',
-    'Croydon - Croydon 2',
-    'Croydon - Croydon 3',
-    'Croydon - Croydon 4',
-    'Croydon - Croydon 5',
-    'Merton - Merton',
-    'Hackney - Harrow 1',
-    'Haringey - Haringey',
-    'Croydon Private - Croydon 1 Private',
-    'Croydon admin - Croydon office',
-    'Bexley ISF - Bexley',
-    'Cleaners - Cleaning 1',
-    'ALF Private - ALF Private',
-    'Greenwich council - Greenwich',
-    'Transport - Croydon Transport',
-  ]) {
-    await upsertLookup(prisma.location, name);
+  // Sample branch Location labels (Croydon, Merton, Greenwich…) — demo data, never production.
+  if (seedSampleBranches) {
+    for (const name of SAMPLE_LOCATION_NAMES) {
+      await upsertLookup(prisma.location, name);
+    }
+  } else {
+    console.log('[seed] Sample branch locations: skipped (SEED_SAMPLE_BRANCHES is not true).');
   }
 
-  // Location-management zones = cities (not “Zone - Branch” location labels).
-  const CITY_ZONES: Array<{ name: string; country: string; city: string }> = [
-    { name: 'London', country: 'United Kingdom', city: 'London' },
-    { name: 'Birmingham', country: 'United Kingdom', city: 'Birmingham' },
-    { name: 'Manchester', country: 'United Kingdom', city: 'Manchester' },
-    { name: 'Leeds', country: 'United Kingdom', city: 'Leeds' },
-    { name: 'Glasgow', country: 'United Kingdom', city: 'Glasgow' },
-    { name: 'Edinburgh', country: 'United Kingdom', city: 'Edinburgh' },
-    { name: 'Liverpool', country: 'United Kingdom', city: 'Liverpool' },
-    { name: 'Bristol', country: 'United Kingdom', city: 'Bristol' },
-    { name: 'Sheffield', country: 'United Kingdom', city: 'Sheffield' },
-    { name: 'Newcastle', country: 'United Kingdom', city: 'Newcastle' },
-    { name: 'Cardiff', country: 'United Kingdom', city: 'Cardiff' },
-    { name: 'Belfast', country: 'United Kingdom', city: 'Belfast' },
-  ];
-  for (const zone of CITY_ZONES) {
-    await prisma.zone.upsert({
-      where: { name: zone.name },
-      update: {
-        country: zone.country,
-        city: zone.city,
-        isActive: true,
-        deletedAt: null,
-      },
-      create: {
-        name: zone.name,
-        country: zone.country,
-        city: zone.city,
-        isActive: true,
-      },
-    });
+  // Location-management zones = cities (not “Zone - Branch” location labels). The generic UK
+  // city list is demo data (empty zones in Location Management); the real organisation's zones
+  // (London, Doncaster) are created by seedAllforCareOrganisation below.
+  if (seedSampleBranches) {
+    for (const zone of SAMPLE_CITY_ZONES) {
+      await prisma.zone.upsert({
+        where: { name: zone.name },
+        update: {
+          country: zone.country,
+          city: zone.city,
+          isActive: true,
+          deletedAt: null,
+        },
+        create: {
+          name: zone.name,
+          country: zone.country,
+          city: zone.city,
+          isActive: true,
+        },
+      });
+    }
   }
 
   // Soft-deactivate legacy zone rows that were seeded as location labels / borough names.
-  const legacyZoneNames = [
-    'Croydon - Croydon 1',
-    'Croydon - Croydon 2',
-    'Croydon - Croydon 3',
-    'Croydon - Croydon 4',
-    'Croydon - Croydon 5',
-    'Merton - Merton',
-    'Hackney - Harrow 1',
-    'Haringey - Haringey',
-    'Croydon Private - Croydon 1 Private',
-    'Croydon admin - Croydon office',
-    'Bexley ISF - Bexley',
-    'Cleaners - Cleaning 1',
-    'ALF Private - ALF Private',
-    'Greenwich council - Greenwich',
-    'Transport - Croydon Transport',
-    'Croydon',
-    'Merton',
-    'Haringey',
-    'Bexley',
-    'Greenwich',
-    'Transport',
-    'Hackney',
-    'ALF Private',
-    'Cleaners',
-    'Croydon Private',
-    'Croydon admin',
-  ];
   await prisma.zone.updateMany({
     where: {
-      name: { in: legacyZoneNames },
+      name: { in: [...LEGACY_SAMPLE_ZONE_NAMES] },
       deletedAt: null,
     },
     data: { isActive: false, deletedAt: new Date() },
@@ -1682,7 +1657,11 @@ async function main() {
   }
 
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
-  await seedBillingCards(prisma);
+  if (seedSampleBillingCards) {
+    await seedBillingCards(prisma);
+  } else {
+    console.log('[seed] Sample pay/charge rate cards: skipped (SEED_SAMPLE_BILLING_CARDS is not true).');
+  }
   await seedInvoiceTemplates(prisma);
   await seedLearningCatalog(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
@@ -2352,17 +2331,21 @@ async function main() {
     }
   }
 
-  await seedScheduleAreas(prisma);
-  try {
-    const sua = await seedServiceUserAreas(prisma);
-    console.log(
-      `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
-    );
-  } catch (err) {
-    console.warn(
-      '[seed] Service user areas skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSampleBranches) {
+    await seedScheduleAreas(prisma);
+    try {
+      const sua = await seedServiceUserAreas(prisma);
+      console.log(
+        `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
+      );
+    } catch (err) {
+      console.warn(
+        '[seed] Service user areas skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  } else {
+    console.log('[seed] Sample branches/areas/postcodes: skipped (SEED_SAMPLE_BRANCHES is not true).');
   }
 
   // Greenwich staff + in-service caseload (sample people). Idempotent; location is
@@ -2391,6 +2374,11 @@ async function main() {
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
+  // Real organisation + CQC-registered branches (reference data, every environment).
+  const allforCare = await seedAllforCareOrganisation(prisma, {
+    alignTimezone: process.env.NODE_ENV === 'production',
+  });
+  console.log(`[seed] Allfor Care organisation/branches: ${summariseAllforCareChanges(allforCare)}`);
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
