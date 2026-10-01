@@ -40,6 +40,7 @@ import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedEcmThresholdLookups } from './seeds/ecm-threshold-lookups.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { seedBillingCards } from './seeds/billing-cards.seed';
+import { ensureAdditionalRoles } from './seeds/additional-roles.seed';
 import { seedInvoiceTemplates } from './seeds/invoice-templates.seed';
 import { seedLearningCatalog } from './seeds/learning.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
@@ -2718,6 +2719,7 @@ async function main() {
   // Hierarchy roles are reference data (always); Platform Super Admin = every permission.
   // The demo office logins for each hierarchy role are sample people.
   await ensureHierarchyRoles(prisma);
+  await ensureAdditionalRoles(prisma);
   await ensureSuperAdminAllPermissions(prisma);
   if (seedSamplePeople) {
     await seedDemoOfficeUsers(prisma);
