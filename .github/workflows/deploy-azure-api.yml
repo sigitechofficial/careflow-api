@@ -63,14 +63,36 @@ jobs:
           docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=careflow postgres:16-alpine
           for i in $(seq 1 30); do docker exec db pg_isready -U postgres -d careflow && break; sleep 2; done
 
-          echo "::group::migrations + reference seeds"
-          docker run --rm --network smoke -e DATABASE_URL="$DB_URL" \
-            -e ADMIN_SEED_EMAIL=smoke-admin@example.test -e ADMIN_SEED_PASSWORD=smoke-test-password-123 "$MIG"
-          echo "::endgroup::"
           q() { docker exec db psql -U postgres -d careflow -At -c "$1"; }
-          users=$(q 'select count(*) from identity."User"'); emps=$(q 'select count(*) from employees."Employee"'); sus=$(q 'select count(*) from service_users."ServiceUser"')
-          echo "users=$users employees=$emps service_users=$sus"
-          [ "$users" = 1 ] && [ "$emps" = 0 ] && [ "$sus" = 0 ] || { echo "::error::seeding created unexpected people"; exit 1; }
+          # Row count of every table, to prove re-seeding (every production deploy) adds nothing.
+          snapshot() { q "select string_agg(t || '=' || n, ',' order by t) from (select format('%I.%I', schemaname, tablename) t, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', schemaname, tablename), false, true, '')))[1]::text::bigint n from pg_tables where schemaname not in ('pg_catalog','information_schema') and tablename <> '_prisma_migrations') x"; }
+          for run in 1 2; do
+            echo "::group::migrations + reference seeds (run $run of 2 — production re-seeds on every deploy)"
+            docker run --rm --network smoke -e DATABASE_URL="$DB_URL" \
+              -e ADMIN_SEED_EMAIL=smoke-admin@example.test -e ADMIN_SEED_PASSWORD=smoke-test-password-123 "$MIG"
+            echo "::endgroup::"
+            [ "$run" = 1 ] && first=$(snapshot)
+          done
+          [ "$first" = "$(snapshot)" ] || { echo "::error::re-running the seeders changed data — seeders must be idempotent"; exit 1; }
+
+          # Production must only ever receive reference data: no people, demo/sample records or fake costs.
+          fail=0
+          expect() { got=$(q "$2"); if [ "$got" != "$3" ]; then echo "::error::$1: expected $3, got $got"; fail=1; else echo "ok  $1 = $got"; fi; }
+          expect "users (only the seeded super admin)" 'select count(*) from identity."User"' 1
+          expect "employees" 'select count(*) from employees."Employee"' 0
+          expect "service users" 'select count(*) from service_users."ServiceUser"' 0
+          expect "office-user branch scopes" 'select count(*) from identity."UserLocation"' 0
+          expect "branches (the 5 real Allfor Care branches)" 'select count(*) from scheduling."ScheduleArea"' 5
+          expect "non-real branches" $'select count(*) from scheduling."ScheduleArea" where code not like \'ALLFOR\\_%\'' 0
+          expect "locations" 'select count(*) from lookups."Location"' 5
+          expect "pay cards (sample rate cards)" 'select count(*) from billing."PayCard"' 0
+          expect "charge cards (sample rate cards)" 'select count(*) from billing."ChargeCard"' 0
+          expect "visit plans" 'select count(*) from service_users."ServiceUserVisitPlan"' 0
+          expect "scheduled jobs (visits)" 'select count(*) from scheduling."ScheduledJob"' 0
+          expect "initial assessments" 'select count(*) from service_users."InitialAssessmentSubmission"' 0
+          expect "incidents" 'select count(*) from incidents."Incident"' 0
+          expect "Azure cost rows (only ever from Azure)" 'select count(*) from platform."AzureCostDaily"' 0
+          [ "$fail" = 0 ] || { echo "::error::seeding created data that must never reach production"; exit 1; }
 
           docker run -d --name api --network smoke -p 3000:3000 -e DATABASE_URL="$DB_URL" \
             -e JWT_ACCESS_TOKEN_SECRET=smoke -e JWT_REFRESH_TOKEN_SECRET=smoke \
