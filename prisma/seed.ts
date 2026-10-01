@@ -616,6 +616,9 @@ async function main() {
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
+    // Azure Pricing (platform costs) — Super Admin only (granted via the all-permissions sweep)
+    'platform_costs.read',
+    'platform_costs.manage',
   ];
 
   for (const key of permissionKeys) {

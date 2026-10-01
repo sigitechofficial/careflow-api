@@ -5,7 +5,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { validateSync } from 'class-validator';
 
@@ -164,6 +166,51 @@ class EnvironmentVariables {
   @IsString()
   SWAGGER_ENABLED?: string;
 
+  /** Azure Pricing: `true` enables the read-only Azure sync jobs (default off). */
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  AZURE_COST_ENABLED?: string;
+
+  /** Required when AZURE_COST_ENABLED=true and AZURE_COST_SCOPE is not set. */
+  @ValidateIf(
+    (o: EnvironmentVariables) =>
+      o.AZURE_COST_ENABLED === 'true' && !o.AZURE_COST_SCOPE,
+  )
+  @IsString()
+  @Matches(/^[0-9a-fA-F-]{36}$/, {
+    message: 'AZURE_COST_SUBSCRIPTION_ID must be a subscription GUID',
+  })
+  AZURE_COST_SUBSCRIPTION_ID?: string;
+
+  /** Cost query scope (default `/subscriptions/${AZURE_COST_SUBSCRIPTION_ID}`). */
+  @IsOptional()
+  @IsString()
+  @Matches(
+    /^\/subscriptions\/[0-9a-fA-F-]{36}(\/resourceGroups\/[^/]+)?\/?$/i,
+    {
+      message:
+        'AZURE_COST_SCOPE must be /subscriptions/{id} or /subscriptions/{id}/resourceGroups/{rg}',
+    },
+  )
+  AZURE_COST_SCOPE?: string;
+
+  /** Comma-separated resource groups to include (case-insensitive). */
+  @IsOptional()
+  @IsString()
+  AZURE_COST_RESOURCE_GROUPS?: string;
+
+  /** Retail price region (default uksouth). */
+  @IsOptional()
+  @IsString()
+  AZURE_COST_REGION?: string;
+
+  /** Retail price currency (default GBP). */
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z]{3}$/, {
+    message: 'AZURE_COST_CURRENCY must be a 3-letter currency code',
+  })
+  AZURE_COST_CURRENCY?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
