@@ -273,38 +273,16 @@ export class MedicationAdministrationService {
       ...meta,
     });
 
-    const hookMeta = {
-      serviceUserId,
-      medicationId: med.id,
+    await this.medNotifications.notifyAdministrationEvent({
       eventId: created.id,
+      serviceUserId,
+      medicationName: med.medicationName,
       status: resolved.status,
-      controlledMedication: med.isControlledMedication,
-    };
-
-    if (med.isControlledMedication) {
-      await this.medNotifications.medicationAlert({
-        recipientUserIds: [],
-        title: 'Controlled medication event',
-        message: `${med.medicationName}: ${resolved.status}`,
-        metadata: hookMeta,
-      });
-    }
-    if (resolved.status === MedicationAdministrationStatus.MISSED) {
-      await this.medNotifications.medicationAlert({
-        recipientUserIds: [],
-        title: 'Medication missed',
-        message: `${med.medicationName} was recorded as missed`,
-        metadata: hookMeta,
-      });
-    }
-    if (resolved.status === MedicationAdministrationStatus.REFUSED) {
-      await this.medNotifications.medicationAlert({
-        recipientUserIds: [],
-        title: 'Medication refused',
-        message: `${med.medicationName} was refused`,
-        metadata: hookMeta,
-      });
-    }
+      controlled: Boolean(med.isControlledMedication),
+      occurredAt: created.actualDateTime ?? created.scheduledDateTime ?? created.createdAt,
+      actorUserId: userId,
+      metadata: { medicationId: med.id },
+    });
 
     return created;
   }

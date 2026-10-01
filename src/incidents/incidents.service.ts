@@ -56,6 +56,11 @@ import {
 } from './dto/incident-action.dto';
 import { UpsertIncidentOutcomeDto } from './dto/incident-outcome.dto';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
+import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
+import {
+  formatNotificationDateTime,
+  loadNotificationDisplay,
+} from '../common/utils/notification-display.util';
 import {
   INCIDENT_PRIVACY_RANK,
   INCIDENT_SEVERITY_LABELS,
@@ -1376,16 +1381,62 @@ export class IncidentsService {
     if (!recipients.length) return;
     const incident = await this.prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { referenceNumber: true },
+      select: {
+        referenceNumber: true,
+        severity: true,
+        occurredAt: true,
+        primaryServiceUserId: true,
+        primaryEmployeeId: true,
+        primaryPersonName: true,
+        category: { select: { label: true } },
+      },
     });
-    const flag = review.safeguardingConcern
-      ? 'Safeguarding concern'
-      : 'Escalation required';
+    if (!incident) return;
+
+    let personShortName: string | null = null;
+    let personFullName: string | null = null;
+    if (incident.primaryServiceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: incident.primaryServiceUserId },
+        select: { firstName: true, lastName: true, preferredName: true },
+      });
+      personFullName =
+        [su?.firstName, su?.lastName].filter(Boolean).join(' ').trim() || null;
+      personShortName = su?.preferredName?.trim() || personFullName;
+    } else if (incident.primaryEmployeeId) {
+      const pd = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId: incident.primaryEmployeeId },
+        select: { firstName: true, lastName: true },
+      });
+      personFullName = pd ? `${pd.firstName} ${pd.lastName}`.trim() : null;
+      personShortName = personFullName;
+    } else if (incident.primaryPersonName?.trim()) {
+      personFullName = incident.primaryPersonName.trim();
+      personShortName = personFullName;
+    }
+
+    const reviewer = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { firstName: true, lastName: true },
+    });
+    const display = await loadNotificationDisplay(this.prisma);
+    const { title, message } = buildIncidentReviewFlagNotification({
+      safeguardingConcern: Boolean(review.safeguardingConcern),
+      escalationRequired: Boolean(review.escalationRequired),
+      referenceNumber: incident.referenceNumber,
+      categoryLabel: incident.category?.label,
+      severity: incident.severity,
+      occurredAtLabel: formatNotificationDateTime(incident.occurredAt, display),
+      personShortName,
+      personFullName,
+      reviewerName:
+        [reviewer?.firstName, reviewer?.lastName].filter(Boolean).join(' ').trim() || null,
+    });
     await this.notifications.notifyUsers({
       recipientUserIds: recipients,
       type: NotificationType.INCIDENT_REPORTED,
-      title: `${flag} — ${incident?.referenceNumber ?? 'incident'}`,
-      message: `An incident review flagged: ${flag}. Please review.`,
+      title,
+      message,
       module: NotificationModule.SERVICE_CARE,
       severity: NotificationSeverity.ERROR,
       recordType: 'Incident',

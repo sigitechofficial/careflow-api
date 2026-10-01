@@ -25,14 +25,17 @@ export async function buildEmployeeListWhere(
   const statusIds = normalizeEmployeeListUuidIds(query.statusId, query.statusIds);
   if (statusIds?.length) wherePersonal.statusId = { in: statusIds };
 
-  if (query.search) {
-    const s = query.search.trim();
-    wherePersonal.OR = [
-      { firstName: { contains: s, mode: 'insensitive' } },
-      { lastName: { contains: s, mode: 'insensitive' } },
-      { email: { contains: s, mode: 'insensitive' } },
-      { username: { contains: s, mode: 'insensitive' } },
-    ];
+  // Every word must match some field, so "Wendy Clark" finds first "Wendy" + last "Clark".
+  const searchTerms = query.search?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (searchTerms.length) {
+    wherePersonal.AND = searchTerms.map((s): Prisma.EmployeePersonalDetailWhereInput => ({
+      OR: [
+        { firstName: { contains: s, mode: 'insensitive' } },
+        { lastName: { contains: s, mode: 'insensitive' } },
+        { email: { contains: s, mode: 'insensitive' } },
+        { username: { contains: s, mode: 'insensitive' } },
+      ],
+    }));
   }
 
   const { whereEmployment, hasEmploymentFilters } = buildEmployeeListEmploymentWhere(query);

@@ -1,12 +1,25 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { NotificationModule, NotificationSeverity, NotificationType } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import {
+  formatNotificationCalendarDay,
+  formatNotificationDateTime,
+  loadNotificationDisplay,
+} from '../common/utils/notification-display.util';
 
 type CalendarEventRow = {
   id: string;
   title: string;
   startDateTime: Date;
+  allDay?: boolean;
   eventType?: { code: string; name: string } | null;
+};
+
+type CalendarServiceUserName = {
+  firstName: string | null;
+  lastName: string | null;
+  preferredName: string | null;
 };
 
 /**
@@ -17,10 +30,14 @@ type CalendarEventRow = {
 export class ServiceUserCalendarNotificationHook {
   private readonly logger = new Logger(ServiceUserCalendarNotificationHook.name);
 
-  constructor(@Optional() private readonly notifications?: NotificationsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notifications?: NotificationsService,
+  ) {}
 
   async createReminderNotificationIfNeeded(params: {
     event: CalendarEventRow;
+    serviceUser?: CalendarServiceUserName | null;
     recipientUserIds: string[];
     notifyKeyWorker: boolean;
     notifyNamedNurse: boolean;
@@ -51,7 +68,7 @@ export class ServiceUserCalendarNotificationHook {
     const typeCode = event.eventType?.code ?? 'OTHER';
     const notificationType = this.mapEventTypeToNotificationType(typeCode);
     const title = this.buildTitle(typeCode, event.title);
-    const message = `Scheduled for ${event.startDateTime.toISOString()}. ${event.eventType?.name ?? 'Event'}.`;
+    const message = await this.buildMessage(event, params.serviceUser);
 
     try {
       await this.notifications.notifyUsers({
@@ -70,6 +87,23 @@ export class ServiceUserCalendarNotificationHook {
     } catch (err) {
       this.logger.warn(`Calendar notification failed: ${(err as Error).message}`);
     }
+  }
+
+  /** `Harry Max — GP appointment on 28/09/2026 at 11:00.` (org timezone + date format). */
+  private async buildMessage(
+    event: CalendarEventRow,
+    serviceUser?: CalendarServiceUserName | null,
+  ): Promise<string> {
+    const suName =
+      [serviceUser?.firstName, serviceUser?.lastName].filter(Boolean).join(' ').trim() ||
+      serviceUser?.preferredName?.trim() ||
+      null;
+    const what = event.eventType?.name ?? 'Event';
+    const display = await loadNotificationDisplay(this.prisma);
+    const when = event.allDay
+      ? `on ${formatNotificationCalendarDay(event.startDateTime, display)} (all day)`
+      : `on ${formatNotificationDateTime(event.startDateTime, display)}`;
+    return `${suName ? `${suName} — ` : ''}${what} ${when}.`;
   }
 
   private mapEventTypeToNotificationType(code: string): NotificationType {

@@ -227,9 +227,11 @@ function resolveContinence(ctx: CarePlanComposeContext): Partial<Record<Care2020
 }
 
 function resolveWashing(ctx: CarePlanComposeContext): Partial<Record<Care2020NarrativeSlot, SlotParts>> {
+  // IA About Me "Personal hygiene" is only on older IAs; the IA bathing / dressing preferences now carry it.
   const hygiene =
     (ctx.ia
-      ? firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'personalHygiene' })
+      ? (firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'personalHygiene' }) ??
+        firstPersonFromAnswer(ctx.ia.answers, { questionText: 'Bathing / shower and dressing preferences' }))
       : null) ?? firstPersonFromAboutMe(ctx, 'personalCare', 'Personal hygiene');
   const howToSupport =
     (ctx.ia
@@ -259,7 +261,7 @@ function resolveCommunication(ctx: CarePlanComposeContext): Partial<Record<Care2
       ? { service_user_needs: about, needs_person_centred: about, support_required: about }
       : {};
   }
-  const needs = firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'communicationNeeds' });
+  const needs = firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'staffCommunicationInstructions' });
   const howICommunicate =
     firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'howICommunicate' }) ??
     firstPersonFromAboutMe(ctx, 'communication', 'How I communicate');
@@ -349,12 +351,13 @@ function resolveCulture(ctx: CarePlanComposeContext): Partial<Record<Care2020Nar
   const diet = firstPersonFromAnswer(ctx.ia.answers, {
     questionText: 'Religious or cultural dietary requirements',
   });
+  const culture = firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'culturalBackground' });
   const adjustments = firstPersonFromAnswer(ctx.ia.answers, {
-    questionText: 'Religion, culture, language, reasonable adjustments',
+    questionText: 'Any equality related risk or need',
   });
   return {
     service_user_needs: joinUnique([spiritual, diet]) ?? undefined,
-    needs_person_centred: joinUnique([spiritual, prayer, adjustments]) ?? undefined,
+    needs_person_centred: joinUnique([spiritual, prayer, culture, adjustments]) ?? undefined,
     support_required: joinUnique([prayer, diet]) ?? undefined,
   };
 }
@@ -381,7 +384,7 @@ function resolveDementiaOrCognition(
       : null) ?? firstPersonFromAboutMe(ctx, 'howToSupport', 'How and when to support me');
   const communication =
     firstPersonFromAboutMe(ctx, 'communication', 'How I communicate') ??
-    (ctx.ia ? firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'communicationNeeds' }) : null);
+    (ctx.ia ? firstPersonFromAnswer(ctx.ia.answers, { fieldKey: 'staffCommunicationInstructions' }) : null);
   return {
     needs_person_centred: howToSupport ?? undefined,
     support_required: joinUnique([howToSupport, communication]) ?? undefined,

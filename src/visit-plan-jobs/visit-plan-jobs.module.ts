@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ServiceUserVisitPlansModule } from '../service-user-visit-plans/service-user-visit-plans.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -11,7 +10,6 @@ import { VisitStartReminderJob } from '../visit-attendance/visit-start-reminder.
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     PrismaModule,
     ServiceUserVisitPlansModule,
     NotificationsModule,

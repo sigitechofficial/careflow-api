@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -41,7 +40,6 @@ import { LearningTrainingEventsService } from './learning-training-events.servic
   imports: [
     PrismaModule,
     AuditLogsModule,
-    ScheduleModule.forRoot(),
     forwardRef(() => NotificationsModule),
   ],
   controllers: [

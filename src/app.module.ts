@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
@@ -130,6 +131,9 @@ import { PoliciesModule } from './policies/policies.module';
       load: [appConfig, databaseConfig, openfdaConfig, mailConfig],
       validate: validateEnv,
     }),
+    // Register once here only: importing forRoot() in several feature modules made
+    // every @Cron handler fire once per import (3x duplicate alerts/jobs).
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

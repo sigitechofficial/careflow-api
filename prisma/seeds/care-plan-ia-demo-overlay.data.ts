@@ -83,9 +83,7 @@ function personCentredCore(params: {
   worried?: string;
   bathing: string;
   routine: string;
-  importantRoutines?: string;
   privacy: string;
-  carePreferences?: string;
   keepDoing?: string;
   howAndWhen: string;
   personalHygiene: string;
@@ -99,25 +97,18 @@ function personCentredCore(params: {
     text('Morning, meal, evening and bedtime routine', params.routine),
     text('How should staff support privacy during personal care?', params.privacy),
     text('How and when to support me', params.howAndWhen, 'howAndWhenToSupportMe'),
-    text('Personal hygiene', params.personalHygiene, 'personalHygiene'),
     text('Night support', params.nightSupport, 'nightSupport'),
     text('What is most important to me', params.whatMatters, 'whatIsMostImportantToMe'),
   ];
   if (params.worried) {
     rows.push(text('What are they worried about?', params.worried));
   }
-  if (params.importantRoutines) {
-    rows.push(text('Important routines (meals, prayer, medication, bedtime)', params.importantRoutines));
-  }
-  if (params.carePreferences) {
-    rows.push(text('Care preferences and dislikes', params.carePreferences));
-  }
   if (params.keepDoing) {
     rows.push(text('Things they want to keep doing independently', params.keepDoing));
   }
   if (params.howICommunicate) {
     rows.push(text('How I communicate and how to communicate with me', params.howICommunicate, 'howICommunicate'));
-    rows.push(text('Communication needs', params.howICommunicate, 'communicationNeeds'));
+    rows.push(text('Staff communication instructions', params.howICommunicate, 'staffCommunicationInstructions'));
   }
   return rows;
 }
@@ -169,11 +160,7 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         bathing: 'I prefer a shower in the morning. I need full help to wash and dress. Please do not rush me.',
         routine:
           'I like to get up around 8, have a wash and dress, then porridge and tea. I like to be in bed by 9 after personal care.',
-        importantRoutines:
-          'I like my morning shower before 10, porridge and tea, my tablets on time, and bed around 9 after personal care.',
         privacy: 'Please close the bathroom door and keep me covered with a towel until we need to wash that area.',
-        carePreferences:
-          'I prefer female carers for personal care. Please do not rush me, and keep the radio on if I ask.',
         keepDoing: 'I still like to sit by the window and look at the garden. Please let me do what I can for myself.',
         howAndWhen: MARGARET_ABOUT_ME_PATCH.howAndWhenToSupportMe,
         personalHygiene: MARGARET_ABOUT_ME_PATCH.personalHygiene,
@@ -184,11 +171,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
       yesNo('Will the Service User accept care from the opposite sex?', false),
       yesNo('Comfortable with double-up care?', true),
       text('Modesty requirements', 'Please keep me covered and close the door during personal care.'),
-      text('How does the person prefer to be addressed?', 'Margaret'),
-      text(
-        'Religion, culture, language, reasonable adjustments',
-        'I am Church of England. Please speak to my better ear — I am hard of hearing on the left.',
-      ),
       text('Religious or spiritual needs', 'I like to go to Sunday service when I am well enough. I keep a bible by my bed.'),
       text(
         'Religious or cultural dietary requirements',
@@ -269,9 +251,7 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
           'I need some prompting when washing and dressing. I manage the toilet myself using the grab rails.',
         routine:
           'I like a morning call to wash, dress, have breakfast and take my tablets, and an evening call for my meal and to get ready for bed.',
-        importantRoutines: 'I like my morning tablets prompted, breakfast after my wash, and a quiet evening meal.',
         privacy: 'Please let me wash what I can myself, and keep the bathroom door closed.',
-        carePreferences: 'I prefer female carers. Please prompt me first — I like to stay independent.',
         keepDoing: 'I still like to walk indoors with my stick and look after my own toilet with the grab rails.',
         howAndWhen:
           'I prefer a female carer for personal care. Please prompt me rather than doing everything for me.',
@@ -324,9 +304,7 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         bathing: 'I need full help with washing and dressing. Two carers help me with all transfers.',
         routine:
           'I have a morning call with two carers to get up, wash and dress, and an evening call to get ready for bed. Grace helps me in between.',
-        importantRoutines: 'Please give me time for my physio exercises, and do not rush my meals or my words.',
         privacy: 'Please tell me what you are going to do before you start, and keep me covered.',
-        carePreferences: 'I do not mind if my carers are men or women. Please speak slowly and wait for me.',
         keepDoing: 'I still want to practise my exercises every day.',
         howAndWhen:
           'I need two carers to help me move. I do not mind if my carers are men or women. Please do not rush me.',
@@ -398,9 +376,7 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
           'I need two female carers for washing and dressing. Please use the ceiling hoist for transfers.',
         routine:
           'I have three double-up calls a day. Please use the ceiling hoist whenever you move me, and keep my skin checked.',
-        importantRoutines: 'Please give me a quiet moment for prayer, and do not bring food that is not Halal.',
         privacy: 'I only want women to help me with personal care. Please keep me covered.',
-        carePreferences: 'I only want female carers for personal care. Please use the hoist — do not lift me.',
         keepDoing: 'I want to keep my prayers and eat food that is Halal.',
         howAndWhen:
           'I only want female carers for personal care. I need two carers and the ceiling hoist for transfers.',
@@ -416,10 +392,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         'Modesty requirements',
         'I only want women to help me with washing, dressing and the toilet. Please keep me covered.',
       ),
-      text(
-        'Religion, culture, language, reasonable adjustments',
-        'I am Muslim. I eat Halal food only. I only want female carers for personal care.',
-      ),
       text('Religious or spiritual needs', 'I am Muslim. My faith and my privacy during personal care matter to me.'),
       text(
         'Prayer routine or worship needs',
@@ -429,7 +401,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         'Religious or cultural dietary requirements',
         'I eat Halal food only. I do not eat pork or anything that is not Halal.',
       ),
-      text('Beliefs', 'I am Muslim. Halal food and female carers for personal care are important to me.', 'beliefs'),
       select('Hearing impairment level', 'no_concern', 'hearingLevel'),
       select('Sight impairment level', 'no_concern', 'sightLevel'),
       select('Sleeping pattern', '6_8_hours', 'sleepingPattern'),
@@ -449,7 +420,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         'Please check any pressure cushion or mattress I am using, and tell the office if it is not working.',
       ),
       yesNo('Uses hoist or sling?', true, 'usesHoistOrSling'),
-      yesNo('Hoist / profiling bed / air mattress in use?', true, 'clinicalEquipmentInUse'),
       yesNo('Transfer support required?', true, 'transferSupportRequired'),
       yesNo('Independent with all transfers?', false),
       text(
@@ -503,10 +473,7 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
         bathing: 'I prefer a shower in the morning. I need full help with washing, dressing and the toilet.',
         routine:
           'I like a shower in the morning with the radio on, porridge for breakfast, and drinks offered through the day. I get unsettled at night.',
-        importantRoutines:
-          'Please offer me a drink every couple of hours. I like tea with one sugar. Please do not rush me.',
         privacy: 'Please keep me covered and tell me what you are going to do. I prefer a female carer.',
-        carePreferences: 'Please put the radio on, speak slowly, and do not rush. I prefer a female carer.',
         keepDoing: 'I like listening to the radio. Please leave it on if I am enjoying it.',
         howAndWhen:
           'I need full help with washing, dressing and meals. I prefer a female carer. Please put the radio on.',
@@ -517,10 +484,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
       select('Staff gender preference for personal care', 'female'),
       yesNo('Will the Service User accept care from the opposite sex?', false),
       yesNo('Comfortable with double-up care?', true),
-      text(
-        'Religion, culture, language, reasonable adjustments',
-        'I am Church of England. Please speak slowly and use short sentences.',
-      ),
       text('Religious or spiritual needs', 'I am Church of England. I keep a small bible by my bed.'),
       text(
         'Religious or cultural dietary requirements',
@@ -559,7 +522,6 @@ export const CARE_PLAN_IA_DEMO_OVERLAYS: IaDemoOverlayPersona[] = [
       select('Cognitive impairment level', 'moderate', 'cognitiveImpairment'),
       yesNo('Diagnosed dementia?', true),
       yesNo('Fully orientated?', false),
-      yesNo('De-orientated?', true),
       yesNo('Good short-term memory recall?', false),
       yesNo('Able to follow basic instructions?', true),
     ],

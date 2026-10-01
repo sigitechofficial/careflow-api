@@ -422,7 +422,8 @@ type ShowWhenRule = {
   gateFieldKey?: string;
   yes?: boolean;
   no?: boolean;
-  selectedIncludes?: string;
+  /** Seed `showIfSelected` stores a list (any match shows the question). */
+  selectedIncludes?: string | string[];
 };
 
 /** Same follow-up gates as the admin `conditional-visibility` inferred rules + seed `showWhen`. */
@@ -530,6 +531,10 @@ const INFERRED_FOLLOW_UP_RULES: { questionTextIncludes: string; when: ShowWhenRu
     when: { gateTextIncludes: 'london fire brigade informed', yes: true },
   },
   {
+    questionTextIncludes: 'local fire and rescue service — details',
+    when: { gateTextIncludes: 'local fire and rescue service informed', yes: true },
+  },
+  {
     questionTextIncludes: 'london fire brigade contact',
     when: { gateTextIncludes: 'london fire brigade informed', yes: true },
   },
@@ -610,7 +615,12 @@ function parseMetadataShowWhen(metadata: Record<string, unknown> | null): ShowWh
     gateFieldKey,
     yes: row.yes === true ? true : undefined,
     no: row.no === true ? true : undefined,
-    selectedIncludes: typeof row.selectedIncludes === 'string' ? row.selectedIncludes : undefined,
+    selectedIncludes:
+      typeof row.selectedIncludes === 'string'
+        ? row.selectedIncludes
+        : Array.isArray(row.selectedIncludes)
+          ? row.selectedIncludes.map(String)
+          : undefined,
   };
 }
 
@@ -659,8 +669,10 @@ function answerSelectedValues(a: AnswerInput | undefined): string[] {
 
 function gateMatchesGeneratedAnswer(rule: ShowWhenRule, gateAnswer: AnswerInput | undefined): boolean {
   if (rule.selectedIncludes) {
-    const needle = rule.selectedIncludes.toLowerCase();
-    return answerSelectedValues(gateAnswer).some((v) => v.toLowerCase() === needle);
+    const needles = (Array.isArray(rule.selectedIncludes) ? rule.selectedIncludes : [rule.selectedIncludes]).map((n) =>
+      n.toLowerCase(),
+    );
+    return answerSelectedValues(gateAnswer).some((v) => needles.includes(v.toLowerCase()));
   }
   if (rule.yes) return answerIsYes(gateAnswer);
   if (rule.no) return answerIsNo(gateAnswer);
@@ -675,23 +687,30 @@ export function extraQuestionsForHolisticTab(
   tabId: number,
   questions: TemplateQuestion[],
 ): TemplateQuestion[] {
-  const consentRefs = new Set(['2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '2.9']);
+  // Mirrors admin `extraDemoFillQuestionsForTab` (utils/demo-fill-tab-questions.ts).
+  const consentTabRefs = new Set(['2.1', '2.3', '2.4', '2.8', '2.11', '2.12']);
+  const mcaTabSection2Refs = new Set(['2.5', '2.6', '2.9']);
   switch (tabId) {
     case 1:
       return questions.filter((q) => q.sectionNumber === 1 && fieldKey(q) === 'assessorName');
+    case 23:
+      return questions.filter((q) => {
+        const ref = specRef(q);
+        return ref != null && consentTabRefs.has(ref);
+      });
     case 3:
       return questions.filter((q) => {
         const ref = specRef(q);
-        return ref != null && consentRefs.has(ref);
+        return ref != null && mcaTabSection2Refs.has(ref);
       });
     case 8:
       return questions.filter((q) => specRef(q) === '12.7');
     case 12:
       return questions.filter((q) => q.sectionNumber === 3 && !isFireSafetyQuestion(q));
-    case 13:
+    case 24:
       return questions.filter((q) => q.sectionNumber === 13);
     case 16:
-      return questions.filter((q) => specRef(q) === '14.1');
+      return questions.filter((q) => specRef(q) === '14.1' || specRef(q) === '2.2');
     case 21:
       return questions.filter((q) => q.sectionNumber === 15);
     case 19:
@@ -819,6 +838,10 @@ function e2eYesNoValue(q: TemplateQuestion): { checked: boolean; booleanValue: b
     text.includes('oral health concern') ||
     key === 'covertMedicationRequired' ||
     key === 'controlledDrugsInUse' ||
+    key === 'capacityDoubt' ||
+    key === 'partialConsentRefusal' ||
+    key === 'consentRestrictions' ||
+    key === 'communicationSupportRequired' ||
     key === 'dolsLpsAuthorisationInPlace' ||
     key === 'infectionPrecautionsRequired' ||
     key === 'oralHealthConcern' ||
@@ -833,6 +856,7 @@ function e2eYesNoValue(q: TemplateQuestion): { checked: boolean; booleanValue: b
     key === 'suSignatureObtained' ||
     key === 'assessorDeclarationConfirmed' ||
     text.includes('consented to this assessment') ||
+    text.includes('consent to this assessment obtained') ||
     text.includes('consented to receive care') ||
     text.includes('capacity intact') ||
     text.includes('mca completed') ||
@@ -928,11 +952,9 @@ function isPersonCentredNarrative(q: TemplateQuestion): boolean {
       'personalHygiene',
       'nightSupport',
       'howICommunicate',
-      'communicationNeeds',
-      'aboutMePriorities',
+      'staffCommunicationInstructions',
       'aboutMeRoutine',
       'foodLikes',
-      'activityLikes',
     ].includes(key)
   ) {
     return true;
@@ -1613,10 +1635,24 @@ function buildAnswer(
           opts[0];
         if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
       }
+      if (key === 'dolConcern' || key === 'dolManagerReview' || key === 'dolAuthorisationStatus') {
+        const code = {
+          dolConcern: level === 'critical' ? 'unsure' : 'no',
+          dolManagerReview: 'referred_manager',
+          dolAuthorisationStatus: 'raised_with_commissioner',
+        }[key];
+        const pick = opts.find((o) => o.value === code) ?? opts[0];
+        if (pick) return { ...base, selectedOptions: pick.value as unknown as Record<string, unknown> };
+      }
       if (opts[0]) return { ...base, selectedOptions: opts[0].value as unknown as Record<string, unknown> };
       return null;
     }
     case 'MULTI_SELECT': {
+      if (key === 'dolRestrictions') {
+        const codes = level === 'critical' ? ['continuous_supervision', 'not_allowed_out_alone'] : ['none'];
+        const picked = opts.filter((o) => codes.includes(o.value));
+        if (picked.length) return { ...base, selectedOptions: picked.map((o) => o.value) };
+      }
       if (opts.length) {
         const pick = level === 'critical' ? opts.slice(0, Math.min(3, opts.length)) : [opts[0]!];
         return { ...base, selectedOptions: pick.map((o) => o.value) };
@@ -2324,6 +2360,19 @@ export function buildHolisticWorksheetMetadata(
       },
       otherEquipmentRequired: level === 'critical' ? 'Profiling bed' : '',
     },
+    agreedGoals: {
+      goals: [
+        {
+          goal:
+            level === 'critical'
+              ? 'To stay safely at home with support after my hospital stay.'
+              : 'To keep washing and dressing myself with a little help.',
+          outcomeArea: level === 'critical' ? 'home_safely' : 'personal_hygiene',
+          measure: 'No falls or hospital readmission at the next review.',
+          targetDate: isoDate(),
+        },
+      ],
+    },
     mentalCapacityChecklist: {
       assessmentType: 'preliminary',
       impairmentAnswer: false,
@@ -2333,6 +2382,8 @@ export function buildHolisticWorksheetMetadata(
       assessorDate: isoDate(),
     },
     photographyConsent: {
+      photographyNeeded: 'yes',
+      statementsAgreed: true,
       surname,
       firstNames,
       dateOfBirth: dob,

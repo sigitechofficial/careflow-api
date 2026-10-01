@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { InitialAssessmentsModule } from '../initial-assessments/initial-assessments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -16,7 +15,6 @@ import { ServiceUserCarePlansService } from './service-user-care-plans.service';
     AuditLogsModule,
     InitialAssessmentsModule,
     forwardRef(() => NotificationsModule),
-    ScheduleModule.forRoot(),
   ],
   controllers: [ServiceUserCarePlansController, ServiceUserCarePlansReviewController],
   providers: [ServiceUserCarePlansService, CarePlanComposeService, CarePlanReviewRemindersJob],

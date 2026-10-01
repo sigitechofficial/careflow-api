@@ -406,6 +406,7 @@ export class ServiceUserCalendarService {
     });
     await this.calendarNotifications.createReminderNotificationIfNeeded({
       event: created,
+      serviceUser: su,
       recipientUserIds: recipients,
       notifyKeyWorker: created.notifyKeyWorker,
       notifyNamedNurse: created.notifyNamedNurse,
@@ -492,6 +493,7 @@ export class ServiceUserCalendarService {
     });
     await this.calendarNotifications.createReminderNotificationIfNeeded({
       event: updated,
+      serviceUser: su,
       recipientUserIds: recipients,
       notifyKeyWorker: updated.notifyKeyWorker,
       notifyNamedNurse: updated.notifyNamedNurse,

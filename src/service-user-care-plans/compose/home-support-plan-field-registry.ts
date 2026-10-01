@@ -293,7 +293,7 @@ export const HSP_FIELD_REGISTRY: readonly HspFieldRegistryEntry[] = [
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['homeAccessInstructions', 'accessInstructions'],
+        iaFieldKeys: ['accessInstructions', 'homeAccessInstructions'],
       },
     ],
     resolverImplemented: true,

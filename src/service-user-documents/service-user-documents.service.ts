@@ -9,6 +9,10 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PatchServiceUserLegalDocumentsDto } from './dto/patch-service-user-legal-documents.dto';
 import { CreateServiceUserDolsRecordDto } from './dto/create-service-user-dols-record.dto';
 import { UpdateServiceUserDolsRecordDto } from './dto/update-service-user-dols-record.dto';
+import {
+  CreateServiceUserLegalAuthorityDto,
+  UpdateServiceUserLegalAuthorityDto,
+} from './dto/service-user-legal-authority.dto';
 
 const DOC_SEGMENTS = ['service-users', 'documents'] as const;
 
@@ -88,6 +92,39 @@ function mapDols(row: {
   };
 }
 
+type LegalAuthorityDbRow = Prisma.ServiceUserLegalAuthorityGetPayload<Record<string, never>>;
+
+const dateOnly = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+
+export function mapLegalAuthority(row: LegalAuthorityDbRow) {
+  return {
+    id: row.id,
+    serviceUserId: row.serviceUserId,
+    category: row.category,
+    holderName: row.holderName,
+    holderRelationship: row.holderRelationship,
+    holderContact: row.holderContact,
+    scope: row.scope,
+    lifeSustainingTreatment: row.lifeSustainingTreatment,
+    registeredOn: dateOnly(row.registeredOn),
+    expiresOn: dateOnly(row.expiresOn),
+    reference: row.reference,
+    verificationStatus: row.verificationStatus,
+    verificationMethod: row.verificationMethod,
+    verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
+    verifiedById: row.verifiedById,
+    documentUrl: row.documentUrl,
+    notes: row.notes,
+    source: row.source,
+    sourceSubmissionId: row.sourceSubmissionId,
+    isActive: row.isActive,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+const EVIDENCED_STATUSES = new Set(['DOCUMENT_SEEN', 'VERIFIED']);
+
 @Injectable()
 export class ServiceUserDocumentsService {
   constructor(
@@ -106,17 +143,22 @@ export class ServiceUserDocumentsService {
 
   async getBundle(serviceUserId: string) {
     await this.ensureServiceUser(serviceUserId);
-    const [legal, dols] = await Promise.all([
+    const [legal, dols, authorities] = await Promise.all([
       this.prisma.serviceUserLegalDocument.findUnique({ where: { serviceUserId } }),
       this.prisma.serviceUserDolsRecord.findMany({
         where: { serviceUserId, deletedAt: null },
         orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.serviceUserLegalAuthority.findMany({
+        where: { serviceUserId, deletedAt: null },
+        orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
       }),
     ]);
     return {
       data: {
         legal: legal ? mapLegalRow(legal) : mapLegalVirtual(serviceUserId),
         dols: dols.map(mapDols),
+        legalAuthorities: authorities.map(mapLegalAuthority),
       },
     };
   }
@@ -408,6 +450,132 @@ export class ServiceUserDocumentsService {
         userAgent: meta?.userAgent ?? undefined,
       });
       return { message: 'DoLS certificate uploaded', data: mapDols(updated) };
+    });
+  }
+
+  private legalAuthorityData(
+    dto: UpdateServiceUserLegalAuthorityDto,
+  ): Prisma.ServiceUserLegalAuthorityUncheckedUpdateInput {
+    const registeredOn = dto.registeredOn === undefined ? undefined : parseOptionalCalendarDate(dto.registeredOn);
+    const expiresOn = dto.expiresOn === undefined ? undefined : parseOptionalCalendarDate(dto.expiresOn);
+    return {
+      ...(dto.category !== undefined ? { category: dto.category } : {}),
+      ...(dto.holderName !== undefined ? { holderName: dto.holderName.trim() } : {}),
+      ...(dto.holderRelationship !== undefined ? { holderRelationship: dto.holderRelationship.trim() } : {}),
+      ...(dto.holderContact !== undefined ? { holderContact: dto.holderContact.trim() } : {}),
+      ...(dto.scope !== undefined ? { scope: dto.scope.trim() } : {}),
+      ...(dto.lifeSustainingTreatment !== undefined ? { lifeSustainingTreatment: dto.lifeSustainingTreatment } : {}),
+      ...(registeredOn !== undefined ? { registeredOn } : {}),
+      ...(expiresOn !== undefined ? { expiresOn } : {}),
+      ...(dto.reference !== undefined ? { reference: dto.reference.trim() } : {}),
+      ...(dto.verificationStatus !== undefined ? { verificationStatus: dto.verificationStatus } : {}),
+      ...(dto.verificationMethod !== undefined ? { verificationMethod: dto.verificationMethod.trim() } : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+    };
+  }
+
+  async createLegalAuthority(
+    userId: string,
+    serviceUserId: string,
+    dto: CreateServiceUserLegalAuthorityDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.ensureServiceUser(serviceUserId);
+    const data = this.legalAuthorityData(dto);
+    const evidenced = EVIDENCED_STATUSES.has(dto.verificationStatus ?? 'REPORTED');
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.serviceUserLegalAuthority.create({
+        data: {
+          ...(data as Prisma.ServiceUserLegalAuthorityUncheckedCreateInput),
+          serviceUserId,
+          category: dto.category,
+          holderName: dto.holderName.trim(),
+          ...(evidenced ? { verifiedAt: new Date(), verifiedById: userId } : {}),
+          createdById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_LEGAL_AUTHORITY_CREATED,
+        recordType: 'ServiceUserLegalAuthority',
+        recordId: created.id,
+        newValues: auditSnapshot(mapLegalAuthority(created)),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return { message: 'Legal authority added', data: mapLegalAuthority(created) };
+    });
+  }
+
+  async updateLegalAuthority(
+    userId: string,
+    serviceUserId: string,
+    authorityId: string,
+    dto: UpdateServiceUserLegalAuthorityDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.ensureServiceUser(serviceUserId);
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.serviceUserLegalAuthority.findFirst({
+        where: { id: authorityId, serviceUserId, deletedAt: null },
+      });
+      if (!before) throw new NotFoundException('Legal authority not found');
+      const data = this.legalAuthorityData(dto);
+      // Who checked it and when — set whenever the status moves to seen / verified.
+      if (
+        dto.verificationStatus !== undefined &&
+        dto.verificationStatus !== before.verificationStatus &&
+        EVIDENCED_STATUSES.has(dto.verificationStatus)
+      ) {
+        data.verifiedAt = new Date();
+        data.verifiedById = userId;
+      }
+      const updated = await tx.serviceUserLegalAuthority.update({
+        where: { id: authorityId },
+        data: { ...data, updatedById: userId },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_LEGAL_AUTHORITY_UPDATED,
+        recordType: 'ServiceUserLegalAuthority',
+        recordId: authorityId,
+        oldValues: auditSnapshot(mapLegalAuthority(before)),
+        newValues: auditSnapshot(mapLegalAuthority(updated)),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return { message: 'Legal authority updated', data: mapLegalAuthority(updated) };
+    });
+  }
+
+  async removeLegalAuthority(userId: string, serviceUserId: string, authorityId: string, meta?: RequestAuditMeta) {
+    await this.ensureServiceUser(serviceUserId);
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.serviceUserLegalAuthority.findFirst({
+        where: { id: authorityId, serviceUserId, deletedAt: null },
+      });
+      if (!before) throw new NotFoundException('Legal authority not found');
+      await tx.serviceUserLegalAuthority.update({
+        where: { id: authorityId },
+        data: { deletedAt: new Date(), deletedById: userId },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_LEGAL_AUTHORITY_DELETED,
+        recordType: 'ServiceUserLegalAuthority',
+        recordId: authorityId,
+        oldValues: auditSnapshot(mapLegalAuthority(before)),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return { message: 'Legal authority removed', data: {} };
     });
   }
 }

@@ -5,7 +5,8 @@ type ShowWhen = {
   gateFieldKey?: string;
   yes?: boolean;
   no?: boolean;
-  selectedIncludes?: string;
+  /** Any of these option values (a single value is still accepted). */
+  selectedIncludes?: string | string[];
 };
 
 type ConditionalRule = {

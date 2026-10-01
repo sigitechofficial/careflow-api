@@ -1,5 +1,10 @@
 import { Prisma } from '@prisma/client';
 import {
+  capacityDecisionForCarers,
+  isCapacityDecisionComplete,
+  normalizeCapacityDecisions,
+} from '../initial-assessments/initial-assessment-capacity-decisions.util';
+import {
   formatPainAssessmentHistorySummary,
   painAssessmentFromMetadata,
 } from '../initial-assessments/initial-assessment-abbey.util';
@@ -86,7 +91,7 @@ type WaterlowMetadata = {
   score?: number;
 };
 
-type FallsScreeningMetadata = {
+export type FallsScreeningMetadata = {
   fallOrConcern?: boolean | null;
   firstScreenSinceLastFall?: 'yes' | 'no' | 'na' | null;
   consentToSixQuestions?: boolean | null;
@@ -269,14 +274,14 @@ function resolveMustAcuteDiseaseScore(meta: MustMetadata): number | undefined {
   return scoreFromOptionId(MUST_STEP_3_ACUTE_DISEASE_OPTIONS, meta.acuteDiseaseOptionId) ?? meta.acuteDiseaseScore;
 }
 
-function computeMustScore(meta: MustMetadata | null | undefined): number {
+export function computeMustScore(meta: MustMetadata | null | undefined): number {
   if (!meta) return 0;
   return (resolveMustBmiScore(meta) ?? 0) +
     (resolveMustWeightLossScore(meta) ?? 0) +
     (resolveMustAcuteDiseaseScore(meta) ?? 0);
 }
 
-function mustStepScoresEntered(meta: MustMetadata | null | undefined): boolean {
+export function mustStepScoresEntered(meta: MustMetadata | null | undefined): boolean {
   if (!meta) return false;
   return (
     resolveMustBmiScore(meta) != null &&
@@ -365,7 +370,7 @@ function boolAnswered(value: boolean | null | undefined): boolean {
   return value === true || value === false;
 }
 
-function isFallsScreeningComplete(meta: FallsScreeningMetadata | undefined): boolean {
+export function isFallsScreeningComplete(meta: FallsScreeningMetadata | undefined): boolean {
   if (!meta) return false;
   if (!boolAnswered(meta.fallOrConcern)) return false;
   if (meta.firstScreenSinceLastFall == null) return false;
@@ -378,7 +383,7 @@ function skinIntegrityCheckHasEntries(metadata: SkinIntegrityCheckMetadata): boo
   return metadata.rows.some((row) => row.right.trim() || row.left.trim());
 }
 
-function getMustMetadata(metadata: Prisma.JsonValue | null | undefined): MustMetadata | undefined {
+export function getMustMetadata(metadata: Prisma.JsonValue | null | undefined): MustMetadata | undefined {
   const base = metadataObject(metadata);
   const mustAssessment = base.mustAssessment;
   if (mustAssessment && typeof mustAssessment === 'object' && !Array.isArray(mustAssessment)) {
@@ -419,7 +424,7 @@ function isEquipmentSelectionComplete(meta: EquipmentSelectionMetadata | undefin
   return Boolean(meta.selectedRiskLevel?.trim() && meta.selectedEquipment?.trim());
 }
 
-function getFallsMetadata(metadata: Prisma.JsonValue | null | undefined): FallsScreeningMetadata | undefined {
+export function getFallsMetadata(metadata: Prisma.JsonValue | null | undefined): FallsScreeningMetadata | undefined {
   const base = metadataObject(metadata);
   const row = base.fallsScreening;
   if (!row || typeof row !== 'object' || Array.isArray(row)) return undefined;
@@ -561,7 +566,20 @@ export function buildIaAssessmentCompletions(context: AssessmentToolContext): As
       assessmentKey: 'mca-screening',
       title: 'MCA screening',
       holisticTabId: 3,
-      buildCompletion: ({ questions, answers }) => {
+      buildCompletion: ({ questions, answers, metadata }) => {
+        // Decision-specific records (one per decision) — what the carer app reads as snapshot.decisions.
+        const decisions = normalizeCapacityDecisions(metadataObject(metadata).capacityDecisions).filter(
+          isCapacityDecisionComplete,
+        );
+        if (decisions.length) {
+          return {
+            assessmentKey: 'mca-screening',
+            title: 'MCA screening',
+            holisticTabId: 3,
+            summary: `Capacity assessed for ${decisions.length} decision${decisions.length === 1 ? '' : 's'}`,
+            snapshot: { decisions: decisions.map(capacityDecisionForCarers), capacityDecisions: decisions },
+          };
+        }
         const required = questions.find((q) => {
           const key = (q.metadata as Record<string, unknown> | null)?.fieldKey;
           return key === 'mcaRequired' || q.questionText.trim().toLowerCase() === 'mca required?';

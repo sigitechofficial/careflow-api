@@ -510,7 +510,7 @@ describe('Care 2020 suggestions for demo personas', () => {
       'SU-1042',
     );
     expect(suggestionFor(culture.result, culture.fields, 'crs_needs_person_centred')?.suggestedValue).toContain(
-      'I am Church of England',
+      'Sunday service',
     );
   });
 

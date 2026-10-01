@@ -16,6 +16,8 @@ import {
   mapReasonableAdjustmentToAlert,
   type ServiceUserAlertItem,
 } from './service-user-alert-mapping.util';
+import { loadCprIaReport, resolveCprStatus } from './employee-app-cpr-status.util';
+import { CARER_VISIBLE_RISK_WHERE, withoutUnreviewedIaRows } from './employee-app-ia-source.util';
 
 /**
  * Aggregates service-user safety alerts for the carer app into one prioritised feed.
@@ -43,7 +45,7 @@ export class EmployeeAppAlertsService {
       }),
       this.prisma.serviceUserLegalDocument.findUnique({
         where: { serviceUserId: clientId },
-        select: { dnacprInPlace: true, dnacprPhysicalLocation: true },
+        select: { dnacprInPlace: true, dnacprStatusConfirmation: true, dnacprPhysicalLocation: true },
       }),
       this.prisma.serviceUserMedicalCondition.findMany({
         where: {
@@ -52,8 +54,8 @@ export class EmployeeAppAlertsService {
           isActive: true,
           status: ServiceUserMedicalConditionStatus.ACTIVE,
         },
-        select: { id: true, notes: true, condition: { select: { code: true, name: true } } },
-      }),
+        select: { id: true, notes: true, sourceSubmissionId: true, condition: { select: { code: true, name: true } } },
+      }).then((rows) => withoutUnreviewedIaRows(this.prisma, rows)),
       this.prisma.serviceUserMedicalAlert.findMany({
         where: {
           serviceUserId: clientId,
@@ -76,7 +78,11 @@ export class EmployeeAppAlertsService {
         select: { id: true, description: true, notes: true },
       }),
       this.prisma.initialAssessmentRiskRecord.findMany({
-        where: { serviceUserId: clientId, status: InitialAssessmentRiskStatus.OPEN },
+        where: {
+          serviceUserId: clientId,
+          status: InitialAssessmentRiskStatus.OPEN,
+          ...CARER_VISIBLE_RISK_WHERE,
+        },
         select: { id: true, riskType: true, riskLevel: true, description: true },
       }),
     ]);
@@ -86,13 +92,10 @@ export class EmployeeAppAlertsService {
     const allergyAlert = mapAllergiesToAlert(allergies.map((a) => a.allergyName));
     if (allergyAlert) alerts.push(allergyAlert);
 
-    if (legal) {
-      const dnacpr = mapDnacprToAlert({
-        dnacprInPlace: legal.dnacprInPlace,
-        location: legal.dnacprPhysicalLocation,
-      });
-      if (dnacpr) alerts.push(dnacpr);
-    }
+    const dnacpr = mapDnacprToAlert(
+      resolveCprStatus(legal, await loadCprIaReport(this.prisma, clientId)),
+    );
+    if (dnacpr) alerts.push(dnacpr);
 
     for (const c of conditions) {
       if (!c.condition) continue;

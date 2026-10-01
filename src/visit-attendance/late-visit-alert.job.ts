@@ -15,6 +15,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import {
+  formatHmInTimeZone,
+  getOperationalTimeZone,
+} from '../common/utils/operational-day.util';
+import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
+
+/** Same office audience as ECM alerts. */
+const LATE_ALERT_ROLE_NAMES: string[] = [
+  IDENTITY_ROLE.SUPER_ADMIN,
+  IDENTITY_ROLE.ADMIN,
+  IDENTITY_ROLE.BRANCH_ADMIN,
+  IDENTITY_ROLE.MANAGER,
+  IDENTITY_ROLE.CARE_COORDINATOR,
+  IDENTITY_ROLE.STAFF_ALLOCATION,
+  IDENTITY_ROLE.MASTER_STAFF_ALLOCATION,
+];
 
 const CLOSED_JOB: ScheduledJobStatus[] = [
   ScheduledJobStatus.COMPLETED,
@@ -56,10 +72,12 @@ export class LateVisitAlertJob {
         domLateVisitAlertEmail: true,
         domLateVisitAlertText: true,
         domLateVisitAlertNotification: true,
+        timezone: true,
       },
     });
 
     if (!settings?.domLateVisitAlertRequired) return;
+    const timeZone = getOperationalTimeZone(settings.timezone);
 
     const thresholdMinutes = Math.max(1, settings.domLateVisitAlertMinutes ?? 15);
     const cutoff = new Date(Date.now() - thresholdMinutes * 60_000);
@@ -142,11 +160,14 @@ export class LateVisitAlertJob {
       const effectiveStart = new Date(Math.min(...plannedStarts.map((d) => d.getTime())));
       if (effectiveStart.getTime() > cutoff.getTime()) continue;
 
-      const suName =
-        job.serviceUser.preferredName?.trim() ||
-        [job.serviceUser.firstName, job.serviceUser.lastName].filter(Boolean).join(' ') ||
+      const su = job.serviceUser;
+      const fullName =
+        [su.firstName, su.lastName].filter(Boolean).join(' ').trim() ||
+        su.preferredName?.trim() ||
         'Service user';
-      const message = `Visit "${job.jobName}" for ${suName} has not started ${thresholdMinutes}+ minutes after planned start (${effectiveStart.toISOString()}).`;
+      const suName = su.preferredName?.trim() || fullName;
+      // jobName already carries the preferred name ("Morning — Harry").
+      const message = `${job.jobName} (${fullName}) has not started. Planned start ${formatHmInTimeZone(effectiveStart, timeZone)}, now ${thresholdMinutes}+ minutes late.`;
 
       let recipientCount = 0;
       if (settings.domLateVisitAlertNotification && this.notifications && recipients.length) {
@@ -154,7 +175,7 @@ export class LateVisitAlertJob {
           await this.notifications.notifyUsers({
             recipientUserIds: recipients,
             type: NotificationType.SCHEDULE_UNALLOCATED_VISIT,
-            title: 'Late visit — not started',
+            title: `Late visit not started — ${suName}`,
             message,
             module: NotificationModule.SCHEDULING,
             severity: NotificationSeverity.WARNING,
@@ -228,7 +249,7 @@ export class LateVisitAlertJob {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Branch Admin', 'Staff Allocation', 'Coordinator'] },
+        name: { in: LATE_ALERT_ROLE_NAMES },
         deletedAt: null,
       },
       select: { id: true },

@@ -85,6 +85,7 @@ export const PAIN_DISTRESS_OPTIONS: OptionSet = {
     { value: 'mild_rest', label: 'Mild at rest' },
     { value: 'moderate_rest', label: 'Moderate at rest' },
     { value: 'severe_rest', label: 'Severe at rest' },
+    { value: 'unable_to_self_report', label: 'Unable to say / signs of pain or distress (use Abbey)' },
     { value: 'pain_assessment_completed', label: 'Pain assessment completed' },
     { value: 'gp_review_requested', label: 'GP review requested' },
   ],
@@ -258,13 +259,48 @@ export const MEDICATION_AWARENESS_OPTIONS: OptionSet = {
   ],
 };
 
+/**
+ * One vocabulary: Independent / Prompt / Assist / Administer / Provided by others. Codes are unchanged
+ * (care plan rules and compose read level_0 … level_2b); `provided_by_others` = carers give none.
+ */
 export const MEDICATION_SUPPORT_LEVEL_OPTIONS: OptionSet = {
   options: [
-    { value: 'level_0', label: 'Level 0 — Independent self-administration' },
-    { value: 'level_1a', label: 'Level 1a — Prompting and reminding' },
-    { value: 'level_1b', label: 'Level 1b — Help with packaging' },
-    { value: 'level_2a', label: 'Level 2a — Assistance administering' },
-    { value: 'level_2b', label: 'Level 2b — Administration by trained staff' },
+    { value: 'level_0', label: 'Independent — manages own medicines' },
+    { value: 'level_1a', label: 'Prompt — carers remind; the person takes them' },
+    { value: 'level_1b', label: 'Assist — carers help open packaging; the person takes them' },
+    { value: 'level_2a', label: 'Assist — carers help the person take them (person in control)' },
+    { value: 'level_2b', label: 'Administer — carers give the medicines (trained staff)' },
+    { value: 'provided_by_others', label: 'Provided by others — family / nurse give all medicines; carers do not' },
+  ],
+};
+
+export const MEDICATION_ORDERING_BY_OPTIONS: OptionSet = {
+  options: [
+    { value: 'person', label: 'The person' },
+    { value: 'family', label: 'Family / friend' },
+    { value: 'care_provider', label: 'Our office' },
+    { value: 'pharmacy', label: 'Pharmacy (managed repeats)' },
+    { value: 'other', label: 'Other' },
+  ],
+};
+
+export const MEDICATION_COLLECTION_BY_OPTIONS: OptionSet = {
+  options: [
+    { value: 'person', label: 'The person' },
+    { value: 'family', label: 'Family / friend' },
+    { value: 'care_provider', label: 'Care staff' },
+    { value: 'pharmacy_delivery', label: 'Pharmacy delivers' },
+    { value: 'other', label: 'Other' },
+  ],
+};
+
+export const MEDICATION_STORAGE_OPTIONS: OptionSet = {
+  options: [
+    { value: 'usual_place', label: 'Kept in the usual place — no special storage' },
+    { value: 'restricted', label: 'Locked or kept out of reach (risk of taking wrongly)' },
+    { value: 'fridge', label: 'Some need a fridge' },
+    { value: 'controlled_drugs', label: 'Controlled drugs stored separately' },
+    { value: 'other', label: 'Other' },
   ],
 };
 

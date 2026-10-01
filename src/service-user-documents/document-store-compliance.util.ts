@@ -207,18 +207,18 @@ export function buildDocumentStoreCompliance(input: {
     );
   }
 
-  // Active DoLS/LPS authorisation needs the authorisation document with expiry.
+  // An active deprivation-of-liberty authorisation needs the authorisation document with expiry.
   if (hasActiveDols) {
     items.push(
       documentPresenceItem({
         key: 'dols_document',
-        label: 'DoLS / LPS authorisation',
+        label: 'Deprivation of liberty authorisation',
         typeCode: 'DOLS_LPS',
         documents,
         blocksCarePlanApproval: true,
         group: 'legal',
-        detailMissing: 'An active DoLS/LPS is recorded — upload the current authorisation.',
-        detailExpired: 'DoLS/LPS authorisation has expired — upload the renewed authorisation.',
+        detailMissing: 'An active deprivation of liberty authorisation is recorded — upload the current Court of Protection order / DoLS authorisation.',
+        detailExpired: 'Deprivation of liberty authorisation has expired — upload the renewed authorisation.',
       }),
     );
   }

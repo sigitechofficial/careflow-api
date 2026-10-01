@@ -49,6 +49,8 @@ import {
   hasUnresolvedBlockingExceptions,
   listUnresolvedBlockingCodes,
   hasPayBlockingExceptions,
+  isAbsentCoCarer,
+  ABSENT_CO_CARER_EXCEPTION_MESSAGE,
   listPayBlockingCodes,
   isCanonicalVisitRef,
   minutesBetween,
@@ -464,8 +466,22 @@ export class VisitReconciliationsService {
     // VIS-[BRANCH]-[YYYYMMDD]-[NNNN]; never reallocated after first creation.
     const sharedVisitRef = await this.resolveOrAllocateVisitRef(db, visit);
 
+    const activeCarerCount = allocations.length;
+    const clockedInAllocationIds = new Set(
+      allocations.filter((a) => a.actualStartDateTime != null).map((a) => a.id),
+    );
+
     let firstId: string | null = null;
     for (const allocation of targets) {
+      // Absent co-carer: no visit-time fallback — pay line held for review instead.
+      const absentCoCarer =
+        allocation.id != null &&
+        isAbsentCoCarer({
+          requiredCarers: visit.requiredCarers ?? 1,
+          activeCarerCount,
+          myActualStartDateTime: allocation.actualStartDateTime,
+          anyCoCarerClockedIn: [...clockedInAllocationIds].some((aid) => aid !== allocation.id),
+        });
       const planned = resolveAllocationWindow(
         {
           scheduledStartDateTime: allocation.scheduledStartDateTime,
@@ -477,16 +493,18 @@ export class VisitReconciliationsService {
           scheduledEndDateTime: visit.scheduledEndDateTime,
         },
       );
-      const actual = resolveAllocationActualWindow(
-        {
-          actualStartDateTime: allocation.actualStartDateTime ?? null,
-          actualEndDateTime: allocation.actualEndDateTime ?? null,
-        },
-        {
-          actualStartDateTime: visit.actualStartDateTime,
-          actualEndDateTime: visit.actualEndDateTime,
-        },
-      );
+      const actual = absentCoCarer
+        ? { start: null, end: null }
+        : resolveAllocationActualWindow(
+            {
+              actualStartDateTime: allocation.actualStartDateTime ?? null,
+              actualEndDateTime: allocation.actualEndDateTime ?? null,
+            },
+            {
+              actualStartDateTime: visit.actualStartDateTime,
+              actualEndDateTime: visit.actualEndDateTime,
+            },
+          );
 
       const existing = allocation.id
         ? await db.visitReconciliation.findFirst({
@@ -1664,6 +1682,7 @@ export class VisitReconciliationsService {
       where: { id: row.scheduledVisitId },
       select: {
         status: true,
+        requiredCarers: true,
         scheduledStartDateTime: true,
         scheduledEndDateTime: true,
         actualStartDateTime: true,
@@ -1707,6 +1726,32 @@ export class VisitReconciliationsService {
       (!options?.forceRecalculateAmounts &&
         visitCompleted &&
         row.payableAmount != null);
+
+    // Multi-carer: a carer who never clocked in (while a co-carer did) gets no normal
+    // pay line — MISSING_CHECK_IN (pay-blocking) and no payable amount until reviewed.
+    let absentCoCarer = false;
+    if (row.jobAllocationId && visitCompleted) {
+      const carers = await db.jobAllocation.findMany({
+        where: {
+          scheduledJobId: row.scheduledJobId,
+          deletedAt: null,
+          isActive: true,
+          status: { in: ACTIVE_ALLOCATION },
+        },
+        select: { id: true, actualStartDateTime: true },
+      });
+      const mine = carers.find((c) => c.id === row.jobAllocationId);
+      absentCoCarer =
+        mine != null &&
+        isAbsentCoCarer({
+          requiredCarers: visit.requiredCarers ?? 1,
+          activeCarerCount: carers.length,
+          myActualStartDateTime: mine.actualStartDateTime,
+          anyCoCarerClockedIn: carers.some(
+            (c) => c.id !== row.jobAllocationId && c.actualStartDateTime != null,
+          ),
+        });
+    }
 
     const tasksIncomplete = await this.hasIncompleteTasks(db, row.scheduledJobId);
     const funding = await this.loadFundingSnapshot(db, row.serviceUserId);
@@ -1818,6 +1863,16 @@ export class VisitReconciliationsService {
       tasksIncomplete,
       funding,
     });
+
+    if (absentCoCarer) {
+      for (let i = exceptions.length - 1; i >= 0; i -= 1) {
+        if (exceptions[i]!.code === FinanceExceptionCode.MISSING_CHECK_IN) exceptions.splice(i, 1);
+      }
+      exceptions.unshift({
+        code: FinanceExceptionCode.MISSING_CHECK_IN,
+        message: ABSENT_CO_CARER_EXCEPTION_MESSAGE,
+      });
+    }
 
     const plannedMinutes = row.plannedEndDateTime
       ? minutesBetween(row.plannedStartDateTime, row.plannedEndDateTime)
@@ -2011,7 +2066,10 @@ export class VisitReconciliationsService {
       dayKeyInTimeZone(row.plannedStartDateTime, timeZone),
     );
 
-    if (freezePayable) {
+    if (absentCoCarer && !manualPayableOverride && !row.includedInPayrollRunId) {
+      // Held for review: no carer pay until finance decides (manual amount / override).
+      payableAmount = null;
+    } else if (freezePayable) {
       payableAmount =
         row.payableAmount != null
           ? Number(row.payableAmount)

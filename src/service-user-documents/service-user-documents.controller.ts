@@ -30,6 +30,10 @@ import { ServiceUserDocumentsService } from './service-user-documents.service';
 import { PatchServiceUserLegalDocumentsDto } from './dto/patch-service-user-legal-documents.dto';
 import { CreateServiceUserDolsRecordDto } from './dto/create-service-user-dols-record.dto';
 import { UpdateServiceUserDolsRecordDto } from './dto/update-service-user-dols-record.dto';
+import {
+  CreateServiceUserLegalAuthorityDto,
+  UpdateServiceUserLegalAuthorityDto,
+} from './dto/service-user-legal-authority.dto';
 
 function documentsUploadRoot() {
   return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'documents');
@@ -153,6 +157,44 @@ export class ServiceUserDocumentsController {
   ) {
     if (!file) throw new BadRequestException('File is required');
     return this.service.uploadLpaFinanceCertificate(user.id, serviceUserId, file, getRequestAuditMeta(req));
+  }
+
+  @Post('legal-authorities')
+  @HttpCode(HttpStatus.CREATED)
+  @AnyPermission('service_users.documents.update', 'service_users.update')
+  @ApiOperation({ summary: 'Add a legal authority (LPA, deputy, court order, appointee…)' })
+  createLegalAuthority(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Body() dto: CreateServiceUserLegalAuthorityDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createLegalAuthority(user.id, serviceUserId, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('legal-authorities/:authorityId')
+  @AnyPermission('service_users.documents.update', 'service_users.update')
+  @ApiOperation({ summary: 'Update / verify a legal authority' })
+  updateLegalAuthority(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('authorityId') authorityId: string,
+    @Body() dto: UpdateServiceUserLegalAuthorityDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateLegalAuthority(user.id, serviceUserId, authorityId, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('legal-authorities/:authorityId')
+  @AnyPermission('service_users.documents.delete', 'service_users.delete')
+  @ApiOperation({ summary: 'Remove a legal authority' })
+  removeLegalAuthority(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('authorityId') authorityId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.removeLegalAuthority(user.id, serviceUserId, authorityId, getRequestAuditMeta(req));
   }
 
   @Post('dols')

@@ -79,18 +79,16 @@ describe('IA demo typed-field dispatch (metadata-driven)', () => {
         ['Mental health team contact', 'contact'],
         ['Safeguarding reference number', 'reference'],
         ['Local authority ID (if funded)', 'identifier'],
-        ['LPOA name', 'personName'],
-        ['LPOA designation', 'professionalRole'],
-        ['LPOA contact details', 'contact'],
+        ['LPA name', 'personName'],
+        ['LPA designation', 'professionalRole'],
+        ['LPA contact details', 'contact'],
         ['Informal carer name', 'personName'],
         ['Social worker contact', 'contact'],
         ['Care manager contact', 'contact'],
         ['Advocate contact', 'contact'],
         ['Preferred hospital', 'location'],
         ['Responsible reviewer (name or role)', 'personName'],
-        ['GP practice and phone', 'contact'],
         ['Pharmacy name and phone', 'contact'],
-        ['GP name', 'personName'],
         ['Height band or height (cm)', 'measurementBand'],
         ['Pain location', 'bodySite'],
         ['Manager informed date and time', 'datetimeText'],
@@ -110,12 +108,12 @@ describe('IA demo typed-field dispatch (metadata-driven)', () => {
     },
   );
 
-  it('GP name-only is a name; GP contact details use the widget Name:/Tel: format', () => {
-    const gpName = byQuestionText(catalog, 'GP name');
+  it('GP lives only in §1.1 GP contact details, using the widget Name:/Tel: format', () => {
+    expect(catalog.find((q) => q.questionText === 'GP name')).toBeUndefined();
+    expect(catalog.find((q) => q.questionText === 'GP practice and phone')).toBeUndefined();
     const gpContact = catalog.find((q) => q.questionText === 'GP contact details')!;
     const answers = fillAllTabs(catalog, 'normal');
-    expect(answers.get(gpName.id)?.textValue).toBe(QA_DEMO_GP_NAME);
-    expect(answers.get(gpName.id)?.textValue).not.toMatch(/Tel:/);
+    expect(answers.get(gpContact.id)?.textValue).toContain(QA_DEMO_GP_NAME);
     expect(answers.get(gpContact.id)?.textValue).toBe(formatQaGpWidgetText());
     expect(answers.get(gpContact.id)?.textValue).toMatch(/^Name: /);
     expect(answers.get(gpContact.id)?.textValue).toMatch(/^Tel: /m);

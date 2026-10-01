@@ -4,12 +4,18 @@
  * identical behaviour — these helpers return null / false so callers skip branching.
  */
 
+import { sortByAssignedOrder } from '../job-allocations/lead-carer.util';
+
 export type EmployeeAppCarerRole = 'lead' | 'support';
 
 export type AllocationLike = {
+  /** Allocation id — tie-break for the fallback lead order. */
+  id?: string;
   employeeId: string;
   status: string;
   isLeadCarer?: boolean;
+  /** Fallback lead order when nobody is flagged lead (earliest first). */
+  allocatedAt?: Date | string | null;
   actualStartDateTime?: Date | string | null;
   actualEndDateTime?: Date | string | null;
 };
@@ -35,15 +41,17 @@ export function isMultiCarerVisit(
 
 /**
  * Resolve lead employee id for a multi-carer visit.
- * Prefers explicit isLeadCarer; otherwise first active allocation.
- * Returns null for single-carer (no lead/support distinction).
+ * Prefers explicit isLeadCarer; otherwise (older data with no lead set) the
+ * active carer with the earliest allocatedAt, tie-break by allocation id — so
+ * the lead does not flip when an allocation row is updated or rows come back
+ * in a different order. Returns null for single-carer (no lead/support distinction).
  */
 export function resolveLeadEmployeeId(
   requiredCarers: number | null | undefined,
   allocations: AllocationLike[],
 ): string | null {
   if (!isMultiCarerVisit(requiredCarers, allocations)) return null;
-  const active = activeAllocations(allocations);
+  const active = sortByAssignedOrder(activeAllocations(allocations));
   const lead = active.find((a) => a.isLeadCarer) ?? active[0];
   return lead?.employeeId ?? null;
 }
@@ -237,3 +245,44 @@ export function buildSupportClockedOutBeforeLeadComplete(input: {
     carers: departed,
   };
 }
+
+/**
+ * Carer's own home-list status. On a shared visit a SUPPORT carer who has clocked
+ * out is done (shown as completed) even while the lead is still on site, so it is
+ * never their active visit. Lead / single-carer: visit status unchanged.
+ */
+export function carerHomeUiStatus<S extends string>(
+  visitUiStatus: S,
+  input: {
+    role: EmployeeAppCarerRole | null;
+    myActualEndDateTime?: Date | string | null;
+  },
+): S | 'completed' {
+  if (input.role !== 'support' || input.myActualEndDateTime == null) return visitUiStatus;
+  if (visitUiStatus === 'in_progress' || visitUiStatus === 'upcoming') return 'completed';
+  return visitUiStatus;
+}
+
+/** Support carer done for this visit (clocked out, or auto-closed at lead clock-out). */
+export function isSupportPartDone(input: {
+  role: EmployeeAppCarerRole | null;
+  myActualEndDateTime?: Date | string | null;
+}): boolean {
+  return input.role === 'support' && input.myActualEndDateTime != null;
+}
+
+/**
+ * Attendance CHECK_OUT that ends the visit. Multi-carer: only the lead's
+ * (pass the resolved lead id); single-carer (lead null): any carer's.
+ */
+export function isVisitCheckOutEvent(
+  event: { eventType: string; employeeId: string },
+  leadEmployeeId: string | null,
+): boolean {
+  if (event.eventType !== 'CHECK_OUT') return false;
+  return leadEmployeeId == null || event.employeeId === leadEmployeeId;
+}
+
+/** 403 when a SUPPORT carer tries to write a clinical / care record on a shared visit. */
+export const SUPPORT_READ_ONLY_CODE = 'SUPPORT_READ_ONLY';
+export const SUPPORT_READ_ONLY_MESSAGE = 'Only the lead carer can record this on a shared visit.';

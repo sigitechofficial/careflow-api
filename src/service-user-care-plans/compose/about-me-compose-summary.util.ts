@@ -12,6 +12,8 @@ export type AboutMeComposeSummary = {
   meaningfulActivities: string | null;
   goodDay: string | null;
   nightSupport: string | null;
+  /** About Me profile only — the IA no longer asks it (ADL / Practical Task cover the task). */
+  shopping?: string | null;
 };
 
 const ABOUT_ME_REF_TYPE = 'SU_ABOUT_ME_V1';
@@ -82,6 +84,7 @@ export function parseAboutMeReferenceJson(raw: string | null | undefined): About
       ]),
       goodDay: readString(parsed, 'whatMakesAGoodDay'),
       nightSupport: readString(parsed, 'nightSupport'),
+      shopping: readString(parsed, 'shoppingArrangements'),
     };
   } catch {
     return null;

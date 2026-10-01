@@ -25,6 +25,7 @@ import {
 } from '../service-user-visit-plans/visit-plan-night-duty.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
+import { carerHomeUiStatus, resolveCarerRole } from './employee-app-multi-carer.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -127,7 +128,15 @@ export class EmployeeAppHomeService {
               },
               allocations: {
                 where: { deletedAt: null, isActive: true, status: { in: ACTIVE_ALLOCATION } },
-                select: { id: true },
+                // Lead resolution (multi-carer): explicit lead, else earliest assigned.
+                orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
+                select: {
+                  id: true,
+                  employeeId: true,
+                  status: true,
+                  isLeadCarer: true,
+                  allocatedAt: true,
+                },
               },
             },
           },
@@ -156,7 +165,12 @@ export class EmployeeAppHomeService {
       const allergyNames = allergies.get(job.serviceUserId) ?? [];
       const medicationCount = medCounts.get(job.serviceUserId) ?? 0;
       const taskProgress = taskProgressByJobId.get(job.id) ?? { completed: 0, total: 0 };
-      const uiStatus = mapUiStatus(job.status, primaryVisit?.status ?? null);
+      // Support on a shared visit: once they clock out their part is done — never
+      // their active / in-progress visit (they can clock in to the next one).
+      const uiStatus = carerHomeUiStatus(mapUiStatus(job.status, primaryVisit?.status ?? null), {
+        role: resolveCarerRole(employeeId, job.requiredCarers, job.allocations),
+        myActualEndDateTime: allocation.actualEndDateTime,
+      });
       const resolved = resolveAllocationWindow(allocation, {
         scheduledStartDateTime: job.scheduledStartDateTime,
         scheduledEndDateTime: job.scheduledEndDateTime,

@@ -8,6 +8,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { requiredServiceUserFields } from './helpers/service-user-required-fields';
 
 const shouldRun = Boolean(process.env.DATABASE_URL);
 const describeSu = shouldRun ? describe : describe.skip;
@@ -15,6 +16,7 @@ const describeSu = shouldRun ? describe : describe.skip;
 describeSu('Service users (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let suRequired: Awaited<ReturnType<typeof requiredServiceUserFields>>;
   let accessToken: string;
 
   beforeAll(async () => {
@@ -33,6 +35,7 @@ describeSu('Service users (e2e)', () => {
     );
     await app.init();
     prisma = app.get(PrismaService);
+    suRequired = await requiredServiceUserFields(prisma);
 
     const keys = [
       'service_users.read',
@@ -116,11 +119,23 @@ describeSu('Service users (e2e)', () => {
       .expect(400);
   });
 
+  it('POST /service-users rejects each missing required field', async () => {
+    for (const field of Object.keys(suRequired) as Array<keyof typeof suRequired>) {
+      const body: Record<string, string> = { firstName: 'Req', lastName: 'Field', ...suRequired };
+      delete body[field];
+      const res = await request(app.getHttpServer())
+        .post('/service-users')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(body);
+      expect({ field, status: res.status }).toEqual({ field, status: 400 });
+    }
+  });
+
   it('POST /service-users rejects invalid email', async () => {
     await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'A', lastName: 'B', email: 'not-an-email' })
+      .send({ ...suRequired, firstName: 'A', lastName: 'B', email: 'not-an-email' })
       .expect(400);
   });
 
@@ -128,7 +143,7 @@ describeSu('Service users (e2e)', () => {
     const create = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'E2E', lastName: 'TestUser', email: `e2e.su.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'E2E', lastName: 'TestUser', email: `e2e.su.${Date.now()}@example.com` })
       .expect(201);
     const id = create.body.data?.id as string;
     expect(id).toBeTruthy();
@@ -187,7 +202,7 @@ describeSu('Service users (e2e)', () => {
     const create = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'Primary', lastName: 'Test', email: `e2e.pc.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'Primary', lastName: 'Test', email: `e2e.pc.${Date.now()}@example.com` })
       .expect(201);
     const id = create.body.data.id as string;
 
@@ -220,7 +235,7 @@ describeSu('Service users (e2e)', () => {
     const create = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'Assign', lastName: 'Test', email: `e2e.as.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'Assign', lastName: 'Test', email: `e2e.as.${Date.now()}@example.com` })
       .expect(201);
     const id = create.body.data.id as string;
     const fakeEmp = '00000000-0000-4000-8000-000000000001';
@@ -239,7 +254,7 @@ describeSu('Service users (e2e)', () => {
     const create = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'Dom', lastName: 'CareE2E', email: `e2e.dom.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'Dom', lastName: 'CareE2E', email: `e2e.dom.${Date.now()}@example.com` })
       .expect(201);
     const id = create.body.data?.id as string;
     expect(id).toBeTruthy();
@@ -259,7 +274,7 @@ describeSu('Service users (e2e)', () => {
     const create = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'IA', lastName: 'E2E', email: `e2e.ia.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'IA', lastName: 'E2E', email: `e2e.ia.${Date.now()}@example.com` })
       .expect(201);
     const id = create.body.data?.id as string;
     expect(id).toBeTruthy();
