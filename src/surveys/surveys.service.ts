@@ -74,6 +74,9 @@ export class SurveysService {
     const completedMap = new Map(
       completedBySurvey.map((row) => [row.surveyId, row._count._all] as const),
     );
+    const creatorMap = await this.loadUserNameMap(
+      rows.map((r) => r.createdById).filter((id): id is string => Boolean(id)),
+    );
 
     return {
       message: 'Surveys',
@@ -100,6 +103,8 @@ export class SurveysService {
           recipientCount: recipients,
           completedCount: completed,
           responseRate: recipients > 0 ? Math.round((completed / recipients) * 100) : 0,
+          createdById: r.createdById ?? null,
+          createdByName: r.createdById ? (creatorMap.get(r.createdById) ?? null) : null,
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
         };
@@ -119,9 +124,10 @@ export class SurveysService {
       where: { surveyId: id, deletedAt: null },
       orderBy: { sortOrder: 'asc' },
     });
-    const [recipientCount, responseCount] = await Promise.all([
+    const [recipientCount, responseCount, creatorMap] = await Promise.all([
       this.prisma.surveyRecipient.count({ where: { surveyId: id } }),
       this.prisma.surveyResponse.count({ where: { recipient: { surveyId: id } } }),
+      this.loadUserNameMap(row.createdById ? [row.createdById] : []),
     ]);
 
     return {
@@ -142,6 +148,8 @@ export class SurveysService {
         clonedFromId: row.clonedFromId ?? null,
         locationIds: row.locationIds,
         shareToken: row.shareToken,
+        createdById: row.createdById ?? null,
+        createdByName: row.createdById ? (creatorMap.get(row.createdById) ?? null) : null,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         recipientCount,
@@ -690,7 +698,7 @@ export class SurveysService {
     return out;
   }
 
-  /** Basic results rollup: recipient/response counts by status.
+  /** Basic results rollup: recipient/response counts by status + per-question summary.
    * Recurring templates include recipients from all period clones.
    */
   async results(surveyId: string) {
@@ -705,10 +713,31 @@ export class SurveysService {
     }
 
     const where = { surveyId: { in: surveyIds } };
-    const [recipients, completed] = await Promise.all([
+    const [recipients, completed, questions, answers] = await Promise.all([
       this.prisma.surveyRecipient.count({ where }),
       this.prisma.surveyRecipient.count({ where: { ...where, status: 'COMPLETED' } }),
+      this.prisma.surveyQuestion.findMany({
+        where: { surveyId, deletedAt: null },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.surveyAnswer.findMany({
+        where: { response: { recipient: { surveyId: { in: surveyIds } } } },
+        include: {
+          question: {
+            select: {
+              id: true,
+              surveyId: true,
+              questionText: true,
+              questionType: true,
+              sortOrder: true,
+              options: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
+
     return {
       message: 'Survey results',
       data: {
@@ -716,8 +745,130 @@ export class SurveysService {
         completed,
         responseRate: recipients > 0 ? Math.round((completed / recipients) * 100) : 0,
         includesPeriodRuns: surveyIds.length > 1,
+        questionSummaries: this.buildQuestionSummaries(questions, answers),
       },
     };
+  }
+
+  private async loadUserNameMap(userIds: string[]): Promise<Map<string, string>> {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    const map = new Map<string, string>();
+    if (ids.length === 0) return map;
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    for (const u of users) {
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+      map.set(u.id, name || u.email || 'User');
+    }
+    return map;
+  }
+
+  private buildQuestionSummaries(
+    questions: Array<{
+      id: string;
+      questionText: string;
+      questionType: SurveyQuestionType;
+      sortOrder: number;
+      options: Prisma.JsonValue;
+    }>,
+    answers: Array<{
+      booleanValue: boolean | null;
+      textValue: string | null;
+      numberValue: Prisma.Decimal | null;
+      selectedOptions: Prisma.JsonValue;
+      question: {
+        id: string;
+        surveyId: string;
+        questionText: string;
+        questionType: SurveyQuestionType;
+        sortOrder: number;
+        options: Prisma.JsonValue;
+      };
+    }>,
+  ) {
+    const byKey = new Map<string, typeof answers>();
+    for (const a of answers) {
+      const key = `${a.question.sortOrder}::${a.question.questionType}::${a.question.questionText}`;
+      const list = byKey.get(key) ?? [];
+      list.push(a);
+      byKey.set(key, list);
+    }
+
+    return questions.map((q) => {
+      const key = `${q.sortOrder}::${q.questionType}::${q.questionText}`;
+      const qAnswers = byKey.get(key) ?? [];
+      const answerCount = qAnswers.length;
+      const base = {
+        questionId: q.id,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        sortOrder: q.sortOrder,
+        answerCount,
+      };
+
+      if (
+        q.questionType === SurveyQuestionType.YES_NO ||
+        q.questionType === SurveyQuestionType.SINGLE_SELECT ||
+        q.questionType === SurveyQuestionType.MULTI_SELECT ||
+        q.questionType === SurveyQuestionType.LIKERT
+      ) {
+        const counts = new Map<string, number>();
+        if (q.questionType === SurveyQuestionType.YES_NO) {
+          counts.set('Yes', 0);
+          counts.set('No', 0);
+          for (const a of qAnswers) {
+            if (a.booleanValue === true) counts.set('Yes', (counts.get('Yes') ?? 0) + 1);
+            else if (a.booleanValue === false) counts.set('No', (counts.get('No') ?? 0) + 1);
+          }
+        } else {
+          const configured =
+            q.questionType === SurveyQuestionType.LIKERT
+              ? this.normalizeOptions(q.questionType, q.options) ?? []
+              : this.asStringArray(q.options);
+          for (const opt of configured) counts.set(opt, 0);
+          for (const a of qAnswers) {
+            const selected = Array.isArray(a.selectedOptions)
+              ? a.selectedOptions.filter((v): v is string => typeof v === 'string')
+              : [];
+            for (const opt of selected) {
+              counts.set(opt, (counts.get(opt) ?? 0) + 1);
+            }
+          }
+        }
+        const options = [...counts.entries()].map(([label, count]) => ({
+          label,
+          count,
+          percent: answerCount > 0 ? Math.round((count / answerCount) * 100) : 0,
+        }));
+        return { ...base, options };
+      }
+
+      if (
+        q.questionType === SurveyQuestionType.NUMBER ||
+        q.questionType === SurveyQuestionType.RATING
+      ) {
+        const nums = qAnswers
+          .map((a) => (a.numberValue === null || a.numberValue === undefined ? null : Number(a.numberValue)))
+          .filter((n): n is number => n !== null && !Number.isNaN(n));
+        const sum = nums.reduce((acc, n) => acc + n, 0);
+        return {
+          ...base,
+          numeric: {
+            average: nums.length ? Math.round((sum / nums.length) * 100) / 100 : null,
+            min: nums.length ? Math.min(...nums) : null,
+            max: nums.length ? Math.max(...nums) : null,
+          },
+        };
+      }
+
+      const textSamples = qAnswers
+        .map((a) => a.textValue?.trim() ?? '')
+        .filter(Boolean)
+        .slice(0, 5);
+      return { ...base, textSamples };
+    });
   }
 
   /** Admin: submitted responses with answers (respects anonymous surveys). */
