@@ -1,9 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { SurveyRespondentRelation } from '@prisma/client';
 import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -47,4 +49,22 @@ export class SubmitSurveyResponseDto {
   @ValidateNested({ each: true })
   @Type(() => SurveyAnswerItemDto)
   answers!: SurveyAnswerItemDto[];
+
+  @ApiPropertyOptional({
+    enum: SurveyRespondentRelation,
+    description:
+      'Service-user surveys: who is answering (required for service-user links).',
+  })
+  @IsOptional()
+  @IsEnum(SurveyRespondentRelation)
+  respondentRelation?: SurveyRespondentRelation;
+
+  @ApiPropertyOptional({
+    maxLength: 200,
+    description: 'Name of the family member / representative.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  respondentName?: string;
 }

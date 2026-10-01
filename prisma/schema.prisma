@@ -11714,6 +11714,15 @@ enum SurveyRecurrence {
   @@schema("surveys")
 }
 
+/// Who actually answered a service-user survey (the service user or someone on their behalf).
+enum SurveyRespondentRelation {
+  SELF
+  FAMILY_MEMBER
+  REPRESENTATIVE
+
+  @@schema("surveys")
+}
+
 model Survey {
   id          String           @id @default(uuid()) @db.Uuid
   title       String
@@ -11807,6 +11816,10 @@ model SurveyResponse {
   id            String   @id @default(uuid()) @db.Uuid
   recipientId   String   @unique @db.Uuid
   submittedById String?  @db.Uuid
+  /// Service-user surveys: who answered (self / family member / representative).
+  respondentRelation SurveyRespondentRelation?
+  /// Name of the family member / representative when not answered by the service user.
+  respondentName     String?
   submittedAt   DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
