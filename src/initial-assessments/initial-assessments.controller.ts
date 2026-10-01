@@ -80,6 +80,13 @@ export class InitialAssessmentsController {
     return this.service.getAcceptedCarePlans(user.id, serviceUserId, getRequestAuditMeta(req));
   }
 
+  @Get('lone-worker-facts')
+  @ApiOperation({ summary: 'Staff-safety facts the system already holds (visit plan, SOS, incidents)' })
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  loneWorkerFacts(@Param('id') serviceUserId: string) {
+    return this.service.getLoneWorkerSystemFacts(serviceUserId);
+  }
+
   @Get(':submissionId')
   @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
   getOne(

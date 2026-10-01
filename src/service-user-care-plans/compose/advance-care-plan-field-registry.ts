@@ -78,7 +78,7 @@ export const ACP_FIELD_REGISTRY: readonly AcpFieldRegistryEntry[] = [
       {
         kind: 'MANUAL',
         notes:
-          'Scoped to advance care planning. IA needs questions (supportOther, communicationNeeds) describe general care needs — wrong scope.',
+          'Scoped to advance care planning. IA needs questions (supportOther, staffCommunicationInstructions) describe general care needs — wrong scope.',
       },
     ],
   },

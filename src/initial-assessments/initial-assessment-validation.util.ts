@@ -5,7 +5,27 @@ import {
   type InitialAssessmentAgencySettings,
 } from './initial-assessment-agency-settings.util';
 import { buildFallsAssessmentSnapshot } from './initial-assessment-clinical.util';
-import { shouldShowQuestionForValidation } from './initial-assessment-conditional-visibility.util';
+import { FALLS_ASSESSMENT_REQUIRED_MESSAGE } from './initial-assessment-falls.util';
+import {
+  specialistInputsFromSubmission,
+  specialistRequiredIssues,
+} from './initial-assessment-specialist-relevance.util';
+import {
+  capacityDecisionIssues,
+  completedDecisionFor,
+  normalizeCapacityDecisions,
+  refusalContextFromDecision,
+  usesLegacyCapacityScreening,
+  type CapacityDecisionType,
+} from './initial-assessment-capacity-decisions.util';
+import {
+  consentRefusalRoute,
+  LEGAL_AUTHORITY_WITH_DECISION_MAKER,
+} from './initial-assessment-consent-refusal.util';
+import {
+  isCapacityInDoubt,
+  shouldShowQuestionForValidation,
+} from './initial-assessment-conditional-visibility.util';
 import { adlWorksheetRowsComplete } from './initial-assessment-adl.util';
 import { waterlowScoreFromMetadata } from './initial-assessment-waterlow.util';
 
@@ -20,6 +40,7 @@ export type ValidationIssue = {
 /** Missing answers / worksheets — allowed when user confirms incomplete submit. */
 export function isSkippableIncompleteValidationMessage(message: string): boolean {
   if (message.startsWith('Required: ')) return true;
+  if (message.startsWith('Specialist assessment required:')) return true;
   if (message.startsWith('Assessor sign-off required:')) return true;
   if (message.includes('Next review date is required')) return true;
   if (message.includes('ADL dependency scores incomplete')) return true;
@@ -27,7 +48,21 @@ export function isSkippableIncompleteValidationMessage(message: string): boolean
   if (message.includes('Falls trigger assessment') || message.includes('Falls assessment')) return true;
   if (message.includes('Mobility aids')) return true;
   if (message.includes('Emergency contact 1 not recorded')) return true;
+  if (message.startsWith('Agreed goals:')) return true;
+  if (message.startsWith('Capacity assessment incomplete')) return true;
   return false;
+}
+
+/** At least one goal agreed with the person on the final tab (`metadata.agreedGoals.goals`). */
+export function hasAgreedGoal(metadata: Prisma.JsonValue | null | undefined): boolean {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false;
+  const block = (metadata as Record<string, unknown>).agreedGoals;
+  if (!block || typeof block !== 'object' || Array.isArray(block)) return false;
+  const goals = (block as Record<string, unknown>).goals;
+  return (
+    Array.isArray(goals) &&
+    goals.some((g) => !!g && typeof g === 'object' && typeof (g as { goal?: unknown }).goal === 'string' && (g as { goal: string }).goal.trim() !== '')
+  );
 }
 
 export function partitionSubmitValidationBlocks(blocks: ValidationIssue[]) {
@@ -176,29 +211,96 @@ export function validateInitialAssessmentSubmission(params: {
 
   const map = new Map(answers.map((a) => [a.questionId, a]));
 
-  const consentQ = findBySpecRef(questions, '2.1');
-  if (consentQ && isExplicitNo(map, consentQ)) {
-    blocks.push({
-      message: 'Consent to assessment is No — cannot submit (section 2.1)',
+  const capacityInDoubt = isCapacityInDoubt(questions, map);
+  // A refusal is never ignored (CQC Regulation 11, MCA 2005) — see consentRefusalRoute. Mirrors admin
+  // submit-validation.
+  const selectedOf = (fieldKey: string): string | undefined => {
+    const q = findByFieldKey(questions, fieldKey);
+    const raw = q ? answerFor(map, q.id)?.selectedOptions : undefined;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    return typeof value === 'string' ? value : undefined;
+  };
+  const biRequiredQ =
+    findByFieldKey(questions, 'bestInterestDecisionRequired') ??
+    findByQuestionTextIncludes(questions, 'best interest decision required');
+  const biDetailsQ =
+    findByFieldKey(questions, 'bestInterestDecisionDetails') ??
+    findByQuestionTextIncludes(questions, 'best interest decision details');
+  const biDetailsText = biDetailsQ ? answerFor(map, biDetailsQ.id)?.textValue ?? '' : '';
+  const refusalContext = {
+    capacityInDoubt,
+    lacksCapacity: selectedOf('mcaScreeningOutcome') === 'lacks_capacity',
+    bestInterestRecorded:
+      Boolean(biRequiredQ && isYes(map, biRequiredQ)) &&
+      biDetailsText.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim().length > 0,
+    coveringAuthority: (LEGAL_AUTHORITY_WITH_DECISION_MAKER as readonly string[]).includes(
+      selectedOf('legalAuthority') ?? '',
+    ),
+  };
+  // Decision-specific capacity records (metadata.capacityDecisions) replace the one global screening;
+  // IAs that only have the old §2.mca screening keep the old rules.
+  const capacityRecords = normalizeCapacityDecisions(
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>).capacityDecisions
+      : undefined,
+  );
+  const legacyScreeningAnswered = questions.some(
+    (q) => specRefOf(q) === '2.mca' && isAnswered(q, answerFor(map, q.id)),
+  );
+  const legacyCapacity = usesLegacyCapacityScreening(capacityRecords, legacyScreeningAnswered);
+  const consentQ = findByFieldKey(questions, 'consentToAssessment') ?? findBySpecRef(questions, '2.1');
+  const careConsentQ = findByFieldKey(questions, 'consentToCare') ?? findBySpecRef(questions, '2.2');
+  for (const [q, label, ref, decision] of [
+    [consentQ, 'Consent to assessment', '2.1', 'consent_to_assessment'],
+    [careConsentQ, 'Consent to receive care', '2.2', 'consent_to_care'],
+  ] as const) {
+    const fromDecision = legacyCapacity
+      ? null
+      : refusalContextFromDecision(completedDecisionFor(capacityRecords, decision as CapacityDecisionType));
+    const route = consentRefusalRoute({
+      ...refusalContext,
+      ...(fromDecision
+        ? {
+            hasCapacityForDecision: fromDecision.hasCapacity,
+            lacksCapacity: fromDecision.lacksCapacity,
+            bestInterestRecorded: fromDecision.bestInterestRecorded,
+            coveringAuthority: fromDecision.coveringAuthority,
+          }
+        : {}),
+      refused: Boolean(q && isExplicitNo(map, q)),
+    });
+    if (route === 'refusal_stands') {
+      blocks.push({ message: `${label} is No — cannot submit (section ${ref})`, sectionNumber: 2, blocking: true });
+    } else if (route === 'needs_capacity_and_best_interests') {
+      blocks.push({
+        message: `${label} is No and capacity is in doubt — record the capacity assessment for this decision and a best-interests decision (including the person's wishes and objection) or a covering legal authority (section ${ref})`,
+        sectionNumber: 2,
+        blocking: true,
+      });
+    } else if (route === 'proceed_with_manager_review') {
+      warnings.push({
+        message: `${label} refused by a person assessed as lacking capacity — manager review required; their wishes and objection must be considered (section ${ref})`,
+        sectionNumber: 2,
+        blocking: false,
+      });
+    }
+  }
+
+  const understandsQ = findByFieldKey(questions, 'understandsAssessmentInfo');
+  const understands = understandsQ ? answerFor(map, understandsQ.id)?.selectedOptions : undefined;
+  const understandsValue = Array.isArray(understands) ? understands[0] : understands;
+  if ((understandsValue === 'no' || understandsValue === 'unsure') && !capacityInDoubt) {
+    warnings.push({
+      message: 'Service user may not understand the assessment — consider a Mental Capacity Assessment (section 2.3)',
       sectionNumber: 2,
-      blocking: true,
+      blocking: false,
     });
   }
 
-  const careConsentQ = findBySpecRef(questions, '2.2');
-  if (careConsentQ && isExplicitNo(map, careConsentQ)) {
-    blocks.push({
-      message: 'Consent to receive care is No — cannot submit (section 2.2)',
-      sectionNumber: 2,
-      blocking: true,
-    });
-  }
-
-  const capacityQ = findBySpecRef(questions, '2.4');
   const mcaDone = findByQuestionTextIncludes(questions, 'mca completed');
-  if (capacityQ && isExplicitNo(map, capacityQ) && (!mcaDone || !isYes(map, mcaDone))) {
+  if (capacityInDoubt && (!mcaDone || !isYes(map, mcaDone))) {
     blocks.push({
-      message: 'Capacity not intact — MCA must be completed before submit (section 2.4–2.5)',
+      message: 'Capacity in doubt — MCA must be completed before submit (section 2.4–2.5)',
       sectionNumber: 2,
       blocking: true,
     });
@@ -243,26 +345,23 @@ export function validateInitialAssessmentSubmission(params: {
     }
   }
 
-  const fallsReportedQ = findBySpecRefAndText(questions, '12.7', 'falls in');
-  const fallsAssessedQ = findBySpecRefAndText(questions, '12.7', 'assessment completed');
-  const fallsAssessedDateQ = findBySpecRefAndText(questions, '12.7', 'assessment date');
-  if (fallsReportedQ && isYes(map, fallsReportedQ) && fallsAssessedQ && !isYes(map, fallsAssessedQ)) {
-    blocks.push({
-      message: 'Falls reported but falls assessment not completed (section 12.7)',
+  // Falls: case-finding (§12.7, always asked) decides whether the Falls tab is needed. Mirrors
+  // admin submit-validation — change both together.
+  const fallsSnapshot = buildFallsAssessmentSnapshot({ questions, answers, metadata });
+  if (fallsSnapshot.caseFinding?.status === 'required' && fallsSnapshot.assessmentCompleted !== true) {
+    blocks.push({ message: FALLS_ASSESSMENT_REQUIRED_MESSAGE, sectionNumber: 12, blocking: true });
+  } else if (fallsSnapshot.caseFinding?.status === 'suggested' && fallsSnapshot.assessmentCompleted !== true) {
+    warnings.push({
+      message: `Falls assessment suggested — ${fallsSnapshot.caseFinding.reasons.join(', ').toLowerCase()} recorded (section 12.7)`,
       sectionNumber: 12,
-      blocking: true,
+      blocking: false,
     });
   }
-  if (
-    fallsAssessedQ &&
-    isYes(map, fallsAssessedQ) &&
-    fallsAssessedDateQ &&
-    !isAnswered(fallsAssessedDateQ, answerFor(map, fallsAssessedDateQ.id))
-  ) {
-    blocks.push({
-      message: 'Falls assessment completed but date is missing (section 12.7)',
+  if (fallsSnapshot.injuryCaused === true) {
+    warnings.push({
+      message: 'Fall-related injury reported — manager review recommended (section 12.7)',
       sectionNumber: 12,
-      blocking: true,
+      blocking: false,
     });
   }
 
@@ -315,25 +414,43 @@ export function validateInitialAssessmentSubmission(params: {
 
   if (!adlRowsComplete(metadata)) {
     blocks.push({
-      message: 'ADL dependency scores incomplete — complete all six activities in section 12 (§12.1–12.6)',
+      message: 'ADL dependency scores incomplete — score all activities in the worksheet (section 12, §12.2–12.6)',
       sectionNumber: 12,
       blocking: true,
     });
   }
 
-  const fallsSnapshot = buildFallsAssessmentSnapshot({ questions, answers, metadata });
-  if (fallsSnapshot.riskLevel === 'HIGH') {
-    warnings.push({
-      message: 'High falls risk score — manager review recommended (section 12.7)',
+  // §12.8 mobility aids (ADL worksheet footer). Mirrors admin submit-validation.
+  const adlMeta =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? ((metadata as Record<string, unknown>).adl as Record<string, unknown> | undefined)
+      : undefined;
+  const mobilityAidsRequired = adlMeta?.mobilityAidsRequired;
+  if (mobilityAidsRequired !== true && mobilityAidsRequired !== false) {
+    blocks.push({
+      message: 'Mobility aids in use or required not answered (section 12.8)',
       sectionNumber: 12,
-      blocking: false,
+      blocking: true,
+    });
+  } else if (
+    mobilityAidsRequired === true &&
+    !(typeof adlMeta?.mobilityAidsList === 'string' && adlMeta.mobilityAidsList.trim())
+  ) {
+    blocks.push({
+      message: 'Mobility aids list required when aids are in use (section 12.8)',
+      sectionNumber: 12,
+      blocking: true,
     });
   }
-  if (fallsSnapshot.injuryCaused === true) {
-    warnings.push({
-      message: 'Fall-related injury reported — manager review recommended (section 12.7)',
-      sectionNumber: 12,
-      blocking: false,
+
+  // Waterlow (Tab 10) is the master: a "pressure ulcer risk assessment completed" answer needs a score.
+  const pressureRiskQ = findByQuestionTextIncludes(questions, 'pressure ulcer risk assessment completed');
+  const waterlowScored = waterlowScoreFromMetadata(metadata) > 0;
+  if (pressureRiskQ && isYes(map, pressureRiskQ) && !waterlowScored) {
+    blocks.push({
+      message: 'Complete the Waterlow assessment (gender and age bands required)',
+      sectionNumber: 11,
+      blocking: true,
     });
   }
 
@@ -350,6 +467,14 @@ export function validateInitialAssessmentSubmission(params: {
     }
   }
 
+  if (!hasAgreedGoal(metadata)) {
+    blocks.push({
+      message: 'Agreed goals: add at least one goal agreed with the person',
+      sectionNumber: 14,
+      blocking: true,
+    });
+  }
+
   const nextReviewQ = findByFieldKey(questions, 'nextReviewDate');
   if (agencySettings.requireNextReviewDate && nextReviewQ && !isAnswered(nextReviewQ, answerFor(map, nextReviewQ.id))) {
     blocks.push({
@@ -361,6 +486,8 @@ export function validateInitialAssessmentSubmission(params: {
 
   for (const q of questions) {
     if (!q.isRequired) continue;
+    // The old global screening is only required on IAs that already use it.
+    if (!legacyCapacity && specRefOf(q) === '2.mca') continue;
     if (!shouldShowQuestionForValidation(q, questions, map)) continue;
     if (isAnswered(q, answerFor(map, q.id))) continue;
     blocks.push({
@@ -368,6 +495,25 @@ export function validateInitialAssessmentSubmission(params: {
       sectionNumber: q.section.sectionNumber,
       blocking: true,
     });
+  }
+
+  const capacityInputs = specialistInputsFromSubmission({ questions, answers, metadata });
+  const capacity = capacityDecisionIssues(
+    capacityRecords,
+    {
+      capacityDoubt: capacityInputs.capacityDoubt,
+      covertMedication: capacityInputs.covertMedication,
+      dolRestrictions: capacityInputs.dolRestrictions,
+      dolConcern: capacityInputs.dolConcern,
+    },
+    legacyScreeningAnswered,
+  );
+  for (const message of capacity.blocks) blocks.push({ message, sectionNumber: 2, blocking: true });
+  for (const message of capacity.warnings) warnings.push({ message, sectionNumber: 2, blocking: false });
+
+  // Specialist worksheets the Core IA screening makes Required (see specialist-relevance rules).
+  for (const issue of specialistRequiredIssues({ questions, answers, metadata })) {
+    blocks.push({ message: issue.message, sectionNumber: 0, blocking: true });
   }
 
   const competentQ = questions.find(
@@ -399,6 +545,13 @@ export function validateInitialAssessmentSubmission(params: {
 
   const wl = waterlowScoreFromMetadata(metadata);
   const waterlowThreshold = agencySettings.managerReviewWaterlowThreshold;
+  if (wl >= 10) {
+    warnings.push({
+      message: 'Waterlow score 10+ — pressure ulcer prevention care plan required',
+      sectionNumber: 11,
+      blocking: false,
+    });
+  }
 
   if (wl >= waterlowThreshold) {
     warnings.push({
@@ -417,7 +570,15 @@ export function validateInitialAssessmentSubmission(params: {
   }
 
   const loneWorkerQ = findByQuestionTextIncludes(questions, 'lone worker risk');
-  if (loneWorkerQ && isYes(map, loneWorkerQ)) {
+  const env =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>).environmentAssessment
+      : null;
+  const loneWorkerFromWorksheet =
+    env && typeof env === 'object' && !Array.isArray(env)
+      ? (env as Record<string, unknown>).loneWorkerRiskIdentified === true
+      : false;
+  if ((loneWorkerQ && isYes(map, loneWorkerQ)) || loneWorkerFromWorksheet) {
     warnings.push({
       message: 'Lone worker risk identified — double-up visits may be required',
       sectionNumber: 3,

@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { carerAuthorityCards } from '../service-user-documents/legal-authority-coverage.util';
 import {
   AllocationStatus,
+  InitialAssessmentStatus,
   InitialAssessmentRiskStatus,
   InitialAssessmentRiskType,
   MedicationKind,
@@ -36,6 +38,8 @@ import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { computeCarePlanReviewState } from '../service-user-care-plans/care-plan-review-schedule';
 import { sanitizeComposeTextOrNull } from '../service-user-care-plans/compose/compose-html-sanitize.util';
 import { mapPublishedCarePlanForCarer } from './employee-app-care-plan-detail.util';
+import { resolveCprStatus, loadCprIaReport } from './employee-app-cpr-status.util';
+import { CARER_VISIBLE_RISK_WHERE, withoutUnreviewedIaRows } from './employee-app-ia-source.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -99,6 +103,7 @@ export class EmployeeAppClientDetailService {
         where: {
           serviceUserId: clientId,
           status: InitialAssessmentRiskStatus.OPEN,
+          ...CARER_VISIBLE_RISK_WHERE,
           riskType: {
             in: [
               InitialAssessmentRiskType.FALLS,
@@ -208,10 +213,11 @@ export class EmployeeAppClientDetailService {
         select: {
           id: true,
           notes: true,
+          sourceSubmissionId: true,
           condition: { select: { code: true, name: true, category: true } },
         },
         orderBy: { condition: { name: 'asc' } },
-      }),
+      }).then((rows) => withoutUnreviewedIaRows(this.prisma, rows)),
       this.prisma.serviceUserReasonableAdjustment.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
         select: { id: true, type: true, description: true, notes: true },
@@ -240,8 +246,8 @@ export class EmployeeAppClientDetailService {
     const age = ageFromDob(su.dateOfBirth);
     const fullName = displayName(su.firstName, su.lastName);
     const preferredName = su.preferredName?.trim() || null;
-    const forCpr = !(legal?.dnacprInPlace === true);
-    const dnacprLocation = !forCpr ? legal?.dnacprPhysicalLocation?.trim() || null : null;
+    const cpr = resolveCprStatus(legal, await loadCprIaReport(this.prisma, clientId));
+    const dnacprLocation = cpr.location;
     const historyText = `${ia?.previousMedicalHistory ?? ''} ${ia?.careInstructions ?? ''}`.toLowerCase();
     const conditions: Array<{ id: string; label: string }> = [];
     if (/diabet/.test(historyText) || carePlans.some((p) => /diabet/i.test(p.carePathwayForm.name))) {
@@ -341,10 +347,12 @@ export class EmployeeAppClientDetailService {
         },
         safetyAtAGlance: {
           cprStatus: {
-            id: forCpr ? 'for_cpr' : 'dnacpr',
-            label: forCpr ? 'For CPR' : 'DNACPR in place',
-            tone: forCpr ? ('success' as Tone) : ('warning' as Tone),
+            id: cpr.id,
+            label: cpr.label,
+            tone: cpr.tone as Tone,
             location: dnacprLocation,
+            actionLine: cpr.actionLine,
+            verified: cpr.verified,
           },
           dnacprLocation,
           conditions,
@@ -885,7 +893,7 @@ export class EmployeeAppClientDetailService {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
     const su = await this.loadClientOrThrow(clientId);
 
-    const [legal, capacityAssessments] = await Promise.all([
+    const [legal, capacityAssessments, authorityRows] = await Promise.all([
       this.prisma.serviceUserLegalDocument.findUnique({
         where: { serviceUserId: clientId },
       }),
@@ -904,65 +912,96 @@ export class EmployeeAppClientDetailService {
               completedAt: true,
               summary: true,
               snapshot: true,
+              source: true,
+              sourceSubmissionId: true,
               completedBy: { select: { firstName: true, lastName: true } },
             },
           },
         },
       }),
+      this.prisma.serviceUserLegalAuthority.findMany({
+        where: { serviceUserId: clientId, deletedAt: null },
+        select: {
+          id: true,
+          category: true,
+          holderName: true,
+          holderRelationship: true,
+          verificationStatus: true,
+          expiresOn: true,
+          isActive: true,
+        },
+      }),
     ]);
+    const legalAuthorities = carerAuthorityCards(
+      authorityRows.map((a) => ({ ...a, expiresOn: a.expiresOn ? a.expiresOn.toISOString() : null })),
+      new Date().toISOString().slice(0, 10),
+    );
 
-    const decisions = capacityAssessments.flatMap((a) => {
+    // Decisions promoted from an IA reach carers only once a manager has reviewed that IA.
+    const iaSourceIds = capacityAssessments
+      .map((a) => a.completions[0])
+      .filter((c) => c?.source === 'INITIAL_ASSESSMENT' && c.sourceSubmissionId)
+      .map((c) => c!.sourceSubmissionId as string);
+    const reviewedIaIds = new Set(
+      iaSourceIds.length
+        ? (
+            await this.prisma.initialAssessmentSubmission.findMany({
+              where: { id: { in: iaSourceIds }, status: InitialAssessmentStatus.REVIEWED, deletedAt: null },
+              select: { id: true },
+            })
+          ).map((r) => r.id)
+        : [],
+    );
+    let awaitingReview = false;
+
+    // Capacity is decision-specific: only records that name a decision and state an outcome are
+    // shown. A screening/checklist without named decisions is never turned into a person-level
+    // "has / lacks capacity" badge — carers are told it is not recorded and to ask the office.
+    const decisions: ReturnType<typeof mapCapacityDecision>[] = [];
+    let unnamedScreeningAt: Date | null = null;
+    for (const a of capacityAssessments) {
       const latest = a.completions[0];
-      if (!latest) return [];
+      if (!latest) continue;
+      if (
+        latest.source === 'INITIAL_ASSESSMENT' &&
+        latest.sourceSubmissionId &&
+        !reviewedIaIds.has(latest.sourceSubmissionId)
+      ) {
+        awaitingReview = true;
+        continue;
+      }
       const snap =
         latest.snapshot && typeof latest.snapshot === 'object'
           ? (latest.snapshot as Record<string, unknown>)
           : {};
-      const decisionsRaw = Array.isArray(snap.decisions) ? snap.decisions : null;
-      if (decisionsRaw?.length) {
-        return decisionsRaw.map((d, idx) => mapCapacityDecision(d, idx, latest));
+      const mapped = (Array.isArray(snap.decisions) ? snap.decisions : [])
+        .map((d, idx) => mapCapacityDecision(d, idx, latest))
+        .filter((d): d is NonNullable<typeof d> => d != null);
+      if (mapped.length) decisions.push(...mapped);
+      else if (!unnamedScreeningAt || latest.completedAt > unnamedScreeningAt) {
+        unnamedScreeningAt = latest.completedAt;
       }
-      const intact = snap.capacityIntact === true || /has capacity/i.test(latest.summary ?? '');
-      return [
-        {
-          id: a.assessmentKey,
-          title: a.title || 'Mental capacity',
-          status: intact ? 'has_capacity' : 'lacks_capacity',
-          statusLabel: intact ? 'Has capacity' : 'Lacks capacity',
-          tone: intact ? ('success' as Tone) : ('danger' as Tone),
-          assessedAt: latest.completedAt.toISOString(),
-          assessedLabel: `Assessed ${formatSlashDate(latest.completedAt)}`,
-          reviewAt: null as string | null,
-          reviewLabel: null as string | null,
-          assessor: latest.completedBy
-            ? `${latest.completedBy.firstName?.charAt(0) ?? ''}. ${latest.completedBy.lastName ?? ''}`.trim()
-            : null,
-          note: typeof snap.note === 'string' ? snap.note : null,
-        },
-      ];
-    });
+    }
 
-    const lpaInForce = /IN_FORCE|IN_PLACE|ACTIVE/i.test(String(legal?.lpaStatusConfirmation ?? ''));
+    const bannerMessage = [
+      'Capacity is decision-specific and time-specific — never a person-level yes/no. A refusal is not a lack of capacity.',
+      unnamedScreeningAt && !decisions.length
+        ? `A capacity screening was recorded on ${formatSlashDate(unnamedScreeningAt)}, but the decision it relates to is not recorded — capacity decision not recorded, see office.`
+        : null,
+      awaitingReview && !decisions.length
+        ? 'A capacity assessment is awaiting manager review — see office.'
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     return {
       data: {
         client: { clientId: su.id, fullName: displayName(su.firstName, su.lastName) },
-        banner: {
-          tone: 'info',
-          message:
-            'Capacity is decision-specific and time-specific — never a person-level yes/no. A refusal is not a lack of capacity.',
-        },
-        lastingPowerOfAttorney: {
-          enabled: lpaInForce || Boolean(legal?.lpaHealthCertificateUrl || legal?.lpaFinanceCertificateUrl),
-          typeLabel: 'Health & welfare LPA',
-          attorneyName: null,
-          attorneyRelationship: null,
-          scopeNote: 'Scope: Health & welfare decisions only — NOT property or finances',
-          status: legal?.lpaStatusConfirmation ?? 'UNKNOWN',
-          registeredAt: null,
-          healthCertificateUrl: legal?.lpaHealthCertificateUrl ?? null,
-          financeCertificateUrl: legal?.lpaFinanceCertificateUrl ?? null,
-        },
+        banner: { tone: 'info', message: bannerMessage },
+        // Register first (only evidenced authorities); the old single LPA fields as a fallback.
+        lastingPowerOfAttorney: carerLpaCardFromRegister(legalAuthorities, authorityRows) ?? carerLpaCard(legal),
+        legalAuthorities,
         decisionSpecificCapacity: decisions,
       },
     };
@@ -1285,12 +1324,22 @@ function extractAssessmentScore(key: string, snapshot: unknown) {
   const k = key.toLowerCase();
   if (k.includes('waterlow')) {
     const score = numberOrNull(snap.waterlow?.score ?? snap.score);
-    const level = score != null && score >= 15 ? 'High' : score != null && score >= 10 ? 'Medium' : 'Low';
+    // Waterlow bands: 10+ at risk, 15+ high, 20+ very high.
+    const level =
+      score == null
+        ? 'Recorded'
+        : score >= 20
+          ? 'Very high'
+          : score >= 15
+            ? 'High'
+            : score >= 10
+              ? 'At risk'
+              : 'Low';
     return {
       score,
       level,
       badgeLabel: score != null ? `${score} — ${level}` : level,
-      tone: (level === 'High' ? 'danger' : level === 'Medium' ? 'warning' : 'success') as Tone,
+      tone: (score != null && score >= 15 ? 'danger' : score != null && score >= 10 ? 'warning' : 'neutral') as Tone,
       canUpdate: true,
     };
   }
@@ -1308,11 +1357,12 @@ function extractAssessmentScore(key: string, snapshot: unknown) {
     };
   }
   if (k.includes('falls')) {
+    // Falls is case-finding + a multifactorial screen — there is no falls risk "level" to show.
     return {
       score: null as number | null,
-      level: 'Medium',
-      badgeLabel: 'Medium',
-      tone: 'warning' as Tone,
+      level: null as string | null,
+      badgeLabel: 'Screen recorded',
+      tone: 'neutral' as Tone,
       canUpdate: false,
     };
   }
@@ -1332,7 +1382,79 @@ function humanAssessmentTitle(key: string, title: string): string {
   return title || key;
 }
 
-function mapCapacityDecision(
+/**
+ * Lasting power of attorney card for carers. Property & finance LPAs never give authority over
+ * care or health decisions, and their certificate is not sent to the app. No record → no card.
+ */
+export function carerLpaCard(
+  legal: {
+    lpaStatusConfirmation: string | null;
+    lpaHealthCertificateUrl: string | null;
+    lpaFinanceCertificateUrl: string | null;
+  } | null,
+) {
+  if (!legal) return null;
+  const status = String(legal.lpaStatusConfirmation ?? 'UNKNOWN');
+  const inForce = /IN_FORCE|IN_PLACE|ACTIVE/i.test(status);
+  const health = Boolean(legal.lpaHealthCertificateUrl);
+  const finance = Boolean(legal.lpaFinanceCertificateUrl);
+  if (!health && !finance && !inForce) return null;
+  const base = {
+    enabled: true,
+    attorneyName: null,
+    attorneyRelationship: null,
+    status,
+    registeredAt: null,
+    financeCertificateUrl: null,
+  };
+  if (health) {
+    return {
+      ...base,
+      typeLabel: 'Health & welfare LPA',
+      scopeNote: inForce
+        ? 'Health & welfare decisions only, and only for decisions the person lacks capacity to make — NOT property or finances.'
+        : 'Health & welfare LPA on file but not confirmed in force — check with the office before relying on it.',
+      healthCertificateUrl: legal.lpaHealthCertificateUrl,
+    };
+  }
+  if (finance) {
+    return {
+      ...base,
+      typeLabel: 'Property & financial affairs LPA',
+      scopeNote:
+        'Finances only — this does NOT give anyone authority over care or health decisions.',
+      healthCertificateUrl: null,
+    };
+  }
+  return {
+    ...base,
+    typeLabel: 'LPA recorded — type not confirmed',
+    scopeNote: 'Check with the office which decisions this LPA covers before relying on it.',
+    healthCertificateUrl: null,
+  };
+}
+
+/** Old single-card shape (carer app `ClientLpaInfo`) from the register — a care authority wins. */
+export function carerLpaCardFromRegister(
+  cards: ReturnType<typeof carerAuthorityCards>,
+  rows: Array<{ id: string; holderRelationship: string }>,
+) {
+  const card = cards.find((c) => c.coversCare) ?? cards[0];
+  if (!card) return null;
+  return {
+    enabled: true,
+    attorneyName: card.holderName,
+    attorneyRelationship: rows.find((r) => r.id === card.id)?.holderRelationship || null,
+    status: 'VERIFIED',
+    registeredAt: null,
+    financeCertificateUrl: null,
+    healthCertificateUrl: null,
+    typeLabel: card.typeLabel,
+    scopeNote: card.scopeNote,
+  };
+}
+
+export function mapCapacityDecision(
   raw: unknown,
   idx: number,
   latest: {
@@ -1341,10 +1463,15 @@ function mapCapacityDecision(
   },
 ) {
   const d = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const statusText = String(d.status ?? d.capacityStatus ?? '');
   const has =
-    d.hasCapacity === true ||
-    /has/i.test(String(d.status ?? d.capacityStatus ?? '')) ||
-    d.capacityIntact === true;
+    d.hasCapacity === true || d.capacityIntact === true || /^has/i.test(statusText)
+      ? true
+      : d.hasCapacity === false || d.capacityIntact === false || /lack/i.test(statusText)
+        ? false
+        : null;
+  // No stated outcome → not shown (never defaulted to "lacks capacity").
+  if (has == null) return null;
   return {
     id: String(d.id ?? `decision-${idx}`),
     title: String(d.title ?? d.decision ?? `Decision ${idx + 1}`),

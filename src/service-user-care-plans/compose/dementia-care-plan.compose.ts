@@ -10,6 +10,7 @@ import {
   resolveIaDisplayValue,
   resolveIaRawValue,
   resolveIaBooleanYes,
+  resolveIaBooleanValue,
 } from './ia-answer-resolver.util';
 import {
   composeLabelMappedForm,
@@ -113,10 +114,13 @@ function mapSupervisionLevel(ctx: CarePlanComposeContext): string | null {
   if (key === 'severe') return 'Constant supervision';
   if (key === 'moderate') return 'Intermittent supervision';
   if (key === 'mild' || key === 'none') return 'Independent';
-  const deOrientated = resolveIaBooleanYes(
-    findIaAnswer(ctx.ia.answers, { specRef: '10.6a', questionTextContains: 'De-orientated' }),
-  );
-  if (deOrientated) return 'Intermittent supervision';
+  const fullyOrientated = findIaAnswer(ctx.ia.answers, {
+    specRef: '10.6a',
+    questionTextContains: 'Fully orientated',
+  });
+  if (resolveIaBooleanValue(fullyOrientated) === false) {
+    return 'Intermittent supervision';
+  }
   return null;
 }
 
@@ -232,7 +236,6 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
         { specRef: '10.6a', contains: 'Good long-term memory recall' },
         { specRef: '10.6a', contains: 'Good short-term memory recall' },
         { specRef: '10.6a', contains: 'Fully orientated' },
-        { specRef: '10.6a', contains: 'De-orientated' },
         { specRef: '10.6a', contains: 'Able to follow basic instructions' },
       ]);
       if (!text) return null;
@@ -265,7 +268,6 @@ export const DEMENTIA_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
       const text = joinParts([
         ctx.aboutMe?.triggersCalm,
         joinIa(ctx, [
-          { specRef: '10.6a', contains: 'Gets agitated with change' },
           { specRef: '10.6a', contains: 'Challenging behaviour or agitation with change' },
         ]),
       ]);

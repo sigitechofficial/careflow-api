@@ -1,4 +1,5 @@
 import { InitialAssessmentRiskType, InitialAssessmentRiskLevel } from '@prisma/client';
+import type { CprStatus } from './employee-app-cpr-status.util';
 
 /**
  * Shared mapping for service-user alerts shown to the carer in the app.
@@ -144,18 +145,20 @@ export function mapAllergiesToAlert(names: string[]): ServiceUserAlertItem | nul
 }
 
 // ── DNACPR ───────────────────────────────────────────────────────────────────
-export function mapDnacprToAlert(input: {
-  dnacprInPlace: boolean;
-  location?: string | null;
-}): ServiceUserAlertItem | null {
-  if (!input.dnacprInPlace) return null;
+/**
+ * CPR / DNACPR alert from the resolved status (office record = master, IA = report only).
+ * A verified DNACPR is CRITICAL; reported / conflicting / not recorded are IMPORTANT
+ * "check with the office" alerts; an office-confirmed "no DNACPR" raises no alert.
+ */
+export function mapDnacprToAlert(status: CprStatus): ServiceUserAlertItem | null {
+  if (status.id === 'no_dnacpr_confirmed') return null;
   return {
     id: 'dnacpr',
     category: 'DNACPR',
-    title: 'DNACPR in place',
-    actionLine: 'Do not attempt CPR. See the DNACPR form.',
-    detail: input.location?.trim() ? `Form location: ${input.location.trim()}` : null,
-    tier: 'CRITICAL',
+    title: status.label,
+    actionLine: status.actionLine,
+    detail: status.location ? `Form location: ${status.location}` : null,
+    tier: status.verified ? 'CRITICAL' : 'IMPORTANT',
     source: 'ADMIN',
     requiresAck: false,
   };

@@ -181,12 +181,38 @@ export class EcmExceptionsService {
 
     const createdOrExisting = [];
     for (const item of desired) {
-      const open = await this.prisma.ecmException.findFirst({
-        where: {
-          scheduledJobId: evaluation.scheduledJobId,
-          kind: item.kind,
-          lifecycle: { in: OPEN_LIFECYCLES },
-        },
+      const sla = slaTargetsForCriticality(evaluation.criticality);
+      // Cron scans, admin list refreshes and visit-detail loads can evaluate the
+      // same job concurrently. Serialise check-then-create per (job, kind) with a
+      // transaction-scoped advisory lock so only one open exception (and one
+      // office notification) is ever raised.
+      const { open, row } = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ecm-exception:${evaluation.scheduledJobId}:${item.kind}`}))`;
+        const existing = await tx.ecmException.findFirst({
+          where: {
+            scheduledJobId: evaluation.scheduledJobId,
+            kind: item.kind,
+            lifecycle: { in: OPEN_LIFECYCLES },
+          },
+        });
+        if (existing) return { open: existing, row: null };
+        const created = await tx.ecmException.create({
+          data: {
+            scheduledJobId: evaluation.scheduledJobId,
+            ecmVisitEvaluationId: evaluation.id,
+            kind: item.kind,
+            lifecycle: EcmExceptionLifecycle.DETECTED,
+            title: item.title,
+            detail: item.detail,
+            reasonCode: item.reasonCode ?? null,
+            responseTargetMinutes: sla.responseTargetMinutes,
+            escalationDeadlineAt:
+              sla.escalationMinutes > 0
+                ? new Date(Date.now() + sla.escalationMinutes * 60_000)
+                : new Date(),
+          },
+        });
+        return { open: null, row: created };
       });
       if (open) {
         if (
@@ -207,23 +233,7 @@ export class EcmExceptionsService {
         }
         continue;
       }
-      const sla = slaTargetsForCriticality(evaluation.criticality);
-      const row = await this.prisma.ecmException.create({
-        data: {
-          scheduledJobId: evaluation.scheduledJobId,
-          ecmVisitEvaluationId: evaluation.id,
-          kind: item.kind,
-          lifecycle: EcmExceptionLifecycle.DETECTED,
-          title: item.title,
-          detail: item.detail,
-          reasonCode: item.reasonCode ?? null,
-          responseTargetMinutes: sla.responseTargetMinutes,
-          escalationDeadlineAt:
-            sla.escalationMinutes > 0
-              ? new Date(Date.now() + sla.escalationMinutes * 60_000)
-              : new Date(),
-        },
-      });
+      if (!row) continue;
       await this.audit.append({
         eventType: EcmAuditEventType.EXCEPTION_DETECTED,
         scheduledJobId: evaluation.scheduledJobId,

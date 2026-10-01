@@ -35,6 +35,10 @@ function mapCondition(row: {
   notes: string;
   onsetDate: Date | null;
   reviewDate: Date | null;
+  impactOnCare: string;
+  carerGuidance: string;
+  confirmationSource: string;
+  sourceSubmissionId: string | null;
   source: ServiceUserClinicalDataSource;
   isActive: boolean;
   createdAt: Date;
@@ -54,6 +58,10 @@ function mapCondition(row: {
     notes: row.notes,
     onsetDate: row.onsetDate?.toISOString().slice(0, 10) ?? null,
     reviewDate: row.reviewDate?.toISOString().slice(0, 10) ?? null,
+    impactOnCare: row.impactOnCare,
+    carerGuidance: row.carerGuidance,
+    confirmationSource: row.confirmationSource,
+    sourceSubmissionId: row.sourceSubmissionId,
     source: row.source,
     isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
@@ -66,6 +74,18 @@ function mapCondition(row: {
           category: row.condition.category,
         }
       : undefined,
+  };
+}
+
+function conditionCareDetails(dto: {
+  impactOnCare?: string;
+  carerGuidance?: string;
+  confirmationSource?: string;
+}) {
+  return {
+    ...(dto.impactOnCare !== undefined ? { impactOnCare: dto.impactOnCare.trim() } : {}),
+    ...(dto.carerGuidance !== undefined ? { carerGuidance: dto.carerGuidance.trim() } : {}),
+    ...(dto.confirmationSource !== undefined ? { confirmationSource: dto.confirmationSource.trim() } : {}),
   };
 }
 
@@ -274,6 +294,7 @@ export class MedicalConditionsService {
               status: ServiceUserMedicalConditionStatus.ACTIVE,
               isActive: true,
               ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+              ...conditionCareDetails(dto),
               ...(dto.onsetDate !== undefined
                 ? { onsetDate: dto.onsetDate ? new Date(dto.onsetDate) : null }
                 : {}),
@@ -321,6 +342,7 @@ export class MedicalConditionsService {
             conditionId: dto.conditionId,
             status: dto.status ?? ServiceUserMedicalConditionStatus.ACTIVE,
             notes: dto.notes?.trim() ?? '',
+            ...conditionCareDetails(dto),
             onsetDate: dto.onsetDate ? new Date(dto.onsetDate) : null,
             reviewDate: dto.reviewDate ? new Date(dto.reviewDate) : null,
             source: dto.source ?? ServiceUserClinicalDataSource.MANUAL,
@@ -392,6 +414,7 @@ export class MedicalConditionsService {
                 }
               : {}),
             ...(dto.notes !== undefined ? { notes: dto.notes.trim() } : {}),
+              ...conditionCareDetails(dto),
             ...(dto.onsetDate !== undefined
               ? { onsetDate: dto.onsetDate ? new Date(dto.onsetDate) : null }
               : {}),

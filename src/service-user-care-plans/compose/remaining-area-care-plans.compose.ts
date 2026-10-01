@@ -390,7 +390,8 @@ export const COMMUNICATION_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     fieldLabel: 'How to approach conversations',
     required: true,
     resolve: (ctx) =>
-      iaText(ctx, { fieldKey: 'communicationNeeds' }) ??
+      iaText(ctx, { fieldKey: 'staffCommunicationInstructions' }) ??
+      iaText(ctx, { questionTextContains: 'Staff communication instructions' }) ??
       iaText(ctx, { questionTextContains: 'communication support notes' }) ??
       snapshotText(ctx.ia?.communicationSnapshot?.staffGuidance, 'IA communication snapshot'),
   },

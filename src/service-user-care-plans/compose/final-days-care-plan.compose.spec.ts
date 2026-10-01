@@ -35,7 +35,7 @@ const IA_FK_PAIN_PLAN = 'painManagementPlan';
 const IA_Q_PAIN_PLAN = 'What pain management plan in place';
 const IA_Q_CURRENT_PAIN = 'Current pain relief';
 const IA_Q_REL_SPIRITUAL = 'Religious or spiritual needs';
-const IA_Q_CULTURE = 'Religion, culture, language, reasonable adjustments';
+const IA_Q_CULTURE = 'Cultural background and practices';
 const IA_Q_FAMILY = 'Family, representative, next of kin, advocate, key contacts';
 const IA_Q_ADRT = 'ReSPECT / DNACPR location and summary';
 
@@ -99,7 +99,7 @@ function fullAnswers(): SubmissionAnswerForRules[] {
     }),
     textAnswer(IA_Q_CURRENT_PAIN, 'Currently comfortable on regular analgesia', { specRef: '5.3', sectionNumber: 5, sectionTitle: 'Clinical' }),
     textAnswer(IA_Q_REL_SPIRITUAL, 'Practising Catholic; would value visits from the priest', { specRef: '1.7' }),
-    textAnswer(IA_Q_CULTURE, 'Irish heritage; prefers English', { specRef: '1.7' }),
+    textAnswer(IA_Q_CULTURE, 'Irish heritage; prefers English', { fieldKey: 'culturalBackground', specRef: '1.7' }),
     textAnswer(IA_Q_FAMILY, 'Daughter Mary (next of kin), son Tom', { specRef: '1.2' }),
     textAnswer(IA_Q_ADRT, 'ReSPECT form in the red folder by the front door', { specRef: '13.6', sectionNumber: 13, sectionTitle: 'Safeguarding and legal' }),
   ];

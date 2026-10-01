@@ -90,20 +90,54 @@ export function resolveIaDateIso(answer: SubmissionAnswerForRules | undefined): 
   return date.toISOString();
 }
 
-/** Map IA medication support level codes to Medication care plan SELECT labels. */
+/**
+ * Medication care plan SELECT labels (must match `MEDICATION_SUPPORT_LEVEL_OPTIONS` in
+ * prisma/seeds/medication-care-plan.seed-data.ts — asserted by the compose spec).
+ */
+export const MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS = {
+  selfAdministers: 'Self-administers',
+  prompted: 'Prompted',
+  assistedByCarer: 'Assisted by carer',
+  administeredByCarer: 'Administered by carer',
+  providedByOthers: 'Provided by others (family / nurse)',
+  nurseOnly: 'Nurse only',
+} as const;
+
+const MEDICATION_SUPPORT_LEVEL_CODE_MAP: ReadonlyMap<string, string> = new Map(Object.entries({
+  // IA §9.2 codes (MEDICATION_SUPPORT_LEVEL_OPTIONS in initial-assessment-enterprise-options.ts).
+  level_0: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.selfAdministers,
+  level_1a: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.prompted,
+  level_1b: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.assistedByCarer,
+  level_2a: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.assistedByCarer,
+  level_2b: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.administeredByCarer,
+  provided_by_others: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.providedByOthers,
+  // Legacy medication-snapshot vocabulary.
+  independent: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.selfAdministers,
+  prompting: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.prompted,
+  packaging: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.assistedByCarer,
+  supervision: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.assistedByCarer,
+  administration: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.administeredByCarer,
+  full_admin: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.administeredByCarer,
+  family: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.providedByOthers,
+  district_nurse: MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS.nurseOnly,
+}));
+
+/**
+ * Map IA medication support level codes to Medication care plan SELECT labels.
+ *
+ * Medication-safety critical: the mapping is exact (1:1) and never overstates or
+ * understates what carers do. Anything not recognised — including 'mixed' — returns null
+ * so the manager chooses; there is deliberately no fuzzy/substring guessing.
+ */
 export function mapMedicationSupportLevelToCarePlan(raw: string | null): string | null {
   if (!raw) return null;
   const v = raw.toLowerCase().trim();
-  if (v === 'level_0' || v === 'independent') return 'Self-administers';
-  if (v === 'level_1a' || v === 'prompting') return 'Prompted';
-  if (v === 'level_1b' || v === 'packaging' || v === 'supervision') return 'Administered by carer';
-  if (v === 'level_2a' || ['administration', 'full_admin', 'mixed', 'family'].includes(v)) {
-    return 'Administered by carer';
-  }
-  if (v === 'level_2b' || v === 'district_nurse') return 'Nurse only';
-  if (v.includes('prompt')) return 'Prompted';
-  if (v.includes('independ') || v === 'level_0') return 'Self-administers';
-  if (v.includes('nurse')) return 'Nurse only';
-  if (v.includes('admin') || v.includes('carer')) return 'Administered by carer';
-  return null;
+  if (!v) return null;
+  const mapped = MEDICATION_SUPPORT_LEVEL_CODE_MAP.get(v);
+  if (mapped) return mapped;
+  // A value that is already one of the care plan labels passes through unchanged.
+  const label = Object.values(MEDICATION_SUPPORT_LEVEL_CARE_PLAN_LABELS).find(
+    (l) => l.toLowerCase() === v,
+  );
+  return label ?? null;
 }

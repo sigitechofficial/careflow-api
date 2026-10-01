@@ -13,6 +13,7 @@ import {
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
+import { CARER_VISIBLE_RISK_WHERE } from './employee-app-ia-source.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -89,6 +90,7 @@ export class EmployeeAppClientsService {
         where: {
           serviceUserId: { in: ids },
           status: InitialAssessmentRiskStatus.OPEN,
+          ...CARER_VISIBLE_RISK_WHERE,
           riskType: {
             in: [
               InitialAssessmentRiskType.FALLS,

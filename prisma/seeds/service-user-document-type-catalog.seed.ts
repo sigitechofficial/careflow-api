@@ -101,7 +101,7 @@ export const SERVICE_USER_DOCUMENT_TYPE_CATALOG: DocumentTypeSeed[] = [
   },
   {
     code: 'DOLS_LPS',
-    name: 'DoLS / LPS authorisation',
+    name: 'Deprivation of liberty authorisation (Court of Protection / DoLS)',
     physicalLocationInHomeRequired: false,
     expiryTrackingRequired: true,
     defaultAccessLevel: 'COORDINATOR_MANAGER',

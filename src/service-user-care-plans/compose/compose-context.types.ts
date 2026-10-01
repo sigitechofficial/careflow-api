@@ -52,6 +52,8 @@ export type CarePlanFallsSnapshotEvidence = {
   injuryCaused: boolean | null;
   riskScore: number | null;
   riskLevel: string | null;
+  /** Falls case-finding reasons (fall, unsteadiness, fear, concern) — no predictive score. */
+  caseFindingReasons?: string[];
 };
 
 /** Demo / worksheet medication snapshot when enterprise §9 detail questions were pruned. */
@@ -122,6 +124,8 @@ export type CarePlanComposeIaSnapshot = {
   answers: SubmissionAnswerForRules[];
   fallsSnapshot?: CarePlanFallsSnapshotEvidence | null;
   fallsScreeningSummary?: string | null;
+  /** IA Equipment Selection worksheet summary (submission.metadata.equipmentSelection). */
+  equipmentSelectionSummary?: string | null;
   medicationSnapshot?: CarePlanMedicationSnapshotEvidence | null;
   continenceSnapshot?: CarePlanContinenceSnapshotEvidence | null;
   eatingDrinkingSnapshot?: CarePlanEatingDrinkingSnapshotEvidence | null;

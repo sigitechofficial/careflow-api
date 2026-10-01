@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   AllocationStatus as PrismaAllocationStatus,
   CarerVisitPushKind,
@@ -18,7 +24,8 @@ import {
   ensureActiveEmployee,
   parseIsoDateTime,
 } from '../scheduling/scheduling-validation.util';
-import { AllocationChecksService } from './allocation-checks.service';
+import { AllocationChecksService, type AllocationWarning } from './allocation-checks.service';
+import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
@@ -27,6 +34,15 @@ import { AllocateJobDto } from './dto/allocate-job.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
 import { UpdateAllocationTimingDto } from './dto/update-allocation-timing.dto';
+import { AllocateTeamDto } from './dto/allocate-team.dto';
+import {
+  clockedInRemovalBlockMessage,
+  fullVisitMessage,
+  pickPromotedLead,
+  sortByAssignedOrder,
+  teamCompositionError,
+} from './lead-carer.util';
+import { resolveLeadEmployeeId } from '../employee-app/employee-app-multi-carer.util';
 import {
   durationMinutesBetween,
   isInheritedAllocationTiming,
@@ -65,6 +81,32 @@ const ACTIVE_STATUSES: PrismaAllocationStatus[] = [
   PrismaAllocationStatus.CONFIRMED,
 ];
 
+/** Lead-carer rules apply to visits that need 2+ carers (single-carer visits unchanged). */
+const MULTI_CARER_MIN = 2;
+
+type WarningView = { type: string; message: string; severity: string };
+
+export type TeamCarerCheck = {
+  employeeId: string;
+  name: string;
+  /** Cannot be assigned, even with force (rota clash, blocked, compliance, inactive). */
+  hardBlocked: boolean;
+  /** Has blocking warnings that force=true may override. */
+  requiresConfirmation: boolean;
+  warnings: WarningView[];
+};
+
+function personName(
+  pd: { firstName?: string | null; lastName?: string | null } | null | undefined,
+  fallback = 'Carer',
+): string {
+  return [pd?.firstName, pd?.lastName].filter(Boolean).join(' ').trim() || fallback;
+}
+
+function warningViews(warnings: AllocationWarning[]): WarningView[] {
+  return warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity }));
+}
+
 @Injectable()
 export class JobAllocationsService {
   constructor(
@@ -75,6 +117,57 @@ export class JobAllocationsService {
     private readonly orgScope: OrgScopeService,
     private readonly carerPush: CarerVisitPushHook,
   ) {}
+
+  /** Status for a new allocation given its check warnings (same rules for single and team). */
+  private allocationOutcome(
+    warnings: AllocationWarning[],
+    force: boolean | undefined,
+  ): { status: PrismaAllocationStatus; needsConfirmation: boolean } {
+    const needsConfirmation = warnings.length > 0 && !force;
+    const status = needsConfirmation
+      ? PrismaAllocationStatus.PENDING_CONFIRMATION
+      : force && warnings.length
+        ? PrismaAllocationStatus.ALLOCATED
+        : warnings.length === 0
+          ? PrismaAllocationStatus.CONFIRMED
+          : PrismaAllocationStatus.ALLOCATED;
+    return { status, needsConfirmation };
+  }
+
+  /** Active allocations with the fields the lead rules need. */
+  private activeLeadRows(client: Prisma.TransactionClient | PrismaService, scheduledJobId: string) {
+    return client.jobAllocation.findMany({
+      where: {
+        scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_STATUSES },
+      },
+      orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        employeeId: true,
+        status: true,
+        isLeadCarer: true,
+        allocatedAt: true,
+        employee: {
+          select: { personalDetail: { select: { firstName: true, lastName: true } } },
+        },
+      },
+    });
+  }
+
+  /** Lead the carer app shows right now (explicit lead, else earliest assigned). */
+  private async currentLeadEmployeeId(
+    requiredCarers: number,
+    scheduledJobId: string,
+  ): Promise<string | null> {
+    if (requiredCarers < MULTI_CARER_MIN) return null;
+    return resolveLeadEmployeeId(
+      requiredCarers,
+      await this.activeLeadRows(this.prisma, scheduledJobId),
+    );
+  }
 
   private jobWindow(job: {
     scheduledStartDateTime: Date;
@@ -305,6 +398,20 @@ export class JobAllocationsService {
     }
   }
 
+  /** Single allocate never goes over requiredCarers (replace / drag remove the old carer first). */
+  private async assertCarerPlaceAvailable(scheduledJobId: string, requiredCarers: number) {
+    const active = await this.prisma.jobAllocation.count({
+      where: {
+        scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        status: { in: ACTIVE_STATUSES },
+      },
+    });
+    const message = fullVisitMessage(active, requiredCarers);
+    if (message) throw new BadRequestException(message);
+  }
+
   async syncJobAllocationStatus(
     tx: Prisma.TransactionClient,
     scheduledJobId: string,
@@ -359,6 +466,7 @@ export class JobAllocationsService {
     if (!job) throw new NotFoundException('Scheduled job not found');
     await ensureActiveEmployee(this.prisma, dto.employeeId);
     await this.assertNoDuplicateAllocation(scheduledJobId, dto.employeeId);
+    await this.assertCarerPlaceAvailable(scheduledJobId, job.requiredCarers);
 
     if (dto.scheduledVisitId) {
       const visit = await this.prisma.scheduledVisit.findFirst({
@@ -395,20 +503,18 @@ export class JobAllocationsService {
       });
     }
 
-    const needsConfirmation = warnings.length > 0 && !dto.force;
-    const status = needsConfirmation
-      ? PrismaAllocationStatus.PENDING_CONFIRMATION
-      : dto.force && warnings.length
-        ? PrismaAllocationStatus.ALLOCATED
-        : warnings.length === 0
-          ? PrismaAllocationStatus.CONFIRMED
-          : PrismaAllocationStatus.ALLOCATED;
+    const { status, needsConfirmation } = this.allocationOutcome(warnings, dto.force);
 
     const previousJobStatus = job.status;
     const warningTypes = warnings.map((w) => w.type);
     const warningMessages = warnings.map((w) => w.message);
+    const leadChange = Boolean(dto.isLeadCarer) && job.requiredCarers >= MULTI_CARER_MIN;
+    const previousLeadEmployeeId = leadChange
+      ? await this.currentLeadEmployeeId(job.requiredCarers, scheduledJobId)
+      : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Exactly one lead: the new lead replaces any existing one in the same transaction.
       if (dto.isLeadCarer) {
         await tx.jobAllocation.updateMany({
           where: {
@@ -486,6 +592,16 @@ export class JobAllocationsService {
         userAgent: meta?.userAgent,
       });
 
+      // Multi-carer: the push says Lead / Support (as the carer app will show it).
+      const role =
+        job.requiredCarers >= MULTI_CARER_MIN
+          ? resolveLeadEmployeeId(
+              job.requiredCarers,
+              await this.activeLeadRows(tx, scheduledJobId),
+            ) === dto.employeeId
+            ? ('lead' as const)
+            : ('support' as const)
+          : null;
       void this.notifications.notifyAllocated({
         employeeId: dto.employeeId,
         scheduledJobId,
@@ -493,17 +609,16 @@ export class JobAllocationsService {
         serviceUserId: job.serviceUserId,
         scheduledStartDateTime: assignment.start,
         scheduledEndDateTime: assignment.end,
+        role,
       });
       if (needsConfirmation) {
         void this.notifications.notifyRequiresConfirmation({
           scheduledJobId,
           jobName: job.jobName,
           employeeId: dto.employeeId,
-        });
-        void this.notifications.notifyJobNeedsAttention({
-          scheduledJobId,
-          jobName: job.jobName,
           serviceUserId: job.serviceUserId,
+          scheduledStartDateTime: assignment.start,
+          warningMessages,
         });
       }
 
@@ -517,6 +632,320 @@ export class JobAllocationsService {
         jobStatus: newJobStatus,
       };
     });
+    if (leadChange) {
+      this.notifications.scheduleLeadChangePush({
+        scheduledJobId,
+        previousLeadEmployeeId,
+        newlyAssignedEmployeeIds: [dto.employeeId],
+      });
+    } else if (job.requiredCarers >= MULTI_CARER_MIN) {
+      // e.g. replace: lead removed (push pending), new carer added as support.
+      this.notifications.noteAssignedDuringLeadChange(scheduledJobId, dto.employeeId);
+    }
+    return result;
+  }
+
+  /**
+   * Multi-carer visit: allocate the whole team (new visit) or the missing carers
+   * (gap fill) in ONE transaction, with exactly one lead. Every carer goes through
+   * the same checks as single allocation; if any carer is hard-blocked, or has
+   * overridable warnings without force, nothing is saved and the per-carer
+   * warnings are returned (`carers`).
+   */
+  async allocateTeam(
+    userId: string,
+    scheduledJobId: string,
+    dto: AllocateTeamDto,
+    meta?: RequestAuditMeta,
+    actor?: RequestUser,
+  ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: scheduledJobId, deletedAt: null, isActive: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+
+    const existing = await this.activeLeadRows(this.prisma, scheduledJobId);
+    const existingIds = existing.map((a) => a.employeeId);
+    const compositionError = teamCompositionError({
+      requiredCarers: job.requiredCarers,
+      existingEmployeeIds: existingIds,
+      newEmployeeIds: dto.employeeIds,
+      leadEmployeeId: dto.leadEmployeeId,
+    });
+    if (compositionError) throw new BadRequestException(compositionError);
+
+    if (dto.scheduledVisitId) {
+      const visit = await this.prisma.scheduledVisit.findFirst({
+        where: { id: dto.scheduledVisitId, scheduledJobId, deletedAt: null },
+      });
+      if (!visit) throw new BadRequestException('Scheduled visit not found for this job');
+    }
+
+    const assignment = this.resolveAssignmentTimesFromDto(job, dto);
+    const personal = await this.prisma.employeePersonalDetail.findMany({
+      where: { employeeId: { in: dto.employeeIds }, deletedAt: null },
+      select: { employeeId: true, firstName: true, lastName: true },
+    });
+    const nameById = new Map(personal.map((p) => [p.employeeId, personName(p)]));
+    for (const row of existing) {
+      nameById.set(row.employeeId, personName(row.employee.personalDetail));
+    }
+
+    // Same per-carer checks as POST /allocate, run for every new carer before any write.
+    const checked: Array<TeamCarerCheck & { raw: AllocationWarning[] }> = [];
+    for (const employeeId of dto.employeeIds) {
+      const name = nameById.get(employeeId) ?? 'Carer';
+      try {
+        await ensureActiveEmployee(this.prisma, employeeId);
+      } catch (err) {
+        const message = err instanceof HttpException ? err.message : 'Employee not found or inactive';
+        checked.push({
+          employeeId,
+          name,
+          hardBlocked: true,
+          requiresConfirmation: false,
+          warnings: [
+            { type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE, message, severity: 'blocking' },
+          ],
+          raw: [],
+        });
+        continue;
+      }
+      const warnings = await this.checks.runAllChecks({
+        scheduledJobId,
+        scheduledVisitId: dto.scheduledVisitId,
+        employeeId,
+        serviceUserId: job.serviceUserId,
+        jobStart: assignment.start,
+        jobEnd: assignment.end,
+        jobMetadata: job.metadata,
+      });
+      checked.push({
+        employeeId,
+        name,
+        hardBlocked: this.checks.hasNonOverridableBlockingWarnings(warnings),
+        requiresConfirmation:
+          this.checks.hasBlockingWarnings(warnings) &&
+          !this.checks.hasNonOverridableBlockingWarnings(warnings),
+        warnings: warningViews(warnings),
+        raw: warnings,
+      });
+    }
+
+    const carersPayload: TeamCarerCheck[] = checked.map(({ raw: _raw, ...c }) => c);
+    const flatWarnings = checked.flatMap((c) =>
+      c.warnings.map((w) => ({ ...w, employeeId: c.employeeId, employeeName: c.name })),
+    );
+    const hardBlocked = checked.filter((c) => c.hardBlocked);
+    if (hardBlocked.length) {
+      const first = hardBlocked[0]!;
+      const firstMessage =
+        first.warnings.find((w) => w.severity === 'blocking')?.message ?? CARER_ROTA_CONFLICT_MESSAGE;
+      throw new BadRequestException({
+        message: `Team not assigned — ${first.name} cannot be assigned: ${firstMessage}`,
+        warnings: flatWarnings,
+        carers: carersPayload,
+        requiresConfirmation: false,
+      });
+    }
+    if (!dto.force && checked.some((c) => c.requiresConfirmation)) {
+      throw new BadRequestException({
+        message:
+          'Team not assigned — some carers have warnings. Review them and use force=true to assign anyway.',
+        warnings: flatWarnings,
+        carers: carersPayload,
+        requiresConfirmation: true,
+      });
+    }
+
+    const previousJobStatus = job.status;
+    const previousLeadEmployeeId =
+      existing.length > 0 ? resolveLeadEmployeeId(job.requiredCarers, existing) : null;
+    const leadName = nameById.get(dto.leadEmployeeId) ?? 'Carer';
+    const baseAllocatedAt = Date.now();
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // The team must still be exactly what the dialog saw (no concurrent edits).
+      const current = await this.activeLeadRows(tx, scheduledJobId);
+      const currentIds = new Set(current.map((a) => a.employeeId));
+      if (
+        current.length !== existing.length ||
+        existingIds.some((id) => !currentIds.has(id))
+      ) {
+        throw new ConflictException('Carers on this visit changed — refresh and try again.');
+      }
+
+      // Exactly one lead: clear every lead, then set the chosen one below.
+      await tx.jobAllocation.updateMany({
+        where: {
+          scheduledJobId,
+          deletedAt: null,
+          isActive: true,
+          status: { in: ACTIVE_STATUSES },
+          isLeadCarer: true,
+          employeeId: { not: dto.leadEmployeeId },
+        },
+        data: { isLeadCarer: false },
+      });
+      const existingLeadRow = current.find((a) => a.employeeId === dto.leadEmployeeId);
+      if (existingLeadRow && !existingLeadRow.isLeadCarer) {
+        await tx.jobAllocation.update({
+          where: { id: existingLeadRow.id },
+          data: { isLeadCarer: true },
+        });
+      }
+      for (const row of current) {
+        const wasLead = row.isLeadCarer;
+        const isLead = row.employeeId === dto.leadEmployeeId;
+        if (wasLead === isLead) continue;
+        await this.audit.logAudit({
+          tx,
+          userId,
+          module: AuditModule.SCHEDULING,
+          action: AuditAction.JOB_ALLOCATION_UPDATED,
+          recordType: 'JobAllocation',
+          recordId: row.id,
+          oldValues: auditSnapshot({ isLeadCarer: wasLead }),
+          newValues: auditSnapshot({ isLeadCarer: isLead }),
+          metadata: {
+            scheduledJobId,
+            employeeId: row.employeeId,
+            serviceUserId: job.serviceUserId,
+            reason: 'lead_set_by_team_allocation',
+          },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        });
+      }
+
+      const created: Array<Prisma.JobAllocationGetPayload<{ include: typeof allocationInclude }>> =
+        [];
+      for (const [index, carer] of checked.entries()) {
+        const { status, needsConfirmation } = this.allocationOutcome(carer.raw, dto.force);
+        const warningTypes = carer.raw.map((w) => w.type);
+        const warningMessages = carer.raw.map((w) => w.message);
+        const row = await tx.jobAllocation.create({
+          data: {
+            scheduledJobId,
+            scheduledVisitId: dto.scheduledVisitId ?? null,
+            employeeId: carer.employeeId,
+            status,
+            requiresConfirmation: needsConfirmation,
+            warningTypes: warningTypes.length ? warningTypes : undefined,
+            warningMessages: warningMessages.length ? warningMessages : undefined,
+            notes: dto.notes?.trim() ?? null,
+            allocatedById: userId,
+            // Selection order = assigned order (lead promotion order if the lead is removed later).
+            allocatedAt: new Date(baseAllocatedAt + index),
+            confirmedAt: status === PrismaAllocationStatus.CONFIRMED ? new Date() : null,
+            confirmedById: status === PrismaAllocationStatus.CONFIRMED ? userId : null,
+            scheduledStartDateTime: assignment.start,
+            scheduledEndDateTime: assignment.end,
+            durationMinutes: assignment.durationMinutes,
+            isLeadCarer: carer.employeeId === dto.leadEmployeeId,
+          },
+          include: allocationInclude,
+        });
+        created.push(row);
+
+        if (carer.raw.length) {
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.SCHEDULING,
+            action: AuditAction.ALLOCATION_WARNING_GENERATED,
+            recordType: 'JobAllocation',
+            recordId: row.id,
+            metadata: {
+              scheduledJobId,
+              employeeId: carer.employeeId,
+              serviceUserId: job.serviceUserId,
+              warningTypes,
+            },
+            ipAddress: meta?.ipAddress,
+            userAgent: meta?.userAgent,
+          });
+        }
+        await this.audit.logAudit({
+          tx,
+          userId,
+          module: AuditModule.SCHEDULING,
+          action: needsConfirmation
+            ? AuditAction.JOB_ALLOCATION_REQUIRES_CONFIRMATION
+            : AuditAction.JOB_ALLOCATED,
+          recordType: 'JobAllocation',
+          recordId: row.id,
+          newValues: auditSnapshot(row),
+          metadata: {
+            scheduledJobId,
+            employeeId: carer.employeeId,
+            serviceUserId: job.serviceUserId,
+            warningTypes,
+            previousJobStatus,
+            teamAllocation: true,
+            leadEmployeeId: dto.leadEmployeeId,
+          },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        });
+      }
+
+      const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
+      return { created, newJobStatus };
+    });
+
+    for (const [index, carer] of checked.entries()) {
+      const row = result.created[index]!;
+      void this.notifications.notifyAllocated({
+        employeeId: carer.employeeId,
+        scheduledJobId,
+        jobName: job.jobName,
+        serviceUserId: job.serviceUserId,
+        scheduledStartDateTime: assignment.start,
+        scheduledEndDateTime: assignment.end,
+        role: carer.employeeId === dto.leadEmployeeId ? 'lead' : 'support',
+      });
+      if (row.status === PrismaAllocationStatus.PENDING_CONFIRMATION) {
+        void this.notifications.notifyRequiresConfirmation({
+          scheduledJobId,
+          jobName: job.jobName,
+          employeeId: carer.employeeId,
+          serviceUserId: job.serviceUserId,
+          scheduledStartDateTime: assignment.start,
+          warningMessages: carer.raw.map((w) => w.message),
+        });
+      }
+    }
+    if (previousLeadEmployeeId) {
+      this.notifications.scheduleLeadChangePush({
+        scheduledJobId,
+        previousLeadEmployeeId,
+        newlyAssignedEmployeeIds: dto.employeeIds,
+      });
+    }
+
+    const pending = result.created.some(
+      (r) => r.status === PrismaAllocationStatus.PENDING_CONFIRMATION,
+    );
+    return {
+      message: pending
+        ? `Carers allocated — confirmation required. ${leadName} is the lead carer.`
+        : `Carers allocated. ${leadName} is the lead carer.`,
+      data: result.created.map((r) => this.mapAllocation(r)),
+      meta: {
+        requiresConfirmation: pending,
+        leadEmployeeId: dto.leadEmployeeId,
+        jobStatus: result.newJobStatus,
+        warnings: flatWarnings,
+        carers: carersPayload,
+      },
+    };
   }
 
   async confirm(
@@ -612,10 +1041,22 @@ export class JobAllocationsService {
       include: allocationInclude,
     });
     if (!allocation) throw new NotFoundException('Active allocation not found for this employee');
+    const clockedInMessage = clockedInRemovalBlockMessage({
+      carerName: personName(allocation.employee.personalDetail),
+      actualStartDateTime: allocation.actualStartDateTime,
+      actualEndDateTime: allocation.actualEndDateTime,
+      jobStatus: allocation.scheduledJob.status,
+    });
+    if (clockedInMessage) throw new ConflictException(clockedInMessage);
 
     const previousJobStatus = allocation.scheduledJob.status;
+    const requiredCarers = allocation.scheduledJob.requiredCarers;
+    const previousLeadEmployeeId = await this.currentLeadEmployeeId(
+      requiredCarers,
+      scheduledJobId,
+    );
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.jobAllocation.update({
         where: { id: allocation.id },
         data: {
@@ -624,9 +1065,60 @@ export class JobAllocationsService {
           unallocatedAt: new Date(),
           unallocatedById: userId,
           unallocationReason: dto.reason?.trim() ?? null,
+          // Removed carers are never the lead.
+          ...(allocation.isLeadCarer ? { isLeadCarer: false } : {}),
         },
         include: allocationInclude,
       });
+
+      // Lead removed while others remain: promote the earliest-assigned carer (same transaction).
+      let promotedLeadCarer: { employeeId: string; name: string } | null = null;
+      if (allocation.isLeadCarer && requiredCarers >= MULTI_CARER_MIN) {
+        const remaining = await this.activeLeadRows(tx, scheduledJobId);
+        const next = sortByAssignedOrder(remaining).find((r) => r.isLeadCarer) ?? pickPromotedLead(remaining);
+        if (next) {
+          await tx.jobAllocation.updateMany({
+            where: {
+              scheduledJobId,
+              deletedAt: null,
+              isActive: true,
+              status: { in: ACTIVE_STATUSES },
+              isLeadCarer: true,
+              id: { not: next.id },
+            },
+            data: { isLeadCarer: false },
+          });
+          if (!next.isLeadCarer) {
+            await tx.jobAllocation.update({
+              where: { id: next.id },
+              data: { isLeadCarer: true },
+            });
+          }
+          promotedLeadCarer = {
+            employeeId: next.employeeId,
+            name: personName(next.employee.personalDetail),
+          };
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.SCHEDULING,
+            action: AuditAction.JOB_ALLOCATION_UPDATED,
+            recordType: 'JobAllocation',
+            recordId: next.id,
+            oldValues: auditSnapshot({ isLeadCarer: next.isLeadCarer }),
+            newValues: auditSnapshot({ isLeadCarer: true }),
+            metadata: {
+              scheduledJobId,
+              employeeId: next.employeeId,
+              serviceUserId: allocation.scheduledJob.serviceUserId,
+              reason: 'lead_auto_promoted',
+              previousLeadEmployeeId: dto.employeeId,
+            },
+            ipAddress: meta?.ipAddress,
+            userAgent: meta?.userAgent,
+          });
+        }
+      }
 
       const newJobStatus = await this.syncJobAllocationStatus(tx, scheduledJobId, userId);
 
@@ -661,11 +1153,19 @@ export class JobAllocationsService {
       });
 
       return {
-        message: 'Carer unallocated from job',
+        message: promotedLeadCarer
+          ? `Carer unallocated from job. ${promotedLeadCarer.name} is now the lead carer.`
+          : 'Carer unallocated from job',
         data: this.mapAllocation(updated),
         jobStatus: newJobStatus,
+        // Envelope keeps only message/data/meta — admin toasts the promotion from meta.
+        meta: { jobStatus: newJobStatus, promotedLeadCarer },
       };
     });
+    if (previousLeadEmployeeId && previousLeadEmployeeId === dto.employeeId) {
+      this.notifications.scheduleLeadChangePush({ scheduledJobId, previousLeadEmployeeId });
+    }
+    return result;
   }
 
   async updateTiming(
@@ -717,7 +1217,30 @@ export class JobAllocationsService {
         )
       : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const multiCarer = job.requiredCarers >= MULTI_CARER_MIN;
+    if (multiCarer && dto.isLeadCarer === false && allocation.isLeadCarer) {
+      const others = await this.prisma.jobAllocation.count({
+        where: {
+          scheduledJobId,
+          deletedAt: null,
+          isActive: true,
+          status: { in: ACTIVE_STATUSES },
+          id: { not: allocationId },
+        },
+      });
+      if (others > 0) {
+        throw new BadRequestException(
+          'A multi-carer visit must keep one lead carer. Set another carer as lead instead.',
+        );
+      }
+    }
+    const leadChange = multiCarer && dto.isLeadCarer === true && !allocation.isLeadCarer;
+    const previousLeadEmployeeId = leadChange
+      ? await this.currentLeadEmployeeId(job.requiredCarers, scheduledJobId)
+      : null;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Exactly one lead: clear every other lead in the same transaction.
       if (dto.isLeadCarer === true) {
         await tx.jobAllocation.updateMany({
           where: {
@@ -790,10 +1313,17 @@ export class JobAllocationsService {
       }
 
       return {
-        message: 'Allocation updated',
+        message:
+          dto.isLeadCarer === true && multiCarer
+            ? `${personName(updated.employee.personalDetail)} is now the lead carer`
+            : 'Allocation updated',
         data: this.mapAllocation(updated),
       };
     });
+    if (leadChange) {
+      this.notifications.scheduleLeadChangePush({ scheduledJobId, previousLeadEmployeeId });
+    }
+    return result;
   }
 
   async setLeadCarer(

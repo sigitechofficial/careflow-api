@@ -519,6 +519,19 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
       const durationMinutes =
         carerWindow?.durationMinutes ??
         Math.max(1, Math.round((end.getTime() - start.getTime()) / 60_000));
+      if (carerWindow?.isLeadCarer) {
+        // Exactly one lead per visit: the slot's lead replaces any existing lead.
+        await tx.jobAllocation.updateMany({
+          where: {
+            scheduledJobId: jobId,
+            deletedAt: null,
+            isActive: true,
+            status: { in: ACTIVE_ALLOCATION_STATUSES },
+            isLeadCarer: true,
+          },
+          data: { isLeadCarer: false },
+        });
+      }
       await tx.jobAllocation.create({
         data: {
           scheduledJobId: jobId,

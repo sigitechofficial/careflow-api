@@ -146,14 +146,20 @@ export class SurveysController {
 
   @Post(':id/send')
   @Permissions('surveys.manage')
-  @ApiOperation({ summary: 'Send an employee survey to recipients' })
+  @ApiOperation({ summary: 'Send a survey to employees or service users' })
   send(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: SendSurveyDto,
     @Req() req: Request,
   ) {
-    return this.service.send(user.id, id, dto, getRequestAuditMeta(req));
+    return this.service.send(
+      user.id,
+      id,
+      dto,
+      getRequestAuditMeta(req),
+      req.headers.origin,
+    );
   }
 
   @Post(':id/publish')

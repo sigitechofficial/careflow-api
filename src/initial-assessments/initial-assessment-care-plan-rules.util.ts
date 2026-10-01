@@ -61,10 +61,17 @@ function selectedValues(selectedOptions: Prisma.JsonValue): string[] {
   return [];
 }
 
+/** Select options that mean "nothing to report" — never a positive trigger for a care plan. */
+const NEGATIVE_SELECT_VALUE = /^(no|none|no_concern|no_concerns|not_applicable|n\/?a|not_needed)$/i;
+
+function positiveSelections(selectedOptions: Prisma.JsonValue): string[] {
+  return selectedValues(selectedOptions).filter((v) => !NEGATIVE_SELECT_VALUE.test(v.trim()));
+}
+
 export function isAnswerPositiveForRules(answer: SubmissionAnswerForRules): boolean {
   if (answer.checked === true || answer.booleanValue === true) return true;
   if (answer.textValue?.trim()) return true;
-  return selectedValues(answer.selectedOptions).length > 0;
+  return positiveSelections(answer.selectedOptions).length > 0;
 }
 
 function matchesCondition(

@@ -45,13 +45,10 @@ export type CrsSuggestionMapping = {
  */
 export const CRS_IA_QUERIES = {
   religiousSpiritualPreferences: { fieldKey: 'religiousSpiritualPreferences' },
-  beliefs: { fieldKey: 'beliefs' },
-  cultureLanguageAdjustments: {
-    specRef: '1.7',
-    questionTextContains: 'Religion, culture, language',
-  },
   prayerWorship: { specRef: '1.7', questionTextContains: 'Prayer routine or worship' },
   religiousSpiritualNeeds: { specRef: '1.7', questionTextContains: 'Religious or spiritual needs' },
+  culturalBackground: { fieldKey: 'culturalBackground' },
+  equalityRiskOrNeed: { specRef: '1.7', questionTextContains: 'equality related risk or need' },
   dietaryRequirements: { specRef: '1.7', questionTextContains: 'dietary requirements' },
   genderPreference: { specRef: '1.6', questionTextContains: 'gender preference' },
 } as const;
@@ -142,12 +139,16 @@ export const CRS_SUGGESTION_MAPPINGS: CrsSuggestionMapping[] = [
     resolve: (ctx) =>
       resolveTextSources(ctx, [
         CRS_IA_QUERIES.religiousSpiritualPreferences,
-        CRS_IA_QUERIES.beliefs,
+        CRS_IA_QUERIES.religiousSpiritualNeeds,
       ]),
   },
   {
     businessKey: 'crs_cultural_practices',
-    resolve: (ctx) => resolveTextSources(ctx, [CRS_IA_QUERIES.cultureLanguageAdjustments]),
+    resolve: (ctx) =>
+      resolveTextSources(ctx, [
+        CRS_IA_QUERIES.culturalBackground,
+        CRS_IA_QUERIES.equalityRiskOrNeed,
+      ]),
   },
   {
     businessKey: 'crs_religious_observances',

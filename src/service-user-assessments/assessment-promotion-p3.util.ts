@@ -72,6 +72,10 @@ type AdvanceCarePlanningMetadata = {
 };
 
 type PhotographyConsentMetadata = {
+  /** IA Consent tab gate; only "yes" is a consent record. */
+  photographyNeeded?: 'yes' | 'no' | 'not_now';
+  statementsAgreed?: boolean;
+  professionalName?: string;
   surname?: string;
   firstNames?: string;
   consentSubjectName?: string;
@@ -87,17 +91,25 @@ const ENVIRONMENT_BOOL_KEYS = [
   'temperatureSupport',
   'pets',
   'externalHazards',
-  'infectionControlRisks',
-  'carePlanCompleted',
 ] as const;
 
+/** Must match careflow-admin `MOVING_HANDLING_RISK_FILTER_QUESTIONS` / task definitions. */
 const MOVING_HANDLING_RISK_KEYS = [
-  'totallyIndependentLowRisk',
-  'bedBound',
-  'weightBearing',
-  'needsHoist',
-  'needsTwoStaff',
-  'needsSpecialistEquipment',
+  'historyOfFalls',
+  'unsteadyMobilising',
+  'anxiousAboutFalls',
+  'confused',
+  'aged65PlusFallRiskMeds',
+  'sensoryOrMotorImpairment',
+] as const;
+
+const MOVING_HANDLING_TASK_IDS = [
+  'walking',
+  'gettingInOutOfBed',
+  'transfersBedToChair',
+  'moveUpBed',
+  'toileting',
+  'bathOrShower',
 ] as const;
 
 export function isPainAssessmentComplete(metadata: Prisma.JsonValue | null | undefined): boolean {
@@ -132,7 +144,8 @@ export function isMovingHandlingComplete(metadata: Prisma.JsonValue | null | und
   if (rf.totallyIndependentLowRisk === true) return true;
   const tasks = row.tasks;
   if (!tasks || typeof tasks !== 'object') return false;
-  return Object.values(tasks).some((task) => {
+  return MOVING_HANDLING_TASK_IDS.every((id) => {
+    const task = (tasks as Record<string, unknown>)[id];
     if (!task || typeof task !== 'object' || Array.isArray(task)) return false;
     return (task as Record<string, unknown>).capability != null;
   });
@@ -209,6 +222,16 @@ export function isPhotographyConsentComplete(
 ): boolean {
   const row = metaBlock<PhotographyConsentMetadata>(metadata, 'photographyConsent');
   if (!row) return false;
+  if (row.photographyNeeded === 'no' || row.photographyNeeded === 'not_now') return false;
+  // Compact IA record (Consent tab): confirmed statements replace the paper form's typed signatures.
+  if (row.photographyNeeded === 'yes') {
+    return Boolean(
+      row.statementsAgreed &&
+        row.consentPrintName?.trim() &&
+        row.consentDate?.trim() &&
+        row.professionalName?.trim(),
+    );
+  }
   return Boolean(
     row.surname?.trim() &&
       row.firstNames?.trim() &&

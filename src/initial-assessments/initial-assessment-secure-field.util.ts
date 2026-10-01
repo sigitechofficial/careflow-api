@@ -5,6 +5,9 @@ import {
   isEncryptedFieldValue,
 } from '../common/utils/field-encryption.util';
 
+/** §3.5 "Door entry code" — the single IA home for the key-safe / door code (synced with DOM Care). */
+export const IA_DOOR_CODE_FIELD_KEY = 'doorCode';
+
 export function isSecureQuestionMetadata(metadata: Prisma.JsonValue | null | undefined): boolean {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false;
   return (metadata as Record<string, unknown>).secureField === true;

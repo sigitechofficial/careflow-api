@@ -594,3 +594,43 @@ describe('calculatePayableAmount night duty', () => {
     expect(result).toEqual({ amount: 162, label: 'WAKING_NIGHT' });
   });
 });
+
+describe('absent co-carer (multi-carer pay)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const util = require('./visit-reconciliation.util') as typeof import('./visit-reconciliation.util');
+  it('flags a carer who never clocked in while a co-carer did', () => {
+    expect(
+      util.isAbsentCoCarer({
+        requiredCarers: 2,
+        activeCarerCount: 2,
+        myActualStartDateTime: null,
+        anyCoCarerClockedIn: true,
+      }),
+    ).toBe(true);
+  });
+  it('keeps single-carer, clocked-in, and nobody-clocked-in visits unchanged', () => {
+    expect(
+      util.isAbsentCoCarer({ requiredCarers: 1, activeCarerCount: 1, myActualStartDateTime: null, anyCoCarerClockedIn: false }),
+    ).toBe(false);
+    expect(
+      util.isAbsentCoCarer({ requiredCarers: 2, activeCarerCount: 2, myActualStartDateTime: new Date(), anyCoCarerClockedIn: true }),
+    ).toBe(false);
+    expect(
+      util.isAbsentCoCarer({ requiredCarers: 2, activeCarerCount: 2, myActualStartDateTime: null, anyCoCarerClockedIn: false }),
+    ).toBe(false);
+  });
+  it('absent co-carer MISSING_CHECK_IN blocks pay; generic missing check-in does not', () => {
+    expect(
+      util.isPayBlockingException({
+        code: 'MISSING_CHECK_IN' as never,
+        message: util.ABSENT_CO_CARER_EXCEPTION_MESSAGE,
+      }),
+    ).toBe(true);
+    expect(
+      util.isPayBlockingException({
+        code: 'MISSING_CHECK_IN' as never,
+        message: 'No check-in time recorded for this visit',
+      }),
+    ).toBe(false);
+  });
+});

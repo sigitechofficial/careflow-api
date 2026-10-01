@@ -23,11 +23,21 @@ import { areaRiskFollowUpFields } from './area-risk-follow-up.seed';
  */
 export const MEDICATION_CARE_PLAN_NAME = 'Medication';
 
-/** Retained local option list for the medication-support-level SELECT. */
+/**
+ * Option list for the medication-support-level SELECT.
+ *
+ * The original four options are retained (saved answers such as 'Nurse only' must stay
+ * valid). 'Assisted by carer' and 'Provided by others (family / nurse)' were added so every
+ * IA §9.2 level maps 1:1 without overstating what carers do — see
+ * `mapMedicationSupportLevelToCarePlan`. Existing databases are patched by
+ * `prisma/scripts/patch-medication-support-level-options.ts` (and by the seed applier).
+ */
 export const MEDICATION_SUPPORT_LEVEL_OPTIONS = [
   'Self-administers',
   'Prompted',
+  'Assisted by carer',
   'Administered by carer',
+  'Provided by others (family / nurse)',
   'Nurse only',
 ];
 

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
@@ -124,6 +125,7 @@ import { PayrollModule } from './payroll/payroll.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
 import { PlatformCostsModule } from './platform-costs/platform-costs.module';
+import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
 
 @Module({
   imports: [
@@ -133,6 +135,9 @@ import { PlatformCostsModule } from './platform-costs/platform-costs.module';
       load: [appConfig, databaseConfig, openfdaConfig, mailConfig, azureCostConfig],
       validate: validateEnv,
     }),
+    // Register once here only: importing forRoot() in several feature modules made
+    // every @Cron handler fire once per import (3x duplicate alerts/jobs).
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -264,6 +269,7 @@ import { PlatformCostsModule } from './platform-costs/platform-costs.module';
     LearningModule,
     PoliciesModule,
     PlatformCostsModule,
+    ServiceUserCommunicationNotesModule,
   ],
   providers: [
     {

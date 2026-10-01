@@ -9,7 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { allowedPrivacyLevels } from './incident-access.util';
-import { OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
+import { incidentOccurredAtRange, OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
 
 const ROW_CAP = 10_000;
@@ -42,6 +43,7 @@ export class IncidentAnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgScope: OrgScopeService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   private async baseWhere(
@@ -80,14 +82,12 @@ export class IncidentAnalyticsService {
     } else {
       andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
     }
-    if (q.dateFrom || q.dateTo) {
-      where.occurredAt = {
-        ...(q.dateFrom ? { gte: new Date(q.dateFrom) } : {}),
-        ...(q.dateTo
-          ? { lte: new Date(`${q.dateTo.slice(0, 10)}T23:59:59.999Z`) }
-          : {}),
-      };
-    }
+    const occurredAt = incidentOccurredAtRange(
+      q.dateFrom,
+      q.dateTo,
+      await this.orgSettings.getOperationalTimezone(),
+    );
+    if (occurredAt) where.occurredAt = occurredAt;
     return where;
   }
 

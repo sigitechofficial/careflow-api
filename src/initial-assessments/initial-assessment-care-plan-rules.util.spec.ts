@@ -46,6 +46,36 @@ const enterpriseFallsYes: SubmissionAnswerForRules = {
   carePlanArea: 'Mobility',
 };
 
+describe('evaluateCarePlanRule — "no concern" selections', () => {
+  const commsRule: CarePlanRecommendationRuleRow = {
+    id: 'comms',
+    carePathwayFormId: 'form-comms',
+    label: null,
+    matchMode: 'ANY',
+    conditions: [{ specRef: '8.3', questionTextContains: 'Hearing impairment', when: 'yes' }],
+    suppressLegacyArea: 'Communication',
+    sortOrder: 30,
+    isActive: true,
+    formName: 'Communication',
+  };
+  const hearing = (selectedOptions: SubmissionAnswerForRules['selectedOptions']) =>
+    baseAnswer({
+      questionText: 'Hearing impairment level',
+      booleanValue: null,
+      selectedOptions,
+      fieldKey: 'hearingLevel',
+      specRef: '8.3',
+    });
+
+  it('does not recommend a care plan when only "No concern" is selected', () => {
+    expect(evaluateCarePlanRule(commsRule, [hearing(['no_concern'])]).matched).toBe(false);
+  });
+
+  it('still recommends it for a real impairment', () => {
+    expect(evaluateCarePlanRule(commsRule, [hearing(['moderate'])]).matched).toBe(true);
+  });
+});
+
 describe('evaluateCarePlanRule', () => {
   const rule: CarePlanRecommendationRuleRow = {
     id: 'r1',
@@ -108,6 +138,45 @@ describe('Falls recommendation rule (fieldKey fallsLast12Months)', () => {
       },
     ]);
     expect(result.matched).toBe(false);
+  });
+});
+
+describe('SALT 8.2 → Communication and transferSupportRequired → Falls', () => {
+  it('recommends Communication when SALT communication referral required? is Yes', () => {
+    const rule: CarePlanRecommendationRuleRow = {
+      ...fallsRule,
+      id: 'comms-salt',
+      conditions: [{ specRef: '8.2', questionTextContains: 'SALT communication referral', when: 'yes' }],
+      suppressLegacyArea: 'Communication',
+      formName: 'Communication',
+    };
+    const result = evaluateCarePlanRule(rule, [
+      baseAnswer({ questionText: 'SALT communication referral required?', fieldKey: undefined, specRef: '8.2' }),
+    ]);
+    expect(result.matched).toBe(true);
+    expect(result.triggers[0]?.specRef).toBe('8.2');
+  });
+
+  it('recommends Falls when hidden derived transferSupportRequired is Yes', () => {
+    const rule: CarePlanRecommendationRuleRow = {
+      ...fallsRule,
+      conditions: [
+        { fieldKey: 'fallsLast12Months', when: 'yes' },
+        { fieldKey: 'transferSupportRequired', when: 'yes' },
+      ],
+    };
+    const result = evaluateCarePlanRule(rule, [
+      { ...enterpriseFallsYes, booleanValue: false, checked: false },
+      {
+        ...enterpriseFallsYes,
+        questionId: 'q-transfer',
+        questionText: 'Transfer support required?',
+        fieldKey: 'transferSupportRequired',
+        specRef: '12.5c',
+      },
+    ]);
+    expect(result.matched).toBe(true);
+    expect(result.triggers[0]?.fieldKey).toBe('transferSupportRequired');
   });
 });
 

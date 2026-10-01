@@ -90,13 +90,13 @@ export const PERSON_CENTRED_FIELD_REGISTRY: readonly PersonCentredFieldRegistryE
     businessKey: 'person_centred_evening_routine',
     mode: 'AUTO_PREFILL',
     resolvedByEngine: true,
-    notes: 'About Me nightSupport / IA §1.4 bedtime routine.',
+    notes: 'About Me nightSupport only (IA §1.4 routine is one combined answer, used for the morning field).',
   },
   {
     businessKey: 'person_centred_upset_calm',
     mode: 'AUTO_PREFILL',
     resolvedByEngine: true,
-    notes: 'About Me triggersCalm / IA §1.4 things that upset or calm.',
+    notes: 'About Me triggersCalm / IA §1.4 known triggers.',
   },
 
   // ---------- Personal details (Care 2020, added 2026-08-28) ----------
@@ -122,11 +122,11 @@ export const PERSON_CENTRED_FIELD_REGISTRY: readonly PersonCentredFieldRegistryE
   { businessKey: 'person_centred_property_access', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from address accessInstructions / key-safe (read-only).' },
 
   // ---------- My care and health (person-centred summaries; dedicated plans = SoT) ----------
-  { businessKey: 'person_centred_personal_care', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from About Me personalCare; Washing & dressing / Home Care = detailed SoT.' },
-  { businessKey: 'person_centred_eating_drinking', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from About Me foodPreferences; Eating & Drinking plan = detailed SoT.' },
+  { businessKey: 'person_centred_personal_care', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from About Me personalCare, else IA §1.4 bathing / dressing preferences; Washing & dressing / Home Care = detailed SoT.' },
+  { businessKey: 'person_centred_eating_drinking', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from About Me foodPreferences, else IA §1.5 food likes and dislikes; Eating & Drinking plan = detailed SoT.' },
   { businessKey: 'person_centred_comm_behaviour', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from About Me communication; Communication + Cognition plans = detailed SoT.' },
   { businessKey: 'person_centred_health', mode: 'MANUAL', resolvedByEngine: false, notes: 'Physical Health plan = source of truth; summary here is manual (no ctx source).' },
-  { businessKey: 'person_centred_mobility', mode: 'MANUAL', resolvedByEngine: false, notes: 'Mobility plan = source of truth; summary here is manual (no ctx source).' },
+  { businessKey: 'person_centred_mobility', mode: 'AUTO_PREFILL', resolvedByEngine: true, notes: 'Prefill from IA ADL mobility aids list; Mobility plan = source of truth.' },
   { businessKey: 'person_centred_diagnosis', mode: 'MANUAL', resolvedByEngine: false, notes: 'Physical Health plan = source of truth; summary here is manual (no ctx source).' },
   { businessKey: 'person_centred_care_details', mode: 'MANUAL', resolvedByEngine: false, notes: 'Narrative overview; manual.' },
 

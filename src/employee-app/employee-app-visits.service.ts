@@ -52,10 +52,15 @@ import { VisitAreaLockService } from '../ecm/visit-area-lock.service';
 import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-grant.service';
 import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
 import { EmployeeAppSosService } from './employee-app-sos.service';
+import { MedicationNotificationHook } from '../medications/medication-notification.hook';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { parseTaskResets } from '../scheduled-jobs-housekeeping/visit-task-reset.util';
+import {
+  readSupportAutoClosed,
+  SUPPORT_AUTO_CLOSED_META_KEY,
+} from '../scheduled-jobs-housekeeping/support-auto-close.util';
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { CreateServiceUserObservationDto } from '../service-user-observations/dto/create-service-user-observation.dto';
 import { validateObservationCreate } from '../service-user-observations/observation-payload.validation';
@@ -90,7 +95,7 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
-import { formatUkDateLabel, parseUkDateTimeLabel } from '../common/utils/uk-date-label.util';
+import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
@@ -186,6 +191,10 @@ import { syncObservationFromCompletedVisitTask } from './visit-task-obs-sync.uti
 import { VisitTimelineService } from './visit-timeline.service';
 import { IncidentsService } from '../incidents/incidents.service';
 import {
+  CARER_INCIDENT_PHOTO_TYPES,
+  incidentAttachmentBytesMatchType,
+} from '../incidents/incident-attachment.config';
+import {
   HANDOVER_TIMELINE_SOURCE_ID,
   VISIT_NOTE_TIMELINE_SOURCE_ID,
 } from './visit-timeline.types';
@@ -212,6 +221,8 @@ import {
 import {
   allocationIso,
   isLeadCarerOnVisit,
+  SUPPORT_READ_ONLY_CODE,
+  SUPPORT_READ_ONLY_MESSAGE,
   isMultiCarerVisit,
   buildSupportClockedOutBeforeLeadComplete,
   mapTwoPersonTaskFlags,
@@ -221,6 +232,7 @@ import {
   type CoCarerPresenceRecord,
 } from './employee-app-multi-carer.util';
 import type { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
+import { CARER_VISIBLE_RISK_WHERE, findCarerVisibleIa } from './employee-app-ia-source.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -329,6 +341,7 @@ type VisitJobRow = Prisma.ScheduledJobGetPayload<{
         status: true;
         employeeId: true;
         isLeadCarer: true;
+        allocatedAt: true;
         actualStartDateTime: true;
         actualEndDateTime: true;
         scheduledStartDateTime: true;
@@ -365,7 +378,25 @@ export class EmployeeAppVisitsService {
     private readonly carerPush: CarerVisitPushHook,
     private readonly ecmExceptions: EcmExceptionsService,
     private readonly incidents: IncidentsService,
+    private readonly medNotifications: MedicationNotificationHook,
   ) {}
+
+  /**
+   * Shared (multi-carer) visit: only the LEAD writes clinical / care records
+   * (tasks, MAR, observations, body map, identity). Support may still write log
+   * notes, handover, concerns and incidents. Single-carer visits: always allowed.
+   */
+  private assertLeadMayWriteCareRecord(
+    employeeId: string,
+    ctx: { job: { requiredCarers: number; allocations: VisitJobRow['allocations'] } },
+  ): void {
+    if (!isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)) {
+      throw new ForbiddenException({
+        code: SUPPORT_READ_ONLY_CODE,
+        message: SUPPORT_READ_ONLY_MESSAGE,
+      });
+    }
+  }
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
@@ -1424,7 +1455,7 @@ export class EmployeeAppVisitsService {
 
   async saveTasks(employeeId: string, jobId: string, dto: SaveVisitJobTasksDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
-    await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, await this.loadJobForEmployee(employeeId, jobId));
     const result = await this.housekeeping.saveVisitJobTasks('', jobId, dto);
 
     await this.prisma.scheduledVisitTaskCompletion.updateMany({
@@ -1524,6 +1555,7 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     const type = await this.prisma.observationType.findFirst({
       where: {
         code: resolveObservationTypeCode(dto.observationTypeCode),
@@ -1732,6 +1764,7 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
@@ -1862,6 +1895,7 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
@@ -1946,6 +1980,7 @@ export class EmployeeAppVisitsService {
     dto: CreateBodyMapReviewDto,
   ) {
     const { ctx } = await this.assertBodyMapRecordOnVisit(employeeId, jobId, recordId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
       contractError('NOT_CHECKED_IN', 'Clock in before updating a body map record');
     }
@@ -1961,6 +1996,7 @@ export class EmployeeAppVisitsService {
     caption?: string,
   ) {
     const { ctx } = await this.assertBodyMapRecordOnVisit(employeeId, jobId, recordId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
       contractError('NOT_CHECKED_IN', 'Clock in before adding a body map photo');
     }
@@ -1975,6 +2011,7 @@ export class EmployeeAppVisitsService {
     opts: { bodyView: string; x: number; y: number },
   ) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     return this.bodyMap.patchRotationCheck(ctx.job.serviceUserId, opts);
   }
 
@@ -2287,6 +2324,19 @@ export class EmployeeAppVisitsService {
       visit.status === ScheduledVisitStatus.CALLED_OFF ||
       visit.status === ScheduledVisitStatus.MISSED
     ) {
+      // Lead already closed the visit. If this support carer is still clocked in, or was
+      // auto-closed at the lead's clock-out, record their REAL clock-out time now.
+      const autoClosed = readSupportAutoClosed(ctx.employeeAppMeta)[employeeId];
+      if (
+        myAllocation?.id &&
+        myAllocation.actualStartDateTime &&
+        (!myAllocation.actualEndDateTime || autoClosed)
+      ) {
+        return this.recordSupportCheckoutAfterLead(employeeId, jobId, ctx, dto, {
+          allocationId: myAllocation.id,
+          actualStartDateTime: myAllocation.actualStartDateTime,
+        });
+      }
       // Visit already closed by lead — idempotent success for support.
       return this.buildCompleteResponse(employeeId, jobId, ctx, {
         status: visit.status as LocalVisitStatus,
@@ -2410,6 +2460,126 @@ export class EmployeeAppVisitsService {
       actualEndDateTime: endAt.toISOString(),
       supportCheckoutOnly: true,
       visitRemainsOpen: true,
+    });
+  }
+
+  /**
+   * Support clock-out after the lead completed the visit (rare): store the carer's
+   * real clock-out (overwrites an auto-close at lead clock-out), then refresh their
+   * pay reconciliation row so pay uses their own times.
+   */
+  private async recordSupportCheckoutAfterLead(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppVisitCompleteDto,
+    allocation: { allocationId: string; actualStartDateTime: Date },
+  ) {
+    const visit = ctx.primaryVisit;
+    const now = new Date();
+    const requestedEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
+    const endAt =
+      Number.isNaN(requestedEnd.getTime()) ||
+      requestedEnd.getTime() < allocation.actualStartDateTime.getTime()
+        ? now
+        : requestedEnd;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.jobAllocation.update({
+        where: { id: allocation.allocationId },
+        data: { actualEndDateTime: endAt },
+      });
+      const jobRow = await tx.scheduledJob.findUnique({
+        where: { id: jobId },
+        select: { metadata: true },
+      });
+      const previousMeta = this.parseMetadata(jobRow?.metadata);
+      const previousEa =
+        typeof previousMeta.employeeApp === 'object' && previousMeta.employeeApp
+          ? (previousMeta.employeeApp as Record<string, unknown>)
+          : {};
+      const autoClosed = { ...readSupportAutoClosed(previousEa) };
+      delete autoClosed[employeeId];
+      const previousCheckOuts =
+        typeof previousEa.supportCheckOuts === 'object' && previousEa.supportCheckOuts
+          ? (previousEa.supportCheckOuts as Record<string, unknown>)
+          : {};
+      await tx.scheduledJob.update({
+        where: { id: jobId },
+        data: {
+          metadata: {
+            ...previousMeta,
+            employeeApp: {
+              ...previousEa,
+              [SUPPORT_AUTO_CLOSED_META_KEY]: autoClosed,
+              supportCheckOuts: {
+                ...previousCheckOuts,
+                [employeeId]: {
+                  completedAt: now.toISOString(),
+                  actualStartDateTime: allocation.actualStartDateTime.toISOString(),
+                  actualEndDateTime: endAt.toISOString(),
+                  deviceRecordedAt: dto.deviceRecordedAt ?? null,
+                  idempotencyKey: dto.idempotencyKey ?? null,
+                  latitude: dto.latitude ?? null,
+                  longitude: dto.longitude ?? null,
+                  accuracyMeters: dto.accuracyMeters ?? null,
+                  isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
+                  employeeId,
+                  role: 'support',
+                  afterLeadCompleted: true,
+                },
+              },
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+
+    await this.attendance.recordEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      jobAllocationId: allocation.allocationId,
+      employeeId,
+      eventType: VisitAttendanceEventType.CHECK_OUT,
+      verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
+      occurredAt: endAt,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracyMeters: dto.accuracyMeters,
+      isMockLocation: dto.isMockedLocation ?? dto.isMockLocation ?? false,
+      clientEventId: dto.idempotencyKey ?? undefined,
+    });
+
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visit.id,
+      eventType: 'clock_out',
+      sourceType: 'complete',
+      sourceId: `support_complete:${employeeId}`,
+      title: 'Support clocked out',
+      detail: 'Support carer clocked out after the lead completed the visit',
+      tone: 'primary',
+      occurredAt: endAt,
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+
+    try {
+      await this.visitReconciliations.ensureForCompletedJob(jobId);
+    } catch (err) {
+      this.logger.warn(
+        `Support late clock-out reconciliation refresh failed job=${jobId}: ${String(err)}`,
+      );
+    }
+    await this.ecmEvaluation.evaluateJobSafe(jobId);
+
+    return this.buildCompleteResponse(employeeId, jobId, ctx, {
+      status: visit.status as LocalVisitStatus,
+      message: 'Support carer clocked out — visit already completed by lead',
+      actualStartDateTime: allocation.actualStartDateTime.toISOString(),
+      actualEndDateTime: endAt.toISOString(),
+      supportCheckoutOnly: true,
+      visitRemainsOpen: false,
     });
   }
 
@@ -2865,7 +3035,7 @@ export class EmployeeAppVisitsService {
     dto: EmployeeAppSaveTaskDto,
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
-    await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, await this.loadJobForEmployee(employeeId, jobId));
     const outcome = dto.outcome.toUpperCase();
     if (!['COMPLETED', 'PARTIAL', 'DECLINED'].includes(outcome)) {
       validationError('outcome must be COMPLETED, PARTIAL, or DECLINED');
@@ -3015,6 +3185,7 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
     if (replay) return { data: replay };
 
@@ -3126,6 +3297,17 @@ export class EmployeeAppVisitsService {
       },
     });
 
+    await this.medNotifications.notifyAdministrationEvent({
+      eventId: created.id,
+      serviceUserId: ctx.job.serviceUserId,
+      medicationName: med.medicationName,
+      status: mapped.status,
+      controlled: Boolean(med.isControlledMedication),
+      occurredAt: recordedAt,
+      actorEmployeeId: employeeId,
+      metadata: { medicationId: med.id, scheduledJobId: jobId },
+    });
+
     // When the scheduled MAR round is fully recorded, close eMAR-linked visit tasks
     // (e.g. "Medication prompt") so Home + Details task progress stay aligned.
     await this.syncEmarLinkedTasksIfRoundComplete({
@@ -3194,6 +3376,7 @@ export class EmployeeAppVisitsService {
     }
 
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
       if (replay) return { data: replay };
@@ -3349,6 +3532,7 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
       if (replay) return { data: replay };
@@ -3513,6 +3697,7 @@ export class EmployeeAppVisitsService {
     },
   ) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
       contractError('NOT_CHECKED_IN', 'Clock in before adding an observation photo');
     }
@@ -3657,6 +3842,8 @@ export class EmployeeAppVisitsService {
         isDraft: Boolean(dto.isDraft),
         deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
+        // Lead / Support on a shared visit at the time of writing (null on single-carer).
+        recordedByRole: resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations),
         recordedAt: occurredAtIso,
       };
       const idx = notes.findIndex((n) => (n as { id?: string }).id === entryId);
@@ -3741,6 +3928,7 @@ export class EmployeeAppVisitsService {
         isDraft: Boolean(dto.isDraft),
         deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
+        recordedByRole: resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations),
         recordedAt: occurredAtIso,
       },
       lastHandover: {
@@ -3788,6 +3976,7 @@ export class EmployeeAppVisitsService {
         id: entryId,
         ...dto,
         recordedByEmployeeId: employeeId,
+        recordedByRole: resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations),
         recordedAt: now,
         officeNotified,
       });
@@ -3851,6 +4040,7 @@ export class EmployeeAppVisitsService {
         ...dto,
         attachments: [],
         recordedByEmployeeId: employeeId,
+        recordedByRole: resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations),
         recordedAt: now,
         auditRecordId,
         officeNotified,
@@ -3894,14 +4084,18 @@ export class EmployeeAppVisitsService {
           userId,
           employeeId,
           scheduledJobId: jobId,
-          categoryId: dto.incidentTypeKey ?? '',
-          subtypeId: dto.subtypeKey ?? null,
-          occurredAt: parseUkDateTimeLabel(
+          categoryRef: dto.incidentTypeKey ?? null,
+          subtypeRef: dto.subtypeKey ?? null,
+          incidentTypeLabel: dto.incidentType ?? null,
+          // Carer-entered date/time is organisation wall-clock time, not UTC.
+          occurredAt: parseCarerDateTimeInZone(
             dto.incidentDate,
             dto.incidentTime,
+            ctx.timeZone,
             parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
           ),
-          severity: this.mapAppIncidentSeverity(dto.severityKey),
+          // API-18 documents `severity`; newer app builds send `severityKey`.
+          severity: this.mapAppIncidentSeverity(dto.severityKey ?? dto.severity),
           primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
             ? ctx.job.serviceUserId ?? null
             : null,
@@ -3957,9 +4151,26 @@ export class EmployeeAppVisitsService {
           return { ...current, incidents: list };
         });
       } catch (e) {
-        this.logger.warn(
+        // Don't tell the carer the office was notified when the register copy failed.
+        response.officeNotified = false;
+        this.logger.error(
           `Failed to mirror carer-app incident ${incidentId} to the register: ${e}`,
         );
+        await this.mergeEmployeeAppMeta(jobId, (current) => {
+          const list = Array.isArray(current.incidents)
+            ? [...(current.incidents as Array<Record<string, unknown>>)]
+            : [];
+          const idx = list.findIndex((i) => String(i.id) === incidentId);
+          if (idx >= 0) list[idx] = { ...list[idx], officeNotified: false };
+          return {
+            ...current,
+            incidents: list,
+            idempotency: {
+              ...((current.idempotency as Record<string, unknown>) ?? {}),
+              [dto.idempotencyKey]: response,
+            },
+          };
+        }).catch(() => undefined);
       }
     }
 
@@ -4001,6 +4212,12 @@ export class EmployeeAppVisitsService {
     await this.loadJobForEmployee(employeeId, jobId);
     if (!file) validationError('file is required');
     if (!idempotencyKey) validationError('idempotencyKey is required');
+    // Only real images: the declared type must be allowed AND match the file's bytes.
+    const mimeType = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
+    const storedExt = CARER_INCIDENT_PHOTO_TYPES[mimeType];
+    if (!storedExt || !incidentAttachmentBytesMatchType(file.buffer, mimeType)) {
+      validationError('Incident photo must be a JPEG, PNG, WebP or HEIC image');
+    }
 
     const replay = await this.findIdempotentReplay(jobId, idempotencyKey);
     if (replay) return { data: replay };
@@ -4013,8 +4230,8 @@ export class EmployeeAppVisitsService {
     const attachmentId = clientAttachmentId ?? randomUUID();
     const dir = path.join(process.cwd(), 'uploads', 'employee-app-incidents', jobId);
     await fs.mkdir(dir, { recursive: true });
-    const ext = path.extname(file.originalname) || '.jpg';
-    const filename = `${attachmentId}${ext}`;
+    // Server-generated name + type-derived extension: unpredictable, and never .exe/.html/.svg.
+    const filename = `${randomUUID()}${storedExt}`;
     const abs = path.join(dir, filename);
     await fs.writeFile(abs, file.buffer);
     const url = `/uploads/employee-app-incidents/${jobId}/${filename}`;
@@ -4022,7 +4239,7 @@ export class EmployeeAppVisitsService {
     const response = {
       attachmentId,
       url,
-      mimeType: file.mimetype,
+      mimeType,
       sizeBytes: file.size,
       serverConfirmedAt: now,
       capturedAt: capturedAt ?? null,
@@ -4060,7 +4277,7 @@ export class EmployeeAppVisitsService {
         .addCarerAppAttachment(registerIncidentId, {
           sourceAbsolutePath: abs,
           originalName: file.originalname,
-          mimeType: file.mimetype,
+          mimeType,
           fileSize: file.size,
           caption: caption ?? null,
         })
@@ -4075,7 +4292,7 @@ export class EmployeeAppVisitsService {
   }
 
   async recordIdentity(employeeId: string, jobId: string, dto: EmployeeAppIdentityDto) {
-    await this.loadJobForEmployee(employeeId, jobId);
+    this.assertLeadMayWriteCareRecord(employeeId, await this.loadJobForEmployee(employeeId, jobId));
     if (!['confirmed', 'mismatch'].includes(dto.result)) {
       validationError('result must be confirmed or mismatch');
     }
@@ -4440,11 +4657,14 @@ export class EmployeeAppVisitsService {
         },
         allocations: {
           where: { deletedAt: null, isActive: true },
+          // Stable order: lead fallback + co-carer list never flip after an update.
+          orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
           select: {
             id: true,
             status: true,
             employeeId: true,
             isLeadCarer: true,
+            allocatedAt: true,
             actualStartDateTime: true,
             actualEndDateTime: true,
             scheduledStartDateTime: true,
@@ -4664,6 +4884,7 @@ export class EmployeeAppVisitsService {
     const multiCarer = activeCoCarers.length >= 2 || requiredCarers >= 2;
     const leadId = resolveLeadEmployeeId(requiredCarers, allocations);
     const presenceMap = readCoCarerPresenceMap(employeeAppMeta);
+    const autoClosedMap = readSupportAutoClosed(employeeAppMeta);
 
     const coCarers = activeCoCarers.map((a) => {
       const name = displayName(
@@ -4685,9 +4906,12 @@ export class EmployeeAppVisitsService {
         ...base,
         isLeadCarer: isLead,
         role: isLead ? ('lead' as const) : ('support' as const),
-        isCheckedIn: Boolean(checkedInAt),
+        // Currently on site: clocked in and not yet clocked out.
+        isCheckedIn: Boolean(checkedInAt) && !checkedOutAt,
         checkedInAt,
         checkedOutAt,
+        // Support clock-out set by the system at the lead's clock-out.
+        checkedOutAutoClosed: Boolean(checkedOutAt && autoClosedMap[a.employeeId]),
         // Partner presence (mark arrived/left) — independent of ECM clock-in.
         present: presence ? presence.present : null,
         arrivedAt: presence?.arrivedAt ?? null,
@@ -5189,6 +5413,7 @@ export class EmployeeAppVisitsService {
           where: {
             serviceUserId: suId,
             status: InitialAssessmentRiskStatus.OPEN,
+            ...CARER_VISIBLE_RISK_WHERE,
             riskType: {
               in: [
                 InitialAssessmentRiskType.FALLS,
@@ -5231,11 +5456,8 @@ export class EmployeeAppVisitsService {
           select: { storageLocation: true },
         }),
         this.sos.listForJob(ctx.job.id),
-        this.prisma.initialAssessmentSubmission.findFirst({
-          where: { serviceUserId: suId, deletedAt: null },
-          orderBy: [{ submittedAt: 'desc' }, { updatedAt: 'desc' }],
-          select: { metadata: true },
-        }),
+        // Never a draft / in-progress reassessment: reviewed first, else submitted (flagged).
+        findCarerVisibleIa(this.prisma, suId, { metadata: true }),
       ]);
 
     const riskTags = openRisks.map((r) => ({
@@ -5259,13 +5481,14 @@ export class EmployeeAppVisitsService {
     const loneWorkerBriefing = loneWorkerRiskRecord
       ? (() => {
           const { factors, controlMeasures } = extractLoneWorkerBriefing(
-            iaSubmissionMeta?.metadata ?? null,
+            iaSubmissionMeta?.submission.metadata ?? null,
           );
           return {
             level: riskLevelWord(loneWorkerRiskRecord.riskLevel),
             summary: loneWorkerRiskRecord.description ?? null,
             factors,
             controlMeasures,
+            pendingManagerReview: iaSubmissionMeta?.pendingReview ?? false,
           };
         })()
       : null;
