@@ -106,8 +106,9 @@ export async function rehomeFireSafetyQuestionsToSection18(prisma: PrismaClient)
   });
   if (!section3 || !section18) return 0;
 
+  // Retired rows (e.g. the old §3.2 fire-details duplicate) are never picked up and re-activated.
   const rows = await prisma.initialAssessmentQuestion.findMany({
-    where: { sectionId: { in: [section3.id, section18.id] } },
+    where: { sectionId: { in: [section3.id, section18.id] }, deletedAt: null },
     select: { id: true, questionText: true, metadata: true, sectionId: true },
   });
 

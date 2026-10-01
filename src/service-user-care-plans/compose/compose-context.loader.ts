@@ -170,6 +170,12 @@ export async function loadCarePlanFormFields(
   return { formName: form.name, fields, reviewFrequencyMonths: form.reviewFrequencyMonths ?? null };
 }
 
+function caseFindingReasonsOf(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  const reasons = (raw as { reasons?: unknown }).reasons;
+  return Array.isArray(reasons) ? reasons.filter((r): r is string => typeof r === 'string') : [];
+}
+
 function readFallsSnapshot(metadata: Prisma.JsonValue | null | undefined): CarePlanFallsSnapshotEvidence | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
   const falls = (metadata as Record<string, unknown>).falls;
@@ -182,6 +188,7 @@ function readFallsSnapshot(metadata: Prisma.JsonValue | null | undefined): CareP
     injuryCaused: typeof row.injuryCaused === 'boolean' ? row.injuryCaused : null,
     riskScore: typeof row.riskScore === 'number' ? row.riskScore : null,
     riskLevel: typeof row.riskLevel === 'string' ? row.riskLevel : null,
+    caseFindingReasons: caseFindingReasonsOf(row.caseFinding),
   };
 }
 
@@ -361,6 +368,19 @@ function readFallsScreeningSummary(metadata: Prisma.JsonValue | null | undefined
   return parts.length > 0 ? parts.join('; ') : 'Falls screening completed';
 }
 
+function readEquipmentSelectionSummary(metadata: Prisma.JsonValue | null | undefined): string | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const equipment = (metadata as Record<string, unknown>).equipmentSelection;
+  if (!equipment || typeof equipment !== 'object' || Array.isArray(equipment)) return null;
+  const row = equipment as Record<string, unknown>;
+  const selected =
+    typeof row.selectedEquipment === 'string' ? row.selectedEquipment.trim() : '';
+  if (!selected) return null;
+  const risk =
+    typeof row.selectedRiskLevel === 'string' ? row.selectedRiskLevel.trim() : '';
+  return risk ? `Equipment selection (${risk}): ${selected}` : `Equipment selection: ${selected}`;
+}
+
 const iaAnswerInclude = {
   question: {
     select: {
@@ -424,6 +444,7 @@ async function loadComposeIaSnapshots(
       answers: submissionAnswersForRules(mapped),
       fallsSnapshot: readFallsSnapshot(row.metadata),
       fallsScreeningSummary: readFallsScreeningSummary(row.metadata),
+      equipmentSelectionSummary: readEquipmentSelectionSummary(row.metadata),
       medicationSnapshot: readMedicationSnapshot(row.metadata),
       continenceSnapshot: readContinenceSnapshot(row.metadata),
       eatingDrinkingSnapshot: readEatingDrinkingSnapshot(row.metadata),
@@ -534,20 +555,14 @@ export async function loadCarePlanComposeContext(
 
   const gpParts: string[] = [];
   if (ia) {
-    const gpName = resolveIaDisplayValue(findIaAnswer(ia.answers, { specRef: '13.9', questionTextContains: 'gp name' }));
-    const gpPractice = resolveIaDisplayValue(
-      findIaAnswer(ia.answers, { specRef: '13.9', questionTextContains: 'gp practice' }),
+    const gpContact = resolveIaDisplayValue(
+      findIaAnswer(ia.answers, { fieldKey: 'gpContactDetails' }),
     );
     const pharmacy = resolveIaDisplayValue(
       findIaAnswer(ia.answers, { specRef: '13.9', questionTextContains: 'pharmacy' }),
     );
-    const gpContact = resolveIaDisplayValue(
-      findIaAnswer(ia.answers, { fieldKey: 'gpContactDetails' }),
-    );
-    if (gpName) gpParts.push(`GP: ${gpName}`);
-    if (gpPractice) gpParts.push(gpPractice);
+    if (gpContact) gpParts.push(gpContact);
     if (pharmacy) gpParts.push(`Pharmacy: ${pharmacy}`);
-    if (gpParts.length === 0 && gpContact) gpParts.push(gpContact);
   }
 
   return {

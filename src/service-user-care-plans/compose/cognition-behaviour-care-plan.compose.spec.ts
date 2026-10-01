@@ -187,11 +187,8 @@ describe('Diagnosis or cognitive concern suggestion', () => {
 // --------------------------------------------------------------------------
 
 describe('Known triggers suggestion', () => {
-  it('is produced from the change-related behaviour questions when Yes', () => {
-    const ctx = ctxWithAnswers([
-      yesNo10_6a(IA_Q_AGITATED_WITH_CHANGE, true),
-      yesNo10_6a(IA_Q_CHALLENGING_BEHAVIOUR, true),
-    ]);
+  it('is produced from the change-related behaviour question when Yes', () => {
+    const ctx = ctxWithAnswers([yesNo10_6a(IA_Q_CHALLENGING_BEHAVIOUR, true)]);
 
     const suggestion = suggestionFor(
       composeCognitionBehaviourCarePlan(ctx, fieldRefsFromSeed(), 'su-1'),
@@ -199,9 +196,18 @@ describe('Known triggers suggestion', () => {
     );
 
     expect(suggestion).toBeDefined();
-    expect(suggestion?.suggestedValue).toContain('agitated with change');
     expect(suggestion?.suggestedValue).toContain('Challenging behaviour or agitation with change');
     expect(suggestion?.sourceQuestions?.[0]?.specRef).toBe(IA_10_6A_SPEC);
+  });
+
+  it('ignores the retired "Gets agitated with change?" duplicate', () => {
+    const ctx = ctxWithAnswers([yesNo10_6a(IA_Q_AGITATED_WITH_CHANGE, true)]);
+    expect(
+      suggestionFor(
+        composeCognitionBehaviourCarePlan(ctx, fieldRefsFromSeed(), 'su-1'),
+        'cog_known_triggers',
+      ),
+    ).toBeUndefined();
   });
 
   it('produces nothing when both change questions are No', () => {
@@ -227,7 +233,7 @@ describe('suggestions are never auto-filled', () => {
     const ctx = ctxWithAnswers([
       impairmentAnswer('mild'),
       yesNo10_6a(IA_Q_DIAGNOSED_DEMENTIA, true),
-      yesNo10_6a(IA_Q_AGITATED_WITH_CHANGE, true),
+      yesNo10_6a(IA_Q_CHALLENGING_BEHAVIOUR, true),
     ]);
     const result = composeCognitionBehaviourCarePlan(ctx, fieldRefsFromSeed(), 'su-1');
 
@@ -239,7 +245,7 @@ describe('suggestions are never auto-filled', () => {
   it('leaves the target fields themselves unset in values', () => {
     const ctx = ctxWithAnswers([
       impairmentAnswer('moderate'),
-      yesNo10_6a(IA_Q_AGITATED_WITH_CHANGE, true),
+      yesNo10_6a(IA_Q_CHALLENGING_BEHAVIOUR, true),
     ]);
     const result = composeCognitionBehaviourCarePlan(ctx, fieldRefsFromSeed(), 'su-1');
     const diagnosis = fieldRefsFromSeed().find((f) => f.fieldKey === 'cog_diagnosis_or_concern');

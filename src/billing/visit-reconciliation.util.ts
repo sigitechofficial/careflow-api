@@ -48,8 +48,34 @@ const PAY_BLOCKING_EXCEPTION_CODES = new Set<FinanceExceptionCode>([
   FinanceExceptionCode.PAY_CARD_MISSING,
 ]);
 
+/** MISSING_CHECK_IN message for a co-carer who never clocked in on a shared visit. */
+export const ABSENT_CO_CARER_EXCEPTION_MESSAGE =
+  'Did not clock in on a shared visit — pay held for review';
+
+/**
+ * Multi-carer visit closed while this carer never clocked in, but a co-carer did:
+ * their pay line must not be built from the visit's times (held for review).
+ * Visits where nobody has carer-level clock-ins (e.g. office-completed with visit
+ * times only) and single-carer visits keep the existing behaviour.
+ */
+export function isAbsentCoCarer(input: {
+  requiredCarers: number;
+  activeCarerCount: number;
+  myActualStartDateTime: Date | null | undefined;
+  anyCoCarerClockedIn: boolean;
+}): boolean {
+  const multi = (input.requiredCarers ?? 1) >= 2 || input.activeCarerCount >= 2;
+  return multi && input.myActualStartDateTime == null && input.anyCoCarerClockedIn;
+}
+
 export function isPayBlockingException(exception: DetectedException): boolean {
   if (PAY_BLOCKING_EXCEPTION_CODES.has(exception.code)) return true;
+  if (
+    exception.code === FinanceExceptionCode.MISSING_CHECK_IN &&
+    exception.message === ABSENT_CO_CARER_EXCEPTION_MESSAGE
+  ) {
+    return true;
+  }
   // RATE_MISSING is shared for pay + charge cards; only pay-card messages block earnings.
   if (exception.code === FinanceExceptionCode.RATE_MISSING) {
     return /pay card/i.test(exception.message ?? '');

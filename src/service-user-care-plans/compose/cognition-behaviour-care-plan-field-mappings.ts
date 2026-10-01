@@ -47,7 +47,6 @@ export const COG_IA_QUERIES = {
   diagnosedDementia: { specRef: '10.6a', questionTextContains: 'Diagnosed dementia' },
   learningDisability: { specRef: '10.6a', questionTextContains: 'Learning disability' },
   brainInjury: { specRef: '10.6a', questionTextContains: 'brain injury' },
-  agitatedWithChange: { specRef: '10.6a', questionTextContains: 'Gets agitated with change' },
   challengingBehaviour: {
     specRef: '10.6a',
     questionTextContains: 'Challenging behaviour or agitation with change',
@@ -136,7 +135,6 @@ function resolveKnownTriggers(ctx: CarePlanComposeContext): CogSuggestionParts |
   const sources: CarePlanSuggestionSourceQuestion[] = [];
 
   const flags: Array<{ query: { specRef: string; questionTextContains: string }; line: string }> = [
-    { query: COG_IA_QUERIES.agitatedWithChange, line: 'Becomes agitated with change' },
     {
       query: COG_IA_QUERIES.challengingBehaviour,
       line: 'Challenging behaviour or agitation with change',

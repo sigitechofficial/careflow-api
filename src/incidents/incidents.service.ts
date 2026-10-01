@@ -35,7 +35,7 @@ import { BodyMapService } from '../body-map/body-map.service';
 import { promises as fsp } from 'fs';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
-import { incidentAttachmentRoot } from './incident-attachment.config';
+import { CARER_INCIDENT_PHOTO_TYPES, incidentAttachmentRoot } from './incident-attachment.config';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -61,7 +61,16 @@ import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
 import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
 import { EmployeesService } from '../employees/employees.service';
 import { LearningAssignmentsService } from '../learning/learning-assignments.service';
+import { UsersService } from '../users/users.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
+import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
+import {
+  formatNotificationDateTime,
+  loadNotificationDisplay,
+} from '../common/utils/notification-display.util';
+import { assertIncidentEditable } from './incident-access.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 import {
   INCIDENT_PRIVACY_RANK,
   INCIDENT_SEVERITY_LABELS,
@@ -70,9 +79,26 @@ import {
   canTransitionIncidentStatus,
   isReinvestigateTransition,
   formatIncidentReference,
+  incidentOccurredAtRange,
 } from './incident-workflow.util';
 
 const SUPER_ADMIN_ROLE = 'Super Admin';
+
+/** Carer-app `incidentType` labels (API_CONTRACTS.md, API-18) → register category / subtype keys. */
+const CARER_APP_INCIDENT_TYPES: Record<string, { category: string; subtype?: string }> = {
+  'fall/slip': { category: 'ACCIDENT', subtype: 'FALL' },
+  injury: { category: 'ACCIDENT' },
+  'med error': { category: 'MEDICATION' },
+  'near miss': { category: 'NEAR_MISS' },
+  choking: { category: 'ACCIDENT', subtype: 'CHOKING' },
+  aggression: { category: 'BEHAVIOUR' },
+  safeguarding: { category: 'SAFEGUARDING' },
+  'pressure damage': { category: 'SKIN_WOUND', subtype: 'PRESSURE_ULCER' },
+  'missing person': { category: 'BEHAVIOUR', subtype: 'ABSCONDING' },
+  property: { category: 'INCIDENT' },
+  death: { category: 'INCIDENT' },
+  other: { category: 'OTHER' },
+};
 const REFERENCE_MAX_RETRIES = 5;
 
 type IncidentWithRefs = Prisma.IncidentGetPayload<{
@@ -91,6 +117,8 @@ export class IncidentsService {
     private readonly bodyMap: BodyMapService,
     private readonly employees: EmployeesService,
     private readonly learningAssignments: LearningAssignmentsService,
+    private readonly users: UsersService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -194,6 +222,9 @@ export class IncidentsService {
       throw new BadRequestException(
         'Incident date/time cannot be in the future',
       );
+    }
+    if (!dto.description?.trim()) {
+      throw new BadRequestException('Describe what happened');
     }
 
     await this.validateReferences(dto);
@@ -318,8 +349,12 @@ export class IncidentsService {
     userId: string;
     employeeId: string;
     scheduledJobId: string;
-    categoryId: string;
-    subtypeId?: string | null;
+    /** Category id, key (e.g. `ACCIDENT`) or carer-app label (e.g. `Fall/slip`). */
+    categoryRef?: string | null;
+    /** Subtype id or key within the resolved category. */
+    subtypeRef?: string | null;
+    /** The carer-app `incidentType` label (API-18), used when no category ref resolves. */
+    incidentTypeLabel?: string | null;
     occurredAt: Date;
     severity: IncidentSeverity;
     primaryServiceUserId?: string | null;
@@ -362,13 +397,15 @@ export class IncidentsService {
       }>;
     } | null;
   }): Promise<IncidentWithRefs> {
-    const category = await this.prisma.incidentCategory.findFirst({
-      where: { id: params.categoryId, deletedAt: null, isActive: true },
-      select: { id: true },
-    });
-    if (!category) {
-      throw new BadRequestException('Invalid or inactive incident category');
-    }
+    // Never lose a carer report over an unrecognised category: resolve id / key / app label,
+    // falling back to "Other".
+    const { categoryId, subtypeId } = await this.resolveCarerAppCategory(
+      params.categoryRef,
+      params.subtypeRef,
+      params.incidentTypeLabel,
+    );
+    const description =
+      params.description.trim() || params.incidentTypeLabel?.trim() || 'Reported from the carer app';
 
     const year = new Date().getUTCFullYear();
     let created: IncidentWithRefs | null = null;
@@ -379,8 +416,8 @@ export class IncidentsService {
           const incident = await tx.incident.create({
             data: {
               referenceNumber,
-              categoryId: params.categoryId,
-              subtypeId: params.subtypeId ?? null,
+              categoryId,
+              subtypeId,
               status: IncidentStatus.REPORTED,
               severity: params.severity,
               privacyLevel: IncidentPrivacyLevel.NORMAL,
@@ -398,7 +435,7 @@ export class IncidentsService {
               affectedPersonKinds: params.affectedPersonKinds ?? [],
               primaryPersonKind: params.affectedPersonKinds?.[0] ?? null,
               primaryPersonName: params.primaryPersonName?.trim() || null,
-              description: params.description.trim(),
+              description,
               contextBefore: params.contextBefore?.trim() || null,
               contextAfter: params.contextAfter?.trim() || null,
               immediateActions: params.immediateActions?.trim() || null,
@@ -465,7 +502,8 @@ export class IncidentsService {
       );
     }
 
-    void this.notifyManagersOfNewIncident(created, params.userId).catch((e) =>
+    // The carer is not a platform User, so the notification has no User creator (FK).
+    void this.notifyManagersOfNewIncident(created, null).catch((e) =>
       this.logger.warn(
         `Incident notification failed for ${created?.referenceNumber}: ${e}`,
       ),
@@ -545,7 +583,7 @@ export class IncidentsService {
 
     const root = incidentAttachmentRoot();
     await fsp.mkdir(root, { recursive: true });
-    const ext = extname(input.originalName) || '.jpg';
+    const ext = CARER_INCIDENT_PHOTO_TYPES[input.mimeType] ?? (extname(input.originalName) || '.jpg');
     const fileName = `${randomUUID()}${ext}`;
     await fsp.copyFile(input.sourceAbsolutePath, join(root, fileName));
 
@@ -800,7 +838,11 @@ export class IncidentsService {
       ...this.privacyWhere(user),
       ...(query.includeArchived ? {} : { isArchived: false }),
       ...(query.status ? { status: query.status } : {}),
-      ...(query.severity ? { severity: query.severity } : {}),
+      ...(query.severity
+        ? { severity: query.severity }
+        : query.severities?.length
+          ? { severity: { in: query.severities } }
+          : {}),
       ...(query.privacyLevel ? { privacyLevel: query.privacyLevel } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.subtypeId ? { subtypeId: query.subtypeId } : {}),
@@ -828,12 +870,21 @@ export class IncidentsService {
       andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
     }
 
-    if (query.dateFrom || query.dateTo) {
-      where.occurredAt = {
-        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-        ...(query.dateTo
-          ? { lte: new Date(`${query.dateTo.slice(0, 10)}T23:59:59.999Z`) }
-          : {}),
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const occurredAt = incidentOccurredAtRange(query.dateFrom, query.dateTo, timeZone);
+    if (occurredAt) where.occurredAt = occurredAt;
+    if (query.closedFrom) {
+      where.closedAt = incidentOccurredAtRange(query.closedFrom, undefined, timeZone);
+    }
+    if (query.hasOverdueActions) {
+      // Same definition as the dashboard count: open incidents with overdue, unfinished measures.
+      andWhereFragment(where, { status: { in: OPEN_INCIDENT_STATUSES } });
+      where.actions = {
+        some: {
+          deletedAt: null,
+          dueDate: { lt: new Date() },
+          status: { notIn: [IncidentActionStatus.COMPLETED, IncidentActionStatus.CANCELLED] },
+        },
       };
     }
 
@@ -903,6 +954,7 @@ export class IncidentsService {
           select: {
             attachments: { where: { deletedAt: null } },
             relatedFrom: true,
+            relatedTo: true,
           },
         },
       },
@@ -914,6 +966,7 @@ export class IncidentsService {
     return {
       data: {
         ...this.mapIncident(incident),
+        ...(await this.resolveAffectedRefs(incident)),
         history: await this.enrichTimelineWithActors(this.buildTimeline(incident)),
         review: incident.review ?? null,
         investigation: incident.investigation ?? null,
@@ -929,7 +982,7 @@ export class IncidentsService {
         witnesses: incident.witnesses,
         relatedCareRecords: incident.relatedCareRecords,
         attachmentCount: incident._count.attachments,
-        relatedIncidentCount: incident._count.relatedFrom,
+        relatedIncidentCount: incident._count.relatedFrom + incident._count.relatedTo,
       },
     };
   }
@@ -1013,6 +1066,13 @@ export class IncidentsService {
           reason: dto.reason?.trim() || null,
         },
       });
+      if (reinvestigate) {
+        // Keep the previous findings but require the new investigation to be completed again.
+        await tx.incidentInvestigation.updateMany({
+          where: { incidentId: id, completedAt: { not: null } },
+          data: { completedAt: null },
+        });
+      }
       await this.audit.logAudit({
         tx,
         userId: user.id,
@@ -1048,7 +1108,7 @@ export class IncidentsService {
     dto: ChangeIncidentSeverityDto,
     meta?: RequestAuditMeta,
   ) {
-    const incident = await this.loadForManage(user, id);
+    const incident = await this.loadForEdit(user, id);
     if (incident.severity === dto.severity) {
       return { message: 'No change', data: this.mapIncident(incident) };
     }
@@ -1094,7 +1154,7 @@ export class IncidentsService {
     dto: AssignIncidentOwnerDto,
     meta?: RequestAuditMeta,
   ) {
-    const incident = await this.loadForManage(user, id);
+    const incident = await this.loadForEdit(user, id);
     const owner = await this.prisma.user.findFirst({
       where: { id: dto.ownerId, deletedAt: null, isActive: true },
       select: { id: true },
@@ -1138,7 +1198,7 @@ export class IncidentsService {
     dto: UpsertIncidentReviewDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadForManage(user, id);
+    await this.loadForEdit(user, id);
     const existing = await this.prisma.incidentReview.findUnique({
       where: { incidentId: id },
     });
@@ -1189,7 +1249,7 @@ export class IncidentsService {
     dto: UpsertIncidentInvestigationDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadForManage(user, id);
+    await this.loadForEdit(user, id);
     const existing = await this.prisma.incidentInvestigation.findUnique({
       where: { incidentId: id },
     });
@@ -1273,7 +1333,7 @@ export class IncidentsService {
         'You do not have permission to suspend a carer from an investigation',
       );
     }
-    const incident = await this.loadForManage(user, id);
+    const incident = await this.loadForEdit(user, id);
     const employeeId = dto.employeeId ?? incident.primaryEmployeeId;
     if (!employeeId) {
       throw new BadRequestException(
@@ -1399,7 +1459,7 @@ export class IncidentsService {
         'You do not have permission to remove a carer suspension',
       );
     }
-    await this.loadForManage(user, id);
+    await this.loadForEdit(user, id);
 
     const suspension = await this.prisma.incidentCarerSuspension.findFirst({
       where: { id: suspensionId, incidentId: id, deletedAt: null },
@@ -1505,7 +1565,7 @@ export class IncidentsService {
         'You do not have permission to recommend a course from an investigation',
       );
     }
-    const incident = await this.loadForManage(user, id);
+    const incident = await this.loadForEdit(user, id);
     const employeeId = dto.employeeId ?? incident.primaryEmployeeId;
     if (!employeeId) {
       throw new BadRequestException(
@@ -1620,7 +1680,7 @@ export class IncidentsService {
         'You do not have permission to remove a course recommendation',
       );
     }
-    await this.loadForManage(user, id);
+    await this.loadForEdit(user, id);
 
     const recommendation =
       await this.prisma.incidentCarerCourseRecommendation.findFirst({
@@ -1713,7 +1773,7 @@ export class IncidentsService {
     dto: UpsertIncidentOutcomeDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadForManage(user, id);
+    await this.loadForEdit(user, id);
     const existing = await this.prisma.incidentOutcome.findUnique({
       where: { incidentId: id },
     });
@@ -1802,11 +1862,12 @@ export class IncidentsService {
       andWhereFragment(base, await this.orgScope.incidentScopeWhere(scope));
     }
 
-    const startOfMonth = new Date();
-    startOfMonth.setUTCDate(1);
-    startOfMonth.setUTCHours(0, 0, 0, 0);
+    // Month boundaries follow the organisation calendar (not UTC), matching the list filters.
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const monthStartDay = `${operationalTodayIso(new Date(), timeZone).slice(0, 8)}01`;
+    const startOfMonth = incidentOccurredAtRange(monthStartDay, undefined, timeZone)!.gte!;
 
-    const [byStatus, bySeverity, open, closedThisMonth, total, overdueActions] =
+    const [byStatus, bySeverity, open, closedThisMonth, total, overdueActions, openHighOrCritical] =
       await Promise.all([
         this.prisma.incident.groupBy({
           by: ['status'],
@@ -1825,7 +1886,7 @@ export class IncidentsService {
           where: {
             ...base,
             status: IncidentStatus.CLOSED,
-            updatedAt: { gte: startOfMonth },
+            closedAt: { gte: startOfMonth },
           },
         }),
         this.prisma.incident.count({ where: base }),
@@ -1839,7 +1900,15 @@ export class IncidentsService {
                 IncidentActionStatus.CANCELLED,
               ],
             },
-            incident: { is: base },
+            // Closed incidents are read-only, so their leftover measures can't be actioned.
+            incident: { is: { ...base, status: { in: OPEN_INCIDENT_STATUSES } } },
+          },
+        }),
+        this.prisma.incident.count({
+          where: {
+            ...base,
+            status: { in: OPEN_INCIDENT_STATUSES },
+            severity: { in: [IncidentSeverity.HIGH, IncidentSeverity.CRITICAL] },
           },
         }),
       ]);
@@ -1861,9 +1930,9 @@ export class IncidentsService {
         underInvestigation:
           statusCounts[IncidentStatus.UNDER_INVESTIGATION] ?? 0,
         actionsRequired: statusCounts[IncidentStatus.ACTIONS_REQUIRED] ?? 0,
-        highOrCritical:
-          (severityCounts[IncidentSeverity.HIGH] ?? 0) +
-          (severityCounts[IncidentSeverity.CRITICAL] ?? 0),
+        highOrCritical: openHighOrCritical,
+        /** First day of the current organisation month (YYYY-MM-DD) — for "closed this month" links. */
+        monthStart: monthStartDay,
         byStatus: statusCounts,
         bySeverity: severityCounts,
       },
@@ -1879,22 +1948,69 @@ export class IncidentsService {
     actorId: string,
   ): Promise<void> {
     if (!review.safeguardingConcern && !review.escalationRequired) return;
-    const recipients = (await this.managerUserIds()).filter(
-      (uid) => uid !== actorId,
-    );
-    if (!recipients.length) return;
     const incident = await this.prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { referenceNumber: true },
+      select: {
+        id: true,
+        privacyLevel: true,
+        referenceNumber: true,
+        severity: true,
+        occurredAt: true,
+        primaryServiceUserId: true,
+        primaryEmployeeId: true,
+        primaryPersonName: true,
+        category: { select: { label: true } },
+      },
     });
-    const flag = review.safeguardingConcern
-      ? 'Safeguarding concern'
-      : 'Escalation required';
+    if (!incident) return;
+    // Only managers who may open this incident (clearance + branch) — the alert names the person.
+    const recipients = await this.notifiableManagerIds(incident, actorId);
+    if (!recipients.length) return;
+
+    let personShortName: string | null = null;
+    let personFullName: string | null = null;
+    if (incident.primaryServiceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: incident.primaryServiceUserId },
+        select: { firstName: true, lastName: true, preferredName: true },
+      });
+      personFullName =
+        [su?.firstName, su?.lastName].filter(Boolean).join(' ').trim() || null;
+      personShortName = su?.preferredName?.trim() || personFullName;
+    } else if (incident.primaryEmployeeId) {
+      const pd = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId: incident.primaryEmployeeId },
+        select: { firstName: true, lastName: true },
+      });
+      personFullName = pd ? `${pd.firstName} ${pd.lastName}`.trim() : null;
+      personShortName = personFullName;
+    } else if (incident.primaryPersonName?.trim()) {
+      personFullName = incident.primaryPersonName.trim();
+      personShortName = personFullName;
+    }
+
+    const reviewer = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { firstName: true, lastName: true },
+    });
+    const display = await loadNotificationDisplay(this.prisma);
+    const { title, message } = buildIncidentReviewFlagNotification({
+      safeguardingConcern: Boolean(review.safeguardingConcern),
+      escalationRequired: Boolean(review.escalationRequired),
+      referenceNumber: incident.referenceNumber,
+      categoryLabel: incident.category?.label,
+      severity: incident.severity,
+      occurredAtLabel: formatNotificationDateTime(incident.occurredAt, display),
+      personShortName,
+      personFullName,
+      reviewerName:
+        [reviewer?.firstName, reviewer?.lastName].filter(Boolean).join(' ').trim() || null,
+    });
     await this.notifications.notifyUsers({
       recipientUserIds: recipients,
       type: NotificationType.INCIDENT_REPORTED,
-      title: `${flag} — ${incident?.referenceNumber ?? 'incident'}`,
-      message: `An incident review flagged: ${flag}. Please review.`,
+      title,
+      message,
       module: NotificationModule.SERVICE_CARE,
       severity: NotificationSeverity.ERROR,
       recordType: 'Incident',
@@ -1922,7 +2038,7 @@ export class IncidentsService {
     dto: CreateIncidentActionDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadForManage(user, incidentId);
+    await this.loadForEdit(user, incidentId);
     if (dto.assignedEmployeeId) {
       await this.assertEmployeeExists(dto.assignedEmployeeId);
     }
@@ -1963,6 +2079,21 @@ export class IncidentsService {
     if (dto.assignedEmployeeId) {
       await this.assertEmployeeExists(dto.assignedEmployeeId);
     }
+    // Mandatory measures gate High/Critical closure, so dropping one must be justified —
+    // otherwise cancelling it would silently bypass the audited closure override.
+    const cancellingMandatory =
+      existing.isMandatory &&
+      dto.status === IncidentActionStatus.CANCELLED &&
+      existing.status !== IncidentActionStatus.CANCELLED;
+    const unmarkingMandatory = existing.isMandatory && dto.isMandatory === false;
+    const reason = dto.reason?.trim();
+    if ((cancellingMandatory || unmarkingMandatory) && !reason) {
+      throw new BadRequestException(
+        cancellingMandatory
+          ? 'A reason is required to cancel a mandatory measure'
+          : 'A reason is required to make a mandatory measure optional',
+      );
+    }
     const action = await this.prisma.incidentAction.update({
       where: { id: actionId },
       data: {
@@ -1981,6 +2112,7 @@ export class IncidentsService {
         ...(dto.isMandatory !== undefined
           ? { isMandatory: dto.isMandatory }
           : {}),
+        ...(cancellingMandatory ? { completionNotes: `Cancelled: ${reason}` } : {}),
         updatedById: user.id,
       },
     });
@@ -1990,6 +2122,11 @@ export class IncidentsService {
       action: AuditAction.INCIDENT_UPDATED,
       recordType: 'IncidentAction',
       recordId: actionId,
+      ...(cancellingMandatory || unmarkingMandatory
+        ? {
+            description: `${cancellingMandatory ? 'Mandatory measure cancelled' : 'Mandatory measure made optional'}: ${existing.title} — ${reason}`,
+          }
+        : {}),
       oldValues: auditSnapshot(existing),
       newValues: auditSnapshot(action),
       ipAddress: meta?.ipAddress,
@@ -2118,11 +2255,12 @@ export class IncidentsService {
   private async loadActionForManage(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
-      include: { incident: { select: { id: true, privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
     if (!action || !this.canViewIncident(user, action.incident)) {
       throw new NotFoundException('Action not found');
     }
+    assertIncidentEditable(action.incident);
     await this.orgScope.assertIncidentInScope(
       this.orgScope.fromRequestUser(user),
       action.incident.id,
@@ -2134,11 +2272,12 @@ export class IncidentsService {
   private async loadActionForComplete(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
-      include: { incident: { select: { id: true, privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
     if (!action || !this.canViewIncident(user, action.incident)) {
       throw new NotFoundException('Action not found');
     }
+    assertIncidentEditable(action.incident);
     await this.orgScope.assertIncidentInScope(
       this.orgScope.fromRequestUser(user),
       action.incident.id,
@@ -2205,11 +2344,50 @@ export class IncidentsService {
     return incident;
   }
 
+  /** loadForManage for record changes: closed incidents are read-only until reopened / re-investigated. */
+  private async loadForEdit(user: RequestUser, id: string): Promise<IncidentWithRefs> {
+    const incident = await this.loadForManage(user, id);
+    assertIncidentEditable(incident);
+    return incident;
+  }
+
   private isUniqueViolation(err: unknown): boolean {
     return (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === 'P2002'
     );
+  }
+
+  /**
+   * Managers who may actually open this incident: active account, confidentiality clearance and
+   * branch scope — resolved with the same rules as their login session.
+   */
+  private async notifiableManagerIds(
+    incident: { id: string; privacyLevel: IncidentPrivacyLevel },
+    excludeUserId: string | null,
+  ): Promise<string[]> {
+    const candidates = (await this.managerUserIds()).filter((uid) => uid !== excludeUserId);
+    const allowed: string[] = [];
+    for (const uid of candidates) {
+      const ctx = await this.users.getAuthContext(uid);
+      if (!ctx) continue;
+      const asUser: RequestUser = {
+        id: ctx.id,
+        email: ctx.email,
+        roles: ctx.roles,
+        permissions: ctx.permissions,
+        accountKind: ctx.accountKind,
+        assignedLocationIds: ctx.assignedLocationIds,
+      };
+      if (!this.canViewIncident(asUser, incident)) continue;
+      try {
+        await this.orgScope.assertIncidentInScope(this.orgScope.fromRequestUser(asUser), incident.id);
+      } catch {
+        continue;
+      }
+      allowed.push(uid);
+    }
+    return allowed;
   }
 
   private async managerUserIds(): Promise<string[]> {
@@ -2228,13 +2406,12 @@ export class IncidentsService {
     return [...new Set(links.map((l) => l.userId))];
   }
 
+  /** `reporterId` is a platform User id, or null for carer-app reports (no User row). */
   private async notifyManagersOfNewIncident(
     incident: IncidentWithRefs,
-    reporterId: string,
+    reporterId: string | null,
   ): Promise<void> {
-    const recipients = (await this.managerUserIds()).filter(
-      (uid) => uid !== reporterId,
-    );
+    const recipients = await this.notifiableManagerIds(incident, reporterId);
     if (!recipients.length) return;
     const severityToNotify: Record<IncidentSeverity, NotificationSeverity> = {
       LOW: NotificationSeverity.INFO,
@@ -2246,9 +2423,11 @@ export class IncidentsService {
       recipientUserIds: recipients,
       type: NotificationType.INCIDENT_REPORTED,
       title: `${incident.category.label} reported — ${incident.referenceNumber}`,
+      // Confidential details stay inside the permission-checked incident record.
       message:
-        incident.description.slice(0, 240) ||
-        'A new incident has been reported.',
+        incident.privacyLevel === IncidentPrivacyLevel.NORMAL
+          ? incident.description.slice(0, 240) || 'A new incident has been reported.'
+          : 'A confidential incident has been reported. Open it to view the details.',
       module: NotificationModule.SERVICE_CARE,
       severity: severityToNotify[incident.severity],
       recordType: 'Incident',
@@ -2258,8 +2437,47 @@ export class IncidentsService {
         severity: incident.severity,
         categoryKey: incident.category.key,
       },
-      createdById: reporterId,
+      createdById: reporterId ?? undefined,
     });
+  }
+
+  /**
+   * Resolve a carer-app category to register ids. Accepts a category id, a category key
+   * (`ACCIDENT`, `near miss`) or an API-18 `incidentType` label (`Fall/slip`); unknown → `OTHER`.
+   * Matching happens in memory so a non-UUID value can't fail the database query.
+   */
+  private async resolveCarerAppCategory(
+    categoryRef?: string | null,
+    subtypeRef?: string | null,
+    incidentTypeLabel?: string | null,
+  ): Promise<{ categoryId: string; subtypeId: string | null }> {
+    const categories = await this.prisma.incidentCategory.findMany({
+      where: { deletedAt: null, isActive: true },
+      include: { subtypes: { where: { deletedAt: null, isActive: true } } },
+    });
+    const asKey = (v: string) => v.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const byRef = (ref?: string | null) => {
+      const v = ref?.trim();
+      if (!v) return undefined;
+      return categories.find((c) => c.id === v) ?? categories.find((c) => c.key === asKey(v));
+    };
+    const label = incidentTypeLabel?.trim().toLowerCase().replace(/\s+/g, ' ') ?? '';
+    const mapped = CARER_APP_INCIDENT_TYPES[label];
+    const category =
+      byRef(categoryRef) ??
+      (mapped ? categories.find((c) => c.key === mapped.category) : undefined) ??
+      byRef(incidentTypeLabel) ??
+      categories.find((c) => c.key === 'OTHER');
+    if (!category) {
+      throw new BadRequestException('No active incident categories are configured');
+    }
+    const sub = subtypeRef?.trim();
+    const subtype =
+      (sub ? category.subtypes.find((s) => s.id === sub || s.key === asKey(sub)) : undefined) ??
+      (mapped?.subtype && mapped.category === category.key
+        ? category.subtypes.find((s) => s.key === mapped.subtype)
+        : undefined);
+    return { categoryId: category.id, subtypeId: subtype?.id ?? null };
   }
 
   private mapIncident(incident: IncidentWithRefs) {
@@ -2320,7 +2538,14 @@ export class IncidentsService {
 
   private buildTimeline(
     incident: Prisma.IncidentGetPayload<{
-      include: { statusHistory: true; severityHistory: true };
+      include: {
+        statusHistory: true;
+        severityHistory: true;
+        review: true;
+        investigation: true;
+        outcome: true;
+        actions: true;
+      };
     }>,
   ) {
     const events: Array<{
@@ -2351,6 +2576,63 @@ export class IncidentsService {
         kind: 'SEVERITY',
         detail: `Severity ${INCIDENT_SEVERITY_LABELS[s.fromSeverity]} → ${INCIDENT_SEVERITY_LABELS[s.toSeverity]}${s.reason ? ` (${s.reason})` : ''}`,
         byId: s.changedById,
+      });
+    }
+    // Workflow records keep only their latest state, so these show when each was last saved.
+    const { review, investigation, outcome } = incident;
+    if (review) {
+      events.push({
+        at: review.updatedAt.toISOString(),
+        kind: 'REVIEW',
+        detail: 'Manager review saved',
+        byId: review.updatedById ?? review.reviewedById,
+      });
+    }
+    if (investigation) {
+      events.push({
+        at: investigation.createdAt.toISOString(),
+        kind: 'INVESTIGATION',
+        detail: 'Investigation started',
+        byId: investigation.createdById,
+      });
+      if (investigation.completedAt) {
+        events.push({
+          at: investigation.completedAt.toISOString(),
+          kind: 'INVESTIGATION',
+          detail: 'Investigation completed',
+          byId: investigation.updatedById,
+        });
+      }
+    }
+    for (const a of incident.actions) {
+      events.push({
+        at: a.createdAt.toISOString(),
+        kind: 'ACTION',
+        detail: `Corrective measure added: ${a.title}${a.isMandatory ? ' (mandatory)' : ''}`,
+        byId: a.createdById,
+      });
+      if (a.status === IncidentActionStatus.COMPLETED && a.completedAt) {
+        events.push({
+          at: a.completedAt.toISOString(),
+          kind: 'ACTION',
+          detail: `Corrective measure completed: ${a.title}`,
+          byId: a.completedById,
+        });
+      } else if (a.status === IncidentActionStatus.CANCELLED) {
+        events.push({
+          at: a.updatedAt.toISOString(),
+          kind: 'ACTION',
+          detail: `Corrective measure cancelled: ${a.title}${a.completionNotes ? ` (${a.completionNotes.replace(/^Cancelled:\s*/, '')})` : ''}`,
+          byId: a.updatedById,
+        });
+      }
+    }
+    if (outcome) {
+      events.push({
+        at: outcome.createdAt.toISOString(),
+        kind: 'OUTCOME',
+        detail: 'Closure outcome recorded',
+        byId: outcome.createdById,
       });
     }
     return events.sort((a, b) => a.at.localeCompare(b.at));
@@ -2384,5 +2666,51 @@ export class IncidentsService {
       ...e,
       byName: e.byId ? (nameById.get(e.byId) ?? null) : null,
     }));
+  }
+
+  /** Display names for the affected people and location (ids only on the incident; no cross-schema FKs). */
+  private async resolveAffectedRefs(incident: {
+    primaryServiceUserId: string | null;
+    primaryEmployeeId: string | null;
+    locationId: string | null;
+  }) {
+    const [serviceUser, employee, location] = await Promise.all([
+      incident.primaryServiceUserId
+        ? this.prisma.serviceUser.findUnique({
+            where: { id: incident.primaryServiceUserId },
+            select: { id: true, firstName: true, lastName: true, serviceUserNumber: true },
+          })
+        : null,
+      incident.primaryEmployeeId
+        ? this.prisma.employee.findUnique({
+            where: { id: incident.primaryEmployeeId },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : null,
+      incident.locationId
+        ? this.prisma.location.findUnique({
+            where: { id: incident.locationId },
+            select: { id: true, name: true },
+          })
+        : null,
+    ]);
+    const fullName = (first?: string | null, last?: string | null) =>
+      [first, last].filter(Boolean).join(' ').trim() || null;
+    return {
+      primaryServiceUser: serviceUser
+        ? {
+            id: serviceUser.id,
+            name: fullName(serviceUser.firstName, serviceUser.lastName),
+            serviceUserNumber: serviceUser.serviceUserNumber,
+          }
+        : null,
+      primaryEmployee: employee
+        ? {
+            id: employee.id,
+            name: fullName(employee.personalDetail?.firstName, employee.personalDetail?.lastName),
+          }
+        : null,
+      location: location ? { id: location.id, name: location.name } : null,
+    };
   }
 }

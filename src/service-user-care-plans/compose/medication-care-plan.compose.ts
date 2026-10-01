@@ -232,25 +232,33 @@ export function composeMedicationCarePlan(
 function buildCarerAdministrationSummary(ctx: CarePlanComposeContext): string | null {
   if (!ctx.ia) return null;
   const lines: string[] = [];
-  const packaging =
-    resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' })) ||
-    resolveIaBooleanYes(
-      findIaAnswer(ctx.ia.answers, { questionTextContains: 'removed from packaging' }),
-    ) ||
-    ctx.ia.medicationSnapshot?.packagingHelpRequired === true;
-  if (packaging) lines.push('Help removing medicines from packaging');
-  const prompting = resolveIaDisplayValue(
-    findIaAnswer(ctx.ia.answers, { specRef: '9.2', questionTextContains: 'prompting or reminding' }),
-  );
-  if (prompting?.toLowerCase() === 'yes') lines.push('Prompting or reminding required');
-  const assistance = resolveIaDisplayValue(
-    findIaAnswer(ctx.ia.answers, { specRef: '9.2', questionTextContains: 'assistance administering' }),
-  );
-  if (assistance?.toLowerCase() === 'yes') {
+  const levelRaw =
+    resolveIaRawValue(findMedicationSupportLevelAnswer(ctx.ia.answers)) ??
+    ctx.ia.medicationSnapshot?.supportLevel ??
+    null;
+  const level = levelRaw?.trim().toLowerCase() ?? '';
+
+  if (level === 'level_0') lines.push('Independent self-administration');
+  if (level === 'level_1a') lines.push('Prompting or reminding required');
+  if (
+    level === 'level_1b' ||
+    ctx.ia.medicationSnapshot?.packagingHelpRequired === true
+  ) {
+    lines.push('Help removing medicines from packaging');
+  }
+  if (level === 'level_2a' || level === 'level_2b') {
     const by = resolveIaDisplayValue(
       findIaAnswer(ctx.ia.answers, { specRef: '9.2', questionTextContains: 'medication administered by' }),
     );
-    lines.push(by ? `Assistance administering — ${by}` : 'Assistance administering medication');
+    // Exact wording per level — 2a is assistance (person in control), 2b is administration.
+    const base =
+      level === 'level_2a'
+        ? 'Assisting the person to take their medicines (person stays in control)'
+        : 'Administering medicines (trained staff, record on MAR)';
+    lines.push(by ? `${base} — ${by}` : base);
+  }
+  if (level === 'provided_by_others') {
+    lines.push('Medicines provided by others (family / nurse) — carers do not administer');
   }
   const notes =
     resolveIaDisplayValue(
@@ -279,7 +287,10 @@ function buildFixesForField(label: string, serviceUserId: string): ComposeGap['f
         { label: 'Complete IA §9 allergy details', route: ia9 },
       ];
     case normalizeFieldLabel('Pharmacy and GP contact'):
-      return [{ label: 'Complete IA §13.9 GP and pharmacy', route: ia13 }];
+      return [
+        { label: 'Complete GP contact on IA Personal Details', route: iaRoute(serviceUserId, 1) },
+        { label: 'Complete IA §13.9 pharmacy', route: ia13 },
+      ];
     case normalizeFieldLabel('Storage and blister packs'):
       return [{ label: 'Set up medication pack', route: med }];
     default:
@@ -449,19 +460,20 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
             sourceLabel: 'IA medication snapshot',
           };
         }
+        const levelRaw =
+          resolveIaRawValue(findMedicationSupportLevelAnswer(ctx.ia.answers)) ??
+          ctx.ia.medicationSnapshot?.supportLevel ??
+          null;
+        const level = levelRaw?.trim().toLowerCase() ?? '';
         const packaging =
-          resolveIaBooleanYes(findIaAnswer(ctx.ia.answers, { fieldKey: 'packagingHelpRequired' })) ||
-          resolveIaBooleanYes(
-            findIaAnswer(ctx.ia.answers, { questionTextContains: 'removed from packaging' }),
-          ) ||
-          ctx.ia.medicationSnapshot?.packagingHelpRequired === true;
+          level === 'level_1b' || ctx.ia.medicationSnapshot?.packagingHelpRequired === true;
         if (packaging) {
           return {
             fieldKey: '',
             label: 'Storage and blister packs',
             value: 'Help removing medicines from packaging required (IA §9.2)',
             source: 'ia',
-            sourceLabel: 'IA packaging',
+            sourceLabel: 'IA medication support level',
           };
         }
       }
@@ -498,7 +510,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
         label: 'Pharmacy and GP contact',
         value: unique.join('\n'),
         source: ctx.gpPharmacyLine ? 'ia' : 'medication_pack',
-        sourceLabel: ctx.gpPharmacyLine ? 'IA §13.9' : 'Medication pack',
+        sourceLabel: ctx.gpPharmacyLine ? 'IA GP contact / §13.9 pharmacy' : 'Medication pack',
       };
     },
   },

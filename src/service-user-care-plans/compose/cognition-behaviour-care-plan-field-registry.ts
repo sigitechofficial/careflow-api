@@ -63,7 +63,7 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
       {
         kind: 'MANUAL',
         notes:
-          'IA §10.6a records orientation only as booleans ("Fully orientated?" / "De-orientated?"). This field is a four-point frequency SELECT (Always/Usually/Sometimes/Rarely); the IA options have no compatible mapping, so a suggestion cannot be represented safely.',
+          'IA §10.6a records orientation as "Fully orientated?" only. This field is a four-point frequency SELECT (Always/Usually/Sometimes/Rarely); the IA options have no compatible mapping, so a suggestion cannot be represented safely.',
       },
     ],
   },
@@ -91,7 +91,7 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['10.6a'],
         notes:
-          'IA §10.6a "Gets agitated with change?" and "Challenging behaviour or agitation with change?" identify change as a recorded behavioural trigger — the same information this field captures. Surfaced only when answered Yes.',
+          'IA §10.6a "Challenging behaviour or agitation with change?" identifies change as a recorded behavioural trigger — the same information this field captures. Surfaced only when answered Yes.',
       },
     ],
     resolverImplemented: true,
@@ -116,7 +116,7 @@ export const COG_FIELD_REGISTRY: readonly CogFieldRegistryEntry[] = [
       {
         kind: 'MANUAL',
         notes:
-          'The IA has no wandering / exit-seeking question. "De-orientated?" is a proxy, not the same fact; and a generic yes/no risk indicator must not auto-populate a specific behaviour-risk field.',
+          'The IA has no wandering / exit-seeking question. "Fully orientated? No" is a proxy, not the same fact; and a generic yes/no risk indicator must not auto-populate a specific behaviour-risk field.',
       },
     ],
   },

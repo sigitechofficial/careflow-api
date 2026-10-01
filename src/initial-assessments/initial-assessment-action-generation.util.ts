@@ -28,10 +28,16 @@ type AnswerRow = {
   questionId: string;
   checked: boolean | null;
   booleanValue: boolean | null;
+  selectedOptions?: Prisma.JsonValue;
 };
 
 function specRefOf(q: QuestionRow): string | undefined {
-  if (!q.metadata || typeof q.metadata !== 'object' || Array.isArray(q.metadata)) return undefined;
+  if (
+    !q.metadata ||
+    typeof q.metadata !== 'object' ||
+    Array.isArray(q.metadata)
+  )
+    return undefined;
   const ref = (q.metadata as Record<string, unknown>).specRef;
   return typeof ref === 'string' ? ref : undefined;
 }
@@ -57,31 +63,62 @@ function inferActionType(q: QuestionRow): InitialAssessmentActionType {
   if (meta?.emarModule === true || (ref === '9.6' && text.includes('emar'))) {
     return InitialAssessmentActionType.EMAR_SETUP;
   }
-  if (ref.startsWith('13.1') || text.includes('safeguarding')) return InitialAssessmentActionType.SAFEGUARDING_REFERRAL;
-  if (text.includes('mca') || ref === '2.5') return InitialAssessmentActionType.MCA_ASSESSMENT;
-  if (text.includes('salt') || text.includes('swallowing')) return InitialAssessmentActionType.SALT_REFERRAL;
-  if (text.includes('dietitian') || text.includes('nutrition') || text.includes('malnourish')) {
+  if (ref.startsWith('13.1') || text.includes('safeguarding'))
+    return InitialAssessmentActionType.SAFEGUARDING_REFERRAL;
+  if (text.includes('mca') || ref === '2.5')
+    return InitialAssessmentActionType.MCA_ASSESSMENT;
+  if (text.includes('salt') || text.includes('swallowing'))
+    return InitialAssessmentActionType.SALT_REFERRAL;
+  if (
+    text.includes('dietitian') ||
+    text.includes('nutrition') ||
+    text.includes('malnourish')
+  ) {
     return InitialAssessmentActionType.DIETITIAN_REFERRAL;
   }
-  if (text.includes('continence')) return InitialAssessmentActionType.CONTINENCE_REFERRAL;
-  if (text.includes('fall')) return InitialAssessmentActionType.FALLS_ASSESSMENT;
-  if (text.includes('fire')) return InitialAssessmentActionType.FIRE_SAFETY_FOLLOW_UP;
-  if (text.includes('equipment') || text.includes('hoist') || text.includes('mattress')) {
+  if (text.includes('continence'))
+    return InitialAssessmentActionType.CONTINENCE_REFERRAL;
+  if (
+    text.includes('fall') ||
+    text.includes('unsteadiness') ||
+    text.includes('gait') ||
+    text.includes('balance')
+  ) {
+    return InitialAssessmentActionType.FALLS_ASSESSMENT;
+  }
+  if (text.includes('fire'))
+    return InitialAssessmentActionType.FIRE_SAFETY_FOLLOW_UP;
+  if (
+    text.includes('equipment') ||
+    text.includes('hoist') ||
+    text.includes('mattress')
+  ) {
     return InitialAssessmentActionType.EQUIPMENT_ORDER;
   }
-  if (text.includes('wound') || text.includes('ulcer') || text.includes('pressure')) {
+  if (
+    text.includes('wound') ||
+    text.includes('ulcer') ||
+    text.includes('pressure')
+  ) {
     return InitialAssessmentActionType.WOUND_ASSESSMENT;
   }
-  if (text.includes('medication') || text.includes('emar')) return InitialAssessmentActionType.MEDICATION_VERIFICATION;
+  if (text.includes('medication') || text.includes('emar'))
+    return InitialAssessmentActionType.MEDICATION_VERIFICATION;
   if (text.includes('gp')) return InitialAssessmentActionType.GP_REVIEW;
   return InitialAssessmentActionType.OTHER;
 }
 
-function priorityFor(q: QuestionRow, actionType: InitialAssessmentActionType): InitialAssessmentActionPriority {
+function priorityFor(
+  q: QuestionRow,
+  actionType: InitialAssessmentActionType,
+): InitialAssessmentActionPriority {
   if (actionType === InitialAssessmentActionType.SAFEGUARDING_REFERRAL) {
     return InitialAssessmentActionPriority.URGENT;
   }
-  if (q.riskFlag || actionType === InitialAssessmentActionType.FALLS_ASSESSMENT) {
+  if (
+    q.riskFlag ||
+    actionType === InitialAssessmentActionType.FALLS_ASSESSMENT
+  ) {
     return InitialAssessmentActionPriority.HIGH;
   }
   if (q.carePlanTrigger) return InitialAssessmentActionPriority.MEDIUM;
@@ -101,18 +138,27 @@ function dueDaysFor(priority: InitialAssessmentActionPriority): number {
   }
 }
 
-function actionTitle(q: QuestionRow, actionType: InitialAssessmentActionType): string {
+function actionTitle(
+  q: QuestionRow,
+  actionType: InitialAssessmentActionType,
+): string {
   const labels: Partial<Record<InitialAssessmentActionType, string>> = {
-    [InitialAssessmentActionType.SAFEGUARDING_REFERRAL]: 'Safeguarding referral',
+    [InitialAssessmentActionType.SAFEGUARDING_REFERRAL]:
+      'Safeguarding referral',
     [InitialAssessmentActionType.MCA_ASSESSMENT]: 'MCA assessment',
     [InitialAssessmentActionType.SALT_REFERRAL]: 'SALT referral',
     [InitialAssessmentActionType.DIETITIAN_REFERRAL]: 'Dietitian referral',
-    [InitialAssessmentActionType.CONTINENCE_REFERRAL]: 'Continence service referral',
-    [InitialAssessmentActionType.FALLS_ASSESSMENT]: 'Falls assessment follow-up',
-    [InitialAssessmentActionType.FIRE_SAFETY_FOLLOW_UP]: 'Fire safety follow-up',
+    [InitialAssessmentActionType.CONTINENCE_REFERRAL]:
+      'Continence service referral',
+    [InitialAssessmentActionType.FALLS_ASSESSMENT]:
+      'Falls assessment follow-up',
+    [InitialAssessmentActionType.FIRE_SAFETY_FOLLOW_UP]:
+      'Fire safety follow-up',
     [InitialAssessmentActionType.EQUIPMENT_ORDER]: 'Equipment order / review',
-    [InitialAssessmentActionType.WOUND_ASSESSMENT]: 'Wound / pressure care review',
-    [InitialAssessmentActionType.MEDICATION_VERIFICATION]: 'Medication verification',
+    [InitialAssessmentActionType.WOUND_ASSESSMENT]:
+      'Wound / pressure care review',
+    [InitialAssessmentActionType.MEDICATION_VERIFICATION]:
+      'Medication verification',
     [InitialAssessmentActionType.EMAR_SETUP]: 'Configure eMAR / MAR chart',
     [InitialAssessmentActionType.GP_REVIEW]: 'GP review',
     [InitialAssessmentActionType.MANAGER_REVIEW]: 'Manager review',
@@ -120,13 +166,47 @@ function actionTitle(q: QuestionRow, actionType: InitialAssessmentActionType): s
   return labels[actionType] ?? `Follow-up: ${q.questionText}`;
 }
 
+const DNACPR_FIELD_KEY = 'dnacprRespectInPlace';
+
+function isDnacprQuestion(q: QuestionRow): boolean {
+  const meta =
+    q.metadata && typeof q.metadata === 'object' && !Array.isArray(q.metadata)
+      ? (q.metadata as Record<string, unknown>)
+      : null;
+  return (
+    meta?.fieldKey === DNACPR_FIELD_KEY ||
+    q.questionText.trim().toLowerCase().startsWith('dnacpr or respect in place')
+  );
+}
+
+function eolReportsDnacpr(
+  metadata: Prisma.JsonValue | null | undefined,
+): boolean {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata))
+    return false;
+  const eol = (metadata as Record<string, unknown>).endOfLifeAssessment;
+  return (
+    !!eol &&
+    typeof eol === 'object' &&
+    (eol as Record<string, unknown>).dnrInPlaceAnswer === true
+  );
+}
+
 export function buildAutoActionsFromSubmission(params: {
   questions: QuestionRow[];
   answers: AnswerRow[];
   metadata?: Prisma.JsonValue | null;
+  /** Office legal record already confirms a DNACPR / ReSPECT in place — no verification task. */
+  dnacprVerifiedByOffice?: boolean;
   now?: Date;
 }): ActionDraft[] {
-  const { questions, answers, metadata, now = new Date() } = params;
+  const {
+    questions,
+    answers,
+    metadata,
+    dnacprVerifiedByOffice = false,
+    now = new Date(),
+  } = params;
   const map = new Map(answers.map((a) => [a.questionId, a]));
   const drafts: ActionDraft[] = [];
   const seen = new Set<string>();
@@ -160,6 +240,52 @@ export function buildAutoActionsFromSubmission(params: {
       sourceQuestionId: q.id,
       sourceQuestionText: q.questionText,
       dueDate: addDays(now, dueDaysFor(priority)),
+    });
+  }
+
+  // An assessment answer is only a report: the office must see and verify the form before
+  // carers are shown a DNACPR instruction.
+  const dnacprQuestion = questions.find(isDnacprQuestion);
+  const reportsDnacpr =
+    (dnacprQuestion ? isYes(map.get(dnacprQuestion.id)) : false) ||
+    eolReportsDnacpr(metadata);
+  if (reportsDnacpr && !dnacprVerifiedByOffice) {
+    drafts.push({
+      title: 'Verify DNACPR / ReSPECT document (reported in assessment)',
+      actionType: InitialAssessmentActionType.OTHER,
+      priority: InitialAssessmentActionPriority.URGENT,
+      sourceSectionNumber: 13,
+      sourceQuestionId: dnacprQuestion?.id,
+      sourceQuestionText: dnacprQuestion?.questionText,
+      dueDate: addDays(now, dueDaysFor(InitialAssessmentActionPriority.URGENT)),
+    });
+  }
+
+  // End of life: the assessor never decides it — "Unsure" becomes a task to ask the GP / clinical team.
+  const eolQ = questions.find(
+    (q) =>
+      q.metadata &&
+      typeof q.metadata === 'object' &&
+      !Array.isArray(q.metadata) &&
+      (q.metadata as Record<string, unknown>).fieldKey === 'eolRelevant',
+  );
+  const eolSel = eolQ ? map.get(eolQ.id)?.selectedOptions : undefined;
+  if (
+    eolQ &&
+    (Array.isArray(eolSel)
+      ? eolSel.map(String)
+      : [String(eolSel ?? '')]
+    ).includes('unsure')
+  ) {
+    drafts.push({
+      title:
+        'Clarify with GP / clinical team whether palliative or end-of-life care is relevant',
+      actionType: InitialAssessmentActionType.GP_REVIEW,
+      priority: InitialAssessmentActionPriority.MEDIUM,
+      sourceSectionNumber: eolQ.section.sectionNumber,
+      sourceQuestionId: eolQ.id,
+      sourceQuestionText: eolQ.questionText,
+      dueDate: addDays(now, dueDaysFor(InitialAssessmentActionPriority.MEDIUM)),
     });
   }
 

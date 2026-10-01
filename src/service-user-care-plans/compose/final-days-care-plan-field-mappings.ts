@@ -43,10 +43,7 @@ export const FINAL_DAYS_IA_QUERIES = {
   painManagementPlan: { fieldKey: 'painManagementPlan' },
   currentPainRelief: { specRef: '5.3', questionTextContains: 'Current pain relief' },
   religiousSpiritualNeeds: { specRef: '1.7', questionTextContains: 'Religious or spiritual needs' },
-  religionCultureLanguage: {
-    specRef: '1.7',
-    questionTextContains: 'Religion, culture, language',
-  },
+  culturalBackground: { fieldKey: 'culturalBackground' },
   familyContacts: { specRef: '1.2', questionTextContains: 'family, representative, next of kin' },
   adrtLocationSummary: { specRef: '13.6', questionTextContains: 'location and summary' },
 } as const;
@@ -163,7 +160,7 @@ export const FINAL_DAYS_SUGGESTION_MAPPINGS: FinalDaysSuggestionMapping[] = [
     resolve: (ctx) =>
       resolveIaTextSources(ctx, [
         FINAL_DAYS_IA_QUERIES.religiousSpiritualNeeds,
-        FINAL_DAYS_IA_QUERIES.religionCultureLanguage,
+        FINAL_DAYS_IA_QUERIES.culturalBackground,
       ]),
   },
   {

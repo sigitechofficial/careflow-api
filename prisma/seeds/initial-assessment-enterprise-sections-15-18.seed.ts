@@ -206,14 +206,14 @@ export const SECTION_18_QUESTIONS: EnterpriseQuestionSeed[] = [
     metadata: iaMeta('18.1', { fieldKey: 'fireSafetyRisksDetails', ...whenYes('Any fire safety risks identified?') }),
   },
   {
-    questionText: 'London Fire Brigade informed?',
+    questionText: 'Local fire and rescue service informed (home fire safety visit)?',
     questionType: Y,
     isRequired: true,
     sortOrder: 3,
     metadata: iaMeta('18.2', { fieldKey: 'londonFireBrigadeInformed' }),
   },
   {
-    questionText: 'London Fire Brigade informed — details',
+    questionText: 'Local fire and rescue service — details',
     questionType: A,
     sortOrder: 4,
     metadata: iaMeta('18.2', { fieldKey: 'londonFireBrigadeDetails', ...whenFieldYes('londonFireBrigadeInformed') }),

@@ -29,6 +29,7 @@ import { BodyMapModule } from '../body-map/body-map.module';
 import { VisitAttendanceModule } from '../visit-attendance/visit-attendance.module';
 import { EcmModule } from '../ecm/ecm.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MedicationNotificationHook } from '../medications/medication-notification.hook';
 import { IncidentsModule } from '../incidents/incidents.module';
 import { EmployeeAppDeviceTokenController } from './employee-app-device-token.controller';
 
@@ -77,6 +78,7 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     EmployeeAppSosService,
     VisitTimelineService,
     EmployeeAppSalaryService,
+    MedicationNotificationHook,
   ],
   exports: [EmployeeAppAuthService, EmployeeAppAuthGuard],
 })

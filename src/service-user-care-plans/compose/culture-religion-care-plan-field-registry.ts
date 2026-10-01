@@ -45,10 +45,10 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['religiousSpiritualPreferences', 'beliefs'],
-        iaSpecRefs: ['1.3b', '1.1'],
+        iaFieldKeys: ['religiousSpiritualPreferences'],
+        iaSpecRefs: ['1.3b', '1.7'],
         notes:
-          'IA §1.3b "Religious and/or spiritual preferences" and §1.1 "Beliefs" name the person’s faith / belief system directly. Special-category data — surfaced as a suggestion for staff to review, never auto-filled.',
+          'IA §1.3b "Religious and/or spiritual preferences" and §1.7 "Religious or spiritual needs" name the person’s faith / belief system. Special-category data — suggestion only, never auto-filled.',
       },
     ],
     resolverImplemented: true,
@@ -62,7 +62,7 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['1.7'],
         notes:
-          'IA §1.7 "Religion, culture, language, reasonable adjustments" records the cultural practices and adjustments important to the person. Suggestion only.',
+          'IA §1.7 "Cultural background and practices" plus "Any equality related risk or need" (adjustments). Suggestion only.',
       },
     ],
     resolverImplemented: true,
@@ -76,7 +76,7 @@ export const CRS_FIELD_REGISTRY: readonly CrsFieldRegistryEntry[] = [
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['1.7'],
         notes:
-          'IA §1.7 "Prayer routine or worship needs" and "Religious or spiritual needs" describe how the person observes their religion (prayer/worship routine, spiritual needs). Suggestion only.',
+          'IA §1.7 "Prayer routine or worship needs" and "Religious or spiritual needs" describe how the person observes their religion. Suggestion only.',
       },
     ],
     resolverImplemented: true,

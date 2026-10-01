@@ -54,6 +54,24 @@ export class CreateServiceUserMedicalConditionDto {
   @IsOptional()
   @IsEnum(ServiceUserClinicalDataSource)
   source?: ServiceUserClinicalDataSource;
+
+  @ApiPropertyOptional({ maxLength: 20_000, description: 'How it affects daily life and care' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  impactOnCare?: string;
+
+  @ApiPropertyOptional({ maxLength: 20_000, description: 'Warning signs and what carers should do' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20_000)
+  carerGuidance?: string;
+
+  @ApiPropertyOptional({ maxLength: 2_000, description: 'Where the diagnosis was confirmed (blank = reported)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2_000)
+  confirmationSource?: string;
 }
 
 export class UpdateServiceUserMedicalConditionDto extends PartialType(

@@ -82,11 +82,11 @@ describe('Person Centred engine still auto-prefills after key adoption (no new e
 });
 
 describe('Person Centred documentation registry', () => {
-  it('documents 37 fields — sixteen auto-prefill, zero suggestions, twenty-one manual', () => {
+  it('documents 37 fields — seventeen auto-prefill, zero suggestions, twenty manual', () => {
     expect(PERSON_CENTRED_FIELD_REGISTRY).toHaveLength(37);
-    expect(PERSON_CENTRED_AUTO_PREFILL_KEYS).toHaveLength(16);
+    expect(PERSON_CENTRED_AUTO_PREFILL_KEYS).toHaveLength(17);
     expect(PERSON_CENTRED_SUGGESTION_KEYS).toHaveLength(0);
-    expect(PERSON_CENTRED_MANUAL_KEYS).toHaveLength(21);
+    expect(PERSON_CENTRED_MANUAL_KEYS).toHaveLength(20);
   });
 
   it('prefills demographic + summary fields read-only from profile / About Me / contacts', () => {

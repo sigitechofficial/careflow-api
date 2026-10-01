@@ -63,9 +63,9 @@ const catalog = flattenCatalog();
 describe('Phase 3 IA registry, promotion, and QA alignment', () => {
   it('uses registered holistic tab IDs instead of a 1..18 range', () => {
     expect([...IA_REGISTERED_HOLISTIC_TAB_IDS]).toEqual(
-      expect.arrayContaining([1, 6, 18, 19, 20, 21, 22]),
+      expect.arrayContaining([1, 6, 18, 19, 20, 21, 22, 23, 24]),
     );
-    expect(IA_REGISTERED_HOLISTIC_TAB_IDS).toHaveLength(22);
+    expect(IA_REGISTERED_HOLISTIC_TAB_IDS).toHaveLength(24);
     expect(IA_REGISTERED_HOLISTIC_TAB_IDS).not.toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
     ]);

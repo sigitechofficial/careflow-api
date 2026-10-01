@@ -95,7 +95,7 @@ export class FlashMessageNotificationHook {
       await this.notifications.notifyUsers({
         recipientUserIds: [...recipientIds],
         type: NotificationType.SERVICE_USER_UPDATED,
-        title: 'Service User Flash Message Updated',
+        title: `Flash message ${verb} — ${params.serviceUserName}`,
         message: `A flash message was ${verb} for ${params.serviceUserName}.`,
         module: NotificationModule.SERVICE_USER,
         severity: NotificationSeverity.INFO,

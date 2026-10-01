@@ -1,4 +1,5 @@
 import {
+  ParseUUIDPipe,
   Body,
   Controller,
   Delete,
@@ -48,7 +49,7 @@ export class IncidentCareController {
   @Get(':id/injuries')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List injuries for an incident' })
-  listInjuries(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listInjuries(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listInjuries(user, id);
   }
 
@@ -57,7 +58,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Record an injury' })
   addInjury(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateIncidentInjuryDto,
     @Req() req: Request,
   ) {
@@ -69,7 +70,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Remove an injury' })
   deleteInjury(
     @CurrentUser() user: RequestUser,
-    @Param('injuryId') injuryId: string,
+    @Param('injuryId', ParseUUIDPipe) injuryId: string,
     @Req() req: Request,
   ) {
     return this.service.deleteInjury(user, injuryId, getRequestAuditMeta(req));
@@ -79,7 +80,7 @@ export class IncidentCareController {
   @Get(':id/witnesses')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List witnesses' })
-  listWitnesses(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listWitnesses(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listWitnesses(user, id);
   }
 
@@ -88,7 +89,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Add a witness and statement' })
   addWitness(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateIncidentWitnessDto,
     @Req() req: Request,
   ) {
@@ -100,7 +101,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Remove a witness' })
   deleteWitness(
     @CurrentUser() user: RequestUser,
-    @Param('witnessId') witnessId: string,
+    @Param('witnessId', ParseUUIDPipe) witnessId: string,
     @Req() req: Request,
   ) {
     return this.service.deleteWitness(
@@ -114,7 +115,7 @@ export class IncidentCareController {
   @Get(':id/related-incidents')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List linked incidents' })
-  listRelated(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listRelated(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listRelatedIncidents(user, id);
   }
 
@@ -123,7 +124,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Link a related incident' })
   linkRelated(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: LinkRelatedIncidentDto,
     @Req() req: Request,
   ) {
@@ -140,7 +141,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Unlink a related incident' })
   unlinkRelated(
     @CurrentUser() user: RequestUser,
-    @Param('linkId') linkId: string,
+    @Param('linkId', ParseUUIDPipe) linkId: string,
     @Req() req: Request,
   ) {
     return this.service.unlinkRelatedIncident(
@@ -154,7 +155,7 @@ export class IncidentCareController {
   @Get(':id/care-records')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List linked care records' })
-  listCareRecords(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listCareRecords(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listCareRecords(user, id);
   }
 
@@ -163,7 +164,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Link a care record that needs review' })
   addCareRecord(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateRelatedCareRecordDto,
     @Req() req: Request,
   ) {
@@ -175,7 +176,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Update a linked care record (e.g. mark reviewed)' })
   updateCareRecord(
     @CurrentUser() user: RequestUser,
-    @Param('recordId') recordId: string,
+    @Param('recordId', ParseUUIDPipe) recordId: string,
     @Body() dto: UpdateRelatedCareRecordDto,
     @Req() req: Request,
   ) {
@@ -192,7 +193,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Remove a care record link' })
   deleteCareRecord(
     @CurrentUser() user: RequestUser,
-    @Param('recordId') recordId: string,
+    @Param('recordId', ParseUUIDPipe) recordId: string,
     @Req() req: Request,
   ) {
     return this.service.deleteCareRecord(
@@ -206,7 +207,7 @@ export class IncidentCareController {
   @Get(':id/attachments')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List incident attachments' })
-  listAttachments(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listAttachments(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listAttachments(user, id);
   }
 
@@ -217,7 +218,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Upload a secure incident attachment' })
   addAttachment(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body() dto: CreateIncidentAttachmentMetaDto,
     @Req() req: Request,
@@ -238,7 +239,7 @@ export class IncidentCareController {
   })
   async downloadAttachment(
     @CurrentUser() user: RequestUser,
-    @Param('attachmentId') attachmentId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
     @Res() res: Response,
   ) {
     const file = await this.service.getAttachmentForDownload(
@@ -258,7 +259,7 @@ export class IncidentCareController {
   @ApiOperation({ summary: 'Remove an attachment' })
   deleteAttachment(
     @CurrentUser() user: RequestUser,
-    @Param('attachmentId') attachmentId: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
     @Req() req: Request,
   ) {
     return this.service.deleteAttachment(
@@ -276,7 +277,7 @@ export class IncidentCareController {
   })
   serviceUserHistory(
     @CurrentUser() user: RequestUser,
-    @Param('serviceUserId') serviceUserId: string,
+    @Param('serviceUserId', ParseUUIDPipe) serviceUserId: string,
   ) {
     return this.service.getServiceUserHistory(user, serviceUserId);
   }

@@ -67,6 +67,20 @@ import { VisitObservationsCatalogService } from '../service-user-observations/vi
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
+import { resolveLeadEmployeeId } from '../employee-app/employee-app-multi-carer.util';
+import {
+  AUTHORED_LOG_TYPES,
+  logEntryRolesById,
+  visitLogAuthorLabel,
+  type VisitLogAuthor,
+} from '../employee-app/employee-app-log-author.util';
+import {
+  planSupportAutoClose,
+  readSupportAutoClosed,
+  SUPPORT_AUTO_CLOSE_NOTE,
+  SUPPORT_AUTO_CLOSED_META_KEY,
+  type SupportAutoCloseRecord,
+} from './support-auto-close.util';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -178,7 +192,38 @@ export class ScheduledJobsHousekeepingService {
     });
     if (!job) throw new NotFoundException('Scheduled job not found');
     const timeline = await this.visitTimeline.listForJob(jobId);
-    const incidentPhotos = incidentPhotosBySourceId(this.parseJobMetadata(job.metadata));
+    const jobMeta = this.parseJobMetadata(job.metadata);
+    const incidentPhotos = incidentPhotosBySourceId(jobMeta);
+
+    // Who wrote notes / handover / concerns / incidents, and their role at the time.
+    const authorRows = await this.prisma.visitTimelineEvent.findMany({
+      where: { scheduledJobId: jobId, id: { in: timeline.map((t) => t.id) } },
+      select: { id: true, createdByEmployeeId: true },
+    });
+    const authorIdByEventId = new Map(
+      authorRows
+        .filter((r) => r.createdByEmployeeId)
+        .map((r) => [r.id, r.createdByEmployeeId!] as const),
+    );
+    const authorIds = [...new Set(authorIdByEventId.values())];
+    const authorNames = authorIds.length
+      ? await this.prisma.employeePersonalDetail.findMany({
+          where: { employeeId: { in: authorIds } },
+          select: { employeeId: true, firstName: true, lastName: true },
+        })
+      : [];
+    const nameById = new Map(
+      authorNames.map((p) => [
+        p.employeeId,
+        [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || 'Carer',
+      ]),
+    );
+    const employeeAppMeta =
+      jobMeta.employeeApp && typeof jobMeta.employeeApp === 'object' && !Array.isArray(jobMeta.employeeApp)
+        ? (jobMeta.employeeApp as Record<string, unknown>)
+        : null;
+    const rolesByEntryId = logEntryRolesById(employeeAppMeta);
+
     return {
       jobId,
       timeline: timeline.map((item) => {
@@ -186,6 +231,19 @@ export class ScheduledJobsHousekeepingService {
         if (item.type === 'clock_in' && item.detail) {
           const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
           next = { ...item, detail: methodOnly, subtitle: methodOnly };
+        }
+        const authorId = authorIdByEventId.get(item.id);
+        if (authorId && AUTHORED_LOG_TYPES.has(item.type)) {
+          const name = nameById.get(authorId) ?? 'Carer';
+          const role =
+            rolesByEntryId.get(item.logEntryId ?? '') ?? rolesByEntryId.get(item.sourceId) ?? null;
+          const author: VisitLogAuthor = {
+            employeeId: authorId,
+            name,
+            role,
+            label: visitLogAuthorLabel(name, role),
+          };
+          next = { ...next, author } as typeof next & { author: VisitLogAuthor };
         }
         const photos = item.type === 'incident' ? incidentPhotos.get(item.sourceId) : undefined;
         return photos?.length ? { ...next, photos } : next;
@@ -1010,11 +1068,102 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
+      // Lead closed a multi-carer visit: clock out every SUPPORT carer still on site
+      // at the lead's clock-out time, in this same transaction (single-carer: no-op).
+      const closesCarerAttendance =
+        !markingStarted &&
+        !reopeningFromCompleted &&
+        actualEnd != null &&
+        (completing || markingMissed || visitStatus === ScheduledVisitStatus.NEEDS_ATTENTION);
+      const supportAutoClosed: Array<{ allocationId: string; employeeId: string; end: Date }> =
+        [];
+      let autoCloseLeadId: string | null = null;
+      if (closesCarerAttendance && existing.requiredCarers >= 2) {
+        const activeRows = await tx.jobAllocation.findMany({
+          where: {
+            scheduledJobId: id,
+            deletedAt: null,
+            isActive: true,
+            status: { in: ACTIVE_ALLOCATION },
+          },
+          orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            employeeId: true,
+            status: true,
+            isLeadCarer: true,
+            allocatedAt: true,
+            actualStartDateTime: true,
+            actualEndDateTime: true,
+          },
+        });
+        const leadId = resolveLeadEmployeeId(existing.requiredCarers, activeRows);
+        const leadRow = activeRows.find((a) => a.employeeId === leadId);
+        const leadClockOut =
+          carerActualRows.find((r) => r.allocationId === leadRow?.id)?.end ?? actualEnd!;
+        const plan = planSupportAutoClose({
+          requiredCarers: existing.requiredCarers,
+          allocations: activeRows,
+          leadClockOut,
+        });
+        autoCloseLeadId = plan.leadEmployeeId;
+        for (const row of plan.rows) {
+          await tx.jobAllocation.update({
+            where: { id: row.allocationId },
+            data: { actualEndDateTime: row.end },
+          });
+          await tx.visitAttendanceEvent.create({
+            data: {
+              scheduledJobId: id,
+              scheduledVisitId: existing.visits?.[0]?.id ?? null,
+              jobAllocationId: row.allocationId,
+              employeeId: row.employeeId,
+              eventType: VisitAttendanceEventType.CHECK_OUT,
+              verificationMethod: VisitAttendanceVerificationMethod.OTHER,
+              occurredAt: row.end,
+              clientEventId: `support-auto-close:${row.allocationId}`,
+              notes: SUPPORT_AUTO_CLOSE_NOTE,
+            },
+          });
+          supportAutoClosed.push(row);
+        }
+      }
+
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
 
       const previousMeta = this.parseJobMetadata(existing.metadata);
       const metadataPatch: Record<string, unknown> = { ...previousMeta };
       let metadataChanged = false;
+
+      {
+        const previousEa =
+          previousMeta.employeeApp &&
+          typeof previousMeta.employeeApp === 'object' &&
+          !Array.isArray(previousMeta.employeeApp)
+            ? (previousMeta.employeeApp as Record<string, unknown>)
+            : {};
+        const autoClosedMap = readSupportAutoClosed(previousEa);
+        const recordedAt = new Date().toISOString();
+        for (const row of supportAutoClosed) {
+          autoClosedMap[row.employeeId] = {
+            autoClosedAt: row.end.toISOString(),
+            leadEmployeeId: autoCloseLeadId ?? '',
+            reason: 'lead_clock_out',
+            recordedAt,
+          } satisfies SupportAutoCloseRecord;
+        }
+        // Re-opened / back to in progress: carer ends were cleared, so drop the markers.
+        const clearMarkers =
+          (reopeningFromCompleted || markingStarted) &&
+          SUPPORT_AUTO_CLOSED_META_KEY in previousEa;
+        if (supportAutoClosed.length || clearMarkers) {
+          const nextEa: Record<string, unknown> = { ...previousEa };
+          if (clearMarkers) delete nextEa[SUPPORT_AUTO_CLOSED_META_KEY];
+          else nextEa[SUPPORT_AUTO_CLOSED_META_KEY] = autoClosedMap;
+          metadataPatch.employeeApp = nextEa;
+          metadataChanged = true;
+        }
+      }
 
       if (resolvedDeliveredFormIds?.length) {
         metadataPatch.deliveredCarePlanFormIds = resolvedDeliveredFormIds;
@@ -1141,8 +1290,25 @@ export class ScheduledJobsHousekeepingService {
       return {
         message: completing ? 'Scheduled job completed' : 'Visit outcome saved',
         data: this.mapDayJob(updated),
+        supportAutoClosed,
       };
     });
+
+    // Visit log line per auto-closed support carer (display; attendance event above is the record).
+    for (const row of result.supportAutoClosed) {
+      await this.visitTimeline.upsertEvent({
+        scheduledJobId: id,
+        scheduledVisitId: existing.visits?.[0]?.id ?? null,
+        eventType: 'clock_out',
+        sourceType: 'complete',
+        sourceId: `support_complete:${row.employeeId}`,
+        title: 'Support clocked out',
+        detail: SUPPORT_AUTO_CLOSE_NOTE,
+        tone: 'primary',
+        occurredAt: row.end,
+        createdByEmployeeId: row.employeeId,
+      });
+    }
 
     if (completing) {
       try {
@@ -1197,7 +1363,7 @@ export class ScheduledJobsHousekeepingService {
       officeCompleted: officeCompleted || undefined,
     });
 
-    return result;
+    return { message: result.message, data: result.data };
   }
 
   async cancelJob(user: RequestUser, id: string, dto: CancelJobDto, meta?: RequestAuditMeta) {

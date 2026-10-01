@@ -203,7 +203,7 @@ describe('manual fields stay manual', () => {
       ...fullPainAnswers(),
       // Generic content that must not be mapped onto Care 2020 / non-pharmacological fields.
       answer({ questionText: 'What matters most?', textValue: 'Comfort', fieldKey: 'whatMattersMost' }),
-      answer({ questionText: 'Pain management plan documented?', specRef: '5.3', booleanValue: true }),
+      answer({ questionText: 'What pain management plan in place', specRef: '5.3', textValue: 'Analgesia as prescribed', fieldKey: 'painManagementPlan' }),
     ]);
     const result = composePainManagementCarePlan(ctx, fieldRefsFromSeed(), 'su-1');
 

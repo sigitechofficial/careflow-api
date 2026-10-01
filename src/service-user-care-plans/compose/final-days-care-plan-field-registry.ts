@@ -95,7 +95,7 @@ export const FINAL_DAYS_FIELD_REGISTRY: readonly FinalDaysFieldRegistryEntry[] =
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['1.7'],
         notes:
-          'IA §1.7 "Religious or spiritual needs" + "Religion, culture, language, reasonable adjustments" cover this field’s spiritual and cultural scope. Suggestion only.',
+          'IA §1.7 "Religious or spiritual needs" + "Cultural background and practices" cover this field’s spiritual and cultural scope. Suggestion only.',
       },
     ],
     resolverImplemented: true,

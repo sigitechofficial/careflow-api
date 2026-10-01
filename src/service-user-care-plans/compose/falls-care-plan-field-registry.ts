@@ -86,10 +86,10 @@ export const FALLS_FIELD_REGISTRY: readonly FallsFieldRegistryEntry[] = [
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['usesHoistOrSling', 'clinicalEquipmentInUse'],
+        iaFieldKeys: ['usesHoistOrSling'],
         iaSpecRefs: ['12.5a', '12.8', '12.10'],
         notes:
-          'IA §12.5a "Uses hoist or sling", §12.8 "Hoist / profiling bed / air mattress in use", §12.10 "Further equipment details", §12.8 "mobilising aids in good working order".',
+          'IA §12.5a "Uses hoist or sling", IA Equipment Selection worksheet, §12.10 "Further equipment details", §12.8 "mobilising aids in good working order".',
       },
     ],
   },

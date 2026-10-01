@@ -128,6 +128,32 @@ function suggestionFromLines(
   return { suggestedValue: narrative, displayText: narrative, sources };
 }
 
+/**
+ * Personal care narrative: IA answers (older IAs still have About Me "Personal hygiene"), the IA
+ * bathing / dressing preferences, else the About Me profile's personal hygiene.
+ */
+function personalCareSuggestion(ctx: CarePlanComposeContext): HcpSuggestionParts | null {
+  if (!ctx.ia) return null;
+  const { lines, sources } = narrativeLines(ctx.ia, ['personalHygiene', 'personalCareLocations']);
+  const bathing = findIaAnswer(ctx.ia.answers, { questionTextContains: 'bathing / shower and dressing preferences' });
+  const bathingText = sanitizeComposeTextOrNull(resolveIaDisplayValue(bathing));
+  if (bathing && bathingText) {
+    lines.push(`${bathing.questionText}: ${bathingText}`);
+    sources.push(sourceFromIaAnswer(bathing, bathingText));
+  }
+  const profileCare = sanitizeComposeTextOrNull(ctx.aboutMe?.personalCare ?? null);
+  if (!lines.some((l) => l.startsWith('Personal hygiene:')) && profileCare) {
+    lines.push(`Personal hygiene (About Me): ${profileCare}`);
+    sources.push({
+      questionId: 'about-me:personal-hygiene',
+      sourceSection: 'About Me',
+      sourceLabel: 'Personal hygiene',
+      sourceValue: profileCare,
+    });
+  }
+  return suggestionFromLines(lines, sources);
+}
+
 function narrativeSuggestion(
   ctx: CarePlanComposeContext,
   fieldKeys: string[],
@@ -267,7 +293,7 @@ export const HCP_SUGGESTION_MAPPINGS: HcpSuggestionMapping[] = [
   },
   {
     businessKey: 'hcp_personal_care_needs',
-    resolve: (ctx) => narrativeSuggestion(ctx, ['personalHygiene', 'personalCareLocations']),
+    resolve: (ctx) => personalCareSuggestion(ctx),
   },
   {
     businessKey: 'hcp_continence_care_needs',
@@ -280,7 +306,6 @@ export const HCP_SUGGESTION_MAPPINGS: HcpSuggestionMapping[] = [
       narrativeSuggestion(ctx, [
         'transferSupportRequired',
         'usesHoistOrSling',
-        'clinicalEquipmentInUse',
       ]),
   },
   {

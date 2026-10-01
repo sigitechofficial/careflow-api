@@ -9,6 +9,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { JobAllocationsService } from './job-allocations.service';
 import { AllocateJobDto } from './dto/allocate-job.dto';
+import { AllocateTeamDto } from './dto/allocate-team.dto';
 import { UnallocateJobDto } from './dto/unallocate-job.dto';
 import { ConfirmAllocationDto } from './dto/confirm-allocation.dto';
 import { UpdateAllocationTimingDto } from './dto/update-allocation-timing.dto';
@@ -38,6 +39,22 @@ export class ScheduledJobAllocationsController {
     @Req() req: Request,
   ) {
     return this.allocations.allocate(user.id, id, dto, getRequestAuditMeta(req), user);
+  }
+
+  @Post(':id/allocate-team')
+  @Permissions('job_allocations.create')
+  @ApiOperation({
+    summary: 'Allocate the carer team of a multi-carer visit (all-or-nothing, one lead)',
+    description:
+      'For visits needing 2+ carers. employeeIds = carers to add; together with carers already on the visit they must equal requiredCarers. leadEmployeeId must be on the resulting team. Runs the same checks as /allocate for every carer; if any carer is hard-blocked, or has overridable warnings without force=true, nothing is saved and `carers` lists warnings per carer.',
+  })
+  allocateTeam(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: AllocateTeamDto,
+    @Req() req: Request,
+  ) {
+    return this.allocations.allocateTeam(user.id, id, dto, getRequestAuditMeta(req), user);
   }
 
   @Post(':id/unallocate')

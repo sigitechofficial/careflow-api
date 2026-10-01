@@ -11,6 +11,7 @@ type AnswerRow = {
   questionId: string;
   checked: boolean | null;
   booleanValue: boolean | null;
+  selectedOptions?: Prisma.JsonValue;
 };
 
 type ShowWhenRule = {
@@ -18,6 +19,8 @@ type ShowWhenRule = {
   gateFieldKey?: string;
   yes?: boolean;
   no?: boolean;
+  /** Select gates: shown when any of these option values is chosen. */
+  selectedIncludes?: string[];
 };
 
 /** Follow-up questions that depend on a prior Yes/No gate (mirrors care-admin conditional-visibility). */
@@ -35,6 +38,10 @@ const INFERRED_RULES: { questionTextIncludes: string; when: ShowWhenRule }[] = [
   {
     questionTextIncludes: 'london fire brigade informed — details',
     when: { gateTextIncludes: 'london fire brigade informed', yes: true },
+  },
+  {
+    questionTextIncludes: 'local fire and rescue service — details',
+    when: { gateTextIncludes: 'local fire and rescue service informed', yes: true },
   },
   {
     questionTextIncludes: 'measures needed if home is unsafe',
@@ -147,12 +154,27 @@ function parseMetadataShowWhen(q: QuestionRow): ShowWhenRule | null {
   const gateTextIncludes = typeof row.gateTextIncludes === 'string' ? row.gateTextIncludes : undefined;
   const gateFieldKey = typeof row.gateFieldKey === 'string' ? row.gateFieldKey : undefined;
   if (!gateTextIncludes && !gateFieldKey) return null;
+  const selected = row.selectedIncludes;
+  const selectedIncludes =
+    typeof selected === 'string'
+      ? [selected]
+      : Array.isArray(selected)
+        ? selected.filter((v): v is string => typeof v === 'string')
+        : undefined;
   return {
     gateTextIncludes,
     gateFieldKey,
     yes: row.yes === true ? true : undefined,
     no: row.no === true ? true : undefined,
+    selectedIncludes: selectedIncludes?.length ? selectedIncludes : undefined,
   };
+}
+
+function selectedValues(answer?: AnswerRow): string[] {
+  const raw = answer?.selectedOptions;
+  if (Array.isArray(raw)) return raw.map((v) => String(v).toLowerCase());
+  if (typeof raw === 'string' && raw.trim()) return [raw.trim().toLowerCase()];
+  return [];
 }
 
 function findByTextIncludes(questions: QuestionRow[], fragment: string): QuestionRow | undefined {
@@ -187,6 +209,10 @@ function gateAnswerMatches(
       ? findByTextIncludes(questions, rule.gateTextIncludes)
       : undefined;
   if (!gate) return true;
+  if (rule.selectedIncludes) {
+    const chosen = selectedValues(map.get(gate.id));
+    return rule.selectedIncludes.some((v) => chosen.includes(v.toLowerCase()));
+  }
   if (rule.yes) return isYes(map, gate);
   if (rule.no) return isExplicitNo(map, gate);
   return true;
@@ -200,12 +226,29 @@ function inferredRuleForQuestion(q: QuestionRow): ShowWhenRule | null {
   return null;
 }
 
+/**
+ * §2.4 — "Is there any reason to doubt capacity?" (Yes = doubt). Older templates asked the inverse,
+ * "Capacity to consent … appears intact?" (No = doubt), so both are understood.
+ */
+export function isCapacityInDoubt(questions: QuestionRow[], map: Map<string, AnswerRow>): boolean {
+  const doubtQ = findByFieldKey(questions, 'capacityDoubt');
+  if (doubtQ) return isYes(map, doubtQ);
+  const legacyQ = questions.find((x) => metaOf(x)?.specRef === '2.4' && fieldKeyOf(x) !== 'legalAuthority');
+  return Boolean(legacyQ && isExplicitNo(map, legacyQ));
+}
+
 export function shouldShowQuestionForValidation(
   q: QuestionRow,
   questions: QuestionRow[],
   map: Map<string, AnswerRow>,
 ): boolean {
   const specRef = metaOf(q)?.specRef;
+  // Capacity in doubt (Consent) surfaces the MCA block even when "MCA required?" is not yet Yes —
+  // checked before the gate rules so the "mca completed ← mca required" rule cannot hide it.
+  const capacityInDoubt = isCapacityInDoubt(questions, map);
+  if (capacityInDoubt && (specRef === '2.mca' || q.questionText.toLowerCase().includes('mca completed'))) {
+    return true;
+  }
   if (specRef === '2.mca') {
     const requiredQ = findByFieldKey(questions, 'mcaRequired') ?? findByTextIncludes(questions, 'mca required');
     if (requiredQ && !isYes(map, requiredQ)) return false;
@@ -216,11 +259,6 @@ export function shouldShowQuestionForValidation(
 
   const inferred = inferredRuleForQuestion(q);
   if (inferred) return gateAnswerMatches(questions, inferred, map);
-
-  if (q.questionText.toLowerCase().includes('mca completed')) {
-    const capacityQ = questions.find((x) => metaOf(x)?.specRef === '2.4');
-    if (capacityQ && isExplicitNo(map, capacityQ)) return true;
-  }
 
   const fieldKey = fieldKeyOf(q);
   if (fieldKey && ['assessorName', 'assessorRole', 'assessorSignDate'].includes(fieldKey)) {

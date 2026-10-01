@@ -30,6 +30,10 @@ import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 import { shouldFlagManualAttendance } from './ecm-attendance-method.util';
+import {
+  isVisitCheckOutEvent,
+  resolveLeadEmployeeId,
+} from '../employee-app/employee-app-multi-carer.util';
 
 export type EvaluateJobOptions = {
   visitOverride?: EcmSettingsLayer | null;
@@ -82,6 +86,10 @@ export class EcmEvaluationService {
           where: { deletedAt: null, isActive: true, unallocatedAt: null },
           select: {
             id: true,
+            employeeId: true,
+            status: true,
+            isLeadCarer: true,
+            allocatedAt: true,
             actualStartDateTime: true,
             actualEndDateTime: true,
           },
@@ -122,9 +130,13 @@ export class EcmEvaluationService {
     const checkInEvent = [...job.attendanceEvents]
       .reverse()
       .find((e) => e.eventType === VisitAttendanceEventType.CHECK_IN);
+    // Multi-carer: only the LEAD's check-out completes the visit (a support carer
+    // leaving early must not). Same lead as the carer app (explicit, else earliest
+    // assigned). Single-carer: leadEmployeeId is null → any check-out, unchanged.
+    const leadEmployeeId = resolveLeadEmployeeId(job.requiredCarers, job.allocations);
     const checkOutEvent = [...job.attendanceEvents]
       .reverse()
-      .find((e) => e.eventType === VisitAttendanceEventType.CHECK_OUT);
+      .find((e) => isVisitCheckOutEvent(e, leadEmployeeId));
 
     const allocationStarts = job.allocations
       .map((a) => a.actualStartDateTime)

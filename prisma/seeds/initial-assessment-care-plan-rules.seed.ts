@@ -23,7 +23,10 @@ const STARTER_RULES: RuleSeed[] = [
     conditions: [
       { fieldKey: 'emarRequired', when: 'yes' },
       { fieldKey: 'insulinAdministrationRequired', when: 'yes' },
-      { fieldKey: 'packagingHelpRequired', when: 'yes' },
+      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_1a' },
+      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_1b' },
+      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_2a' },
+      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_2b' },
     ],
   },
   {
@@ -42,6 +45,7 @@ const STARTER_RULES: RuleSeed[] = [
     sortOrder: 30,
     conditions: [
       { specRef: '8.1', questionTextContains: 'Speech impairment', when: 'yes' },
+      { specRef: '8.2', questionTextContains: 'SALT communication referral', when: 'yes' },
       { specRef: '8.3', questionTextContains: 'Hearing impairment', when: 'yes' },
       { specRef: '8.4', questionTextContains: 'Sight impairment', when: 'yes' },
     ],
@@ -60,7 +64,12 @@ const STARTER_RULES: RuleSeed[] = [
     formName: 'Falls',
     suppressLegacyArea: 'Mobility',
     sortOrder: 50,
-    conditions: [{ fieldKey: 'fallsLast12Months', when: 'yes' }],
+    conditions: [
+      { fieldKey: 'fallsLast12Months', when: 'yes' },
+      { fieldKey: 'fallsUnsteadiness', when: 'yes' },
+      { fieldKey: 'transferSupportRequired', when: 'yes' },
+      { fieldKey: 'usesHoistOrSling', when: 'yes' },
+    ],
   },
 ];
 

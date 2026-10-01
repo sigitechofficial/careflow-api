@@ -16,6 +16,17 @@ export class SendSurveyDto {
 
   @ApiPropertyOptional({
     description:
+      'Branch (location) ids to limit recipients to. Omit to use the survey branches (or everyone).',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  locationIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
       'If set in the future, queue employee distribution instead of sending immediately.',
   })
   @IsOptional()

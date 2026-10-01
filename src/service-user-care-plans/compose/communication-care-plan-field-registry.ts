@@ -92,9 +92,9 @@ export const COMMUNICATION_FIELD_REGISTRY: readonly CommunicationFieldRegistryEn
     sources: [
       {
         kind: 'INITIAL_ASSESSMENT',
-        iaFieldKeys: ['communicationNeeds'],
+        iaFieldKeys: ['staffCommunicationInstructions'],
         notes:
-          'IA communicationNeeds / "communication support notes" text / snapshot.staffGuidance.',
+          'IA §8.1 staffCommunicationInstructions / "Staff communication instructions" / snapshot.staffGuidance.',
       },
     ],
   },
