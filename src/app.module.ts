@@ -122,6 +122,7 @@ import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
+import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
 
 @Module({
   imports: [
@@ -263,6 +264,7 @@ import { PoliciesModule } from './policies/policies.module';
     PayrollModule,
     LearningModule,
     PoliciesModule,
+    ServiceUserCommunicationNotesModule,
   ],
   providers: [
     {

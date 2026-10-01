@@ -1,4 +1,5 @@
-import { IncidentPrivacyLevel } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
+import { IncidentPrivacyLevel, IncidentStatus } from '@prisma/client';
 import { INCIDENT_PRIVACY_RANK } from './incident-workflow.util';
 
 const SUPER_ADMIN_ROLE = 'Super Admin';
@@ -33,6 +34,15 @@ export function canViewIncidentPrivacy(
   return (
     INCIDENT_PRIVACY_RANK[incident.privacyLevel] <= maxViewablePrivacyRank(user)
   );
+}
+
+/** Closed incidents are a finalised record: changes require reopening / re-investigation first. */
+export function assertIncidentEditable(incident: { status: IncidentStatus }): void {
+  if (incident.status === IncidentStatus.CLOSED) {
+    throw new BadRequestException(
+      'This incident is closed. Reopen it or submit it for re-investigation to make changes.',
+    );
+  }
 }
 
 export function hasIncidentPermission(

@@ -1,4 +1,5 @@
 import {
+  ParseUUIDPipe,
   Body,
   Controller,
   Get,
@@ -118,7 +119,7 @@ export class IncidentsController {
   @Get(':id')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'Get an incident with its timeline' })
-  getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  getById(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.getById(user, id);
   }
 
@@ -127,7 +128,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Transition incident workflow status' })
   changeStatus(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeIncidentStatusDto,
     @Req() req: Request,
   ) {
@@ -141,7 +142,7 @@ export class IncidentsController {
   })
   changeSeverity(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeIncidentSeverityDto,
     @Req() req: Request,
   ) {
@@ -153,7 +154,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Assign an incident owner' })
   assignOwner(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignIncidentOwnerDto,
     @Req() req: Request,
   ) {
@@ -165,7 +166,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Save the manager triage / review' })
   upsertReview(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertIncidentReviewDto,
     @Req() req: Request,
   ) {
@@ -177,7 +178,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Save the incident investigation' })
   upsertInvestigation(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertIncidentInvestigationDto,
     @Req() req: Request,
   ) {
@@ -196,7 +197,7 @@ export class IncidentsController {
   })
   suspendCarer(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SuspendIncidentCarerDto,
     @Req() req: Request,
   ) {
@@ -210,8 +211,8 @@ export class IncidentsController {
   })
   removeCarerSuspension(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Param('suspensionId') suspensionId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('suspensionId', ParseUUIDPipe) suspensionId: string,
     @Req() req: Request,
   ) {
     return this.service.removeCarerSuspension(
@@ -229,7 +230,7 @@ export class IncidentsController {
   })
   recommendCarerCourse(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RecommendIncidentCarerCourseDto,
     @Req() req: Request,
   ) {
@@ -248,8 +249,8 @@ export class IncidentsController {
   })
   removeCarerCourseRecommendation(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Param('recommendationId') recommendationId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('recommendationId', ParseUUIDPipe) recommendationId: string,
     @Req() req: Request,
   ) {
     return this.service.removeCarerCourseRecommendation(
@@ -265,7 +266,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Save the closure outcome & lessons learned' })
   upsertOutcome(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertIncidentOutcomeDto,
     @Req() req: Request,
   ) {
@@ -275,7 +276,7 @@ export class IncidentsController {
   @Get(':id/actions')
   @Permissions('incidents.read')
   @ApiOperation({ summary: 'List corrective actions for an incident' })
-  listActions(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+  listActions(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listActions(user, id);
   }
 
@@ -284,7 +285,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Create a corrective action' })
   createAction(
     @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateIncidentActionDto,
     @Req() req: Request,
   ) {
@@ -296,7 +297,7 @@ export class IncidentsController {
   @ApiOperation({ summary: 'Update a corrective action' })
   updateAction(
     @CurrentUser() user: RequestUser,
-    @Param('actionId') actionId: string,
+    @Param('actionId', ParseUUIDPipe) actionId: string,
     @Body() dto: UpdateIncidentActionDto,
     @Req() req: Request,
   ) {
@@ -315,7 +316,7 @@ export class IncidentsController {
   })
   completeAction(
     @CurrentUser() user: RequestUser,
-    @Param('actionId') actionId: string,
+    @Param('actionId', ParseUUIDPipe) actionId: string,
     @Body() dto: CompleteIncidentActionDto,
     @Req() req: Request,
   ) {

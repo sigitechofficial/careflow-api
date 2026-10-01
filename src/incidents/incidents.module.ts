@@ -5,6 +5,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { BodyMapModule } from '../body-map/body-map.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { LearningModule } from '../learning/learning.module';
+import { UsersModule } from '../users/users.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { IncidentsController } from './incidents.controller';
 import { IncidentsService } from './incidents.service';
 import { IncidentCareController } from './incident-care.controller';
@@ -19,6 +21,8 @@ import { IncidentAnalyticsService } from './incident-analytics.service';
     BodyMapModule,
     EmployeesModule,
     LearningModule,
+    UsersModule,
+    OrganisationGeneralSettingsModule,
   ],
   controllers: [IncidentsController, IncidentCareController],
   providers: [IncidentsService, IncidentCareService, IncidentAnalyticsService],

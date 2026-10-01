@@ -95,7 +95,7 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
-import { formatUkDateLabel, parseUkDateTimeLabel } from '../common/utils/uk-date-label.util';
+import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
@@ -190,6 +190,10 @@ import {
 import { syncObservationFromCompletedVisitTask } from './visit-task-obs-sync.util';
 import { VisitTimelineService } from './visit-timeline.service';
 import { IncidentsService } from '../incidents/incidents.service';
+import {
+  CARER_INCIDENT_PHOTO_TYPES,
+  incidentAttachmentBytesMatchType,
+} from '../incidents/incident-attachment.config';
 import {
   HANDOVER_TIMELINE_SOURCE_ID,
   VISIT_NOTE_TIMELINE_SOURCE_ID,
@@ -4080,14 +4084,18 @@ export class EmployeeAppVisitsService {
           userId,
           employeeId,
           scheduledJobId: jobId,
-          categoryId: dto.incidentTypeKey ?? '',
-          subtypeId: dto.subtypeKey ?? null,
-          occurredAt: parseUkDateTimeLabel(
+          categoryRef: dto.incidentTypeKey ?? null,
+          subtypeRef: dto.subtypeKey ?? null,
+          incidentTypeLabel: dto.incidentType ?? null,
+          // Carer-entered date/time is organisation wall-clock time, not UTC.
+          occurredAt: parseCarerDateTimeInZone(
             dto.incidentDate,
             dto.incidentTime,
+            ctx.timeZone,
             parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
           ),
-          severity: this.mapAppIncidentSeverity(dto.severityKey),
+          // API-18 documents `severity`; newer app builds send `severityKey`.
+          severity: this.mapAppIncidentSeverity(dto.severityKey ?? dto.severity),
           primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
             ? ctx.job.serviceUserId ?? null
             : null,
@@ -4143,9 +4151,26 @@ export class EmployeeAppVisitsService {
           return { ...current, incidents: list };
         });
       } catch (e) {
-        this.logger.warn(
+        // Don't tell the carer the office was notified when the register copy failed.
+        response.officeNotified = false;
+        this.logger.error(
           `Failed to mirror carer-app incident ${incidentId} to the register: ${e}`,
         );
+        await this.mergeEmployeeAppMeta(jobId, (current) => {
+          const list = Array.isArray(current.incidents)
+            ? [...(current.incidents as Array<Record<string, unknown>>)]
+            : [];
+          const idx = list.findIndex((i) => String(i.id) === incidentId);
+          if (idx >= 0) list[idx] = { ...list[idx], officeNotified: false };
+          return {
+            ...current,
+            incidents: list,
+            idempotency: {
+              ...((current.idempotency as Record<string, unknown>) ?? {}),
+              [dto.idempotencyKey]: response,
+            },
+          };
+        }).catch(() => undefined);
       }
     }
 
@@ -4187,6 +4212,12 @@ export class EmployeeAppVisitsService {
     await this.loadJobForEmployee(employeeId, jobId);
     if (!file) validationError('file is required');
     if (!idempotencyKey) validationError('idempotencyKey is required');
+    // Only real images: the declared type must be allowed AND match the file's bytes.
+    const mimeType = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
+    const storedExt = CARER_INCIDENT_PHOTO_TYPES[mimeType];
+    if (!storedExt || !incidentAttachmentBytesMatchType(file.buffer, mimeType)) {
+      validationError('Incident photo must be a JPEG, PNG, WebP or HEIC image');
+    }
 
     const replay = await this.findIdempotentReplay(jobId, idempotencyKey);
     if (replay) return { data: replay };
@@ -4199,8 +4230,8 @@ export class EmployeeAppVisitsService {
     const attachmentId = clientAttachmentId ?? randomUUID();
     const dir = path.join(process.cwd(), 'uploads', 'employee-app-incidents', jobId);
     await fs.mkdir(dir, { recursive: true });
-    const ext = path.extname(file.originalname) || '.jpg';
-    const filename = `${attachmentId}${ext}`;
+    // Server-generated name + type-derived extension: unpredictable, and never .exe/.html/.svg.
+    const filename = `${randomUUID()}${storedExt}`;
     const abs = path.join(dir, filename);
     await fs.writeFile(abs, file.buffer);
     const url = `/uploads/employee-app-incidents/${jobId}/${filename}`;
@@ -4208,7 +4239,7 @@ export class EmployeeAppVisitsService {
     const response = {
       attachmentId,
       url,
-      mimeType: file.mimetype,
+      mimeType,
       sizeBytes: file.size,
       serverConfirmedAt: now,
       capturedAt: capturedAt ?? null,
@@ -4246,7 +4277,7 @@ export class EmployeeAppVisitsService {
         .addCarerAppAttachment(registerIncidentId, {
           sourceAbsolutePath: abs,
           originalName: file.originalname,
-          mimeType: file.mimetype,
+          mimeType,
           fileSize: file.size,
           caption: caption ?? null,
         })

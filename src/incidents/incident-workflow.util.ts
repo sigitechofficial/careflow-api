@@ -3,6 +3,7 @@ import {
   IncidentSeverity,
   IncidentStatus,
 } from '@prisma/client';
+import { operationalDayBounds } from '../common/utils/operational-day.util';
 
 /**
  * Allowed workflow transitions.
@@ -62,6 +63,28 @@ export function isReinvestigateTransition(
     to === IncidentStatus.UNDER_INVESTIGATION &&
     REINVESTIGATE_FROM_STATUSES.includes(from)
   );
+}
+
+/**
+ * occurredAt range for list / analytics filters. Date-only values (YYYY-MM-DD) mean whole days in the
+ * organisation timezone — UTC days would put e.g. 00:30 BST on the previous day. Full ISO date-times
+ * are used as given.
+ */
+export function incidentOccurredAtRange(
+  dateFrom: string | undefined,
+  dateTo: string | undefined,
+  timeZone: string,
+): { gte?: Date; lte?: Date } | undefined {
+  if (!dateFrom && !dateTo) return undefined;
+  const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+  return {
+    ...(dateFrom
+      ? { gte: isDay(dateFrom) ? operationalDayBounds(dateFrom, timeZone).start : new Date(dateFrom) }
+      : {}),
+    ...(dateTo
+      ? { lte: isDay(dateTo) ? operationalDayBounds(dateTo, timeZone).end : new Date(dateTo) }
+      : {}),
+  };
 }
 
 export function canTransitionIncidentStatus(
