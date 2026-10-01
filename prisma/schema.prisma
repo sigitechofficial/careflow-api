@@ -488,109 +488,109 @@ model User {
   updatedUsers User[] @relation("UserUpdatedBy")
   deletedUsers User[] @relation("UserDeletedBy")
 
-  userRoles                            UserRole[]
-  /**
-   * Authorization branch membership (distinct from employee employment locations).
-   */
-  userLocations                        UserLocation[]
-  auditLogs                            AuditLog[]
-  loginHistories                       LoginHistory[]
-  securityEvents                       SecurityEvent[]
-  dataAccessLogs                       DataAccessLog[]
-  exportLogs                           ExportLog[]
-  reviewedEmployees                    EmployeeReview[]                      @relation("EmployeeReviewReviewedBy")
-  uploadedEmployeeDocuments            EmployeeDocument[]
-  employeeCompliancesVerified          EmployeeCompliance[]                  @relation("EmployeeComplianceVerifiedBy")
-  employeeCompliancesRejected          EmployeeCompliance[]                  @relation("EmployeeComplianceRejectedBy")
-  employeeCompliancesNoLongerReq       EmployeeCompliance[]                  @relation("EmployeeComplianceNoLongerRequiredBy")
-  employeeComplianceDocumentsUploaded  EmployeeComplianceDocument[]          @relation("EmployeeComplianceDocumentUploadedBy")
-  complianceVerificationsPerformed     ComplianceVerification[]              @relation("ComplianceVerificationPerformedBy")
-  approvedServiceUserFundings          ServiceUserFunding[]                  @relation("ServiceUserFundingApprovedBy")
-  uploadedLiveInContractDocuments      ServiceUserLiveInContractDocument[]   @relation("LiveInContractUploadedBy")
-  uploadedServiceUserDocumentRecords   ServiceUserDocumentRecord[]           @relation("ServiceUserDocumentRecordUploadedBy")
-  notificationRecipients               NotificationRecipient[]
-  notificationPreferences              NotificationPreference[]
-  notificationsCreated                 Notification[]                        @relation("NotificationCreatedBy")
-  initialAssessmentsSubmitted          InitialAssessmentSubmission[]         @relation("InitialAssessmentSubmittedBy")
-  initialAssessmentsReviewed           InitialAssessmentSubmission[]         @relation("InitialAssessmentReviewedBy")
-  initialAssessmentsCreated            InitialAssessmentSubmission[]         @relation("InitialAssessmentCreatedBy")
-  initialAssessmentsUpdated            InitialAssessmentSubmission[]         @relation("InitialAssessmentUpdatedBy")
-  initialAssessmentActionsAssigned     InitialAssessmentAction[]             @relation("InitialAssessmentActionAssignee")
-  initialAssessmentAttachmentsUploaded InitialAssessmentAttachment[]         @relation("InitialAssessmentAttachmentUploadedBy")
-  initialAssessmentRisksResponsible    InitialAssessmentRiskRecord[]         @relation("InitialAssessmentRiskResponsible")
-  serviceUserAssessmentCompletions     ServiceUserAssessmentCompletion[]     @relation("ServiceUserAssessmentCompletedBy")
-  carePlanAssessmentLinksLinked        CarePlanAssessmentLink[]              @relation("CarePlanAssessmentLinkedBy")
-  carePlanInstancesCreated             ServiceUserCarePlanInstance[]         @relation("CarePlanInstanceCreatedBy")
-  carePlanInstancesUpdated             ServiceUserCarePlanInstance[]         @relation("CarePlanInstanceUpdatedBy")
-  carePlanInstancesLastReviewed        ServiceUserCarePlanInstance[]         @relation("CarePlanInstanceLastReviewedBy")
-  carePlanDraftsUpdated                ServiceUserCarePlanDraft[]            @relation("CarePlanDraftUpdatedBy")
-  carePlanVersionsPublished            ServiceUserCarePlanPublishedVersion[] @relation("CarePlanVersionPublishedBy")
-  scheduleAreasCreated                 ScheduleArea[]                        @relation("ScheduleAreaCreatedBy")
-  scheduleAreasUpdated                 ScheduleArea[]                        @relation("ScheduleAreaUpdatedBy")
-  scheduleAreasDeleted                 ScheduleArea[]                        @relation("ScheduleAreaDeletedBy")
-  serviceUserAreasCreated              ServiceUserArea[]                     @relation("ServiceUserAreaCreatedBy")
-  serviceUserAreasUpdated              ServiceUserArea[]                     @relation("ServiceUserAreaUpdatedBy")
-  serviceUserAreasDeleted              ServiceUserArea[]                     @relation("ServiceUserAreaDeletedBy")
-  scheduleBatchesCreated               ScheduleBatch[]                       @relation("ScheduleBatchCreatedBy")
-  scheduleBatchesUpdated               ScheduleBatch[]                       @relation("ScheduleBatchUpdatedBy")
-  scheduleBatchesDeleted               ScheduleBatch[]                       @relation("ScheduleBatchDeletedBy")
-  scheduleBatchesBuilt                 ScheduleBatch[]                       @relation("ScheduleBatchBuiltBy")
-  scheduleAreaStatusesBuilt            ScheduleAreaStatus[]                  @relation("ScheduleAreaStatusBuiltBy")
-  scheduleRunsCreated                  ScheduleRun[]                         @relation("ScheduleRunCreatedBy")
-  scheduleRunsUpdated                  ScheduleRun[]                         @relation("ScheduleRunUpdatedBy")
-  scheduleRunsDeleted                  ScheduleRun[]                         @relation("ScheduleRunDeletedBy")
-  scheduledJobsCreated                 ScheduledJob[]                        @relation("ScheduledJobCreatedBy")
-  scheduledJobsUpdated                 ScheduledJob[]                        @relation("ScheduledJobUpdatedBy")
-  scheduledJobsDeleted                 ScheduledJob[]                        @relation("ScheduledJobDeletedBy")
-  scheduledVisitsCreated               ScheduledVisit[]                      @relation("ScheduledVisitCreatedBy")
-  scheduledVisitsUpdated               ScheduledVisit[]                      @relation("ScheduledVisitUpdatedBy")
-  scheduledVisitsDeleted               ScheduledVisit[]                      @relation("ScheduledVisitDeletedBy")
-  jobAllocationsAllocated              JobAllocation[]                       @relation("JobAllocationAllocatedBy")
-  jobAllocationsConfirmed              JobAllocation[]                       @relation("JobAllocationConfirmedBy")
-  jobAllocationsUnallocated            JobAllocation[]                       @relation("JobAllocationUnallocatedBy")
-  callOffVisitsRequested               CallOffVisit[]                        @relation("CallOffVisitRequestedBy")
-  callOffVisitsApproved                CallOffVisit[]                        @relation("CallOffVisitApprovedBy")
-  scheduledJobCancellations            ScheduledJobCancellation[]            @relation("ScheduledJobCancellationBy")
-  scheduledJobReinstatements           ScheduledJobCancellation[]            @relation("ScheduledJobReinstatedBy")
-  observationsRecorded                 ServiceUserObservation[]              @relation("ObservationRecordedByUser")
-  serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]             @relation("FlashMessageCreatedBy")
-  bodyMapRecordsCreated                BodyMapRecord[]                       @relation("BodyMapRecordCreatedBy")
-  bodyMapRecordsUpdated                BodyMapRecord[]                       @relation("BodyMapRecordUpdatedBy")
-  bodyMapRecordsClosed                 BodyMapRecord[]                       @relation("BodyMapRecordClosedBy")
-  bodyMapMarkersCreated                BodyMapMarker[]                       @relation("BodyMapMarkerCreatedBy")
-  bodyMapReviewsAuthored               BodyMapReview[]                       @relation("BodyMapReviewedBy")
-  bodyMapAlertsDismissed               BodyMapAlert[]                        @relation("BodyMapAlertDismissedBy")
-  bodyMapAuditLogs                     BodyMapAuditLog[]                     @relation("BodyMapAuditActor")
-  bodyMapSafeguardingChecksCompleted   BodyMapSafeguardingCheck[]            @relation("BodyMapSafeguardingCompletedBy")
-  bodyMapPhotosUploaded                BodyMapPhoto[]                        @relation("BodyMapPhotoUploadedBy")
-  bodyMapLinksCreated                  BodyMapLink[]                         @relation("BodyMapLinkCreatedBy")
-  bodyMapWoundAssessmentsCreated       BodyMapWoundAssessment[]              @relation("BodyMapWoundAssessmentCreatedBy")
-  bodyMapPressureAssessmentsCreated    BodyMapPressureAssessment[]           @relation("BodyMapPressureAssessmentCreatedBy")
-  bodyMapMedicationSitesApplied        BodyMapMedicationSite[]               @relation("BodyMapMedicationSiteAppliedBy")
-  bodyMapMedicationSitesCreated        BodyMapMedicationSite[]               @relation("BodyMapMedicationSiteCreatedBy")
-  serviceUserFlashMessagesUpdated      ServiceUserFlashMessage[]             @relation("FlashMessageUpdatedBy")
-  serviceUserFlashMessagesCleared      ServiceUserFlashMessage[]             @relation("FlashMessageClearedBy")
-  serviceUserFlashMessagesDeleted      ServiceUserFlashMessage[]             @relation("FlashMessageDeletedBy")
-  companyProfilesUpdated               CompanyProfile[]                      @relation("CompanyProfileUpdatedBy")
-  organisationGeneralSettingsUpdated   OrganisationGeneralSettings[]         @relation("OrganisationGeneralSettingsUpdatedBy")
-  medicationSupplyDeliveriesReceived   MedicationSupplyDelivery[]            @relation("MedSupplyReceivedBy")
-  medicationSupplyDeliveriesWitnessed  MedicationSupplyDelivery[]            @relation("MedSupplyWitnessBy")
-  medicationSupplyDeliveriesCreated    MedicationSupplyDelivery[]            @relation("MedSupplyDeliveryCreatedBy")
-  medicationEventsEntered              MedicationAdministrationEvent[]       @relation("MedEventEnteredBy")
-  medicationEventsCreated              MedicationAdministrationEvent[]       @relation("MedEventCreatedBy")
-  medicationEventsManagerReviewed      MedicationAdministrationEvent[]       @relation("MedEventManagerReviewedBy")
-  medicationsStatusEnded               ServiceUserMedication[]               @relation("MedicationStatusEndedBy")
-  visitTaskAssignmentsCreated          ServiceUserVisitTaskAssignment[]      @relation("ServiceUserVisitTaskAssignmentCreatedBy")
-  visitTaskAssignmentsUpdated          ServiceUserVisitTaskAssignment[]      @relation("ServiceUserVisitTaskAssignmentUpdatedBy")
-  vacanciesCreated                     Vacancy[]                             @relation("VacancyCreatedBy")
-  candidatesConverted                  Candidate[]                           @relation("CandidateConvertedBy")
-  candidateDocumentsUploaded           CandidateDocument[]                   @relation("CandidateDocumentUploadedBy")
-  candidateStageChanges                CandidateStageHistory[]               @relation("CandidateStageChangedBy")
-  policyDocumentsOwned                 PolicyDocument[]                      @relation("PolicyDocumentOwner")
-  policyDocumentsReviewed              PolicyDocument[]                      @relation("PolicyDocumentReviewer")
-  policyDocumentsApproved              PolicyDocument[]                      @relation("PolicyDocumentApprover")
-  policyApprovalsAuthored              PolicyApproval[]                      @relation("PolicyApprovalActor")
-  policyAcknowledgements               PolicyAcknowledgement[]
+  userRoles         UserRole[]
+  /** Authorization branch membership (distinct from employee employment locations). */
+  userLocations     UserLocation[]
+  auditLogs         AuditLog[]
+  loginHistories    LoginHistory[]
+  securityEvents    SecurityEvent[]
+  dataAccessLogs    DataAccessLog[]
+  exportLogs        ExportLog[]
+  reviewedEmployees EmployeeReview[] @relation("EmployeeReviewReviewedBy")
+  uploadedEmployeeDocuments EmployeeDocument[]
+  employeeCompliancesVerified       EmployeeCompliance[]       @relation("EmployeeComplianceVerifiedBy")
+  employeeCompliancesRejected      EmployeeCompliance[]       @relation("EmployeeComplianceRejectedBy")
+  employeeCompliancesNoLongerReq    EmployeeCompliance[]       @relation("EmployeeComplianceNoLongerRequiredBy")
+  employeeComplianceDocumentsUploaded EmployeeComplianceDocument[] @relation("EmployeeComplianceDocumentUploadedBy")
+  complianceVerificationsPerformed ComplianceVerification[]   @relation("ComplianceVerificationPerformedBy")
+  approvedServiceUserFundings      ServiceUserFunding[]        @relation("ServiceUserFundingApprovedBy")
+  uploadedLiveInContractDocuments    ServiceUserLiveInContractDocument[] @relation("LiveInContractUploadedBy")
+  uploadedServiceUserDocumentRecords ServiceUserDocumentRecord[]         @relation("ServiceUserDocumentRecordUploadedBy")
+  notificationRecipients             NotificationRecipient[]
+  notificationPreferences            NotificationPreference[]
+  notificationsCreated               Notification[]                    @relation("NotificationCreatedBy")
+  initialAssessmentsSubmitted        InitialAssessmentSubmission[]     @relation("InitialAssessmentSubmittedBy")
+  initialAssessmentsReviewed         InitialAssessmentSubmission[]     @relation("InitialAssessmentReviewedBy")
+  initialAssessmentsCreated          InitialAssessmentSubmission[]     @relation("InitialAssessmentCreatedBy")
+  initialAssessmentsUpdated          InitialAssessmentSubmission[]     @relation("InitialAssessmentUpdatedBy")
+  initialAssessmentActionsAssigned   InitialAssessmentAction[]         @relation("InitialAssessmentActionAssignee")
+  initialAssessmentAttachmentsUploaded InitialAssessmentAttachment[]   @relation("InitialAssessmentAttachmentUploadedBy")
+  initialAssessmentRisksResponsible  InitialAssessmentRiskRecord[]     @relation("InitialAssessmentRiskResponsible")
+  serviceUserAssessmentCompletions ServiceUserAssessmentCompletion[] @relation("ServiceUserAssessmentCompletedBy")
+  carePlanAssessmentLinksLinked    CarePlanAssessmentLink[]          @relation("CarePlanAssessmentLinkedBy")
+  carePlanInstancesCreated         ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceCreatedBy")
+  carePlanInstancesUpdated         ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceUpdatedBy")
+  carePlanInstancesLastReviewed    ServiceUserCarePlanInstance[]     @relation("CarePlanInstanceLastReviewedBy")
+  carePlanDraftsUpdated            ServiceUserCarePlanDraft[]        @relation("CarePlanDraftUpdatedBy")
+  carePlanVersionsPublished        ServiceUserCarePlanPublishedVersion[] @relation("CarePlanVersionPublishedBy")
+  scheduleAreasCreated               ScheduleArea[]                    @relation("ScheduleAreaCreatedBy")
+  scheduleAreasUpdated               ScheduleArea[]                    @relation("ScheduleAreaUpdatedBy")
+  scheduleAreasDeleted               ScheduleArea[]                    @relation("ScheduleAreaDeletedBy")
+  serviceUserAreasCreated            ServiceUserArea[]                 @relation("ServiceUserAreaCreatedBy")
+  serviceUserAreasUpdated            ServiceUserArea[]                 @relation("ServiceUserAreaUpdatedBy")
+  serviceUserAreasDeleted            ServiceUserArea[]                 @relation("ServiceUserAreaDeletedBy")
+  communicationNotesCreated          ServiceUserCommunicationNote[]    @relation("ServiceUserCommunicationNoteCreatedBy")
+  communicationNotesDeleted          ServiceUserCommunicationNote[]    @relation("ServiceUserCommunicationNoteDeletedBy")
+  scheduleBatchesCreated             ScheduleBatch[]                   @relation("ScheduleBatchCreatedBy")
+  scheduleBatchesUpdated             ScheduleBatch[]                   @relation("ScheduleBatchUpdatedBy")
+  scheduleBatchesDeleted             ScheduleBatch[]                   @relation("ScheduleBatchDeletedBy")
+  scheduleBatchesBuilt               ScheduleBatch[]                   @relation("ScheduleBatchBuiltBy")
+  scheduleAreaStatusesBuilt          ScheduleAreaStatus[]              @relation("ScheduleAreaStatusBuiltBy")
+  scheduleRunsCreated                  ScheduleRun[]                     @relation("ScheduleRunCreatedBy")
+  scheduleRunsUpdated                  ScheduleRun[]                     @relation("ScheduleRunUpdatedBy")
+  scheduleRunsDeleted                  ScheduleRun[]                     @relation("ScheduleRunDeletedBy")
+  scheduledJobsCreated                 ScheduledJob[]                    @relation("ScheduledJobCreatedBy")
+  scheduledJobsUpdated                 ScheduledJob[]                    @relation("ScheduledJobUpdatedBy")
+  scheduledJobsDeleted                 ScheduledJob[]                    @relation("ScheduledJobDeletedBy")
+  scheduledVisitsCreated               ScheduledVisit[]                  @relation("ScheduledVisitCreatedBy")
+  scheduledVisitsUpdated               ScheduledVisit[]                  @relation("ScheduledVisitUpdatedBy")
+  scheduledVisitsDeleted               ScheduledVisit[]                  @relation("ScheduledVisitDeletedBy")
+  jobAllocationsAllocated              JobAllocation[]                   @relation("JobAllocationAllocatedBy")
+  jobAllocationsConfirmed              JobAllocation[]                   @relation("JobAllocationConfirmedBy")
+  jobAllocationsUnallocated            JobAllocation[]                   @relation("JobAllocationUnallocatedBy")
+  callOffVisitsRequested               CallOffVisit[]                    @relation("CallOffVisitRequestedBy")
+  callOffVisitsApproved                CallOffVisit[]                    @relation("CallOffVisitApprovedBy")
+  scheduledJobCancellations            ScheduledJobCancellation[]        @relation("ScheduledJobCancellationBy")
+  scheduledJobReinstatements           ScheduledJobCancellation[]        @relation("ScheduledJobReinstatedBy")
+  observationsRecorded                 ServiceUserObservation[]          @relation("ObservationRecordedByUser")
+  serviceUserFlashMessagesCreated      ServiceUserFlashMessage[]         @relation("FlashMessageCreatedBy")
+  bodyMapRecordsCreated                BodyMapRecord[]                   @relation("BodyMapRecordCreatedBy")
+  bodyMapRecordsUpdated                BodyMapRecord[]                   @relation("BodyMapRecordUpdatedBy")
+  bodyMapRecordsClosed                 BodyMapRecord[]                   @relation("BodyMapRecordClosedBy")
+  bodyMapMarkersCreated                BodyMapMarker[]                   @relation("BodyMapMarkerCreatedBy")
+  bodyMapReviewsAuthored               BodyMapReview[]                   @relation("BodyMapReviewedBy")
+  bodyMapAlertsDismissed               BodyMapAlert[]                    @relation("BodyMapAlertDismissedBy")
+  bodyMapAuditLogs                     BodyMapAuditLog[]                 @relation("BodyMapAuditActor")
+  bodyMapSafeguardingChecksCompleted   BodyMapSafeguardingCheck[]        @relation("BodyMapSafeguardingCompletedBy")
+  bodyMapPhotosUploaded                BodyMapPhoto[]                    @relation("BodyMapPhotoUploadedBy")
+  bodyMapLinksCreated                  BodyMapLink[]                     @relation("BodyMapLinkCreatedBy")
+  bodyMapWoundAssessmentsCreated       BodyMapWoundAssessment[]          @relation("BodyMapWoundAssessmentCreatedBy")
+  bodyMapPressureAssessmentsCreated    BodyMapPressureAssessment[]       @relation("BodyMapPressureAssessmentCreatedBy")
+  bodyMapMedicationSitesApplied        BodyMapMedicationSite[]           @relation("BodyMapMedicationSiteAppliedBy")
+  bodyMapMedicationSitesCreated        BodyMapMedicationSite[]           @relation("BodyMapMedicationSiteCreatedBy")
+  serviceUserFlashMessagesUpdated      ServiceUserFlashMessage[]         @relation("FlashMessageUpdatedBy")
+  serviceUserFlashMessagesCleared      ServiceUserFlashMessage[]         @relation("FlashMessageClearedBy")
+  serviceUserFlashMessagesDeleted      ServiceUserFlashMessage[]         @relation("FlashMessageDeletedBy")
+  companyProfilesUpdated               CompanyProfile[]                  @relation("CompanyProfileUpdatedBy")
+  organisationGeneralSettingsUpdated OrganisationGeneralSettings[]     @relation("OrganisationGeneralSettingsUpdatedBy")
+  medicationSupplyDeliveriesReceived MedicationSupplyDelivery[]        @relation("MedSupplyReceivedBy")
+  medicationSupplyDeliveriesWitnessed  MedicationSupplyDelivery[]        @relation("MedSupplyWitnessBy")
+  medicationSupplyDeliveriesCreated    MedicationSupplyDelivery[]        @relation("MedSupplyDeliveryCreatedBy")
+  medicationEventsEntered            MedicationAdministrationEvent[] @relation("MedEventEnteredBy")
+  medicationEventsCreated            MedicationAdministrationEvent[] @relation("MedEventCreatedBy")
+  medicationEventsManagerReviewed    MedicationAdministrationEvent[] @relation("MedEventManagerReviewedBy")
+  medicationsStatusEnded             ServiceUserMedication[]         @relation("MedicationStatusEndedBy")
+  visitTaskAssignmentsCreated        ServiceUserVisitTaskAssignment[] @relation("ServiceUserVisitTaskAssignmentCreatedBy")
+  visitTaskAssignmentsUpdated        ServiceUserVisitTaskAssignment[] @relation("ServiceUserVisitTaskAssignmentUpdatedBy")
+  vacanciesCreated                   Vacancy[]                        @relation("VacancyCreatedBy")
+  candidatesConverted                Candidate[]                      @relation("CandidateConvertedBy")
+  candidateDocumentsUploaded         CandidateDocument[]              @relation("CandidateDocumentUploadedBy")
+  candidateStageChanges              CandidateStageHistory[]          @relation("CandidateStageChangedBy")
+  policyDocumentsOwned               PolicyDocument[]                 @relation("PolicyDocumentOwner")
+  policyDocumentsReviewed            PolicyDocument[]                 @relation("PolicyDocumentReviewer")
+  policyDocumentsApproved            PolicyDocument[]                 @relation("PolicyDocumentApprover")
+  policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
+  policyAcknowledgements             PolicyAcknowledgement[]
 
   @@index([email])
   @@index([deletedAt])
@@ -2741,21 +2741,22 @@ model ServiceUser {
   allergies             ServiceUserAllergy[]
   medicalConditions     ServiceUserMedicalCondition[]
   reasonableAdjustments ServiceUserReasonableAdjustment[]
-  medicalHistoryEvents  ServiceUserMedicalHistoryEvent[]
-  medicalAlerts         ServiceUserMedicalAlert[]
-  monitoringConfigs     ServiceUserMonitoringConfig[]
-  usualParameters       ServiceUserUsualParameter[]
-  legalDocument         ServiceUserLegalDocument?
-  dolsRecords           ServiceUserDolsRecord[]
+  medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
+  medicalAlerts        ServiceUserMedicalAlert[]
+  communicationNotes   ServiceUserCommunicationNote[]
+  monitoringConfigs ServiceUserMonitoringConfig[]
+  usualParameters ServiceUserUsualParameter[]
+  legalDocument   ServiceUserLegalDocument?
+  dolsRecords     ServiceUserDolsRecord[]
   legalAuthorities      ServiceUserLegalAuthority[]
-  documentRecords       ServiceUserDocumentRecord[]
-  absences              ServiceUserAbsence[]
-  domCare               ServiceUserDomCare?
-  initialAssessment     ServiceUserInitialAssessment?
-  fundings              ServiceUserFunding[]              @relation("FundingLines")
-  currentFunding        ServiceUserFunding?               @relation("FundingAsCurrent", fields: [currentFundingId], references: [id])
-  liveInProfile         ServiceUserLiveInProfile?
-  defaultChargeCard     ChargeCard?                       @relation("ServiceUserDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
+  documentRecords ServiceUserDocumentRecord[]
+  absences          ServiceUserAbsence[]
+  domCare           ServiceUserDomCare?
+  initialAssessment ServiceUserInitialAssessment?
+  fundings          ServiceUserFunding[] @relation("FundingLines")
+  currentFunding    ServiceUserFunding?  @relation("FundingAsCurrent", fields: [currentFundingId], references: [id])
+  liveInProfile     ServiceUserLiveInProfile?
+  defaultChargeCard ChargeCard?          @relation("ServiceUserDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
 
   medicationPacks                MedicationPack[]
   medicationAllergies            MedicationAllergy[]
@@ -4002,6 +4003,34 @@ model ServiceUserMedicalAlert {
   @@index([category])
   @@index([severity])
   @@index([isActive])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model ServiceUserCommunicationNote {
+  id            String    @id @default(uuid()) @db.Uuid
+  serviceUserId String    @db.Uuid
+  name          String
+  position      String
+  reason        String
+  outcome       String
+  signature     String?
+  recordedAt    DateTime
+  isPrivate     Boolean   @default(false)
+  shareWith     Json      @default("[]")
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  createdById   String?   @db.Uuid
+  deletedById   String?   @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+  createdBy   User?       @relation("ServiceUserCommunicationNoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedBy   User?       @relation("ServiceUserCommunicationNoteDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([recordedAt])
   @@index([deletedAt])
   @@schema("service_users")
 }
@@ -10816,17 +10845,19 @@ model Incident {
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
 
-  category           IncidentCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  subtype            IncidentSubtype?            @relation(fields: [subtypeId], references: [id], onDelete: SetNull)
-  statusHistory      IncidentStatusHistory[]
-  severityHistory    IncidentSeverityHistory[]
-  review             IncidentReview?
-  investigation      IncidentInvestigation?
-  outcome            IncidentOutcome?
-  actions            IncidentAction[]
-  injuries           IncidentInjury[]
-  witnesses          IncidentWitness[]
-  attachments        IncidentAttachment[]
+  category        IncidentCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subtype         IncidentSubtype?        @relation(fields: [subtypeId], references: [id], onDelete: SetNull)
+  statusHistory   IncidentStatusHistory[]
+  severityHistory IncidentSeverityHistory[]
+  review          IncidentReview?
+  investigation   IncidentInvestigation?
+  outcome         IncidentOutcome?
+  actions         IncidentAction[]
+  carerSuspensions IncidentCarerSuspension[]
+  courseRecommendations IncidentCarerCourseRecommendation[]
+  injuries        IncidentInjury[]
+  witnesses       IncidentWitness[]
+  attachments     IncidentAttachment[]
   relatedCareRecords IncidentRelatedCareRecord[]
   relatedFrom        IncidentRelatedIncident[]   @relation("IncidentRelSource")
   relatedTo          IncidentRelatedIncident[]   @relation("IncidentRelTarget")
@@ -10890,6 +10921,23 @@ enum IncidentPreventability {
   @@schema("incidents")
 }
 
+/// Whether the investigation is handled internally or externally.
+enum IncidentInvestigationScope {
+  INTERNAL
+  EXTERNAL
+
+  @@schema("incidents")
+}
+
+/// When scope is EXTERNAL — who is leading / involved.
+enum IncidentExternalInvestigationType {
+  POLICE
+  AGENCY
+  COMBINED
+
+  @@schema("incidents")
+}
+
 /// Manager triage / review — one per incident (upserted). Captures the triage
 /// questions used to decide investigation, safeguarding and escalation routing.
 model IncidentReview {
@@ -10921,6 +10969,10 @@ model IncidentReview {
 model IncidentInvestigation {
   id                  String                  @id @default(uuid()) @db.Uuid
   incidentId          String                  @unique @db.Uuid
+  /// Internal vs external investigation.
+  investigationScope  IncidentInvestigationScope?
+  /// Required when investigationScope is EXTERNAL (Police / Agency / Combined).
+  externalType        IncidentExternalInvestigationType?
   whatHappened        String?                 @db.Text
   whyHappened         String?                 @db.Text
   contributingFactors String[]
@@ -10936,6 +10988,60 @@ model IncidentInvestigation {
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
+  @@schema("incidents")
+}
+
+/// One carer suspension recorded against an incident after investigation.
+model IncidentCarerSuspension {
+  id          String   @id @default(uuid()) @db.Uuid
+  incidentId  String   @db.Uuid
+  employeeId  String   @db.Uuid
+  reason      String   @db.Text
+  /// Inclusive suspension window (dates).
+  suspendFrom DateTime @db.Date
+  suspendTo   DateTime @db.Date
+  suspendedAt DateTime @default(now())
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, employeeId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Course recommended / assigned to a carer after an incident investigation.
+model IncidentCarerCourseRecommendation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  incidentId           String   @db.Uuid
+  employeeId           String   @db.Uuid
+  courseId             String   @db.Uuid
+  learningAssignmentId String?  @db.Uuid
+  reason               String?  @db.Text
+  dueAt                DateTime?
+  recommendedAt        DateTime @default(now())
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, employeeId, courseId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([courseId])
+  @@index([learningAssignmentId])
+  @@index([deletedAt])
   @@schema("incidents")
 }
 
@@ -11599,6 +11705,15 @@ enum SurveyRecipientStatus {
   @@schema("surveys")
 }
 
+enum SurveyRecurrence {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+
+  @@schema("surveys")
+}
+
 model Survey {
   id          String           @id @default(uuid()) @db.Uuid
   title       String
@@ -11608,6 +11723,18 @@ model Survey {
   isAnonymous Boolean          @default(false)
   opensAt     DateTime?
   closesAt    DateTime?
+  publishedAt DateTime?
+  locationIds String[]         @default([]) @db.Uuid
+  /// When to auto-send this survey to employees (scheduled distribution).
+  distributeAt DateTime?
+  /// When scheduled distribution actually ran (one-shot only).
+  distributedAt DateTime?
+  /// When set, each due run clones this survey and sends the clone.
+  recurrence  SurveyRecurrence?
+  /// Period instance created from a recurring template.
+  clonedFromId String?         @db.Uuid
+  /// Public shareable link token — one link for many respondents.
+  shareToken  String           @unique @default(uuid())
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
@@ -11615,12 +11742,16 @@ model Survey {
   updatedById String?          @db.Uuid
   deletedById String?          @db.Uuid
 
+  clonedFrom Survey?  @relation("SurveyClones", fields: [clonedFromId], references: [id], onDelete: SetNull)
+  clones     Survey[] @relation("SurveyClones")
   questions  SurveyQuestion[]
   recipients SurveyRecipient[]
 
   @@index([targetKind])
   @@index([status])
   @@index([deletedAt])
+  @@index([distributeAt])
+  @@index([clonedFromId])
   @@schema("surveys")
 }
 

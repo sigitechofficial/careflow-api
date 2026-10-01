@@ -82,6 +82,8 @@ export enum AuditAction {
   SERVICE_USER_CONTACT_ADDED = 'service_user_contact_added',
   SERVICE_USER_CONTACT_UPDATED = 'service_user_contact_updated',
   SERVICE_USER_CONTACT_DELETED = 'service_user_contact_deleted',
+  SERVICE_USER_COMMUNICATION_NOTE_CREATED = 'service_user_communication_note_created',
+  SERVICE_USER_COMMUNICATION_NOTE_DELETED = 'service_user_communication_note_deleted',
   SERVICE_USER_ADDRESS_UPDATED = 'service_user_address_updated',
   SERVICE_USER_ASSIGNMENT_UPDATED = 'service_user_assignment_updated',
   SERVICE_USER_PHOTO_UPLOADED = 'service_user_photo_uploaded',
