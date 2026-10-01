@@ -6,6 +6,7 @@ import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
 import { mailConfig } from './config/mail.config';
+import { azureCostConfig } from './config/azure-cost.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
@@ -122,13 +123,14 @@ import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
+import { PlatformCostsModule } from './platform-costs/platform-costs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig, openfdaConfig, mailConfig],
+      load: [appConfig, databaseConfig, openfdaConfig, mailConfig, azureCostConfig],
       validate: validateEnv,
     }),
     ThrottlerModule.forRootAsync({
@@ -261,6 +263,7 @@ import { PoliciesModule } from './policies/policies.module';
     PayrollModule,
     LearningModule,
     PoliciesModule,
+    PlatformCostsModule,
   ],
   providers: [
     {
