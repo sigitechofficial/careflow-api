@@ -72,24 +72,28 @@ export class PlatformCostsDataService {
     });
   }
 
-  /** Latest Azure forecast for the month, else a linear projection from stored rows. */
+  /** Latest Azure forecast for the month, else a linear projection from stored (real) rows — the source says which. */
   async forecastMonthEnd(
     month: string,
     rows: CostRow[],
     dataThrough: string | null,
-  ): Promise<number> {
+  ): Promise<{ total: number; source: 'azure' | 'projection' }> {
     const snap = await this.prisma.azureForecastSnapshot.findFirst({
       where: { month },
       orderBy: { capturedAt: 'desc' },
     });
     const linear = linearMonthEndForecast(rows, month, dataThrough);
-    if (!snap) return linear;
-    if (snap.source === 'linear') return linear;
+    if (!snap || snap.source === 'linear') {
+      return { total: linear, source: 'projection' };
+    }
     // Never forecast below what has already been spent.
     const mtd = rows
       .filter((r) => monthOf(r.date) === month)
       .reduce((acc, r) => acc + r.cost, 0);
-    return round2(Math.max(snap.forecastTotal.toNumber(), mtd));
+    return {
+      total: round2(Math.max(snap.forecastTotal.toNumber(), mtd)),
+      source: 'azure',
+    };
   }
 
   async budgetView(

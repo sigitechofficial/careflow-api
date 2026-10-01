@@ -96,7 +96,7 @@ export class PlatformCostsService {
       rows,
       env.dataThrough,
     );
-    const budget = await this.data.budgetView(cmp.monthToDate, forecast);
+    const budget = await this.data.budgetView(cmp.monthToDate, forecast.total);
     const openAnomalies = await this.prisma.azureCostAnomaly.count({
       where: { status: 'open' },
     });
@@ -104,7 +104,8 @@ export class PlatformCostsService {
     return {
       ...env,
       monthToDate: cmp.monthToDate,
-      forecastMonthEnd: forecast,
+      forecastMonthEnd: forecast.total,
+      forecastSource: forecast.source,
       lastMonthTotal: cmp.lastMonthTotal,
       lastMonthSamePeriod: cmp.lastMonthSamePeriod,
       changeVsLastMonthPercent: cmp.changeVsLastMonthPercent,
