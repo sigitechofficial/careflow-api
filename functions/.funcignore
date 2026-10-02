@@ -1,0 +1,12 @@
+# Only host.json, package.json, dist/ and production node_modules are needed at runtime.
+.git*
+.vscode
+src
+test
+dist/test
+*.ts
+*.map
+tsconfig.json
+local.settings.json
+local.settings.example.json
+README.md

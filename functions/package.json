@@ -1,0 +1,24 @@
+{
+  "name": "careflow-jobs-functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Functions timer triggers that ask the Careflow API to run its scheduled jobs (POST /internal/jobs/:name).",
+  "license": "UNLICENSED",
+  "main": "dist/src/functions/*.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start": "npm run build && func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.16.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "~5.9.3"
+  }
+}
