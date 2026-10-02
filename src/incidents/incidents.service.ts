@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AllocationStatus,
   IncidentActionPriority,
   BodyMapBodyView,
   BodyMapLinkedModule,
@@ -42,6 +43,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { ListIncidentsQueryDto } from './dto/list-incidents-query.dto';
+import { IncidentVisitOptionsQueryDto } from './dto/incident-visit-options-query.dto';
 import {
   AssignIncidentOwnerDto,
   ChangeIncidentSeverityDto,
@@ -61,6 +63,13 @@ import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
 import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
 import { EmployeesService } from '../employees/employees.service';
 import { LearningAssignmentsService } from '../learning/learning-assignments.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  addDaysToOperationalIso,
+  dayKeyInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
+import { loadVisitRefsByScheduledJobIds } from '../scheduling/visit-ref-lookup.util';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
 import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
 import {
@@ -96,6 +105,7 @@ export class IncidentsService {
     private readonly bodyMap: BodyMapService,
     private readonly employees: EmployeesService,
     private readonly learningAssignments: LearningAssignmentsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -136,6 +146,125 @@ export class IncidentsService {
   // ---------------------------------------------------------------------------
   // Categories (configurable, DB-driven)
   // ---------------------------------------------------------------------------
+
+  /**
+   * Visits an office-recorded incident can be linked to: the incident date ± 1 day
+   * (organisation timezone), for the service user — or, when there is none, the
+   * staff member's allocated visits. Includes carers and the readable visit ref.
+   */
+  async listVisitOptions(
+    user: RequestUser,
+    query: IncidentVisitOptionsQueryDto,
+  ) {
+    if (!query.serviceUserId && !query.employeeId) {
+      throw new BadRequestException('Provide serviceUserId or employeeId');
+    }
+    const scope = this.orgScope.fromRequestUser(user);
+    if (query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+    } else if (query.employeeId) {
+      await this.orgScope.assertEmployeeInScope(scope, query.employeeId);
+    }
+
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const from = operationalDayBounds(
+      addDaysToOperationalIso(query.date, -1),
+      timeZone,
+    ).start;
+    // An incident can't happen (or be discovered) during a visit that hasn't started yet.
+    const now = new Date();
+    const dayAfterEnd = operationalDayBounds(
+      addDaysToOperationalIso(query.date, 1),
+      timeZone,
+    ).end;
+    const to = dayAfterEnd < now ? dayAfterEnd : now;
+    const liveAllocation = {
+      status: {
+        in: [
+          AllocationStatus.ALLOCATED,
+          AllocationStatus.CONFIRMED,
+          AllocationStatus.PENDING_CONFIRMATION,
+        ],
+      },
+    };
+
+    const visits = await this.prisma.scheduledVisit.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        scheduledStartDateTime: { gte: from, lte: to },
+        scheduledJob: { deletedAt: null },
+        ...(query.serviceUserId
+          ? { serviceUserId: query.serviceUserId }
+          : {
+              scheduledJob: {
+                deletedAt: null,
+                allocations: {
+                  some: { employeeId: query.employeeId, ...liveAllocation },
+                },
+              },
+            }),
+      },
+      select: {
+        id: true,
+        scheduledJobId: true,
+        visitName: true,
+        scheduledStartDateTime: true,
+        scheduledEndDateTime: true,
+        status: true,
+        visitRef: true,
+        serviceUser: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { scheduledStartDateTime: 'asc' },
+      take: 50,
+    });
+
+    const jobIds = [...new Set(visits.map((v) => v.scheduledJobId))];
+    const [allocations, refByJobId] = await Promise.all([
+      jobIds.length
+        ? this.prisma.jobAllocation.findMany({
+            where: { scheduledJobId: { in: jobIds }, ...liveAllocation },
+            select: { scheduledJobId: true, employeeId: true },
+          })
+        : [],
+      loadVisitRefsByScheduledJobIds(this.prisma, jobIds),
+    ]);
+    const employeeIds = [...new Set(allocations.map((a) => a.employeeId))];
+    const people = employeeIds.length
+      ? await this.prisma.employeePersonalDetail.findMany({
+          where: { employeeId: { in: employeeIds } },
+          select: { employeeId: true, firstName: true, lastName: true },
+        })
+      : [];
+    const nameByEmployee = new Map(
+      people.map((p) => [
+        p.employeeId,
+        [p.firstName, p.lastName].filter(Boolean).join(' ').trim(),
+      ]),
+    );
+
+    return {
+      data: visits.map((v) => ({
+        scheduledJobId: v.scheduledJobId,
+        scheduledVisitId: v.id,
+        visitName: v.visitName,
+        date: dayKeyInTimeZone(v.scheduledStartDateTime, timeZone),
+        startsAt: v.scheduledStartDateTime.toISOString(),
+        endsAt: v.scheduledEndDateTime?.toISOString() ?? null,
+        status: v.status,
+        visitRef: v.visitRef ?? refByJobId.get(v.scheduledJobId) ?? null,
+        serviceUserName: [v.serviceUser.firstName, v.serviceUser.lastName]
+          .filter(Boolean)
+          .join(' '),
+        carers: allocations
+          .filter((a) => a.scheduledJobId === v.scheduledJobId)
+          .map((a) => ({
+            employeeId: a.employeeId,
+            name: nameByEmployee.get(a.employeeId) || 'Unknown',
+          })),
+      })),
+    };
+  }
 
   async listCategories() {
     const categories = await this.prisma.incidentCategory.findMany({
@@ -200,6 +329,23 @@ export class IncidentsService {
         'Incident date/time cannot be in the future',
       );
     }
+    const actionCodes = dto.immediateActionCodes ?? [];
+    if (actionCodes.includes('OTHER') && !dto.immediateActions?.trim()) {
+      throw new BadRequestException(
+        'Describe the actions taken when "Other" is selected',
+      );
+    }
+    if (actionCodes.includes('NO_ACTION_NEEDED') && actionCodes.length > 1) {
+      throw new BadRequestException(
+        '"No action needed" cannot be combined with other actions',
+      );
+    }
+    const informed = dto.whoInformedKeys ?? [];
+    if (informed.includes('no_one_yet') && informed.length > 1) {
+      throw new BadRequestException(
+        '"No one informed yet" cannot be combined with other people',
+      );
+    }
 
     await this.validateReferences(dto);
 
@@ -238,6 +384,8 @@ export class IncidentsService {
               reportedById: user.id,
               reporterEmployeeId:
                 dto.reporterEmployeeId ?? user.employeeId ?? null,
+              scheduledJobId: dto.scheduledJobId ?? null,
+              involvedEmployeeIds: [...new Set(dto.involvedEmployeeIds ?? [])],
               primaryServiceUserId: dto.primaryServiceUserId ?? null,
               primaryEmployeeId: dto.primaryEmployeeId ?? null,
               affectedPersonKinds: dto.affectedPersonKinds ?? [],
@@ -249,6 +397,7 @@ export class IncidentsService {
               contextAfter: dto.contextAfter?.trim() || null,
               immediateActions: dto.immediateActions?.trim() || null,
               immediateActionCodes: dto.immediateActionCodes ?? [],
+              whoInformedKeys: dto.whoInformedKeys ?? [],
               injuryOccurred: dto.injuryOccurred ?? false,
               createdById: user.id,
             },
@@ -738,12 +887,29 @@ export class IncidentsService {
     for (const employeeId of [
       dto.primaryEmployeeId,
       dto.reporterEmployeeId,
+      ...(dto.involvedEmployeeIds ?? []),
     ].filter(Boolean) as string[]) {
       const emp = await this.prisma.employee.findFirst({
         where: { id: employeeId, deletedAt: null },
         select: { id: true },
       });
       if (!emp) throw new BadRequestException('Linked employee does not exist');
+    }
+
+    if (dto.scheduledJobId) {
+      const job = await this.prisma.scheduledJob.findFirst({
+        where: { id: dto.scheduledJobId, deletedAt: null },
+        select: { serviceUserId: true },
+      });
+      if (!job) throw new BadRequestException('Linked visit does not exist');
+      if (
+        dto.primaryServiceUserId &&
+        job.serviceUserId !== dto.primaryServiceUserId
+      ) {
+        throw new BadRequestException(
+          'The linked visit belongs to a different service user',
+        );
+      }
     }
 
     if (dto.locationId) {
@@ -814,8 +980,14 @@ export class IncidentsService {
         : {}),
       ...(query.employeeId ? { primaryEmployeeId: query.employeeId } : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
-      ...(query.openOnly ? { status: { in: OPEN_INCIDENT_STATUSES } } : {}),
     };
+    // AND these in so they narrow `status` / `severity` rather than replacing them.
+    if (query.openOnly) {
+      andWhereFragment(where, { status: { in: OPEN_INCIDENT_STATUSES } });
+    }
+    if (query.severities?.length) {
+      andWhereFragment(where, { severity: { in: query.severities } });
+    }
 
     if (locationIds?.length) {
       const serviceUsers = await this.prisma.serviceUser.findMany({
@@ -833,11 +1005,16 @@ export class IncidentsService {
       andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
     }
 
+    const dateField = query.dateField ?? 'occurredAt';
     if (query.dateFrom || query.dateTo) {
-      where.occurredAt = {
-        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+      // Whole days in the organisation timezone (e.g. Europe/London incl. BST), inclusive.
+      const timeZone = await this.orgSettings.getOperationalTimezone();
+      where[dateField] = {
+        ...(query.dateFrom
+          ? { gte: operationalDayBounds(query.dateFrom, timeZone).start }
+          : {}),
         ...(query.dateTo
-          ? { lte: new Date(`${query.dateTo.slice(0, 10)}T23:59:59.999Z`) }
+          ? { lte: operationalDayBounds(query.dateTo, timeZone).end }
           : {}),
       };
     }
@@ -856,7 +1033,10 @@ export class IncidentsService {
       this.prisma.incident.findMany({
         where,
         include: { category: true, subtype: true },
-        orderBy: [{ occurredAt: 'desc' }, { reportedAt: 'desc' }],
+        orderBy:
+          dateField === 'reportedAt'
+            ? [{ reportedAt: 'desc' }, { occurredAt: 'desc' }]
+            : [{ occurredAt: 'desc' }, { reportedAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -864,7 +1044,9 @@ export class IncidentsService {
 
     return {
       data: {
-        items: rows.map((r) => this.mapIncident(r)),
+        items: await this.withVisitRef(
+          await this.withReportedBy(rows.map((r) => this.mapIncident(r))),
+        ),
         page,
         limit,
         total,
@@ -2346,6 +2528,8 @@ export class IncidentsService {
       affectedPersonKinds: incident.affectedPersonKinds,
       scheduledJobId: incident.scheduledJobId,
       reportedById: incident.reportedById,
+      reporterEmployeeId: incident.reporterEmployeeId,
+      involvedEmployeeIds: incident.involvedEmployeeIds,
       ownerId: incident.ownerId,
       description: incident.description,
       contextBefore: incident.contextBefore,
@@ -2405,6 +2589,124 @@ export class IncidentsService {
       });
     }
     return events.sort((a, b) => a.at.localeCompare(b.at));
+  }
+
+  /** Readable visit reference (VIS-…) for incidents raised during a visit. */
+  private async withVisitRef<T extends { scheduledJobId: string | null }>(
+    items: T[],
+  ): Promise<Array<T & { visitRef: string | null }>> {
+    const refByJobId = await loadVisitRefsByScheduledJobIds(
+      this.prisma,
+      items
+        .map((i) => i.scheduledJobId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    return items.map((item) => ({
+      ...item,
+      visitRef: item.scheduledJobId
+        ? (refByJobId.get(item.scheduledJobId) ?? null)
+        : null,
+    }));
+  }
+
+  /**
+   * Who raised each incident, for list rows. Office raises store the login user
+   * (`reportedById`); carer-app raises store only the carer (`reporterEmployeeId`).
+   */
+  private async withReportedBy<
+    T extends {
+      reportedById: string | null;
+      reporterEmployeeId: string | null;
+    },
+  >(
+    items: T[],
+  ): Promise<
+    Array<
+      T & {
+        reportedBy: {
+          name: string | null;
+          source: 'OFFICE' | 'CARER_APP' | null;
+          roles: string[];
+          recordedByName: string | null;
+        };
+      }
+    >
+  > {
+    // Incidents are always reported by a carer (reporterEmployeeId). When the office keys it in,
+    // the logged-in user (reportedById) is only who recorded it.
+    const userIds = [
+      ...new Set(
+        items
+          .map((i) => i.reportedById)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const employeeIds = [
+      ...new Set(
+        items
+          .map((i) => i.reporterEmployeeId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const [users, employees] = await Promise.all([
+      userIds.length
+        ? this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              userRoles: { select: { role: { select: { name: true } } } },
+            },
+          })
+        : [],
+      employeeIds.length
+        ? this.prisma.employeePersonalDetail.findMany({
+            where: { employeeId: { in: employeeIds } },
+            select: { employeeId: true, firstName: true, lastName: true },
+          })
+        : [],
+    ]);
+    const userById = new Map(
+      users.map((u) => [
+        u.id,
+        {
+          name:
+            [u.firstName, u.lastName].filter(Boolean).join(' ').trim() ||
+            u.email,
+          roles: u.userRoles.map((ur) => ur.role.name).sort(),
+        },
+      ]),
+    );
+    const employeeNameById = new Map(
+      employees.map((e) => [
+        e.employeeId,
+        [e.firstName, e.lastName].filter(Boolean).join(' ').trim() || null,
+      ]),
+    );
+    return items.map((item) => {
+      const office = item.reportedById
+        ? userById.get(item.reportedById)
+        : undefined;
+      const carerName = item.reporterEmployeeId
+        ? (employeeNameById.get(item.reporterEmployeeId) ?? null)
+        : null;
+      return {
+        ...item,
+        reportedBy: {
+          // Older office rows may have no carer — fall back to the office user.
+          name: carerName ?? office?.name ?? null,
+          source: item.reportedById
+            ? ('OFFICE' as const)
+            : item.reporterEmployeeId
+              ? ('CARER_APP' as const)
+              : null,
+          roles: office?.roles ?? [],
+          recordedByName: office?.name ?? null,
+        },
+      };
+    });
   }
 
   private async enrichTimelineWithActors(

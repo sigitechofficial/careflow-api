@@ -10813,6 +10813,8 @@ model Incident {
   injuryDetails            String?  @db.Text
   /// Carer-supplied free-text describing other people involved.
   peopleInvolved           String?  @db.Text
+  /// Staff involved in the incident (e.g. made the error, alleged person, second carer) — employee ids.
+  involvedEmployeeIds      String[] @default([]) @db.Uuid
   /// Keys of parties the carer informed (office, gp, emergency_999, family_nok, etc.).
   whoInformedKeys          String[]
   /// Whether the carer flagged a safeguarding concern at time of report.

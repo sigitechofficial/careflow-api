@@ -22,6 +22,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { IncidentsService } from './incidents.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
+import { IncidentVisitOptionsQueryDto } from './dto/incident-visit-options-query.dto';
 import { ListIncidentsQueryDto } from './dto/list-incidents-query.dto';
 import {
   AssignIncidentOwnerDto,
@@ -82,6 +83,19 @@ export class IncidentsController {
     @Query() query: IncidentAnalyticsQueryDto,
   ) {
     return this.analytics.getAnalytics(user, query);
+  }
+
+  @Get('visit-options')
+  @Permissions('incidents.create')
+  @ApiOperation({
+    summary:
+      'Visits a new incident can be linked to: the date given ± 1 day, for a service user (or staff member)',
+  })
+  visitOptions(
+    @CurrentUser() user: RequestUser,
+    @Query() query: IncidentVisitOptionsQueryDto,
+  ) {
+    return this.service.listVisitOptions(user, query);
   }
 
   @Get('my-actions')

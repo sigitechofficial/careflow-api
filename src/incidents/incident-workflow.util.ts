@@ -120,27 +120,45 @@ export const INCIDENT_PRIVACY_RANK: Record<IncidentPrivacyLevel, number> = {
 };
 
 /** Checklist codes for "immediate actions taken" captured during reporting. */
+/** "What was done?" on the office raise form. Who was told is recorded separately (who-informed keys). */
 export const IMMEDIATE_ACTION_CODES = [
   'FIRST_AID',
-  'EMERGENCY_SERVICES',
-  'GP_CONTACTED',
-  'MANAGER_CONTACTED',
-  'FAMILY_INFORMED',
+  'INJURY_CHECK',
   'AREA_MADE_SAFE',
+  'EQUIPMENT_OUT_OF_USE',
   'MEDICATION_WITHHELD',
+  'EVIDENCE_PRESERVED',
+  'NO_ACTION_NEEDED',
   'OTHER',
+] as const;
+
+/**
+ * "Who was informed?" keys accepted from the office raise form (static for now).
+ * Same keys as the carer-app catalog defaults, plus police and NHS 111.
+ */
+export const OFFICE_WHO_INFORMED_KEYS = [
+  'office',
+  'on_call_manager',
+  'family_nok',
+  'gp',
+  'emergency_999',
+  'nhs_111',
+  'police',
+  'safeguarding_lead',
+  'local_authority',
+  'no_one_yet',
 ] as const;
 
 export type ImmediateActionCode = (typeof IMMEDIATE_ACTION_CODES)[number];
 
 export const IMMEDIATE_ACTION_LABELS: Record<ImmediateActionCode, string> = {
-  FIRST_AID: 'First aid provided',
-  EMERGENCY_SERVICES: 'Emergency services contacted',
-  GP_CONTACTED: 'GP contacted',
-  MANAGER_CONTACTED: 'Manager contacted',
-  FAMILY_INFORMED: 'Family / NOK informed',
+  FIRST_AID: 'First aid given',
+  INJURY_CHECK: 'Person checked for injuries',
   AREA_MADE_SAFE: 'Area made safe',
+  EQUIPMENT_OUT_OF_USE: 'Equipment taken out of use',
   MEDICATION_WITHHELD: 'Medication withheld',
+  EVIDENCE_PRESERVED: 'Evidence preserved',
+  NO_ACTION_NEEDED: 'No action needed',
   OTHER: 'Other',
 };
 

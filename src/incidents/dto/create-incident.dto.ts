@@ -16,7 +16,10 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { IMMEDIATE_ACTION_CODES } from '../incident-workflow.util';
+import {
+  IMMEDIATE_ACTION_CODES,
+  OFFICE_WHO_INFORMED_KEYS,
+} from '../incident-workflow.util';
 
 export class CreateIncidentDto {
   @ApiProperty({ description: 'Incident category id (IncidentCategory)' })
@@ -87,12 +90,31 @@ export class CreateIncidentDto {
   @MaxLength(200)
   primaryPersonName?: string;
 
+  @ApiProperty({
+    description:
+      'Carer who reported the incident. Incidents are always reported by a carer; the office only records them.',
+  })
+  @IsUUID()
+  reporterEmployeeId!: string;
+
   @ApiPropertyOptional({
-    description: 'Employee id of the reporter, if applicable',
+    type: [String],
+    description:
+      'Staff involved in the incident (e.g. made the error, alleged person, second carer) — employee ids',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('4', { each: true })
+  involvedEmployeeIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Visit (scheduled job) during which it happened or was discovered — must belong to the service user',
   })
   @IsOptional()
   @IsUUID()
-  reporterEmployeeId?: string;
+  scheduledJobId?: string;
 
   @ApiProperty({ description: 'What happened' })
   @IsString()
@@ -111,7 +133,10 @@ export class CreateIncidentDto {
   @MaxLength(8000)
   contextAfter?: string;
 
-  @ApiPropertyOptional({ description: 'Free-text immediate actions taken' })
+  @ApiPropertyOptional({
+    description:
+      'Description of the actions taken (required when OTHER is ticked)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(8000)
@@ -123,6 +148,13 @@ export class CreateIncidentDto {
   @ArrayMaxSize(20)
   @IsIn(IMMEDIATE_ACTION_CODES, { each: true })
   immediateActionCodes?: string[];
+
+  @ApiPropertyOptional({ enum: OFFICE_WHO_INFORMED_KEYS, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(OFFICE_WHO_INFORMED_KEYS, { each: true })
+  whoInformedKeys?: string[];
 
   @ApiPropertyOptional({ description: 'Whether anyone was injured' })
   @IsOptional()
