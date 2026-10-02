@@ -30,6 +30,20 @@ export function jobSuccess(summary: JobSummary = {}): JobOutcome {
   return { status: 'success', summary };
 }
 
+/**
+ * Throw from a job body when the run did useful work but must still count as FAILED
+ * (alert + automatic retry of the period), keeping its summary on the run row.
+ */
+export class JobFailedWithSummaryError extends Error {
+  constructor(
+    message: string,
+    readonly summary: JobSummary,
+  ) {
+    super(message);
+    this.name = 'JobFailedWithSummaryError';
+  }
+}
+
 export function jobSkipped(
   reason: string,
   summary: JobSummary = {},

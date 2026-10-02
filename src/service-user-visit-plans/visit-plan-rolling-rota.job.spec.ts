@@ -1,3 +1,4 @@
+import { JobFailedWithSummaryError } from '../jobs/job-run.types';
 import { BadRequestException, Logger } from '@nestjs/common';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
@@ -96,11 +97,13 @@ describe('VisitPlanRollingRotaJob', () => {
     const { job, bulkGenerate } = make({ domRotaHorizonDays: 28 });
     const outcome = await job.runCatchUp(new Date('2026-10-02T02:00:00Z'));
     expect(bulkGenerate).toHaveBeenCalledTimes(1);
-    expect(bulkGenerate).toHaveBeenCalledWith('sys', {
-      fromDate: '2026-10-02',
-      toDate: '2026-10-30',
-      readyOnly: true,
-    });
+    expect(bulkGenerate).toHaveBeenCalledWith(
+      'sys',
+      { fromDate: '2026-10-02', toDate: '2026-10-30', readyOnly: true },
+      undefined,
+      // nightly catch-up must never bring back visits the office deleted
+      { restoreDeletedJobs: false },
+    );
     expect(outcome).toMatchObject({
       status: 'success',
       summary: {
@@ -217,6 +220,37 @@ describe('VisitPlanRollingRotaJob', () => {
       expect(
         prisma.organisationGeneralSettings.findFirst,
       ).not.toHaveBeenCalled();
+    });
+  });
+  it('marks the run FAILED (keeping the summary) when any visit plan failed', async () => {
+    const { job, bulkGenerate } = make({ domRotaHorizonDays: 28 });
+    bulkGenerate.mockResolvedValueOnce({
+      message: 'ok',
+      data: {
+        fromDate: '2026-10-02',
+        toDate: '2026-10-30',
+        backfillDays: 0,
+        totals: totals(3, 0),
+        results: [
+          { serviceUserId: 's1', planId: 'p1', serviceUserLabel: 'A', status: 'success' as const },
+          {
+            serviceUserId: 's2',
+            planId: 'p2',
+            serviceUserLabel: 'B',
+            status: 'failed' as const,
+            error: 'boom',
+          },
+        ],
+      },
+    } as never);
+    const err = await job
+      .runCatchUp(new Date('2026-10-02T02:00:00Z'))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(JobFailedWithSummaryError);
+    expect((err as JobFailedWithSummaryError).message).toMatch(/1 visit plan/);
+    expect((err as JobFailedWithSummaryError).summary).toMatchObject({
+      visitsCreated: 3,
+      plans: { failed: 1 },
     });
   });
 });

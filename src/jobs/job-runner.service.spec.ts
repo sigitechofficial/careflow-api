@@ -1,3 +1,4 @@
+import { JobFailedWithSummaryError } from './job-run.types';
 import { Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -340,6 +341,26 @@ describe('JobRunner', () => {
     expect(errorSpy.mock.calls[0][0]).toMatch(
       /^job=survey-distribution status=failed source=internal runId=\S+ durationMs=\d+ periodKey=p error=boom second line$/,
     );
+  });
+
+  it('keeps the summary when the job fails with JobFailedWithSummaryError', async () => {
+    const { runner, rows } = makeRunner();
+    const res = await runner.run(
+      'rolling-rota',
+      { source: 'container-job', periodKey: 'd' },
+      async () => {
+        throw new JobFailedWithSummaryError('1 visit plan(s) failed to generate', {
+          visitsCreated: 3,
+          plans: { failed: 1 },
+        });
+      },
+    );
+    expect(res).toMatchObject({ outcome: 'failed', status: 'failed' });
+    expect(rows[0]).toMatchObject({
+      status: 'failed',
+      error: '1 visit plan(s) failed to generate',
+      summary: { visitsCreated: 3, plans: { failed: 1 } },
+    });
   });
 
   it('does not run work when the start row cannot be written (non-unique error)', async () => {

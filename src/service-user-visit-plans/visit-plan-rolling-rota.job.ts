@@ -27,7 +27,12 @@ import {
   isExternalCronMode,
   runCronTick,
 } from '../jobs/job-runner.service';
-import { jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
+import {
+  JobFailedWithSummaryError,
+  jobSkipped,
+  jobSuccess,
+  type JobOutcome,
+} from '../jobs/job-run.types';
 
 const MAX_LISTED = 20;
 
@@ -107,11 +112,17 @@ export class VisitPlanRollingRotaJob {
         ReturnType<VisitPlanBulkScheduleService['bulkGenerate']>
       >;
       try {
-        response = await this.bulkSchedule.bulkGenerate(systemUser.id, {
-          fromDate: chunk.fromDate,
-          toDate: chunk.toDate,
-          readyOnly: true,
-        });
+        response = await this.bulkSchedule.bulkGenerate(
+          systemUser.id,
+          {
+            fromDate: chunk.fromDate,
+            toDate: chunk.toDate,
+            readyOnly: true,
+          },
+          undefined,
+          // Nightly catch-up never brings back visits the office deleted.
+          { restoreDeletedJobs: false },
+        );
       } catch (error) {
         if (
           error instanceof BadRequestException &&
@@ -146,7 +157,7 @@ export class VisitPlanRollingRotaJob {
         `${plans.failed} failed, ${plans.skipped} skipped plans`,
     );
 
-    return jobSuccess({
+    const resultSummary = {
       ...base,
       visitsCreated,
       visitsSkipped,
@@ -159,7 +170,16 @@ export class VisitPlanRollingRotaJob {
         skipped: plans.skipped,
       },
       failedPlans: plans.failures.slice(0, MAX_LISTED),
-    });
+    };
+    if (plans.failed > 0) {
+      // Visits for the other plans are kept; failing the run raises the alert and lets the
+      // next trigger retry the period (already-generated visits are skipped).
+      throw new JobFailedWithSummaryError(
+        `${plans.failed} visit plan(s) failed to generate`,
+        resultSummary,
+      );
+    }
+    return jobSuccess(resultSummary);
   }
 
   private loadSettings() {

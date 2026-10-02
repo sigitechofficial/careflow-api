@@ -12,6 +12,7 @@ import {
   type JobName,
 } from './job-catalogue';
 import { JobHandlerRegistry } from './job-handler.registry';
+import { JobFailedWithSummaryError } from './job-run.types';
 import type {
   JobOutcome,
   JobRunOptions,
@@ -217,6 +218,9 @@ export class JobRunner {
     } catch (err) {
       status = 'failed';
       error = errorMessage(err);
+      if (err instanceof JobFailedWithSummaryError) {
+        summary = sanitiseSummary(err.summary);
+      }
     }
 
     const finishedAt = new Date();

@@ -2186,9 +2186,17 @@ export class ServiceUserVisitPlansService {
     planId: string,
     dto: GenerateVisitPlanScheduleDto,
     meta?: RequestAuditMeta,
-    options?: { assignCarers?: boolean },
+    options?: {
+      assignCarers?: boolean;
+      /**
+       * false = never bring back visits the office deleted (job or visit soft-deleted for that
+       * slot/day). Used by the nightly rolling-rota catch-up; manual "Regenerate" keeps restoring.
+       */
+      restoreDeletedJobs?: boolean;
+    },
   ) {
     const assignCarers = options?.assignCarers !== false;
+    const restoreDeletedJobs = options?.restoreDeletedJobs !== false;
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Only active visit plans can generate scheduled visits');
@@ -2365,6 +2373,20 @@ export class ServiceUserVisitPlansService {
             },
             orderBy: { scheduledStartDateTime: 'asc' },
           });
+          if (!existingVisit && !restoreDeletedJobs) {
+            const deletedVisit = await tx.scheduledVisit.findFirst({
+              where: {
+                visitPlanSlotId: slot.id,
+                deletedAt: { not: null },
+                scheduledStartDateTime: { gte: dayStart, lte: dayEnd },
+              },
+              select: { id: true },
+            });
+            if (deletedVisit) {
+              visitsSkipped += 1;
+              continue;
+            }
+          }
           if (existingVisit) {
             const liveJob = await tx.scheduledJob.findFirst({
               where: { id: existingVisit.scheduledJobId, deletedAt: null },
@@ -2412,6 +2434,11 @@ export class ServiceUserVisitPlansService {
                   rotaConflictWarnings.push(...resolved.rotaConflictWarnings);
                 }
               }
+              visitsSkipped += 1;
+              continue;
+            }
+            if (!restoreDeletedJobs) {
+              // The office deleted this job — leave it deleted.
               visitsSkipped += 1;
               continue;
             }
