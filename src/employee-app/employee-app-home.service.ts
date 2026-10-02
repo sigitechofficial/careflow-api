@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
+  dayKeyInTimeZone,
   formatHmInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -151,7 +152,7 @@ export class EmployeeAppHomeService {
     const [allergies, medCounts, taskProgressByJobId] = await Promise.all([
       this.loadAllergiesByServiceUser(serviceUserIds),
       this.loadMedicationCounts(serviceUserIds),
-      this.loadTaskProgress(jobs),
+      this.loadTaskProgress(jobs, timeZone),
     ]);
 
     const now = new Date();
@@ -225,7 +226,8 @@ export class EmployeeAppHomeService {
       });
       const isOvernight =
         jobMetadataIsOvernight(job.metadata) ||
-        (endAt != null && startAt.toISOString().slice(0, 10) !== endAt.toISOString().slice(0, 10));
+        (endAt != null &&
+          dayKeyInTimeZone(startAt, timeZone) !== dayKeyInTimeZone(endAt, timeZone));
 
       return {
         jobId: job.id,
@@ -453,6 +455,7 @@ export class EmployeeAppHomeService {
         scheduledStartDateTime?: Date | null;
       }>;
     }>,
+    timeZone: string,
   ) {
     if (jobs.length === 0) return new Map<string, { completed: number; total: number }>();
 
@@ -502,7 +505,7 @@ export class EmployeeAppHomeService {
       }),
     ]);
 
-    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
+    return buildVisitTaskProgressByJobId({ jobs, assignments, completions, timeZone });
   }
 }
 

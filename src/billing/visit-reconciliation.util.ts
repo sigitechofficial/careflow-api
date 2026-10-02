@@ -611,8 +611,11 @@ export type ChargeCardRuleLike = {
   appliesToTravel?: boolean | null;
 };
 
-export function resolveCalendarDayType(visitDate: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
-  return resolveBandCalendarDayType(visitDate);
+export function resolveCalendarDayType(
+  visitDate: Date,
+  timeZone: string = 'UTC',
+): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
+  return resolveBandCalendarDayType(visitDate, timeZone);
 }
 
 const SPECIAL_DAY_RULE_TYPES = new Set(
@@ -624,11 +627,17 @@ const SPECIAL_DAY_RULE_TYPES = new Set(
  * When that calendar day occurs, matching special-day rules win; if none are configured,
  * weekday / Saturday / Sunday rules still apply as fallback.
  */
-function dayTypeMatches(ruleDayType: string, visitDate: Date, isBankHoliday: boolean): boolean {
+function dayTypeMatches(
+  ruleDayType: string,
+  visitDate: Date,
+  isBankHoliday: boolean,
+  /** Organisation timezone — weekday / named holidays are the visit's org-local calendar day. */
+  timeZone: string = 'UTC',
+): boolean {
   if (ruleDayType === 'ANY') return true;
 
-  const special = resolveSpecialDay(visitDate, { isBankHoliday });
-  const calendar = resolveCalendarDayType(visitDate);
+  const special = resolveSpecialDay(visitDate, { isBankHoliday, timeZone });
+  const calendar = resolveCalendarDayType(visitDate, timeZone);
 
   if (special !== 'NONE') {
     if (ruleDayType === special) return true;
@@ -739,7 +748,9 @@ function pickBestRule<T extends RuleWithOptionalTime>(
 ): T | null {
   if (!rules.length || visitMinutes <= 0) return null;
 
-  const dayMatches = rules.filter((rule) => dayTypeMatches(rule.dayType, visitDate, isBankHoliday));
+  const dayMatches = rules.filter((rule) =>
+    dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
+  );
   if (!dayMatches.length) return null;
 
   if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
@@ -799,14 +810,15 @@ export function calculatePayableAmount(
   rateBasisMinutes?: number | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
+  const timeZone = window?.timeZone ?? 'UTC';
 
   if (nightDuty === 'SLEEPING_NIGHT') {
-    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday, timeZone);
     if (!rule) return null;
     return { amount: Number(rule.amount), label: 'SLEEP_IN' };
   }
   if (nightDuty === 'WAKING_NIGHT') {
-    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday, timeZone);
     if (!rule) return null;
     const hourly = Number(rule.amount) * (minutes / 60);
     return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
@@ -814,7 +826,6 @@ export function calculatePayableAmount(
 
   const dayRules = rules.filter((rule) => !isNightDutyPayRateType(rule.rateType));
   const bandRules = toTimeBandRules(dayRules);
-  const timeZone = window?.timeZone ?? 'UTC';
   const forceHourlyFromPlan =
     rateBasisMinutes != null &&
     rateBasisMinutes > MAX_FIXED_VISIT_MINUTES;
@@ -918,10 +929,12 @@ function pickNightDutyPayRule(
   rateType: 'SLEEP_IN' | 'WAKING_NIGHT',
   visitDate: Date,
   isBankHoliday: boolean,
+  timeZone: string = 'UTC',
 ): PayCardRuleLike | null {
   const matches = rules.filter(
     (rule) =>
-      rule.rateType === rateType && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+      rule.rateType === rateType &&
+      dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
   );
   if (!matches.length) return null;
   const dayTypeRank = (dayType: string): number => {
@@ -963,10 +976,12 @@ function pickNightDutyChargeRule(
   chargeMethod: 'SLEEP_IN' | 'WAKING_NIGHT',
   visitDate: Date,
   isBankHoliday: boolean,
+  timeZone: string = 'UTC',
 ): ChargeCardRuleLike | null {
   const matches = rules.filter(
     (rule) =>
-      rule.chargeMethod === chargeMethod && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+      rule.chargeMethod === chargeMethod &&
+      dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
   );
   if (!matches.length) return null;
   const dayTypeRank = (dayType: string): number => {
@@ -1023,12 +1038,24 @@ export function calculateBillableAmount(
   if (minutes <= 0) return null;
 
   if (nightDuty === 'SLEEPING_NIGHT') {
-    const rule = pickNightDutyChargeRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const rule = pickNightDutyChargeRule(
+      rules,
+      'SLEEP_IN',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     if (!rule) return null;
     return { amount: Number(rule.amount), label: 'SLEEP_IN' };
   }
   if (nightDuty === 'WAKING_NIGHT') {
-    const rule = pickNightDutyChargeRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const rule = pickNightDutyChargeRule(
+      rules,
+      'WAKING_NIGHT',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     if (!rule) return null;
     const hourly = Number(rule.amount) * (minutes / 60);
     return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
@@ -1090,9 +1117,12 @@ function pickSupplementRule<T extends PayCardRuleLike>(
   rateType: 'MILEAGE' | 'TRAVEL_TIME' | 'WAITING_TIME',
   visitDate: Date,
   isBankHoliday = false,
+  timeZone: string = 'UTC',
 ): T | null {
   const matches = rules.filter(
-    (rule) => rule.rateType === rateType && dayTypeMatches(rule.dayType, visitDate, isBankHoliday),
+    (rule) =>
+      rule.rateType === rateType &&
+      dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
   );
   if (!matches.length) return null;
   return [...matches].sort((a, b) => {
@@ -1106,9 +1136,11 @@ export function calculateMileageAmount(
   visitDate: Date,
   miles: number,
   isBankHoliday = false,
+  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (miles <= 0) return null;
-  const rule = pickSupplementRule(rules, 'MILEAGE', visitDate, isBankHoliday);
+  const rule = pickSupplementRule(rules, 'MILEAGE', visitDate, isBankHoliday, timeZone);
   if (!rule) return null;
   const unitRate = Number(rule.amount);
   return {
@@ -1123,9 +1155,11 @@ export function calculateTravelTimeAmount(
   visitDate: Date,
   travelMinutes: number,
   isBankHoliday = false,
+  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (travelMinutes <= 0) return null;
-  const rule = pickSupplementRule(rules, 'TRAVEL_TIME', visitDate, isBankHoliday);
+  const rule = pickSupplementRule(rules, 'TRAVEL_TIME', visitDate, isBankHoliday, timeZone);
   if (!rule) return null;
   const unitRate = Number(rule.amount);
   return {
@@ -1140,9 +1174,11 @@ export function calculateWaitingTimeAmount(
   visitDate: Date,
   waitingMinutes: number,
   isBankHoliday = false,
+  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (waitingMinutes <= 0) return null;
-  const rule = pickSupplementRule(rules, 'WAITING_TIME', visitDate, isBankHoliday);
+  const rule = pickSupplementRule(rules, 'WAITING_TIME', visitDate, isBankHoliday, timeZone);
   if (!rule) return null;
   const unitRate = Number(rule.amount);
   return {
@@ -1319,7 +1355,13 @@ export function buildPayRateBreakdown(
   const hoursLabel = formatMinutesAsHours(minutes);
 
   if (calc.label === 'SLEEP_IN') {
-    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const rule = pickNightDutyPayRule(
+      rules,
+      'SLEEP_IN',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     const unitAmount = Number(rule?.amount ?? calc.amount);
     const unitRate = formatGbp(unitAmount);
     const amount = formatGbp(calc.amount);
@@ -1351,7 +1393,13 @@ export function buildPayRateBreakdown(
   }
 
   if (calc.label === 'WAKING_NIGHT') {
-    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const rule = pickNightDutyPayRule(
+      rules,
+      'WAKING_NIGHT',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     const unitAmount = Number(rule?.amount ?? 0);
     const unitRate = formatGbp(unitAmount);
     const amount = formatGbp(calc.amount);
@@ -1425,7 +1473,7 @@ export function buildPayRateBreakdown(
     };
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday);
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, window?.timeZone ?? 'UTC');
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);
@@ -1513,7 +1561,13 @@ export function buildChargeRateBreakdown(
   const hoursLabel = formatMinutesAsHours(minutes);
 
   if (calc.label === 'SLEEP_IN') {
-    const rule = pickNightDutyChargeRule(rules, 'SLEEP_IN', visitDate, isBankHoliday);
+    const rule = pickNightDutyChargeRule(
+      rules,
+      'SLEEP_IN',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     const unitAmount = Number(rule?.amount ?? calc.amount);
     const unitRate = formatGbp(unitAmount);
     const amount = formatGbp(calc.amount);
@@ -1544,7 +1598,13 @@ export function buildChargeRateBreakdown(
     };
   }
   if (calc.label === 'WAKING_NIGHT') {
-    const rule = pickNightDutyChargeRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday);
+    const rule = pickNightDutyChargeRule(
+      rules,
+      'WAKING_NIGHT',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+    );
     const unitAmount = Number(rule?.amount ?? 0);
     const unitRate = `${formatGbp(unitAmount)}/hr`;
     const amount = formatGbp(calc.amount);
@@ -1630,7 +1690,13 @@ export function buildChargeRateBreakdown(
     priority: rule.priority,
     sortOrder: rule.sortOrder,
   }));
-  const rule = pickBestRule(asPayRules, visitDate, minutes, isBankHoliday);
+  const rule = pickBestRule(
+    asPayRules,
+    visitDate,
+    minutes,
+    isBankHoliday,
+    window?.timeZone ?? 'UTC',
+  );
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);

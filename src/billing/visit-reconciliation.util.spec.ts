@@ -634,3 +634,76 @@ describe('absent co-carer (multi-carer pay)', () => {
     ).toBe(false);
   });
 });
+
+describe('day-type rules use the organisation timezone (not the UTC date)', () => {
+  // Sat 2026-07-18 00:30 BST = Fri 2026-07-17 23:30Z
+  const satEarlyLondon = new Date('2026-07-17T23:30:00.000Z');
+  const weekdaySleep = {
+    label: 'Weekday sleep-in',
+    dayType: 'WEEKDAY',
+    rateType: 'SLEEP_IN',
+    amount: 80,
+    minimumMinutes: null,
+    priority: 0,
+    sortOrder: 0,
+  };
+  const saturdaySleep = { ...weekdaySleep, label: 'Saturday sleep-in', dayType: 'SATURDAY', amount: 95 };
+
+  it('Europe/London BST: 00:30 Saturday visit gets the Saturday rate', () => {
+    const result = calculatePayableAmount(
+      [weekdaySleep, saturdaySleep],
+      satEarlyLondon,
+      540,
+      false,
+      { start: satEarlyLondon, end: new Date('2026-07-18T08:30:00.000Z'), timeZone: 'Europe/London' },
+      'SLEEPING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 95, label: 'SLEEP_IN' });
+  });
+
+  it('legacy UTC evaluation (no timezone) would have used Friday', () => {
+    const result = calculatePayableAmount(
+      [weekdaySleep, saturdaySleep],
+      satEarlyLondon,
+      540,
+      false,
+      undefined,
+      'SLEEPING_NIGHT',
+    );
+    expect(result).toEqual({ amount: 80, label: 'SLEEP_IN' });
+  });
+
+  it('Christmas Day: 00:15 GMT on 25 Dec (= 00:15Z) vs Karachi (05:15 PKT, also 25th) vs 24 Dec 23:30 London', () => {
+    const christmas = { ...weekdaySleep, label: 'Christmas', dayType: 'CHRISTMAS', amount: 200 };
+    const lateXmasEveLondon = new Date('2026-12-24T23:30:00.000Z'); // 23:30 GMT on the 24th
+    const xmasEarlyKarachi = new Date('2026-12-24T19:30:00.000Z'); // 00:30 PKT on the 25th
+    expect(
+      calculatePayableAmount([weekdaySleep, christmas], lateXmasEveLondon, 60, false, {
+        start: lateXmasEveLondon,
+        end: lateXmasEveLondon,
+        timeZone: 'Europe/London',
+      }, 'SLEEPING_NIGHT'),
+    ).toEqual({ amount: 80, label: 'SLEEP_IN' });
+    expect(
+      calculatePayableAmount([weekdaySleep, christmas], xmasEarlyKarachi, 60, false, {
+        start: xmasEarlyKarachi,
+        end: xmasEarlyKarachi,
+        timeZone: 'Asia/Karachi',
+      }, 'SLEEPING_NIGHT'),
+    ).toEqual({ amount: 200, label: 'SLEEP_IN' });
+  });
+
+  it('mileage supplement day type follows the org timezone', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { calculateMileageAmount } = require('./visit-reconciliation.util') as typeof import('./visit-reconciliation.util');
+    const weekdayMileage = { ...weekdaySleep, rateType: 'MILEAGE', amount: 0.45 };
+    const saturdayMileage = { ...weekdaySleep, rateType: 'MILEAGE', dayType: 'SATURDAY', amount: 0.6 };
+    expect(
+      calculateMileageAmount([weekdayMileage, saturdayMileage], satEarlyLondon, 10, false, 'Europe/London')
+        ?.unitRate,
+    ).toBe(0.6);
+    expect(
+      calculateMileageAmount([weekdayMileage, saturdayMileage], satEarlyLondon, 10, false, 'UTC')?.unitRate,
+    ).toBe(0.45);
+  });
+});
