@@ -20,7 +20,12 @@ import type { OrgScope } from '../common/org-scope/org-scope.types';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import {
+  operationalScheduleDayBounds,
+  utcDayBounds,
+} from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { assertVisitCancellationCompliance } from './visit-cancellation-validation.util';
 import {
   visitCancellationOutcomeStatus,
@@ -164,6 +169,7 @@ export class ScheduledJobsHousekeepingService {
     private readonly visitAttendance: VisitAttendanceService,
     private readonly visitTimeline: VisitTimelineService,
     private readonly carerPush: CarerVisitPushHook,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   /** Staff JWT actors get branch scope checks; employee-app may pass a userId string. */
@@ -315,9 +321,11 @@ export class ScheduledJobsHousekeepingService {
     }
   }
 
+  /** `timeZone` = organisation timezone; date filters are org-local calendar days. */
   private buildBaseWhere(
     query: HousekeepingQueryDto,
     scope: OrgScope,
+    timeZone: string,
   ): Prisma.ScheduledJobWhereInput {
     const where: Prisma.ScheduledJobWhereInput = { deletedAt: null, isActive: true };
     if (query.scheduleBatchId) where.scheduleBatchId = query.scheduleBatchId;
@@ -325,12 +333,16 @@ export class ScheduledJobsHousekeepingService {
     if (query.status) where.status = query.status as PrismaJobStatus;
 
     if (query.date) {
-      const { start, end } = utcDayBounds(query.date);
+      const { start, end } = operationalScheduleDayBounds(query.date, timeZone);
       where.scheduledStartDateTime = { gte: start, lte: end };
     } else if (query.dateFrom || query.dateTo) {
       where.scheduledStartDateTime = {};
-      if (query.dateFrom) where.scheduledStartDateTime.gte = utcDayBounds(query.dateFrom).start;
-      if (query.dateTo) where.scheduledStartDateTime.lte = utcDayBounds(query.dateTo).end;
+      if (query.dateFrom) {
+        where.scheduledStartDateTime.gte = operationalScheduleDayBounds(query.dateFrom, timeZone).start;
+      }
+      if (query.dateTo) {
+        where.scheduledStartDateTime.lte = operationalScheduleDayBounds(query.dateTo, timeZone).end;
+      }
     }
 
     if (query.employeeId) {
@@ -422,7 +434,11 @@ export class ScheduledJobsHousekeepingService {
       return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
     }
     const now = new Date();
-    const base = this.buildBaseWhere(query, scope);
+    const base = this.buildBaseWhere(
+      query,
+      scope,
+      await this.orgSettings.getOperationalTimezone(),
+    );
 
     const where: Prisma.ScheduledJobWhereInput = {
       ...base,
@@ -486,7 +502,11 @@ export class ScheduledJobsHousekeepingService {
     if (scope.locationIds?.length === 0) {
       return { data: [], meta: buildPaginationMeta({ page, limit, total: 0 }) };
     }
-    const base = this.buildBaseWhere(query, scope);
+    const base = this.buildBaseWhere(
+      query,
+      scope,
+      await this.orgSettings.getOperationalTimezone(),
+    );
     const understaffedIds = await this.findUnderstaffedJobIds(base);
 
     const where: Prisma.ScheduledJobWhereInput = {
@@ -580,7 +600,11 @@ export class ScheduledJobsHousekeepingService {
         meta: buildPaginationMeta({ page, limit, total: 0 }),
       };
     }
-    const where = this.buildBaseWhere({ ...query, date }, scope);
+    const where = this.buildBaseWhere(
+      { ...query, date },
+      scope,
+      await this.orgSettings.getOperationalTimezone(),
+    );
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.scheduledJob.count({ where }),
@@ -1440,7 +1464,12 @@ export class ScheduledJobsHousekeepingService {
             scheduledJobId: id,
             scheduledVisitId: primaryVisit?.id ?? null,
             serviceUserId: existing.serviceUserId,
-            callOffDate: utcDayBounds(existing.scheduledStartDateTime.toISOString().slice(0, 10)).start,
+            callOffDate: utcDayBounds(
+              dayKeyInTimeZone(
+                existing.scheduledStartDateTime,
+                await this.orgSettings.getOperationalTimezone(),
+              ),
+            ).start,
             reason: callOffReason,
             notes: combinedNotes ?? null,
             status: PrismaCallOffStatus.APPROVED,
@@ -2204,7 +2233,10 @@ export class ScheduledJobsHousekeepingService {
     }
     const adHocCompletions = completions.filter((row) => !row.assignmentId);
 
-    const visitDay = utcDayBounds(job.scheduledStartDateTime.toISOString().slice(0, 10)).start;
+    // Org-local calendar day of the visit (label at UTC midnight) for weekday task rules.
+    const visitDay = utcDayBounds(
+      dayKeyInTimeZone(job.scheduledStartDateTime, await this.orgSettings.getOperationalTimezone()),
+    ).start;
     const dueAssignments = assignments.filter((assignment) => {
       // Keep tasks already interacted with on this visit even if schedule was changed later.
       if (completionByAssignment.has(assignment.id)) return true;

@@ -36,4 +36,5 @@ export enum AuditModule {
   POLICY = 'POLICY',
   SURVEY = 'SURVEY',
   PLATFORM_COSTS = 'PLATFORM_COSTS',
+  SYSTEM_JOBS = 'SYSTEM_JOBS',
 }

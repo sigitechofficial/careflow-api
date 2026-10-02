@@ -6,6 +6,11 @@ name: Deploy API to Azure
 on:
   push:
     branches: [azure]
+    # The job-trigger Function App deploys on its own (deploy-azure-functions.yml); a push that
+    # only touches it must not rebuild and roll out the API. Mixed pushes still deploy both.
+    paths-ignore:
+      - "functions/**"
+      - ".github/workflows/deploy-azure-functions.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,6 +26,8 @@ env:
   ACR: acrcareflowprod.azurecr.io
   APP: allforcare-api
   JOB: job-careflow-migrate
+  # Scheduled Container Apps Jobs that run the API image as a CLI (node dist/src/jobs/run-job.js <name>).
+  SCHEDULED_JOBS: job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews
 
 jobs:
   deploy:
@@ -145,3 +152,31 @@ jobs:
           [ "$live" = "$ACR/careflow-api:$TAG" ] || { echo "::error::new revision did not become healthy; previous revision keeps serving"; exit 1; }
           curl -fsS --retry 10 --retry-delay 3 "https://$FQDN/health/ready"; echo
           echo "### ✅ API $TAG live at https://$FQDN" >> "$GITHUB_STEP_SUMMARY"
+
+      # Only after the API revision is live and healthy (same image, migrations already applied):
+      # point the daily scheduled jobs at the new image so their next run uses this code.
+      # Until the jobs exist (deploy/azure/scheduled-jobs/02 + 04) a job is skipped with a warning.
+      # Once they exist, set repo variable SCHEDULED_JOBS_REQUIRED=true so a missing/unreadable
+      # job fails the deploy instead (prevents jobs silently staying on an old image).
+      - name: Update scheduled Container Apps Jobs to the new image
+        env:
+          REQUIRED: ${{ vars.SCHEDULED_JOBS_REQUIRED }}
+        run: |
+          set -euo pipefail
+          for J in $SCHEDULED_JOBS; do
+            if out=$(az containerapp job show -g "$RG" -n "$J" --query name -o tsv 2>&1); then
+              az containerapp job update -g "$RG" -n "$J" --container-name job --image "$ACR/careflow-api:$TAG" -o none
+              img=$(az containerapp job show -g "$RG" -n "$J" --query "properties.template.containers[0].image" -o tsv)
+              [ "$img" = "$ACR/careflow-api:$TAG" ] || { echo "::error::$J still on $img"; exit 1; }
+              echo "updated $J -> $img"
+              echo "- scheduled job \`$J\` -> $TAG" >> "$GITHUB_STEP_SUMMARY"
+            elif grep -qE 'ResourceNotFound|AuthorizationFailed|was not found' <<<"$out"; then
+              # ARM answers 403 (not 404) for a job that does not exist when the deploy identity has
+              # no role at resource-group scope, so both mean "not created / not granted yet".
+              msg="Container Apps Job $J does not exist yet or id-careflow-github-deploy has no role on it (deploy/azure/scheduled-jobs/02 + 04)"
+              if [ "$REQUIRED" = "true" ]; then echo "::error::$msg"; exit 1; fi
+              echo "::warning::$msg - skipped"
+            else
+              echo "$out"; echo "::error::could not read $J"; exit 1
+            fi
+          done

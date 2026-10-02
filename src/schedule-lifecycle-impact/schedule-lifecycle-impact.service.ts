@@ -20,8 +20,7 @@ import {
   CANCELLABLE_JOB_STATUSES,
   datesOverlap,
   filterJobsByWeekdays,
-  normalizeImpactStartDate,
-  resolveImpactEndDate,
+  resolveImpactWindow,
   SCHEDULE_IMPACT_PREVIEW_MAX,
   type JobImpactOutcome,
   type ScopedJobFilter,
@@ -30,6 +29,8 @@ import {
 } from './schedule-lifecycle-impact.util';
 import { ScheduleLifecycleNotificationHook } from './schedule-lifecycle-notification.hook';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 
 export type CancelServiceUserJobsParams = {
   serviceUserId: string;
@@ -43,7 +44,8 @@ export type CancelServiceUserJobsParams = {
 export type UnallocateEmployeeJobsParams = {
   employeeId: string;
   fromDate: Date;
-  toDate: Date;
+  /** Calendar label; null = open-ended (capped at OPEN_ENDED_IMPACT_MAX_DAYS). */
+  toDate: Date | null;
   reason: string;
   source: ScheduleImpactSource;
 };
@@ -70,7 +72,26 @@ export class ScheduleLifecycleImpactService {
     private readonly jobAllocations: JobAllocationsService,
     private readonly notifications: ScheduleLifecycleNotificationHook,
     private readonly carerPush: CarerVisitPushHook,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
+
+  /**
+   * Instant window for calendar-day impact params (fromDate/toDate are date labels),
+   * bounded by organisation-local midnights (OrganisationGeneralSettings.timezone).
+   */
+  private async impactWindow(
+    fromDate: Date,
+    toDate: Date | null | undefined,
+  ): Promise<{ from: Date; to: Date; timeZone: string }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    return { ...resolveImpactWindow(fromDate, toDate, timeZone), timeZone };
+  }
+
+  /** Organisation-local "today" as a UTC-midnight calendar label. */
+  private async opsTodayLabel(): Promise<Date> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    return new Date(`${operationalTodayIso(new Date(), timeZone)}T00:00:00.000Z`);
+  }
 
   async isServiceUserAbsentOnDay(serviceUserId: string, day: Date): Promise<boolean> {
     const noon = calendarDayUtc(day);
@@ -91,15 +112,14 @@ export class ScheduleLifecycleImpactService {
     toDate?: Date | null;
     scope?: ScopedJobFilter;
   }): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const { from, to, timeZone } = await this.impactWindow(params.fromDate, params.toDate);
     const jobs = await this.prisma.scheduledJob.findMany({
       where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, params.scope),
       select: { id: true, scheduledStartDateTime: true },
       orderBy: { scheduledStartDateTime: 'asc' },
       take: SCHEDULE_IMPACT_PREVIEW_MAX + 1,
     });
-    const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays);
+    const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays, timeZone);
     const truncated = filtered.length > SCHEDULE_IMPACT_PREVIEW_MAX;
     const capped = truncated ? filtered.slice(0, SCHEDULE_IMPACT_PREVIEW_MAX) : filtered;
     const jobIds = capped.map((j) => j.id);
@@ -132,8 +152,7 @@ export class ScheduleLifecycleImpactService {
     toDate?: Date | null;
     weekdays?: number[];
   }): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const { from, to, timeZone } = await this.impactWindow(params.fromDate, params.toDate);
     const jobs = await this.prisma.scheduledJob.findMany({
       where: buildCancellableServiceUserJobsWhere(params.serviceUserId, from, to, {
         visitPlanSlotId: params.visitPlanSlotId,
@@ -143,7 +162,7 @@ export class ScheduleLifecycleImpactService {
       orderBy: { scheduledStartDateTime: 'asc' },
       take: SCHEDULE_IMPACT_PREVIEW_MAX + 1,
     });
-    const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+    const filtered = filterJobsByWeekdays(jobs, params.weekdays, timeZone);
     const truncated = filtered.length > SCHEDULE_IMPACT_PREVIEW_MAX;
     const capped = truncated ? filtered.slice(0, SCHEDULE_IMPACT_PREVIEW_MAX) : filtered;
     const jobIds = capped.map((j) => j.id);
@@ -162,8 +181,7 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const { from, to, timeZone } = await this.impactWindow(params.fromDate, params.toDate);
 
     const run = async (client: Prisma.TransactionClient) => {
       const jobs = await client.scheduledJob.findMany({
@@ -172,7 +190,7 @@ export class ScheduleLifecycleImpactService {
         orderBy: { scheduledStartDateTime: 'asc' },
         take: SCHEDULE_IMPACT_PREVIEW_MAX,
       });
-      const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays);
+      const filtered = filterJobsByWeekdays(jobs, params.scope?.weekdays, timeZone);
 
       const jobIds: string[] = [];
       for (const job of filtered) {
@@ -237,8 +255,7 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const { from, to, timeZone } = await this.impactWindow(params.fromDate, params.toDate);
 
     const run = async (client: Prisma.TransactionClient) => {
       const jobs = await client.scheduledJob.findMany({
@@ -258,7 +275,7 @@ export class ScheduleLifecycleImpactService {
         orderBy: { scheduledStartDateTime: 'asc' },
         take: SCHEDULE_IMPACT_PREVIEW_MAX,
       });
-      const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+      const filtered = filterJobsByWeekdays(jobs, params.weekdays, timeZone);
 
       const jobIds: string[] = [];
       for (const job of filtered) {
@@ -323,8 +340,7 @@ export class ScheduleLifecycleImpactService {
     fromDate: Date;
     toDate: Date;
   }): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate);
+    const { from, to } = await this.impactWindow(params.fromDate, params.toDate);
     const allocations = await this.prisma.jobAllocation.findMany({
       where: buildUnallocateEmployeeJobsWhere(params.employeeId, from, to),
       select: { scheduledJobId: true },
@@ -335,9 +351,8 @@ export class ScheduleLifecycleImpactService {
   }
 
   async previewCancelFutureServiceUserJobs(serviceUserId: string): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(new Date());
-    const to = resolveImpactEndDate(from, null);
-    return this.previewCancelServiceUserJobsInRange({ serviceUserId, fromDate: from, toDate: to });
+    const from = await this.opsTodayLabel();
+    return this.previewCancelServiceUserJobsInRange({ serviceUserId, fromDate: from, toDate: null });
   }
 
   async unallocateEmployeeFutureJobs(
@@ -348,11 +363,10 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(new Date());
-    const to = resolveImpactEndDate(from, null);
+    const from = await this.opsTodayLabel();
     return this.unallocateEmployeeJobsInRange(
       userId,
-      { employeeId, fromDate: from, toDate: to, reason, source },
+      { employeeId, fromDate: from, toDate: null, reason, source },
       meta,
       tx,
     );
@@ -362,8 +376,7 @@ export class ScheduleLifecycleImpactService {
     jobs: TimelineJobForOperationalFlags[],
     day: Date,
   ): Promise<Map<string, TimelineJobOperationalFlags>> {
-    const dayStart = normalizeImpactStartDate(day);
-    const dayEnd = resolveImpactEndDate(dayStart, dayStart);
+    const { from: dayStart, to: dayEnd } = await this.impactWindow(day, day);
     const dayNoon = calendarDayUtc(day);
 
     const serviceUserIds = [...new Set(jobs.map((j) => j.serviceUserId))];
@@ -445,8 +458,7 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate ?? null);
+    const { from, to } = await this.impactWindow(params.fromDate, params.toDate);
 
     const run = async (client: Prisma.TransactionClient) => {
       const jobs = await client.scheduledJob.findMany({
@@ -509,8 +521,7 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const from = normalizeImpactStartDate(params.fromDate);
-    const to = resolveImpactEndDate(from, params.toDate);
+    const { from, to } = await this.impactWindow(params.fromDate, params.toDate);
 
     const run = async (client: Prisma.TransactionClient) => {
       const allocations = await client.jobAllocation.findMany({
@@ -602,8 +613,7 @@ export class ScheduleLifecycleImpactService {
     source: ScheduleImpactSource,
     meta?: RequestAuditMeta,
   ): Promise<ScheduleImpactResult> {
-    const from = new Date();
-    from.setUTCHours(0, 0, 0, 0);
+    const from = await this.opsTodayLabel();
     return this.cancelServiceUserJobsInRange(
       userId,
       { serviceUserId, fromDate: from, toDate: null, reason, source },

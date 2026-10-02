@@ -4843,8 +4843,8 @@ export class EmployeeAppVisitsService {
       isOvernight:
         jobMetadataIsOvernight(ctx.job.metadata) ||
         (visit.scheduledEndDateTime != null &&
-          visit.scheduledStartDateTime.toISOString().slice(0, 10) !==
-            visit.scheduledEndDateTime.toISOString().slice(0, 10)),
+          dayKeyInTimeZone(visit.scheduledStartDateTime, ctx.timeZone) !==
+            dayKeyInTimeZone(visit.scheduledEndDateTime, ctx.timeZone)),
       status: mapUiStatus(ctx.job.status, visit.status),
       identityConfirmed: ctx.identityConfirmed,
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
@@ -5078,12 +5078,9 @@ export class EmployeeAppVisitsService {
       this.countVisitObservations(ctx.job.serviceUserId, since),
     ]);
 
+    // Org-local calendar day of the visit (UTC-midnight label) for weekday task rules.
     const visitDay = new Date(
-      Date.UTC(
-        ctx.primaryVisit.scheduledStartDateTime.getUTCFullYear(),
-        ctx.primaryVisit.scheduledStartDateTime.getUTCMonth(),
-        ctx.primaryVisit.scheduledStartDateTime.getUTCDate(),
-      ),
+      `${dayKeyInTimeZone(ctx.primaryVisit.scheduledStartDateTime, ctx.timeZone)}T00:00:00.000Z`,
     );
     const plannedAssignmentIds = assignments
       .filter((a) => {

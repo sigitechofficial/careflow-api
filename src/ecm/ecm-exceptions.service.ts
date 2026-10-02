@@ -1,3 +1,4 @@
+import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import {
   BadRequestException,
   Injectable,
@@ -566,6 +567,10 @@ export class EcmExceptionsService {
     const ackNames = new Map(
       ackUsers.map((user) => [user.id, displayUserName(user) ?? user.id]),
     );
+    const orgSettings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { timezone: true },
+    });
+    const timeZone = getOperationalTimeZone(orgSettings?.timezone);
     return {
       data: rows.map((r) => {
         const start = r.scheduledJob.scheduledStartDateTime;
@@ -605,7 +610,7 @@ export class EcmExceptionsService {
               : null) ??
             r.scheduledJob.visits[0]?.visitRef ??
             null,
-          plannedDate: start.toISOString().slice(0, 10),
+          plannedDate: dayKeyInTimeZone(start, timeZone),
           plannedStartDateTime: start.toISOString(),
           plannedEndDateTime: end?.toISOString() ?? null,
           carers,

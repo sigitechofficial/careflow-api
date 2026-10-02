@@ -6,7 +6,8 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { utcDayBounds } from '../scheduling/schedule-date-range.util';
+import { operationalScheduleDayBounds } from '../scheduling/schedule-date-range.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { mapTimelineJob, timelineJobInclude } from '../scheduling/schedule-timeline.mapper';
 import { jobDurationMinutes } from '../scheduling/schedule-date-range.util';
 import { FilterJobsDto } from './dto/filter-jobs.dto';
@@ -24,6 +25,7 @@ export class ScheduleFiltersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async filterJobs(userId: string, dto: FilterJobsDto, meta?: RequestAuditMeta) {
@@ -38,7 +40,10 @@ export class ScheduleFiltersService {
     if (dto.postcode?.trim()) where.postcode = { contains: dto.postcode.trim(), mode: 'insensitive' };
     if (dto.timePeriodColors?.length) where.timePeriodColor = { in: dto.timePeriodColors };
     if (dto.date) {
-      const { start, end } = utcDayBounds(dto.date);
+      const { start, end } = operationalScheduleDayBounds(
+        dto.date,
+        await this.orgSettings.getOperationalTimezone(),
+      );
       where.scheduledStartDateTime = { gte: start, lte: end };
     }
 
@@ -117,7 +122,10 @@ export class ScheduleFiltersService {
     let dayStart: Date | undefined;
     let dayEnd: Date | undefined;
     if (dto.date) {
-      ({ start: dayStart, end: dayEnd } = utcDayBounds(dto.date));
+      ({ start: dayStart, end: dayEnd } = operationalScheduleDayBounds(
+        dto.date,
+        await this.orgSettings.getOperationalTimezone(),
+      ));
     }
 
     const data = await Promise.all(

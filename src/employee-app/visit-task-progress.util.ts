@@ -1,3 +1,4 @@
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import {
   pickScheduleFromAssignment,
@@ -173,7 +174,8 @@ export function computeVisitTaskProgress(input: {
   };
 }
 
-function resolveJobVisitDay(job: JobForTaskProgress): Date | null {
+/** Org-local calendar day of the job (UTC-midnight label) for weekday task rules. */
+function resolveJobVisitDay(job: JobForTaskProgress, timeZone: string): Date | null {
   const raw =
     job.scheduledStartDateTime ??
     job.visits.find((v) => v.scheduledStartDateTime)?.scheduledStartDateTime ??
@@ -181,7 +183,7 @@ function resolveJobVisitDay(job: JobForTaskProgress): Date | null {
   if (!raw) return null;
   const d = raw instanceof Date ? raw : new Date(raw);
   if (Number.isNaN(d.getTime())) return null;
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  return new Date(`${dayKeyInTimeZone(d, timeZone)}T00:00:00.000Z`);
 }
 
 function assignmentDueOnDay(
@@ -199,6 +201,8 @@ export function buildVisitTaskProgressByJobId(input: {
   jobs: JobForTaskProgress[];
   assignments: AssignmentRow[];
   completions: CompletionRow[];
+  /** Organisation timezone (OrganisationGeneralSettings.timezone). */
+  timeZone: string;
 }): Map<string, VisitTaskProgress> {
   const result = new Map<string, VisitTaskProgress>();
   if (input.jobs.length === 0) return result;
@@ -229,7 +233,7 @@ export function buildVisitTaskProgressByJobId(input: {
       result.set(job.id, { completed: 0, total: 0 });
       continue;
     }
-    const visitDay = resolveJobVisitDay(job);
+    const visitDay = resolveJobVisitDay(job, input.timeZone);
     const jobCompletions = completionsByJob.get(job.id) ?? [];
     const plannedIds = (assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [])
       .filter((a) => assignmentDueOnDay(a, visitDay, jobCompletions))

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   EcmMissedClassification,
@@ -6,6 +6,9 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EcmEvaluationService } from './ecm-evaluation.service';
+import { JobHandler } from '../jobs/job-handler.registry';
+import { JobRunner, runCronTick } from '../jobs/job-runner.service';
+import { jobSuccess, type JobOutcome } from '../jobs/job-run.types';
 
 const CLOSED: ScheduledJobStatus[] = [
   ScheduledJobStatus.COMPLETED,
@@ -26,10 +29,18 @@ export class EcmMissedVisitDetectionJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly evaluation: EcmEvaluationService,
+    @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
   @Cron('*/5 * * * *', { timeZone: 'UTC' })
   async handle(): Promise<void> {
+    await runCronTick(this.jobRunner, 'ecm-missed-visit', () =>
+      this.runMissedVisitScan(),
+    );
+  }
+
+  @JobHandler('ecm-missed-visit')
+  async runMissedVisitScan(): Promise<JobOutcome> {
     const now = new Date();
     const lookback = new Date(now.getTime() - 12 * 60 * 60_000);
     const cutoff = new Date(now.getTime() - 30 * 60_000);
@@ -57,7 +68,9 @@ export class EcmMissedVisitDetectionJob {
       select: { id: true },
     });
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) {
+      return jobSuccess({ candidates: 0, evaluated: 0 });
+    }
 
     let evaluated = 0;
     for (const job of candidates) {
@@ -68,5 +81,6 @@ export class EcmMissedVisitDetectionJob {
     this.logger.log(
       `ECM missed-visit scan: evaluated ${evaluated}/${candidates.length} candidate job(s)`,
     );
+    return jobSuccess({ candidates: candidates.length, evaluated });
   }
 }

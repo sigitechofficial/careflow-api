@@ -270,7 +270,7 @@ export class EmployeeAppClientDetailService {
     ];
 
     const jobs = todayJobs.map((a) => a.scheduledJob);
-    const taskProgress = await this.loadTaskProgress(jobs);
+    const taskProgress = await this.loadTaskProgress(jobs, timeZone);
     const todayVisits = jobs.map((job) => {
       const visit = job.visits[0] ?? null;
       const startAt = visit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
@@ -278,6 +278,7 @@ export class EmployeeAppClientDetailService {
         visit?.visitName ?? job.jobName,
         visit?.visitPlanSlot ?? null,
         startAt,
+        timeZone,
       );
       const progress = taskProgress.get(job.id) ?? { completed: 0, total: 0 };
       return {
@@ -1152,6 +1153,7 @@ export class EmployeeAppClientDetailService {
         scheduledStartDateTime?: Date | null;
       }>;
     }>,
+    timeZone: string,
   ) {
     if (!jobs.length) return new Map<string, { completed: number; total: number }>();
     const jobRound = new Map<string, string | null>();
@@ -1197,7 +1199,7 @@ export class EmployeeAppClientDetailService {
       }),
     ]);
 
-    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
+    return buildVisitTaskProgressByJobId({ jobs, assignments, completions, timeZone });
   }
 }
 
@@ -1267,6 +1269,7 @@ function periodTitle(
   visitName: string | null,
   slot: { slotCode: string; medicationRoundCode: string | null } | null,
   startAt: Date,
+  timeZone: string,
 ): string {
   const code = (slot?.medicationRoundCode ?? slot?.slotCode ?? '').toUpperCase();
   if (code.includes('MORNING') || code === 'AM') return 'Morning visit';
@@ -1278,7 +1281,7 @@ function periodTitle(
   if (name.includes('lunch')) return 'Lunch visit';
   if (name.includes('tea')) return 'Tea visit';
   if (name.includes('bed')) return 'Bedtime visit';
-  const h = hourInTimeZone(startAt, 'UTC');
+  const h = hourInTimeZone(startAt, timeZone);
   if (h < 11) return 'Morning visit';
   if (h < 14) return 'Lunch visit';
   if (h < 18) return 'Tea visit';

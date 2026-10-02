@@ -821,7 +821,11 @@ export class EmployeeHoursService {
       const anyElapsedWeekUnderCos =
         cosWeeklyHours != null &&
         weeks.slice(0, 4).some((h, i) => {
-          const blockEnd = Date.UTC(year, month - 1, (i + 1) * 7, 23, 59, 59);
+          // End of day (i+1)*7 of the month in the organisation timezone.
+          const blockEnd = operationalDayBounds(
+            `${monthKey}-${String((i + 1) * 7).padStart(2, '0')}`,
+            timeZone,
+          ).end.getTime();
           return blockEnd < nowMs && h < cosWeeklyHours * SMS_UNDER_HOURS_RATIO;
         });
 

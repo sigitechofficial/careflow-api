@@ -10,6 +10,10 @@ import {
   type EmployeePatternContext,
 } from '../service-user-visit-plans/visit-plan-carer-job-fit.util';
 import { syncJobAllocationStatus } from '../service-user-visit-plans/visit-plan-slot-carer-sync.util';
+import {
+  dayKeyInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 
 const ACTIVE_ALLOCATION_STATUSES: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -27,10 +31,10 @@ function visitEndDateTime(start: Date, end: Date | null): Date {
   return new Date(start.getTime() + 60 * 60 * 1000);
 }
 
-function assignmentSyncFromDateTime(fromDate?: Date): Date {
-  const start = fromDate ? new Date(fromDate) : new Date();
-  start.setUTCHours(0, 0, 0, 0);
-  return start;
+/** Start (true UTC) of the organisation-local calendar day containing `fromDate` (default now). */
+function assignmentSyncFromDateTime(fromDate: Date | undefined, timeZone: string): Date {
+  const instant = fromDate ?? new Date();
+  return operationalDayBounds(dayKeyInTimeZone(instant, timeZone), timeZone).start;
 }
 
 type AllocationVisitRow = {
@@ -75,12 +79,14 @@ async function loadFutureAllocationsForEmployee(
 function visitOutsidePattern(
   patternContext: EmployeePatternContext,
   visit: AllocationVisitRow,
+  timeZone: string,
 ): boolean {
   return !isEmployeeAvailableForVisit(
     patternContext.patterns,
     patternContext.cycleConfig,
     visit.scheduledStartDateTime,
     visitEndDateTime(visit.scheduledStartDateTime, visit.scheduledEndDateTime),
+    timeZone,
   );
 }
 
@@ -88,15 +94,16 @@ export async function countScheduledVisitsToUnassignForPattern(
   prisma: PrismaClient | Prisma.TransactionClient,
   employeeId: string,
   patternContext: EmployeePatternContext,
+  timeZone: string,
   fromDateTime?: Date,
 ): Promise<number> {
-  const from = assignmentSyncFromDateTime(fromDateTime);
+  const from = assignmentSyncFromDateTime(fromDateTime, timeZone);
   const allocations = await loadFutureAllocationsForEmployee(prisma, employeeId, from);
   let count = 0;
   for (const allocation of allocations) {
     const visit = allocation.scheduledVisit;
     if (!visit) continue;
-    if (visitOutsidePattern(patternContext, visit)) count += 1;
+    if (visitOutsidePattern(patternContext, visit, timeZone)) count += 1;
   }
   return count;
 }
@@ -123,6 +130,8 @@ export async function syncEmployeeJobAllocationsAfterPatternChange(
     employeeId: string;
     userId: string;
     respectWorkingPattern: boolean;
+    /** Organisation timezone (OrganisationGeneralSettings.timezone). */
+    timeZone: string;
     fromDateTime?: Date;
   },
 ): Promise<{ visitsUpdated: number; allocationsRemoved: number }> {
@@ -133,7 +142,7 @@ export async function syncEmployeeJobAllocationsAfterPatternChange(
   const patternContext = await loadEmployeePatternContext(tx, params.employeeId);
   if (!patternContext) return { visitsUpdated: 0, allocationsRemoved: 0 };
 
-  const from = assignmentSyncFromDateTime(params.fromDateTime);
+  const from = assignmentSyncFromDateTime(params.fromDateTime, params.timeZone);
   const allocations = await loadFutureAllocationsForEmployee(tx, params.employeeId, from);
 
   let allocationsRemoved = 0;
@@ -141,7 +150,7 @@ export async function syncEmployeeJobAllocationsAfterPatternChange(
 
   for (const allocation of allocations) {
     const visit = allocation.scheduledVisit;
-    if (!visit || !visitOutsidePattern(patternContext, visit)) continue;
+    if (!visit || !visitOutsidePattern(patternContext, visit, params.timeZone)) continue;
 
     await tx.jobAllocation.update({
       where: { id: allocation.id },

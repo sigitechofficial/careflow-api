@@ -9,6 +9,7 @@ import {
   syncVisitPlanSlotCarersToScheduledJobs,
   visitPlanCarerSyncFromDateTime,
 } from '../../src/service-user-visit-plans/visit-plan-slot-carer-sync.util';
+import { getOperationalTimeZone } from '../../src/common/utils/operational-day.util';
 
 const prisma = new PrismaClient();
 const serviceUserNumber = process.argv[2];
@@ -42,7 +43,11 @@ async function main() {
     process.exit(1);
   }
 
-  const fromDateTime = visitPlanCarerSyncFromDateTime();
+  const orgSettings = await prisma.organisationGeneralSettings.findFirst({
+    select: { timezone: true },
+  });
+  const timeZone = getOperationalTimeZone(orgSettings?.timezone);
+  const fromDateTime = visitPlanCarerSyncFromDateTime(undefined, timeZone);
   let jobsUpdated = 0;
   const user = await prisma.user.findFirst({ where: { deletedAt: null }, select: { id: true } });
   const userId = user?.id ?? null;
@@ -61,6 +66,7 @@ async function main() {
         requiredCarers: slot.requiredCarers,
         userId: null,
         fromDateTime,
+        timeZone,
       });
       jobsUpdated += result.jobsUpdated;
       console.log(`Slot ${slot.slotCode}: updated ${result.jobsUpdated} job(s)`);

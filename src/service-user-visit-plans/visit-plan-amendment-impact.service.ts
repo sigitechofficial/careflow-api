@@ -4,7 +4,8 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
-import { operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
+import { parseVisitPlanDateOnly } from './visit-plan-pause.util';
+import { visitPlanTodayUtc } from './visit-plan-effective-dates.util';
 import {
   diffVisitPlanSnapshots,
   resolveEndFromStartAndTimes,
@@ -25,9 +26,13 @@ export class VisitPlanAmendmentImpactService {
     private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
-  private async opsTodayStart(): Promise<Date> {
+  /**
+   * Organisation-local "today" as a calendar label (UTC midnight of the org date).
+   * ScheduleLifecycleImpactService turns calendar labels into org-local day bounds.
+   */
+  private async opsToday(): Promise<Date> {
     const timeZone = await this.orgSettings.getOperationalTimezone();
-    return operationalDayBounds(operationalTodayIso(new Date(), timeZone), timeZone).start;
+    return visitPlanTodayUtc(new Date(), timeZone);
   }
 
   async previewAmendmentImpact(params: {
@@ -45,7 +50,7 @@ export class VisitPlanAmendmentImpactService {
       };
     }
 
-    const from = await this.opsTodayStart();
+    const from = await this.opsToday();
     let jobsCancelled = 0;
     let jobsRescheduled = 0;
     const jobIds: string[] = [];
@@ -86,12 +91,11 @@ export class VisitPlanAmendmentImpactService {
         jobIds.push(...preview.jobIds);
         if (preview.truncated) truncated = true;
       } else if (action.type === 'skip_exception' && action.exceptionDate) {
-        const timeZone = await this.orgSettings.getOperationalTimezone();
-        const dayBounds = operationalDayBounds(action.exceptionDate, timeZone);
+        const exceptionDay = parseVisitPlanDateOnly(action.exceptionDate, 'exceptionDate');
         const preview = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
           serviceUserId: params.serviceUserId,
-          fromDate: dayBounds.start,
-          toDate: dayBounds.end,
+          fromDate: exceptionDay,
+          toDate: exceptionDay,
           scope: { visitPlanSlotId: action.visitPlanSlotId },
         });
         action.jobCount = preview.jobsCancelled;
@@ -130,7 +134,8 @@ export class VisitPlanAmendmentImpactService {
       after: params.after,
     });
 
-    const from = await this.opsTodayStart();
+    const from = await this.opsToday();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     let jobsCancelled = 0;
     let jobsRescheduled = 0;
     const jobIds: string[] = [];
@@ -165,19 +170,23 @@ export class VisitPlanAmendmentImpactService {
           visitPlanSlotId: action.visitPlanSlotId,
           fromDate: from,
           resolveNewTimes: (jobStart) =>
-            resolveEndFromStartAndTimes(jobStart, action.newStartTime!, action.newEndTime!),
+            resolveEndFromStartAndTimes(
+              jobStart,
+              action.newStartTime!,
+              action.newEndTime!,
+              timeZone,
+            ),
           reason: params.amendmentReason,
           source: 'visit_plan_amendment',
         }, meta);
         jobsRescheduled += result.jobsRescheduled ?? 0;
         jobIds.push(...result.jobIds);
       } else if (action.type === 'skip_exception' && action.exceptionDate) {
-        const timeZone = await this.orgSettings.getOperationalTimezone();
-        const dayBounds = operationalDayBounds(action.exceptionDate, timeZone);
+        const exceptionDay = parseVisitPlanDateOnly(action.exceptionDate, 'exceptionDate');
         const result = await this.scheduleImpact.cancelScopedServiceUserJobs(userId, {
           serviceUserId: params.serviceUserId,
-          fromDate: dayBounds.start,
-          toDate: dayBounds.end,
+          fromDate: exceptionDay,
+          toDate: exceptionDay,
           reason: `SKIP exception: ${params.amendmentReason}`,
           source: 'visit_plan_skip_exception',
           scope: { visitPlanSlotId: action.visitPlanSlotId },

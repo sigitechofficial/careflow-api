@@ -1,3 +1,9 @@
+import {
+  addDaysToOperationalIso,
+  combineOperationalDateAndHm,
+  dayKeyInTimeZone,
+} from '../common/utils/operational-day.util';
+
 export type VisitPlanSlotSnapshot = {
   id?: string;
   slotCode: string;
@@ -117,31 +123,36 @@ export function diffVisitPlanSnapshots(
   return actions;
 }
 
-/** Apply HH:MM (or HH:MM:SS) to a UTC calendar day from an existing job start. */
-export function applyTimeToUtcDay(jobStart: Date, timeStr: string): Date {
-  const [h, m, s] = timeStr.split(':').map((p) => Number(p) || 0);
-  return new Date(
-    Date.UTC(
-      jobStart.getUTCFullYear(),
-      jobStart.getUTCMonth(),
-      jobStart.getUTCDate(),
-      h,
-      m,
-      s || 0,
-      0,
-    ),
-  );
+/** Normalise HH:MM or HH:MM:SS to HH:mm. */
+function toHm(timeStr: string): string {
+  const [h, m] = timeStr.trim().split(':');
+  return `${String(Number(h) || 0).padStart(2, '0')}:${String(Number(m) || 0).padStart(2, '0')}`;
 }
 
+/**
+ * Apply an organisation-local wall-clock HH:MM (or HH:MM:SS) to an operational calendar day,
+ * returning the true-UTC instant (DST-aware; e.g. London BST 08:00 → 07:00Z).
+ */
+export function applyTimeToOperationalDay(dayIso: string, timeStr: string, timeZone: string): Date {
+  return combineOperationalDateAndHm(dayIso, toHm(timeStr), timeZone);
+}
+
+/**
+ * New start/end for an existing (true-UTC) job when a slot's planned times change.
+ * The job keeps its organisation-local calendar day; times are wall clock in `timeZone`.
+ * End <= start means the visit runs overnight into the next local day.
+ */
 export function resolveEndFromStartAndTimes(
   jobStart: Date,
   startTime: string,
   endTime: string,
+  timeZone: string,
 ): { start: Date; end: Date } {
-  const start = applyTimeToUtcDay(jobStart, startTime);
-  let end = applyTimeToUtcDay(jobStart, endTime);
+  const dayIso = dayKeyInTimeZone(jobStart, timeZone);
+  const start = applyTimeToOperationalDay(dayIso, startTime, timeZone);
+  let end = applyTimeToOperationalDay(dayIso, endTime, timeZone);
   if (end.getTime() <= start.getTime()) {
-    end = new Date(end.getTime() + 86400000);
+    end = applyTimeToOperationalDay(addDaysToOperationalIso(dayIso, 1), endTime, timeZone);
   }
   return { start, end };
 }

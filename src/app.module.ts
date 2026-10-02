@@ -8,6 +8,7 @@ import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
 import { mailConfig } from './config/mail.config';
 import { azureCostConfig } from './config/azure-cost.config';
+import { jobsConfig } from './config/jobs.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
@@ -126,13 +127,14 @@ import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
 import { PlatformCostsModule } from './platform-costs/platform-costs.module';
 import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig, openfdaConfig, mailConfig, azureCostConfig],
+      load: [appConfig, databaseConfig, openfdaConfig, mailConfig, azureCostConfig, jobsConfig],
       validate: validateEnv,
     }),
     // Register once here only: importing forRoot() in several feature modules made
@@ -270,6 +272,7 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     PoliciesModule,
     PlatformCostsModule,
     ServiceUserCommunicationNotesModule,
+    JobsModule,
   ],
   providers: [
     {
