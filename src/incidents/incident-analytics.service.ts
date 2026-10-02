@@ -33,6 +33,8 @@ type LeanRow = Prisma.IncidentGetPayload<{
     locationId: true;
     primaryServiceUserId: true;
     primaryEmployeeId: true;
+    involvedServiceUserIds: true;
+    involvedEmployeeIds: true;
     category: { select: { key: true; label: true } };
     subtype: { select: { key: true; label: true } };
   };
@@ -61,7 +63,7 @@ export class IncidentAnalyticsService {
       isArchived: false,
       privacyLevel: { in: allowedPrivacyLevels(user) },
       ...(q.categoryId ? { categoryId: q.categoryId } : {}),
-      ...(q.serviceUserId ? { primaryServiceUserId: q.serviceUserId } : {}),
+      ...(q.serviceUserId ? { involvedServiceUserIds: { has: q.serviceUserId } } : {}),
       ...(q.severity ? { severity: q.severity } : {}),
       ...(q.status ? { status: q.status } : {}),
     };
@@ -74,7 +76,12 @@ export class IncidentAnalyticsService {
       andWhereFragment(where, {
         OR: [
           { locationId: { in: locationIds } },
-          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+          ...(suIds.length
+            ? [
+                { primaryServiceUserId: { in: suIds } },
+                { involvedServiceUserIds: { hasSome: suIds } },
+              ]
+            : []),
         ],
       });
     } else if (locationIds && locationIds.length === 0) {
@@ -105,6 +112,8 @@ export class IncidentAnalyticsService {
         locationId: true,
         primaryServiceUserId: true,
         primaryEmployeeId: true,
+        involvedServiceUserIds: true,
+        involvedEmployeeIds: true,
         category: { select: { key: true, label: true } },
         subtype: { select: { key: true, label: true } },
       },
@@ -162,12 +171,11 @@ export class IncidentAnalyticsService {
 
       if (r.locationId)
         byLocation.set(r.locationId, (byLocation.get(r.locationId) ?? 0) + 1);
-      if (r.primaryServiceUserId)
-        byServiceUser.set(
-          r.primaryServiceUserId,
-          (byServiceUser.get(r.primaryServiceUserId) ?? 0) + 1,
-        );
-      if (r.primaryEmployeeId) involvingEmployees += 1;
+      // An incident counts once for every service user involved.
+      for (const serviceUserId of r.involvedServiceUserIds) {
+        byServiceUser.set(serviceUserId, (byServiceUser.get(serviceUserId) ?? 0) + 1);
+      }
+      if (r.involvedEmployeeIds.length > 0) involvingEmployees += 1;
 
       const hour = r.occurredAt.getUTCHours();
       const bucket = byTimeOfDay.find(

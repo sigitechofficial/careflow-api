@@ -471,6 +471,9 @@ model User {
   firstName        String?
   lastName         String?
   refreshTokenHash String?
+  /// Linked HR employee record (so the office user can be paid through Payroll).
+  /// Ids only — no cross-schema FK. One office login per employee.
+  employeeId       String? @unique @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -9386,6 +9389,56 @@ model PayrollPeriod {
   @@schema("payroll")
 }
 
+enum OfficeSalaryPeriod {
+  MONTHLY
+  ANNUAL
+
+  @@schema("payroll")
+}
+
+/// Salary for an office user (login account), managed separately from carer payroll.
+/// No tax / NI is calculated here — amounts are gross as agreed.
+model OfficeUserSalary {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @unique @db.Uuid
+  amount            Decimal            @db.Decimal(12, 2)
+  period            OfficeSalaryPeriod @default(MONTHLY)
+  /// Day of the month the salary is paid (1–31).
+  payDay            Int?
+  startDate         DateTime?          @db.Date
+  bankAccountName   String?
+  bankSortCode      String?
+  bankAccountNumber String?
+  notes             String?            @db.Text
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  createdById       String?            @db.Uuid
+  updatedById       String?            @db.Uuid
+
+  @@schema("payroll")
+}
+
+/// One salary payment to an office user for a month (a row = paid).
+model OfficeSalaryPayment {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  /// YYYY-MM
+  month       String
+  amount      Decimal   @db.Decimal(12, 2)
+  paidAt      DateTime? @db.Date
+  reference   String?
+  note        String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  @@unique([userId, month])
+  @@index([month])
+  @@schema("payroll")
+}
+
 /// Statutory payroll setup for an employee. Does not calculate tax — stores configuration only.
 model EmployeePayrollProfile {
   id                  String                       @id @default(uuid()) @db.Uuid
@@ -10797,6 +10850,9 @@ model Incident {
   primaryPersonName    String?              @db.Text
   /// All kinds of person affected (multi-select). primaryPersonKind holds the first for back-compat.
   affectedPersonKinds  IncidentPersonKind[]
+  /// Everyone involved (multi-select), primary person first. Ids only — no cross-schema FKs.
+  involvedServiceUserIds String[]           @default([]) @db.Uuid
+  involvedEmployeeIds    String[]           @default([]) @db.Uuid
   /// The visit (scheduling.ScheduledJob) this incident was reported during, if any.
   /// Scalar UUID validated in the service layer (no cross-schema FK), like other external refs.
   scheduledJobId       String?              @db.Uuid
@@ -10976,6 +11032,9 @@ model IncidentInvestigation {
   whatHappened        String?                 @db.Text
   whyHappened         String?                 @db.Text
   contributingFactors String[]
+  /// Per factor: which records it relates to (id + name at the time) and a note,
+  /// e.g. { STAFFING: { items: [{ id, label }], note } }.
+  contributingFactorDetails Json?
   rootCause           String?                 @db.Text
   preventable         IncidentPreventability?
   conclusion          String?                 @db.Text
@@ -11287,6 +11346,8 @@ model IncidentOutcome {
   preventability             IncidentPreventability?
   /// Codes for changes made (CARE_PLAN, RISK_ASSESSMENT, POLICY, ...).
   changesMade                String[]
+  /// Per change: which records were changed (id + name at the time) and a note.
+  changesMadeDetails         Json?
   informationSharedWithStaff Boolean?
   serviceUserInformed        Boolean?
   nokInformed                Boolean?

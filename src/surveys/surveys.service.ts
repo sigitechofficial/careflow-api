@@ -1357,6 +1357,72 @@ export class SurveysService {
     return { message: 'Portal surveys', data: items };
   }
 
+  /** Portal: the answers the signed-in service user (or their representative) submitted. */
+  async getPortalSurveyAnswers(serviceUserId: string, token: string) {
+    const recipient = await this.prisma.surveyRecipient.findFirst({
+      where: {
+        token: token?.trim(),
+        serviceUserId,
+        survey: { deletedAt: null },
+      },
+      select: {
+        survey: { select: { title: true } },
+        response: {
+          select: {
+            submittedAt: true,
+            respondentRelation: true,
+            respondentName: true,
+            answers: {
+              select: {
+                booleanValue: true,
+                textValue: true,
+                numberValue: true,
+                selectedOptions: true,
+                question: {
+                  select: {
+                    id: true,
+                    questionText: true,
+                    questionType: true,
+                    sortOrder: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!recipient?.response)
+      throw new NotFoundException('No submitted answers found for this survey');
+    const { response } = recipient;
+    const answers = [...response.answers]
+      .sort((a, b) => a.question.sortOrder - b.question.sortOrder)
+      .map((a) => ({
+        questionId: a.question.id,
+        questionText: a.question.questionText,
+        displayValue: this.formatAnswerDisplay({
+          questionType: a.question.questionType,
+          booleanValue: a.booleanValue,
+          textValue: a.textValue,
+          numberValue:
+            a.numberValue === null || a.numberValue === undefined
+              ? null
+              : Number(a.numberValue),
+          selectedOptions: a.selectedOptions,
+        }),
+      }));
+    return {
+      message: 'Your survey answers',
+      data: {
+        title: recipient.survey.title,
+        submittedAt: response.submittedAt.toISOString(),
+        respondentRelation: response.respondentRelation,
+        respondentName: response.respondentName,
+        answers,
+      },
+    };
+  }
+
   /** Public: load survey form by survey share token OR recipient token. */
   async getPublicByToken(token: string) {
     const cleaned = token?.trim();

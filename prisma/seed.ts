@@ -633,6 +633,10 @@ async function main() {
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
+    // Office user salaries (Super Admin + Admin only)
+    'office_salaries.manage',
+    // Setup checklist (Super Admin + Admin only)
+    'setup_checklist.read',
   ];
 
   for (const key of permissionKeys) {
@@ -718,6 +722,9 @@ async function main() {
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
   await assignPermKeys('Manager', ['hours_approvals.read', 'hours_approvals.manage']);
+
+  // Office user salaries — company-wide admins only (Super Admin already has every permission)
+  await assignPermKeys('Admin', ['office_salaries.manage', 'setup_checklist.read']);
   await assignPermKeys('Admin', incidentAdminKeys);
 
   // Incident Management — configurable categories & subtypes (idempotent).

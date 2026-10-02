@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SetUserRolesDto } from './dto/set-user-roles.dto';
 import { SetUserLocationsDto } from './dto/set-user-locations.dto';
+import { SetUserEmployeeDto } from './dto/set-user-employee.dto';
 import { hashPassword } from '../common/utils/password.util';
 
 @ApiTags('Users')
@@ -72,6 +73,17 @@ export class UsersController {
       id,
       dto.roleNames,
     );
+  }
+
+  @Put(':id/employee')
+  @Permissions('users.create')
+  @ApiOperation({ summary: 'Link an office user to their employee record (for payroll), or unlink' })
+  setEmployee(
+    @CurrentUser() actor: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SetUserEmployeeDto,
+  ) {
+    return this.usersService.setUserEmployee(actor, id, dto.employeeId);
   }
 
   @Put(':id/locations')

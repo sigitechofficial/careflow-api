@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -36,6 +37,15 @@ export class UpsertIncidentOutcomeDto {
   @ArrayMaxSize(20)
   @IsIn(INCIDENT_OUTCOME_CHANGE_CODES, { each: true })
   changesMade?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Per ticked change: changed records ({ id, label }) and a note, e.g. { CARE_PLAN: { items: [{ id, label }], note } }',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  changesMadeDetails?: Record<string, unknown>;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -699,7 +699,7 @@ export class IncidentCareService {
   async getServiceUserHistory(user: RequestUser, serviceUserId: string) {
     const allowed = allowedPrivacyLevels(user);
     const where: Prisma.IncidentWhereInput = {
-      primaryServiceUserId: serviceUserId,
+      involvedServiceUserIds: { has: serviceUserId },
       deletedAt: null,
       isArchived: false,
       privacyLevel: { in: allowed },

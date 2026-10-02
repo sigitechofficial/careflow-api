@@ -11,6 +11,7 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -95,6 +96,15 @@ export class UpsertIncidentInvestigationDto {
   @ArrayMaxSize(20)
   @IsIn(INCIDENT_CONTRIBUTING_FACTORS, { each: true })
   contributingFactors?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Per ticked factor: related records ({ id, label }) and a note, e.g. { STAFFING: { items: [{ id, label }], note } }',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  contributingFactorDetails?: Record<string, unknown>;
 
   @ApiPropertyOptional()
   @IsOptional()

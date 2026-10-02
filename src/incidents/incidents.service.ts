@@ -64,6 +64,10 @@ import { LearningAssignmentsService } from '../learning/learning-assignments.ser
 import { UsersService } from '../users/users.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
+import {
+  sanitizeChangesMadeDetails,
+  sanitizeContributingFactorDetails,
+} from './incident-factor-details.util';
 import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
 import {
   formatNotificationDateTime,
@@ -104,6 +108,21 @@ const REFERENCE_MAX_RETRIES = 5;
 type IncidentWithRefs = Prisma.IncidentGetPayload<{
   include: { category: true; subtype: true };
 }>;
+
+/** Everyone involved, primary person first, without duplicates. */
+function involvedPeople(dto: {
+  primaryServiceUserId?: string | null;
+  primaryEmployeeId?: string | null;
+  serviceUserIds?: string[];
+  employeeIds?: string[];
+}) {
+  const uniq = (ids: (string | null | undefined)[]) =>
+    [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  return {
+    serviceUserIds: uniq([dto.primaryServiceUserId, ...(dto.serviceUserIds ?? [])]),
+    employeeIds: uniq([dto.primaryEmployeeId, ...(dto.employeeIds ?? [])]),
+  };
+}
 
 @Injectable()
 export class IncidentsService {
@@ -233,11 +252,12 @@ export class IncidentsService {
     if (dto.locationId) {
       this.orgScope.assertLocationAccess(scope, dto.locationId);
     }
-    if (dto.primaryServiceUserId) {
-      await this.orgScope.assertServiceUserInScope(scope, dto.primaryServiceUserId);
+    const involved = involvedPeople(dto);
+    for (const serviceUserId of involved.serviceUserIds) {
+      await this.orgScope.assertServiceUserInScope(scope, serviceUserId);
     }
-    if (dto.primaryEmployeeId) {
-      await this.orgScope.assertEmployeeInScope(scope, dto.primaryEmployeeId);
+    for (const employeeId of involved.employeeIds) {
+      await this.orgScope.assertEmployeeInScope(scope, employeeId);
     }
 
     const severity = dto.severity ?? IncidentSeverity.LOW;
@@ -264,8 +284,10 @@ export class IncidentsService {
               reportedById: user.id,
               reporterEmployeeId:
                 dto.reporterEmployeeId ?? user.employeeId ?? null,
-              primaryServiceUserId: dto.primaryServiceUserId ?? null,
-              primaryEmployeeId: dto.primaryEmployeeId ?? null,
+              primaryServiceUserId: involved.serviceUserIds[0] ?? null,
+              primaryEmployeeId: involved.employeeIds[0] ?? null,
+              involvedServiceUserIds: involved.serviceUserIds,
+              involvedEmployeeIds: involved.employeeIds,
               affectedPersonKinds: dto.affectedPersonKinds ?? [],
               primaryPersonKind:
                 dto.primaryPersonKind ?? dto.affectedPersonKinds?.[0] ?? null,
@@ -432,6 +454,8 @@ export class IncidentsService {
               reporterEmployeeId: params.employeeId,
               primaryServiceUserId: params.primaryServiceUserId ?? null,
               primaryEmployeeId: params.primaryEmployeeId ?? null,
+              involvedServiceUserIds: params.primaryServiceUserId ? [params.primaryServiceUserId] : [],
+              involvedEmployeeIds: params.primaryEmployeeId ? [params.primaryEmployeeId] : [],
               affectedPersonKinds: params.affectedPersonKinds ?? [],
               primaryPersonKind: params.affectedPersonKinds?.[0] ?? null,
               primaryPersonName: params.primaryPersonName?.trim() || null,
@@ -759,17 +783,17 @@ export class IncidentsService {
         );
     }
 
-    if (dto.primaryServiceUserId) {
-      const su = await this.prisma.serviceUser.findFirst({
-        where: { id: dto.primaryServiceUserId, deletedAt: null },
-        select: { id: true },
+    const involved = involvedPeople(dto);
+    if (involved.serviceUserIds.length) {
+      const found = await this.prisma.serviceUser.count({
+        where: { id: { in: involved.serviceUserIds }, deletedAt: null },
       });
-      if (!su)
+      if (found !== involved.serviceUserIds.length)
         throw new BadRequestException('Linked service user does not exist');
     }
 
     for (const employeeId of [
-      dto.primaryEmployeeId,
+      ...involved.employeeIds,
       dto.reporterEmployeeId,
     ].filter(Boolean) as string[]) {
       const emp = await this.prisma.employee.findFirst({
@@ -847,9 +871,11 @@ export class IncidentsService {
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.subtypeId ? { subtypeId: query.subtypeId } : {}),
       ...(query.serviceUserId
-        ? { primaryServiceUserId: query.serviceUserId }
+        ? { involvedServiceUserIds: { has: query.serviceUserId } }
         : {}),
-      ...(query.employeeId ? { primaryEmployeeId: query.employeeId } : {}),
+      ...(query.employeeId
+        ? { involvedEmployeeIds: { has: query.employeeId } }
+        : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
       ...(query.openOnly ? { status: { in: OPEN_INCIDENT_STATUSES } } : {}),
     };
@@ -863,7 +889,12 @@ export class IncidentsService {
       andWhereFragment(where, {
         OR: [
           { locationId: { in: locationIds } },
-          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+          ...(suIds.length
+            ? [
+                { primaryServiceUserId: { in: suIds } },
+                { involvedServiceUserIds: { hasSome: suIds } },
+              ]
+            : []),
         ],
       });
     } else {
@@ -1279,12 +1310,21 @@ export class IncidentsService {
       nextExternalType = null;
     }
 
+    const contributingFactors = dto.contributingFactors ?? [];
+    // Older clients send no details: keep the saved ones for factors that are still ticked.
+    const factorDetails = sanitizeContributingFactorDetails(
+      dto.contributingFactorDetails !== undefined
+        ? dto.contributingFactorDetails
+        : existing?.contributingFactorDetails,
+      contributingFactors,
+    );
     const data = {
       investigationScope: nextScope,
       externalType: nextExternalType,
       whatHappened: dto.whatHappened?.trim() || null,
       whyHappened: dto.whyHappened?.trim() || null,
-      contributingFactors: dto.contributingFactors ?? [],
+      contributingFactors,
+      contributingFactorDetails: factorDetails ?? Prisma.JsonNull,
       rootCause: dto.rootCause?.trim() || null,
       preventable: dto.preventable ?? null,
       conclusion: dto.conclusion?.trim() || null,
@@ -1777,11 +1817,18 @@ export class IncidentsService {
     const existing = await this.prisma.incidentOutcome.findUnique({
       where: { incidentId: id },
     });
+    const changesMade = dto.changesMade ?? [];
+    // Older clients send no details: keep the saved ones for changes that are still ticked.
+    const changeDetails = sanitizeChangesMadeDetails(
+      dto.changesMadeDetails !== undefined ? dto.changesMadeDetails : existing?.changesMadeDetails,
+      changesMade,
+    );
     const data = {
       finalOutcome: dto.finalOutcome?.trim() || null,
       lessonsLearned: dto.lessonsLearned?.trim() || null,
       preventability: dto.preventability ?? null,
-      changesMade: dto.changesMade ?? [],
+      changesMade,
+      changesMadeDetails: changeDetails ?? Prisma.JsonNull,
       informationSharedWithStaff: dto.informationSharedWithStaff ?? null,
       serviceUserInformed: dto.serviceUserInformed ?? null,
       nokInformed: dto.nokInformed ?? null,
@@ -1855,7 +1902,12 @@ export class IncidentsService {
       andWhereFragment(base, {
         OR: [
           { locationId: { in: locationIds } },
-          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+          ...(suIds.length
+            ? [
+                { primaryServiceUserId: { in: suIds } },
+                { involvedServiceUserIds: { hasSome: suIds } },
+              ]
+            : []),
         ],
       });
     } else {
@@ -2508,6 +2560,8 @@ export class IncidentsService {
       specificArea: incident.specificArea,
       primaryServiceUserId: incident.primaryServiceUserId,
       primaryEmployeeId: incident.primaryEmployeeId,
+      involvedServiceUserIds: incident.involvedServiceUserIds,
+      involvedEmployeeIds: incident.involvedEmployeeIds,
       primaryPersonKind: incident.primaryPersonKind,
       primaryPersonName: incident.primaryPersonName,
       affectedPersonKinds: incident.affectedPersonKinds,
@@ -2672,9 +2726,11 @@ export class IncidentsService {
   private async resolveAffectedRefs(incident: {
     primaryServiceUserId: string | null;
     primaryEmployeeId: string | null;
+    involvedServiceUserIds: string[];
+    involvedEmployeeIds: string[];
     locationId: string | null;
   }) {
-    const [serviceUser, employee, location] = await Promise.all([
+    const [serviceUser, employee, location, involvedSus, involvedEmps] = await Promise.all([
       incident.primaryServiceUserId
         ? this.prisma.serviceUser.findUnique({
             where: { id: incident.primaryServiceUserId },
@@ -2693,9 +2749,24 @@ export class IncidentsService {
             select: { id: true, name: true },
           })
         : null,
+      incident.involvedServiceUserIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: incident.involvedServiceUserIds } },
+            select: { id: true, firstName: true, lastName: true, serviceUserNumber: true },
+          })
+        : [],
+      incident.involvedEmployeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: incident.involvedEmployeeIds } },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
     ]);
     const fullName = (first?: string | null, last?: string | null) =>
       [first, last].filter(Boolean).join(' ').trim() || null;
+    // Keep the order people were picked in (primary first).
+    const suById = new Map(involvedSus.map((s) => [s.id, s]));
+    const empById = new Map(involvedEmps.map((e) => [e.id, e]));
     return {
       primaryServiceUser: serviceUser
         ? {
@@ -2711,6 +2782,21 @@ export class IncidentsService {
           }
         : null,
       location: location ? { id: location.id, name: location.name } : null,
+      involvedServiceUsers: incident.involvedServiceUserIds
+        .map((id) => suById.get(id))
+        .filter((s): s is NonNullable<typeof s> => Boolean(s))
+        .map((s) => ({
+          id: s.id,
+          name: fullName(s.firstName, s.lastName),
+          serviceUserNumber: s.serviceUserNumber,
+        })),
+      involvedEmployees: incident.involvedEmployeeIds
+        .map((id) => empById.get(id))
+        .filter((e): e is NonNullable<typeof e> => Boolean(e))
+        .map((e) => ({
+          id: e.id,
+          name: fullName(e.personalDetail?.firstName, e.personalDetail?.lastName),
+        })),
     };
   }
 }

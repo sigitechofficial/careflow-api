@@ -60,6 +60,26 @@ export class CreateIncidentDto {
   primaryEmployeeId?: string;
 
   @ApiPropertyOptional({
+    type: [String],
+    description: 'All service users involved; the first becomes the primary person when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  serviceUserIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'All staff members involved; the first becomes the primary employee when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  employeeIds?: string[];
+
+  @ApiPropertyOptional({
     enum: IncidentPersonKind,
     description: 'Kind of primary person affected',
   })
