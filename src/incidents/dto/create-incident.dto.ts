@@ -8,6 +8,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsObject,
   IsEnum,
   IsIn,
   IsISO8601,
@@ -96,6 +97,38 @@ export class CreateIncidentDto {
   })
   @IsUUID()
   reporterEmployeeId!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Category-specific answers, validated per category key (see incident-category-details.util.ts)',
+  })
+  @IsOptional()
+  @IsObject()
+  categoryDetails?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Ambulance attended? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  ambulanceAttended?: boolean | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Taken to A&E? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  takenToAe?: boolean | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Admitted to hospital? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  admittedToHospital?: boolean | null;
 
   @ApiPropertyOptional({
     type: [String],

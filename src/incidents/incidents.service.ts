@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AllocationStatus,
+  EcmExceptionKind,
   IncidentActionPriority,
   BodyMapBodyView,
   BodyMapLinkedModule,
@@ -70,6 +71,10 @@ import {
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
 import { loadVisitRefsByScheduledJobIds } from '../scheduling/visit-ref-lookup.util';
+import {
+  NO_HOSPITAL_OUTCOME_CATEGORIES,
+  normaliseIncidentCategoryDetails,
+} from './incident-category-details.util';
 import { effectiveActionStatus, isActionOverdue } from './incident-action.util';
 import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
 import {
@@ -148,6 +153,55 @@ export class IncidentsService {
   // ---------------------------------------------------------------------------
 
   /**
+   * Validates the category-specific answers on the office raise path (required answers
+   * enforced), plus cross-field rules the util can't check on its own.
+   */
+  private async resolveOfficeCategoryDetails(dto: CreateIncidentDto): Promise<{
+    details: Record<string, unknown> | null;
+    categoryKey: string | null;
+  }> {
+    const [category, subtype] = await Promise.all([
+      this.prisma.incidentCategory.findUnique({
+        where: { id: dto.categoryId },
+        select: { key: true },
+      }),
+      dto.subtypeId
+        ? this.prisma.incidentSubtype.findUnique({
+            where: { id: dto.subtypeId },
+            select: { key: true },
+          })
+        : null,
+    ]);
+    if (!category) return { details: null, categoryKey: null };
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { details, errors } = normaliseIncidentCategoryDetails(
+      category.key,
+      subtype?.key,
+      dto.categoryDetails,
+      { strict: true, today: dayKeyInTimeZone(new Date(), timeZone) },
+    );
+    if (
+      category.key === 'CARE_DELIVERY' &&
+      !dto.scheduledJobId &&
+      !details?.noMatchingVisitReason
+    ) {
+      errors.push('Link the visit, or say why no visit matches');
+    }
+    const alleged = details?.allegedPerson as
+      | { kind?: string; employeeId?: string }
+      | undefined;
+    if (alleged?.kind === 'STAFF' && alleged.employeeId) {
+      const exists = await this.prisma.employee.findFirst({
+        where: { id: alleged.employeeId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!exists) errors.push('Alleged staff member does not exist');
+    }
+    if (errors.length) throw new BadRequestException(errors);
+    return { details, categoryKey: category.key };
+  }
+
+  /**
    * Visits an office-recorded incident can be linked to: the incident date ± 1 day
    * (organisation timezone), for the service user — or, when there is none, the
    * staff member's allocated visits. Includes carers and the readable visit ref.
@@ -211,6 +265,8 @@ export class IncidentsService {
         visitName: true,
         scheduledStartDateTime: true,
         scheduledEndDateTime: true,
+        actualStartDateTime: true,
+        actualEndDateTime: true,
         status: true,
         visitRef: true,
         serviceUser: { select: { firstName: true, lastName: true } },
@@ -220,15 +276,28 @@ export class IncidentsService {
     });
 
     const jobIds = [...new Set(visits.map((v) => v.scheduledJobId))];
-    const [allocations, refByJobId] = await Promise.all([
+    const [allocations, refByJobId, sosExceptions] = await Promise.all([
       jobIds.length
         ? this.prisma.jobAllocation.findMany({
             where: { scheduledJobId: { in: jobIds }, ...liveAllocation },
             select: { scheduledJobId: true, employeeId: true },
           })
-        : [],
+        : Promise.resolve(
+            [] as { scheduledJobId: string; employeeId: string }[],
+          ),
       loadVisitRefsByScheduledJobIds(this.prisma, jobIds),
+      // Carer SOS raised on the visit (ECM) — reused instead of asking "was this an SOS?".
+      jobIds.length
+        ? this.prisma.ecmException.findMany({
+            where: {
+              scheduledJobId: { in: jobIds },
+              kind: EcmExceptionKind.CARER_SOS,
+            },
+            select: { scheduledJobId: true },
+          })
+        : Promise.resolve([] as { scheduledJobId: string }[]),
     ]);
+    const sosJobIds = new Set(sosExceptions.map((e) => e.scheduledJobId));
     const employeeIds = [...new Set(allocations.map((a) => a.employeeId))];
     const people = employeeIds.length
       ? await this.prisma.employeePersonalDetail.findMany({
@@ -251,6 +320,9 @@ export class IncidentsService {
         date: dayKeyInTimeZone(v.scheduledStartDateTime, timeZone),
         startsAt: v.scheduledStartDateTime.toISOString(),
         endsAt: v.scheduledEndDateTime?.toISOString() ?? null,
+        actualStartsAt: v.actualStartDateTime?.toISOString() ?? null,
+        actualEndsAt: v.actualEndDateTime?.toISOString() ?? null,
+        sosRaised: sosJobIds.has(v.scheduledJobId),
         status: v.status,
         visitRef: v.visitRef ?? refByJobId.get(v.scheduledJobId) ?? null,
         serviceUserName: [v.serviceUser.firstName, v.serviceUser.lastName]
@@ -348,6 +420,8 @@ export class IncidentsService {
     }
 
     await this.validateReferences(dto);
+    const { details: categoryDetails, categoryKey } =
+      await this.resolveOfficeCategoryDetails(dto);
 
     const scope = this.orgScope.fromRequestUser(user);
     if (dto.locationId) {
@@ -361,7 +435,20 @@ export class IncidentsService {
     }
 
     const severity = dto.severity ?? IncidentSeverity.LOW;
-    const privacyLevel = dto.privacyLevel ?? IncidentPrivacyLevel.NORMAL;
+    // An allegation against a colleague must not be readable by every carer in the branch.
+    const allegedStaff =
+      (categoryDetails?.allegedPerson as { kind?: string } | undefined)
+        ?.kind === 'STAFF';
+    const privacyLevel = allegedStaff
+      ? IncidentPrivacyLevel.RESTRICTED
+      : (dto.privacyLevel ?? IncidentPrivacyLevel.NORMAL);
+    // Hospital outcome only applies when someone was affected (null = not known), and never
+    // to a death (the death is the outcome) or a data breach.
+    const outcomeApplies =
+      (dto.affectedPersonKinds ?? []).length > 0 &&
+      !NO_HOSPITAL_OUTCOME_CATEGORIES.has(categoryKey ?? '');
+    const outcome = (v: boolean | null | undefined) =>
+      outcomeApplies ? (v ?? null) : null;
     const year = new Date().getUTCFullYear();
 
     let created: IncidentWithRefs | null = null;
@@ -382,9 +469,14 @@ export class IncidentsService {
               locationId: dto.locationId ?? null,
               specificArea: dto.specificArea?.trim() || null,
               reportedById: user.id,
-              reporterEmployeeId:
-                dto.reporterEmployeeId ?? user.employeeId ?? null,
+              reporterEmployeeId: dto.reporterEmployeeId,
               scheduledJobId: dto.scheduledJobId ?? null,
+              categoryDetails: categoryDetails
+                ? (categoryDetails as Prisma.InputJsonObject)
+                : Prisma.DbNull,
+              ambulanceAttended: outcome(dto.ambulanceAttended),
+              takenToAe: outcome(dto.takenToAe),
+              admittedToHospital: outcome(dto.admittedToHospital),
               involvedEmployeeIds: [...new Set(dto.involvedEmployeeIds ?? [])],
               primaryServiceUserId: dto.primaryServiceUserId ?? null,
               primaryEmployeeId: dto.primaryEmployeeId ?? null,
@@ -1098,10 +1190,15 @@ export class IncidentsService {
     if (!incident || !this.canViewIncident(user, incident)) {
       throw new NotFoundException('Incident not found');
     }
+    const [withPeople] = await this.withReportedBy([
+      this.mapIncident(incident),
+    ]);
     return {
       data: {
-        ...this.mapIncident(incident),
-        history: await this.enrichTimelineWithActors(this.buildTimeline(incident)),
+        ...withPeople,
+        history: await this.enrichTimelineWithActors(
+          this.buildTimeline(incident, withPeople.reportedBy.name),
+        ),
         review: incident.review ?? null,
         investigation: incident.investigation ?? null,
         outcome: incident.outcome ?? null,
@@ -2548,6 +2645,12 @@ export class IncidentsService {
       isArchived: incident.isArchived,
       closedAt: incident.closedAt ? incident.closedAt.toISOString() : null,
       closedById: incident.closedById,
+      createdById: incident.createdById,
+      ambulanceAttended: incident.ambulanceAttended,
+      takenToAe: incident.takenToAe,
+      admittedToHospital: incident.admittedToHospital,
+      categoryDetails:
+        (incident.categoryDetails as Record<string, unknown> | null) ?? null,
       createdAt: incident.createdAt.toISOString(),
       updatedAt: incident.updatedAt.toISOString(),
     };
@@ -2557,6 +2660,7 @@ export class IncidentsService {
     incident: Prisma.IncidentGetPayload<{
       include: { statusHistory: true; severityHistory: true };
     }>,
+    reporterName: string | null = null,
   ) {
     const events: Array<{
       at: string;
@@ -2567,8 +2671,11 @@ export class IncidentsService {
     events.push({
       at: incident.reportedAt.toISOString(),
       kind: 'REPORTED',
-      detail: `Incident ${incident.referenceNumber} reported`,
-      byId: incident.reportedById,
+      detail: `Incident ${incident.referenceNumber} reported${
+        reporterName ? ` by ${reporterName}` : ''
+      }${incident.createdById ? '' : ' via the carer app'}`,
+      // The actor is whoever keyed it into the system; carer-app reports have none.
+      byId: incident.createdById,
     });
     for (const s of incident.statusHistory) {
       if (!s.fromStatus) continue; // initial REPORTED already represented above
@@ -2610,12 +2717,12 @@ export class IncidentsService {
   }
 
   /**
-   * Who raised each incident, for list rows. Office raises store the login user
-   * (`reportedById`); carer-app raises store only the carer (`reporterEmployeeId`).
+   * Who reported (the carer, `reporterEmployeeId`) and who recorded it (the office user,
+   * `createdById`; null for carer-app reports).
    */
   private async withReportedBy<
     T extends {
-      reportedById: string | null;
+      createdById: string | null;
       reporterEmployeeId: string | null;
     },
   >(
@@ -2633,11 +2740,11 @@ export class IncidentsService {
     >
   > {
     // Incidents are always reported by a carer (reporterEmployeeId). When the office keys it in,
-    // the logged-in user (reportedById) is only who recorded it.
+    // the logged-in creator (createdById) is who recorded it — never the legacy reportedById.
     const userIds = [
       ...new Set(
         items
-          .map((i) => i.reportedById)
+          .map((i) => i.createdById)
           .filter((id): id is string => Boolean(id)),
       ),
     ];
@@ -2686,8 +2793,8 @@ export class IncidentsService {
       ]),
     );
     return items.map((item) => {
-      const office = item.reportedById
-        ? userById.get(item.reportedById)
+      const office = item.createdById
+        ? userById.get(item.createdById)
         : undefined;
       const carerName = item.reporterEmployeeId
         ? (employeeNameById.get(item.reporterEmployeeId) ?? null)
@@ -2697,7 +2804,7 @@ export class IncidentsService {
         reportedBy: {
           // Older office rows may have no carer — fall back to the office user.
           name: carerName ?? office?.name ?? null,
-          source: item.reportedById
+          source: item.createdById
             ? ('OFFICE' as const)
             : item.reporterEmployeeId
               ? ('CARER_APP' as const)

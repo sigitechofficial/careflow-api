@@ -10815,6 +10815,12 @@ model Incident {
   peopleInvolved           String?  @db.Text
   /// Staff involved in the incident (e.g. made the error, alleged person, second carer) — employee ids.
   involvedEmployeeIds      String[] @default([]) @db.Uuid
+  /// Hospital outcome at raise — null means "Not known" (e.g. reported by phone).
+  ambulanceAttended        Boolean?
+  takenToAe                Boolean?
+  admittedToHospital       Boolean?
+  /// Category-specific answers (shape per category key; see incident-category-details.util.ts).
+  categoryDetails          Json?
   /// Keys of parties the carer informed (office, gp, emergency_999, family_nok, etc.).
   whoInformedKeys          String[]
   /// Whether the carer flagged a safeguarding concern at time of report.
