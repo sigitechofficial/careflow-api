@@ -7,6 +7,7 @@ import {
   IsString,
   Matches,
   Min,
+  MinLength,
   ValidateIf,
 } from 'class-validator';
 import { validateSync } from 'class-validator';
@@ -217,6 +218,19 @@ class EnvironmentVariables {
     message: 'AZURE_COST_CURRENCY must be a 3-letter currency code',
   })
   AZURE_COST_CURRENCY?: string;
+
+  /** Scheduled jobs: `internal` (default, in-process @Cron) | `external` (Azure Functions / Container Apps Jobs). */
+  @IsOptional()
+  @IsIn(['internal', 'external'])
+  CRON_MODE?: string;
+
+  /** Shared secret for POST /internal/jobs/:name (header x-jobs-trigger-secret). Unset = endpoint disabled. */
+  @ValidateIf((o: EnvironmentVariables) => Boolean(o.JOBS_TRIGGER_SECRET))
+  @IsString()
+  @MinLength(16, {
+    message: 'JOBS_TRIGGER_SECRET must be at least 16 characters',
+  })
+  JOBS_TRIGGER_SECRET?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
