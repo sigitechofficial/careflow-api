@@ -2,7 +2,7 @@ import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/co
 import type { Request } from 'express';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { AuditStatus, SecuritySeverity } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -11,6 +11,11 @@ import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 import { EmployeePortalAccountsService } from '../employees/employee-portal-accounts.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import {
+  hashRefreshToken,
+  refreshTokenMatches,
+} from '../common/utils/refresh-token-hash.util';
+import { burnPasswordCompare } from '../common/utils/password.util';
 import type { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
 import { FcmPushService } from '../notifications/fcm-push.service';
 import {
@@ -33,13 +38,16 @@ export class EmployeeAppAuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const row = await this.portalAccounts.findByEmailForLogin(dto.email);
     if (!row) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'employee_app',
+        reason: 'unknown_user',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'EmployeePortalAccount',
         description: 'Failed employee app login — unknown email',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
-        metadata: { email: dto.email.trim().toLowerCase(), channel: 'employee_app' },
+        metadata: { email: dto.email.trim().toLowerCase() },
       });
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -47,26 +55,33 @@ export class EmployeeAppAuthService {
     try {
       this.portalAccounts.assertLoginable(row);
     } catch {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'employee_app',
+        reason: 'inactive',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'EmployeePortalAccount',
+        recordId: row.id,
         description: 'Failed employee app login — disabled or inactive',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
-        metadata: { portalAccountId: row.id, channel: 'employee_app' },
+        metadata: { portalAccountId: row.id },
       });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const ok = await this.portalAccounts.verifyPassword(row, dto.password);
     if (!ok) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await this.auditLogs.logFailedLogin({
+        channel: 'employee_app',
+        reason: 'bad_password',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'EmployeePortalAccount',
+        recordId: row.id,
         description: 'Failed employee app login — bad password',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
-        metadata: { portalAccountId: row.id, channel: 'employee_app' },
+        metadata: { portalAccountId: row.id },
       });
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -96,7 +111,7 @@ export class EmployeeAppAuthService {
     }
 
     const tokens = await this.issueTokens(row.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
     await this.portalAccounts.activateSession(row.id, {
       ipAddress: meta.ipAddress,
@@ -153,12 +168,12 @@ export class EmployeeAppAuthService {
 
     const row = await this.portalAccounts.findForRefresh(payload.sub);
     if (!row?.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
-    const ok = await bcrypt.compare(dto.refreshToken, row.refreshTokenHash);
+    const ok = refreshTokenMatches(dto.refreshToken, row.refreshTokenHash);
     if (!ok) throw new UnauthorizedException('Invalid refresh token');
     this.portalAccounts.assertLoginable(row);
 
     const tokens = await this.issueTokens(row.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
     await this.portalAccounts.touchLastSeen(row.id);
 
@@ -239,6 +254,8 @@ export class EmployeeAppAuthService {
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       expiresIn: this.config.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN', '7d'),
+      // Unique per issue so two tokens minted in the same second never share a hash.
+      jwtid: randomUUID(),
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync(

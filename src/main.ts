@@ -9,6 +9,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join, posix } from 'path';
 import { AppModule } from './app.module';
 import { corsOrigin } from './config/cors-origins.util';
+import { applyTrustProxy } from './config/trust-proxy.util';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
@@ -18,6 +19,12 @@ async function bootstrap() {
   // Containers get SIGTERM on restart / new revision: run Nest shutdown hooks (stop cron jobs,
   // finish in-flight requests, disconnect Prisma) instead of being killed mid-request.
   app.enableShutdownHooks();
+  // Behind a reverse proxy (Azure Container Apps ingress) take the client IP from the right-most
+  // X-Forwarded-For hop(s) so rate limits and audit logs see the real client, not the proxy.
+  applyTrustProxy(
+    app,
+    app.get(ConfigService).get<number>('app.trustProxyHops', 0),
+  );
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads

@@ -1,4 +1,5 @@
 import { registerAs } from '@nestjs/config';
+import { parseTrustProxyHops } from './trust-proxy.util';
 
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -35,5 +36,7 @@ export const appConfig = registerAs('app', () => ({
   throttleLimit: Number(process.env.RATE_LIMIT_MAX ?? 200),
   /** Node HTTP server: max time to receive the full request (ms). */
   httpRequestTimeoutMs: Number(process.env.HTTP_REQUEST_TIMEOUT_MS ?? 120_000),
+  /** Reverse-proxy hops to trust for X-Forwarded-For (0 = none). Azure Container Apps: 1. */
+  trustProxyHops: parseTrustProxyHops(process.env.TRUST_PROXY_HOPS),
 }));
 

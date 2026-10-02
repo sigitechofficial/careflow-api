@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -22,6 +22,11 @@ import { ServiceUserPortalLoginDto } from './dto/service-user-portal-login.dto';
 import { TemporaryInspectorsService } from '../temporary-inspectors/temporary-inspectors.service';
 import { ServiceUserPortalAccountsService } from '../service-user-portal/service-user-portal-accounts.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import {
+  hashRefreshToken,
+  refreshTokenMatches,
+} from '../common/utils/refresh-token-hash.util';
+import { burnPasswordCompare } from '../common/utils/password.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 
@@ -61,18 +66,20 @@ export class AuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const user = await this.usersService.findActiveByEmail(dto.email);
     if (!user) {
-      await this.auditLogs.logLogin({
-        email: dto.email,
-        event: 'login_failed',
-        status: AuditStatus.FAILED,
-        failureReason: 'Unknown user',
-        ipAddress: meta.ipAddress,
-        userAgent: meta.userAgent,
-      });
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
-        description: 'Failed login — unknown email',
+      await burnPasswordCompare(dto.password);
+      const inactive = await this.usersService
+        .findByEmail(dto.email)
+        .catch(() => null);
+      await this.auditLogs.logFailedLogin({
+        channel: 'staff',
+        reason: inactive ? 'inactive' : 'unknown_user',
+        identifier: dto.email,
+        userId: inactive?.id,
+        recordType: 'User',
+        recordId: inactive?.id,
+        description: inactive
+          ? 'Failed login — inactive account'
+          : 'Failed login — unknown email',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
         metadata: { email: dto.email },
@@ -82,19 +89,13 @@ export class AuthService {
 
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) {
-      await this.auditLogs.logLogin({
+      await this.auditLogs.logFailedLogin({
+        channel: 'staff',
+        reason: 'bad_password',
+        identifier: dto.email,
         userId: user.id,
-        email: user.email,
-        event: 'login_failed',
-        status: AuditStatus.FAILED,
-        failureReason: 'Invalid password',
-        ipAddress: meta.ipAddress,
-        userAgent: meta.userAgent,
-      });
-      await this.auditLogs.logSecurityEvent({
-        userId: user.id,
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+        recordType: 'User',
+        recordId: user.id,
         description: 'Failed login — bad password',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -104,7 +105,7 @@ export class AuthService {
     }
 
     const tokens = await this.issueTokens(user.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
 
     await this.auditLogs.logLogin({
@@ -139,9 +140,13 @@ export class AuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const row = await this.temporaryInspectorsService.findByUsernameForLogin(dto.username);
     if (!row) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'temporary_inspector',
+        reason: 'unknown_user',
+        identifier: dto.username.trim(),
+        identifierType: 'username',
+        recordType: 'TemporaryInspector',
         description: 'Failed temporary inspector login — unknown username',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -153,9 +158,14 @@ export class AuthService {
     try {
       this.temporaryInspectorsService.assertLoginable(row);
     } catch {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'temporary_inspector',
+        reason: 'inactive',
+        identifier: dto.username.trim(),
+        identifierType: 'username',
+        recordType: 'TemporaryInspector',
+        recordId: row.id,
         description: 'Failed temporary inspector login — outside validity or inactive',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -166,9 +176,13 @@ export class AuthService {
 
     const ok = await this.temporaryInspectorsService.verifyPassword(row, dto.password);
     if (!ok) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await this.auditLogs.logFailedLogin({
+        channel: 'temporary_inspector',
+        reason: 'bad_password',
+        identifier: dto.username.trim(),
+        identifierType: 'username',
+        recordType: 'TemporaryInspector',
+        recordId: row.id,
         description: 'Failed temporary inspector login — bad password',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -178,7 +192,7 @@ export class AuthService {
     }
 
     const tokens = await this.issueTemporaryInspectorTokens(row.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.temporaryInspectorsService.setRefreshTokenHash(row.id, refreshTokenHash);
 
     await this.auditLogs.logLogin({
@@ -214,9 +228,12 @@ export class AuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const row = await this.serviceUserPortalAccountsService.findByEmailForLogin(dto.email);
     if (!row) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'service_user_portal',
+        reason: 'unknown_user',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'ServiceUserPortalAccount',
         description: 'Failed service user portal login — unknown email',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -228,9 +245,13 @@ export class AuthService {
     try {
       this.serviceUserPortalAccountsService.assertLoginable(row);
     } catch {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await burnPasswordCompare(dto.password);
+      await this.auditLogs.logFailedLogin({
+        channel: 'service_user_portal',
+        reason: 'inactive',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'ServiceUserPortalAccount',
+        recordId: row.id,
         description: 'Failed service user portal login — disabled or inactive',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -241,9 +262,12 @@ export class AuthService {
 
     const ok = await this.serviceUserPortalAccountsService.verifyPassword(row, dto.password);
     if (!ok) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.MEDIUM,
+      await this.auditLogs.logFailedLogin({
+        channel: 'service_user_portal',
+        reason: 'bad_password',
+        identifier: dto.email.trim().toLowerCase(),
+        recordType: 'ServiceUserPortalAccount',
+        recordId: row.id,
         description: 'Failed service user portal login — bad password',
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
@@ -253,7 +277,7 @@ export class AuthService {
     }
 
     const tokens = await this.issueServiceUserPortalTokens(row.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.serviceUserPortalAccountsService.setRefreshTokenHash(row.id, refreshTokenHash);
     await this.serviceUserPortalAccountsService.touchLastLogin(row.id);
 
@@ -322,12 +346,12 @@ export class AuthService {
     if (payload.typ === 'ti') {
       const row = await this.temporaryInspectorsService.findForRefresh(payload.sub);
       if (!row?.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
-      const ok = await bcrypt.compare(dto.refreshToken, row.refreshTokenHash);
+      const ok = refreshTokenMatches(dto.refreshToken, row.refreshTokenHash);
       if (!ok) throw new UnauthorizedException('Invalid refresh token');
       this.temporaryInspectorsService.assertLoginable(row);
 
       const tokens = await this.issueTemporaryInspectorTokens(row.id);
-      const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+      const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
       await this.temporaryInspectorsService.setRefreshTokenHash(row.id, refreshTokenHash);
 
       await this.auditLogs.logLogin({
@@ -360,12 +384,12 @@ export class AuthService {
     if (payload.typ === 'su') {
       const row = await this.serviceUserPortalAccountsService.findForRefresh(payload.sub);
       if (!row?.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
-      const ok = await bcrypt.compare(dto.refreshToken, row.refreshTokenHash);
+      const ok = refreshTokenMatches(dto.refreshToken, row.refreshTokenHash);
       if (!ok) throw new UnauthorizedException('Invalid refresh token');
       this.serviceUserPortalAccountsService.assertLoginable(row);
 
       const tokens = await this.issueServiceUserPortalTokens(row.id);
-      const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+      const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
       await this.serviceUserPortalAccountsService.setRefreshTokenHash(row.id, refreshTokenHash);
 
       await this.auditLogs.logLogin({
@@ -402,11 +426,11 @@ export class AuthService {
     const user = await this.usersService.findById(payload.sub);
     if (!user || !user.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
 
-    const ok = await bcrypt.compare(dto.refreshToken, user.refreshTokenHash);
+    const ok = refreshTokenMatches(dto.refreshToken, user.refreshTokenHash);
     if (!ok) throw new UnauthorizedException('Invalid refresh token');
 
     const tokens = await this.issueTokens(user.id);
-    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 12);
+    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
     await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
 
     await this.auditLogs.logLogin({
@@ -769,6 +793,8 @@ export class AuthService {
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       expiresIn: this.config.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN', '7d'),
+      // Unique per issue so two tokens minted in the same second never share a hash.
+      jwtid: randomUUID(),
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync({ sub: userId }, refreshSignOptions);
@@ -782,6 +808,8 @@ export class AuthService {
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       expiresIn: this.config.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN', '7d'),
+      // Unique per issue so two tokens minted in the same second never share a hash.
+      jwtid: randomUUID(),
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync({ sub: inspectorId, typ: 'ti' }, refreshSignOptions);
@@ -795,6 +823,8 @@ export class AuthService {
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       expiresIn: this.config.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN', '7d'),
+      // Unique per issue so two tokens minted in the same second never share a hash.
+      jwtid: randomUUID(),
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync({ sub: accountId, typ: 'su' }, refreshSignOptions);

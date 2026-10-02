@@ -44,6 +44,7 @@ describe('EmployeeAppAuthService', () => {
     logSecurityEvent: jest.fn(),
     logLogin: jest.fn(),
     logAudit: jest.fn(),
+    logFailedLogin: jest.fn(),
   };
   const portalAccounts = {
     findByEmailForLogin: jest.fn(),
