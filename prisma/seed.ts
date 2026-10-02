@@ -619,6 +619,9 @@ async function main() {
     // Azure Pricing (platform costs) — Super Admin only (granted via the all-permissions sweep)
     'platform_costs.read',
     'platform_costs.manage',
+    // System jobs (scheduled job health / run history / run now) — Super Admin only (all-permissions sweep)
+    'system_jobs.read',
+    'system_jobs.manage',
   ];
 
   for (const key of permissionKeys) {

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   LearningAssignmentStatus,
@@ -10,6 +10,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LearningComplianceService } from './learning-compliance.service';
 import { LearningNotificationHook } from './learning-notification.hook';
 import { LearningSettingsService } from './learning-settings.service';
+import { JobHandler } from '../jobs/job-handler.registry';
+import { JobRunner, runCronTick } from '../jobs/job-runner.service';
+import { jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
 
 @Injectable()
 export class LearningJobs {
@@ -20,23 +23,39 @@ export class LearningJobs {
     private readonly settingsService: LearningSettingsService,
     private readonly complianceService: LearningComplianceService,
     private readonly notifications: LearningNotificationHook,
+    @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
-  @Cron('0 2 * * *', { timeZone: 'UTC' })
+  /** 02:30 UTC (was 02:00) to match the job catalogue and stay clear of the rolling rota. */
+  @Cron('30 2 * * *', { timeZone: 'UTC' })
   async runDailyMaintenance() {
-    if (!(await this.notifications.isLearningModuleActive())) {
-      this.notifications.logSkipped('Learning module not active');
-      return;
-    }
-
-    await this.markExpiredCertificates();
-    await this.createRefresherAssignments();
-    await this.markOverdueAssignments();
-    await this.sendReminders();
-    this.logger.log('Learning daily maintenance completed');
+    await runCronTick(this.jobRunner, 'learning-maintenance', () =>
+      this.runMaintenance(),
+    );
   }
 
-  private async markExpiredCertificates() {
+  @JobHandler('learning-maintenance')
+  async runMaintenance(): Promise<JobOutcome> {
+    if (!(await this.notifications.isLearningModuleActive())) {
+      this.notifications.logSkipped('Learning module not active');
+      return jobSkipped('Learning module not active');
+    }
+
+    const certificatesExpired = await this.markExpiredCertificates();
+    const refresherAssignmentsCreated = await this.createRefresherAssignments();
+    const assignmentsMarkedOverdue = await this.markOverdueAssignments();
+    const reminders = await this.sendReminders();
+    this.logger.log('Learning daily maintenance completed');
+    return jobSuccess({
+      certificatesExpired,
+      refresherAssignmentsCreated,
+      assignmentsMarkedOverdue,
+      dueSoonReminders: reminders.dueSoon,
+      expiringCertificateReminders: reminders.expiringCertificates,
+    });
+  }
+
+  private async markExpiredCertificates(): Promise<number> {
     const now = new Date();
     const expired = await this.prisma.learningCertificate.findMany({
       where: {
@@ -46,7 +65,7 @@ export class LearningJobs {
       select: { id: true, employeeId: true, certificateNumber: true },
     });
 
-    if (expired.length === 0) return;
+    if (expired.length === 0) return 0;
 
     await this.prisma.learningCertificate.updateMany({
       where: { id: { in: expired.map((c) => c.id) } },
@@ -60,11 +79,13 @@ export class LearningJobs {
         certificateNumber: cert.certificateNumber,
       });
     }
+    return expired.length;
   }
 
-  private async createRefresherAssignments() {
+  private async createRefresherAssignments(): Promise<number> {
     const settings = await this.settingsService.getOrCreate();
-    if (!settings.automaticRefresherAssignment) return;
+    if (!settings.automaticRefresherAssignment) return 0;
+    let created = 0;
 
     const now = new Date();
     const certificates = await this.prisma.learningCertificate.findMany({
@@ -124,10 +145,12 @@ export class LearningJobs {
           },
         });
       });
+      created += 1;
     }
+    return created;
   }
 
-  private async markOverdueAssignments() {
+  private async markOverdueAssignments(): Promise<number> {
     const now = new Date();
     const overdue = await this.prisma.learningAssignment.findMany({
       where: {
@@ -160,9 +183,13 @@ export class LearningJobs {
         });
       }
     }
+    return overdue.length;
   }
 
-  private async sendReminders() {
+  private async sendReminders(): Promise<{
+    dueSoon: number;
+    expiringCertificates: number;
+  }> {
     const settings = await this.settingsService.getOrCreate();
     const now = new Date();
     const horizon = new Date(now.getTime() + settings.defaultExpiryWarningDays * 86_400_000);
@@ -201,5 +228,9 @@ export class LearningJobs {
         expiresAt: cert.expiresAt!,
       });
     }
+    return {
+      dueSoon: dueSoon.length,
+      expiringCertificates: expiringCerts.length,
+    };
   }
 }
