@@ -128,7 +128,7 @@ export const MEDICATION_FIELD_REGISTRY: readonly MedicationFieldRegistryEntry[] 
       {
         kind: 'INITIAL_ASSESSMENT',
         iaSpecRefs: ['13.9'],
-        notes: 'IA §13.9 GP/pharmacy line (ctx.gpPharmacyLine) + MedicationPack pharmacy/GP lines.',
+        notes: 'IA Personal Details gpContactDetails + §13.9 pharmacy (ctx.gpPharmacyLine) + MedicationPack pharmacy/GP lines.',
       },
     ],
   },

@@ -251,8 +251,9 @@ function mergeAllTabs(level: IaAutofillLevel) {
     8: [],
     10: ['unrelated-pain'],
     12: ['manage-home'],
-    13: [],
     16: ['assessor-s14'],
+    23: [],
+    24: [],
   };
   const merged = new Map<string, ReturnType<typeof generateTab>[number]>();
   for (const [tab, requested] of Object.entries(tabRequests)) {
@@ -315,7 +316,7 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
   });
 
   it('Very Critical safeguarding chain includes types, details and action', () => {
-    const answers = generateTab(13, [], 'critical');
+    const answers = generateTab(24, [], 'critical');
     const ids = answers.map((a) => a.questionId);
     expect(ids).toEqual(expect.arrayContaining(['safeguarding', 'sg-types', 'sg-details', 'sg-action']));
     const byId = new Map(answers.map((a) => [a.questionId, a]));
@@ -325,7 +326,7 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
 
   it('Moderate/Stable safeguarding stays No and does not require details', () => {
     for (const level of ['normal', 'low'] as const) {
-      const answers = generateTab(13, [], level);
+      const answers = generateTab(24, [], level);
       const byId = new Map(answers.map((a) => [a.questionId, a]));
       expect(byId.get('safeguarding')?.booleanValue).toBe(false);
       expect(byId.has('sg-details')).toBe(false);
@@ -379,20 +380,21 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
     );
   });
 
-  it('§2.1–§2.8 consent fields are generated on tab 3', () => {
-    const answers = generateTab(3, [], 'low');
+  it('§2 consent fields are generated on the Consent tab (23); MCA gate on tab 3; consent to care on tab 16', () => {
+    const answers = generateTab(23, [], 'low');
     expect(answers.map((a) => a.questionId)).toEqual(
       expect.arrayContaining([
         'consent-assess',
         'consent-by',
-        'consent-care',
         'consent-explained',
         'capacity',
-        'mca-required',
         'share-gp',
         'share-family',
       ]),
     );
+    expect(answers.map((a) => a.questionId)).not.toContain('consent-care');
+    expect(generateTab(3, [], 'low').map((a) => a.questionId)).toContain('mca-required');
+    expect(generateTab(16, [], 'low').map((a) => a.questionId)).toContain('consent-care');
     const consentBy = answers.find((a) => a.questionId === 'consent-by');
     expect(consentBy?.selectedOptions).toBe('service_user');
     expect(consentBy?.booleanValue).toBeUndefined();
@@ -448,11 +450,11 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
   });
 
   it('About Me prefills are filled; empty DOB is filled; occupied DOB is not overwritten', () => {
-    const about = q('about-priorities', 1, {
-      questionText: 'Personal priorities, goals, independence goals',
+    const about = q('about-routine', 1, {
+      questionText: 'Morning, meal, evening and bedtime routine',
       questionType: 'TEXTAREA',
       isRequired: false,
-      metadata: { specRef: '1.3', prefillKey: 'aboutMePriorities' },
+      metadata: { specRef: '1.4', prefillKey: 'aboutMeRoutine' },
     });
     const dob = q('dob', 1, {
       questionText: 'Date of birth',
@@ -460,22 +462,22 @@ describe('IA demo builder — tab extras, follow-ups, ADL', () => {
       metadata: { specRef: '1.1', prefillKey: 'dateOfBirth' },
     });
     const questions = [...FIXTURE, about, dob];
-    const emptyWritable = collectWritableDemoQuestionIds(1, questions, ['about-priorities', 'dob'], 'normal');
+    const emptyWritable = collectWritableDemoQuestionIds(1, questions, ['about-routine', 'dob'], 'normal');
     const empty = buildAutofillAnswers(questions, 'normal', emptyWritable);
-    expect(empty.map((a) => a.questionId)).toEqual(expect.arrayContaining(['about-priorities', 'dob']));
+    expect(empty.map((a) => a.questionId)).toEqual(expect.arrayContaining(['about-routine', 'dob']));
     expect(empty.find((a) => a.questionId === 'dob')?.dateValue).toBe('1948-06-15');
 
     const occupiedWritable = collectWritableDemoQuestionIds(
       1,
       questions,
-      ['about-priorities', 'dob'],
+      ['about-routine', 'dob'],
       'normal',
       { dateOfBirth: '1944-03-12' },
     );
     const occupied = buildAutofillAnswers(questions, 'normal', occupiedWritable, { dateOfBirth: '1944-03-12' });
-    expect(occupied.map((a) => a.questionId)).toContain('about-priorities');
+    expect(occupied.map((a) => a.questionId)).toContain('about-routine');
     expect(occupied.map((a) => a.questionId)).not.toContain('dob');
-    const text = occupied.find((a) => a.questionId === 'about-priorities')?.textValue ?? '';
+    const text = occupied.find((a) => a.questionId === 'about-routine')?.textValue ?? '';
     expect(text).toMatch(/^(I |I'm |Please |My )/i);
   });
 

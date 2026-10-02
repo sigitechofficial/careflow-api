@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsEmail,
   IsIn,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -45,11 +46,11 @@ export class CreateServiceUserDto {
   @MaxLength(100)
   preferredName?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @Transform(emptyDateToUndefined)
+  @IsNotEmpty({ message: 'Date of birth is required' })
   @IsDateString()
-  dateOfBirth?: string;
+  dateOfBirth!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -100,25 +101,25 @@ export class CreateServiceUserDto {
   @IsOnOrAfterDate('serviceStartDate')
   serviceEndDate?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
+  @IsNotEmpty({ message: 'Title is required' })
   @IsUUID()
-  titleId?: string;
+  titleId!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
+  @IsNotEmpty({ message: 'Gender is required' })
   @IsUUID()
-  genderId?: string;
+  genderId!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   maritalStatusId?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
+  @IsNotEmpty({ message: 'Status is required' })
   @IsUUID()
-  statusId?: string;
+  statusId!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -135,8 +136,9 @@ export class CreateServiceUserDto {
   @IsUUID()
   riskLevelId?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Required unless serviceUserAreaId is sent (the area sets it).' })
+  @ValidateIf((o: CreateServiceUserDto) => !o.serviceUserAreaId)
+  @IsNotEmpty({ message: 'Location is required' })
   @IsUUID()
   locationId?: string;
 

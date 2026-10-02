@@ -9,6 +9,7 @@ import {
   serializeDomJobCancellationRules,
   serializeDomLateVisitZoneAlerts,
   type DomJobCancellationRule,
+  type DomLateVisitBranch,
   type DomLateVisitZoneAlert,
 } from './dom-care-settings.util';
 import {
@@ -201,7 +202,7 @@ function toIso(updatedAt: Date | string): string {
   return new Date(updatedAt).toISOString();
 }
 
-function mapRow(row: SettingsRow) {
+function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
   return {
     id: row.id,
     reviewCarePlanAfterDays: row.reviewCarePlanAfterDays,
@@ -283,6 +284,7 @@ function mapRow(row: SettingsRow) {
     domTextAlertsSentLastMonth: row.domTextAlertsSentLastMonth,
     domLateVisitZoneAlerts: parseDomLateVisitZoneAlerts(
       row.domLateVisitZoneAlerts as Parameters<typeof parseDomLateVisitZoneAlerts>[0],
+      lateVisitBranches,
     ),
     domCareShiftDefinitions: parseDomCareShiftDefinitions(
       row.domCareShiftDefinitions as Parameters<typeof parseDomCareShiftDefinitions>[0],
@@ -527,9 +529,23 @@ export class OrganisationGeneralSettingsService {
     return row;
   }
 
+  /** Live branches for the Dom Care late-visit alert list (same filter as GET /schedule-areas). */
+  private lateVisitBranches(): Promise<DomLateVisitBranch[]> {
+    return this.prisma.scheduleArea.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        location: { select: { name: true } },
+        zone: { select: { name: true } },
+      },
+    });
+  }
+
   async get() {
-    const row = await this.getOrCreate();
-    return { data: mapRow(row as SettingsRow) };
+    const [row, branches] = await Promise.all([this.getOrCreate(), this.lateVisitBranches()]);
+    return { data: mapRow(row as SettingsRow, branches) };
   }
 
   /** Care-app: block a second login while a refresh session is still live. Default off. */
@@ -593,7 +609,7 @@ export class OrganisationGeneralSettingsService {
       });
       return {
         message: 'General settings updated',
-        data: mapRow(row as SettingsRow),
+        data: mapRow(row as SettingsRow, await this.lateVisitBranches()),
       };
     } catch (error) {
       this.logger.error('Failed to update organisation general settings', error);

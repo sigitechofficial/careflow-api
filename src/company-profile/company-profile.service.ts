@@ -7,6 +7,12 @@ import {
   COMPANY_MODULE_CATALOG,
 } from '../../prisma/seed-data/company-active-modules';
 import type { UpdateCompanyProfileDto } from './dto/update-company-profile.dto';
+import {
+  cleanStringList,
+  dateOnlyToIso,
+  optionalText,
+  parseDateOnly,
+} from '../common/utils/date-only.util';
 
 const DEFAULT_PROFILE_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -34,6 +40,21 @@ function mapRow(row: {
   bankSortCode: string | null;
   bankAccountNumber: string | null;
   activeModules: string[];
+  legalName: string | null;
+  cqcProviderId: string | null;
+  companyStatus: string | null;
+  companyType: string | null;
+  incorporationDate: Date | null;
+  sicCodes: string[];
+  registeredAddressLine1: string | null;
+  registeredAddressLine2: string | null;
+  registeredTown: string | null;
+  registeredCounty: string | null;
+  registeredPostcode: string | null;
+  registeredCountry: string | null;
+  countryCode: string;
+  currency: string;
+  locale: string;
   updatedAt: Date;
 }, counts: { numberOfCarers: number; numberOfServiceUsers: number }) {
   return {
@@ -60,6 +81,21 @@ function mapRow(row: {
     activeModules: row.activeModules,
     availableModules: [...COMPANY_ACTIVE_MODULES],
     moduleCatalog: COMPANY_MODULE_CATALOG.map((m) => ({ ...m })),
+    legalName: row.legalName,
+    cqcProviderId: row.cqcProviderId,
+    companyStatus: row.companyStatus,
+    companyType: row.companyType,
+    incorporationDate: dateOnlyToIso(row.incorporationDate),
+    sicCodes: row.sicCodes ?? [],
+    registeredAddressLine1: row.registeredAddressLine1,
+    registeredAddressLine2: row.registeredAddressLine2,
+    registeredTown: row.registeredTown,
+    registeredCounty: row.registeredCounty,
+    registeredPostcode: row.registeredPostcode,
+    registeredCountry: row.registeredCountry,
+    countryCode: row.countryCode,
+    currency: row.currency,
+    locale: row.locale,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -168,6 +204,7 @@ export class CompanyProfileService {
       throw new BadRequestException('phoneNumber is required');
     }
 
+    const registeredPostcode = optionalText(dto.registeredPostcode);
     const row = await this.prisma.companyProfile.update({
       where: { id: existing.id },
       data: {
@@ -186,6 +223,21 @@ export class CompanyProfileService {
         bankAccountNumber:
           dto.bankAccountNumber !== undefined ? dto.bankAccountNumber.trim() || null : undefined,
         activeModules: dto.activeModules,
+        legalName: optionalText(dto.legalName),
+        cqcProviderId: optionalText(dto.cqcProviderId),
+        companyStatus: optionalText(dto.companyStatus),
+        companyType: optionalText(dto.companyType),
+        incorporationDate: parseDateOnly(dto.incorporationDate, 'incorporationDate'),
+        sicCodes: cleanStringList(dto.sicCodes),
+        registeredAddressLine1: optionalText(dto.registeredAddressLine1),
+        registeredAddressLine2: optionalText(dto.registeredAddressLine2),
+        registeredTown: optionalText(dto.registeredTown),
+        registeredCounty: optionalText(dto.registeredCounty),
+        registeredPostcode: registeredPostcode ? registeredPostcode.toUpperCase() : registeredPostcode,
+        registeredCountry: optionalText(dto.registeredCountry),
+        countryCode: dto.countryCode?.trim().toUpperCase() || undefined,
+        currency: dto.currency?.trim().toUpperCase() || undefined,
+        locale: dto.locale?.trim() || undefined,
         updatedById: userId,
       },
     });

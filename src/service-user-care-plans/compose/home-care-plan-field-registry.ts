@@ -205,7 +205,7 @@ export const HCP_FIELD_REGISTRY: readonly HcpFieldRegistryEntry[] = [
     sources: [
       {
         kind: 'COMPOSITE',
-        iaFieldKeys: ['transferSupportRequired', 'usesHoistOrSling', 'clinicalEquipmentInUse'],
+        iaFieldKeys: ['transferSupportRequired', 'usesHoistOrSling'],
       },
     ],
     resolverImplemented: true,

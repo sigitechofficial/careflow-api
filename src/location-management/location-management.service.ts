@@ -10,7 +10,13 @@ import type { UpdateLocationZoneDto } from './dto/update-location-zone.dto';
 import type {
   CreateLocationBranchDto,
   CreateLocationZoneDto,
+  UpdateLocationBranchDto,
 } from './dto/create-location-zone-branch.dto';
+import {
+  branchDetailsResponse,
+  branchDetailsWriteData,
+  renamedBranchLocationName,
+} from './branch-details.util';
 import type { UpdateMemberLocationDto } from './dto/update-member-location.dto';
 import type { UpdateEmployeeLocationDto } from './dto/update-employee-location.dto';
 import {
@@ -166,8 +172,8 @@ export class LocationManagementService {
     for (const id of ids) await this.assertLocation(id);
   }
 
-  private groupAreas(areas: ScheduleAreaRow[]) {
-    const groups = new Map<string, ScheduleAreaRow[]>();
+  private groupAreas<T extends ScheduleAreaRow>(areas: T[]) {
+    const groups = new Map<string, T[]>();
     for (const area of areas) {
       const key = resolveParentZoneName(
         area.parentZoneName,
@@ -413,6 +419,7 @@ export class LocationManagementService {
           locationName: area.location?.name ?? null,
           address: area.address ?? null,
           visitRefCode: area.visitRefCode ?? null,
+          ...branchDetailsResponse(area),
           areas: branchAreas,
           /** Unassigned service users + all employees (employees nest under branches only). */
           children,
@@ -622,6 +629,36 @@ export class LocationManagementService {
     throw new ConflictException('Could not allocate a unique visit reference branch code');
   }
 
+  /** CQC location ids are unique across all branches (incl. soft-deleted rows — DB unique index). */
+  private async assertCqcLocationIdFree(
+    tx: Prisma.TransactionClient,
+    cqcLocationId: string | null | undefined,
+    excludeScheduleAreaId?: string,
+  ) {
+    if (!cqcLocationId) return;
+    const clash = await tx.scheduleArea.findFirst({
+      where: {
+        cqcLocationId,
+        ...(excludeScheduleAreaId ? { id: { not: excludeScheduleAreaId } } : {}),
+      },
+      select: { id: true, name: true, deletedAt: true },
+    });
+    if (clash) {
+      throw new ConflictException(
+        `CQC location ID “${cqcLocationId}” is already used by branch “${clash.name}”${
+          clash.deletedAt ? ' (deleted)' : ''
+        }`,
+      );
+    }
+  }
+
+  private static isUniqueClashOn(e: unknown, field: string): boolean {
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== 'P2002') return false;
+    const target = (e.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) return target.includes(field);
+    return typeof target === 'string' && target.includes(field);
+  }
+
   async createBranch(userId: string, dto: CreateLocationBranchDto, meta?: RequestAuditMeta) {
     const zone = await this.prisma.zone.findFirst({
       where: { id: dto.zoneId, deletedAt: null, isActive: true },
@@ -639,9 +676,11 @@ export class LocationManagementService {
       ? normalizeVisitRefBranchCode(dto.visitRefCode)
       : null;
     const locationName = `${zone.name} - ${branchName}`;
+    const details = branchDetailsWriteData(dto);
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
+        await this.assertCqcLocationIdFree(tx, details.cqcLocationId);
         const location = await tx.location.upsert({
           where: { name: locationName },
           update: { isActive: true, deletedAt: null },
@@ -679,10 +718,10 @@ export class LocationManagementService {
 
         return tx.scheduleArea.create({
           data: {
+            ...details,
             name: branchName,
             code,
             visitRefCode: resolvedVisitRef,
-            address: dto.address?.trim() || null,
             locationId: location.id,
             zoneId: zone.id,
             parentZoneName: zone.name,
@@ -714,14 +753,124 @@ export class LocationManagementService {
           locationId: created.locationId,
           locationName: created.location?.name ?? null,
           address: created.address,
+          visitRefCode: created.visitRefCode ?? null,
+          ...branchDetailsResponse(created),
           areas: [],
           children: [],
         },
       };
     } catch (e) {
       if (e instanceof ConflictException) throw e;
+      if (LocationManagementService.isUniqueClashOn(e, 'cqcLocationId')) {
+        throw new ConflictException('A branch with this CQC location ID already exists');
+      }
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException('A branch with this code already exists');
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Edit a branch's display name, address and CQC / locale details.
+   * `code` and `visitRefCode` are read-only: they are already stamped on visits and schedules.
+   */
+  async updateBranch(
+    userId: string,
+    id: string,
+    dto: UpdateLocationBranchDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const existing = await this.prisma.scheduleArea.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        location: { select: { id: true, name: true } },
+        zone: { select: { id: true, name: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Branch not found');
+
+    let name: string | undefined;
+    if (dto.name !== undefined) {
+      name = dto.name.trim();
+      if (!name) throw new BadRequestException('Branch name is required');
+    }
+    const details = branchDetailsWriteData(dto);
+    const newLocationName =
+      name !== undefined
+        ? renamedBranchLocationName({
+            locationName: existing.location?.name,
+            oldBranchName: existing.name,
+            newBranchName: name,
+            zoneName: existing.parentZoneName?.trim() || existing.zone?.name,
+          })
+        : null;
+
+    try {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        await this.assertCqcLocationIdFree(tx, details.cqcLocationId, existing.id);
+
+        if (newLocationName && existing.location) {
+          const locationClash = await tx.location.findFirst({
+            where: { name: newLocationName, id: { not: existing.location.id } },
+            select: { id: true },
+          });
+          if (locationClash) {
+            throw new ConflictException(`A location named “${newLocationName}” already exists`);
+          }
+          await tx.location.update({
+            where: { id: existing.location.id },
+            data: { name: newLocationName },
+          });
+        }
+
+        return tx.scheduleArea.update({
+          where: { id: existing.id },
+          data: {
+            ...details,
+            ...(name !== undefined ? { name } : {}),
+            updatedById: userId,
+          },
+          include: {
+            location: { select: { id: true, name: true } },
+            zone: { select: { id: true, name: true } },
+            createdBy: { select: LOCATION_AUDIT_USER_SELECT },
+            updatedBy: { select: LOCATION_AUDIT_USER_SELECT },
+          },
+        });
+      });
+
+      await this.logLocationAudit({
+        userId,
+        action: AuditAction.LOCATION_BRANCH_UPDATED,
+        recordType: 'ScheduleArea',
+        recordId: updated.id,
+        oldValues: existing,
+        newValues: updated,
+        meta,
+      });
+
+      return {
+        message: 'Branch updated',
+        data: {
+          id: updated.id,
+          name: updated.name,
+          scheduleAreaId: updated.id,
+          locationId: updated.locationId,
+          locationName: updated.location?.name ?? null,
+          address: updated.address ?? null,
+          visitRefCode: updated.visitRefCode ?? null,
+          ...branchDetailsResponse(updated),
+          ...toLocationAudit(updated),
+        },
+      };
+    } catch (e) {
+      if (e instanceof ConflictException) throw e;
+      if (LocationManagementService.isUniqueClashOn(e, 'cqcLocationId')) {
+        throw new ConflictException('A branch with this CQC location ID already exists');
+      }
+      if (LocationManagementService.isUniqueClashOn(e, 'name')) {
+        throw new ConflictException('A location with this name already exists');
       }
       throw e;
     }

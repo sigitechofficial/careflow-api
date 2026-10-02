@@ -6,7 +6,7 @@ import type { Server } from 'http';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
+import { join, posix } from 'path';
 import { AppModule } from './app.module';
 import { corsOrigin } from './config/cors-origins.util';
 import { applyTrustProxy } from './config/trust-proxy.util';
@@ -36,6 +36,21 @@ async function bootstrap() {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
   };
+  // Incident attachments are only served through the permission-checked download endpoint —
+  // never as public static files. Path is decoded, normalised and lower-cased so encoding/case/`..` tricks can't bypass it.
+  app.use((req: { path: string }, res: { status: (c: number) => { json: (b: unknown) => void } }, next: () => void) => {
+    let p = req.path;
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+      return res.status(400).json({ success: false, message: 'Bad request' });
+    }
+    p = posix.normalize(p.replace(/\\/g, '/')).toLowerCase();
+    if (p.startsWith('/uploads/incidents/') || p.startsWith('/files/uploads/incidents/')) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+    next();
+  });
   app.useStaticAssets(uploadPath, {
     prefix: '/uploads/',
     setHeaders: uploadStaticHeaders,

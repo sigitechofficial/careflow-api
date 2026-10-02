@@ -8,6 +8,9 @@ cd "$ROOT"
 echo ">>> [deploy-seed 1/9] prisma db seed (prisma/seed.ts + prisma/seeds/*)"
 npx prisma db seed
 
+echo ">>> [deploy-seed 1b/9] IA template cleanup (after seed — the legacy catalog import can re-activate retired questions)"
+npx ts-node --transpile-only prisma/scripts/ia-template-cleanup.ts
+
 echo ">>> [deploy-seed 2/9] immigration status catalog (employee visa types + hour caps)"
 npx ts-node --transpile-only prisma/scripts/upgrade-employee-visa-catalog.ts
 

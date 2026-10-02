@@ -1,4 +1,6 @@
 import { MedicationRecordStatus, Prisma, PrismaClient } from '@prisma/client';
+import { FALLS_CASE_FINDING_FIELD_KEYS, fallsCaseFinding, type FallsCaseFinding } from './initial-assessment-falls.util';
+import { getFallsMetadata, isFallsScreeningComplete } from '../service-user-assessments/assessment-tool-registry';
 
 type QuestionRow = {
   id: string;
@@ -60,9 +62,19 @@ export type FallsAssessmentSnapshot = {
   numberOfFalls: number | null;
   mostRecentFallDate: string | null;
   injuryCaused: boolean | null;
+  unsteadiness?: boolean | null;
+  fearOfFalling?: boolean | null;
+  clinicalConcern?: boolean | null;
+  /** Case-finding outcome — whether a multifactorial falls assessment is indicated. */
+  caseFinding?: FallsCaseFinding;
+  /** Falls tab (screening worksheet) completed. */
   assessmentCompleted: boolean | null;
   assessmentDate: string | null;
-  riskScore: number;
+  /**
+   * Legacy numeric score kept only on snapshots stored before case-finding replaced it.
+   * New snapshots leave these null — a score is never used to predict falls (NICE NG249).
+   */
+  riskScore: number | null;
   riskLevel: FallsRiskLevel | null;
   adlMobilityScore: number | null;
   observationId?: string;
@@ -119,7 +131,7 @@ function adlMobilityScore(metadata: Prisma.JsonValue | null | undefined): number
       r &&
       typeof r === 'object' &&
       !Array.isArray(r) &&
-      (r as { activity?: string }).activity === 'Mobility',
+      /^(mobility|walking)$/i.test(String((r as { activity?: string }).activity ?? '')),
   ) as { score?: number } | undefined;
   return mobility != null && typeof mobility.score === 'number' ? mobility.score : null;
 }
@@ -176,27 +188,9 @@ function isExplicitNo(map: Map<string, AnswerRow>, q?: QuestionRow): boolean {
   return a?.checked === false || a?.booleanValue === false;
 }
 
-export function computeFallsRisk(params: {
-  fallsLast12Months: boolean | null;
-  numberOfFalls: number | null;
-  injuryCaused: boolean | null;
-  adlMobilityScore: number | null;
-}): { riskScore: number; riskLevel: FallsRiskLevel | null } {
-  if (params.fallsLast12Months !== true) {
-    return { riskScore: 0, riskLevel: null };
-  }
-
-  let score = 35;
-  const count = params.numberOfFalls ?? 0;
-  if (count >= 3) score += 30;
-  else if (count >= 2) score += 20;
-  else if (count >= 1) score += 10;
-
-  if (params.injuryCaused === true) score += 20;
-  if (params.adlMobilityScore != null && params.adlMobilityScore >= 3) score += 15;
-
-  const riskLevel: FallsRiskLevel = score >= 65 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW';
-  return { riskScore: score, riskLevel };
+function yesNoOf(map: Map<string, AnswerRow>, q?: QuestionRow): boolean | null {
+  if (!q) return null;
+  return isYes(map, q) ? true : isExplicitNo(map, q) ? false : null;
 }
 
 export function buildFallsAssessmentSnapshot(params: {
@@ -208,43 +202,39 @@ export function buildFallsAssessmentSnapshot(params: {
   const map = new Map(answers.map((a) => [a.questionId, a]));
 
   const fallsQ = findByFieldKey(questions, 'fallsLast12Months') ?? findByTextIncludes(questions, 'falls in last');
-  const countQ = findByTextIncludes(questions, 'number of falls');
-  const recentQ = findByTextIncludes(questions, 'most recent fall date');
-  const injuryQ = findByTextIncludes(questions, 'injury caused by fall');
-  const assessedQ = findByTextIncludes(questions, 'falls assessment completed');
-  const assessedDateQ = findByTextIncludes(questions, 'falls assessment date');
+  const countQ = findByFieldKey(questions, 'fallsCount12Months') ?? findByTextIncludes(questions, 'number of falls');
+  const recentQ = findByFieldKey(questions, 'mostRecentFallDate') ?? findByTextIncludes(questions, 'most recent fall date');
+  const injuryQ = findByFieldKey(questions, 'fallInjury') ?? findByTextIncludes(questions, 'injury caused by fall');
 
-  const fallsLast12Months = fallsQ ? (isYes(map, fallsQ) ? true : isExplicitNo(map, fallsQ) ? false : null) : null;
-  const numberOfFalls = countQ ? numberFromAnswer(answerFor(map, countQ.id)) : null;
-  const mostRecentFallDate = recentQ ? dateIso(answerFor(map, recentQ.id)) : null;
-  const injuryCaused = injuryQ ? (isYes(map, injuryQ) ? true : isExplicitNo(map, injuryQ) ? false : null) : null;
-  const assessmentCompleted = assessedQ
-    ? isYes(map, assessedQ)
-      ? true
-      : isExplicitNo(map, assessedQ)
-        ? false
-        : null
-    : null;
-  const assessmentDate = assessedDateQ ? dateIso(answerFor(map, assessedDateQ.id)) : null;
-  const mobilityScore = adlMobilityScore(metadata);
-  const { riskScore, riskLevel } = computeFallsRisk({
-    fallsLast12Months,
-    numberOfFalls,
-    injuryCaused,
-    adlMobilityScore: mobilityScore,
-  });
+  const fallsLast12Months = yesNoOf(map, fallsQ);
+  const unsteadiness = yesNoOf(map, findByFieldKey(questions, FALLS_CASE_FINDING_FIELD_KEYS.unsteadiness));
+  const fearOfFalling = yesNoOf(map, findByFieldKey(questions, FALLS_CASE_FINDING_FIELD_KEYS.fearOfFalling));
+  const clinicalConcern = yesNoOf(map, findByFieldKey(questions, FALLS_CASE_FINDING_FIELD_KEYS.clinicalConcern));
+  const falls = getFallsMetadata(metadata ?? null);
+  const completed = falls ? isFallsScreeningComplete(falls) : false;
+  const adl = metadataRecord(metadata)?.adl as { fallsAssessmentDate?: unknown } | undefined;
 
   return {
     fallsLast12Months,
-    numberOfFalls,
-    mostRecentFallDate,
-    injuryCaused,
-    assessmentCompleted,
-    assessmentDate,
-    riskScore,
-    riskLevel,
-    adlMobilityScore: mobilityScore,
+    numberOfFalls: countQ ? numberFromAnswer(answerFor(map, countQ.id)) : null,
+    mostRecentFallDate: recentQ ? dateIso(answerFor(map, recentQ.id)) : null,
+    injuryCaused: yesNoOf(map, injuryQ),
+    unsteadiness,
+    fearOfFalling,
+    clinicalConcern,
+    caseFinding: fallsCaseFinding({ fallsLast12Months, unsteadiness, fearOfFalling, clinicalConcern }),
+    assessmentCompleted: falls ? completed : null,
+    assessmentDate:
+      completed && typeof adl?.fallsAssessmentDate === 'string' ? adl.fallsAssessmentDate : null,
+    riskScore: null,
+    riskLevel: null,
+    adlMobilityScore: adlMobilityScore(metadata),
   };
+}
+
+function metadataRecord(metadata: Prisma.JsonValue | null | undefined): Record<string, unknown> | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  return metadata as Record<string, unknown>;
 }
 
 export async function buildMedicationListSnapshot(
@@ -433,8 +423,11 @@ export async function syncFallsToObservation(
         injuryCaused: falls.injuryCaused,
         assessmentCompleted: falls.assessmentCompleted,
         assessmentDate: falls.assessmentDate,
-        riskLevel: falls.riskLevel,
-        riskScore: falls.riskScore,
+        caseFindingStatus: falls.caseFinding?.status ?? null,
+        caseFindingReasons: falls.caseFinding?.reasons ?? [],
+        unsteadiness: falls.unsteadiness ?? null,
+        fearOfFalling: falls.fearOfFalling ?? null,
+        clinicalConcern: falls.clinicalConcern ?? null,
         sourceSubmissionId: submissionId,
       },
       recordedByUserId: userId,

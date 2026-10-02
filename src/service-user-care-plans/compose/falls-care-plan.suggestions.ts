@@ -377,7 +377,17 @@ export function buildFallsFieldSuggestions(
       parts.push('Hoist or sling in use.');
       sources.push(sourceFromAnswer(hoist, 'Yes'));
     }
-    if (resolveIaBooleanValue(clinical) === true && clinical) {
+    const equipmentSummary = ia.equipmentSelectionSummary?.trim();
+    if (equipmentSummary) {
+      parts.push(equipmentSummary.endsWith('.') ? equipmentSummary : `${equipmentSummary}.`);
+      sources.push({
+        questionId: 'equipment-selection:worksheet',
+        sourceSection: 'IA Equipment Selection',
+        sourceLabel: 'Equipment selection',
+        sourceValue: equipmentSummary,
+      });
+    } else if (resolveIaBooleanValue(clinical) === true && clinical) {
+      // Legacy §12.8 Yes/No — kept for historical submissions until soft-deleted.
       parts.push('Hoist / profiling bed / air mattress in use.');
       sources.push(sourceFromAnswer(clinical, 'Yes'));
     }
@@ -547,13 +557,22 @@ function fallsEvidence(
     },
   ];
 
-  if (ia.fallsSnapshot?.riskLevel) {
+  if (ia.fallsSnapshot?.caseFindingReasons?.length) {
+    items.push({
+      id: `ia-falls-case-finding-${ia.submissionId}`,
+      source: 'ia',
+      label: 'Falls case-finding',
+      value: ia.fallsSnapshot.caseFindingReasons.join(', '),
+      route: iaRoute(serviceUserId, 12),
+    });
+  } else if (ia.fallsSnapshot?.riskLevel) {
+    // Older submissions only: a stored score is shown as history, never as a prediction.
     const score =
       ia.fallsSnapshot.riskScore != null ? ` (score ${ia.fallsSnapshot.riskScore})` : '';
     items.push({
       id: `ia-falls-risk-${ia.submissionId}`,
       source: 'ia',
-      label: 'Falls risk',
+      label: 'Falls risk (legacy score)',
       value: `${ia.fallsSnapshot.riskLevel}${score}`,
       route: iaRoute(serviceUserId, 12),
     });

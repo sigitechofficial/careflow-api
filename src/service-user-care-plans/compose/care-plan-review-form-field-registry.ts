@@ -112,7 +112,7 @@ export const CARE_PLAN_REVIEW_FIELD_REGISTRY: readonly ReviewFieldRegistryEntry[
     businessKey: 'care_plan_review_capacity_consent',
     mode: 'AUTO_PREFILL',
     resolvedByEngine: true,
-    sources: [{ kind: 'INITIAL_ASSESSMENT', notes: 'IA §2 consentGivenBy / capacity to consent.' }],
+    sources: [{ kind: 'INITIAL_ASSESSMENT', notes: 'IA Consent tab — consent, capacity doubt, legal authority (iaConsentCapacitySummary).' }],
   },
   {
     businessKey: 'care_plan_review_cognitive_emotional',

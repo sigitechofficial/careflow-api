@@ -19,6 +19,7 @@ import {
 } from './label-mapped-compose.util';
 import { iaRoute, medRoute, profileRoute } from './compose-routes.util';
 import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
+import { iaConsentCapacitySummary } from './consent-capacity-summary.util';
 
 function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -130,10 +131,7 @@ export const MASTER_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     fieldLabel: 'Consent and capacity summary',
     required: true,
     resolve: (ctx) => {
-      const text = joinIa(ctx, [
-        { fieldKey: 'consentGivenBy' },
-        { specRef: '2.4', contains: 'capacity to consent' },
-      ]);
+      const text = ctx.ia ? iaConsentCapacitySummary(ctx.ia.answers) : null;
       if (!text) return null;
       return { fieldKey: '', label: 'Consent and capacity summary', value: text, source: 'ia', sourceLabel: 'IA §2' };
     },
@@ -156,7 +154,7 @@ export const MASTER_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     resolve: (ctx) => {
       const text = joinParts([ctx.gpPharmacyLine]);
       if (!text) return null;
-      return { fieldKey: '', label: 'GP and pharmacy contacts', value: text, source: 'ia', sourceLabel: 'IA §13.9' };
+      return { fieldKey: '', label: 'GP and pharmacy contacts', value: text, source: 'ia', sourceLabel: 'IA GP contact / §13.9' };
     },
   },
   {
@@ -358,10 +356,10 @@ export const MASTER_CARE_PLAN_FIELD_MAPPINGS: LabelFieldMapping[] = [
     resolve: (ctx) => {
       const text = joinIa(ctx, [
         { specRef: '13.9', contains: 'out of hours' },
-        { specRef: '13.9', contains: 'gp name' },
+        { fieldKey: 'gpContactDetails' },
       ]);
       if (!text) return null;
-      return { fieldKey: '', label: 'Escalation pathway', value: text, source: 'ia', sourceLabel: 'IA §13' };
+      return { fieldKey: '', label: 'Escalation pathway', value: text, source: 'ia', sourceLabel: 'IA GP / §13' };
     },
   },
   {

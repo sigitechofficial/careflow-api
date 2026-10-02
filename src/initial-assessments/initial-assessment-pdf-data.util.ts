@@ -193,7 +193,22 @@ export function buildInitialAssessmentPdfData(params: {
       fallsSummary.push(`Falls in last 12 months: ${clinical.falls.fallsLast12Months ? 'Yes' : 'No'}`);
     }
     if (clinical.falls.numberOfFalls != null) fallsSummary.push(`Number of falls: ${clinical.falls.numberOfFalls}`);
-    if (clinical.falls.riskLevel) fallsSummary.push(`Falls risk level: ${clinical.falls.riskLevel} (score ${clinical.falls.riskScore})`);
+    const finding = clinical.falls.caseFinding;
+    if (finding && finding.status !== 'pending') {
+      const label =
+        finding.status === 'required'
+          ? 'Multifactorial falls assessment indicated'
+          : finding.status === 'suggested'
+            ? 'Falls assessment suggested'
+            : 'Falls assessment not needed (negative case-finding)';
+      fallsSummary.push(finding.reasons.length ? `${label}: ${finding.reasons.join(', ')}` : label);
+    }
+    // Snapshots stored before case-finding carried a numeric score — shown as history only.
+    if (clinical.falls.riskLevel) {
+      fallsSummary.push(
+        `Legacy falls score (no longer used to predict falls): ${clinical.falls.riskLevel} (${clinical.falls.riskScore})`,
+      );
+    }
     if (clinical.falls.assessmentCompleted != null) {
       fallsSummary.push(`Falls assessment completed: ${clinical.falls.assessmentCompleted ? 'Yes' : 'No'}`);
     }

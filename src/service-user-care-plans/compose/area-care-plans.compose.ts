@@ -111,18 +111,15 @@ export function composePersonCentredCarePlan(
     },
     {
       fieldLabel: 'Evening / bedtime routine',
-      resolve: (c) =>
-        aboutMeOrIa(
-          c,
-          c.aboutMe?.nightSupport,
-          { specRef: '1.4', questionTextContains: 'bedtime' },
-          'IA §1.4',
-        ),
+      // IA §1.4 has one combined "Morning, meal, evening and bedtime routine" answer, already used for the
+      // morning field above — reusing it here only copied the same text twice. About Me only.
+      resolve: (c) => aboutMeText(c.aboutMe?.nightSupport),
     },
     {
       fieldLabel: 'Things that upset or calm me',
+      // §1.4 "Known triggers (anxiety, distress, confusion)"; bare specRef 1.5 picked "Food likes and dislikes".
       resolve: (c) =>
-        aboutMeOrIa(c, c.aboutMe?.triggersCalm, { specRef: '1.5' }, 'IA §1.5'),
+        aboutMeOrIa(c, c.aboutMe?.triggersCalm, { specRef: '1.4', questionTextContains: 'Known triggers' }, 'IA §1.4'),
     },
     // ---- Care 2020 coverage: read-only prefill from profile / About Me (existing engine) ----
     {
@@ -147,11 +144,29 @@ export function composePersonCentredCarePlan(
     },
     {
       fieldLabel: 'Personal care needs',
-      resolve: (c) => aboutMeText(c.aboutMe?.personalCare),
+      resolve: (c) =>
+        aboutMeOrIa(
+          c,
+          c.aboutMe?.personalCare,
+          { specRef: '1.4', questionTextContains: 'Bathing / shower and dressing' },
+          'IA §1.4',
+        ),
     },
     {
       fieldLabel: 'Eating / drinking needs',
-      resolve: (c) => aboutMeText(c.aboutMe?.foodPreferences),
+      resolve: (c) =>
+        aboutMeOrIa(c, c.aboutMe?.foodPreferences, { specRef: '1.5', questionTextContains: 'Food likes' }, 'IA §1.5'),
+    },
+    {
+      fieldLabel: 'My mobility needs',
+      // IA ADL worksheet "Mobility aids in use or required" list (submission.metadata.adl).
+      resolve: (c) => {
+        const adl = c.ia?.adlMetadata;
+        if (!adl || adl.mobilityAidsRequired === false) return null;
+        const text = sanitizeComposeTextOrNull(adl.mobilityAidsList);
+        if (!text) return null;
+        return { fieldKey: '', label: '', value: `Mobility aids: ${text}`, source: 'ia', sourceLabel: 'IA mobility aids' };
+      },
     },
     {
       fieldLabel: 'My communication and behaviour needs',

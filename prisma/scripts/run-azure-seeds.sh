@@ -28,13 +28,18 @@ export SEED_SAMPLE_BRANCHES=false
 export SEED_SAMPLE_BILLING_CARDS=false
 export SEED_DEMO_DATA=false
 
-echo ">>> [azure-seed 1/3] prisma db seed (reference data + real branches; sample people/branches/rate cards disabled)"
+echo ">>> [azure-seed 1/4] prisma db seed (reference data + real branches; sample people/branches/rate cards disabled)"
 npx prisma db seed
 
-echo ">>> [azure-seed 2/3] immigration status catalog (employee visa types + hour caps)"
+# Same as cPanel deploy: the seed's legacy IA catalogue import can re-activate retired questions.
+# Template-only (default Enterprise IA template); answers on retired questions are carried over.
+echo ">>> [azure-seed 2/4] IA template cleanup (after seed)"
+npx ts-node --transpile-only prisma/scripts/ia-template-cleanup.ts
+
+echo ">>> [azure-seed 3/4] immigration status catalog (employee visa types + hour caps)"
 npx ts-node --transpile-only prisma/scripts/upgrade-employee-visa-catalog.ts
 
-echo ">>> [azure-seed 3/3] UK payroll — PAYE tax code catalogue"
+echo ">>> [azure-seed 4/4] UK payroll — PAYE tax code catalogue"
 node prisma/scripts/seed-payroll-tax-codes.mjs
 
 echo "Azure reference seeders completed successfully."

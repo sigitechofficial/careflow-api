@@ -65,6 +65,8 @@ type QuestionSeed = {
   carePlanTrigger?: boolean;
   sortOrder: number;
   metadata?: Record<string, unknown>;
+  /** Earlier wording — lets a reworded question update its existing row instead of creating a duplicate. */
+  formerQuestionTexts?: string[];
 };
 
 type SectionSeed = {
@@ -194,16 +196,718 @@ const STAFF_GENDER_PREFERENCE_OPTIONS = {
   ],
 };
 
-const CONSENT_GIVEN_BY_OPTIONS = {
-  options: [
-    { value: 'service_user', label: 'Service User' },
-    { value: 'representative', label: 'Representative' },
-    { value: 'best_interest', label: 'Best interest process' },
-    { value: 'lpa', label: 'LPA / attorney' },
-  ],
-};
+/**
+ * Consent tab — the 12 consent questions in the order staff ask them (grouped into panels by specRef in
+ * care-admin consent-capacity-steps). Capacity is presumed: §2.4 asks whether there is reason to *doubt*
+ * it. Follow-up notes use `showWhen`. Keyed by fieldKey so `ia-template-cleanup` can align templates.
+ */
+/** §2.6 — MCA s4: the best-interests record must show the person's own views, never just the outcome. */
+export const BEST_INTEREST_DETAILS_HELP =
+  "Who decided and who was consulted; the person's wishes, feelings, beliefs and values (past and present); any objection or resistance and how it was weighed; less restrictive options considered; the outcome.";
+
+const PURPOSE_EXPLAINED_FIELD_KEY = 'infoExplainedUnderstood';
+const UNDERSTANDS_FIELD_KEY = 'understandsAssessmentInfo';
+const CONSENT_TO_ASSESSMENT_FIELD_KEY = 'consentToAssessment';
+const CONSENT_METHOD_FIELD_KEY = 'consentMethod';
+const COMMUNICATION_SUPPORT_FIELD_KEY = 'communicationSupportRequired';
+const FAMILY_INVOLVEMENT_FIELD_KEY = 'familyInvolvementConsent';
+const INFO_SHARING_FIELD_KEY = 'infoSharingConsent';
+const PARTIAL_REFUSAL_FIELD_KEY = 'partialConsentRefusal';
+const CAPACITY_DOUBT_FIELD_KEY = 'capacityDoubt';
+const LEGAL_AUTHORITY_FIELD_KEY = 'legalAuthority';
+
+const showIfYes = (gateFieldKey: string) => ({ gateFieldKey, yes: true });
+const showIfNo = (gateFieldKey: string) => ({ gateFieldKey, no: true });
+const showIfSelected = (gateFieldKey: string, values: string[]) => ({ gateFieldKey, selectedIncludes: values });
+const opts = (pairs: Array<[string, string]>) => ({ options: pairs.map(([value, label]) => ({ value, label })) });
+
+export const IA_CONSENT_TAB_QUESTIONS: QuestionSeed[] = [
+  // 1 — purpose explained
+  {
+    questionText: 'Has the purpose of this assessment been explained to the service user?',
+    formerQuestionTexts: ['Information explained in a way they understand?'],
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 101,
+    metadata: { specRef: '2.3', fieldKey: PURPOSE_EXPLAINED_FIELD_KEY },
+  },
+  {
+    questionText: 'Reason / action required',
+    formerQuestionTexts: ['Why not, and what is the next step?'],
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 103,
+    metadata: {
+      specRef: '2.3',
+      fieldKey: 'infoNotUnderstoodNextStep',
+      showWhen: showIfNo(PURPOSE_EXPLAINED_FIELD_KEY),
+    },
+  },
+  // 2 — understanding
+  {
+    questionText: 'Does the service user understand the information provided about this assessment?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 104,
+    options: {
+      options: [
+        { value: 'yes', label: 'Yes' },
+        { value: 'no', label: 'No' },
+        { value: 'unsure', label: 'Unsure' },
+      ],
+    },
+    metadata: { specRef: '2.3', fieldKey: UNDERSTANDS_FIELD_KEY, display: 'inline' },
+  },
+  {
+    questionText: 'Please explain',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 105,
+    helpText: 'Not understanding may mean a Mental Capacity Assessment is needed.',
+    metadata: {
+      specRef: '2.3',
+      fieldKey: 'understandsAssessmentInfoDetails',
+      showWhen: showIfSelected(UNDERSTANDS_FIELD_KEY, ['no', 'unsure']),
+    },
+  },
+  // 3 — consent to the IA
+  {
+    questionText: 'Does the service user consent to this Initial Assessment being carried out?',
+    formerQuestionTexts: [
+      'Consent to this assessment obtained?',
+      'Has the Service User consented to this assessment?',
+    ],
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 106,
+    metadata: { specRef: '2.1', fieldKey: CONSENT_TO_ASSESSMENT_FIELD_KEY },
+  },
+  {
+    questionText: 'Reason / comments',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 107,
+    metadata: {
+      specRef: '2.1',
+      fieldKey: 'consentToAssessmentNoReason',
+      showWhen: showIfNo(CONSENT_TO_ASSESSMENT_FIELD_KEY),
+    },
+  },
+  // 4 — how consent was given (only once they consent)
+  {
+    questionText: 'How was consent provided?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 108,
+    options: {
+      options: [
+        { value: 'written', label: 'Written' },
+        { value: 'verbal', label: 'Verbal' },
+        { value: 'non_verbal', label: 'Non-verbal / implied' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+    metadata: {
+      specRef: '2.1',
+      fieldKey: CONSENT_METHOD_FIELD_KEY,
+      display: 'trailing',
+      showWhen: showIfYes(CONSENT_TO_ASSESSMENT_FIELD_KEY),
+    },
+  },
+  {
+    questionText: 'How was consent provided — other',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 109,
+    metadata: {
+      specRef: '2.1',
+      fieldKey: 'consentMethodOther',
+      showWhen: showIfSelected(CONSENT_METHOD_FIELD_KEY, ['other']),
+    },
+  },
+  // 5 — communication support
+  {
+    questionText: 'Does the service user require support to understand information or communicate their decision?',
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 110,
+    metadata: { specRef: '2.3', fieldKey: COMMUNICATION_SUPPORT_FIELD_KEY },
+  },
+  {
+    questionText: 'What support is required?',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 111,
+    helpText: 'e.g. interpreter, BSL, visual aids, advocate, family support.',
+    metadata: {
+      specRef: '2.3',
+      fieldKey: 'communicationSupportDetails',
+      showWhen: showIfYes(COMMUNICATION_SUPPORT_FIELD_KEY),
+    },
+  },
+  // 6 — family / representative involvement
+  {
+    questionText: 'Does the service user consent to family or representatives being involved in this assessment?',
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 112,
+    metadata: { specRef: '2.8', fieldKey: FAMILY_INVOLVEMENT_FIELD_KEY, syncKey: 'representativeInvolved' },
+  },
+  {
+    questionText: 'Representative name',
+    questionType: TEXT,
+    isRequired: true,
+    sortOrder: 113,
+    helpText: 'Shared with Personal Details — e.g. Sarah Thompson (main contact).',
+    metadata: {
+      specRef: '2.8',
+      fieldKey: 'familyInvolvedName',
+      syncKey: 'representativeName',
+      showWhen: showIfYes(FAMILY_INVOLVEMENT_FIELD_KEY),
+    },
+  },
+  {
+    questionText: 'Relationship to the service user',
+    questionType: TEXT,
+    isRequired: true,
+    sortOrder: 114,
+    metadata: {
+      specRef: '2.8',
+      fieldKey: 'familyInvolvedRelationship',
+      syncKey: 'representativeRelationship',
+      showWhen: showIfYes(FAMILY_INVOLVEMENT_FIELD_KEY),
+    },
+  },
+  // 7 — information sharing
+  {
+    questionText:
+      'Does the service user consent to relevant information being shared with authorised people/professionals involved in their care?',
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 115,
+    metadata: { specRef: '2.8', fieldKey: INFO_SHARING_FIELD_KEY },
+  },
+  {
+    questionText: 'Who can information be shared with?',
+    questionType: MULTI_SELECT,
+    isRequired: true,
+    sortOrder: 116,
+    options: {
+      options: [
+        { value: 'gp', label: 'GP' },
+        { value: 'district_nurse', label: 'District / community nurse' },
+        { value: 'pharmacy', label: 'Pharmacy' },
+        { value: 'hospital_ambulance', label: 'Hospital / ambulance' },
+        { value: 'local_authority', label: 'Local authority / social worker' },
+        { value: 'family_representatives', label: 'Family / representatives' },
+        { value: 'other', label: 'Other' },
+      ],
+    },
+    metadata: { specRef: '2.8', fieldKey: 'infoSharingWith', showWhen: showIfYes(INFO_SHARING_FIELD_KEY) },
+  },
+  {
+    questionText: 'What information can be shared / any limits',
+    questionType: TEXTAREA,
+    sortOrder: 117,
+    helpText: 'Include anyone chosen under “Other”.',
+    metadata: { specRef: '2.8', fieldKey: 'infoSharingLimits', showWhen: showIfYes(INFO_SHARING_FIELD_KEY) },
+  },
+  {
+    questionText: 'Restrictions / preferences',
+    questionType: TEXTAREA,
+    sortOrder: 118,
+    metadata: { specRef: '2.8', fieldKey: 'infoSharingRestrictions', showWhen: showIfNo(INFO_SHARING_FIELD_KEY) },
+  },
+  // 8 — parts not consented to
+  {
+    questionText: 'Is there anything they do not consent to, or any conditions we must follow?',
+    formerQuestionTexts: [
+      'Are there any parts of the assessment or proposed care that the service user does not consent to?',
+    ],
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 119,
+    metadata: { specRef: '2.11', fieldKey: PARTIAL_REFUSAL_FIELD_KEY },
+  },
+  {
+    questionText: 'Please specify what they do not consent to or the conditions to follow',
+    formerQuestionTexts: ['Please specify what they do not consent to'],
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 120,
+    metadata: { specRef: '2.11', fieldKey: 'partialConsentRefusalDetails', showWhen: showIfYes(PARTIAL_REFUSAL_FIELD_KEY) },
+  },
+  // 9 — reason to doubt capacity (capacity is presumed)
+  {
+    questionText: 'Is there any reason to doubt the service user’s capacity to make this specific decision?',
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 121,
+    metadata: { specRef: '2.4', fieldKey: CAPACITY_DOUBT_FIELD_KEY },
+  },
+  {
+    questionText: 'Reason for concern',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 122,
+    helpText: 'A Mental Capacity Assessment is then needed (MCA Screening tab).',
+    metadata: { specRef: '2.4', fieldKey: 'capacityDoubtReason', showWhen: showIfYes(CAPACITY_DOUBT_FIELD_KEY) },
+  },
+  // 10 — legal authority for Health & Welfare decisions
+  {
+    questionText: 'Is anyone legally authorised to make relevant Health & Welfare decisions on their behalf?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 123,
+    options: {
+      options: [
+        { value: 'no', label: 'No' },
+        { value: 'hw_lpa', label: 'Health & Welfare LPA' },
+        { value: 'deputy', label: 'Court-appointed Deputy' },
+        { value: 'court_order_other', label: 'Court Order / other legal authority' },
+        { value: 'unsure', label: 'Unsure' },
+      ],
+    },
+    metadata: { specRef: '2.4', fieldKey: LEGAL_AUTHORITY_FIELD_KEY, display: 'trailing' },
+  },
+  {
+    questionText: 'Name',
+    questionType: TEXT,
+    isRequired: true,
+    sortOrder: 124,
+    metadata: {
+      specRef: '2.4',
+      fieldKey: 'legalAuthorityName',
+      showWhen: showIfSelected(LEGAL_AUTHORITY_FIELD_KEY, ['hw_lpa', 'deputy', 'court_order_other']),
+    },
+  },
+  {
+    questionText: 'Relationship / role',
+    questionType: TEXT,
+    isRequired: true,
+    sortOrder: 125,
+    metadata: {
+      specRef: '2.4',
+      fieldKey: 'legalAuthorityRole',
+      showWhen: showIfSelected(LEGAL_AUTHORITY_FIELD_KEY, ['hw_lpa', 'deputy', 'court_order_other']),
+    },
+  },
+  {
+    questionText: 'Evidence / document seen',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 126,
+    helpText: 'e.g. LPA registration / OPG check, court order reference. Upload the copy below.',
+    metadata: {
+      specRef: '2.4',
+      fieldKey: 'legalAuthorityEvidence',
+      showWhen: showIfSelected(LEGAL_AUTHORITY_FIELD_KEY, ['hw_lpa', 'deputy', 'court_order_other']),
+    },
+  },
+  {
+    questionText: 'What needs to be checked?',
+    questionType: TEXTAREA,
+    isRequired: true,
+    sortOrder: 127,
+    helpText: 'e.g. family mentioned an LPA — ask for a copy / check with the Office of the Public Guardian.',
+    metadata: {
+      specRef: '2.4',
+      fieldKey: 'legalAuthorityUnsureNote',
+      showWhen: showIfSelected(LEGAL_AUTHORITY_FIELD_KEY, ['unsure']),
+    },
+  },
+];
+
+/** Consent tab questions replaced by the list above — soft-deleted by `ia-template-cleanup` (answers kept). */
+export const IA_CONSENT_TAB_RETIRED_FIELD_KEYS = [
+  'infoExplainedHow',
+  // merged into "anything they do not consent to, or conditions we must follow?"
+  'consentRestrictions',
+  'consentRestrictionsDetails',
+  // assessor + date are recorded at sign-off (§14.8) and in the audit trail
+  'consentRecordedByName',
+  'consentRecordedByRole',
+  'consentRecordedDate',
+  'consentRecordedTime',
+  // representative now asked once (name / relationship synced with Personal Details)
+  'familyInvolvedWho',
+  'familyInvolvementNoNote',
+  'consentGivenBy',
+  'capacityToConsentIntact',
+  'consentShareWithFamily',
+  'shareWithFamilyWho',
+] as const;
 
 /** UX display order for Â§1: 1.1â†’1.8 then 1.0 (specRef unchanged in metadata). */
+/** §1.7 — non-religious culture / heritage (replaces the retired combined "Religion, culture, language…" field). */
+export const IA_CULTURAL_BACKGROUND_QUESTION: QuestionSeed = {
+  questionText: 'Cultural background and practices',
+  questionType: TEXTAREA,
+  sortOrder: 33,
+  metadata: { specRef: '1.7', fieldKey: 'culturalBackground', prefillKey: 'aboutMe_whereIAmFrom' },
+};
+
+/**
+ * §2.9 Deprivation of liberty — screening first, never a legal conclusion. Restrictions are recorded
+ * in the Core IA (§2.9a, Personal Details → daily living); a concern goes to manager / legal review
+ * and the legal route and status are recorded (Mental Capacity tab). Whether arrangements amount to
+ * a deprivation of liberty is a multifactorial judgement for the commissioner / court
+ * ([2026] UKSC 16) — no single factor (such as "supervision + not free to leave") decides it.
+ * The four detail keys are unchanged, so saved authorisation details carry over.
+ */
+const DOL_RESTRICTIONS_FIELD_KEY = 'dolRestrictions';
+const DOL_CONCERN_FIELD_KEY = 'dolConcern';
+const DOL_STATUS_FIELD_KEY = 'dolAuthorisationStatus';
+const DOL_AUTHORISED = ['authorised_cop', 'authorised_dols'];
+/** Retired by the screening-first flow (answers kept; mapped to `dolAuthorisationStatus` on open IAs). */
+export const IA_DOL_RETIRED_FIELD_KEYS = ['dolsLpsAuthorisationInPlace', 'dolAuthorisationType', 'dolReferredAwaiting'] as const;
+export const IA_DEPRIVATION_OF_LIBERTY_QUESTIONS: QuestionSeed[] = [
+  {
+    questionText: "Will the proposed care involve any arrangements that restrict the person's movement, freedom or choices?",
+    questionType: MULTI_SELECT,
+    isRequired: true,
+    sortOrder: 14,
+    helpText:
+      'Tick what applies. A normal key safe or door entry for carers is an access arrangement, not a restriction. A diagnosis on its own is never a restriction.',
+    options: opts([
+      ['none', 'No restrictions'],
+      ['doors_locked_to_stop_leaving', 'Doors locked or keys withheld to stop the person leaving'],
+      ['not_allowed_out_alone', 'Not allowed to go out alone'],
+      ['continuous_supervision', 'Continuous supervision'],
+      ['monitoring_controls_movement', 'Sensors / GPS / cameras used to control movement'],
+      ['covert_medication', 'Covert medication'],
+      ['sedating_medication', 'Medication given to calm or sedate'],
+      ['bed_rails_or_belts', 'Bed rails or lap belts'],
+      ['physical_intervention', 'Physical intervention or restraint'],
+      ['restricted_contact', 'Restricted contact with others'],
+      ['other', 'Other'],
+    ]),
+    metadata: { specRef: '2.9a', fieldKey: DOL_RESTRICTIONS_FIELD_KEY },
+  },
+  {
+    questionText: 'Restrictions — what, when and why',
+    questionType: TEXTAREA,
+    sortOrder: 15,
+    metadata: {
+      specRef: '2.9a',
+      fieldKey: 'dolRestrictionsDetails',
+      showWhen: showIfSelected(DOL_RESTRICTIONS_FIELD_KEY, [
+        'doors_locked_to_stop_leaving',
+        'not_allowed_out_alone',
+        'continuous_supervision',
+        'monitoring_controls_movement',
+        'covert_medication',
+        'sedating_medication',
+        'bed_rails_or_belts',
+        'physical_intervention',
+        'restricted_contact',
+        'other',
+      ]),
+    },
+  },
+  {
+    questionText: 'Could these arrangements potentially amount to a deprivation of liberty?',
+    questionType: SINGLE_SELECT,
+    sortOrder: 16,
+    helpText:
+      "Consider all the circumstances together: the type, duration, effect and manner of the restrictions, their purpose, the person's wishes and any objection, sedation, and how normal the arrangements are. No single factor decides it — raise any concern; it is not decided here.",
+    options: opts([
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['unsure', 'Unsure'],
+    ]),
+    metadata: {
+      specRef: '2.9',
+      fieldKey: DOL_CONCERN_FIELD_KEY,
+      showWhen: showIfSelected(DOL_RESTRICTIONS_FIELD_KEY, [
+        'doors_locked_to_stop_leaving',
+        'not_allowed_out_alone',
+        'continuous_supervision',
+        'monitoring_controls_movement',
+        'covert_medication',
+        'sedating_medication',
+        'bed_rails_or_belts',
+        'physical_intervention',
+        'restricted_contact',
+        'other',
+      ]),
+    },
+  },
+  {
+    questionText: "Circumstances — how the restrictions affect the person, their purpose, and the person's wishes or objection",
+    questionType: TEXTAREA,
+    sortOrder: 17,
+    metadata: { specRef: '2.9', fieldKey: 'dolCircumstances', showWhen: showIfSelected(DOL_CONCERN_FIELD_KEY, ['yes', 'unsure']) },
+  },
+  {
+    questionText: 'Manager / legal review',
+    questionType: SINGLE_SELECT,
+    sortOrder: 18,
+    options: opts([
+      ['referred_manager', 'Referred to the manager'],
+      ['referred_legal', 'Referred for legal advice'],
+      ['reviewed', 'Reviewed — outcome recorded below'],
+    ]),
+    metadata: { specRef: '2.9', fieldKey: 'dolManagerReview', showWhen: showIfSelected(DOL_CONCERN_FIELD_KEY, ['yes', 'unsure']) },
+  },
+  {
+    questionText: 'Review outcome and next steps',
+    questionType: TEXTAREA,
+    sortOrder: 19,
+    metadata: { specRef: '2.9', fieldKey: 'dolReviewOutcome', showWhen: showIfSelected(DOL_CONCERN_FIELD_KEY, ['yes', 'unsure']) },
+  },
+  {
+    questionText: 'Legal route and status',
+    questionType: SINGLE_SELECT,
+    sortOrder: 20,
+    helpText:
+      'Care at home or in supported living is authorised through the Court of Protection; DoLS covers care homes and hospitals only (for example during respite). The commissioning body usually applies.',
+    options: opts([
+      ['not_required_after_review', 'Not required after review'],
+      ['raised_with_commissioner', 'Concern raised with the commissioning body'],
+      ['application_made', 'Application made — awaiting decision'],
+      ['authorised_cop', 'Authorised — Court of Protection order'],
+      ['authorised_dols', 'Authorised — DoLS (care home or hospital stay)'],
+      ['expired', 'Authorisation expired'],
+      ['unknown', 'Not known — to be checked'],
+    ]),
+    metadata: { specRef: '2.9', fieldKey: DOL_STATUS_FIELD_KEY, showWhen: showIfSelected(DOL_CONCERN_FIELD_KEY, ['yes', 'unsure']) },
+  },
+  {
+    questionText: 'Authorising body (court / local authority)',
+    questionType: TEXT,
+    sortOrder: 21,
+    metadata: { specRef: '2.9', fieldKey: 'dolsAuthorisingBody', showWhen: showIfSelected(DOL_STATUS_FIELD_KEY, DOL_AUTHORISED) },
+  },
+  {
+    questionText: 'Authorisation reference',
+    questionType: TEXT,
+    sortOrder: 22,
+    metadata: { specRef: '2.9', fieldKey: 'dolsReference', showWhen: showIfSelected(DOL_STATUS_FIELD_KEY, DOL_AUTHORISED) },
+  },
+  {
+    questionText: 'Authorisation expiry / review date',
+    questionType: DATE,
+    sortOrder: 23,
+    metadata: { specRef: '2.9', fieldKey: 'dolsExpiryDate', showWhen: showIfSelected(DOL_STATUS_FIELD_KEY, DOL_AUTHORISED) },
+  },
+  {
+    questionText: 'Conditions / restrictions carers must follow',
+    questionType: TEXTAREA,
+    sortOrder: 24,
+    metadata: { specRef: '2.9', fieldKey: 'dolsDetails', showWhen: showIfSelected(DOL_STATUS_FIELD_KEY, DOL_AUTHORISED) },
+  },
+];
+
+/**
+ * §1.9 recent hospital stay, §1.10 social wellbeing, §1.11 smoking / alcohol / drugs — content a UK
+ * home-care IA should capture that the template did not. Rendered on the Personal Details tab.
+ */
+export const IA_MISSING_CONTENT_SECTION_1_QUESTIONS: QuestionSeed[] = [
+  // §1.9 Recent hospital stay
+  {
+    questionText: 'In hospital in the last 6 months?',
+    questionType: YES_NO,
+    isRequired: true,
+    sortOrder: 300,
+    helpText: 'Set automatically when the referral source is hospital discharge.',
+    metadata: { specRef: '1.9', fieldKey: 'recentHospitalStay' },
+  },
+  {
+    questionText: 'Hospital, ward and reason for stay',
+    questionType: TEXTAREA,
+    sortOrder: 301,
+    metadata: { specRef: '1.9', fieldKey: 'hospitalStayDetails', ...whenFieldYes('recentHospitalStay') },
+  },
+  {
+    questionText: 'Discharge date',
+    questionType: DATE,
+    sortOrder: 302,
+    metadata: { specRef: '1.9', fieldKey: 'hospitalDischargeDate', ...whenFieldYes('recentHospitalStay') },
+  },
+  {
+    questionText: 'Discharge summary received?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 303,
+    options: opts([
+      ['received', 'Received'],
+      ['requested_awaited', 'Requested — awaited'],
+      ['not_available', 'Not available'],
+    ]),
+    metadata: { specRef: '1.9', fieldKey: 'dischargeSummaryStatus', ...whenFieldYes('recentHospitalStay') },
+  },
+  {
+    questionText: 'Follow-up needed after discharge',
+    questionType: MULTI_SELECT,
+    sortOrder: 304,
+    options: opts([
+      ['gp_review', 'GP review'],
+      ['district_nurse', 'District / community nurse'],
+      ['outpatient', 'Hospital outpatient appointment'],
+      ['reablement', 'Reablement (physio / OT)'],
+      ['medication_changes', 'Medication changes to check'],
+      ['none', 'None'],
+    ]),
+    metadata: { specRef: '1.9', fieldKey: 'dischargeFollowUps', ...whenFieldYes('recentHospitalStay') },
+  },
+  {
+    questionText: 'Hospital admissions in the last 12 months',
+    questionType: NUMBER,
+    sortOrder: 305,
+    metadata: { specRef: '1.9', fieldKey: 'hospitalAdmissions12Months', ...whenFieldYes('recentHospitalStay') },
+  },
+  // §1.10 Social wellbeing (Care Act 2014 wellbeing)
+  {
+    questionText: 'How often does the person feel lonely?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 310,
+    helpText: 'ONS loneliness question — ask the person directly where possible.',
+    options: opts([
+      ['often_always', 'Often / always'],
+      ['some_of_the_time', 'Some of the time'],
+      ['occasionally', 'Occasionally'],
+      ['hardly_ever', 'Hardly ever'],
+      ['never', 'Never'],
+      ['unable_to_say', 'Unable to say'],
+    ]),
+    metadata: { specRef: '1.10', fieldKey: 'lonelinessFrequency' },
+  },
+  {
+    questionText: 'Contact with family or friends',
+    questionType: SINGLE_SELECT,
+    sortOrder: 311,
+    options: opts([
+      ['daily', 'Daily'],
+      ['few_times_week', 'A few times a week'],
+      ['weekly', 'Weekly'],
+      ['less_than_weekly', 'Less than weekly'],
+      ['rarely_never', 'Rarely / never'],
+    ]),
+    metadata: { specRef: '1.10', fieldKey: 'socialContactFrequency' },
+  },
+  {
+    questionText: 'Would like support to be more socially connected?',
+    questionType: YES_NO,
+    carePlanTrigger: true,
+    sortOrder: 312,
+    metadata: { specRef: '1.10', fieldKey: 'wantsSocialConnectionSupport' },
+  },
+  {
+    questionText: 'Support wanted (befriending, day centre, social prescribing)',
+    questionType: TEXTAREA,
+    sortOrder: 313,
+    metadata: {
+      specRef: '1.10',
+      fieldKey: 'socialConnectionSupportDetails',
+      ...whenFieldYes('wantsSocialConnectionSupport'),
+    },
+  },
+  {
+    questionText: 'Does the person care for anyone else (child, partner, relative)?',
+    questionType: YES_NO,
+    sortOrder: 314,
+    metadata: { specRef: '1.10', fieldKey: 'caresForOthers' },
+  },
+  {
+    questionText: 'Caring responsibilities — details',
+    questionType: TEXTAREA,
+    sortOrder: 315,
+    metadata: { specRef: '1.10', fieldKey: 'caringResponsibilitiesDetails', ...whenFieldYes('caresForOthers') },
+  },
+  // §1.11 Smoking, alcohol and drugs (the person's own use)
+  {
+    questionText: 'Smoking status',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 320,
+    helpText: 'Current smoker also records "Smoking in property" on the Fire Safety tab.',
+    options: opts([
+      ['never', 'Never smoked'],
+      ['ex_smoker', 'Ex-smoker'],
+      ['current_smoker', 'Current smoker'],
+      ['vapes', 'Vapes / e-cigarettes'],
+    ]),
+    metadata: { specRef: '1.11', fieldKey: 'smokingStatus' },
+  },
+  {
+    questionText: 'Alcohol use',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 321,
+    options: opts([
+      ['none', 'None'],
+      ['occasional', 'Occasional'],
+      ['within_guidelines', 'Regular — within guidelines'],
+      ['above_14_units', 'Above 14 units a week'],
+      ['concern_dependence', 'Concern / dependence'],
+    ]),
+    metadata: { specRef: '1.11', fieldKey: 'alcoholUse' },
+  },
+  {
+    questionText: 'Non-prescribed or recreational drug use?',
+    questionType: SINGLE_SELECT,
+    sortOrder: 322,
+    options: opts([
+      ['no', 'No'],
+      ['yes', 'Yes'],
+      ['declined', 'Declined to say'],
+    ]),
+    metadata: { specRef: '1.11', fieldKey: 'recreationalDrugUse' },
+  },
+  {
+    questionText: 'Substance use — support / plan notes',
+    questionType: TEXTAREA,
+    sortOrder: 323,
+    helpText:
+      'Complete when alcohol is above guidelines, there is a dependence concern or drug use — include any referral to a substance-misuse service.',
+    metadata: { specRef: '1.11', fieldKey: 'substanceUseSupportNotes' },
+  },
+  // Specialist screening (Core IA): these answers decide whether ACP / End of Life are needed.
+  {
+    questionText: 'Would the person like to talk about their future care wishes now (advance care planning)?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 330,
+    helpText: 'Person-led: only "Yes, now" opens the Advance Care Planning tab. Nobody is pressed to discuss this.',
+    options: opts([
+      ['yes_now', 'Yes, now'],
+      ['not_now', 'Not now — offer again later'],
+      ['declined', 'Declined'],
+      ['unable_now', 'Not able to take part now'],
+    ]),
+    metadata: { specRef: '1.3', fieldKey: 'acpDiscussionOffered' },
+  },
+  {
+    questionText: 'Why is the person not able to take part now?',
+    questionType: TEXTAREA,
+    sortOrder: 331,
+    helpText: 'For example, unwell or capacity for this decision in doubt — record who was consulted, if anyone.',
+    metadata: { specRef: '1.3', fieldKey: 'acpUnableReason', showWhen: showIfSelected('acpDiscussionOffered', ['unable_now']) },
+  },
+  {
+    questionText: 'Is palliative or end-of-life care currently relevant or documented by an appropriate healthcare professional?',
+    questionType: SINGLE_SELECT,
+    isRequired: true,
+    sortOrder: 332,
+    helpText:
+      'Answer from what the person, their GP / clinical team or their records say — the assessor does not decide this. Unsure creates a follow-up to check with the GP or clinical team.',
+    options: opts([
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['unsure', 'Unsure — needs clinical clarification'],
+    ]),
+    metadata: { specRef: '1.0', fieldKey: 'eolRelevant' },
+  },
+  {
+    questionText: 'End of life — who documented it / what needs clarifying',
+    questionType: TEXTAREA,
+    sortOrder: 333,
+    metadata: { specRef: '1.0', fieldKey: 'eolRelevantDetails', showWhen: showIfSelected('eolRelevant', ['yes', 'unsure']) },
+  },
+];
+
 export const SECTION_1_QUESTIONS: QuestionSeed[] = [
   // 1.1 â€” Who they are
   { questionText: 'Preferred name', questionType: TEXT, isRequired: true, sortOrder: 1, metadata: { specRef: '1.1', prefillKey: 'preferredName' } },
@@ -246,17 +950,17 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
   { questionText: 'Local authority ID (if funded)', questionType: TEXT, sortOrder: 8, metadata: { specRef: '1.1' } },
   // 1.2
   { questionText: 'Family, representative, next of kin, advocate, key contacts', questionType: TEXTAREA, sortOrder: 9, metadata: { specRef: '1.2', prefillKey: 'emergencyContact' } },
-  { questionText: 'Representative involved in assessment?', questionType: YES_NO, isRequired: true, sortOrder: 10, metadata: { specRef: '1.2', syncKey: 'representativeInvolved' } },
-  { questionText: 'Representative name', questionType: TEXT, sortOrder: 11, metadata: { specRef: '1.2', syncKey: 'representativeName', showWhen: { gateTextIncludes: 'representative involved', yes: true } } },
-  { questionText: 'Representative relationship', questionType: TEXT, sortOrder: 12, metadata: { specRef: '1.2', syncKey: 'representativeRelationship' } },
+  // "Representative involved?" is asked once, on the Consent tab (familyInvolvementConsent).
+  { questionText: 'Representative name', questionType: TEXT, sortOrder: 11, metadata: { specRef: '1.2', syncKey: 'representativeName', showWhen: { gateFieldKey: 'familyInvolvementConsent', yes: true } } },
+  { questionText: 'Representative relationship', questionType: TEXT, sortOrder: 12, metadata: { specRef: '1.2', syncKey: 'representativeRelationship', showWhen: { gateFieldKey: 'familyInvolvementConsent', yes: true } } },
   // 1.3 â€” Person-centred
-  { questionText: 'What matters most to the Service User?', questionType: TEXTAREA, isRequired: true, carePlanTrigger: true, sortOrder: 13, metadata: { specRef: '1.3', fieldKey: 'whatMattersMost' } },
+  { questionText: 'What matters most to the Service User?', questionType: TEXTAREA, isRequired: true, carePlanTrigger: true, sortOrder: 13, metadata: { specRef: '1.3', fieldKey: 'whatMattersMost', prefillKey: 'aboutMe_whatIsMostImportantToMe' } },
   { questionText: 'What are they worried about?', questionType: TEXTAREA, sortOrder: 14, metadata: { specRef: '1.3' } },
   { questionText: 'What do they want support to achieve?', questionType: TEXTAREA, isRequired: true, carePlanTrigger: true, sortOrder: 15, metadata: { specRef: '1.3', fieldKey: 'supportGoals' } },
-  { questionText: 'Personal priorities, goals, independence goals', questionType: TEXTAREA, carePlanTrigger: true, sortOrder: 16, metadata: { specRef: '1.3', prefillKey: 'aboutMePriorities' } },
+  // "Personal priorities, goals, independence goals" removed — duplicate of supportGoals (both had carePlanTrigger)
   { questionText: 'Things they want to keep doing independently', questionType: TEXTAREA, sortOrder: 17, metadata: { specRef: '1.3' } },
   { questionText: 'Things they do not want support with', questionType: TEXTAREA, sortOrder: 18, metadata: { specRef: '1.3' } },
-  { questionText: 'Important routines (meals, prayer, medication, bedtime)', questionType: TEXTAREA, isRequired: true, sortOrder: 19, metadata: { specRef: '1.3' } },
+  // "Important routines (meals, prayer, medication, bedtime)" removed — duplicate of 1.4 routine narrative
   {
     questionText: 'Preferred visit times',
     questionType: MULTI_SELECT,
@@ -273,8 +977,8 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
   { questionText: 'Known triggers (anxiety, distress, confusion)', questionType: TEXTAREA, carePlanTrigger: true, sortOrder: 23, metadata: { specRef: '1.4' } },
   // 1.5
   { questionText: 'Food likes and dislikes', questionType: TEXTAREA, sortOrder: 24, metadata: { specRef: '1.5', prefillKey: 'foodLikes', syncKey: 'foodLikes' } },
-  { questionText: 'Activity likes and dislikes', questionType: TEXTAREA, sortOrder: 25, metadata: { specRef: '1.5', prefillKey: 'activityLikes' } },
-  { questionText: 'Care preferences and dislikes', questionType: TEXTAREA, sortOrder: 26, metadata: { specRef: '1.5' } },
+  // "Activity likes and dislikes" removed — covered by About Me Hobbies and interests / Activities
+  // "Care preferences and dislikes" removed — covered by 1.6 privacy/gender/modesty + About Me happy/unhappy
   // 1.6
   { questionText: 'How should staff support privacy during personal care?', questionType: TEXTAREA, sortOrder: 27, metadata: { specRef: '1.6' } },
   {
@@ -287,9 +991,10 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
   { questionText: 'Will the Service User accept care from the opposite sex?', questionType: YES_NO, sortOrder: 29, metadata: { specRef: '1.6' } },
   { questionText: 'Comfortable with double-up care?', questionType: YES_NO, sortOrder: 30, metadata: { specRef: '1.6' } },
   { questionText: 'Modesty requirements', questionType: TEXTAREA, sortOrder: 31, metadata: { specRef: '1.6' } },
-  { questionText: 'How does the person prefer to be addressed?', questionType: TEXT, isRequired: true, sortOrder: 32, metadata: { specRef: '1.6', prefillKey: 'preferredName' } },
+  // 1.6 "How does the person prefer to be addressed?" removed — duplicate of 1.1 Preferred name
   // 1.7
-  { questionText: 'Religion, culture, language, reasonable adjustments', questionType: TEXTAREA, sortOrder: 33, metadata: { specRef: '1.7', prefillKey: 'culture' } },
+  IA_CULTURAL_BACKGROUND_QUESTION,
+  ...IA_MISSING_CONTENT_SECTION_1_QUESTIONS,
   { questionText: 'Religious or spiritual needs', questionType: TEXTAREA, sortOrder: 34, metadata: { specRef: '1.7' } },
   { questionText: 'Prayer routine or worship needs', questionType: TEXTAREA, sortOrder: 35, metadata: { specRef: '1.7' } },
   { questionText: 'Religious or cultural dietary requirements', questionType: TEXTAREA, sortOrder: 36, metadata: { specRef: '1.7', syncKey: 'religiousDiet' } },
@@ -304,16 +1009,15 @@ export const SECTION_1_QUESTIONS: QuestionSeed[] = [
     metadata: { specRef: '1.8' },
   },
   { questionText: 'Interpreter required?', questionType: YES_NO, isRequired: true, sortOrder: 39, metadata: { specRef: '1.8', syncKey: 'interpreterRequired' } },
-  { questionText: 'Language required', questionType: TEXT, sortOrder: 40, metadata: { specRef: '1.8', prefillKey: 'language', syncKey: 'languageRequired' } },
+  { questionText: 'Language required', questionType: TEXT, sortOrder: 40, metadata: { specRef: '1.8', prefillKey: 'languageName', syncKey: 'languageRequired' } },
   { questionText: 'Easy read or large print required?', questionType: YES_NO, sortOrder: 41, metadata: { specRef: '1.8' } },
-  { questionText: 'BSL required?', questionType: YES_NO, sortOrder: 42, metadata: { specRef: '1.8', syncKey: 'signLanguageRequired' } },
-  { questionText: 'Hearing support required?', questionType: YES_NO, sortOrder: 43, metadata: { specRef: '1.8' } },
-  { questionText: 'Visual support required?', questionType: YES_NO, sortOrder: 44, metadata: { specRef: '1.8' } },
+  // 1.8 BSL / Hearing support / Visual support removed — covered by §8.3–8.6 clinical fields
   // 1.0 â€” Care starting context (last in Â§1)
   { questionText: 'Reason for admission / starting care', questionType: TEXTAREA, isRequired: true, sortOrder: 45, metadata: { specRef: '1.0' } },
   { questionText: 'Previous medical history (summary)', questionType: TEXTAREA, sortOrder: 46, metadata: { specRef: '1.0' } },
-  { questionText: 'Care instructions for staff', questionType: TEXTAREA, sortOrder: 47, metadata: { specRef: '1.0', prefillKey: 'careInstructions', syncKey: 'accessInstructions' } },
-  { questionText: 'Planned number of carers', questionType: NUMBER, isRequired: true, sortOrder: 48, metadata: { specRef: '1.0', prefillKey: 'plannedCarers' } },
+  { questionText: 'Care instructions for staff', questionType: TEXTAREA, sortOrder: 47, metadata: { specRef: '1.0', fieldKey: 'careInstructions', prefillKey: 'careInstructions' } },
+  // Not required: DOM Care / the visit plan own staffing; the manager decides double-up (not the IA).
+  { questionText: 'Planned number of carers', questionType: NUMBER, sortOrder: 48, metadata: { specRef: '1.0', prefillKey: 'plannedCarers' } },
   { questionText: 'Carer numbers / rota note', questionType: TEXTAREA, sortOrder: 49, metadata: { specRef: '1.0' } },
 ];
 
@@ -332,57 +1036,14 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
     carePlanArea: 'Consent',
     description: 'Spec Â§2 â€” consent, MCA, best interest, sharing',
     questions: [
-      { questionText: 'Has the Service User consented to this assessment?', questionType: YES_NO, isRequired: true, sortOrder: 1, metadata: { specRef: '2.1' } },
-      {
-        questionText: 'Consent given by',
-        questionType: SINGLE_SELECT,
-        isRequired: true,
-        sortOrder: 2,
-        options: CONSENT_GIVEN_BY_OPTIONS,
-        metadata: { specRef: '2.1', fieldKey: 'consentGivenBy' },
-      },
-      { questionText: 'Has the Service User consented to receive care and support?', questionType: YES_NO, isRequired: true, sortOrder: 3, metadata: { specRef: '2.2' } },
-      { questionText: 'Information explained in a way they understand?', questionType: YES_NO, isRequired: true, sortOrder: 4, metadata: { specRef: '2.3' } },
-      { questionText: 'Capacity to consent to assessment appears intact?', questionType: YES_NO, isRequired: true, sortOrder: 5, metadata: { specRef: '2.4' } },
+      ...IA_CONSENT_TAB_QUESTIONS.filter((q) => q.metadata?.specRef === '2.1'),
+      { questionText: 'Has the Service User consented to receive care and support?', questionType: YES_NO, isRequired: true, sortOrder: 3, metadata: { specRef: '2.2', fieldKey: 'consentToCare' } },
+      ...IA_CONSENT_TAB_QUESTIONS.filter((q) => q.metadata?.specRef !== '2.1'),
       { questionText: 'MCA required?', questionType: YES_NO, isRequired: true, sortOrder: 6, metadata: { specRef: '2.5', fieldKey: 'mcaRequired' } },
-      { questionText: 'MCA completed?', questionType: YES_NO, sortOrder: 7, metadata: { specRef: '2.5' } },
-      { questionText: 'Best interest decision required?', questionType: YES_NO, sortOrder: 8, metadata: { specRef: '2.6' } },
-      { questionText: 'Best interest decision details', questionType: TEXTAREA, sortOrder: 9, metadata: { specRef: '2.6' } },
-      { questionText: 'Family, LPA, deputy, appointee, advocate involvement', questionType: TEXTAREA, sortOrder: 10, metadata: { specRef: '2.7' } },
-      { questionText: 'Consent to share with GP', questionType: YES_NO, isRequired: true, sortOrder: 11, metadata: { specRef: '2.8' } },
-      { questionText: 'Consent to share with family', questionType: YES_NO, isRequired: true, sortOrder: 12, metadata: { specRef: '2.8' } },
-      { questionText: 'Consent to share with pharmacy', questionType: YES_NO, sortOrder: 13, metadata: { specRef: '2.8' } },
-      { questionText: 'Consent to share with local authority', questionType: YES_NO, sortOrder: 14, metadata: { specRef: '2.8' } },
-      {
-        questionText: 'DoLS / LPS authorisation in place?',
-        questionType: YES_NO,
-        sortOrder: 15,
-        metadata: { specRef: '2.9', fieldKey: 'dolsLpsAuthorisationInPlace' },
-      },
-      {
-        questionText: 'DoLS / LPS authorising body',
-        questionType: TEXT,
-        sortOrder: 16,
-        metadata: { specRef: '2.9', fieldKey: 'dolsAuthorisingBody', ...whenYes('DoLS / LPS authorisation in place') },
-      },
-      {
-        questionText: 'DoLS / LPS reference',
-        questionType: TEXT,
-        sortOrder: 17,
-        metadata: { specRef: '2.9', fieldKey: 'dolsReference', ...whenYes('DoLS / LPS authorisation in place') },
-      },
-      {
-        questionText: 'DoLS / LPS expiry date',
-        questionType: DATE,
-        sortOrder: 18,
-        metadata: { specRef: '2.9', fieldKey: 'dolsExpiryDate', ...whenYes('DoLS / LPS authorisation in place') },
-      },
-      {
-        questionText: 'DoLS / LPS relevant details',
-        questionType: TEXTAREA,
-        sortOrder: 19,
-        metadata: { specRef: '2.9', fieldKey: 'dolsDetails', ...whenYes('DoLS / LPS authorisation in place') },
-      },
+      { questionText: 'MCA completed?', questionType: YES_NO, sortOrder: 7, metadata: { specRef: '2.5', fieldKey: 'mcaCompleted' } },
+      { questionText: 'Best interest decision required?', questionType: YES_NO, sortOrder: 8, metadata: { specRef: '2.6', fieldKey: 'bestInterestDecisionRequired' } },
+      { questionText: 'Best interest decision details', helpText: BEST_INTEREST_DETAILS_HELP, questionType: TEXTAREA, sortOrder: 9, metadata: { specRef: '2.6', fieldKey: 'bestInterestDecisionDetails' } },
+      ...IA_DEPRIVATION_OF_LIBERTY_QUESTIONS,
       ...MCA_SCREENING_QUESTIONS,
     ],
   },
@@ -413,8 +1074,6 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       { questionText: 'Door entry code (secure — from DOM Care)', questionType: TEXT, sortOrder: 8, metadata: { specRef: '3.5', fieldKey: 'doorCode', prefillKey: 'doorCode', secureField: true } },
       { questionText: 'Key safe location', questionType: TEXT, sortOrder: 9, metadata: { specRef: '3.6', fieldKey: 'keySafeLocation' } },
       { questionText: 'Trip hazards identified?', questionType: YES_NO, sortOrder: 10, metadata: { specRef: '3.7' } },
-      { questionText: 'Poor lighting?', questionType: YES_NO, sortOrder: 11, metadata: { specRef: '3.7' } },
-      { questionText: 'Heating risk?', questionType: YES_NO, sortOrder: 12, metadata: { specRef: '3.7' } },
       { questionText: 'Pets present?', questionType: YES_NO, sortOrder: 13, metadata: { specRef: '3.8', fieldKey: 'petsPresent' } },
       {
         questionText: 'Pets secured during visits?',
@@ -431,8 +1090,6 @@ export const ENTERPRISE_INITIAL_ASSESSMENT_SECTIONS: SectionSeed[] = [
       // Lone-worker risk is now captured via the Environment Assessment control field
       // (loneWorkerRiskIdentified) and scored by the aggregated LONE_WORKER path, so this
       // legacy question no longer carries riskFlag (would otherwise double-emit a risk).
-      { questionText: 'Lone worker risk identified?', questionType: YES_NO, sortOrder: 17, metadata: { specRef: '3.9' } },
-      { questionText: 'Staff safety instructions', questionType: TEXTAREA, sortOrder: 18, metadata: { specRef: '3.9' } },
       { questionText: 'Steps or uneven access at entrance?', questionType: YES_NO, sortOrder: 21, metadata: { specRef: '3.10' } },
       { questionText: 'Level access throughout the property?', questionType: YES_NO, sortOrder: 22, metadata: { specRef: '3.10' } },
       { questionText: 'Hoarding or clutter risk?', questionType: YES_NO, riskFlag: true, sortOrder: 23, metadata: { specRef: '3.10' } },
@@ -717,6 +1374,7 @@ export async function seedInitialAssessmentEnterprise(prisma: PrismaClient): Pro
       const existing = sectionQuestions.find((row) => {
         if (usedIds.has(row.id)) return false;
         if (row.questionText === q.questionText) return true;
+        if (q.formerQuestionTexts?.includes(row.questionText)) return true;
         if (!row.metadata || typeof row.metadata !== 'object' || Array.isArray(row.metadata)) {
           return false;
         }
@@ -949,6 +1607,7 @@ export async function upsertEnterpriseTemplateSections(
       const existing = sectionQuestions.find((row) => {
         if (usedIds.has(row.id)) return false;
         if (row.questionText === q.questionText) return true;
+        if (q.formerQuestionTexts?.includes(row.questionText)) return true;
         if (!row.metadata || typeof row.metadata !== 'object' || Array.isArray(row.metadata)) {
           return false;
         }

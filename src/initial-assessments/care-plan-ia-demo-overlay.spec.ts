@@ -29,16 +29,12 @@ const PERSON_CENTRED_QUESTIONS = new Set([
   'Personal hygiene',
   'Night support',
   'What is most important to me',
-  'Important routines (meals, prayer, medication, bedtime)',
-  'Care preferences and dislikes',
   'Things they want to keep doing independently',
   'How I communicate and how to communicate with me',
   'Communication needs',
   'Things they do not want support with',
-  'Activity likes and dislikes',
   'Food likes and dislikes',
   'Known triggers (anxiety, distress, confusion)',
-  'Personal priorities, goals, independence goals',
   'Lifestyle, role and choices',
   'Care package comments',
   'Modesty requirements',
@@ -185,7 +181,7 @@ describe('Care Plan IA demo overlay', () => {
       }
     }
     for (const questionText of IA_DEMO_INTENTIONALLY_EMPTY_QUESTIONS) {
-      if (questionText === 'LPOA name' || questionText === 'LPOA designation' || questionText === 'LPOA contact details') {
+      if (questionText === 'LPA name' || questionText === 'LPA designation' || questionText === 'LPA contact details') {
         continue;
       }
       if (questionText === 'GP name' || questionText === 'GP practice and phone' || questionText === 'GP contact details') {

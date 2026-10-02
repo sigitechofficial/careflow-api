@@ -695,7 +695,10 @@ export class ServiceUserAssessmentsService {
 
       const statusLabel = item.review.status === 'overdue' ? 'overdue' : 'due soon';
       const title = `Assessment review ${statusLabel}: ${item.assessmentTitle}`;
-      const message = `${item.serviceUserName ?? 'Service user'} — ${item.assessmentTitle} is ${statusLabel}. You can complete the assessment at any time from the care plan.`;
+      const message =
+        item.review.status === 'overdue'
+          ? `${item.serviceUserName ?? 'Service user'} — ${item.assessmentTitle} review is overdue. Complete it from the care plan.`
+          : `${item.serviceUserName ?? 'Service user'} — ${item.assessmentTitle} review is due soon. Complete it from the care plan.`;
 
       try {
         await this.notifications.notifyUsers({

@@ -103,11 +103,11 @@ const ENV_FACTOR_LABELS: Record<string, string> = {
   aggression: 'aggression towards carers',
   verbalAbuse: 'verbal abuse / threats towards staff',
   physicalViolence: 'history of physical violence',
-  unpredictable: 'unpredictable / challenging behaviour',
-  dementiaBehaviour: 'dementia / cognitive impairment affecting behaviour',
-  mentalHealthRisk: 'mental health condition posing a risk to staff',
-  substanceMisuse: 'substance / alcohol misuse in the household',
-  refusedCare: 'previously refused care / prevented carers leaving',
+  unpredictable: 'unpredictable / challenging behaviour towards staff',
+  dementiaBehaviour: 'confusion leading to behaviour that could put staff at risk',
+  mentalHealthRisk: 'current or recent risk to staff linked to mental state',
+  substanceMisuse: 'alcohol / drug use in the home affecting staff safety',
+  refusedCare: 'carers prevented from leaving / exit blocked',
   isolatedProperty: 'isolated / remote property',
   poorLightingAccess: 'poor lighting or difficult access',
   unsafeArea: 'unsafe area / neighbourhood',
@@ -121,7 +121,7 @@ const ENV_FACTOR_LABELS: Record<string, string> = {
   previousCarerComplaints: 'previous carer complaints / concerns',
   previousSosEvent: 'previous SOS / emergency event',
   unsafeMovingHandlingAlone: 'moving & handling needs two carers',
-  twoCarerRecommended: 'two-carer (double-up) visit required',
+  twoCarerRecommended: 'two-carer (double-up) visit recommended to the manager',
 };
 
 /** Control fields stored in the Environment Assessment snapshot (Staff Only). */

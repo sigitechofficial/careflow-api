@@ -85,11 +85,7 @@ const FIRE_SAFETY_REHOME_FIELD_KEYS = [
 const PHASE1_MEDICATION_KEYS = [
   'takingPrescribedMedication',
   'medicationSupportLevel',
-  'medicationPromptingRequired',
-  'packagingHelpRequired',
-  'medicationAssistanceAdministering',
   'medicationAdministeredBy',
-  'independentSelfAdministration',
   'insulinAdministrationRequired',
   'insulinPromptingRequired',
   'insulinSupervisionRequired',
@@ -114,7 +110,7 @@ describe('Phase 1 IA gaps — catalogue, QA and conditionals', () => {
     }
     const support = SECTION_9_QUESTIONS.find((q) => (q.metadata as { fieldKey?: string })?.fieldKey === 'medicationSupportLevel');
     const codes = (support?.options as { options: Array<{ value: string }> } | undefined)?.options.map((o) => o.value);
-    expect(codes).toEqual(['level_0', 'level_1a', 'level_1b', 'level_2a', 'level_2b']);
+    expect(codes).toEqual(['level_0', 'level_1a', 'level_1b', 'level_2a', 'level_2b', 'provided_by_others']);
     expect(section9.every((q) => !String(q.questionText).toLowerCase().includes('care pathway'))).toBe(true);
   });
 
@@ -125,7 +121,9 @@ describe('Phase 1 IA gaps — catalogue, QA and conditionals', () => {
     expect(byKey(catalog, 'chokingRescuePlanKnownToStaff').sectionNumber).toBe(5);
     expect(catalog.some((q) => q.questionText === 'Swallowing or choking concerns?')).toBe(true);
 
-    expect(byKey(catalog, 'dolsLpsAuthorisationInPlace').sectionNumber).toBe(2);
+    expect(byKey(catalog, 'dolRestrictions').sectionNumber).toBe(2);
+    expect(byKey(catalog, 'dolConcern').sectionNumber).toBe(2);
+    expect(byKey(catalog, 'dolAuthorisationStatus').sectionNumber).toBe(2);
     expect(byKey(catalog, 'dolsAuthorisingBody').sectionNumber).toBe(2);
     expect(byKey(catalog, 'dolsReference').sectionNumber).toBe(2);
     expect(byKey(catalog, 'dolsExpiryDate').sectionNumber).toBe(2);
@@ -201,12 +199,8 @@ describe('Phase 1 IA gaps — catalogue, QA and conditionals', () => {
       const support = selectedCode(answers.get(byKey(catalog, 'medicationSupportLevel').id));
       expect(support).toBe(level === 'critical' ? 'level_2a' : level === 'normal' ? 'level_1a' : 'level_0');
 
-      const independent = answers.get(byKey(catalog, 'independentSelfAdministration').id)?.booleanValue;
-      expect(independent).toBe(level === 'low');
       if (level === 'low') {
-        expect(answers.get(byKey(catalog, 'medicationPromptingRequired').id)?.booleanValue).toBe(false);
-        expect(answers.get(byKey(catalog, 'packagingHelpRequired').id)?.booleanValue).toBe(false);
-        expect(answers.get(byKey(catalog, 'medicationAssistanceAdministering').id)?.booleanValue).toBe(false);
+        expect(support).toBe('level_0');
         expect(selectedCode(answers.get(byKey(catalog, 'medicationAdministeredBy').id))).toBe('self');
       }
 
@@ -226,8 +220,14 @@ describe('Phase 1 IA gaps — catalogue, QA and conditionals', () => {
       expect(writable.has(byKey(catalog, 'chokingOccursWith').id)).toBe(chokingYes);
       expect(answers.has(byKey(catalog, 'chokingOccursWith').id)).toBe(chokingYes);
 
-      const dols = byKey(catalog, 'dolsLpsAuthorisationInPlace');
-      expect(answers.get(dols.id)?.booleanValue).toBe(false);
+      // DoL is screening-first: restrictions → concern → review / status; details only once authorised.
+      const restrictions = byKey(catalog, 'dolRestrictions');
+      const restricted = level === 'critical';
+      expect(answers.get(restrictions.id)?.selectedOptions).toEqual(
+        restricted ? ['not_allowed_out_alone', 'continuous_supervision'] : ['none'],
+      );
+      expect(writable.has(byKey(catalog, 'dolConcern').id)).toBe(restricted);
+      if (restricted) expect(selectedCode(answers.get(byKey(catalog, 'dolConcern').id))).toBe('unsure');
       expect(writable.has(byKey(catalog, 'dolsAuthorisingBody').id)).toBe(false);
 
       const oral = byKey(catalog, 'oralHealthConcern');

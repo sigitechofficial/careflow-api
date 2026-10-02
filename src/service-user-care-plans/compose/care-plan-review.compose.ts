@@ -14,6 +14,7 @@ import {
 import { composeLabelMappedForm, mergeEvidence, type LabelFieldMapping } from './label-mapped-compose.util';
 import { iaRoute, medRoute } from './compose-routes.util';
 import { resolveComposeNextReviewDate } from './compose-next-review-date.util';
+import { iaConsentCapacitySummary } from './consent-capacity-summary.util';
 
 function isoDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -172,10 +173,7 @@ export const CARE_PLAN_REVIEW_FIELD_MAPPINGS: LabelFieldMapping[] = [
   {
     fieldLabel: 'Capacity and consent summary',
     resolve: (ctx) => {
-      const text = joinIaAnswers(ctx, [
-        { fieldKey: 'consentGivenBy' },
-        { specRef: '2.4', contains: 'capacity to consent' },
-      ]);
+      const text = ctx.ia ? iaConsentCapacitySummary(ctx.ia.answers) : null;
       if (!text) return null;
       return {
         fieldKey: '',

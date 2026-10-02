@@ -2,7 +2,9 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -10,6 +12,7 @@ import {
   DataAccessType,
   InitialAssessmentStatus as PrismaStatus,
   Prisma,
+  ServiceUserClinicalDataSource,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -81,13 +84,21 @@ import { initialAssessmentFilePublicUrl } from './initial-assessment-upload.util
 import {
   InitialAssessmentActionPriority,
   InitialAssessmentActionStatus,
+  InitialAssessmentActionType,
   InitialAssessmentAttachmentCategory,
   InitialAssessmentRiskLevel,
   InitialAssessmentRiskStatus,
 } from '@prisma/client';
 import {
+  IA_TRANSFER_SUPPORT_FIELD_KEY,
+  IA_USES_HOIST_FIELD_KEY,
+  movingHandlingNeedsTransferSupport,
+  movingHandlingUsesHoist,
+} from './initial-assessment-moving-handling.util';
+import {
   decryptSecureText,
   encryptSecureText,
+  IA_DOOR_CODE_FIELD_KEY,
   isSecureQuestionMetadata,
   maskSecureAnswer,
 } from './initial-assessment-secure-field.util';
@@ -103,7 +114,18 @@ import {
 import { buildInitialAssessmentPdfData, type InitialAssessmentPdfData } from './initial-assessment-pdf-data.util';
 import { buildSignOffSnapshot } from './initial-assessment-sign-off.util';
 import { enrichWaterlowMetadata } from './initial-assessment-waterlow.util';
+import {
+  cleanConditionText,
+  normalizeConditionProposals,
+  planConditionPromotion,
+} from './initial-assessment-condition-proposals.util';
+import {
+  categoryFromConsentAnswer,
+  LEGAL_AUTHORITY_CATEGORY_LABEL,
+} from '../service-user-documents/legal-authority-coverage.util';
 import { promoteIaAssessmentsOnSubmit } from '../service-user-assessments/ia-assessment-promotion.util';
+import { decideKeySafeProposal } from './initial-assessment-key-safe.util';
+import { buildLoneWorkerSystemFacts } from './initial-assessment-lone-worker-facts.util';
 
 const submissionUserSelect = {
   id: true,
@@ -122,8 +144,15 @@ const submissionInclude = {
 
 const EDITABLE_STATUSES: PrismaStatus[] = [PrismaStatus.DRAFT, PrismaStatus.IN_PROGRESS];
 
+/** What happened to the visit-plan draft that approving an IA for care start tries to create. */
+export type VisitPlanDraftOutcome =
+  | { status: 'created' | 'exists' }
+  | { status: 'skipped'; message: string };
+
 @Injectable()
 export class InitialAssessmentsService {
+  private readonly logger = new Logger(InitialAssessmentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
@@ -435,6 +464,10 @@ export class InitialAssessmentsService {
         }
       }
 
+      if (dto.metadata && 'movingHandlingOperations' in dto.metadata) {
+        await this.syncHoistAnswerFromMovingHandling(tx, submissionId, existing.templateId, dto.metadata);
+      }
+
       const updated = await tx.initialAssessmentSubmission.update({
         where: { id: submissionId },
         data: {
@@ -461,6 +494,46 @@ export class InitialAssessmentsService {
       });
       return { message: 'Submission updated', data: this.mapSubmission(updated) };
     });
+  }
+
+  /**
+   * Keeps the hidden §12.5a hoist and §12.5c transfer-support answers (risk + care-plan triggers)
+   * in step with the M&H worksheet. Nothing is written until the worksheet records the task.
+   */
+  private async syncHoistAnswerFromMovingHandling(
+    tx: Prisma.TransactionClient,
+    submissionId: string,
+    templateId: string,
+    metadata: Prisma.JsonValue | Record<string, unknown> | null | undefined,
+  ): Promise<void> {
+    const derived: Array<[string, boolean | undefined]> = [
+      [IA_USES_HOIST_FIELD_KEY, movingHandlingUsesHoist(metadata)],
+      [IA_TRANSFER_SUPPORT_FIELD_KEY, movingHandlingNeedsTransferSupport(metadata)],
+    ];
+    for (const [fieldKey, value] of derived) {
+      if (value === undefined) continue;
+      const question = await tx.initialAssessmentQuestion.findFirst({
+        where: {
+          metadata: { path: ['fieldKey'], equals: fieldKey },
+          isActive: true,
+          deletedAt: null,
+          section: { templateId, deletedAt: null },
+        },
+        select: { id: true, riskFlag: true, carePlanTrigger: true },
+      });
+      if (!question) continue;
+      const row = {
+        checked: value,
+        booleanValue: value,
+        riskFlag: question.riskFlag && value,
+        carePlanTrigger: question.carePlanTrigger && value,
+      };
+      await tx.initialAssessmentAnswer.upsert({
+        where: { submissionId_questionId: { submissionId, questionId: question.id } },
+        create: { submissionId, questionId: question.id, ...row },
+        update: row,
+      });
+    }
   }
 
   async softDeleteSubmission(
@@ -733,15 +806,8 @@ export class InitialAssessmentsService {
       }
     }
 
-    const keySafeQuestion = questions.find(
-      (q) => q.questionText.toLowerCase().includes('key safe code'),
-    );
-    if (keySafeQuestion) {
-      const keySafeAnswer = expandedAnswers.find((a) => a.questionId === keySafeQuestion.id);
-      if (keySafeAnswer !== undefined) {
-        domSyncFields.doorCode = keySafeAnswer.textValue?.trim() || null;
-      }
-    }
+    // The key-safe code is no longer copied into DOM Care on every draft save: the IA answer is a
+    // proposal applied to Home & access when the manager reviews the assessment.
 
     if (Object.keys(domSyncFields).length) {
       const existingDom = await this.prisma.serviceUserDomCare.findUnique({ where: { serviceUserId } });
@@ -892,6 +958,12 @@ export class InitialAssessmentsService {
       submissionId,
       questions,
     });
+    await this.syncHoistAnswerFromMovingHandling(
+      this.prisma,
+      submissionId,
+      submission.templateId,
+      submission.metadata,
+    );
     const answers = await this.prisma.initialAssessmentAnswer.findMany({ where: { submissionId } });
     const agencySettings = getInitialAssessmentAgencySettings();
     const validation = validateInitialAssessmentSubmission({
@@ -1083,6 +1155,7 @@ export class InitialAssessmentsService {
         questions,
         answers,
       });
+      await this.applyConditionProposalsOnSubmit(tx, userId, serviceUserId, submissionId, submissionMetadata);
       return updated;
     });
 
@@ -1104,6 +1177,15 @@ export class InitialAssessmentsService {
     });
 
     return { message: 'Initial assessment submitted', data: this.mapSubmission(result) };
+  }
+
+  async getLoneWorkerSystemFacts(serviceUserId: string) {
+    const exists = await this.prisma.serviceUser.findFirst({
+      where: { id: serviceUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Service user not found');
+    return { data: await buildLoneWorkerSystemFacts(this.prisma, serviceUserId) };
   }
 
   async reviewAssessment(
@@ -1145,6 +1227,11 @@ export class InitialAssessmentsService {
         },
         include: submissionInclude,
       });
+      if (dto.status === PrismaStatus.REVIEWED) {
+        await this.applyKeySafeProposalOnReview(tx, userId, serviceUserId, submissionId);
+        await this.applyDolAuthorisationOnReview(tx, userId, serviceUserId, submissionId);
+        await this.applyLegalAuthorityProposalOnReview(tx, userId, serviceUserId, submissionId);
+      }
       await this.audit.logAudit({
         tx,
         userId,
@@ -1162,11 +1249,387 @@ export class InitialAssessmentsService {
 
     await this.notifications.onReviewed({ submissionId, serviceUserId, reviewedById: userId });
 
-    if (dto.status === PrismaStatus.REVIEWED && dto.approvedForCareStart === true) {
-      await this.visitPlans.createDraftFromAssessment(userId, serviceUserId, submissionId, meta);
-    }
+    const visitPlanDraft =
+      dto.status === PrismaStatus.REVIEWED && dto.approvedForCareStart === true
+        ? await this.createVisitPlanDraftAfterReview(userId, serviceUserId, submissionId, meta)
+        : null;
 
-    return { message: 'Initial assessment reviewed', data: this.mapSubmission(result) };
+    return {
+      message: 'Initial assessment reviewed',
+      data: { ...this.mapSubmission(result), visitPlanDraft },
+    };
+  }
+
+  /**
+   * IA §3.5 key-safe code → Home & access (the master carers see). Fills an empty master only; a
+   * different existing code is never overwritten — the office gets a task to confirm which is right.
+   * Codes are never written to audit values.
+   */
+  private async applyKeySafeProposalOnReview(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    serviceUserId: string,
+    submissionId: string,
+  ) {
+    const answer = await tx.initialAssessmentAnswer.findFirst({
+      where: {
+        submissionId,
+        question: { metadata: { path: ['fieldKey'], equals: IA_DOOR_CODE_FIELD_KEY } },
+      },
+      select: { textValue: true },
+    });
+    const iaCode = decryptSecureText(answer?.textValue ?? null)?.trim() || null;
+    const address = await tx.serviceUserAddress.findUnique({
+      where: { serviceUserId },
+      select: { id: true, keySafeNumber: true, deletedAt: true },
+    });
+    const master = address && !address.deletedAt ? address.keySafeNumber : null;
+    const decision = decideKeySafeProposal(iaCode, master);
+    if (decision === 'fill_master') {
+      const saved = await tx.serviceUserAddress.upsert({
+        where: { serviceUserId },
+        create: { serviceUserId, keySafeNumber: iaCode, createdById: userId, updatedById: userId },
+        update: { keySafeNumber: iaCode, updatedById: userId },
+        select: { id: true },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_ADDRESS_UPDATED,
+        recordType: 'ServiceUserAddress',
+        recordId: saved.id,
+        metadata: { serviceUserId, submissionId, field: 'keySafeNumber', source: 'initial_assessment_review' },
+      });
+    } else if (decision === 'conflict') {
+      const title = 'Confirm key safe code — assessment differs from Home & access';
+      const exists = await tx.initialAssessmentAction.findFirst({
+        where: { submissionId, title },
+        select: { id: true },
+      });
+      if (!exists) {
+        await tx.initialAssessmentAction.create({
+          data: {
+            submissionId,
+            serviceUserId,
+            title,
+            actionType: InitialAssessmentActionType.OTHER,
+            priority: InitialAssessmentActionPriority.HIGH,
+            status: InitialAssessmentActionStatus.OPEN,
+            dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            sourceSectionNumber: 3,
+            autoGenerated: true,
+            createdById: userId,
+            updatedById: userId,
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * An authorised deprivation of liberty recorded in the IA → the service user's DoL record (read by
+   * alerts, compliance and the carer app). Creates a record only when none is current; an existing
+   * record is never overwritten — the office gets a task to check it matches the assessment.
+   */
+  /**
+   * Current conditions staged in the IA → the conditions register (never overwrites; see
+   * planConditionPromotion). Differences go to the office as an action.
+   */
+  private async applyConditionProposalsOnSubmit(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    serviceUserId: string,
+    submissionId: string,
+    metadata: unknown,
+  ) {
+    const proposals = normalizeConditionProposals(
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>).conditionProposals
+        : undefined,
+    );
+    if (!proposals.length) return;
+    const catalog = await tx.medicalConditionCatalog.findMany({
+      where: { id: { in: proposals.map((p) => p.conditionId) }, isActive: true },
+      select: { id: true, name: true },
+    });
+    const nameById = new Map(catalog.map((c) => [c.id, c.name]));
+    const valid = proposals.filter((p) => nameById.has(p.conditionId));
+    const register = await tx.serviceUserMedicalCondition.findMany({
+      where: { serviceUserId, deletedAt: null, conditionId: { in: valid.map((p) => p.conditionId) } },
+      select: {
+        id: true,
+        conditionId: true,
+        status: true,
+        impactOnCare: true,
+        carerGuidance: true,
+        confirmationSource: true,
+      },
+    });
+    const plan = planConditionPromotion(valid, register);
+    for (const p of plan.create) {
+      const created = await tx.serviceUserMedicalCondition.create({
+        data: {
+          serviceUserId,
+          conditionId: p.conditionId,
+          status: 'ACTIVE',
+          impactOnCare: cleanConditionText(p.impactOnCare),
+          carerGuidance: cleanConditionText(p.carerGuidance),
+          confirmationSource: cleanConditionText(p.confirmationSource),
+          source: ServiceUserClinicalDataSource.INITIAL_ASSESSMENT,
+          sourceSubmissionId: submissionId,
+          createdById: userId,
+          updatedById: userId,
+        },
+        select: { id: true },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_UPDATED,
+        recordType: 'ServiceUserMedicalCondition',
+        recordId: created.id,
+        newValues: { conditionId: p.conditionId, source: 'INITIAL_ASSESSMENT', submissionId },
+      });
+    }
+    for (const f of plan.fill) {
+      await tx.serviceUserMedicalCondition.update({ where: { id: f.rowId }, data: { ...f.data, updatedById: userId } });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_UPDATED,
+        recordType: 'ServiceUserMedicalCondition',
+        recordId: f.rowId,
+        newValues: { filledFromAssessment: Object.keys(f.data), submissionId },
+      });
+    }
+    for (const r of plan.review) {
+      const name = nameById.get(r.proposal.conditionId) ?? 'condition';
+      const title =
+        r.reason === 'inactive_on_register'
+          ? `Confirm whether ${name} is current — reported in the assessment but inactive on the record`
+          : `Review ${name} details — assessment differs from the conditions record`;
+      const exists = await tx.initialAssessmentAction.findFirst({ where: { submissionId, title }, select: { id: true } });
+      if (exists) continue;
+      await tx.initialAssessmentAction.create({
+        data: {
+          submissionId,
+          serviceUserId,
+          title,
+          notes: [
+            r.proposal.impactOnCare && `Assessment — impact on care: ${cleanConditionText(r.proposal.impactOnCare)}`,
+            r.proposal.carerGuidance && `Assessment — carer guidance: ${cleanConditionText(r.proposal.carerGuidance)}`,
+          ]
+            .filter(Boolean)
+            .join('\n') || null,
+          actionType: InitialAssessmentActionType.OTHER,
+          priority: InitialAssessmentActionPriority.MEDIUM,
+          status: InitialAssessmentActionStatus.OPEN,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          sourceSectionNumber: 1,
+          autoGenerated: true,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+    }
+  }
+
+  /**
+   * Consent tab named a health & welfare LPA / deputy / court order → propose it on the legal authority
+   * register as "reported" (never overwrites a row) and ask the office to check the document before
+   * anyone relies on it. Next of kin and "unsure" never create an authority.
+   */
+  private async applyLegalAuthorityProposalOnReview(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    serviceUserId: string,
+    submissionId: string,
+  ) {
+    const rows = await tx.initialAssessmentAnswer.findMany({
+      where: {
+        submissionId,
+        question: {
+          OR: ['legalAuthority', 'legalAuthorityName', 'legalAuthorityRole', 'legalAuthorityEvidence'].map(
+            (fieldKey) => ({ metadata: { path: ['fieldKey'], equals: fieldKey } }),
+          ),
+        },
+      },
+      select: { textValue: true, selectedOptions: true, question: { select: { metadata: true } } },
+    });
+    const byKey = new Map(
+      rows.map((r) => [String((r.question.metadata as Record<string, unknown> | null)?.fieldKey ?? ''), r]),
+    );
+    const raw = byKey.get('legalAuthority')?.selectedOptions;
+    const category = categoryFromConsentAnswer(Array.isArray(raw) ? String(raw[0] ?? '') : typeof raw === 'string' ? raw : '');
+    if (!category) return;
+    const text = (key: string) => byKey.get(key)?.textValue?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || '';
+    const holderName = text('legalAuthorityName') || 'Name not recorded';
+    const existing = await tx.serviceUserLegalAuthority.findMany({
+      where: { serviceUserId, deletedAt: null, isActive: true, category },
+      select: { id: true, holderName: true, verificationStatus: true },
+    });
+    const same = existing.find((a) => a.holderName.trim().toLowerCase() === holderName.toLowerCase()) ?? existing[0];
+    if (!same) {
+      const created = await tx.serviceUserLegalAuthority.create({
+        data: {
+          serviceUserId,
+          category,
+          holderName,
+          holderRelationship: text('legalAuthorityRole'),
+          verificationStatus: 'REPORTED',
+          notes: [
+            text('legalAuthorityEvidence') && `Evidence noted at assessment: ${text('legalAuthorityEvidence')}`,
+            'Reported in the initial assessment — check the document before relying on it.',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          source: ServiceUserClinicalDataSource.INITIAL_ASSESSMENT,
+          sourceSubmissionId: submissionId,
+          createdById: userId,
+          updatedById: userId,
+        },
+        select: { id: true },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_LEGAL_AUTHORITY_CREATED,
+        recordType: 'ServiceUserLegalAuthority',
+        recordId: created.id,
+        newValues: { category, source: 'INITIAL_ASSESSMENT', submissionId, verificationStatus: 'REPORTED' },
+      });
+    }
+    if (same && (same.verificationStatus === 'DOCUMENT_SEEN' || same.verificationStatus === 'VERIFIED')) return;
+    const title = `Verify legal authority: ${LEGAL_AUTHORITY_CATEGORY_LABEL[category]} (${holderName})`;
+    const exists = await tx.initialAssessmentAction.findFirst({ where: { submissionId, title }, select: { id: true } });
+    if (exists) return;
+    await tx.initialAssessmentAction.create({
+      data: {
+        submissionId,
+        serviceUserId,
+        title,
+        notes:
+          'See the original or certified copy (or search the OPG register / court order) and record what it covers on the legal authority register.',
+        actionType: InitialAssessmentActionType.OTHER,
+        priority: InitialAssessmentActionPriority.HIGH,
+        status: InitialAssessmentActionStatus.OPEN,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        sourceSectionNumber: 2,
+        autoGenerated: true,
+        createdById: userId,
+        updatedById: userId,
+      },
+    });
+  }
+
+  private async applyDolAuthorisationOnReview(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    serviceUserId: string,
+    submissionId: string,
+  ) {
+    const rows = await tx.initialAssessmentAnswer.findMany({
+      where: {
+        submissionId,
+        question: {
+          OR: ['dolAuthorisationStatus', 'dolsAuthorisingBody', 'dolsReference', 'dolsExpiryDate', 'dolsDetails'].map(
+            (fieldKey) => ({ metadata: { path: ['fieldKey'], equals: fieldKey } }),
+          ),
+        },
+      },
+      select: { textValue: true, dateValue: true, selectedOptions: true, question: { select: { metadata: true } } },
+    });
+    const byKey = new Map(
+      rows.map((r) => [String((r.question.metadata as Record<string, unknown> | null)?.fieldKey ?? ''), r]),
+    );
+    const statusRaw = byKey.get('dolAuthorisationStatus')?.selectedOptions;
+    const status = Array.isArray(statusRaw) ? String(statusRaw[0] ?? '') : '';
+    if (status !== 'authorised_cop' && status !== 'authorised_dols') return;
+    const current = await tx.serviceUserDolsRecord.findFirst({
+      where: { serviceUserId, deletedAt: null, isCurrent: true },
+      select: { id: true },
+    });
+    if (current) {
+      const title = 'Check the deprivation of liberty record matches the assessment';
+      const exists = await tx.initialAssessmentAction.findFirst({ where: { submissionId, title }, select: { id: true } });
+      if (!exists) {
+        await tx.initialAssessmentAction.create({
+          data: {
+            submissionId,
+            serviceUserId,
+            title,
+            actionType: InitialAssessmentActionType.OTHER,
+            priority: InitialAssessmentActionPriority.MEDIUM,
+            status: InitialAssessmentActionStatus.OPEN,
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            sourceSectionNumber: 2,
+            autoGenerated: true,
+            createdById: userId,
+            updatedById: userId,
+          },
+        });
+      }
+      return;
+    }
+    const text = (key: string) => byKey.get(key)?.textValue?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || '';
+    const notes = [
+      status === 'authorised_cop' ? 'Court of Protection order' : 'DoLS authorisation',
+      text('dolsAuthorisingBody') && `Authorised by: ${text('dolsAuthorisingBody')}`,
+      text('dolsReference') && `Reference: ${text('dolsReference')}`,
+      text('dolsDetails') && `Conditions carers must follow: ${text('dolsDetails')}`,
+      'Recorded from the initial assessment on manager review.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    const created = await tx.serviceUserDolsRecord.create({
+      data: {
+        serviceUserId,
+        isCurrent: true,
+        renewalDate: byKey.get('dolsExpiryDate')?.dateValue ?? null,
+        notes,
+        createdById: userId,
+        updatedById: userId,
+      },
+      select: { id: true },
+    });
+    await this.audit.logAudit({
+      tx,
+      userId,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.SERVICE_USER_UPDATED,
+      recordType: 'ServiceUserDolsRecord',
+      recordId: created.id,
+      metadata: { serviceUserId, submissionId, source: 'initial_assessment_review' },
+    });
+  }
+
+  /**
+   * The review is already committed, so a visit-plan problem (e.g. DOM Care weekly hours not set yet)
+   * is reported as an outcome instead of failing the request and making the review look unsaved.
+   */
+  private async createVisitPlanDraftAfterReview(
+    userId: string,
+    serviceUserId: string,
+    submissionId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<VisitPlanDraftOutcome> {
+    try {
+      const res = await this.visitPlans.createDraftFromAssessment(userId, serviceUserId, submissionId, meta);
+      return { status: res?.message === 'Visit plan already exists for this assessment' ? 'exists' : 'created' };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        return { status: 'skipped', message: err.message };
+      }
+      this.logger.error(
+        `Visit plan draft failed after IA review ${submissionId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      return { status: 'skipped', message: 'The visit plan draft could not be created — create it from the Visit Plan tab.' };
+    }
   }
 
   async updateStatus(
@@ -1683,10 +2146,18 @@ export class InitialAssessmentsService {
         riskLevel: true,
         status: true,
         sourceSectionNumber: true,
+        responsiblePersonId: true,
       },
     });
     for (const risk of riskRows) {
       if (risk.status === 'CLOSED') continue;
+      if (risk.riskLevel === 'HIGH' && !risk.responsiblePersonId) {
+        result.warnings.push({
+          message: `Risk matrix: choose who is responsible for “${risk.description.slice(0, 60)}${risk.description.length > 60 ? '…' : ''}”`,
+          sectionNumber: risk.sourceSectionNumber ?? 13,
+          blocking: false,
+        });
+      }
       if (!risk.controlMeasures?.trim()) {
         result.warnings.push({
           message: `Risk matrix: add control measures for “${risk.description.slice(0, 80)}${risk.description.length > 80 ? '…' : ''}”`,
@@ -1796,13 +2267,18 @@ export class InitialAssessmentsService {
 
     const answers = await tx.initialAssessmentAnswer.findMany({
       where: { submissionId: params.submissionId },
-      select: { questionId: true, checked: true, booleanValue: true },
+      select: { questionId: true, checked: true, booleanValue: true, selectedOptions: true },
     });
 
+    const legal = await tx.serviceUserLegalDocument.findUnique({
+      where: { serviceUserId: params.serviceUserId },
+      select: { dnacprStatusConfirmation: true },
+    });
     const drafts = buildAutoActionsFromSubmission({
       questions,
       answers,
       metadata: params.metadata,
+      dnacprVerifiedByOffice: legal?.dnacprStatusConfirmation === 'IN_PLACE',
     });
 
     for (const draft of drafts) {
@@ -2409,6 +2885,17 @@ export class InitialAssessmentsService {
   ): Promise<{ pdfData: InitialAssessmentPdfData; templateId: string }> {
     const submission = await this.getSubmissionOrThrow(serviceUserId, submissionId);
     const serviceUser = await this.ensureServiceUser(serviceUserId);
+    // A finalised record must export exactly as it was answered, even if a question
+    // was later retired from the template.
+    const isFinalised = !EDITABLE_STATUSES.includes(submission.status);
+    const questionWhere: Prisma.InitialAssessmentQuestionWhereInput = isFinalised
+      ? {
+          OR: [
+            { isActive: true, deletedAt: null },
+            { answers: { some: { submissionId } } },
+          ],
+        }
+      : { isActive: true, deletedAt: null };
 
     const [sectionRows, answers, actions, risks, company, exporter] = await Promise.all([
       this.prisma.initialAssessmentSection.findMany({
@@ -2418,7 +2905,7 @@ export class InitialAssessmentsService {
           sectionNumber: true,
           title: true,
           questions: {
-            where: { isActive: true, deletedAt: null },
+            where: questionWhere,
             orderBy: { sortOrder: 'asc' },
             select: {
               id: true,

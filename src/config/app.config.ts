@@ -13,6 +13,8 @@ export const appConfig = registerAs('app', () => ({
   port: Number(process.env.PORT ?? 3000),
   /** `0.0.0.0` = reachable via LAN IP; override with HOST=127.0.0.1 to lock to localhost. */
   host: process.env.HOST ?? '0.0.0.0',
+  /** Admin SPA origin for links in emails/push (e.g. survey links); falls back to the request Origin. */
+  adminAppUrl: (process.env.ADMIN_APP_URL ?? '').trim().replace(/\/+$/, ''),
   swaggerTitle: process.env.SWAGGER_TITLE ?? 'CareAdmin API',
   swaggerDescription: process.env.SWAGGER_DESCRIPTION ?? 'CareAdmin backend API',
   swaggerVersion: process.env.SWAGGER_VERSION ?? '1.0.0',

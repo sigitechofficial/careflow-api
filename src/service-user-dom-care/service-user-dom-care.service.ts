@@ -7,11 +7,15 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PatchServiceUserDomCareDto } from './dto/patch-service-user-dom-care.dto';
+import {
+  decryptSecureText,
+  encryptSecureText,
+  IA_DOOR_CODE_FIELD_KEY,
+} from '../initial-assessments/initial-assessment-secure-field.util';
 
 const DOC_SEGMENTS = ['service-users', 'dom-care', 'contracts'] as const;
 const GENDER_PREF_QUESTION_NEEDLE = 'gender preference';
 const ACCOMMODATION_QUESTION_NEEDLE = 'living accommodation';
-const KEY_SAFE_CODE_NEEDLE = 'key safe code';
 
 type CarerBrief = { id: string; firstName: string; lastName: string };
 
@@ -230,13 +234,13 @@ export class ServiceUserDomCareService {
       where: {
         submissionId: submission.id,
         question: {
-          questionText: { contains: KEY_SAFE_CODE_NEEDLE, mode: 'insensitive' },
+          metadata: { path: ['fieldKey'], equals: IA_DOOR_CODE_FIELD_KEY },
           deletedAt: null,
         },
       },
       select: { textValue: true },
     });
-    return answer?.textValue?.trim() || null;
+    return decryptSecureText(answer?.textValue)?.trim() || null;
   }
 
   private async syncKeySafeCodeToIa(
@@ -247,24 +251,26 @@ export class ServiceUserDomCareService {
     const submission = await tx.initialAssessmentSubmission.findFirst({
       where: { serviceUserId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      select: { id: true },
+      select: { id: true, templateId: true },
     });
     if (!submission) return;
     const question = await tx.initialAssessmentQuestion.findFirst({
       where: {
-        questionText: { contains: KEY_SAFE_CODE_NEEDLE, mode: 'insensitive' },
+        metadata: { path: ['fieldKey'], equals: IA_DOOR_CODE_FIELD_KEY },
+        isActive: true,
         deletedAt: null,
-        section: { deletedAt: null },
+        section: { templateId: submission.templateId, deletedAt: null },
       },
       select: { id: true },
     });
     if (!question) return;
+    const textValue = encryptSecureText(value);
     await tx.initialAssessmentAnswer.upsert({
       where: {
         submissionId_questionId: { submissionId: submission.id, questionId: question.id },
       },
-      create: { submissionId: submission.id, questionId: question.id, textValue: value },
-      update: { textValue: value },
+      create: { submissionId: submission.id, questionId: question.id, textValue },
+      update: { textValue },
     });
   }
 

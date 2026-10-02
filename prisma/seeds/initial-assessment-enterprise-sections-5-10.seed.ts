@@ -15,6 +15,9 @@ import {
   MEDICATION_AWARENESS_OPTIONS,
   MEDICATION_DISPENSING_METHOD_OPTIONS,
   MEDICATION_SUPPORT_LEVEL_OPTIONS,
+  MEDICATION_ORDERING_BY_OPTIONS,
+  MEDICATION_COLLECTION_BY_OPTIONS,
+  MEDICATION_STORAGE_OPTIONS,
   NUTRITION_STATUS_OPTIONS,
   ORAL_HEALTH_OPTIONS,
   PAIN_DISTRESS_OPTIONS,
@@ -64,7 +67,6 @@ export const SECTION_5_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Current pain relief', questionType: A, sortOrder: 14, metadata: iaMeta('5.3', whenYes('pain or distress identified')) },
   { questionText: 'Pain assessment completed?', questionType: Y, sortOrder: 15, metadata: iaMeta('5.3') },
   { questionText: 'Pain assessment date', questionType: D, sortOrder: 16, metadata: iaMeta('5.3', whenYes('pain assessment completed')) },
-  { questionText: 'Pain management plan documented?', questionType: Y, sortOrder: 17, metadata: iaMeta('5.3', whenYes('pain or distress identified')) },
   { questionText: 'What pain management plan in place', questionType: A, sortOrder: 175, metadata: iaMeta('5.3', { fieldKey: 'painManagementPlan', ...whenYes('pain or distress identified') }) },
   { questionText: 'Swallowing concern options', questionType: M, isRequired: true, sortOrder: 18, options: SWALLOWING_CONCERN_OPTIONS, metadata: iaMeta('5.4', { fieldKey: 'swallowingConcerns' }) },
   { questionText: 'Swallowing or choking concerns?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 19, metadata: iaMeta('5.4') },
@@ -101,7 +103,6 @@ export const SECTION_5_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'SALT referral required?', questionType: Y, carePlanTrigger: true, sortOrder: 24, metadata: iaMeta('5.4', whenYes('swallowing or choking concerns')) },
   { questionText: 'SALT referral made?', questionType: Y, sortOrder: 25, metadata: iaMeta('5.4', whenYes('salt referral required')) },
   { questionText: 'SALT referral date', questionType: D, sortOrder: 26, metadata: iaMeta('5.4', whenYes('salt referral made')) },
-  { questionText: 'Breathing / pain / swallowing action plan notes', questionType: A, sortOrder: 27, metadata: iaMeta('5.2') },
 ];
 
 export const SECTION_6_QUESTIONS: EnterpriseQuestionSeed[] = [
@@ -117,7 +118,6 @@ export const SECTION_6_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Adequately hydrated?', questionType: Y, isRequired: true, sortOrder: 9, metadata: iaMeta('6.3', { fieldKey: 'adequatelyHydrated' }) },
   { questionText: 'Hydration comment', questionType: A, sortOrder: 10, metadata: iaMeta('6.3', whenNo('adequately hydrated')) },
   { questionText: 'Daily fluid target (ml)', questionType: N, sortOrder: 11, metadata: iaMeta('6.3') },
-  { questionText: 'Thickened fluids required?', questionType: Y, sortOrder: 13, metadata: iaMeta('6.3') },
   { questionText: 'Nutrition status', questionType: S, isRequired: true, sortOrder: 14, options: NUTRITION_STATUS_OPTIONS, metadata: iaMeta('6.4', { fieldKey: 'nutritionStatus' }) },
   { questionText: 'Malnourished or at nutrition risk?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 15, metadata: iaMeta('6.4') },
   { questionText: 'BMI completed?', questionType: Y, sortOrder: 16, metadata: iaMeta('6.8') },
@@ -179,7 +179,12 @@ export const SECTION_8_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'No concerns identified in this section', questionType: Y, sortOrder: 0, helpText: 'Select Yes if communication and sensory needs are satisfactory.', metadata: iaMeta('8.0', { noConcernMaster: true }) },
   { questionText: 'Speech impairment options', questionType: M, isRequired: true, sortOrder: 1, options: SPEECH_IMPAIRMENT_OPTIONS, metadata: iaMeta('8.1', { fieldKey: 'speechOptions' }) },
   { questionText: 'Speech impairment or concern?', questionType: Y, carePlanTrigger: true, sortOrder: 2, metadata: iaMeta('8.1') },
-  { questionText: 'Staff communication instructions', questionType: A, sortOrder: 3, metadata: iaMeta('8.1', whenYes('speech impairment or concern')) },
+  {
+    questionText: 'Staff communication instructions',
+    questionType: A,
+    sortOrder: 3,
+    metadata: iaMeta('8.1', { fieldKey: 'staffCommunicationInstructions', ...whenYes('speech impairment or concern') }),
+  },
   { questionText: 'Under SALT for communication?', questionType: Y, sortOrder: 4, metadata: iaMeta('8.2', whenYes('speech impairment or concern')) },
   { questionText: 'SALT communication referral required?', questionType: Y, carePlanTrigger: true, sortOrder: 5, metadata: iaMeta('8.2') },
   { questionText: 'Communication SALT referral date', questionType: D, sortOrder: 6, metadata: iaMeta('8.2', whenYes('salt communication referral required')) },
@@ -200,6 +205,92 @@ export const SECTION_8_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Communication support notes', questionType: A, sortOrder: 23, metadata: iaMeta('8.1') },
 ];
 
+const CARER_MEDICATION_LEVELS = ['level_1a', 'level_1b', 'level_2a', 'level_2b'];
+const whenCarersSupportMedicines = {
+  showWhen: { gateFieldKey: 'medicationSupportLevel', selectedIncludes: CARER_MEDICATION_LEVELS },
+};
+
+/** §9.6 Managing medicines — ordering, storage, PRN, time-critical, specialist administration, refusal. */
+export const IA_MEDICATION_MANAGEMENT_QUESTIONS: EnterpriseQuestionSeed[] = [
+  {
+    questionText: 'Who orders repeat prescriptions?',
+    questionType: S,
+    sortOrder: 70,
+    options: MEDICATION_ORDERING_BY_OPTIONS,
+    metadata: iaMeta('9.6', { fieldKey: 'medicationOrderingBy', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'Who collects the medicines, or are they delivered?',
+    questionType: S,
+    sortOrder: 71,
+    options: MEDICATION_COLLECTION_BY_OPTIONS,
+    metadata: iaMeta('9.6', { fieldKey: 'medicationCollectionBy', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'How are medicines stored?',
+    questionType: M,
+    sortOrder: 72,
+    options: MEDICATION_STORAGE_OPTIONS,
+    metadata: iaMeta('9.6', { fieldKey: 'medicationStorage', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'Storage details — where, and who holds any key',
+    questionType: A,
+    sortOrder: 73,
+    metadata: iaMeta('9.6', {
+      fieldKey: 'medicationStorageDetails',
+      showWhen: { gateFieldKey: 'medicationStorage', selectedIncludes: ['restricted', 'controlled_drugs', 'other'] },
+    }),
+  },
+  {
+    questionText: 'Any "when required" (PRN) medicines?',
+    questionType: Y,
+    sortOrder: 74,
+    metadata: iaMeta('9.6', { fieldKey: 'prnMedicationInUse', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'PRN — what for, how the person asks or shows they need it, and the maximum dose',
+    questionType: A,
+    isRequired: true,
+    sortOrder: 75,
+    metadata: iaMeta('9.6', { fieldKey: 'prnMedicationDetails', ...whenFieldYes('prnMedicationInUse') }),
+  },
+  {
+    questionText: 'Any time-critical medicines (e.g. for Parkinson\'s, epilepsy or diabetes)?',
+    questionType: Y,
+    sortOrder: 76,
+    metadata: iaMeta('9.6', { fieldKey: 'timeCriticalMedication', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'Time-critical medicines — which, and the latest safe time for each',
+    questionType: A,
+    isRequired: true,
+    sortOrder: 77,
+    metadata: iaMeta('9.6', { fieldKey: 'timeCriticalMedicationDetails', ...whenFieldYes('timeCriticalMedication') }),
+  },
+  {
+    questionText: 'Any injections, patches, inhalers, eye drops or other specialist administration?',
+    questionType: Y,
+    sortOrder: 78,
+    metadata: iaMeta('9.6', { fieldKey: 'specialistAdministration', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'Specialist administration — what, and who gives it (e.g. district nurse, carer trained for a delegated task)',
+    questionType: A,
+    isRequired: true,
+    sortOrder: 79,
+    metadata: iaMeta('9.6', { fieldKey: 'specialistAdministrationDetails', ...whenFieldYes('specialistAdministration') }),
+  },
+  {
+    questionText: 'If a dose is refused, missed, dropped or wrong — what carers do and who they tell',
+    questionType: A,
+    isRequired: true,
+    sortOrder: 80,
+    helpText: 'e.g. record on the MAR, do not force or hide it, ring the office; call the GP / 111 for time-critical medicines.',
+    metadata: iaMeta('9.6', { fieldKey: 'medicationRefusalEscalation', ...whenCarersSupportMedicines }),
+  },
+];
+
 export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Taking prescribed medication?', questionType: Y, isRequired: true, sortOrder: 1, metadata: iaMeta('9.1', { fieldKey: 'takingPrescribedMedication' }) },
   { questionText: 'Knows why they take prescribed medication?', questionType: S, sortOrder: 2, options: MEDICATION_AWARENESS_OPTIONS, metadata: iaMeta('9.1', whenYes('taking prescribed medication')) },
@@ -210,26 +301,10 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
     questionType: S,
     isRequired: true,
     sortOrder: 10,
+    helpText:
+      'What carers do with medicines. Prompt = remind only. Assist = help, the person stays in control. Administer = carers give them (trained staff, MAR). Provided by others = carers give none.',
     options: MEDICATION_SUPPORT_LEVEL_OPTIONS,
     metadata: iaMeta('9.2', { fieldKey: 'medicationSupportLevel', ...whenYes('taking prescribed medication') }),
-  },
-  {
-    questionText: 'Prompting or reminding required?',
-    questionType: Y,
-    sortOrder: 11,
-    metadata: iaMeta('9.2', { fieldKey: 'medicationPromptingRequired', ...whenYes('taking prescribed medication') }),
-  },
-  {
-    questionText: 'Help removing medicines from packaging required?',
-    questionType: Y,
-    sortOrder: 12,
-    metadata: iaMeta('9.2', { fieldKey: 'packagingHelpRequired', ...whenYes('taking prescribed medication') }),
-  },
-  {
-    questionText: 'Assistance administering medication required?',
-    questionType: Y,
-    sortOrder: 13,
-    metadata: iaMeta('9.2', { fieldKey: 'medicationAssistanceAdministering', ...whenYes('taking prescribed medication') }),
   },
   {
     questionText: 'Medication administered by',
@@ -237,12 +312,6 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
     sortOrder: 14,
     options: MEDICATION_ADMINISTERED_BY_OPTIONS,
     metadata: iaMeta('9.2', { fieldKey: 'medicationAdministeredBy', ...whenYes('taking prescribed medication') }),
-  },
-  {
-    questionText: 'Independent self-administration?',
-    questionType: Y,
-    sortOrder: 15,
-    metadata: iaMeta('9.2', { fieldKey: 'independentSelfAdministration', ...whenYes('taking prescribed medication') }),
   },
   {
     questionText: 'Insulin administration required?',
@@ -266,6 +335,8 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
     questionText: 'Covert medication required?',
     questionType: Y,
     sortOrder: 33,
+    helpText:
+      'Only after a capacity assessment for this decision finds the person lacks capacity, a best-interests decision with the prescriber and pharmacist, and a written covert plan. Record the capacity assessment on the Mental Capacity tab.',
     metadata: iaMeta('9.3', { fieldKey: 'covertMedicationRequired', ...whenYes('taking prescribed medication') }),
   },
   {
@@ -279,6 +350,13 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
     questionType: Y,
     sortOrder: 35,
     metadata: iaMeta('9.3', { fieldKey: 'controlledDrugsInUse', ...whenYes('taking prescribed medication') }),
+  },
+  {
+    questionText: 'Controlled drugs — which, and how they are stored and recorded',
+    questionType: A,
+    isRequired: true,
+    sortOrder: 36,
+    metadata: iaMeta('9.3', { fieldKey: 'controlledDrugsDetails', ...whenFieldYes('controlledDrugsInUse') }),
   },
   {
     questionText: 'Medication list available?',
@@ -317,6 +395,7 @@ export const SECTION_9_QUESTIONS: EnterpriseQuestionSeed[] = [
     sortOrder: 62,
     metadata: iaMeta('9.5', { fieldKey: 'medicationSafetyNotes', ...whenYes('taking prescribed medication') }),
   },
+  ...IA_MEDICATION_MANAGEMENT_QUESTIONS,
 ];
 
 export const SECTION_10_QUESTIONS: EnterpriseQuestionSeed[] = [
@@ -328,7 +407,6 @@ export const SECTION_10_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Previous mental health issues reported?', questionType: Y, sortOrder: 5, metadata: iaMeta('10.1') },
   { questionText: 'Emotional health comments', questionType: A, sortOrder: 6, metadata: iaMeta('10.1') },
   { questionText: 'Emotional wellbeing status', questionType: S, isRequired: true, sortOrder: 7, options: EMOTIONAL_WELLBEING_OPTIONS, metadata: iaMeta('10.2', { fieldKey: 'emotionalWellbeing' }) },
-  { questionText: 'Feels low in mood?', questionType: Y, sortOrder: 8, metadata: iaMeta('10.2', { fieldKey: 'feelsLowInMood' }) },
   { questionText: 'Feels depressed?', questionType: Y, riskFlag: true, sortOrder: 9, metadata: iaMeta('10.2', { fieldKey: 'feelsDepressed' }) },
   { questionText: 'Low mood or depression concern?', questionType: Y, riskFlag: true, carePlanTrigger: true, sortOrder: 10, metadata: iaMeta('10.2') },
   { questionText: 'Sleeping pattern', questionType: S, isRequired: true, sortOrder: 11, options: SLEEPING_PATTERN_OPTIONS, metadata: iaMeta('10.4', { fieldKey: 'sleepingPattern' }) },
@@ -359,10 +437,8 @@ export const SECTION_10_QUESTIONS: EnterpriseQuestionSeed[] = [
   { questionText: 'Good long-term memory recall?', questionType: Y, sortOrder: 24, metadata: iaMeta('10.6a') },
   { questionText: 'Good short-term memory recall?', questionType: Y, sortOrder: 25, metadata: iaMeta('10.6a') },
   { questionText: 'Able to follow basic instructions?', questionType: Y, sortOrder: 26, metadata: iaMeta('10.6a') },
-  { questionText: 'Gets agitated with change?', questionType: Y, sortOrder: 27, metadata: iaMeta('10.6a') },
   { questionText: 'Challenging behaviour or agitation with change?', questionType: Y, riskFlag: true, sortOrder: 28, metadata: iaMeta('10.6a') },
   { questionText: 'Fully orientated?', questionType: Y, sortOrder: 29, metadata: iaMeta('10.6a') },
-  { questionText: 'De-orientated?', questionType: Y, sortOrder: 30, metadata: iaMeta('10.6a') },
   { questionText: 'AMT completed?', questionType: Y, sortOrder: 31, metadata: iaMeta('10.7') },
   { questionText: 'AMT score', questionType: N, sortOrder: 32, metadata: iaMeta('10.7', whenYes('amt completed')) },
   { questionText: 'AMT date', questionType: D, sortOrder: 33, metadata: iaMeta('10.7', whenYes('amt completed')) },

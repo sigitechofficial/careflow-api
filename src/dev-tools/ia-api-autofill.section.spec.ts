@@ -102,9 +102,9 @@ describe('IaApiAutofillService.generateSection', () => {
   it('fills About Me prefill fields and empty identity fields such as date of birth', async () => {
     const { service } = makeService([
       q('about', 1, {
-        questionText: 'What is most important to me',
+        questionText: 'People who are important to me',
         questionType: 'TEXTAREA',
-        metadata: { specRef: '1.3a', aboutMeProfileField: true, prefillKey: 'aboutMe_whatIsMostImportantToMe' },
+        metadata: { specRef: '1.3a', aboutMeProfileField: true, prefillKey: 'aboutMe_peopleImportantToMe' },
       }),
       q('dob', 1, { metadata: { prefillKey: 'dateOfBirth' } }),
     ]);
@@ -121,7 +121,7 @@ describe('IaApiAutofillService.generateSection', () => {
     expect(res.answers.map((a) => a.questionId)).toEqual(['a1']);
   });
 
-  it.each([0, 23, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
+  it.each([0, 25, -1, 1.5])('rejects an invalid tabId (%p)', async (tabId) => {
     const { service } = makeService([q('a1', 5)]);
     await expect(service.generateSection('critical', tabId, ['a1'])).rejects.toBeInstanceOf(
       BadRequestException,

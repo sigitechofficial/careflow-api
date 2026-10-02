@@ -13,6 +13,7 @@ import {
   readCoCarerPresenceMap,
   readEmployeeAppMeta,
 } from '../employee-app/employee-app-multi-carer.util';
+import { readSupportAutoClosed } from '../scheduled-jobs-housekeeping/support-auto-close.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -229,9 +230,9 @@ export function mapTimelineJob(row: TimelineJobRow) {
   const actualStartDateTime = primaryVisit?.actualStartDateTime?.toISOString() ?? null;
   const actualEndDateTime = primaryVisit?.actualEndDateTime?.toISOString() ?? null;
   const careNotDelivered = mapCareNotDelivered(row);
-  const presenceMap = readCoCarerPresenceMap(
-    readEmployeeAppMeta(parseJobMetadata(row.metadata)),
-  );
+  const employeeAppMeta = readEmployeeAppMeta(parseJobMetadata(row.metadata));
+  const presenceMap = readCoCarerPresenceMap(employeeAppMeta);
+  const autoClosedByEmployee = readSupportAutoClosed(employeeAppMeta);
   const presenceNameById: Record<string, string> = {};
   for (const a of row.allocations) {
     const name = [a.employee?.personalDetail?.firstName, a.employee?.personalDetail?.lastName]
@@ -258,6 +259,8 @@ export function mapTimelineJob(row: TimelineJobRow) {
       durationMinutes: a.durationMinutes,
       actualStartDateTime: a.actualStartDateTime?.toISOString() ?? null,
       actualEndDateTime: a.actualEndDateTime?.toISOString() ?? null,
+      /** Support clock-out set by the system at the lead's clock-out. */
+      actualEndAutoClosed: Boolean(a.actualEndDateTime && autoClosedByEmployee[a.employeeId]),
       resolvedStartDateTime: resolved.start.toISOString(),
       resolvedEndDateTime: resolved.end.toISOString(),
       resolvedDurationMinutes: resolved.durationMinutes,

@@ -92,6 +92,14 @@ export class UpdateIncidentActionDto {
   @IsOptional()
   @IsBoolean()
   isMandatory?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Required when cancelling a mandatory measure or making it optional (audited)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  reason?: string;
 }
 
 export class CompleteIncidentActionDto {

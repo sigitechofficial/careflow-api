@@ -28,8 +28,8 @@ import type { SubmissionAnswerForRules } from '../../initial-assessments/initial
 // --------------------------------------------------------------------------
 
 const IA_FK_RELIGIOUS_SPIRITUAL_PREFS = 'religiousSpiritualPreferences';
-const IA_FK_BELIEFS = 'beliefs';
-const IA_Q_CULTURE = 'Religion, culture, language, reasonable adjustments';
+const IA_FK_CULTURAL_BACKGROUND = 'culturalBackground';
+const IA_Q_CULTURE = 'Cultural background and practices';
 const IA_Q_PRAYER = 'Prayer routine or worship needs';
 const IA_Q_REL_SPIRITUAL_NEEDS = 'Religious or spiritual needs';
 const IA_Q_DIETARY = 'Religious or cultural dietary requirements';
@@ -95,11 +95,10 @@ function fullCultureAnswers(): SubmissionAnswerForRules[] {
       fieldKey: IA_FK_RELIGIOUS_SPIRITUAL_PREFS,
       specRef: '1.3b',
     }),
-    textAnswer('Beliefs', 'Believes strongly in Sunday observance', {
-      fieldKey: IA_FK_BELIEFS,
-      specRef: '1.1',
+    textAnswer(IA_Q_CULTURE, 'Punjabi heritage; interpreter for Punjabi useful', {
+      fieldKey: IA_FK_CULTURAL_BACKGROUND,
+      specRef: '1.7',
     }),
-    textAnswer(IA_Q_CULTURE, 'Punjabi heritage; interpreter for Punjabi useful', { specRef: '1.7' }),
     textAnswer(IA_Q_PRAYER, 'Prays five times a day; needs a quiet space', { specRef: '1.7' }),
     textAnswer(IA_Q_REL_SPIRITUAL_NEEDS, 'Would value a visit from the local imam', { specRef: '1.7' }),
     textAnswer(IA_Q_DIETARY, 'Halal only; no pork or alcohol', { specRef: '1.7' }),
@@ -136,20 +135,20 @@ function suggestionFor(
 // --------------------------------------------------------------------------
 
 describe('Culture/Religion IA suggestions', () => {
-  it('faith or belief system combines §1.3b preferences and §1.1 beliefs', () => {
+  it('faith or belief system combines §1.3b preferences and §1.7 religious/spiritual needs', () => {
     const s = suggestionFor(
       composeCultureReligionCarePlan(ctxWithAnswers(fullCultureAnswers()), fieldRefsFromSeed(), 'su-1'),
       'crs_faith_belief_system',
     );
     expect(s?.suggestedValue).toContain('Church of England');
-    expect(s?.suggestedValue).toContain('Believes strongly in Sunday observance');
-    expect((s?.sourceQuestions ?? []).map((q) => q.questionFieldKey)).toEqual([
-      IA_FK_RELIGIOUS_SPIRITUAL_PREFS,
-      IA_FK_BELIEFS,
+    expect(s?.suggestedValue).toContain('Would value a visit from the local imam');
+    expect((s?.sourceQuestions ?? []).map((q) => q.sourceLabel)).toEqual([
+      'Religious and/or spiritual preferences',
+      IA_Q_REL_SPIRITUAL_NEEDS,
     ]);
   });
 
-  it('cultural practices come from §1.7 religion/culture/language', () => {
+  it('cultural practices come from §1.7 cultural background and practices', () => {
     const s = suggestionFor(
       composeCultureReligionCarePlan(ctxWithAnswers(fullCultureAnswers()), fieldRefsFromSeed(), 'su-1'),
       'crs_cultural_practices',
@@ -157,6 +156,22 @@ describe('Culture/Religion IA suggestions', () => {
     expect(s?.suggestedValue).toContain('Punjabi heritage');
     expect(s?.sourceQuestions?.[0]?.specRef).toBe('1.7');
     expect(s?.sourceQuestions?.[0]?.sourceLabel).toBe(IA_Q_CULTURE);
+  });
+
+  it('cultural practices also carry §1.7 equality adjustments', () => {
+    const s = suggestionFor(
+      composeCultureReligionCarePlan(
+        ctxWithAnswers([
+          ...fullCultureAnswers(),
+          textAnswer('Any equality related risk or need', 'Needs a female interpreter', { specRef: '1.7' }),
+        ]),
+        fieldRefsFromSeed(),
+        'su-1',
+      ),
+      'crs_cultural_practices',
+    );
+    expect(s?.suggestedValue).toContain('Punjabi heritage');
+    expect(s?.suggestedValue).toContain('Needs a female interpreter');
   });
 
   it('religious observances combine §1.7 prayer/worship and religious/spiritual needs', () => {

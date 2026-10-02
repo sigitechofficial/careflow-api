@@ -226,16 +226,13 @@ function resolveGpPharmacyProfessionals(ctx: CarePlanComposeContext): HspResolve
     if (gpPharmacyLine) {
       parts.push(gpPharmacyLine);
     }
-    for (const query of [
-      { questionTextContains: 'gp name' },
-      { questionTextContains: 'gp practice' },
-      { questionTextContains: 'pharmacy' },
-    ] as const) {
-      const answer = findIaAnswer(ctx.ia.answers, { specRef: '13.9', ...query });
-      const text = sanitizeComposeTextOrNull(resolveIaDisplayValue(answer));
-      if (text && answer) {
-        sources.push(sourceFromIaAnswer(answer, text));
-      }
+    const pharmacyAnswer = findIaAnswer(ctx.ia.answers, {
+      specRef: '13.9',
+      questionTextContains: 'pharmacy',
+    });
+    const pharmacyText = sanitizeComposeTextOrNull(resolveIaDisplayValue(pharmacyAnswer));
+    if (pharmacyText && pharmacyAnswer) {
+      sources.push(sourceFromIaAnswer(pharmacyAnswer, pharmacyText));
     }
   }
 
@@ -290,14 +287,17 @@ function resolvePlanStartDate(ctx: CarePlanComposeContext): HspResolvedAutoPrefi
 function resolveHomeAccessInstructions(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {
   if (!ctx.ia) return null;
   return (
-    resolveTextAutoPrefill(ctx.ia, { fieldKey: 'homeAccessInstructions' }) ??
-    resolveTextAutoPrefill(ctx.ia, { fieldKey: 'accessInstructions' })
+    resolveTextAutoPrefill(ctx.ia, { fieldKey: 'accessInstructions' }) ??
+    resolveTextAutoPrefill(ctx.ia, { fieldKey: 'homeAccessInstructions' })
   );
 }
 
 function resolveShoppingErrands(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {
-  if (!ctx.ia) return null;
-  return resolveTextAutoPrefill(ctx.ia, { fieldKey: 'shoppingArrangements' });
+  // Older IAs asked "Shopping arrangements" in About Me; now it comes from the About Me profile.
+  const fromIa = ctx.ia ? resolveTextAutoPrefill(ctx.ia, { fieldKey: 'shoppingArrangements' }) : null;
+  if (fromIa) return fromIa;
+  const text = sanitizeComposeTextOrNull(ctx.aboutMe?.shopping ?? null);
+  return text ? { value: text, sources: [sourceFromAboutMe('Shopping arrangements', text)] } : null;
 }
 
 function resolveInformalCarerContact(ctx: CarePlanComposeContext): HspResolvedAutoPrefill | null {

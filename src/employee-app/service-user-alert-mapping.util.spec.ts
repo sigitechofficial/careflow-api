@@ -13,6 +13,7 @@ import {
   mapReasonableAdjustmentToAlert,
   type ServiceUserAlertItem,
 } from './service-user-alert-mapping.util';
+import { resolveCprStatus } from './employee-app-cpr-status.util';
 
 describe('service-user-alert-mapping', () => {
   describe('mapAllergiesToAlert', () => {
@@ -31,14 +32,29 @@ describe('service-user-alert-mapping', () => {
   });
 
   describe('mapDnacprToAlert', () => {
-    it('returns a critical alert when DNACPR is in place', () => {
-      const alert = mapDnacprToAlert({ dnacprInPlace: true, location: 'Kitchen drawer' });
+    it('returns a critical alert only for an office-verified DNACPR', () => {
+      const alert = mapDnacprToAlert(
+        resolveCprStatus(
+          { dnacprInPlace: true, dnacprStatusConfirmation: 'IN_PLACE', dnacprPhysicalLocation: 'Kitchen drawer' },
+          null,
+        ),
+      );
       expect(alert!.tier).toBe('CRITICAL');
       expect(alert!.detail).toContain('Kitchen drawer');
     });
 
-    it('returns null when DNACPR is not in place', () => {
-      expect(mapDnacprToAlert({ dnacprInPlace: false })).toBeNull();
+    it('raises an important check-with-office alert when the status is not recorded', () => {
+      const alert = mapDnacprToAlert(resolveCprStatus(null, null));
+      expect(alert!.tier).toBe('IMPORTANT');
+      expect(alert!.actionLine).toContain('confirm with the office');
+    });
+
+    it('returns null when the office confirmed there is no DNACPR', () => {
+      expect(
+        mapDnacprToAlert(
+          resolveCprStatus({ dnacprInPlace: false, dnacprStatusConfirmation: 'NOT_IN_PLACE' }, null),
+        ),
+      ).toBeNull();
     });
   });
 

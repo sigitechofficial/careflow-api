@@ -4,8 +4,9 @@ import {
   IncidentSeverity,
   IncidentStatus,
 } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -34,6 +35,33 @@ export class ListIncidentsQueryDto {
   @IsOptional()
   @IsEnum(IncidentSeverity)
   severity?: IncidentSeverity;
+
+  @ApiPropertyOptional({
+    description: 'Comma-separated severities, e.g. HIGH,CRITICAL (ignored when `severity` is set)',
+    type: String,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.split(',').map((s) => s.trim()).filter(Boolean)
+      : value,
+  )
+  @IsArray()
+  @IsEnum(IncidentSeverity, { each: true })
+  severities?: IncidentSeverity[];
+
+  @ApiPropertyOptional({
+    description: 'Closed on or after this day (YYYY-MM-DD, organisation timezone)',
+  })
+  @IsOptional()
+  @IsISO8601()
+  closedFrom?: string;
+
+  @ApiPropertyOptional({ description: 'Only incidents with overdue corrective actions' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === '1')
+  @IsBoolean()
+  hasOverdueActions?: boolean;
 
   @ApiPropertyOptional({ enum: IncidentPrivacyLevel })
   @IsOptional()

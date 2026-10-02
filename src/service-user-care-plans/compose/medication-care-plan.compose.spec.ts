@@ -48,9 +48,13 @@ describe('mapMedicationSupportLevelToCarePlan', () => {
     expect(mapMedicationSupportLevelToCarePlan('district_nurse')).toBe('Nurse only');
     expect(mapMedicationSupportLevelToCarePlan('level_0')).toBe('Self-administers');
     expect(mapMedicationSupportLevelToCarePlan('level_1a')).toBe('Prompted');
-    expect(mapMedicationSupportLevelToCarePlan('level_1b')).toBe('Administered by carer');
-    expect(mapMedicationSupportLevelToCarePlan('level_2a')).toBe('Administered by carer');
-    expect(mapMedicationSupportLevelToCarePlan('level_2b')).toBe('Nurse only');
+    expect(mapMedicationSupportLevelToCarePlan('level_1b')).toBe('Assisted by carer');
+    expect(mapMedicationSupportLevelToCarePlan('level_2a')).toBe('Assisted by carer');
+    // Medication safety: level 2b = carers administer — never 'Nurse only'.
+    expect(mapMedicationSupportLevelToCarePlan('level_2b')).toBe('Administered by carer');
+    expect(mapMedicationSupportLevelToCarePlan('provided_by_others')).toBe(
+      'Provided by others (family / nurse)',
+    );
   });
 });
 
@@ -399,8 +403,8 @@ describe('composeMedicationCarePlan', () => {
     expect(suggestion).toEqual(
       expect.objectContaining({
         kind: 'value',
-        suggestedValue: 'Administered by carer',
-        displayText: 'Administered by carer',
+        suggestedValue: 'Assisted by carer',
+        displayText: 'Assisted by carer',
         sourceType: 'INITIAL_ASSESSMENT',
         questionFieldKey: 'medicationSupportLevel',
       }),

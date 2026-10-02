@@ -9,6 +9,10 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  formatNotificationDate,
+  loadNotificationDisplay,
+} from '../common/utils/notification-display.util';
 
 @Injectable()
 export class LearningNotificationHook {
@@ -44,6 +48,7 @@ export class LearningNotificationHook {
     const recipientUserIds = await this.resolveUserIdsForEmployees(params.employeeIds);
     if (recipientUserIds.length === 0) return;
 
+    const display = params.dueAt ? await loadNotificationDisplay(this.prisma) : null;
     await this.notifications.notifyUsers({
       recipientUserIds,
       type: NotificationType.SYSTEM_MESSAGE,
@@ -51,7 +56,7 @@ export class LearningNotificationHook {
       severity: NotificationSeverity.INFO,
       title: 'New learning assignment',
       message: `You have been assigned "${params.courseTitle}"${
-        params.dueAt ? ` due ${params.dueAt.toISOString().slice(0, 10)}` : ''
+        params.dueAt && display ? `, due ${formatNotificationDate(params.dueAt, display)}` : ''
       }.`,
       recordType: 'LearningAssignment',
       recordId: params.assignmentId,
@@ -93,13 +98,14 @@ export class LearningNotificationHook {
     const recipientUserIds = await this.resolveUserIdsForEmployees([params.employeeId]);
     if (recipientUserIds.length === 0) return;
 
+    const display = await loadNotificationDisplay(this.prisma);
     await this.notifications.notifyUsers({
       recipientUserIds,
       type: NotificationType.COMPLIANCE_EXPIRING,
       module: NotificationModule.EMPLOYEE_COMPLIANCE,
       severity: NotificationSeverity.WARNING,
       title: 'Learning certificate expiring',
-      message: `Certificate ${params.certificateNumber} expires on ${params.expiresAt.toISOString().slice(0, 10)}.`,
+      message: `Certificate ${params.certificateNumber} expires on ${formatNotificationDate(params.expiresAt, display)}.`,
       recordType: 'LearningCertificate',
       recordId: params.certificateId,
       metadata: { eventType: LearningNotificationEventType.CERTIFICATE_EXPIRING },

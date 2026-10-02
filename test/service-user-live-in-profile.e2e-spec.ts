@@ -8,6 +8,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { requiredServiceUserFields } from './helpers/service-user-required-fields';
 
 const shouldRun = Boolean(process.env.DATABASE_URL);
 const describeLiveIn = shouldRun ? describe : describe.skip;
@@ -15,6 +16,7 @@ const describeLiveIn = shouldRun ? describe : describe.skip;
 describeLiveIn('Service user live-in profile (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let suRequired: Awaited<ReturnType<typeof requiredServiceUserFields>>;
   let accessToken: string;
   let userId: string;
 
@@ -34,6 +36,7 @@ describeLiveIn('Service user live-in profile (e2e)', () => {
     );
     await app.init();
     prisma = app.get(PrismaService);
+    suRequired = await requiredServiceUserFields(prisma);
 
     const liveInPermKeys = [
       'service_users.live_in_profile.read',
@@ -88,7 +91,7 @@ describeLiveIn('Service user live-in profile (e2e)', () => {
     const su = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'L', lastName: 'I', email: `li401.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'L', lastName: 'I', email: `li401.${Date.now()}@example.com` })
       .expect(201);
     const suId = su.body.data.id as string;
     await request(app.getHttpServer()).get(`/service-users/${suId}/live-in-profile`).expect(401);
@@ -98,7 +101,7 @@ describeLiveIn('Service user live-in profile (e2e)', () => {
     const su = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'Live', lastName: 'In', email: `li.e2e.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'Live', lastName: 'In', email: `li.e2e.${Date.now()}@example.com` })
       .expect(201);
     const suId = su.body.data.id as string;
 
@@ -112,7 +115,7 @@ describeLiveIn('Service user live-in profile (e2e)', () => {
     const wrongSu = await request(app.getHttpServer())
       .post('/service-users')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ firstName: 'Other', lastName: 'Su', email: `li.other.${Date.now()}@example.com` })
+      .send({ ...suRequired, firstName: 'Other', lastName: 'Su', email: `li.other.${Date.now()}@example.com` })
       .expect(201);
     const wrongContact = await request(app.getHttpServer())
       .post(`/service-users/${wrongSu.body.data.id}/contacts`)

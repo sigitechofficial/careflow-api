@@ -21,7 +21,7 @@ import { isRegisteredHolisticTabId } from './dto/generate-ia-section.dto';
 const TAB_ENTERPRISE_SECTION: Record<number, number> = {
   1: 1, 2: 12, 3: 2, 4: 11, 5: 11, 6: 12, 7: 6, 8: 12, 9: 12,
   10: 5, 11: 5, 12: 3, 13: 13, 14: 13, 15: 14, 16: 14, 17: 10, 18: 11,
-  19: 16, 20: 17, 21: 15, 22: 18,
+  19: 16, 20: 17, 21: 15, 22: 18, 23: 2, 24: 13,
 };
 
 /**
@@ -44,9 +44,10 @@ const TAB_METADATA_KEYS: Record<number, string[]> = {
   13: ['advanceCarePlanning'],
   14: ['endOfLifeAssessment'],
   15: ['clinicalOutcomeSummary'],
-  16: ['carePlanObjectives'],
+  16: ['carePlanObjectives', 'agreedGoals'],
   17: ['mentalCapacityChecklist'],
   18: ['photographyConsent'],
+  23: ['photographyConsent'],
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -101,7 +102,7 @@ export class IaApiAutofillService {
   ): Promise<{ answers: AnswerInput[]; metadata: Record<string, unknown>; profilePatch: IaDemoProfilePatch }> {
     if (!isRegisteredHolisticTabId(tabId)) {
       throw new BadRequestException(
-        `tabId must be a registered holistic tab id (1–18, 19, 20, 21, 22); received ${tabId}`,
+        `tabId must be a registered holistic tab id (1–24); received ${tabId}`,
       );
     }
 

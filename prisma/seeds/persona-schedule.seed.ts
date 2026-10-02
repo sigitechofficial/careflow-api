@@ -278,7 +278,8 @@ async function generatePlanSchedule(
         visitsCreated += 1;
       }
     }
-  });
+    // A week of visits per plan runs past Prisma's 5 s default on a fresh / busy local DB.
+  }, { timeout: 60_000, maxWait: 10_000 });
 
   return { visitsCreated, visitsSkipped, batchIds };
 }

@@ -29,6 +29,36 @@ export class ScheduleLifecycleNotificationHook {
     return [...new Set(links.map((l) => l.userId))];
   }
 
+  /** `Harry Max: 2 visits were cancelled or called off. Reason: Hospital admission.` */
+  private async buildImpactMessage(
+    params: { reason: string; serviceUserId?: string; employeeId?: string },
+    parts: string[],
+  ): Promise<string> {
+    let who: string | null = null;
+    if (params.serviceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: params.serviceUserId },
+        select: { firstName: true, lastName: true, preferredName: true },
+      });
+      who =
+        [su?.firstName, su?.lastName].filter(Boolean).join(' ').trim() ||
+        su?.preferredName?.trim() ||
+        null;
+    } else if (params.employeeId) {
+      const pd = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId: params.employeeId },
+        select: { firstName: true, lastName: true },
+      });
+      who = pd ? `${pd.firstName} ${pd.lastName}`.trim() : null;
+    }
+    const summary = parts.join('; ');
+    const reason = params.reason?.trim();
+    return `${who ? `${who}: ` : ''}${summary}.${reason ? ` Reason: ${reason}.` : ''}`.replace(
+      /\.\.$/,
+      '.',
+    );
+  }
+
   async notifyBulkScheduleImpact(params: {
     source: ScheduleImpactSource;
     reason: string;
@@ -49,10 +79,14 @@ export class ScheduleLifecycleNotificationHook {
 
       const parts: string[] = [];
       if (params.jobsCancelled) {
-        parts.push(`${params.jobsCancelled} visit${params.jobsCancelled === 1 ? '' : 's'} cancelled or called off`);
+        parts.push(
+          `${params.jobsCancelled} visit${params.jobsCancelled === 1 ? ' was' : 's were'} cancelled or called off`,
+        );
       }
       if (params.jobsUnallocated) {
-        parts.push(`${params.jobsUnallocated} visit${params.jobsUnallocated === 1 ? '' : 's'} need cover (carer removed)`);
+        parts.push(
+          `${params.jobsUnallocated} visit${params.jobsUnallocated === 1 ? ' needs' : 's need'} cover (carer removed)`,
+        );
       }
       if (params.planSkipExceptionsAdded) {
         parts.push(
@@ -73,7 +107,7 @@ export class ScheduleLifecycleNotificationHook {
         recipientUserIds,
         type: NotificationType.SCHEDULE_UNALLOCATED_VISIT,
         title,
-        message: `${parts.join('; ')}. ${params.reason}`.trim(),
+        message: await this.buildImpactMessage(params, parts),
         module: NotificationModule.SCHEDULING,
         severity: NotificationSeverity.WARNING,
         recordType: 'ScheduleLifecycleImpact',
