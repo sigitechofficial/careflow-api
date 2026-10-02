@@ -15,7 +15,7 @@ describe('visit-plan-slot-window.util', () => {
       plannedStartTime: '22:00',
       plannedEndTime: '07:00',
       slotKind: VisitPlanSlotKind.OVERNIGHT,
-    });
+    }, 'Europe/London');
     expect(w.start.toISOString()).toBe('2026-06-18T21:00:00.000Z');
     expect(w.end.toISOString()).toBe('2026-06-19T06:00:00.000Z');
     expect(w.isOvernight).toBe(true);
@@ -27,10 +27,31 @@ describe('visit-plan-slot-window.util', () => {
       plannedStartTime: '07:00',
       plannedEndTime: '09:00',
       durationMinutes: 60,
-    });
+    }, 'Europe/London');
     expect(w.durationMinutes).toBe(60);
     expect(w.start.toISOString()).toBe('2026-06-18T06:00:00.000Z');
     expect(w.end.toISOString()).toBe('2026-06-18T07:00:00.000Z');
+  });
+
+  it('honours a non-London organisation timezone (Asia/Karachi 07:00 = 02:00Z)', () => {
+    const day = new Date(Date.UTC(2026, 5, 18));
+    const w = resolveSlotVisitWindow(
+      day,
+      { plannedStartTime: '07:00', plannedEndTime: '09:00', durationMinutes: 60 },
+      'Asia/Karachi',
+    );
+    expect(w.start.toISOString()).toBe('2026-06-18T02:00:00.000Z');
+    expect(w.end.toISOString()).toBe('2026-06-18T03:00:00.000Z');
+  });
+
+  it('London GMT (2026-01-15) late-evening 23:30 slot = 23:30Z on the same day', () => {
+    const day = new Date(Date.UTC(2026, 0, 15));
+    const w = resolveSlotVisitWindow(
+      day,
+      { plannedStartTime: '23:30', plannedEndTime: '23:59' },
+      'Europe/London',
+    );
+    expect(w.start.toISOString()).toBe('2026-01-15T23:30:00.000Z');
   });
 
   it('supports asymmetric double-up carer windows', () => {

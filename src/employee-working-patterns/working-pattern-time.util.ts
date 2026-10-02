@@ -1,7 +1,4 @@
-import {
-  DEFAULT_OPERATIONAL_TIMEZONE,
-  formatHmInTimeZone,
-} from '../common/utils/operational-day.util';
+import { formatHmInTimeZone } from '../common/utils/operational-day.util';
 
 export function parseHm(value: string): number {
   const m = /^(\d{2}):(\d{2})$/.exec(value.trim());
@@ -107,9 +104,7 @@ export function formatVisitPatternTimeMismatchMessage(
   return `On ${dayLabel}, your visit is ${offsetText} your working pattern (${patternStart}–${patternEnd})`;
 }
 
-export function hmFromJobDate(
-  date: Date,
-  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
-): string {
+/** Clock-face HH:mm of a true-UTC instant in the organisation timezone. */
+export function hmFromJobDate(date: Date, timeZone: string): string {
   return formatHmInTimeZone(date, timeZone);
 }

@@ -865,7 +865,7 @@ model OrganisationGeneralSettings {
   timeDisplayFormat                    TimeDisplayFormat          @default(HH_MM)
   dateDisplayFormat                    DateDisplayFormat          @default(DD_MM_YYYY)
   /// IANA timezone for operational calendar days (schedules, ECM, "today").
-  timezone                             String                     @default("Asia/Karachi")
+  timezone                             String                     @default("Europe/London")
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -7346,7 +7346,7 @@ model EcmVisitEvaluation {
   requiredCarers              Int            @default(1)
   /// Calendar date used for operational reporting (local timezone).
   localVisitDate              DateTime       @db.Date
-  timezone                    String         @default("Asia/Karachi")
+  timezone                    String         @default("Europe/London")
 
   actualCheckInAt       DateTime?
   actualCheckOutAt      DateTime?

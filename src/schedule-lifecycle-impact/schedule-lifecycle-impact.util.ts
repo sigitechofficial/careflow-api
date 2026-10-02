@@ -4,6 +4,11 @@ import {
   ScheduledJobStatus as PrismaJobStatus,
   ScheduledVisitStatus as PrismaVisitStatus,
 } from '@prisma/client';
+import {
+  addDaysToOperationalIso,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
 /** Jobs that can be cancelled or have carers removed automatically. */
 export const CANCELLABLE_JOB_STATUSES: PrismaJobStatus[] = [
@@ -109,13 +114,45 @@ export function buildCancellableServiceUserJobsWhere(
   return base;
 }
 
+/**
+ * Keep jobs whose start falls on one of `weekdays` (0=Sun … 6=Sat) — the weekday of the
+ * true-UTC start instant read in the organisation timezone (a 23:30 London BST Monday visit
+ * is 22:30Z Monday; a 00:30 London BST Tuesday visit is 23:30Z Monday but is a Tuesday visit).
+ */
 export function filterJobsByWeekdays<T extends { scheduledStartDateTime: Date }>(
   jobs: T[],
   weekdays: number[] | undefined,
+  timeZone: string,
 ): T[] {
   if (!weekdays?.length) return jobs;
   const set = new Set(weekdays);
-  return jobs.filter((j) => set.has(j.scheduledStartDateTime.getUTCDay()));
+  return jobs.filter((j) => set.has(weekdayIndexInTimeZone(j.scheduledStartDateTime, timeZone)));
+}
+
+/** YYYY-MM-DD of a date-only impact boundary (UTC date part of a midnight/noon-UTC label). */
+export function impactDayKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * True-UTC instant window for an impact range of calendar days.
+ * `fromDate`/`toDate` are calendar labels (@db.Date / parseVisitPlanDateOnly / noon-UTC) —
+ * NOT instants. The window spans organisation-local midnight on `fromDate` to the last
+ * millisecond of `toDate` (or `fromDate` + OPEN_ENDED_IMPACT_MAX_DAYS) in `timeZone`.
+ */
+export function resolveImpactWindow(
+  fromDate: Date,
+  toDate: Date | null | undefined,
+  timeZone: string,
+): { from: Date; to: Date } {
+  const fromKey = impactDayKey(fromDate);
+  const toKey = toDate
+    ? impactDayKey(toDate)
+    : addDaysToOperationalIso(fromKey, OPEN_ENDED_IMPACT_MAX_DAYS);
+  return {
+    from: operationalDayBounds(fromKey, timeZone).start,
+    to: operationalDayBounds(toKey, timeZone).end,
+  };
 }
 
 export function buildUnallocateEmployeeJobsWhere(
