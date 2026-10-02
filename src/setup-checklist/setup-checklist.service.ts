@@ -3,6 +3,9 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { ComplianceReportsService } from '../compliance-reports/compliance-reports.service';
+import { ServiceUserCarePlansService } from '../service-user-care-plans/service-user-care-plans.service';
+import { ServiceUserAssessmentsService } from '../service-user-assessments/service-user-assessments.service';
 
 export type ChecklistStatus = 'complete' | 'partial' | 'missing';
 
@@ -55,6 +58,9 @@ export class SetupChecklistService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly complianceReports: ComplianceReportsService,
+    private readonly carePlans: ServiceUserCarePlansService,
+    private readonly assessments: ServiceUserAssessmentsService,
   ) {}
 
   async getChecklist() {
@@ -474,6 +480,7 @@ export class SetupChecklistService {
     ];
 
     sections.push(...(await this.moduleSections(suTotal)));
+    sections.push(...(await this.peopleSections()));
 
     const items = sections.flatMap((s) => s.items);
     return {
@@ -727,6 +734,254 @@ export class SetupChecklistService {
             count: withBank,
             total: salaries.length,
             status: coverageStatus(withBank, salaries.length),
+          },
+        ],
+      },
+    ];
+  }
+
+  /** Employee compliance, carer app access, care plan / assessment reviews, roles & users. */
+  private async peopleSections(): Promise<ChecklistSection[]> {
+    const employees = await this.prisma.employee.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        personalDetail: { select: { firstName: true, lastName: true } },
+        portalAccount: {
+          select: { isEnabled: true, deletedAt: true, lastLoginAt: true },
+        },
+      },
+      orderBy: { personalDetail: { firstName: 'asc' } },
+    });
+
+    const [
+      requirements,
+      board,
+      carePlanQueue,
+      assessmentQueue,
+      branches,
+      users,
+    ] = await Promise.all([
+      this.prisma.complianceRequirement.count({
+        where: { deletedAt: null, isActive: true },
+      }),
+      // Same rows as the Compliance board (no actor → no report-view audit entry).
+      this.complianceReports.board({}),
+      this.carePlans.reviewQueue({ status: 'overdue' }),
+      this.assessments.reviewQueue({ alertsOnly: true }),
+      this.prisma.location.findMany({
+        where: { deletedAt: null, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          userLocations: {
+            where: { user: { deletedAt: null, isActive: true } },
+            select: { id: true },
+            take: 1,
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.user.findMany({
+        where: { deletedAt: null, isActive: true },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          userRoles: { select: { id: true }, take: 1 },
+        },
+        orderBy: [{ firstName: 'asc' }, { email: 'asc' }],
+      }),
+    ]);
+
+    type Emp = (typeof employees)[number];
+    const empRef = (e: Emp, tab: string) => ({
+      id: e.id,
+      name:
+        `${e.personalDetail?.firstName ?? ''} ${e.personalDetail?.lastName ?? ''}`.trim() ||
+        'Employee',
+      link: `/employee/${e.id}/edit?tab=${tab}`,
+    });
+    const boardRows = board.data.rows;
+    const notCompliant = boardRows.filter(
+      (r) => r.overallDisplayStatus !== 'COMPLIANT',
+    );
+    const compliantCount = boardRows.length - notCompliant.length;
+    const expiringWithin30 =
+      board.data.summary.expiring7Count + board.data.summary.expiring8To30Count;
+    const withApp = employees.filter(
+      (e) => e.portalAccount?.isEnabled && !e.portalAccount.deletedAt,
+    );
+    const withoutApp = employees.filter((e) => !withApp.includes(e));
+    const appNeverUsed = withApp.filter((e) => !e.portalAccount?.lastLoginAt);
+
+    const overdueAssessments = assessmentQueue.data.filter(
+      (item) => item.review.status === 'overdue',
+    );
+    const dueSoonAssessments = assessmentQueue.meta.dueSoonCount;
+    const dueSoonCarePlans = carePlanQueue.meta.dueSoonCount;
+
+    const branchesWithUser = branches.filter((b) => b.userLocations.length > 0);
+    const usersWithoutRole = users.filter((u) => u.userRoles.length === 0);
+    const userName = (u: (typeof users)[number]) =>
+      [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email;
+
+    const appUsed = withApp.length - appNeverUsed.length;
+
+    return [
+      {
+        key: 'employee-compliance',
+        title: 'Employee compliance',
+        items: [
+          {
+            key: 'compliance-requirements',
+            label: 'Compliance requirements',
+            description:
+              'Documents staff must hold (DBS, right to work, …) set up in Settings.',
+            link: '/settings?tab=compliance-requirements',
+            value: requirements,
+            status: existsStatus(requirements),
+          },
+          {
+            key: 'employees-compliant',
+            label: 'Employees fully compliant',
+            description:
+              'Every required document present, approved and in date — as on the Compliance board.',
+            link: '/employee/compliance',
+            count: compliantCount,
+            total: boardRows.length,
+            status: coverageStatus(compliantCount, boardRows.length),
+            missing: notCompliant.slice(0, MISSING_SAMPLE).map((r) => ({
+              id: r.employeeId,
+              name: r.employeeName,
+              link: `/employee/${r.employeeId}/edit?tab=employment-compliance`,
+            })),
+          },
+          {
+            key: 'documents-expiring',
+            label: 'Employees with documents expiring in 30 days',
+            description: 'Renew these before they expire.',
+            link: '/employee/compliance',
+            value: expiringWithin30,
+            problems: true,
+            status: expiringWithin30 === 0 ? 'complete' : 'partial',
+          },
+        ],
+      },
+      {
+        key: 'carer-app',
+        title: 'Carer app access',
+        items: [
+          {
+            key: 'app-access',
+            label: 'Employees with carer app access',
+            description:
+              'An enabled carer app login (set up on the employee Personal Details tab).',
+            link: '/employee/staff-list',
+            count: withApp.length,
+            total: employees.length,
+            status: coverageStatus(withApp.length, employees.length),
+            missing: withoutApp
+              .slice(0, MISSING_SAMPLE)
+              .map((e) => empRef(e, 'personal')),
+          },
+          {
+            key: 'app-signed-in',
+            label: 'App logins used',
+            description:
+              'Employees with app access who have signed in at least once.',
+            link: '/employee/staff-list',
+            count: appUsed,
+            total: withApp.length,
+            status: coverageStatus(appUsed, withApp.length),
+            missing: appNeverUsed
+              .slice(0, MISSING_SAMPLE)
+              .map((e) => empRef(e, 'personal')),
+          },
+        ],
+      },
+      {
+        key: 'reviews',
+        title: 'Care plan & assessment reviews',
+        items: [
+          {
+            key: 'care-plan-reviews',
+            label: 'Overdue care plan reviews',
+            description: `Published care plans past their next review date${
+              dueSoonCarePlans ? ` · ${dueSoonCarePlans} due soon` : ''
+            }.`,
+            link: '/care-plans/reviews',
+            value: carePlanQueue.meta.overdueCount,
+            problems: true,
+            status:
+              carePlanQueue.meta.overdueCount === 0 ? 'complete' : 'missing',
+            missing: carePlanQueue.data
+              .slice(0, MISSING_SAMPLE)
+              .map((item) => ({
+                id: item.instanceId,
+                name: `${item.serviceUserName} · ${item.carePlanName}`,
+                link: `/service-users/${item.serviceUserId}/care-plan`,
+              })),
+          },
+          {
+            key: 'assessment-reviews',
+            label: 'Overdue assessment reviews',
+            description: `Assessments past their CQC / NICE review schedule${
+              dueSoonAssessments ? ` · ${dueSoonAssessments} due soon` : ''
+            }.`,
+            link: '/assessments/review-queue',
+            value: overdueAssessments.length,
+            problems: true,
+            status: overdueAssessments.length === 0 ? 'complete' : 'missing',
+            missing: overdueAssessments
+              .slice(0, MISSING_SAMPLE)
+              .map((item) => ({
+                id: item.assessmentId,
+                name: `${item.serviceUserName ?? 'Service user'} · ${item.assessmentTitle}`,
+                link: `/service-users/${item.serviceUserId}/care-plan`,
+              })),
+          },
+        ],
+      },
+      {
+        key: 'roles-users',
+        title: 'Roles & users',
+        items: [
+          {
+            key: 'branch-users',
+            label: 'Branches with an office user',
+            description:
+              'At least one office user assigned to each branch (Super Admin and Admin see all branches anyway).',
+            link: '/settings/roles-permissions?sub=office-users',
+            count: branchesWithUser.length,
+            total: branches.length,
+            status: coverageStatus(branchesWithUser.length, branches.length),
+            missing: branches
+              .filter((b) => b.userLocations.length === 0)
+              .slice(0, MISSING_SAMPLE)
+              .map((b) => ({
+                id: b.id,
+                name: b.name,
+                link: '/settings/roles-permissions?sub=office-users',
+              })),
+          },
+          {
+            key: 'users-with-role',
+            label: 'Office users with a role',
+            description: 'A user without a role cannot open any page.',
+            link: '/settings/roles-permissions?sub=office-users',
+            count: users.length - usersWithoutRole.length,
+            total: users.length,
+            status: coverageStatus(
+              users.length - usersWithoutRole.length,
+              users.length,
+            ),
+            missing: usersWithoutRole.slice(0, MISSING_SAMPLE).map((u) => ({
+              id: u.id,
+              name: userName(u),
+              link: '/settings/roles-permissions?sub=office-users',
+            })),
           },
         ],
       },
