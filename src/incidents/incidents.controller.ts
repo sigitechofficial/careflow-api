@@ -136,6 +136,20 @@ export class IncidentsController {
     return this.service.getById(user, id);
   }
 
+  @Post(':id/start-review')
+  @Permissions('incidents.review')
+  @ApiOperation({
+    summary:
+      'Start the review (Reported → Under Review); the reviewer becomes the owner',
+  })
+  startReview(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.startReview(user, id, getRequestAuditMeta(req));
+  }
+
   @Post(':id/status')
   @Permissions('incidents.review')
   @ApiOperation({ summary: 'Transition incident workflow status' })

@@ -5,62 +5,60 @@ import {
 } from '@prisma/client';
 
 /**
- * Allowed workflow transitions.
- * Primary path: Raise (REPORTED) → Investigate → AWAITING_CLOSURE → CLOSED.
- * Re-investigate returns to UNDER_INVESTIGATION from CLOSED / AWAITING_CLOSURE.
- * Legacy statuses remain reachable for existing rows.
+ * Status flow (v2):
+ *   Reported → Under Review → Under Investigation → Actions Required → Awaiting Closure → Closed
+ *   Under Review can skip straight to Awaiting Closure (minor, no investigation needed).
+ *   Awaiting Closure / Actions Required can go back to Under Investigation (reason required).
+ *   Reopening a closed incident is an EVENT (reopenCount / lastReopenedAt) that returns it to
+ *   Under Review. REOPENED is legacy only and is never set by new changes.
+ * Reported → Under Review happens through "Start review" (owner + reviewStartedAt).
  */
 export const INCIDENT_STATUS_TRANSITIONS: Record<
   IncidentStatus,
   IncidentStatus[]
 > = {
-  [IncidentStatus.REPORTED]: [
+  [IncidentStatus.REPORTED]: [IncidentStatus.UNDER_REVIEW],
+  [IncidentStatus.UNDER_REVIEW]: [
     IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.AWAITING_REVIEW,
-  ],
-  [IncidentStatus.AWAITING_REVIEW]: [
-    IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.ACTIONS_REQUIRED,
     IncidentStatus.AWAITING_CLOSURE,
   ],
   [IncidentStatus.UNDER_INVESTIGATION]: [
-    IncidentStatus.AWAITING_CLOSURE,
     IncidentStatus.ACTIONS_REQUIRED,
+    IncidentStatus.AWAITING_CLOSURE,
   ],
   [IncidentStatus.ACTIONS_REQUIRED]: [
-    IncidentStatus.UNDER_INVESTIGATION,
     IncidentStatus.AWAITING_CLOSURE,
+    IncidentStatus.UNDER_INVESTIGATION,
   ],
   [IncidentStatus.AWAITING_CLOSURE]: [
     IncidentStatus.CLOSED,
     IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.ACTIONS_REQUIRED,
   ],
-  [IncidentStatus.CLOSED]: [
-    IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.REOPENED,
-  ],
+  [IncidentStatus.CLOSED]: [IncidentStatus.UNDER_REVIEW],
+  // Legacy rows (migrated to UNDER_REVIEW, kept for type completeness).
   [IncidentStatus.REOPENED]: [
     IncidentStatus.UNDER_INVESTIGATION,
     IncidentStatus.AWAITING_CLOSURE,
-    IncidentStatus.ACTIONS_REQUIRED,
   ],
 };
 
-/** Statuses from which moving to UNDER_INVESTIGATION counts as re-investigate. */
-export const REINVESTIGATE_FROM_STATUSES: IncidentStatus[] = [
-  IncidentStatus.CLOSED,
-  IncidentStatus.AWAITING_CLOSURE,
-  IncidentStatus.REOPENED,
-];
+/** Closed → Under Review: needs incidents.reopen and a reason; counted as a reopen. */
+export function isReopenTransition(
+  from: IncidentStatus,
+  to: IncidentStatus,
+): boolean {
+  return from === IncidentStatus.CLOSED && to === IncidentStatus.UNDER_REVIEW;
+}
 
-export function isReinvestigateTransition(
+/** Back to Under Investigation from later stages: a reason is required. */
+export function isSendBackTransition(
   from: IncidentStatus,
   to: IncidentStatus,
 ): boolean {
   return (
     to === IncidentStatus.UNDER_INVESTIGATION &&
-    REINVESTIGATE_FROM_STATUSES.includes(from)
+    (from === IncidentStatus.AWAITING_CLOSURE ||
+      from === IncidentStatus.ACTIONS_REQUIRED)
   );
 }
 
@@ -75,7 +73,7 @@ export function canTransitionIncidentStatus(
 /** Statuses that count as "open" for dashboards / trend logic. */
 export const OPEN_INCIDENT_STATUSES: IncidentStatus[] = [
   IncidentStatus.REPORTED,
-  IncidentStatus.AWAITING_REVIEW,
+  IncidentStatus.UNDER_REVIEW,
   IncidentStatus.UNDER_INVESTIGATION,
   IncidentStatus.ACTIONS_REQUIRED,
   IncidentStatus.AWAITING_CLOSURE,
@@ -84,7 +82,7 @@ export const OPEN_INCIDENT_STATUSES: IncidentStatus[] = [
 
 export const INCIDENT_STATUS_LABELS: Record<IncidentStatus, string> = {
   REPORTED: 'Reported',
-  AWAITING_REVIEW: 'Awaiting Review',
+  UNDER_REVIEW: 'Under Review',
   UNDER_INVESTIGATION: 'Under Investigation',
   ACTIONS_REQUIRED: 'Actions Required',
   AWAITING_CLOSURE: 'Awaiting Closure',

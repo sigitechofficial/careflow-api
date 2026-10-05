@@ -87,7 +87,8 @@ import {
   INCIDENT_STATUS_LABELS,
   OPEN_INCIDENT_STATUSES,
   canTransitionIncidentStatus,
-  isReinvestigateTransition,
+  isReopenTransition,
+  isSendBackTransition,
   formatIncidentReference,
 } from './incident-workflow.util';
 
@@ -1229,28 +1230,32 @@ export class IncidentsService {
     meta?: RequestAuditMeta,
   ) {
     const incident = await this.loadForManage(user, id);
+    // Reported → Under Review is "Start review" (sets the owner and reviewStartedAt).
+    if (
+      incident.status === IncidentStatus.REPORTED &&
+      dto.status === IncidentStatus.UNDER_REVIEW
+    ) {
+      return this.startReview(user, id, meta);
+    }
     if (!canTransitionIncidentStatus(incident.status, dto.status)) {
       throw new BadRequestException(
         `Cannot move incident from ${INCIDENT_STATUS_LABELS[incident.status]} to ${INCIDENT_STATUS_LABELS[dto.status]}`,
       );
     }
-    const reinvestigate = isReinvestigateTransition(incident.status, dto.status);
+    const reopen = isReopenTransition(incident.status, dto.status);
+    const sendBack = isSendBackTransition(incident.status, dto.status);
 
-    if (dto.status === IncidentStatus.REOPENED || reinvestigate) {
-      if (!this.can(user, 'incidents.reopen')) {
-        throw new ForbiddenException(
-          reinvestigate
-            ? 'You do not have permission to submit an incident for re-investigation'
-            : 'You do not have permission to reopen incidents',
-        );
-      }
-      if (!dto.reason?.trim()) {
-        throw new BadRequestException(
-          reinvestigate
-            ? 'A reason is required to submit an incident for re-investigation'
-            : 'A reason is required to reopen an incident',
-        );
-      }
+    if (reopen && !this.can(user, 'incidents.reopen')) {
+      throw new ForbiddenException(
+        'You do not have permission to reopen incidents',
+      );
+    }
+    if ((reopen || sendBack) && !dto.reason?.trim()) {
+      throw new BadRequestException(
+        reopen
+          ? 'A reason is required to reopen an incident'
+          : 'A reason is required to send an incident back for investigation',
+      );
     }
 
     // Closing requires the dedicated permission, mandatory-action rules AND a
@@ -1285,6 +1290,10 @@ export class IncidentsService {
           updatedById: user.id,
           ...(isClosing ? { closedAt: new Date(), closedById: user.id } : {}),
           ...(isLeavingClosed ? { closedAt: null, closedById: null } : {}),
+          // Reopening is an event on the incident, not a separate status.
+          ...(reopen
+            ? { reopenCount: { increment: 1 }, lastReopenedAt: new Date() }
+            : {}),
         },
         include: { category: true, subtype: true },
       });
@@ -1301,17 +1310,18 @@ export class IncidentsService {
         tx,
         userId: user.id,
         module: AuditModule.INCIDENT,
-        action:
-          dto.status === IncidentStatus.REOPENED || reinvestigate
-            ? AuditAction.INCIDENT_REOPENED
-            : dto.status === IncidentStatus.CLOSED
-              ? AuditAction.INCIDENT_CLOSED
-              : AuditAction.INCIDENT_STATUS_CHANGED,
+        action: reopen
+          ? AuditAction.INCIDENT_REOPENED
+          : dto.status === IncidentStatus.CLOSED
+            ? AuditAction.INCIDENT_CLOSED
+            : AuditAction.INCIDENT_STATUS_CHANGED,
         recordType: 'Incident',
         recordId: id,
-        description: reinvestigate
-          ? `Submitted for re-investigation: ${incident.status} → ${dto.status}`
-          : `Status ${incident.status} → ${dto.status}`,
+        description: reopen
+          ? `Reopened: ${incident.status} → ${dto.status}`
+          : sendBack
+            ? `Sent back for investigation: ${incident.status} → ${dto.status}`
+            : `Status ${incident.status} → ${dto.status}`,
         oldValues: { status: incident.status },
         newValues: { status: dto.status, reason: dto.reason ?? null },
         ipAddress: meta?.ipAddress,
@@ -1324,6 +1334,56 @@ export class IncidentsService {
       message: 'Incident status updated',
       data: this.mapIncident(updated),
     };
+  }
+
+  /**
+   * Reported → Under Review: a manager picks the incident up. They become the owner (unless
+   * one is already set) and the time is kept for first-response reporting.
+   */
+  async startReview(user: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const incident = await this.loadForManage(user, id);
+    if (incident.status !== IncidentStatus.REPORTED) {
+      throw new BadRequestException('The review has already been started');
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.incident.update({
+        where: { id },
+        data: {
+          status: IncidentStatus.UNDER_REVIEW,
+          reviewStartedAt: new Date(),
+          ownerId: incident.ownerId ?? user.id,
+          updatedById: user.id,
+        },
+        include: { category: true, subtype: true },
+      });
+      await tx.incidentStatusHistory.create({
+        data: {
+          incidentId: id,
+          fromStatus: incident.status,
+          toStatus: IncidentStatus.UNDER_REVIEW,
+          changedById: user.id,
+          reason: 'Review started',
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_STATUS_CHANGED,
+        recordType: 'Incident',
+        recordId: id,
+        description: `Review started: ${incident.status} → ${IncidentStatus.UNDER_REVIEW}`,
+        oldValues: { status: incident.status, ownerId: incident.ownerId },
+        newValues: {
+          status: IncidentStatus.UNDER_REVIEW,
+          ownerId: next.ownerId,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return next;
+    });
+    return { message: 'Review started', data: this.mapIncident(updated) };
   }
 
   async changeSeverity(
@@ -1422,7 +1482,11 @@ export class IncidentsService {
     dto: UpsertIncidentReviewDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadForManage(user, id);
+    const current = await this.loadForManage(user, id);
+    // Saving a review on a Reported incident starts the review (safety net for "Start review").
+    if (current.status === IncidentStatus.REPORTED) {
+      await this.startReview(user, id, meta);
+    }
     const existing = await this.prisma.incidentReview.findUnique({
       where: { incidentId: id },
     });
@@ -2060,7 +2124,8 @@ export class IncidentsService {
           open: 0,
           closedThisMonth: 0,
           overdueActions: 0,
-          awaitingReview: 0,
+          notPickedUp: 0,
+          underReview: 0,
           underInvestigation: 0,
           actionsRequired: 0,
           highOrCritical: 0,
@@ -2141,7 +2206,8 @@ export class IncidentsService {
         open,
         closedThisMonth,
         overdueActions,
-        awaitingReview: statusCounts[IncidentStatus.AWAITING_REVIEW] ?? 0,
+        notPickedUp: statusCounts[IncidentStatus.REPORTED] ?? 0,
+        underReview: statusCounts[IncidentStatus.UNDER_REVIEW] ?? 0,
         underInvestigation:
           statusCounts[IncidentStatus.UNDER_INVESTIGATION] ?? 0,
         actionsRequired: statusCounts[IncidentStatus.ACTIONS_REQUIRED] ?? 0,
@@ -2646,6 +2712,9 @@ export class IncidentsService {
       closedAt: incident.closedAt ? incident.closedAt.toISOString() : null,
       closedById: incident.closedById,
       createdById: incident.createdById,
+      reviewStartedAt: incident.reviewStartedAt?.toISOString() ?? null,
+      reopenCount: incident.reopenCount,
+      lastReopenedAt: incident.lastReopenedAt?.toISOString() ?? null,
       ambulanceAttended: incident.ambulanceAttended,
       takenToAe: incident.takenToAe,
       admittedToHospital: incident.admittedToHospital,

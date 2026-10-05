@@ -227,7 +227,8 @@ export class IncidentAnalyticsService {
           total,
           open,
           closed,
-          awaitingReview: byStatus[IncidentStatus.AWAITING_REVIEW] ?? 0,
+          underReview: byStatus[IncidentStatus.UNDER_REVIEW] ?? 0,
+          notPickedUp: byStatus[IncidentStatus.REPORTED] ?? 0,
           underInvestigation: byStatus[IncidentStatus.UNDER_INVESTIGATION] ?? 0,
           highCritical:
             (bySeverity[IncidentSeverity.HIGH] ?? 0) +

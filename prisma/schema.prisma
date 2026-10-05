@@ -10679,11 +10679,12 @@ model LearningComplianceSnapshot {
 
 enum IncidentStatus {
   REPORTED
-  AWAITING_REVIEW
+  UNDER_REVIEW
   UNDER_INVESTIGATION
   ACTIONS_REQUIRED
   AWAITING_CLOSURE
   CLOSED
+  /// Legacy — reopening is now an event (reopenCount / lastReopenedAt); never set on new changes.
   REOPENED
 
   @@schema("incidents")
@@ -10821,6 +10822,11 @@ model Incident {
   admittedToHospital       Boolean?
   /// Category-specific answers (shape per category key; see incident-category-details.util.ts).
   categoryDetails          Json?
+  /// When a manager started the review (Reported → Under Review).
+  reviewStartedAt          DateTime?
+  /// Reopen is an event: how many times it was reopened, and when last.
+  reopenCount              Int      @default(0)
+  lastReopenedAt           DateTime?
   /// Keys of parties the carer informed (office, gp, emergency_999, family_nok, etc.).
   whoInformedKeys          String[]
   /// Whether the carer flagged a safeguarding concern at time of report.
