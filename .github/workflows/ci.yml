@@ -36,6 +36,8 @@ jobs:
         run: npm run build
         env:
           CI: true
+          # The type-check now needs more than Node's ~2 GB default (same limit as the Dockerfile).
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Validate backend build output
         run: |
