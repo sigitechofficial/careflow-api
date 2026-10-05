@@ -4,10 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { existsSync } from 'fs';
+import { existsSync, promises as fsp } from 'fs';
 import { join } from 'path';
 import {
+  IncidentPrivacyLevel,
   IncidentRelatedRecordStatus,
+  IncidentStatus,
   Prisma,
   type IncidentAttachment,
 } from '@prisma/client';
@@ -20,11 +22,18 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import {
   allowedPrivacyLevels,
+  assertIncidentEditable,
   canViewIncidentPrivacy,
   hasIncidentPermission,
 } from './incident-access.util';
-import { INCIDENT_SEVERITY_LABELS } from './incident-workflow.util';
-import { incidentAttachmentRoot } from './incident-attachment.config';
+import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { INCIDENT_SEVERITY_LABELS, incidentOccurredAtRange } from './incident-workflow.util';
+import {
+  incidentAttachmentContentMatchesType,
+  incidentAttachmentRoot,
+} from './incident-attachment.config';
 import {
   CreateIncidentAttachmentMetaDto,
   CreateIncidentInjuryDto,
@@ -41,9 +50,26 @@ export class IncidentCareService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   // --- shared access helpers -------------------------------------------------
+
+  /** Same rule as opening the incident itself: privacy clearance and branch scope. */
+  private async canAccessIncident(
+    user: RequestUser,
+    incident: { id: string; privacyLevel: IncidentPrivacyLevel },
+  ): Promise<boolean> {
+    if (!canViewIncidentPrivacy(user, incident)) return false;
+    try {
+      await this.orgScope.assertIncidentInScope(this.orgScope.fromRequestUser(user), incident.id);
+      return true;
+    } catch (err) {
+      if (err instanceof NotFoundException) return false;
+      throw err;
+    }
+  }
 
   private async loadIncident(user: RequestUser, incidentId: string) {
     const incident = await this.prisma.incident.findFirst({
@@ -53,11 +79,19 @@ export class IncidentCareService {
         privacyLevel: true,
         referenceNumber: true,
         primaryServiceUserId: true,
+        status: true,
       },
     });
-    if (!incident || !canViewIncidentPrivacy(user, incident)) {
+    if (!incident || !(await this.canAccessIncident(user, incident))) {
       throw new NotFoundException('Incident not found');
     }
+    return incident;
+  }
+
+  /** loadIncident for record changes: closed incidents are read-only until reopened. */
+  private async loadIncidentForEdit(user: RequestUser, incidentId: string) {
+    const incident = await this.loadIncident(user, incidentId);
+    assertIncidentEditable(incident);
     return incident;
   }
 
@@ -124,7 +158,7 @@ export class IncidentCareService {
     dto: CreateIncidentInjuryDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadIncident(user, incidentId);
+    await this.loadIncidentForEdit(user, incidentId);
     this.requirePermission(user, 'incidents.update');
     await this.assertServiceUser(dto.personServiceUserId);
     await this.assertEmployee(dto.personEmployeeId);
@@ -168,11 +202,12 @@ export class IncidentCareService {
   ) {
     const injury = await this.prisma.incidentInjury.findFirst({
       where: { id: injuryId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
-    if (!injury || !canViewIncidentPrivacy(user, injury.incident)) {
+    if (!injury || !(await this.canAccessIncident(user, injury.incident))) {
       throw new NotFoundException('Injury not found');
     }
+    assertIncidentEditable(injury.incident);
     this.requirePermission(user, 'incidents.update');
     await this.prisma.incidentInjury.update({
       where: { id: injuryId },
@@ -206,7 +241,7 @@ export class IncidentCareService {
     dto: CreateIncidentWitnessDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadIncident(user, incidentId);
+    await this.loadIncidentForEdit(user, incidentId);
     this.requirePermission(user, 'incidents.update');
     await this.assertServiceUser(dto.personServiceUserId);
     await this.assertEmployee(dto.personEmployeeId);
@@ -240,11 +275,12 @@ export class IncidentCareService {
   ) {
     const witness = await this.prisma.incidentWitness.findFirst({
       where: { id: witnessId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
-    if (!witness || !canViewIncidentPrivacy(user, witness.incident)) {
+    if (!witness || !(await this.canAccessIncident(user, witness.incident))) {
       throw new NotFoundException('Witness not found');
     }
+    assertIncidentEditable(witness.incident);
     this.requirePermission(user, 'incidents.update');
     await this.prisma.incidentWitness.update({
       where: { id: witnessId },
@@ -265,41 +301,46 @@ export class IncidentCareService {
 
   async listRelatedIncidents(user: RequestUser, incidentId: string) {
     await this.loadIncident(user, incidentId);
-    const allowed = allowedPrivacyLevels(user);
-    const links = await this.prisma.incidentRelatedIncident.findMany({
-      where: { incidentId },
-      include: {
-        relatedIncident: {
-          select: {
-            id: true,
-            referenceNumber: true,
-            privacyLevel: true,
-            severity: true,
-            status: true,
-            occurredAt: true,
-            category: { select: { label: true } },
-          },
-        },
+    const summary = {
+      select: {
+        id: true,
+        referenceNumber: true,
+        privacyLevel: true,
+        severity: true,
+        status: true,
+        occurredAt: true,
+        category: { select: { label: true } },
       },
+    } as const;
+    // Links are a two-way relationship: show them from whichever incident is being viewed.
+    const links = await this.prisma.incidentRelatedIncident.findMany({
+      where: { OR: [{ incidentId }, { relatedIncidentId: incidentId }] },
+      include: { incident: summary, relatedIncident: summary },
       orderBy: { createdAt: 'desc' },
     });
+    const others = links.map((l) => (l.incidentId === incidentId ? l.relatedIncident : l.incident));
+    const visibleIds = new Set(
+      (
+        await Promise.all(
+          others.map(async (o) => ((await this.canAccessIncident(user, o)) ? o.id : null)),
+        )
+      ).filter(Boolean),
+    );
     return {
-      data: links.map((l) => {
-        const visible = allowed.includes(l.relatedIncident.privacyLevel);
+      data: links.map((l, i) => {
+        const other = others[i];
+        // Above clearance or outside the user's branches: acknowledged but not detailed.
+        const visible = visibleIds.has(other.id);
         return {
           linkId: l.id,
           note: l.note,
-          relatedIncidentId: l.relatedIncidentId,
+          relatedIncidentId: other.id,
           // Confidential related incidents are acknowledged but not detailed.
-          referenceNumber: visible
-            ? l.relatedIncident.referenceNumber
-            : 'Restricted',
-          categoryLabel: visible ? l.relatedIncident.category.label : null,
-          severity: visible ? l.relatedIncident.severity : null,
-          status: visible ? l.relatedIncident.status : null,
-          occurredAt: visible
-            ? l.relatedIncident.occurredAt.toISOString()
-            : null,
+          referenceNumber: visible ? other.referenceNumber : 'Restricted',
+          categoryLabel: visible ? other.category.label : null,
+          severity: visible ? other.severity : null,
+          status: visible ? other.status : null,
+          occurredAt: visible ? other.occurredAt.toISOString() : null,
           restricted: !visible,
         };
       }),
@@ -312,13 +353,20 @@ export class IncidentCareService {
     dto: LinkRelatedIncidentDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadIncident(user, incidentId);
+    await this.loadIncidentForEdit(user, incidentId);
     this.requirePermission(user, 'incidents.update');
     if (dto.relatedIncidentId === incidentId) {
       throw new BadRequestException('An incident cannot be linked to itself');
     }
     // Must be able to view the target incident to link it.
     await this.loadIncident(user, dto.relatedIncidentId);
+    const reverse = await this.prisma.incidentRelatedIncident.findFirst({
+      where: { incidentId: dto.relatedIncidentId, relatedIncidentId: incidentId },
+      select: { id: true },
+    });
+    if (reverse) {
+      throw new BadRequestException('These incidents are already linked');
+    }
     try {
       const link = await this.prisma.incidentRelatedIncident.create({
         data: {
@@ -353,12 +401,21 @@ export class IncidentCareService {
     linkId: string,
     meta?: RequestAuditMeta,
   ) {
+    const side = { select: { id: true, privacyLevel: true, status: true } } as const;
     const link = await this.prisma.incidentRelatedIncident.findUnique({
       where: { id: linkId },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: side, relatedIncident: side },
     });
-    if (!link || !canViewIncidentPrivacy(user, link.incident)) {
+    if (
+      !link ||
+      !(await this.canAccessIncident(user, link.incident)) ||
+      !(await this.canAccessIncident(user, link.relatedIncident))
+    ) {
       throw new NotFoundException('Link not found');
+    }
+    // Links can be removed from either incident; only blocked when both are closed (read-only).
+    if (link.incident.status === IncidentStatus.CLOSED) {
+      assertIncidentEditable(link.relatedIncident);
     }
     this.requirePermission(user, 'incidents.update');
     await this.prisma.incidentRelatedIncident.delete({ where: { id: linkId } });
@@ -390,7 +447,7 @@ export class IncidentCareService {
     dto: CreateRelatedCareRecordDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadIncident(user, incidentId);
+    await this.loadIncidentForEdit(user, incidentId);
     this.requirePermission(user, 'incidents.update');
 
     if (dto.externalId) {
@@ -439,11 +496,12 @@ export class IncidentCareService {
   ) {
     const record = await this.prisma.incidentRelatedCareRecord.findFirst({
       where: { id: recordId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
-    if (!record || !canViewIncidentPrivacy(user, record.incident)) {
+    if (!record || !(await this.canAccessIncident(user, record.incident))) {
       throw new NotFoundException('Care record link not found');
     }
+    assertIncidentEditable(record.incident);
     this.requirePermission(user, 'incidents.update');
     const markingUpdated =
       dto.status === IncidentRelatedRecordStatus.UPDATED &&
@@ -477,11 +535,12 @@ export class IncidentCareService {
   ) {
     const record = await this.prisma.incidentRelatedCareRecord.findFirst({
       where: { id: recordId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
-    if (!record || !canViewIncidentPrivacy(user, record.incident)) {
+    if (!record || !(await this.canAccessIncident(user, record.incident))) {
       throw new NotFoundException('Care record link not found');
     }
+    assertIncidentEditable(record.incident);
     this.requirePermission(user, 'incidents.update');
     await this.prisma.incidentRelatedCareRecord.update({
       where: { id: recordId },
@@ -516,11 +575,27 @@ export class IncidentCareService {
     dto: CreateIncidentAttachmentMetaDto,
     meta?: RequestAuditMeta,
   ) {
-    await this.loadIncident(user, incidentId);
-    this.requirePermission(user, 'incidents.update');
+    // Multer has already written the file to disk, so remove it whenever the upload is rejected.
+    const discard = async () => {
+      if (file) await fsp.unlink(file.path).catch(() => undefined);
+    };
+    try {
+      await this.loadIncidentForEdit(user, incidentId);
+      this.requirePermission(user, 'incidents.update');
+    } catch (e) {
+      await discard();
+      throw e;
+    }
     if (!file) {
+      // Also reached when the upload filter rejected the file type (multer then passes no file).
       throw new BadRequestException(
-        'A file is required (allowed: JPEG, PNG, WebP, HEIC, PDF)',
+        'Upload a JPEG, PNG, WebP, HEIC or PDF file',
+      );
+    }
+    if (!(await incidentAttachmentContentMatchesType(file.path, file.mimetype))) {
+      await discard();
+      throw new BadRequestException(
+        'The file content does not match its type (allowed: JPEG, PNG, WebP, HEIC, PDF)',
       );
     }
     const attachment = await this.prisma.incidentAttachment.create({
@@ -559,9 +634,9 @@ export class IncidentCareService {
   async getAttachmentForDownload(user: RequestUser, attachmentId: string) {
     const attachment = await this.prisma.incidentAttachment.findFirst({
       where: { id: attachmentId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true } } },
     });
-    if (!attachment || !canViewIncidentPrivacy(user, attachment.incident)) {
+    if (!attachment || !(await this.canAccessIncident(user, attachment.incident))) {
       throw new NotFoundException('Attachment not found');
     }
     const absolutePath = join(incidentAttachmentRoot(), attachment.fileName);
@@ -582,11 +657,12 @@ export class IncidentCareService {
   ) {
     const attachment = await this.prisma.incidentAttachment.findFirst({
       where: { id: attachmentId, deletedAt: null },
-      include: { incident: { select: { privacyLevel: true } } },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
     });
-    if (!attachment || !canViewIncidentPrivacy(user, attachment.incident)) {
+    if (!attachment || !(await this.canAccessIncident(user, attachment.incident))) {
       throw new NotFoundException('Attachment not found');
     }
+    assertIncidentEditable(attachment.incident);
     this.requirePermission(user, 'incidents.update');
     await this.prisma.incidentAttachment.update({
       where: { id: attachmentId },
@@ -622,13 +698,15 @@ export class IncidentCareService {
 
   async getServiceUserHistory(user: RequestUser, serviceUserId: string) {
     const allowed = allowedPrivacyLevels(user);
+    const where: Prisma.IncidentWhereInput = {
+      involvedServiceUserIds: { has: serviceUserId },
+      deletedAt: null,
+      isArchived: false,
+      privacyLevel: { in: allowed },
+    };
+    andWhereFragment(where, await this.orgScope.incidentScopeWhere(this.orgScope.fromRequestUser(user)));
     const incidents = await this.prisma.incident.findMany({
-      where: {
-        primaryServiceUserId: serviceUserId,
-        deletedAt: null,
-        isArchived: false,
-        privacyLevel: { in: allowed },
-      },
+      where,
       select: {
         id: true,
         referenceNumber: true,
@@ -644,9 +722,13 @@ export class IncidentCareService {
 
     const now = Date.now();
     const windowStart = now - FALL_WINDOW_DAYS * 86_400_000;
-    const monthStart = new Date();
-    monthStart.setUTCDate(1);
-    monthStart.setUTCHours(0, 0, 0, 0);
+    // "This month" follows the organisation calendar (not UTC), matching the dashboard.
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const monthStart = incidentOccurredAtRange(
+      `${operationalTodayIso(new Date(), timeZone).slice(0, 8)}01`,
+      undefined,
+      timeZone,
+    )!.gte!;
 
     const falls90 = incidents.filter(
       (i) => i.subtype?.key === 'FALL' && i.occurredAt.getTime() >= windowStart,

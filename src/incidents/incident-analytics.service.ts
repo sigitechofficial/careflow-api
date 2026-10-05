@@ -9,7 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { allowedPrivacyLevels } from './incident-access.util';
-import { OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
+import { incidentOccurredAtRange, OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
 
 const ROW_CAP = 10_000;
@@ -32,6 +33,8 @@ type LeanRow = Prisma.IncidentGetPayload<{
     locationId: true;
     primaryServiceUserId: true;
     primaryEmployeeId: true;
+    involvedServiceUserIds: true;
+    involvedEmployeeIds: true;
     category: { select: { key: true; label: true } };
     subtype: { select: { key: true; label: true } };
   };
@@ -42,6 +45,7 @@ export class IncidentAnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgScope: OrgScopeService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   private async baseWhere(
@@ -59,7 +63,7 @@ export class IncidentAnalyticsService {
       isArchived: false,
       privacyLevel: { in: allowedPrivacyLevels(user) },
       ...(q.categoryId ? { categoryId: q.categoryId } : {}),
-      ...(q.serviceUserId ? { primaryServiceUserId: q.serviceUserId } : {}),
+      ...(q.serviceUserId ? { involvedServiceUserIds: { has: q.serviceUserId } } : {}),
       ...(q.severity ? { severity: q.severity } : {}),
       ...(q.status ? { status: q.status } : {}),
     };
@@ -72,7 +76,12 @@ export class IncidentAnalyticsService {
       andWhereFragment(where, {
         OR: [
           { locationId: { in: locationIds } },
-          ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+          ...(suIds.length
+            ? [
+                { primaryServiceUserId: { in: suIds } },
+                { involvedServiceUserIds: { hasSome: suIds } },
+              ]
+            : []),
         ],
       });
     } else if (locationIds && locationIds.length === 0) {
@@ -80,14 +89,12 @@ export class IncidentAnalyticsService {
     } else {
       andWhereFragment(where, await this.orgScope.incidentScopeWhere(scope));
     }
-    if (q.dateFrom || q.dateTo) {
-      where.occurredAt = {
-        ...(q.dateFrom ? { gte: new Date(q.dateFrom) } : {}),
-        ...(q.dateTo
-          ? { lte: new Date(`${q.dateTo.slice(0, 10)}T23:59:59.999Z`) }
-          : {}),
-      };
-    }
+    const occurredAt = incidentOccurredAtRange(
+      q.dateFrom,
+      q.dateTo,
+      await this.orgSettings.getOperationalTimezone(),
+    );
+    if (occurredAt) where.occurredAt = occurredAt;
     return where;
   }
 
@@ -105,6 +112,8 @@ export class IncidentAnalyticsService {
         locationId: true,
         primaryServiceUserId: true,
         primaryEmployeeId: true,
+        involvedServiceUserIds: true,
+        involvedEmployeeIds: true,
         category: { select: { key: true, label: true } },
         subtype: { select: { key: true, label: true } },
       },
@@ -162,12 +171,11 @@ export class IncidentAnalyticsService {
 
       if (r.locationId)
         byLocation.set(r.locationId, (byLocation.get(r.locationId) ?? 0) + 1);
-      if (r.primaryServiceUserId)
-        byServiceUser.set(
-          r.primaryServiceUserId,
-          (byServiceUser.get(r.primaryServiceUserId) ?? 0) + 1,
-        );
-      if (r.primaryEmployeeId) involvingEmployees += 1;
+      // An incident counts once for every service user involved.
+      for (const serviceUserId of r.involvedServiceUserIds) {
+        byServiceUser.set(serviceUserId, (byServiceUser.get(serviceUserId) ?? 0) + 1);
+      }
+      if (r.involvedEmployeeIds.length > 0) involvingEmployees += 1;
 
       const hour = r.occurredAt.getUTCHours();
       const bucket = byTimeOfDay.find(

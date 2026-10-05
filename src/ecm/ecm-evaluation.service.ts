@@ -66,6 +66,64 @@ export class EcmEvaluationService {
    * Does not mutate ScheduledJobStatus — ECM lifecycle is parallel.
    */
   async evaluateJob(scheduledJobId: string, options: EvaluateJobOptions = {}) {
+    const {
+      job,
+      plannedStart,
+      plannedEnd,
+      data,
+      timing,
+      resolved,
+      lifecycleStatus,
+    } = await this.computeEvaluation(scheduledJobId, options);
+
+    try {
+      await this.scheduleVersions.ensureOriginal({
+        scheduledJobId: job.id,
+        plannedStartDateTime: plannedStart,
+        plannedEndDateTime: plannedEnd,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `ECM schedule original capture failed for ${job.id}: ${String(err)}`,
+      );
+    }
+
+    const { scheduledJobId: _jobId, createdAt: _created, ...updateData } = data;
+
+    const evaluation = await this.prisma.ecmVisitEvaluation.upsert({
+      where: { scheduledJobId: job.id },
+      create: data,
+      update: updateData,
+    });
+
+    this.logger.debug(
+      `ECM evaluated job=${job.id} lifecycle=${lifecycleStatus} arrival=${timing.arrivalClassification} level=${resolved.appliedSettingsLevel}`,
+    );
+
+    try {
+      await this.exceptions.syncFromEvaluation(evaluation.id);
+    } catch (err) {
+      this.logger.warn(
+        `ECM exception sync failed for ${job.id}: ${String(err)}`,
+      );
+    }
+
+    return { evaluation, timing, resolved };
+  }
+
+  /**
+   * Same classification as `evaluateJob` without saving it — no evaluation row,
+   * no exceptions and no office alerts. Used for read-only visit tables.
+   */
+  async previewJob(scheduledJobId: string, options: EvaluateJobOptions = {}) {
+    const { data } = await this.computeEvaluation(scheduledJobId, options);
+    return data;
+  }
+
+  private async computeEvaluation(
+    scheduledJobId: string,
+    options: EvaluateJobOptions,
+  ) {
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: scheduledJobId, deletedAt: null },
       include: {
@@ -116,16 +174,6 @@ export class EcmEvaluationService {
         : {};
     const officeCompletedFromMeta = jobMeta.ecmCompletionSource === 'office';
     const officeCompleted = options.officeCompleted === true || officeCompletedFromMeta;
-
-    try {
-      await this.scheduleVersions.ensureOriginal({
-        scheduledJobId: job.id,
-        plannedStartDateTime: plannedStart,
-        plannedEndDateTime: plannedEnd,
-      });
-    } catch (err) {
-      this.logger.warn(`ECM schedule original capture failed for ${job.id}: ${String(err)}`);
-    }
 
     const checkInEvent = [...job.attendanceEvents]
       .reverse()
@@ -327,25 +375,15 @@ export class EcmEvaluationService {
       evaluatedAt: options.now ?? new Date(),
     };
 
-    const { scheduledJobId: _jobId, createdAt: _created, ...updateData } = data;
-
-    const evaluation = await this.prisma.ecmVisitEvaluation.upsert({
-      where: { scheduledJobId: job.id },
-      create: data,
-      update: updateData,
-    });
-
-    this.logger.debug(
-      `ECM evaluated job=${job.id} lifecycle=${lifecycleStatus} arrival=${timing.arrivalClassification} level=${resolved.appliedSettingsLevel}`,
-    );
-
-    try {
-      await this.exceptions.syncFromEvaluation(evaluation.id);
-    } catch (err) {
-      this.logger.warn(`ECM exception sync failed for ${job.id}: ${String(err)}`);
-    }
-
-    return { evaluation, timing, resolved };
+    return {
+      job,
+      plannedStart,
+      plannedEnd,
+      data,
+      timing,
+      resolved,
+      lifecycleStatus,
+    };
   }
 
   /**

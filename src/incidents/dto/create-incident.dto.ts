@@ -64,6 +64,26 @@ export class CreateIncidentDto {
   primaryEmployeeId?: string;
 
   @ApiPropertyOptional({
+    type: [String],
+    description: 'All service users involved; the first becomes the primary person when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  serviceUserIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'All staff members involved; the first becomes the primary employee when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  employeeIds?: string[];
+
+  @ApiPropertyOptional({
     enum: IncidentPersonKind,
     description: 'Kind of primary person affected',
   })
@@ -129,17 +149,6 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsBoolean()
   admittedToHospital?: boolean | null;
-
-  @ApiPropertyOptional({
-    type: [String],
-    description:
-      'Staff involved in the incident (e.g. made the error, alleged person, second carer) — employee ids',
-  })
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(20)
-  @IsUUID('4', { each: true })
-  involvedEmployeeIds?: string[];
 
   @ApiPropertyOptional({
     description:

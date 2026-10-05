@@ -65,6 +65,18 @@ export class ServiceUserQueryDto extends PaginationQueryDto {
   @IsUUID()
   locationId?: string;
 
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Branch (location) ids — e.g. every branch in a zone; matches any (comma-separated or repeated). Limited to the branches the caller can access.',
+  })
+  @IsOptional()
+  @TransformStringArrayQuery()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsUUID('all', { each: true })
+  locationIds?: string[];
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

@@ -52,6 +52,19 @@ export class ListIncidentsQueryDto {
   @IsEnum(IncidentSeverity, { each: true })
   severities?: IncidentSeverity[];
 
+  @ApiPropertyOptional({
+    description: 'Closed on or after this day (YYYY-MM-DD, organisation timezone)',
+  })
+  @IsOptional()
+  @IsISO8601()
+  closedFrom?: string;
+
+  @ApiPropertyOptional({ description: 'Only incidents with overdue corrective actions' })
+  @IsOptional()
+  @TransformOptionalBooleanQuery()
+  @IsBoolean()
+  hasOverdueActions?: boolean;
+
   @ApiPropertyOptional({ enum: IncidentPrivacyLevel })
   @IsOptional()
   @IsEnum(IncidentPrivacyLevel)

@@ -338,7 +338,7 @@ export async function findServiceUserIdsWithConfirmedMissedVisitsAtLeast(
   return [...counts.entries()].filter(([, n]) => n > moreThan).map(([id]) => id);
 }
 
-/** Incidents link via primaryServiceUserId (no Prisma FK on ServiceUser). */
+/** Incidents link via involvedServiceUserIds (no Prisma FK on ServiceUser). */
 export async function findServiceUserIdsWithBehaviourIncident(
   prisma: PrismaService,
   subtypeKeys: string[],
@@ -368,7 +368,7 @@ async function findServiceUserIdsWithIncidents(
     where: {
       deletedAt: null,
       isArchived: false,
-      primaryServiceUserId: { not: null },
+      involvedServiceUserIds: { isEmpty: false },
       OR: [
         ...(subtypeKeys.length > 0
           ? [{ subtype: { key: { in: subtypeKeys }, deletedAt: null } }]
@@ -378,14 +378,8 @@ async function findServiceUserIdsWithIncidents(
           : []),
       ],
     },
-    select: { primaryServiceUserId: true },
+    select: { involvedServiceUserIds: true },
   });
 
-  return [
-    ...new Set(
-      rows
-        .map((r) => r.primaryServiceUserId)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0),
-    ),
-  ];
+  return [...new Set(rows.flatMap((r) => r.involvedServiceUserIds))];
 }

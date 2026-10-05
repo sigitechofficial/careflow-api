@@ -1,17 +1,22 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
   SurveyQuestionType,
   SurveyRecurrence,
+  SurveyRespondentRelation,
   SurveyStatus,
   SurveyTargetKind,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+import { FcmPushService } from '../notifications/fcm-push.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -42,11 +47,23 @@ const DEFAULT_LIKERT_OPTIONS = [
   'Strongly disagree',
 ];
 
+/** Service users who are no longer receiving care are never surveyed. */
+const SURVEY_EXCLUDED_SERVICE_USER_STATUSES = [
+  'DISCHARGED',
+  'DECEASED',
+  'INACTIVE',
+] as const;
+
 @Injectable()
 export class SurveysService {
+  private readonly logger = new Logger(SurveysService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly config: ConfigService,
+    private readonly mail: MailService,
+    private readonly push: FcmPushService,
   ) {}
 
   async list(query: ListSurveysQueryDto) {
@@ -74,6 +91,9 @@ export class SurveysService {
     const completedMap = new Map(
       completedBySurvey.map((row) => [row.surveyId, row._count._all] as const),
     );
+    const creatorMap = await this.loadUserNameMap(
+      rows.map((r) => r.createdById).filter((id): id is string => Boolean(id)),
+    );
 
     return {
       message: 'Surveys',
@@ -100,6 +120,8 @@ export class SurveysService {
           recipientCount: recipients,
           completedCount: completed,
           responseRate: recipients > 0 ? Math.round((completed / recipients) * 100) : 0,
+          createdById: r.createdById ?? null,
+          createdByName: r.createdById ? (creatorMap.get(r.createdById) ?? null) : null,
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
         };
@@ -119,9 +141,10 @@ export class SurveysService {
       where: { surveyId: id, deletedAt: null },
       orderBy: { sortOrder: 'asc' },
     });
-    const [recipientCount, responseCount] = await Promise.all([
+    const [recipientCount, responseCount, creatorMap] = await Promise.all([
       this.prisma.surveyRecipient.count({ where: { surveyId: id } }),
       this.prisma.surveyResponse.count({ where: { recipient: { surveyId: id } } }),
+      this.loadUserNameMap(row.createdById ? [row.createdById] : []),
     ]);
 
     return {
@@ -142,6 +165,8 @@ export class SurveysService {
         clonedFromId: row.clonedFromId ?? null,
         locationIds: row.locationIds,
         shareToken: row.shareToken,
+        createdById: row.createdById ?? null,
+        createdByName: row.createdById ? (creatorMap.get(row.createdById) ?? null) : null,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
         recipientCount,
@@ -401,16 +426,20 @@ export class SurveysService {
   }
 
   /**
-   * Send an employee survey: generate a recipient row per employee and mark the
-   * survey ACTIVE. Employees-first — SERVICE_USER targeting is not wired yet.
+   * Send a survey: one recipient row per active employee, or per service user with portal
+   * access, then mark the survey ACTIVE and deliver (push/email) in the background.
    * If dto.distributeAt is in the future, queue the send instead.
    * With recurrence, each due run clones this survey and sends the clone.
    */
-  async send(userId: string, surveyId: string, dto: SendSurveyDto, meta?: RequestAuditMeta) {
+  async send(
+    userId: string,
+    surveyId: string,
+    dto: SendSurveyDto,
+    meta?: RequestAuditMeta,
+    requestOrigin?: string,
+  ) {
     const survey = await this.requireSurvey(surveyId);
-    if (survey.targetKind !== SurveyTargetKind.EMPLOYEE) {
-      throw new BadRequestException('Only employee surveys can be sent (service-user surveys are not enabled yet)');
-    }
+    const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
     const questionCount = await this.prisma.surveyQuestion.count({
       where: { surveyId, deletedAt: null },
     });
@@ -456,6 +485,7 @@ export class SurveysService {
           data: {
             sent: 0,
             skippedExisting: 0,
+            skippedNoPortal: 0,
             status: updated.status,
             scheduled: true,
             distributeAt: updated.distributeAt?.toISOString() ?? null,
@@ -465,41 +495,85 @@ export class SurveysService {
       }
     }
 
-    let employeeIds = dto.employeeIds ?? [];
-    if (employeeIds.length === 0) {
-      const empWhere: Prisma.EmployeeWhereInput = { deletedAt: null };
-      if (survey.locationIds.length > 0) {
-        empWhere.employment = { locationId: { in: survey.locationIds } };
+    const locationIds = dto.locationIds ?? survey.locationIds;
+    let targetIds: string[];
+    let skippedNoPortal = 0;
+    if (forServiceUsers) {
+      // Service users answer in the portal, so only those with an enabled portal account receive it.
+      const suWhere: Prisma.ServiceUserWhereInput = {
+        deletedAt: null,
+        NOT: {
+          status: {
+            is: { code: { in: [...SURVEY_EXCLUDED_SERVICE_USER_STATUSES] } },
+          },
+        },
+      };
+      if (locationIds.length > 0) suWhere.locationId = { in: locationIds };
+      const [eligible, inScope] = await Promise.all([
+        this.prisma.serviceUser.findMany({
+          where: {
+            ...suWhere,
+            portalAccount: { is: { isEnabled: true, deletedAt: null } },
+          },
+          select: { id: true },
+        }),
+        this.prisma.serviceUser.count({ where: suWhere }),
+      ]);
+      targetIds = eligible.map((s) => s.id);
+      skippedNoPortal = inScope - targetIds.length;
+      if (targetIds.length === 0) {
+        throw new BadRequestException(
+          'No service users with portal access to send this survey to. Give them a portal account first.',
+        );
+      }
+    } else {
+      // Only active employees: explicit picks are filtered too, so inactive staff never receive it.
+      const empWhere: Prisma.EmployeeWhereInput = {
+        deletedAt: null,
+        isActive: true,
+      };
+      if (dto.employeeIds?.length) {
+        empWhere.id = { in: dto.employeeIds };
+      } else if (locationIds.length > 0) {
+        empWhere.employment = { locationId: { in: locationIds } };
       }
       const employees = await this.prisma.employee.findMany({
         where: empWhere,
         select: { id: true },
       });
-      employeeIds = employees.map((e) => e.id);
-    }
-    if (employeeIds.length === 0) {
-      throw new BadRequestException('No employees to send this survey to');
+      targetIds = employees.map((e) => e.id);
+      if (targetIds.length === 0) {
+        throw new BadRequestException(
+          'No active employees to send this survey to',
+        );
+      }
     }
 
     const existing = await this.prisma.surveyRecipient.findMany({
-      where: { surveyId, employeeId: { in: employeeIds } },
-      select: { employeeId: true },
+      where: forServiceUsers
+        ? { surveyId, serviceUserId: { in: targetIds } }
+        : { surveyId, employeeId: { in: targetIds } },
+      select: { employeeId: true, serviceUserId: true },
     });
-    const already = new Set(existing.map((r) => r.employeeId));
-    const toCreate = employeeIds.filter((id) => !already.has(id));
+    const already = new Set(
+      existing.map((r) => (forServiceUsers ? r.serviceUserId : r.employeeId)),
+    );
+    const toCreate = targetIds.filter((id) => !already.has(id));
 
     const now = new Date();
-    if (toCreate.length) {
+    const created = toCreate.map((id) => ({
+      surveyId,
+      targetKind: survey.targetKind,
+      employeeId: forServiceUsers ? null : id,
+      serviceUserId: forServiceUsers ? id : null,
+      token: randomUUID(),
+      status: 'SENT' as const,
+      sentAt: now,
+      createdById: userId || null,
+    }));
+    if (created.length) {
       await this.prisma.surveyRecipient.createMany({
-        data: toCreate.map((employeeId) => ({
-          surveyId,
-          targetKind: SurveyTargetKind.EMPLOYEE,
-          employeeId,
-          token: randomUUID(),
-          status: 'SENT' as const,
-          sentAt: now,
-          createdById: userId || null,
-        })),
+        data: created,
         skipDuplicates: true,
       });
     }
@@ -514,28 +588,172 @@ export class SurveysService {
       },
     });
 
+    // Delivery runs in the background — a failed email/push never fails the send.
+    if (created.length) {
+      void this.deliverToRecipients(survey, created, requestOrigin).catch(
+        (err) =>
+          this.logger.warn(
+            `Survey ${surveyId} delivery failed: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+      );
+    }
+
     await this.audit.logAudit({
       userId: userId || undefined,
       module: AuditModule.SURVEY,
       action: AuditAction.SURVEY_SENT,
       recordType: 'Survey',
       recordId: surveyId,
-      newValues: { sent: toCreate.length, skippedExisting: already.size, status: updated.status },
-      metadata: { surveyId },
+      newValues: {
+        sent: toCreate.length,
+        skippedExisting: already.size,
+        skippedNoPortal,
+        status: updated.status,
+      },
+      metadata: { surveyId, targetKind: survey.targetKind },
       ...meta,
     });
 
+    const audience = forServiceUsers ? 'service user(s)' : 'employee(s)';
     return {
-      message: `Survey sent to ${toCreate.length} employee(s)`,
+      message: `Survey sent to ${toCreate.length} ${audience}`,
       data: {
         sent: toCreate.length,
         skippedExisting: already.size,
+        skippedNoPortal,
         status: updated.status,
         scheduled: false,
         distributeAt: survey.distributeAt?.toISOString() ?? null,
         recurrence: survey.recurrence ?? null,
       },
     };
+  }
+
+  /** Admin web app origin for links: ADMIN_APP_URL, else the (validated) request Origin. */
+  private resolveAppBaseUrl(requestOrigin?: string): string | null {
+    const configured = this.config.get<string>('app.adminAppUrl', '');
+    if (configured) return configured;
+    const origin = requestOrigin?.trim().replace(/\/+$/, '');
+    return origin && /^https?:\/\/[^/\s]+$/i.test(origin) ? origin : null;
+  }
+
+  /**
+   * Employees: carer-app push + email, each with their personal survey link.
+   * Service users: email telling them a survey is waiting in their portal.
+   */
+  private async deliverToRecipients(
+    survey: { id: string; title: string; targetKind: SurveyTargetKind },
+    recipients: Array<{
+      token: string;
+      employeeId: string | null;
+      serviceUserId: string | null;
+    }>,
+    requestOrigin?: string,
+  ): Promise<void> {
+    const base = this.resolveAppBaseUrl(requestOrigin);
+    if (!base) {
+      this.logger.warn(
+        `Survey ${survey.id}: ADMIN_APP_URL is not set — emails and push are sent without a link.`,
+      );
+    }
+
+    if (survey.targetKind === SurveyTargetKind.SERVICE_USER) {
+      const accounts = await this.prisma.serviceUserPortalAccount.findMany({
+        where: {
+          serviceUserId: {
+            in: recipients
+              .map((r) => r.serviceUserId)
+              .filter((id): id is string => Boolean(id)),
+          },
+          isEnabled: true,
+          deletedAt: null,
+        },
+        select: {
+          email: true,
+          serviceUser: { select: { firstName: true, preferredName: true } },
+        },
+      });
+      for (const a of accounts) {
+        const name =
+          a.serviceUser.preferredName?.trim() || a.serviceUser.firstName;
+        await this.safeMail(survey.id, {
+          to: a.email,
+          subject: `New survey in your portal: ${survey.title}`,
+          text: [
+            `Hello ${name},`,
+            '',
+            `Your care team would like your feedback in the survey "${survey.title}".`,
+            base
+              ? `Log in to your portal to answer it: ${base}/portal/surveys`
+              : 'Log in to your service user portal and open Surveys to answer it.',
+            '',
+            'A family member or representative can answer on your behalf.',
+            '',
+            'Thank you.',
+          ].join('\n'),
+        });
+      }
+      return;
+    }
+
+    const employeeIds = recipients
+      .map((r) => r.employeeId)
+      .filter((id): id is string => Boolean(id));
+    const details = await this.prisma.employeePersonalDetail.findMany({
+      where: { employeeId: { in: employeeIds } },
+      select: { employeeId: true, firstName: true, email: true },
+    });
+    const detailById = new Map(details.map((d) => [d.employeeId, d]));
+    for (const r of recipients) {
+      if (!r.employeeId) continue;
+      const link = base ? `${base}/survey/${r.token}` : null;
+      try {
+        await this.push.sendToEmployees([r.employeeId], {
+          title: 'New survey',
+          body: `Please complete "${survey.title}".`,
+          data: {
+            type: 'SURVEY',
+            surveyId: survey.id,
+            ...(link ? { url: link } : {}),
+          },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Survey ${survey.id} push to employee ${r.employeeId} failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      const detail = detailById.get(r.employeeId);
+      if (!detail?.email) continue;
+      await this.safeMail(survey.id, {
+        to: detail.email,
+        subject: `Survey: ${survey.title}`,
+        text: [
+          `Hi ${detail.firstName},`,
+          '',
+          `You have been asked to complete the survey "${survey.title}".`,
+          link
+            ? `Open your survey: ${link}`
+            : 'Please ask your office for your survey link.',
+          '',
+          'This link is personal to you — please do not share it.',
+          '',
+          'Thank you.',
+        ].join('\n'),
+      });
+    }
+  }
+
+  private async safeMail(
+    surveyId: string,
+    input: { to: string; subject: string; text: string },
+  ) {
+    try {
+      await this.mail.send(input);
+    } catch (err) {
+      this.logger.warn(
+        `Survey ${surveyId} email to ${input.to} failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   /** Clone a recurring template into a fresh period survey (questions copied). */
@@ -690,7 +908,7 @@ export class SurveysService {
     return out;
   }
 
-  /** Basic results rollup: recipient/response counts by status.
+  /** Basic results rollup: recipient/response counts by status + per-question summary.
    * Recurring templates include recipients from all period clones.
    */
   async results(surveyId: string) {
@@ -705,10 +923,31 @@ export class SurveysService {
     }
 
     const where = { surveyId: { in: surveyIds } };
-    const [recipients, completed] = await Promise.all([
+    const [recipients, completed, questions, answers] = await Promise.all([
       this.prisma.surveyRecipient.count({ where }),
       this.prisma.surveyRecipient.count({ where: { ...where, status: 'COMPLETED' } }),
+      this.prisma.surveyQuestion.findMany({
+        where: { surveyId, deletedAt: null },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.surveyAnswer.findMany({
+        where: { response: { recipient: { surveyId: { in: surveyIds } } } },
+        include: {
+          question: {
+            select: {
+              id: true,
+              surveyId: true,
+              questionText: true,
+              questionType: true,
+              sortOrder: true,
+              options: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
+
     return {
       message: 'Survey results',
       data: {
@@ -716,8 +955,130 @@ export class SurveysService {
         completed,
         responseRate: recipients > 0 ? Math.round((completed / recipients) * 100) : 0,
         includesPeriodRuns: surveyIds.length > 1,
+        questionSummaries: this.buildQuestionSummaries(questions, answers),
       },
     };
+  }
+
+  private async loadUserNameMap(userIds: string[]): Promise<Map<string, string>> {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    const map = new Map<string, string>();
+    if (ids.length === 0) return map;
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    for (const u of users) {
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+      map.set(u.id, name || u.email || 'User');
+    }
+    return map;
+  }
+
+  private buildQuestionSummaries(
+    questions: Array<{
+      id: string;
+      questionText: string;
+      questionType: SurveyQuestionType;
+      sortOrder: number;
+      options: Prisma.JsonValue;
+    }>,
+    answers: Array<{
+      booleanValue: boolean | null;
+      textValue: string | null;
+      numberValue: Prisma.Decimal | null;
+      selectedOptions: Prisma.JsonValue;
+      question: {
+        id: string;
+        surveyId: string;
+        questionText: string;
+        questionType: SurveyQuestionType;
+        sortOrder: number;
+        options: Prisma.JsonValue;
+      };
+    }>,
+  ) {
+    const byKey = new Map<string, typeof answers>();
+    for (const a of answers) {
+      const key = `${a.question.sortOrder}::${a.question.questionType}::${a.question.questionText}`;
+      const list = byKey.get(key) ?? [];
+      list.push(a);
+      byKey.set(key, list);
+    }
+
+    return questions.map((q) => {
+      const key = `${q.sortOrder}::${q.questionType}::${q.questionText}`;
+      const qAnswers = byKey.get(key) ?? [];
+      const answerCount = qAnswers.length;
+      const base = {
+        questionId: q.id,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        sortOrder: q.sortOrder,
+        answerCount,
+      };
+
+      if (
+        q.questionType === SurveyQuestionType.YES_NO ||
+        q.questionType === SurveyQuestionType.SINGLE_SELECT ||
+        q.questionType === SurveyQuestionType.MULTI_SELECT ||
+        q.questionType === SurveyQuestionType.LIKERT
+      ) {
+        const counts = new Map<string, number>();
+        if (q.questionType === SurveyQuestionType.YES_NO) {
+          counts.set('Yes', 0);
+          counts.set('No', 0);
+          for (const a of qAnswers) {
+            if (a.booleanValue === true) counts.set('Yes', (counts.get('Yes') ?? 0) + 1);
+            else if (a.booleanValue === false) counts.set('No', (counts.get('No') ?? 0) + 1);
+          }
+        } else {
+          const configured =
+            q.questionType === SurveyQuestionType.LIKERT
+              ? this.normalizeOptions(q.questionType, q.options) ?? []
+              : this.asStringArray(q.options);
+          for (const opt of configured) counts.set(opt, 0);
+          for (const a of qAnswers) {
+            const selected = Array.isArray(a.selectedOptions)
+              ? a.selectedOptions.filter((v): v is string => typeof v === 'string')
+              : [];
+            for (const opt of selected) {
+              counts.set(opt, (counts.get(opt) ?? 0) + 1);
+            }
+          }
+        }
+        const options = [...counts.entries()].map(([label, count]) => ({
+          label,
+          count,
+          percent: answerCount > 0 ? Math.round((count / answerCount) * 100) : 0,
+        }));
+        return { ...base, options };
+      }
+
+      if (
+        q.questionType === SurveyQuestionType.NUMBER ||
+        q.questionType === SurveyQuestionType.RATING
+      ) {
+        const nums = qAnswers
+          .map((a) => (a.numberValue === null || a.numberValue === undefined ? null : Number(a.numberValue)))
+          .filter((n): n is number => n !== null && !Number.isNaN(n));
+        const sum = nums.reduce((acc, n) => acc + n, 0);
+        return {
+          ...base,
+          numeric: {
+            average: nums.length ? Math.round((sum / nums.length) * 100) / 100 : null,
+            min: nums.length ? Math.min(...nums) : null,
+            max: nums.length ? Math.max(...nums) : null,
+          },
+        };
+      }
+
+      const textSamples = qAnswers
+        .map((a) => a.textValue?.trim() ?? '')
+        .filter(Boolean)
+        .slice(0, 5);
+      return { ...base, textSamples };
+    });
   }
 
   /** Admin: submitted responses with answers (respects anonymous surveys). */
@@ -727,7 +1088,9 @@ export class SurveysService {
       where: { recipient: { surveyId } },
       orderBy: { submittedAt: 'desc' },
       include: {
-        recipient: { select: { id: true, employeeId: true } },
+        recipient: {
+          select: { id: true, employeeId: true, serviceUserId: true },
+        },
         answers: {
           include: {
             question: {
@@ -743,29 +1106,9 @@ export class SurveysService {
       },
     });
 
-    const employeeIds = survey.isAnonymous
-      ? []
-      : rows
-          .map((r) => r.recipient.employeeId)
-          .filter((id): id is string => Boolean(id));
-    const employees =
-      employeeIds.length === 0
-        ? []
-        : await this.prisma.employee.findMany({
-            where: { id: { in: employeeIds } },
-            select: {
-              id: true,
-              personalDetail: { select: { firstName: true, lastName: true } },
-            },
-          });
-    const nameById = new Map(
-      employees.map((e) => {
-        const first = e.personalDetail?.firstName?.trim() ?? '';
-        const last = e.personalDetail?.lastName?.trim() ?? '';
-        const name = `${first} ${last}`.trim();
-        return [e.id, name || 'Employee'] as const;
-      }),
-    );
+    const nameById = survey.isAnonymous
+      ? new Map<string, string>()
+      : await this.loadRecipientNames(rows.map((r) => r.recipient));
 
     const chronological = [...rows].sort(
       (a, b) => a.submittedAt.getTime() - b.submittedAt.getTime(),
@@ -781,11 +1124,16 @@ export class SurveysService {
           const seq = indexById.get(row.id) ?? 1;
           let respondentLabel: string;
           let employeeId: string | null = null;
+          let serviceUserId: string | null = null;
           if (survey.isAnonymous) {
             respondentLabel = `Anonymous respondent #${seq}`;
           } else if (row.recipient.employeeId) {
             employeeId = row.recipient.employeeId;
             respondentLabel = nameById.get(row.recipient.employeeId) ?? 'Employee';
+          } else if (row.recipient.serviceUserId) {
+            serviceUserId = row.recipient.serviceUserId;
+            respondentLabel =
+              nameById.get(row.recipient.serviceUserId) ?? 'Service user';
           } else {
             respondentLabel = `Open-link respondent #${seq}`;
           }
@@ -822,6 +1170,10 @@ export class SurveysService {
             submittedAt: row.submittedAt.toISOString(),
             respondentLabel,
             employeeId,
+            serviceUserId,
+            respondentRelation: row.respondentRelation,
+            // Who answered on the service user's behalf — hidden on anonymous surveys.
+            respondentName: survey.isAnonymous ? null : row.respondentName,
             answerCount: answers.length,
             answers,
           };
@@ -863,9 +1215,9 @@ export class SurveysService {
     }
   }
 
-  /** Admin: recipients with per-person share tokens for copy-link. */
+  /** Admin: who the survey was sent to and whether each person has completed it. */
   async listRecipients(surveyId: string) {
-    await this.requireSurvey(surveyId);
+    const survey = await this.requireSurvey(surveyId);
     const rows = await this.prisma.surveyRecipient.findMany({
       where: { surveyId },
       orderBy: { createdAt: 'asc' },
@@ -874,33 +1226,19 @@ export class SurveysService {
         token: true,
         status: true,
         employeeId: true,
+        serviceUserId: true,
         sentAt: true,
         createdAt: true,
-        response: { select: { submittedAt: true } },
+        response: {
+          select: {
+            submittedAt: true,
+            respondentRelation: true,
+            respondentName: true,
+          },
+        },
       },
     });
-
-    const employeeIds = rows
-      .map((r) => r.employeeId)
-      .filter((id): id is string => Boolean(id));
-    const employees =
-      employeeIds.length === 0
-        ? []
-        : await this.prisma.employee.findMany({
-            where: { id: { in: employeeIds } },
-            select: {
-              id: true,
-              personalDetail: { select: { firstName: true, lastName: true } },
-            },
-          });
-    const nameById = new Map(
-      employees.map((e) => {
-        const first = e.personalDetail?.firstName?.trim() ?? '';
-        const last = e.personalDetail?.lastName?.trim() ?? '';
-        const name = `${first} ${last}`.trim();
-        return [e.id, name || 'Employee'] as const;
-      }),
-    );
+    const nameById = await this.loadRecipientNames(rows);
 
     return {
       message: 'Survey recipients',
@@ -910,10 +1248,178 @@ export class SurveysService {
         status: r.status,
         employeeId: r.employeeId,
         employeeName: r.employeeId ? (nameById.get(r.employeeId) ?? 'Employee') : null,
+        serviceUserId: r.serviceUserId,
+        serviceUserName: r.serviceUserId
+          ? (nameById.get(r.serviceUserId) ?? 'Service user')
+          : null,
         sentAt: r.sentAt?.toISOString() ?? null,
         submittedAt: r.response?.submittedAt?.toISOString() ?? null,
+        respondentRelation: r.response?.respondentRelation ?? null,
+        respondentName: survey.isAnonymous
+          ? null
+          : (r.response?.respondentName ?? null),
         createdAt: r.createdAt.toISOString(),
       })),
+    };
+  }
+
+  /** Display names for employee / service-user recipients, keyed by their id. */
+  private async loadRecipientNames(
+    recipients: Array<{
+      employeeId: string | null;
+      serviceUserId: string | null;
+    }>,
+  ): Promise<Map<string, string>> {
+    const employeeIds = recipients
+      .map((r) => r.employeeId)
+      .filter((id): id is string => Boolean(id));
+    const serviceUserIds = recipients
+      .map((r) => r.serviceUserId)
+      .filter((id): id is string => Boolean(id));
+    const [employees, serviceUsers] = await Promise.all([
+      employeeIds.length
+        ? this.prisma.employeePersonalDetail.findMany({
+            where: { employeeId: { in: employeeIds } },
+            select: { employeeId: true, firstName: true, lastName: true },
+          })
+        : [],
+      serviceUserIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: serviceUserIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+    ]);
+    const map = new Map<string, string>();
+    for (const e of employees) {
+      map.set(
+        e.employeeId,
+        `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim() || 'Employee',
+      );
+    }
+    for (const su of serviceUsers) {
+      map.set(
+        su.id,
+        `${su.firstName ?? ''} ${su.lastName ?? ''}`.trim() || 'Service user',
+      );
+    }
+    return map;
+  }
+
+  /** Portal: surveys sent to this service user (open ones first). */
+  async listForServiceUserPortal(serviceUserId: string) {
+    const rows = await this.prisma.surveyRecipient.findMany({
+      where: {
+        serviceUserId,
+        survey: { deletedAt: null, status: { not: SurveyStatus.DRAFT } },
+      },
+      orderBy: { sentAt: 'desc' },
+      select: {
+        token: true,
+        status: true,
+        sentAt: true,
+        survey: {
+          select: {
+            title: true,
+            description: true,
+            status: true,
+            opensAt: true,
+            closesAt: true,
+          },
+        },
+        response: { select: { submittedAt: true, respondentRelation: true } },
+      },
+    });
+
+    const items = rows.map((r) => {
+      const completed = Boolean(r.response) || r.status === 'COMPLETED';
+      const availability = this.evaluateAvailability(r.survey, completed);
+      const state: 'OPEN' | 'UNAVAILABLE' | 'COMPLETED' = completed
+        ? 'COMPLETED'
+        : availability.canSubmit
+          ? 'OPEN'
+          : 'UNAVAILABLE';
+      return {
+        token: r.token,
+        title: r.survey.title,
+        description: r.survey.description,
+        sentAt: r.sentAt?.toISOString() ?? null,
+        opensAt: r.survey.opensAt?.toISOString() ?? null,
+        closesAt: r.survey.closesAt?.toISOString() ?? null,
+        state,
+        unavailableReason: completed ? null : availability.reason,
+        completedAt: r.response?.submittedAt?.toISOString() ?? null,
+        respondentRelation: r.response?.respondentRelation ?? null,
+      };
+    });
+    const order = { OPEN: 0, UNAVAILABLE: 1, COMPLETED: 2 } as const;
+    items.sort((a, b) => order[a.state] - order[b.state]);
+    return { message: 'Portal surveys', data: items };
+  }
+
+  /** Portal: the answers the signed-in service user (or their representative) submitted. */
+  async getPortalSurveyAnswers(serviceUserId: string, token: string) {
+    const recipient = await this.prisma.surveyRecipient.findFirst({
+      where: {
+        token: token?.trim(),
+        serviceUserId,
+        survey: { deletedAt: null },
+      },
+      select: {
+        survey: { select: { title: true } },
+        response: {
+          select: {
+            submittedAt: true,
+            respondentRelation: true,
+            respondentName: true,
+            answers: {
+              select: {
+                booleanValue: true,
+                textValue: true,
+                numberValue: true,
+                selectedOptions: true,
+                question: {
+                  select: {
+                    id: true,
+                    questionText: true,
+                    questionType: true,
+                    sortOrder: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!recipient?.response)
+      throw new NotFoundException('No submitted answers found for this survey');
+    const { response } = recipient;
+    const answers = [...response.answers]
+      .sort((a, b) => a.question.sortOrder - b.question.sortOrder)
+      .map((a) => ({
+        questionId: a.question.id,
+        questionText: a.question.questionText,
+        displayValue: this.formatAnswerDisplay({
+          questionType: a.question.questionType,
+          booleanValue: a.booleanValue,
+          textValue: a.textValue,
+          numberValue:
+            a.numberValue === null || a.numberValue === undefined
+              ? null
+              : Number(a.numberValue),
+          selectedOptions: a.selectedOptions,
+        }),
+      }));
+    return {
+      message: 'Your survey answers',
+      data: {
+        title: recipient.survey.title,
+        submittedAt: response.submittedAt.toISOString(),
+        respondentRelation: response.respondentRelation,
+        respondentName: response.respondentName,
+        answers,
+      },
     };
   }
 
@@ -926,6 +1432,11 @@ export class SurveysService {
       where: { shareToken: cleaned, deletedAt: null },
     });
     if (byShare) {
+      if (byShare.targetKind === SurveyTargetKind.SERVICE_USER) {
+        throw new NotFoundException(
+          'This survey is only available in the service user portal.',
+        );
+      }
       return this.buildPublicForm(byShare, {
         alreadyCompleted: false,
         linkKind: 'share',
@@ -934,6 +1445,15 @@ export class SurveysService {
 
     const recipient = await this.requireRecipientByToken(cleaned);
     const survey = recipient.survey;
+    const forServiceUser =
+      recipient.targetKind === SurveyTargetKind.SERVICE_USER;
+    const su =
+      forServiceUser && recipient.serviceUserId
+        ? await this.prisma.serviceUser.findFirst({
+            where: { id: recipient.serviceUserId },
+            select: { firstName: true, lastName: true },
+          })
+        : null;
     const alreadyCompleted = Boolean(recipient.response) || recipient.status === 'COMPLETED';
 
     if (
@@ -949,6 +1469,8 @@ export class SurveysService {
     return this.buildPublicForm(survey, {
       alreadyCompleted,
       linkKind: 'recipient',
+      askRespondent: forServiceUser,
+      forName: su ? `${su.firstName} ${su.lastName}`.trim() : null,
     });
   }
 
@@ -965,6 +1487,11 @@ export class SurveysService {
       where: { shareToken: cleaned, deletedAt: null },
     });
     if (byShare) {
+      if (byShare.targetKind === SurveyTargetKind.SERVICE_USER) {
+        throw new NotFoundException(
+          'This survey is only available in the service user portal.',
+        );
+      }
       return this.submitOpenShareResponse(byShare, dto, meta);
     }
 
@@ -982,7 +1509,14 @@ export class SurveysService {
       opensAt: Date | null;
       closesAt: Date | null;
     },
-    opts: { alreadyCompleted: boolean; linkKind: 'share' | 'recipient' },
+    opts: {
+      alreadyCompleted: boolean;
+      linkKind: 'share' | 'recipient';
+      /** Service-user links: ask who is answering (self / family member / representative). */
+      askRespondent?: boolean;
+      /** Service-user links: whose survey this is, so family / representatives can see. */
+      forName?: string | null;
+    },
   ) {
     const availability = this.evaluateAvailability(survey, opts.alreadyCompleted);
     const questions = await this.prisma.surveyQuestion.findMany({
@@ -1003,6 +1537,8 @@ export class SurveysService {
         canSubmit: availability.canSubmit,
         unavailableReason: availability.reason,
         linkKind: opts.linkKind,
+        askRespondent: opts.askRespondent ?? false,
+        forName: opts.forName ?? null,
         questions: questions.map((q) => ({
           id: q.id,
           questionText: q.questionText,
@@ -1087,6 +1623,7 @@ export class SurveysService {
     recipient: {
       id: string;
       status: string;
+      targetKind: SurveyTargetKind;
       response: { id: string; submittedAt: Date } | null;
       survey: {
         id: string;
@@ -1106,6 +1643,21 @@ export class SurveysService {
       throw new BadRequestException(availability.reason ?? 'This survey is not accepting responses');
     }
 
+    let respondentRelation: SurveyRespondentRelation | null = null;
+    let respondentName: string | null = null;
+    if (recipient.targetKind === SurveyTargetKind.SERVICE_USER) {
+      if (!dto.respondentRelation) {
+        throw new BadRequestException(
+          'Please choose who is answering this survey',
+        );
+      }
+      respondentRelation = dto.respondentRelation;
+      respondentName =
+        respondentRelation === SurveyRespondentRelation.SELF
+          ? null
+          : dto.respondentName?.trim() || null;
+    }
+
     const { questions, answerByQuestion } = await this.validateAnswers(survey.id, dto);
     const now = new Date();
 
@@ -1116,6 +1668,8 @@ export class SurveysService {
           data: {
             recipientId: recipient.id,
             submittedById: null,
+            respondentRelation,
+            respondentName,
             submittedAt: now,
             answers: {
               create: this.mapAnswersForCreate(questions, answerByQuestion),

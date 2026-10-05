@@ -351,11 +351,13 @@ export class ServiceUsersService implements OnModuleInit {
       ? this.orgScope.resolveListLocationIds(
           this.orgScope.fromRequestUser(actor),
           query.locationId,
-          undefined,
+          query.locationIds,
         )
-      : query.locationId
-        ? [query.locationId]
-        : undefined;
+      : query.locationIds?.length
+        ? query.locationIds
+        : query.locationId
+          ? [query.locationId]
+          : undefined;
 
     if (scopedLocationIds && scopedLocationIds.length === 0) {
       return {

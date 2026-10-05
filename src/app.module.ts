@@ -120,8 +120,11 @@ import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
 import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
+import { OfficeSalariesModule } from './office-salaries/office-salaries.module';
+import { SetupChecklistModule } from './setup-checklist/setup-checklist.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
+import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
 
 @Module({
   imports: [
@@ -261,8 +264,11 @@ import { PoliciesModule } from './policies/policies.module';
     EmployeeAppModule,
     EcmModule,
     PayrollModule,
+    OfficeSalariesModule,
+    SetupChecklistModule,
     LearningModule,
     PoliciesModule,
+    ServiceUserCommunicationNotesModule,
   ],
   providers: [
     {

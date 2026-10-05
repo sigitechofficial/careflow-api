@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
 import {
   BRANCH_SCOPED_IDENTITY_ROLES,
   IDENTITY_ROLE,
@@ -20,6 +22,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgScope: OrgScopeService,
   ) {}
 
   create(data: {
@@ -280,12 +283,15 @@ export class UsersService {
         lastName: true,
         isActive: true,
         createdAt: true,
+        employeeId: true,
         userRoles: { select: { role: { select: { id: true, name: true } } } },
         userLocations: {
           select: { locationId: true, location: { select: { id: true, name: true } } },
         },
       },
     });
+
+    const employeeRefs = await this.resolveEmployeeRefs(rows);
 
     let mapped = rows.map((u) => ({
       id: u.id,
@@ -295,6 +301,10 @@ export class UsersService {
       lastName: u.lastName,
       isActive: u.isActive,
       createdAt: u.createdAt,
+      /** Linked HR employee record (for payroll), if any. */
+      employee: u.employeeId ? (employeeRefs.linked.get(u.employeeId) ?? null) : null,
+      /** Unlinked users: an employee with the same email, offered as a one-click link. */
+      suggestedEmployee: u.employeeId ? null : (employeeRefs.suggested.get(u.email.toLowerCase()) ?? null),
       roles: u.userRoles.map((ur) => ur.role),
       locations: u.userLocations.map((ul) => ul.location),
       scopeType: resolveScopeType(u.userRoles.map((ur) => ur.role.name)),
@@ -313,6 +323,92 @@ export class UsersService {
     }
 
     return { data: mapped };
+  }
+
+  /** Names for linked employees, and same-email employees not yet linked to anyone. */
+  private async resolveEmployeeRefs(rows: Array<{ email: string; employeeId: string | null }>) {
+    const linkedIds = rows.map((r) => r.employeeId).filter((id): id is string => Boolean(id));
+    const unlinkedEmails = rows.filter((r) => !r.employeeId).map((r) => r.email);
+    const [linkedDetails, emailMatches] = await Promise.all([
+      linkedIds.length
+        ? this.prisma.employeePersonalDetail.findMany({
+            where: { employeeId: { in: linkedIds } },
+            select: { employeeId: true, firstName: true, lastName: true },
+          })
+        : [],
+      unlinkedEmails.length
+        ? this.prisma.employeePersonalDetail.findMany({
+            where: {
+              OR: unlinkedEmails.map((email) => ({ email: { equals: email, mode: 'insensitive' as const } })),
+              employee: { deletedAt: null },
+            },
+            select: { employeeId: true, firstName: true, lastName: true, email: true },
+          })
+        : Promise.resolve(
+            [] as { employeeId: string; firstName: string; lastName: string; email: string | null }[],
+          ),
+    ]);
+    const name = (d: { firstName: string; lastName: string }) =>
+      `${d.firstName} ${d.lastName}`.trim() || 'Employee';
+    const taken = new Set(linkedIds);
+    return {
+      linked: new Map(linkedDetails.map((d) => [d.employeeId, { id: d.employeeId, name: name(d) }])),
+      suggested: new Map(
+        emailMatches
+          .filter((d) => d.email && !taken.has(d.employeeId))
+          .map((d) => [d.email!.toLowerCase(), { id: d.employeeId, name: name(d) }]),
+      ),
+    };
+  }
+
+  /**
+   * Link an office user to their HR employee record so they can be paid through Payroll
+   * (or unlink with null). One office login per employee; branch scope applies to both.
+   */
+  async setUserEmployee(actor: RequestUser, userId: string, employeeId: string | null) {
+    const target = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: { userRoles: { include: { role: true } }, userLocations: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+    this.assertCanManageTarget(actor, target);
+
+    if (employeeId) {
+      const employee = await this.prisma.employee.findFirst({
+        where: { id: employeeId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!employee) throw new BadRequestException('Employee not found');
+      await this.orgScope.assertEmployeeInScope(this.orgScope.fromRequestUser(actor), employeeId);
+      const other = await this.prisma.user.findFirst({
+        where: { employeeId, id: { not: userId }, deletedAt: null },
+        select: { email: true },
+      });
+      if (other) {
+        throw new BadRequestException(`This employee is already linked to ${other.email}`);
+      }
+      // A deleted login may still hold the link; release it.
+      await this.prisma.user.updateMany({
+        where: { employeeId, id: { not: userId }, deletedAt: { not: null } },
+        data: { employeeId: null },
+      });
+    }
+
+    await this.prisma.user.update({ where: { id: userId }, data: { employeeId } });
+    await this.audit.logAudit({
+      userId: actor.id,
+      module: AuditModule.USER,
+      action: AuditAction.USER_PROFILE_UPDATED,
+      recordType: 'User',
+      recordId: userId,
+      description: employeeId ? 'Office user linked to employee record' : 'Office user unlinked from employee record',
+      oldValues: { employeeId: target.employeeId },
+      newValues: { employeeId },
+    });
+    return {
+      message: employeeId ? 'Employee record linked' : 'Employee record unlinked',
+      data: { id: userId, employeeId },
+    };
   }
 
   /**

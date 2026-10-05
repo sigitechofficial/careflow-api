@@ -1,4 +1,5 @@
 /** UK care-app date labels. Calendar parts are UTC (same as employee-app schedule). */
+import { combineOperationalDateAndHm, formatHmInTimeZone } from './operational-day.util';
 
 export const UK_MONTHS = [
   'Jan',
@@ -100,21 +101,53 @@ export function parseUkDateLabel(label: string): Date | null {
   return new Date(Date.UTC(year, monthIdx, day));
 }
 
-/** Combine a UK date label (`"23 Sep 2026"`) and time (`"14:30"`) into a UTC Date.
- *  Falls back to `fallback` when either part is missing or unparseable. */
-export function parseUkDateTimeLabel(
+/** `23 Sep 2026`, `23/09/2026`, `23-09-2026` or `2026-09-23` → `2026-09-23` (null when invalid). */
+function parseFlexibleUkDay(label: string): string | null {
+  const v = label.trim();
+  let y: number, m: number, d: number;
+  const named = parseUkDateLabel(v);
+  if (named) return named.toISOString().slice(0, 10);
+  const dmy = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(v);
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (dmy) [d, m, y] = [Number(dmy[1]), Number(dmy[2]), Number(dmy[3])];
+  else if (ymd) [y, m, d] = [Number(ymd[1]), Number(ymd[2]), Number(ymd[3])];
+  else return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return dt.toISOString().slice(0, 10);
+}
+
+/** `14:30`, `9:05`, `2:30 pm` → `HH:mm` (null when invalid). */
+function parseFlexibleHm(label: string): string | null {
+  const t = /^(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\.?)?$/i.exec(label.trim());
+  if (!t) return null;
+  let h = Number(t[1]);
+  const min = Number(t[2]);
+  const meridiem = t[3]?.toLowerCase();
+  if (meridiem) {
+    if (h < 1 || h > 12) return null;
+    if (meridiem === 'p' && h !== 12) h += 12;
+    if (meridiem === 'a' && h === 12) h = 0;
+  }
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/**
+ * Carer-entered incident date + time → UTC instant, reading the wall clock in `timeZone`
+ * (organisation time — not UTC). Unparseable date → `fallback`; missing/unparseable time →
+ * the fallback's time of day on that date; a future result → `fallback` (never reject the report).
+ */
+export function parseCarerDateTimeInZone(
   dateLabel: string | null | undefined,
   timeLabel: string | null | undefined,
+  timeZone: string,
   fallback: Date,
 ): Date {
-  if (!dateLabel) return fallback;
-  const d = parseUkDateLabel(dateLabel);
-  if (!d) return fallback;
-  if (timeLabel) {
-    const tm = /^(\d{1,2}):(\d{2})$/.exec(timeLabel.trim());
-    if (tm) {
-      d.setUTCHours(Number(tm[1]), Number(tm[2]), 0, 0);
-    }
-  }
-  return d;
+  const day = dateLabel ? parseFlexibleUkDay(dateLabel) : null;
+  if (!day) return fallback;
+  const hm = (timeLabel && parseFlexibleHm(timeLabel)) || formatHmInTimeZone(fallback, timeZone);
+  const at = combineOperationalDateAndHm(day, hm, timeZone);
+  if (Number.isNaN(at.getTime()) || at.getTime() > Date.now() + 60_000) return fallback;
+  return at;
 }
