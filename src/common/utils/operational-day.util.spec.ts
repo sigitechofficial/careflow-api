@@ -7,10 +7,10 @@ import {
 } from './operational-day.util';
 
 describe('operationalTodayIso', () => {
-  it('uses Asia/Karachi by default, not Europe/London', () => {
+  it('uses Europe/London by default, not Asia/Karachi', () => {
     const now = new Date('2026-08-06T21:05:00.000Z');
-    expect(operationalTodayIso(now, DEFAULT_OPERATIONAL_TIMEZONE)).toBe('2026-08-07');
-    expect(operationalTodayIso(now, 'Europe/London')).toBe('2026-08-06');
+    expect(operationalTodayIso(now, DEFAULT_OPERATIONAL_TIMEZONE)).toBe('2026-08-06');
+    expect(operationalTodayIso(now, 'Asia/Karachi')).toBe('2026-08-07');
   });
 });
 

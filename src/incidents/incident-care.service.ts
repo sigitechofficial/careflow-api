@@ -7,6 +7,7 @@ import {
 import { existsSync, promises as fsp } from 'fs';
 import { join } from 'path';
 import {
+  IncidentPersonKind,
   IncidentPrivacyLevel,
   IncidentRelatedRecordStatus,
   IncidentStatus,
@@ -40,6 +41,8 @@ import {
   CreateIncidentWitnessDto,
   CreateRelatedCareRecordDto,
   LinkRelatedIncidentDto,
+  RemoveIncidentRecordDto,
+  UpdateIncidentInjuryDto,
   UpdateRelatedCareRecordDto,
 } from './dto/incident-care.dto';
 
@@ -195,9 +198,80 @@ export class IncidentCareService {
     return { message: 'Injury recorded', data: injury };
   }
 
+  async updateInjury(
+    user: RequestUser,
+    injuryId: string,
+    dto: UpdateIncidentInjuryDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const injury = await this.prisma.incidentInjury.findFirst({
+      where: { id: injuryId, deletedAt: null },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
+    });
+    if (!injury || !(await this.canAccessIncident(user, injury.incident))) {
+      throw new NotFoundException('Injury not found');
+    }
+    assertIncidentEditable(injury.incident);
+    this.requirePermission(user, 'incidents.update');
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Give a reason for the change');
+    await this.assertServiceUser(dto.personServiceUserId);
+    await this.assertEmployee(dto.personEmployeeId);
+    const personKind = dto.personKind ?? injury.personKind;
+    // A body-map pin belongs to one service user; it is dropped if the injured person changes.
+    const personChanged =
+      personKind !== injury.personKind ||
+      (dto.personServiceUserId !== undefined && dto.personServiceUserId !== injury.personServiceUserId);
+    const { incident: _incident, ...before } = injury;
+    const updated = await this.prisma.incidentInjury.update({
+      where: { id: injuryId },
+      data: {
+        personKind,
+        ...(dto.personKind !== undefined || dto.personServiceUserId !== undefined
+          ? {
+              personServiceUserId:
+                personKind === IncidentPersonKind.SERVICE_USER ? (dto.personServiceUserId ?? null) : null,
+            }
+          : {}),
+        ...(dto.personKind !== undefined || dto.personEmployeeId !== undefined
+          ? {
+              personEmployeeId:
+                personKind === IncidentPersonKind.EMPLOYEE ? (dto.personEmployeeId ?? null) : null,
+            }
+          : {}),
+        ...(dto.personName !== undefined ? { personName: dto.personName.trim() || null } : {}),
+        ...(dto.injurySeverity !== undefined ? { injurySeverity: dto.injurySeverity } : {}),
+        ...(dto.injuryType !== undefined ? { injuryType: dto.injuryType.trim() } : {}),
+        ...(dto.bodyRegion !== undefined ? { bodyRegion: dto.bodyRegion.trim() || null } : {}),
+        ...(dto.side !== undefined ? { side: dto.side.trim() || null } : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes.trim() || null } : {}),
+        ...(dto.measurements !== undefined ? { measurements: dto.measurements.trim() || null } : {}),
+        ...(dto.bodyMapRecordId !== undefined
+          ? { bodyMapRecordId: dto.bodyMapRecordId }
+          : personChanged
+            ? { bodyMapRecordId: null }
+            : {}),
+      },
+    });
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentInjury',
+      recordId: injuryId,
+      description: `Injury changed: ${updated.injuryType} (${reason})`,
+      oldValues: auditSnapshot(before),
+      newValues: auditSnapshot(updated),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    return { message: 'Injury updated', data: updated };
+  }
+
   async deleteInjury(
     user: RequestUser,
     injuryId: string,
+    dto: RemoveIncidentRecordDto,
     meta?: RequestAuditMeta,
   ) {
     const injury = await this.prisma.incidentInjury.findFirst({
@@ -217,8 +291,8 @@ export class IncidentCareService {
       user,
       'IncidentInjury',
       injuryId,
-      'Injury removed',
-      { id: injuryId },
+      `Injury removed: ${injury.injuryType} (${dto.reason.trim()})`,
+      { id: injuryId, reason: dto.reason.trim() },
       meta,
     );
     return { message: 'Injury removed', data: { id: injuryId } };
@@ -261,7 +335,7 @@ export class IncidentCareService {
       user,
       'IncidentWitness',
       witness.id,
-      'Witness added',
+      `Witness added: ${witness.personName ?? 'unnamed'}`,
       witness,
       meta,
     );
@@ -271,6 +345,7 @@ export class IncidentCareService {
   async deleteWitness(
     user: RequestUser,
     witnessId: string,
+    dto: RemoveIncidentRecordDto,
     meta?: RequestAuditMeta,
   ) {
     const witness = await this.prisma.incidentWitness.findFirst({
@@ -290,8 +365,8 @@ export class IncidentCareService {
       user,
       'IncidentWitness',
       witnessId,
-      'Witness removed',
-      { id: witnessId },
+      `Witness removed: ${witness.personName ?? 'unnamed'} (${dto.reason.trim()})`,
+      { id: witnessId, reason: dto.reason.trim() },
       meta,
     );
     return { message: 'Witness removed', data: { id: witnessId } };

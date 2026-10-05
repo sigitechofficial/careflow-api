@@ -62,7 +62,7 @@ export const ORGANISATION_TIMEZONES = [
 
 export type OrganisationTimezone = (typeof ORGANISATION_TIMEZONES)[number];
 
-export const DEFAULT_ORGANISATION_TIMEZONE: OrganisationTimezone = 'Asia/Karachi';
+export const DEFAULT_ORGANISATION_TIMEZONE: OrganisationTimezone = 'Europe/London';
 
 export function isOrganisationTimezone(value: string): value is OrganisationTimezone {
   return (ORGANISATION_TIMEZONES as readonly string[]).includes(value);

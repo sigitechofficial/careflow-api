@@ -33,6 +33,8 @@ import {
   CreateIncidentAttachmentMetaDto,
   CreateIncidentInjuryDto,
   CreateIncidentWitnessDto,
+  RemoveIncidentRecordDto,
+  UpdateIncidentInjuryDto,
   CreateRelatedCareRecordDto,
   LinkRelatedIncidentDto,
   UpdateRelatedCareRecordDto,
@@ -65,15 +67,28 @@ export class IncidentCareController {
     return this.service.addInjury(user, id, dto, getRequestAuditMeta(req));
   }
 
+  @Patch('injuries/:injuryId')
+  @Permissions('incidents.update')
+  @ApiOperation({ summary: 'Change a recorded injury (reason required, audited)' })
+  updateInjury(
+    @CurrentUser() user: RequestUser,
+    @Param('injuryId', ParseUUIDPipe) injuryId: string,
+    @Body() dto: UpdateIncidentInjuryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateInjury(user, injuryId, dto, getRequestAuditMeta(req));
+  }
+
   @Delete('injuries/:injuryId')
   @Permissions('incidents.update')
-  @ApiOperation({ summary: 'Remove an injury' })
+  @ApiOperation({ summary: 'Remove an injury (reason required, audited)' })
   deleteInjury(
     @CurrentUser() user: RequestUser,
     @Param('injuryId', ParseUUIDPipe) injuryId: string,
+    @Body() dto: RemoveIncidentRecordDto,
     @Req() req: Request,
   ) {
-    return this.service.deleteInjury(user, injuryId, getRequestAuditMeta(req));
+    return this.service.deleteInjury(user, injuryId, dto, getRequestAuditMeta(req));
   }
 
   // Witnesses
@@ -98,15 +113,17 @@ export class IncidentCareController {
 
   @Delete('witnesses/:witnessId')
   @Permissions('incidents.update')
-  @ApiOperation({ summary: 'Remove a witness' })
+  @ApiOperation({ summary: 'Remove a witness (reason required, audited; statements are never edited)' })
   deleteWitness(
     @CurrentUser() user: RequestUser,
     @Param('witnessId', ParseUUIDPipe) witnessId: string,
+    @Body() dto: RemoveIncidentRecordDto,
     @Req() req: Request,
   ) {
     return this.service.deleteWitness(
       user,
       witnessId,
+      dto,
       getRequestAuditMeta(req),
     );
   }

@@ -13,9 +13,9 @@
  * that rarely changes). If you edit one, mirror the change in the other.
  */
 
-export const DEFAULT_OPERATIONAL_TIMEZONE = 'Asia/Karachi';
+export const DEFAULT_OPERATIONAL_TIMEZONE = 'Europe/London';
 
-/** Resolve org ops TZ from settings (falls back to Asia/Karachi). */
+/** Resolve org ops TZ from settings (falls back to Europe/London). */
 export function getOperationalTimeZone(_orgTimezone?: string | null): string {
   const trimmed = _orgTimezone?.trim();
   return trimmed || DEFAULT_OPERATIONAL_TIMEZONE;

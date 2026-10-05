@@ -429,6 +429,8 @@ export enum AuditAction {
   INCIDENT_ARCHIVED = 'incident_archived',
   INCIDENT_REOPENED = 'incident_reopened',
   INCIDENT_CLOSED = 'incident_closed',
+  INCIDENT_CORRECTED = 'incident_corrected',
+  INCIDENT_CLARIFICATION_ADDED = 'incident_clarification_added',
   SURVEY_CREATED = 'survey_created',
   SURVEY_UPDATED = 'survey_updated',
   SURVEY_DELETED = 'survey_deleted',

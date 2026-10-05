@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
   IncidentAttachmentCategory,
   IncidentInjurySeverity,
@@ -9,6 +9,7 @@ import {
 import {
   IsEnum,
   IsISO8601,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -73,6 +74,24 @@ export class CreateIncidentInjuryDto {
   @IsOptional()
   @IsUUID()
   bodyMapRecordId?: string;
+}
+
+/** Edit a recorded injury: only the fields sent change; the reason is kept in the audit log. */
+export class UpdateIncidentInjuryDto extends PartialType(CreateIncidentInjuryDto) {
+  @ApiProperty({ description: 'Why the injury is being changed' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
+}
+
+/** Removing a recorded injury / witness needs a reason (the row is soft-deleted and audited). */
+export class RemoveIncidentRecordDto {
+  @ApiProperty({ description: 'Why it is being removed' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
 }
 
 export class CreateIncidentWitnessDto {

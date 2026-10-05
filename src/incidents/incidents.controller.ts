@@ -40,6 +40,10 @@ import {
   UpdateIncidentActionDto,
 } from './dto/incident-action.dto';
 import { UpsertIncidentOutcomeDto } from './dto/incident-outcome.dto';
+import {
+  AddIncidentClarificationDto,
+  CorrectIncidentDto,
+} from './dto/incident-correction.dto';
 import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
 import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
 import { IncidentAnalyticsService } from './incident-analytics.service';
@@ -149,6 +153,35 @@ export class IncidentsController {
     @Req() req: Request,
   ) {
     return this.service.startReview(user, id, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/corrections')
+  @Permissions('incidents.correct')
+  @ApiOperation({
+    summary:
+      'Correct raised details with a reason (old values kept; closed incidents must be reopened first)',
+  })
+  correct(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CorrectIncidentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.correctIncident(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/clarifications')
+  @Permissions('incidents.correct')
+  @ApiOperation({
+    summary: "Add a clarification note to the reporter's account (the original text never changes)",
+  })
+  addClarification(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddIncidentClarificationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.addClarification(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/status')

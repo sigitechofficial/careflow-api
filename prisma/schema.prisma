@@ -827,7 +827,7 @@ model OrganisationGeneralSettings {
   timeDisplayFormat                    TimeDisplayFormat          @default(HH_MM)
   dateDisplayFormat                    DateDisplayFormat          @default(DD_MM_YYYY)
   /// IANA timezone for operational calendar days (schedules, ECM, "today").
-  timezone                             String                     @default("Asia/Karachi")
+  timezone                             String                     @default("Europe/London")
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -7256,7 +7256,7 @@ model EcmVisitEvaluation {
   requiredCarers              Int            @default(1)
   /// Calendar date used for operational reporting (local timezone).
   localVisitDate              DateTime       @db.Date
-  timezone                    String         @default("Asia/Karachi")
+  timezone                    String         @default("Europe/London")
 
   actualCheckInAt       DateTime?
   actualCheckOutAt      DateTime?
@@ -10929,6 +10929,8 @@ model Incident {
   relatedCareRecords IncidentRelatedCareRecord[]
   relatedFrom        IncidentRelatedIncident[]   @relation("IncidentRelSource")
   relatedTo          IncidentRelatedIncident[]   @relation("IncidentRelTarget")
+  corrections        IncidentCorrection[]
+  clarifications     IncidentClarificationNote[]
 
   @@index([status])
   @@index([severity])
@@ -10963,6 +10965,56 @@ model IncidentStatusHistory {
 }
 
 /// Append-only severity-change history for an incident.
+/// A correction to a raised field (manager, with a reason). The original value stays readable here;
+/// fields corrected together share a batchId and reason.
+model IncidentCorrection {
+  id            String   @id @default(uuid()) @db.Uuid
+  incidentId    String   @db.Uuid
+  batchId       String   @db.Uuid
+  /// Incident field key, e.g. occurredAt, categoryId, involvedServiceUserIds.
+  fieldKey      String
+  fromValue     Json?
+  toValue       Json?
+  /// Human-readable values at the time (names can change later).
+  fromLabel     String?  @db.Text
+  toLabel       String?  @db.Text
+  reason        String   @db.Text
+  correctedById String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
+/// The reporter's own account that a clarification note can be added to (the text itself is never edited).
+enum IncidentClarificationField {
+  DESCRIPTION
+  CONTEXT_BEFORE
+  CONTEXT_AFTER
+  IMMEDIATE_ACTIONS
+  PEOPLE_INVOLVED
+  EMERGENCY_SERVICES
+
+  @@schema("incidents")
+}
+
+/// Append-only manager note clarifying the reporter's account. Never edited or deleted.
+model IncidentClarificationNote {
+  id          String                     @id @default(uuid()) @db.Uuid
+  incidentId  String                     @db.Uuid
+  field       IncidentClarificationField
+  note        String                     @db.Text
+  createdById String?                    @db.Uuid
+  createdAt   DateTime                   @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
 model IncidentSeverityHistory {
   id           String            @id @default(uuid()) @db.Uuid
   incidentId   String            @db.Uuid

@@ -43,6 +43,21 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { andWhereFragment, OrgScopeService } from '../common/org-scope/org-scope.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
+import {
+  AddIncidentClarificationDto,
+  CorrectIncidentDto,
+} from './dto/incident-correction.dto';
+import {
+  CLARIFICATION_FIELD_LABELS,
+  CORRECTION_FIELD_LABELS,
+  PERSON_KIND_LABELS,
+  WHO_INFORMED_KEY_LABELS,
+  categoryDetailsLabel,
+  diffCorrectableState,
+  yesNoUnknownLabel,
+  type CorrectableFieldKey,
+  type CorrectableIncidentState,
+} from './incident-correction.util';
 import { ListIncidentsQueryDto } from './dto/list-incidents-query.dto';
 import { IncidentVisitOptionsQueryDto } from './dto/incident-visit-options-query.dto';
 import {
@@ -89,8 +104,10 @@ import {
 import { assertIncidentEditable } from './incident-access.util';
 import { operationalTodayIso } from '../common/utils/operational-day.util';
 import {
+  IMMEDIATE_ACTION_LABELS,
   INCIDENT_PRIVACY_RANK,
   INCIDENT_SEVERITY_LABELS,
+  type ImmediateActionCode,
   INCIDENT_STATUS_LABELS,
   OPEN_INCIDENT_STATUSES,
   canTransitionIncidentStatus,
@@ -136,6 +153,27 @@ function involvedPeople(dto: {
     serviceUserIds: uniq([dto.primaryServiceUserId, ...(dto.serviceUserIds ?? [])]),
     employeeIds: uniq([dto.primaryEmployeeId, ...(dto.employeeIds ?? [])]),
   };
+}
+
+const REVIEW_ANSWER_LABELS = {
+  safeguardingConcern: 'Safeguarding concern',
+  possibleAbuseOrNeglect: 'Possible abuse or neglect',
+  furtherMedicalAttention: 'Further medical attention',
+  externalNotificationRequired: 'External notification required',
+  escalationRequired: 'Escalation required',
+} as const;
+
+/** "Safeguarding concern No → Yes", "notes changed" … for a review edited after its decision. */
+function describeReviewChanges(
+  before: Record<keyof typeof REVIEW_ANSWER_LABELS | 'managementNotes', unknown>,
+  after: Record<keyof typeof REVIEW_ANSWER_LABELS | 'managementNotes', unknown>,
+): string[] {
+  const yn = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : 'Not answered');
+  const out = (Object.keys(REVIEW_ANSWER_LABELS) as (keyof typeof REVIEW_ANSWER_LABELS)[])
+    .filter((k) => (before[k] ?? null) !== (after[k] ?? null))
+    .map((k) => `${REVIEW_ANSWER_LABELS[k]} ${yn(before[k])} → ${yn(after[k])}`);
+  if ((before.managementNotes ?? null) !== (after.managementNotes ?? null)) out.push('notes changed');
+  return out;
 }
 
 /** True when no kinds were sent (older clients) or the kind is among those affected. */
@@ -1263,6 +1301,8 @@ export class IncidentsService {
           where: { deletedAt: null },
           orderBy: { createdAt: 'asc' },
         },
+        corrections: { orderBy: { createdAt: 'asc' } },
+        clarifications: { orderBy: { createdAt: 'asc' } },
         _count: {
           select: {
             attachments: { where: { deletedAt: null } },
@@ -1283,10 +1323,19 @@ export class IncidentsService {
       data: {
         ...withPeople,
         ...(await this.resolveAffectedRefs(incident)),
-        history: await this.enrichTimelineWithActors(
-          this.buildTimeline(incident, withPeople.reportedBy.name),
-        ),
-        review: incident.review ?? null,
+        visitRef: incident.scheduledJobId
+          ? ((await loadVisitRefsByScheduledJobIds(this.prisma, [incident.scheduledJobId])).get(
+              incident.scheduledJobId,
+            ) ?? null)
+          : null,
+        ...(await this.mapCorrectionsAndClarifications(incident)),
+        reviewSeverity: await this.reviewSeverityDecision(incident.severityHistory),
+        severityChanges: await this.severityChain(incident.severityHistory),
+        history: await this.enrichTimelineWithActors([
+          ...this.buildTimeline(incident, withPeople.reportedBy.name),
+          ...(await this.injuryAndWitnessEvents(id)),
+        ].sort((a, b) => a.at.localeCompare(b.at))),
+        review: incident.review ? await this.withReviewerNames(incident.review) : null,
         investigation: incident.investigation ?? null,
         outcome: incident.outcome ?? null,
         actions: incident.actions.map((a) => this.mapAction(a)),
@@ -1566,6 +1615,673 @@ export class IncidentsService {
   }
 
   // ---------------------------------------------------------------------------
+  // Corrections to raised details & clarification notes
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Correct raised details (manager, with a reason). Only fields that really change are recorded,
+   * each with its old and new value. Closed incidents must be reopened first. The reporter's own
+   * account can't be sent here (the DTO rejects it) — add a clarification note instead.
+   */
+  async correctIncident(
+    user: RequestUser,
+    id: string,
+    dto: CorrectIncidentDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const incident = await this.loadForEdit(user, id);
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Give a reason for the correction');
+    const scope = this.orgScope.fromRequestUser(user);
+    const errors: string[] = [];
+    const before = this.correctableState(incident);
+
+    // When it happened
+    let occurredAt = incident.occurredAt;
+    if (dto.occurredAt !== undefined) {
+      occurredAt = new Date(dto.occurredAt);
+      if (Number.isNaN(occurredAt.getTime())) errors.push('When it happened is not a valid date');
+      else if (occurredAt.getTime() > Date.now() + 60_000)
+        errors.push('When it happened cannot be in the future');
+    }
+
+    // Category / type
+    const categoryChanged = dto.categoryId !== undefined && dto.categoryId !== incident.categoryId;
+    const categoryId = dto.categoryId ?? incident.categoryId;
+    const subtypeId =
+      dto.subtypeId !== undefined ? dto.subtypeId : categoryChanged ? null : incident.subtypeId;
+    const category = categoryChanged
+      ? await this.prisma.incidentCategory.findFirst({
+          where: { id: categoryId, deletedAt: null, isActive: true },
+          select: { id: true, key: true },
+        })
+      : incident.category;
+    if (!category) throw new BadRequestException('Category not found');
+    const subtype =
+      subtypeId && (categoryChanged || subtypeId !== incident.subtypeId)
+        ? await this.prisma.incidentSubtype.findFirst({
+            where: { id: subtypeId, categoryId, deletedAt: null, isActive: true },
+            select: { key: true },
+          })
+        : subtypeId
+          ? incident.subtype
+          : null;
+    if (subtypeId && !subtype) errors.push('Type does not belong to the selected category');
+
+    // People
+    const kinds = dto.affectedPersonKinds ?? incident.affectedPersonKinds;
+    const peopleTouched =
+      dto.affectedPersonKinds !== undefined ||
+      dto.primaryServiceUserId !== undefined ||
+      dto.primaryEmployeeId !== undefined ||
+      dto.primaryPersonName !== undefined;
+    const primaryServiceUserId = kinds.includes(IncidentPersonKind.SERVICE_USER)
+      ? dto.primaryServiceUserId !== undefined
+        ? dto.primaryServiceUserId
+        : incident.primaryServiceUserId
+      : null;
+    const primaryEmployeeId = kinds.includes(IncidentPersonKind.EMPLOYEE)
+      ? dto.primaryEmployeeId !== undefined
+        ? dto.primaryEmployeeId
+        : incident.primaryEmployeeId
+      : null;
+    const hasOtherKind = kinds.some(
+      (k) => k !== IncidentPersonKind.SERVICE_USER && k !== IncidentPersonKind.EMPLOYEE,
+    );
+    const primaryPersonName = hasOtherKind
+      ? (dto.primaryPersonName !== undefined
+          ? dto.primaryPersonName
+          : incident.primaryPersonName
+        )?.trim() || null
+      : null;
+    if (peopleTouched) {
+      if (kinds.includes(IncidentPersonKind.SERVICE_USER) && !primaryServiceUserId)
+        errors.push('Select the service user affected');
+      if (kinds.includes(IncidentPersonKind.EMPLOYEE) && !primaryEmployeeId)
+        errors.push('Select the staff member affected');
+      if (hasOtherKind && !primaryPersonName) errors.push('Enter the name of the person affected');
+    }
+    const uniq = (ids: (string | null | undefined)[]) =>
+      [...new Set(ids.filter((x): x is string => Boolean(x)))];
+    // The affected person is always first; the rest are "also involved".
+    const otherSus = (dto.serviceUserIds ?? incident.involvedServiceUserIds).filter(
+      (x) => dto.serviceUserIds !== undefined || x !== incident.primaryServiceUserId,
+    );
+    const otherEmps = (dto.employeeIds ?? incident.involvedEmployeeIds).filter(
+      (x) => dto.employeeIds !== undefined || x !== incident.primaryEmployeeId,
+    );
+    const involvedServiceUserIds = uniq([primaryServiceUserId, ...otherSus]);
+    const involvedEmployeeIds = uniq([primaryEmployeeId, ...otherEmps]);
+    const newSus = involvedServiceUserIds.filter((x) => !incident.involvedServiceUserIds.includes(x));
+    const newEmps = involvedEmployeeIds.filter((x) => !incident.involvedEmployeeIds.includes(x));
+    if (newSus.length) {
+      const found = await this.prisma.serviceUser.count({
+        where: { id: { in: newSus }, deletedAt: null },
+      });
+      if (found !== newSus.length) errors.push('A selected service user does not exist');
+      for (const suId of newSus) await this.orgScope.assertServiceUserInScope(scope, suId);
+    }
+    if (newEmps.length) {
+      const found = await this.prisma.employee.count({
+        where: { id: { in: newEmps }, deletedAt: null },
+      });
+      if (found !== newEmps.length) errors.push('A selected staff member does not exist');
+      for (const empId of newEmps) await this.orgScope.assertEmployeeInScope(scope, empId);
+    }
+
+    // Branch
+    const locationId = dto.locationId !== undefined ? dto.locationId : incident.locationId;
+    if (locationId && locationId !== incident.locationId) {
+      this.orgScope.assertLocationAccess(scope, locationId);
+    }
+
+    // Visit — must belong to one of the service users involved
+    const scheduledJobId =
+      dto.scheduledJobId !== undefined ? dto.scheduledJobId : incident.scheduledJobId;
+    const visitTouched =
+      scheduledJobId !== incident.scheduledJobId || dto.serviceUserIds !== undefined || peopleTouched;
+    if (scheduledJobId && visitTouched) {
+      const job = await this.prisma.scheduledJob.findFirst({
+        where: { id: scheduledJobId, deletedAt: null },
+        select: { serviceUserId: true },
+      });
+      if (!job) errors.push('Linked visit does not exist');
+      else if (involvedServiceUserIds.length && !involvedServiceUserIds.includes(job.serviceUserId))
+        errors.push('The linked visit belongs to a different service user');
+    }
+
+    // Category details — re-checked whenever the category, type, details or visit change
+    let categoryDetails = (incident.categoryDetails ?? null) as Record<string, unknown> | null;
+    const detailsTouched =
+      categoryChanged ||
+      subtypeId !== incident.subtypeId ||
+      dto.categoryDetails !== undefined ||
+      scheduledJobId !== incident.scheduledJobId;
+    if (detailsTouched) {
+      const raw =
+        dto.categoryDetails !== undefined
+          ? dto.categoryDetails
+          : categoryChanged
+            ? null // a new category needs its own answers
+            : incident.categoryDetails;
+      const timeZone = await this.orgSettings.getOperationalTimezone();
+      const result = normaliseIncidentCategoryDetails(category.key, subtype?.key, raw, {
+        strict: true,
+        today: dayKeyInTimeZone(new Date(), timeZone),
+      });
+      errors.push(...result.errors);
+      categoryDetails = result.details;
+      if (category.key === 'CARE_DELIVERY' && !scheduledJobId && !categoryDetails?.noMatchingVisitReason)
+        errors.push('Link the visit, or say why no visit matches');
+      const alleged = categoryDetails?.allegedPerson as { kind?: string; employeeId?: string } | undefined;
+      if (alleged?.kind === 'STAFF' && alleged.employeeId) {
+        const exists = await this.prisma.employee.findFirst({
+          where: { id: alleged.employeeId, deletedAt: null },
+          select: { id: true },
+        });
+        if (!exists) errors.push('Alleged staff member does not exist');
+      }
+    }
+
+    // Hospital outcome — only when someone was affected, never for a death / data breach
+    const outcomeApplies = kinds.length > 0 && !NO_HOSPITAL_OUTCOME_CATEGORIES.has(category.key);
+    const outcome = (v: boolean | null | undefined, current: boolean | null) =>
+      outcomeApplies ? (v !== undefined ? v : current) : null;
+
+    // Immediate response (structured parts only; the free text is the reporter's account)
+    const immediateActionCodes = dto.immediateActionCodes ?? incident.immediateActionCodes;
+    if (dto.immediateActionCodes !== undefined) {
+      if (immediateActionCodes.includes('NO_ACTION_NEEDED') && immediateActionCodes.length > 1)
+        errors.push('"No action needed" cannot be combined with other actions');
+      if (
+        immediateActionCodes.includes('OTHER') &&
+        !incident.immediateActionCodes.includes('OTHER') &&
+        !incident.immediateActions?.trim()
+      )
+        errors.push('"Other" needs a description, which only the original report can give');
+    }
+    const whoInformedKeys = dto.whoInformedKeys ?? incident.whoInformedKeys;
+    if (whoInformedKeys.includes('no_one_yet') && whoInformedKeys.length > 1)
+      errors.push('"No one informed yet" cannot be combined with other people');
+
+    if (errors.length) throw new BadRequestException(errors);
+
+    // An allegation against a colleague must not be readable by every carer in the branch.
+    const allegedStaff =
+      (categoryDetails?.allegedPerson as { kind?: string } | undefined)?.kind === 'STAFF';
+    const privacyLevel =
+      allegedStaff && incident.privacyLevel === IncidentPrivacyLevel.NORMAL
+        ? IncidentPrivacyLevel.RESTRICTED
+        : incident.privacyLevel;
+
+    const after: CorrectableIncidentState = {
+      occurredAt: occurredAt.toISOString(),
+      categoryId,
+      subtypeId: subtypeId ?? null,
+      affectedPersonKinds: kinds,
+      primaryServiceUserId,
+      primaryEmployeeId,
+      primaryPersonName,
+      involvedServiceUserIds,
+      involvedEmployeeIds,
+      locationId,
+      scheduledJobId,
+      categoryDetails,
+      ambulanceAttended: outcome(dto.ambulanceAttended, incident.ambulanceAttended),
+      takenToAe: outcome(dto.takenToAe, incident.takenToAe),
+      admittedToHospital: outcome(dto.admittedToHospital, incident.admittedToHospital),
+      immediateActionCodes,
+      whoInformedKeys,
+      severity: dto.severity ?? incident.severity,
+      privacyLevel,
+    };
+    const changes = diffCorrectableState(before, after);
+    if (changes.length === 0) throw new BadRequestException('Nothing was changed');
+
+    const label = await this.correctionLabeller([before, after]);
+    const batchId = randomUUID();
+    const severityChanged = after.severity !== incident.severity;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.incident.update({
+        where: { id },
+        data: {
+          occurredAt,
+          categoryId,
+          subtypeId: after.subtypeId,
+          affectedPersonKinds: kinds,
+          primaryPersonKind: kinds[0] ?? null,
+          primaryServiceUserId,
+          primaryEmployeeId,
+          primaryPersonName,
+          involvedServiceUserIds,
+          involvedEmployeeIds,
+          locationId,
+          scheduledJobId,
+          categoryDetails: categoryDetails
+            ? (categoryDetails as Prisma.InputJsonObject)
+            : Prisma.DbNull,
+          ambulanceAttended: after.ambulanceAttended,
+          takenToAe: after.takenToAe,
+          admittedToHospital: after.admittedToHospital,
+          immediateActionCodes,
+          whoInformedKeys,
+          severity: after.severity as IncidentSeverity,
+          privacyLevel,
+          updatedById: user.id,
+        },
+        include: { category: true, subtype: true },
+      });
+      const json = (v: unknown) =>
+        v === null || v === undefined ? Prisma.DbNull : (v as Prisma.InputJsonValue);
+      await tx.incidentCorrection.createMany({
+        data: changes.map((c) => ({
+          incidentId: id,
+          batchId,
+          fieldKey: c.fieldKey,
+          fromValue: json(c.from),
+          toValue: json(c.to),
+          fromLabel: label(c.fieldKey, c.from),
+          toLabel: label(c.fieldKey, c.to),
+          reason,
+          correctedById: user.id,
+        })),
+      });
+      if (severityChanged) {
+        await tx.incidentSeverityHistory.create({
+          data: {
+            incidentId: id,
+            fromSeverity: incident.severity,
+            toSeverity: after.severity as IncidentSeverity,
+            changedById: user.id,
+            reason: `Correction: ${reason}`,
+          },
+        });
+      }
+      await this.audit.logAudit({
+        tx,
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_CORRECTED,
+        recordType: 'Incident',
+        recordId: id,
+        description: `Corrected ${changes.map((c) => CORRECTION_FIELD_LABELS[c.fieldKey]).join(', ')}: ${reason}`,
+        oldValues: Object.fromEntries(changes.map((c) => [c.fieldKey, c.from])) as Prisma.InputJsonObject,
+        newValues: Object.fromEntries(changes.map((c) => [c.fieldKey, c.to])) as Prisma.InputJsonObject,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return next;
+    });
+
+    return {
+      message: `Corrected ${changes.length} field${changes.length === 1 ? '' : 's'}`,
+      data: this.mapIncident(updated),
+    };
+  }
+
+  /**
+   * Append a clarification to the reporter's own account (never edited or deleted).
+   * Allowed on closed incidents too — it adds information without changing the record.
+   */
+  async addClarification(
+    user: RequestUser,
+    id: string,
+    dto: AddIncidentClarificationDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.loadForManage(user, id);
+    const note = dto.note.trim();
+    if (!note) throw new BadRequestException('Write the clarification');
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.incidentClarificationNote.create({
+        data: { incidentId: id, field: dto.field, note, createdById: user.id },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_CLARIFICATION_ADDED,
+        recordType: 'Incident',
+        recordId: id,
+        description: `Clarification added to ${CLARIFICATION_FIELD_LABELS[dto.field]}`,
+        newValues: { field: dto.field, note },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return row;
+    });
+    return { message: 'Clarification added', data: created };
+  }
+
+  /**
+   * Injury / witness changes and review flags (safeguarding / escalation raised) for the timeline,
+   * read from the audit log (which keeps the reason for edits and removals). Removed rows are
+   * included so their history stays visible.
+   */
+  private async injuryAndWitnessEvents(incidentId: string) {
+    const [injuries, witnesses, attachments] = await Promise.all([
+      this.prisma.incidentInjury.findMany({ where: { incidentId }, select: { id: true } }),
+      this.prisma.incidentWitness.findMany({ where: { incidentId }, select: { id: true } }),
+      this.prisma.incidentAttachment.findMany({
+        where: { incidentId },
+        select: {
+          id: true,
+          originalName: true,
+          category: true,
+          uploadedById: true,
+          createdAt: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    const ids = [...injuries, ...witnesses].map((r) => r.id);
+    const logs = await this.prisma.auditLog.findMany({
+      where: {
+        OR: [
+          ...(ids.length
+            ? [{ recordType: { in: ['IncidentInjury', 'IncidentWitness'] }, recordId: { in: ids } }]
+            : []),
+          { recordType: { in: ['IncidentReviewFlag', 'IncidentReviewChange'] }, recordId: incidentId },
+          ...(attachments.length
+            ? [
+                {
+                  recordType: 'IncidentAttachment',
+                  recordId: { in: attachments.map((a) => a.id) },
+                  description: { startsWith: 'Attachment removed' },
+                },
+              ]
+            : []),
+        ],
+      },
+      select: { recordType: true, recordId: true, description: true, userId: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    // Documents / photos: from the rows themselves (carer-app photos have no audit entry).
+    const removedBy = new Map(
+      logs.filter((l) => l.recordType === 'IncidentAttachment').map((l) => [l.recordId, l.userId]),
+    );
+    const documentEvents = attachments.flatMap((a) => {
+      const what = a.category === 'INCIDENT_PHOTO' ? 'Photo' : 'Document';
+      const added = {
+        at: a.createdAt.toISOString(),
+        kind: 'DOCUMENT',
+        detail: `${what} added: ${a.originalName}${a.uploadedById ? '' : ' (carer app)'}`,
+        byId: a.uploadedById,
+      };
+      return a.deletedAt
+        ? [
+            added,
+            {
+              at: a.deletedAt.toISOString(),
+              kind: 'DOCUMENT',
+              detail: `${what} removed: ${a.originalName}`,
+              byId: removedBy.get(a.id) ?? null,
+            },
+          ]
+        : [added];
+    });
+    return [
+      ...documentEvents,
+      ...logs.filter((l) => l.recordType !== 'IncidentAttachment').map((l) => ({
+      at: l.createdAt.toISOString(),
+      kind:
+        l.recordType === 'IncidentInjury'
+          ? 'INJURY'
+          : l.recordType === 'IncidentWitness'
+            ? 'WITNESS'
+            : l.recordType === 'IncidentReviewChange'
+              ? 'REVIEW'
+              : 'REVIEW_FLAG',
+      detail: l.description ?? (l.recordType === 'IncidentInjury' ? 'Injury changed' : 'Witness changed'),
+      byId: l.userId,
+      })),
+    ];
+  }
+
+  /**
+   * Every severity step from what was reported to now (confirmations left out), with where it
+   * came from and why — so the Review tab can show Medium → High → Critical → High.
+   */
+  private async severityChain(history: Prisma.IncidentSeverityHistoryGetPayload<object>[]) {
+    const steps = history.filter((h) => !h.fromSeverity || h.fromSeverity !== h.toSeverity);
+    const ids = [...new Set(steps.map((h) => h.changedById).filter((x): x is string => Boolean(x)))];
+    const users = ids.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const name = (uid: string | null) => {
+      const u = users.find((x) => x.id === uid);
+      return u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email : null;
+    };
+    return steps.map((h) => {
+      const reason = h.reason ?? '';
+      const source = !h.fromSeverity
+        ? 'REPORTED'
+        : reason.startsWith('Changed at review: ')
+          ? 'REVIEW'
+          : reason.startsWith('Correction: ')
+            ? 'CORRECTION'
+            : 'OTHER';
+      return {
+        fromSeverity: h.fromSeverity,
+        toSeverity: h.toSeverity,
+        source,
+        reason: reason.replace(/^(Changed at review|Correction): /, '') || null,
+        byName: name(h.changedById),
+        at: h.createdAt.toISOString(),
+      };
+    });
+  }
+
+  /** The review with who first reviewed it and who last updated it. */
+  private async withReviewerNames(review: Prisma.IncidentReviewGetPayload<object>) {
+    const ids = [review.reviewedById, review.updatedById].filter((x): x is string => Boolean(x));
+    const users = ids.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const name = (uid: string | null) => {
+      const u = users.find((x) => x.id === uid);
+      return u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email : null;
+    };
+    return {
+      ...review,
+      reviewedByName: name(review.reviewedById),
+      updatedByName: name(review.updatedById),
+    };
+  }
+
+  /**
+   * The severity decision made at review (confirmed, or changed with a reason), from the severity
+   * history — shown on the Review tab.
+   */
+  private async reviewSeverityDecision(
+    history: Prisma.IncidentSeverityHistoryGetPayload<object>[],
+  ) {
+    const row = [...history]
+      .reverse()
+      .find((h) => h.reason === 'Confirmed at review' || h.reason?.startsWith('Changed at review: '));
+    if (!row) return null;
+    const by = row.changedById
+      ? await this.prisma.user.findUnique({
+          where: { id: row.changedById },
+          select: { firstName: true, lastName: true, email: true },
+        })
+      : null;
+    const changed = row.fromSeverity !== row.toSeverity;
+    return {
+      fromSeverity: row.fromSeverity,
+      toSeverity: row.toSeverity,
+      changed,
+      reason: changed ? row.reason!.replace(/^Changed at review: /, '') : null,
+      byName: by ? [by.firstName, by.lastName].filter(Boolean).join(' ').trim() || by.email : null,
+      at: row.createdAt.toISOString(),
+    };
+  }
+
+  /** Correction history and clarification notes for the detail view, with who made them. */
+  private async mapCorrectionsAndClarifications(incident: {
+    corrections: Prisma.IncidentCorrectionGetPayload<object>[];
+    clarifications: Prisma.IncidentClarificationNoteGetPayload<object>[];
+  }) {
+    const ids = [
+      ...new Set(
+        [
+          ...incident.corrections.map((c) => c.correctedById),
+          ...incident.clarifications.map((n) => n.createdById),
+        ].filter((x): x is string => Boolean(x)),
+      ),
+    ];
+    const users = ids.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const nameById = new Map(
+      users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    return {
+      corrections: incident.corrections.map((c) => ({
+        id: c.id,
+        batchId: c.batchId,
+        fieldKey: c.fieldKey,
+        fieldLabel: CORRECTION_FIELD_LABELS[c.fieldKey as CorrectableFieldKey] ?? c.fieldKey,
+        fromLabel: c.fromLabel,
+        toLabel: c.toLabel,
+        reason: c.reason,
+        correctedByName: c.correctedById ? (nameById.get(c.correctedById) ?? null) : null,
+        createdAt: c.createdAt.toISOString(),
+      })),
+      clarifications: incident.clarifications.map((n) => ({
+        id: n.id,
+        field: n.field,
+        note: n.note,
+        createdByName: n.createdById ? (nameById.get(n.createdById) ?? null) : null,
+        createdAt: n.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  private correctableState(incident: IncidentWithRefs): CorrectableIncidentState {
+    return {
+      occurredAt: incident.occurredAt.toISOString(),
+      categoryId: incident.categoryId,
+      subtypeId: incident.subtypeId,
+      affectedPersonKinds: incident.affectedPersonKinds,
+      primaryServiceUserId: incident.primaryServiceUserId,
+      primaryEmployeeId: incident.primaryEmployeeId,
+      primaryPersonName: incident.primaryPersonName,
+      involvedServiceUserIds: incident.involvedServiceUserIds,
+      involvedEmployeeIds: incident.involvedEmployeeIds,
+      locationId: incident.locationId,
+      scheduledJobId: incident.scheduledJobId,
+      categoryDetails: (incident.categoryDetails ?? null) as Record<string, unknown> | null,
+      ambulanceAttended: incident.ambulanceAttended,
+      takenToAe: incident.takenToAe,
+      admittedToHospital: incident.admittedToHospital,
+      immediateActionCodes: incident.immediateActionCodes,
+      whoInformedKeys: incident.whoInformedKeys,
+      severity: incident.severity,
+      privacyLevel: incident.privacyLevel,
+    };
+  }
+
+  /** Readable values for the correction history, resolved once for every id involved. */
+  private async correctionLabeller(states: CorrectableIncidentState[]) {
+    const all = <K extends keyof CorrectableIncidentState>(...keys: K[]) =>
+      [
+        ...new Set(
+          states.flatMap((s) => keys.flatMap((k) => [s[k]].flat() as unknown[])).filter(
+            (v): v is string => typeof v === 'string' && v.length > 0,
+          ),
+        ),
+      ];
+    const [categories, subtypes, sus, emps, locations, visitRefs, display] = await Promise.all([
+      this.prisma.incidentCategory.findMany({
+        where: { id: { in: all('categoryId') } },
+        select: { id: true, label: true },
+      }),
+      this.prisma.incidentSubtype.findMany({
+        where: { id: { in: all('subtypeId') } },
+        select: { id: true, label: true },
+      }),
+      this.prisma.serviceUser.findMany({
+        where: { id: { in: all('primaryServiceUserId', 'involvedServiceUserIds') } },
+        select: { id: true, firstName: true, lastName: true },
+      }),
+      this.prisma.employee.findMany({
+        where: { id: { in: all('primaryEmployeeId', 'involvedEmployeeIds') } },
+        select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+      }),
+      this.prisma.location.findMany({
+        where: { id: { in: all('locationId') } },
+        select: { id: true, name: true },
+      }),
+      loadVisitRefsByScheduledJobIds(this.prisma, all('scheduledJobId')),
+      loadNotificationDisplay(this.prisma),
+    ]);
+    const name = (first?: string | null, last?: string | null) =>
+      [first, last].filter(Boolean).join(' ').trim();
+    const names = new Map<string, string>([
+      ...categories.map((c) => [c.id, c.label] as [string, string]),
+      ...subtypes.map((s) => [s.id, s.label] as [string, string]),
+      ...sus.map((s) => [s.id, name(s.firstName, s.lastName) || 'Service user'] as [string, string]),
+      ...emps.map(
+        (e) =>
+          [e.id, name(e.personalDetail?.firstName, e.personalDetail?.lastName) || 'Staff member'] as [
+            string,
+            string,
+          ],
+      ),
+      ...locations.map((l) => [l.id, l.name] as [string, string]),
+    ]);
+    const list = (v: unknown, fn: (x: string) => string) =>
+      Array.isArray(v) && v.length ? v.map((x) => fn(String(x))).join(', ') : '—';
+    return (field: CorrectableFieldKey, value: unknown): string => {
+      if (value === null || value === undefined || value === '') {
+        return ['ambulanceAttended', 'takenToAe', 'admittedToHospital'].includes(field)
+          ? 'Not known'
+          : '—';
+      }
+      switch (field) {
+        case 'occurredAt':
+          return formatNotificationDateTime(new Date(String(value)), display);
+        case 'affectedPersonKinds':
+          return list(value, (k) => PERSON_KIND_LABELS[k] ?? k);
+        case 'involvedServiceUserIds':
+        case 'involvedEmployeeIds':
+          return list(value, (x) => names.get(x) ?? 'Unknown');
+        case 'scheduledJobId':
+          return visitRefs.get(String(value)) ?? 'Visit';
+        case 'categoryDetails':
+          return categoryDetailsLabel(value);
+        case 'ambulanceAttended':
+        case 'takenToAe':
+        case 'admittedToHospital':
+          return yesNoUnknownLabel(value);
+        case 'immediateActionCodes':
+          return list(value, (c) => IMMEDIATE_ACTION_LABELS[c as ImmediateActionCode] ?? c);
+        case 'whoInformedKeys':
+          return list(value, (k) => WHO_INFORMED_KEY_LABELS[k] ?? k);
+        case 'severity':
+          return INCIDENT_SEVERITY_LABELS[value as IncidentSeverity] ?? String(value);
+        case 'privacyLevel':
+          return String(value).charAt(0) + String(value).slice(1).toLowerCase().replace(/_/g, ' ');
+        case 'primaryPersonName':
+          return String(value);
+        default:
+          return names.get(String(value)) ?? String(value);
+      }
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // Manager review & investigation (upserted, one per incident)
   // ---------------------------------------------------------------------------
 
@@ -1576,24 +2292,107 @@ export class IncidentsService {
     meta?: RequestAuditMeta,
   ) {
     const current = await this.loadForEdit(user, id);
+    const existing = await this.prisma.incidentReview.findUnique({
+      where: { incidentId: id },
+    });
+    // Severity decision: required once; confirming keeps it, changing it needs a reason.
+    // After that the review can still change it (with a reason); re-sending the same value is a no-op.
+    const firstDecision = !existing?.confirmedSeverity;
+    const decided = firstDecision
+      ? dto.confirmedSeverity
+      : dto.confirmedSeverity && dto.confirmedSeverity !== current.severity
+        ? dto.confirmedSeverity
+        : undefined;
+    if (firstDecision && !decided) {
+      throw new BadRequestException('Confirm or change the severity');
+    }
+    const severityChanges = Boolean(decided && decided !== current.severity);
+    const severityReason = dto.severityReason?.trim() || null;
+    if (severityChanges && !severityReason) {
+      throw new BadRequestException('Give a reason for changing the severity');
+    }
+    // The review decision moves the workflow on; it can only be made while the review is open.
+    const decisionReason = dto.decisionReason?.trim() || null;
+    const reviewOpen =
+      current.status === IncidentStatus.REPORTED ||
+      current.status === IncidentStatus.UNDER_REVIEW ||
+      current.status === IncidentStatus.REOPENED;
+    if (dto.decision) {
+      if (!reviewOpen) {
+        throw new BadRequestException(
+          `The review decision has already been made (the incident is ${INCIDENT_STATUS_LABELS[current.status]})`,
+        );
+      }
+      if (dto.decision === 'NO_INVESTIGATION' && !decisionReason) {
+        throw new BadRequestException('Give a reason why no investigation is needed');
+      }
+    }
     // Saving a review on a Reported incident starts the review (safety net for "Start review").
     if (current.status === IncidentStatus.REPORTED) {
       await this.startReview(user, id, meta);
     }
-    const existing = await this.prisma.incidentReview.findUnique({
-      where: { incidentId: id },
-    });
-    const data = {
-      confirmedSeverity: dto.confirmedSeverity ?? null,
-      investigationRequired: dto.investigationRequired ?? null,
+    if (decided) {
+      await this.prisma.$transaction(async (tx) => {
+        if (severityChanges) {
+          await tx.incident.update({
+            where: { id },
+            data: { severity: decided, updatedById: user.id },
+          });
+        }
+        // from = to records a confirmation (shown as "Severity confirmed at review").
+        await tx.incidentSeverityHistory.create({
+          data: {
+            incidentId: id,
+            fromSeverity: current.severity,
+            toSeverity: decided,
+            changedById: user.id,
+            reason: severityChanges ? `Changed at review: ${severityReason}` : 'Confirmed at review',
+          },
+        });
+        await this.audit.logAudit({
+          tx,
+          userId: user.id,
+          module: AuditModule.INCIDENT,
+          action: AuditAction.INCIDENT_SEVERITY_CHANGED,
+          recordType: 'Incident',
+          recordId: id,
+          description: severityChanges
+            ? `Severity changed at review: ${current.severity} → ${decided} (${severityReason})`
+            : `Severity confirmed at review: ${current.severity}`,
+          oldValues: { severity: current.severity },
+          newValues: { severity: decided, reason: severityReason },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        });
+      });
+    }
+    // Once the decision is made the review is a record: any change to it needs a reason and is
+    // shown on the timeline. Before that it is a draft and can be saved freely.
+    const answers = {
       safeguardingConcern: dto.safeguardingConcern ?? null,
       possibleAbuseOrNeglect: dto.possibleAbuseOrNeglect ?? null,
       furtherMedicalAttention: dto.furtherMedicalAttention ?? null,
       externalNotificationRequired: dto.externalNotificationRequired ?? null,
       escalationRequired: dto.escalationRequired ?? null,
       managementNotes: dto.managementNotes?.trim() || null,
-      reviewedById: user.id,
-      reviewedAt: new Date(),
+    };
+    const reviewChanges =
+      existing && !reviewOpen ? describeReviewChanges(existing, answers) : [];
+    // Changes while the review is still a draft are shown too (no reason needed then).
+    const draftChanges = existing && reviewOpen ? describeReviewChanges(existing, answers) : [];
+    const changeReason = dto.changeReason?.trim() || null;
+    if (reviewChanges.length && !changeReason) {
+      throw new BadRequestException('Give a reason for the change');
+    }
+    const data = {
+      confirmedSeverity: decided ?? existing?.confirmedSeverity ?? null,
+      investigationRequired: dto.decision
+        ? dto.decision === 'INVESTIGATE'
+        : (dto.investigationRequired ?? existing?.investigationRequired ?? null),
+      ...answers,
+      // The first reviewer and time are kept; later saves show as "last updated".
+      reviewedById: existing?.reviewedById ?? user.id,
+      reviewedAt: existing?.reviewedAt ?? new Date(),
     };
     const review = await this.prisma.incidentReview.upsert({
       where: { incidentId: id },
@@ -1617,10 +2416,78 @@ export class IncidentsService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    // Escalation / safeguarding routing (internal notifications; never blocking).
-    void this.notifyOnReviewFlags(id, review, user.id).catch((e) =>
-      this.logger.warn(`Incident review notification failed for ${id}: ${e}`),
-    );
+    if (draftChanges.length) {
+      await this.audit.logAudit({
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_UPDATED,
+        recordType: 'IncidentReviewChange',
+        recordId: id,
+        description: `Review updated: ${draftChanges.join(', ')}`,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    if (reviewChanges.length) {
+      await this.audit.logAudit({
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_UPDATED,
+        recordType: 'IncidentReviewChange',
+        recordId: id,
+        description: `Review updated: ${reviewChanges.join(', ')} (${changeReason})`,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    // Escalation / safeguarding routing: only when a flag newly becomes "Yes" (re-saving the
+    // review must not notify everyone again). Internal notifications; never blocking.
+    const newlyRaised = {
+      safeguardingConcern: review.safeguardingConcern === true && existing?.safeguardingConcern !== true,
+      escalationRequired: review.escalationRequired === true && existing?.escalationRequired !== true,
+    };
+    const raisedLabels = [
+      newlyRaised.safeguardingConcern && 'Safeguarding concern raised at review',
+      newlyRaised.escalationRequired && 'Escalation requested at review',
+    ].filter((x): x is string => Boolean(x));
+    for (const description of raisedLabels) {
+      // Kept in the audit log and shown on the timeline.
+      await this.audit.logAudit({
+        userId: user.id,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_UPDATED,
+        recordType: 'IncidentReviewFlag',
+        recordId: id,
+        description,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    if (raisedLabels.length) {
+      void this.notifyOnReviewFlags(id, newlyRaised, user.id).catch((e) =>
+        this.logger.warn(`Incident review notification failed for ${id}: ${e}`),
+      );
+    }
+    if (dto.decision) {
+      await this.changeStatus(
+        user,
+        id,
+        dto.decision === 'INVESTIGATE'
+          ? { status: IncidentStatus.UNDER_INVESTIGATION, reason: 'Review completed: investigate' }
+          : {
+              status: IncidentStatus.AWAITING_CLOSURE,
+              reason: `Review completed — no investigation needed: ${decisionReason}`,
+            },
+        meta,
+      );
+      return {
+        message:
+          dto.decision === 'INVESTIGATE'
+            ? 'Review saved — investigation started'
+            : 'Review saved — ready to close',
+        data: review,
+      };
+    }
     return { message: 'Manager review saved', data: review };
   }
 
@@ -2961,6 +3828,8 @@ export class IncidentsService {
         investigation: true;
         outcome: true;
         actions: true;
+        corrections: true;
+        clarifications: true;
       };
     }>,
     reporterName: string | null = null,
@@ -2994,18 +3863,22 @@ export class IncidentsService {
       events.push({
         at: s.createdAt.toISOString(),
         kind: 'SEVERITY',
-        detail: `Severity ${INCIDENT_SEVERITY_LABELS[s.fromSeverity]} → ${INCIDENT_SEVERITY_LABELS[s.toSeverity]}${s.reason ? ` (${s.reason})` : ''}`,
+        detail:
+          s.fromSeverity === s.toSeverity
+            ? `Severity confirmed: ${INCIDENT_SEVERITY_LABELS[s.toSeverity]}${s.reason && s.reason !== 'Confirmed at review' ? ` (${s.reason})` : ' at review'}`
+            : `Severity ${INCIDENT_SEVERITY_LABELS[s.fromSeverity]} → ${INCIDENT_SEVERITY_LABELS[s.toSeverity]}${s.reason ? ` (${s.reason})` : ''}`,
         byId: s.changedById,
       });
     }
     // Workflow records keep only their latest state, so these show when each was last saved.
     const { review, investigation, outcome } = incident;
     if (review) {
+      // When the review was first saved; later changes after the decision have their own events.
       events.push({
-        at: review.updatedAt.toISOString(),
+        at: (review.reviewedAt ?? review.createdAt).toISOString(),
         kind: 'REVIEW',
         detail: 'Manager review saved',
-        byId: review.updatedById ?? review.reviewedById,
+        byId: review.reviewedById ?? review.createdById,
       });
     }
     if (investigation) {
@@ -3053,6 +3926,33 @@ export class IncidentsService {
         kind: 'OUTCOME',
         detail: 'Closure outcome recorded',
         byId: outcome.createdById,
+      });
+    }
+    // One event per correction save (fields corrected together share a reason).
+    const batches = new Map<string, typeof incident.corrections>();
+    for (const c of incident.corrections) {
+      batches.set(c.batchId, [...(batches.get(c.batchId) ?? []), c]);
+    }
+    for (const rows of batches.values()) {
+      const first = rows[0];
+      events.push({
+        at: first.createdAt.toISOString(),
+        kind: 'CORRECTION',
+        detail: `Corrected ${rows
+          .map(
+            (r) =>
+              `${CORRECTION_FIELD_LABELS[r.fieldKey as CorrectableFieldKey] ?? r.fieldKey}: ${r.fromLabel ?? '—'} → ${r.toLabel ?? '—'}`,
+          )
+          .join('; ')} (${first.reason})`,
+        byId: first.correctedById,
+      });
+    }
+    for (const n of incident.clarifications) {
+      events.push({
+        at: n.createdAt.toISOString(),
+        kind: 'CLARIFICATION',
+        detail: `Clarification added to ${CLARIFICATION_FIELD_LABELS[n.field] ?? n.field}`,
+        byId: n.createdById,
       });
     }
     return events.sort((a, b) => a.at.localeCompare(b.at));
