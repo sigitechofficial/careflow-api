@@ -100,9 +100,7 @@ export class MailService {
       );
     }
 
-    const from = parseFromHeader(
-      this.config.get<string>('mail.from', 'CareAdmin <noreply@careadmin.local>'),
-    );
+    const from = parseFromHeader(this.requireFrom());
     const recipients = (Array.isArray(input.to) ? input.to : [input.to])
       .map((addr) => addr.trim())
       .filter(Boolean);
@@ -186,9 +184,7 @@ export class MailService {
     }
     this.acsClient ??= new EmailClient(endpoint, new DefaultAzureCredential());
 
-    const from = parseFromHeader(
-      this.config.get<string>('mail.from', 'CareAdmin <noreply@careadmin.local>'),
-    );
+    const from = parseFromHeader(this.requireFrom());
     const recipients = (Array.isArray(input.to) ? input.to : [input.to])
       .map((address) => address.trim())
       .filter(Boolean);
@@ -218,6 +214,17 @@ export class MailService {
     return { messageId: result.id };
   }
 
+  /** Sender from MAIL_FROM only — never a hard-coded address. */
+  private requireFrom(): string {
+    const from = (this.config.get<string>('mail.from') ?? '').trim();
+    if (!from) {
+      throw new ServiceUnavailableException(
+        'Email sender is not configured. Set MAIL_FROM (e.g. "Allfor Care <noreply@allforcare.co.uk>").',
+      );
+    }
+    return from;
+  }
+
   async send(
     input: SendMailInput,
   ): Promise<{ messageId: string; mode: MailSendMode }> {
@@ -227,10 +234,6 @@ export class MailService {
       const original = (Array.isArray(input.to) ? input.to : [input.to]).join(', ');
       input = { ...input, to: redirectTo, subject: `[to: ${original}] ${input.subject}` };
     }
-    const from = this.config.get<string>(
-      'mail.from',
-      'CareAdmin <noreply@careadmin.local>',
-    );
     const toList = Array.isArray(input.to) ? input.to : [input.to];
     const to = toList.join(', ');
 
@@ -253,7 +256,7 @@ export class MailService {
     }
 
     const info = await this.getTransporter().sendMail({
-      from,
+      from: this.requireFrom(),
       to,
       subject: input.subject,
       text: input.text,

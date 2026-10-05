@@ -121,3 +121,26 @@ describe('MailService — MAIL_REDIRECT_TO safety net', () => {
     ]);
   });
 });
+
+describe('MailService — sender comes only from MAIL_FROM', () => {
+  beforeEach(() => beginSend.mockReset());
+
+  it('refuses to send through ACS when MAIL_FROM is empty (no made-up sender)', async () => {
+    const svc = makeService({ mode: 'acs', acsEndpoint: 'https://x', from: '' });
+    await expect(
+      svc.send({ to: 'a@b.test', subject: 's', text: 't' }),
+    ).rejects.toThrow(/MAIL_FROM/);
+    expect(beginSend).not.toHaveBeenCalled();
+  });
+
+  it('sends from the configured Allfor Care address', async () => {
+    acsOk();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'Allfor Care <noreply@allforcare.co.uk>',
+    });
+    await svc.send({ to: 'a@b.test', subject: 's', text: 't' });
+    expect(beginSend.mock.calls[0][0].senderAddress).toBe('noreply@allforcare.co.uk');
+  });
+});
