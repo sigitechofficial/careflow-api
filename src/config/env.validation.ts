@@ -11,6 +11,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { validateSync } from 'class-validator';
+import { resolveMailMode } from './mail.config';
 
 class EnvironmentVariables {
   @IsOptional()
@@ -233,6 +234,10 @@ class EnvironmentVariables {
   JOBS_TRIGGER_SECRET?: string;
 }
 
+function envString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 export function validateEnv(config: Record<string, unknown>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
@@ -251,6 +256,16 @@ export function validateEnv(config: Record<string, unknown>) {
       .join('; ');
     throw new Error(`Environment validation failed: ${formatted}`);
   }
+  // Production must never fall back to a made-up sender: MAIL_FROM is required whenever a
+  // real transport (acs / api / smtp) is active.
+  if (
+    envString(config.NODE_ENV) === 'production' &&
+    resolveMailMode(config) !== 'log' &&
+    !envString(config.MAIL_FROM)
+  ) {
+    throw new Error(
+      'Environment validation failed: MAIL_FROM is required in production when email sending is enabled (e.g. "Allfor Care <noreply@allforcare.co.uk>")',
+    );
+  }
   return validatedConfig;
 }
-
