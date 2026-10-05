@@ -122,6 +122,8 @@ import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { OfficeSalariesModule } from './office-salaries/office-salaries.module';
 import { SetupChecklistModule } from './setup-checklist/setup-checklist.module';
+import { RoleTasksModule } from './role-tasks/role-tasks.module';
+import { RoleResponsibilitiesModule } from './role-responsibilities/role-responsibilities.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
 import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
@@ -266,6 +268,8 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     PayrollModule,
     OfficeSalariesModule,
     SetupChecklistModule,
+    RoleTasksModule,
+    RoleResponsibilitiesModule,
     LearningModule,
     PoliciesModule,
     ServiceUserCommunicationNotesModule,

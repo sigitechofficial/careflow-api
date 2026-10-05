@@ -471,9 +471,6 @@ model User {
   firstName        String?
   lastName         String?
   refreshTokenHash String?
-  /// Linked HR employee record (so the office user can be paid through Payroll).
-  /// Ids only — no cross-schema FK. One office login per employee.
-  employeeId       String? @unique @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -613,9 +610,11 @@ model Role {
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
 
-  rolePermissions RolePermission[]
-  userRoles       UserRole[]
-  policyAudiences PolicyAudience[]
+  rolePermissions   RolePermission[]
+  userRoles         UserRole[]
+  policyAudiences   PolicyAudience[]
+  roleTaskTemplates RoleTaskTemplate[]
+  roleTasks         RoleTask[]
 
   @@index([deletedAt])
   @@schema("identity")
@@ -687,6 +686,85 @@ model UserLocation {
   @@unique([userId, locationId])
   @@index([userId])
   @@index([locationId])
+  @@schema("identity")
+}
+
+enum RoleTaskRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("identity")
+}
+
+enum RoleTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+
+  @@schema("identity")
+}
+
+/// Work a manager gives to an office-user role (whole role owns it). One-off or repeating.
+model RoleTaskTemplate {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String
+  description String?            @db.Text
+  roleId      String             @db.Uuid
+  /// Branch the task is for; null = all branches.
+  locationId  String?            @db.Uuid
+  /// Admin page to open for the work (e.g. /billing/payroll-runs).
+  link        String?
+  recurrence  RoleTaskRecurrence @default(NONE)
+  /// Due date for a one-off task; first possible due date for a repeating task.
+  startDate   DateTime           @db.Date
+  /// WEEKLY: 0 = Sunday … 6 = Saturday.
+  weekday     Int?
+  /// MONTHLY: 1–31 (short months use their last day).
+  dayOfMonth  Int?
+  isActive    Boolean            @default(true)
+  createdById String?            @db.Uuid
+  updatedById String?            @db.Uuid
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+
+  role     Role       @relation(fields: [roleId], references: [id])
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  tasks    RoleTask[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+  @@schema("identity")
+}
+
+/// One due occurrence of a role task (status tracked per due date).
+model RoleTask {
+  id            String         @id @default(uuid()) @db.Uuid
+  templateId    String         @db.Uuid
+  roleId        String         @db.Uuid
+  locationId    String?        @db.Uuid
+  title         String
+  description   String?        @db.Text
+  link          String?
+  dueDate       DateTime       @db.Date
+  status        RoleTaskStatus @default(OPEN)
+  note          String?        @db.Text
+  startedAt     DateTime?
+  completedAt   DateTime?
+  completedById String?        @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  template RoleTaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  role     Role             @relation(fields: [roleId], references: [id])
+  location Location?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, dueDate])
+  @@index([roleId, status])
+  @@index([dueDate])
   @@schema("identity")
 }
 
@@ -2222,6 +2300,8 @@ model Location {
   userLocations            UserLocation[]
   policyApplicabilities    PolicyApplicability[]
   policyAudiences          PolicyAudience[]
+  roleTaskTemplates        RoleTaskTemplate[]
+  roleTasks                RoleTask[]
 
   @@schema("lookups")
 }

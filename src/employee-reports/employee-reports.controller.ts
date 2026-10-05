@@ -1,5 +1,5 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -8,10 +8,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeeReportsService } from './employee-reports.service';
+import { EmployeeReportQueryDto } from './dto/employee-report-query.dto';
 
 @ApiTags('Employee Reports')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@Permissions('employees.reports.read')
 @Controller('employee-reports')
 export class EmployeeReportsController {
   constructor(private readonly service: EmployeeReportsService) {}
@@ -22,50 +24,102 @@ export class EmployeeReportsController {
   }
 
   @Get('dashboard-summary')
-  @Permissions('employees.reports.read')
   dashboardSummary(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.service.dashboardSummary(this.audit(user, req));
   }
 
   @Get('staff-summary')
-  @Permissions('employees.reports.read')
   staffSummary(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.service.staffSummary(this.audit(user, req));
   }
 
+  @Get('activity-summary')
+  @ApiOperation({
+    summary: 'Carer activity: visits, hours, late starts, tasks and notes',
+  })
+  activitySummary(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.activitySummary(user, query, this.audit(user, req));
+  }
+
   @Get('staff-analysis')
-  @Permissions('employees.reports.read')
-  staffAnalysis(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.staffAnalysis(this.audit(user, req));
+  @ApiOperation({
+    summary:
+      'Overdue or due-soon reviews, skills, certifications and compliance per carer',
+  })
+  staffAnalysis(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.staffAnalysis(user, query, this.audit(user, req));
   }
 
   @Get('compliance')
-  @Permissions('employees.reports.read')
-  compliance(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.compliance(this.audit(user, req));
+  @ApiOperation({
+    summary:
+      'Skills, certifications and compliance documents expiring or expired',
+  })
+  compliance(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.compliance(user, query, this.audit(user, req));
   }
 
   @Get('compliance-detail')
-  @Permissions('employees.reports.read')
-  complianceDetail(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.complianceDetail(this.audit(user, req));
+  @ApiOperation({
+    summary: 'Compliance status per carer (as on the Compliance board)',
+  })
+  complianceDetail(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.complianceDetail(user, query, this.audit(user, req));
+  }
+
+  @Get('roles')
+  @ApiOperation({ summary: 'Role, job title and employment type per carer' })
+  roles(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.roles(user, query, this.audit(user, req));
   }
 
   @Get('leaving')
-  @Permissions('employees.reports.read')
-  leaving(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.leaving(this.audit(user, req));
+  @ApiOperation({ summary: 'Carers who left in the date range' })
+  leaving(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.leaving(user, query, this.audit(user, req));
   }
 
   @Get('details')
-  @Permissions('employees.reports.read')
-  details(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.details(this.audit(user, req));
+  @ApiOperation({ summary: 'Contact and employment details for every carer' })
+  details(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.details(user, query, this.audit(user, req));
   }
 
   @Get('holidays')
-  @Permissions('employees.reports.read')
-  holidays(@CurrentUser() user: RequestUser, @Req() req: Request) {
-    return this.service.holidays(this.audit(user, req));
+  @ApiOperation({ summary: 'Holidays and absences in the date range' })
+  holidays(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeeReportQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.holidays(user, query, this.audit(user, req));
   }
 }
