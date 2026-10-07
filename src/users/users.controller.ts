@@ -10,7 +10,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SetUserRolesDto } from './dto/set-user-roles.dto';
 import { SetUserLocationsDto } from './dto/set-user-locations.dto';
-import { SetUserEmployeeDto } from './dto/set-user-employee.dto';
 import { hashPassword } from '../common/utils/password.util';
 
 @ApiTags('Users')
@@ -52,12 +51,21 @@ export class UsersController {
 
   @Patch(':id')
   @Permissions('users.create')
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    const user = await this.usersService.updateProfile(id, {
+  async update(
+    @CurrentUser() actor: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
+    const user = await this.usersService.updateOfficeUser(actor, id, {
       firstName: dto.firstName,
       lastName: dto.lastName,
+      email: dto.email,
+      password: dto.password,
     });
-    return { message: 'User updated', data: { id: user.id } };
+    return {
+      message: 'User updated',
+      data: { id: user.id, email: user.email },
+    };
   }
 
   @Put(':id/roles')
@@ -73,17 +81,6 @@ export class UsersController {
       id,
       dto.roleNames,
     );
-  }
-
-  @Put(':id/employee')
-  @Permissions('users.create')
-  @ApiOperation({ summary: 'Link an office user to their employee record (for payroll), or unlink' })
-  setEmployee(
-    @CurrentUser() actor: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: SetUserEmployeeDto,
-  ) {
-    return this.usersService.setUserEmployee(actor, id, dto.employeeId);
   }
 
   @Put(':id/locations')

@@ -638,6 +638,8 @@ async function main() {
     'office_salaries.manage',
     // Setup checklist (Super Admin + Admin only)
     'setup_checklist.read',
+    // Role tasks — create/manage work for office-user roles
+    'role_tasks.manage',
   ];
 
   for (const key of permissionKeys) {
@@ -726,7 +728,8 @@ async function main() {
   await assignPermKeys('Manager', ['hours_approvals.read', 'hours_approvals.manage']);
 
   // Office user salaries — company-wide admins only (Super Admin already has every permission)
-  await assignPermKeys('Admin', ['office_salaries.manage', 'setup_checklist.read']);
+  await assignPermKeys('Admin', ['office_salaries.manage', 'setup_checklist.read', 'role_tasks.manage']);
+  await assignPermKeys('Manager', ['role_tasks.manage']);
   await assignPermKeys('Admin', incidentAdminKeys);
 
   // Incident Management — configurable categories & subtypes (idempotent).
