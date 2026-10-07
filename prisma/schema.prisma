@@ -8719,6 +8719,12 @@ model VisitReconciliation {
    * Admin decision on whether to pay the overrun minutes.
    */
   overrunDecision        VisitOverrunDecision?
+  /**
+   * Chosen when the overrun is acknowledged: price carer pay / client charge on the
+   * planned slot or the actual clock times. Null = legacy rule (pay actual, charge from actual).
+   */
+  overrunPayBasis        VisitOverrunTimeBasis?
+  overrunBillBasis       VisitOverrunTimeBasis?
   lockedAt               DateTime?
   lastEvaluatedAt        DateTime?
   includedInPayrollRunId String?                   @db.Uuid
@@ -8749,6 +8755,13 @@ enum VisitOverrunDecision {
   PENDING
   APPROVED
   REJECTED
+
+  @@schema("billing")
+}
+
+enum VisitOverrunTimeBasis {
+  PLANNED
+  ACTUAL
 
   @@schema("billing")
 }

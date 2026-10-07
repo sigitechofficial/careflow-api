@@ -14,6 +14,7 @@ import {
   Prisma,
   ScheduledVisitStatus,
   VisitOverrunDecision,
+  VisitOverrunTimeBasis,
   VisitPlanNightDuty,
   VisitReconciliationStatus,
 } from '@prisma/client';
@@ -244,6 +245,8 @@ export type VisitReconciliationListRow = {
   overrunMinutes: number | null;
   overrunReason: string | null;
   overrunDecision: VisitOverrunDecision | null;
+  overrunPayBasis: VisitOverrunTimeBasis | null;
+  overrunBillBasis: VisitOverrunTimeBasis | null;
   approvalNotes: string | null;
   /** Visit-log style columns (client-centric export format). */
   emonitored: 'LOGGED' | 'NOT LOG';
@@ -1279,6 +1282,24 @@ export class VisitReconciliationsService {
       throw new BadRequestException('This visit has no overrun to approve');
     }
 
+    // Admin choice: planned vs actual time, for carer pay, client charge or both.
+    // The side that is not chosen stays on the planned slot (as while the overrun was pending).
+    // Omitted (older callers) keeps the legacy rule: pay actual, charge from actual.
+    const applyTo = dto.applyTo ?? (dto.timeBasis ? 'BOTH' : null);
+    const timeBasis = dto.timeBasis ?? (applyTo ? 'ACTUAL' : null);
+    const overrunPayBasis =
+      applyTo && timeBasis
+        ? applyTo === 'CHARGE'
+          ? VisitOverrunTimeBasis.PLANNED
+          : (timeBasis as VisitOverrunTimeBasis)
+        : null;
+    const overrunBillBasis =
+      applyTo && timeBasis
+        ? applyTo === 'PAY'
+          ? VisitOverrunTimeBasis.PLANNED
+          : (timeBasis as VisitOverrunTimeBasis)
+        : null;
+
     const defaults = resolveDefaultApprovedWindows({
       plannedStartDateTime: row.plannedStartDateTime,
       plannedEndDateTime: row.plannedEndDateTime,
@@ -1286,6 +1307,8 @@ export class VisitReconciliationsService {
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
       overrunDecision: VisitOverrunDecision.APPROVED,
+      overrunPayBasis,
+      overrunBillBasis,
       durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
         this.prisma,
         row.scheduledVisitId,
@@ -1298,6 +1321,8 @@ export class VisitReconciliationsService {
       where: { id },
       data: {
         overrunDecision: VisitOverrunDecision.APPROVED,
+        overrunPayBasis,
+        overrunBillBasis,
         approvedPayStart: defaults.approvedPayStart,
         approvedPayEnd: defaults.approvedPayEnd,
         approvedBillStart: defaults.approvedBillStart,
@@ -1341,6 +1366,8 @@ export class VisitReconciliationsService {
       where: { id },
       data: {
         overrunDecision: VisitOverrunDecision.REJECTED,
+        overrunPayBasis: null,
+        overrunBillBasis: null,
         approvedPayStart: defaults.approvedPayStart,
         approvedPayEnd: defaults.approvedPayEnd,
         approvedBillStart: defaults.approvedBillStart,
@@ -2082,6 +2109,8 @@ export class VisitReconciliationsService {
         ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
         : activeExceptions,
       overrunDecision,
+      overrunPayBasis: row.overrunPayBasis,
+      overrunBillBasis: row.overrunBillBasis,
       durationToleranceMinutes,
     });
 
@@ -2157,6 +2186,8 @@ export class VisitReconciliationsService {
           ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
           : activeExceptions,
         overrunDecision,
+        overrunPayBasis: row.overrunPayBasis,
+        overrunBillBasis: row.overrunBillBasis,
         durationToleranceMinutes,
       });
       approvedBillStart = visitBillWindows.approvedBillStart;
@@ -2777,6 +2808,8 @@ export class VisitReconciliationsService {
         overrunMinutes: row.overrunMinutes ?? null,
         overrunReason: row.overrunReason ?? null,
         overrunDecision: row.overrunDecision ?? null,
+        overrunPayBasis: row.overrunPayBasis ?? null,
+        overrunBillBasis: row.overrunBillBasis ?? null,
         approvalNotes: row.approvalNotes ?? null,
         emonitored,
         clientId: su?.serviceUserNumber?.trim() || '',
