@@ -1334,7 +1334,8 @@ export class VisitReconciliationsService {
       },
     });
 
-    await this.evaluateInternal(this.prisma, id);
+    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
     return this.getById(id);
   }
 
@@ -1379,7 +1380,8 @@ export class VisitReconciliationsService {
       },
     });
 
-    await this.evaluateInternal(this.prisma, id);
+    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
     return this.getById(id);
   }
 
