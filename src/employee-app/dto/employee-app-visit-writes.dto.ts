@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -404,6 +405,37 @@ export class EmployeeAppLogNoteDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Legacy single voice note id (clientVoiceNoteId). Prefer `voiceNoteIds`. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  voiceNoteId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Voice notes (clientVoiceNoteId) on this entry, in recording order — max 3. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(128, { each: true })
+  voiceNoteIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Total length in ms of the voice notes (timeline label for voice-only entries)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(3 * 10 * 60 * 1000)
+  voiceNoteDurationMs?: number;
 }
 
 export class EmployeeAppLogHandoverDto {
@@ -443,6 +475,37 @@ export class EmployeeAppLogHandoverDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Legacy single voice note id (clientVoiceNoteId). Prefer `voiceNoteIds`. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  voiceNoteId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Voice notes (clientVoiceNoteId) on this entry, in recording order — max 3. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(128, { each: true })
+  voiceNoteIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Total length in ms of the voice notes (timeline label for voice-only entries)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(3 * 10 * 60 * 1000)
+  voiceNoteDurationMs?: number;
 }
 
 export class EmployeeAppLogConcernDto {
@@ -493,6 +556,37 @@ export class EmployeeAppLogConcernDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Legacy single voice note id (clientVoiceNoteId). Prefer `voiceNoteIds`. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  voiceNoteId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Voice notes (clientVoiceNoteId) on this entry, in recording order — max 3. When set, `body` may be empty.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(128, { each: true })
+  voiceNoteIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Total length in ms of the voice notes (timeline label for voice-only entries)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(3 * 10 * 60 * 1000)
+  voiceNoteDurationMs?: number;
 }
 
 export class EmployeeAppIncidentBodyMapMarkDto {
@@ -796,4 +890,64 @@ export class EmployeeAppHandoverAcknowledgeDto {
   @IsString()
   @MaxLength(128)
   idempotencyKey!: string;
+}
+
+/** Links a record (task, MAR, obs, incident, clock out …) to its carer voice notes. */
+export class EmployeeAppVoiceNoteLinkDto {
+  @ApiProperty({
+    enum: [
+      'incident',
+      'task',
+      'medication',
+      'observation',
+      'body_map',
+      'body_map_review',
+      'check_in',
+      'clock_out',
+      'unable_to_start',
+      'check_in_request',
+      'sos',
+    ],
+  })
+  @IsString()
+  @IsIn([
+    'incident',
+    'task',
+    'medication',
+    'observation',
+    'body_map',
+    'body_map_review',
+    'check_in',
+    'clock_out',
+    'unable_to_start',
+    'check_in_request',
+    'sos',
+  ])
+  entryType!: string;
+
+  @ApiProperty({ description: 'Carer-app id of the record (task key, incident clientEntryId, …)' })
+  @IsString()
+  @MaxLength(128)
+  entryId!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Idempotency key of the record save the voice notes belong to (matches its timeline event).',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  writeIdempotencyKey?: string;
+
+  @ApiProperty({ type: [String], description: 'clientVoiceNoteIds in recording order (max 3; empty clears)' })
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(128, { each: true })
+  voiceNoteIds!: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsISO8601()
+  deviceRecordedAt?: string;
 }

@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -133,6 +134,18 @@ export class ServiceUserVisitTaskItemDto {
   @IsOptional()
   @IsBoolean()
   bodyMapRequired?: boolean;
+
+  @ApiPropertyOptional({
+    example: '07:30',
+    nullable: true,
+    description:
+      'Clock time (HH:mm) the task is due. It shows on the visit whose time window contains ' +
+      'this time — same rule as medicine due times. Omit to keep the current time (or the ' +
+      "service user's slot / round time for a new task).",
+  })
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'dueTime must be HH:mm (00:00–23:59)' })
+  dueTime?: string | null;
 }
 
 export class ServiceUserVisitTaskRoundDto {

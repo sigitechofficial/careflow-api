@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IncidentExternalInvestigationType,
   IncidentInvestigationScope,
@@ -13,11 +13,20 @@ import {
   IsIn,
   IsObject,
   IsOptional,
+  IsNotEmpty,
   IsString,
+  IsUUID,
+  Matches,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
-import { INCIDENT_CONTRIBUTING_FACTORS } from '../incident-review.constants';
+import {
+  INCIDENT_CONTRIBUTING_FACTORS,
+  INVESTIGATION_RECORDS_REVIEWED,
+} from '../incident-review.constants';
+import { INVESTIGATION_LEVELS, INVESTIGATOR_INVOLVEMENT } from '../incident-investigation.util';
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
 export class UpsertIncidentReviewDto {
   @ApiPropertyOptional({
@@ -89,6 +98,19 @@ export class UpsertIncidentReviewDto {
   @IsBoolean()
   escalationRequired?: boolean;
 
+  @ApiPropertyOptional({ description: 'Is anyone currently at immediate or ongoing risk?' })
+  @IsOptional()
+  @IsBoolean()
+  immediateRisk?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'What immediate protective action is required or has been taken (required when immediateRisk is true)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  protectiveAction?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -157,8 +179,105 @@ export class UpsertIncidentInvestigationDto {
   @MaxLength(8000)
   conclusion?: string;
 
+  // --- Set-up (omit = unchanged, null = clear) ---
+
+  @ApiPropertyOptional({ enum: INVESTIGATION_LEVELS, nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsIn(INVESTIGATION_LEVELS)
+  investigationLevel?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Staff member (employee) leading the investigation: an active carer or manager',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  leadInvestigatorEmployeeId?: string | null;
+
+  @ApiPropertyOptional({
+    enum: INVESTIGATOR_INVOLVEMENT,
+    nullable: true,
+    description: 'Was the lead investigator directly involved in the incident?',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsIn(INVESTIGATOR_INVOLVEMENT)
+  investigatorInvolved?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Why the investigator is still appropriate (required when involved = YES)',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(2000)
+  investigatorInvolvedReason?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Target completion date (YYYY-MM-DD)' })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @Matches(DAY_KEY, { message: 'targetDate must be YYYY-MM-DD' })
+  targetDate?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Terms of reference: what questions this investigation needs to answer',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(8000)
+  termsOfReference?: string | null;
+
+  // --- Evidence (omit = unchanged) ---
+
+  @ApiPropertyOptional({ enum: INVESTIGATION_RECORDS_REVIEWED, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(INVESTIGATION_RECORDS_REVIEWED, { each: true })
+  recordsReviewed?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Per reviewed kind: linked records ({ id, label }) and a note, e.g. { CARE_PLAN: { items: [{ id, label }], note } }',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  recordsReviewedDetails?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ nullable: true, description: 'What was noticed while reviewing records' })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(8000)
+  evidenceNotes?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Evidence still awaited or unavailable' })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(4000)
+  outstandingEvidence?: string | null;
+
   @ApiPropertyOptional({ description: 'Mark the investigation as complete' })
   @IsOptional()
   @IsBoolean()
   markComplete?: boolean;
+}
+
+export class PauseIncidentInvestigationDto {
+  @ApiProperty({ description: 'Why the investigation is paused' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
+
+  @ApiProperty({ description: 'When the pause will be reviewed (YYYY-MM-DD, today or later)' })
+  @Matches(DAY_KEY, { message: 'nextReviewDate must be YYYY-MM-DD' })
+  nextReviewDate!: string;
 }

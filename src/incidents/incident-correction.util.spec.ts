@@ -15,6 +15,8 @@ const base: CorrectableIncidentState = {
   involvedServiceUserIds: ['su-1'],
   involvedEmployeeIds: [],
   locationId: 'loc-1',
+  locationKey: null,
+  locationDetail: null,
   scheduledJobId: null,
   categoryDetails: { a: 1, b: { c: 2 } },
   ambulanceAttended: null,

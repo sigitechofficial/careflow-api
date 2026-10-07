@@ -19,6 +19,7 @@ import {
 } from 'class-validator';
 import {
   IMMEDIATE_ACTION_CODES,
+  INCIDENT_LOCATION_KEYS,
   OFFICE_WHO_INFORMED_KEYS,
 } from '../incident-workflow.util';
 
@@ -44,6 +45,17 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({ enum: INCIDENT_LOCATION_KEYS, description: 'Where it happened (optional)' })
+  @IsOptional()
+  @IsIn(INCIDENT_LOCATION_KEYS)
+  locationKey?: string;
+
+  @ApiPropertyOptional({ description: 'Where it happened, when locationKey is OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  locationDetail?: string;
 
   @ApiPropertyOptional({ description: 'Specific area / location description' })
   @IsOptional()

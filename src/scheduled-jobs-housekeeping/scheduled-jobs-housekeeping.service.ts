@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocationStatus,
@@ -102,7 +103,23 @@ import {
 } from '../employee-app/visit-task-progress.util';
 import { catalogueFeedsBodyMap, resolveTaskObsLink } from '../employee-app/visit-task-obs-link.util';
 import { syncObservationFromCompletedVisitTask } from '../employee-app/visit-task-obs-sync.util';
+import {
+  isCancelledJobStatus,
+  loadOperationalTimeZone,
+  loadVisitTaskPlacement,
+  visitHmWindow,
+} from '../visit-tasks/visit-task-window.util';
 import { loadCarePlanFormFields } from '../service-user-care-plans/compose/compose-context.loader';
+import {
+  parseVoiceNoteLinks,
+  resolveVoiceNoteAbsolutePath,
+  timelineSourceForLink,
+  VISIT_VOICE_NOTE_ENTRY_LABELS,
+  voiceNoteIdsByLogEntryId,
+  type StoredVoiceNoteLink,
+  type VisitVoiceNoteApiItem,
+  type VisitVoiceNoteGroupApi,
+} from '../employee-app/visit-voice-note.util';
 import {
   buildCarePlanDeliveryTasks,
   deriveDeliveredCarePlanFormIds,
@@ -132,6 +149,9 @@ const NOT_STARTED_JOB_STATUSES: PrismaJobStatus[] = [
   PrismaJobStatus.ALLOCATED,
   PrismaJobStatus.DRAFT,
 ];
+
+/** Round code stored on ad-hoc task completions for visits that have no visit-plan slot. */
+const AD_HOC_TASK_ROUND_CODE = 'VISIT';
 
 const housekeepingInclude = {
   ...timelineJobInclude,
@@ -223,9 +243,24 @@ export class ScheduledJobsHousekeepingService {
         ? (jobMeta.employeeApp as Record<string, unknown>)
         : null;
     const rolesByEntryId = logEntryRolesById(employeeAppMeta);
+    const voiceGroups = await this.resolveJobVoiceNotes(jobId, employeeAppMeta);
+    const voiceNotesByEventId = new Map<string, VisitVoiceNoteApiItem[]>();
+    const otherVoiceNotes: VisitVoiceNoteGroupApi[] = [];
+    for (const group of voiceGroups) {
+      if (group.timelineEventId) {
+        voiceNotesByEventId.set(group.timelineEventId, [
+          ...(voiceNotesByEventId.get(group.timelineEventId) ?? []),
+          ...group.voiceNotes,
+        ]);
+      } else {
+        otherVoiceNotes.push(group);
+      }
+    }
 
     return {
       jobId,
+      /** Voice notes on records without a timeline row (SOS, check-in request, body map review). */
+      otherVoiceNotes,
       timeline: timeline.map((item) => {
         let next = item;
         if (item.type === 'clock_in' && item.detail) {
@@ -246,9 +281,171 @@ export class ScheduledJobsHousekeepingService {
           next = { ...next, author } as typeof next & { author: VisitLogAuthor };
         }
         const photos = item.type === 'incident' ? incidentPhotos.get(item.sourceId) : undefined;
-        return photos?.length ? { ...next, photos } : next;
+        if (photos?.length) next = { ...next, photos };
+        const voiceNotes = voiceNotesByEventId.get(item.id);
+        return voiceNotes?.length ? { ...next, voiceNotes } : next;
       }),
     };
+  }
+
+  /** Admin: every carer voice note on the visit, grouped by the record it belongs to. */
+  async getVisitVoiceNotes(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true, metadata: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const jobMeta = this.parseJobMetadata(job.metadata);
+    const employeeAppMeta =
+      jobMeta.employeeApp && typeof jobMeta.employeeApp === 'object' && !Array.isArray(jobMeta.employeeApp)
+        ? (jobMeta.employeeApp as Record<string, unknown>)
+        : null;
+    return { jobId, groups: await this.resolveJobVoiceNotes(jobId, employeeAppMeta) };
+  }
+
+  /**
+   * Resolves the voice notes on a visit to the records they belong to:
+   * - notes / handover / concerns point at theirs on their own entry (`voiceNoteIds`);
+   * - every other record via `voiceNoteLinks`: the save's idempotency key finds the server
+   *   record in the job's idempotency cache (observation / MAR event / body map record ids),
+   *   else the record's own timeline source (task key, incident id, clock in/out …).
+   * Only uploaded, current voice notes are returned (recording order).
+   */
+  private async resolveJobVoiceNotes(
+    jobId: string,
+    employeeAppMeta: Record<string, unknown> | null,
+  ): Promise<VisitVoiceNoteGroupApi[]> {
+    const logPointers = voiceNoteIdsByLogEntryId(employeeAppMeta);
+    // Latest link per record — older saves of the same task / incident are superseded.
+    const latestLinks = new Map<string, StoredVoiceNoteLink>();
+    for (const link of parseVoiceNoteLinks(employeeAppMeta)) {
+      const recordKey = `${link.entryType}:${link.entryId}`;
+      const prev = latestLinks.get(recordKey);
+      if (!prev || prev.updatedAt < link.updatedAt) latestLinks.set(recordKey, link);
+    }
+    const links = [...latestLinks.values()].filter((l) => l.voiceNoteIds.length > 0);
+    const allIds = [...new Set([...[...logPointers.values()].flat(), ...links.flatMap((l) => l.voiceNoteIds)])];
+    if (allIds.length === 0) return [];
+
+    const [rows, events] = await Promise.all([
+      this.prisma.visitVoiceNote.findMany({
+        where: { scheduledJobId: jobId, clientVoiceNoteId: { in: allIds }, deletedAt: null },
+      }),
+      this.prisma.visitTimelineEvent.findMany({
+        where: { scheduledJobId: jobId, isDraft: false },
+        select: { id: true, sourceType: true, sourceId: true, logEntryId: true },
+      }),
+    ]);
+    const byClientId = new Map(rows.map((r) => [r.clientVoiceNoteId, r]));
+    const toItems = (ids: string[]): VisitVoiceNoteApiItem[] =>
+      ids.flatMap((clientId) => {
+        const row = byClientId.get(clientId);
+        if (!row) return []; // not uploaded yet (carer offline)
+        return [
+          {
+            id: row.id,
+            clientVoiceNoteId: row.clientVoiceNoteId,
+            durationMs: row.durationMs,
+            mimeType: row.mimeType,
+            sizeBytes: row.fileSize,
+            recordedAt: row.recordedAt?.toISOString() ?? null,
+            downloadUrl: `/scheduled-jobs-housekeeping/jobs/${jobId}/voice-notes/${row.id}/file`,
+          },
+        ];
+      });
+    // Save responses cached by idempotency key — they carry the server record ids.
+    const savedResponses =
+      employeeAppMeta?.idempotency &&
+      typeof employeeAppMeta.idempotency === 'object' &&
+      !Array.isArray(employeeAppMeta.idempotency)
+        ? (employeeAppMeta.idempotency as Record<string, unknown>)
+        : {};
+    const sourceFromSave = (link: StoredVoiceNoteLink) => {
+      const response = link.writeIdempotencyKey ? savedResponses[link.writeIdempotencyKey] : null;
+      if (!response || typeof response !== 'object') return null;
+      const r = response as Record<string, unknown>;
+      const id = (key: string) => (typeof r[key] === 'string' && r[key] ? (r[key] as string) : null);
+      switch (link.entryType) {
+        case 'observation':
+          return id('observationId') ? { sourceType: 'observation', sourceId: id('observationId')! } : null;
+        case 'medication':
+          return id('administrationId')
+            ? { sourceType: 'medication', sourceId: id('administrationId')! }
+            : null;
+        case 'body_map':
+          return id('recordId') ? { sourceType: 'body_map', sourceId: id('recordId')! } : null;
+        default:
+          return null;
+      }
+    };
+    const eventBySource = new Map(events.map((e) => [`${e.sourceType}:${e.sourceId}`, e]));
+    const eventByLogEntry = new Map(
+      events.filter((e) => e.logEntryId).map((e) => [e.logEntryId as string, e]),
+    );
+    const incidents = Array.isArray(employeeAppMeta?.incidents)
+      ? (employeeAppMeta.incidents as Array<Record<string, unknown>>)
+      : [];
+    const registerIncidentIdByEntry = new Map(
+      incidents
+        .filter((i) => typeof i.registerIncidentId === 'string')
+        .map((i) => [String(i.id), String(i.registerIncidentId)]),
+    );
+
+    const groups: VisitVoiceNoteGroupApi[] = [];
+    for (const [logEntryId, ids] of logPointers) {
+      const voiceNotes = toItems(ids);
+      if (!voiceNotes.length) continue;
+      const event = eventByLogEntry.get(logEntryId);
+      groups.push({
+        entryType: event?.sourceType === 'handover' ? 'handover' : event?.sourceType === 'concern' ? 'concern' : 'visit_note',
+        label: '',
+        entryId: logEntryId,
+        timelineEventId: event?.id ?? null,
+        sourceType: event?.sourceType ?? null,
+        sourceId: event?.sourceId ?? null,
+        registerIncidentId: null,
+        voiceNotes,
+      });
+    }
+    for (const link of links) {
+      const voiceNotes = toItems(link.voiceNoteIds);
+      if (!voiceNotes.length) continue;
+      const source = sourceFromSave(link) ?? timelineSourceForLink(link);
+      const event = source ? eventBySource.get(`${source.sourceType}:${source.sourceId}`) : undefined;
+      groups.push({
+        entryType: link.entryType,
+        label: '',
+        entryId: link.entryId,
+        timelineEventId: event?.id ?? null,
+        // The server record id even when it has no timeline row yet.
+        sourceType: event?.sourceType ?? source?.sourceType ?? null,
+        sourceId: event?.sourceId ?? source?.sourceId ?? null,
+        registerIncidentId:
+          link.entryType === 'incident' ? (registerIncidentIdByEntry.get(link.entryId) ?? null) : null,
+        voiceNotes,
+      });
+    }
+    return groups.map((g) => ({
+      ...g,
+      label:
+        VISIT_VOICE_NOTE_ENTRY_LABELS[g.entryType as keyof typeof VISIT_VOICE_NOTE_ENTRY_LABELS] ??
+        'Voice note',
+    }));
+  }
+
+  /** Permission + org-scope checked voice note file for streaming playback. */
+  async getVoiceNoteFile(user: RequestUser, jobId: string, voiceNoteId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    const row = await this.prisma.visitVoiceNote.findFirst({
+      where: { id: voiceNoteId, scheduledJobId: jobId, deletedAt: null },
+    });
+    if (!row) throw new NotFoundException('Voice note not found');
+    const absolutePath = resolveVoiceNoteAbsolutePath(row.storagePath);
+    if (!absolutePath || !existsSync(absolutePath)) {
+      throw new NotFoundException('Voice note file is no longer available');
+    }
+    return { absolutePath, mimeType: row.mimeType, fileName: row.fileName };
   }
 
   /**
@@ -2128,6 +2325,33 @@ export class ScheduledJobsHousekeepingService {
     };
   }
 
+  /**
+   * Planned tasks placed on this visit: each task goes to the one visit of the client's day
+   * that covers its due time, else the nearest visit (flagged). Also returns the visit window.
+   */
+  private async resolveJobTaskPlacement(job: {
+    id: string;
+    serviceUserId: string;
+    scheduledStartDateTime: Date;
+    scheduledEndDateTime: Date | null;
+    visits: Array<{ scheduledStartDateTime: Date; scheduledEndDateTime: Date | null }>;
+  }) {
+    const visit = job.visits[0];
+    const start = visit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
+    const end = visit?.scheduledEndDateTime ?? job.scheduledEndDateTime ?? null;
+    const timeZone = await loadOperationalTimeZone(this.prisma);
+    const { byJob } = await loadVisitTaskPlacement(
+      this.prisma,
+      [{ id: job.id, serviceUserId: job.serviceUserId, start, end }],
+      timeZone,
+    );
+    const placements = byJob.get(job.id) ?? [];
+    return {
+      window: visitHmWindow(start, end, timeZone),
+      placementById: new Map(placements.map((p) => [p.assignmentId, p])),
+    };
+  }
+
   async getVisitJobTasks(actor: RequestUser | string, jobId: string, meta?: RequestAuditMeta) {
     void meta;
     const userId = this.actorUserId(actor);
@@ -2139,22 +2363,14 @@ export class ScheduledJobsHousekeepingService {
     if (!job) throw new NotFoundException('Scheduled job not found');
 
     const medicationRoundCode = resolveJobMedicationRoundCode(job.visits);
-    if (!medicationRoundCode) {
-      return {
-        data: {
-          medicationRoundCode: null,
-          roundLabel: null,
-          windowStart: null,
-          windowEnd: null,
-          tasks: [],
-        },
-      };
-    }
+    const { window: taskWindow, placementById } = await this.resolveJobTaskPlacement(job);
 
-    const round = await this.prisma.medicationAdministrationRound.findFirst({
-      where: { code: medicationRoundCode, deletedAt: null, isActive: true },
-      select: { name: true, code: true, windowStart: true, windowEnd: true },
-    });
+    const round = medicationRoundCode
+      ? await this.prisma.medicationAdministrationRound.findFirst({
+          where: { code: medicationRoundCode, deletedAt: null, isActive: true },
+          select: { name: true, code: true, windowStart: true, windowEnd: true },
+        })
+      : null;
 
     // Ensure carers see Medication prompt even if planner was never opened.
     await syncEmarMedicationPromptsForServiceUser(
@@ -2163,11 +2379,10 @@ export class ScheduledJobsHousekeepingService {
       userId || null,
     );
 
-    const [assignments, completions] = await Promise.all([
+    const [allAssignments, completions] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
         where: {
           serviceUserId: job.serviceUserId,
-          medicationRoundCode,
           deletedAt: null,
           isActive: true,
         },
@@ -2204,6 +2419,11 @@ export class ScheduledJobsHousekeepingService {
     }
     const adHocCompletions = completions.filter((row) => !row.assignmentId);
 
+    // Tasks attach by clock time (covering visit, else nearest); keep any already recorded here.
+    const assignments = allAssignments.filter(
+      (a) => placementById.has(a.id) || completionByAssignment.has(a.id),
+    );
+
     const visitDay = utcDayBounds(job.scheduledStartDateTime.toISOString().slice(0, 10)).start;
     const dueAssignments = assignments.filter((assignment) => {
       // Keep tasks already interacted with on this visit even if schedule was changed later.
@@ -2225,7 +2445,22 @@ export class ScheduledJobsHousekeepingService {
       };
     };
 
-    const plannedTasks = dueAssignments.map((assignment) => {
+    // Placement carries the time used for this visit (the dose time for the eMAR prompt);
+    // fall back to the planner time only for tasks kept because they were already recorded here.
+    const dueTimeOf = (assignment: (typeof dueAssignments)[number]) => {
+      const placed = placementById.get(assignment.id);
+      if (placed) return placed.dueTime;
+      if (isEmarMedicationPromptTask({ name: assignment.task.name, flagsJson: assignment.task.flagsJson })) {
+        return null;
+      }
+      return assignment.dueTime ?? null;
+    };
+    // Same order a carer works through the visit: by due time, then planner order.
+    const orderedAssignments = [...dueAssignments].sort((a, b) =>
+      (dueTimeOf(a) ?? '99:99').localeCompare(dueTimeOf(b) ?? '99:99'),
+    );
+
+    const plannedTasks = orderedAssignments.map((assignment) => {
       const completion = completionByAssignment.get(assignment.id);
       const flagsJson =
         assignment.task.flagsJson && typeof assignment.task.flagsJson === 'object'
@@ -2256,6 +2491,11 @@ export class ScheduledJobsHousekeepingService {
         carerInstructions: assignment.carerInstructions,
         bodyMapRequired: Boolean(assignment.bodyMapRequired),
         priority,
+        dueTime: dueTimeOf(assignment),
+        /** No visit covers the due time — task moved to this (nearest) visit of the day. */
+        placedAtNearestVisit: Boolean(placementById.get(assignment.id)?.nearest),
+        /** This visit was cancelled / called off — the task stays here as not done (not moved). */
+        visitCancelled: isCancelledJobStatus(job.status) && !completion?.isCompleted,
         isRequired: !['optional', 'low', 'nice_to_have'].includes(String(priority).toLowerCase()),
         flagsJson,
         isEmarPrompt: isEmarMedicationPromptTask({
@@ -2343,9 +2583,12 @@ export class ScheduledJobsHousekeepingService {
     return {
       data: {
         medicationRoundCode,
+        /** Cancelled / called-off visit: its tasks are listed as not done, not moved elsewhere. */
+        visitCancelled: isCancelledJobStatus(job.status),
         roundLabel: round?.name ?? medicationRoundCode,
-        windowStart: round?.windowStart ?? null,
-        windowEnd: round?.windowEnd ?? null,
+        // Tasks are picked by the visit's own clock window (same as medicines).
+        windowStart: taskWindow?.startHm ?? round?.windowStart ?? null,
+        windowEnd: taskWindow?.endHm ?? round?.windowEnd ?? null,
         tasks: [...plannedTasks, ...extraTasks],
       },
     };
@@ -2368,9 +2611,6 @@ export class ScheduledJobsHousekeepingService {
     if (!job) throw new NotFoundException('Scheduled job not found');
 
     const medicationRoundCode = resolveJobMedicationRoundCode(job.visits);
-    if (!medicationRoundCode) {
-      throw new BadRequestException('This visit is not linked to a medication administration round');
-    }
 
     const plannedItems = dto.tasks.filter((task) => !task.isExtra && task.assignmentId);
     const extraItems = dto.tasks.filter((task) => task.isExtra && task.taskCatalogueTaskId);
@@ -2393,7 +2633,6 @@ export class ScheduledJobsHousekeepingService {
             where: {
               id: { in: assignmentIds },
               serviceUserId: job.serviceUserId,
-              medicationRoundCode,
               deletedAt: null,
               isActive: true,
             },
@@ -2408,6 +2647,23 @@ export class ScheduledJobsHousekeepingService {
         : [];
     if (assignments.length !== assignmentIds.length) {
       throw new BadRequestException('One or more visit tasks are invalid for this job');
+    }
+    if (assignments.length > 0) {
+      // A planned task belongs to this visit when its due time is in the visit window
+      // (or it was already recorded on this visit before a time change).
+      const { placementById } = await this.resolveJobTaskPlacement(job);
+      const recorded = new Set(
+        (
+          await this.prisma.scheduledVisitTaskCompletion.findMany({
+            where: { scheduledJobId: job.id, assignmentId: { in: assignmentIds } },
+            select: { assignmentId: true },
+          })
+        ).map((row) => row.assignmentId),
+      );
+      const outside = assignments.filter((a) => !recorded.has(a.id) && !placementById.has(a.id));
+      if (outside.length > 0) {
+        throw new BadRequestException('One or more visit tasks are not due in this visit time');
+      }
     }
 
     const extraTaskIds = [...new Set(extraItems.map((task) => task.taskCatalogueTaskId!))];
@@ -2425,7 +2681,7 @@ export class ScheduledJobsHousekeepingService {
     const plannedAssignmentIds = new Set(assignments.map((row) => row.taskCatalogueTaskId));
     for (const taskId of extraTaskIds) {
       if (plannedAssignmentIds.has(taskId)) {
-        throw new BadRequestException('Extra task is already planned for this visit round');
+        throw new BadRequestException('Extra task is already planned for this visit');
       }
     }
 
@@ -2558,7 +2814,7 @@ export class ScheduledJobsHousekeepingService {
             scheduledJobId: job.id,
             assignmentId: assignment.id,
             taskCatalogueTaskId: assignment.taskCatalogueTaskId,
-            medicationRoundCode,
+            medicationRoundCode: medicationRoundCode ?? assignment.medicationRoundCode,
             isAdHoc: false,
             isCompleted: item.isCompleted,
             recordedValue: item.recordedValue?.trim() ?? null,
@@ -2600,7 +2856,7 @@ export class ScheduledJobsHousekeepingService {
               scheduledJobId: job.id,
               assignmentId: null,
               taskCatalogueTaskId: task.id,
-              medicationRoundCode,
+              medicationRoundCode: medicationRoundCode ?? AD_HOC_TASK_ROUND_CODE,
               isAdHoc: true,
               isCompleted: true,
               recordedValue: item.recordedValue?.trim() ?? null,

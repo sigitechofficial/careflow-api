@@ -39,6 +39,11 @@ import {
   LinkRelatedIncidentDto,
   UpdateRelatedCareRecordDto,
 } from './dto/incident-care.dto';
+import {
+  CreateIncidentExternalBodyDto,
+  RemoveIncidentExternalBodyDto,
+  UpdateIncidentExternalBodyDto,
+} from './dto/incident-external-body.dto';
 
 @ApiTags('Incidents — Care integration')
 @ApiBearerAuth()
@@ -89,6 +94,45 @@ export class IncidentCareController {
     @Req() req: Request,
   ) {
     return this.service.deleteInjury(user, injuryId, dto, getRequestAuditMeta(req));
+  }
+
+  // External bodies (LA safeguarding, police, CQC…) involved alongside the investigation
+  @Post(':id/external-bodies')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Record an external body involved (referral, reference, role, status)' })
+  addExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.addExternalBody(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch(':id/external-bodies/:bodyId')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Update an external body (status, outcome, contact…)' })
+  updateExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('bodyId', ParseUUIDPipe) bodyId: string,
+    @Body() dto: UpdateIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateExternalBody(user, id, bodyId, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete(':id/external-bodies/:bodyId')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Remove an external body added by mistake (reason required, audited)' })
+  deleteExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('bodyId', ParseUUIDPipe) bodyId: string,
+    @Body() dto: RemoveIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteExternalBody(user, id, bodyId, dto.reason, getRequestAuditMeta(req));
   }
 
   // Witnesses

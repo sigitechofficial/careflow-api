@@ -1,3 +1,4 @@
+import type { VisitVoiceNoteApiItem } from './visit-voice-note.util';
 /** Visit timeline event types persisted for employee-app details → data.log.timeline */
 export type VisitTimelineEventType =
   | 'clock_in'
@@ -70,4 +71,6 @@ export type VisitTimelineApiItem = {
   at: string;
   timeLabel: string;
   photos?: Array<{ id: string; fileUrl: string; caption: string | null }>;
+  /** Carer voice notes (max 3, recording order) on a note / handover / concern. */
+  voiceNotes?: VisitVoiceNoteApiItem[];
 };

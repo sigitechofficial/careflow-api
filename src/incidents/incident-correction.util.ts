@@ -15,6 +15,8 @@ export type CorrectableIncidentState = {
   involvedServiceUserIds: string[];
   involvedEmployeeIds: string[];
   locationId: string | null;
+  locationKey: string | null;
+  locationDetail: string | null;
   scheduledJobId: string | null;
   categoryDetails: Record<string, unknown> | null;
   ambulanceAttended: boolean | null;
@@ -40,6 +42,8 @@ export const CORRECTION_FIELD_LABELS: Record<CorrectableFieldKey, string> = {
   involvedServiceUserIds: 'Service users involved',
   involvedEmployeeIds: 'Staff involved',
   locationId: 'Branch',
+  locationKey: 'Where it happened',
+  locationDetail: 'Where it happened (details)',
   scheduledJobId: 'Visit',
   categoryDetails: 'Category details',
   ambulanceAttended: 'Ambulance attended',

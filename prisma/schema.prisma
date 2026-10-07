@@ -2696,6 +2696,9 @@ model ServiceUser {
   fundingTypeId           String?   @db.Uuid
   riskLevelId             String?   @db.Uuid
   profilePhotoUrl         String?
+  /// Tasks Planner: a task no visit covers moves to the nearest visit only when that visit is
+  /// within this many minutes of the task's due time. Default 60. Null = no limit.
+  taskNearestVisitGraceMinutes Int?      @default(60)
   nhsNumber               String?
   socialServicesRef       String?
   nationalInsuranceNumber String?
@@ -2884,6 +2887,7 @@ model BodyMapRecord {
   auditLogs          BodyMapAuditLog[]
   safeguardingCheck  BodyMapSafeguardingCheck?
   photos             BodyMapPhoto[]
+  videos             BodyMapVideo[]
   woundAssessment    BodyMapWoundAssessment?
   pressureAssessment BodyMapPressureAssessment?
   medicationSite     BodyMapMedicationSite?
@@ -2940,6 +2944,36 @@ model BodyMapPhoto {
   bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
   uploadedBy    User?         @relation("BodyMapPhotoUploadedBy", fields: [uploadedById], references: [id])
 
+  @@index([bodyMapRecordId])
+  @@schema("service_users")
+}
+
+/// Carer-app video attached to a new body map record (max 1 per record).
+/// Files live in private storage — never under the public /uploads mount.
+model BodyMapVideo {
+  id                   String    @id @default(uuid()) @db.Uuid
+  bodyMapRecordId      String    @db.Uuid
+  scheduledJobId       String?   @db.Uuid
+  /// Carer-app generated id (idempotent retries).
+  clientVideoId        String    @db.VarChar(128)
+  fileName             String    @db.VarChar(255)
+  /// Gallery file name, or the camera default (VID_yyyyMMdd_HHmmss.mp4).
+  originalName         String?   @db.VarChar(255)
+  /// Relative to the API working directory (private storage root).
+  storagePath          String    @db.VarChar(512)
+  thumbnailPath        String?   @db.VarChar(512)
+  mimeType             String    @db.VarChar(100)
+  fileSize             Int
+  durationMs           Int?
+  /// camera | gallery
+  source               String?   @db.VarChar(16)
+  uploadedByEmployeeId String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime?
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([bodyMapRecordId, clientVideoId])
   @@index([bodyMapRecordId])
   @@schema("service_users")
 }
@@ -4789,6 +4823,9 @@ model ServiceUserVisitTaskAssignment {
   id                    String                     @id @default(uuid()) @db.Uuid
   serviceUserId         String                     @db.Uuid
   medicationRoundCode   String
+  /// Clock time (HH:mm, org TZ) the task is due. The task shows on the visit whose window
+  /// contains this time — same rule as MedicationSchedule.dueTime. Null → round time.
+  dueTime               String?                    @db.VarChar(5)
   taskCatalogueTaskId   String                     @db.Uuid
   sortOrder             Int                        @default(0)
   carerInstructions     String?                    @db.Text
@@ -6510,6 +6547,7 @@ model ScheduledJob {
   visitCheckInMethodGrants VisitCheckInMethodGrant[]
   visitPushReceipts        CarerVisitPushReceipt[]
   timelineEvents           VisitTimelineEvent[]
+  voiceNotes               VisitVoiceNote[]
   careConsents             VisitCareConsent[]
 
   @@index([scheduleBatchId])
@@ -6586,6 +6624,39 @@ model VisitTimelineEvent {
   @@unique([scheduledJobId, sourceType, sourceId, eventType])
   @@index([scheduledJobId, occurredAt])
   @@index([scheduledJobId, isDraft])
+  @@schema("scheduling")
+}
+
+/// Carer voice note (audio) attached to a visit log entry (visit note / handover / concern).
+/// Files live in private storage (never the public /uploads static path) and are served
+/// only through permission-checked endpoints. One active voice note per log entry —
+/// the entry's `voiceNoteId` in ScheduledJob.metadata.employeeApp decides which one shows.
+model VisitVoiceNote {
+  id                   String    @id @default(uuid()) @db.Uuid
+  scheduledJobId       String    @db.Uuid
+  /// Carer-app log entry id (clientEntryId) the recording belongs to.
+  logEntryId           String    @db.VarChar(128)
+  /// visit_note | handover | concern
+  entryType            String    @db.VarChar(32)
+  /// Carer-app generated id; the log entry references it as `voiceNoteId`.
+  clientVoiceNoteId    String    @db.VarChar(128)
+  fileName             String    @db.VarChar(255)
+  originalName         String?   @db.VarChar(255)
+  /// Relative to the API working directory (private storage root).
+  storagePath          String    @db.VarChar(512)
+  mimeType             String    @db.VarChar(100)
+  fileSize             Int
+  durationMs           Int?
+  recordedAt           DateTime?
+  uploadedByEmployeeId String?   @db.Uuid
+  idempotencyKey       String    @unique @db.VarChar(128)
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime?
+
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledJobId, clientVoiceNoteId])
+  @@index([scheduledJobId, logEntryId])
   @@schema("scheduling")
 }
 
@@ -10837,6 +10908,10 @@ model Incident {
   /// Reference to lookups.Location (validated in service layer, no cross-schema FK).
   locationId   String? @db.Uuid
   specificArea String?
+  /// Where it happened (office raise form dropdown), e.g. HOME_BATHROOM — see INCIDENT_LOCATION_KEYS.
+  locationKey    String? @db.VarChar(40)
+  /// Free text when locationKey is OTHER. (specificArea holds the carer app's own wording.)
+  locationDetail String? @db.VarChar(200)
 
   /// Reporter (a platform user); optionally the employee they map to.
   reportedById       String? @db.Uuid
@@ -10922,6 +10997,7 @@ model Incident {
   outcome         IncidentOutcome?
   actions         IncidentAction[]
   carerSuspensions IncidentCarerSuspension[]
+  externalBodies        IncidentExternalBody[]
   courseRecommendations IncidentCarerCourseRecommendation[]
   injuries        IncidentInjury[]
   witnesses       IncidentWitness[]
@@ -10930,6 +11006,8 @@ model Incident {
   relatedFrom        IncidentRelatedIncident[]   @relation("IncidentRelSource")
   relatedTo          IncidentRelatedIncident[]   @relation("IncidentRelTarget")
   corrections        IncidentCorrection[]
+  reviewCycles          IncidentReviewCycle[]
+  investigationPauses   IncidentInvestigationPause[]
   clarifications     IncidentClarificationNote[]
 
   @@index([status])
@@ -11070,9 +11148,18 @@ model IncidentReview {
   furtherMedicalAttention      Boolean?
   externalNotificationRequired Boolean?
   escalationRequired           Boolean?
+  /// Is anyone at immediate or ongoing risk? Yes needs protectiveAction.
+  immediateRisk                Boolean?
+  protectiveAction             String?           @db.Text
   managementNotes              String?           @db.Text
   reviewedById                 String?           @db.Uuid
   reviewedAt                   DateTime?
+  /// Review decision: INVESTIGATE / NO_INVESTIGATION (null = not decided yet).
+  decision                     String?           @db.VarChar(30)
+  decisionReason               String?           @db.Text
+  decidedAt                    DateTime?
+  /// 1 for the first review; each reopen archives the review and starts the next number.
+  cycleNumber                  Int               @default(1)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11086,6 +11173,56 @@ model IncidentReview {
 
 /// Structured investigation — one per incident (upserted). Contributing factors
 /// are stored as codes (multi-select) alongside the narrative fields.
+/// A finished review cycle, archived when the incident is reopened. Never changed afterwards.
+model IncidentReviewCycle {
+  id                           String            @id @default(uuid()) @db.Uuid
+  incidentId                   String            @db.Uuid
+  cycleNumber                  Int
+  confirmedSeverity            IncidentSeverity?
+  investigationRequired        Boolean?
+  safeguardingConcern          Boolean?
+  possibleAbuseOrNeglect       Boolean?
+  furtherMedicalAttention      Boolean?
+  externalNotificationRequired Boolean?
+  escalationRequired           Boolean?
+  immediateRisk                Boolean?
+  protectiveAction             String?           @db.Text
+  managementNotes              String?           @db.Text
+  decision                     String?           @db.VarChar(30)
+  decisionReason               String?           @db.Text
+  decidedAt                    DateTime?
+  reviewedById                 String?           @db.Uuid
+  reviewedAt                   DateTime?
+  lastUpdatedById              String?           @db.Uuid
+  lastUpdatedAt                DateTime?
+  /// When the incident was reopened (and this cycle archived), by whom and why.
+  archivedAt                   DateTime          @default(now())
+  archivedById                 String?           @db.Uuid
+  reopenReason                 String?           @db.Text
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, cycleNumber])
+  @@schema("incidents")
+}
+
+/// One pause of an investigation (kept after it is resumed).
+model IncidentInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  incidentId     String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, pausedAt])
+  @@schema("incidents")
+}
+
 model IncidentInvestigation {
   id                  String                  @id @default(uuid()) @db.Uuid
   incidentId          String                  @unique @db.Uuid
@@ -11103,6 +11240,26 @@ model IncidentInvestigation {
   preventable         IncidentPreventability?
   conclusion          String?                 @db.Text
   completedAt         DateTime?
+  /// Set-up: STANDARD / ENHANCED / COMPREHENSIVE (needed to complete).
+  investigationLevel         String?                            @db.VarChar(20)
+  /// Staff member (Employee) leading the investigation (separate from the incident owner).
+  leadInvestigatorEmployeeId String?                            @db.Uuid
+  /// Was the lead investigator directly involved in the incident? NO / YES / NOT_KNOWN.
+  investigatorInvolved       String?                            @db.VarChar(20)
+  /// Why the investigator is still appropriate when involved = YES.
+  investigatorInvolvedReason String?                            @db.Text
+  targetDate                 DateTime?                          @db.Date
+  termsOfReference           String?                            @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the incident status).
+  investigationStatus        String                             @default("IN_PROGRESS") @db.VarChar(20)
+  /// Evidence: which kinds of records were reviewed (CARE_PLAN, MAR, ROTA…).
+  recordsReviewed            String[]
+  /// Per reviewed kind: linked records ({ id, label } as at save time) and a note.
+  recordsReviewedDetails     Json?
+  /// What was noticed while reviewing records (not the findings).
+  evidenceNotes              String?                            @db.Text
+  /// Evidence still awaited or unavailable (a note only).
+  outstandingEvidence        String?                            @db.Text
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11114,7 +11271,7 @@ model IncidentInvestigation {
   @@schema("incidents")
 }
 
-/// One carer suspension recorded against an incident after investigation.
+/// Interim suspension of a carer during an incident investigation (kept after it is lifted).
 model IncidentCarerSuspension {
   id          String   @id @default(uuid()) @db.Uuid
   incidentId  String   @db.Uuid
@@ -11124,6 +11281,15 @@ model IncidentCarerSuspension {
   suspendFrom DateTime @db.Date
   suspendTo   DateTime @db.Date
   suspendedAt DateTime @default(now())
+  /// SCHEDULED (starts on suspendFrom) / ACTIVE / LIFTED. "Review due" = ACTIVE past suspendTo.
+  status         String    @default("ACTIVE") @db.VarChar(20)
+  liftedAt       DateTime?
+  liftedById     String?   @db.Uuid
+  liftReason     String?   @db.Text
+  /// Decision at Outcome & close: the suspension continues after the incident (e.g. HR process).
+  continuedAt    DateTime?
+  continuedById  String?   @db.Uuid
+  continueReason String?   @db.Text
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -11133,10 +11299,52 @@ model IncidentCarerSuspension {
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
-  @@unique([incidentId, employeeId])
+  /// A carer can be suspended again after a lift (one open suspension at a time, checked in code).
+  @@index([incidentId, employeeId])
   @@index([incidentId])
   @@index([employeeId])
   @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// An outside body involved alongside the internal investigation — local authority safeguarding
+/// (Section 42), police, CQC, HSE, coroner, commissioner, etc. Several can be involved at once.
+/// REFERRED / IN_PROGRESS are open; closing the incident while one is open needs an audited reason.
+model IncidentExternalBody {
+  id               String    @id @default(uuid()) @db.Uuid
+  incidentId       String    @db.Uuid
+  /// LOCAL_AUTHORITY_SAFEGUARDING / POLICE / CQC / HSE / CORONER / COMMISSIONER / OTHER
+  bodyType         String    @db.VarChar(40)
+  /// e.g. "Leeds City Council", "West Yorkshire Police" (required for OTHER).
+  organisationName String?   @db.VarChar(200)
+  referredOn       DateTime  @db.Date
+  /// Their reference (crime reference, safeguarding case number…).
+  referenceNumber  String?   @db.VarChar(100)
+  contactName      String?   @db.VarChar(200)
+  contactPhone     String?   @db.VarChar(50)
+  contactEmail     String?   @db.VarChar(200)
+  /// Who leads: LEAD (they lead, we support) / SUPPORTING (joint) / INFORMED (information only).
+  role             String    @db.VarChar(20)
+  /// REFERRED / IN_PROGRESS / CONCLUDED / NO_FURTHER_ACTION
+  status           String    @default("REFERRED") @db.VarChar(30)
+  /// Their outcome — required once CONCLUDED or NO_FURTHER_ACTION.
+  outcome          String?   @db.Text
+  outcomeDate      DateTime? @db.Date
+  /// What we gave them (records, statements…) and when.
+  informationProvided String? @db.Text
+  /// What we got from them (updates, findings, instructions such as "pause your investigation").
+  informationReceived String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([status])
   @@schema("incidents")
 }
 
@@ -11207,6 +11415,18 @@ model IncidentAction {
   completionNotes String?   @db.Text
   completedById   String?   @db.Uuid
   completedAt     DateTime?
+  /// What kind of measure (CARE_PLAN_UPDATE, COURSE…); null for measures added before types.
+  measureType            String?   @db.VarChar(40)
+  /// Records the measure relates to ({ id, label } as at save time) — not copies of the records.
+  linkedRecords          Json?
+  /// Investigation findings it addresses: ROOT_CAUSE and/or contributing factor codes.
+  addresses              String[]
+  /// COURSE measures: the course recommendation (learning assignment) created with it.
+  courseRecommendationId String?   @db.Uuid
+  /// Care plan / risk assessment / policy measures: a new record is needed (none to update yet).
+  newRecordNeeded        Boolean   @default(false)
+  /// Set on completion: the record(s) actually updated or added ({ id, label } as at completion).
+  completedRecords       Json?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -11416,6 +11636,12 @@ model IncidentOutcome {
   serviceUserInformed        Boolean?
   nokInformed                Boolean?
   finalManagementComments    String?                 @db.Text
+  /// Who the outcome was shared with: one row per person (shared on/how, or why not).
+  outcomeSharing             Json?
+  /// How the learning reached the team (replaces the old Yes/No).
+  learningSharedOn           DateTime?               @db.Date
+  learningSharedMethod       String?                 @db.VarChar(30)
+  learningSharedNote         String?                 @db.Text
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BodyMapController } from './body-map.controller';
 import { BodyMapService } from './body-map.service';
+import { BodyMapVideoFileController } from './body-map-video-file.controller';
 import { BodyMapMedicationSiteService } from './body-map-medication-site.service';
 import { BodyMapAlertsService } from './body-map-alerts.service';
 import { ServiceUserBodyMapController } from './service-user-body-map.controller';
@@ -14,6 +15,7 @@ import { ServiceUserMedicationBodyMapController } from './service-user-medicatio
     BodyMapController,
     ServiceUserBodyMapController,
     ServiceUserMedicationBodyMapController,
+    BodyMapVideoFileController,
   ],
   providers: [BodyMapService, BodyMapMedicationSiteService, BodyMapAlertsService],
   exports: [BodyMapService, BodyMapMedicationSiteService, BodyMapAlertsService],

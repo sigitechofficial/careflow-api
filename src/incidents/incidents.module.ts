@@ -12,6 +12,7 @@ import { IncidentsService } from './incidents.service';
 import { IncidentCareController } from './incident-care.controller';
 import { IncidentCareService } from './incident-care.service';
 import { IncidentAnalyticsService } from './incident-analytics.service';
+import { IncidentSuspensionStartJob } from './incident-suspension-start.job';
 
 @Module({
   imports: [
@@ -25,7 +26,12 @@ import { IncidentAnalyticsService } from './incident-analytics.service';
     OrganisationGeneralSettingsModule,
   ],
   controllers: [IncidentsController, IncidentCareController],
-  providers: [IncidentsService, IncidentCareService, IncidentAnalyticsService],
+  providers: [
+    IncidentsService,
+    IncidentCareService,
+    IncidentAnalyticsService,
+    IncidentSuspensionStartJob,
+  ],
   exports: [IncidentsService],
 })
 export class IncidentsModule {}

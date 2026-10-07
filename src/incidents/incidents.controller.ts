@@ -31,6 +31,7 @@ import {
   ChangeIncidentStatusDto,
 } from './dto/incident-workflow.dto';
 import {
+  PauseIncidentInvestigationDto,
   UpsertIncidentInvestigationDto,
   UpsertIncidentReviewDto,
 } from './dto/incident-review.dto';
@@ -38,14 +39,18 @@ import {
   CompleteIncidentActionDto,
   CreateIncidentActionDto,
   UpdateIncidentActionDto,
+  RemoveIncidentActionDto,
 } from './dto/incident-action.dto';
 import { UpsertIncidentOutcomeDto } from './dto/incident-outcome.dto';
 import {
   AddIncidentClarificationDto,
   CorrectIncidentDto,
 } from './dto/incident-correction.dto';
-import { SuspendIncidentCarerDto } from './dto/suspend-incident-carer.dto';
-import { RecommendIncidentCarerCourseDto } from './dto/recommend-incident-carer-course.dto';
+import {
+  ExtendIncidentCarerSuspensionDto,
+  LiftIncidentCarerSuspensionDto,
+  SuspendIncidentCarerDto,
+} from './dto/suspend-incident-carer.dto';
 import { IncidentAnalyticsService } from './incident-analytics.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
 
@@ -251,10 +256,43 @@ export class IncidentsController {
     );
   }
 
+  @Get(':id/investigators')
+  @Permissions('incidents.investigate')
+  @ApiOperation({
+    summary: 'Users who can lead this investigation (can investigate and can see this incident)',
+  })
+  investigators(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.eligibleInvestigators(user, id);
+  }
+
+  @Post(':id/investigation/pause')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Pause the investigation (reason and next review date)' })
+  pauseInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PauseIncidentInvestigationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.pauseInvestigation(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/investigation/resume')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Resume a paused investigation' })
+  resumeInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.resumeInvestigation(user, id, getRequestAuditMeta(req));
+  }
+
   @Post(':id/suspend-carer')
   @Permissions('incidents.investigate')
   @ApiOperation({
-    summary: 'Suspend a carer after investigation (deactivates employee)',
+    summary:
+      'Interim suspension of a carer during the investigation (starts today or on a later start date)',
   })
   suspendCarer(
     @CurrentUser() user: RequestUser,
@@ -265,61 +303,58 @@ export class IncidentsController {
     return this.service.suspendCarer(user, id, dto, getRequestAuditMeta(req));
   }
 
-  @Post(':id/carer-suspensions/:suspensionId/remove')
+  @Post(':id/carer-suspensions/:suspensionId/lift')
   @Permissions('incidents.investigate')
   @ApiOperation({
-    summary: 'Remove a carer suspension and reactivate when no other suspensions remain',
+    summary: 'Lift a carer suspension (reason required); reactivates when no other suspension remains',
   })
-  removeCarerSuspension(
+  liftCarerSuspension(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('suspensionId', ParseUUIDPipe) suspensionId: string,
+    @Body() dto: LiftIncidentCarerSuspensionDto,
     @Req() req: Request,
   ) {
-    return this.service.removeCarerSuspension(
-      user,
-      id,
-      suspensionId,
-      getRequestAuditMeta(req),
-    );
+    return this.service.liftCarerSuspension(user, id, suspensionId, dto, getRequestAuditMeta(req));
   }
 
-  @Post(':id/recommend-carer-course')
-  @Permissions('incidents.investigate')
+  @Post(':id/carer-suspensions/:suspensionId/continue')
+  @AnyPermission('incidents.investigate', 'incidents.close')
   @ApiOperation({
-    summary: 'Recommend a learning course for a carer after investigation',
+    summary:
+      'Outcome & close: continue a suspension beyond the incident (reason + review / end date)',
   })
-  recommendCarerCourse(
+  continueCarerSuspension(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RecommendIncidentCarerCourseDto,
+    @Param('suspensionId', ParseUUIDPipe) suspensionId: string,
+    @Body() dto: ExtendIncidentCarerSuspensionDto,
     @Req() req: Request,
   ) {
-    return this.service.recommendCarerCourse(
-      user,
-      id,
-      dto,
-      getRequestAuditMeta(req),
-    );
+    return this.service.continueCarerSuspension(user, id, suspensionId, dto, getRequestAuditMeta(req));
   }
 
-  @Post(':id/carer-course-recommendations/:recommendationId/remove')
+  @Get('carer-suspensions/by-employee/:employeeId')
+  @Permissions('incidents.read')
+  @ApiOperation({ summary: "A carer's interim suspension history across incidents" })
+  employeeSuspensions(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+  ) {
+    return this.service.listEmployeeSuspensions(user, employeeId);
+  }
+
+  @Post(':id/carer-suspensions/:suspensionId/extend')
   @Permissions('incidents.investigate')
-  @ApiOperation({
-    summary: 'Remove a carer course recommendation and cancel its assignment',
-  })
-  removeCarerCourseRecommendation(
+  @ApiOperation({ summary: 'Extend a carer suspension to a later end date (reason required)' })
+  extendCarerSuspension(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
-    @Param('recommendationId', ParseUUIDPipe) recommendationId: string,
+    @Param('suspensionId', ParseUUIDPipe) suspensionId: string,
+    @Body() dto: ExtendIncidentCarerSuspensionDto,
     @Req() req: Request,
   ) {
-    return this.service.removeCarerCourseRecommendation(
-      user,
-      id,
-      recommendationId,
-      getRequestAuditMeta(req),
-    );
+    return this.service.extendCarerSuspension(user, id, suspensionId, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/outcome')
@@ -387,5 +422,19 @@ export class IncidentsController {
       dto,
       getRequestAuditMeta(req),
     );
+  }
+
+  @Post('actions/:actionId/remove')
+  @Permissions('incidents.manage_actions')
+  @ApiOperation({
+    summary: 'Remove a corrective measure added by mistake (reason required; kept in the audit log)',
+  })
+  removeAction(
+    @CurrentUser() user: RequestUser,
+    @Param('actionId', ParseUUIDPipe) actionId: string,
+    @Body() dto: RemoveIncidentActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.removeAction(user, actionId, dto, getRequestAuditMeta(req));
   }
 }

@@ -21,6 +21,7 @@ import {
 } from 'class-validator';
 import {
   IMMEDIATE_ACTION_CODES,
+  INCIDENT_LOCATION_KEYS,
   OFFICE_WHO_INFORMED_KEYS,
 } from '../incident-workflow.util';
 
@@ -104,6 +105,19 @@ export class CorrectIncidentDto {
   @ValidateIf((_, v) => v !== null)
   @IsUUID()
   locationId?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, enum: INCIDENT_LOCATION_KEYS, description: 'Where it happened' })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsIn(INCIDENT_LOCATION_KEYS)
+  locationKey?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Where it happened, when locationKey is OTHER' })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(200)
+  locationDetail?: string | null;
 
   @ApiPropertyOptional({ nullable: true, description: 'Visit (scheduled job)' })
   @IsOptional()

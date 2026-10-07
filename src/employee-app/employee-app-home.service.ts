@@ -14,7 +14,6 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { parseScheduleDate } from '../schedules/schedules-date.util';
-import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { buildVisitTaskProgressByJobId } from './visit-task-progress.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import {
@@ -26,6 +25,10 @@ import {
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { carerHomeUiStatus, resolveCarerRole } from './employee-app-multi-carer.util';
+import {
+  loadOperationalTimeZone,
+  loadVisitTaskPlacement,
+} from '../visit-tasks/visit-task-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -448,48 +451,43 @@ export class EmployeeAppHomeService {
       id: string;
       serviceUserId: string;
       scheduledStartDateTime?: Date | null;
+      scheduledEndDateTime?: Date | null;
       visits: Array<{
         visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
         scheduledStartDateTime?: Date | null;
+        scheduledEndDateTime?: Date | null;
       }>;
     }>,
   ) {
-    if (jobs.length === 0) return new Map<string, { completed: number; total: number }>();
+    if (!jobs.length) return new Map<string, { completed: number; total: number }>();
+    const suIds = [...new Set(jobs.map((j) => j.serviceUserId))];
 
-    const jobRound = new Map<string, string | null>();
-    for (const job of jobs) {
-      jobRound.set(job.id, resolveJobMedicationRoundCode(job.visits));
-    }
-
-    const roundsNeeded = [...new Set([...jobRound.values()].filter((r): r is string => Boolean(r)))];
-    const serviceUserIds = [...new Set(jobs.map((j) => j.serviceUserId))];
-
-    const [assignments, completions] = await Promise.all([
-      roundsNeeded.length === 0
-        ? Promise.resolve([] as Array<{ id: string; serviceUserId: string; medicationRoundCode: string }>)
-        : this.prisma.serviceUserVisitTaskAssignment.findMany({
-            where: {
-              serviceUserId: { in: serviceUserIds },
-              medicationRoundCode: { in: roundsNeeded },
-              deletedAt: null,
-              isActive: true,
-            },
-            select: {
-              id: true,
-              serviceUserId: true,
-              medicationRoundCode: true,
-              daysOfWeek: true,
-              scheduleFrequency: true,
-              repeatEvery: true,
-              repeatUnit: true,
-              timeCritical: true,
-              timeToleranceMinutes: true,
-              monthlyDayMode: true,
-              monthlyDaysOfMonth: true,
-              monthlyPatternOrdinal: true,
-              monthlyPatternWeekday: true,
-            },
-          }),
+    // Tasks attach by visit clock window (like medicines), so load every task for the clients.
+    const [assignments, completions, timeZone] = await Promise.all([
+      this.prisma.serviceUserVisitTaskAssignment.findMany({
+        where: {
+          serviceUserId: { in: suIds },
+          deletedAt: null,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          serviceUserId: true,
+          medicationRoundCode: true,
+          dueTime: true,
+          daysOfWeek: true,
+          scheduleFrequency: true,
+          repeatEvery: true,
+          repeatUnit: true,
+          timeCritical: true,
+          timeToleranceMinutes: true,
+          monthlyDayMode: true,
+          monthlyDaysOfMonth: true,
+          monthlyPatternOrdinal: true,
+          monthlyPatternWeekday: true,
+          task: { select: { name: true, flagsJson: true } },
+        },
+      }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: { in: jobs.map((j) => j.id) } },
         select: {
@@ -500,9 +498,29 @@ export class EmployeeAppHomeService {
           notes: true,
         },
       }),
+      loadOperationalTimeZone(this.prisma),
     ]);
 
-    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
+    // Each task sits on one visit of the client's day: covering visit, else nearest.
+    const { byJob } = await loadVisitTaskPlacement(
+      this.prisma,
+      jobs.map((j) => ({
+        id: j.id,
+        serviceUserId: j.serviceUserId,
+        start: j.visits[0]?.scheduledStartDateTime ?? j.scheduledStartDateTime ?? new Date(),
+        end: j.visits[0]?.scheduledEndDateTime ?? j.scheduledEndDateTime ?? null,
+      })),
+      timeZone,
+    );
+
+    return buildVisitTaskProgressByJobId({
+      jobs,
+      assignments,
+      completions,
+      placedAssignmentIdsByJob: new Map(
+        [...byJob].map(([jobId, list]) => [jobId, new Set(list.map((p) => p.assignmentId))]),
+      ),
+    });
   }
 }
 

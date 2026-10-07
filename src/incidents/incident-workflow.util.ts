@@ -157,6 +157,35 @@ export const IMMEDIATE_ACTION_CODES = [
  * "Who was informed?" keys accepted from the office raise form (static for now).
  * Same keys as the carer-app catalog defaults, plus police and NHS 111.
  */
+/** "Where did it happen?" on the office raise form (optional). OTHER needs locationDetail. */
+export const INCIDENT_LOCATION_KEYS = [
+  'HOME_BATHROOM',
+  'HOME_BEDROOM',
+  'HOME_KITCHEN',
+  'HOME_LIVING_ROOM',
+  'HOME_STAIRS',
+  'HOME_GARDEN',
+  'HOME_ENTRANCE',
+  'COMMUNITY',
+  'VEHICLE',
+  'OFFICE',
+  'OTHER',
+] as const;
+
+export const INCIDENT_LOCATION_LABELS: Record<(typeof INCIDENT_LOCATION_KEYS)[number], string> = {
+  HOME_BATHROOM: "Service user's home – bathroom",
+  HOME_BEDROOM: "Service user's home – bedroom",
+  HOME_KITCHEN: "Service user's home – kitchen",
+  HOME_LIVING_ROOM: "Service user's home – living room",
+  HOME_STAIRS: "Service user's home – stairs / hallway",
+  HOME_GARDEN: "Service user's home – garden / outside",
+  HOME_ENTRANCE: "Service user's home – entrance / doorstep",
+  COMMUNITY: 'Community / outdoors',
+  VEHICLE: 'Vehicle',
+  OFFICE: 'Office',
+  OTHER: 'Other',
+};
+
 export const OFFICE_WHO_INFORMED_KEYS = [
   'office',
   'on_call_manager',
