@@ -2970,14 +2970,8 @@ export class IncidentsService {
 
   async eligibleInvestigators(user: RequestUser, id: string) {
     await this.loadForManage(user, id);
-    const [candidates, me] = await Promise.all([
-      this.investigatorCandidates(),
-      this.prisma.user.findUnique({ where: { id: user.id }, select: { employeeId: true } }),
-    ]);
-    // The signed-in user's own staff record (if linked) can be suggested as the lead.
-    return {
-      data: candidates.map((c) => ({ ...c, isCurrentUser: !!me?.employeeId && me.employeeId === c.id })),
-    };
+    // Office users are not linked to staff records, so the lead is always picked from the list.
+    return { data: await this.investigatorCandidates() };
   }
 
   async pauseInvestigation(
