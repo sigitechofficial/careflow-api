@@ -36,11 +36,11 @@ export function canViewIncidentPrivacy(
   );
 }
 
-/** Closed incidents are a finalised record: changes require reopening / re-investigation first. */
+/** Closed incidents are a finalised record: changes require reopening first. */
 export function assertIncidentEditable(incident: { status: IncidentStatus }): void {
   if (incident.status === IncidentStatus.CLOSED) {
     throw new BadRequestException(
-      'This incident is closed. Reopen it or submit it for re-investigation to make changes.',
+      'This incident is closed. Reopen it to make changes.',
     );
   }
 }

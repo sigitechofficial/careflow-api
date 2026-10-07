@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsISO8601,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -17,7 +18,7 @@ export class SuspendIncidentCarerDto {
   @IsUUID()
   employeeId?: string;
 
-  @ApiProperty({ description: 'Reason for suspending the carer after investigation' })
+  @ApiProperty({ description: 'Why the carer is suspended while the incident is investigated' })
   @IsString()
   @MinLength(3)
   @MaxLength(4000)
@@ -36,4 +37,24 @@ export class SuspendIncidentCarerDto {
   })
   @IsISO8601()
   suspendTo!: string;
+}
+
+export class LiftIncidentCarerSuspensionDto {
+  @ApiProperty({ description: 'Why the suspension is lifted' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
+}
+
+export class ExtendIncidentCarerSuspensionDto {
+  @ApiProperty({ description: 'New end date (YYYY-MM-DD), after the current one', example: '2026-10-27' })
+  @IsISO8601()
+  suspendTo!: string;
+
+  @ApiProperty({ description: 'Why the suspension is extended' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
 }

@@ -33,10 +33,17 @@ import {
   CreateIncidentAttachmentMetaDto,
   CreateIncidentInjuryDto,
   CreateIncidentWitnessDto,
+  RemoveIncidentRecordDto,
+  UpdateIncidentInjuryDto,
   CreateRelatedCareRecordDto,
   LinkRelatedIncidentDto,
   UpdateRelatedCareRecordDto,
 } from './dto/incident-care.dto';
+import {
+  CreateIncidentExternalBodyDto,
+  RemoveIncidentExternalBodyDto,
+  UpdateIncidentExternalBodyDto,
+} from './dto/incident-external-body.dto';
 
 @ApiTags('Incidents — Care integration')
 @ApiBearerAuth()
@@ -65,15 +72,67 @@ export class IncidentCareController {
     return this.service.addInjury(user, id, dto, getRequestAuditMeta(req));
   }
 
+  @Patch('injuries/:injuryId')
+  @Permissions('incidents.update')
+  @ApiOperation({ summary: 'Change a recorded injury (reason required, audited)' })
+  updateInjury(
+    @CurrentUser() user: RequestUser,
+    @Param('injuryId', ParseUUIDPipe) injuryId: string,
+    @Body() dto: UpdateIncidentInjuryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateInjury(user, injuryId, dto, getRequestAuditMeta(req));
+  }
+
   @Delete('injuries/:injuryId')
   @Permissions('incidents.update')
-  @ApiOperation({ summary: 'Remove an injury' })
+  @ApiOperation({ summary: 'Remove an injury (reason required, audited)' })
   deleteInjury(
     @CurrentUser() user: RequestUser,
     @Param('injuryId', ParseUUIDPipe) injuryId: string,
+    @Body() dto: RemoveIncidentRecordDto,
     @Req() req: Request,
   ) {
-    return this.service.deleteInjury(user, injuryId, getRequestAuditMeta(req));
+    return this.service.deleteInjury(user, injuryId, dto, getRequestAuditMeta(req));
+  }
+
+  // External bodies (LA safeguarding, police, CQC…) involved alongside the investigation
+  @Post(':id/external-bodies')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Record an external body involved (referral, reference, role, status)' })
+  addExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.addExternalBody(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch(':id/external-bodies/:bodyId')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Update an external body (status, outcome, contact…)' })
+  updateExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('bodyId', ParseUUIDPipe) bodyId: string,
+    @Body() dto: UpdateIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateExternalBody(user, id, bodyId, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete(':id/external-bodies/:bodyId')
+  @Permissions('incidents.investigate')
+  @ApiOperation({ summary: 'Remove an external body added by mistake (reason required, audited)' })
+  deleteExternalBody(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('bodyId', ParseUUIDPipe) bodyId: string,
+    @Body() dto: RemoveIncidentExternalBodyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteExternalBody(user, id, bodyId, dto.reason, getRequestAuditMeta(req));
   }
 
   // Witnesses
@@ -98,15 +157,17 @@ export class IncidentCareController {
 
   @Delete('witnesses/:witnessId')
   @Permissions('incidents.update')
-  @ApiOperation({ summary: 'Remove a witness' })
+  @ApiOperation({ summary: 'Remove a witness (reason required, audited; statements are never edited)' })
   deleteWitness(
     @CurrentUser() user: RequestUser,
     @Param('witnessId', ParseUUIDPipe) witnessId: string,
+    @Body() dto: RemoveIncidentRecordDto,
     @Req() req: Request,
   ) {
     return this.service.deleteWitness(
       user,
       witnessId,
+      dto,
       getRequestAuditMeta(req),
     );
   }

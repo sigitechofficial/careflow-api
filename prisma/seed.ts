@@ -621,6 +621,7 @@ async function main() {
     'incidents.manage_actions',
     'incidents.close',
     'incidents.reopen',
+    'incidents.correct',
     'incidents.delete',
     'incidents.view_confidential',
     'incidents.view_highly_confidential',
@@ -703,6 +704,7 @@ async function main() {
     'incidents.manage_actions',
     'incidents.close',
     'incidents.reopen',
+    'incidents.correct',
     'incidents.view_confidential',
     'incidents.view_analytics',
   ];

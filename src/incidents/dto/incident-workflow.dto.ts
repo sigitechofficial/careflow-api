@@ -29,6 +29,14 @@ export class ChangeIncidentStatusDto {
   @IsOptional()
   @IsBoolean()
   overrideMandatoryActions?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Close while an external body (police, LA safeguarding…) is still open (requires an audited reason)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  overrideOpenExternalBodies?: boolean;
 }
 
 export class ChangeIncidentSeverityDto {

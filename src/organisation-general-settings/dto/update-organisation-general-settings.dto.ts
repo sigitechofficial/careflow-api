@@ -86,7 +86,7 @@ export class UpdateOrganisationGeneralSettingsDto {
 
   @ApiPropertyOptional({
     description: 'IANA timezone used for operational calendar days (schedules, ECM, today)',
-    example: 'Asia/Karachi',
+    example: 'Europe/London',
   })
   @IsOptional()
   @IsString()

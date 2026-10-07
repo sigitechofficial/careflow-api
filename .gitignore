@@ -47,6 +47,8 @@ uploads/body-map/photos/
 uploads/employee-app-incidents/
 uploads/employee-app-observations/
 uploads/incidents/attachments/
+# Private carer voice notes (never statically served)
+storage/visit-voice-notes/
 
 # ─── Local documentation (not pushed to git) ────────────────────
 Dcoumentation/
@@ -70,3 +72,4 @@ $RECYCLE.BIN/
 
 # Firebase Admin private key
 serviceAccount.json
+storage/body-map-videos/

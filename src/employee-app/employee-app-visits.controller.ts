@@ -45,8 +45,10 @@ import {
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
   EmployeeAppCareConsentDto,
+  EmployeeAppVoiceNoteLinkDto,
 } from './dto/employee-app-visit-writes.dto';
 import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
+import { VISIT_VOICE_NOTE_MAX_BYTES } from './visit-voice-note.util';
 
 @ApiTags('Employee App Visits')
 @ApiBearerAuth()
@@ -338,6 +340,65 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppLogConcernDto,
   ) {
     return this.visitsService.createLogConcern(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/log/voice-notes')
+  @ApiOperation({
+    summary: 'Upload a voice note (AAC/M4A, max 5 min) for a visit note, handover or concern',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'idempotencyKey', 'clientVoiceNoteId', 'logEntryId', 'entryType'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        idempotencyKey: { type: 'string' },
+        clientVoiceNoteId: { type: 'string' },
+        logEntryId: { type: 'string' },
+        entryType: {
+          type: 'string',
+          description: 'visit_note | handover | concern | incident | task | medication | observation | body_map | …',
+        },
+        durationMs: { type: 'number' },
+        recordedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: VISIT_VOICE_NOTE_MAX_BYTES },
+    }),
+  )
+  addLogVoiceNote(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      idempotencyKey?: string;
+      clientVoiceNoteId?: string;
+      logEntryId?: string;
+      entryType?: string;
+      durationMs?: string;
+      recordedAt?: string;
+    },
+  ) {
+    return this.visitsService.addLogVoiceNote(user.employeeId!, jobId, file, body);
+  }
+
+  @Put(':jobId/voice-notes/links')
+  @ApiOperation({
+    summary:
+      'Link a record (task, MAR, observation, incident, clock out, SOS …) to its voice notes',
+  })
+  saveVoiceNoteLinks(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppVoiceNoteLinkDto,
+  ) {
+    return this.visitsService.saveVoiceNoteLinks(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/incidents')

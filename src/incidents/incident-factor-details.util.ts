@@ -1,6 +1,7 @@
 import {
   INCIDENT_CONTRIBUTING_FACTORS,
   INCIDENT_OUTCOME_CHANGE_CODES,
+  INVESTIGATION_RECORDS_REVIEWED,
 } from './incident-review.constants';
 
 export type ContributingFactorDetail = {
@@ -18,6 +19,16 @@ const MAX_NOTE = 2000;
 /** Contributing factors: details for ticked factors only. */
 export function sanitizeContributingFactorDetails(raw: unknown, tickedFactors: string[]) {
   return sanitizeCodeDetails(raw, tickedFactors, INCIDENT_CONTRIBUTING_FACTORS);
+}
+
+/** A plain list of linked records ({ id, label }): trimmed, de-duplicated, bounded. */
+export function sanitizeLinkedItems(raw: unknown): { id: string; label: string }[] {
+  return cleanItems(raw);
+}
+
+/** Investigation evidence: links and notes for ticked record kinds only. */
+export function sanitizeRecordsReviewedDetails(raw: unknown, tickedKinds: string[]) {
+  return sanitizeCodeDetails(raw, tickedKinds, INVESTIGATION_RECORDS_REVIEWED);
 }
 
 /** Outcome "changes made": details for ticked changes only. */
@@ -42,29 +53,33 @@ function sanitizeCodeDetails(
     const entry = (raw as Record<string, unknown>)[code];
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
     const { items, note } = entry as { items?: unknown; note?: unknown };
-    const seen = new Set<string>();
-    const cleanItems = (Array.isArray(items) ? items : [])
-      .map((i) =>
-        i && typeof i === 'object'
-          ? {
-              id: String((i as { id?: unknown }).id ?? '').trim().slice(0, 64),
-              label: String((i as { label?: unknown }).label ?? '').trim().slice(0, MAX_LABEL),
-            }
-          : null,
-      )
-      .filter((i): i is { id: string; label: string } => {
-        if (!i || !i.id || !i.label || seen.has(i.id)) return false;
-        seen.add(i.id);
-        return true;
-      })
-      .slice(0, MAX_ITEMS);
+    const cleanList = cleanItems(items);
     const cleanNote = typeof note === 'string' ? note.trim().slice(0, MAX_NOTE) : '';
-    if (cleanItems.length || cleanNote) {
+    if (cleanList.length || cleanNote) {
       out[code] = {
-        ...(cleanItems.length ? { items: cleanItems } : {}),
+        ...(cleanList.length ? { items: cleanList } : {}),
         ...(cleanNote ? { note: cleanNote } : {}),
       };
     }
   }
   return Object.keys(out).length ? out : null;
+}
+
+function cleanItems(items: unknown): { id: string; label: string }[] {
+  const seen = new Set<string>();
+  return (Array.isArray(items) ? items : [])
+    .map((i) =>
+      i && typeof i === 'object'
+        ? {
+            id: String((i as { id?: unknown }).id ?? '').trim().slice(0, 64),
+            label: String((i as { label?: unknown }).label ?? '').trim().slice(0, MAX_LABEL),
+          }
+        : null,
+    )
+    .filter((i): i is { id: string; label: string } => {
+      if (!i || !i.id || !i.label || seen.has(i.id)) return false;
+      seen.add(i.id);
+      return true;
+    })
+    .slice(0, MAX_ITEMS);
 }

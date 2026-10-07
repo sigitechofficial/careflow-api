@@ -14,9 +14,11 @@ type JobForTaskProgress = {
   id: string;
   serviceUserId: string;
   scheduledStartDateTime?: Date | string | null;
+  scheduledEndDateTime?: Date | string | null;
   visits: Array<{
     visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
     scheduledStartDateTime?: Date | string | null;
+    scheduledEndDateTime?: Date | string | null;
   }>;
 };
 
@@ -24,7 +26,10 @@ type AssignmentRow = {
   id: string;
   serviceUserId: string;
   medicationRoundCode: string;
+  dueTime?: string | null;
+  task?: { name?: string | null; flagsJson?: unknown } | null;
 } & Partial<VisitTaskScheduleShape>;
+
 
 type CompletionRow = {
   scheduledJobId: string;
@@ -199,6 +204,12 @@ export function buildVisitTaskProgressByJobId(input: {
   jobs: JobForTaskProgress[];
   assignments: AssignmentRow[];
   completions: CompletionRow[];
+  /**
+   * When set, planned tasks per job come from day placement (`loadVisitTaskPlacement`:
+   * covering visit, else nearest) instead of the visit's round code. Assignments must then
+   * be loaded for the service users, not by round.
+   */
+  placedAssignmentIdsByJob?: Map<string, Set<string>>;
 }): Map<string, VisitTaskProgress> {
   const result = new Map<string, VisitTaskProgress>();
   if (input.jobs.length === 0) return result;
@@ -223,15 +234,34 @@ export function buildVisitTaskProgressByJobId(input: {
     completionsByJob.set(c.scheduledJobId, list);
   }
 
+  const assignmentsBySu = new Map<string, AssignmentRow[]>();
+  for (const a of input.assignments) {
+    const list = assignmentsBySu.get(a.serviceUserId) ?? [];
+    list.push(a);
+    assignmentsBySu.set(a.serviceUserId, list);
+  }
+
   for (const job of input.jobs) {
-    const round = jobRound.get(job.id);
-    if (!round) {
-      result.set(job.id, { completed: 0, total: 0 });
-      continue;
-    }
+    const round = jobRound.get(job.id) ?? null;
     const visitDay = resolveJobVisitDay(job);
     const jobCompletions = completionsByJob.get(job.id) ?? [];
-    const plannedIds = (assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [])
+
+    let candidates: AssignmentRow[];
+    if (input.placedAssignmentIdsByJob) {
+      const placed = input.placedAssignmentIdsByJob.get(job.id) ?? new Set<string>();
+      const recorded = new Set(jobCompletions.map((c) => c.assignmentId));
+      candidates = (assignmentsBySu.get(job.serviceUserId) ?? []).filter(
+        (a) => placed.has(a.id) || recorded.has(a.id),
+      );
+    } else {
+      if (!round) {
+        result.set(job.id, { completed: 0, total: 0 });
+        continue;
+      }
+      candidates = assignmentsByKey.get(`${job.serviceUserId}|${round}`) ?? [];
+    }
+
+    const plannedIds = candidates
       .filter((a) => assignmentDueOnDay(a, visitDay, jobCompletions))
       .map((a) => a.id);
     result.set(

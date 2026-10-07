@@ -23,7 +23,6 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
-import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
 import { plannedHowAssistedLabel } from './medication/employee-app-visit-medication-round.util';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { employeeAppAccessPayload } from './employee-app-access.util';
@@ -40,6 +39,10 @@ import { sanitizeComposeTextOrNull } from '../service-user-care-plans/compose/co
 import { mapPublishedCarePlanForCarer } from './employee-app-care-plan-detail.util';
 import { resolveCprStatus, loadCprIaReport } from './employee-app-cpr-status.util';
 import { CARER_VISIBLE_RISK_WHERE, withoutUnreviewedIaRows } from './employee-app-ia-source.util';
+import {
+  loadOperationalTimeZone,
+  loadVisitTaskPlacement,
+} from '../visit-tasks/visit-task-window.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -1147,44 +1150,43 @@ export class EmployeeAppClientDetailService {
       id: string;
       serviceUserId: string;
       scheduledStartDateTime?: Date | null;
+      scheduledEndDateTime?: Date | null;
       visits: Array<{
         visitPlanSlot: { slotCode: string; medicationRoundCode: string | null } | null;
         scheduledStartDateTime?: Date | null;
+        scheduledEndDateTime?: Date | null;
       }>;
     }>,
   ) {
     if (!jobs.length) return new Map<string, { completed: number; total: number }>();
-    const jobRound = new Map<string, string | null>();
-    for (const job of jobs) jobRound.set(job.id, resolveJobMedicationRoundCode(job.visits));
-    const rounds = [...new Set([...jobRound.values()].filter((r): r is string => Boolean(r)))];
     const suIds = [...new Set(jobs.map((j) => j.serviceUserId))];
 
-    const [assignments, completions] = await Promise.all([
-      rounds.length === 0
-        ? Promise.resolve([] as Array<{ id: string; serviceUserId: string; medicationRoundCode: string }>)
-        : this.prisma.serviceUserVisitTaskAssignment.findMany({
-            where: {
-              serviceUserId: { in: suIds },
-              medicationRoundCode: { in: rounds },
-              deletedAt: null,
-              isActive: true,
-            },
-            select: {
-              id: true,
-              serviceUserId: true,
-              medicationRoundCode: true,
-              daysOfWeek: true,
-              scheduleFrequency: true,
-              repeatEvery: true,
-              repeatUnit: true,
-              timeCritical: true,
-              timeToleranceMinutes: true,
-              monthlyDayMode: true,
-              monthlyDaysOfMonth: true,
-              monthlyPatternOrdinal: true,
-              monthlyPatternWeekday: true,
-            },
-          }),
+    // Tasks attach by visit clock window (like medicines), so load every task for the clients.
+    const [assignments, completions, timeZone] = await Promise.all([
+      this.prisma.serviceUserVisitTaskAssignment.findMany({
+        where: {
+          serviceUserId: { in: suIds },
+          deletedAt: null,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          serviceUserId: true,
+          medicationRoundCode: true,
+          dueTime: true,
+          daysOfWeek: true,
+          scheduleFrequency: true,
+          repeatEvery: true,
+          repeatUnit: true,
+          timeCritical: true,
+          timeToleranceMinutes: true,
+          monthlyDayMode: true,
+          monthlyDaysOfMonth: true,
+          monthlyPatternOrdinal: true,
+          monthlyPatternWeekday: true,
+          task: { select: { name: true, flagsJson: true } },
+        },
+      }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: { in: jobs.map((j) => j.id) } },
         select: {
@@ -1195,9 +1197,29 @@ export class EmployeeAppClientDetailService {
           notes: true,
         },
       }),
+      loadOperationalTimeZone(this.prisma),
     ]);
 
-    return buildVisitTaskProgressByJobId({ jobs, assignments, completions });
+    // Each task sits on one visit of the client's day: covering visit, else nearest.
+    const { byJob } = await loadVisitTaskPlacement(
+      this.prisma,
+      jobs.map((j) => ({
+        id: j.id,
+        serviceUserId: j.serviceUserId,
+        start: j.visits[0]?.scheduledStartDateTime ?? j.scheduledStartDateTime ?? new Date(),
+        end: j.visits[0]?.scheduledEndDateTime ?? j.scheduledEndDateTime ?? null,
+      })),
+      timeZone,
+    );
+
+    return buildVisitTaskProgressByJobId({
+      jobs,
+      assignments,
+      completions,
+      placedAssignmentIdsByJob: new Map(
+        [...byJob].map(([jobId, list]) => [jobId, new Set(list.map((p) => p.assignmentId))]),
+      ),
+    });
   }
 }
 

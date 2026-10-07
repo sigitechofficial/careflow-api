@@ -19,6 +19,61 @@ export const INCIDENT_CONTRIBUTING_FACTORS = [
 export type IncidentContributingFactor =
   (typeof INCIDENT_CONTRIBUTING_FACTORS)[number];
 
+/** Corrective measure types (what the measure changes). */
+export const INCIDENT_MEASURE_TYPES = [
+  'CARE_PLAN_UPDATE',
+  'RISK_ASSESSMENT_UPDATE',
+  'VISIT_PLAN_CHANGE',
+  'COURSE',
+  'COMPETENCY_CHECK',
+  'SUPERVISION',
+  'POLICY_UPDATE',
+  'OTHER',
+] as const;
+
+export type IncidentMeasureType = (typeof INCIDENT_MEASURE_TYPES)[number];
+
+export const INCIDENT_MEASURE_TYPE_LABELS: Record<IncidentMeasureType, string> = {
+  CARE_PLAN_UPDATE: 'Care plan update',
+  RISK_ASSESSMENT_UPDATE: 'Risk assessment update',
+  VISIT_PLAN_CHANGE: 'Visit plan change',
+  COURSE: 'Course for carer',
+  COMPETENCY_CHECK: 'Competency check',
+  SUPERVISION: 'Supervision',
+  POLICY_UPDATE: 'Policy update',
+  OTHER: 'Other',
+};
+
+/** What a measure can address: the root cause or one of the contributing factors. */
+export const INCIDENT_MEASURE_ADDRESSES = ['ROOT_CAUSE', ...INCIDENT_CONTRIBUTING_FACTORS] as const;
+
+/** Investigation evidence: kinds of records the investigator reviewed. */
+export const INVESTIGATION_RECORDS_REVIEWED = [
+  'CARE_PLAN',
+  'RISK_ASSESSMENT',
+  'MAR',
+  'VISIT_LOGS',
+  'ROTA',
+  'TRAINING_RECORDS',
+  'SUPERVISION_RECORDS',
+  'POLICIES',
+  'OTHER',
+] as const;
+
+export type InvestigationRecordReviewed = (typeof INVESTIGATION_RECORDS_REVIEWED)[number];
+
+export const INVESTIGATION_RECORDS_REVIEWED_LABELS: Record<InvestigationRecordReviewed, string> = {
+  CARE_PLAN: 'Care plan',
+  RISK_ASSESSMENT: 'Risk assessment',
+  MAR: 'MAR',
+  VISIT_LOGS: 'Visit logs',
+  ROTA: 'Rota',
+  TRAINING_RECORDS: 'Training records',
+  SUPERVISION_RECORDS: 'Supervision records',
+  POLICIES: 'Policies / procedures',
+  OTHER: 'Other',
+};
+
 /** Codes for "changes made" captured at closure. */
 export const INCIDENT_OUTCOME_CHANGE_CODES = [
   'CARE_PLAN',
