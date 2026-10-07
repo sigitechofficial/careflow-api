@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -289,6 +290,12 @@ export class RecalculateVisitReconciliationsDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @ApiProperty({ description: 'Why amounts are being recalculated (kept on the audit log)' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  reason!: string;
 }
 
 export class ClearVisitReconciliationsDto {

@@ -1624,12 +1624,44 @@ async function main() {
   }
 
   for (const row of [
-    ['Female', 'FEMALE'],
-    ['Male', 'MALE'],
-    ['Other', 'OTHER'],
-    ['Prefer not to say', 'PREFER_NOT_TO_SAY'],
+    ['Female (including trans woman)', 'FEMALE'],
+    ['Male (including trans man)', 'MALE'],
+    ['Non-binary', 'NON_BINARY'],
+    ['Not Known (not recorded)', 'NOT_KNOWN'],
+    ['Not Stated (person asked but declined to provide a response)', 'PREFER_NOT_TO_SAY'],
+    ['Other (not listed)', 'OTHER'],
   ]) {
     await prisma.serviceUserGender.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Male', 'MALE'],
+    ['Female', 'FEMALE'],
+    ['Indeterminate (unable to be classified as either male or female)', 'INTERSEX'],
+    ['Not Known (not recorded)', 'UNKNOWN'],
+  ]) {
+    await prisma.serviceUserSex.upsert({
+      where: { code: row[1] },
+      update: { name: row[0], isActive: true },
+      create: { name: row[0], code: row[1] },
+    });
+  }
+
+  for (const row of [
+    ['Heterosexual', 'HETEROSEXUAL'],
+    ['Female Homosexual', 'FEMALE_HOMOSEXUAL'],
+    ['Male Homosexual', 'MALE_HOMOSEXUAL'],
+    ['Bisexual', 'BISEXUAL'],
+    ['Sexually attracted to neither gender', 'NEITHER'],
+    ['Sexual orientation unknown', 'UNKNOWN'],
+    ['Sexual orientation undecided', 'UNDECIDED'],
+    ['Sexual orientation not given – person refused', 'NOT_GIVEN'],
+  ]) {
+    await prisma.serviceUserSexualOrientation.upsert({
       where: { code: row[1] },
       update: { name: row[0], isActive: true },
       create: { name: row[0], code: row[1] },

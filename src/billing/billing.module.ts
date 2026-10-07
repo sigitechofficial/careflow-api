@@ -1,3 +1,4 @@
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -23,7 +24,7 @@ import { EmployeePayoutsService } from './employee-payouts.service';
 import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule],
+  imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule, AuditLogsModule],
   controllers: [
     PayCardsController,
     ChargeCardsController,

@@ -854,6 +854,177 @@ export class LookupsService implements OnModuleInit {
     });
   }
 
+  async listServiceUserGenders() {
+    return this.prisma.serviceUserGender.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserGender(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserGender.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A gender with this code already exists');
+    }
+  }
+
+  async updateServiceUserGender(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserGender.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Gender not found');
+    const data: Prisma.ServiceUserGenderUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserGender.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A gender with this code already exists');
+    }
+  }
+
+  async deleteServiceUserGender(id: string) {
+    const existing = await this.prisma.serviceUserGender.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Gender not found');
+    await this.prisma.serviceUserGender.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listServiceUserSexes() {
+    return this.prisma.serviceUserSex.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserSex(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserSex.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A sex option with this code already exists');
+    }
+  }
+
+  async updateServiceUserSex(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserSex.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Sex option not found');
+    const data: Prisma.ServiceUserSexUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserSex.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A sex option with this code already exists');
+    }
+  }
+
+  async deleteServiceUserSex(id: string) {
+    const existing = await this.prisma.serviceUserSex.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Sex option not found');
+    await this.prisma.serviceUserSex.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  async listServiceUserSexualOrientations() {
+    return this.prisma.serviceUserSexualOrientation.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true, isActive: true },
+    });
+  }
+
+  async createServiceUserSexualOrientation(dto: CreateServiceUserFundingTypeDto) {
+    const name = dto.name.trim();
+    const code = this.normalizeLookupCode(dto.code);
+    if (!name || !code) throw new BadRequestException('Name and code are required');
+    try {
+      return await this.prisma.serviceUserSexualOrientation.create({
+        data: { name, code, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A sexual orientation with this code already exists');
+    }
+  }
+
+  async updateServiceUserSexualOrientation(id: string, dto: UpdateServiceUserFundingTypeDto) {
+    const existing = await this.prisma.serviceUserSexualOrientation.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Sexual orientation not found');
+    const data: Prisma.ServiceUserSexualOrientationUpdateInput = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) throw new BadRequestException('Name is required');
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = this.normalizeLookupCode(dto.code);
+      if (!code) throw new BadRequestException('Code is required');
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      return await this.prisma.serviceUserSexualOrientation.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, code: true, isActive: true },
+      });
+    } catch (e) {
+      this.handleUniqueViolation(e, 'A sexual orientation with this code already exists');
+    }
+  }
+
+  async deleteServiceUserSexualOrientation(id: string) {
+    const existing = await this.prisma.serviceUserSexualOrientation.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Sexual orientation not found');
+    await this.prisma.serviceUserSexualOrientation.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
   async listAllergyCatalog() {
     return this.prisma.allergyCatalog.findMany({
       where: { isActive: true },

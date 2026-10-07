@@ -443,4 +443,5 @@ export enum AuditAction {
   SURVEY_QUESTION_DELETED = 'survey_question_deleted',
   SURVEY_RESPONSE_SUBMITTED = 'survey_response_submitted',
   EMPLOYEE_HOURS_APPROVAL_DECIDED = 'employee_hours_approval_decided',
+  VISIT_RECONCILIATION_AMOUNTS_RECALCULATED = 'visit_reconciliation_amounts_recalculated',
 }

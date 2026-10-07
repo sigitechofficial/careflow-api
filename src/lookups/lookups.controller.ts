@@ -355,6 +355,102 @@ export class LookupsController {
     return { message: 'Language deleted' };
   }
 
+  @Get('service-user-genders')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user genders (lookup data)' })
+  async serviceUserGenders() {
+    return { data: await this.service.listServiceUserGenders() };
+  }
+
+  @Post('service-user-genders')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user gender' })
+  async createServiceUserGender(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserGender(dto) };
+  }
+
+  @Patch('service-user-genders/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user gender' })
+  async updateServiceUserGender(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserGender(id, dto) };
+  }
+
+  @Delete('service-user-genders/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user gender' })
+  async deleteServiceUserGender(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserGender(id);
+    return { message: 'Gender deleted' };
+  }
+
+  @Get('service-user-sexes')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user sex options (lookup data)' })
+  async serviceUserSexes() {
+    return { data: await this.service.listServiceUserSexes() };
+  }
+
+  @Post('service-user-sexes')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user sex option' })
+  async createServiceUserSex(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserSex(dto) };
+  }
+
+  @Patch('service-user-sexes/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user sex option' })
+  async updateServiceUserSex(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserSex(id, dto) };
+  }
+
+  @Delete('service-user-sexes/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user sex option' })
+  async deleteServiceUserSex(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserSex(id);
+    return { message: 'Sex option deleted' };
+  }
+
+  @Get('service-user-sexual-orientations')
+  @Permissions('lookups.read')
+  @ApiOperation({ summary: 'List service user sexual orientations (lookup data)' })
+  async serviceUserSexualOrientations() {
+    return { data: await this.service.listServiceUserSexualOrientations() };
+  }
+
+  @Post('service-user-sexual-orientations')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Create service user sexual orientation' })
+  async createServiceUserSexualOrientation(@Body() dto: CreateServiceUserFundingTypeDto) {
+    return { data: await this.service.createServiceUserSexualOrientation(dto) };
+  }
+
+  @Patch('service-user-sexual-orientations/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Update service user sexual orientation' })
+  async updateServiceUserSexualOrientation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateServiceUserFundingTypeDto,
+  ) {
+    return { data: await this.service.updateServiceUserSexualOrientation(id, dto) };
+  }
+
+  @Delete('service-user-sexual-orientations/:id')
+  @Permissions('lookups.manage')
+  @ApiOperation({ summary: 'Deactivate service user sexual orientation' })
+  async deleteServiceUserSexualOrientation(@Param('id', ParseUUIDPipe) id: string) {
+    await this.service.deleteServiceUserSexualOrientation(id);
+    return { message: 'Sexual orientation deleted' };
+  }
+
   @Get('allergy-catalog')
   @Permissions('lookups.read')
   @ApiOperation({ summary: 'List service user allergy catalogue (lookup data)' })

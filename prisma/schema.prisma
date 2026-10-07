@@ -2531,6 +2531,30 @@ model ServiceUserGender {
   @@schema("service_users")
 }
 
+/// Sexual orientation options for service user personal details (stored by code in profile references).
+model ServiceUserSexualOrientation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("service_users")
+}
+
+/// Sex options for service user personal details (stored by code in profile references).
+model ServiceUserSex {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("service_users")
+}
+
 model ServiceUserMaritalStatus {
   id        String   @id @default(uuid()) @db.Uuid
   name      String

@@ -1,3 +1,6 @@
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   BadRequestException,
   Injectable,
@@ -308,6 +311,7 @@ export class VisitReconciliationsService {
     private readonly payCardsService: PayCardsService,
     private readonly chargeCardsService: ChargeCardsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   private client(tx?: Prisma.TransactionClient): DbClient {
@@ -587,19 +591,22 @@ export class VisitReconciliationsService {
     return ensureScheduledVisitRef(db, visit);
   }
 
+  /** Returns false when evaluation failed (already logged). */
   private async safeEvaluate(
     db: DbClient,
     id: string,
     options?: { forceRecalculateAmounts?: boolean },
-  ) {
+  ): Promise<boolean> {
     try {
       await this.evaluateInternal(db, id, options);
+      return true;
     } catch (err) {
       this.logger.warn(
         `Visit reconciliation evaluate failed for ${id}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      return false;
     }
   }
 
@@ -1448,7 +1455,12 @@ export class VisitReconciliationsService {
    * Does not create new reconciliations — use backfill/sync for that.
    * Manual carer/client amount overrides are preserved (only card-derived amounts reprice).
    */
-  async recalculateAmounts(dto: RecalculateVisitReconciliationsDto) {
+  /** `reason` comes from the user-triggered action and is audited; internal re-runs omit it. */
+  async recalculateAmounts(
+    dto: Omit<RecalculateVisitReconciliationsDto, 'reason'> & { reason?: string },
+    userId?: string,
+    meta?: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
     const where: Prisma.VisitReconciliationWhereInput = {
       status: { not: VisitReconciliationStatus.LOCKED },
     };
@@ -1462,20 +1474,137 @@ export class VisitReconciliationsService {
       if (range) where.plannedStartDateTime = range;
     }
 
+    const RECALC_LIMIT = 1000;
+    const amountSelect = { id: true, payableAmount: true, billableAmount: true } as const;
     const pending = await this.prisma.visitReconciliation.findMany({
       where,
-      select: { id: true },
+      select: {
+        ...amountSelect,
+        visitRef: true,
+        plannedStartDateTime: true,
+        serviceUserId: true,
+        employeeId: true,
+      },
       orderBy: { plannedStartDateTime: 'asc' },
-      take: 1000,
+      take: RECALC_LIMIT,
     });
 
+    const failedIds = new Set<string>();
     for (const row of pending) {
-      await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      const ok = await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      if (!ok) failedIds.add(row.id);
+    }
+    const failed = failedIds.size;
+
+    // Before / after amounts for the summary shown after recalculating.
+    const after = await this.prisma.visitReconciliation.findMany({
+      where: { id: { in: pending.map((r) => r.id) } },
+      select: amountSelect,
+    });
+    const afterById = new Map(after.map((r) => [r.id, r]));
+    const num = (v: Prisma.Decimal | null | undefined) => (v == null ? 0 : Number(v));
+    const same = (a: Prisma.Decimal | null | undefined, b: Prisma.Decimal | null | undefined) =>
+      (a == null && b == null) || (a != null && b != null && num(a) === num(b));
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+
+    // Names for the per-visit list in the summary.
+    const suIds = [...new Set(pending.map((r) => r.serviceUserId))];
+    const empIds = [...new Set(pending.map((r) => r.employeeId).filter((id): id is string => !!id))];
+    const [serviceUsers, employees] = await Promise.all([
+      suIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, firstName: true, lastName: true, preferredName: true },
+          })
+        : [],
+      empIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: empIds } },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
+    ]);
+    const suName = new Map(serviceUsers.map((su) => [su.id, formatPersonName(su)]));
+    const empName = new Map(
+      employees.map((e) => [
+        e.id,
+        [e.personalDetail?.firstName, e.personalDetail?.lastName].filter(Boolean).join(' ').trim(),
+      ]),
+    );
+
+    let changed = 0;
+    let payableBefore = 0;
+    let payableAfter = 0;
+    let billableBefore = 0;
+    let billableAfter = 0;
+    const visits = pending.map((row) => {
+      const next = afterById.get(row.id);
+      payableBefore += num(row.payableAmount);
+      billableBefore += num(row.billableAmount);
+      payableAfter += num(next?.payableAmount);
+      billableAfter += num(next?.billableAmount);
+      const rowChanged = Boolean(
+        next &&
+          (!same(row.payableAmount, next.payableAmount) ||
+            !same(row.billableAmount, next.billableAmount)),
+      );
+      if (rowChanged) changed += 1;
+      return {
+        id: row.id,
+        visitRef: row.visitRef,
+        plannedStartDateTime: row.plannedStartDateTime.toISOString(),
+        serviceUserName: suName.get(row.serviceUserId) ?? null,
+        employeeName: (row.employeeId && empName.get(row.employeeId)) || null,
+        payableBefore: row.payableAmount == null ? null : num(row.payableAmount),
+        payableAfter: next?.payableAmount == null ? null : num(next.payableAmount),
+        billableBefore: row.billableAmount == null ? null : num(row.billableAmount),
+        billableAfter: next?.billableAmount == null ? null : num(next.billableAmount),
+        changed: rowChanged,
+        failed: failedIds.has(row.id),
+      };
+    });
+
+    const requested = dto.ids?.length ?? null;
+    const summary = {
+      reEvaluated: pending.length,
+      changed,
+      unchanged: pending.length - changed - failed,
+      failed,
+      skippedLocked: requested != null ? Math.max(0, requested - pending.length) : 0,
+      limitReached: pending.length >= RECALC_LIMIT,
+      totals: {
+        payableBefore: round2(payableBefore),
+        payableAfter: round2(payableAfter),
+        billableBefore: round2(billableBefore),
+        billableAfter: round2(billableAfter),
+      },
+    };
+
+    const reason = dto.reason?.trim();
+    if (reason) {
+      await this.auditLogs.logAudit({
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.VISIT_RECONCILIATION_AMOUNTS_RECALCULATED,
+        recordType: 'VisitReconciliation',
+        recordId: requested != null ? 'selected' : 'all',
+        description: reason,
+        newValues: summary,
+        metadata: {
+          reason,
+          scope: requested != null ? 'selected' : 'all',
+          dateFrom: dto.dateFrom ?? null,
+          dateTo: dto.dateTo ?? null,
+          changedVisitRefs: visits.filter((v) => v.changed).map((v) => v.visitRef).slice(0, 500),
+        },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
     }
 
     return {
       message: `Recalculated amounts for ${pending.length} reconciliation(s)`,
-      data: { reEvaluated: pending.length, ids: pending.map((r) => r.id) },
+      data: { ...summary, visits, ids: pending.map((r) => r.id) },
     };
   }
 
