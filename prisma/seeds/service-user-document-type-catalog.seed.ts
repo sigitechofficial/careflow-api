@@ -231,6 +231,30 @@ export const SERVICE_USER_DOCUMENT_TYPE_CATALOG: DocumentTypeSeed[] = [
     cqcLegalStandard: 'Reg 17 / Reg 18',
     sortOrder: 170,
   },
+  {
+    code: 'REFERRAL_DOCUMENT',
+    name: 'Referral document',
+    physicalLocationInHomeRequired: false,
+    expiryTrackingRequired: false,
+    defaultAccessLevel: 'COORDINATOR_MANAGER',
+    requiredBeforeFirstVisit: false,
+    blocksCarePlanApprovalIfMissing: false,
+    expiryAlertDays: null,
+    cqcLegalStandard: 'Reg 17',
+    sortOrder: 180,
+  },
+  {
+    code: 'CARE_QUOTATION',
+    name: 'Care quotation / agreement',
+    physicalLocationInHomeRequired: false,
+    expiryTrackingRequired: false,
+    defaultAccessLevel: 'COORDINATOR_MANAGER',
+    requiredBeforeFirstVisit: false,
+    blocksCarePlanApprovalIfMissing: false,
+    expiryAlertDays: null,
+    cqcLegalStandard: 'Reg 17',
+    sortOrder: 190,
+  },
 ];
 
 export async function seedServiceUserDocumentTypeCatalog(prisma: PrismaClient) {

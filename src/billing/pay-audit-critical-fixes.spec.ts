@@ -114,6 +114,43 @@ describe('resolveDefaultApprovedWindows overrun approval', () => {
     expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
   });
 
+  const acknowledged = (overrunPayBasis: 'PLANNED' | 'ACTUAL', overrunBillBasis: 'PLANNED' | 'ACTUAL') =>
+    resolveDefaultApprovedWindows({
+      plannedStartDateTime: plannedStart,
+      plannedEndDateTime: plannedEnd,
+      actualStartDateTime: actualStart,
+      actualEndDateTime: actualEnd,
+      exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: 'over' }],
+      overrunDecision: 'APPROVED',
+      overrunPayBasis,
+      overrunBillBasis,
+    });
+
+  it('acknowledged with actual time for both: pay and charge actual 75 minutes', () => {
+    const w = acknowledged('ACTUAL', 'ACTUAL');
+    expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(actualEnd.getTime());
+  });
+
+  it('acknowledged with planned time for both: pay and charge planned 30 minutes', () => {
+    const w = acknowledged('PLANNED', 'PLANNED');
+    expect(w.approvedPayEnd.getTime()).toBe(plannedEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(plannedEnd.getTime());
+  });
+
+  it('acknowledged actual for carer pay only: client charge stays planned', () => {
+    const w = acknowledged('ACTUAL', 'PLANNED');
+    expect(w.approvedPayEnd.getTime()).toBe(actualEnd.getTime());
+    expect(w.approvedBillStart.getTime()).toBe(plannedStart.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(plannedEnd.getTime());
+  });
+
+  it('acknowledged actual for client charge only: carer pay stays planned', () => {
+    const w = acknowledged('PLANNED', 'ACTUAL');
+    expect(w.approvedPayEnd.getTime()).toBe(plannedEnd.getTime());
+    expect(w.approvedBillEnd.getTime()).toBe(actualEnd.getTime());
+  });
+
   it('early visit finished before planned start bills actual worked time', () => {
     const earlyStart = new Date('2026-08-12T12:05:00.000Z');
     const earlyEnd = new Date('2026-08-12T12:22:00.000Z');

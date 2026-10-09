@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -14,6 +15,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { BANK_HOLIDAY_REGIONS } from '../bank-holiday-regions.util';
 import {
   BillingCardStatus,
   BillingChargeMethod,
@@ -185,8 +187,16 @@ export class CreatePayCardDto {
 
   @ApiPropertyOptional({ enum: ['PRIORITY', 'HIGHEST', 'STACK'], default: 'PRIORITY' })
   @IsOptional()
-  @IsString()
+  @IsIn(['PRIORITY', 'HIGHEST', 'STACK'])
   stackingPolicy?: string;
+
+  @ApiPropertyOptional({
+    enum: BANK_HOLIDAY_REGIONS,
+    description: 'Bank holiday calendar for pay: UK = England & Wales (default), SCOTLAND, NORTHERN_IRELAND',
+  })
+  @IsOptional()
+  @IsIn([...BANK_HOLIDAY_REGIONS, null])
+  bankHolidayRegion?: string | null;
 
   @ApiPropertyOptional({ description: 'UK nation code e.g. ENG, SCT, WLS, NIR' })
   @IsOptional()
@@ -293,8 +303,16 @@ export class UpdatePayCardDto {
 
   @ApiPropertyOptional({ enum: ['PRIORITY', 'HIGHEST', 'STACK'] })
   @IsOptional()
-  @IsString()
+  @IsIn(['PRIORITY', 'HIGHEST', 'STACK'])
   stackingPolicy?: string;
+
+  @ApiPropertyOptional({
+    enum: BANK_HOLIDAY_REGIONS,
+    description: 'Bank holiday calendar for pay: UK = England & Wales (default), SCOTLAND, NORTHERN_IRELAND',
+  })
+  @IsOptional()
+  @IsIn([...BANK_HOLIDAY_REGIONS, null])
+  bankHolidayRegion?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -353,6 +371,107 @@ export class UpdatePayCardDto {
   @ValidateNested({ each: true })
   @Type(() => PayCardRuleDto)
   rules?: PayCardRuleDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'When rates change on a non-draft card: date (YYYY-MM-DD) the new version applies from. Defaults to today.',
+  })
+  @IsOptional()
+  @IsDateString()
+  versionEffectiveFrom?: string;
+
+  @ApiPropertyOptional({ description: 'Reason for the rate change (stored on the new version).' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  versionNote?: string;
+}
+
+/** Sample visit for the pay preview — calculates only, nothing is saved. */
+export class PreviewPayDto {
+  @ApiProperty({ type: [PayCardRuleDto], description: 'Rules as currently shown in the pay card form' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PayCardRuleDto)
+  rules!: PayCardRuleDto[];
+
+  @ApiPropertyOptional({ enum: ['PRIORITY', 'HIGHEST', 'STACK'] })
+  @IsOptional()
+  @IsIn(['PRIORITY', 'HIGHEST', 'STACK'])
+  stackingPolicy?: string;
+
+  @ApiPropertyOptional({ enum: BANK_HOLIDAY_REGIONS })
+  @IsOptional()
+  @IsIn([...BANK_HOLIDAY_REGIONS, null])
+  bankHolidayRegion?: string | null;
+
+  @ApiProperty({ description: 'Visit date YYYY-MM-DD (organisation timezone)' })
+  @IsDateString()
+  date!: string;
+
+  @ApiProperty({ description: 'Start HH:mm' })
+  @IsString()
+  @MaxLength(5)
+  startTime!: string;
+
+  @ApiProperty({ description: 'End HH:mm (earlier than start = next day)' })
+  @IsString()
+  @MaxLength(5)
+  endTime!: string;
+
+  @ApiPropertyOptional({ enum: ['SLEEPING_NIGHT', 'WAKING_NIGHT'] })
+  @IsOptional()
+  @IsIn(['SLEEPING_NIGHT', 'WAKING_NIGHT', null])
+  nightDuty?: string | null;
+}
+
+export class PersonalPayCardDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(200)
+  name!: string;
+
+  @ApiPropertyOptional({ description: 'Defaults to IND-<employee number>' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  code?: string;
+
+  @ApiProperty({ type: [PayCardRuleDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PayCardRuleDto)
+  rules!: PayCardRuleDto[];
+}
+
+/** Change a carer's own pay card from a date (e.g. promotion), keeping the old card for earlier visits. */
+export class ChangeEmployeePayCardDto {
+  @ApiPropertyOptional({ description: 'Existing pay card to move the carer to' })
+  @IsOptional()
+  @IsUUID()
+  payCardId?: string;
+
+  @ApiPropertyOptional({ type: PersonalPayCardDto, description: 'Create a pay card for this carer only' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PersonalPayCardDto)
+  personalCard?: PersonalPayCardDto;
+
+  @ApiProperty({ description: 'YYYY-MM-DD the new card applies from' })
+  @IsDateString()
+  effectiveFrom!: string;
+
+  @ApiPropertyOptional({
+    description: 'New grade for the carer (updated straight away — grades have no effective date)',
+  })
+  @IsOptional()
+  @IsUUID()
+  gradeId?: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class CreateChargeCardDto {

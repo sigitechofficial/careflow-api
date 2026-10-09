@@ -32,8 +32,22 @@ import {
   formatMinutesAsHours,
   formatTimeRange,
 } from './visit-reconciliation.util';
-import { formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
+import { dayKeyInTimeZone, formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
+import { PayCardsService } from './billing-cards.service';
+import {
+  PAY_ITEM_CONFIG,
+  cardBaseHourlyRate,
+  cardRuleOfType,
+  isPayItemWageType,
+  overtimePremiumPerHour,
+  payItemAmount,
+  rolledUpHolidayPay,
+  roundPence,
+  weekKeyInTimeZone,
+  weeklyOvertime,
+} from './pay-items.util';
 import { calculateUkMileage } from './pay-mileage.util';
+import { loadPayCardRulesForVersion } from './pay-card-version.util';
 import {
   detectInterVisitTravel,
   summariseTravelForDestination,
@@ -184,6 +198,7 @@ export class PayrollRunsService {
     private readonly prisma: PrismaService,
     private readonly employeePayouts: EmployeePayoutsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly payCards: PayCardsService,
   ) {}
 
   /**
@@ -390,6 +405,9 @@ export class PayrollRunsService {
         const hourly = amount / (minutes / 60);
         unitRate = `${formatMoney(hourly)}/hr`;
         formula = `${hoursLabel} × ${formatMoney(hourly)}/hr = ${formatMoney(amount)}`;
+      } else if (l.sourceType && l.sourceType !== 'VISIT') {
+        // Non-visit earnings carry their own calculation in the description.
+        formula = `${l.description} = ${formatMoney(amount)}`;
       } else if (amount > 0) {
         formula = formatMoney(amount);
       }
@@ -574,9 +592,11 @@ export class PayrollRunsService {
             version: true,
           },
         });
-        const payRules = await this.prisma.payCardRule.findMany({
-          where: { payCardId: recon.payCardId },
-        });
+        const payRules = await loadPayCardRulesForVersion(
+          this.prisma,
+          recon.payCardId,
+          recon.payCardVersion,
+        );
         const visitDate = recon.plannedStartDateTime;
         const miles = recon.travelMiles != null ? Number(recon.travelMiles) : 0;
         const manualTravelMins = recon.travelMinutes ?? 0;
@@ -746,6 +766,12 @@ export class PayrollRunsService {
       }
     }
 
+    // Non-visit earnings: approved pay items, training / on-call activity, overtime premium and
+    // rolled-up holiday pay. Each only appears when configured, so existing runs are unchanged.
+    const nonVisit = await this.buildNonVisitLines(run, reconciliations, lineData);
+    lineData.push(...nonVisit.lines);
+    for (const employeeId of nonVisit.employeeIds) employeeIds.add(employeeId);
+
     // Pay-reference-period NMW validation per worker (DOB-derived age; unpaid travel hours included).
     const nmwByEmployee = new Map<string, NmwPayComponent[]>();
     for (const line of lineData) {
@@ -755,13 +781,18 @@ export class PayrollRunsService {
         line.lineType === ('PASSENGER_MILEAGE' as PayrollRunLineType) ||
         line.lineType === ('EXPENSE' as PayrollRunLineType);
       const list = nmwByEmployee.get(line.employeeId) ?? [];
+      // Holiday and sick pay are not pay for working time; training hours are working time.
+      const notWorkPay =
+        line.lineType === PayrollRunLineType.HOLIDAY_PAY ||
+        line.lineType === ('SICK_PAY' as PayrollRunLineType);
       list.push({
         amount: Number(line.amount),
-        includesInNmwPay: !isExpense && line.lineType !== PayrollRunLineType.NMW_TOP_UP,
+        includesInNmwPay: !isExpense && !notWorkPay && line.lineType !== PayrollRunLineType.NMW_TOP_UP,
         countsAsNmwHours:
           line.lineType === PayrollRunLineType.VISIT_PAY ||
           line.lineType === PayrollRunLineType.TRAVEL_TIME ||
-          line.lineType === ('WAITING_TIME' as PayrollRunLineType),
+          line.lineType === ('WAITING_TIME' as PayrollRunLineType) ||
+          line.lineType === PayrollRunLineType.NON_VISIT_ACTIVITY,
         hours: line.minutes != null ? line.minutes / 60 : 0,
       });
       nmwByEmployee.set(line.employeeId, list);
@@ -807,7 +838,9 @@ export class PayrollRunsService {
       if (!nmw.compliant && nmw.topUp > 0) {
         nmwTopUpTotal += nmw.topUp;
         nmwExceptionBump += 1;
-        const anyRecon = lineData.find((l) => l.employeeId === employeeId);
+        const anyRecon =
+          lineData.find((l) => l.employeeId === employeeId && l.visitReconciliationId) ??
+          lineData.find((l) => l.employeeId === employeeId);
         if (anyRecon) {
           lineData.push({
             payrollRunId: id,
@@ -922,6 +955,212 @@ export class PayrollRunsService {
     return this.getById(id);
   }
 
+  /**
+   * Non-visit earning lines for a visit pay run:
+   *  1. approved pay items dated on/before the period end and not yet paid (backdated items sweep in);
+   *  2. non-core activities marked "include in payroll" priced by the card's TRAINING / ON_CALL rate;
+   *  3. weekly overtime premium when the card has an OVERTIME rate (premium only — base pay for those
+   *     minutes is already in visit pay);
+   *  4. rolled-up holiday pay (12.07%) when the card's holiday pay method is ROLLED_UP_12_07.
+   */
+  private async buildNonVisitLines(
+    run: { id: string; periodStart: Date; periodEnd: Date },
+    reconciliations: Array<{ id: string; approvedPayStart: Date | null }>,
+    visitLines: Prisma.PayrollRunLineCreateManyInput[],
+  ): Promise<{ lines: Prisma.PayrollRunLineCreateManyInput[]; employeeIds: Set<string> }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const periodEnd = endOfBillingDate(run.periodEnd);
+    const lines: Prisma.PayrollRunLineCreateManyInput[] = [];
+    const employeeIds = new Set<string>();
+    const cache = new Map<string, Awaited<ReturnType<PayCardsService['resolveRulesForEmployeeAt']>>>();
+    const rulesAt = async (employeeId: string, at: Date) => {
+      const key = `${employeeId}|${dayKeyInTimeZone(at, timeZone)}`;
+      if (!cache.has(key)) {
+        cache.set(key, await this.payCards.resolveRulesForEmployeeAt(employeeId, at).catch(() => null));
+      }
+      return cache.get(key) ?? null;
+    };
+    const wageTypeNames = new Map(
+      (await this.prisma.wageType.findMany({ select: { code: true, name: true } })).map((w) => [w.code, w.name]),
+    );
+    const hours = (m: number) => `${(m / 60).toFixed(2).replace(/\.00$/, '')}h`;
+
+    // 1) Pay items
+    const items = await this.prisma.employeePayItem.findMany({
+      where: { status: 'APPROVED', includedInPayrollRunId: null, workDate: { lte: run.periodEnd } },
+      orderBy: [{ workDate: 'asc' }, { createdAt: 'asc' }],
+    });
+    for (const item of items) {
+      if (!isPayItemWageType(item.wageTypeCode)) continue;
+      const config = PAY_ITEM_CONFIG[item.wageTypeCode];
+      employeeIds.add(item.employeeId);
+      lines.push({
+        payrollRunId: run.id,
+        visitReconciliationId: null,
+        employeeId: item.employeeId,
+        lineType: config.lineType,
+        sourceType: 'PAY_ITEM',
+        sourceRef: item.id,
+        employeePayItemId: item.id,
+        description: `${wageTypeNames.get(item.wageTypeCode) ?? item.wageTypeCode} (${item.workDate.toISOString().slice(0, 10)}) — ${item.reason}`,
+        minutes:
+          config.countsAsNmwHours && item.unit === 'HOUR' && item.quantity != null
+            ? Math.round(Number(item.quantity) * 60)
+            : null,
+        unitAmount: item.rate,
+        amount: item.amount,
+        payCardId: item.payCardId,
+        visitRef: null,
+        exceptionMessage: null,
+      });
+    }
+
+    // 2) Training / on-call activity
+    const paidActivity = await this.prisma.payrollRunLine.findMany({
+      where: {
+        sourceType: 'NON_CORE_ACTIVITY',
+        payrollRunId: { not: run.id },
+        payrollRun: { status: { in: [PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED] } },
+      },
+      select: { sourceRef: true },
+    });
+    const paidActivityRefs = new Set(paidActivity.map((r) => r.sourceRef));
+    const activities = await this.prisma.employeeNonCoreActivity.findMany({
+      where: {
+        includeInPayroll: true,
+        isActive: true,
+        deletedAt: null,
+        dateFrom: { gte: run.periodStart, lte: periodEnd },
+      },
+      include: { reason: { select: { name: true } } },
+      orderBy: { dateFrom: 'asc' },
+    });
+    for (const activity of activities) {
+      if (paidActivityRefs.has(activity.id)) continue;
+      const resolved = await rulesAt(activity.employeeId, activity.dateFrom);
+      if (!resolved) continue;
+      const day = dayKeyInTimeZone(activity.dateFrom, timeZone);
+      const what = activity.reason?.name ?? 'Activity';
+      if (activity.onCallForPeriod) {
+        const rule = cardRuleOfType(resolved.rules, 'ON_CALL');
+        if (!rule) continue;
+        lines.push({
+          payrollRunId: run.id,
+          visitReconciliationId: null,
+          employeeId: activity.employeeId,
+          lineType: PayrollRunLineType.ON_CALL_STANDBY,
+          sourceType: 'NON_CORE_ACTIVITY',
+          sourceRef: activity.id,
+          description: `On-call allowance — ${what} (${day})`,
+          minutes: null,
+          unitAmount: rule.amount,
+          amount: roundPence(rule.amount),
+          payCardId: resolved.card.id,
+          visitRef: null,
+          exceptionMessage: null,
+        });
+      } else {
+        const rule = cardRuleOfType(resolved.rules, 'TRAINING');
+        if (!rule) continue;
+        const minutes = Math.max(0, Math.round((activity.dateTo.getTime() - activity.dateFrom.getTime()) / 60_000));
+        if (!minutes) continue;
+        lines.push({
+          payrollRunId: run.id,
+          visitReconciliationId: null,
+          employeeId: activity.employeeId,
+          lineType: PayrollRunLineType.NON_VISIT_ACTIVITY,
+          sourceType: 'NON_CORE_ACTIVITY',
+          sourceRef: activity.id,
+          description: `Training / activity — ${what} (${day}, ${hours(minutes)} × £${Number(rule.amount).toFixed(2)})`,
+          minutes,
+          unitAmount: rule.amount,
+          amount: payItemAmount(new Prisma.Decimal(minutes).div(60), rule.amount),
+          payCardId: resolved.card.id,
+          visitRef: null,
+          exceptionMessage: null,
+        });
+      }
+      employeeIds.add(activity.employeeId);
+    }
+
+    // 3) Weekly overtime premium
+    const startById = new Map(reconciliations.map((r) => [r.id, r.approvedPayStart]));
+    const weeks = new Map<string, Map<string, Array<{ start: Date; minutes: number }>>>();
+    for (const line of visitLines) {
+      if (line.lineType !== PayrollRunLineType.VISIT_PAY || !line.employeeId || line.exceptionMessage) continue;
+      const start = line.visitReconciliationId ? startById.get(line.visitReconciliationId) : null;
+      if (!start || !line.minutes) continue;
+      const byWeek = weeks.get(line.employeeId) ?? new Map<string, Array<{ start: Date; minutes: number }>>();
+      const key = weekKeyInTimeZone(start, timeZone);
+      byWeek.set(key, [...(byWeek.get(key) ?? []), { start, minutes: line.minutes }]);
+      weeks.set(line.employeeId, byWeek);
+    }
+    for (const [employeeId, byWeek] of weeks) {
+      for (const [weekKey, shifts] of byWeek) {
+        const lastStart = shifts.reduce((a, s) => (s.start > a ? s.start : a), shifts[0].start);
+        const resolved = await rulesAt(employeeId, lastStart);
+        const rule = resolved ? cardRuleOfType(resolved.rules, 'OVERTIME') : null;
+        if (!resolved || !rule || !(rule.minimumMinutes && rule.minimumMinutes > 0)) continue;
+        const [week] = weeklyOvertime(shifts, rule.minimumMinutes, timeZone);
+        if (!week || week.overtimeMinutes <= 0) continue;
+        const premium = overtimePremiumPerHour(rule, cardBaseHourlyRate(resolved.rules));
+        if (premium.lte(0)) continue;
+        lines.push({
+          payrollRunId: run.id,
+          visitReconciliationId: null,
+          employeeId,
+          lineType: PayrollRunLineType.OVERTIME,
+          sourceType: 'OVERTIME',
+          sourceRef: `${run.id}:${employeeId}:${weekKey}`,
+          description: `Overtime premium — week of ${weekKey}: ${hours(week.workedMinutes)} worked, threshold ${hours(rule.minimumMinutes)}, ${hours(week.overtimeMinutes)} × £${premium.toFixed(2)} (base pay already in visit pay)`,
+          minutes: week.overtimeMinutes,
+          unitAmount: premium,
+          amount: payItemAmount(new Prisma.Decimal(week.overtimeMinutes).div(60), premium),
+          payCardId: resolved.card.id,
+          visitRef: null,
+          exceptionMessage: null,
+        });
+        employeeIds.add(employeeId);
+      }
+    }
+
+    // 4) Rolled-up holiday pay
+    const workedTypes = new Set<string>([
+      PayrollRunLineType.VISIT_PAY,
+      PayrollRunLineType.TRAVEL_TIME,
+      'WAITING_TIME',
+      PayrollRunLineType.OVERTIME,
+      PayrollRunLineType.NON_VISIT_ACTIVITY,
+    ]);
+    const workedPay = new Map<string, Prisma.Decimal>();
+    for (const line of [...visitLines, ...lines]) {
+      if (!line.employeeId || line.exceptionMessage || !workedTypes.has(String(line.lineType))) continue;
+      workedPay.set(line.employeeId, (workedPay.get(line.employeeId) ?? new Prisma.Decimal(0)).add(line.amount as Prisma.Decimal.Value));
+    }
+    for (const [employeeId, pay] of workedPay) {
+      if (pay.lte(0)) continue;
+      const resolved = await rulesAt(employeeId, run.periodEnd);
+      if ((resolved?.card as { holidayPayMethod?: string | null } | undefined)?.holidayPayMethod !== 'ROLLED_UP_12_07') continue;
+      lines.push({
+        payrollRunId: run.id,
+        visitReconciliationId: null,
+        employeeId,
+        lineType: PayrollRunLineType.HOLIDAY_PAY,
+        sourceType: 'HOLIDAY_ROLLED_UP',
+        sourceRef: `${run.id}:${employeeId}`,
+        description: `Rolled-up holiday pay — 12.07% of £${roundPence(pay).toFixed(2)} worked pay`,
+        minutes: null,
+        unitAmount: null,
+        amount: rolledUpHolidayPay(pay),
+        payCardId: resolved!.card.id,
+        visitRef: null,
+        exceptionMessage: null,
+      });
+    }
+
+    return { lines, employeeIds };
+  }
+
   async approve(userId: string, id: string) {
     const run = await this.prisma.payrollRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Payroll run not found');
@@ -946,14 +1185,20 @@ export class PayrollRunsService {
   async lock(userId: string, id: string) {
     const run = await this.prisma.payrollRun.findUnique({
       where: { id },
-      include: { lines: { select: { visitReconciliationId: true } } },
+      include: {
+        lines: {
+          select: { visitReconciliationId: true, employeePayItemId: true, sourceType: true, sourceRef: true },
+        },
+      },
     });
     if (!run) throw new NotFoundException('Payroll run not found');
     if (run.status !== PayrollRunStatus.APPROVED) {
       throw new BadRequestException('Approve the payroll run before locking');
     }
 
-    const reconIds = run.lines.map((l) => l.visitReconciliationId);
+    const reconIds = run.lines
+      .map((l) => l.visitReconciliationId)
+      .filter((v): v is string => !!v);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.payrollRun.update({
@@ -969,6 +1214,40 @@ export class PayrollRunsService {
           where: { id: { in: reconIds } },
           data: { includedInPayrollRunId: id, lockedAt: new Date() },
         });
+      }
+      // Freeze pay items with this run; refuse if another locked run already paid any of them.
+      const payItemIds = run.lines.map((l) => l.employeePayItemId).filter((v): v is string => !!v);
+      if (payItemIds.length) {
+        const alreadyPaid = await tx.employeePayItem.count({
+          where: { id: { in: payItemIds }, includedInPayrollRunId: { not: null } },
+        });
+        if (alreadyPaid) {
+          throw new BadRequestException(
+            'Some pay items in this run were already paid by another locked run. Recalculate this run first.',
+          );
+        }
+        await tx.employeePayItem.updateMany({
+          where: { id: { in: payItemIds } },
+          data: { includedInPayrollRunId: id },
+        });
+      }
+      const activityRefs = run.lines
+        .filter((l) => l.sourceType === 'NON_CORE_ACTIVITY' && l.sourceRef)
+        .map((l) => l.sourceRef!) ;
+      if (activityRefs.length) {
+        const paidElsewhere = await tx.payrollRunLine.count({
+          where: {
+            sourceType: 'NON_CORE_ACTIVITY',
+            sourceRef: { in: activityRefs },
+            payrollRunId: { not: id },
+            payrollRun: { status: { in: [PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED] } },
+          },
+        });
+        if (paidElsewhere) {
+          throw new BadRequestException(
+            'Some training / on-call activity in this run was already paid by another locked run. Recalculate this run first.',
+          );
+        }
       }
     });
 
@@ -1027,12 +1306,17 @@ export class PayrollRunsService {
   }
 
   private async loadVisitExportRows(payrollRunId: string): Promise<PayrollVisitExportRow[]> {
-    const lines = await this.prisma.payrollRunLine.findMany({
+    const allLines = await this.prisma.payrollRunLine.findMany({
       where: { payrollRunId },
       include: { visitReconciliation: true },
       orderBy: [{ visitRef: 'asc' }],
       take: 5000,
     });
+    // Rows are per visit; non-visit earnings (pay items, overtime…) still count in each carer's totals.
+    const lines = allLines.filter(
+      (line): line is typeof line & { visitReconciliation: NonNullable<typeof line.visitReconciliation> } =>
+        line.visitReconciliation != null,
+    );
 
     if (!lines.length) return [];
 
@@ -1084,11 +1368,12 @@ export class PayrollRunsService {
     const serviceUserMap = new Map(serviceUsers.map((su) => [su.id, su]));
 
     const carerTotals = new Map<string, { minutes: number; pay: number }>();
-    for (const line of lines) {
-      const employeeId = line.employeeId ?? line.visitReconciliation.employeeId;
+    for (const line of allLines) {
+      const employeeId = line.employeeId ?? line.visitReconciliation?.employeeId;
       if (!employeeId) continue;
+      // Overtime minutes are already inside visit minutes (premium-only line).
       const minutes =
-        line.minutes ?? line.visitReconciliation.payableMinutes ?? 0;
+        line.sourceType === 'OVERTIME' ? 0 : (line.minutes ?? line.visitReconciliation?.payableMinutes ?? 0);
       const pay = Number(line.amount);
       const existing = carerTotals.get(employeeId);
       if (existing) {

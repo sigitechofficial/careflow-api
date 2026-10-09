@@ -169,11 +169,12 @@ const REFERRAL_SOURCE_OPTIONS = {
 
 const GENDER_OPTIONS = {
   options: [
-    { value: 'female', label: 'Female' },
-    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female (including trans woman)' },
+    { value: 'male', label: 'Male (including trans man)' },
     { value: 'non_binary', label: 'Non-binary' },
-    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-    { value: 'other', label: 'Other' },
+    { value: 'not_known', label: 'Not Known (not recorded)' },
+    { value: 'prefer_not_to_say', label: 'Not Stated (person asked but declined to provide a response)' },
+    { value: 'other', label: 'Other (not listed)' },
   ],
 };
 

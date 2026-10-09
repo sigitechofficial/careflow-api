@@ -20,6 +20,8 @@ export class ServiceUserLookupsService {
       allergies,
       absenceReasons,
       visitPlanPauseReasons,
+      sexes,
+      sexualOrientations,
     ] = await Promise.all([
       this.prisma.serviceUserStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
@@ -40,6 +42,8 @@ export class ServiceUserLookupsService {
         where: { isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       }),
+      this.prisma.serviceUserSex.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.serviceUserSexualOrientation.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
     ]);
     return {
       data: {
@@ -56,6 +60,8 @@ export class ServiceUserLookupsService {
         allergies,
         absenceReasons,
         visitPlanPauseReasons,
+        sexes,
+        sexualOrientations,
       },
     };
   }
