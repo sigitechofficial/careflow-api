@@ -26,6 +26,7 @@ import { EmployeeReviewsModule } from './employee-reviews/employee-reviews.modul
 import { EmployeeNonCoreActivitiesModule } from './employee-non-core-activities/employee-non-core-activities.module';
 import { EmployeeAllocationsModule } from './employee-allocations/employee-allocations.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { ServiceUserReferralsModule } from './service-user-referrals/service-user-referrals.module';
 import { EmployeeWorkingPatternsModule } from './employee-working-patterns/employee-working-patterns.module';
 import { EmployeeComplianceModule } from './employee-compliance/employee-compliance.module';
 import { EmployeeReportsModule } from './employee-reports/employee-reports.module';
@@ -174,6 +175,7 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     EmployeeNonCoreActivitiesModule,
     EmployeeAllocationsModule,
     FeedbackModule,
+    ServiceUserReferralsModule,
     EmployeeWorkingPatternsModule,
     EmployeeComplianceModule,
     ComplianceTypesModule,

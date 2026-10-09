@@ -11,6 +11,8 @@ import {
   AssignChargeCardMatchingDto,
   AssignPayCardMatchingDto,
   BillingCardQueryDto,
+  ChangeEmployeePayCardDto,
+  PreviewPayDto,
   ChargeCardRuleDto,
   CreateChargeCardDto,
   CreatePayCardDto,
@@ -21,6 +23,7 @@ import {
   UpsertEmployeeFunderPayAssignmentDto,
 } from './dto/billing-cards.dto';
 import {
+  assertEmployeeDefaultPayCard,
   buildEmploymentWhereForPayCard,
   isPayCardEffective,
   normalizePayCardAssignmentInput,
@@ -29,6 +32,27 @@ import {
   pickEffectiveEmployeeFunderPayAssignment,
   resolveAssignmentLabel,
 } from './pay-card-assignment.util';
+import { loadPayCardRulesForDate, payRulesSignature } from './pay-card-version.util';
+import {
+  addDaysToOperationalIso,
+  combineOperationalDateAndHm,
+  dayKeyInTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { calculatePayableAmount } from './visit-reconciliation.util';
+import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import { classifyPayRule } from './wage-types.util';
+import {
+  dateOnlyKey,
+  parseDateOnlyKey,
+  pickAssignmentForDay,
+  recordEmployeePayCardChange,
+  sortAssignmentsLatestFirst,
+} from './employee-pay-card-assignment.util';
 import {
   buildChargeCardBulkAssignTarget,
   chargeCardListInclude,
@@ -146,9 +170,34 @@ function mapChargeRules(rules?: ChargeCardRuleDto[]) {
   }));
 }
 
+/** Card fields recorded in the audit log (rules are kept in the version history instead). */
+function payCardAuditValues(card: Record<string, unknown> | null | undefined) {
+  if (!card) return {};
+  const pick = [
+    'name',
+    'code',
+    'assignmentLevel',
+    'assignmentTargetId',
+    'assignmentTargetKey',
+    'assignmentLabel',
+    'status',
+    'stackingPolicy',
+    'bankHolidayRegion',
+    'effectiveFrom',
+    'effectiveTo',
+    'version',
+    'notes',
+  ];
+  return Object.fromEntries(pick.map((k) => [k, card[k] ?? null]));
+}
+
 @Injectable()
 export class PayCardsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async list(query: BillingCardQueryDto) {
     const where: Prisma.PayCardWhereInput = { deletedAt: null };
@@ -189,11 +238,21 @@ export class PayCardsService {
     return { data: row };
   }
 
+  /** Codes stay unique across cards even though `@@unique([code, version])` allows reuse once a card is versioned. */
+  private async assertPayCardCodeFree(code: string, exceptId?: string) {
+    const clash = await this.prisma.payCard.findFirst({
+      where: { code, ...(exceptId ? { NOT: { id: exceptId } } : {}) },
+      select: { id: true },
+    });
+    if (clash) throw new ConflictException('A pay card with this code already exists');
+  }
+
   async create(userId: string, dto: CreatePayCardDto, _meta?: RequestAuditMeta) {
+    await this.assertPayCardCodeFree(dto.code.trim().toUpperCase());
     try {
       const created = await this.prisma.$transaction(async (tx) => {
         const assignment = await buildPayCardAssignmentData(tx, dto);
-        return tx.payCard.create({
+        const card = await tx.payCard.create({
           data: {
             name: dto.name.trim(),
             code: dto.code.trim().toUpperCase(),
@@ -211,6 +270,7 @@ export class PayCardsService {
               | undefined) ?? null,
             travelInheritsTimeBands: dto.travelInheritsTimeBands ?? false,
             useUkMileageRates: dto.useUkMileageRates ?? true,
+            bankHolidayRegion: dto.bankHolidayRegion ?? null,
             mileageVehicleType: (dto.mileageVehicleType as
               | 'CAR_VAN'
               | 'MOTORCYCLE'
@@ -223,9 +283,25 @@ export class PayCardsService {
             notes: dto.notes?.trim() || null,
             createdById: userId,
             rules: { create: mapPayRules(dto.rules) as Prisma.PayCardRuleCreateWithoutPayCardInput[] },
+            versions: {
+              create: { version: 1, effectiveFrom: parseDateOnly(dto.effectiveFrom), createdById: userId },
+            },
           } as Prisma.PayCardCreateInput,
           include: payCardListInclude,
         });
+        await this.audit.logAudit({
+          tx,
+          userId,
+          module: AuditModule.BILLING,
+          action: AuditAction.PAY_CARD_CREATED,
+          recordType: 'PayCard',
+          recordId: card.id,
+          newValues: payCardAuditValues(card as unknown as Record<string, unknown>),
+          metadata: { rulesCount: card.rules.length },
+          ipAddress: _meta?.ipAddress ?? undefined,
+          userAgent: _meta?.userAgent ?? undefined,
+        });
+        return card;
       });
       return { message: 'Pay card created', data: created };
     } catch (e) {
@@ -237,12 +313,67 @@ export class PayCardsService {
   }
 
   async update(userId: string, id: string, dto: UpdatePayCardDto, _meta?: RequestAuditMeta) {
-    const existing = await this.prisma.payCard.findFirst({ where: { id, deletedAt: null } });
+    const existing = await this.prisma.payCard.findFirst({
+      where: { id, deletedAt: null },
+      include: { rules: { where: { supersededAt: null } } },
+    });
     if (!existing) throw new NotFoundException('Pay card not found');
+    if (dto.code !== undefined) await this.assertPayCardCodeFree(dto.code.trim().toUpperCase(), id);
+
+    // Rates only change when the submitted rules differ from the current version's rules.
+    const nextRules = dto.rules ? mapPayRules(dto.rules) : null;
+    const rulesChanged =
+      !!nextRules &&
+      payRulesSignature(existing.rules as unknown as Array<Record<string, unknown>>) !==
+        payRulesSignature(nextRules as unknown as Array<Record<string, unknown>>);
+    // Draft cards are not used for pay yet, so their rules are edited in place.
+    const createsVersion = rulesChanged && existing.status !== 'DRAFT';
+    const nextVersion = createsVersion ? existing.version + 1 : existing.version;
+    let versionEffectiveFrom: Date | null = null;
+    if (createsVersion) {
+      versionEffectiveFrom = parseDateOnly(dto.versionEffectiveFrom ?? dayKeyInTimeZone(new Date()));
+      const current = await this.prisma.payCardVersion.findUnique({
+        where: { payCardId_version: { payCardId: id, version: existing.version } },
+        select: { effectiveFrom: true },
+      });
+      const currentFrom = current?.effectiveFrom ?? existing.effectiveFrom;
+      if (versionEffectiveFrom < currentFrom) {
+        throw new BadRequestException(
+          `New rates must apply on or after ${currentFrom.toISOString().slice(0, 10)}, when version ${existing.version} started.`,
+        );
+      }
+      const cardEnd =
+        dto.effectiveTo !== undefined
+          ? dto.effectiveTo
+            ? parseDateOnly(dto.effectiveTo)
+            : null
+          : existing.effectiveTo;
+      if (cardEnd && versionEffectiveFrom > cardEnd) {
+        throw new BadRequestException('New rates cannot start after the card ends.');
+      }
+    }
+
     try {
       const updated = await this.prisma.$transaction(async (tx) => {
-        if (dto.rules) {
-          await tx.payCardRule.deleteMany({ where: { payCardId: id } });
+        if (nextRules && rulesChanged) {
+          if (createsVersion) {
+            // Keep the previous version's rules; they still price visits dated before the new version.
+            await tx.payCardRule.updateMany({
+              where: { payCardId: id, supersededAt: null },
+              data: { supersededAt: new Date() },
+            });
+            await tx.payCardVersion.create({
+              data: {
+                payCardId: id,
+                version: nextVersion,
+                effectiveFrom: versionEffectiveFrom!,
+                changeNote: dto.versionNote?.trim() || null,
+                createdById: userId,
+              },
+            });
+          } else {
+            await tx.payCardRule.deleteMany({ where: { payCardId: id, supersededAt: null } });
+          }
         }
 
         const assignmentTouched =
@@ -266,7 +397,7 @@ export class PayCardsService {
             })
           : null;
 
-        return tx.payCard.update({
+        const card = await tx.payCard.update({
           where: { id },
           data: {
             ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -293,6 +424,7 @@ export class PayCardsService {
               ? { travelInheritsTimeBands: dto.travelInheritsTimeBands }
               : {}),
             ...(dto.useUkMileageRates !== undefined ? { useUkMileageRates: dto.useUkMileageRates } : {}),
+            ...(dto.bankHolidayRegion !== undefined ? { bankHolidayRegion: dto.bankHolidayRegion || null } : {}),
             ...(dto.mileageVehicleType !== undefined
               ? {
                   mileageVehicleType: dto.mileageVehicleType as
@@ -309,18 +441,433 @@ export class PayCardsService {
               : {}),
             ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
             updatedById: userId,
-            ...(dto.rules ? { rules: { create: mapPayRules(dto.rules) as Prisma.PayCardRuleCreateWithoutPayCardInput[] } } : {}),
+            ...(createsVersion ? { version: nextVersion } : {}),
+            ...(nextRules && rulesChanged
+              ? {
+                  rules: {
+                    create: nextRules.map((rule) => ({
+                      ...rule,
+                      version: nextVersion,
+                    })) as Prisma.PayCardRuleCreateWithoutPayCardInput[],
+                  },
+                }
+              : {}),
           } as Prisma.PayCardUpdateInput,
           include: payCardListInclude,
         });
+        await this.audit.logAudit({
+          tx,
+          userId,
+          module: AuditModule.BILLING,
+          action: createsVersion ? AuditAction.PAY_CARD_RATES_VERSIONED : AuditAction.PAY_CARD_UPDATED,
+          recordType: 'PayCard',
+          recordId: id,
+          oldValues: payCardAuditValues(existing as unknown as Record<string, unknown>),
+          newValues: payCardAuditValues(card as unknown as Record<string, unknown>),
+          metadata: {
+            ratesChanged: rulesChanged,
+            ...(createsVersion
+              ? {
+                  newVersion: nextVersion,
+                  versionEffectiveFrom: versionEffectiveFrom?.toISOString().slice(0, 10),
+                  versionNote: dto.versionNote?.trim() || null,
+                }
+              : {}),
+          },
+          ipAddress: _meta?.ipAddress ?? undefined,
+          userAgent: _meta?.userAgent ?? undefined,
+        });
+        return card;
       });
-      return { message: 'Pay card updated', data: updated };
+      return {
+        message: createsVersion ? `Pay card updated — rates saved as version ${nextVersion}` : 'Pay card updated',
+        data: updated,
+      };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException('A pay card with this code already exists');
       }
       throw e;
     }
+  }
+
+  /** Last day of a locked/exported visit pay run that paid this carer (changes must start after it). */
+  private async lastLockedPayPeriodEnd(employeeId: string): Promise<Date | null> {
+    const run = await this.prisma.payrollRun.findFirst({
+      where: { status: { in: ['LOCKED', 'EXPORTED'] }, lines: { some: { employeeId } } },
+      orderBy: { periodEnd: 'desc' },
+      select: { periodEnd: true },
+    });
+    return run?.periodEnd ?? null;
+  }
+
+  /** Dated history of a carer's own pay card, newest first, plus the earliest date a change may use. */
+  async getEmployeePayCardHistory(employeeId: string) {
+    const rows = await this.prisma.employeePayCardAssignment.findMany({
+      where: { employeeId },
+      include: {
+        payCard: {
+          select: { id: true, name: true, code: true, status: true, version: true, assignmentLevel: true },
+        },
+      },
+    });
+    const sorted = sortAssignmentsLatestFirst(rows);
+    const creatorIds = [...new Set(sorted.map((r) => r.createdById).filter((v): v is string => !!v))];
+    const creators = creatorIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: creatorIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const creatorName = new Map(
+      creators.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    const todayKey = dayKeyInTimeZone(new Date());
+    const current = pickAssignmentForDay(sorted, todayKey);
+    const lockedEnd = await this.lastLockedPayPeriodEnd(employeeId);
+    const latestFrom = sorted[0]?.effectiveFrom ? dateOnlyKey(sorted[0].effectiveFrom) : null;
+    const afterLocked = lockedEnd
+      ? dateOnlyKey(new Date(lockedEnd.getTime() + 24 * 60 * 60 * 1000))
+      : null;
+    const earliestEffectiveFrom =
+      [latestFrom, afterLocked].filter((v): v is string => !!v).sort().pop() ?? null;
+    return {
+      data: {
+        history: sorted.map((r) => ({
+          id: r.id,
+          payCard: r.payCard,
+          effectiveFrom: r.effectiveFrom,
+          effectiveTo: r.effectiveTo,
+          reason: r.reason,
+          createdAt: r.createdAt,
+          createdByName: r.createdById ? (creatorName.get(r.createdById) ?? null) : null,
+          isCurrent: current?.id === r.id,
+          isScheduled: !!r.effectiveFrom && dateOnlyKey(r.effectiveFrom) > todayKey,
+        })),
+        earliestEffectiveFrom,
+        lastLockedPayPeriodEnd: lockedEnd,
+      },
+    };
+  }
+
+  /**
+   * Move one carer to a different pay card from a date (e.g. promotion) without touching the card
+   * other carers use. Either picks an existing card or creates a personal (INDIVIDUAL) card.
+   */
+  async changeEmployeePayCard(userId: string, employeeId: string, dto: ChangeEmployeePayCardDto) {
+    if (!!dto.payCardId === !!dto.personalCard) {
+      throw new BadRequestException('Choose an existing pay card or create a personal card.');
+    }
+    const reason = dto.reason?.trim();
+    if (!reason) throw new BadRequestException('Reason is required.');
+    const employment = await this.prisma.employeeEmployment.findFirst({
+      where: { employeeId, deletedAt: null, employee: { deletedAt: null } },
+      include: {
+        employee: { select: { personalDetail: { select: { firstName: true, lastName: true } } } },
+        grade: { select: { id: true, name: true } },
+      },
+    });
+    if (!employment) throw new NotFoundException('Employee employment record not found');
+
+    // Optional grade change made with the promotion (grades are a single current value, no date).
+    const gradeChange =
+      dto.gradeId && dto.gradeId !== employment.gradeId
+        ? await this.prisma.grade.findFirst({
+            where: { id: dto.gradeId, deletedAt: null, isActive: true },
+            select: { id: true, name: true },
+          })
+        : null;
+    if (dto.gradeId && dto.gradeId !== employment.gradeId && !gradeChange) {
+      throw new BadRequestException('Selected grade was not found.');
+    }
+    const historyReason = gradeChange
+      ? `${reason} · Grade: ${employment.grade?.name ?? 'none'} → ${gradeChange.name}`
+      : reason;
+
+    const from = parseDateOnlyKey(dto.effectiveFrom);
+    const fromKey = dateOnlyKey(from);
+    const lockedEnd = await this.lastLockedPayPeriodEnd(employeeId);
+    if (lockedEnd && fromKey <= dateOnlyKey(lockedEnd)) {
+      throw new BadRequestException(
+        `Pay up to ${dateOnlyKey(lockedEnd)} is already in a locked pay run. Choose a date after it.`,
+      );
+    }
+
+    const employeeName =
+      [employment.employee?.personalDetail?.firstName, employment.employee?.personalDetail?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || 'carer';
+    const matchInput = {
+      employeeId,
+      roleId: employment.roleId,
+      locationId: employment.locationId,
+      baseLocationId: employment.baseLocationId,
+      contractTypeId: employment.contractTypeId,
+      isAgencyStaff: employment.isAgencyStaff,
+      isBankStaff: employment.isBankStaff,
+    };
+
+    let personalCode: string | null = null;
+    let baseCard: Awaited<ReturnType<PayCardsService['resolveForEmployee']>>['data']['payCard'] = null;
+    if (dto.personalCard) {
+      if (!dto.personalCard.rules?.length) throw new BadRequestException('Add at least one pay rate.');
+      // Settings (stacking, mileage, frequency…) are copied from the card the carer is on today.
+      baseCard = (await this.resolveForEmployee(employeeId, new Date())).data.payCard;
+      const requested = dto.personalCard.code?.trim().toUpperCase();
+      if (requested) {
+        await this.assertPayCardCodeFree(requested);
+        personalCode = requested;
+      } else {
+        const stem = `IND-${(employment.employeeNumber?.trim() || employeeId.slice(0, 8)).toUpperCase()}`;
+        for (let n = 1; !personalCode; n += 1) {
+          const candidate = n === 1 ? stem : `${stem}-${n}`;
+          const clash = await this.prisma.payCard.findFirst({ where: { code: candidate }, select: { id: true } });
+          if (!clash) personalCode = candidate;
+        }
+      }
+    }
+
+    const newCardId = await this.prisma.$transaction(async (tx) => {
+      let cardId: string;
+      if (dto.personalCard) {
+        const base = baseCard as (typeof baseCard & Record<string, unknown>) | null;
+        const created = await tx.payCard.create({
+          data: {
+            name: dto.personalCard.name.trim(),
+            code: personalCode!,
+            assignmentLevel: 'INDIVIDUAL',
+            assignmentTargetId: employeeId,
+            assignmentLabel: `Individual: ${employeeName}`,
+            currency: base?.currency ?? 'GBP',
+            nation: base?.nation ?? 'ENG',
+            payFrequency: base?.payFrequency ?? 'WEEKLY',
+            stackingPolicy: base?.stackingPolicy ?? 'PRIORITY',
+            holidayPayMethod: base?.holidayPayMethod ?? null,
+            travelInheritsTimeBands: base?.travelInheritsTimeBands ?? false,
+            mileageVehicleType: base?.mileageVehicleType ?? 'CAR_VAN',
+            useUkMileageRates: base?.useUkMileageRates ?? true,
+            bankHolidayRegion: base?.bankHolidayRegion ?? null,
+            status: 'ACTIVE',
+            effectiveFrom: from,
+            effectiveTo: null,
+            notes: `Personal pay card for ${employeeName}. ${reason}`,
+            createdById: userId,
+            rules: {
+              create: mapPayRules(dto.personalCard.rules) as Prisma.PayCardRuleCreateWithoutPayCardInput[],
+            },
+            versions: { create: { version: 1, effectiveFrom: from, createdById: userId, changeNote: reason } },
+          } as Prisma.PayCardCreateInput,
+        });
+        cardId = created.id;
+      } else {
+        const card = await tx.payCard.findFirst({ where: { id: dto.payCardId!, deletedAt: null } });
+        if (!card) throw new BadRequestException('Selected pay card was not found');
+        if (card.status !== 'ACTIVE') throw new BadRequestException('Choose an active pay card.');
+        await assertEmployeeDefaultPayCard(tx, card.id, matchInput);
+        if (dateOnlyKey(card.effectiveFrom) > fromKey || (card.effectiveTo && dateOnlyKey(card.effectiveTo) < fromKey)) {
+          throw new BadRequestException(`Pay card "${card.code}" is not in force on ${fromKey}.`);
+        }
+        cardId = card.id;
+      }
+
+      const latest = sortAssignmentsLatestFirst(
+        await tx.employeePayCardAssignment.findMany({ where: { employeeId } }),
+      )[0];
+      if (latest && latest.payCardId === cardId && !latest.effectiveTo) {
+        throw new BadRequestException('This carer is already on that pay card.');
+      }
+      await recordEmployeePayCardChange(tx, {
+        employeeId,
+        payCardId: cardId,
+        effectiveFrom: from,
+        reason: historyReason,
+        userId,
+      });
+      await tx.employeeEmployment.update({
+        where: { id: employment.id },
+        data: {
+          defaultPayCardId: cardId,
+          ...(gradeChange ? { gradeId: gradeChange.id } : {}),
+          updatedById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.EMPLOYEE_PAY_CARD_CHANGED,
+        recordType: 'EmployeeEmployment',
+        recordId: employment.id,
+        oldValues: { defaultPayCardId: employment.defaultPayCardId, gradeId: employment.gradeId },
+        newValues: { defaultPayCardId: cardId, gradeId: gradeChange?.id ?? employment.gradeId },
+        metadata: {
+          employeeId,
+          effectiveFrom: fromKey,
+          reason: historyReason,
+          personalCard: !!dto.personalCard,
+        },
+      });
+      return cardId;
+    });
+
+    // Completed visits since the date that were already priced on the old card (not yet in a pay run).
+    const affectedPricedVisitCount = await this.prisma.visitReconciliation.count({
+      where: {
+        employeeId,
+        plannedStartDateTime: { gte: operationalDayBounds(fromKey).start },
+        payableAmount: { not: null },
+        includedInPayrollRunId: null,
+        NOT: { payCardId: newCardId },
+      },
+    });
+
+    return {
+      message: dto.personalCard
+        ? `Personal pay card created and applied from ${fromKey}`
+        : `Pay card changed from ${fromKey}`,
+      data: {
+        payCardId: newCardId,
+        effectiveFrom: fromKey,
+        affectedPricedVisitCount,
+        gradeName: gradeChange?.name ?? null,
+      },
+    };
+  }
+
+  /**
+   * Pay preview: prices a sample visit with the rules shown in the form, using the same calculation as
+   * live visit pricing (time bands, stacking, bank holiday calendar). Nothing is written.
+   */
+  async previewPay(dto: PreviewPayDto) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const date = dto.date.slice(0, 10);
+    const start = combineOperationalDateAndHm(date, dto.startTime, timeZone);
+    const endDay = dto.endTime <= dto.startTime ? addDaysToOperationalIso(date, 1) : date;
+    const end = combineOperationalDateAndHm(endDay, dto.endTime, timeZone);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('Enter start and end times as HH:mm.');
+    }
+    const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+    if (minutes <= 0 || minutes > 24 * 60) {
+      throw new BadRequestException('The sample visit must last between 1 minute and 24 hours.');
+    }
+
+    const region = dto.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+    const holidays = await this.prisma.bankHoliday.findMany({
+      where: {
+        isActive: true,
+        region,
+        holidayDate: { gte: new Date(`${date}T00:00:00.000Z`), lte: new Date(`${endDay}T00:00:00.000Z`) },
+      },
+      select: { holidayDate: true, name: true },
+    });
+    const holidayKeys = new Set(holidays.map((h) => h.holidayDate.toISOString().slice(0, 10)));
+    const rules = mapPayRules(dto.rules);
+    const stackingPolicy = (dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
+    const result = calculatePayableAmount(
+      rules,
+      start,
+      minutes,
+      holidayKeys.has(dayKeyInTimeZone(start, timeZone)),
+      {
+        start,
+        end,
+        stackingPolicy,
+        isBankHolidayFn: (d) => holidayKeys.has(dayKeyInTimeZone(d, timeZone)),
+        timeZone,
+      },
+      dto.nightDuty ?? null,
+      minutes,
+    );
+
+    const warnings: string[] = [];
+    if (!result) {
+      warnings.push(
+        dto.nightDuty === 'SLEEPING_NIGHT'
+          ? 'No sleeping night rate on this pay card.'
+          : dto.nightDuty === 'WAKING_NIGHT'
+            ? 'No waking night rate on this pay card.'
+            : 'No rate covers all of this visit — the visit would be held as "rate missing", not paid £0.',
+      );
+    }
+    const premiumRules = rules.filter(
+      (r) =>
+        r.enhancementMethod &&
+        r.enhancementMethod !== 'ABSOLUTE_HOURLY' &&
+        r.rateType !== 'SLEEP_IN' &&
+        r.rateType !== 'WAKING_NIGHT',
+    );
+    const hasWeekdayBase = rules.some(
+      (r) =>
+        (r.rateType === 'HOURLY' || r.rateType === 'BANDED') &&
+        (r.dayType === 'WEEKDAY' || r.dayType === 'ANY') &&
+        (!r.enhancementMethod || r.enhancementMethod === 'ABSOLUTE_HOURLY'),
+    );
+    if (premiumRules.length && !hasWeekdayBase) {
+      warnings.push('Premium, percentage and multiplier rates are added to the weekday base rate, but this card has no weekday hourly base rate.');
+    }
+
+    return {
+      data: {
+        amount: result?.amount ?? null,
+        minutes,
+        method: result?.label ?? null,
+        explanation: result?.explanation ?? null,
+        segments: result?.segments ?? [],
+        start,
+        end,
+        timeZone,
+        stackingPolicy,
+        bankHolidayRegion: region,
+        bankHolidays: holidays.map((h) => ({ date: h.holidayDate.toISOString().slice(0, 10), name: h.name })),
+        wageTypes: [...new Set(rules.map((r) => classifyPayRule(r)))],
+        warnings,
+      },
+    };
+  }
+
+  /** Rate history: every version (newest first) with its own rules and the date range it priced. */
+  async listVersions(id: string) {
+    const card = await this.prisma.payCard.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, version: true, effectiveTo: true },
+    });
+    if (!card) throw new NotFoundException('Pay card not found');
+    const [versions, rules] = await Promise.all([
+      this.prisma.payCardVersion.findMany({ where: { payCardId: id }, orderBy: { version: 'asc' } }),
+      this.prisma.payCardRule.findMany({
+        where: { payCardId: id },
+        orderBy: [{ version: 'asc' }, { sortOrder: 'asc' }],
+      }),
+    ]);
+    const creatorIds = [...new Set(versions.map((v) => v.createdById).filter((v): v is string => !!v))];
+    const creators = creatorIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: creatorIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const creatorName = new Map(
+      creators.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const data = versions.map((v, index) => {
+      const next = versions[index + 1];
+      return {
+        id: v.id,
+        version: v.version,
+        effectiveFrom: v.effectiveFrom,
+        // Last day this version priced: the day before the next version starts (or the card end).
+        effectiveTo: next ? new Date(next.effectiveFrom.getTime() - DAY_MS) : card.effectiveTo,
+        isCurrent: v.version === card.version,
+        changeNote: v.changeNote,
+        createdAt: v.createdAt,
+        createdByName: v.createdById ? (creatorName.get(v.createdById) ?? null) : null,
+        rules: rules.filter((r) => r.version === v.version),
+      };
+    });
+    return { data: data.reverse() };
   }
 
   async getAssignmentPreview(id: string) {
@@ -358,13 +905,38 @@ export class PayCardsService {
     if (onlyUnassigned) {
       where.defaultPayCardId = null;
     }
-    const result = await this.prisma.employeeEmployment.updateMany({
+    const targets = await this.prisma.employeeEmployment.findMany({
       where,
-      data: { defaultPayCardId: id, updatedById: userId },
+      select: { id: true, employeeId: true },
     });
+    let assigned = 0;
+    await this.prisma.$transaction(
+      async (tx) => {
+        for (const target of targets) {
+          try {
+            // Bulk assignment applies from today; carers with a future-dated change are skipped.
+            await recordEmployeePayCardChange(tx, {
+              employeeId: target.employeeId,
+              payCardId: id,
+              reason: `Bulk-assigned from pay card ${card.code}`,
+              userId,
+            });
+          } catch (e) {
+            if (e instanceof BadRequestException) continue;
+            throw e;
+          }
+          await tx.employeeEmployment.update({
+            where: { id: target.id },
+            data: { defaultPayCardId: id, updatedById: userId },
+          });
+          assigned += 1;
+        }
+      },
+      { timeout: 120_000 },
+    );
     return {
-      message: `Assigned pay card to ${result.count} carer${result.count === 1 ? '' : 's'}`,
-      data: { assignedCount: result.count },
+      message: `Assigned pay card to ${assigned} carer${assigned === 1 ? '' : 's'}`,
+      data: { assignedCount: assigned },
     };
   }
 
@@ -389,9 +961,17 @@ export class PayCardsService {
       throw new NotFoundException('Carer is not assigned to this pay card');
     }
 
-    await this.prisma.employeeEmployment.update({
-      where: { id: employment.id },
-      data: { defaultPayCardId: null, updatedById: userId },
+    await this.prisma.$transaction(async (tx) => {
+      await recordEmployeePayCardChange(tx, {
+        employeeId,
+        payCardId: null,
+        reason: `Unassigned from pay card ${card.code}`,
+        userId,
+      });
+      await tx.employeeEmployment.update({
+        where: { id: employment.id },
+        data: { defaultPayCardId: null, updatedById: userId },
+      });
     });
 
     return {
@@ -435,7 +1015,26 @@ export class PayCardsService {
     });
     if (!employment) throw new NotFoundException('Employee employment record not found');
 
-    if (employment.defaultPayCard) {
+    // Dated history of the carer's own card: the row covering the visit day wins (e.g. promotion date).
+    const history = await this.prisma.employeePayCardAssignment.findMany({
+      where: { employeeId },
+      include: { payCard: { include: payCardListInclude } },
+    });
+    if (history.length) {
+      const row = pickAssignmentForDay(history, dayKeyInTimeZone(asOf));
+      const card = row?.payCard;
+      if (card && !card.deletedAt && card.status === 'ACTIVE' && isPayCardEffective(card, asOf)) {
+        return {
+          data: {
+            source: 'EXPLICIT' as const,
+            payCard: card,
+            matchedLevel: null,
+            funderId,
+          },
+        };
+      }
+      // No own card that day (or it is inactive / not effective): fall back to matching.
+    } else if (employment.defaultPayCard) {
       const card = employment.defaultPayCard;
       if (card.deletedAt) {
         // fall through to matching
@@ -492,6 +1091,19 @@ export class PayCardsService {
         funderId,
       },
     };
+  }
+
+  /**
+   * The carer's pay card on a date and the rules of the card version in force that day
+   * (used for non-visit pay: training, on-call, live-in, overtime). Null when no card applies.
+   */
+  async resolveRulesForEmployeeAt(employeeId: string, at: Date) {
+    const resolved = await this.resolveForEmployee(employeeId, at);
+    const card = resolved.data.payCard;
+    if (!card) return null;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { version, rules } = await loadPayCardRulesForDate(this.prisma, card.id, at, timeZone);
+    return { card, version: version ?? card.version, rules, source: resolved.data.source };
   }
 
   private async findEffectiveFunderPayCard(employeeId: string, funderId: string, asOf: Date) {
@@ -732,9 +1344,22 @@ export class PayCardsService {
   async remove(userId: string, id: string, _meta?: RequestAuditMeta) {
     const existing = await this.prisma.payCard.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new NotFoundException('Pay card not found');
-    await this.prisma.payCard.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedById: userId },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payCard.update({
+        where: { id },
+        data: { deletedAt: new Date(), updatedById: userId },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.PAY_CARD_DELETED,
+        recordType: 'PayCard',
+        recordId: id,
+        oldValues: payCardAuditValues(existing as unknown as Record<string, unknown>),
+        ipAddress: _meta?.ipAddress ?? undefined,
+        userAgent: _meta?.userAgent ?? undefined,
+      });
     });
     return { message: 'Pay card deleted' };
   }
