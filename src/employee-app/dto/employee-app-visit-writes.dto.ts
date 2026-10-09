@@ -1,4 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IMMEDIATE_ACTION_CODES,
+  INCIDENT_LOCATION_KEYS,
+} from '../../incidents/incident-workflow.util';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -10,6 +14,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   Max,
@@ -647,6 +652,54 @@ export class EmployeeAppIncidentBodyMapDto {
   notes?: string;
 }
 
+/** One injury on a carer-app incident — the same shape as the office "Add injury" dialog. */
+export class EmployeeAppIncidentInjuryDto {
+  @ApiProperty({ enum: ['SERVICE_USER', 'EMPLOYEE', 'OTHER'] })
+  @IsIn(['SERVICE_USER', 'EMPLOYEE', 'OTHER'])
+  personKind!: 'SERVICE_USER' | 'EMPLOYEE' | 'OTHER';
+
+  @ApiPropertyOptional({ description: 'Staff member on this visit (personKind EMPLOYEE)' })
+  @IsOptional()
+  @IsUUID()
+  personEmployeeId?: string;
+
+  @ApiPropertyOptional({ description: 'Name when personKind is OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  personName?: string;
+
+  @ApiProperty({ example: 'Bruise' })
+  @IsString()
+  @MaxLength(120)
+  injuryType!: string;
+
+  @ApiProperty({ enum: ['MINOR', 'MODERATE', 'SERIOUS'] })
+  @IsIn(['MINOR', 'MODERATE', 'SERIOUS'])
+  injurySeverity!: 'MINOR' | 'MODERATE' | 'SERIOUS';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  bodyRegion?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+
+  @ApiPropertyOptional({
+    type: EmployeeAppIncidentBodyMapMarkDto,
+    description: 'Body-map pin (service user only)',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EmployeeAppIncidentBodyMapMarkDto)
+  mark?: EmployeeAppIncidentBodyMapMarkDto;
+}
+
 export class EmployeeAppIncidentDto {
   @ApiProperty()
   @IsString()
@@ -805,6 +858,68 @@ export class EmployeeAppIncidentDto {
   @Type(() => EmployeeAppIncidentBodyMapDto)
   bodyMap?: EmployeeAppIncidentBodyMapDto;
 
+  // ── Same questions as the office Raise form (newer app builds) ─────────────
+
+  @ApiPropertyOptional({ enum: INCIDENT_LOCATION_KEYS, description: 'Where did it happen?' })
+  @IsOptional()
+  @IsIn(INCIDENT_LOCATION_KEYS)
+  locationKey?: string;
+
+  @ApiPropertyOptional({ description: 'Where, when locationKey is OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  locationDetail?: string;
+
+  @ApiPropertyOptional({ enum: IMMEDIATE_ACTION_CODES, isArray: true, description: 'What was done?' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(IMMEDIATE_ACTION_CODES, { each: true })
+  immediateActionCodes?: string[];
+
+  @ApiPropertyOptional({ nullable: true, description: 'Ambulance attended? null = not known' })
+  @IsOptional()
+  @IsBoolean()
+  ambulanceAttended?: boolean | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Taken to A&E? null = not known' })
+  @IsOptional()
+  @IsBoolean()
+  takenToAe?: boolean | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Admitted to hospital? null = not known' })
+  @IsOptional()
+  @IsBoolean()
+  admittedToHospital?: boolean | null;
+
+  @ApiPropertyOptional({
+    description: 'Category-specific answers (same keys as the office form; "not sure" = left out)',
+  })
+  @IsOptional()
+  @IsObject()
+  categoryDetails?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: 'Staff member affected (a carer on this visit; default the reporter)' })
+  @IsOptional()
+  @IsUUID()
+  affectedEmployeeId?: string;
+
+  @ApiPropertyOptional({ type: [String], description: 'Other carers on this visit who were involved' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsUUID('all', { each: true })
+  involvedEmployeeIds?: string[];
+
+  @ApiPropertyOptional({ type: [EmployeeAppIncidentInjuryDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => EmployeeAppIncidentInjuryDto)
+  injuries?: EmployeeAppIncidentInjuryDto[];
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -824,6 +939,14 @@ export class EmployeeAppIncidentDto {
   @IsString()
   @MaxLength(128)
   clientEntryId?: string;
+}
+
+/** A carer-app incident reported outside a visit (Me tab). */
+export class EmployeeAppStandaloneIncidentDto extends EmployeeAppIncidentDto {
+  @ApiPropertyOptional({ description: 'Client involved (must be on the carer\'s round); omit for none' })
+  @IsOptional()
+  @IsUUID()
+  serviceUserId?: string;
 }
 
 export const VISIT_CARE_CONSENT_STATUSES = ['GRANTED', 'DECLINED'] as const;

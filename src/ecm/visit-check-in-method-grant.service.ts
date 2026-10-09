@@ -42,6 +42,8 @@ export type CreateCheckInMethodRequestInput = {
   distanceMeters?: number | null;
   alreadyCheckedIn: boolean;
   visitClosed: boolean;
+  /** False when the visit's client has no active NFC tag (NFC can't be used there). */
+  nfcTagAvailable?: boolean;
 };
 
 @Injectable()
@@ -140,7 +142,7 @@ export class VisitCheckInMethodGrantService {
         domCheckInQrEnabled: true,
       },
     });
-    if (orgHasOptInCheckInMethod(flags)) {
+    if (orgHasOptInCheckInMethod(flags, { nfcTagAvailable: input.nfcTagAvailable })) {
       throw new ConflictException({
         code: 'OTHER_CHECK_IN_METHODS_ENABLED',
         message: 'Use another check-in method. Office request is only for GPS-only organisations.',

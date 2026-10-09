@@ -305,6 +305,28 @@ export class ScheduledJobsHousekeepingService {
   }
 
   /**
+   * Carer app: the same voice note groups, with download URLs on the employee-app route.
+   * The caller must already have checked the carer is allocated to the visit.
+   */
+  async listVoiceNoteGroupsForCarerApp(jobId: string): Promise<VisitVoiceNoteGroupApi[]> {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true, metadata: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const jobMeta = this.parseJobMetadata(job.metadata);
+    const employeeAppMeta =
+      jobMeta.employeeApp && typeof jobMeta.employeeApp === 'object' && !Array.isArray(jobMeta.employeeApp)
+        ? (jobMeta.employeeApp as Record<string, unknown>)
+        : null;
+    return this.resolveJobVoiceNotes(
+      jobId,
+      employeeAppMeta,
+      (voiceNoteId) => `/employee-app/visits/${jobId}/voice-notes/${voiceNoteId}/file`,
+    );
+  }
+
+  /**
    * Resolves the voice notes on a visit to the records they belong to:
    * - notes / handover / concerns point at theirs on their own entry (`voiceNoteIds`);
    * - every other record via `voiceNoteLinks`: the save's idempotency key finds the server
@@ -315,6 +337,8 @@ export class ScheduledJobsHousekeepingService {
   private async resolveJobVoiceNotes(
     jobId: string,
     employeeAppMeta: Record<string, unknown> | null,
+    downloadUrlFor: (voiceNoteId: string) => string = (voiceNoteId) =>
+      `/scheduled-jobs-housekeeping/jobs/${jobId}/voice-notes/${voiceNoteId}/file`,
   ): Promise<VisitVoiceNoteGroupApi[]> {
     const logPointers = voiceNoteIdsByLogEntryId(employeeAppMeta);
     // Latest link per record — older saves of the same task / incident are superseded.
@@ -350,7 +374,7 @@ export class ScheduledJobsHousekeepingService {
             mimeType: row.mimeType,
             sizeBytes: row.fileSize,
             recordedAt: row.recordedAt?.toISOString() ?? null,
-            downloadUrl: `/scheduled-jobs-housekeeping/jobs/${jobId}/voice-notes/${row.id}/file`,
+            downloadUrl: downloadUrlFor(row.id),
           },
         ];
       });
@@ -437,6 +461,11 @@ export class ScheduledJobsHousekeepingService {
   /** Permission + org-scope checked voice note file for streaming playback. */
   async getVoiceNoteFile(user: RequestUser, jobId: string, voiceNoteId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return this.voiceNoteFileForJob(jobId, voiceNoteId);
+  }
+
+  /** Voice note file on a visit — callers check access (office scope, or carer allocation). */
+  async voiceNoteFileForJob(jobId: string, voiceNoteId: string) {
     const row = await this.prisma.visitVoiceNote.findFirst({
       where: { id: voiceNoteId, scheduledJobId: jobId, deletedAt: null },
     });
@@ -2298,6 +2327,7 @@ export class ScheduledJobsHousekeepingService {
             id: true,
             scheduledStartDateTime: true,
             actualStartDateTime: true,
+            actualEndDateTime: true,
           },
         },
       },
@@ -2313,6 +2343,7 @@ export class ScheduledJobsHousekeepingService {
       serviceUserId: job.serviceUserId,
       since,
       scheduledJobId: job.id,
+      until: primaryVisit?.actualEndDateTime ?? null,
     });
 
     return {

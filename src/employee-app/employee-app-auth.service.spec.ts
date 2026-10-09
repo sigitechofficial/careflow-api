@@ -71,6 +71,7 @@ describe('EmployeeAppAuthService', () => {
       portalAccounts as never,
       fcm as never,
       orgSettings as never,
+      {} as never,
     );
   });
 

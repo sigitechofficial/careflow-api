@@ -61,3 +61,36 @@ export function shouldFlagManualAttendance(input: {
   // Completed with times but no mobile evidence (legacy / office-only) → Manual
   return true;
 }
+
+/**
+ * Office-facing label for one attendance event.
+ * The attendance log stores carer-app Manual check-ins as MOBILE_GPS, so for a
+ * CHECK_IN pass the carer-app method from the check-in record when known.
+ */
+export function attendanceEventMethodLabel(input: {
+  verificationMethod: VisitAttendanceVerificationMethod | string | null | undefined;
+  appCheckInMethod?: string | null;
+  nfcTagLabel?: string | null;
+}): string {
+  const app = input.appCheckInMethod?.trim().toUpperCase();
+  const stored = String(input.verificationMethod ?? '').toUpperCase();
+  const method = app || stored;
+  const tag = input.nfcTagLabel?.trim();
+  switch (method) {
+    case 'NFC':
+      return tag ? `NFC tag · ${tag}` : 'NFC tag';
+    case 'QR':
+      return 'QR code';
+    case 'MANUAL':
+      return 'Manual (carer)';
+    case VisitAttendanceVerificationMethod.MANUAL_OFFICE:
+      return 'Office (manual)';
+    case VisitAttendanceVerificationMethod.TELEPHONE:
+      return 'Telephone';
+    case 'GPS':
+    case VisitAttendanceVerificationMethod.MOBILE_GPS:
+      return 'GPS';
+    default:
+      return method ? method.charAt(0) + method.slice(1).toLowerCase() : '—';
+  }
+}

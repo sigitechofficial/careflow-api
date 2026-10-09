@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { countCheckInMethods, loadCheckInMethodsByJobIds } from './ecm-check-in-method.util';
 import {
   EcmArrivalClassification,
   EcmAttendanceConfidence,
@@ -239,6 +240,14 @@ export class EcmReportsService {
       r.operationalExceptionCodes.includes('OUTSIDE_GEOFENCE'),
     ).length;
     const electronic = Math.max(0, total - manual);
+    const checkInMethods = countCheckInMethods(
+      (
+        await loadCheckInMethodsByJobIds(
+          this.prisma,
+          rows.map((r) => r.scheduledJobId),
+        )
+      ).values(),
+    );
 
     const exclusions = {
       confirmedMissed,
@@ -319,6 +328,8 @@ export class EcmReportsService {
             'ON_TIME arrivals ÷ (total evaluations − confirmed missed). Early is not on-time. Aligns with arrivalClassification SSOT used by Graphs.',
           electronicMonitoring:
             'Visits without MANUAL_ATTENDANCE (admin-completed) ÷ total evaluations in period.',
+          checkInMethods:
+            'How each visit was clocked in (first CHECK_IN): GPS, NFC tag, QR, Manual in the carer app, Office in admin, or none yet.',
           exceptionRegister:
             'Evaluations with a non-compliant arrival/duration/missed classification or any operational exception code.',
           opsDay: `Operational calendar day in ${timeZone}.`,
@@ -347,6 +358,7 @@ export class EcmReportsService {
           confirmedMissed,
           manualAttendance: manual,
           electronicAttendance: electronic,
+          checkInMethods,
           geofenceBreaches,
           verifiedConfidence: verified,
           totalVisits: total,

@@ -51,6 +51,11 @@ import {
   LiftIncidentCarerSuspensionDto,
   SuspendIncidentCarerDto,
 } from './dto/suspend-incident-carer.dto';
+import {
+  CreateIncidentStaffActionDto,
+  RemoveIncidentStaffActionDto,
+  UpdateIncidentStaffActionDto,
+} from './dto/incident-staff-action.dto';
 import { IncidentAnalyticsService } from './incident-analytics.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
 
@@ -334,6 +339,46 @@ export class IncidentsController {
     return this.service.continueCarerSuspension(user, id, suspensionId, dto, getRequestAuditMeta(req));
   }
 
+  @Post(':id/staff-actions')
+  @AnyPermission('incidents.investigate', 'incidents.close')
+  @ApiOperation({
+    summary: 'Outcome & close: record the action for a staff member (warning, fine, dismissal…)',
+  })
+  createStaffAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateIncidentStaffActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createStaffAction(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch(':id/staff-actions/:staffActionId')
+  @AnyPermission('incidents.investigate', 'incidents.close')
+  @ApiOperation({ summary: 'Change a staff action (needs a reason); a fine updates the salary deduction' })
+  updateStaffAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('staffActionId', ParseUUIDPipe) staffActionId: string,
+    @Body() dto: UpdateIncidentStaffActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateStaffAction(user, id, staffActionId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/staff-actions/:staffActionId/remove')
+  @AnyPermission('incidents.investigate', 'incidents.close')
+  @ApiOperation({ summary: 'Remove a staff action (needs a reason); a fine comes off the salary' })
+  removeStaffAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('staffActionId', ParseUUIDPipe) staffActionId: string,
+    @Body() dto: RemoveIncidentStaffActionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.removeStaffAction(user, id, staffActionId, dto, getRequestAuditMeta(req));
+  }
+
   @Get('carer-suspensions/by-employee/:employeeId')
   @Permissions('incidents.read')
   @ApiOperation({ summary: "A carer's interim suspension history across incidents" })
@@ -403,6 +448,19 @@ export class IncidentsController {
       dto,
       getRequestAuditMeta(req),
     );
+  }
+
+  @Get('actions/:actionId/care-plan-evidence')
+  @AnyPermission('incidents.manage_actions', 'incidents.read')
+  @ApiOperation({
+    summary:
+      'Care plan update measure: the plans to open and the published versions that can complete it',
+  })
+  carePlanEvidence(
+    @CurrentUser() user: RequestUser,
+    @Param('actionId', ParseUUIDPipe) actionId: string,
+  ) {
+    return this.service.carePlanEvidenceForAction(user, actionId);
   }
 
   @Post('actions/:actionId/complete')

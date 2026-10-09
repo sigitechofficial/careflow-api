@@ -921,6 +921,18 @@ export class IncidentCareService {
     }
     assertIncidentEditable(attachment.incident);
     this.requirePermission(user, 'incidents.update');
+    // A Duty of Candour letter copy must be kept (Regulation 20(6)).
+    const candourLetter = await this.prisma.incidentCandour.count({
+      where: {
+        deletedAt: null,
+        OR: [{ writtenAttachmentId: attachmentId }, { resultsAttachmentId: attachmentId }],
+      },
+    });
+    if (candourLetter > 0) {
+      throw new BadRequestException(
+        'This is a Duty of Candour letter copy and must be kept. Record a different letter on that step first if it was wrong.',
+      );
+    }
     await this.prisma.incidentAttachment.update({
       where: { id: attachmentId },
       data: { deletedAt: new Date() },

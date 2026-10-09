@@ -74,6 +74,7 @@ type SettingsRow = {
   id: string;
   reviewCarePlanAfterDays: number;
   handoverReportLastHours: number;
+  incidentCandourOverdueDays: number | null;
   archiveServiceUserAfterMonths: number;
   timeDisplayFormat: string;
   dateDisplayFormat: string;
@@ -206,6 +207,7 @@ function mapRow(row: SettingsRow) {
     id: row.id,
     reviewCarePlanAfterDays: row.reviewCarePlanAfterDays,
     handoverReportLastHours: row.handoverReportLastHours,
+    incidentCandourOverdueDays: row.incidentCandourOverdueDays,
     archiveServiceUserAfterMonths: row.archiveServiceUserAfterMonths,
     timeDisplayFormat: row.timeDisplayFormat,
     dateDisplayFormat: row.dateDisplayFormat,
@@ -331,6 +333,7 @@ function buildUpdateData(
 
   set('reviewCarePlanAfterDays', dto.reviewCarePlanAfterDays);
   set('handoverReportLastHours', dto.handoverReportLastHours);
+  set('incidentCandourOverdueDays', dto.incidentCandourOverdueDays);
   set('archiveServiceUserAfterMonths', dto.archiveServiceUserAfterMonths);
   set('timeDisplayFormat', dto.timeDisplayFormat);
   set('dateDisplayFormat', dto.dateDisplayFormat);

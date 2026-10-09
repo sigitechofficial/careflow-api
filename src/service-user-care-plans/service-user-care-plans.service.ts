@@ -23,6 +23,7 @@ import { readCarePlanDecisions } from '../initial-assessments/initial-assessment
 import type { CarePlanTriggerItem } from '../initial-assessments/initial-assessment-care-plan.util';
 import { isSecureQuestionMetadata } from '../initial-assessments/initial-assessment-secure-field.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { incidentServiceUserIds } from '../incidents/incident-care-plan-measure.util';
 import {
   buildAcceptedDecisionOnPublish,
   mergeCarePlanDecisionsIntoMetadata,
@@ -343,6 +344,10 @@ export class ServiceUserCarePlansService {
       );
     }
 
+    const incidentMeasure = dto.incidentActionId
+      ? await this.loadIncidentCarePlanMeasure(dto.incidentActionId, serviceUserId, instance.id)
+      : null;
+
     const latestVersion = await this.prisma.serviceUserCarePlanPublishedVersion.findFirst({
       where: { instanceId: instance.id },
       orderBy: { versionNumber: 'desc' },
@@ -403,6 +408,7 @@ export class ServiceUserCarePlansService {
             ? (dto.signatures as Prisma.InputJsonValue)
             : undefined,
           publishedById: userId,
+          incidentActionId: incidentMeasure?.id ?? null,
         },
       });
 
@@ -445,6 +451,20 @@ export class ServiceUserCarePlansService {
       ...meta,
     });
 
+    if (incidentMeasure) {
+      // On the incident timeline next to the measure.
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_UPDATED,
+        recordType: 'IncidentActionChange',
+        recordId: incidentMeasure.incidentId,
+        description: `Care plan published for measure "${incidentMeasure.title}": ${form.name} version ${versionNumber}`,
+        newValues: { incidentActionId: incidentMeasure.id, carePlanVersionId: version.id },
+        ...meta,
+      });
+    }
+
     await this.acceptMatchingIaRecommendationsOnPublish({
       userId,
       serviceUserId,
@@ -454,6 +474,58 @@ export class ServiceUserCarePlansService {
     });
 
     return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  /**
+   * Publishing from an incident's "Care plan update" measure: the measure must still be open, be
+   * about this service user, and name this plan (or say a new plan is needed).
+   */
+  private async loadIncidentCarePlanMeasure(
+    actionId: string,
+    serviceUserId: string,
+    instanceId: string,
+  ) {
+    const action = await this.prisma.incidentAction.findFirst({
+      where: { id: actionId, deletedAt: null },
+      select: {
+        id: true,
+        title: true,
+        incidentId: true,
+        measureType: true,
+        status: true,
+        newRecordNeeded: true,
+        linkedRecords: true,
+        incident: {
+          select: {
+            status: true,
+            deletedAt: true,
+            primaryServiceUserId: true,
+            involvedServiceUserIds: true,
+          },
+        },
+      },
+    });
+    if (!action || action.incident.deletedAt || action.measureType !== 'CARE_PLAN_UPDATE') {
+      throw new BadRequestException('The incident care plan measure was not found');
+    }
+    if (action.incident.status === 'CLOSED') {
+      throw new BadRequestException('The incident is closed — publish without linking it');
+    }
+    if (action.status === 'COMPLETED' || action.status === 'CANCELLED') {
+      throw new BadRequestException('That incident measure is already completed or cancelled');
+    }
+    if (!incidentServiceUserIds(action.incident).includes(serviceUserId)) {
+      throw new BadRequestException('That incident measure is about a different service user');
+    }
+    const named = Array.isArray(action.linkedRecords)
+      ? action.linkedRecords.some(
+          (r) => r && typeof r === 'object' && (r as { id?: unknown }).id === instanceId,
+        )
+      : false;
+    if (!named && !action.newRecordNeeded) {
+      throw new BadRequestException('That incident measure is about a different care plan');
+    }
+    return action;
   }
 
   /**
@@ -615,19 +687,45 @@ export class ServiceUserCarePlansService {
         publishedAt: true,
         publishedById: true,
         supersededAt: true,
+        incidentActionId: true,
       },
     });
 
+    // Versions made for an incident measure link back to it.
+    const actionIds = rows.map((r) => r.incidentActionId).filter((v): v is string => !!v);
+    const actions = actionIds.length
+      ? await this.prisma.incidentAction.findMany({
+          where: { id: { in: actionIds } },
+          select: {
+            id: true,
+            title: true,
+            incidentId: true,
+            incident: { select: { referenceNumber: true } },
+          },
+        })
+      : [];
+    const actionById = new Map(actions.map((a) => [a.id, a]));
+
     return {
-      data: rows.map((row) => ({
-        id: row.id,
-        versionNumber: row.versionNumber,
-        summary: row.summary,
-        publishedAt: row.publishedAt.toISOString(),
-        publishedById: row.publishedById,
-        supersededAt: row.supersededAt?.toISOString() ?? null,
-        isCurrent: row.supersededAt == null,
-      })),
+      data: rows.map((row) => {
+        const action = row.incidentActionId ? actionById.get(row.incidentActionId) : undefined;
+        return {
+          id: row.id,
+          versionNumber: row.versionNumber,
+          summary: row.summary,
+          publishedAt: row.publishedAt.toISOString(),
+          publishedById: row.publishedById,
+          supersededAt: row.supersededAt?.toISOString() ?? null,
+          isCurrent: row.supersededAt == null,
+          incident: action
+            ? {
+                incidentId: action.incidentId,
+                referenceNumber: action.incident.referenceNumber,
+                measureTitle: action.title,
+              }
+            : null,
+        };
+      }),
     };
   }
 

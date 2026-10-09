@@ -3,10 +3,12 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -20,7 +22,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -48,6 +50,7 @@ import {
   EmployeeAppVoiceNoteLinkDto,
 } from './dto/employee-app-visit-writes.dto';
 import { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
+import { EmployeeAppNfcTagMismatchDto } from './dto/employee-app-nfc-tag-mismatch.dto';
 import { VISIT_VOICE_NOTE_MAX_BYTES } from './visit-voice-note.util';
 
 @ApiTags('Employee App Visits')
@@ -143,6 +146,20 @@ export class EmployeeAppVisitsController {
     @Body() dto: EmployeeAppVisitCheckInDto,
   ) {
     return this.visitsService.checkIn(user.employeeId!, jobId, dto);
+  }
+
+  @Post(':jobId/nfc-tag-mismatch')
+  @ApiOperation({
+    summary: 'Report a wrong NFC tag scanned at clock-in',
+    description:
+      'Sent by the app when it rejects a tag locally (incl. offline, queued). Raises / updates an NFC_TAG_MISMATCH ECM exception. Ignored if the tag is in fact an active tag of this client.',
+  })
+  reportNfcTagMismatch(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Body() dto: EmployeeAppNfcTagMismatchDto,
+  ) {
+    return this.visitsService.reportNfcTagMismatch(user.employeeId!, jobId, dto);
   }
 
   @Post(':jobId/unable-to-start')
@@ -310,6 +327,30 @@ export class EmployeeAppVisitsController {
   @ApiOperation({ summary: 'Visit log tab (timeline + handover note)' })
   log(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
     return this.visitsService.getLog(user.employeeId!, jobId);
+  }
+
+  @Get(':jobId/voice-notes')
+  @ApiOperation({
+    summary: 'Voice notes on this visit (every carer), grouped by the record they belong to',
+  })
+  voiceNotes(@CurrentUser() user: RequestUser, @Param('jobId') jobId: string) {
+    return this.visitsService.getVoiceNotes(user.employeeId!, jobId);
+  }
+
+  @Get(':jobId/voice-notes/:voiceNoteId/file')
+  @ApiOperation({ summary: 'Stream a voice note on this visit (allocated carers only)' })
+  async voiceNoteFile(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @Param('voiceNoteId', ParseUUIDPipe) voiceNoteId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.visitsService.getVoiceNoteFile(user.employeeId!, jobId, voiceNoteId);
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
+    return res.sendFile(file.absolutePath);
   }
 
   @Post(':jobId/log/notes')

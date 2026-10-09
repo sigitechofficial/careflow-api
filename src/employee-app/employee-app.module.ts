@@ -15,6 +15,8 @@ import { EmployeeAppScheduleController } from './employee-app-schedule.controlle
 import { EmployeeAppScheduleService } from './employee-app-schedule.service';
 import { EmployeeAppClientsController } from './employee-app-clients.controller';
 import { EmployeeAppClientsService } from './employee-app-clients.service';
+import { EmployeeAppIncidentsService } from './employee-app-incidents.service';
+import { EmployeeAppIncidentsController } from './employee-app-incidents.controller';
 import { EmployeeAppClientDetailService } from './employee-app-client-detail.service';
 import { EmployeeAppAlertsService } from './employee-app-alerts.service';
 import { EmployeeAppVisitsController } from './employee-app-visits.controller';
@@ -32,6 +34,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { MedicationNotificationHook } from '../medications/medication-notification.hook';
 import { IncidentsModule } from '../incidents/incidents.module';
 import { EmployeeAppDeviceTokenController } from './employee-app-device-token.controller';
+import { EmployeeAppProfileController } from './employee-app-profile.controller';
+import { EmployeeAppProfileService } from './employee-app-profile.service';
+import { EmployeeComplianceModule } from '../employee-compliance/employee-compliance.module';
 
 @Module({
   imports: [
@@ -46,6 +51,7 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     EcmModule,
     NotificationsModule,
     IncidentsModule,
+    EmployeeComplianceModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
@@ -61,10 +67,12 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     EmployeeAppHomeController,
     EmployeeAppScheduleController,
     EmployeeAppClientsController,
+    EmployeeAppIncidentsController,
     EmployeeAppVisitsController,
     EmployeeAppBodyMapController,
     EmployeeAppSalaryController,
     EmployeeAppDeviceTokenController,
+    EmployeeAppProfileController,
   ],
   providers: [
     EmployeeAppAuthService,
@@ -72,12 +80,14 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
     EmployeeAppHomeService,
     EmployeeAppScheduleService,
     EmployeeAppClientsService,
+    EmployeeAppIncidentsService,
     EmployeeAppClientDetailService,
     EmployeeAppAlertsService,
     EmployeeAppVisitsService,
     EmployeeAppSosService,
     VisitTimelineService,
     EmployeeAppSalaryService,
+    EmployeeAppProfileService,
     MedicationNotificationHook,
   ],
   exports: [EmployeeAppAuthService, EmployeeAppAuthGuard],

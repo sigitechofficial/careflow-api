@@ -76,6 +76,15 @@ export class EmployeeAppVisitCheckInDto {
   @MaxLength(16)
   method?: string;
 
+  @ApiPropertyOptional({
+    description: 'Required when method is NFC: UID read from the tag (hex; separators allowed).',
+    example: '04A23B1C5D8000',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  nfcTagUid?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

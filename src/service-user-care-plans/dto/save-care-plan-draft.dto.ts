@@ -1,4 +1,4 @@
-import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SaveCarePlanDraftDto {
@@ -31,4 +31,12 @@ export class PublishCarePlanDto {
   @IsOptional()
   @IsBoolean()
   gapAcknowledged?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Incident "Care plan update" measure this publish is for (opened from the incident). The new version is linked to it.',
+  })
+  @IsOptional()
+  @IsUUID()
+  incidentActionId?: string;
 }

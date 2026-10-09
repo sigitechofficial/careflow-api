@@ -57,6 +57,8 @@ export function buildEcmAlertMessage(input: EcmAlertMessageInput): string {
       const reason = input.reasonLabel?.trim();
       return `${who} could not start ${visit}${reason ? `: ${reason}` : ''}.`;
     }
+    case 'NFC_TAG_MISMATCH':
+      return `${who} scanned an NFC tag that is not registered for ${visit}.`;
   }
 
   return carer

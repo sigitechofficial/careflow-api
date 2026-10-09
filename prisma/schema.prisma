@@ -901,6 +901,9 @@ model OrganisationGeneralSettings {
   id                                   String                     @id @default(uuid()) @db.Uuid
   reviewCarePlanAfterDays              Int                        @default(180)
   handoverReportLastHours              Int                        @default(12)
+  /// Incidents: Duty of Candour is flagged overdue after this many days without telling the person
+  /// in person (organisation policy — the law says "as soon as reasonably practicable"). Null = off.
+  incidentCandourOverdueDays           Int?
   archiveServiceUserAfterMonths        Int                        @default(3)
   timeDisplayFormat                    TimeDisplayFormat          @default(HH_MM)
   dateDisplayFormat                    DateDisplayFormat          @default(DD_MM_YYYY)
@@ -2825,6 +2828,7 @@ model ServiceUser {
   photos                ServiceUserPhoto[]
   inventoryItems        ServiceUserInventoryItem[]
   allergies             ServiceUserAllergy[]
+  nfcTags               ServiceUserNfcTag[]
   medicalConditions     ServiceUserMedicalCondition[]
   reasonableAdjustments ServiceUserReasonableAdjustment[]
   medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
@@ -3657,6 +3661,8 @@ model ServiceUserCarePlanPublishedVersion {
   publishedAt      DateTime  @default(now())
   publishedById    String?   @db.Uuid
   supersededAt     DateTime?
+  /// The incident "Care plan update" measure this version is the evidence for (incidents.IncidentAction).
+  incidentActionId String?   @db.Uuid
   createdAt        DateTime  @default(now())
 
   instance    ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -3664,6 +3670,7 @@ model ServiceUserCarePlanPublishedVersion {
 
   @@unique([instanceId, versionNumber])
   @@index([instanceId])
+  @@index([incidentActionId])
   @@schema("service_users")
 }
 
@@ -3882,6 +3889,60 @@ model BodyMapRecordTypeCatalog {
   @@index([parentId])
   @@index([isActive])
   @@index([initialAssessmentWoundType])
+  @@schema("service_users")
+}
+
+/// NFC tag fixed in a service user's home. Carers scan it at clock-in to prove
+/// they are at the address. `uid` is the chip's factory UID, normalised to
+/// upper-case hex with no separators (e.g. 04A23B1C5D8000).
+/// Only one ACTIVE, non-deleted row may hold a given uid (partial unique index in SQL).
+model ServiceUserNfcTag {
+  id              String    @id @default(uuid()) @db.Uuid
+  serviceUserId   String    @db.Uuid
+  uid             String    @db.VarChar(32)
+  label           String    @db.VarChar(100)
+  locationNote    String?   @db.VarChar(500)
+  /// ACTIVE | LOST | RETIRED
+  status          String    @default("ACTIVE") @db.VarChar(20)
+  statusReason    String?   @db.VarChar(500)
+  statusChangedAt DateTime?
+  lastScannedAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser             @relation(fields: [serviceUserId], references: [id])
+  scans       ServiceUserNfcTagScan[]
+
+  @@index([serviceUserId])
+  @@index([uid])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// One scan of a registered NFC tag at clock-in — the tag's scan history.
+/// Unknown UIDs (no tag row) are only recorded as ECM exceptions.
+model ServiceUserNfcTagScan {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tagId              String   @db.Uuid
+  scheduledJobId     String   @db.Uuid
+  /// Client whose visit it was (differs from the tag's client when WRONG_CLIENT).
+  visitServiceUserId String   @db.Uuid
+  employeeId         String   @db.Uuid
+  /// ACCEPTED | WRONG_CLIENT | INACTIVE
+  result             String   @db.VarChar(20)
+  /// CHECK_IN (server) | APP_REPORT (app caught it, possibly offline)
+  source             String   @db.VarChar(20)
+  scannedAt          DateTime
+  createdAt          DateTime @default(now())
+
+  tag ServiceUserNfcTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@index([tagId, scannedAt])
   @@schema("service_users")
 }
 
@@ -7473,6 +7534,8 @@ enum EcmExceptionKind {
   CARER_SOS
   OUTSIDE_AREA_CHECK_IN_REQUEST
   UNABLE_TO_START
+  /// Carer scanned an NFC tag that is not an active tag of this visit's client.
+  NFC_TAG_MISMATCH
   OTHER
 
   @@schema("scheduling")
@@ -8905,6 +8968,10 @@ model EmployeeSalaryDeduction {
   notes       String?
   /// Calendar month this deduction applies to (YYYY-MM, UTC).
   salaryMonth String
+  /// Set when the fine was decided on an incident (Outcome & close → Staff actions); it is then
+  /// changed or removed from the incident, not from the Salary tab.
+  incidentId            String? @db.Uuid
+  incidentStaffActionId String? @db.Uuid
   isActive    Boolean             @default(true)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -8913,6 +8980,7 @@ model EmployeeSalaryDeduction {
   updatedById String?             @db.Uuid
 
   @@index([employeeId, salaryMonth])
+  @@index([incidentStaffActionId])
   @@index([type])
   @@index([deletedAt])
   @@schema("billing")
@@ -11025,6 +11093,13 @@ model Incident {
   injuryDetails            String?  @db.Text
   /// Carer-supplied free-text describing other people involved.
   peopleInvolved           String?  @db.Text
+  /// Carer-supplied free-text about witnesses, kept exactly as written (the office records
+  /// structured IncidentWitness rows from it).
+  witnessDetails           String?  @db.Text
+  /// Carer-app reports made outside a visit: the app's entry id (edits / retries find the row)
+  /// and the last write key applied (a retry of the same save is a replay).
+  appClientEntryId         String?  @unique
+  appLastWriteKey          String?
   /// Hospital outcome at raise — null means "Not known" (e.g. reported by phone).
   ambulanceAttended        Boolean?
   takenToAe                Boolean?
@@ -11077,6 +11152,8 @@ model Incident {
   outcome         IncidentOutcome?
   actions         IncidentAction[]
   carerSuspensions IncidentCarerSuspension[]
+  staffActions     IncidentStaffAction[]
+  candourRecords   IncidentCandour[]
   externalBodies        IncidentExternalBody[]
   courseRecommendations IncidentCarerCourseRecommendation[]
   injuries        IncidentInjury[]
@@ -11154,6 +11231,7 @@ enum IncidentClarificationField {
   IMMEDIATE_ACTIONS
   PEOPLE_INVOLVED
   EMERGENCY_SERVICES
+  WITNESS_DETAILS
 
   @@schema("incidents")
 }
@@ -11381,6 +11459,132 @@ model IncidentCarerSuspension {
 
   /// A carer can be suspended again after a lift (one open suspension at a time, checked in code).
   @@index([incidentId, employeeId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Duty of Candour (Regulation 20, SI 2014/2936) for one affected service user on an incident:
+/// the decision (with the health professional's opinion), then told in person, written follow-up
+/// and results shared — or, under Reg 20(5), the attempts made when the person can't be reached or
+/// declines. Rules: incident-candour.util.ts.
+model IncidentCandour {
+  id            String @id @default(uuid()) @db.Uuid
+  incidentId    String @db.Uuid
+  serviceUserId String @db.Uuid
+
+  /// YES / NO / NOT_KNOWN / NOT_APPLICABLE
+  decision       String    @db.VarChar(20)
+  decisionReason String?   @db.Text
+  /// Regulation 20(9) harms: DEATH, IMPAIRMENT_28_DAYS, BODY_STRUCTURE_CHANGE, PROLONGED_PAIN,
+  /// PROLONGED_PSYCH_HARM, SHORTENED_LIFE, TREATMENT_TO_PREVENT
+  harmTypes      String[]  @default([])
+  /// "In the reasonable opinion of a health care professional" (may be external: GP, paramedic).
+  healthProfessionalName       String?  @db.VarChar(200)
+  healthProfessionalRole       String?  @db.VarChar(120)
+  healthProfessionalEmployeeId String?  @db.Uuid
+  decidedById    String?   @db.Uuid
+  decidedAt      DateTime?
+  /// When the duty started counting (report date, or the day it changed to Yes from No).
+  dutyStartedAt  DateTime?
+
+  /// Step 1 — told in person (Reg 20(2)–(3)).
+  toldOn             DateTime? @db.Date
+  toldByEmployeeId   String?   @db.Uuid
+  /// SERVICE_USER / REPRESENTATIVE
+  toldPersonKind     String?   @db.VarChar(20)
+  toldPersonName     String?   @db.VarChar(200)
+  toldRelationship   String?   @db.VarChar(120)
+  factsExplained     Boolean   @default(false)
+  enquiriesExplained Boolean   @default(false)
+  apologyGiven       Boolean   @default(false)
+  supportOffered     String?   @db.Text
+
+  /// Step 2 — written follow-up (Reg 20(4), copy kept under 20(6)).
+  writtenSentOn         DateTime? @db.Date
+  writtenByEmployeeId   String?   @db.Uuid
+  /// POST / EMAIL / HANDED
+  writtenMethod         String?   @db.VarChar(20)
+  writtenAttachmentId   String?   @db.Uuid
+
+  /// Step 3 — results of the enquiries shared in writing, or no further enquiries (with reason).
+  resultsSharedOn           DateTime? @db.Date
+  resultsMethod             String?   @db.VarChar(20)
+  resultsAttachmentId       String?   @db.Uuid
+  noFurtherEnquiriesReason  String?   @db.Text
+
+  /// Reg 20(5): the person can't be contacted or declines to speak — attempts are recorded.
+  unableToNotify Boolean @default(false)
+  /// DECLINED / NOT_CONTACTABLE / NO_REPRESENTATIVE
+  unableReason   String? @db.VarChar(30)
+  unableNote     String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident                 @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  attempts IncidentCandourAttempt[]
+
+  @@unique([incidentId, serviceUserId])
+  @@index([incidentId])
+  @@index([decision])
+  @@schema("incidents")
+}
+
+/// A contact attempt for Duty of Candour (needed when the person can't be reached or declines).
+model IncidentCandourAttempt {
+  id                String   @id @default(uuid()) @db.Uuid
+  candourId         String   @db.Uuid
+  attemptedOn       DateTime @db.Date
+  /// PHONE / VISIT / LETTER / EMAIL / OTHER
+  method            String   @db.VarChar(20)
+  byEmployeeId      String?  @db.Uuid
+  outcome           String   @db.Text
+  createdAt         DateTime @default(now())
+  createdById       String?  @db.Uuid
+
+  candour IncidentCandour @relation(fields: [candourId], references: [id], onDelete: Cascade)
+
+  @@index([candourId])
+  @@schema("incidents")
+}
+
+/// What was decided for a staff member at Outcome & close: no action, a warning, a fine, dismissal
+/// or a referral to an HR process. A FINE also creates the salary deduction
+/// (billing.EmployeeSalaryDeduction.incidentStaffActionId), kept in step with this row.
+model IncidentStaffAction {
+  id         String @id @default(uuid()) @db.Uuid
+  incidentId String @db.Uuid
+  employeeId String @db.Uuid
+  /// NO_ACTION / INFORMAL_DISCUSSION / VERBAL_WARNING / WRITTEN_WARNING / FINAL_WRITTEN_WARNING /
+  /// FINE / DISMISSAL / HR_PROCESS (incident-staff-action.util.ts)
+  actionType String @db.VarChar(40)
+  reason     String @db.Text
+  /// The day the staff member was told of the decision (null = not told yet).
+  staffInformedOn DateTime? @db.Date
+
+  /// FINE only: amount in GBP and the salary month (YYYY-MM) it is deducted from.
+  fineAmount      Decimal? @db.Decimal(12, 2)
+  fineSalaryMonth String?  @db.VarChar(7)
+  /// FINE only: the manager confirmed the contract (or the staff member's written consent) allows
+  /// the deduction (Employment Rights Act 1996 s13).
+  deductionAllowedConfirmed Boolean @default(false)
+  salaryDeductionId         String? @db.Uuid
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  deletedAt    DateTime?
+  deletedById  String?   @db.Uuid
+  deleteReason String?   @db.Text
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
   @@index([incidentId])
   @@index([employeeId])
   @@index([deletedAt])
