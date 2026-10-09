@@ -391,6 +391,7 @@ export class EmployeeAppHomeService {
     const rule = await this.prisma.payCardRule.findFirst({
       where: {
         payCardId: employment.defaultPayCardId,
+        supersededAt: null,
         rateType: 'HOURLY',
         appliesToVisit: true,
       },

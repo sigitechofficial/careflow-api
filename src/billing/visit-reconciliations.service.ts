@@ -23,6 +23,11 @@ import { OrganisationGeneralSettingsService } from '../organisation-general-sett
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
 import {
+  loadPayCardRulesForDate,
+  loadPayCardRulesForVersion,
+} from './pay-card-version.util';
+import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
   BulkApproveVisitReconciliationsDto,
@@ -272,8 +277,9 @@ async function isVisitOnBankHoliday(
   db: DbClient,
   date: Date,
   timeZone: string,
+  region: string = DEFAULT_BANK_HOLIDAY_REGION,
 ): Promise<boolean> {
-  const set = await loadBankHolidayDateSet(db, date, date, timeZone);
+  const set = await loadBankHolidayDateSet(db, date, date, timeZone, region);
   return set.has(dayKeyInTimeZone(date, timeZone));
 }
 
@@ -291,6 +297,8 @@ async function loadBankHolidayDateSet(
   from: Date,
   to: Date,
   _timeZone?: string,
+  /** Calendar region; `UK` (England & Wales) is the default used for charges and legacy pay cards. */
+  region: string = DEFAULT_BANK_HOLIDAY_REGION,
 ): Promise<Set<string>> {
   const padMs = 36 * 60 * 60 * 1000; // ±36h so ops-day edges never miss a holiday row
   const start = new Date(from.getTime() - padMs);
@@ -298,6 +306,7 @@ async function loadBankHolidayDateSet(
   const rows = await db.bankHoliday.findMany({
     where: {
       isActive: true,
+      region,
       holidayDate: { gte: start, lte: end },
     },
     select: { holidayDate: true },
@@ -1920,6 +1929,7 @@ export class VisitReconciliationsService {
       rulesCount: number;
       stackingPolicy?: string;
       version?: number;
+      bankHolidayRegion?: string | null;
     } | null = null;
     let payCardSource: string | null = null;
     if (freezePayable && row.payCardId) {
@@ -1930,7 +1940,8 @@ export class VisitReconciliationsService {
           status: true,
           stackingPolicy: true,
           version: true,
-          rules: { select: { id: true } },
+          bankHolidayRegion: true,
+          rules: { where: { supersededAt: null }, select: { id: true } },
         },
       });
       payCardSource = row.payCardSource;
@@ -1941,6 +1952,7 @@ export class VisitReconciliationsService {
           rulesCount: pinned.rules.length,
           stackingPolicy: pinned.stackingPolicy ?? undefined,
           version: pinned.version ?? undefined,
+          bankHolidayRegion: pinned.bankHolidayRegion,
         };
       }
     } else if (row.employeeId) {
@@ -1957,6 +1969,8 @@ export class VisitReconciliationsService {
           rulesCount: resolved.data.payCard.rules?.length ?? 0,
           stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
           version: (resolved.data.payCard as { version?: number }).version,
+          bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
+            .bankHolidayRegion,
         };
       }
     }
@@ -2237,7 +2251,26 @@ export class VisitReconciliationsService {
           ? Number(row.payableAmount)
           : resolveManualPayableAmount(row);
     } else if (payCard && payMinutes) {
-      const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
+      // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
+      const { version: datedVersion, rules: payRules } = await loadPayCardRulesForDate(
+        db,
+        payCard.id,
+        row.plannedStartDateTime,
+        timeZone,
+      );
+      if (datedVersion != null) payCard.version = datedVersion;
+      // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
+      const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+      const payHolidayDates =
+        payRegion === DEFAULT_BANK_HOLIDAY_REGION
+          ? bankHolidayDates
+          : await loadBankHolidayDateSet(
+              db,
+              approvedPayStart,
+              approvedPayEnd ?? approvedPayStart,
+              timeZone,
+              payRegion,
+            );
       const stackingPolicy =
         ((payCard as { stackingPolicy?: string }).stackingPolicy as
           | 'PRIORITY'
@@ -2248,13 +2281,13 @@ export class VisitReconciliationsService {
         payRules,
         row.plannedStartDateTime,
         payMinutes,
-        isBankHoliday,
+        payHolidayDates.has(dayKeyInTimeZone(row.plannedStartDateTime, timeZone)),
         {
           start: approvedPayStart,
           end: approvedPayEnd,
           stackingPolicy,
           isBankHolidayFn: (d) =>
-            bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
+            payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
           timeZone,
         },
         nightDuty,
@@ -3146,10 +3179,15 @@ export class VisitReconciliationsService {
       const [payCard, payRules] = await Promise.all([
         db.payCard.findUnique({
           where: { id: row.payCardId },
-          select: { name: true, code: true },
+          select: { name: true, code: true, bankHolidayRegion: true },
         }),
-        db.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
+        loadPayCardRulesForVersion(db, row.payCardId, row.payCardVersion),
       ]);
+      const payRegion = payCard?.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+      const payIsBankHoliday =
+        payRegion === DEFAULT_BANK_HOLIDAY_REGION
+          ? isBankHoliday
+          : await isVisitOnBankHoliday(db, row.plannedStartDateTime, timeZone, payRegion);
       const livePay = buildPayRateBreakdown(
         payRules,
         row.plannedStartDateTime,
@@ -3159,7 +3197,7 @@ export class VisitReconciliationsService {
           cardCode: payCard?.code ?? null,
           cardSource: row.payCardSource,
         },
-        isBankHoliday,
+        payIsBankHoliday,
         { start: payStart, end: payEnd, timeZone },
         nightDuty,
         plannedMinutes,

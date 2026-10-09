@@ -23,6 +23,12 @@ import { PaymentsService } from './payments.service';
 import { EmployeePayoutsService } from './employee-payouts.service';
 import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
 
+import { BankHolidaysController, WageTypesController } from './wage-types.controller';
+import { WageTypesService } from './wage-types.service';
+import { PayItemsService } from './pay-items.service';
+import { PayItemsController } from './pay-items.controller';
+import { BankHolidaysService } from './bank-holidays.service';
+
 @Module({
   imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule, AuditLogsModule],
   controllers: [
@@ -35,6 +41,9 @@ import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
     InvoiceRunsController,
     PaymentsController,
     EmployeePayoutsController,
+    WageTypesController,
+    BankHolidaysController,
+    PayItemsController,
   ],
   providers: [
     PayCardsService,
@@ -47,6 +56,9 @@ import { EmployeePayoutAutoJob } from './employee-payout-auto.job';
     PaymentsService,
     EmployeePayoutsService,
     EmployeePayoutAutoJob,
+    WageTypesService,
+    BankHolidaysService,
+    PayItemsService,
   ],
   exports: [
     PayCardsService,

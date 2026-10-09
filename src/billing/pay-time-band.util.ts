@@ -512,6 +512,8 @@ function matchingHourlyRulesForSegment(
 function chooseRulesByPolicy(
   candidates: TimeBandRule[],
   stackingPolicy: PayStackingPolicy,
+  /** The card's base hourly rate (premiums / multipliers are applied to it). */
+  baseRate: number,
 ): TimeBandRule[] {
   if (!candidates.length) return [];
   const sorted = [...candidates].sort((a, b) => {
@@ -531,7 +533,9 @@ function chooseRulesByPolicy(
   }
 
   if (stackingPolicy === 'HIGHEST') {
-    const base = pickBaseHourlyRate(candidates);
+    // Compare every candidate's effective rate on the card's base rate (not a base derived from the
+    // segment's candidates, which made "+£/hr" and multiplier rules lose against absolute rates).
+    const base = baseRate;
     let best = sorted[0];
     let bestRate = applyEnhancement(base, best).rate;
     for (const c of sorted) {
@@ -585,7 +589,7 @@ export function calculateBandedPay(input: {
 
   for (const segment of segments) {
     const matches = matchingHourlyRulesForSegment(rules, segment, timeZone);
-    const chosen = chooseRulesByPolicy(matches, stackingPolicy);
+    const chosen = chooseRulesByPolicy(matches, stackingPolicy, baseRate);
 
     let rate = 0;
     let label: string | null = null;

@@ -676,6 +676,12 @@ const NON_VISIT_RATE_TYPES = new Set([
   'UPLIFT',
   'DEDUCTION',
   'PER_VISIT_FEE',
+  // Non-visit pay (priced in visit pay runs / pay items, never as a visit rate).
+  'OVERTIME',
+  'ON_CALL',
+  'TRAINING',
+  'LIVE_IN_DAILY',
+  'LIVE_IN_WEEKLY',
 ]);
 
 type RuleWithOptionalTime = PayCardRuleLike & {

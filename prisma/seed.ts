@@ -627,10 +627,14 @@ async function main() {
     'incidents.view_highly_confidential',
     'incidents.view_analytics',
     'incidents.manage_settings',
+    // Complaints & compliments
+    'complaints.read',
+    'complaints.manage',
     // Surveys
     'surveys.read',
     'surveys.manage',
     'surveys.respond',
+    'surveys.responses.record',
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
@@ -718,10 +722,16 @@ async function main() {
   await assignPermKeys('Senior Carer/Nurse', incidentFrontlineKeys);
   await assignPermKeys('Care Coordinator', [...incidentFrontlineKeys, 'incidents.manage_actions', 'incidents.view_analytics']);
   await assignPermKeys('Manager', incidentManagerKeys);
+  // Complaints & compliments — coordinators see them, managers and admins record and manage them
+  await assignPermKeys('Care Coordinator', ['complaints.read']);
+  await assignPermKeys('Manager', ['complaints.read', 'complaints.manage']);
+  await assignPermKeys('Admin', ['complaints.read', 'complaints.manage']);
 
   // Surveys — managers build/send, coordinators can read
   await assignPermKeys('Care Coordinator', ['surveys.read']);
-  await assignPermKeys('Manager', ['surveys.read', 'surveys.manage']);
+  await assignPermKeys('Manager', ['surveys.read', 'surveys.manage', 'surveys.responses.record']);
+  // Record responses by telephone / paper / in person
+  await assignPermKeys('Admin', ['surveys.responses.record']);
 
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
