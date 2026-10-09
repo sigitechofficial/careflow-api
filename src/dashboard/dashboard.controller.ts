@@ -5,13 +5,24 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission } from '../common/decorators/permissions.decorator';
 import { DashboardService } from './dashboard.service';
 import { HandoverReportQueryDto } from './dto/handover-report-query.dto';
+import { HomeSignalsService } from './home-signals.service';
+import {
+  MedicationExceptionsQueryDto,
+  StaffOffQueryDto,
+  UpcomingWindowQueryDto,
+} from './dto/home-signals-query.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('dashboard')
 export class DashboardController {
-  constructor(private readonly service: DashboardService) {}
+  constructor(
+    private readonly service: DashboardService,
+    private readonly signals: HomeSignalsService,
+  ) {}
 
   @Get('handover-report')
   @AnyPermission('schedule.read', 'scheduled_visits.read', 'service_users.read')
@@ -22,5 +33,45 @@ export class DashboardController {
   })
   handoverReport(@Query() query: HandoverReportQueryDto) {
     return this.service.handoverReport(query);
+  }
+
+  @Get('medication-exceptions')
+  @AnyPermission('service_users.medications.reports.read', 'service_users.read')
+  @ApiOperation({
+    summary: 'Missed, refused, not given and held doses for the home dashboard',
+    description: 'Counts by status plus the latest 20 doses, for a day range (defaults to today, org timezone). Scoped to the caller’s branches.',
+  })
+  medicationExceptions(@CurrentUser() user: RequestUser, @Query() query: MedicationExceptionsQueryDto) {
+    return this.signals.medicationExceptions(user, query);
+  }
+
+  @Get('service-user-upcoming')
+  @AnyPermission('service_users.read')
+  @ApiOperation({
+    summary: 'Service-user expiries and reviews due',
+    description: 'DoLS renewals, legal authorities, documents, funding end dates, purchase orders, funding reviews and visit plan reviews due within `days` (overdue always included).',
+  })
+  serviceUserUpcoming(@CurrentUser() user: RequestUser, @Query() query: UpcomingWindowQueryDto) {
+    return this.signals.serviceUserUpcoming(user, query);
+  }
+
+  @Get('staff-off')
+  @AnyPermission('employees.read', 'employees.reports.read')
+  @ApiOperation({
+    summary: 'Staff absent or on holiday on a given day',
+    description: 'Absence records and booked holidays overlapping the day (defaults to today, org timezone). One row per employee.',
+  })
+  staffOff(@CurrentUser() user: RequestUser, @Query() query: StaffOffQueryDto) {
+    return this.signals.staffOff(user, query);
+  }
+
+  @Get('policy-reviews')
+  @AnyPermission('policies.read')
+  @ApiOperation({
+    summary: 'Published policies due for review',
+    description: 'Current published policy versions whose review date falls within `days` (overdue always included).',
+  })
+  policyReviews(@Query() query: UpcomingWindowQueryDto) {
+    return this.signals.policyReviews(query);
   }
 }
