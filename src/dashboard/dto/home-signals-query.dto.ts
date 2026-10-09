@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, IsUUID, Matches, Max, Min } from 'class-validator';
+import { MedicationAdministrationStatus } from '@prisma/client';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, Min } from 'class-validator';
 
 /** Shared branch filter: intersected with the caller's assigned locations. */
 class LocationFilterDto {
@@ -22,6 +23,40 @@ export class MedicationExceptionsQueryDto extends LocationFilterDto {
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   dateTo?: string;
+
+  @ApiPropertyOptional({ enum: ['MISSED', 'REFUSED', 'NOT_GIVEN', 'HELD'], description: 'Only this outcome.' })
+  @IsOptional()
+  @IsIn([
+    MedicationAdministrationStatus.MISSED,
+    MedicationAdministrationStatus.REFUSED,
+    MedicationAdministrationStatus.NOT_GIVEN,
+    MedicationAdministrationStatus.HELD,
+  ])
+  status?: 'MISSED' | 'REFUSED' | 'NOT_GIVEN' | 'HELD';
+
+  @ApiPropertyOptional({ description: 'Only doses a manager has not reviewed yet.' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  unreviewedOnly?: boolean;
+
+  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 200, description: 'How many doses to list (counts always cover the whole range).' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit?: number;
+}
+
+export class MedicationOverviewQueryDto extends LocationFilterDto {
+  @ApiPropertyOptional({ default: 30, minimum: 1, maximum: 90, description: 'Days back (including today) for dose and stock figures.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  days?: number;
 }
 
 export class UpcomingWindowQueryDto extends LocationFilterDto {

@@ -6,8 +6,10 @@ import { AnyPermission } from '../common/decorators/permissions.decorator';
 import { DashboardService } from './dashboard.service';
 import { HandoverReportQueryDto } from './dto/handover-report-query.dto';
 import { HomeSignalsService } from './home-signals.service';
+import { MedicationOverviewService } from './medication-overview.service';
 import {
   MedicationExceptionsQueryDto,
+  MedicationOverviewQueryDto,
   StaffOffQueryDto,
   UpcomingWindowQueryDto,
 } from './dto/home-signals-query.dto';
@@ -22,6 +24,7 @@ export class DashboardController {
   constructor(
     private readonly service: DashboardService,
     private readonly signals: HomeSignalsService,
+    private readonly medication: MedicationOverviewService,
   ) {}
 
   @Get('handover-report')
@@ -43,6 +46,17 @@ export class DashboardController {
   })
   medicationExceptions(@CurrentUser() user: RequestUser, @Query() query: MedicationExceptionsQueryDto) {
     return this.signals.medicationExceptions(user, query);
+  }
+
+  @Get('medication-overview')
+  @AnyPermission('service_users.medications.reports.read', 'service_users.read')
+  @ApiOperation({
+    summary: 'Medication (eMAR) module dashboard',
+    description:
+      'Dose outcomes and on-time % over the last N days, medicines on record, support levels, medication reviews, packs/deliveries and stock movements. Scoped to the caller’s branches.',
+  })
+  medicationOverview(@CurrentUser() user: RequestUser, @Query() query: MedicationOverviewQueryDto) {
+    return this.medication.overview(user, query);
   }
 
   @Get('service-user-upcoming')

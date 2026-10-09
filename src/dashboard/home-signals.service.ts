@@ -128,6 +128,13 @@ export class HomeSignalsService {
       ],
     };
 
+    // Counts cover the whole range; the optional filters only narrow the listed doses.
+    const listWhere: Prisma.MedicationAdministrationEventWhereInput = {
+      ...where,
+      ...(q.status ? { status: q.status } : {}),
+      ...(q.unreviewedOnly ? { managerReviewedAt: null } : {}),
+    };
+
     const [groups, awaitingReview, rows] = await this.prisma.$transaction([
       this.prisma.medicationAdministrationEvent.groupBy({
         by: ['status'],
@@ -137,9 +144,9 @@ export class HomeSignalsService {
       }),
       this.prisma.medicationAdministrationEvent.count({ where: { ...where, managerReviewedAt: null } }),
       this.prisma.medicationAdministrationEvent.findMany({
-        where,
+        where: listWhere,
         orderBy: [{ scheduledDateTime: 'desc' }, { createdAt: 'desc' }],
-        take: ITEM_LIMIT,
+        take: q.limit ?? ITEM_LIMIT,
         select: {
           id: true,
           status: true,
@@ -149,7 +156,9 @@ export class HomeSignalsService {
           outcomeLabel: true,
           medicationNameSnapshot: true,
           managerReviewedAt: true,
-          medication: { select: { medicationName: true } },
+          managerReviewNotes: true,
+          notes: true,
+          medication: { select: { medicationName: true, timeCritical: true, isControlledMedication: true } },
           serviceUser: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         },
       }),
@@ -177,7 +186,12 @@ export class HomeSignalsService {
           medicationName: r.medicationNameSnapshot ?? r.medication.medicationName,
           dueAt: (r.scheduledDateTime ?? r.actualDateTime)?.toISOString() ?? null,
           reason: r.reason ?? r.outcomeLabel ?? null,
+          notes: r.notes ?? null,
+          timeCritical: r.medication.timeCritical,
+          controlled: r.medication.isControlledMedication,
           reviewed: Boolean(r.managerReviewedAt),
+          reviewedAt: r.managerReviewedAt?.toISOString() ?? null,
+          reviewNotes: r.managerReviewNotes ?? null,
         })),
       },
     };
