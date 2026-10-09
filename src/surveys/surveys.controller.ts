@@ -30,6 +30,10 @@ import {
 } from './dto/survey-question.dto';
 import { SendSurveyDto } from './dto/send-survey.dto';
 import { ListSurveysQueryDto } from './dto/list-surveys-query.dto';
+import {
+  RecordSurveyResponseDto,
+  UpdateRecordedSurveyResponseDto,
+} from './dto/record-survey-response.dto';
 
 @ApiTags('Surveys')
 @ApiBearerAuth()
@@ -64,6 +68,38 @@ export class SurveysController {
   @ApiOperation({ summary: 'List submitted survey responses with answers' })
   listResponses(@Param('id') id: string) {
     return this.service.listResponses(id);
+  }
+
+  @Get(':id/record-candidates')
+  @Permissions('surveys.responses.record')
+  @ApiOperation({ summary: 'People a response can be recorded for (survey target)' })
+  recordCandidates(@Param('id') id: string, @Query('search') search?: string) {
+    return this.service.listRecordCandidates(id, search);
+  }
+
+  @Post(':id/responses/record')
+  @Permissions('surveys.responses.record')
+  @ApiOperation({ summary: 'Record a response by telephone, paper or in person' })
+  recordResponse(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: RecordSurveyResponseDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordResponse(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch(':id/responses/:responseId')
+  @Permissions('surveys.responses.record')
+  @ApiOperation({ summary: 'Correct a staff-recorded response (reason required)' })
+  updateRecordedResponse(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('responseId') responseId: string,
+    @Body() dto: UpdateRecordedSurveyResponseDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateRecordedResponse(user.id, id, responseId, dto, getRequestAuditMeta(req));
   }
 
   @Get(':id/recipients')

@@ -230,11 +230,27 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     ],
   },
   {
+    key: 'complaints',
+    label: 'Complaints & compliments',
+    description:
+      'Record complaints and compliments, acknowledge, investigate, respond and close complaints.',
+    view: ['complaints.read'],
+    act: ['complaints.manage'],
+  },
+  {
     key: 'surveys',
     label: 'Surveys',
     description: 'Build, send and review staff and service user surveys.',
     view: ['surveys.read'],
     act: ['surveys.manage'],
+  },
+  {
+    key: 'survey_responses',
+    label: 'Record survey responses',
+    description:
+      'Record survey answers by telephone, from paper or in person, on someone\'s behalf or anonymously.',
+    view: ['surveys.read'],
+    act: ['surveys.responses.record'],
   },
 ];
 

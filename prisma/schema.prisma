@@ -1059,6 +1059,7 @@ model Employee {
   reviews           EmployeeReview[]
   documents         EmployeeDocument[]
   nonCoreActivities EmployeeNonCoreActivity[]
+  allocations       EmployeeAllocation[]
   workingPatterns   EmployeeWorkingPattern[]
   complianceRecords EmployeeCompliance[]
   holidays          EmployeeHoliday[]
@@ -1618,6 +1619,8 @@ model EmployeeReview {
   lastDone     DateTime?
   nextDue      DateTime?
   notes        String?
+  /// Supporting document (signed supervision / appraisal form), stored in employee Documents.
+  documentUrl  String?
   reviewedById String?   @db.Uuid
 
   isActive    Boolean   @default(true)
@@ -1695,6 +1698,78 @@ model EmployeeNonCoreActivity {
 
   @@index([employeeId])
   @@index([dateFrom, dateTo])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// Kind of item issued to staff (drives grouping and filters on the Allocation tab).
+enum AllocationItemCategory {
+  EQUIPMENT
+  PPE
+  UNIFORM
+  OTHER
+
+  @@schema("lookups")
+}
+
+/// Items the organisation issues to staff (laptop, mobile, gloves, aprons, tunic…). Settings → Allocation items.
+model AllocationItemType {
+  id         String                 @id @default(uuid()) @db.Uuid
+  name       String                 @unique
+  category   AllocationItemCategory @default(EQUIPMENT)
+  /// Expected back when the employee leaves (laptop, phone, badge) — consumables such as gloves are not.
+  returnable Boolean                @default(false)
+  sortOrder  Int                    @default(0)
+  isActive   Boolean                @default(true)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  allocations EmployeeAllocation[]
+
+  @@index([isActive])
+  @@schema("lookups")
+}
+
+enum EmployeeAllocationStatus {
+  ISSUED
+  RETURNED
+  LOST
+  DAMAGED
+
+  @@schema("employees")
+}
+
+/// Something issued to an employee: who got what, how many, when, by whom, and whether it came back.
+model EmployeeAllocation {
+  id               String                   @id @default(uuid()) @db.Uuid
+  employeeId       String                   @db.Uuid
+  itemTypeId       String                   @db.Uuid
+  quantity         Int                      @default(1)
+  size             String?
+  /// Serial / IMEI / asset tag for equipment.
+  serialNumber     String?
+  issuedAt         DateTime
+  /// Staff user who handed the item over.
+  issuedById       String?                  @db.Uuid
+  expectedReturnAt DateTime?
+  status           EmployeeAllocationStatus @default(ISSUED)
+  returnedAt       DateTime?
+  returnNotes      String?
+  notes            String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  employee Employee           @relation(fields: [employeeId], references: [id])
+  itemType AllocationItemType @relation(fields: [itemTypeId], references: [id])
+
+  @@index([employeeId])
+  @@index([itemTypeId])
+  @@index([status])
   @@index([deletedAt])
   @@schema("employees")
 }
@@ -12182,11 +12257,29 @@ enum SurveyRecurrence {
   @@schema("surveys")
 }
 
+/// How a survey response was collected.
+enum SurveyResponseChannel {
+  /// Survey link / carer app — answered by the person themselves.
+  ONLINE
+  /// Service user portal.
+  PORTAL
+  /// Recorded by staff during a phone call.
+  TELEPHONE
+  /// Recorded by staff from a paper form.
+  PAPER
+  /// Recorded by staff face to face.
+  IN_PERSON
+
+  @@schema("surveys")
+}
+
 /// Who actually answered a service-user survey (the service user or someone on their behalf).
 enum SurveyRespondentRelation {
   SELF
   FAMILY_MEMBER
   REPRESENTATIVE
+  /// Staff answered on the person's behalf (recorded by office staff).
+  STAFF
 
   @@schema("surveys")
 }
@@ -12288,6 +12381,17 @@ model SurveyResponse {
   respondentRelation SurveyRespondentRelation?
   /// Name of the family member / representative when not answered by the service user.
   respondentName     String?
+  /// How the answers were collected. Staff-recorded channels (telephone / paper / in person) can be corrected.
+  channel            SurveyResponseChannel @default(ONLINE)
+  /// Office user who recorded the response (staff-recorded channels only).
+  recordedById       String?  @db.Uuid
+  /// This response is not linked to anyone (even when the survey itself is named).
+  isAnonymous        Boolean  @default(false)
+  /// Telephone: when the call took place, the number called, call notes and phone consent.
+  contactedAt        DateTime?
+  contactNumber      String?
+  contactNotes       String?  @db.Text
+  consentGiven       Boolean?
   submittedAt   DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -12318,4 +12422,156 @@ model SurveyAnswer {
   @@index([responseId])
   @@index([questionId])
   @@schema("surveys")
+}
+
+// ---------------------------------------------------------------------------
+// Complaints & compliments (Accident & Incident → Complaints & Compliments)
+// ---------------------------------------------------------------------------
+
+enum FeedbackType {
+  COMPLAINT
+  COMPLIMENT
+
+  @@schema("incidents")
+}
+
+/// Complaint: RECEIVED → ACKNOWLEDGED → INVESTIGATING → RESPONDED → CLOSED. Compliment: RECEIVED → CLOSED (shared).
+enum FeedbackStatus {
+  RECEIVED
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESPONDED
+  CLOSED
+
+  @@schema("incidents")
+}
+
+/// Who the complaint / compliment came from.
+enum FeedbackFromKind {
+  SERVICE_USER
+  FAMILY
+  PROFESSIONAL
+  STAFF
+  PUBLIC
+  ANONYMOUS
+
+  @@schema("incidents")
+}
+
+enum FeedbackChannel {
+  PHONE
+  EMAIL
+  LETTER
+  IN_PERSON
+  PORTAL
+  SURVEY
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum ComplaintSeverity {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("incidents")
+}
+
+enum ComplaintOutcome {
+  UPHELD
+  PARTIALLY_UPHELD
+  NOT_UPHELD
+  WITHDRAWN
+
+  @@schema("incidents")
+}
+
+/// One complaint or compliment. People are scalar ids (no cross-schema FKs), validated in the service.
+model FeedbackRecord {
+  id              String         @id @default(uuid()) @db.Uuid
+  /// CMP-2026-0001 / CPL-2026-0001
+  referenceNumber String         @unique
+  type            FeedbackType
+  status          FeedbackStatus @default(RECEIVED)
+
+  receivedAt   DateTime
+  channel      FeedbackChannel  @default(PHONE)
+  fromKind     FeedbackFromKind
+  /// Name of the person (blank when anonymous).
+  fromName     String?
+  /// Phone / email / address to reply to.
+  fromContact  String?
+  fromServiceUserId String? @db.Uuid
+  fromEmployeeId    String? @db.Uuid
+
+  /// Who it is about.
+  aboutServiceUserId String?  @db.Uuid
+  aboutEmployeeIds   String[] @default([]) @db.Uuid
+  /// Branch (lookups.Location) — from the service user when known.
+  locationId         String?  @db.Uuid
+
+  subject        String
+  details        String             @db.Text
+  /// Complaint area, e.g. Care quality, Missed / late visit, Staff conduct.
+  category       String?
+  severity       ComplaintSeverity?
+  /// What the complainant would like to happen.
+  desiredOutcome String?            @db.Text
+
+  /// Employee handling the complaint (investigating manager).
+  handlerEmployeeId  String?   @db.Uuid
+  acknowledgeDueAt   DateTime?
+  acknowledgedAt     DateTime?
+  responseDueAt      DateTime?
+  investigationNotes String?   @db.Text
+  respondedAt        DateTime?
+  responseSummary    String?   @db.Text
+  outcome            ComplaintOutcome?
+  lessonsLearned     String?   @db.Text
+  closedAt           DateTime?
+  /// Compliment passed on to the staff it was about.
+  sharedWithStaffAt  DateTime?
+
+  recordedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  deletedById  String?   @db.Uuid
+
+  events FeedbackEvent[]
+
+  @@index([type, status])
+  @@index([receivedAt])
+  @@index([aboutServiceUserId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Timeline: status changes and notes on a complaint / compliment.
+model FeedbackEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  feedbackId String   @db.Uuid
+  /// RECORDED, ACKNOWLEDGED, INVESTIGATION_STARTED, RESPONDED, CLOSED, REOPENED, SHARED, NOTE, UPDATED
+  action     String
+  note       String?  @db.Text
+  userId     String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId, createdAt])
+  @@schema("incidents")
+}
+
+/// Per type + year counter for reference numbers.
+model FeedbackNumberSequence {
+  type      FeedbackType
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([type, year])
+  @@schema("incidents")
 }
