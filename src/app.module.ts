@@ -27,6 +27,9 @@ import { EmployeeCertificationsModule } from './employee-certifications/employee
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
 import { EmployeeReviewsModule } from './employee-reviews/employee-reviews.module';
 import { EmployeeNonCoreActivitiesModule } from './employee-non-core-activities/employee-non-core-activities.module';
+import { EmployeeAllocationsModule } from './employee-allocations/employee-allocations.module';
+import { FeedbackModule } from './feedback/feedback.module';
+import { ServiceUserReferralsModule } from './service-user-referrals/service-user-referrals.module';
 import { EmployeeWorkingPatternsModule } from './employee-working-patterns/employee-working-patterns.module';
 import { EmployeeComplianceModule } from './employee-compliance/employee-compliance.module';
 import { EmployeeReportsModule } from './employee-reports/employee-reports.module';
@@ -123,6 +126,10 @@ import { BillingModule } from './billing/billing.module';
 import { EmployeeAppModule } from './employee-app/employee-app.module';
 import { EcmModule } from './ecm/ecm.module';
 import { PayrollModule } from './payroll/payroll.module';
+import { OfficeSalariesModule } from './office-salaries/office-salaries.module';
+import { SetupChecklistModule } from './setup-checklist/setup-checklist.module';
+import { RoleTasksModule } from './role-tasks/role-tasks.module';
+import { RoleResponsibilitiesModule } from './role-responsibilities/role-responsibilities.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
 import { PlatformCostsModule } from './platform-costs/platform-costs.module';
@@ -172,6 +179,9 @@ import { JobsModule } from './jobs/jobs.module';
     EmployeeDocumentsModule,
     EmployeeReviewsModule,
     EmployeeNonCoreActivitiesModule,
+    EmployeeAllocationsModule,
+    FeedbackModule,
+    ServiceUserReferralsModule,
     EmployeeWorkingPatternsModule,
     EmployeeComplianceModule,
     ComplianceTypesModule,
@@ -268,6 +278,10 @@ import { JobsModule } from './jobs/jobs.module';
     EmployeeAppModule,
     EcmModule,
     PayrollModule,
+    OfficeSalariesModule,
+    SetupChecklistModule,
+    RoleTasksModule,
+    RoleResponsibilitiesModule,
     LearningModule,
     PoliciesModule,
     PlatformCostsModule,

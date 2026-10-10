@@ -340,7 +340,12 @@ export class OrgScopeService {
     return {
       OR: [
         { locationId: { in: ids } },
-        ...(suIds.length ? [{ primaryServiceUserId: { in: suIds } }] : []),
+        ...(suIds.length
+            ? [
+                { primaryServiceUserId: { in: suIds } },
+                { involvedServiceUserIds: { hasSome: suIds } },
+              ]
+            : []),
       ],
     };
   }
@@ -352,6 +357,7 @@ export class OrgScopeService {
       select: {
         locationId: true,
         primaryServiceUserId: true,
+        involvedServiceUserIds: true,
       },
     });
     if (!incident) throw new NotFoundException('Incident not found');
@@ -359,14 +365,23 @@ export class OrgScopeService {
     if (incident.locationId && scope.locationIds.includes(incident.locationId)) {
       return;
     }
-    if (incident.primaryServiceUserId) {
-      const su = await this.prisma.serviceUser.findFirst({
-        where: { id: incident.primaryServiceUserId, deletedAt: null },
-        select: { locationId: true },
+    // In scope when any involved service user belongs to one of the user's branches.
+    const serviceUserIds = [
+      ...new Set(
+        [incident.primaryServiceUserId, ...incident.involvedServiceUserIds].filter(
+          (id): id is string => Boolean(id),
+        ),
+      ),
+    ];
+    if (serviceUserIds.length) {
+      const inBranch = await this.prisma.serviceUser.count({
+        where: {
+          id: { in: serviceUserIds },
+          deletedAt: null,
+          locationId: { in: scope.locationIds },
+        },
       });
-      if (su?.locationId && scope.locationIds.includes(su.locationId)) {
-        return;
-      }
+      if (inBranch > 0) return;
     }
     throw new NotFoundException('Incident not found');
   }

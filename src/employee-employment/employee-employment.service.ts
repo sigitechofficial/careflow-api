@@ -9,6 +9,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { RbacEmploymentSyncService } from './rbac-employment-sync.service';
 import { assertEmployeeDefaultPayCard } from '../billing/pay-card-assignment.util';
+import { recordEmployeePayCardChange } from '../billing/employee-pay-card-assignment.util';
 
 @Injectable()
 export class EmployeeEmploymentService {
@@ -119,6 +120,16 @@ export class EmployeeEmploymentService {
           createdById: userId,
         },
       });
+
+      if (defaultPayCardId !== undefined && defaultPayCardId !== (before?.defaultPayCardId ?? null)) {
+        // Keep the dated pay card history in step (applies from today).
+        await recordEmployeePayCardChange(tx, {
+          employeeId,
+          payCardId: defaultPayCardId,
+          reason: 'Changed on employee profile',
+          userId,
+        });
+      }
 
       if (defaultPayCardId !== undefined) {
         await assertEmployeeDefaultPayCard(tx, defaultPayCardId, {

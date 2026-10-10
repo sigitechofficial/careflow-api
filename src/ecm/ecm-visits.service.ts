@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   AllocationStatus,
   EcmArrivalClassification,
   EcmLifecycleStatus,
   EcmMissedClassification,
+  EcmVisitEvaluation,
   Prisma,
   ScheduledJobStatus,
   VisitAreaLockStatus,
@@ -21,6 +26,7 @@ import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmScheduleVersionService } from './ecm-schedule-version.service';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
 import type { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
+import type { EcmVisitsTableQueryDto } from './dto/ecm-visits-table.dto';
 import { localVisitDateFromStart } from './ecm-evaluation.mapper';
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import {
@@ -33,7 +39,7 @@ import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.se
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 
 function resolveLiveDateRange(
-  query: EcmLiveDashboardQueryDto,
+  query: Pick<EcmLiveDashboardQueryDto, 'date' | 'dateFrom' | 'dateTo'>,
   timeZone: string,
 ): {
   dateFrom: string;
@@ -113,6 +119,74 @@ const EVAL_INCLUDE = {
   },
 } as const;
 
+type LiveRowJob = Prisma.ScheduledJobGetPayload<{
+  select: (typeof EVAL_INCLUDE)['scheduledJob']['select'];
+}>;
+
+type LiveRowEvaluation = Pick<
+  EcmVisitEvaluation,
+  | 'scheduledJobId'
+  | 'scheduledVisitId'
+  | 'localVisitDate'
+  | 'plannedStartDateTime'
+  | 'plannedEndDateTime'
+  | 'actualCheckInAt'
+  | 'actualCheckOutAt'
+  | 'plannedDurationMinutes'
+  | 'actualDurationMinutes'
+  | 'lifecycleStatus'
+  | 'arrivalClassification'
+  | 'departureClassification'
+  | 'durationClassification'
+  | 'missedClassification'
+  | 'confidence'
+  | 'criticality'
+  | 'startVarianceMinutes'
+  | 'endVarianceMinutes'
+  | 'durationVarianceMinutes'
+  | 'appliedSettingsLevel'
+  | 'operationalExceptionCodes'
+>;
+
+/** Upper bound for one service user's / employee's visits table request. */
+const VISITS_TABLE_MAX_JOBS = 500;
+
+function previewToEvaluation(
+  data: Prisma.EcmVisitEvaluationUncheckedCreateInput,
+): LiveRowEvaluation {
+  const toDate = (v: Date | string | null | undefined) =>
+    v ? new Date(v) : null;
+  return {
+    scheduledJobId: data.scheduledJobId,
+    scheduledVisitId: data.scheduledVisitId ?? null,
+    localVisitDate: new Date(data.localVisitDate),
+    plannedStartDateTime: new Date(data.plannedStartDateTime),
+    plannedEndDateTime: toDate(data.plannedEndDateTime),
+    actualCheckInAt: toDate(data.actualCheckInAt),
+    actualCheckOutAt: toDate(data.actualCheckOutAt),
+    plannedDurationMinutes: data.plannedDurationMinutes ?? null,
+    actualDurationMinutes: data.actualDurationMinutes ?? null,
+    lifecycleStatus: data.lifecycleStatus as EcmLifecycleStatus,
+    arrivalClassification:
+      data.arrivalClassification as EcmArrivalClassification,
+    departureClassification:
+      data.departureClassification as LiveRowEvaluation['departureClassification'],
+    durationClassification:
+      data.durationClassification as LiveRowEvaluation['durationClassification'],
+    missedClassification: data.missedClassification as EcmMissedClassification,
+    confidence: data.confidence as LiveRowEvaluation['confidence'],
+    criticality: data.criticality as LiveRowEvaluation['criticality'],
+    startVarianceMinutes: data.startVarianceMinutes ?? null,
+    endVarianceMinutes: data.endVarianceMinutes ?? null,
+    durationVarianceMinutes: data.durationVarianceMinutes ?? null,
+    appliedSettingsLevel:
+      data.appliedSettingsLevel as LiveRowEvaluation['appliedSettingsLevel'],
+    operationalExceptionCodes: Array.isArray(data.operationalExceptionCodes)
+      ? data.operationalExceptionCodes
+      : [],
+  };
+}
+
 /** Jobs excluded from ECM live-dashboard backfill (not operational visits). */
 const SKIP_BACKFILL_JOB: ScheduledJobStatus[] = [
   ScheduledJobStatus.DRAFT,
@@ -147,6 +221,8 @@ const COMPLETED_LIFECYCLES: ReadonlySet<EcmLifecycleStatus> = new Set([
 export type EcmLiveVisitRow = {
   scheduledJobId: string;
   scheduledVisitId: string | null;
+  /** Visit ID shown on the carer app (VIS-…); null on summary-only rows. */
+  visitRef: string | null;
   jobName: string;
   /** Call-slot label (Morning / Midday / …) when known. */
   slotLabel: string | null;
@@ -342,54 +418,57 @@ export class EcmVisitsService {
       this.pendingCheckInGrantJobIds(jobIdsForFlags),
     ]);
 
-    const summaryRows: EcmLiveVisitRow[] = lightEvals.map((ev) => {
-      const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
-      const buckets = this.classifyBuckets(
-        ev as never,
-        now,
-        soonMs,
-        dueWindowMs,
-        visitOperationalDay === operationalToday,
-      );
-      return {
-        scheduledJobId: ev.scheduledJobId,
-        scheduledVisitId: null,
-        jobName: '',
-        slotLabel: null,
-        serviceUserId: '',
-        serviceUserName: '',
-        carers: [],
-        address: null,
-        postcode: null,
-        plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
-        plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
-        actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
-        actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
-        plannedDurationMinutes: null,
-        actualDurationMinutes: null,
-        lifecycleStatus: ev.lifecycleStatus,
-        arrivalClassification: ev.arrivalClassification,
-        departureClassification: ev.departureClassification,
-        durationClassification: ev.durationClassification,
-        missedClassification: ev.missedClassification,
-        confidence: '',
-        criticality: '',
-        startVarianceMinutes: ev.startVarianceMinutes,
-        endVarianceMinutes: ev.endVarianceMinutes,
-        durationVarianceMinutes: ev.durationVarianceMinutes,
-        appliedSettingsLevel: '',
-        operationalExceptionCodes: ev.operationalExceptionCodes,
-        buckets,
-      };
-    }).map((row) =>
-      this.withCheckInMethodRequest(
-        this.withMockLocation(
-          this.withLeftVisitArea(row, lockedVisitJobIds),
-          mockedVisitJobIds,
+    const summaryRows: EcmLiveVisitRow[] = lightEvals
+      .map((ev) => {
+        const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
+        const buckets = this.classifyBuckets(
+          ev as never,
+          now,
+          soonMs,
+          dueWindowMs,
+          visitOperationalDay === operationalToday,
+        );
+        return {
+          scheduledJobId: ev.scheduledJobId,
+          scheduledVisitId: null,
+          visitRef: null,
+          jobName: '',
+          slotLabel: null,
+          serviceUserId: '',
+          serviceUserName: '',
+          carers: [],
+          address: null,
+          postcode: null,
+          plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
+          plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
+          actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
+          actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
+          plannedDurationMinutes: null,
+          actualDurationMinutes: null,
+          lifecycleStatus: ev.lifecycleStatus,
+          arrivalClassification: ev.arrivalClassification,
+          departureClassification: ev.departureClassification,
+          durationClassification: ev.durationClassification,
+          missedClassification: ev.missedClassification,
+          confidence: '',
+          criticality: '',
+          startVarianceMinutes: ev.startVarianceMinutes,
+          endVarianceMinutes: ev.endVarianceMinutes,
+          durationVarianceMinutes: ev.durationVarianceMinutes,
+          appliedSettingsLevel: '',
+          operationalExceptionCodes: ev.operationalExceptionCodes,
+          buckets,
+        };
+      })
+      .map((row) =>
+        this.withCheckInMethodRequest(
+          this.withMockLocation(
+            this.withLeftVisitArea(row, lockedVisitJobIds),
+            mockedVisitJobIds,
+          ),
+          checkInRequestJobIds,
         ),
-        checkInRequestJobIds,
-      ),
-    );
+      );
 
     const cursor = this.parseLiveCursor(query.cursor);
     const pageWhere: Prisma.EcmVisitEvaluationWhereInput = cursor
@@ -417,32 +496,7 @@ export class EcmVisitsService {
     });
 
     const staleEvaluations = pageEvals
-      .filter((ev) => {
-        const jobStatus = ev.scheduledJob.status;
-        const evalCompleted = this.isCompletedEvaluation(ev);
-
-        if (
-          jobStatus === ScheduledJobStatus.COMPLETED &&
-          (!ev.actualCheckOutAt || !evalCompleted)
-        ) {
-          return true;
-        }
-        if (jobStatus === ScheduledJobStatus.IN_PROGRESS && evalCompleted) {
-          return true;
-        }
-        if (
-          jobStatus === ScheduledJobStatus.MISSED &&
-          ev.missedClassification === EcmMissedClassification.NONE
-        ) {
-          return true;
-        }
-        return (
-          !ev.actualCheckInAt &&
-          ev.plannedStartDateTime.getTime() < now.getTime() &&
-          (ev.missedClassification === EcmMissedClassification.NONE ||
-            ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED)
-        );
-      })
+      .filter((ev) => this.isStaleEvaluation(ev, ev.scheduledJob.status, now))
       .slice(0, 40);
 
     if (staleEvaluations.length > 0) {
@@ -465,90 +519,24 @@ export class EcmVisitsService {
         ? `${last.plannedStartDateTime.toISOString()}|${last.scheduledJobId}`
         : null;
 
-    const rows: EcmLiveVisitRow[] = refreshed.map((ev) => {
-      const su = ev.scheduledJob.serviceUser;
-      const name =
-        su.preferredName?.trim() ||
-        [su.firstName, su.lastName].filter(Boolean).join(' ').trim() ||
-        'Service user';
-
-      const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
-      const buckets = this.classifyBuckets(
-        ev,
-        now,
-        soonMs,
-        dueWindowMs,
-        visitOperationalDay === operationalToday,
-      );
-      const primaryVisit = ev.scheduledJob.visits?.[0];
-      const slotFromPlan =
-        primaryVisit?.visitPlanSlot?.medicationRoundCode ??
-        primaryVisit?.visitPlanSlot?.slotCode ??
-        null;
-      const slotLabel =
-        primaryVisit?.visitName?.trim() ||
-        (slotFromPlan
-          ? slotFromPlan
-              .replace(/_/g, ' ')
-              .toLowerCase()
-              .replace(/\b\w/g, (c) => c.toUpperCase())
-          : null) ||
-        this.slotLabelFromJobName(ev.scheduledJob.jobName);
-
-      const carers = ev.scheduledJob.allocations.map((a) => {
-        const carerName = [
-          a.employee.personalDetail?.firstName,
-          a.employee.personalDetail?.lastName,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .trim();
-        return {
-          employeeId: a.employee.id,
-          name: carerName || a.employee.id,
-          isLeadCarer: a.isLeadCarer,
-        };
-      });
-
-      return {
-        scheduledJobId: ev.scheduledJobId,
-        scheduledVisitId: ev.scheduledVisitId,
-        jobName: ev.scheduledJob.jobName,
-        slotLabel,
-        serviceUserId: ev.scheduledJob.serviceUserId,
-        serviceUserName: name,
-        carers,
-        address: ev.scheduledJob.address ?? null,
-        postcode: ev.scheduledJob.postcode ?? null,
-        plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
-        plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
-        actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
-        actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
-        plannedDurationMinutes: ev.plannedDurationMinutes ?? null,
-        actualDurationMinutes: ev.actualDurationMinutes ?? null,
-        lifecycleStatus: ev.lifecycleStatus,
-        arrivalClassification: ev.arrivalClassification,
-        departureClassification: ev.departureClassification,
-        durationClassification: ev.durationClassification,
-        missedClassification: ev.missedClassification,
-        confidence: ev.confidence,
-        criticality: ev.criticality,
-        startVarianceMinutes: ev.startVarianceMinutes,
-        endVarianceMinutes: ev.endVarianceMinutes,
-        durationVarianceMinutes: ev.durationVarianceMinutes,
-        appliedSettingsLevel: ev.appliedSettingsLevel,
-        operationalExceptionCodes: ev.operationalExceptionCodes,
-        buckets,
-      };
-    }).map((row) =>
-      this.withCheckInMethodRequest(
-        this.withMockLocation(
-          this.withLeftVisitArea(row, lockedVisitJobIds),
-          mockedVisitJobIds,
-        ),
-        checkInRequestJobIds,
-      ),
+    const visitRefs = await loadVisitRefsByScheduledVisitIds(
+      this.prisma,
+      refreshed
+        .map((ev) => ev.scheduledVisitId)
+        .filter((id): id is string => Boolean(id)),
     );
+    const rowCtx = { now, soonMs, dueWindowMs, operationalToday, visitRefs };
+    const rows: EcmLiveVisitRow[] = refreshed
+      .map((ev) => this.toLiveRow(ev, ev.scheduledJob, rowCtx))
+      .map((row) =>
+        this.withCheckInMethodRequest(
+          this.withMockLocation(
+            this.withLeftVisitArea(row, lockedVisitJobIds),
+            mockedVisitJobIds,
+          ),
+          checkInRequestJobIds,
+        ),
+      );
 
     const counts = {
       dueNow: 0,
@@ -732,6 +720,275 @@ export class EcmVisitsService {
         chunk.map((jobId) => this.evaluation.evaluateJobSafe(jobId, { now })),
       );
     }
+  }
+
+  /** Saved evaluation no longer matches the job (live dashboard re-evaluates these). */
+  private isStaleEvaluation(
+    ev: Pick<
+      LiveRowEvaluation,
+      | 'actualCheckInAt'
+      | 'actualCheckOutAt'
+      | 'plannedStartDateTime'
+      | 'missedClassification'
+      | 'lifecycleStatus'
+    >,
+    jobStatus: ScheduledJobStatus,
+    now: Date,
+  ): boolean {
+    const evalCompleted = this.isCompletedEvaluation(ev);
+
+    if (
+      jobStatus === ScheduledJobStatus.COMPLETED &&
+      (!ev.actualCheckOutAt || !evalCompleted)
+    ) {
+      return true;
+    }
+    if (jobStatus === ScheduledJobStatus.IN_PROGRESS && evalCompleted) {
+      return true;
+    }
+    if (
+      jobStatus === ScheduledJobStatus.MISSED &&
+      ev.missedClassification === EcmMissedClassification.NONE
+    ) {
+      return true;
+    }
+    return (
+      !ev.actualCheckInAt &&
+      ev.plannedStartDateTime.getTime() < now.getTime() &&
+      (ev.missedClassification === EcmMissedClassification.NONE ||
+        ev.missedClassification === EcmMissedClassification.POTENTIAL_MISSED)
+    );
+  }
+
+  /**
+   * Visits for one service user or one employee over a date range, in the live-dashboard
+   * row shape. Missing or stale evaluations are classified on the fly and not saved, so
+   * opening a visits tab never raises ECM exceptions or office alerts.
+   */
+  async getVisitsTable(query: EcmVisitsTableQueryDto, actor: RequestUser) {
+    if (!query.serviceUserId && !query.employeeId) {
+      throw new BadRequestException('serviceUserId or employeeId is required');
+    }
+    const scope = this.orgScope.fromRequestUser(actor);
+    if (query.serviceUserId) {
+      await this.orgScope.assertServiceUserInScope(scope, query.serviceUserId);
+    }
+    if (query.employeeId) {
+      await this.orgScope.assertEmployeeInScope(scope, query.employeeId);
+    }
+
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const { dateFrom, dateTo } = resolveLiveDateRange(
+      { dateFrom: query.dateFrom, dateTo: query.dateTo },
+      timeZone,
+    );
+    const now = new Date();
+    const operationalToday = operationalTodayIso(now, timeZone);
+    const windows = await this.thresholdLookups.getDashboardWindows();
+    const padStart = operationalDayBounds(
+      addDaysToOperationalIso(dateFrom, -1),
+      timeZone,
+    ).start;
+    const padEnd = operationalDayBounds(
+      addDaysToOperationalIso(dateTo, 1),
+      timeZone,
+    ).end;
+    const jobScope = this.orgScope.scheduledJobScopeWhere(scope);
+
+    const jobs = await this.prisma.scheduledJob.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        scheduledStartDateTime: { gte: padStart, lte: padEnd },
+        ...(query.serviceUserId ? { serviceUserId: query.serviceUserId } : {}),
+        ...(query.employeeId
+          ? {
+              allocations: {
+                some: {
+                  employeeId: query.employeeId,
+                  deletedAt: null,
+                  isActive: true,
+                  unallocatedAt: null,
+                },
+              },
+            }
+          : {}),
+        ...(jobScope ? { AND: [jobScope] } : {}),
+      },
+      orderBy: { scheduledStartDateTime: 'asc' },
+      take: VISITS_TABLE_MAX_JOBS,
+      select: EVAL_INCLUDE.scheduledJob.select,
+    });
+    const jobIds = jobs.map((job) => job.id);
+
+    const saved = await this.prisma.ecmVisitEvaluation.findMany({
+      where: { scheduledJobId: { in: jobIds } },
+    });
+    const evaluationByJob = new Map<string, LiveRowEvaluation>();
+    for (const ev of saved) evaluationByJob.set(ev.scheduledJobId, ev);
+    const toPreview = jobs
+      .filter((job) => {
+        const ev = evaluationByJob.get(job.id);
+        return !ev || this.isStaleEvaluation(ev, job.status, now);
+      })
+      .map((job) => job.id);
+    for (let i = 0; i < toPreview.length; i += 8) {
+      await Promise.all(
+        toPreview.slice(i, i + 8).map(async (jobId) => {
+          try {
+            const data = await this.evaluation.previewJob(jobId, { now });
+            evaluationByJob.set(jobId, previewToEvaluation(data));
+          } catch {
+            // Keep the saved row (if any); the visit is still listed from it.
+          }
+        }),
+      );
+    }
+
+    const entries = jobs.flatMap((job) => {
+      const ev = evaluationByJob.get(job.id);
+      if (!ev) return [];
+      const day = formatScheduleDate(ev.localVisitDate);
+      return day >= dateFrom && day <= dateTo ? [{ job, ev }] : [];
+    });
+    const entryJobIds = entries.map((e) => e.job.id);
+    const [
+      visitRefs,
+      lockedVisitJobIds,
+      mockedVisitJobIds,
+      checkInRequestJobIds,
+    ] = await Promise.all([
+      loadVisitRefsByScheduledVisitIds(
+        this.prisma,
+        entries
+          .map((e) => e.ev.scheduledVisitId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+      this.lockedVisitJobIds(entryJobIds),
+      this.mockedVisitJobIds(entryJobIds),
+      this.pendingCheckInGrantJobIds(entryJobIds),
+    ]);
+    const rowCtx = {
+      now,
+      soonMs: windows.startingSoonMinutes * 60_000,
+      dueWindowMs: windows.dueNowWindowMinutes * 60_000,
+      operationalToday,
+      visitRefs,
+    };
+    const rows = entries.map(({ job, ev }) =>
+      this.withCheckInMethodRequest(
+        this.withMockLocation(
+          this.withLeftVisitArea(
+            this.toLiveRow(ev, job, rowCtx),
+            lockedVisitJobIds,
+          ),
+          mockedVisitJobIds,
+        ),
+        checkInRequestJobIds,
+      ),
+    );
+
+    return {
+      message: 'ECM visits',
+      data: {
+        dateFrom,
+        dateTo,
+        operationalTimezone: timeZone,
+        rows,
+        truncated: jobs.length === VISITS_TABLE_MAX_JOBS,
+      },
+    };
+  }
+
+  /** One ECM table row from a saved (or previewed) evaluation and its scheduled job. */
+  private toLiveRow(
+    ev: LiveRowEvaluation,
+    job: LiveRowJob,
+    ctx: {
+      now: Date;
+      soonMs: number;
+      dueWindowMs: number;
+      operationalToday: string;
+      visitRefs: Map<string, string>;
+    },
+  ): EcmLiveVisitRow {
+    const su = job.serviceUser;
+    const name =
+      su.preferredName?.trim() ||
+      [su.firstName, su.lastName].filter(Boolean).join(' ').trim() ||
+      'Service user';
+
+    const visitOperationalDay = formatScheduleDate(ev.localVisitDate);
+    const buckets = this.classifyBuckets(
+      ev,
+      ctx.now,
+      ctx.soonMs,
+      ctx.dueWindowMs,
+      visitOperationalDay === ctx.operationalToday,
+    );
+    const primaryVisit = job.visits?.[0];
+    const slotFromPlan =
+      primaryVisit?.visitPlanSlot?.medicationRoundCode ??
+      primaryVisit?.visitPlanSlot?.slotCode ??
+      null;
+    const slotLabel =
+      primaryVisit?.visitName?.trim() ||
+      (slotFromPlan
+        ? slotFromPlan
+            .replace(/_/g, ' ')
+            .toLowerCase()
+            .replace(/\b\w/g, (c) => c.toUpperCase())
+        : null) ||
+      this.slotLabelFromJobName(job.jobName);
+
+    const carers = job.allocations.map((a) => {
+      const carerName = [
+        a.employee.personalDetail?.firstName,
+        a.employee.personalDetail?.lastName,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      return {
+        employeeId: a.employee.id,
+        name: carerName || a.employee.id,
+        isLeadCarer: a.isLeadCarer,
+      };
+    });
+
+    return {
+      scheduledJobId: ev.scheduledJobId,
+      scheduledVisitId: ev.scheduledVisitId,
+      visitRef: ev.scheduledVisitId
+        ? (ctx.visitRefs.get(ev.scheduledVisitId) ?? null)
+        : null,
+      jobName: job.jobName,
+      slotLabel,
+      serviceUserId: job.serviceUserId,
+      serviceUserName: name,
+      carers,
+      address: job.address ?? null,
+      postcode: job.postcode ?? null,
+      plannedStartDateTime: ev.plannedStartDateTime.toISOString(),
+      plannedEndDateTime: ev.plannedEndDateTime?.toISOString() ?? null,
+      actualCheckInAt: ev.actualCheckInAt?.toISOString() ?? null,
+      actualCheckOutAt: ev.actualCheckOutAt?.toISOString() ?? null,
+      plannedDurationMinutes: ev.plannedDurationMinutes ?? null,
+      actualDurationMinutes: ev.actualDurationMinutes ?? null,
+      lifecycleStatus: ev.lifecycleStatus,
+      arrivalClassification: ev.arrivalClassification,
+      departureClassification: ev.departureClassification,
+      durationClassification: ev.durationClassification,
+      missedClassification: ev.missedClassification,
+      confidence: ev.confidence,
+      criticality: ev.criticality,
+      startVarianceMinutes: ev.startVarianceMinutes,
+      endVarianceMinutes: ev.endVarianceMinutes,
+      durationVarianceMinutes: ev.durationVarianceMinutes,
+      appliedSettingsLevel: ev.appliedSettingsLevel,
+      operationalExceptionCodes: ev.operationalExceptionCodes,
+      buckets,
+    };
   }
 
   /** Public guard for ECM nested routes (history/audit/notifications). */

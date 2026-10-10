@@ -1,15 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IncidentActionPriority, IncidentActionStatus } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsISO8601,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import { INCIDENT_MEASURE_ADDRESSES, INCIDENT_MEASURE_TYPES } from '../incident-review.constants';
 
 export class CreateIncidentActionDto {
   @ApiProperty()
@@ -47,6 +52,50 @@ export class CreateIncidentActionDto {
   @IsOptional()
   @IsBoolean()
   isMandatory?: boolean;
+
+  @ApiPropertyOptional({ enum: INCIDENT_MEASURE_TYPES, description: 'What the measure changes' })
+  @IsOptional()
+  @IsIn(INCIDENT_MEASURE_TYPES)
+  measureType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Records the measure relates to: [{ id, label }] (name as at save time)',
+    type: Object,
+    isArray: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  linkedRecords?: unknown[];
+
+  @ApiPropertyOptional({
+    enum: INCIDENT_MEASURE_ADDRESSES,
+    isArray: true,
+    description: 'Investigation findings it addresses (ROOT_CAUSE and/or contributing factors)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(INCIDENT_MEASURE_ADDRESSES, { each: true })
+  addresses?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Care plan / risk assessment / policy measures: a new record is needed instead of updating one',
+  })
+  @IsOptional()
+  @IsBoolean()
+  newRecordNeeded?: boolean;
+
+  @ApiPropertyOptional({ description: 'COURSE measures: the carer to take the course' })
+  @ValidateIf((o: CreateIncidentActionDto) => o.measureType === 'COURSE')
+  @IsUUID()
+  courseEmployeeId?: string;
+
+  @ApiPropertyOptional({ description: 'COURSE measures: the published course' })
+  @ValidateIf((o: CreateIncidentActionDto) => o.measureType === 'COURSE')
+  @IsUUID()
+  courseId?: string;
 }
 
 export class UpdateIncidentActionDto {
@@ -94,6 +143,31 @@ export class UpdateIncidentActionDto {
   isMandatory?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Records the measure relates to: [{ id, label }] (not for COURSE measures)',
+    type: Object,
+    isArray: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  linkedRecords?: unknown[];
+
+  @ApiPropertyOptional({
+    description:
+      'Care plan / risk assessment / policy measures: a new record is needed instead of updating one',
+  })
+  @IsOptional()
+  @IsBoolean()
+  newRecordNeeded?: boolean;
+
+  @ApiPropertyOptional({ enum: INCIDENT_MEASURE_ADDRESSES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(INCIDENT_MEASURE_ADDRESSES, { each: true })
+  addresses?: string[];
+
+  @ApiPropertyOptional({
     description: 'Required when cancelling a mandatory measure or making it optional (audited)',
   })
   @IsOptional()
@@ -103,9 +177,28 @@ export class UpdateIncidentActionDto {
 }
 
 export class CompleteIncidentActionDto {
-  @ApiPropertyOptional({ description: 'Notes on how the action was completed' })
-  @IsOptional()
+  @ApiProperty({ description: 'How the measure was completed (the evidence it was done)' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(4000)
-  completionNotes?: string;
+  completionNotes!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Care plan / risk assessment / policy measures: the record(s) actually updated or added [{ id, label }] (required for those types)',
+    type: Object,
+    isArray: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  completedRecords?: unknown[];
+}
+
+export class RemoveIncidentActionDto {
+  @ApiProperty({ description: 'Why the measure is removed (kept in the audit log)' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string;
 }

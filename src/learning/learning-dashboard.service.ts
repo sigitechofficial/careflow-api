@@ -55,7 +55,57 @@ export class LearningDashboardService {
       }),
     ]);
 
+    // Assignment outcomes for compliance KPIs (cancelled / exempt ones are not owed).
+    const now = new Date();
+    const in30 = new Date(now.getTime() + 30 * 86_400_000);
+    const owed = { ...(assignmentWhere as object), status: { notIn: ['CANCELLED', 'EXEMPT'] } };
+    const DONE = ['COMPLETED', 'PASSED'];
+    const [byStatus, mandatoryOwed, mandatoryDone, dueNext30, certificatesExpiring30, certificatesExpired, policyTypeCourses] =
+      await Promise.all([
+        this.prisma.learningAssignment.groupBy({
+          by: ['status'],
+          where: assignmentWhere as never,
+          orderBy: { status: 'asc' },
+          _count: { _all: true },
+        }),
+        this.prisma.learningAssignment.count({ where: { ...owed, isMandatory: true } as never }),
+        this.prisma.learningAssignment.count({
+          where: { ...(assignmentWhere as object), isMandatory: true, status: { in: DONE } } as never,
+        }),
+        this.prisma.learningAssignment.count({
+          where: {
+            ...(assignmentWhere as object),
+            status: { notIn: [...DONE, 'CANCELLED', 'EXEMPT'] },
+            dueAt: { gte: now, lte: in30 },
+          } as never,
+        }),
+        this.prisma.learningCertificate.count({ where: { status: 'ACTIVE', expiresAt: { gte: now, lte: in30 } } }),
+        this.prisma.learningCertificate.count({
+          where: { OR: [{ status: 'EXPIRED' }, { status: 'ACTIVE', expiresAt: { lt: now } }] },
+        }),
+        // Read-and-sign belongs in the Policy Library; these are legacy 'policy' courses still in Learning.
+        this.prisma.learningCourse.count({ where: { deletedAt: null, courseType: 'POLICY' } }),
+      ]);
+    const assignmentsByStatus: Record<string, number> = {};
+    for (const g of byStatus) {
+      const c = g._count;
+      assignmentsByStatus[g.status] = typeof c === 'object' && c ? (c._all ?? 0) : 0;
+    }
+    const count = (...k: string[]) => k.reduce((n, key) => n + (assignmentsByStatus[key] ?? 0), 0);
+
     return {
+      assignmentsByStatus,
+      owedAssignments: assignments - count('CANCELLED', 'EXEMPT'),
+      completedAssignments: count('COMPLETED', 'PASSED'),
+      awaitingSignOff: count('AWAITING_ASSESSMENT', 'AWAITING_APPROVAL'),
+      failedAssignments: count('FAILED'),
+      expiredAssignments: count('EXPIRED'),
+      mandatoryOwed,
+      mandatoryCompleted: mandatoryDone,
+      dueNext30,
+      certificatesExpiring30,
+      certificatesExpired,
+      policyTypeCourses,
       categories,
       courses,
       publishedCourses,

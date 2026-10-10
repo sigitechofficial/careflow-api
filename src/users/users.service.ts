@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { hashPassword } from '../common/utils/password.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -90,6 +92,95 @@ export class UsersService {
         updatedAt: new Date(),
       },
     });
+  }
+
+  /** Another (non-deleted) user already signs in with this email (case-insensitive). */
+  async assertEmailAvailable(email: string, exceptUserId: string) {
+    const taken = await this.prisma.user.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        deletedAt: null,
+        NOT: { id: exceptUserId },
+      },
+      select: { id: true },
+    });
+    if (taken)
+      throw new ConflictException(
+        'Another office user already uses this email',
+      );
+  }
+
+  async updateEmail(userId: string, email: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { email } });
+  }
+
+  /**
+   * Admin edit of an office user: name, sign-in email and (optionally) a new password.
+   * Same privilege / branch rules as changing roles; a new password signs the user out.
+   */
+  async updateOfficeUser(
+    actor: {
+      id: string;
+      roles: string[];
+      assignedLocationIds?: string[] | null;
+    },
+    userId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      password?: string;
+    },
+  ) {
+    const target = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: { userRoles: { include: { role: true } }, userLocations: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+    this.assertCanManageTarget(actor, target);
+
+    const email = data.email?.trim();
+    const emailChanged =
+      Boolean(email) && email!.toLowerCase() !== target.email.toLowerCase();
+    if (emailChanged) await this.assertEmailAvailable(email!, userId);
+    const passwordHash = data.password
+      ? await hashPassword(data.password)
+      : undefined;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName !== undefined
+          ? { firstName: data.firstName.trim() || null }
+          : {}),
+        ...(data.lastName !== undefined
+          ? { lastName: data.lastName.trim() || null }
+          : {}),
+        ...(emailChanged ? { email } : {}),
+        ...(passwordHash ? { passwordHash, refreshTokenHash: null } : {}),
+      },
+    });
+
+    await this.audit.logAudit({
+      userId: actor.id,
+      module: AuditModule.USER,
+      action: AuditAction.USER_PROFILE_UPDATED,
+      recordType: 'User',
+      recordId: userId,
+      description: `Office user ${updated.email} updated${passwordHash ? ' (new password set)' : ''}`,
+      oldValues: {
+        firstName: target.firstName,
+        lastName: target.lastName,
+        email: target.email,
+      },
+      newValues: {
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        passwordChanged: Boolean(passwordHash),
+      },
+    });
+    return updated;
   }
 
   async getAuthContext(userId: string) {

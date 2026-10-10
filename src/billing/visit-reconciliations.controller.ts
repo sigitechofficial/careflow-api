@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
@@ -69,8 +71,12 @@ export class VisitReconciliationsController {
     summary:
       'Re-run pay/bill card resolution and amount calculation for unlocked reconciliations',
   })
-  recalculateAmounts(@Body() dto: RecalculateVisitReconciliationsDto) {
-    return this.service.recalculateAmounts(dto);
+  recalculateAmounts(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RecalculateVisitReconciliationsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recalculateAmounts(dto, user.id, getRequestAuditMeta(req));
   }
 
   @Post('clear-all')

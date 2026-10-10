@@ -28,6 +28,7 @@ import {
 import { DAY_LABEL, type CarerPatternRow } from './visit-plan-carer-suggest.util';
 import {
   resolveCarerAssignmentsForDay,
+  resolveRequiredCarersForDay,
   type VisitPlanSlotCarerAssignmentShape,
 } from './visit-plan-slot-carer-resolve.util';
 import {
@@ -481,25 +482,44 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
 
   let jobsUpdated = 0;
 
+  const timeZone = params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
+
   for (const visit of visits) {
     const jobId = visit.scheduledJobId;
+    // The visit plan is the source of truth for how many carers a visit needs: a single
+    // regenerated visit passes its day-specific count; bulk sync resolves it per weekday.
+    // (Using the count already stored on the visit kept a 1-carer visit at 1 carer forever.)
+    const visitRequired = params.scheduledVisitId
+      ? required
+      : resolveRequiredCarersForDay(
+          params.carerAssignments ?? [],
+          weekdayIndexInTimeZone(visit.scheduledStartDateTime, timeZone),
+          required,
+        );
+    const requiredChanged = visit.requiredCarers !== visitRequired;
     // Prefer day-specific carerWindows (single-visit regenerate). Otherwise resolve
     // Mon/Wed/… from carerAssignments so bulk sync does not flatten every day to one carer.
     const desiredForVisit = desiredEmployeeIdsForVisitSync({
       visitStart: visit.scheduledStartDateTime,
-      requiredCarers: Math.max(1, visit.requiredCarers || required),
+      requiredCarers: visitRequired,
       assignedEmployeeIds: legacyAssigned,
       carerAssignments: params.carerAssignments,
       carerWindows: params.carerWindows,
       timeZone: params.timeZone,
     });
 
-    const resolved = await resolveVisitCarerAssignment(tx, desiredForVisit, visit, required, {
-      respectWorkingPattern,
-      patternByEmployee,
-      excludeScheduledJobId: jobId,
-      timeZone: params.timeZone,
-    });
+    const resolved = await resolveVisitCarerAssignment(
+      tx,
+      desiredForVisit,
+      { ...visit, requiredCarers: visitRequired },
+      visitRequired,
+      {
+        respectWorkingPattern,
+        patternByEmployee,
+        excludeScheduledJobId: jobId,
+        timeZone: params.timeZone,
+      },
+    );
     const target = resolved.employeeIds;
 
     const activeAllocations = await tx.jobAllocation.findMany({
@@ -517,7 +537,18 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
     const toRemove = activeAllocations.filter((row) => !targetIds.has(row.employeeId));
     const toAdd = target.filter((employeeId) => !currentIds.has(employeeId));
 
-    if (toRemove.length === 0 && toAdd.length === 0) continue;
+    if (toRemove.length === 0 && toAdd.length === 0 && !requiredChanged) continue;
+
+    if (requiredChanged) {
+      await tx.scheduledVisit.update({
+        where: { id: visit.id },
+        data: { requiredCarers: visitRequired, updatedById: params.userId },
+      });
+      await tx.scheduledJob.update({
+        where: { id: jobId },
+        data: { requiredCarers: visitRequired, updatedById: params.userId },
+      });
+    }
 
     for (const allocation of toRemove) {
       await tx.jobAllocation.update({

@@ -631,9 +631,11 @@ model Role {
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
 
-  rolePermissions RolePermission[]
-  userRoles       UserRole[]
-  policyAudiences PolicyAudience[]
+  rolePermissions   RolePermission[]
+  userRoles         UserRole[]
+  policyAudiences   PolicyAudience[]
+  roleTaskTemplates RoleTaskTemplate[]
+  roleTasks         RoleTask[]
 
   @@index([deletedAt])
   @@schema("identity")
@@ -705,6 +707,85 @@ model UserLocation {
   @@unique([userId, locationId])
   @@index([userId])
   @@index([locationId])
+  @@schema("identity")
+}
+
+enum RoleTaskRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("identity")
+}
+
+enum RoleTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+
+  @@schema("identity")
+}
+
+/// Work a manager gives to an office-user role (whole role owns it). One-off or repeating.
+model RoleTaskTemplate {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String
+  description String?            @db.Text
+  roleId      String             @db.Uuid
+  /// Branch the task is for; null = all branches.
+  locationId  String?            @db.Uuid
+  /// Admin page to open for the work (e.g. /billing/payroll-runs).
+  link        String?
+  recurrence  RoleTaskRecurrence @default(NONE)
+  /// Due date for a one-off task; first possible due date for a repeating task.
+  startDate   DateTime           @db.Date
+  /// WEEKLY: 0 = Sunday … 6 = Saturday.
+  weekday     Int?
+  /// MONTHLY: 1–31 (short months use their last day).
+  dayOfMonth  Int?
+  isActive    Boolean            @default(true)
+  createdById String?            @db.Uuid
+  updatedById String?            @db.Uuid
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+
+  role     Role       @relation(fields: [roleId], references: [id])
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  tasks    RoleTask[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+  @@schema("identity")
+}
+
+/// One due occurrence of a role task (status tracked per due date).
+model RoleTask {
+  id            String         @id @default(uuid()) @db.Uuid
+  templateId    String         @db.Uuid
+  roleId        String         @db.Uuid
+  locationId    String?        @db.Uuid
+  title         String
+  description   String?        @db.Text
+  link          String?
+  dueDate       DateTime       @db.Date
+  status        RoleTaskStatus @default(OPEN)
+  note          String?        @db.Text
+  startedAt     DateTime?
+  completedAt   DateTime?
+  completedById String?        @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  template RoleTaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  role     Role             @relation(fields: [roleId], references: [id])
+  location Location?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, dueDate])
+  @@index([roleId, status])
+  @@index([dueDate])
   @@schema("identity")
 }
 
@@ -1019,6 +1100,7 @@ model Employee {
   reviews           EmployeeReview[]
   documents         EmployeeDocument[]
   nonCoreActivities EmployeeNonCoreActivity[]
+  allocations       EmployeeAllocation[]
   workingPatterns   EmployeeWorkingPattern[]
   complianceRecords EmployeeCompliance[]
   holidays          EmployeeHoliday[]
@@ -1578,6 +1660,8 @@ model EmployeeReview {
   lastDone     DateTime?
   nextDue      DateTime?
   notes        String?
+  /// Supporting document (signed supervision / appraisal form), stored in employee Documents.
+  documentUrl  String?
   reviewedById String?   @db.Uuid
 
   isActive    Boolean   @default(true)
@@ -1655,6 +1739,78 @@ model EmployeeNonCoreActivity {
 
   @@index([employeeId])
   @@index([dateFrom, dateTo])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// Kind of item issued to staff (drives grouping and filters on the Allocation tab).
+enum AllocationItemCategory {
+  EQUIPMENT
+  PPE
+  UNIFORM
+  OTHER
+
+  @@schema("lookups")
+}
+
+/// Items the organisation issues to staff (laptop, mobile, gloves, aprons, tunic…). Settings → Allocation items.
+model AllocationItemType {
+  id         String                 @id @default(uuid()) @db.Uuid
+  name       String                 @unique
+  category   AllocationItemCategory @default(EQUIPMENT)
+  /// Expected back when the employee leaves (laptop, phone, badge) — consumables such as gloves are not.
+  returnable Boolean                @default(false)
+  sortOrder  Int                    @default(0)
+  isActive   Boolean                @default(true)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  allocations EmployeeAllocation[]
+
+  @@index([isActive])
+  @@schema("lookups")
+}
+
+enum EmployeeAllocationStatus {
+  ISSUED
+  RETURNED
+  LOST
+  DAMAGED
+
+  @@schema("employees")
+}
+
+/// Something issued to an employee: who got what, how many, when, by whom, and whether it came back.
+model EmployeeAllocation {
+  id               String                   @id @default(uuid()) @db.Uuid
+  employeeId       String                   @db.Uuid
+  itemTypeId       String                   @db.Uuid
+  quantity         Int                      @default(1)
+  size             String?
+  /// Serial / IMEI / asset tag for equipment.
+  serialNumber     String?
+  issuedAt         DateTime
+  /// Staff user who handed the item over.
+  issuedById       String?                  @db.Uuid
+  expectedReturnAt DateTime?
+  status           EmployeeAllocationStatus @default(ISSUED)
+  returnedAt       DateTime?
+  returnNotes      String?
+  notes            String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  employee Employee           @relation(fields: [employeeId], references: [id])
+  itemType AllocationItemType @relation(fields: [itemTypeId], references: [id])
+
+  @@index([employeeId])
+  @@index([itemTypeId])
+  @@index([status])
   @@index([deletedAt])
   @@schema("employees")
 }
@@ -2260,6 +2416,8 @@ model Location {
   userLocations            UserLocation[]
   policyApplicabilities    PolicyApplicability[]
   policyAudiences          PolicyAudience[]
+  roleTaskTemplates        RoleTaskTemplate[]
+  roleTasks                RoleTask[]
 
   @@schema("lookups")
 }
@@ -2485,6 +2643,30 @@ model ServiceUserGender {
   updatedAt DateTime @updatedAt
 
   serviceUsers ServiceUser[]
+
+  @@schema("service_users")
+}
+
+/// Sexual orientation options for service user personal details (stored by code in profile references).
+model ServiceUserSexualOrientation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("service_users")
+}
+
+/// Sex options for service user personal details (stored by code in profile references).
+model ServiceUserSex {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@schema("service_users")
 }
@@ -2734,6 +2916,9 @@ model ServiceUser {
   fundingTypeId           String?   @db.Uuid
   riskLevelId             String?   @db.Uuid
   profilePhotoUrl         String?
+  /// Tasks Planner: a task no visit covers moves to the nearest visit only when that visit is
+  /// within this many minutes of the task's due time. Default 60. Null = no limit.
+  taskNearestVisitGraceMinutes Int?      @default(60)
   nhsNumber               String?
   socialServicesRef       String?
   nationalInsuranceNumber String?
@@ -2795,6 +2980,8 @@ model ServiceUser {
   domCare           ServiceUserDomCare?
   initialAssessment ServiceUserInitialAssessment?
   fundings          ServiceUserFunding[] @relation("FundingLines")
+  referrals         ServiceUserReferral[]
+  careQuotations    CareQuotation[]
   currentFunding    ServiceUserFunding?  @relation("FundingAsCurrent", fields: [currentFundingId], references: [id])
   liveInProfile     ServiceUserLiveInProfile?
   defaultChargeCard ChargeCard?          @relation("ServiceUserDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
@@ -2922,6 +3109,7 @@ model BodyMapRecord {
   auditLogs          BodyMapAuditLog[]
   safeguardingCheck  BodyMapSafeguardingCheck?
   photos             BodyMapPhoto[]
+  videos             BodyMapVideo[]
   woundAssessment    BodyMapWoundAssessment?
   pressureAssessment BodyMapPressureAssessment?
   medicationSite     BodyMapMedicationSite?
@@ -2978,6 +3166,36 @@ model BodyMapPhoto {
   bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
   uploadedBy    User?         @relation("BodyMapPhotoUploadedBy", fields: [uploadedById], references: [id])
 
+  @@index([bodyMapRecordId])
+  @@schema("service_users")
+}
+
+/// Carer-app video attached to a new body map record (max 1 per record).
+/// Files live in private storage — never under the public /uploads mount.
+model BodyMapVideo {
+  id                   String    @id @default(uuid()) @db.Uuid
+  bodyMapRecordId      String    @db.Uuid
+  scheduledJobId       String?   @db.Uuid
+  /// Carer-app generated id (idempotent retries).
+  clientVideoId        String    @db.VarChar(128)
+  fileName             String    @db.VarChar(255)
+  /// Gallery file name, or the camera default (VID_yyyyMMdd_HHmmss.mp4).
+  originalName         String?   @db.VarChar(255)
+  /// Relative to the API working directory (private storage root).
+  storagePath          String    @db.VarChar(512)
+  thumbnailPath        String?   @db.VarChar(512)
+  mimeType             String    @db.VarChar(100)
+  fileSize             Int
+  durationMs           Int?
+  /// camera | gallery
+  source               String?   @db.VarChar(16)
+  uploadedByEmployeeId String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime?
+
+  bodyMapRecord BodyMapRecord @relation(fields: [bodyMapRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([bodyMapRecordId, clientVideoId])
   @@index([bodyMapRecordId])
   @@schema("service_users")
 }
@@ -4827,6 +5045,9 @@ model ServiceUserVisitTaskAssignment {
   id                    String                     @id @default(uuid()) @db.Uuid
   serviceUserId         String                     @db.Uuid
   medicationRoundCode   String
+  /// Clock time (HH:mm, org TZ) the task is due. The task shows on the visit whose window
+  /// contains this time — same rule as MedicationSchedule.dueTime. Null → round time.
+  dueTime               String?                    @db.VarChar(5)
   taskCatalogueTaskId   String                     @db.Uuid
   sortOrder             Int                        @default(0)
   carerInstructions     String?                    @db.Text
@@ -6600,6 +6821,7 @@ model ScheduledJob {
   visitCheckInMethodGrants VisitCheckInMethodGrant[]
   visitPushReceipts        CarerVisitPushReceipt[]
   timelineEvents           VisitTimelineEvent[]
+  voiceNotes               VisitVoiceNote[]
   careConsents             VisitCareConsent[]
 
   @@index([scheduleBatchId])
@@ -6676,6 +6898,39 @@ model VisitTimelineEvent {
   @@unique([scheduledJobId, sourceType, sourceId, eventType])
   @@index([scheduledJobId, occurredAt])
   @@index([scheduledJobId, isDraft])
+  @@schema("scheduling")
+}
+
+/// Carer voice note (audio) attached to a visit log entry (visit note / handover / concern).
+/// Files live in private storage (never the public /uploads static path) and are served
+/// only through permission-checked endpoints. One active voice note per log entry —
+/// the entry's `voiceNoteId` in ScheduledJob.metadata.employeeApp decides which one shows.
+model VisitVoiceNote {
+  id                   String    @id @default(uuid()) @db.Uuid
+  scheduledJobId       String    @db.Uuid
+  /// Carer-app log entry id (clientEntryId) the recording belongs to.
+  logEntryId           String    @db.VarChar(128)
+  /// visit_note | handover | concern
+  entryType            String    @db.VarChar(32)
+  /// Carer-app generated id; the log entry references it as `voiceNoteId`.
+  clientVoiceNoteId    String    @db.VarChar(128)
+  fileName             String    @db.VarChar(255)
+  originalName         String?   @db.VarChar(255)
+  /// Relative to the API working directory (private storage root).
+  storagePath          String    @db.VarChar(512)
+  mimeType             String    @db.VarChar(100)
+  fileSize             Int
+  durationMs           Int?
+  recordedAt           DateTime?
+  uploadedByEmployeeId String?   @db.Uuid
+  idempotencyKey       String    @unique @db.VarChar(128)
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime?
+
+  scheduledJob ScheduledJob @relation(fields: [scheduledJobId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledJobId, clientVoiceNoteId])
+  @@index([scheduledJobId, logEntryId])
   @@schema("scheduling")
 }
 
@@ -8172,6 +8427,16 @@ enum BillingRateType {
   DEDUCTION
   SLEEP_IN
   WAKING_NIGHT
+  /// Overtime premium: amount = multiplier (MULTIPLIER) or £ per overtime hour (ADDITIONAL_PER_HOUR); minimumMinutes = weekly threshold.
+  OVERTIME
+  /// On-call allowance: £ per agreed on-call period.
+  ON_CALL
+  /// Training / non-core activity pay: £ per hour.
+  TRAINING
+  /// Live-in care: £ per day.
+  LIVE_IN_DAILY
+  /// Live-in care: £ per week.
+  LIVE_IN_WEEKLY
 
   @@schema("billing")
 }
@@ -8297,6 +8562,8 @@ model PayCard {
   travelInheritsTimeBands Boolean                @default(false)
   mileageVehicleType      MileageVehicleType     @default(CAR_VAN)
   useUkMileageRates       Boolean                @default(true)
+  /// Bank holiday calendar used for pay: UK (England & Wales, default), SCOTLAND or NORTHERN_IRELAND. Null = UK.
+  bankHolidayRegion       String?
   status                  BillingCardStatus      @default(DRAFT)
   effectiveFrom           DateTime               @db.Date
   effectiveTo             DateTime?              @db.Date
@@ -8309,6 +8576,8 @@ model PayCard {
   replacedById            String?                @db.Uuid
 
   rules                     PayCardRule[]
+  versions                  PayCardVersion[]
+  employeeAssignments       EmployeePayCardAssignment[]
   defaultEmployments        EmployeeEmployment[]          @relation("EmployeeDefaultPayCard")
   payComponents             PayComponent[]
   employeeFunderAssignments EmployeeFunderPayAssignment[]
@@ -8372,10 +8641,121 @@ model PayCardRule {
   appliesToTravel   Boolean               @default(false)
   appliesToWaiting  Boolean               @default(false)
   appliesToTraining Boolean               @default(false)
+  /// Pay card version this rule belongs to (matches PayCardVersion.version).
+  version           Int                   @default(1)
+  /// Set when a newer version replaced this rule; null = rule of the current version.
+  supersededAt      DateTime?
 
   payCard PayCard @relation(fields: [payCardId], references: [id], onDelete: Cascade)
 
   @@index([payCardId])
+  @@index([payCardId, version])
+  @@schema("billing")
+}
+
+/**
+ * Dated history of a carer's own pay card (EmployeeEmployment.defaultPayCardId mirrors the latest row).
+ * Visit pay uses the row covering the visit day; a null payCardId means "no own card" (matching applies).
+ * effectiveFrom null = from the start (rows created before history existed).
+ */
+model EmployeePayCardAssignment {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @db.Uuid
+  payCardId     String?   @db.Uuid
+  effectiveFrom DateTime? @db.Date
+  effectiveTo   DateTime? @db.Date
+  reason        String?
+  createdAt     DateTime  @default(now())
+  createdById   String?   @db.Uuid
+
+  payCard PayCard? @relation(fields: [payCardId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([payCardId])
+  @@schema("billing")
+}
+
+/**
+ * Non-visit earnings for one carer (bonus, manual adjustment, holiday, sick, on-call, live-in, training).
+ * Approved items are picked up by the next visit pay run whose period end is on/after `workDate`,
+ * and are frozen once that run is locked (`includedInPayrollRunId`).
+ */
+model EmployeePayItem {
+  id                     String    @id @default(uuid()) @db.Uuid
+  employeeId             String    @db.Uuid
+  wageTypeCode           String
+  workDate               DateTime  @db.Date
+  quantity               Decimal?  @db.Decimal(10, 2)
+  unit                   String?
+  rate                   Decimal?  @db.Decimal(12, 4)
+  amount                 Decimal   @db.Decimal(12, 2)
+  reason                 String
+  notes                  String?
+  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE
+  sourceType             String    @default("MANUAL")
+  sourceId               String?   @db.Uuid
+  payCardId              String?   @db.Uuid
+  payCardVersion         Int?
+  /// PENDING_APPROVAL | APPROVED | REJECTED | CANCELLED
+  status                 String    @default("PENDING_APPROVAL")
+  createdAt              DateTime  @default(now())
+  createdById            String?   @db.Uuid
+  approvedAt             DateTime?
+  approvedById           String?   @db.Uuid
+  rejectedAt             DateTime?
+  rejectedById           String?   @db.Uuid
+  rejectionReason        String?
+  includedInPayrollRunId String?   @db.Uuid
+  updatedAt              DateTime  @updatedAt
+
+  payrollRunLines PayrollRunLine[]
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([workDate])
+  @@index([includedInPayrollRunId])
+  @@schema("billing")
+}
+
+/**
+ * Catalogue of UK domiciliary care wage types. System rows have protected codes, category,
+ * unit and methods; display name, description and active flag are editable.
+ */
+model WageType {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @unique
+  name           String
+  category       String
+  unit           String
+  allowedMethods String[]
+  description    String?
+  isSystem       Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  updatedById    String?  @db.Uuid
+
+  @@schema("billing")
+}
+
+/**
+ * Rate history of a pay card. Editing the rates of a non-draft card creates a new
+ * version; older versions keep their rules (PayCardRule.version) and still price
+ * visits dated before the next version's effectiveFrom.
+ */
+model PayCardVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  payCardId     String   @db.Uuid
+  version       Int
+  effectiveFrom DateTime @db.Date
+  changeNote    String?
+  createdAt     DateTime @default(now())
+  createdById   String?  @db.Uuid
+
+  payCard PayCard @relation(fields: [payCardId], references: [id], onDelete: Cascade)
+
+  @@unique([payCardId, version])
   @@schema("billing")
 }
 
@@ -8634,6 +9014,12 @@ model VisitReconciliation {
    * Admin decision on whether to pay the overrun minutes.
    */
   overrunDecision        VisitOverrunDecision?
+  /**
+   * Chosen when the overrun is acknowledged: price carer pay / client charge on the
+   * planned slot or the actual clock times. Null = legacy rule (pay actual, charge from actual).
+   */
+  overrunPayBasis        VisitOverrunTimeBasis?
+  overrunBillBasis       VisitOverrunTimeBasis?
   lockedAt               DateTime?
   lastEvaluatedAt        DateTime?
   includedInPayrollRunId String?                   @db.Uuid
@@ -8664,6 +9050,13 @@ enum VisitOverrunDecision {
   PENDING
   APPROVED
   REJECTED
+
+  @@schema("billing")
+}
+
+enum VisitOverrunTimeBasis {
+  PLANNED
+  ACTUAL
 
   @@schema("billing")
 }
@@ -8716,6 +9109,9 @@ enum PayrollRunLineType {
   PASSENGER_MILEAGE
   EMPLOYER_COST_NOTE
   ADJUSTMENT
+  SICK_PAY
+  BONUS
+  LIVE_IN
 
   @@schema("billing")
 }
@@ -8803,7 +9199,13 @@ model PayrollRun {
 model PayrollRunLine {
   id                    String             @id @default(uuid()) @db.Uuid
   payrollRunId          String             @db.Uuid
-  visitReconciliationId String             @db.Uuid
+  /// Null for non-visit earnings (pay items, training/on-call activity, overtime, rolled-up holiday pay).
+  visitReconciliationId String?            @db.Uuid
+  /// VISIT (default) | PAY_ITEM | NON_CORE_ACTIVITY | OVERTIME | HOLIDAY_ROLLED_UP
+  sourceType            String?
+  /// Source record id (activity id, week key…) used to stop the same earning being paid twice.
+  sourceRef             String?
+  employeePayItemId     String?            @db.Uuid
   employeeId            String?            @db.Uuid
   lineType              PayrollRunLineType @default(VISIT_PAY)
   description           String
@@ -8816,10 +9218,13 @@ model PayrollRunLine {
   exceptionMessage      String?
   createdAt             DateTime           @default(now())
 
-  payrollRun          PayrollRun          @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  visitReconciliation VisitReconciliation @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+  payrollRun          PayrollRun           @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  visitReconciliation VisitReconciliation? @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+  employeePayItem     EmployeePayItem?     @relation(fields: [employeePayItemId], references: [id], onDelete: Restrict)
 
   @@unique([payrollRunId, visitReconciliationId, lineType])
+  @@unique([payrollRunId, employeePayItemId])
+  @@index([sourceType, sourceRef])
   @@index([payrollRunId])
   @@index([visitReconciliationId])
   @@index([employeeId])
@@ -9476,6 +9881,56 @@ model PayrollPeriod {
   @@index([taxYearId])
   @@index([status])
   @@index([deletedAt])
+  @@schema("payroll")
+}
+
+enum OfficeSalaryPeriod {
+  MONTHLY
+  ANNUAL
+
+  @@schema("payroll")
+}
+
+/// Salary for an office user (login account), managed separately from carer payroll.
+/// No tax / NI is calculated here — amounts are gross as agreed.
+model OfficeUserSalary {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @unique @db.Uuid
+  amount            Decimal            @db.Decimal(12, 2)
+  period            OfficeSalaryPeriod @default(MONTHLY)
+  /// Day of the month the salary is paid (1–31).
+  payDay            Int?
+  startDate         DateTime?          @db.Date
+  bankAccountName   String?
+  bankSortCode      String?
+  bankAccountNumber String?
+  notes             String?            @db.Text
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  createdById       String?            @db.Uuid
+  updatedById       String?            @db.Uuid
+
+  @@schema("payroll")
+}
+
+/// One salary payment to an office user for a month (a row = paid).
+model OfficeSalaryPayment {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  /// YYYY-MM
+  month       String
+  amount      Decimal   @db.Decimal(12, 2)
+  paidAt      DateTime? @db.Date
+  reference   String?
+  note        String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  @@unique([userId, month])
+  @@index([month])
   @@schema("payroll")
 }
 
@@ -10772,11 +11227,12 @@ model LearningComplianceSnapshot {
 
 enum IncidentStatus {
   REPORTED
-  AWAITING_REVIEW
+  UNDER_REVIEW
   UNDER_INVESTIGATION
   ACTIONS_REQUIRED
   AWAITING_CLOSURE
   CLOSED
+  /// Legacy — reopening is now an event (reopenCount / lastReopenedAt); never set on new changes.
   REOPENED
 
   @@schema("incidents")
@@ -10876,6 +11332,10 @@ model Incident {
   /// Reference to lookups.Location (validated in service layer, no cross-schema FK).
   locationId   String? @db.Uuid
   specificArea String?
+  /// Where it happened (office raise form dropdown), e.g. HOME_BATHROOM — see INCIDENT_LOCATION_KEYS.
+  locationKey    String? @db.VarChar(40)
+  /// Free text when locationKey is OTHER. (specificArea holds the carer app's own wording.)
+  locationDetail String? @db.VarChar(200)
 
   /// Reporter (a platform user); optionally the employee they map to.
   reportedById       String? @db.Uuid
@@ -10890,6 +11350,9 @@ model Incident {
   primaryPersonName    String?              @db.Text
   /// All kinds of person affected (multi-select). primaryPersonKind holds the first for back-compat.
   affectedPersonKinds  IncidentPersonKind[]
+  /// Everyone involved (multi-select), primary person first. Ids only — no cross-schema FKs.
+  involvedServiceUserIds String[]           @default([]) @db.Uuid
+  involvedEmployeeIds    String[]           @default([]) @db.Uuid
   /// The visit (scheduling.ScheduledJob) this incident was reported during, if any.
   /// Scalar UUID validated in the service layer (no cross-schema FK), like other external refs.
   scheduledJobId       String?              @db.Uuid
@@ -10906,6 +11369,17 @@ model Incident {
   injuryDetails            String?  @db.Text
   /// Carer-supplied free-text describing other people involved.
   peopleInvolved           String?  @db.Text
+  /// Hospital outcome at raise — null means "Not known" (e.g. reported by phone).
+  ambulanceAttended        Boolean?
+  takenToAe                Boolean?
+  admittedToHospital       Boolean?
+  /// Category-specific answers (shape per category key; see incident-category-details.util.ts).
+  categoryDetails          Json?
+  /// When a manager started the review (Reported → Under Review).
+  reviewStartedAt          DateTime?
+  /// Reopen is an event: how many times it was reopened, and when last.
+  reopenCount              Int      @default(0)
+  lastReopenedAt           DateTime?
   /// Keys of parties the carer informed (office, gp, emergency_999, family_nok, etc.).
   whoInformedKeys          String[]
   /// Whether the carer flagged a safeguarding concern at time of report.
@@ -10947,6 +11421,7 @@ model Incident {
   outcome         IncidentOutcome?
   actions         IncidentAction[]
   carerSuspensions IncidentCarerSuspension[]
+  externalBodies        IncidentExternalBody[]
   courseRecommendations IncidentCarerCourseRecommendation[]
   injuries        IncidentInjury[]
   witnesses       IncidentWitness[]
@@ -10954,6 +11429,10 @@ model Incident {
   relatedCareRecords IncidentRelatedCareRecord[]
   relatedFrom        IncidentRelatedIncident[]   @relation("IncidentRelSource")
   relatedTo          IncidentRelatedIncident[]   @relation("IncidentRelTarget")
+  corrections        IncidentCorrection[]
+  reviewCycles          IncidentReviewCycle[]
+  investigationPauses   IncidentInvestigationPause[]
+  clarifications     IncidentClarificationNote[]
 
   @@index([status])
   @@index([severity])
@@ -10988,6 +11467,56 @@ model IncidentStatusHistory {
 }
 
 /// Append-only severity-change history for an incident.
+/// A correction to a raised field (manager, with a reason). The original value stays readable here;
+/// fields corrected together share a batchId and reason.
+model IncidentCorrection {
+  id            String   @id @default(uuid()) @db.Uuid
+  incidentId    String   @db.Uuid
+  batchId       String   @db.Uuid
+  /// Incident field key, e.g. occurredAt, categoryId, involvedServiceUserIds.
+  fieldKey      String
+  fromValue     Json?
+  toValue       Json?
+  /// Human-readable values at the time (names can change later).
+  fromLabel     String?  @db.Text
+  toLabel       String?  @db.Text
+  reason        String   @db.Text
+  correctedById String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
+/// The reporter's own account that a clarification note can be added to (the text itself is never edited).
+enum IncidentClarificationField {
+  DESCRIPTION
+  CONTEXT_BEFORE
+  CONTEXT_AFTER
+  IMMEDIATE_ACTIONS
+  PEOPLE_INVOLVED
+  EMERGENCY_SERVICES
+
+  @@schema("incidents")
+}
+
+/// Append-only manager note clarifying the reporter's account. Never edited or deleted.
+model IncidentClarificationNote {
+  id          String                     @id @default(uuid()) @db.Uuid
+  incidentId  String                     @db.Uuid
+  field       IncidentClarificationField
+  note        String                     @db.Text
+  createdById String?                    @db.Uuid
+  createdAt   DateTime                   @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, createdAt])
+  @@schema("incidents")
+}
+
 model IncidentSeverityHistory {
   id           String            @id @default(uuid()) @db.Uuid
   incidentId   String            @db.Uuid
@@ -11043,9 +11572,18 @@ model IncidentReview {
   furtherMedicalAttention      Boolean?
   externalNotificationRequired Boolean?
   escalationRequired           Boolean?
+  /// Is anyone at immediate or ongoing risk? Yes needs protectiveAction.
+  immediateRisk                Boolean?
+  protectiveAction             String?           @db.Text
   managementNotes              String?           @db.Text
   reviewedById                 String?           @db.Uuid
   reviewedAt                   DateTime?
+  /// Review decision: INVESTIGATE / NO_INVESTIGATION (null = not decided yet).
+  decision                     String?           @db.VarChar(30)
+  decisionReason               String?           @db.Text
+  decidedAt                    DateTime?
+  /// 1 for the first review; each reopen archives the review and starts the next number.
+  cycleNumber                  Int               @default(1)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11059,6 +11597,56 @@ model IncidentReview {
 
 /// Structured investigation — one per incident (upserted). Contributing factors
 /// are stored as codes (multi-select) alongside the narrative fields.
+/// A finished review cycle, archived when the incident is reopened. Never changed afterwards.
+model IncidentReviewCycle {
+  id                           String            @id @default(uuid()) @db.Uuid
+  incidentId                   String            @db.Uuid
+  cycleNumber                  Int
+  confirmedSeverity            IncidentSeverity?
+  investigationRequired        Boolean?
+  safeguardingConcern          Boolean?
+  possibleAbuseOrNeglect       Boolean?
+  furtherMedicalAttention      Boolean?
+  externalNotificationRequired Boolean?
+  escalationRequired           Boolean?
+  immediateRisk                Boolean?
+  protectiveAction             String?           @db.Text
+  managementNotes              String?           @db.Text
+  decision                     String?           @db.VarChar(30)
+  decisionReason               String?           @db.Text
+  decidedAt                    DateTime?
+  reviewedById                 String?           @db.Uuid
+  reviewedAt                   DateTime?
+  lastUpdatedById              String?           @db.Uuid
+  lastUpdatedAt                DateTime?
+  /// When the incident was reopened (and this cycle archived), by whom and why.
+  archivedAt                   DateTime          @default(now())
+  archivedById                 String?           @db.Uuid
+  reopenReason                 String?           @db.Text
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, cycleNumber])
+  @@schema("incidents")
+}
+
+/// One pause of an investigation (kept after it is resumed).
+model IncidentInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  incidentId     String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, pausedAt])
+  @@schema("incidents")
+}
+
 model IncidentInvestigation {
   id                  String                  @id @default(uuid()) @db.Uuid
   incidentId          String                  @unique @db.Uuid
@@ -11069,10 +11657,33 @@ model IncidentInvestigation {
   whatHappened        String?                 @db.Text
   whyHappened         String?                 @db.Text
   contributingFactors String[]
+  /// Per factor: which records it relates to (id + name at the time) and a note,
+  /// e.g. { STAFFING: { items: [{ id, label }], note } }.
+  contributingFactorDetails Json?
   rootCause           String?                 @db.Text
   preventable         IncidentPreventability?
   conclusion          String?                 @db.Text
   completedAt         DateTime?
+  /// Set-up: STANDARD / ENHANCED / COMPREHENSIVE (needed to complete).
+  investigationLevel         String?                            @db.VarChar(20)
+  /// Staff member (Employee) leading the investigation (separate from the incident owner).
+  leadInvestigatorEmployeeId String?                            @db.Uuid
+  /// Was the lead investigator directly involved in the incident? NO / YES / NOT_KNOWN.
+  investigatorInvolved       String?                            @db.VarChar(20)
+  /// Why the investigator is still appropriate when involved = YES.
+  investigatorInvolvedReason String?                            @db.Text
+  targetDate                 DateTime?                          @db.Date
+  termsOfReference           String?                            @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the incident status).
+  investigationStatus        String                             @default("IN_PROGRESS") @db.VarChar(20)
+  /// Evidence: which kinds of records were reviewed (CARE_PLAN, MAR, ROTA…).
+  recordsReviewed            String[]
+  /// Per reviewed kind: linked records ({ id, label } as at save time) and a note.
+  recordsReviewedDetails     Json?
+  /// What was noticed while reviewing records (not the findings).
+  evidenceNotes              String?                            @db.Text
+  /// Evidence still awaited or unavailable (a note only).
+  outstandingEvidence        String?                            @db.Text
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11084,7 +11695,7 @@ model IncidentInvestigation {
   @@schema("incidents")
 }
 
-/// One carer suspension recorded against an incident after investigation.
+/// Interim suspension of a carer during an incident investigation (kept after it is lifted).
 model IncidentCarerSuspension {
   id          String   @id @default(uuid()) @db.Uuid
   incidentId  String   @db.Uuid
@@ -11094,6 +11705,15 @@ model IncidentCarerSuspension {
   suspendFrom DateTime @db.Date
   suspendTo   DateTime @db.Date
   suspendedAt DateTime @default(now())
+  /// SCHEDULED (starts on suspendFrom) / ACTIVE / LIFTED. "Review due" = ACTIVE past suspendTo.
+  status         String    @default("ACTIVE") @db.VarChar(20)
+  liftedAt       DateTime?
+  liftedById     String?   @db.Uuid
+  liftReason     String?   @db.Text
+  /// Decision at Outcome & close: the suspension continues after the incident (e.g. HR process).
+  continuedAt    DateTime?
+  continuedById  String?   @db.Uuid
+  continueReason String?   @db.Text
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -11103,10 +11723,52 @@ model IncidentCarerSuspension {
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
-  @@unique([incidentId, employeeId])
+  /// A carer can be suspended again after a lift (one open suspension at a time, checked in code).
+  @@index([incidentId, employeeId])
   @@index([incidentId])
   @@index([employeeId])
   @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// An outside body involved alongside the internal investigation — local authority safeguarding
+/// (Section 42), police, CQC, HSE, coroner, commissioner, etc. Several can be involved at once.
+/// REFERRED / IN_PROGRESS are open; closing the incident while one is open needs an audited reason.
+model IncidentExternalBody {
+  id               String    @id @default(uuid()) @db.Uuid
+  incidentId       String    @db.Uuid
+  /// LOCAL_AUTHORITY_SAFEGUARDING / POLICE / CQC / HSE / CORONER / COMMISSIONER / OTHER
+  bodyType         String    @db.VarChar(40)
+  /// e.g. "Leeds City Council", "West Yorkshire Police" (required for OTHER).
+  organisationName String?   @db.VarChar(200)
+  referredOn       DateTime  @db.Date
+  /// Their reference (crime reference, safeguarding case number…).
+  referenceNumber  String?   @db.VarChar(100)
+  contactName      String?   @db.VarChar(200)
+  contactPhone     String?   @db.VarChar(50)
+  contactEmail     String?   @db.VarChar(200)
+  /// Who leads: LEAD (they lead, we support) / SUPPORTING (joint) / INFORMED (information only).
+  role             String    @db.VarChar(20)
+  /// REFERRED / IN_PROGRESS / CONCLUDED / NO_FURTHER_ACTION
+  status           String    @default("REFERRED") @db.VarChar(30)
+  /// Their outcome — required once CONCLUDED or NO_FURTHER_ACTION.
+  outcome          String?   @db.Text
+  outcomeDate      DateTime? @db.Date
+  /// What we gave them (records, statements…) and when.
+  informationProvided String? @db.Text
+  /// What we got from them (updates, findings, instructions such as "pause your investigation").
+  informationReceived String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([status])
   @@schema("incidents")
 }
 
@@ -11177,6 +11839,18 @@ model IncidentAction {
   completionNotes String?   @db.Text
   completedById   String?   @db.Uuid
   completedAt     DateTime?
+  /// What kind of measure (CARE_PLAN_UPDATE, COURSE…); null for measures added before types.
+  measureType            String?   @db.VarChar(40)
+  /// Records the measure relates to ({ id, label } as at save time) — not copies of the records.
+  linkedRecords          Json?
+  /// Investigation findings it addresses: ROOT_CAUSE and/or contributing factor codes.
+  addresses              String[]
+  /// COURSE measures: the course recommendation (learning assignment) created with it.
+  courseRecommendationId String?   @db.Uuid
+  /// Care plan / risk assessment / policy measures: a new record is needed (none to update yet).
+  newRecordNeeded        Boolean   @default(false)
+  /// Set on completion: the record(s) actually updated or added ({ id, label } as at completion).
+  completedRecords       Json?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -11380,10 +12054,18 @@ model IncidentOutcome {
   preventability             IncidentPreventability?
   /// Codes for changes made (CARE_PLAN, RISK_ASSESSMENT, POLICY, ...).
   changesMade                String[]
+  /// Per change: which records were changed (id + name at the time) and a note.
+  changesMadeDetails         Json?
   informationSharedWithStaff Boolean?
   serviceUserInformed        Boolean?
   nokInformed                Boolean?
   finalManagementComments    String?                 @db.Text
+  /// Who the outcome was shared with: one row per person (shared on/how, or why not).
+  outcomeSharing             Json?
+  /// How the learning reached the team (replaces the old Yes/No).
+  learningSharedOn           DateTime?               @db.Date
+  learningSharedMethod       String?                 @db.VarChar(30)
+  learningSharedNote         String?                 @db.Text
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11807,11 +12489,29 @@ enum SurveyRecurrence {
   @@schema("surveys")
 }
 
+/// How a survey response was collected.
+enum SurveyResponseChannel {
+  /// Survey link / carer app — answered by the person themselves.
+  ONLINE
+  /// Service user portal.
+  PORTAL
+  /// Recorded by staff during a phone call.
+  TELEPHONE
+  /// Recorded by staff from a paper form.
+  PAPER
+  /// Recorded by staff face to face.
+  IN_PERSON
+
+  @@schema("surveys")
+}
+
 /// Who actually answered a service-user survey (the service user or someone on their behalf).
 enum SurveyRespondentRelation {
   SELF
   FAMILY_MEMBER
   REPRESENTATIVE
+  /// Staff answered on the person's behalf (recorded by office staff).
+  STAFF
 
   @@schema("surveys")
 }
@@ -11913,6 +12613,17 @@ model SurveyResponse {
   respondentRelation SurveyRespondentRelation?
   /// Name of the family member / representative when not answered by the service user.
   respondentName     String?
+  /// How the answers were collected. Staff-recorded channels (telephone / paper / in person) can be corrected.
+  channel            SurveyResponseChannel @default(ONLINE)
+  /// Office user who recorded the response (staff-recorded channels only).
+  recordedById       String?  @db.Uuid
+  /// This response is not linked to anyone (even when the survey itself is named).
+  isAnonymous        Boolean  @default(false)
+  /// Telephone: when the call took place, the number called, call notes and phone consent.
+  contactedAt        DateTime?
+  contactNumber      String?
+  contactNotes       String?  @db.Text
+  consentGiven       Boolean?
   submittedAt   DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -12137,4 +12848,437 @@ model JobRun {
   @@index([jobName, startedAt(sort: Desc)])
   @@index([status])
   @@schema("platform")
+}
+
+// ---------------------------------------------------------------------------
+// Complaints & compliments (Accident & Incident → Complaints & Compliments)
+// ---------------------------------------------------------------------------
+
+enum FeedbackType {
+  COMPLAINT
+  COMPLIMENT
+
+  @@schema("incidents")
+}
+
+/// Complaint: RECEIVED → ACKNOWLEDGED → INVESTIGATING → RESPONDED → CLOSED. Compliment: RECEIVED → CLOSED (shared).
+enum FeedbackStatus {
+  RECEIVED
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESPONDED
+  CLOSED
+
+  @@schema("incidents")
+}
+
+/// Who the complaint / compliment came from.
+enum FeedbackFromKind {
+  SERVICE_USER
+  FAMILY
+  PROFESSIONAL
+  STAFF
+  PUBLIC
+  ANONYMOUS
+
+  @@schema("incidents")
+}
+
+enum FeedbackChannel {
+  PHONE
+  EMAIL
+  LETTER
+  IN_PERSON
+  PORTAL
+  SURVEY
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum ComplaintSeverity {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("incidents")
+}
+
+enum ComplaintOutcome {
+  UPHELD
+  PARTIALLY_UPHELD
+  NOT_UPHELD
+  WITHDRAWN
+
+  @@schema("incidents")
+}
+
+/// One complaint or compliment. People are scalar ids (no cross-schema FKs), validated in the service.
+model FeedbackRecord {
+  id              String         @id @default(uuid()) @db.Uuid
+  /// CMP-2026-0001 / CPL-2026-0001
+  referenceNumber String         @unique
+  type            FeedbackType
+  status          FeedbackStatus @default(RECEIVED)
+
+  receivedAt   DateTime
+  channel      FeedbackChannel  @default(PHONE)
+  fromKind     FeedbackFromKind
+  /// Name of the person (blank when anonymous).
+  fromName     String?
+  /// Phone / email / address to reply to.
+  fromContact  String?
+  fromServiceUserId String? @db.Uuid
+  fromEmployeeId    String? @db.Uuid
+
+  /// Who it is about.
+  aboutServiceUserId String?  @db.Uuid
+  aboutEmployeeIds   String[] @default([]) @db.Uuid
+  /// Branch (lookups.Location) — from the service user when known.
+  locationId         String?  @db.Uuid
+
+  subject        String
+  details        String             @db.Text
+  /// Complaint area, e.g. Care quality, Missed / late visit, Staff conduct.
+  category       String?
+  severity       ComplaintSeverity?
+  /// What the complainant would like to happen.
+  desiredOutcome String?            @db.Text
+
+  /// Employee handling the complaint (investigating manager).
+  handlerEmployeeId  String?   @db.Uuid
+  acknowledgeDueAt   DateTime?
+  acknowledgedAt     DateTime?
+  responseDueAt      DateTime?
+  investigationNotes String?   @db.Text
+  respondedAt        DateTime?
+  responseSummary    String?   @db.Text
+  outcome            ComplaintOutcome?
+  lessonsLearned     String?   @db.Text
+  closedAt           DateTime?
+  /// Compliment passed on to the staff it was about.
+  sharedWithStaffAt  DateTime?
+
+  recordedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  deletedById  String?   @db.Uuid
+
+  events FeedbackEvent[]
+
+  @@index([type, status])
+  @@index([receivedAt])
+  @@index([aboutServiceUserId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Timeline: status changes and notes on a complaint / compliment.
+model FeedbackEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  feedbackId String   @db.Uuid
+  /// RECORDED, ACKNOWLEDGED, INVESTIGATION_STARTED, RESPONDED, CLOSED, REOPENED, SHARED, NOTE, UPDATED
+  action     String
+  note       String?  @db.Text
+  userId     String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId, createdAt])
+  @@schema("incidents")
+}
+
+/// Per type + year counter for reference numbers.
+model FeedbackNumberSequence {
+  type      FeedbackType
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([type, year])
+  @@schema("incidents")
+}
+
+// ---------------------------------------------------------------------------
+// Referrals & private care quotations (Service User → Referral & Quotes)
+// People / branch / funding refs are scalar ids validated in the service, like other modules.
+// ---------------------------------------------------------------------------
+
+enum ReferralSourceType {
+  LOCAL_AUTHORITY
+  NHS
+  HOSPITAL
+  SOCIAL_WORKER
+  GP
+  PRIVATE
+  FAMILY
+  SELF_REFERRAL
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum ReferralReceivedVia {
+  EMAIL
+  PHONE
+  PORTAL
+  IN_PERSON
+  LETTER
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum ReferralPriority {
+  ROUTINE
+  URGENT
+  EMERGENCY
+
+  @@schema("service_users")
+}
+
+/// NEW → UNDER_REVIEW → ASSESSMENT_BOOKED → ACCEPTED / DECLINED; ON_HOLD and WITHDRAWN at any open stage.
+enum ReferralStatus {
+  NEW
+  UNDER_REVIEW
+  ASSESSMENT_BOOKED
+  ON_HOLD
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+
+  @@schema("service_users")
+}
+
+/// One referral for a service user (a person can be re-referred later).
+model ServiceUserReferral {
+  id              String         @id @default(uuid()) @db.Uuid
+  /// REF-2026-0001
+  referenceNumber String         @unique
+  serviceUserId   String         @db.Uuid
+  status          ReferralStatus @default(NEW)
+  priority        ReferralPriority @default(ROUTINE)
+
+  sourceType            ReferralSourceType
+  /// Referring organisation (council, trust, hospital ward, GP practice…). Not the payer.
+  referringOrganisation String?
+  referrerName          String?
+  referrerRole          String?
+  referrerPhone         String?
+  referrerEmail         String?
+
+  /// When the referral was made (date/time on the referral).
+  referralDate        DateTime?
+  /// When it actually reached us.
+  receivedAt          DateTime
+  receivedVia         ReferralReceivedVia @default(EMAIL)
+  receivedByEmployeeId String?            @db.Uuid
+
+  /// Assigned branch (lookups.Location) and the employee responsible for the referral.
+  locationId            String? @db.Uuid
+  responsibleEmployeeId String? @db.Uuid
+
+  careRequirements   String?   @db.Text
+  expectedStartDate  DateTime? @db.Date
+  requestedHoursPerWeek Decimal? @db.Decimal(6, 2)
+
+  /// Funding arrangement (service_users.FundingType: LA, NHS, Private, Family, Mixed…). Null = to be confirmed.
+  fundingTypeId String?  @db.Uuid
+  /// Funding organisation (service_users.Funder) — may differ from the referrer and from the actual payer.
+  funderId      String?  @db.Uuid
+  fundingNotes  String?  @db.Text
+
+  nextFollowUpAt DateTime?
+  decisionAt     DateTime?
+  decisionById   String?   @db.Uuid
+  decisionReason String?   @db.Text
+  notes          String?   @db.Text
+
+  /// Staff user who entered it (server-set from the session).
+  recordedById String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  deletedById  String?   @db.Uuid
+
+  serviceUser ServiceUser     @relation(fields: [serviceUserId], references: [id])
+  quotations  CareQuotation[]
+  events      ServiceUserReferralEvent[]
+
+  @@index([serviceUserId])
+  @@index([status])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum CareQuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+  SUPERSEDED
+
+  @@schema("service_users")
+}
+
+enum QuotationPayerType {
+  SERVICE_USER
+  FAMILY
+  REPRESENTATIVE
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum QuotationChargeFrequency {
+  ONE_OFF
+  WEEKLY
+  MONTHLY
+
+  @@schema("service_users")
+}
+
+/// Private care quotation. Revisions are new rows sharing rootQuotationId; sent / accepted rows are never edited.
+model CareQuotation {
+  id              String              @id @default(uuid()) @db.Uuid
+  /// QUO-2026-0001 (same for every revision)
+  referenceNumber String
+  revision        Int                 @default(1)
+  /// First revision's id (itself for revision 1).
+  rootQuotationId String?             @db.Uuid
+  serviceUserId   String              @db.Uuid
+  referralId      String?             @db.Uuid
+  /// Care package (service_users.ServiceUserVisitPlan) once one exists.
+  visitPlanId     String?             @db.Uuid
+  status          CareQuotationStatus @default(DRAFT)
+
+  responsibleEmployeeId String? @db.Uuid
+
+  payerType         QuotationPayerType @default(SERVICE_USER)
+  payerName         String?
+  payerRelationship String?
+  payerEmail        String?
+  payerPhone        String?
+  payerAddress      String?            @db.Text
+
+  validUntil  DateTime? @db.Date
+  startDate   DateTime? @db.Date
+  currency    String    @default("GBP")
+  notes       String?   @db.Text
+  terms       String?   @db.Text
+
+  /// Totals calculated on the server from the lines and charges.
+  weeklyCareCost      Decimal @default(0) @db.Decimal(12, 2)
+  weeklyChargesCost   Decimal @default(0) @db.Decimal(12, 2)
+  monthlyChargesCost  Decimal @default(0) @db.Decimal(12, 2)
+  oneOffChargesCost   Decimal @default(0) @db.Decimal(12, 2)
+  weeklyTotal         Decimal @default(0) @db.Decimal(12, 2)
+  monthlyTotal        Decimal @default(0) @db.Decimal(12, 2)
+  weeklyHours         Decimal @default(0) @db.Decimal(8, 2)
+
+  sentAt               DateTime?
+  sentById             String?   @db.Uuid
+  acceptedAt           DateTime?
+  acceptedByName       String?
+  acceptanceMethod     String?
+  acceptanceRecordedById String? @db.Uuid
+  declinedAt           DateTime?
+  declineReason        String?   @db.Text
+  supersededAt         DateTime?
+
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  serviceUser ServiceUser          @relation(fields: [serviceUserId], references: [id])
+  referral    ServiceUserReferral? @relation(fields: [referralId], references: [id], onDelete: SetNull)
+  lines       CareQuotationLine[]
+  charges     CareQuotationCharge[]
+
+  @@unique([referenceNumber, revision])
+  @@index([serviceUserId])
+  @@index([referralId])
+  @@index([rootQuotationId])
+  @@index([status])
+  @@schema("service_users")
+}
+
+/// Proposed service: e.g. "Morning personal care", 7 visits a week, 45 min, 2 carers, £28/h.
+model CareQuotationLine {
+  id              String   @id @default(uuid()) @db.Uuid
+  quotationId     String   @db.Uuid
+  description     String
+  /// MON..SUN codes; empty = not specified.
+  daysOfWeek      String[] @default([])
+  visitsPerWeek   Int
+  durationMinutes Int
+  numberOfCarers  Int      @default(1)
+  hourlyRate      Decimal  @db.Decimal(10, 2)
+  /// Carer-hours per week and cost per week (server calculated).
+  weeklyHours     Decimal  @db.Decimal(8, 2)
+  weeklyCost      Decimal  @db.Decimal(12, 2)
+  sortOrder       Int      @default(0)
+
+  quotation CareQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@schema("service_users")
+}
+
+/// Additional charge: e.g. mileage, assessment fee, key safe installation.
+model CareQuotationCharge {
+  id          String                   @id @default(uuid()) @db.Uuid
+  quotationId String                   @db.Uuid
+  description String
+  amount      Decimal                  @db.Decimal(12, 2)
+  frequency   QuotationChargeFrequency @default(WEEKLY)
+  sortOrder   Int                      @default(0)
+
+  quotation CareQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@schema("service_users")
+}
+
+/// History for referrals and quotations: who did what, when (server time), with field changes.
+model ServiceUserReferralEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  serviceUserId String   @db.Uuid
+  referralId    String?  @db.Uuid
+  quotationId   String?  @db.Uuid
+  /// RECORDED, UPDATED, STATUS_CHANGED, ASSIGNED, FOLLOW_UP, NOTE, QUOTE_CREATED, QUOTE_UPDATED, QUOTE_SENT, QUOTE_ACCEPTED, QUOTE_DECLINED, QUOTE_WITHDRAWN, QUOTE_REVISED, LEGACY_IMPORTED
+  action        String
+  fromStatus    String?
+  toStatus      String?
+  note          String?  @db.Text
+  /// [{ field, from, to }] for edits.
+  changes       Json?
+  userId        String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  referral ServiceUserReferral? @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  @@index([serviceUserId, createdAt])
+  @@index([referralId])
+  @@index([quotationId])
+  @@schema("service_users")
+}
+
+/// Per kind + year counter for REF- / QUO- reference numbers.
+model ReferralNumberSequence {
+  kind      String
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([kind, year])
+  @@schema("service_users")
 }

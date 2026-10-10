@@ -23,6 +23,12 @@ function emptyDateToUndefined({ value }: { value: unknown }): unknown {
   return typeof value === 'string' ? value.trim() : value;
 }
 
+/** Like emptyDateToUndefined, but keeps an explicit null so an update can clear the date (e.g. service ongoing). */
+function emptyDateToUndefinedKeepNull({ value }: { value: unknown }): unknown {
+  if (value === null) return null;
+  return emptyDateToUndefined({ value });
+}
+
 export class CreateServiceUserDto {
   @ApiProperty({ maxLength: 100 })
   @IsString()
@@ -96,10 +102,10 @@ export class CreateServiceUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(emptyDateToUndefined)
+  @Transform(emptyDateToUndefinedKeepNull)
   @IsDateString()
   @IsOnOrAfterDate('serviceStartDate')
-  serviceEndDate?: string;
+  serviceEndDate?: string | null;
 
   @ApiProperty()
   @IsNotEmpty({ message: 'Title is required' })

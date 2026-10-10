@@ -11,12 +11,57 @@ const DATE = InitialAssessmentQuestionType.DATE;
 const SINGLE_SELECT = InitialAssessmentQuestionType.SINGLE_SELECT;
 const MULTI_SELECT = InitialAssessmentQuestionType.MULTI_SELECT;
 
+/** Default service user Sex lookup options (values = lowercase lookup codes). */
+const SEX_OPTIONS = {
+  options: [
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'intersex', label: 'Indeterminate (unable to be classified as either male or female)' },
+    { value: 'unknown', label: 'Not Known (not recorded)' },
+  ],
+};
+
+/** Default service user Sexual orientation lookup options (values = lowercase lookup codes). */
+const SEXUAL_ORIENTATION_OPTIONS = {
+  options: [
+    { value: 'heterosexual', label: 'Heterosexual' },
+    { value: 'female_homosexual', label: 'Female Homosexual' },
+    { value: 'male_homosexual', label: 'Male Homosexual' },
+    { value: 'bisexual', label: 'Bisexual' },
+    { value: 'neither', label: 'Sexually attracted to neither gender' },
+    { value: 'unknown', label: 'Sexual orientation unknown' },
+    { value: 'undecided', label: 'Sexual orientation undecided' },
+    { value: 'not_given', label: 'Sexual orientation not given – person refused' },
+  ],
+};
+
 /** Extra §1 fields for holistic assessment document parity (upserted by questionText). */
 export const HOLISTIC_SECTION_1_EXTRA_QUESTIONS = [
   { questionText: 'First name', questionType: TEXT, isRequired: true, sortOrder: 76, metadata: { specRef: '1.1', fieldKey: 'firstName', prefillKey: 'firstName' } },
   { questionText: 'Middle name', questionType: TEXT, sortOrder: 77, metadata: { specRef: '1.1', fieldKey: 'middleName', prefillKey: 'middleName' } },
   { questionText: 'Last name', questionType: TEXT, isRequired: true, sortOrder: 78, metadata: { specRef: '1.1', fieldKey: 'lastName', prefillKey: 'lastName' } },
   { questionText: 'NI number', questionType: TEXT, sortOrder: 79, metadata: { specRef: '1.1', fieldKey: 'nationalInsuranceNumber', prefillKey: 'nationalInsuranceNumber' } },
+  // Options come from the service user Sex / Sexual orientation lookups; the static list is the
+  // default set (used for exports and as a fallback).
+  {
+    questionText: 'Sex',
+    questionType: SINGLE_SELECT,
+    sortOrder: 80,
+    options: SEX_OPTIONS,
+    metadata: { specRef: '1.1', fieldKey: 'sex', prefillKey: 'sex', optionsLookup: 'service_user_sexes' },
+  },
+  {
+    questionText: 'Sexual orientation',
+    questionType: SINGLE_SELECT,
+    sortOrder: 81,
+    options: SEXUAL_ORIENTATION_OPTIONS,
+    metadata: {
+      specRef: '1.1',
+      fieldKey: 'sexualOrientation',
+      prefillKey: 'sexualOrientation',
+      optionsLookup: 'service_user_sexual_orientations',
+    },
+  },
   {
     questionText: 'Ethnicity',
     questionType: SINGLE_SELECT,

@@ -41,6 +41,17 @@ import { ScheduledJobsHousekeepingService } from '../scheduled-jobs-housekeeping
 import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-visit-job-tasks.dto';
 import { BodyMapService } from '../body-map/body-map.service';
 import { bodyMapDiagramCatalogForMobile } from '../body-map/body-map-diagram-catalog.util';
+import {
+  BODY_MAP_VIDEO_MAX_BYTES,
+  BODY_MAP_VIDEO_MAX_DURATION_MS,
+  BODY_MAP_VIDEO_STORAGE_DIR,
+  BODY_MAP_VIDEO_THUMBNAIL_MAX_BYTES,
+  BODY_MAP_VIDEOS_PER_RECORD,
+  detectThumbnailFormat,
+  detectVideoFormat,
+  mapBodyMapVideo,
+  sanitizeVideoOriginalName,
+} from '../body-map/body-map-video.util';
 import type {
   CreateBodyMapRecordDto,
   CreateBodyMapReviewDto,
@@ -95,6 +106,7 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
+import { loadVisitTaskPlacement } from '../visit-tasks/visit-task-window.util';
 import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
@@ -124,6 +136,7 @@ import type {
   EmployeeAppSaveTaskDto,
   EmployeeAppUnableToStartDto,
   EmployeeAppCareConsentDto,
+  EmployeeAppVoiceNoteLinkDto,
 } from './dto/employee-app-visit-writes.dto';
 import type { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
 import type { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
@@ -158,6 +171,18 @@ import {
   isEmployeeAppCompletionStatus,
 } from './employee-app-visit-completion.util';
 import { employeeAppKeySafePayload } from './employee-app-access.util';
+import {
+  VISIT_VOICE_NOTE_MAX_BYTES,
+  VISIT_VOICE_NOTE_MAX_DURATION_MS,
+  VISIT_VOICE_NOTE_STORAGE_DIR,
+  detectVoiceNoteFormat,
+  isAcceptedVoiceNoteDeclaredType,
+  isVisitVoiceNoteEntryType,
+  VISIT_VOICE_NOTE_AREA_LOCKED_TYPES,
+  voiceNoteIdsOfEntry,
+  voiceNoteLinkKey,
+  voiceOnlyTimelineDetail,
+} from './visit-voice-note.util';
 import {
   mobileTypeCode,
   resolveObservationTypeCode,
@@ -1413,6 +1438,12 @@ export class EmployeeAppVisitsService {
         /** Alias for mobile copy (“Your presence needed”); same as twoPerson. */
         requiresSupport: twoPersonFlags.requiresSupport,
         requiredForRoles: twoPersonFlags.requiredForRoles,
+        /** HH:mm the task is due (planner time). */
+        dueTime: task.dueTime != null ? String(task.dueTime) : null,
+        /** No visit covers the due time, so the task was moved to this nearest visit. */
+        placedAtNearestVisit: Boolean(task.placedAtNearestVisit),
+        /** Visit cancelled / called off — task stays here as not done. */
+        visitCancelled: Boolean(task.visitCancelled),
       };
     });
 
@@ -2003,6 +2034,126 @@ export class EmployeeAppVisitsService {
     return {
       data: await this.bodyMap.uploadPhoto(undefined, recordId, file, consentStatus, caption),
     };
+  }
+
+  /**
+   * Carer video on a new body map record (max 1). The record is found by the
+   * wizard's idempotency key, so a video queued offline uploads after its record.
+   * Files arrive in the private incoming dir (multer disk storage) and are moved
+   * into place only after validation; anything rejected is deleted.
+   */
+  async uploadBodyMapVideo(
+    employeeId: string,
+    jobId: string,
+    files: { video?: Express.Multer.File[]; thumbnail?: Express.Multer.File[] },
+    body: {
+      recordIdempotencyKey?: string;
+      clientVideoId?: string;
+      originalName?: string;
+      durationMs?: string | number;
+      source?: string;
+    },
+  ) {
+    const video = files.video?.[0];
+    const thumbnail = files.thumbnail?.[0];
+    const incoming = [video?.path, thumbnail?.path].filter((p): p is string => !!p);
+    const discardIncoming = () =>
+      Promise.all(incoming.map((p) => fs.rm(p, { force: true }).catch(() => undefined)));
+    try {
+      const ctx = await this.loadJobForEmployee(employeeId, jobId);
+      this.assertLeadMayWriteCareRecord(employeeId, ctx);
+      if (!video) validationError('video is required');
+      const recordKey = body.recordIdempotencyKey?.trim() ?? '';
+      if (!recordKey || recordKey.length > 128) {
+        validationError('recordIdempotencyKey is required (max 128 characters)');
+      }
+      const clientVideoId = body.clientVideoId?.trim() ?? '';
+      if (!clientVideoId || clientVideoId.length > 128) {
+        validationError('clientVideoId is required (max 128 characters)');
+      }
+      if (video.size > BODY_MAP_VIDEO_MAX_BYTES) validationError('Video can be at most 100 MB');
+      let durationMs: number | null = null;
+      if (body.durationMs != null && String(body.durationMs).trim() !== '') {
+        const parsed = Number(body.durationMs);
+        if (!Number.isFinite(parsed) || parsed < 0) validationError('durationMs must be a positive number');
+        if (parsed > BODY_MAP_VIDEO_MAX_DURATION_MS) validationError('Video can be at most 60 seconds long');
+        durationMs = Math.round(parsed);
+      }
+      const source = body.source === 'camera' || body.source === 'gallery' ? body.source : null;
+
+      // Record not on the server yet (its own write still queued) — retry later.
+      const replay = await this.findIdempotentReplay(jobId, recordKey);
+      const recordId = typeof replay?.recordId === 'string' ? replay.recordId : null;
+      if (!recordId) {
+        contractError('BODY_MAP_RECORD_PENDING', 'Body map record is not saved yet');
+      }
+      const { record } = await this.assertBodyMapRecordOnVisit(employeeId, jobId, recordId);
+      if (record.scheduledJobId !== jobId) {
+        throw new ForbiddenException('Body map record is not from this visit');
+      }
+
+      const existing = await this.prisma.bodyMapVideo.findMany({
+        where: { bodyMapRecordId: recordId, deletedAt: null },
+      });
+      const same = existing.find((v) => v.clientVideoId === clientVideoId);
+      if (same) {
+        await discardIncoming();
+        return { data: { recordId, video: mapBodyMapVideo(same) } };
+      }
+      if (existing.length >= BODY_MAP_VIDEOS_PER_RECORD) {
+        contractError('BODY_MAP_VIDEO_LIMIT', 'This body map record already has a video');
+      }
+
+      const format = detectVideoFormat(await readFileHead(video.path, 16));
+      if (!format) validationError('Video must be an MP4, MOV or 3GP file');
+      let thumbFormat: { mimeType: string; ext: string } | null = null;
+      if (thumbnail && thumbnail.size <= BODY_MAP_VIDEO_THUMBNAIL_MAX_BYTES) {
+        thumbFormat = detectThumbnailFormat(await readFileHead(thumbnail.path, 16));
+      }
+
+      const relDir = path.join(BODY_MAP_VIDEO_STORAGE_DIR, recordId);
+      await fs.mkdir(path.join(process.cwd(), relDir), { recursive: true });
+      // Server-generated names + sniffed extensions — never trust the client file name.
+      const stem = randomUUID();
+      const storagePath = path.join(relDir, `${stem}${format.ext}`);
+      await fs.rename(video.path, path.join(process.cwd(), storagePath));
+      let thumbnailPath: string | null = null;
+      if (thumbnail && thumbFormat) {
+        thumbnailPath = path.join(relDir, `${stem}-thumb${thumbFormat.ext}`);
+        await fs.rename(thumbnail.path, path.join(process.cwd(), thumbnailPath));
+      }
+
+      let created;
+      try {
+        created = await this.prisma.bodyMapVideo.create({
+          data: {
+            bodyMapRecordId: recordId,
+            scheduledJobId: jobId,
+            clientVideoId,
+            fileName: path.basename(storagePath),
+            originalName: sanitizeVideoOriginalName(body.originalName),
+            storagePath,
+            thumbnailPath,
+            mimeType: format.mimeType,
+            fileSize: video.size,
+            durationMs,
+            source,
+            uploadedByEmployeeId: employeeId,
+          },
+        });
+      } catch (e) {
+        await fs.rm(path.join(process.cwd(), storagePath), { force: true }).catch(() => undefined);
+        if (thumbnailPath) {
+          await fs.rm(path.join(process.cwd(), thumbnailPath), { force: true }).catch(() => undefined);
+        }
+        throw e;
+      }
+      await discardIncoming();
+      return { data: { recordId, video: mapBodyMapVideo(created) } };
+    } catch (e) {
+      await discardIncoming();
+      throw e;
+    }
   }
 
   async patchRotationCheckForVisit(
@@ -3461,6 +3612,9 @@ export class EmployeeAppVisitsService {
         jobId,
         serviceUserId: ctx.job.serviceUserId,
         medicationRoundCode: ctx.medicationRoundCode,
+        visitStart: ctx.primaryVisit.scheduledStartDateTime,
+        visitEnd: ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
+        timeZone: ctx.timeZone,
         observationTypeCode: type.code,
         valueLabel:
           numericValue != null
@@ -3791,6 +3945,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogNote(employeeId: string, jobId: string, dto: EmployeeAppLogNoteDto) {
+    assertBodyOrVoiceNote(dto, 'Enter a note or record a voice note before saving');
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
@@ -3807,7 +3962,7 @@ export class EmployeeAppVisitsService {
     const occurredAt = parseOccurredAt(dto.deviceRecordedAt, new Date(now));
     const occurredAtIso = occurredAt.toISOString();
     const title = dto.title?.trim() || 'Visit note';
-    const detail = summarizeTimelineDetail(dto.body);
+    const detail = logEntryTimelineDetail(dto.body, dto);
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: ctx.primaryVisit.id,
@@ -3839,6 +3994,8 @@ export class EmployeeAppVisitsService {
         entryType: 'note',
         body: dto.body,
         title: dto.title ?? null,
+        voiceNoteIds: voiceNoteIdsOf(dto),
+        voiceNoteDurationMs: hasVoiceNotes(dto) ? (dto.voiceNoteDurationMs ?? null) : null,
         isDraft: Boolean(dto.isDraft),
         deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
@@ -3863,6 +4020,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogHandover(employeeId: string, jobId: string, dto: EmployeeAppLogHandoverDto) {
+    assertBodyOrVoiceNote(dto, 'Enter a handover message or record a voice note before saving');
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     /**
@@ -3889,6 +4047,9 @@ export class EmployeeAppVisitsService {
     if (dto.priority === 'high') handoverParts.push('⚠ High priority');
     const handoverBody = dto.body?.trim();
     if (handoverBody) handoverParts.push(handoverBody);
+    else if (hasVoiceNotes(dto)) {
+      handoverParts.push(voiceOnlyTimelineDetail(dto.voiceNoteDurationMs, voiceNoteIdsOf(dto).length));
+    }
     const outstandingAction = dto.outstandingAction?.trim();
     if (outstandingAction) handoverParts.push(`Outstanding action: ${outstandingAction}`);
     const detail = handoverParts.length
@@ -3925,6 +4086,8 @@ export class EmployeeAppVisitsService {
         body: dto.body,
         priority: dto.priority ?? 'normal',
         outstandingAction: dto.outstandingAction ?? null,
+        voiceNoteIds: voiceNoteIdsOf(dto),
+        voiceNoteDurationMs: hasVoiceNotes(dto) ? (dto.voiceNoteDurationMs ?? null) : null,
         isDraft: Boolean(dto.isDraft),
         deviceRecordedAt: occurredAtIso,
         recordedByEmployeeId: employeeId,
@@ -3932,8 +4095,9 @@ export class EmployeeAppVisitsService {
         recordedAt: occurredAtIso,
       },
       lastHandover: {
-        message: dto.body,
-        body: dto.body,
+        // Next carer's app can't play audio yet — say a voice handover exists.
+        message: handoverBody || (hasVoiceNotes(dto) ? VOICE_ONLY_HANDOVER_MESSAGE : dto.body),
+        body: handoverBody || (hasVoiceNotes(dto) ? VOICE_ONLY_HANDOVER_MESSAGE : dto.body),
         requiresAck: true,
         badgeLabel: dto.priority === 'high' ? 'High priority' : 'Temporary note',
         acknowledged: false,
@@ -3953,6 +4117,7 @@ export class EmployeeAppVisitsService {
   }
 
   async createLogConcern(employeeId: string, jobId: string, dto: EmployeeAppLogConcernDto) {
+    assertBodyOrVoiceNote(dto, 'Describe what was observed or record a voice note before saving');
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
@@ -3997,7 +4162,7 @@ export class EmployeeAppVisitsService {
       sourceType: 'concern',
       sourceId: entryId,
       title: (dto.concernType ?? 'Concern').toString().trim() || 'Concern',
-      detail: summarizeTimelineDetail(dto.body),
+      detail: logEntryTimelineDetail(dto.body, dto),
       tone: concernTimelineTone(dto.severity),
       occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
       logEntryId: entryId,
@@ -4007,6 +4172,156 @@ export class EmployeeAppVisitsService {
     });
 
     return { data: response };
+  }
+
+  /**
+   * Carer voice note (audio) for a visit note / handover / concern.
+   *
+   * Uploaded separately from the entry (offline outbox) — the entry carries
+   * `voiceNoteIds` (clientVoiceNoteIds, max 3), which decide the voice notes shown.
+   * Stored in private storage, never under the public `/uploads` path.
+   */
+  async addLogVoiceNote(
+    employeeId: string,
+    jobId: string,
+    file: Express.Multer.File | undefined,
+    body: {
+      idempotencyKey?: string;
+      clientVoiceNoteId?: string;
+      logEntryId?: string;
+      entryType?: string;
+      durationMs?: string | number;
+      recordedAt?: string;
+    },
+  ) {
+    const entryType = body.entryType?.trim();
+    if (!isVisitVoiceNoteEntryType(entryType)) {
+      validationError('entryType is not a voice-note record type');
+    }
+    // Office-contact voice notes (SOS, unable to start …) must get through an area lock.
+    if (VISIT_VOICE_NOTE_AREA_LOCKED_TYPES.has(entryType)) {
+      await this.assertOperationsUnlocked(employeeId, jobId);
+    }
+    await this.loadJobForEmployee(employeeId, jobId);
+    if (!file) validationError('file is required');
+    const idempotencyKey = body.idempotencyKey?.trim() ?? '';
+    if (!idempotencyKey || idempotencyKey.length > 128) {
+      validationError('idempotencyKey is required (max 128 characters)');
+    }
+    const clientVoiceNoteId = body.clientVoiceNoteId?.trim() ?? '';
+    if (!clientVoiceNoteId || clientVoiceNoteId.length > 128) {
+      validationError('clientVoiceNoteId is required (max 128 characters)');
+    }
+    const logEntryId = body.logEntryId?.trim() ?? '';
+    if (!logEntryId || logEntryId.length > 128) {
+      validationError('logEntryId is required (max 128 characters)');
+    }
+    if (file.size > VISIT_VOICE_NOTE_MAX_BYTES) {
+      validationError('Voice note is too large');
+    }
+    const format = detectVoiceNoteFormat(file.buffer);
+    if (!isAcceptedVoiceNoteDeclaredType(file.mimetype) || !format) {
+      validationError('Voice note must be an AAC / M4A audio file');
+    }
+    let durationMs: number | null = null;
+    if (body.durationMs != null && String(body.durationMs).trim() !== '') {
+      const parsed = Number(body.durationMs);
+      if (!Number.isFinite(parsed) || parsed < 0) validationError('durationMs must be a positive number');
+      if (parsed > VISIT_VOICE_NOTE_MAX_DURATION_MS) {
+        validationError('Voice note can be at most 5 minutes long');
+      }
+      durationMs = Math.round(parsed);
+    }
+    const recordedAtRaw = body.recordedAt?.trim();
+    const recordedAtDate = recordedAtRaw ? new Date(recordedAtRaw) : null;
+    const recordedAt =
+      recordedAtDate && !Number.isNaN(recordedAtDate.getTime()) ? recordedAtDate : null;
+
+    // Replay: same idempotency key, or the same voice note re-sent.
+    const existing = await this.prisma.visitVoiceNote.findFirst({
+      where: {
+        OR: [{ idempotencyKey }, { scheduledJobId: jobId, clientVoiceNoteId }],
+      },
+    });
+    if (existing) {
+      if (existing.scheduledJobId !== jobId) {
+        validationError('idempotencyKey already used for another visit');
+      }
+      return { data: mapVoiceNoteUploadResponse(existing) };
+    }
+
+    const relDir = path.join(VISIT_VOICE_NOTE_STORAGE_DIR, jobId);
+    await fs.mkdir(path.join(process.cwd(), relDir), { recursive: true });
+    // Server-generated name + sniffed extension — never trust the client file name.
+    const storedName = `${randomUUID()}${format.ext}`;
+    const storagePath = path.join(relDir, storedName);
+    await fs.writeFile(path.join(process.cwd(), storagePath), file.buffer);
+
+    const created = await this.prisma.visitVoiceNote.create({
+      data: {
+        scheduledJobId: jobId,
+        logEntryId,
+        entryType,
+        clientVoiceNoteId,
+        fileName: storedName,
+        originalName: file.originalname?.slice(0, 255) || null,
+        storagePath,
+        mimeType: format.mimeType,
+        fileSize: file.size,
+        durationMs,
+        recordedAt,
+        uploadedByEmployeeId: employeeId,
+        idempotencyKey,
+      },
+    });
+    return { data: mapVoiceNoteUploadResponse(created) };
+  }
+
+  /**
+   * Points a record (task, MAR save, observation, incident, clock out …) at its voice
+   * notes. Upsert — re-sent on every save / edit; an empty list clears. Voice files are
+   * uploaded separately (POST …/log/voice-notes); the order of the two doesn't matter.
+   */
+  async saveVoiceNoteLinks(employeeId: string, jobId: string, dto: EmployeeAppVoiceNoteLinkDto) {
+    if (VISIT_VOICE_NOTE_AREA_LOCKED_TYPES.has(dto.entryType)) {
+      await this.assertOperationsUnlocked(employeeId, jobId);
+    }
+    await this.loadJobForEmployee(employeeId, jobId);
+    const entryId = dto.entryId.trim();
+    if (!entryId) validationError('entryId is required');
+    const voiceNoteIds = voiceNoteIdsOfEntry({ voiceNoteIds: dto.voiceNoteIds });
+    const writeIdempotencyKey = dto.writeIdempotencyKey?.trim() || null;
+    const key = voiceNoteLinkKey({ entryType: dto.entryType, entryId, writeIdempotencyKey });
+    const now = new Date().toISOString();
+    await this.mergeEmployeeAppMeta(jobId, (ea) => {
+      const links =
+        ea.voiceNoteLinks && typeof ea.voiceNoteLinks === 'object' && !Array.isArray(ea.voiceNoteLinks)
+          ? { ...(ea.voiceNoteLinks as Record<string, unknown>) }
+          : {};
+      if (voiceNoteIds.length === 0) {
+        delete links[key];
+      } else {
+        links[key] = {
+          entryType: dto.entryType,
+          entryId,
+          writeIdempotencyKey,
+          voiceNoteIds,
+          recordedByEmployeeId: employeeId,
+          deviceRecordedAt: dto.deviceRecordedAt ?? null,
+          updatedAt: now,
+        };
+      }
+      return { ...ea, voiceNoteLinks: links };
+    });
+    return {
+      data: {
+        entryType: dto.entryType,
+        entryId,
+        writeIdempotencyKey,
+        voiceNoteIds,
+        serverConfirmedAt: now,
+      },
+    };
   }
 
   async createIncident(
@@ -5023,49 +5338,68 @@ export class EmployeeAppVisitsService {
     };
   }
 
+  /**
+   * Planned tasks on this visit: placed by due time across the client's day (covering visit,
+   * else nearest visit), plus any already recorded on the visit.
+   */
+  private async loadVisitWindowAssignments(input: {
+    serviceUserId: string;
+    visitStart: Date;
+    visitEnd: Date | null;
+    timeZone: string;
+    medicationRoundCode: string | null;
+    jobId: string;
+  }) {
+    const [assignments, taskCtx, recorded] = await Promise.all([
+      this.prisma.serviceUserVisitTaskAssignment.findMany({
+        where: { serviceUserId: input.serviceUserId, deletedAt: null, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          task: {
+            select: {
+              id: true,
+              name: true,
+              flagsJson: true,
+              category: { select: { group: { select: { code: true } } } },
+            },
+          },
+        },
+      }),
+      loadVisitTaskPlacement(
+        this.prisma,
+        [
+          {
+            id: input.jobId,
+            serviceUserId: input.serviceUserId,
+            start: input.visitStart,
+            end: input.visitEnd,
+          },
+        ],
+        input.timeZone,
+      ),
+      this.prisma.scheduledVisitTaskCompletion.findMany({
+        where: { scheduledJobId: input.jobId, assignmentId: { not: null } },
+        select: { assignmentId: true },
+      }),
+    ]);
+    const placed = new Set((taskCtx.byJob.get(input.jobId) ?? []).map((p) => p.assignmentId));
+    const recordedIds = new Set(recorded.map((r) => r.assignmentId));
+    return assignments.filter((a) => placed.has(a.id) || recordedIds.has(a.id));
+  }
+
   private async resolveProgress(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
-    const roundCode = resolveJobMedicationRoundCode(ctx.job.visits);
     const since =
       ctx.primaryVisit.actualStartDateTime ?? ctx.primaryVisit.scheduledStartDateTime;
 
-    const [assignments, completions, obsCount] = await Promise.all([
-      roundCode
-        ? this.prisma.serviceUserVisitTaskAssignment.findMany({
-            where: {
-              serviceUserId: ctx.job.serviceUserId,
-              medicationRoundCode: roundCode,
-              deletedAt: null,
-              isActive: true,
-            },
-            select: {
-              id: true,
-              daysOfWeek: true,
-              scheduleFrequency: true,
-              repeatEvery: true,
-              repeatUnit: true,
-              timeCritical: true,
-              timeToleranceMinutes: true,
-              monthlyDayMode: true,
-              monthlyDaysOfMonth: true,
-              monthlyPatternOrdinal: true,
-              monthlyPatternWeekday: true,
-            },
-          })
-        : Promise.resolve(
-            [] as Array<{
-              id: string
-              daysOfWeek: number[]
-              scheduleFrequency: import('@prisma/client').VisitPlanScheduleFrequency
-              repeatEvery: number
-              repeatUnit: import('@prisma/client').VisitPlanRepeatUnit
-              timeCritical: boolean
-              timeToleranceMinutes: number
-              monthlyDayMode: import('@prisma/client').VisitPlanMonthlyDayMode
-              monthlyDaysOfMonth: number[]
-              monthlyPatternOrdinal: import('@prisma/client').VisitPlanMonthlyOrdinal | null
-              monthlyPatternWeekday: number | null
-            }>,
-          ),
+    const [windowAssignments, completions, obsCount] = await Promise.all([
+      this.loadVisitWindowAssignments({
+        serviceUserId: ctx.job.serviceUserId,
+        visitStart: ctx.primaryVisit.scheduledStartDateTime,
+        visitEnd: ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
+        timeZone: ctx.timeZone,
+        medicationRoundCode: resolveJobMedicationRoundCode(ctx.job.visits),
+        jobId: ctx.job.id,
+      }),
       this.prisma.scheduledVisitTaskCompletion.findMany({
         where: { scheduledJobId: ctx.job.id },
         select: {
@@ -5082,7 +5416,7 @@ export class EmployeeAppVisitsService {
     const visitDay = new Date(
       `${dayKeyInTimeZone(ctx.primaryVisit.scheduledStartDateTime, ctx.timeZone)}T00:00:00.000Z`,
     );
-    const plannedAssignmentIds = assignments
+    const plannedAssignmentIds = windowAssignments
       .filter((a) => {
         if (completions.some((c) => c.assignmentId === a.id)) return true;
         return visitTaskMatchesDay(pickScheduleFromAssignment(a), visitDay, visitDay);
@@ -5194,25 +5528,14 @@ export class EmployeeAppVisitsService {
     });
     if (givenCount < dueCount) return;
 
-    // Visit tasks are still organised by round code on the plan; use it when present.
-    const assignments = await this.prisma.serviceUserVisitTaskAssignment.findMany({
-      where: {
-        serviceUserId: input.serviceUserId,
-        ...(input.medicationRoundCode
-          ? { medicationRoundCode: input.medicationRoundCode }
-          : {}),
-        deletedAt: null,
-        isActive: true,
-      },
-      include: {
-        task: {
-          select: {
-            id: true,
-            name: true,
-            category: { select: { group: { select: { code: true } } } },
-          },
-        },
-      },
+    // Visit tasks attach by clock window, same as the medicines checked above.
+    const assignments = await this.loadVisitWindowAssignments({
+      serviceUserId: input.serviceUserId,
+      visitStart: input.visitStart,
+      visitEnd: input.visitEnd,
+      timeZone: input.timeZone,
+      medicationRoundCode: input.medicationRoundCode ?? null,
+      jobId: input.jobId,
     });
 
     const emarAssignments = assignments.filter((a) => {
@@ -5258,28 +5581,20 @@ export class EmployeeAppVisitsService {
     jobId: string;
     serviceUserId: string;
     medicationRoundCode: string | null;
+    visitStart: Date;
+    visitEnd: Date | null;
+    timeZone: string;
     observationTypeCode: string;
     valueLabel?: string | null;
     notes?: string | null;
   }) {
-    if (!input.medicationRoundCode) return;
-    const assignments = await this.prisma.serviceUserVisitTaskAssignment.findMany({
-      where: {
-        serviceUserId: input.serviceUserId,
-        medicationRoundCode: input.medicationRoundCode,
-        deletedAt: null,
-        isActive: true,
-      },
-      include: {
-        task: {
-          select: {
-            id: true,
-            name: true,
-            flagsJson: true,
-            category: { select: { group: { select: { code: true } } } },
-          },
-        },
-      },
+    const assignments = await this.loadVisitWindowAssignments({
+      serviceUserId: input.serviceUserId,
+      visitStart: input.visitStart,
+      visitEnd: input.visitEnd,
+      timeZone: input.timeZone,
+      medicationRoundCode: input.medicationRoundCode,
+      jobId: input.jobId,
     });
 
     const match = assignments.find((a) => {
@@ -5317,7 +5632,7 @@ export class EmployeeAppVisitsService {
         scheduledJobId: input.jobId,
         assignmentId: match.id,
         taskCatalogueTaskId: match.task.id,
-        medicationRoundCode: input.medicationRoundCode,
+        medicationRoundCode: input.medicationRoundCode ?? match.medicationRoundCode,
         isAdHoc: false,
         isCompleted: true,
         recordedValue: input.valueLabel?.trim() || null,
@@ -6176,6 +6491,65 @@ export class EmployeeAppVisitsService {
   }
 }
 
+function mapVoiceNoteUploadResponse(row: {
+  id: string;
+  clientVoiceNoteId: string;
+  logEntryId: string;
+  entryType: string;
+  durationMs: number | null;
+  mimeType: string;
+  fileSize: number;
+  createdAt: Date;
+}) {
+  return {
+    voiceNoteId: row.id,
+    clientVoiceNoteId: row.clientVoiceNoteId,
+    logEntryId: row.logEntryId,
+    entryType: row.entryType,
+    durationMs: row.durationMs,
+    mimeType: row.mimeType,
+    sizeBytes: row.fileSize,
+    serverConfirmedAt: row.createdAt.toISOString(),
+  };
+}
+
+/** Shown to the next carer when the previous handover was recorded as audio only. */
+const VOICE_ONLY_HANDOVER_MESSAGE =
+  'Voice handover recorded by the previous carer — ask the office for details.';
+
+type LogEntryVoiceFields = {
+  body?: string | null;
+  isDraft?: boolean;
+  voiceNoteId?: string | null;
+  voiceNoteIds?: string[] | null;
+  voiceNoteDurationMs?: number | null;
+};
+
+/** The entry's voice notes (max 3) — `voiceNoteIds`, or legacy `voiceNoteId`. */
+function voiceNoteIdsOf(dto: LogEntryVoiceFields): string[] {
+  return voiceNoteIdsOfEntry(dto);
+}
+
+function hasVoiceNotes(dto: LogEntryVoiceFields): boolean {
+  return voiceNoteIdsOf(dto).length > 0;
+}
+
+/** Saved (non-draft) log entries need text or a voice note. */
+function assertBodyOrVoiceNote(dto: LogEntryVoiceFields, message: string): void {
+  if (dto.isDraft) return;
+  if (dto.body?.trim() || hasVoiceNotes(dto)) return;
+  validationError(message);
+}
+
+/** Timeline detail: the text, or a "Voice note (m:ss)" placeholder for voice-only entries. */
+function logEntryTimelineDetail(body: string | null | undefined, dto: LogEntryVoiceFields) {
+  const text = summarizeTimelineDetail(body);
+  if (text) return text;
+  return hasVoiceNotes(dto)
+    ? voiceOnlyTimelineDetail(dto.voiceNoteDurationMs, voiceNoteIdsOf(dto).length)
+    : text;
+}
+
 function resolveTaskModuleLink(
   name: string,
   groupCode: string,
@@ -6326,4 +6700,15 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+async function readFileHead(filePath: string, bytes: number): Promise<Buffer> {
+  const handle = await fs.open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(bytes);
+    const { bytesRead } = await handle.read(buf, 0, bytes, 0);
+    return buf.subarray(0, bytesRead);
+  } finally {
+    await handle.close();
+  }
 }

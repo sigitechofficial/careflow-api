@@ -3,10 +3,15 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
+import { HomeSignalsService } from './home-signals.service';
+import { MedicationOverviewService } from './medication-overview.service';
+import { OperationsOverviewService } from './operations-overview.service';
+import { FinanceOverviewService } from './finance-overview.service';
+import { AdminOverviewService } from './admin-overview.service';
 
 @Module({
   imports: [PrismaModule, OrganisationGeneralSettingsModule],
   controllers: [DashboardController],
-  providers: [DashboardService],
+  providers: [DashboardService, HomeSignalsService, MedicationOverviewService, OperationsOverviewService, FinanceOverviewService, AdminOverviewService],
 })
 export class DashboardModule {}

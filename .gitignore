@@ -48,6 +48,14 @@ temp/
 uploads/*
 !uploads/care-pathway/
 !uploads/gallery-images/
+# Runtime-generated upload dirs — never commit these test/runtime artifacts.
+# (uploads/care-pathway/* holds intentional committed assets, so keep it tracked.)
+uploads/body-map/photos/
+uploads/employee-app-incidents/
+uploads/employee-app-observations/
+uploads/incidents/attachments/
+# Private carer voice notes (never statically served)
+storage/visit-voice-notes/
 
 # ─── Local documentation (not pushed to git) ────────────────────
 Dcoumentation/
@@ -71,3 +79,4 @@ $RECYCLE.BIN/
 
 # Firebase Admin private key
 serviceAccount.json
+storage/body-map-videos/

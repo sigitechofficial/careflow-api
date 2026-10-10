@@ -9,6 +9,7 @@ import { EcmVisitsService } from './ecm-visits.service';
 import { EcmEvaluationService } from './ecm-evaluation.service';
 import { EcmExceptionsService } from './ecm-exceptions.service';
 import { EcmLiveDashboardQueryDto } from './dto/ecm-live-dashboard.dto';
+import { EcmVisitsTableQueryDto } from './dto/ecm-visits-table.dto';
 import {
   AcknowledgeEcmExceptionDto,
   AllowVisitContinueDto,
@@ -168,6 +169,18 @@ export class EcmVisitsController {
     @Query() query: EcmLiveDashboardQueryDto,
   ) {
     return this.visits.getLiveDashboard(query, user);
+  }
+
+  @Get('visits/table')
+  @AnyPermission('ecm.read', 'ecm.monitor')
+  @ApiOperation({
+    summary: 'ECM visit rows for one service user or employee (read-only)',
+  })
+  visitsTable(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EcmVisitsTableQueryDto,
+  ) {
+    return this.visits.getVisitsTable(query, user);
   }
 
   @Get('visits/:jobId/schedule-history')

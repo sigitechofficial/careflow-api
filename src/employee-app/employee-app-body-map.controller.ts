@@ -7,10 +7,11 @@ import {
   Post,
   Query,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BodyMapPhotoConsentStatus } from '@prisma/client';
 import { existsSync, mkdirSync } from 'fs';
@@ -20,6 +21,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { BodyMapService } from '../body-map/body-map.service';
+import {
+  BODY_MAP_VIDEO_INCOMING_DIR,
+  BODY_MAP_VIDEO_MAX_BYTES,
+} from '../body-map/body-map-video.util';
 import { CreateBodyMapReviewDto } from '../body-map/dto/create-body-map-record.dto';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
@@ -30,6 +35,12 @@ function ensureBodyMapPhotoDir() {
   const root = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'body-map', 'photos');
   if (!existsSync(root)) mkdirSync(root, { recursive: true });
   return root;
+}
+
+function ensureBodyMapVideoIncomingDir() {
+  const dir = join(process.cwd(), BODY_MAP_VIDEO_INCOMING_DIR);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 /**
@@ -111,6 +122,62 @@ export class EmployeeAppBodyMapController {
     @Body() dto: CreateBodyMapReviewDto,
   ) {
     return this.visitsService.addBodyMapReview(user.employeeId!, jobId, recordId, dto);
+  }
+
+  @Post('videos')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload the video (max 60 s, 100 MB, 1 per record) for a body map record made on this visit',
+    description:
+      'The record is found by the wizard idempotencyKey, so an offline-queued video uploads after its record. ' +
+      '409 BODY_MAP_RECORD_PENDING = record not synced yet (retry); 409 BODY_MAP_VIDEO_LIMIT = record already has a video.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['video', 'recordIdempotencyKey', 'clientVideoId'],
+      properties: {
+        video: { type: 'string', format: 'binary' },
+        thumbnail: { type: 'string', format: 'binary', description: 'JPEG/PNG still made on the phone' },
+        recordIdempotencyKey: { type: 'string', description: 'idempotencyKey of the wizard submit' },
+        clientVideoId: { type: 'string' },
+        originalName: { type: 'string' },
+        durationMs: { type: 'number' },
+        source: { type: 'string', enum: ['camera', 'gallery'] },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'video', maxCount: 1 },
+        { name: 'thumbnail', maxCount: 1 },
+      ],
+      {
+        // Disk, not memory: 100 MB files. Private dir; the service moves or deletes them.
+        storage: diskStorage({
+          destination: (_req, _file, cb) => cb(null, ensureBodyMapVideoIncomingDir()),
+          filename: (_req, _file, cb) =>
+            cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}.upload`),
+        }),
+        limits: { fileSize: BODY_MAP_VIDEO_MAX_BYTES, files: 2 },
+      },
+    ),
+  )
+  uploadVideo(
+    @CurrentUser() user: RequestUser,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: { video?: Express.Multer.File[]; thumbnail?: Express.Multer.File[] },
+    @Body()
+    body: {
+      recordIdempotencyKey?: string;
+      clientVideoId?: string;
+      originalName?: string;
+      durationMs?: string;
+      source?: string;
+    },
+  ) {
+    return this.visitsService.uploadBodyMapVideo(user.employeeId!, jobId, files ?? {}, body);
   }
 
   @Post('records/:recordId/photos')
