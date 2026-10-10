@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -239,6 +240,22 @@ export class DecideVisitOverrunDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({
+    enum: ['PLANNED', 'ACTUAL'],
+    description: 'Acknowledge only: price on the planned slot or the actual clock times',
+  })
+  @IsOptional()
+  @IsIn(['PLANNED', 'ACTUAL'])
+  timeBasis?: 'PLANNED' | 'ACTUAL';
+
+  @ApiPropertyOptional({
+    enum: ['PAY', 'CHARGE', 'BOTH'],
+    description: 'Acknowledge only: apply the time basis to carer pay, client charge or both',
+  })
+  @IsOptional()
+  @IsIn(['PAY', 'CHARGE', 'BOTH'])
+  applyTo?: 'PAY' | 'CHARGE' | 'BOTH';
 }
 
 export class BulkApproveVisitReconciliationsDto {
@@ -289,6 +306,12 @@ export class RecalculateVisitReconciliationsDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @ApiProperty({ description: 'Why amounts are being recalculated (kept on the audit log)' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  reason!: string;
 }
 
 export class ClearVisitReconciliationsDto {

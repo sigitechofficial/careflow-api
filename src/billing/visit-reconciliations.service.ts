@@ -1,3 +1,6 @@
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   BadRequestException,
   Injectable,
@@ -11,6 +14,7 @@ import {
   Prisma,
   ScheduledVisitStatus,
   VisitOverrunDecision,
+  VisitOverrunTimeBasis,
   VisitPlanNightDuty,
   VisitReconciliationStatus,
 } from '@prisma/client';
@@ -18,6 +22,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
+import {
+  loadPayCardRulesForDate,
+  loadPayCardRulesForVersion,
+} from './pay-card-version.util';
+import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
@@ -241,6 +250,8 @@ export type VisitReconciliationListRow = {
   overrunMinutes: number | null;
   overrunReason: string | null;
   overrunDecision: VisitOverrunDecision | null;
+  overrunPayBasis: VisitOverrunTimeBasis | null;
+  overrunBillBasis: VisitOverrunTimeBasis | null;
   approvalNotes: string | null;
   /** Visit-log style columns (client-centric export format). */
   emonitored: 'LOGGED' | 'NOT LOG';
@@ -266,8 +277,9 @@ async function isVisitOnBankHoliday(
   db: DbClient,
   date: Date,
   timeZone: string,
+  region: string = DEFAULT_BANK_HOLIDAY_REGION,
 ): Promise<boolean> {
-  const set = await loadBankHolidayDateSet(db, date, date, timeZone);
+  const set = await loadBankHolidayDateSet(db, date, date, timeZone, region);
   return set.has(dayKeyInTimeZone(date, timeZone));
 }
 
@@ -285,6 +297,8 @@ async function loadBankHolidayDateSet(
   from: Date,
   to: Date,
   _timeZone?: string,
+  /** Calendar region; `UK` (England & Wales) is the default used for charges and legacy pay cards. */
+  region: string = DEFAULT_BANK_HOLIDAY_REGION,
 ): Promise<Set<string>> {
   const padMs = 36 * 60 * 60 * 1000; // ±36h so ops-day edges never miss a holiday row
   const start = new Date(from.getTime() - padMs);
@@ -292,6 +306,7 @@ async function loadBankHolidayDateSet(
   const rows = await db.bankHoliday.findMany({
     where: {
       isActive: true,
+      region,
       holidayDate: { gte: start, lte: end },
     },
     select: { holidayDate: true },
@@ -308,6 +323,7 @@ export class VisitReconciliationsService {
     private readonly payCardsService: PayCardsService,
     private readonly chargeCardsService: ChargeCardsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   private client(tx?: Prisma.TransactionClient): DbClient {
@@ -587,19 +603,22 @@ export class VisitReconciliationsService {
     return ensureScheduledVisitRef(db, visit);
   }
 
+  /** Returns false when evaluation failed (already logged). */
   private async safeEvaluate(
     db: DbClient,
     id: string,
     options?: { forceRecalculateAmounts?: boolean },
-  ) {
+  ): Promise<boolean> {
     try {
       await this.evaluateInternal(db, id, options);
+      return true;
     } catch (err) {
       this.logger.warn(
         `Visit reconciliation evaluate failed for ${id}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      return false;
     }
   }
 
@@ -1272,6 +1291,24 @@ export class VisitReconciliationsService {
       throw new BadRequestException('This visit has no overrun to approve');
     }
 
+    // Admin choice: planned vs actual time, for carer pay, client charge or both.
+    // The side that is not chosen stays on the planned slot (as while the overrun was pending).
+    // Omitted (older callers) keeps the legacy rule: pay actual, charge from actual.
+    const applyTo = dto.applyTo ?? (dto.timeBasis ? 'BOTH' : null);
+    const timeBasis = dto.timeBasis ?? (applyTo ? 'ACTUAL' : null);
+    const overrunPayBasis =
+      applyTo && timeBasis
+        ? applyTo === 'CHARGE'
+          ? VisitOverrunTimeBasis.PLANNED
+          : (timeBasis as VisitOverrunTimeBasis)
+        : null;
+    const overrunBillBasis =
+      applyTo && timeBasis
+        ? applyTo === 'PAY'
+          ? VisitOverrunTimeBasis.PLANNED
+          : (timeBasis as VisitOverrunTimeBasis)
+        : null;
+
     const defaults = resolveDefaultApprovedWindows({
       plannedStartDateTime: row.plannedStartDateTime,
       plannedEndDateTime: row.plannedEndDateTime,
@@ -1279,6 +1316,8 @@ export class VisitReconciliationsService {
       actualEndDateTime: row.actualEndDateTime,
       exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
       overrunDecision: VisitOverrunDecision.APPROVED,
+      overrunPayBasis,
+      overrunBillBasis,
       durationToleranceMinutes: await this.resolveDurationToleranceMinutes(
         this.prisma,
         row.scheduledVisitId,
@@ -1291,6 +1330,8 @@ export class VisitReconciliationsService {
       where: { id },
       data: {
         overrunDecision: VisitOverrunDecision.APPROVED,
+        overrunPayBasis,
+        overrunBillBasis,
         approvedPayStart: defaults.approvedPayStart,
         approvedPayEnd: defaults.approvedPayEnd,
         approvedBillStart: defaults.approvedBillStart,
@@ -1302,7 +1343,8 @@ export class VisitReconciliationsService {
       },
     });
 
-    await this.evaluateInternal(this.prisma, id);
+    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
     return this.getById(id);
   }
 
@@ -1334,6 +1376,8 @@ export class VisitReconciliationsService {
       where: { id },
       data: {
         overrunDecision: VisitOverrunDecision.REJECTED,
+        overrunPayBasis: null,
+        overrunBillBasis: null,
         approvedPayStart: defaults.approvedPayStart,
         approvedPayEnd: defaults.approvedPayEnd,
         approvedBillStart: defaults.approvedBillStart,
@@ -1345,7 +1389,8 @@ export class VisitReconciliationsService {
       },
     });
 
-    await this.evaluateInternal(this.prisma, id);
+    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
     return this.getById(id);
   }
 
@@ -1448,7 +1493,12 @@ export class VisitReconciliationsService {
    * Does not create new reconciliations — use backfill/sync for that.
    * Manual carer/client amount overrides are preserved (only card-derived amounts reprice).
    */
-  async recalculateAmounts(dto: RecalculateVisitReconciliationsDto) {
+  /** `reason` comes from the user-triggered action and is audited; internal re-runs omit it. */
+  async recalculateAmounts(
+    dto: Omit<RecalculateVisitReconciliationsDto, 'reason'> & { reason?: string },
+    userId?: string,
+    meta?: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
     const where: Prisma.VisitReconciliationWhereInput = {
       status: { not: VisitReconciliationStatus.LOCKED },
     };
@@ -1462,20 +1512,137 @@ export class VisitReconciliationsService {
       if (range) where.plannedStartDateTime = range;
     }
 
+    const RECALC_LIMIT = 1000;
+    const amountSelect = { id: true, payableAmount: true, billableAmount: true } as const;
     const pending = await this.prisma.visitReconciliation.findMany({
       where,
-      select: { id: true },
+      select: {
+        ...amountSelect,
+        visitRef: true,
+        plannedStartDateTime: true,
+        serviceUserId: true,
+        employeeId: true,
+      },
       orderBy: { plannedStartDateTime: 'asc' },
-      take: 1000,
+      take: RECALC_LIMIT,
     });
 
+    const failedIds = new Set<string>();
     for (const row of pending) {
-      await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      const ok = await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      if (!ok) failedIds.add(row.id);
+    }
+    const failed = failedIds.size;
+
+    // Before / after amounts for the summary shown after recalculating.
+    const after = await this.prisma.visitReconciliation.findMany({
+      where: { id: { in: pending.map((r) => r.id) } },
+      select: amountSelect,
+    });
+    const afterById = new Map(after.map((r) => [r.id, r]));
+    const num = (v: Prisma.Decimal | null | undefined) => (v == null ? 0 : Number(v));
+    const same = (a: Prisma.Decimal | null | undefined, b: Prisma.Decimal | null | undefined) =>
+      (a == null && b == null) || (a != null && b != null && num(a) === num(b));
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+
+    // Names for the per-visit list in the summary.
+    const suIds = [...new Set(pending.map((r) => r.serviceUserId))];
+    const empIds = [...new Set(pending.map((r) => r.employeeId).filter((id): id is string => !!id))];
+    const [serviceUsers, employees] = await Promise.all([
+      suIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, firstName: true, lastName: true, preferredName: true },
+          })
+        : [],
+      empIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: empIds } },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
+    ]);
+    const suName = new Map(serviceUsers.map((su) => [su.id, formatPersonName(su)]));
+    const empName = new Map(
+      employees.map((e) => [
+        e.id,
+        [e.personalDetail?.firstName, e.personalDetail?.lastName].filter(Boolean).join(' ').trim(),
+      ]),
+    );
+
+    let changed = 0;
+    let payableBefore = 0;
+    let payableAfter = 0;
+    let billableBefore = 0;
+    let billableAfter = 0;
+    const visits = pending.map((row) => {
+      const next = afterById.get(row.id);
+      payableBefore += num(row.payableAmount);
+      billableBefore += num(row.billableAmount);
+      payableAfter += num(next?.payableAmount);
+      billableAfter += num(next?.billableAmount);
+      const rowChanged = Boolean(
+        next &&
+          (!same(row.payableAmount, next.payableAmount) ||
+            !same(row.billableAmount, next.billableAmount)),
+      );
+      if (rowChanged) changed += 1;
+      return {
+        id: row.id,
+        visitRef: row.visitRef,
+        plannedStartDateTime: row.plannedStartDateTime.toISOString(),
+        serviceUserName: suName.get(row.serviceUserId) ?? null,
+        employeeName: (row.employeeId && empName.get(row.employeeId)) || null,
+        payableBefore: row.payableAmount == null ? null : num(row.payableAmount),
+        payableAfter: next?.payableAmount == null ? null : num(next.payableAmount),
+        billableBefore: row.billableAmount == null ? null : num(row.billableAmount),
+        billableAfter: next?.billableAmount == null ? null : num(next.billableAmount),
+        changed: rowChanged,
+        failed: failedIds.has(row.id),
+      };
+    });
+
+    const requested = dto.ids?.length ?? null;
+    const summary = {
+      reEvaluated: pending.length,
+      changed,
+      unchanged: pending.length - changed - failed,
+      failed,
+      skippedLocked: requested != null ? Math.max(0, requested - pending.length) : 0,
+      limitReached: pending.length >= RECALC_LIMIT,
+      totals: {
+        payableBefore: round2(payableBefore),
+        payableAfter: round2(payableAfter),
+        billableBefore: round2(billableBefore),
+        billableAfter: round2(billableAfter),
+      },
+    };
+
+    const reason = dto.reason?.trim();
+    if (reason) {
+      await this.auditLogs.logAudit({
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.VISIT_RECONCILIATION_AMOUNTS_RECALCULATED,
+        recordType: 'VisitReconciliation',
+        recordId: requested != null ? 'selected' : 'all',
+        description: reason,
+        newValues: summary,
+        metadata: {
+          reason,
+          scope: requested != null ? 'selected' : 'all',
+          dateFrom: dto.dateFrom ?? null,
+          dateTo: dto.dateTo ?? null,
+          changedVisitRefs: visits.filter((v) => v.changed).map((v) => v.visitRef).slice(0, 500),
+        },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
     }
 
     return {
       message: `Recalculated amounts for ${pending.length} reconciliation(s)`,
-      data: { reEvaluated: pending.length, ids: pending.map((r) => r.id) },
+      data: { ...summary, visits, ids: pending.map((r) => r.id) },
     };
   }
 
@@ -1762,6 +1929,7 @@ export class VisitReconciliationsService {
       rulesCount: number;
       stackingPolicy?: string;
       version?: number;
+      bankHolidayRegion?: string | null;
     } | null = null;
     let payCardSource: string | null = null;
     if (freezePayable && row.payCardId) {
@@ -1772,7 +1940,8 @@ export class VisitReconciliationsService {
           status: true,
           stackingPolicy: true,
           version: true,
-          rules: { select: { id: true } },
+          bankHolidayRegion: true,
+          rules: { where: { supersededAt: null }, select: { id: true } },
         },
       });
       payCardSource = row.payCardSource;
@@ -1783,6 +1952,7 @@ export class VisitReconciliationsService {
           rulesCount: pinned.rules.length,
           stackingPolicy: pinned.stackingPolicy ?? undefined,
           version: pinned.version ?? undefined,
+          bankHolidayRegion: pinned.bankHolidayRegion,
         };
       }
     } else if (row.employeeId) {
@@ -1799,6 +1969,8 @@ export class VisitReconciliationsService {
           rulesCount: resolved.data.payCard.rules?.length ?? 0,
           stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
           version: (resolved.data.payCard as { version?: number }).version,
+          bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
+            .bankHolidayRegion,
         };
       }
     }
@@ -1953,6 +2125,8 @@ export class VisitReconciliationsService {
         ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
         : activeExceptions,
       overrunDecision,
+      overrunPayBasis: row.overrunPayBasis,
+      overrunBillBasis: row.overrunBillBasis,
       durationToleranceMinutes,
     });
 
@@ -2028,6 +2202,8 @@ export class VisitReconciliationsService {
           ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }]
           : activeExceptions,
         overrunDecision,
+        overrunPayBasis: row.overrunPayBasis,
+        overrunBillBasis: row.overrunBillBasis,
         durationToleranceMinutes,
       });
       approvedBillStart = visitBillWindows.approvedBillStart;
@@ -2075,7 +2251,26 @@ export class VisitReconciliationsService {
           ? Number(row.payableAmount)
           : resolveManualPayableAmount(row);
     } else if (payCard && payMinutes) {
-      const payRules = await db.payCardRule.findMany({ where: { payCardId: payCard.id } });
+      // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
+      const { version: datedVersion, rules: payRules } = await loadPayCardRulesForDate(
+        db,
+        payCard.id,
+        row.plannedStartDateTime,
+        timeZone,
+      );
+      if (datedVersion != null) payCard.version = datedVersion;
+      // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
+      const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+      const payHolidayDates =
+        payRegion === DEFAULT_BANK_HOLIDAY_REGION
+          ? bankHolidayDates
+          : await loadBankHolidayDateSet(
+              db,
+              approvedPayStart,
+              approvedPayEnd ?? approvedPayStart,
+              timeZone,
+              payRegion,
+            );
       const stackingPolicy =
         ((payCard as { stackingPolicy?: string }).stackingPolicy as
           | 'PRIORITY'
@@ -2086,13 +2281,13 @@ export class VisitReconciliationsService {
         payRules,
         row.plannedStartDateTime,
         payMinutes,
-        isBankHoliday,
+        payHolidayDates.has(dayKeyInTimeZone(row.plannedStartDateTime, timeZone)),
         {
           start: approvedPayStart,
           end: approvedPayEnd,
           stackingPolicy,
           isBankHolidayFn: (d) =>
-            bankHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
+            payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
           timeZone,
         },
         nightDuty,
@@ -2648,6 +2843,8 @@ export class VisitReconciliationsService {
         overrunMinutes: row.overrunMinutes ?? null,
         overrunReason: row.overrunReason ?? null,
         overrunDecision: row.overrunDecision ?? null,
+        overrunPayBasis: row.overrunPayBasis ?? null,
+        overrunBillBasis: row.overrunBillBasis ?? null,
         approvalNotes: row.approvalNotes ?? null,
         emonitored,
         clientId: su?.serviceUserNumber?.trim() || '',
@@ -2982,10 +3179,15 @@ export class VisitReconciliationsService {
       const [payCard, payRules] = await Promise.all([
         db.payCard.findUnique({
           where: { id: row.payCardId },
-          select: { name: true, code: true },
+          select: { name: true, code: true, bankHolidayRegion: true },
         }),
-        db.payCardRule.findMany({ where: { payCardId: row.payCardId } }),
+        loadPayCardRulesForVersion(db, row.payCardId, row.payCardVersion),
       ]);
+      const payRegion = payCard?.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+      const payIsBankHoliday =
+        payRegion === DEFAULT_BANK_HOLIDAY_REGION
+          ? isBankHoliday
+          : await isVisitOnBankHoliday(db, row.plannedStartDateTime, timeZone, payRegion);
       const livePay = buildPayRateBreakdown(
         payRules,
         row.plannedStartDateTime,
@@ -2995,7 +3197,7 @@ export class VisitReconciliationsService {
           cardCode: payCard?.code ?? null,
           cardSource: row.payCardSource,
         },
-        isBankHoliday,
+        payIsBankHoliday,
         { start: payStart, end: payEnd, timeZone },
         nightDuty,
         plannedMinutes,

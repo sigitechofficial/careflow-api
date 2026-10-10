@@ -6,62 +6,60 @@ import {
 import { operationalDayBounds } from '../common/utils/operational-day.util';
 
 /**
- * Allowed workflow transitions.
- * Primary path: Raise (REPORTED) → Investigate → AWAITING_CLOSURE → CLOSED.
- * Re-investigate returns to UNDER_INVESTIGATION from CLOSED / AWAITING_CLOSURE.
- * Legacy statuses remain reachable for existing rows.
+ * Status flow (v2):
+ *   Reported → Under Review → Under Investigation → Actions Required → Awaiting Closure → Closed
+ *   Under Review can skip straight to Awaiting Closure (minor, no investigation needed).
+ *   Awaiting Closure / Actions Required can go back to Under Investigation (reason required).
+ *   Reopening a closed incident is an EVENT (reopenCount / lastReopenedAt) that returns it to
+ *   Under Review. REOPENED is legacy only and is never set by new changes.
+ * Reported → Under Review happens through "Start review" (owner + reviewStartedAt).
  */
 export const INCIDENT_STATUS_TRANSITIONS: Record<
   IncidentStatus,
   IncidentStatus[]
 > = {
-  [IncidentStatus.REPORTED]: [
+  [IncidentStatus.REPORTED]: [IncidentStatus.UNDER_REVIEW],
+  [IncidentStatus.UNDER_REVIEW]: [
     IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.AWAITING_REVIEW,
-  ],
-  [IncidentStatus.AWAITING_REVIEW]: [
-    IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.ACTIONS_REQUIRED,
     IncidentStatus.AWAITING_CLOSURE,
   ],
   [IncidentStatus.UNDER_INVESTIGATION]: [
-    IncidentStatus.AWAITING_CLOSURE,
     IncidentStatus.ACTIONS_REQUIRED,
+    IncidentStatus.AWAITING_CLOSURE,
   ],
   [IncidentStatus.ACTIONS_REQUIRED]: [
-    IncidentStatus.UNDER_INVESTIGATION,
     IncidentStatus.AWAITING_CLOSURE,
+    IncidentStatus.UNDER_INVESTIGATION,
   ],
   [IncidentStatus.AWAITING_CLOSURE]: [
     IncidentStatus.CLOSED,
     IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.ACTIONS_REQUIRED,
   ],
-  [IncidentStatus.CLOSED]: [
-    IncidentStatus.UNDER_INVESTIGATION,
-    IncidentStatus.REOPENED,
-  ],
+  [IncidentStatus.CLOSED]: [IncidentStatus.UNDER_REVIEW],
+  // Legacy rows (migrated to UNDER_REVIEW, kept for type completeness).
   [IncidentStatus.REOPENED]: [
     IncidentStatus.UNDER_INVESTIGATION,
     IncidentStatus.AWAITING_CLOSURE,
-    IncidentStatus.ACTIONS_REQUIRED,
   ],
 };
 
-/** Statuses from which moving to UNDER_INVESTIGATION counts as re-investigate. */
-export const REINVESTIGATE_FROM_STATUSES: IncidentStatus[] = [
-  IncidentStatus.CLOSED,
-  IncidentStatus.AWAITING_CLOSURE,
-  IncidentStatus.REOPENED,
-];
+/** Closed → Under Review: needs incidents.reopen and a reason; counted as a reopen. */
+export function isReopenTransition(
+  from: IncidentStatus,
+  to: IncidentStatus,
+): boolean {
+  return from === IncidentStatus.CLOSED && to === IncidentStatus.UNDER_REVIEW;
+}
 
-export function isReinvestigateTransition(
+/** Back to Under Investigation from later stages: a reason is required. */
+export function isSendBackTransition(
   from: IncidentStatus,
   to: IncidentStatus,
 ): boolean {
   return (
     to === IncidentStatus.UNDER_INVESTIGATION &&
-    REINVESTIGATE_FROM_STATUSES.includes(from)
+    (from === IncidentStatus.AWAITING_CLOSURE ||
+      from === IncidentStatus.ACTIONS_REQUIRED)
   );
 }
 
@@ -98,7 +96,7 @@ export function canTransitionIncidentStatus(
 /** Statuses that count as "open" for dashboards / trend logic. */
 export const OPEN_INCIDENT_STATUSES: IncidentStatus[] = [
   IncidentStatus.REPORTED,
-  IncidentStatus.AWAITING_REVIEW,
+  IncidentStatus.UNDER_REVIEW,
   IncidentStatus.UNDER_INVESTIGATION,
   IncidentStatus.ACTIONS_REQUIRED,
   IncidentStatus.AWAITING_CLOSURE,
@@ -107,7 +105,7 @@ export const OPEN_INCIDENT_STATUSES: IncidentStatus[] = [
 
 export const INCIDENT_STATUS_LABELS: Record<IncidentStatus, string> = {
   REPORTED: 'Reported',
-  AWAITING_REVIEW: 'Awaiting Review',
+  UNDER_REVIEW: 'Under Review',
   UNDER_INVESTIGATION: 'Under Investigation',
   ACTIONS_REQUIRED: 'Actions Required',
   AWAITING_CLOSURE: 'Awaiting Closure',
@@ -143,27 +141,74 @@ export const INCIDENT_PRIVACY_RANK: Record<IncidentPrivacyLevel, number> = {
 };
 
 /** Checklist codes for "immediate actions taken" captured during reporting. */
+/** "What was done?" on the office raise form. Who was told is recorded separately (who-informed keys). */
 export const IMMEDIATE_ACTION_CODES = [
   'FIRST_AID',
-  'EMERGENCY_SERVICES',
-  'GP_CONTACTED',
-  'MANAGER_CONTACTED',
-  'FAMILY_INFORMED',
+  'INJURY_CHECK',
   'AREA_MADE_SAFE',
+  'EQUIPMENT_OUT_OF_USE',
   'MEDICATION_WITHHELD',
+  'EVIDENCE_PRESERVED',
+  'NO_ACTION_NEEDED',
   'OTHER',
+] as const;
+
+/**
+ * "Who was informed?" keys accepted from the office raise form (static for now).
+ * Same keys as the carer-app catalog defaults, plus police and NHS 111.
+ */
+/** "Where did it happen?" on the office raise form (optional). OTHER needs locationDetail. */
+export const INCIDENT_LOCATION_KEYS = [
+  'HOME_BATHROOM',
+  'HOME_BEDROOM',
+  'HOME_KITCHEN',
+  'HOME_LIVING_ROOM',
+  'HOME_STAIRS',
+  'HOME_GARDEN',
+  'HOME_ENTRANCE',
+  'COMMUNITY',
+  'VEHICLE',
+  'OFFICE',
+  'OTHER',
+] as const;
+
+export const INCIDENT_LOCATION_LABELS: Record<(typeof INCIDENT_LOCATION_KEYS)[number], string> = {
+  HOME_BATHROOM: "Service user's home – bathroom",
+  HOME_BEDROOM: "Service user's home – bedroom",
+  HOME_KITCHEN: "Service user's home – kitchen",
+  HOME_LIVING_ROOM: "Service user's home – living room",
+  HOME_STAIRS: "Service user's home – stairs / hallway",
+  HOME_GARDEN: "Service user's home – garden / outside",
+  HOME_ENTRANCE: "Service user's home – entrance / doorstep",
+  COMMUNITY: 'Community / outdoors',
+  VEHICLE: 'Vehicle',
+  OFFICE: 'Office',
+  OTHER: 'Other',
+};
+
+export const OFFICE_WHO_INFORMED_KEYS = [
+  'office',
+  'on_call_manager',
+  'family_nok',
+  'gp',
+  'emergency_999',
+  'nhs_111',
+  'police',
+  'safeguarding_lead',
+  'local_authority',
+  'no_one_yet',
 ] as const;
 
 export type ImmediateActionCode = (typeof IMMEDIATE_ACTION_CODES)[number];
 
 export const IMMEDIATE_ACTION_LABELS: Record<ImmediateActionCode, string> = {
-  FIRST_AID: 'First aid provided',
-  EMERGENCY_SERVICES: 'Emergency services contacted',
-  GP_CONTACTED: 'GP contacted',
-  MANAGER_CONTACTED: 'Manager contacted',
-  FAMILY_INFORMED: 'Family / NOK informed',
+  FIRST_AID: 'First aid given',
+  INJURY_CHECK: 'Person checked for injuries',
   AREA_MADE_SAFE: 'Area made safe',
+  EQUIPMENT_OUT_OF_USE: 'Equipment taken out of use',
   MEDICATION_WITHHELD: 'Medication withheld',
+  EVIDENCE_PRESERVED: 'Evidence preserved',
+  NO_ACTION_NEEDED: 'No action needed',
   OTHER: 'Other',
 };
 

@@ -10,6 +10,7 @@ import {
   operationalDayBounds,
 } from '../common/utils/operational-day.util'
 import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util'
+import { isCancelledJobStatus, loadVisitTaskPlacement } from '../visit-tasks/visit-task-window.util'
 import { visitTaskMatchesDay } from '../visit-tasks/visit-task-schedule.util'
 import {
   buildTimeSensitiveFlag,
@@ -120,7 +121,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
   const dayDate = new Date(`${day}T12:00:00.000Z`)
   const bounds = operationalDayBounds(day, timeZone)
 
-  const [medications, assignments, events, completions] = await Promise.all([
+  const [medications, assignments, events, completions, taskPlacement] = await Promise.all([
     prisma.serviceUserMedication.findMany({
       where: {
         serviceUserId: { in: suIds },
@@ -158,6 +159,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
         id: true,
         serviceUserId: true,
         medicationRoundCode: true,
+        dueTime: true,
         timeCritical: true,
         timeToleranceMinutes: true,
         daysOfWeek: true,
@@ -168,7 +170,7 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
         monthlyDaysOfMonth: true,
         monthlyPatternOrdinal: true,
         monthlyPatternWeekday: true,
-        task: { select: { name: true } },
+        task: { select: { name: true, flagsJson: true } },
       },
     }),
     prisma.medicationAdministrationEvent.findMany({
@@ -197,6 +199,16 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
         completedAt: true,
       },
     }),
+    loadVisitTaskPlacement(
+      prisma,
+      jobs.map((job) => ({
+        id: job.id,
+        serviceUserId: job.serviceUserId,
+        start: new Date(job.scheduledStartDateTime),
+        end: job.scheduledEndDateTime ? new Date(job.scheduledEndDateTime) : null,
+      })),
+      timeZone,
+    ),
   ])
 
   const eventsByMed = new Map<string, (typeof events)[number]>()
@@ -276,20 +288,29 @@ export async function attachTimeSensitiveToTimelineJobs<T extends TimelineJobLik
       })
     }
 
+    // Tasks of a cancelled / called-off visit stay with it as not done — never "missed / late".
+    const jobCancelled = isCancelledJobStatus(job.status)
     for (const assignment of assignments) {
+      if (jobCancelled) break
       if (assignment.serviceUserId !== job.serviceUserId) continue
-      if (assignment.medicationRoundCode.toUpperCase() !== (round ?? '')) continue
+      // Each task sits on one visit of the client's day: covering visit, else nearest.
+      const placed = taskPlacement.byJob.get(job.id) ?? []
+      if (!placed.some((p) => p.assignmentId === assignment.id)) continue
       if (!visitTaskMatchesDay(assignment, dayDate, dayDate)) continue
       const completion = completionByJobAssignment.get(`${job.id}:${assignment.id}`)
       const given = completion?.isCompleted ? (completion.completedAt ?? null) : null
+      const taskDueHm = assignment.dueTime?.trim() || null
+      const taskDue = taskDueHm
+        ? combineOperationalDateAndHm(day, taskDueHm, timeZone)
+        : dueFallback
       items.push({
         kind: 'TASK',
         name: assignment.task.name,
-        dueTime: formatHmInTimeZone(dueFallback, timeZone),
+        dueTime: taskDueHm ?? formatHmInTimeZone(dueFallback, timeZone),
         givenTime: given ? formatHmInTimeZone(given, timeZone) : null,
         toleranceMinutes: assignment.timeToleranceMinutes,
         status: classifyTimeSensitiveTiming({
-          due: dueFallback,
+          due: taskDue,
           given,
           toleranceMinutes: assignment.timeToleranceMinutes,
           now,

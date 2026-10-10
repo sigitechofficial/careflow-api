@@ -16,6 +16,8 @@ import {
   UnassignPayCardEmployeeDto,
   UpsertEmployeeFunderPayAssignmentDto,
   UpdateEmployeeFunderPayAssignmentDto,
+  ChangeEmployeePayCardDto,
+  PreviewPayDto,
 } from './dto/billing-cards.dto';
 
 @ApiTags('Billing — Pay cards')
@@ -86,6 +88,31 @@ export class PayCardsController {
     return this.service.removeEmployeeFunderAssignment(user.id, id, getRequestAuditMeta(req));
   }
 
+  @Post('preview')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Preview pay for a sample visit with the given rules (nothing is saved)' })
+  previewPay(@Body() dto: PreviewPayDto) {
+    return this.service.previewPay(dto);
+  }
+
+  @Get('employee-history/:employeeId')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: "Dated history of a carer's own pay card" })
+  getEmployeeHistory(@Param('employeeId') employeeId: string) {
+    return this.service.getEmployeePayCardHistory(employeeId);
+  }
+
+  @Post('employee-history/:employeeId/change')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: "Change a carer's pay card from a date (e.g. promotion)" })
+  changeEmployeePayCard(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: ChangeEmployeePayCardDto,
+  ) {
+    return this.service.changeEmployeePayCard(user.id, employeeId, dto);
+  }
+
   @Get(':id/assignment-preview')
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: 'Preview how many carers match a pay card assignment' })
@@ -115,6 +142,13 @@ export class PayCardsController {
     @Req() req: Request,
   ) {
     return this.service.unassignEmployee(user.id, id, dto.employeeId, getRequestAuditMeta(req));
+  }
+
+  @Get(':id/versions')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Pay card rate history (all versions with their rules)' })
+  listVersions(@Param('id') id: string) {
+    return this.service.listVersions(id);
   }
 
   @Get(':id')

@@ -2415,7 +2415,7 @@ export class ServiceUserVisitPlansService {
                   {
                     scheduledStartDateTime: existingVisit.scheduledStartDateTime,
                     scheduledEndDateTime: existingVisit.scheduledEndDateTime,
-                    requiredCarers: existingVisit.requiredCarers,
+                    requiredCarers,
                   },
                   requiredCarers,
                   {

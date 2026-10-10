@@ -10,6 +10,7 @@ import {
   SurveyQuestionType,
   SurveyRecurrence,
   SurveyRespondentRelation,
+  SurveyResponseChannel,
   SurveyStatus,
   SurveyTargetKind,
 } from '@prisma/client';
@@ -38,6 +39,14 @@ import {
   nextSurveyDistributeAt,
   surveyPeriodLabel,
 } from './survey-recurrence.util';
+import {
+  RecordSurveyResponseDto,
+  STAFF_RECORDED_CHANNELS,
+  UpdateRecordedSurveyResponseDto,
+} from './dto/record-survey-response.dto';
+
+const isStaffRecordedChannel = (channel: SurveyResponseChannel) =>
+  (STAFF_RECORDED_CHANNELS as readonly string[]).includes(channel);
 
 const DEFAULT_LIKERT_OPTIONS = [
   'Strongly agree',
@@ -1109,6 +1118,18 @@ export class SurveysService {
     const nameById = survey.isAnonymous
       ? new Map<string, string>()
       : await this.loadRecipientNames(rows.map((r) => r.recipient));
+    const recorderIds = [
+      ...new Set(rows.map((r) => r.recordedById).filter((id): id is string => Boolean(id))),
+    ];
+    const recorders = recorderIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: recorderIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const recorderName = new Map(
+      recorders.map((u) => [u.id, `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email]),
+    );
 
     const chronological = [...rows].sort(
       (a, b) => a.submittedAt.getTime() - b.submittedAt.getTime(),
@@ -1125,7 +1146,8 @@ export class SurveysService {
           let respondentLabel: string;
           let employeeId: string | null = null;
           let serviceUserId: string | null = null;
-          if (survey.isAnonymous) {
+          const hideIdentity = survey.isAnonymous || row.isAnonymous;
+          if (hideIdentity) {
             respondentLabel = `Anonymous respondent #${seq}`;
           } else if (row.recipient.employeeId) {
             employeeId = row.recipient.employeeId;
@@ -1172,14 +1194,327 @@ export class SurveysService {
             employeeId,
             serviceUserId,
             respondentRelation: row.respondentRelation,
-            // Who answered on the service user's behalf — hidden on anonymous surveys.
-            respondentName: survey.isAnonymous ? null : row.respondentName,
+            // Who answered on the service user's behalf — hidden on anonymous surveys / responses.
+            respondentName: hideIdentity ? null : row.respondentName,
+            channel: row.channel,
+            isAnonymous: row.isAnonymous,
+            recordedByName: row.recordedById ? (recorderName.get(row.recordedById) ?? null) : null,
+            contactedAt: row.contactedAt?.toISOString() ?? null,
+            contactNumber: hideIdentity ? null : row.contactNumber,
+            contactNotes: row.contactNotes,
+            consentGiven: row.consentGiven,
+            // Only staff-recorded responses can be corrected; people's own answers never change.
+            canEdit: isStaffRecordedChannel(row.channel),
             answerCount: answers.length,
             answers,
           };
         }),
       },
     };
+  }
+
+  /** People this survey can be recorded for (its target), with their recipient status. */
+  async listRecordCandidates(surveyId: string, search?: string) {
+    const survey = await this.requireSurvey(surveyId);
+    const q = search?.trim();
+    const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
+    const contains = (value: string) => ({ contains: value, mode: 'insensitive' as const });
+
+    let people: Array<{ id: string; name: string }>;
+    if (forServiceUsers) {
+      const rows = await this.prisma.serviceUser.findMany({
+        where: {
+          deletedAt: null,
+          NOT: { status: { is: { code: { in: [...SURVEY_EXCLUDED_SERVICE_USER_STATUSES] } } } },
+          ...(survey.locationIds.length ? { locationId: { in: survey.locationIds } } : {}),
+          ...(q
+            ? {
+                OR: [
+                  { firstName: contains(q) },
+                  { lastName: contains(q) },
+                  { serviceUserNumber: contains(q) },
+                ],
+              }
+            : {}),
+        },
+        select: { id: true, firstName: true, lastName: true, serviceUserNumber: true },
+        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        take: 25,
+      });
+      people = rows.map((r) => {
+        const name = `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim() || 'Service user';
+        return { id: r.id, name: r.serviceUserNumber ? `${name} (${r.serviceUserNumber})` : name };
+      });
+    } else {
+      const rows = await this.prisma.employee.findMany({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          ...(survey.locationIds.length
+            ? { employment: { locationId: { in: survey.locationIds } } }
+            : {}),
+          ...(q
+            ? { personalDetail: { OR: [{ firstName: contains(q) }, { lastName: contains(q) }] } }
+            : {}),
+        },
+        select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+        take: 25,
+      });
+      people = rows
+        .map((r) => ({
+          id: r.id,
+          name:
+            `${r.personalDetail?.firstName ?? ''} ${r.personalDetail?.lastName ?? ''}`.trim() ||
+            'Employee',
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    const ids = people.map((p) => p.id);
+    const recipients = ids.length
+      ? await this.prisma.surveyRecipient.findMany({
+          where: forServiceUsers
+            ? { surveyId, serviceUserId: { in: ids } }
+            : { surveyId, employeeId: { in: ids } },
+          select: {
+            employeeId: true,
+            serviceUserId: true,
+            status: true,
+            response: { select: { id: true } },
+          },
+        })
+      : [];
+    const recipientByPerson = new Map(
+      recipients.map((r) => [(forServiceUsers ? r.serviceUserId : r.employeeId) as string, r]),
+    );
+
+    return {
+      message: 'Survey record candidates',
+      data: people.map((p) => {
+        const recipient = recipientByPerson.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          recipientStatus: recipient?.status ?? null,
+          hasResponse: Boolean(recipient?.response),
+        };
+      }),
+    };
+  }
+
+  /**
+   * Office staff record a response collected by telephone, from paper or in person —
+   * for a named person (their survey becomes Completed) or anonymously (linked to no one).
+   */
+  async recordResponse(
+    userId: string,
+    surveyId: string,
+    dto: RecordSurveyResponseDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const survey = await this.requireSurvey(surveyId);
+    if (survey.status === SurveyStatus.DRAFT) {
+      throw new BadRequestException('Publish the survey before recording responses');
+    }
+    const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
+    const anonymous = Boolean(dto.isAnonymous);
+    if (!anonymous && !dto.personId) {
+      throw new BadRequestException(
+        `Choose the ${forServiceUsers ? 'service user' : 'employee'} or record the response as anonymous`,
+      );
+    }
+    const isTelephone = dto.channel === SurveyResponseChannel.TELEPHONE;
+    if (isTelephone && dto.consentGiven !== true) {
+      throw new BadRequestException('Confirm the person agreed to answer over the phone');
+    }
+
+    const relation = dto.respondentRelation ?? null;
+    const respondentName =
+      anonymous || !relation || relation === SurveyRespondentRelation.SELF
+        ? null
+        : dto.respondentName?.trim() || null;
+
+    let existingRecipient: { id: string; response: { id: string } | null } | null = null;
+    if (!anonymous) {
+      const personId = dto.personId!;
+      const person = forServiceUsers
+        ? await this.prisma.serviceUser.findFirst({
+            where: { id: personId, deletedAt: null },
+            select: { id: true },
+          })
+        : await this.prisma.employee.findFirst({
+            where: { id: personId, deletedAt: null },
+            select: { id: true },
+          });
+      if (!person) {
+        throw new NotFoundException(forServiceUsers ? 'Service user not found' : 'Employee not found');
+      }
+      existingRecipient = await this.prisma.surveyRecipient.findFirst({
+        where: forServiceUsers ? { surveyId, serviceUserId: personId } : { surveyId, employeeId: personId },
+        select: { id: true, response: { select: { id: true } } },
+      });
+      if (existingRecipient?.response) {
+        throw new BadRequestException(
+          'This person has already answered this survey. Edit the recorded response instead.',
+        );
+      }
+    }
+
+    const { questions, answerByQuestion } = await this.validateAnswers(surveyId, dto);
+    const now = new Date();
+
+    let response;
+    try {
+      response = await this.prisma.$transaction(async (tx) => {
+        const recipientId = existingRecipient
+          ? (
+              await tx.surveyRecipient.update({
+                where: { id: existingRecipient.id },
+                data: { status: 'COMPLETED' },
+              })
+            ).id
+          : (
+              await tx.surveyRecipient.create({
+                data: {
+                  surveyId,
+                  targetKind: survey.targetKind,
+                  employeeId: !anonymous && !forServiceUsers ? dto.personId! : null,
+                  serviceUserId: !anonymous && forServiceUsers ? dto.personId! : null,
+                  token: randomUUID(),
+                  status: 'COMPLETED',
+                  sentAt: now,
+                  createdById: userId || null,
+                },
+              })
+            ).id;
+
+        return tx.surveyResponse.create({
+          data: {
+            recipientId,
+            submittedById: null,
+            respondentRelation: relation,
+            respondentName,
+            channel: dto.channel as SurveyResponseChannel,
+            recordedById: userId || null,
+            isAnonymous: anonymous,
+            contactedAt: dto.contactedAt ? new Date(dto.contactedAt) : isTelephone ? now : null,
+            // The number would identify an anonymous respondent.
+            contactNumber: anonymous ? null : dto.contactNumber?.trim() || null,
+            contactNotes: dto.contactNotes?.trim() || null,
+            consentGiven: isTelephone ? true : null,
+            submittedAt: now,
+            answers: { create: this.mapAnswersForCreate(questions, answerByQuestion) },
+          },
+        });
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new BadRequestException('This person has already answered this survey.');
+      }
+      throw e;
+    }
+
+    await this.audit.logAudit({
+      userId: userId || undefined,
+      module: AuditModule.SURVEY,
+      action: AuditAction.SURVEY_RESPONSE_RECORDED,
+      recordType: 'SurveyResponse',
+      recordId: response.id,
+      newValues: {
+        surveyId,
+        channel: dto.channel,
+        isAnonymous: anonymous,
+        respondentRelation: relation,
+        answerCount: dto.answers.length,
+      },
+      metadata: { surveyId },
+      ...meta,
+    });
+
+    return {
+      message: 'Survey response recorded',
+      data: { id: response.id, submittedAt: now.toISOString() },
+    };
+  }
+
+  /** Correct a staff-recorded response; the reason and before / after answers go to the audit log. */
+  async updateRecordedResponse(
+    userId: string,
+    surveyId: string,
+    responseId: string,
+    dto: UpdateRecordedSurveyResponseDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.requireSurvey(surveyId);
+    const answerInclude = {
+      answers: {
+        include: { question: { select: { questionText: true, questionType: true, sortOrder: true } } },
+      },
+    } as const;
+    const existing = await this.prisma.surveyResponse.findFirst({
+      where: { id: responseId, recipient: { surveyId } },
+      include: answerInclude,
+    });
+    if (!existing) throw new NotFoundException('Survey response not found');
+    if (!isStaffRecordedChannel(existing.channel)) {
+      throw new BadRequestException(
+        'Only responses recorded by staff (telephone, paper or in person) can be edited.',
+      );
+    }
+
+    const { questions, answerByQuestion } = await this.validateAnswers(surveyId, dto);
+    const relation = dto.respondentRelation ?? null;
+    const respondentName =
+      existing.isAnonymous || !relation || relation === SurveyRespondentRelation.SELF
+        ? null
+        : dto.respondentName?.trim() || null;
+
+    const snapshot = (rows: typeof existing.answers) =>
+      [...rows]
+        .sort((a, b) => a.question.sortOrder - b.question.sortOrder)
+        .map((a) => ({
+          question: a.question.questionText,
+          answer: this.formatAnswerDisplay({
+            questionType: a.question.questionType,
+            booleanValue: a.booleanValue,
+            textValue: a.textValue,
+            numberValue: a.numberValue == null ? null : Number(a.numberValue),
+            selectedOptions: a.selectedOptions,
+          }),
+        }));
+    const before = snapshot(existing.answers);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.surveyAnswer.deleteMany({ where: { responseId } });
+      return tx.surveyResponse.update({
+        where: { id: responseId },
+        data: {
+          respondentRelation: relation,
+          respondentName,
+          contactedAt: dto.contactedAt ? new Date(dto.contactedAt) : existing.contactedAt,
+          contactNumber: existing.isAnonymous ? null : dto.contactNumber?.trim() || null,
+          contactNotes: dto.contactNotes?.trim() || null,
+          answers: { create: this.mapAnswersForCreate(questions, answerByQuestion) },
+        },
+        include: answerInclude,
+      });
+    });
+
+    const reason = dto.reason.trim();
+    await this.audit.logAudit({
+      userId: userId || undefined,
+      module: AuditModule.SURVEY,
+      action: AuditAction.SURVEY_RESPONSE_UPDATED,
+      recordType: 'SurveyResponse',
+      recordId: responseId,
+      description: reason,
+      oldValues: { answers: before },
+      newValues: { answers: snapshot(updated.answers) },
+      metadata: { surveyId, reason, channel: existing.channel },
+      ...meta,
+    });
+
+    return { message: 'Survey response updated', data: { id: responseId } };
   }
 
   private formatAnswerDisplay(input: {
@@ -1355,6 +1690,72 @@ export class SurveysService {
     const order = { OPEN: 0, UNAVAILABLE: 1, COMPLETED: 2 } as const;
     items.sort((a, b) => order[a.state] - order[b.state]);
     return { message: 'Portal surveys', data: items };
+  }
+
+  /** Portal: the answers the signed-in service user (or their representative) submitted. */
+  async getPortalSurveyAnswers(serviceUserId: string, token: string) {
+    const recipient = await this.prisma.surveyRecipient.findFirst({
+      where: {
+        token: token?.trim(),
+        serviceUserId,
+        survey: { deletedAt: null },
+      },
+      select: {
+        survey: { select: { title: true } },
+        response: {
+          select: {
+            submittedAt: true,
+            respondentRelation: true,
+            respondentName: true,
+            answers: {
+              select: {
+                booleanValue: true,
+                textValue: true,
+                numberValue: true,
+                selectedOptions: true,
+                question: {
+                  select: {
+                    id: true,
+                    questionText: true,
+                    questionType: true,
+                    sortOrder: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!recipient?.response)
+      throw new NotFoundException('No submitted answers found for this survey');
+    const { response } = recipient;
+    const answers = [...response.answers]
+      .sort((a, b) => a.question.sortOrder - b.question.sortOrder)
+      .map((a) => ({
+        questionId: a.question.id,
+        questionText: a.question.questionText,
+        displayValue: this.formatAnswerDisplay({
+          questionType: a.question.questionType,
+          booleanValue: a.booleanValue,
+          textValue: a.textValue,
+          numberValue:
+            a.numberValue === null || a.numberValue === undefined
+              ? null
+              : Number(a.numberValue),
+          selectedOptions: a.selectedOptions,
+        }),
+      }));
+    return {
+      message: 'Your survey answers',
+      data: {
+        title: recipient.survey.title,
+        submittedAt: response.submittedAt.toISOString(),
+        respondentRelation: response.respondentRelation,
+        respondentName: response.respondentName,
+        answers,
+      },
+    };
   }
 
   /** Public: load survey form by survey share token OR recipient token. */
@@ -1577,6 +1978,9 @@ export class SurveysService {
       throw new BadRequestException(availability.reason ?? 'This survey is not accepting responses');
     }
 
+    if (dto.respondentRelation === SurveyRespondentRelation.STAFF) {
+      throw new BadRequestException('Please choose who is answering this survey');
+    }
     let respondentRelation: SurveyRespondentRelation | null = null;
     let respondentName: string | null = null;
     if (recipient.targetKind === SurveyTargetKind.SERVICE_USER) {
@@ -1604,6 +2008,10 @@ export class SurveysService {
             submittedById: null,
             respondentRelation,
             respondentName,
+            channel:
+              recipient.targetKind === SurveyTargetKind.SERVICE_USER
+                ? SurveyResponseChannel.PORTAL
+                : SurveyResponseChannel.ONLINE,
             submittedAt: now,
             answers: {
               create: this.mapAnswersForCreate(questions, answerByQuestion),

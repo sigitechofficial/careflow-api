@@ -1,6 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDate,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateEmployeeReviewDto {
   @ApiPropertyOptional()
@@ -29,6 +35,14 @@ export class UpdateEmployeeReviewDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Supporting document URL (uploaded via employee documents)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  documentUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

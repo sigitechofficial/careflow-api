@@ -30,6 +30,10 @@ import {
   portalMedicationRoundLabel,
   portalMedicationStatusLabel,
 } from './portal-medications.util';
+import {
+  loadOperationalTimeZone,
+  loadVisitTaskPlacement,
+} from '../visit-tasks/visit-task-window.util';
 
 const ABOUT_ME_REF_TYPE = 'SU_ABOUT_ME_V1';
 
@@ -321,30 +325,36 @@ export class ServiceUserPortalService {
           serviceUserId,
           deletedAt: null,
           isActive: true,
-          ...(roundCodes.length > 0
-            ? { medicationRoundCode: { in: roundCodes } }
-            : { id: { in: [] } }),
         },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         include: { task: { include: { category: true } } },
       }),
     ]);
+    // Tasks attach by clock time: covering visit of the day, else the nearest visit.
+    const timeZone = await loadOperationalTimeZone(this.prisma);
+    const jobStarts = new Map<string, { start: Date; end: Date | null }>();
+    for (const v of visits) {
+      if (!jobStarts.has(v.scheduledJobId)) {
+        jobStarts.set(v.scheduledJobId, { start: v.scheduledStartDateTime, end: v.scheduledEndDateTime });
+      }
+    }
+    const { byJob: placedByJob } = await loadVisitTaskPlacement(
+      this.prisma,
+      [...jobStarts].map(([id, t]) => ({ id, serviceUserId, start: t.start, end: t.end })),
+      timeZone,
+    );
 
     const roundNameByCode = new Map(rounds.map(r => [r.code.toUpperCase(), r.name]));
-    const tasksByRound = new Map<string, typeof allAssignments>();
-    for (const code of roundCodes) {
-      tasksByRound.set(
-        code,
-        allAssignments.filter(a => a.medicationRoundCode.toUpperCase() === code),
-      );
-    }
 
     return visits.map(v => {
       const roundCode = resolveVisitMedicationRoundCode(v.visitPlanSlot);
       const allocations =
         v.allocations.length > 0 ? v.allocations : (v.scheduledJob.allocations ?? []);
       const carers = allocations.map(a => portalEmployeeDisplayName(a.employee.personalDetail));
-      const assignments = roundCode ? (tasksByRound.get(roundCode) ?? []) : [];
+      const placedIds = new Set(
+        (placedByJob.get(v.scheduledJobId) ?? []).map((p) => p.assignmentId),
+      );
+      const assignments = allAssignments.filter(a => placedIds.has(a.id));
 
       return {
         id: v.id,

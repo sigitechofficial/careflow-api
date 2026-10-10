@@ -8,6 +8,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsObject,
   IsEnum,
   IsIn,
   IsISO8601,
@@ -16,7 +17,11 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { IMMEDIATE_ACTION_CODES } from '../incident-workflow.util';
+import {
+  IMMEDIATE_ACTION_CODES,
+  INCIDENT_LOCATION_KEYS,
+  OFFICE_WHO_INFORMED_KEYS,
+} from '../incident-workflow.util';
 
 export class CreateIncidentDto {
   @ApiProperty({ description: 'Incident category id (IncidentCategory)' })
@@ -41,6 +46,17 @@ export class CreateIncidentDto {
   @IsUUID()
   locationId?: string;
 
+  @ApiPropertyOptional({ enum: INCIDENT_LOCATION_KEYS, description: 'Where it happened (optional)' })
+  @IsOptional()
+  @IsIn(INCIDENT_LOCATION_KEYS)
+  locationKey?: string;
+
+  @ApiPropertyOptional({ description: 'Where it happened, when locationKey is OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  locationDetail?: string;
+
   @ApiPropertyOptional({ description: 'Specific area / location description' })
   @IsOptional()
   @IsString()
@@ -58,6 +74,26 @@ export class CreateIncidentDto {
   @IsOptional()
   @IsUUID()
   primaryEmployeeId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'All service users involved; the first becomes the primary person when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  serviceUserIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'All staff members involved; the first becomes the primary employee when none is set',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  employeeIds?: string[];
 
   @ApiPropertyOptional({
     enum: IncidentPersonKind,
@@ -87,12 +123,52 @@ export class CreateIncidentDto {
   @MaxLength(200)
   primaryPersonName?: string;
 
+  @ApiProperty({
+    description:
+      'Carer who reported the incident. Incidents are always reported by a carer; the office only records them.',
+  })
+  @IsUUID()
+  reporterEmployeeId!: string;
+
   @ApiPropertyOptional({
-    description: 'Employee id of the reporter, if applicable',
+    description:
+      'Category-specific answers, validated per category key (see incident-category-details.util.ts)',
+  })
+  @IsOptional()
+  @IsObject()
+  categoryDetails?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Ambulance attended? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  ambulanceAttended?: boolean | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Taken to A&E? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  takenToAe?: boolean | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Admitted to hospital? null = not known',
+  })
+  @IsOptional()
+  @IsBoolean()
+  admittedToHospital?: boolean | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Visit (scheduled job) during which it happened or was discovered — must belong to the service user',
   })
   @IsOptional()
   @IsUUID()
-  reporterEmployeeId?: string;
+  scheduledJobId?: string;
 
   @ApiProperty({ description: 'What happened' })
   @IsString()
@@ -111,7 +187,10 @@ export class CreateIncidentDto {
   @MaxLength(8000)
   contextAfter?: string;
 
-  @ApiPropertyOptional({ description: 'Free-text immediate actions taken' })
+  @ApiPropertyOptional({
+    description:
+      'Description of the actions taken (required when OTHER is ticked)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(8000)
@@ -123,6 +202,13 @@ export class CreateIncidentDto {
   @ArrayMaxSize(20)
   @IsIn(IMMEDIATE_ACTION_CODES, { each: true })
   immediateActionCodes?: string[];
+
+  @ApiPropertyOptional({ enum: OFFICE_WHO_INFORMED_KEYS, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsIn(OFFICE_WHO_INFORMED_KEYS, { each: true })
+  whoInformedKeys?: string[];
 
   @ApiPropertyOptional({ description: 'Whether anyone was injured' })
   @IsOptional()

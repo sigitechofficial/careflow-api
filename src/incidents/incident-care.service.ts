@@ -7,6 +7,7 @@ import {
 import { existsSync, promises as fsp } from 'fs';
 import { join } from 'path';
 import {
+  IncidentPersonKind,
   IncidentPrivacyLevel,
   IncidentRelatedRecordStatus,
   IncidentStatus,
@@ -35,11 +36,24 @@ import {
   incidentAttachmentRoot,
 } from './incident-attachment.config';
 import {
+  externalBodyErrors,
+  externalBodyName,
+  EXTERNAL_BODY_STATUS_LABELS,
+  mapExternalBody,
+  type ExternalBodyStatus,
+} from './incident-external-body.util';
+import type {
+  CreateIncidentExternalBodyDto,
+  UpdateIncidentExternalBodyDto,
+} from './dto/incident-external-body.dto';
+import {
   CreateIncidentAttachmentMetaDto,
   CreateIncidentInjuryDto,
   CreateIncidentWitnessDto,
   CreateRelatedCareRecordDto,
   LinkRelatedIncidentDto,
+  RemoveIncidentRecordDto,
+  UpdateIncidentInjuryDto,
   UpdateRelatedCareRecordDto,
 } from './dto/incident-care.dto';
 
@@ -195,9 +209,80 @@ export class IncidentCareService {
     return { message: 'Injury recorded', data: injury };
   }
 
+  async updateInjury(
+    user: RequestUser,
+    injuryId: string,
+    dto: UpdateIncidentInjuryDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const injury = await this.prisma.incidentInjury.findFirst({
+      where: { id: injuryId, deletedAt: null },
+      include: { incident: { select: { id: true, privacyLevel: true, status: true } } },
+    });
+    if (!injury || !(await this.canAccessIncident(user, injury.incident))) {
+      throw new NotFoundException('Injury not found');
+    }
+    assertIncidentEditable(injury.incident);
+    this.requirePermission(user, 'incidents.update');
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Give a reason for the change');
+    await this.assertServiceUser(dto.personServiceUserId);
+    await this.assertEmployee(dto.personEmployeeId);
+    const personKind = dto.personKind ?? injury.personKind;
+    // A body-map pin belongs to one service user; it is dropped if the injured person changes.
+    const personChanged =
+      personKind !== injury.personKind ||
+      (dto.personServiceUserId !== undefined && dto.personServiceUserId !== injury.personServiceUserId);
+    const { incident: _incident, ...before } = injury;
+    const updated = await this.prisma.incidentInjury.update({
+      where: { id: injuryId },
+      data: {
+        personKind,
+        ...(dto.personKind !== undefined || dto.personServiceUserId !== undefined
+          ? {
+              personServiceUserId:
+                personKind === IncidentPersonKind.SERVICE_USER ? (dto.personServiceUserId ?? null) : null,
+            }
+          : {}),
+        ...(dto.personKind !== undefined || dto.personEmployeeId !== undefined
+          ? {
+              personEmployeeId:
+                personKind === IncidentPersonKind.EMPLOYEE ? (dto.personEmployeeId ?? null) : null,
+            }
+          : {}),
+        ...(dto.personName !== undefined ? { personName: dto.personName.trim() || null } : {}),
+        ...(dto.injurySeverity !== undefined ? { injurySeverity: dto.injurySeverity } : {}),
+        ...(dto.injuryType !== undefined ? { injuryType: dto.injuryType.trim() } : {}),
+        ...(dto.bodyRegion !== undefined ? { bodyRegion: dto.bodyRegion.trim() || null } : {}),
+        ...(dto.side !== undefined ? { side: dto.side.trim() || null } : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes.trim() || null } : {}),
+        ...(dto.measurements !== undefined ? { measurements: dto.measurements.trim() || null } : {}),
+        ...(dto.bodyMapRecordId !== undefined
+          ? { bodyMapRecordId: dto.bodyMapRecordId }
+          : personChanged
+            ? { bodyMapRecordId: null }
+            : {}),
+      },
+    });
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentInjury',
+      recordId: injuryId,
+      description: `Injury changed: ${updated.injuryType} (${reason})`,
+      oldValues: auditSnapshot(before),
+      newValues: auditSnapshot(updated),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    return { message: 'Injury updated', data: updated };
+  }
+
   async deleteInjury(
     user: RequestUser,
     injuryId: string,
+    dto: RemoveIncidentRecordDto,
     meta?: RequestAuditMeta,
   ) {
     const injury = await this.prisma.incidentInjury.findFirst({
@@ -217,11 +302,182 @@ export class IncidentCareService {
       user,
       'IncidentInjury',
       injuryId,
-      'Injury removed',
-      { id: injuryId },
+      `Injury removed: ${injury.injuryType} (${dto.reason.trim()})`,
+      { id: injuryId, reason: dto.reason.trim() },
       meta,
     );
     return { message: 'Injury removed', data: { id: injuryId } };
+  }
+
+  // --- external bodies -------------------------------------------------------
+
+  /** Timeline line (recordId = incident, like suspensions). */
+  private logExternalBodyChange(
+    user: RequestUser,
+    incidentId: string,
+    description: string,
+    oldValues: unknown,
+    newValues: unknown,
+    meta?: RequestAuditMeta,
+  ) {
+    return this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentExternalBodyChange',
+      recordId: incidentId,
+      description,
+      oldValues: oldValues === undefined ? undefined : auditSnapshot(oldValues),
+      newValues: newValues === undefined ? undefined : auditSnapshot(newValues),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+  }
+
+  private async assertExternalBodyValid(values: {
+    bodyType: string;
+    organisationName: string | null;
+    referredOn: string;
+    status: string;
+    outcome: string | null;
+    outcomeDate: string | null;
+  }) {
+    const today = operationalTodayIso(new Date(), await this.orgSettings.getOperationalTimezone());
+    const errors = externalBodyErrors(values, today);
+    if (errors.length) throw new BadRequestException(errors.join('. '));
+  }
+
+  async addExternalBody(
+    user: RequestUser,
+    incidentId: string,
+    dto: CreateIncidentExternalBodyDto,
+    meta?: RequestAuditMeta,
+  ) {
+    this.requirePermission(user, 'incidents.investigate');
+    await this.loadIncidentForEdit(user, incidentId);
+    const data = {
+      bodyType: dto.bodyType,
+      organisationName: dto.organisationName?.trim() || null,
+      referredOn: dto.referredOn,
+      referenceNumber: dto.referenceNumber?.trim() || null,
+      contactName: dto.contactName?.trim() || null,
+      contactPhone: dto.contactPhone?.trim() || null,
+      contactEmail: dto.contactEmail?.trim() || null,
+      role: dto.role,
+      status: dto.status,
+      outcome: dto.outcome?.trim() || null,
+      outcomeDate: dto.outcomeDate || null,
+      informationProvided: dto.informationProvided?.trim() || null,
+      informationReceived: dto.informationReceived?.trim() || null,
+    };
+    await this.assertExternalBodyValid(data);
+    const row = await this.prisma.incidentExternalBody.create({
+      data: {
+        ...data,
+        incidentId,
+        referredOn: new Date(`${data.referredOn}T00:00:00.000Z`),
+        outcomeDate: data.outcomeDate ? new Date(`${data.outcomeDate}T00:00:00.000Z`) : null,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+    });
+    const mapped = mapExternalBody(row);
+    await this.logExternalBodyChange(
+      user,
+      incidentId,
+      `External body added: ${externalBodyName(row)} — ${EXTERNAL_BODY_STATUS_LABELS[row.status as ExternalBodyStatus] ?? row.status}${row.referenceNumber ? ` (ref ${row.referenceNumber})` : ''}`,
+      undefined,
+      mapped,
+      meta,
+    );
+    return { message: 'External body added', data: mapped };
+  }
+
+  async updateExternalBody(
+    user: RequestUser,
+    incidentId: string,
+    bodyId: string,
+    dto: UpdateIncidentExternalBodyDto,
+    meta?: RequestAuditMeta,
+  ) {
+    this.requirePermission(user, 'incidents.investigate');
+    await this.loadIncidentForEdit(user, incidentId);
+    const existing = await this.prisma.incidentExternalBody.findFirst({
+      where: { id: bodyId, incidentId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('External body not found');
+    const before = mapExternalBody(existing);
+    const pick = <T>(v: T | undefined, fallback: T) => (v === undefined ? fallback : v);
+    const text = (v: string | null | undefined, fallback: string | null) =>
+      v === undefined ? fallback : v?.trim() || null;
+    const data = {
+      bodyType: pick(dto.bodyType, before.bodyType),
+      organisationName: text(dto.organisationName, before.organisationName),
+      referredOn: pick(dto.referredOn, before.referredOn),
+      referenceNumber: text(dto.referenceNumber, before.referenceNumber),
+      contactName: text(dto.contactName, before.contactName),
+      contactPhone: text(dto.contactPhone, before.contactPhone),
+      contactEmail: text(dto.contactEmail, before.contactEmail),
+      role: pick(dto.role, before.role),
+      status: pick(dto.status, before.status),
+      outcome: text(dto.outcome, before.outcome),
+      outcomeDate: dto.outcomeDate === undefined ? before.outcomeDate : dto.outcomeDate || null,
+      informationProvided: text(dto.informationProvided, before.informationProvided),
+      informationReceived: text(dto.informationReceived, before.informationReceived),
+    };
+    await this.assertExternalBodyValid(data);
+    const row = await this.prisma.incidentExternalBody.update({
+      where: { id: bodyId },
+      data: {
+        ...data,
+        referredOn: new Date(`${data.referredOn}T00:00:00.000Z`),
+        outcomeDate: data.outcomeDate ? new Date(`${data.outcomeDate}T00:00:00.000Z`) : null,
+        updatedById: user.id,
+      },
+    });
+    const mapped = mapExternalBody(row);
+    const statusChanged = before.status !== mapped.status;
+    await this.logExternalBodyChange(
+      user,
+      incidentId,
+      statusChanged
+        ? `External body ${externalBodyName(row)}: ${EXTERNAL_BODY_STATUS_LABELS[before.status as ExternalBodyStatus] ?? before.status} → ${EXTERNAL_BODY_STATUS_LABELS[mapped.status as ExternalBodyStatus] ?? mapped.status}${mapped.outcome ? ` — ${mapped.outcome}` : ''}`
+        : `External body updated: ${externalBodyName(row)}`,
+      before,
+      mapped,
+      meta,
+    );
+    return { message: 'External body updated', data: mapped };
+  }
+
+  async deleteExternalBody(
+    user: RequestUser,
+    incidentId: string,
+    bodyId: string,
+    reason: string,
+    meta?: RequestAuditMeta,
+  ) {
+    this.requirePermission(user, 'incidents.investigate');
+    await this.loadIncidentForEdit(user, incidentId);
+    const existing = await this.prisma.incidentExternalBody.findFirst({
+      where: { id: bodyId, incidentId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('External body not found');
+    const why = reason.trim();
+    if (!why) throw new BadRequestException('Give a reason for removing this record');
+    await this.prisma.incidentExternalBody.update({
+      where: { id: bodyId },
+      data: { deletedAt: new Date(), updatedById: user.id },
+    });
+    await this.logExternalBodyChange(
+      user,
+      incidentId,
+      `External body removed: ${externalBodyName(existing)} (${why})`,
+      mapExternalBody(existing),
+      { reason: why },
+      meta,
+    );
+    return { message: 'External body removed' };
   }
 
   // --- witnesses -------------------------------------------------------------
@@ -261,7 +517,7 @@ export class IncidentCareService {
       user,
       'IncidentWitness',
       witness.id,
-      'Witness added',
+      `Witness added: ${witness.personName ?? 'unnamed'}`,
       witness,
       meta,
     );
@@ -271,6 +527,7 @@ export class IncidentCareService {
   async deleteWitness(
     user: RequestUser,
     witnessId: string,
+    dto: RemoveIncidentRecordDto,
     meta?: RequestAuditMeta,
   ) {
     const witness = await this.prisma.incidentWitness.findFirst({
@@ -290,8 +547,8 @@ export class IncidentCareService {
       user,
       'IncidentWitness',
       witnessId,
-      'Witness removed',
-      { id: witnessId },
+      `Witness removed: ${witness.personName ?? 'unnamed'} (${dto.reason.trim()})`,
+      { id: witnessId, reason: dto.reason.trim() },
       meta,
     );
     return { message: 'Witness removed', data: { id: witnessId } };
@@ -699,7 +956,7 @@ export class IncidentCareService {
   async getServiceUserHistory(user: RequestUser, serviceUserId: string) {
     const allowed = allowedPrivacyLevels(user);
     const where: Prisma.IncidentWhereInput = {
-      primaryServiceUserId: serviceUserId,
+      involvedServiceUserIds: { has: serviceUserId },
       deletedAt: null,
       isArchived: false,
       privacyLevel: { in: allowed },

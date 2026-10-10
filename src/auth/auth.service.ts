@@ -497,10 +497,27 @@ export class AuthService {
     const existing = await this.usersService.findById(userId);
     if (!existing) throw new UnauthorizedException('User not found');
 
-    const updated = await this.usersService.updateProfile(userId, {
+    const email = dto.email?.trim();
+    const emailChanged =
+      Boolean(email) && email!.toLowerCase() !== existing.email.toLowerCase();
+    if (emailChanged) {
+      if (
+        !dto.currentPassword ||
+        !(await bcrypt.compare(dto.currentPassword, existing.passwordHash))
+      ) {
+        throw new UnauthorizedException(
+          'Enter your current password to change your email',
+        );
+      }
+      await this.usersService.assertEmailAvailable(email!, userId);
+    }
+
+    let updated = await this.usersService.updateProfile(userId, {
       firstName: dto.firstName,
       lastName: dto.lastName,
     });
+    if (emailChanged)
+      updated = await this.usersService.updateEmail(userId, email!);
 
     await this.auditLogs.logAudit({
       userId,
@@ -508,8 +525,16 @@ export class AuthService {
       action: AuditAction.USER_PROFILE_UPDATED,
       recordType: 'User',
       recordId: userId,
-      oldValues: { firstName: existing.firstName, lastName: existing.lastName },
-      newValues: { firstName: updated.firstName, lastName: updated.lastName },
+      oldValues: {
+        firstName: existing.firstName,
+        lastName: existing.lastName,
+        email: existing.email,
+      },
+      newValues: {
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+      },
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });

@@ -23,7 +23,8 @@ const activeAssignedEmploymentWhere = {
 } as const
 
 export const payCardListInclude = {
-  rules: { orderBy: { sortOrder: 'asc' as const } },
+  // Current version only; older versions are served by PayCardsService.listVersions.
+  rules: { where: { supersededAt: null }, orderBy: { sortOrder: 'asc' as const } },
   _count: {
     select: {
       defaultEmployments: { where: activeAssignedEmploymentWhere },

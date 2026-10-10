@@ -8,5 +8,6 @@ import { EmployeeComplianceModule } from '../employee-compliance/employee-compli
   imports: [AuditLogsModule, EmployeeComplianceModule],
   controllers: [ComplianceReportsController],
   providers: [ComplianceReportsService],
+  exports: [ComplianceReportsService],
 })
 export class ComplianceReportsModule {}

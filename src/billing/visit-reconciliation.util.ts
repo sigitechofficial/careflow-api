@@ -380,6 +380,12 @@ export function resolveDefaultApprovedWindows(input: {
   /** When overrun is APPROVED, pay uses actual clock times; otherwise planned (extra time unpaid until approved). */
   overrunDecision?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   /**
+   * Chosen when the overrun was acknowledged. PLANNED / ACTUAL per side; null on both
+   * keeps the legacy acknowledged rule (pay actual, charge from actual).
+   */
+  overrunPayBasis?: 'PLANNED' | 'ACTUAL' | null;
+  overrunBillBasis?: 'PLANNED' | 'ACTUAL' | null;
+  /**
    * Org/slot punctuality tolerance (minutes). Early leave / short duration within this
    * still pays and charges the full planned visit length. Defaults to 0 (no snap).
    */
@@ -397,6 +403,8 @@ export function resolveDefaultApprovedWindows(input: {
     actualEndDateTime,
     exceptions,
     overrunDecision,
+    overrunPayBasis = null,
+    overrunBillBasis = null,
     durationToleranceMinutes = 0,
   } = input;
   const plannedEnd =
@@ -416,6 +424,19 @@ export function resolveDefaultApprovedWindows(input: {
       approvedPayEnd: plannedEnd,
       approvedBillStart: plannedStartDateTime,
       approvedBillEnd: plannedEnd,
+    };
+  }
+
+  // Acknowledged with an explicit choice: each side uses planned or actual times.
+  if (hasOverrun && payActualApproved && (overrunPayBasis || overrunBillBasis)) {
+    const plannedBill = { approvedBillStart: plannedStartDateTime, approvedBillEnd: plannedEnd };
+    return {
+      ...(overrunPayBasis === 'ACTUAL'
+        ? { approvedPayStart: actualStartDateTime!, approvedPayEnd: actualEndDateTime! }
+        : { approvedPayStart: plannedStartDateTime, approvedPayEnd: plannedEnd }),
+      ...(overrunBillBasis === 'ACTUAL'
+        ? resolveBillWindow(plannedStartDateTime, plannedEnd, actualStartDateTime, actualEndDateTime!)
+        : plannedBill),
     };
   }
 
@@ -664,6 +685,12 @@ const NON_VISIT_RATE_TYPES = new Set([
   'UPLIFT',
   'DEDUCTION',
   'PER_VISIT_FEE',
+  // Non-visit pay (priced in visit pay runs / pay items, never as a visit rate).
+  'OVERTIME',
+  'ON_CALL',
+  'TRAINING',
+  'LIVE_IN_DAILY',
+  'LIVE_IN_WEEKLY',
 ]);
 
 type RuleWithOptionalTime = PayCardRuleLike & {

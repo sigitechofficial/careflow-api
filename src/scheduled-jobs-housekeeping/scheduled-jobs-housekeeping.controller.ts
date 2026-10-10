@@ -1,6 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
@@ -114,6 +126,34 @@ export class ScheduledJobsHousekeepingController {
   })
   visitJobTimeline(@CurrentUser() user: RequestUser, @Param('id') id: string) {
     return this.service.getVisitTimeline(user, id);
+  }
+
+  @Get('jobs/:id/voice-notes')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({
+    summary: 'Carer voice notes on this visit, grouped by the record they belong to',
+  })
+  visitJobVoiceNotes(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getVisitVoiceNotes(user, id);
+  }
+
+  @Get('jobs/:id/voice-notes/:voiceNoteId/file')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({
+    summary: 'Stream a carer voice note (authenticated; supports Range for seeking)',
+  })
+  async visitJobVoiceNoteFile(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('voiceNoteId', ParseUUIDPipe) voiceNoteId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.service.getVoiceNoteFile(user, id, voiceNoteId);
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
+    return res.sendFile(file.absolutePath);
   }
 
   @Patch('jobs/:id/visit-tasks')

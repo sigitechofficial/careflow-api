@@ -55,6 +55,7 @@ import {
 } from './dto/body-map-medication-site.dto';
 import { computeBodyMapOutstandingGaps } from './body-map-gaps.util';
 import { buildBodyMapCqcPdf } from './body-map-cqc-pdf.util';
+import { mapBodyMapVideo } from './body-map-video.util';
 
 const PHOTO_SEGMENTS = ['body-map', 'photos'] as const;
 
@@ -62,6 +63,7 @@ const recordInclude = {
   markers: { orderBy: { markerNumber: 'asc' as const } },
   reviews: { orderBy: { reviewedAt: 'desc' as const }, take: 5 },
   photos: { orderBy: { createdAt: 'desc' as const } },
+  videos: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' as const } },
   safeguardingCheck: true,
   woundAssessment: true,
   pressureAssessment: true,
@@ -189,6 +191,7 @@ function mapRecord(row: RecordRow) {
       caption: p.caption,
       createdAt: p.createdAt.toISOString(),
     })),
+    videos: row.videos.map(mapBodyMapVideo),
     safeguardingCheck: row.safeguardingCheck
       ? {
           id: row.safeguardingCheck.id,

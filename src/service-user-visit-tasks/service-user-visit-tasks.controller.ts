@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -9,6 +9,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserVisitTasksService } from './service-user-visit-tasks.service';
 import { ReplaceServiceUserVisitTasksDto } from './dto/replace-service-user-visit-tasks.dto';
+import { UpdateServiceUserVisitTaskSettingsDto } from './dto/update-visit-task-settings.dto';
 
 @ApiTags('Service User Visit Tasks')
 @ApiBearerAuth()
@@ -34,5 +35,16 @@ export class ServiceUserVisitTasksController {
     @Req() req: Request,
   ) {
     return this.service.replace(user.id, serviceUserId, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('settings')
+  @AnyPermission('service_users.visit_tasks.write', 'service_users.update')
+  @ApiOperation({ summary: 'Update Tasks Planner settings (nearest-visit grace minutes)' })
+  updateSettings(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Body() dto: UpdateServiceUserVisitTaskSettingsDto,
+  ) {
+    return this.service.updateSettings(user.id, serviceUserId, dto);
   }
 }

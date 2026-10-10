@@ -22,6 +22,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { serviceUserPhotoUploadOptions } from '../service-user-photos/photo-upload.config';
 import { PortalAuthGuard } from './guards/portal-auth.guard';
 import { ServiceUserPortalService } from './service-user-portal.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { PatchPortalAboutMeDto, PatchPortalProfileDto, CreatePortalContactDto, CreatePortalAllergyDto } from './dto/service-user-portal.dto';
 
 @ApiTags('Service User Portal')
@@ -29,7 +30,23 @@ import { PatchPortalAboutMeDto, PatchPortalProfileDto, CreatePortalContactDto, C
 @UseGuards(JwtAuthGuard, PortalAuthGuard)
 @Controller('portal')
 export class ServiceUserPortalController {
-  constructor(private readonly portalService: ServiceUserPortalService) {}
+  constructor(
+    private readonly portalService: ServiceUserPortalService,
+    private readonly generalSettings: OrganisationGeneralSettingsService,
+  ) {}
+
+  @Get('display-settings')
+  @ApiOperation({ summary: 'Organisation timezone and date/time display formats' })
+  async displaySettings() {
+    const s = await this.generalSettings.getOperationalDisplaySettings();
+    return {
+      data: {
+        timezone: s.timeZone,
+        dateDisplayFormat: s.dateDisplayFormat,
+        timeDisplayFormat: s.timeDisplayFormat,
+      },
+    };
+  }
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Portal dashboard aggregate' })
