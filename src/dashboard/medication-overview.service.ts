@@ -36,6 +36,36 @@ const EXCEPTION_STATUSES: RecordedStatus[] = [
   MedicationAdministrationStatus.HELD,
 ];
 
+/** Service user statuses that mean care has ended. */
+const LEFT_SERVICE_STATUS_CODES = ['DISCHARGED', 'DECEASED', 'INACTIVE'] as const;
+
+/** One support level per service user on medication (NICE NG67 / IA §9.2 levels). */
+type SupportBucket = 'selfAdministers' | 'prompt' | 'assist' | 'carerAdministers' | 'othersProvide';
+
+/** IA §9.2 "Recommended medication support level" option → dashboard bucket. */
+const IA_SUPPORT_LEVEL: Record<string, SupportBucket> = {
+  level_0: 'selfAdministers',
+  level_1a: 'prompt',
+  level_1b: 'assist',
+  level_2a: 'assist',
+  level_2b: 'carerAdministers',
+  provided_by_others: 'othersProvide',
+};
+
+/** First value of an IA answer (text or the first selected option). */
+function iaAnswerValue(a: { textValue: string | null; selectedOptions: Prisma.JsonValue }): string | null {
+  if (a.textValue?.trim()) return a.textValue.trim();
+  const opts = a.selectedOptions;
+  const list = Array.isArray(opts) ? opts : opts !== null && opts !== undefined ? [opts] : [];
+  for (const o of list) {
+    if (typeof o === 'string' && o.trim()) return o.trim();
+    if (o && typeof o === 'object' && !Array.isArray(o) && typeof (o as { value?: unknown }).value === 'string') {
+      return String((o as { value: string }).value);
+    }
+  }
+  return null;
+}
+
 function addDaysIso(dayIso: string, days: number): string {
   const d = new Date(`${dayIso}T00:00:00.000Z`);
   return new Date(d.getTime() + days * DAY_MS).toISOString().slice(0, 10);
@@ -62,7 +92,12 @@ export class MedicationOverviewService {
     const scope = this.orgScope.fromRequestUser(user);
     const ids = this.orgScope.resolveListLocationIds(scope, locationId);
     if (ids && ids.length === 0) return null;
-    const base: Prisma.ServiceUserWhereInput = { deletedAt: null, isActive: true };
+    const base: Prisma.ServiceUserWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      // People who have left the service no longer have medicines to manage.
+      NOT: { status: { code: { in: [...LEFT_SERVICE_STATUS_CODES] } } },
+    };
     if (!ids) return base;
     return {
       ...base,
@@ -119,7 +154,9 @@ export class MedicationOverviewService {
       endingSoon,
       expired,
       profiles,
-      allergyUsers,
+      medicationAllergyUsers,
+      profileAllergyUsers,
+      iaSupportAnswers,
       reviews,
       packGroups,
       packReviewDue,
@@ -198,11 +235,36 @@ export class MedicationOverviewService {
           requiresCarerAdministration: true,
           familyMemberOrCarerSupportsMedication: true,
         },
+        orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.medicationAllergy.groupBy({
         by: ['serviceUserId'],
         where: { deletedAt: null, isActive: true, serviceUser: su },
         orderBy: { serviceUserId: 'asc' },
+      }),
+      // General allergies on the profile (what carers see on visits) — counted alongside medication allergies.
+      this.prisma.serviceUserAllergy.groupBy({
+        by: ['serviceUserId'],
+        where: { deletedAt: null, isActive: true, serviceUser: su },
+        orderBy: { serviceUserId: 'asc' },
+      }),
+      // IA §9.2 medication support level (the source the Medication care plan uses).
+      this.prisma.initialAssessmentAnswer.findMany({
+        where: {
+          submission: { deletedAt: null, isActive: true, serviceUser: su },
+          question: {
+            OR: [
+              { metadata: { path: ['fieldKey'], equals: 'medicationSupportLevel' } },
+              { questionText: { contains: 'medication support level', mode: 'insensitive' } },
+            ],
+          },
+        },
+        select: {
+          textValue: true,
+          selectedOptions: true,
+          submission: { select: { serviceUserId: true, updatedAt: true } },
+        },
+        orderBy: { submission: { updatedAt: 'desc' } },
       }),
       this.prisma.medicationReview.findMany({
         where: { deletedAt: null, isActive: true, serviceUser: su },
@@ -310,21 +372,47 @@ export class MedicationOverviewService {
     result.medicines.endingSoon = endingSoon;
     result.medicines.expired = expired;
 
-    /* Support levels (one profile per service user; latest wins if duplicated) */
+    /* Support level per service user on medication: support profile first, else the latest IA §9.2 answer */
     const onMedIds = new Set(onMedication.map((g) => g.serviceUserId));
-    const profiled = new Set<string>();
+    const level = new Map<string, SupportBucket>();
     for (const p of profiles) {
-      if (profiled.has(p.serviceUserId)) continue;
-      profiled.add(p.serviceUserId);
-      if (p.selfAdministersMedication) result.support.selfAdministers += 1;
-      if (p.requiresPrompting) result.support.prompting += 1;
-      if (p.requiresSupervision) result.support.supervision += 1;
-      if (p.requiresCarerAdministration) result.support.carerAdministers += 1;
-      if (p.familyMemberOrCarerSupportsMedication) result.support.familySupports += 1;
+      if (!onMedIds.has(p.serviceUserId) || level.has(p.serviceUserId)) continue;
+      const bucket: SupportBucket | null = p.requiresCarerAdministration
+        ? 'carerAdministers'
+        : p.requiresSupervision
+          ? 'assist'
+          : p.requiresPrompting
+            ? 'prompt'
+            : p.familyMemberOrCarerSupportsMedication
+              ? 'othersProvide'
+              : p.selfAdministersMedication
+                ? 'selfAdministers'
+                : null;
+      if (bucket) {
+        level.set(p.serviceUserId, bucket);
+        result.support.fromProfile += 1;
+      }
     }
-    result.support.profiles = profiled.size;
-    result.support.onMedicationWithoutProfile = [...onMedIds].filter((id) => !profiled.has(id)).length;
-    result.allergies.serviceUsersWithAllergies = allergyUsers.length;
+    for (const a of iaSupportAnswers) {
+      const id = a.submission.serviceUserId;
+      if (!onMedIds.has(id) || level.has(id)) continue;
+      const raw = iaAnswerValue(a);
+      const bucket = raw ? IA_SUPPORT_LEVEL[raw] : undefined;
+      if (bucket) {
+        level.set(id, bucket);
+        result.support.fromAssessment += 1;
+      }
+    }
+    for (const b of level.values()) result.support[b] += 1;
+    result.support.recorded = level.size;
+    result.support.notRecorded = onMedIds.size - level.size;
+
+    const allergyIds = new Set([
+      ...medicationAllergyUsers.map((g) => g.serviceUserId),
+      ...profileAllergyUsers.map((g) => g.serviceUserId),
+    ]);
+    result.allergies.serviceUsersWithAllergies = allergyIds.size;
+    result.allergies.onMedicationWithAllergies = [...onMedIds].filter((id) => allergyIds.has(id)).length;
 
     /* Medication reviews: latest review per service user decides */
     const latest = new Map<string, Date | null>();
@@ -387,15 +475,17 @@ export class MedicationOverviewService {
         expired: 0,
       },
       support: {
-        profiles: 0,
+        recorded: 0,
+        notRecorded: 0,
+        fromProfile: 0,
+        fromAssessment: 0,
         selfAdministers: 0,
-        prompting: 0,
-        supervision: 0,
+        prompt: 0,
+        assist: 0,
         carerAdministers: 0,
-        familySupports: 0,
-        onMedicationWithoutProfile: 0,
+        othersProvide: 0,
       },
-      allergies: { serviceUsersWithAllergies: 0 },
+      allergies: { serviceUsersWithAllergies: 0, onMedicationWithAllergies: 0 },
       reviews: { overdue: 0, dueSoon: 0, neverReviewed: 0 },
       packs: {
         active: 0,
