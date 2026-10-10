@@ -7,9 +7,11 @@ import { DashboardService } from './dashboard.service';
 import { HandoverReportQueryDto } from './dto/handover-report-query.dto';
 import { HomeSignalsService } from './home-signals.service';
 import { MedicationOverviewService } from './medication-overview.service';
+import { OperationsOverviewService } from './operations-overview.service';
 import {
   MedicationExceptionsQueryDto,
   MedicationOverviewQueryDto,
+  OperationsOverviewQueryDto,
   StaffOffQueryDto,
   UpcomingWindowQueryDto,
 } from './dto/home-signals-query.dto';
@@ -25,6 +27,7 @@ export class DashboardController {
     private readonly service: DashboardService,
     private readonly signals: HomeSignalsService,
     private readonly medication: MedicationOverviewService,
+    private readonly operations: OperationsOverviewService,
   ) {}
 
   @Get('handover-report')
@@ -46,6 +49,17 @@ export class DashboardController {
   })
   medicationExceptions(@CurrentUser() user: RequestUser, @Query() query: MedicationExceptionsQueryDto) {
     return this.signals.medicationExceptions(user, query);
+  }
+
+  @Get('operations-overview')
+  @AnyPermission('ecm.read', 'ecm.monitor', 'schedule.read', 'schedules.read', 'scheduled_visits.read', 'scheduled_jobs.read')
+  @ApiOperation({
+    summary: 'Care Operations module dashboard',
+    description:
+      'Open ECM alert backlog, unfilled visits (today, 7 and 28 days), planned hours, cancellations in the last 7 days and continuity of care over 28 days. Counted in the database and scoped to the caller’s branches.',
+  })
+  operationsOverview(@CurrentUser() user: RequestUser, @Query() query: OperationsOverviewQueryDto) {
+    return this.operations.overview(user, query);
   }
 
   @Get('medication-overview')

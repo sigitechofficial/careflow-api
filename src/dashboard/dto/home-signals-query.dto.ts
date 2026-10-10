@@ -59,6 +59,8 @@ export class MedicationOverviewQueryDto extends LocationFilterDto {
   days?: number;
 }
 
+export class OperationsOverviewQueryDto extends LocationFilterDto {}
+
 export class UpcomingWindowQueryDto extends LocationFilterDto {
   @ApiPropertyOptional({ default: 30, minimum: 1, maximum: 180, description: 'Days ahead to look. Overdue items are always included.' })
   @IsOptional()
