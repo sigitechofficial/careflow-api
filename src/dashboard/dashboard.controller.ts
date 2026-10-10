@@ -8,6 +8,8 @@ import { HandoverReportQueryDto } from './dto/handover-report-query.dto';
 import { HomeSignalsService } from './home-signals.service';
 import { MedicationOverviewService } from './medication-overview.service';
 import { OperationsOverviewService } from './operations-overview.service';
+import { FinanceOverviewService } from './finance-overview.service';
+import { AdminOverviewService } from './admin-overview.service';
 import {
   MedicationExceptionsQueryDto,
   MedicationOverviewQueryDto,
@@ -28,6 +30,8 @@ export class DashboardController {
     private readonly signals: HomeSignalsService,
     private readonly medication: MedicationOverviewService,
     private readonly operations: OperationsOverviewService,
+    private readonly finance: FinanceOverviewService,
+    private readonly admin: AdminOverviewService,
   ) {}
 
   @Get('handover-report')
@@ -49,6 +53,28 @@ export class DashboardController {
   })
   medicationExceptions(@CurrentUser() user: RequestUser, @Query() query: MedicationExceptionsQueryDto) {
     return this.signals.medicationExceptions(user, query);
+  }
+
+  @Get('admin-overview')
+  @AnyPermission('audit_logs.read', 'users.read')
+  @ApiOperation({
+    summary: 'Administration module dashboard',
+    description:
+      'Active users in the last 7 days, dormant accounts (no sign-in for 90 days), failed sign-ins (24h / 7 days) and security events by type (7 days). Organisation-wide.',
+  })
+  adminOverview() {
+    return this.admin.overview();
+  }
+
+  @Get('finance-overview')
+  @AnyPermission('billing.invoice_runs.read', 'billing.payments.read')
+  @ApiOperation({
+    summary: 'Finance module dashboard',
+    description:
+      'Income invoiced this month and last month (by invoice period), cash received this month, disputed invoices and invoice runs awaiting review. Organisation-wide.',
+  })
+  financeOverview() {
+    return this.finance.overview();
   }
 
   @Get('operations-overview')

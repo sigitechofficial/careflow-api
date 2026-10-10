@@ -459,9 +459,36 @@ export class HomeSignalsService {
     // Only the version currently in force counts; superseded drafts do not.
     const current = versions.filter((v) => !v.document.currentVersionId || v.document.currentVersionId === v.id);
 
+    // Library health: documents by status, and published policies whose current version has no review date.
+    const [statusGroups, published] = await Promise.all([
+      this.prisma.policyDocument.groupBy({
+        by: ['status'],
+        where: { deletedAt: null, isActive: true },
+        orderBy: { status: 'asc' },
+        _count: { _all: true },
+      }),
+      this.prisma.policyDocument.findMany({
+        where: { deletedAt: null, isActive: true, status: PolicyStatus.PUBLISHED },
+        select: { currentVersionId: true },
+      }),
+    ]);
+    // currentVersionId is a plain pointer (no relation), so resolve the review dates separately.
+    const currentIds = published.map((d) => d.currentVersionId).filter((id): id is string => !!id);
+    const withReviewDate = currentIds.length
+      ? await this.prisma.policyVersion.count({ where: { id: { in: currentIds }, reviewDate: { not: null } } })
+      : 0;
+    const publishedNoReviewDate = published.length - withReviewDate;
+    const byStatus: Record<string, number> = {};
+    for (const g of statusGroups) {
+      const c = g._count;
+      byStatus[g.status] = typeof c === 'object' && c ? (c._all ?? 0) : 0;
+    }
+
     return {
       data: {
         days,
+        byStatus,
+        publishedNoReviewDate,
         count: current.length,
         overdue: current.filter((v) => v.reviewDate! < todayStart).length,
         items: current.slice(0, ITEM_LIMIT).map((v) => ({

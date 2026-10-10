@@ -6,10 +6,12 @@ import { DashboardService } from './dashboard.service';
 import { HomeSignalsService } from './home-signals.service';
 import { MedicationOverviewService } from './medication-overview.service';
 import { OperationsOverviewService } from './operations-overview.service';
+import { FinanceOverviewService } from './finance-overview.service';
+import { AdminOverviewService } from './admin-overview.service';
 
 @Module({
   imports: [PrismaModule, OrganisationGeneralSettingsModule],
   controllers: [DashboardController],
-  providers: [DashboardService, HomeSignalsService, MedicationOverviewService, OperationsOverviewService],
+  providers: [DashboardService, HomeSignalsService, MedicationOverviewService, OperationsOverviewService, FinanceOverviewService, AdminOverviewService],
 })
 export class DashboardModule {}
