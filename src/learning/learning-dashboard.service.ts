@@ -60,7 +60,7 @@ export class LearningDashboardService {
     const in30 = new Date(now.getTime() + 30 * 86_400_000);
     const owed = { ...(assignmentWhere as object), status: { notIn: ['CANCELLED', 'EXEMPT'] } };
     const DONE = ['COMPLETED', 'PASSED'];
-    const [byStatus, mandatoryOwed, mandatoryDone, dueNext30, certificatesExpiring30, certificatesExpired] =
+    const [byStatus, mandatoryOwed, mandatoryDone, dueNext30, certificatesExpiring30, certificatesExpired, policyTypeCourses] =
       await Promise.all([
         this.prisma.learningAssignment.groupBy({
           by: ['status'],
@@ -83,6 +83,8 @@ export class LearningDashboardService {
         this.prisma.learningCertificate.count({
           where: { OR: [{ status: 'EXPIRED' }, { status: 'ACTIVE', expiresAt: { lt: now } }] },
         }),
+        // Read-and-sign belongs in the Policy Library; these are legacy 'policy' courses still in Learning.
+        this.prisma.learningCourse.count({ where: { deletedAt: null, courseType: 'POLICY' } }),
       ]);
     const assignmentsByStatus: Record<string, number> = {};
     for (const g of byStatus) {
@@ -103,6 +105,7 @@ export class LearningDashboardService {
       dueNext30,
       certificatesExpiring30,
       certificatesExpired,
+      policyTypeCourses,
       categories,
       courses,
       publishedCourses,
