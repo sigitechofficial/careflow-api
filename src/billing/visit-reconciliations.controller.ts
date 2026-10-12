@@ -42,11 +42,12 @@ export class VisitReconciliationsController {
   }
 
   @Get('exception-queue')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.visit_reconciliations.read')
-  @ApiOperation({ summary: 'Recent unresolved finance exceptions' })
-  exceptionQueue(@Query('limit') limit?: string) {
+  @ApiOperation({ summary: 'Recent unresolved finance exceptions (optionally for one branch)' })
+  exceptionQueue(@Query('limit') limit?: string, @Query('locationId') locationId?: string) {
     const parsed = limit ? Math.min(Number(limit) || 10, 50) : 10;
-    return this.service.getExceptionQueue(parsed);
+    return this.service.getExceptionQueue(parsed, locationId);
   }
 
   @Get('evaluation-failures')

@@ -2523,9 +2523,18 @@ export class VisitReconciliationsService {
     };
   }
 
-  async getExceptionQueue(limit = 10) {
+  /** `locationId` limits the queue to service users of that branch (R-13). */
+  async getExceptionQueue(limit = 10, locationId?: string) {
+    const branchServiceUserIds = locationId
+      ? await serviceUserIdsForLocation(this.prisma, locationId)
+      : null;
     const rows = await this.prisma.financeException.findMany({
-      where: { resolvedAt: null },
+      where: {
+        resolvedAt: null,
+        ...(branchServiceUserIds
+          ? { visitReconciliation: { serviceUserId: { in: branchServiceUserIds } } }
+          : {}),
+      },
       include: {
         visitReconciliation: {
           select: {

@@ -324,6 +324,53 @@ describe('payroll API (HTTP)', () => {
       expect((await get(managerA, `/billing/pay-cards/employee-history/${carerB.employeeId}`)).status).toBe(403); // no pay card permission at all
     });
 
+    it('R-13: branch lists hold only that branch; organisation-only screens stay closed by URL', async () => {
+      // One approved visit with an open exception in each branch.
+      const visitIn = async (locationId: string, employeeId: string, tag: string) => {
+        const su = await t.prisma.serviceUser.create({ data: { firstName: 'Test', lastName: `Client-${tag}`, locationId } as never });
+        const visit = await createApprovedVisit(t.prisma, { employeeId, start: '2026-11-03T09:00:00Z' });
+        await t.prisma.visitReconciliation.update({ where: { id: visit.id }, data: { serviceUserId: su.id } });
+        await t.prisma.financeException.create({ data: { visitReconciliationId: visit.id, code: 'UNDERRUN', message: `Short visit ${tag}` } });
+        return visit;
+      };
+      const visitA = await visitIn(branchA, carerA.employeeId, 'A');
+      const visitB = await visitIn(branchB, carerB.employeeId, 'B');
+      const both = await createStaffUser(t.prisma, { permissions: PREPARE, locationIds: [branchA, branchB] });
+      const ids = (res: { body: { data: unknown } }, key = 'id') =>
+        ((Array.isArray(res.body.data) ? res.body.data : (res.body.data as { rows: unknown[] }).rows) as Array<Record<string, string>>).map((r) => r[key]);
+
+      // Reconciliation list and exception queue: branch A sees A, never B.
+      const listA = await get(managerA, `/billing/visit-reconciliations?locationId=${branchA}`);
+      expect(listA.status).toBe(200);
+      expect(ids(listA)).toEqual([visitA.id]);
+      expect((await get(managerA, '/billing/visit-reconciliations/exception-queue')).status).toBe(403);
+      expect((await get(managerA, `/billing/visit-reconciliations/exception-queue?locationId=${branchB}`)).status).toBe(404);
+      const queueA = await get(managerA, `/billing/visit-reconciliations/exception-queue?locationId=${branchA}`);
+      expect(queueA.status).toBe(200);
+      expect(queueA.body.data.map((e: { message: string }) => e.message)).toEqual(['Short visit A']);
+
+      // Salary list: only employees of the branch.
+      const salariesA = await get(managerA, `/billing/payroll-runs/employee-salaries?locationId=${branchA}`);
+      expect(ids(salariesA, 'employeeId')).toEqual([carerA.employeeId]);
+
+      // A user granted both branches chooses either, one at a time, and nothing else.
+      expect(ids(await get(both, `/billing/visit-reconciliations?locationId=${branchB}`))).toEqual([visitB.id]);
+      expect(ids(await get(both, `/billing/payroll-runs/employee-salaries?locationId=${branchB}`), 'employeeId')).toEqual([carerB.employeeId]);
+      expect((await get(both, '/billing/visit-reconciliations')).status).toBe(403);
+
+      // Organisation-wide pay access sees everything without naming a branch.
+      expect(ids(await get(preparer, '/billing/visit-reconciliations')).sort()).toEqual([visitA.id, visitB.id].sort());
+      expect((await get(preparer, '/billing/visit-reconciliations/exception-queue')).body.data).toHaveLength(2);
+
+      // Screens the menu hides for a branch user are refused by the server whatever the URL.
+      for (const path of ['/billing/payroll-runs', '/billing/employee-payouts', '/billing/pay-items', '/payroll/runs']) {
+        expect([path, (await get(managerA, path)).status]).toEqual([path, 403]);
+      }
+      // A single visit of the other branch by id.
+      expect((await get(managerA, `/billing/visit-reconciliations/${visitB.id}`)).status).toBe(404);
+      expect((await get(managerA, `/billing/visit-reconciliations/${visitA.id}`)).status).toBe(200);
+    });
+
     it('lists must name one of the user’s branches', async () => {
       expect((await get(managerA, '/billing/payroll-runs/employee-salaries')).status).toBe(403);
       expect((await get(managerA, `/billing/payroll-runs/employee-salaries?locationId=${branchA}`)).status).toBe(200);
