@@ -159,8 +159,13 @@ export class PayrollRunsController {
   @Permissions('billing.payroll_runs.manage')
   @ApiOperation({ summary: 'Download payroll CSV and mark run as exported' })
   @ApiProduces('text/csv')
-  async export(@Param('id') id: string, @Res() res: Response) {
-    const { csv, filename } = await this.service.exportAndMark(id);
+  async export(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.service.exportAndMark(id, user.id, getRequestAuditMeta(req));
     res
       .type('text/csv; charset=utf-8')
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)

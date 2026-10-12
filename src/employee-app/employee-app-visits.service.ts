@@ -2245,7 +2245,11 @@ export class EmployeeAppVisitsService {
    * Keeps what the server observed and what the device reported side by side on the job, before
    * the visit is completed, so the first pay evaluation already sees whether review is needed.
    */
-  private async storeAttendanceTimeTrust(jobId: string, times: TrustedCompletionTimes) {
+  private async storeAttendanceTimeTrust(
+    jobId: string,
+    times: TrustedCompletionTimes,
+    options?: { mergeAs?: string },
+  ) {
     const meta = this.parseMetadata(
       (await this.prisma.scheduledJob.findUnique({ where: { id: jobId }, select: { metadata: true } }))
         ?.metadata,
@@ -2254,12 +2258,19 @@ export class EmployeeAppVisitsService {
       typeof meta.employeeApp === 'object' && meta.employeeApp
         ? (meta.employeeApp as Record<string, unknown>)
         : {};
+    // A second carer on the visit adds their review reasons to what the first one recorded.
+    const previous = options?.mergeAs
+      ? (employeeApp.attendanceTimes as StoredAttendanceTimeTrust | undefined)
+      : undefined;
+    const reasons = options?.mergeAs
+      ? times.reviewReasons.map((r) => `${options.mergeAs}: ${r}`)
+      : times.reviewReasons;
     const attendanceTimes: StoredAttendanceTimeTrust = {
-      needsReview: times.needsReview,
-      reviewReasons: times.reviewReasons,
-      startSource: times.startSource,
-      endSource: times.endSource,
-      evidence: times.evidence,
+      needsReview: times.needsReview || Boolean(previous?.needsReview),
+      reviewReasons: [...(previous?.reviewReasons ?? []), ...reasons],
+      startSource: previous?.startSource ?? times.startSource,
+      endSource: previous?.endSource ?? times.endSource,
+      evidence: previous?.evidence ?? times.evidence,
       verifiedAt: null,
       verifiedByUserId: null,
     };
@@ -2568,12 +2579,24 @@ export class EmployeeAppVisitsService {
     await this.assertSupportTwoPersonTasksDone(jobId);
 
     const now = new Date();
-    const endAt = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
-    const startAt =
-      myAllocation?.actualStartDateTime ??
-      (dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : null) ??
-      visit.actualStartDateTime ??
-      now;
+    // VW-02: same time-trust rules as the lead carer's completion.
+    let supportTimes: TrustedCompletionTimes;
+    try {
+      supportTimes = resolveTrustedCompletionTimes({
+        serverNow: now,
+        serverCheckInAt: myAllocation?.actualStartDateTime ?? visit.actualStartDateTime ?? null,
+        reportedStart: dto.actualStartDateTime,
+        reportedEnd: dto.actualEndDateTime,
+      });
+    } catch (err) {
+      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
+      throw err;
+    }
+    const endAt = supportTimes.end;
+    const startAt = supportTimes.start ?? now;
+    if (supportTimes.needsReview) {
+      await this.storeAttendanceTimeTrust(jobId, supportTimes, { mergeAs: 'Support carer' });
+    }
 
     if (myAllocation?.id) {
       await this.prisma.jobAllocation.update({

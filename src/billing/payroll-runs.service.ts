@@ -1547,7 +1547,7 @@ export class PayrollRunsService {
     };
   }
 
-  async exportAndMark(id: string) {
+  async exportAndMark(id: string, userId?: string, meta?: RequestAuditMeta) {
     const row = await this.prisma.payrollRun.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Payroll run not found');
     if (row.status === PayrollRunStatus.EXPORTED) {
@@ -1563,6 +1563,16 @@ export class PayrollRunsService {
       where: { id },
       data: { status: PayrollRunStatus.EXPORTED, exportedAt },
     });
+    await this.auditRun(
+      AuditAction.VISIT_PAY_RUN_EXPORTED,
+      userId ?? null,
+      id,
+      {
+        oldValues: { status: PayrollRunStatus.LOCKED },
+        newValues: { status: PayrollRunStatus.EXPORTED, grossPay: row.grossPay.toString() },
+      },
+      meta,
+    );
 
     const visitRows = await this.loadVisitExportRows(id);
     const csv = buildPayrollRunVisitLogCsv(visitRows);
