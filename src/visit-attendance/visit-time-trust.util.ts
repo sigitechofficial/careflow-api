@@ -61,7 +61,8 @@ const parse = (value: string | Date | null | undefined): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-const minutesApart = (a: Date, b: Date) => Math.round(Math.abs(a.getTime() - b.getTime()) / 60_000);
+const minutesApart = (a: Date, b: Date) =>
+  Math.round(Math.abs(a.getTime() - b.getTime()) / 60_000);
 
 export function resolveTrustedCompletionTimes(input: {
   serverNow: Date;
@@ -73,7 +74,8 @@ export function resolveTrustedCompletionTimes(input: {
   officeEnd?: string | Date | null;
   toleranceMinutes?: number;
 }): TrustedCompletionTimes {
-  const tolerance = input.toleranceMinutes ?? DEFAULT_TIME_TRUST_TOLERANCE_MINUTES;
+  const tolerance =
+    input.toleranceMinutes ?? DEFAULT_TIME_TRUST_TOLERANCE_MINUTES;
   const now = input.serverNow;
   const checkIn = input.serverCheckInAt ?? null;
   const reportedStart = parse(input.reportedStart);
@@ -85,7 +87,10 @@ export function resolveTrustedCompletionTimes(input: {
   if (reportedEnd && reportedEnd.getTime() > now.getTime() + FUTURE_SLACK_MS) {
     throw new FutureVisitTimeError('The finish time cannot be in the future.');
   }
-  if (reportedStart && reportedStart.getTime() > now.getTime() + FUTURE_SLACK_MS) {
+  if (
+    reportedStart &&
+    reportedStart.getTime() > now.getTime() + FUTURE_SLACK_MS
+  ) {
     throw new FutureVisitTimeError('The start time cannot be in the future.');
   }
 
@@ -121,7 +126,9 @@ export function resolveTrustedCompletionTimes(input: {
   } else if (reportedStart) {
     start = reportedStart;
     startSource = 'CARER_REPORTED';
-    reviewReasons.push('Start time was reported by the carer; no check-in was recorded.');
+    reviewReasons.push(
+      'Start time was reported by the carer; no check-in was recorded.',
+    );
   }
 
   if (start && start.getTime() >= end.getTime()) {
@@ -145,8 +152,10 @@ export function resolveTrustedCompletionTimes(input: {
 }
 
 /**
- * One carer's time-trust record. Stored on the job metadata under
- * employeeApp.attendanceTimesByEmployee[employeeId] and read by visit reconciliation.
+ * One carer's time-trust record. Kept in the VisitAttendanceVerification table, one row per job
+ * and carer (see visit-attendance-verification.store). Records written before that table existed
+ * are in the job metadata under employeeApp.attendanceTimesByEmployee[employeeId] and are still
+ * read from there.
  *
  * The record is per carer: on a double-up visit one carer's unverified time holds that carer's
  * pay for review and leaves the other carer's pay alone (R-03).
@@ -173,7 +182,9 @@ type JobMetadataWithTrust = Record<string, unknown> & {
 };
 
 const asMetadata = (jobMetadata: unknown): JobMetadataWithTrust =>
-  jobMetadata && typeof jobMetadata === 'object' ? (jobMetadata as JobMetadataWithTrust) : {};
+  jobMetadata && typeof jobMetadata === 'object'
+    ? (jobMetadata as JobMetadataWithTrust)
+    : {};
 
 const EMPTY_TRUST: StoredAttendanceTimeTrust = {
   needsReview: false,
@@ -183,41 +194,25 @@ const EMPTY_TRUST: StoredAttendanceTimeTrust = {
   evidence: null,
 };
 
-/** This carer's record, or undefined when nothing has been recorded for them. */
+/** This carer's record in older job metadata, or undefined when there is none. */
 export function attendanceTimeTrustFor(
   jobMetadata: unknown,
   employeeId: string,
 ): StoredAttendanceTimeTrust | undefined {
-  return asMetadata(jobMetadata).employeeApp?.attendanceTimesByEmployee?.[employeeId];
-}
-
-function withRecord(
-  jobMetadata: unknown,
-  employeeId: string,
-  record: StoredAttendanceTimeTrust,
-): Record<string, unknown> {
-  const meta = asMetadata(jobMetadata);
-  const employeeApp = meta.employeeApp ?? {};
-  return {
-    ...meta,
-    employeeApp: {
-      ...employeeApp,
-      attendanceTimesByEmployee: { ...(employeeApp.attendanceTimesByEmployee ?? {}), [employeeId]: record },
-    },
-  };
+  return asMetadata(jobMetadata).employeeApp?.attendanceTimesByEmployee?.[
+    employeeId
+  ];
 }
 
 /**
- * Job metadata with the outcome of this carer's completion recorded. Office times already entered
- * for the carer are kept. Other carers' records are untouched.
+ * The carer's record after a completion. Office times already entered for the carer are kept; a
+ * new completion is new evidence, so an earlier office verification no longer covers it.
  */
-export function withAttendanceTimeTrust(
-  jobMetadata: unknown,
-  employeeId: string,
+export function mergeCompletion(
+  previous: StoredAttendanceTimeTrust | undefined,
   times: TrustedCompletionTimes,
-): Record<string, unknown> {
-  const previous = attendanceTimeTrustFor(jobMetadata, employeeId);
-  return withRecord(jobMetadata, employeeId, {
+): StoredAttendanceTimeTrust {
+  return {
     needsReview: times.needsReview,
     reviewReasons: times.reviewReasons,
     startSource: times.startSource,
@@ -226,54 +221,67 @@ export function withAttendanceTimeTrust(
     office: previous?.office ?? null,
     verifiedAt: null,
     verifiedByUserId: null,
-  });
+  };
 }
 
-/**
- * Job metadata with an office-entered start or finish for this carer.
- * `verified` marks the carer's times as checked by the office (used when the visit is already
- * completed, where the corrected time is applied straight away). Before completion the time is
- * only recorded here and is taken into account when the visit completes.
- */
-export function withOfficeAttendanceTime(
-  jobMetadata: unknown,
-  employeeId: string,
-  input: {
-    eventType: 'CHECK_IN' | 'CHECK_OUT';
-    occurredAt: Date;
-    byUserId: string;
-    reason?: string | null;
-    verified: boolean;
-    at?: Date;
-  },
-): Record<string, unknown> {
+export type OfficeTimeInput = {
+  eventType: 'CHECK_IN' | 'CHECK_OUT';
+  occurredAt: Date;
+  byUserId: string;
+  reason?: string | null;
+  /**
+   * Marks the carer's times as checked by the office (used when the visit is already completed,
+   * where the corrected time is applied straight away). Before completion the time is only
+   * recorded and is taken into account when the visit completes.
+   */
+  verified: boolean;
+  at?: Date;
+};
+
+/** The carer's record after an office-entered start or finish. The other office time is kept. */
+export function mergeOfficeTime(
+  previous: StoredAttendanceTimeTrust | undefined,
+  input: OfficeTimeInput,
+): StoredAttendanceTimeTrust {
   const at = (input.at ?? new Date()).toISOString();
-  const previous = attendanceTimeTrustFor(jobMetadata, employeeId) ?? EMPTY_TRUST;
+  const base = previous ?? EMPTY_TRUST;
   const office: OfficeAttendanceTimes = {
-    start: previous.office?.start ?? null,
-    end: previous.office?.end ?? null,
+    start: base.office?.start ?? null,
+    end: base.office?.end ?? null,
     byUserId: input.byUserId,
     at,
     reason: input.reason ?? null,
   };
-  if (input.eventType === 'CHECK_IN') office.start = input.occurredAt.toISOString();
+  if (input.eventType === 'CHECK_IN')
+    office.start = input.occurredAt.toISOString();
   else office.end = input.occurredAt.toISOString();
-  return withRecord(jobMetadata, employeeId, {
-    ...previous,
+  return {
+    ...base,
     office,
-    ...(input.verified ? { verifiedAt: at, verifiedByUserId: input.byUserId } : {}),
-  });
+    ...(input.verified
+      ? { verifiedAt: at, verifiedByUserId: input.byUserId }
+      : {}),
+  };
 }
 
 /**
- * Reasons this carer's times still await office review, or [] when there is nothing to review.
+ * Reasons a carer's times still await office review according to older job metadata alone, or []
+ * when there is nothing to review. Current records are read through attendanceReviewState in
+ * visit-attendance-verification.store, which falls back to this.
  * A carer with an own record is judged on it alone. Without `employeeId`, or for a visit recorded
  * before trust was kept per carer, the visit-wide record applies.
  */
-export function unverifiedTimeReasons(jobMetadata: unknown, employeeId?: string | null): string[] {
+export function unverifiedTimeReasons(
+  jobMetadata: unknown,
+  employeeId?: string | null,
+): string[] {
   const employeeApp = asMetadata(jobMetadata).employeeApp;
-  const mine = employeeId ? employeeApp?.attendanceTimesByEmployee?.[employeeId] : undefined;
+  const mine = employeeId
+    ? employeeApp?.attendanceTimesByEmployee?.[employeeId]
+    : undefined;
   const trust = mine ?? employeeApp?.attendanceTimes;
   if (!trust || !trust.needsReview || trust.verifiedAt) return [];
-  return Array.isArray(trust.reviewReasons) ? trust.reviewReasons.filter((r) => typeof r === 'string') : [];
+  return Array.isArray(trust.reviewReasons)
+    ? trust.reviewReasons.filter((r) => typeof r === 'string')
+    : [];
 }

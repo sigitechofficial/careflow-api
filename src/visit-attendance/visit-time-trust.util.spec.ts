@@ -1,10 +1,10 @@
 import {
   FutureVisitTimeError,
   attendanceTimeTrustFor,
+  mergeCompletion,
+  mergeOfficeTime,
   resolveTrustedCompletionTimes,
   unverifiedTimeReasons,
-  withAttendanceTimeTrust,
-  withOfficeAttendanceTime,
 } from './visit-time-trust.util';
 
 const at = (hm: string) => new Date(`2026-11-03T${hm}:00Z`);
@@ -163,52 +163,54 @@ describe('office-verified times (R-04)', () => {
   });
 });
 
-describe('per-carer records (R-03)', () => {
+describe('per-carer records (R-03, R-16)', () => {
   const flagged = resolveTrustedCompletionTimes({ serverNow: at('14:00'), serverCheckInAt: at('09:00'), reportedEnd: '2026-11-03T10:00:00Z' });
   const clean = resolveTrustedCompletionTimes({ serverNow: at('10:00'), serverCheckInAt: at('09:00') });
+  const officeFinish = { eventType: 'CHECK_OUT' as const, occurredAt: at('10:00'), byUserId: 'office-user', reason: 'Confirmed with client' };
 
-  it('one carer needing review does not flag another carer on the same visit', () => {
-    let meta = withAttendanceTimeTrust({ other: 1 }, 'carer-a', clean);
-    meta = withAttendanceTimeTrust(meta, 'carer-b', flagged);
-    expect(unverifiedTimeReasons(meta, 'carer-a')).toEqual([]);
-    expect(unverifiedTimeReasons(meta, 'carer-b')).toHaveLength(1);
-    expect(meta.other).toBe(1);
+  it('a completion records the outcome and the evidence for that carer', () => {
+    const record = mergeCompletion(undefined, flagged);
+    expect(record).toMatchObject({ needsReview: true, endSource: 'CARER_REPORTED', office: null, verifiedAt: null });
+    expect(record.evidence?.reportedEnd).toBe('2026-11-03T10:00:00.000Z');
+    expect(mergeCompletion(undefined, clean).needsReview).toBe(false);
   });
 
-  it('office verification clears that carer only and keeps the evidence', () => {
-    let meta = withAttendanceTimeTrust({}, 'carer-a', flagged);
-    meta = withAttendanceTimeTrust(meta, 'carer-b', flagged);
-    meta = withOfficeAttendanceTime(meta, 'carer-b', {
-      eventType: 'CHECK_OUT',
-      occurredAt: at('10:00'),
-      byUserId: 'office-user',
-      reason: 'Confirmed with client',
-      verified: true,
-    });
-    expect(unverifiedTimeReasons(meta, 'carer-b')).toEqual([]);
-    expect(unverifiedTimeReasons(meta, 'carer-a')).toHaveLength(1);
-    const b = attendanceTimeTrustFor(meta, 'carer-b');
-    expect(b?.office).toMatchObject({ end: '2026-11-03T10:00:00.000Z', byUserId: 'office-user' });
-    expect(b?.evidence?.reportedEnd).toBe('2026-11-03T10:00:00.000Z');
+  it('office verification clears the flag and keeps the evidence', () => {
+    const record = mergeOfficeTime(mergeCompletion(undefined, flagged), { ...officeFinish, verified: true, at: at('15:00') });
+    expect(record.verifiedAt).toBe('2026-11-03T15:00:00.000Z');
+    expect(record.office).toMatchObject({ end: '2026-11-03T10:00:00.000Z', byUserId: 'office-user', reason: 'Confirmed with client' });
+    expect(record.evidence?.reportedEnd).toBe('2026-11-03T10:00:00.000Z');
+    expect(record.reviewReasons).toHaveLength(1); // the reason is history, not erased
   });
 
   it('an office time recorded before completion survives the completion record', () => {
-    let meta = withOfficeAttendanceTime({}, 'carer-a', {
-      eventType: 'CHECK_IN',
-      occurredAt: at('09:00'),
-      byUserId: 'office-user',
-      verified: false,
-    });
-    expect(attendanceTimeTrustFor(meta, 'carer-a')?.verifiedAt).toBeUndefined();
-    meta = withAttendanceTimeTrust(meta, 'carer-a', clean);
-    expect(attendanceTimeTrustFor(meta, 'carer-a')?.office?.start).toBe('2026-11-03T09:00:00.000Z');
+    const before = mergeOfficeTime(undefined, { eventType: 'CHECK_IN', occurredAt: at('09:00'), byUserId: 'office-user', verified: false });
+    expect(before.verifiedAt).toBeUndefined();
+    const after = mergeCompletion(before, clean);
+    expect(after.office?.start).toBe('2026-11-03T09:00:00.000Z');
   });
 
-  it('a visit-wide record written before per-carer records still applies to carers without one', () => {
-    const legacy = { employeeApp: { attendanceTimes: { needsReview: true, reviewReasons: ['old'], startSource: 'CARER_REPORTED', endSource: 'SERVER' } } };
-    expect(unverifiedTimeReasons(legacy, 'carer-a')).toEqual(['old']);
-    const own = withAttendanceTimeTrust(legacy, 'carer-a', clean);
-    expect(unverifiedTimeReasons(own, 'carer-a')).toEqual([]);
-    expect(unverifiedTimeReasons(own, 'carer-b')).toEqual(['old']);
+  it('a second office entry keeps the first one\'s other time', () => {
+    const start = mergeOfficeTime(undefined, { eventType: 'CHECK_IN', occurredAt: at('09:00'), byUserId: 'office-a', verified: false });
+    const both = mergeOfficeTime(start, { eventType: 'CHECK_OUT', occurredAt: at('10:00'), byUserId: 'office-b', verified: false });
+    expect(both.office).toMatchObject({ start: '2026-11-03T09:00:00.000Z', end: '2026-11-03T10:00:00.000Z', byUserId: 'office-b' });
+  });
+
+  it('a new completion is new evidence: an earlier office verification no longer covers it', () => {
+    const verified = mergeOfficeTime(mergeCompletion(undefined, flagged), { ...officeFinish, verified: true });
+    expect(mergeCompletion(verified, flagged)).toMatchObject({ needsReview: true, verifiedAt: null });
+  });
+
+  it('records kept in older job metadata are still read, per carer and visit-wide', () => {
+    const perCarer = { employeeApp: { attendanceTimesByEmployee: { 'carer-a': mergeCompletion(undefined, clean), 'carer-b': mergeCompletion(undefined, flagged) } } };
+    expect(unverifiedTimeReasons(perCarer, 'carer-a')).toEqual([]);
+    expect(unverifiedTimeReasons(perCarer, 'carer-b')).toHaveLength(1);
+    expect(attendanceTimeTrustFor(perCarer, 'carer-b')?.evidence?.reportedEnd).toBe('2026-11-03T10:00:00.000Z');
+
+    const visitWide = { employeeApp: { attendanceTimes: { needsReview: true, reviewReasons: ['old'], startSource: 'CARER_REPORTED', endSource: 'SERVER' } } };
+    expect(unverifiedTimeReasons(visitWide, 'carer-a')).toEqual(['old']);
+    const mixed = { employeeApp: { ...visitWide.employeeApp, attendanceTimesByEmployee: { 'carer-a': mergeCompletion(undefined, clean) } } };
+    expect(unverifiedTimeReasons(mixed, 'carer-a')).toEqual([]);
+    expect(unverifiedTimeReasons(mixed, 'carer-b')).toEqual(['old']);
   });
 });

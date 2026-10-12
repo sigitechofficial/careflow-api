@@ -114,10 +114,10 @@ import { VisitReconciliationsService } from '../billing/visit-reconciliations.se
 import {
   FutureVisitTimeError,
   resolveTrustedCompletionTimes,
-  attendanceTimeTrustFor,
-  withAttendanceTimeTrust,
+  type StoredAttendanceTimeTrust,
   type TrustedCompletionTimes,
 } from '../visit-attendance/visit-time-trust.util';
+import { recordAttendanceCompletion } from '../visit-attendance/visit-attendance-verification.store';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
@@ -2243,25 +2243,39 @@ export class EmployeeAppVisitsService {
   }
 
   /**
-   * Keeps what the server observed and what the device reported side by side on the job, for this
-   * carer only, before the visit is completed, so the first pay evaluation already sees whether
-   * this carer's times need review. Another carer on the same visit is not affected (R-03).
+   * Resolves this carer's completion times and keeps what the server observed and what the device
+   * reported side by side in the carer's own verification record, before the visit is completed,
+   * so the first pay evaluation already sees whether this carer's times need review.
+   *
+   * R-16: each carer has an own record, changed under a row lock, so carers completing a double-up
+   * at the same moment cannot overwrite each other's evidence. The office times are read under
+   * that lock: an office entry made a moment earlier is taken into account (R-04). A request the
+   * device sends twice (same idempotency key) is recorded once.
    */
-  private async storeAttendanceTimeTrust(
+  private async resolveAndRecordCompletionTimes(
     jobId: string,
     employeeId: string,
-    times: TrustedCompletionTimes,
-  ) {
-    const job = await this.prisma.scheduledJob.findUnique({
-      where: { id: jobId },
-      select: { metadata: true },
-    });
-    await this.prisma.scheduledJob.update({
-      where: { id: jobId },
-      data: {
-        metadata: withAttendanceTimeTrust(job?.metadata, employeeId, times) as Prisma.InputJsonValue,
-      },
-    });
+    input: {
+      jobAllocationId?: string | null;
+      idempotencyKey?: string | null;
+      kind?: 'COMPLETION' | 'LATE_CLOCK_OUT';
+      resolve: (office: StoredAttendanceTimeTrust['office']) => TrustedCompletionTimes;
+    },
+  ): Promise<TrustedCompletionTimes> {
+    try {
+      const { times } = await recordAttendanceCompletion(this.prisma, {
+        scheduledJobId: jobId,
+        employeeId,
+        jobAllocationId: input.jobAllocationId,
+        clientEventId: input.idempotencyKey?.trim() ? `complete:${input.idempotencyKey.trim()}` : null,
+        kind: input.kind,
+        resolve: input.resolve,
+      });
+      return times;
+    } catch (err) {
+      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
+      throw err;
+    }
   }
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
@@ -2330,26 +2344,24 @@ export class EmployeeAppVisitsService {
     // VW-02: times the server observed come first; times the app reports are evidence. A reported
     // time the server cannot corroborate still becomes the record (offline visits sync late), but
     // the visit is then held for office review instead of being approved for pay automatically.
-    const officeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
-    let times: TrustedCompletionTimes;
-    try {
-      times = resolveTrustedCompletionTimes({
-        serverNow: new Date(),
-        serverCheckInAt:
-          myAllocation?.actualStartDateTime ?? ctx.primaryVisit.actualStartDateTime ?? null,
-        reportedStart: dto.actualStartDateTime,
-        reportedEnd: dto.actualEndDateTime,
-        // Times the office entered for this carer while the visit was still open (R-04).
-        officeStart: officeTimes?.start,
-        officeEnd: officeTimes?.end,
-      });
-    } catch (err) {
-      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
-      throw err;
-    }
+    const serverNow = new Date();
+    const times = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: myAllocation?.id,
+      idempotencyKey: dto.idempotencyKey,
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow,
+          serverCheckInAt:
+            myAllocation?.actualStartDateTime ?? ctx.primaryVisit.actualStartDateTime ?? null,
+          reportedStart: dto.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          // Times the office entered for this carer while the visit was still open (R-04).
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
     const endIso = times.end.toISOString();
     const startIso = times.start?.toISOString();
-    await this.storeAttendanceTimeTrust(jobId, employeeId, times);
 
     const endDate = new Date(endIso);
     const plannedEnd =
@@ -2569,24 +2581,21 @@ export class EmployeeAppVisitsService {
 
     const now = new Date();
     // VW-02: same time-trust rules as the lead carer's completion.
-    const supportOfficeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
-    let supportTimes: TrustedCompletionTimes;
-    try {
-      supportTimes = resolveTrustedCompletionTimes({
-        serverNow: now,
-        serverCheckInAt: myAllocation?.actualStartDateTime ?? visit.actualStartDateTime ?? null,
-        reportedStart: dto.actualStartDateTime,
-        reportedEnd: dto.actualEndDateTime,
-        officeStart: supportOfficeTimes?.start,
-        officeEnd: supportOfficeTimes?.end,
-      });
-    } catch (err) {
-      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
-      throw err;
-    }
+    const supportTimes = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: myAllocation?.id,
+      idempotencyKey: dto.idempotencyKey,
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow: now,
+          serverCheckInAt: myAllocation?.actualStartDateTime ?? visit.actualStartDateTime ?? null,
+          reportedStart: dto.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
     const endAt = supportTimes.end;
     const startAt = supportTimes.start ?? now;
-    await this.storeAttendanceTimeTrust(jobId, employeeId, supportTimes);
 
     if (myAllocation?.id) {
       await this.prisma.jobAllocation.update({
@@ -2694,22 +2703,20 @@ export class EmployeeAppVisitsService {
     const now = new Date();
     // VW-02: same time-trust rules as every other completion. A finish the carer reports long
     // after the fact is kept as evidence and held for office review; a future one is refused.
-    const officeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
-    let times: TrustedCompletionTimes;
-    try {
-      times = resolveTrustedCompletionTimes({
-        serverNow: now,
-        serverCheckInAt: allocation.actualStartDateTime,
-        reportedEnd: dto.actualEndDateTime,
-        officeStart: officeTimes?.start,
-        officeEnd: officeTimes?.end,
-      });
-    } catch (err) {
-      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
-      throw err;
-    }
+    const times = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: allocation.allocationId,
+      idempotencyKey: dto.idempotencyKey,
+      kind: 'LATE_CLOCK_OUT',
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow: now,
+          serverCheckInAt: allocation.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
     const endAt = times.end.getTime() < allocation.actualStartDateTime.getTime() ? now : times.end;
-    await this.storeAttendanceTimeTrust(jobId, employeeId, times);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.jobAllocation.update({

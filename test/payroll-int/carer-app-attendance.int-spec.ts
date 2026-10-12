@@ -8,7 +8,7 @@
  */
 import request from 'supertest';
 import { PayrollRunLineType, VisitReconciliationStatus } from '@prisma/client';
-import { attendanceTimeTrustFor } from '../../src/visit-attendance/visit-time-trust.util';
+import { findAttendanceVerification } from '../../src/visit-attendance/visit-attendance-verification.store';
 import { resetPayData, setDurationTolerance } from './harness';
 import {
   bearer,
@@ -53,8 +53,7 @@ describe('carer app attendance → pay (HTTP)', () => {
       include: { exceptions: true },
     });
   const allocation = (id: string) => t.prisma.jobAllocation.findUniqueOrThrow({ where: { id } });
-  const trustFor = async (jobId: string, employeeId: string) =>
-    attendanceTimeTrustFor((await t.prisma.scheduledJob.findUniqueOrThrow({ where: { id: jobId } })).metadata, employeeId);
+  const trustFor = (jobId: string, employeeId: string) => findAttendanceVerification(t.prisma, jobId, employeeId);
   const events = (jobId: string, employeeId: string) =>
     t.prisma.visitAttendanceEvent.findMany({ where: { scheduledJobId: jobId, employeeId }, orderBy: { occurredAt: 'asc' } });
   /** Lines a visit pay run for the week would hold for this visit. */

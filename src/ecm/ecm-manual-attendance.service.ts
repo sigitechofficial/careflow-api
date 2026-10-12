@@ -5,14 +5,13 @@ import {
 } from '@nestjs/common';
 import {
   EcmAuditEventType,
-  Prisma,
   ScheduledVisitStatus,
   VisitAttendanceEventType,
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
-import { withOfficeAttendanceTime } from '../visit-attendance/visit-time-trust.util';
+import { recordOfficeAttendanceTime } from '../visit-attendance/visit-attendance-verification.store';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmEvaluationService } from './ecm-evaluation.service';
@@ -159,21 +158,15 @@ export class EcmManualAttendanceService {
       visit.status !== ScheduledVisitStatus.COMPLETED &&
       visit.status !== ScheduledVisitStatus.PARTIALLY_COMPLETED
     ) {
-      const fresh = await this.prisma.scheduledJob.findUnique({
-        where: { id: job.id },
-        select: { metadata: true },
-      });
-      await this.prisma.scheduledJob.update({
-        where: { id: job.id },
-        data: {
-          metadata: withOfficeAttendanceTime(fresh?.metadata, input.employeeId, {
-            eventType: input.eventType,
-            occurredAt,
-            byUserId: input.approvedByUserId,
-            reason,
-            verified: false,
-          }) as Prisma.InputJsonValue,
-        },
+      await recordOfficeAttendanceTime(this.prisma, {
+        scheduledJobId: job.id,
+        employeeId: input.employeeId,
+        jobAllocationId: allocation?.id,
+        eventType: input.eventType,
+        occurredAt,
+        byUserId: input.approvedByUserId,
+        reason,
+        verified: false,
       });
       return [
         {
@@ -218,18 +211,15 @@ export class EcmManualAttendanceService {
       }
       // The office has now verified this carer's times: they no longer need review. Another
       // carer on the same visit keeps their own record (R-03).
-      const fresh = await tx.scheduledJob.findUnique({ where: { id: job.id }, select: { metadata: true } });
-      await tx.scheduledJob.update({
-        where: { id: job.id },
-        data: {
-          metadata: withOfficeAttendanceTime(fresh?.metadata, input.employeeId, {
-            eventType: input.eventType,
-            occurredAt,
-            byUserId: input.approvedByUserId,
-            reason,
-            verified: true,
-          }) as Prisma.InputJsonValue,
-        },
+      await recordOfficeAttendanceTime(tx, {
+        scheduledJobId: job.id,
+        employeeId: input.employeeId,
+        jobAllocationId: allocation?.id,
+        eventType: input.eventType,
+        occurredAt,
+        byUserId: input.approvedByUserId,
+        reason,
+        verified: true,
       });
     });
 

@@ -28,7 +28,7 @@ import {
 } from './pay-card-version.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
-import { unverifiedTimeReasons } from '../visit-attendance/visit-time-trust.util';
+import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
 import { PayItemsService } from './pay-items.service';
 import {
   allowFinancialResetInTransaction,
@@ -2698,7 +2698,13 @@ export class VisitReconciliationsService {
     // holds the visit for a person to approve (until the office verifies or corrects the times).
     if (!paySettled) {
       // Per carer: on a double-up, one carer's unverified time does not hold the other's pay.
-      const unverified = unverifiedTimeReasons(visit.scheduledJob?.metadata, row.employeeId);
+      // The carer's own verification record (R-16); older visits fall back to job metadata.
+      const { reasons: unverified } = await attendanceReviewState(
+        db,
+        row.scheduledJobId,
+        row.employeeId,
+        visit.scheduledJob?.metadata,
+      );
       if (unverified.length) {
         exceptions.push({ code: FinanceExceptionCode.UNVERIFIED_TIMES, message: unverified.join(' ') });
       }

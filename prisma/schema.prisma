@@ -7151,6 +7151,73 @@ model VisitAttendanceEvent {
   @@schema("scheduling")
 }
 
+/// One carer's attendance verification on one visit job (R-16): which times are the record, where
+/// each came from, what the device and the server said, what the office entered, and whether a
+/// person still has to look at them. One row per job x carer, so carers of a double-up never write
+/// to the same record. `version` counts changes of evidence; an approval remembers the version it
+/// was given for (R-18).
+model VisitAttendanceVerification {
+  id               String    @id @default(uuid()) @db.Uuid
+  scheduledJobId   String    @db.Uuid
+  employeeId       String    @db.Uuid
+  jobAllocationId  String?   @db.Uuid
+  /// SERVER | CARER_REPORTED | OFFICE | NONE
+  startSource      String    @default("NONE")
+  endSource        String    @default("NONE")
+  needsReview      Boolean   @default(false)
+  /// Plain-language reasons for the reviewer (string[]).
+  reviewReasons    Json      @default("[]")
+  /// Server-observed: when the completion arrived, and the check-in the server recorded.
+  serverReceivedAt DateTime?
+  serverCheckInAt  DateTime?
+  /// Device-reported, kept exactly as sent.
+  reportedStart    DateTime?
+  reportedEnd      DateTime?
+  /// Office-entered times, with who entered the latest one, when and why.
+  officeStart      DateTime?
+  officeEnd        DateTime?
+  officeByUserId   String?   @db.Uuid
+  officeAt         DateTime?
+  officeReason     String?
+  /// Set when the office has verified this carer's times after completion.
+  verifiedAt       DateTime?
+  verifiedByUserId String?   @db.Uuid
+  version          Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  entries VisitAttendanceVerificationEntry[]
+
+  @@unique([scheduledJobId, employeeId])
+  @@index([scheduledJobId])
+  @@index([employeeId])
+  @@index([needsReview])
+  @@schema("scheduling")
+}
+
+/// Append-only history of a verification record: every completion, late clock-out and office
+/// entry, with what it contained. `clientEventId` is the identity the device gave the request, so
+/// the same offline event delivered twice is recorded once.
+model VisitAttendanceVerificationEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  verificationId  String   @db.Uuid
+  /// COMPLETION | LATE_CLOCK_OUT | OFFICE_TIME | LEGACY_IMPORT
+  kind            String
+  /// Version of the record after this entry.
+  version         Int
+  clientEventId   String?
+  actorEmployeeId String?  @db.Uuid
+  actorUserId     String?  @db.Uuid
+  payload         Json
+  createdAt       DateTime @default(now())
+
+  verification VisitAttendanceVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@unique([verificationId, clientEventId])
+  @@index([verificationId])
+  @@schema("scheduling")
+}
+
 enum LateVisitAlertKind {
   LATE_START
   NOT_STARTED_PAST_END
