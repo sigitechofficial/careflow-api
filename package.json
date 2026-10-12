@@ -43,6 +43,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "payroll-test-db": "node scripts/payroll-test-db.mjs",
+    "payroll-migration-rehearsal": "node scripts/payroll-migration-rehearsal.mjs",
     "test:payroll-int": "jest --config ./test/jest-payroll-int.json",
     "openapi:export": "ts-node --transpile-only --prefer-ts-exts scripts/export-openapi.ts",
     "seed:full-su": "ts-node --transpile-only prisma/scripts/seed-full-service-user-demo.ts",
