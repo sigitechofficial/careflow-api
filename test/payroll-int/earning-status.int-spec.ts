@@ -71,12 +71,22 @@ describe('earning status projection (HTTP)', () => {
 
     const run = await createRun(visitRuns, maker, '2026-11-01', '2026-11-07');
     await visitRuns.calculate(run);
-    expect(await row(v.id)).toMatchObject({ earningStage: 'IN_DRAFT_PAY_RUN', earningPhase: 'EARNED', paid: false });
+    expect(await row(v.id)).toMatchObject({
+      earningStage: 'IN_DRAFT_PAY_RUN',
+      earningPhase: 'EARNED',
+      paid: false,
+      paySettled: false,
+    });
 
     await visitRuns.approve(checker, run);
     expect((await row(v.id)).earningStage).toBe('IN_DRAFT_PAY_RUN');
     await visitRuns.lock(checker, run);
-    expect(await row(v.id)).toMatchObject({ earningStage: 'IN_LOCKED_PAY_RUN', earningPhase: 'EARNED', paymentState: 'PAID' });
+    expect(await row(v.id)).toMatchObject({
+      earningStage: 'IN_LOCKED_PAY_RUN',
+      earningPhase: 'EARNED',
+      paymentState: 'PAID',
+      paySettled: true,
+    });
 
     const uk = await ukRun();
     await ukRuns.calculateGross(maker, uk);
@@ -113,11 +123,12 @@ describe('earning status projection (HTTP)', () => {
 
     const uk = await ukRun();
     await ukRuns.calculateGross(maker, uk);
-    expect(await row(v.id)).toMatchObject({ earningStage: 'IN_OPEN_UK_RUN', earningPhase: 'EARNED' });
+    // Collected by an open UK run only: still editable, so not offered a pay correction.
+    expect(await row(v.id)).toMatchObject({ earningStage: 'IN_OPEN_UK_RUN', earningPhase: 'EARNED', paySettled: false });
 
     await closeUk(uk, 28);
     const after = await row(v.id);
-    expect(after).toMatchObject({ earningStage: 'IN_CLOSED_UK_RUN', earningPhase: 'PAYROLL_PROCESSED' });
+    expect(after).toMatchObject({ earningStage: 'IN_CLOSED_UK_RUN', earningPhase: 'PAYROLL_PROCESSED', paySettled: true });
     expect(after.totals).toMatchObject({ totalEarnedAmount: 28, paidVisitCount: 1, remainingVisitCount: 0 });
   });
 

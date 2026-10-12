@@ -22,7 +22,7 @@ import {
   type PayItemWageTypeCode,
 } from './pay-items.util';
 
-import { correctionDifference, isPaySettled } from './pay-settlement.util';
+import { correctionDifference, isPaySettled, payCorrectionDisplayStatus } from './pay-settlement.util';
 
 const toDate = (key: string) => new Date(`${key.slice(0, 10)}T00:00:00.000Z`);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -387,6 +387,18 @@ export class PayItemsService {
 
   /** Original line, corrections and reversals of one visit, with the net amount settled or pending. */
   async visitCorrectionHistory(visitReconciliationId: string) {
+    const visit = await this.prisma.visitReconciliation.findUnique({
+      where: { id: visitReconciliationId },
+      select: {
+        id: true,
+        visitRef: true,
+        employeeId: true,
+        payableAmount: true,
+        includedInPayrollRunId: true,
+        paidByUkPayrollRunId: true,
+      },
+    });
+    if (!visit) throw new NotFoundException('Visit reconciliation not found');
     const [originalLine, items] = await Promise.all([
       this.prisma.payrollRunLine.findFirst({
         where: {
@@ -402,8 +414,72 @@ export class PayItemsService {
       }),
     ]);
     const active = items.filter((i) => i.status === 'PENDING_APPROVAL' || i.status === 'APPROVED');
-    const net = active.reduce((sum, i) => sum.add(i.amount), new Prisma.Decimal(originalLine?.amount ?? 0));
-    return { data: { originalLine, items, netAmount: net.toFixed(2) } };
+    // A visit settled by a closed UK run has no visit pay line: its settled amount is on the visit.
+    const originalAmount = new Prisma.Decimal(originalLine?.amount ?? visit.payableAmount ?? 0);
+    const net = active.reduce((sum, i) => sum.add(i.amount), originalAmount);
+
+    const [names, openLines, runs] = await Promise.all([
+      this.userNames(items.flatMap((i) => [i.createdById, i.approvedById, i.rejectedById])),
+      this.prisma.payrollRunLine.findMany({
+        where: {
+          employeePayItemId: { in: items.map((i) => i.id) },
+          payrollRun: { status: { notIn: ['LOCKED', 'EXPORTED'] } },
+        },
+        select: { employeePayItemId: true },
+      }),
+      this.prisma.payrollRun.findMany({
+        where: { id: { in: items.map((i) => i.includedInPayrollRunId).filter((v): v is string => !!v) } },
+        select: { id: true, periodLabel: true },
+      }),
+    ]);
+    const inOpenRun = new Set(openLines.map((l) => l.employeePayItemId));
+    const runLabel = new Map(runs.map((r) => [r.id, r.periodLabel]));
+    const reversalOf = new Map(
+      items.filter((i) => i.reversesPayItemId).map((i) => [i.reversesPayItemId as string, i]),
+    );
+    const settled = isPaySettled(visit);
+    const hasPending = items.some((i) => i.status === 'PENDING_APPROVAL');
+
+    return {
+      data: {
+        visit: {
+          id: visit.id,
+          visitRef: visit.visitRef,
+          employeeId: visit.employeeId,
+          paySettled: settled,
+          settledBy: visit.includedInPayrollRunId ? 'VISIT_PAY_RUN' : visit.paidByUkPayrollRunId ? 'UK_PAYROLL_RUN' : null,
+        },
+        originalLine,
+        originalAmount: originalAmount.toFixed(2),
+        netAmount: net.toFixed(2),
+        differenceAmount: net.sub(originalAmount).toFixed(2),
+        canRecordCorrection: settled && Boolean(visit.employeeId) && !hasPending,
+        items: items.map((i) => {
+          const reversal = reversalOf.get(i.id);
+          const reversalLive = reversal && (reversal.status === 'PENDING_APPROVAL' || reversal.status === 'APPROVED');
+          return {
+            ...i,
+            displayStatus: payCorrectionDisplayStatus({
+              status: i.status,
+              includedInPayrollRunId: i.includedInPayrollRunId,
+              inOpenRun: inOpenRun.has(i.id),
+              reversed: reversal?.status === 'APPROVED',
+            }),
+            createdByName: i.createdById ? (names.get(i.createdById) ?? null) : null,
+            approvedByName: i.approvedById ? (names.get(i.approvedById) ?? null) : null,
+            rejectedByName: i.rejectedById ? (names.get(i.rejectedById) ?? null) : null,
+            payrollRunLabel: i.includedInPayrollRunId ? (runLabel.get(i.includedInPayrollRunId) ?? null) : null,
+            reversalItemId: reversalLive ? reversal.id : null,
+            // Paid, not itself a reversal, and not already reversed (or being reversed).
+            canReverse:
+              i.status === 'APPROVED' &&
+              Boolean(i.includedInPayrollRunId) &&
+              i.sourceType !== 'REVERSAL' &&
+              !reversalLive,
+          };
+        }),
+      },
+    };
   }
 
   /**

@@ -145,4 +145,73 @@ describe('pay corrections for settled visits', () => {
     expect(history.data.netAmount).toBe('14.00');
     expect(history.data.items).toHaveLength(2);
   });
+
+  it('R-01: the history shows original, corrected and difference, and where each correction has got to', async () => {
+    const { visit } = await paidVisit();
+    const view = async () => (await payItems.visitCorrectionHistory(visit.id)).data;
+    const statuses = async () => (await view()).items.map((i) => i.displayStatus);
+
+    expect(await view()).toMatchObject({
+      originalAmount: '14.00',
+      netAmount: '14.00',
+      differenceAmount: '0.00',
+      canRecordCorrection: true,
+      visit: { paySettled: true, settledBy: 'VISIT_PAY_RUN' },
+      items: [],
+    });
+
+    const { data: item } = await correct(visit.id, 21);
+    expect(await view()).toMatchObject({ netAmount: '21.00', differenceAmount: '7.00', canRecordCorrection: false });
+    expect(await statuses()).toEqual(['PENDING_APPROVAL']);
+
+    await payItems.approve(checker, item.id);
+    expect(await statuses()).toEqual(['APPROVED_FOR_PAYROLL']);
+    expect((await view()).canRecordCorrection).toBe(true);
+
+    // Picked up by the next run while it is still a draft, then settled when that run locks.
+    const draft = await createRun(runs, maker, '2026-11-08', '2026-11-14');
+    await runs.calculate(draft);
+    expect(await statuses()).toEqual(['INCLUDED_IN_PAYROLL']);
+    expect((await view()).items[0].canReverse).toBe(false);
+    await runs.approve(checker, draft);
+    await runs.lock(checker, draft);
+    const settled = (await view()).items[0];
+    expect(settled).toMatchObject({ displayStatus: 'SETTLED', canReverse: true });
+    expect(settled.payrollRunLabel).toBeTruthy();
+
+    // Reversal: pending first (the correction still stands), then the correction shows as reversed.
+    const { data: reversal } = await payItems.reverse(maker, item.id, 'Entered in error');
+    expect(await statuses()).toEqual(['SETTLED', 'PENDING_APPROVAL']);
+    expect((await view()).items[0]).toMatchObject({ canReverse: false, reversalItemId: reversal.id });
+    await payItems.approve(checker, reversal.id);
+    expect(await statuses()).toEqual(['REVERSED', 'APPROVED_FOR_PAYROLL']);
+    expect(await view()).toMatchObject({ netAmount: '14.00', differenceAmount: '0.00' });
+    expect((await view()).items[1].canReverse).toBe(false);
+  });
+
+  it('R-01: a rejected correction is kept in the history and no longer blocks a new one', async () => {
+    const { visit } = await paidVisit();
+    const { data: item } = await correct(visit.id, 21);
+    await payItems.reject(checker, item.id, 'Timesheet does not support it');
+
+    const history = (await payItems.visitCorrectionHistory(visit.id)).data;
+    expect(history).toMatchObject({ netAmount: '14.00', canRecordCorrection: true });
+    expect(history.items[0]).toMatchObject({ displayStatus: 'REJECTED', rejectionReason: 'Timesheet does not support it' });
+  });
+
+  it('R-01: a visit settled by a closed UK run shows its settled amount as the original', async () => {
+    const visit = await createApprovedVisit(prisma, { employeeId: uuid(), start: '2026-11-03T09:00:00Z', amount: 28 });
+    await prisma.visitReconciliation.update({ where: { id: visit.id }, data: { paidByUkPayrollRunId: uuid(), lockedAt: new Date() } });
+
+    const { data: item } = await correct(visit.id, 21);
+    expect(Number(item.amount)).toBe(-7);
+    expect((await payItems.visitCorrectionHistory(visit.id)).data).toMatchObject({
+      originalAmount: '28.00',
+      netAmount: '21.00',
+      differenceAmount: '-7.00',
+      originalLine: null,
+      visit: { settledBy: 'UK_PAYROLL_RUN' },
+    });
+    await expect(payItems.visitCorrectionHistory(uuid())).rejects.toThrow(/not found/i);
+  });
 });

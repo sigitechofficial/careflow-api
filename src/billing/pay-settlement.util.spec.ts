@@ -1,4 +1,22 @@
-import { correctionDifference, isPaySettled, withoutPaySnapshotFields } from './pay-settlement.util';
+import {
+  correctionDifference,
+  isPaySettled,
+  payCorrectionDisplayStatus,
+  withoutPaySnapshotFields,
+} from './pay-settlement.util';
+
+describe('payCorrectionDisplayStatus (R-01)', () => {
+  const item = { status: 'APPROVED', includedInPayrollRunId: null, inOpenRun: false, reversed: false };
+  it('names each stage of a correction', () => {
+    expect(payCorrectionDisplayStatus({ ...item, status: 'PENDING_APPROVAL' })).toBe('PENDING_APPROVAL');
+    expect(payCorrectionDisplayStatus(item)).toBe('APPROVED_FOR_PAYROLL');
+    expect(payCorrectionDisplayStatus({ ...item, inOpenRun: true })).toBe('INCLUDED_IN_PAYROLL');
+    expect(payCorrectionDisplayStatus({ ...item, includedInPayrollRunId: 'run' })).toBe('SETTLED');
+    expect(payCorrectionDisplayStatus({ ...item, includedInPayrollRunId: 'run', reversed: true })).toBe('REVERSED');
+    expect(payCorrectionDisplayStatus({ ...item, status: 'REJECTED', reversed: true })).toBe('REJECTED');
+    expect(payCorrectionDisplayStatus({ ...item, status: 'CANCELLED' })).toBe('CANCELLED');
+  });
+});
 
 describe('isPaySettled (VW-23)', () => {
   it('is settled by a locked visit pay run or by a closed UK run', () => {

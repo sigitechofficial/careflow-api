@@ -90,6 +90,7 @@ import {
   earningStageLabel,
   furthestPayoutState,
 } from './earning-status.util';
+import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
   isClaimConflict,
@@ -2224,6 +2225,7 @@ export class PayrollRunsService {
           payableMinutes: true,
           status: true,
           includedInPayrollRunId: true,
+          paidByUkPayrollRunId: true,
           includedInPayrollRun: {
             select: {
               id: true,
@@ -2435,6 +2437,8 @@ export class PayrollRunsService {
         earningPhase: earningPhase(stage),
         correctionState: earningCorrectionState(corrections),
         correctionAdjustmentValue: Math.round(correctionAdjustment * 100) / 100,
+        // Settled pay is changed through a pay correction, not by editing the visit.
+        paySettled: isPaySettled(row),
         paid: inVisitPayRun || bankPaid,
         countsTowardSalary: inVisitPayRun || remaining || inUkPayroll,
         payrollRunId: row.includedInPayrollRun?.id ?? uk?.runId ?? null,

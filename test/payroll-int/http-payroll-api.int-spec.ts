@@ -243,7 +243,17 @@ describe('payroll API (HTTP)', () => {
 
       const history = await get(preparer, `/billing/pay-items/visit-corrections/${visit.id}`);
       expect(history.status).toBe(200);
-      expect(history.body.data.netAmount).toBe('21.00');
+      expect(history.body.data).toMatchObject({
+        originalAmount: '14.00',
+        netAmount: '21.00',
+        differenceAmount: '7.00',
+        canRecordCorrection: true,
+        visit: { paySettled: true, settledBy: 'VISIT_PAY_RUN' },
+      });
+      expect(history.body.data.items[0]).toMatchObject({ displayStatus: 'APPROVED_FOR_PAYROLL', canReverse: false });
+      expect(history.body.data.items[0].createdByName).toBeTruthy();
+      expect((await get(preparer, `/billing/pay-items/visit-corrections/${uuid()}`)).status).toBe(404);
+      expect((await get(nobody, `/billing/pay-items/visit-corrections/${visit.id}`)).status).toBe(403);
     });
   });
 

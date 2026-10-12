@@ -53,3 +53,30 @@ export function correctionDifference(
   const settled = pence(originalAmount) + earlierCorrections.reduce((sum, n) => sum + pence(n), 0);
   return (pence(correctedAmount) - settled) / 100;
 }
+
+/** Where one correction or reversal has got to, in the words the office sees. */
+export type PayCorrectionDisplayStatus =
+  | 'PENDING_APPROVAL'
+  | 'APPROVED_FOR_PAYROLL'
+  | 'INCLUDED_IN_PAYROLL'
+  | 'SETTLED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'REVERSED';
+
+export function payCorrectionDisplayStatus(item: {
+  status: string;
+  /** Set when a visit pay run holding the item is locked. */
+  includedInPayrollRunId?: string | null;
+  /** A visit pay run that is not locked yet has picked the item up. */
+  inOpenRun: boolean;
+  /** An approved reversal cancels the item out. */
+  reversed: boolean;
+}): PayCorrectionDisplayStatus {
+  if (item.status === 'PENDING_APPROVAL') return 'PENDING_APPROVAL';
+  if (item.status === 'REJECTED') return 'REJECTED';
+  if (item.status !== 'APPROVED') return 'CANCELLED';
+  if (item.reversed) return 'REVERSED';
+  if (item.includedInPayrollRunId) return 'SETTLED';
+  return item.inOpenRun ? 'INCLUDED_IN_PAYROLL' : 'APPROVED_FOR_PAYROLL';
+}
