@@ -285,7 +285,7 @@ export async function buildReconciliationService(
   const service = new (VisitReconciliationsService as unknown as new (
     ...args: unknown[]
   ) => VisitReconciliationsService)(prisma, payCards, chargeCards, stubOrgSettings, audit.service, payItems);
-  return { service, audit, card, payItems };
+  return { service, audit, card, chargeCard, payItems };
 }
 
 /**

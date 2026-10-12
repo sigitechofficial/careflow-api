@@ -122,6 +122,22 @@ const PRICED_PENDING_RECON: VisitReconciliationStatus[] = [
   VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
 ];
 
+/**
+ * Time a pay line stands for in the export. Only the visit pay line stands for the time of the
+ * visit; a top-up, mileage or premium line attached to the same visit has its own minutes or none.
+ * Overtime minutes are already inside the visit minutes (premium-only line).
+ */
+function exportLineMinutes(line: {
+  lineType: PayrollRunLineType;
+  sourceType?: string | null;
+  minutes: number | null;
+  visitReconciliation?: { payableMinutes: number | null } | null;
+}): number {
+  if (line.sourceType === 'OVERTIME') return 0;
+  if (line.minutes != null) return line.minutes;
+  return line.lineType === PayrollRunLineType.VISIT_PAY ? (line.visitReconciliation?.payableMinutes ?? 0) : 0;
+}
+
 function earningsRemainingWhere(
   base: Prisma.VisitReconciliationWhereInput,
 ): Prisma.VisitReconciliationWhereInput {
@@ -1661,9 +1677,7 @@ export class PayrollRunsService {
     for (const line of allLines) {
       const employeeId = line.employeeId ?? line.visitReconciliation?.employeeId;
       if (!employeeId) continue;
-      // Overtime minutes are already inside visit minutes (premium-only line).
-      const minutes =
-        line.sourceType === 'OVERTIME' ? 0 : (line.minutes ?? line.visitReconciliation?.payableMinutes ?? 0);
+      const minutes = exportLineMinutes(line);
       const pay = Number(line.amount);
       const existing = carerTotals.get(employeeId);
       if (existing) {
@@ -1707,7 +1721,7 @@ export class PayrollRunsService {
         recon.actualStartDateTime,
         recon.actualEndDateTime,
       );
-      const visitMinutes = line.minutes ?? recon.payableMinutes ?? 0;
+      const visitMinutes = exportLineMinutes(line);
       const visitPay = Number(line.amount);
       const totals = employeeId ? carerTotals.get(employeeId) : undefined;
 
