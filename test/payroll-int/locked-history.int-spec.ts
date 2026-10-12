@@ -104,7 +104,6 @@ describe('locked payroll history', () => {
     await expect(recons.update(visit.id, { travelMiles: 12 } as never)).rejects.toThrow(refused);
     await expect(recons.reject(checker, visit.id, { scope: 'PAY' } as never)).rejects.toThrow(refused);
     await expect(recons.approveOverrun(checker, visit.id, { timeBasis: 'ACTUAL', applyTo: 'PAY' } as never)).rejects.toThrow(refused);
-    await expect(recons.rejectOverrun(checker, visit.id, {} as never)).rejects.toThrow(refused);
 
     expect(await paySnapshot(visit.id)).toEqual(before);
     // Charge-side work is still possible.

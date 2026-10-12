@@ -1522,9 +1522,17 @@ export class VisitReconciliationsService {
     if (row.status === VisitReconciliationStatus.LOCKED) {
       throw new BadRequestException('Reconciliation is locked');
     }
-    this.assertPayNotSettled(row);
     if (!row.overrunMinutes || row.overrunMinutes <= 0) {
       throw new BadRequestException('This visit has no overrun to approve');
+    }
+    if (isPaySettled(row)) {
+      // Pay is history; the client charge has its own lifecycle and can still be decided (R-07).
+      if (dto.applyTo !== 'CHARGE') {
+        throw new BadRequestException(
+          `${PAY_SETTLED_MESSAGE} The client charge can still be decided: choose "charge only".`,
+        );
+      }
+      return this.decideChargeOverrunOnSettledVisit(userId, row, dto.timeBasis ?? 'ACTUAL', dto, meta);
     }
 
     // Admin choice: planned vs actual time, for carer pay, client charge or both.
@@ -1585,6 +1593,91 @@ export class VisitReconciliationsService {
     return this.getById(id);
   }
 
+  /**
+   * Overrun decision for the client charge of a visit whose carer pay is already settled (R-07).
+   * Only charge-side fields are written: the pay window, amount and approval stay exactly as paid,
+   * and the basis the carer was paid on is carried forward so later pay corrections are worked out
+   * on the same footing. A charge that sits on an approved invoice follows the invoice process.
+   */
+  private async decideChargeOverrunOnSettledVisit(
+    userId: string,
+    row: {
+      id: string;
+      visitRef: string;
+      employeeId: string | null;
+      scheduledVisitId: string;
+      status: VisitReconciliationStatus;
+      plannedStartDateTime: Date;
+      plannedEndDateTime: Date | null;
+      actualStartDateTime: Date | null;
+      actualEndDateTime: Date | null;
+      approvedPayStart: Date | null;
+      approvedPayEnd: Date | null;
+      payableAmount: Prisma.Decimal | null;
+      payableMinutes: number | null;
+      billableAmount: Prisma.Decimal | null;
+      overrunMinutes: number | null;
+      overrunDecision: VisitOverrunDecision | null;
+      overrunPayBasis: VisitOverrunTimeBasis | null;
+      approvalNotes: string | null;
+    },
+    billBasis: 'PLANNED' | 'ACTUAL',
+    dto: DecideVisitOverrunDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.assertBillableNotOnApprovedInvoice(row.id);
+    // What the carer was paid on: decided ACTUAL, the older "acknowledged = actual" rule, or planned.
+    const payBasis: VisitOverrunTimeBasis =
+      row.overrunDecision === VisitOverrunDecision.APPROVED
+        ? (row.overrunPayBasis ?? VisitOverrunTimeBasis.ACTUAL)
+        : VisitOverrunTimeBasis.PLANNED;
+    const anyActual = payBasis === VisitOverrunTimeBasis.ACTUAL || billBasis === 'ACTUAL';
+    const overrunDecision = anyActual ? VisitOverrunDecision.APPROVED : VisitOverrunDecision.REJECTED;
+    const windows = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+      overrunDecision,
+      overrunPayBasis: anyActual ? payBasis : null,
+      overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(this.prisma, row.scheduledVisitId),
+    });
+    await this.prisma.visitReconciliation.update({
+      where: { id: row.id },
+      data: {
+        overrunDecision,
+        overrunPayBasis: anyActual ? payBasis : null,
+        overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
+        approvedBillStart: windows.approvedBillStart,
+        approvedBillEnd: windows.approvedBillEnd,
+        approvalNotes: [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null,
+      },
+    });
+    // Reprices the charge; the pay snapshot of a settled visit is never written.
+    await this.evaluateInternal(this.prisma, row.id, { forceRecalculateAmounts: true });
+    const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+    await this.auditVisit(
+      AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
+      userId,
+      row,
+      {
+        oldValues: { billableAmount: row.billableAmount?.toString() ?? null, ...VisitReconciliationsService.paySnapshotOf(row) },
+        newValues: {
+          billableAmount: after.billableAmount?.toString() ?? null,
+          ...VisitReconciliationsService.paySnapshotOf(after),
+          decision: 'CHARGE_ONLY',
+          chargeBasis: billBasis,
+          overrunMinutes: row.overrunMinutes,
+        },
+        reason: dto.notes,
+      },
+      meta,
+    );
+    return this.getById(row.id);
+  }
+
   private async auditOverrunDecision(
     userId: string,
     before: Parameters<typeof VisitReconciliationsService.paySnapshotOf>[0] & {
@@ -1628,9 +1721,12 @@ export class VisitReconciliationsService {
     if (row.status === VisitReconciliationStatus.LOCKED) {
       throw new BadRequestException('Reconciliation is locked');
     }
-    this.assertPayNotSettled(row);
     if (!row.overrunMinutes || row.overrunMinutes <= 0) {
       throw new BadRequestException('This visit has no overrun to reject');
+    }
+    if (isPaySettled(row)) {
+      // Rejecting the overrun of a paid visit can only mean "charge the planned time": pay stays.
+      return this.decideChargeOverrunOnSettledVisit(userId, row, 'PLANNED', dto, meta);
     }
 
     const defaults = resolveDefaultApprovedWindows({
