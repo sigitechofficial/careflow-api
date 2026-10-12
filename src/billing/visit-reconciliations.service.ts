@@ -953,7 +953,8 @@ export class VisitReconciliationsService {
       row.pricingSnapshot != null
         ? this.alignFrozenPricingSnapshot(row.pricingSnapshot, row, timeZone)
         : await this.buildCalculationPreview(row);
-    return { data: { ...enriched, calculationPreview: preview } };
+    // Settled pay is changed through a pay correction, not on this record.
+    return { data: { ...enriched, paySettled: isPaySettled(row), calculationPreview: preview } };
   }
 
   private alignFrozenPricingSnapshot(
