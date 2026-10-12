@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
@@ -118,22 +119,31 @@ export class PayrollRunsController {
   @Post(':id/calculate')
   @Permissions('billing.payroll_runs.manage')
   @ApiOperation({ summary: 'Calculate payroll lines from approved visits' })
-  calculate(@Param('id') id: string) {
-    return this.service.calculate(id);
+  calculate(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.calculate(id, user.id, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')
-  @Permissions('billing.payroll_runs.manage')
-  @ApiOperation({ summary: 'Approve payroll run for locking' })
-  approve(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.approve(user.id, id);
+  @Permissions('billing.payroll_runs.approve')
+  @ApiOperation({
+    summary: 'Approve payroll run for locking (a different user from the one who created the run)',
+  })
+  approve(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.approve(user.id, id, getRequestAuditMeta(req));
   }
 
   @Post(':id/lock')
-  @Permissions('billing.payroll_runs.manage')
+  @Permissions('billing.payroll_runs.approve')
   @ApiOperation({ summary: 'Lock payroll run and mark visits as pay-processed' })
-  lock(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.lock(user.id, id);
+  lock(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.lock(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Delete(':id')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({ summary: 'Discard a payroll run that has not been locked (releases its visits)' })
+  discard(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.discard(user.id, id, getRequestAuditMeta(req));
   }
 
   @Get(':id/export')

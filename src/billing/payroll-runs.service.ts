@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -77,12 +78,30 @@ import {
   type PayrollVisitExportRow,
 } from './payroll-run-export-csv.util';
 import { serviceUserIdsForLocation, employeeIdsForLocation } from './billing-location-scope.util';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { assertDifferentUser } from './financial-controls.util';
+import {
+  activityClaimKey,
+  isClaimConflict,
+  payItemClaimKey,
+  payrollLineClaimKey,
+  visitPayClaimKey,
+} from './payroll-claim.util';
 
 const MUTABLE_STATUSES: PayrollRunStatus[] = [
   PayrollRunStatus.DRAFT,
   PayrollRunStatus.EXCEPTION_FOUND,
   PayrollRunStatus.READY_FOR_REVIEW,
 ];
+
+/** An approved run may be recalculated; that withdraws the approval. A locked run never can. */
+const CALCULABLE_STATUSES: PayrollRunStatus[] = [...MUTABLE_STATUSES, PayrollRunStatus.APPROVED];
+
+/** Times a calculation reselects its sources when another run claims some of them mid-flight. */
+const CLAIM_RETRIES = 3;
 
 const PAYROLL_ELIGIBLE_RECON: VisitReconciliationStatus[] = [
   VisitReconciliationStatus.APPROVED_FOR_PAY,
@@ -199,7 +218,30 @@ export class PayrollRunsService {
     private readonly employeePayouts: EmployeePayoutsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly payCards: PayCardsService,
+    private readonly audit: AuditLogsService,
   ) {}
+
+  private auditRun(
+    action: AuditAction,
+    userId: string | null,
+    runId: string,
+    values: { oldValues?: Record<string, unknown>; newValues?: Record<string, unknown> },
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.audit.logAudit({
+      tx,
+      userId: userId ?? undefined,
+      module: AuditModule.BILLING,
+      action,
+      recordType: 'PayrollRun',
+      recordId: runId,
+      oldValues: values.oldValues,
+      newValues: values.newValues,
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+  }
 
   /**
    * Convert YYYY-MM-DD salary/earnings filters into UTC instants for the
@@ -497,30 +539,109 @@ export class PayrollRunsService {
         createdById: userId,
       },
     });
+    await this.auditRun(AuditAction.VISIT_PAY_RUN_CREATED, userId, created.id, {
+      newValues: { periodStart: dto.periodStart, periodEnd: dto.periodEnd },
+    });
     return { message: 'Payroll run created', data: this.mapRow(created) };
   }
 
-  async calculate(id: string) {
+  /**
+   * Calculate (or recalculate) the pay lines of a run.
+   *
+   * Each original earning line carries a claim key that is unique across every run, and the lines
+   * are written in one transaction. So a visit, pay item or activity can sit in one run only, even
+   * when two runs calculate at the same moment: the second writer is refused by the database and
+   * reselects without the sources the first one took. Recalculating releases this run's claims.
+   */
+  async calculate(id: string, userId?: string, meta?: RequestAuditMeta) {
     const run = await this.prisma.payrollRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Payroll run not found');
-    if (!MUTABLE_STATUSES.includes(run.status)) {
+    if (!CALCULABLE_STATUSES.includes(run.status)) {
       throw new BadRequestException(`Cannot recalculate payroll run in status ${run.status}`);
     }
 
-    await this.prisma.payrollRun.update({
-      where: { id },
+    // Take the run: one calculation of a run at a time.
+    const taken = await this.prisma.payrollRun.updateMany({
+      where: { id, status: run.status },
       data: { status: PayrollRunStatus.CALCULATING },
     });
+    if (taken.count !== 1) {
+      throw new ConflictException('This payroll run is already being calculated or was changed. Reload and try again.');
+    }
 
+    let heldByOtherRuns = 0;
+    try {
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          heldByOtherRuns = await this.calculateLines(run);
+          break;
+        } catch (err) {
+          if (!isClaimConflict(err) || attempt >= CLAIM_RETRIES) throw err;
+        }
+      }
+    } catch (err) {
+      // Nothing was written (single transaction): put the run back so it is not stuck in CALCULATING.
+      await this.prisma.payrollRun.updateMany({
+        where: { id, status: PayrollRunStatus.CALCULATING },
+        data: { status: run.status },
+      });
+      if (isClaimConflict(err)) {
+        throw new ConflictException(
+          'Another payroll run is claiming the same visits or pay items right now. Try again in a moment.',
+        );
+      }
+      throw err;
+    }
+
+    const result = await this.getById(id);
+    await this.auditRun(
+      AuditAction.VISIT_PAY_RUN_CALCULATED,
+      userId ?? null,
+      id,
+      {
+        oldValues: { status: run.status },
+        newValues: {
+          status: result.data.status,
+          grossPay: result.data.grossPay,
+          visitLines: result.data.visitLines,
+          heldByOtherRuns,
+        },
+      },
+      meta,
+    );
+    return { ...result, data: { ...result.data, heldByOtherRuns } };
+  }
+
+  /** Builds and writes the lines of a run. Returns how many approved visits another run already holds. */
+  private async calculateLines(run: {
+    id: string;
+    periodStart: Date;
+    periodEnd: Date;
+  }): Promise<number> {
+    const id = run.id;
     const periodEnd = endOfBillingDate(run.periodEnd);
-    const reconciliations = await this.prisma.visitReconciliation.findMany({
+    const candidates = await this.prisma.visitReconciliation.findMany({
       where: {
         status: { in: PAYROLL_ELIGIBLE_RECON },
         includedInPayrollRunId: null,
+        paidByUkPayrollRunId: null,
         approvedPayStart: { gte: run.periodStart, lte: periodEnd },
       },
       orderBy: { approvedPayStart: 'asc' },
     });
+    // Leave out visits whose pay another (open or locked) run has already claimed.
+    const heldElsewhere = new Set(
+      (
+        await this.prisma.payrollRunLine.findMany({
+          where: {
+            payrollRunId: { not: id },
+            claimKey: { in: candidates.map((r) => visitPayClaimKey(r.id)) },
+          },
+          select: { visitReconciliationId: true },
+        })
+      ).map((l) => l.visitReconciliationId),
+    );
+    const reconciliations = candidates.filter((r) => !heldElsewhere.has(r.id));
 
     // Auto inter-visit travel (HMRC: travel between assignments is NMW working time).
     const autoJourneys = detectInterVisitTravel(
@@ -883,6 +1004,10 @@ export class PayrollRunsService {
 
     const totalExceptions = exceptionCount + nmwExceptionBump;
 
+    for (const line of lineData) {
+      line.claimKey = payrollLineClaimKey({ ...line, lineType: String(line.lineType) });
+    }
+
     const componentRows = lineData
       .filter((l) => l.employeeId && Number(l.amount) !== 0)
       .map((l) => ({
@@ -948,11 +1073,14 @@ export class PayrollRunsService {
           estimatedEmployerPension: employer.employerPension,
           estimatedEmployerCost: employer.totalEmploymentCost,
           exceptionCount: totalExceptions,
+          // A recalculation withdraws any earlier approval of the old figures.
+          approvedAt: null,
+          approvedById: null,
         } as Prisma.PayrollRunUpdateInput,
       });
     });
 
-    return this.getById(id);
+    return heldElsewhere.size;
   }
 
   /**
@@ -990,7 +1118,16 @@ export class PayrollRunsService {
       where: { status: 'APPROVED', includedInPayrollRunId: null, workDate: { lte: run.periodEnd } },
       orderBy: [{ workDate: 'asc' }, { createdAt: 'asc' }],
     });
+    const itemsHeldElsewhere = new Set(
+      (
+        await this.prisma.payrollRunLine.findMany({
+          where: { payrollRunId: { not: run.id }, claimKey: { in: items.map((i) => payItemClaimKey(i.id)) } },
+          select: { employeePayItemId: true },
+        })
+      ).map((l) => l.employeePayItemId),
+    );
     for (const item of items) {
+      if (itemsHeldElsewhere.has(item.id)) continue;
       if (!isPayItemWageType(item.wageTypeCode)) continue;
       const config = PAY_ITEM_CONFIG[item.wageTypeCode];
       employeeIds.add(item.employeeId);
@@ -1016,15 +1153,6 @@ export class PayrollRunsService {
     }
 
     // 2) Training / on-call activity
-    const paidActivity = await this.prisma.payrollRunLine.findMany({
-      where: {
-        sourceType: 'NON_CORE_ACTIVITY',
-        payrollRunId: { not: run.id },
-        payrollRun: { status: { in: [PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED] } },
-      },
-      select: { sourceRef: true },
-    });
-    const paidActivityRefs = new Set(paidActivity.map((r) => r.sourceRef));
     const activities = await this.prisma.employeeNonCoreActivity.findMany({
       where: {
         includeInPayroll: true,
@@ -1035,6 +1163,21 @@ export class PayrollRunsService {
       include: { reason: { select: { name: true } } },
       orderBy: { dateFrom: 'asc' },
     });
+    // Activity already claimed by another run (open or locked), plus lines locked before claims existed.
+    const paidActivity = await this.prisma.payrollRunLine.findMany({
+      where: {
+        payrollRunId: { not: run.id },
+        OR: [
+          { claimKey: { in: activities.map((a) => activityClaimKey(a.id)) } },
+          {
+            sourceType: 'NON_CORE_ACTIVITY',
+            payrollRun: { status: { in: [PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED] } },
+          },
+        ],
+      },
+      select: { sourceRef: true },
+    });
+    const paidActivityRefs = new Set(paidActivity.map((r) => r.sourceRef));
     for (const activity of activities) {
       if (paidActivityRefs.has(activity.id)) continue;
       const resolved = await rulesAt(activity.employeeId, activity.dateFrom);
@@ -1161,7 +1304,7 @@ export class PayrollRunsService {
     return { lines, employeeIds };
   }
 
-  async approve(userId: string, id: string) {
+  async approve(userId: string, id: string, meta?: RequestAuditMeta) {
     const run = await this.prisma.payrollRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Payroll run not found');
     if (
@@ -1170,24 +1313,86 @@ export class PayrollRunsService {
     ) {
       throw new BadRequestException('Only runs ready for review can be approved');
     }
+    assertDifferentUser(
+      run.createdById,
+      userId,
+      'A payroll run must be approved by a different user from the one who created it.',
+    );
 
-    await this.prisma.payrollRun.update({
-      where: { id },
-      data: {
-        status: PayrollRunStatus.APPROVED,
-        approvedAt: new Date(),
-        approvedById: userId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.payrollRun.updateMany({
+        where: { id, status: run.status },
+        data: { status: PayrollRunStatus.APPROVED, approvedAt: new Date(), approvedById: userId },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('This payroll run was changed by someone else. Reload and try again.');
+      }
+      await this.auditRun(
+        AuditAction.VISIT_PAY_RUN_APPROVED,
+        userId,
+        id,
+        {
+          oldValues: { status: run.status },
+          newValues: { status: PayrollRunStatus.APPROVED, grossPay: run.grossPay.toString() },
+        },
+        meta,
+        tx,
+      );
     });
     return this.getById(id);
   }
 
-  async lock(userId: string, id: string) {
+  /** Remove a run that has not been locked. Its lines go with it, which releases their claims. */
+  async discard(userId: string, id: string, meta?: RequestAuditMeta) {
+    const run = await this.prisma.payrollRun.findUnique({ where: { id } });
+    if (!run) throw new NotFoundException('Payroll run not found');
+    if (!CALCULABLE_STATUSES.includes(run.status)) {
+      throw new BadRequestException('Only a payroll run that has not been locked can be discarded');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const removed = await tx.payrollRun.deleteMany({ where: { id, status: run.status } });
+      if (removed.count !== 1) {
+        throw new ConflictException('This payroll run was changed by someone else. Reload and try again.');
+      }
+      await this.auditRun(
+        AuditAction.VISIT_PAY_RUN_DISCARDED,
+        userId,
+        id,
+        {
+          oldValues: {
+            status: run.status,
+            periodStart: run.periodStart.toISOString().slice(0, 10),
+            periodEnd: run.periodEnd.toISOString().slice(0, 10),
+            grossPay: run.grossPay.toString(),
+          },
+        },
+        meta,
+        tx,
+      );
+    });
+    return { message: 'Payroll run discarded', data: { id } };
+  }
+
+  /**
+   * Lock an approved run. From here its lines and the pay of its visits are history: the service
+   * and the database both refuse changes, and corrections go through pay corrections instead.
+   */
+  async lock(userId: string, id: string, meta?: RequestAuditMeta) {
     const run = await this.prisma.payrollRun.findUnique({
       where: { id },
       include: {
         lines: {
-          select: { visitReconciliationId: true, employeePayItemId: true, sourceType: true, sourceRef: true },
+          select: {
+            visitReconciliationId: true,
+            employeePayItemId: true,
+            sourceType: true,
+            sourceRef: true,
+            lineType: true,
+            amount: true,
+            employeeId: true,
+            claimKey: true,
+            exceptionMessage: true,
+          },
         },
       },
     });
@@ -1196,24 +1401,73 @@ export class PayrollRunsService {
       throw new BadRequestException('Approve the payroll run before locking');
     }
 
-    const reconIds = run.lines
-      .map((l) => l.visitReconciliationId)
-      .filter((v): v is string => !!v);
+    const reconIds = [
+      ...new Set(run.lines.map((l) => l.visitReconciliationId).filter((v): v is string => !!v)),
+    ];
+
+    // Lines written before claims existed hold no claim: they must be recalculated first.
+    const unclaimed = run.lines.filter(
+      (l) => !l.claimKey && payrollLineClaimKey({ ...l, lineType: String(l.lineType) }) != null,
+    );
+    if (unclaimed.length) {
+      throw new BadRequestException(
+        `${unclaimed.length} line(s) in this run were calculated before duplicate-payment protection was added. Recalculate this run first.`,
+      );
+    }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.payrollRun.update({
-        where: { id },
+      const locked = await tx.payrollRun.updateMany({
+        where: { id, status: PayrollRunStatus.APPROVED },
         data: {
           status: PayrollRunStatus.LOCKED,
           lockedAt: new Date(),
           approvedById: run.approvedById ?? userId,
         },
       });
+      if (locked.count !== 1) {
+        throw new ConflictException('This payroll run was changed by someone else. Reload and try again.');
+      }
       if (reconIds.length) {
-        await tx.visitReconciliation.updateMany({
+        // The figures being locked must still be the approved figures of each visit.
+        const visits = await tx.visitReconciliation.findMany({
           where: { id: { in: reconIds } },
+          select: {
+            id: true,
+            status: true,
+            employeeId: true,
+            payableAmount: true,
+            includedInPayrollRunId: true,
+            paidByUkPayrollRunId: true,
+          },
+        });
+        const visitById = new Map(visits.map((v) => [v.id, v]));
+        const stale = run.lines.filter((l) => {
+          if (l.lineType !== PayrollRunLineType.VISIT_PAY || !l.visitReconciliationId) return false;
+          const visit = visitById.get(l.visitReconciliationId);
+          if (!visit) return true;
+          if (visit.includedInPayrollRunId || visit.paidByUkPayrollRunId) return true;
+          if (l.exceptionMessage) return false;
+          return (
+            !PAYROLL_ELIGIBLE_RECON.includes(visit.status) ||
+            visit.employeeId !== l.employeeId ||
+            visit.payableAmount == null ||
+            !new Prisma.Decimal(visit.payableAmount).equals(l.amount)
+          );
+        });
+        if (stale.length) {
+          throw new BadRequestException(
+            `${stale.length} visit(s) changed since this run was calculated (amount, carer, approval or already paid). Recalculate the run and approve it again.`,
+          );
+        }
+        const claimed = await tx.visitReconciliation.updateMany({
+          where: { id: { in: reconIds }, includedInPayrollRunId: null, paidByUkPayrollRunId: null },
           data: { includedInPayrollRunId: id, lockedAt: new Date() },
         });
+        if (claimed.count !== reconIds.length) {
+          throw new ConflictException(
+            'Some visits in this run were paid by another run in the meantime. Recalculate this run first.',
+          );
+        }
       }
       // Freeze pay items with this run; refuse if another locked run already paid any of them.
       const payItemIds = run.lines.map((l) => l.employeePayItemId).filter((v): v is string => !!v);
@@ -1249,6 +1503,22 @@ export class PayrollRunsService {
           );
         }
       }
+      await this.auditRun(
+        AuditAction.VISIT_PAY_RUN_LOCKED,
+        userId,
+        id,
+        {
+          oldValues: { status: PayrollRunStatus.APPROVED },
+          newValues: {
+            status: PayrollRunStatus.LOCKED,
+            grossPay: run.grossPay.toString(),
+            visits: reconIds.length,
+            lines: run.lines.length,
+          },
+        },
+        meta,
+        tx,
+      );
     });
 
     return this.getById(id);

@@ -106,12 +106,17 @@ export class VisitReconciliationsController {
   @Patch(':id')
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Update approved payable/billable windows' })
-  update(@Param('id') id: string, @Body() dto: UpdateVisitReconciliationDto) {
-    return this.service.update(id, dto);
+  update(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateVisitReconciliationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.update(id, dto, user.id, getRequestAuditMeta(req));
   }
 
   @Post(':id/payable-amount')
-  @AnyPermission('billing.visit_reconciliations.manage', 'employees.update')
+  @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
     summary: 'Set visit payable amount (counts toward employee salary when accepted for pay)',
   })
@@ -119,8 +124,9 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: SetVisitPayableAmountDto,
+    @Req() req: Request,
   ) {
-    return this.service.setPayableAmount(user.id, id, dto);
+    return this.service.setPayableAmount(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/billable-amount')
@@ -143,8 +149,9 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: ApproveVisitReconciliationDto,
+    @Req() req: Request,
   ) {
-    return this.service.approve(user.id, id, dto);
+    return this.service.approve(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/overrun/approve')
@@ -156,8 +163,9 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: DecideVisitOverrunDto,
+    @Req() req: Request,
   ) {
-    return this.service.approveOverrun(user.id, id, dto);
+    return this.service.approveOverrun(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/overrun/reject')
@@ -169,8 +177,9 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: DecideVisitOverrunDto,
+    @Req() req: Request,
   ) {
-    return this.service.rejectOverrun(user.id, id, dto);
+    return this.service.rejectOverrun(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/reject')
@@ -180,7 +189,8 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: RejectVisitReconciliationDto,
+    @Req() req: Request,
   ) {
-    return this.service.reject(user.id, id, dto);
+    return this.service.reject(user.id, id, dto, getRequestAuditMeta(req));
   }
 }

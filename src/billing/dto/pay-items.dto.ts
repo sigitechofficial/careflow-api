@@ -8,6 +8,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -120,6 +121,32 @@ export class RejectPayItemDto {
   @ApiProperty()
   @IsString()
   @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
+export class RecordVisitPayCorrectionDto {
+  @ApiProperty({ description: 'Visit reconciliation whose pay is already in a locked payroll run' })
+  @IsUUID()
+  visitReconciliationId!: string;
+
+  @ApiProperty({ description: 'What the carer should have been paid for this visit in total (£)' })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  correctedAmount!: number;
+
+  @ApiProperty({ description: 'Why the paid amount was wrong' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+}
+
+export class ReversePayItemDto {
+  @ApiProperty({ description: 'Why this paid item is being reversed' })
+  @IsString()
+  @MinLength(5)
   @MaxLength(500)
   reason!: string;
 }

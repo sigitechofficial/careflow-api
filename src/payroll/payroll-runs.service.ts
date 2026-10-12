@@ -1151,12 +1151,33 @@ export class PayrollRunsService {
       usedLineIds.map((r) => r.sourcePayrollRunLineId).filter(Boolean) as string[],
     );
 
+    // Visits a closed UK run already paid as provisional inputs: their visit pay must not come in
+    // again through a visit pay run line (PR-05). Travel / mileage lines of such a visit still count.
+    const lockedLineReconIds = [
+      ...new Set(lockedLines.map((l) => l.visitReconciliationId).filter((v): v is string => !!v)),
+    ];
+    const paidProvisionally = new Set(
+      (
+        await this.prisma.visitReconciliation.findMany({
+          where: { id: { in: lockedLineReconIds }, paidByUkPayrollRunId: { not: null } },
+          select: { id: true },
+        })
+      ).map((r) => r.id),
+    );
+
     const coveredReconIds = new Set<string>();
     const draftLines: DraftInputLine[] = [];
 
     for (const line of lockedLines) {
       if (!line.employeeId) continue;
       if (usedElsewhere.has(line.id)) continue;
+      if (
+        line.lineType === 'VISIT_PAY' &&
+        line.visitReconciliationId &&
+        paidProvisionally.has(line.visitReconciliationId)
+      ) {
+        continue;
+      }
       const runEmployee = runEmployeeByEmployeeId.get(line.employeeId);
       if (!runEmployee) continue;
       if (line.visitReconciliationId) coveredReconIds.add(line.visitReconciliationId);
@@ -1184,6 +1205,9 @@ export class PayrollRunsService {
         employeeId: { in: employeeIds },
         status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
         approvedPayStart: { gte: periodStart, lt: periodEndExclusive },
+        // Not yet settled by a visit pay run or by another closed UK run.
+        includedInPayrollRunId: null,
+        paidByUkPayrollRunId: null,
       },
     });
 
@@ -1612,6 +1636,39 @@ export class PayrollRunsService {
     });
 
     const row = await this.prisma.$transaction(async (tx) => {
+      // Closing settles the provisional visit inputs of this run: claim each visit so that no other
+      // UK run or visit pay run can pay it again (PR-05). The claim is one conditional update, so two
+      // runs closing together cannot both take the same visit.
+      const provisional = await tx.ukPayrollInputLine.findMany({
+        where: { runId, isProvisional: true, sourceVisitReconciliationId: { not: null } },
+        select: { sourceVisitReconciliationId: true, amount: true },
+      });
+      if (provisional.length) {
+        const amountByVisit = new Map(provisional.map((l) => [l.sourceVisitReconciliationId!, l.amount]));
+        const visitIds = [...amountByVisit.keys()];
+        const visits = await tx.visitReconciliation.findMany({
+          where: { id: { in: visitIds } },
+          select: { id: true, payableAmount: true },
+        });
+        const changed = visits.filter(
+          (v) => !new Prisma.Decimal(v.payableAmount ?? 0).equals(amountByVisit.get(v.id) ?? 0),
+        );
+        const claimed = await tx.visitReconciliation.updateMany({
+          where: {
+            id: { in: visitIds },
+            status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
+            includedInPayrollRunId: null,
+            paidByUkPayrollRunId: null,
+          },
+          data: { paidByUkPayrollRunId: runId, lockedAt: new Date() },
+        });
+        if (changed.length || claimed.count !== visitIds.length) {
+          throw new ConflictException(
+            'Some approved visits in this run were changed or paid by another run since gross was calculated. Recalculate gross, then tax & NI, before closing.',
+          );
+        }
+      }
+
       const ytd = await postRunEmployeesToYtd(tx, {
         runId,
         taxYearId: run.taxYearId,
@@ -1746,11 +1803,49 @@ export class PayrollRunsService {
     const wasClosed = run.status === 'CLOSED';
     const nextStatus = this.resolveReactivateStatus(run);
 
+    if (wasClosed) {
+      // A closed run that money or HMRC already depends on stays closed; correct it with a new run.
+      const committedPayout = await this.prisma.employeePayoutBatch.findFirst({
+        where: { ukPayrollRunId: runId, status: { in: ['APPROVED', 'PAID'] } },
+        select: { id: true },
+      });
+      if (committedPayout) {
+        throw new BadRequestException(
+          'This run has an approved or paid payout batch and cannot be reopened. Correct pay with an adjustment in a later run.',
+        );
+      }
+      const liveSubmission = await this.prisma.payrollHmrcSubmission.findFirst({
+        where: {
+          ukPayrollRunId: runId,
+          environment: 'LIVE',
+          mode: 'SUBMIT',
+          status: { notIn: ['DRAFT_BUILT', 'PENDING_APPROVAL', 'REJECTED_APPROVAL'] },
+        },
+        select: { id: true },
+      });
+      if (liveSubmission) {
+        throw new BadRequestException(
+          'This run has been submitted to HMRC (live) and cannot be reopened. Correct pay with an adjustment in a later run.',
+        );
+      }
+    }
+
     const row = await this.prisma.$transaction(async (tx) => {
       const ytd =
         wasClosed
           ? await reverseRunEmployeesFromYtd(tx, { runId, userId })
           : { reversed: 0 };
+
+      if (wasClosed) {
+        // Release the visits this run settled as provisional inputs; the database only accepts this
+        // for the run named here (see protect_paid_visit_reconciliation).
+        await tx.$executeRaw`SELECT set_config('careflow.reopening_uk_run', ${runId}, true)`;
+        await tx.visitReconciliation.updateMany({
+          where: { paidByUkPayrollRunId: runId },
+          data: { paidByUkPayrollRunId: null, lockedAt: null },
+        });
+        await tx.$executeRaw`SELECT set_config('careflow.reopening_uk_run', '', true)`;
+      }
 
       const updated = await tx.ukPayrollRun.update({
         where: { id: runId },

@@ -8598,9 +8598,16 @@ model EmployeePayItem {
   amount                 Decimal   @db.Decimal(12, 2)
   reason                 String
   notes                  String?
-  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE
+  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE | VISIT_CORRECTION | REVERSAL
   sourceType             String    @default("MANUAL")
   sourceId               String?   @db.Uuid
+  /// Correction ledger (sourceType VISIT_CORRECTION): the locked pay line being corrected, the amount
+  /// settled so far and the corrected amount. `amount` is the difference, paid in the next run.
+  originalPayrollRunLineId String? @db.Uuid
+  originalAmount           Decimal? @db.Decimal(12, 2)
+  correctedAmount          Decimal? @db.Decimal(12, 2)
+  /// Reversal (sourceType REVERSAL): the pay item this one cancels out. One reversal per item.
+  reversesPayItemId        String? @unique @db.Uuid
   payCardId              String?   @db.Uuid
   payCardVersion         Int?
   /// PENDING_APPROVAL | APPROVED | REJECTED | CANCELLED
@@ -8930,6 +8937,10 @@ model VisitReconciliation {
   lockedAt               DateTime?
   lastEvaluatedAt        DateTime?
   includedInPayrollRunId String?                   @db.Uuid
+  /// Set when a UK payroll run closes with this visit as a provisional input (approved, but never
+  /// put through a visit pay run). Like includedInPayrollRunId it means "pay settled": the visit
+  /// cannot be paid again and its pay snapshot is frozen.
+  paidByUkPayrollRunId   String?                   @db.Uuid
   includedInInvoiceRunId String?                   @db.Uuid
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
@@ -8949,6 +8960,7 @@ model VisitReconciliation {
   @@index([plannedStartDateTime])
   @@index([overrunDecision])
   @@index([includedInPayrollRunId])
+  @@index([paidByUkPayrollRunId])
   @@index([includedInInvoiceRunId])
   @@schema("billing")
 }
@@ -9113,6 +9125,10 @@ model PayrollRunLine {
   /// Source record id (activity id, week key…) used to stop the same earning being paid twice.
   sourceRef             String?
   employeePayItemId     String?            @db.Uuid
+  /// Original-earning claim, e.g. VISIT:<reconciliationId>:VISIT_PAY. Unique across all runs, so one
+  /// payable source is an original earning in one run only. Null for derived lines (NMW top-up,
+  /// overtime premium, rolled-up holiday); corrections are separate pay items with their own claim.
+  claimKey              String?            @unique
   employeeId            String?            @db.Uuid
   lineType              PayrollRunLineType @default(VISIT_PAY)
   description           String
@@ -9206,6 +9222,10 @@ model EmployeePayoutBatch {
   approvedAt     DateTime?
   paidById       String?                   @db.Uuid
   paidAt         DateTime?
+  /// Settlement evidence recorded when the batch is marked PAID (bank / provider reference, value date).
+  paymentReference   String?
+  settledOn          DateTime?             @db.Date
+  settlementEvidence String?
 
   lines        EmployeePayoutLine[]
   ukPayrollRun UkPayrollRun         @relation(fields: [ukPayrollRunId], references: [id], onDelete: Restrict)

@@ -22,6 +22,8 @@ import {
   type PayItemWageTypeCode,
 } from './pay-items.util';
 
+import { correctionDifference, isPaySettled } from './pay-settlement.util';
+
 const toDate = (key: string) => new Date(`${key.slice(0, 10)}T00:00:00.000Z`);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -256,6 +258,207 @@ export class PayItemsService {
       return created;
     });
     return { message: 'Pay item created — awaiting approval', data: item };
+  }
+
+  /**
+   * Correction ledger for a visit whose pay is settled (locked visit pay run or closed UK run).
+   *
+   * The paid record is not edited. The caller states what the visit should have paid in total; the
+   * difference against what has been settled so far (the original line plus earlier corrections)
+   * becomes a manual adjustment that a second person approves and the next visit pay run pays.
+   * Asking for the same corrected amount twice therefore yields no second payment.
+   */
+  async recordVisitCorrection(
+    userId: string,
+    dto: { visitReconciliationId: string; correctedAmount: number; reason: string },
+    meta?: RequestAuditMeta,
+  ) {
+    const visit = await this.prisma.visitReconciliation.findUnique({
+      where: { id: dto.visitReconciliationId },
+      select: {
+        id: true,
+        visitRef: true,
+        employeeId: true,
+        payableAmount: true,
+        approvedPayStart: true,
+        plannedStartDateTime: true,
+        payCardId: true,
+        payCardVersion: true,
+        includedInPayrollRunId: true,
+        paidByUkPayrollRunId: true,
+      },
+    });
+    if (!visit) throw new NotFoundException('Visit reconciliation not found');
+    if (!isPaySettled(visit)) {
+      throw new BadRequestException(
+        'This visit is not in a locked payroll run yet. Change its payable time or amount directly.',
+      );
+    }
+    if (!visit.employeeId) throw new BadRequestException('This visit has no carer to pay.');
+    const employeeId = visit.employeeId;
+
+    const item = await this.prisma.$transaction(async (tx) => {
+      // One correction at a time per visit, also when two people submit together.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-correction:${visit.id}`}))`;
+
+      const ledger = await tx.employeePayItem.findMany({
+        where: {
+          sourceId: visit.id,
+          sourceType: { in: ['VISIT_CORRECTION', 'REVERSAL'] },
+          status: { in: ['PENDING_APPROVAL', 'APPROVED'] },
+        },
+        select: { amount: true, status: true, sourceType: true },
+      });
+      if (ledger.some((l) => l.status === 'PENDING_APPROVAL')) {
+        throw new BadRequestException(
+          'A pay correction for this visit is awaiting approval. Approve, reject or cancel it first.',
+        );
+      }
+      const originalLine = await tx.payrollRunLine.findFirst({
+        where: {
+          visitReconciliationId: visit.id,
+          lineType: 'VISIT_PAY',
+          payrollRun: { status: { in: ['LOCKED', 'EXPORTED'] } },
+        },
+        select: { id: true, amount: true },
+      });
+      const originalAmount = Number(originalLine?.amount ?? visit.payableAmount ?? 0);
+      const difference = correctionDifference(
+        dto.correctedAmount,
+        originalAmount,
+        ledger.map((l) => Number(l.amount)),
+      );
+      if (difference === 0) {
+        throw new BadRequestException(
+          `This visit has already been settled at £${dto.correctedAmount.toFixed(2)}. There is nothing to correct.`,
+        );
+      }
+
+      const created = await tx.employeePayItem.create({
+        data: {
+          employeeId,
+          wageTypeCode: 'MANUAL_ADJUSTMENT',
+          workDate: toDate((visit.approvedPayStart ?? visit.plannedStartDateTime).toISOString()),
+          unit: 'AMOUNT',
+          amount: roundPence(difference),
+          reason: `Pay correction ${visit.visitRef}: ${dto.reason.trim()}`.slice(0, 500),
+          sourceType: 'VISIT_CORRECTION',
+          sourceId: visit.id,
+          originalPayrollRunLineId: originalLine?.id ?? null,
+          originalAmount: roundPence(originalAmount),
+          correctedAmount: roundPence(dto.correctedAmount),
+          payCardId: visit.payCardId,
+          payCardVersion: visit.payCardVersion,
+          status: 'PENDING_APPROVAL',
+          createdById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.VISIT_PAY_CORRECTION_RECORDED,
+        recordType: 'EmployeePayItem',
+        recordId: created.id,
+        description: dto.reason.trim(),
+        oldValues: { settledAmount: (dto.correctedAmount - difference).toFixed(2), originalAmount: originalAmount.toFixed(2) },
+        newValues: { correctedAmount: dto.correctedAmount.toFixed(2), difference: difference.toFixed(2) },
+        metadata: {
+          visitReconciliationId: visit.id,
+          visitRef: visit.visitRef,
+          employeeId,
+          originalPayrollRunLineId: originalLine?.id ?? null,
+          settledByVisitPayRunId: visit.includedInPayrollRunId,
+          settledByUkPayrollRunId: visit.paidByUkPayrollRunId,
+        },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return created;
+    });
+    return {
+      message:
+        Number(item.amount) > 0
+          ? `Pay correction of £${Number(item.amount).toFixed(2)} recorded. After approval by a second person it is paid in the next visit pay run.`
+          : `Pay correction of -£${Math.abs(Number(item.amount)).toFixed(2)} recorded. After approval by a second person it is recovered in the next visit pay run.`,
+      data: item,
+    };
+  }
+
+  /** Original line, corrections and reversals of one visit, with the net amount settled or pending. */
+  async visitCorrectionHistory(visitReconciliationId: string) {
+    const [originalLine, items] = await Promise.all([
+      this.prisma.payrollRunLine.findFirst({
+        where: {
+          visitReconciliationId,
+          lineType: 'VISIT_PAY',
+          payrollRun: { status: { in: ['LOCKED', 'EXPORTED'] } },
+        },
+        select: { id: true, amount: true, payrollRunId: true, payrollRun: { select: { periodLabel: true, lockedAt: true } } },
+      }),
+      this.prisma.employeePayItem.findMany({
+        where: { sourceId: visitReconciliationId, sourceType: { in: ['VISIT_CORRECTION', 'REVERSAL'] } },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+    const active = items.filter((i) => i.status === 'PENDING_APPROVAL' || i.status === 'APPROVED');
+    const net = active.reduce((sum, i) => sum.add(i.amount), new Prisma.Decimal(originalLine?.amount ?? 0));
+    return { data: { originalLine, items, netAmount: net.toFixed(2) } };
+  }
+
+  /**
+   * Reverse a pay item that a locked run has already paid: an equal and opposite adjustment,
+   * approved by a second person and applied in the next run. An item can be reversed once.
+   * An item that has not been paid is cancelled instead.
+   */
+  async reverse(userId: string, id: string, reason: string, meta?: RequestAuditMeta) {
+    const item = await this.loadForDecision(id);
+    if (item.status !== 'APPROVED' || !item.includedInPayrollRunId) {
+      throw new BadRequestException('Only a pay item that has been paid can be reversed. Cancel an unpaid item instead.');
+    }
+    if (item.sourceType === 'REVERSAL') {
+      throw new BadRequestException('A reversal cannot itself be reversed. Enter a new adjustment instead.');
+    }
+    const reversal = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pay-item-reversal:${id}`}))`;
+      const existing = await tx.employeePayItem.findUnique({ where: { reversesPayItemId: id } });
+      if (existing && (existing.status === 'PENDING_APPROVAL' || existing.status === 'APPROVED')) {
+        throw new BadRequestException('This pay item has already been reversed.');
+      }
+      // A rejected or cancelled reversal no longer stands in the way of a new one.
+      if (existing) await tx.employeePayItem.update({ where: { id: existing.id }, data: { reversesPayItemId: null } });
+      const created = await tx.employeePayItem.create({
+        data: {
+          employeeId: item.employeeId,
+          wageTypeCode: 'MANUAL_ADJUSTMENT',
+          workDate: item.workDate,
+          unit: 'AMOUNT',
+          amount: item.amount.negated(),
+          reason: `Reversal: ${reason.trim()}`.slice(0, 500),
+          notes: `Reverses pay item: ${item.reason}`.slice(0, 500),
+          sourceType: 'REVERSAL',
+          sourceId: item.sourceType === 'VISIT_CORRECTION' ? item.sourceId : null,
+          reversesPayItemId: id,
+          status: 'PENDING_APPROVAL',
+          createdById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.PAY_ITEM_REVERSED,
+        recordType: 'EmployeePayItem',
+        recordId: created.id,
+        description: reason.trim(),
+        newValues: { amount: created.amount.toString(), reversesPayItemId: id },
+        metadata: { employeeId: item.employeeId, reversedAmount: item.amount.toString() },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return created;
+    });
+    return { message: 'Reversal recorded. After approval by a second person it is applied in the next visit pay run.', data: reversal };
   }
 
   private async loadForDecision(id: string) {
