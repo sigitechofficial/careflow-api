@@ -471,6 +471,8 @@ export enum AuditAction {
   BANK_HOLIDAY_UPDATED = 'bank_holiday_updated',
   BANK_HOLIDAYS_IMPORTED = 'bank_holidays_imported',
   HOLIDAY_PREMIUM_BASIS_CHANGED = 'holiday_premium_basis_changed',
+  MILEAGE_RATE_CREATED = 'mileage_rate_created',
+  MILEAGE_APPROVED_AMOUNTS_VERIFIED = 'mileage_approved_amounts_verified',
   PAY_ITEM_CREATED = 'pay_item_created',
   PAY_ITEM_APPROVED = 'pay_item_approved',
   PAY_ITEM_REJECTED = 'pay_item_rejected',

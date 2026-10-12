@@ -149,7 +149,7 @@ export class EmployeePayoutsService {
       where: {
         deletedAt: null,
         status: { in: [...PAYOUT_ELIGIBLE_UK_RUN_STATUSES] },
-        totalNetPay: { gt: 0 },
+        OR: [{ totalNetPay: { gt: 0 } }, { employees: { some: { reimbursementPayable: { gt: 0 } } } }],
       },
       include: {
         period: { select: { periodStart: true, periodEnd: true, label: true } },
@@ -235,6 +235,9 @@ export class EmployeePayoutsService {
               ukPayrollRunEmployeeId: l.ukPayrollRunEmployeeId,
               amount: formatMoney(Number(l.amount)),
               amountValue: Number(l.amount),
+              // TR-13: wages and reimbursement shown apart; `amount` is their sum.
+              netPayValue: Math.round((Number(l.amount) - Number(l.reimbursementAmount)) * 100) / 100,
+              reimbursementValue: Number(l.reimbursementAmount),
               status: l.status,
               notes: l.notes,
             };
@@ -278,29 +281,38 @@ export class EmployeePayoutsService {
       );
     }
 
-    const committed = await this.sumCommittedPayoutsByUkRun(run.id);
+    const committed = await this.committedPayoutsByUkRun(run.id);
     const lineInputs: {
       employeeId: string;
       ukPayrollRunEmployeeId: string;
       amount: number;
+      reimbursementAmount: number;
     }[] = [];
+    const pence = (n: number) => Math.round(n * 100) / 100;
 
     for (const emp of run.employees) {
-      const net = Math.round(Number(emp.netPay) * 100) / 100;
-      if (net <= 0) continue;
-      const already = committed.get(emp.employeeId) ?? 0;
-      const remaining = Math.round((net - already) * 100) / 100;
-      if (remaining <= 0) continue;
+      // TR-13: what the employee is owed for the run is net pay plus reimbursements (mileage,
+      // expenses). The two are kept apart on the line, and each is paid once: what earlier
+      // batches of this run already cover is taken off its own part.
+      const already = committed.get(emp.employeeId) ?? { wages: 0, reimbursement: 0 };
+      const wages = Math.max(0, pence(Number(emp.netPay) - already.wages));
+      const reimbursementAmount = Math.max(
+        0,
+        pence(Number(emp.reimbursementPayable) - already.reimbursement),
+      );
+      const amount = pence(wages + reimbursementAmount);
+      if (amount <= 0) continue;
       lineInputs.push({
         employeeId: emp.employeeId,
         ukPayrollRunEmployeeId: emp.id,
-        amount: remaining,
+        amount,
+        reimbursementAmount,
       });
     }
 
     if (lineInputs.length === 0) {
       throw new BadRequestException(
-        'No employees have outstanding UK net pay to include in a payout batch for this run',
+        'No employees have outstanding UK net pay or reimbursements to include in a payout batch for this run',
       );
     }
 
@@ -324,6 +336,7 @@ export class EmployeePayoutsService {
             employeeId: l.employeeId,
             ukPayrollRunEmployeeId: l.ukPayrollRunEmployeeId,
             amount: l.amount,
+            reimbursementAmount: l.reimbursementAmount,
             status: EmployeePayoutLineStatus.PENDING,
           })),
         },
@@ -338,6 +351,9 @@ export class EmployeePayoutsService {
           ukPayrollRunId: run.id,
           periodKey,
           totalAmount: totalAmount.toFixed(2),
+          reimbursementTotal: pence(
+            lineInputs.reduce((sum, l) => sum + l.reimbursementAmount, 0),
+          ).toFixed(2),
           lines: lineInputs.length,
           proposedByScheduledJob: userId == null,
         },
@@ -674,7 +690,10 @@ export class EmployeePayoutsService {
     };
   }
 
-  async sumCommittedPayoutsByUkRun(ukPayrollRunId: string): Promise<Map<string, number>> {
+  /** Wages and reimbursement already in live payout batches of a UK run, per employee. */
+  private async committedPayoutsByUkRun(
+    ukPayrollRunId: string,
+  ): Promise<Map<string, { wages: number; reimbursement: number }>> {
     const lines = await this.prisma.employeePayoutLine.findMany({
       where: {
         batch: {
@@ -685,14 +704,88 @@ export class EmployeePayoutsService {
           in: [EmployeePayoutLineStatus.PAID, EmployeePayoutLineStatus.PENDING],
         },
       },
-      select: { employeeId: true, amount: true },
+      select: { employeeId: true, amount: true, reimbursementAmount: true },
     });
 
-    const map = new Map<string, number>();
+    const map = new Map<string, { wages: number; reimbursement: number }>();
     for (const l of lines) {
-      map.set(l.employeeId, (map.get(l.employeeId) ?? 0) + Number(l.amount));
+      const sum = map.get(l.employeeId) ?? { wages: 0, reimbursement: 0 };
+      const reimbursement = Number(l.reimbursementAmount);
+      sum.wages += Number(l.amount) - reimbursement;
+      sum.reimbursement += reimbursement;
+      map.set(l.employeeId, sum);
     }
     return map;
+  }
+
+  async sumCommittedPayoutsByUkRun(ukPayrollRunId: string): Promise<Map<string, number>> {
+    const map = new Map<string, number>();
+    for (const [employeeId, sum] of await this.committedPayoutsByUkRun(ukPayrollRunId)) {
+      map.set(employeeId, sum.wages + sum.reimbursement);
+    }
+    return map;
+  }
+
+  /**
+   * TR-13: for each employee of a UK run with expenses, what was recorded, what is payable
+   * through payouts, and what payout batches cover. `beforeReimbursementPayouts` marks runs
+   * calculated before reimbursements were paid through payouts: their expenses were recorded but
+   * were never part of a payout, and this list is how the office finds and settles them.
+   */
+  async reimbursementReconciliation(ukPayrollRunId?: string) {
+    const rows = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        expenseTotal: { gt: 0 },
+        run: { deletedAt: null, ...(ukPayrollRunId ? { id: ukPayrollRunId } : {}) },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        expenseTotal: true,
+        reimbursementPayable: true,
+        expenseNotVerified: true,
+        run: { select: { id: true, label: true, status: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+    const lines = rows.length
+      ? await this.prisma.employeePayoutLine.findMany({
+          where: {
+            ukPayrollRunEmployeeId: { in: rows.map((r) => r.id) },
+            batch: { status: { not: EmployeePayoutBatchStatus.CANCELLED } },
+            status: { in: [EmployeePayoutLineStatus.PAID, EmployeePayoutLineStatus.PENDING] },
+          },
+          select: { ukPayrollRunEmployeeId: true, reimbursementAmount: true, status: true },
+        })
+      : [];
+    const pence = (n: number) => Math.round(n * 100) / 100;
+    return {
+      data: rows.map((row) => {
+        const own = lines.filter((l) => l.ukPayrollRunEmployeeId === row.id);
+        const inBatches = pence(own.reduce((sum, l) => sum + Number(l.reimbursementAmount), 0));
+        const paid = pence(
+          own
+            .filter((l) => l.status === EmployeePayoutLineStatus.PAID)
+            .reduce((sum, l) => sum + Number(l.reimbursementAmount), 0),
+        );
+        const payable = Number(row.reimbursementPayable);
+        return {
+          ukPayrollRunId: row.run.id,
+          runLabel: row.run.label,
+          runStatus: row.run.status,
+          runEmployeeId: row.id,
+          employeeId: row.employeeId,
+          expenseTotal: Number(row.expenseTotal),
+          reimbursementPayable: payable,
+          taxTreatmentNotVerified: Number(row.expenseNotVerified),
+          inPayoutBatches: inBatches,
+          recordedAsPaid: paid,
+          outstanding: pence(payable - inBatches),
+          beforeReimbursementPayouts: payable === 0,
+        };
+      }),
+    };
   }
 
   /**
@@ -756,10 +849,11 @@ export class EmployeePayoutsService {
             in: [EmployeePayoutLineStatus.PAID, EmployeePayoutLineStatus.PENDING],
           },
         },
-        select: { employeeId: true, amount: true, status: true },
+        select: { employeeId: true, amount: true, reimbursementAmount: true, status: true },
       });
       for (const line of lines) {
-        const amount = Number(line.amount);
+        // Compared with net pay, so the reimbursement part of a line is left out (TR-13).
+        const amount = Number(line.amount) - Number(line.reimbursementAmount);
         committedByEmployee.set(
           line.employeeId,
           (committedByEmployee.get(line.employeeId) ?? 0) + amount,

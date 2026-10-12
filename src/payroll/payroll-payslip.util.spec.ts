@@ -143,3 +143,35 @@ describe('payroll-payslip.util', () => {
     expect(payslipPdfFilename(slip)).toBe('payslip-jane-carer-20260430-11111111.pdf')
   })
 })
+
+describe('TR-13: reimbursements on the pay statement', () => {
+  const withRunEmployee = (over: Record<string, number>) => {
+    const base = baseInput()
+    return buildCarePayslipData({ ...base, runEmployee: { ...base.runEmployee, ...over } })
+  }
+
+  it('mileage paid with the run is shown apart from wages, with the total payable', () => {
+    const data = withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41, netPay: 154 })
+    expect(data.totals).toMatchObject({ netPay: 154, expenseTotal: 3.41, reimbursement: 3.41, totalPayable: 157.41 })
+    // Gross taxable pay is not changed by the reimbursement.
+    expect(data.totals.grossPay).toBe(840)
+    expect(data.notes).toContain(
+      'Mileage and expenses of GBP 3.41 are reimbursed with this payment. They are not wages and are not part of gross taxable pay; total payable is GBP 157.41.',
+    )
+  })
+
+  it('a run from before reimbursements were paid through payouts keeps its old wording', () => {
+    const data = withRunEmployee({ expenseTotal: 12.5 })
+    expect(data.totals).toMatchObject({ reimbursement: 0, totalPayable: 739.4 })
+    expect(data.notes.some((n) => n.includes('Expenses of GBP 12.50 are tracked separately'))).toBe(true)
+  })
+
+  it('says when the tax treatment of mileage has not been verified', () => {
+    const data = withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41, expenseNotVerified: 3.41 })
+    expect(data.totals.expenseNotVerified).toBe(3.41)
+    expect(data.notes).toContain(
+      'The tax treatment of GBP 3.41 of mileage has not been verified against HMRC approved amounts for the period.',
+    )
+    expect(withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41 }).notes.some((n) => n.includes('not been verified'))).toBe(false)
+  })
+})

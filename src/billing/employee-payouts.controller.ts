@@ -40,6 +40,16 @@ export class EmployeePayoutsController {
     return this.service.listPayoutEligibleUkRuns();
   }
 
+  @Get('reimbursements')
+  @Permissions('billing.employee_payouts.read')
+  @ApiOperation({
+    summary:
+      'Mileage and expenses per UK run employee: recorded, payable through payouts, in batches, outstanding (TR-13)',
+  })
+  reimbursements(@Query('ukPayrollRunId') ukPayrollRunId?: string) {
+    return this.service.reimbursementReconciliation(ukPayrollRunId);
+  }
+
   @Delete()
   @Permissions('billing.financial_reset')
   @ApiOperation({

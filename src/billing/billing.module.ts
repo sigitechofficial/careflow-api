@@ -28,6 +28,8 @@ import { WageTypesService } from './wage-types.service';
 import { PayItemsService } from './pay-items.service';
 import { PayItemsController } from './pay-items.controller';
 import { BankHolidaysService } from './bank-holidays.service';
+import { MileageRatesController } from './mileage-rates.controller';
+import { MileageRatesService } from './mileage-rates.service';
 
 @Module({
   imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule, AuditLogsModule],
@@ -43,6 +45,7 @@ import { BankHolidaysService } from './bank-holidays.service';
     EmployeePayoutsController,
     WageTypesController,
     BankHolidaysController,
+    MileageRatesController,
     PayItemsController,
   ],
   providers: [
@@ -58,6 +61,7 @@ import { BankHolidaysService } from './bank-holidays.service';
     EmployeePayoutAutoJob,
     WageTypesService,
     BankHolidaysService,
+    MileageRatesService,
     PayItemsService,
   ],
   exports: [

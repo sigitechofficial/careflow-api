@@ -48,7 +48,13 @@ import {
   weekKeyInTimeZone,
   weeklyOvertime,
 } from './pay-items.util';
-import { calculateUkMileage } from './pay-mileage.util';
+import {
+  calculateUkMileage,
+  milesOfMileageLine,
+  type MileageVehicleType,
+  pickMileageRates,
+  ukTaxYearStartKey,
+} from './pay-mileage.util';
 import { loadPayCardRulesForVersion } from './pay-card-version.util';
 import {
   detectInterVisitTravel,
@@ -698,6 +704,11 @@ export class PayrollRunsService {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     /** Auto unpaid NMW travel minutes not covered by paid TRAVEL_TIME / WAITING_TIME lines. */
     const autoUnpaidNmwByEmployee = new Map<string, number>();
+    // TR-09: mileage rates in force on the day of each journey, and business miles so far in the
+    // carer's tax year: journeys in other approved or locked runs, plus earlier ones in this run.
+    const mileageRateRows = await this.prisma.mileageRate.findMany();
+    const mileageInOtherRuns = new Map<string, Array<{ at: Date; miles: number }>>();
+    const mileageInThisRun = new Map<string, number>();
 
     for (const recon of reconciliations) {
       const issues: string[] = [];
@@ -758,42 +769,34 @@ export class PayrollRunsService {
             ? Number((recon as { passengerMiles?: unknown }).passengerMiles)
             : 0;
 
-        const taxYearStart = new Date(
-          Date.UTC(
-            visitDate.getUTCMonth() >= 3 ? visitDate.getUTCFullYear() : visitDate.getUTCFullYear() - 1,
-            3,
-            6,
-          ),
-        );
-        const priorMileage = await this.prisma.payrollRunLine.aggregate({
-          where: {
-            employeeId: recon.employeeId,
-            lineType: PayrollRunLineType.MILEAGE,
-            payrollRun: {
-              status: {
-                in: [PayrollRunStatus.APPROVED, PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED],
-              },
-              periodEnd: { gte: taxYearStart, lt: run.periodStart },
-            },
-          },
-          _sum: { amount: true },
-        });
-        const cardMileageRate =
-          calculateMileageAmount(payRules, visitDate, 1, false, timeZone)?.unitRate ?? 0.55;
-        const priorAmount = Number(priorMileage._sum.amount ?? 0);
+        const dayKey = dayKeyInTimeZone(visitDate, timeZone);
+        const taxYearKey = ukTaxYearStartKey(dayKey);
+        const ytdKey = `${recon.employeeId}|${taxYearKey}`;
+        if (miles > 0 && !mileageInOtherRuns.has(ytdKey)) {
+          mileageInOtherRuns.set(
+            ytdKey,
+            await this.mileageInOtherRuns(id, recon.employeeId, taxYearKey, timeZone),
+          );
+        }
+        // Miles before this journey, by the date of the journey (not by the date of the run).
         const ytdBusinessMiles =
-          cardMileageRate > 0 ? Math.max(0, priorAmount / cardMileageRate) : 0;
+          (mileageInOtherRuns.get(ytdKey) ?? [])
+            .filter((journey) => journey.at < visitDate)
+            .reduce((sum, journey) => sum + journey.miles, 0) + (mileageInThisRun.get(ytdKey) ?? 0);
 
+        const vehicleType = (payCard?.mileageVehicleType as MileageVehicleType) ?? 'CAR_VAN';
+        const mileageRates = pickMileageRates(mileageRateRows, vehicleType, dayKey);
         const cardMileage = calculateMileageAmount(payRules, visitDate, miles, false, timeZone);
         const ukMileage =
           miles > 0
             ? calculateUkMileage({
                 miles,
-                vehicleType: (payCard?.mileageVehicleType as 'CAR_VAN') ?? 'CAR_VAN',
+                vehicleType,
                 cardRatePerMile: cardMileage?.unitRate ?? null,
                 useUkApprovedRates: payCard?.useUkMileageRates ?? true,
                 ytdBusinessMiles,
                 passengerMiles,
+                rates: mileageRates,
               })
             : null;
 
@@ -803,10 +806,14 @@ export class PayrollRunsService {
             visitReconciliationId: recon.id,
             employeeId: recon.employeeId,
             lineType: PayrollRunLineType.MILEAGE,
-            description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
+            description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi): ${ukMileage.explanation.replace(/ \+ passenger £[0-9.]+$/, '')}`,
             minutes: null,
+            quantity: miles,
             unitAmount: ukMileage.unitRate,
             amount: ukMileage.amount,
+            taxTreatment: ukMileage.taxTreatment,
+            taxFreeAmount: ukMileage.taxFreeAmount,
+            taxableAmount: ukMileage.taxableAmount,
             payCardId: recon.payCardId,
             visitRef: recon.visitRef,
             exceptionMessage: null,
@@ -819,14 +826,19 @@ export class PayrollRunsService {
               lineType: 'PASSENGER_MILEAGE' as PayrollRunLineType,
               description: `Passenger mileage — ${recon.visitRef}`,
               minutes: null,
-              unitAmount: 0.05,
+              quantity: Math.min(passengerMiles, miles),
+              unitAmount: mileageRates?.passengerRate ?? null,
               amount: ukMileage.passengerAmount,
+              taxTreatment: ukMileage.taxTreatment,
+              taxFreeAmount: ukMileage.passengerTaxFreeAmount,
+              taxableAmount: ukMileage.passengerTaxableAmount,
               payCardId: recon.payCardId,
               visitRef: recon.visitRef,
               exceptionMessage: null,
             });
           }
         } else if (cardMileage) {
+          // A per-mile rate with no approved amount to compare it with (e.g. public transport).
           lineData.push({
             payrollRunId: id,
             visitReconciliationId: recon.id,
@@ -834,12 +846,34 @@ export class PayrollRunsService {
             lineType: PayrollRunLineType.MILEAGE,
             description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
             minutes: null,
+            quantity: miles,
             unitAmount: cardMileage.unitRate,
             amount: cardMileage.amount,
+            taxTreatment: 'NOT_VERIFIED',
             payCardId: recon.payCardId,
             visitRef: recon.visitRef,
             exceptionMessage: null,
           });
+        } else if (miles > 0) {
+          // Miles recorded and nothing to price them with: said, not dropped.
+          exceptionCount += 1;
+          lineData.push({
+            payrollRunId: id,
+            visitReconciliationId: recon.id,
+            employeeId: recon.employeeId,
+            lineType: PayrollRunLineType.MILEAGE,
+            description: `Mileage — ${recon.visitRef} (${miles.toFixed(2)} mi)`,
+            minutes: null,
+            quantity: miles,
+            unitAmount: null,
+            amount: 0,
+            payCardId: recon.payCardId,
+            visitRef: recon.visitRef,
+            exceptionMessage: `No mileage rate is recorded for ${dayKey} (${vehicleType.replace(/_/g, ' ').toLowerCase()}), and the pay card has no mileage rate.`,
+          });
+        }
+        if (miles > 0 && (ukMileage || cardMileage)) {
+          mileageInThisRun.set(ytdKey, (mileageInThisRun.get(ytdKey) ?? 0) + miles);
         }
 
         let paidTravelMins = 0;
@@ -1112,6 +1146,48 @@ export class PayrollRunsService {
     });
 
     return heldElsewhere.size;
+  }
+
+  /**
+   * TR-09: a carer's reimbursed journeys in a tax year that are in other approved or locked runs.
+   * Journeys are placed by the date they were made, so a run for an earlier period that is
+   * calculated late still sees the right running total.
+   */
+  private async mileageInOtherRuns(
+    runId: string,
+    employeeId: string,
+    taxYearStartKey: string,
+    timeZone: string,
+  ): Promise<Array<{ at: Date; miles: number }>> {
+    const nextYearKey = `${Number(taxYearStartKey.slice(0, 4)) + 1}-04-06`;
+    const lines = await this.prisma.payrollRunLine.findMany({
+      where: {
+        employeeId,
+        lineType: PayrollRunLineType.MILEAGE,
+        exceptionMessage: null,
+        payrollRunId: { not: runId },
+        payrollRun: {
+          status: {
+            in: [PayrollRunStatus.APPROVED, PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED],
+          },
+        },
+        visitReconciliation: {
+          plannedStartDateTime: {
+            gte: operationalDayBounds(taxYearStartKey, timeZone).start,
+            lt: operationalDayBounds(nextYearKey, timeZone).start,
+          },
+        },
+      },
+      select: {
+        quantity: true,
+        description: true,
+        visitReconciliation: { select: { plannedStartDateTime: true } },
+      },
+    });
+    return lines.map((line) => ({
+      at: line.visitReconciliation!.plannedStartDateTime,
+      miles: milesOfMileageLine(line),
+    }));
   }
 
   /**

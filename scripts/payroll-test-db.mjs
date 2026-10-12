@@ -18,10 +18,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 require('dotenv').config({ path: join(root, '.env') });
 
-/** SQL-only migrations Prisma cannot express in the schema (triggers). */
+/** SQL-only migrations Prisma cannot express in the schema (triggers, and data the application needs). */
 const SQL_MIGRATIONS = [
   '20261012101000_locked_payroll_history_triggers',
   '20261012103000_paid_visit_trigger_uk_runs',
+  '20261014104500_mileage_rate_defaults',
 ];
 
 export function payrollTestDatabaseUrl(baseUrl = process.env.DATABASE_URL) {

@@ -8477,6 +8477,38 @@ enum MileageVehicleType {
   @@schema("billing")
 }
 
+/// TR-09: mileage rates in force from a date, per vehicle type. Two separate things are recorded:
+/// what the organisation reimburses, and the amounts HMRC approves as tax-free for the same
+/// period. The approved amounts stay empty until a person has checked them against HMRC and says
+/// where; until then the tax treatment of mileage paid in that period is "not verified".
+model MileageRate {
+  id                     String             @id @default(uuid()) @db.Uuid
+  effectiveFrom          DateTime           @db.Date
+  vehicleType            MileageVehicleType
+  /// Organisation rate per mile up to the threshold, and above it. A pay card's own mileage rate
+  /// replaces rateFirst for carers on that card.
+  rateFirst              Decimal            @db.Decimal(8, 4)
+  rateAfter              Decimal            @db.Decimal(8, 4)
+  /// Business miles in a tax year after which rateAfter applies. Null: no threshold.
+  thresholdMiles         Int?
+  passengerRate          Decimal            @default(0) @db.Decimal(8, 4)
+  approvedRateFirst      Decimal?           @db.Decimal(8, 4)
+  approvedRateAfter      Decimal?           @db.Decimal(8, 4)
+  approvedThresholdMiles Int?
+  approvedPassengerRate  Decimal?           @db.Decimal(8, 4)
+  /// Where the approved amounts were checked (publication and date).
+  approvedSource         String?
+  approvedVerifiedAt     DateTime?
+  approvedVerifiedById   String?            @db.Uuid
+  label                  String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  createdById            String?            @db.Uuid
+
+  @@unique([effectiveFrom, vehicleType])
+  @@schema("billing")
+}
+
 enum BillingFrequency {
   WEEKLY
   FOUR_WEEKLY
@@ -9268,8 +9300,16 @@ model PayrollRunLine {
   lineType              PayrollRunLineType @default(VISIT_PAY)
   description           String
   minutes               Int?
+  /// Miles, for mileage lines (TR-09). The year-to-date total is counted from these.
+  quantity              Decimal?           @db.Decimal(10, 2)
   unitAmount            Decimal?           @db.Decimal(12, 4)
   amount                Decimal            @db.Decimal(12, 2)
+  /// Mileage lines (TR-13): how much of `amount` is within HMRC's approved amount, and how much is
+  /// above it and therefore taxable. Both empty when the treatment is NOT_VERIFIED.
+  taxFreeAmount         Decimal?           @db.Decimal(12, 2)
+  taxableAmount         Decimal?           @db.Decimal(12, 2)
+  /// TAX_FREE | PART_TAXABLE | NOT_VERIFIED. Null on lines that are not reimbursements.
+  taxTreatment          String?
   currency              String             @default("GBP")
   payCardId             String?            @db.Uuid
   visitRef              String?
@@ -9379,8 +9419,10 @@ model EmployeePayoutLine {
   id                     String                   @id @default(uuid()) @db.Uuid
   batchId                String                   @db.Uuid
   employeeId             String                   @db.Uuid
-  /// Snapshot of UK net pay outstanding at create time.
+  /// Total to pay the employee: net pay outstanding plus reimbursements outstanding at create time.
   amount                 Decimal                  @db.Decimal(12, 2)
+  /// TR-13: the part of `amount` that is reimbursement (mileage, expenses), not wages.
+  reimbursementAmount    Decimal                  @default(0) @db.Decimal(12, 2)
   /// Source UK run employee row (netPay snapshot origin).
   ukPayrollRunEmployeeId String                   @db.Uuid
   status                 EmployeePayoutLineStatus @default(PENDING)
@@ -10216,6 +10258,12 @@ model UkPayrollRunEmployee {
   nmwTopUp              Decimal   @default(0) @db.Decimal(12, 2)
   otherPay              Decimal   @default(0) @db.Decimal(12, 2)
   expenseTotal          Decimal   @default(0) @db.Decimal(12, 2)
+  /// TR-13: reimbursements to be paid to the employee with this run's net pay. Equal to
+  /// expenseTotal for runs calculated since reimbursements were paid through payouts; 0 on older
+  /// runs, whose expenses were recorded but never part of a payout.
+  reimbursementPayable  Decimal   @default(0) @db.Decimal(12, 2)
+  /// Part of expenseTotal whose tax treatment has not been verified (see MileageRate).
+  expenseNotVerified    Decimal   @default(0) @db.Decimal(12, 2)
   deductionTotal        Decimal   @default(0) @db.Decimal(12, 2)
   /// visit + salary + travel + nmw + other − deductions (expenses tracked separately).
   totalGross            Decimal   @default(0) @db.Decimal(12, 2)

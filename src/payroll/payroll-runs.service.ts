@@ -28,6 +28,7 @@ import {
   finalizeGrossBucket,
   isExpenseLineType,
   prorateAnnualSalary,
+  round2,
   salaryMonthKeysForPeriod,
   toDecimal,
 } from './payroll-gross.util';
@@ -183,6 +184,8 @@ type DraftInputLine = {
   isProvisional: boolean;
   /** Claim on the earning (see UkPayrollInputLine.claimKey); null for provisional visits. */
   claimKey: string | null;
+  /** A reimbursement whose tax treatment nobody has verified (TR-13). Not stored on the line. */
+  notVerified?: boolean;
 };
 
 /** Times gross collection reselects when another run claims some of the same earnings mid-flight. */
@@ -518,6 +521,9 @@ export class PayrollRunsService {
             nmwTopUp: decimalNum(e.nmwTopUp),
             otherPay: decimalNum(e.otherPay),
             expenseTotal: decimalNum(e.expenseTotal),
+            reimbursementPayable: decimalNum(e.reimbursementPayable),
+            expenseNotVerified: decimalNum(e.expenseNotVerified),
+            totalPayable: round2(decimalNum(e.netPay) + decimalNum(e.reimbursementPayable)),
             deductionTotal: decimalNum(e.deductionTotal),
             totalGross: decimalNum(e.totalGross),
             inputLineCount: e.inputLineCount,
@@ -818,6 +824,8 @@ export class PayrollRunsService {
         nmwTopUp: decimalNum(runEmployee.nmwTopUp),
         otherPay: decimalNum(runEmployee.otherPay),
         expenseTotal: decimalNum(runEmployee.expenseTotal),
+        reimbursementPayable: decimalNum(runEmployee.reimbursementPayable),
+        expenseNotVerified: decimalNum(runEmployee.expenseNotVerified),
         deductionTotal: decimalNum(runEmployee.deductionTotal),
         totalGross: decimalNum(runEmployee.totalGross),
         taxablePay: decimalNum(runEmployee.taxablePay),
@@ -1235,24 +1243,49 @@ export class PayrollRunsService {
       const runEmployee = runEmployeeByEmployeeId.get(line.employeeId);
       if (!runEmployee) continue;
       if (line.visitReconciliationId) coveredReconIds.add(line.visitReconciliationId);
-      draftLines.push({
-        id: randomUUID(),
+      // TR-13: a reimbursement is not wages. The part within HMRC's approved amount stays outside
+      // taxable pay; any part above it comes in as taxable pay on a line of its own, so it is
+      // taxed by the same calculation as everything else and is never added to wages twice.
+      const isExpense = isExpenseLineType(line.lineType);
+      const taxable = isExpense ? decimalNum(line.taxableAmount ?? 0) : 0;
+      const isMileage = line.lineType === 'MILEAGE' || line.lineType === 'PASSENGER_MILEAGE';
+      const base = {
         runId,
         runEmployeeId: runEmployee.id,
         employeeId: line.employeeId,
-        sourceType: 'BILLING_PAYROLL_LINE',
+        sourceType: 'BILLING_PAYROLL_LINE' as const,
         sourcePayrollRunId: line.payrollRunId,
         sourcePayrollRunLineId: line.id,
         sourceVisitReconciliationId: line.visitReconciliationId,
         sourceSalaryDeductionId: null,
-        lineType: line.lineType,
-        description: line.description,
         minutes: line.minutes,
-        amount: decimalNum(line.amount),
-        isExpense: isExpenseLineType(line.lineType),
         isProvisional: false,
-        claimKey: `LINE:${line.id}`,
-      });
+      };
+      const reimbursed = round2(decimalNum(line.amount) - taxable);
+      if (!isExpense || reimbursed !== 0 || taxable === 0) {
+        draftLines.push({
+          ...base,
+          id: randomUUID(),
+          lineType: line.lineType,
+          description: line.description,
+          amount: isExpense ? reimbursed : decimalNum(line.amount),
+          isExpense,
+          claimKey: `LINE:${line.id}`,
+          notVerified: isMileage && line.taxTreatment !== 'TAX_FREE' && line.taxTreatment !== 'PART_TAXABLE',
+        });
+      }
+      if (taxable > 0) {
+        draftLines.push({
+          ...base,
+          id: randomUUID(),
+          lineType: 'MILEAGE_TAXABLE',
+          description: `${line.description} — above the HMRC approved amount (taxable)`,
+          minutes: null,
+          amount: taxable,
+          isExpense: false,
+          claimKey: `LINE:${line.id}:TAXABLE`,
+        });
+      }
     }
 
     const approvedRecons = await this.prisma.visitReconciliation.findMany({
@@ -1393,8 +1426,12 @@ export class PayrollRunsService {
       lineCounts.set(re.id, 0);
     }
 
+    const notVerified = new Map<string, number>();
     for (const line of draftLines) {
       const bucket = buckets.get(line.runEmployeeId)!;
+      if (line.notVerified) {
+        notVerified.set(line.runEmployeeId, round2((notVerified.get(line.runEmployeeId) ?? 0) + line.amount));
+      }
       accumulateGrossLine(bucket, line);
       lineCounts.set(line.runEmployeeId, (lineCounts.get(line.runEmployeeId) ?? 0) + 1);
       if (line.isProvisional) provisionalFlags.set(line.runEmployeeId, true);
@@ -1447,6 +1484,9 @@ export class PayrollRunsService {
             nmwTopUp: toDecimal(bucket.nmwTopUp),
             otherPay: toDecimal(bucket.otherPay),
             expenseTotal: toDecimal(bucket.expenseTotal),
+            // TR-13: reimbursements are owed to the employee with this run's net pay.
+            reimbursementPayable: toDecimal(bucket.expenseTotal),
+            expenseNotVerified: toDecimal(notVerified.get(re.id) ?? 0),
             deductionTotal: toDecimal(bucket.deductionTotal),
             totalGross: toDecimal(bucket.totalGross),
             inputLineCount: lineCounts.get(re.id) ?? 0,

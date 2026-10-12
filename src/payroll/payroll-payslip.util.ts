@@ -80,6 +80,10 @@ export type BuildCarePayslipInput = {
     nmwTopUp: number
     otherPay: number
     expenseTotal: number
+    /** Reimbursements paid with this run's net pay (0 on runs from before they were). */
+    reimbursementPayable?: number
+    /** Part of the expenses whose tax treatment has not been verified. */
+    expenseNotVerified?: number
     deductionTotal: number
     totalGross: number
     taxablePay: number
@@ -216,9 +220,19 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
     'Itemised pay statement under Employment Rights Act 1996 s.8.',
     'Student loan, postgraduate loan, and workplace pension deductions are not calculated in Care yet - they will not appear until those engines ship.',
   ]
-  if (re.expenseTotal > 0) {
+  const reimbursement = round2(re.reimbursementPayable ?? 0)
+  if (reimbursement > 0) {
+    notes.push(
+      `Mileage and expenses of GBP ${reimbursement.toFixed(2)} are reimbursed with this payment. They are not wages and are not part of gross taxable pay; total payable is GBP ${round2(re.netPay + reimbursement).toFixed(2)}.`,
+    )
+  } else if (re.expenseTotal > 0) {
     notes.push(
       `Expenses of GBP ${round2(re.expenseTotal).toFixed(2)} are tracked separately and are not included in gross taxable pay on this statement.`,
+    )
+  }
+  if ((re.expenseNotVerified ?? 0) > 0) {
+    notes.push(
+      `The tax treatment of GBP ${round2(re.expenseNotVerified ?? 0).toFixed(2)} of mileage has not been verified against HMRC approved amounts for the period.`,
     )
   }
   if (timeVaryingGross > 0 && paidHours <= 0) {
@@ -268,6 +282,9 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
       totalDeductions,
       netPay: round2(re.netPay),
       expenseTotal: round2(re.expenseTotal),
+      reimbursement,
+      expenseNotVerified: round2(re.expenseNotVerified ?? 0),
+      totalPayable: round2(re.netPay + reimbursement),
     },
     hoursWorked: {
       required: hoursRequired,

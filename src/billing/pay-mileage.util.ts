@@ -1,5 +1,6 @@
 /**
- * UK mileage and travel/waiting gap helpers (2026–27 tax year defaults).
+ * UK mileage and travel/waiting gap helpers. Mileage rates are read from `billing.MileageRate`
+ * for the day of the journey (TR-09); none is fixed here.
  */
 
 export type MileageVehicleType = 'CAR_VAN' | 'MOTORCYCLE' | 'BICYCLE' | 'COMPANY_VEHICLE' | 'PUBLIC_TRANSPORT';
@@ -25,25 +26,97 @@ export type TravelSubtype =
 
 export type CommuteMileagePolicy = 'EXCLUDE' | 'INCLUDE_AS_BUSINESS' | 'ORG_POLICY';
 
-/** HMRC approved mileage amounts from 6 April 2026 (car/van 55p first 10k). */
-export const UK_MILEAGE_RATES_2026_27 = {
-  CAR_VAN_FIRST_10000: 0.55,
-  CAR_VAN_OVER_10000: 0.25,
-  MOTORCYCLE: 0.24,
-  BICYCLE: 0.2,
-  PASSENGER_SUPPLEMENT: 0.05,
-  ANNUAL_THRESHOLD_MILES: 10_000,
-} as const;
+/**
+ * TR-09: mileage rates in force for a day and vehicle type. Read from `billing.MileageRate`; none
+ * of these figures is fixed in the code. `approved` is HMRC's tax-free amount for the same
+ * period and is null until a person has verified it.
+ */
+export type MileageRates = {
+  rateFirst: number;
+  rateAfter: number;
+  /** Business miles in the tax year after which `rateAfter` applies; null = no threshold. */
+  thresholdMiles: number | null;
+  passengerRate: number;
+  approved: {
+    rateFirst: number;
+    rateAfter: number;
+    thresholdMiles: number | null;
+    passengerRate: number;
+  } | null;
+};
+
+export type MileageRateRow = {
+  effectiveFrom: Date;
+  vehicleType: string;
+  rateFirst: unknown;
+  rateAfter: unknown;
+  thresholdMiles: number | null;
+  passengerRate: unknown;
+  approvedRateFirst: unknown;
+  approvedRateAfter: unknown;
+  approvedThresholdMiles: number | null;
+  approvedPassengerRate: unknown;
+  approvedVerifiedAt: Date | null;
+};
+
+/** The rates in force on a local day (YYYY-MM-DD) for a vehicle type, or null when none is recorded. */
+export function pickMileageRates(
+  rows: MileageRateRow[],
+  vehicleType: MileageVehicleType,
+  dayKey: string,
+): MileageRates | null {
+  const row = rows
+    .filter((r) => r.vehicleType === vehicleType && r.effectiveFrom.toISOString().slice(0, 10) <= dayKey)
+    .sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime())[0];
+  if (!row) return null;
+  // Approved amounts count only once a person has verified them.
+  const verified = !!row.approvedVerifiedAt && row.approvedRateFirst != null;
+  return {
+    rateFirst: Number(row.rateFirst),
+    rateAfter: Number(row.rateAfter),
+    thresholdMiles: row.thresholdMiles,
+    passengerRate: Number(row.passengerRate),
+    approved: verified
+      ? {
+          rateFirst: Number(row.approvedRateFirst),
+          rateAfter: Number(row.approvedRateAfter ?? row.approvedRateFirst),
+          thresholdMiles: row.approvedThresholdMiles,
+          passengerRate: Number(row.approvedPassengerRate ?? 0),
+        }
+      : null,
+  };
+}
+
+/** First day (YYYY-MM-DD) of the UK tax year a local day falls in: 6 April. */
+export function ukTaxYearStartKey(dayKey: string): string {
+  const year = Number(dayKey.slice(0, 4));
+  return dayKey >= `${year}-04-06` ? `${year}-04-06` : `${year - 1}-04-06`;
+}
+
+/**
+ * Miles of a mileage line. Lines written before miles were stored have them in the description
+ * ("Mileage — VIS-… (12.50 mi)"); locked lines are history and are read, never rewritten.
+ */
+export function milesOfMileageLine(line: { quantity?: unknown; description?: string | null }): number {
+  if (line.quantity != null) return Number(line.quantity);
+  const match = /\(([0-9]+(?:\.[0-9]+)?) mi\)/.exec(line.description ?? '');
+  return match ? Number(match[1]) : 0;
+}
+
+export type MileageTaxTreatment = 'TAX_FREE' | 'PART_TAXABLE' | 'NOT_VERIFIED';
 
 export type MileageCalcInput = {
   miles: number;
   vehicleType: MileageVehicleType;
-  /** Business miles already claimed in the tax year before this claim. */
+  /** Business miles already reimbursed in the tax year before this claim. */
   ytdBusinessMiles?: number;
   passengerMiles?: number;
-  /** Override rates from pay card (flat rate) — still applies threshold split for CAR_VAN when using UK defaults. */
+  /** The pay card's own rate per mile, where it has one. */
   cardRatePerMile?: number | null;
+  /** False: the card's rate is a flat rate with no threshold. */
   useUkApprovedRates?: boolean;
+  /** Rates in force on the day of the journey; null when none is recorded. */
+  rates: MileageRates | null;
 };
 
 export type MileageCalcResult = {
@@ -55,68 +128,105 @@ export type MileageCalcResult = {
   milesAtSecondaryRate: number;
   explanation: string;
   countsTowardNmw: false;
+  /** TR-13: the part within HMRC's approved amount and the part above it. Null when not verified. */
+  taxTreatment: MileageTaxTreatment;
+  taxFreeAmount: number | null;
+  taxableAmount: number | null;
+  passengerTaxFreeAmount: number | null;
+  passengerTaxableAmount: number | null;
 };
 
+const pence = (n: number) => Math.round(n * 100) / 100;
+
+function splitAtThreshold(miles: number, ytd: number, threshold: number | null) {
+  const remaining = threshold == null ? Number.POSITIVE_INFINITY : Math.max(0, threshold - ytd);
+  const first = Math.min(miles, remaining);
+  return { first, after: Math.max(0, miles - first) };
+}
+
+/**
+ * What the organisation reimburses for a journey, and how much of it is within HMRC's approved
+ * amount. The two are worked out separately: a rate above the approved amount is paid in full and
+ * the part above is taxable; it is never assumed that the whole payment is tax-free.
+ */
 export function calculateUkMileage(input: MileageCalcInput): MileageCalcResult | null {
   const miles = input.miles;
   if (miles <= 0) return null;
+  if (input.vehicleType === 'PUBLIC_TRANSPORT') return null; // receipt-based, not per-mile
 
   const ytd = input.ytdBusinessMiles ?? 0;
   const useUk = input.useUkApprovedRates !== false;
+  const rates = input.rates;
   let primaryRate: number;
   let secondaryRate: number;
-  let threshold: number = UK_MILEAGE_RATES_2026_27.ANNUAL_THRESHOLD_MILES;
+  let threshold: number | null;
 
   if (!useUk && input.cardRatePerMile != null) {
     primaryRate = Number(input.cardRatePerMile);
     secondaryRate = primaryRate;
-    threshold = Number.POSITIVE_INFINITY;
+    threshold = null;
+  } else if (!rates) {
+    // No rate recorded for the day: only a card's own rate can price the journey, flat.
+    if (input.cardRatePerMile == null) return null;
+    primaryRate = Number(input.cardRatePerMile);
+    secondaryRate = primaryRate;
+    threshold = null;
+  } else if (input.vehicleType === 'MOTORCYCLE' || input.vehicleType === 'BICYCLE') {
+    primaryRate = rates.rateFirst;
+    secondaryRate = rates.rateAfter;
+    threshold = rates.thresholdMiles;
   } else {
-    switch (input.vehicleType) {
-      case 'MOTORCYCLE':
-        primaryRate = UK_MILEAGE_RATES_2026_27.MOTORCYCLE;
-        secondaryRate = UK_MILEAGE_RATES_2026_27.MOTORCYCLE;
-        break;
-      case 'BICYCLE':
-        primaryRate = UK_MILEAGE_RATES_2026_27.BICYCLE;
-        secondaryRate = UK_MILEAGE_RATES_2026_27.BICYCLE;
-        break;
-      case 'PUBLIC_TRANSPORT':
-        return null; // receipt-based, not per-mile AMAPs
-      case 'COMPANY_VEHICLE':
-      case 'CAR_VAN':
-      default:
-        primaryRate = input.cardRatePerMile ?? UK_MILEAGE_RATES_2026_27.CAR_VAN_FIRST_10000;
-        secondaryRate = UK_MILEAGE_RATES_2026_27.CAR_VAN_OVER_10000;
-        break;
-    }
+    primaryRate = input.cardRatePerMile ?? rates.rateFirst;
+    secondaryRate = rates.rateAfter;
+    threshold = rates.thresholdMiles;
   }
 
-  const remainingAtPrimary = Math.max(0, threshold - ytd);
-  const milesAtPrimaryRate = Math.min(miles, remainingAtPrimary);
-  const milesAtSecondaryRate = Math.max(0, miles - milesAtPrimaryRate);
-  const amount =
-    Math.round((milesAtPrimaryRate * primaryRate + milesAtSecondaryRate * secondaryRate) * 100) / 100;
-  const unitRate = milesAtSecondaryRate > 0 && milesAtPrimaryRate === 0 ? secondaryRate : primaryRate;
+  const paid = splitAtThreshold(miles, ytd, threshold);
+  const amount = pence(paid.first * primaryRate + paid.after * secondaryRate);
+  const unitRate = paid.after > 0 && paid.first === 0 ? secondaryRate : primaryRate;
 
   const passengerMiles = Math.min(input.passengerMiles ?? 0, miles);
-  const passengerAmount =
-    Math.round(passengerMiles * UK_MILEAGE_RATES_2026_27.PASSENGER_SUPPLEMENT * 100) / 100;
+  const passengerAmount = pence(passengerMiles * (rates?.passengerRate ?? 0));
+
+  let taxTreatment: MileageTaxTreatment = 'NOT_VERIFIED';
+  let taxFreeAmount: number | null = null;
+  let taxableAmount: number | null = null;
+  let passengerTaxFreeAmount: number | null = null;
+  let passengerTaxableAmount: number | null = null;
+  if (rates?.approved) {
+    const within = splitAtThreshold(miles, ytd, rates.approved.thresholdMiles);
+    const approvedAmount = pence(
+      within.first * rates.approved.rateFirst + within.after * rates.approved.rateAfter,
+    );
+    taxFreeAmount = Math.min(amount, approvedAmount);
+    taxableAmount = pence(amount - taxFreeAmount);
+    passengerTaxFreeAmount = Math.min(
+      passengerAmount,
+      pence(passengerMiles * rates.approved.passengerRate),
+    );
+    passengerTaxableAmount = pence(passengerAmount - passengerTaxFreeAmount);
+    taxTreatment = taxableAmount > 0 || passengerTaxableAmount > 0 ? 'PART_TAXABLE' : 'TAX_FREE';
+  }
 
   return {
     amount,
     unitRate,
     passengerAmount,
-    totalAmount: Math.round((amount + passengerAmount) * 100) / 100,
-    milesAtPrimaryRate,
-    milesAtSecondaryRate,
+    totalAmount: pence(amount + passengerAmount),
+    milesAtPrimaryRate: paid.first,
+    milesAtSecondaryRate: paid.after,
     explanation:
-      milesAtSecondaryRate > 0
-        ? `${milesAtPrimaryRate.toFixed(2)} mi × £${primaryRate.toFixed(2)} + ${milesAtSecondaryRate.toFixed(2)} mi × £${secondaryRate.toFixed(2)}` +
+      paid.after > 0
+        ? `${paid.first.toFixed(2)} mi × £${primaryRate.toFixed(2)} + ${paid.after.toFixed(2)} mi × £${secondaryRate.toFixed(2)}` +
           (passengerAmount > 0 ? ` + passenger £${passengerAmount.toFixed(2)}` : '')
         : `${miles.toFixed(2)} mi × £${primaryRate.toFixed(2)}` +
           (passengerAmount > 0 ? ` + passenger £${passengerAmount.toFixed(2)}` : ''),
     countsTowardNmw: false,
+    taxTreatment,
+    taxFreeAmount,
+    taxableAmount,
+    passengerTaxFreeAmount,
+    passengerTaxableAmount,
   };
 }
 

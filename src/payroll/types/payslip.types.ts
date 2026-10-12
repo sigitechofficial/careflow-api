@@ -60,6 +60,12 @@ export type CarePayslipData = {
     totalDeductions: number
     netPay: number
     expenseTotal: number
+    /** Mileage and expenses reimbursed with this payment (not wages). */
+    reimbursement: number
+    /** Part of the expenses whose tax treatment has not been verified. */
+    expenseNotVerified: number
+    /** Net pay plus reimbursement: what the employee is paid for this run. */
+    totalPayable: number
   }
   /** ERA 2019 hours rule — only when pay varies by time worked. */
   hoursWorked: {
