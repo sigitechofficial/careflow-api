@@ -35,6 +35,7 @@ import {
 } from './visit-reconciliation.util';
 import { dayKeyInTimeZone, formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
 import { PayCardsService } from './billing-cards.service';
+import { PayCardConflictException } from './pay-card-assignment.util';
 import {
   PAY_ITEM_CONFIG,
   cardBaseHourlyRate,
@@ -919,6 +920,7 @@ export class PayrollRunsService {
     const nonVisit = await this.buildNonVisitLines(run, reconciliations, lineData);
     lineData.push(...nonVisit.lines);
     for (const employeeId of nonVisit.employeeIds) employeeIds.add(employeeId);
+    exceptionCount += nonVisit.problemCount;
 
     // Pay-reference-period NMW validation per worker (DOB-derived age; unpaid travel hours included).
     const nmwByEmployee = new Map<string, NmwPayComponent[]>();
@@ -1124,16 +1126,30 @@ export class PayrollRunsService {
     run: { id: string; periodStart: Date; periodEnd: Date },
     reconciliations: Array<{ id: string; approvedPayStart: Date | null }>,
     visitLines: Prisma.PayrollRunLineCreateManyInput[],
-  ): Promise<{ lines: Prisma.PayrollRunLineCreateManyInput[]; employeeIds: Set<string> }> {
+  ): Promise<{
+    lines: Prisma.PayrollRunLineCreateManyInput[];
+    employeeIds: Set<string>;
+    problemCount: number;
+  }> {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const periodEnd = endOfBillingDate(run.periodEnd);
     const lines: Prisma.PayrollRunLineCreateManyInput[] = [];
     const employeeIds = new Set<string>();
     const cache = new Map<string, Awaited<ReturnType<PayCardsService['resolveRulesForEmployeeAt']>>>();
+    // PC-32: a carer whose pay card cannot be decided is not the same as a carer with no card.
+    // Their training, on-call, overtime and rolled-up holiday pay is not calculated, and the run
+    // says so on an exception line instead of leaving the amounts out without a word.
+    const cardConflicts = new Map<string, string>();
     const rulesAt = async (employeeId: string, at: Date) => {
       const key = `${employeeId}|${dayKeyInTimeZone(at, timeZone)}`;
       if (!cache.has(key)) {
-        cache.set(key, await this.payCards.resolveRulesForEmployeeAt(employeeId, at).catch(() => null));
+        cache.set(
+          key,
+          await this.payCards.resolveRulesForEmployeeAt(employeeId, at).catch((err) => {
+            if (err instanceof PayCardConflictException) cardConflicts.set(employeeId, err.message);
+            return null;
+          }),
+        );
       }
       return cache.get(key) ?? null;
     };
@@ -1330,7 +1346,27 @@ export class PayrollRunsService {
       });
     }
 
-    return { lines, employeeIds };
+    for (const [employeeId, message] of cardConflicts) {
+      lines.push({
+        payrollRunId: run.id,
+        visitReconciliationId: null,
+        employeeId,
+        lineType: PayrollRunLineType.NON_VISIT_ACTIVITY,
+        sourceType: 'PAY_CARD_CONFLICT',
+        sourceRef: `${run.id}:${employeeId}`,
+        description:
+          'Not calculated: training, on-call, overtime premium and rolled-up holiday pay (pay card conflict)',
+        minutes: null,
+        unitAmount: null,
+        amount: 0,
+        payCardId: null,
+        visitRef: null,
+        exceptionMessage: message,
+      });
+      employeeIds.add(employeeId);
+    }
+
+    return { lines, employeeIds, problemCount: cardConflicts.size };
   }
 
   async approve(userId: string, id: string, meta?: RequestAuditMeta) {

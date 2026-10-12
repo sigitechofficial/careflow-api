@@ -18,6 +18,7 @@ import {
   UpsertEmployeeFunderPayAssignmentDto,
   UpdateEmployeeFunderPayAssignmentDto,
   ChangeEmployeePayCardDto,
+  PayCardConflictCheckDto,
   PreviewPayDto,
 } from './dto/billing-cards.dto';
 
@@ -46,7 +47,7 @@ export class PayCardsController {
     @Param('employeeId') employeeId: string,
     @Query('funderId') funderId?: string,
   ) {
-    return this.service.resolveForEmployee(employeeId, undefined, { funderId });
+    return this.service.describeForEmployee(employeeId, { funderId });
   }
 
   @Get('employee-funder-assignments/:employeeId')
@@ -90,6 +91,24 @@ export class PayCardsController {
     @Req() req: Request,
   ) {
     return this.service.removeEmployeeFunderAssignment(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Get('conflicts')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Carers whose pay card cannot be decided today (PC-32)' })
+  listConflicts(@Query('locationId') locationId?: string) {
+    return this.service.listConflicts(locationId);
+  }
+
+  @Post('conflict-check')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({
+    summary: 'Check a pay card as entered against the other active cards (nothing is saved)',
+  })
+  checkConflicts(@Body() dto: PayCardConflictCheckDto, @Query('locationId') locationId?: string) {
+    return this.service.checkConflicts(dto, locationId);
   }
 
   @Post('preview')

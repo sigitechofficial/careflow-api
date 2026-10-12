@@ -387,6 +387,39 @@ export class UpdatePayCardDto {
   versionNote?: string;
 }
 
+/** PC-32: the card as it is in the form (saved or not), checked against the other active cards. */
+export class PayCardConflictCheckDto {
+  @ApiPropertyOptional({ description: 'The card being edited; left out for a new card' })
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @ApiPropertyOptional({ enum: PayCardAssignmentLevel })
+  @IsOptional()
+  @IsEnum(PayCardAssignmentLevel)
+  assignmentLevel?: PayCardAssignmentLevel;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  assignmentTargetId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  assignmentTargetKey?: string | null;
+
+  @ApiProperty({ example: '2026-04-01' })
+  @IsDateString()
+  effectiveFrom!: string;
+
+  @ApiPropertyOptional({ example: '2027-03-31' })
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+}
+
 /** Sample visit for the pay preview — calculates only, nothing is saved. */
 export class PreviewPayDto {
   @ApiProperty({ type: [PayCardRuleDto], description: 'Rules as currently shown in the pay card form' })

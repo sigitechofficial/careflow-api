@@ -11,6 +11,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PayCardsService } from './billing-cards.service';
+import { PayCardConflictException } from './pay-card-assignment.util';
 import { CreatePayItemDto, PayItemQueryDto, PayItemSuggestionQueryDto } from './dto/pay-items.dto';
 import {
   PAY_ITEM_CONFIG,
@@ -210,7 +211,14 @@ export class PayItemsService {
       amount = payItemAmount(quantity, rate);
     }
     if (config.cardRateType?.[unit]) {
-      const resolved = await this.payCards.resolveRulesForEmployeeAt(dto.employeeId, toDate(dto.workDate));
+      // The rate is already decided above; a card that cannot be decided (PC-32) only means the
+      // item is not linked to one.
+      const resolved = await this.payCards
+        .resolveRulesForEmployeeAt(dto.employeeId, toDate(dto.workDate))
+        .catch((err) => {
+          if (err instanceof PayCardConflictException) return null;
+          throw err;
+        });
       payCardId = resolved?.card.id ?? null;
       payCardVersion = resolved?.version ?? null;
     }
