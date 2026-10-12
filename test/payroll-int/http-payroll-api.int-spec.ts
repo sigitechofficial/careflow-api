@@ -407,4 +407,93 @@ describe('payroll API (HTTP)', () => {
       expect((await request(server()).get(`/billing/payroll-runs/employee/${carerB.employeeId}/earnings`).set(bearer(t.carerToken(carerA.accountId)))).status).toBe(403);
     });
   });
+
+  describe('R-12: who holds the pay authorisation powers', () => {
+    const authority = async (by = superAdmin) => {
+      const res = await get(by, '/role-responsibilities/financial-authority');
+      expect(res.status).toBe(200);
+      const holders = (key: string) =>
+        (res.body.data.powers.find((p: { key: string }) => p.key === key).users as Array<{ id: string }>).map((u) => u.id);
+      return { holders, warnings: res.body.data.warnings as Array<{ powerKey: string; kind: string; message: string }> };
+    };
+
+    it('needs the permission to manage roles', async () => {
+      expect((await request(server()).get('/role-responsibilities/financial-authority')).status).toBe(401);
+      expect((await get(nobody, '/role-responsibilities/financial-authority')).status).toBe(403);
+      expect((await get(preparer, '/role-responsibilities/financial-authority')).status).toBe(403);
+    });
+
+    it('lists the users behind each power; a Super Admin approves nothing by default', async () => {
+      const { holders, warnings } = await authority();
+      expect(holders('approve-pay-runs')).toEqual([approver.id]);
+      expect(holders('close-uk-payroll')).toEqual([approver.id]);
+      expect(holders('record-settlement')).toEqual([approver.id]);
+      expect(holders('prepare-pay-runs').sort()).toEqual([superAdmin.id, preparer.id, preparer2.id].sort());
+      expect(holders('prepare-pay-runs')).not.toContain(nobody.id);
+      expect(warnings).toEqual([]);
+    });
+
+    it('warns when nobody can approve, and when the only approver is the only preparer', async () => {
+      await t.prisma.userRole.deleteMany({ where: { userId: approver.id } });
+      const none = await authority();
+      expect(none.warnings.filter((w) => w.kind === 'NO_HOLDER').map((w) => w.powerKey)).toEqual([
+        'approve-pay-runs',
+        'close-uk-payroll',
+        'approve-payouts',
+        'record-settlement',
+      ]);
+      expect(none.warnings[0].message).toMatch(/No active user can approve and lock visit pay runs/);
+
+      // One person who both prepares and approves, and nobody else: maker / checker cannot be met.
+      await t.prisma.userRole.deleteMany({ where: { userId: { in: [preparer.id, preparer2.id, superAdmin.id] } } });
+      const solo = await createStaffUser(t.prisma, { permissions: [...PREPARE, ...APPROVE, ORG, 'permissions.manage'] });
+      const alone = await authority(solo);
+      expect(alone.warnings.filter((w) => w.kind === 'NO_HOLDER')).toEqual([]);
+      expect(alone.warnings.filter((w) => w.kind === 'SAME_PERSON').map((w) => w.powerKey)).toContain('approve-pay-runs');
+    });
+
+    it('an inactive user is not counted as an approver', async () => {
+      await t.prisma.user.update({ where: { id: approver.id }, data: { isActive: false } });
+      const { holders, warnings } = await authority();
+      expect(holders('approve-pay-runs')).toEqual([]);
+      expect(warnings.some((w) => w.powerKey === 'approve-pay-runs' && w.kind === 'NO_HOLDER')).toBe(true);
+    });
+
+    it('an admin role can be chosen for the approval job, and only then approves', async () => {
+      const list = await get(superAdmin, '/role-responsibilities');
+      expect(list.status).toBe(200);
+      const superAdminRole = list.body.data.adminRoleOptions.find((r: { name: string }) => r.name === 'Super Admin');
+      expect(superAdminRole).toBeTruthy();
+      const job = list.body.data.responsibilities.find((r: { key: string }) => r.key === 'approve-pay');
+      expect(job).toMatchObject({ explicitOnly: true });
+      expect(job.roleIds).not.toContain(superAdminRole.id);
+
+      const granted = [...APPROVE, ORG];
+      try {
+        const saved = await request(server())
+          .put('/role-responsibilities/approve-pay')
+          .set(as(superAdmin))
+          .send({ roleIds: [...job.roleIds, superAdminRole.id] });
+        expect(saved.status).toBe(200);
+        expect(saved.body.data.roleIds).toContain(superAdminRole.id);
+        // Saving the approval job leaves the people who prepare pay able to reach it.
+        expect((await get(preparer, '/billing/payroll-runs')).status).toBe(200);
+        expect((await get(approver, '/billing/payroll-runs')).status).toBe(200);
+        expect((await authority()).holders('approve-pay-runs').sort()).toEqual([approver.id, superAdmin.id].sort());
+
+        // Unticking it takes the power away again; nothing is left behind.
+        const removed = await request(server())
+          .put('/role-responsibilities/approve-pay')
+          .set(as(superAdmin))
+          .send({ roleIds: job.roleIds });
+        expect(removed.status).toBe(200);
+        expect((await authority()).holders('approve-pay-runs')).toEqual([approver.id]);
+      } finally {
+        // The built-in role outlives this test: make sure it never keeps an approval power.
+        await t.prisma.rolePermission.deleteMany({
+          where: { roleId: superAdminRole.id, permission: { key: { in: granted } } },
+        });
+      }
+    });
+  });
 });

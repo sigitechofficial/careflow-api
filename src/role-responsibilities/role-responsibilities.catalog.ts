@@ -13,18 +13,27 @@ export type RoleResponsibility = {
   view: string[];
   act: string[];
   /**
+   * Access the job needs beyond its own permissions (pay records cover every branch). Given to
+   * the chosen roles; taken from a role that loses the job only when no other job it still does
+   * needs it.
+   */
+  scope?: string[];
+  /**
    * Financial authorisation: not held by Super Admin / Admin automatically. Only the roles chosen
    * here get it, and an admin role can be chosen like any other.
    */
   explicitOnly?: boolean;
 };
 
+/** Organisation-wide pay access (see PayrollScopeGuard). */
+const PAYROLL_ORGANISATION_SCOPE = 'payroll.scope.organisation';
+
 export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
   {
     key: 'approve-pay',
     label: 'Approve pay and record payments',
     description:
-      'Approve and lock carer pay runs, close or reopen UK payroll runs, approve payout batches and record the bank payment. Must be a different person from the one who prepared them.',
+      'Approve and lock carer pay runs, close or reopen UK payroll runs, approve payout batches and record the payment. Must be a different person from the one who prepared them. Pay runs cover every branch, so the role sees pay across the organisation.',
     view: [
       'billing.payroll_runs.read',
       'billing.employee_payouts.read',
@@ -37,15 +46,15 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'billing.employee_payouts.settle',
       'payroll.runs.close',
       'payroll.runs.reopen',
-      // These records cover every branch, so approving them needs organisation-wide pay access.
-      'payroll.scope.organisation',
     ],
+    scope: [PAYROLL_ORGANISATION_SCOPE],
     explicitOnly: true,
   },
   {
     key: 'payroll',
     label: 'Create payroll (UK payroll)',
-    description: 'Run payroll, manage pay periods and employee payroll setup.',
+    description:
+      'Run payroll, manage pay periods and employee payroll setup. A payroll run covers every branch, so the role sees pay across the organisation.',
     view: [
       'payroll.runs.read',
       'payroll.periods.read',
@@ -57,11 +66,13 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'payroll.periods.manage',
       'payroll.employees.manage',
     ],
+    scope: [PAYROLL_ORGANISATION_SCOPE],
   },
   {
     key: 'carer-pay',
     label: 'Carer pay & payouts',
-    description: 'Carer pay runs, employee payouts and pay cards.',
+    description:
+      'Carer pay runs, pay corrections, employee payouts and pay cards. A pay run covers every branch, so the role sees pay across the organisation.',
     view: [
       'billing.payroll_runs.read',
       'billing.employee_payouts.read',
@@ -72,6 +83,7 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'billing.employee_payouts.manage',
       'billing.pay_cards.manage',
     ],
+    scope: [PAYROLL_ORGANISATION_SCOPE],
   },
   {
     key: 'office-salaries',
@@ -286,7 +298,7 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
  * Admin roles always get everything and never lose anything.
  */
 export function planResponsibilityChange(
-  responsibility: Pick<RoleResponsibility, 'view' | 'act'>,
+  responsibility: Pick<RoleResponsibility, 'view' | 'act' | 'scope'>,
   allRoleIds: string[],
   selectedRoleIds: string[],
   adminRoleIds: string[],
@@ -295,11 +307,33 @@ export function planResponsibilityChange(
   revoke: Array<{ roleId: string; keys: string[] }>;
 } {
   const owners = new Set([...selectedRoleIds, ...adminRoleIds]);
-  const allKeys = [...new Set([...responsibility.view, ...responsibility.act])];
+  const allKeys = [
+    ...new Set([...responsibility.view, ...responsibility.act, ...(responsibility.scope ?? [])]),
+  ];
   return {
     grant: [...owners].map((roleId) => ({ roleId, keys: allKeys })),
     revoke: allRoleIds
       .filter((roleId) => !owners.has(roleId))
       .map((roleId) => ({ roleId, keys: responsibility.act })),
   };
+}
+
+/**
+ * Scope keys a role loses together with a job: those no other job it still does, in whole or in
+ * part, needs. `roleKeys` are the permissions the role holds once the job's own `act` keys are gone.
+ */
+export function scopeKeysToRevoke(
+  responsibility: Pick<RoleResponsibility, 'key' | 'scope'>,
+  roleKeys: ReadonlySet<string>,
+  all: ReadonlyArray<Pick<RoleResponsibility, 'key' | 'act' | 'scope'>> = ROLE_RESPONSIBILITIES,
+): string[] {
+  return (responsibility.scope ?? []).filter(
+    (key) =>
+      !all.some(
+        (other) =>
+          other.key !== responsibility.key &&
+          other.scope?.includes(key) &&
+          other.act.some((a) => roleKeys.has(a)),
+      ),
+  );
 }

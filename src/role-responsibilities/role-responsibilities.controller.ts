@@ -24,6 +24,14 @@ export class RoleResponsibilitiesController {
     return this.service.list();
   }
 
+  @Get('financial-authority')
+  @ApiOperation({
+    summary: 'Who can prepare, approve, close, pay and audit carer pay, and where nobody can',
+  })
+  financialAuthority() {
+    return this.service.financialAuthority();
+  }
+
   @Put(':key')
   @ApiOperation({
     summary: 'Give a job to roles (others lose the ability; admins keep it)',

@@ -7,8 +7,10 @@ import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
 import {
   planResponsibilityChange,
   ROLE_RESPONSIBILITIES,
+  scopeKeysToRevoke,
   type RoleResponsibility,
 } from './role-responsibilities.catalog';
+import { summariseFinancialAuthority } from './financial-authority.util';
 
 /** Always hold every responsibility; never shown as a choice and never lose access. */
 const ADMIN_ROLE_NAMES: string[] = [
@@ -51,7 +53,10 @@ export class RoleResponsibilitiesService {
     roles: RoleRow[],
     existingKeys: Set<string>,
   ) {
-    const act = responsibility.act.filter((k) => existingKeys.has(k));
+    // The whole job: its own permissions and the access it needs to use them.
+    const act = [...responsibility.act, ...(responsibility.scope ?? [])].filter((k) =>
+      existingKeys.has(k),
+    );
     // Financial authorisation is not implied by an admin role, so admin roles are a choice there.
     const choosable = responsibility.explicitOnly
       ? roles
@@ -93,6 +98,10 @@ export class RoleResponsibilitiesService {
         adminRoles: roles
           .filter((r) => ADMIN_ROLE_NAMES.includes(r.name))
           .map((r) => r.name),
+        /** Admin roles as a choice, for the jobs an admin role does not hold automatically. */
+        adminRoleOptions: roles
+          .filter((r) => ADMIN_ROLE_NAMES.includes(r.name))
+          .map((r) => ({ id: r.id, name: r.name })),
         roles: roles
           .filter((r) => !ADMIN_ROLE_NAMES.includes(r.name))
           .map((r) => ({ id: r.id, name: r.name })),
@@ -100,6 +109,47 @@ export class RoleResponsibilitiesService {
           this.summarise(x, roles, existing),
         ),
       },
+    };
+  }
+
+  /**
+   * Which active users can prepare, approve, close, pay and audit carer pay today, and where
+   * nobody can. Read-only: nobody is given anything here.
+   */
+  async financialAuthority() {
+    const users = await this.prisma.user.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        userRoles: {
+          where: { role: { deletedAt: null } },
+          select: {
+            role: {
+              select: {
+                name: true,
+                rolePermissions: { select: { permission: { select: { key: true } } } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+    return {
+      message: 'Financial authority',
+      data: summariseFinancialAuthority(
+        users.map((u) => ({
+          id: u.id,
+          name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email,
+          roles: u.userRoles.map((ur) => ({
+            name: ur.role.name,
+            permissions: ur.role.rolePermissions.map((rp) => rp.permission.key),
+          })),
+        })),
+      ),
     };
   }
 
@@ -147,7 +197,9 @@ export class RoleResponsibilitiesService {
         }
       }
       for (const r of plan.revoke) {
-        const ids = idsFor(r.keys);
+        const held = roles.find((role) => role.id === r.roleId)?.keys ?? new Set<string>();
+        const remaining = new Set([...held].filter((k) => !r.keys.includes(k)));
+        const ids = idsFor([...r.keys, ...scopeKeysToRevoke(responsibility, remaining)]);
         if (ids.length) {
           await tx.rolePermission.deleteMany({
             where: { roleId: r.roleId, permissionId: { in: ids } },
