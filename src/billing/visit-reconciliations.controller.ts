@@ -16,6 +16,8 @@ import {
   DecideVisitOverrunDto,
   RecalculateVisitReconciliationsDto,
   ClearVisitReconciliationsDto,
+  DismissPayEvaluationFailureDto,
+  PayEvaluationFailuresQueryDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
   SetVisitBillableAmountDto,
@@ -45,6 +47,39 @@ export class VisitReconciliationsController {
   exceptionQueue(@Query('limit') limit?: string) {
     const parsed = limit ? Math.min(Number(limit) || 10, 50) : 10;
     return this.service.getExceptionQueue(parsed);
+  }
+
+  @Get('evaluation-failures')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.visit_reconciliations.read')
+  @ApiOperation({ summary: 'Pay calculations that failed and need attention (R-17)' })
+  evaluationFailures(@Query() query: PayEvaluationFailuresQueryDto) {
+    return this.service.listEvaluationFailures(query);
+  }
+
+  @Post('evaluation-failures/:failureId/retry')
+  @PayrollScope({ kind: 'evaluationFailure', param: 'failureId' })
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({ summary: 'Run a failed pay calculation again' })
+  retryEvaluationFailure(
+    @CurrentUser() user: RequestUser,
+    @Param('failureId') failureId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.retryEvaluationFailure(user.id, failureId, getRequestAuditMeta(req));
+  }
+
+  @Post('evaluation-failures/:failureId/dismiss')
+  @PayrollScope({ kind: 'evaluationFailure', param: 'failureId' })
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({ summary: 'Close a failed pay calculation that is no longer needed, with a reason' })
+  dismissEvaluationFailure(
+    @CurrentUser() user: RequestUser,
+    @Param('failureId') failureId: string,
+    @Body() dto: DismissPayEvaluationFailureDto,
+    @Req() req: Request,
+  ) {
+    return this.service.dismissEvaluationFailure(user.id, failureId, dto.reason, getRequestAuditMeta(req));
   }
 
   @Get()

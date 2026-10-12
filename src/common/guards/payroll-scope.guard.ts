@@ -38,6 +38,8 @@ export type PayrollScopeRule =
   | { kind: 'branchList' }
   /** A visit reconciliation by id: scoped through its service user's branch. */
   | { kind: 'reconciliation'; param: string }
+  /** A failed pay calculation by id: scoped through its service user's branch. */
+  | { kind: 'evaluationFailure'; param: string }
   /** A pay agreement by id: scoped through its employee. */
   | { kind: 'payAgreement'; param: string }
   /** A UK payroll run employee row by id (payslip download): scoped through its employee. */
@@ -106,6 +108,18 @@ export class PayrollScopeGuard implements CanActivate {
           select: { serviceUserId: true },
         });
         if (!row) throw new NotFoundException('Visit reconciliation not found');
+        await this.orgScope.assertServiceUserInScope(scope, row.serviceUserId);
+        return true;
+      }
+
+      case 'evaluationFailure': {
+        const row = await this.prisma.payEvaluationFailure.findUnique({
+          where: { id: String(req.params?.[rule.param] ?? '') },
+          select: { serviceUserId: true },
+        });
+        if (!row) throw new NotFoundException('Pay calculation failure not found');
+        // Without a service user there is no branch to judge by: organisation-wide access only.
+        if (!row.serviceUserId) throw new ForbiddenException(ORGANISATION_SCOPE_MESSAGE);
         await this.orgScope.assertServiceUserInScope(scope, row.serviceUserId);
         return true;
       }

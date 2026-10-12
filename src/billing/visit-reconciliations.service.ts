@@ -3,6 +3,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -29,6 +30,11 @@ import {
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
+import {
+  classifyEvaluationFailure,
+  payEvaluationSubjectKey,
+  type PayEvaluationOperation,
+} from './pay-evaluation-failure.util';
 import { PayItemsService } from './pay-items.service';
 import {
   allowFinancialResetInTransaction,
@@ -743,7 +749,12 @@ export class VisitReconciliationsService {
     return ensureScheduledVisitRef(db, visit);
   }
 
-  /** Returns false when evaluation failed (already logged). */
+  /**
+   * Evaluates without letting a failure stop the caller (a visit must complete even when its pay
+   * cannot be worked out yet). R-17: the failure is not dropped. It is kept as an open pay
+   * evaluation failure that the office sees and can retry, and it is closed when a later
+   * evaluation succeeds. Returns false when evaluation failed.
+   */
   private async safeEvaluate(
     db: DbClient,
     id: string,
@@ -751,15 +762,318 @@ export class VisitReconciliationsService {
   ): Promise<boolean> {
     try {
       await this.evaluateInternal(db, id, options);
+      await this.closeEvaluationFailure('EVALUATE', id, 'SUCCEEDED_LATER');
       return true;
     } catch (err) {
-      this.logger.warn(
-        `Visit reconciliation evaluate failed for ${id}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      await this.recordEvaluationFailure('EVALUATE', id, err);
       return false;
     }
+  }
+
+  /**
+   * Creates or refreshes the pay records of a completed job without letting a failure stop the
+   * caller. A failure is kept as an open pay evaluation failure for the job (R-17).
+   */
+  async ensureForCompletedJobSafe(
+    jobId: string,
+    options?: { overrunReason?: string | null },
+  ): Promise<boolean> {
+    try {
+      await this.ensureForCompletedJob(jobId, undefined, options);
+      await this.closeEvaluationFailure('ENSURE_JOB', jobId, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('ENSURE_JOB', jobId, err);
+      return false;
+    }
+  }
+
+  /** As ensureForCompletedJobSafe, for one visit. */
+  async ensureForVisitSafe(scheduledVisitId: string): Promise<boolean> {
+    try {
+      await this.ensureForVisit(scheduledVisitId);
+      await this.closeEvaluationFailure('ENSURE_VISIT', scheduledVisitId, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('ENSURE_VISIT', scheduledVisitId, err);
+      return false;
+    }
+  }
+
+  /** Who and what a failure is about, from whatever already exists for the subject. */
+  private async evaluationFailureSubject(operation: PayEvaluationOperation, id: string) {
+    if (operation === 'EVALUATE') {
+      const row = await this.prisma.visitReconciliation.findUnique({
+        where: { id },
+        select: {
+          scheduledJobId: true,
+          scheduledVisitId: true,
+          serviceUserId: true,
+          employeeId: true,
+          visitRef: true,
+        },
+      });
+      return { visitReconciliationId: id, ...(row ?? {}) };
+    }
+    const visit =
+      operation === 'ENSURE_VISIT'
+        ? await this.prisma.scheduledVisit.findUnique({
+            where: { id },
+            select: { id: true, scheduledJobId: true, serviceUserId: true },
+          })
+        : await this.prisma.scheduledVisit.findFirst({
+            where: { scheduledJobId: id },
+            select: { id: true, scheduledJobId: true, serviceUserId: true },
+            orderBy: { scheduledStartDateTime: 'asc' },
+          });
+    return {
+      scheduledJobId: visit?.scheduledJobId ?? (operation === 'ENSURE_JOB' ? id : null),
+      scheduledVisitId: visit?.id ?? (operation === 'ENSURE_VISIT' ? id : null),
+      serviceUserId: visit?.serviceUserId ?? null,
+    };
+  }
+
+  /**
+   * Keeps a failed pay calculation where a person will see it. Never throws: recording a failure
+   * must not become a second failure. Written outside any caller transaction, which may be aborted.
+   */
+  private async recordEvaluationFailure(
+    operation: PayEvaluationOperation,
+    id: string,
+    err: unknown,
+    retriedByUserId?: string,
+  ) {
+    const failure = classifyEvaluationFailure(err);
+    const subjectKey = payEvaluationSubjectKey(operation, id);
+    // Ids, error class and code only: the error text of a database failure holds query values.
+    const logLine = `Pay evaluation failed ${subjectKey} kind=${failure.kind} category=${failure.category} error=${failure.detail.errorName}${
+      failure.detail.errorCode ? ` code=${failure.detail.errorCode}` : ''
+    }`;
+    if (failure.kind === 'TECHNICAL') this.logger.error(logLine);
+    else this.logger.warn(`${logLine}: ${failure.message}`);
+
+    try {
+      const now = new Date();
+      const subject = await this.evaluationFailureSubject(operation, id);
+      const existing = await this.prisma.payEvaluationFailure.findUnique({ where: { subjectKey } });
+      const entry = {
+        at: now.toISOString(),
+        action: retriedByUserId ? 'RETRIED' : existing ? 'FAILED_AGAIN' : 'FAILED',
+        byUserId: retriedByUserId ?? null,
+        outcome: failure.category,
+      };
+      const state = {
+        kind: failure.kind,
+        category: failure.category,
+        message: failure.message,
+        context: failure.detail,
+        retryable: failure.retryable,
+        status: 'OPEN',
+        lastOccurredAt: now,
+        resolvedAt: null,
+        resolvedById: null,
+        resolution: null,
+      };
+      if (existing) {
+        const history = Array.isArray(existing.history) ? existing.history : [];
+        await this.prisma.payEvaluationFailure.update({
+          where: { id: existing.id },
+          data: {
+            ...state,
+            ...subject,
+            occurrences: { increment: 1 },
+            history: [...history, entry] as Prisma.InputJsonValue,
+          },
+        });
+      } else {
+        await this.prisma.payEvaluationFailure.create({
+          data: { subjectKey, operation, ...subject, ...state, history: [entry] },
+        });
+      }
+    } catch (recordErr) {
+      this.logger.error(
+        `Could not record pay evaluation failure ${subjectKey}: ${
+          recordErr instanceof Error ? recordErr.constructor.name : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  /** Closes an open failure once the same calculation has succeeded. Never throws. */
+  private async closeEvaluationFailure(
+    operation: PayEvaluationOperation,
+    id: string,
+    resolution: 'SUCCEEDED_ON_RETRY' | 'SUCCEEDED_LATER',
+    userId?: string,
+  ) {
+    try {
+      const subjectKey = payEvaluationSubjectKey(operation, id);
+      const open = await this.prisma.payEvaluationFailure.findFirst({
+        where: { subjectKey, status: 'OPEN' },
+      });
+      if (!open) return;
+      const now = new Date();
+      const history = Array.isArray(open.history) ? open.history : [];
+      await this.prisma.payEvaluationFailure.update({
+        where: { id: open.id },
+        data: {
+          status: 'RESOLVED',
+          resolvedAt: now,
+          resolvedById: userId ?? null,
+          resolution,
+          history: [
+            ...history,
+            { at: now.toISOString(), action: userId ? 'RETRIED' : 'SUCCEEDED', byUserId: userId ?? null, outcome: resolution },
+          ] as Prisma.InputJsonValue,
+        },
+      });
+    } catch (closeErr) {
+      this.logger.error(
+        `Could not close pay evaluation failure for ${id}: ${
+          closeErr instanceof Error ? closeErr.constructor.name : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Pay calculations that failed and still need attention (or, with `status`, the history).
+   * `locationId` limits the list to service users of that branch.
+   */
+  async listEvaluationFailures(query: { status?: string; locationId?: string }) {
+    const status = query.status?.trim().toUpperCase() || 'OPEN';
+    const serviceUserIds = query.locationId
+      ? await serviceUserIdsForLocation(this.prisma, query.locationId)
+      : null;
+    const rows = await this.prisma.payEvaluationFailure.findMany({
+      where: {
+        ...(status === 'ALL' ? {} : { status }),
+        ...(serviceUserIds ? { serviceUserId: { in: serviceUserIds } } : {}),
+      },
+      orderBy: { lastOccurredAt: 'desc' },
+      take: 200,
+    });
+    const employeeIds = [...new Set(rows.map((r) => r.employeeId).filter((v): v is string => !!v))];
+    const suIds = [...new Set(rows.map((r) => r.serviceUserId).filter((v): v is string => !!v))];
+    const [employees, serviceUsers] = await Promise.all([
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds } },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
+      suIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+    ]);
+    const employeeName = new Map(
+      employees.map((e) => [
+        e.id,
+        [e.personalDetail?.firstName, e.personalDetail?.lastName].filter(Boolean).join(' ') || 'Carer',
+      ]),
+    );
+    const serviceUserName = new Map(
+      serviceUsers.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ')]),
+    );
+    return {
+      data: rows.map((r) => ({
+        ...r,
+        reference: r.id.slice(0, 8),
+        employeeName: r.employeeId ? (employeeName.get(r.employeeId) ?? null) : null,
+        serviceUserName: r.serviceUserId ? (serviceUserName.get(r.serviceUserId) ?? null) : null,
+      })),
+    };
+  }
+
+  /** Runs the failed calculation again. Success closes the failure; another failure is recorded on it. */
+  async retryEvaluationFailure(userId: string, id: string, meta?: RequestAuditMeta) {
+    const failure = await this.prisma.payEvaluationFailure.findUnique({ where: { id } });
+    if (!failure) throw new NotFoundException('Pay calculation failure not found');
+    if (failure.status !== 'OPEN') {
+      throw new BadRequestException('This pay calculation failure is already closed.');
+    }
+    if (!failure.retryable) {
+      throw new BadRequestException(failure.message);
+    }
+    const operation = failure.operation as PayEvaluationOperation;
+    const subjectId =
+      operation === 'EVALUATE'
+        ? failure.visitReconciliationId
+        : operation === 'ENSURE_VISIT'
+          ? failure.scheduledVisitId
+          : failure.scheduledJobId;
+    if (!subjectId) throw new BadRequestException('This failure has nothing left to retry. Dismiss it instead.');
+
+    let succeeded = true;
+    try {
+      if (operation === 'EVALUATE') await this.evaluateInternal(this.prisma, subjectId);
+      else if (operation === 'ENSURE_VISIT') await this.ensureForVisit(subjectId);
+      else await this.ensureForCompletedJob(subjectId);
+      await this.closeEvaluationFailure(operation, subjectId, 'SUCCEEDED_ON_RETRY', userId);
+    } catch (err) {
+      succeeded = false;
+      await this.recordEvaluationFailure(operation, subjectId, err, userId);
+    }
+    const after = await this.prisma.payEvaluationFailure.findUniqueOrThrow({ where: { id } });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.PAY_EVALUATION_FAILURE_RETRIED,
+      recordType: 'PayEvaluationFailure',
+      recordId: id,
+      oldValues: { status: failure.status, category: failure.category },
+      newValues: { status: after.status, category: after.category, succeeded },
+      metadata: { subjectKey: failure.subjectKey, employeeId: failure.employeeId, visitRef: failure.visitRef },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+    return {
+      message: succeeded
+        ? 'The pay calculation succeeded. The visit is back in the normal review list.'
+        : `The pay calculation failed again: ${after.message}`,
+      data: { ...after, reference: after.id.slice(0, 8), succeeded },
+    };
+  }
+
+  /** Closes a failure that needs no pay calculation any more (for example a visit entered in error). */
+  async dismissEvaluationFailure(userId: string, id: string, reason: string, meta?: RequestAuditMeta) {
+    const failure = await this.prisma.payEvaluationFailure.findUnique({ where: { id } });
+    if (!failure) throw new NotFoundException('Pay calculation failure not found');
+    if (failure.status !== 'OPEN') {
+      throw new BadRequestException('This pay calculation failure is already closed.');
+    }
+    const now = new Date();
+    const history = Array.isArray(failure.history) ? failure.history : [];
+    const updated = await this.prisma.payEvaluationFailure.update({
+      where: { id },
+      data: {
+        status: 'DISMISSED',
+        resolvedAt: now,
+        resolvedById: userId,
+        resolution: 'DISMISSED',
+        history: [
+          ...history,
+          { at: now.toISOString(), action: 'DISMISSED', byUserId: userId, outcome: 'DISMISSED', note: reason.trim() },
+        ] as Prisma.InputJsonValue,
+      },
+    });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.PAY_EVALUATION_FAILURE_DISMISSED,
+      recordType: 'PayEvaluationFailure',
+      recordId: id,
+      description: reason.trim(),
+      oldValues: { status: failure.status },
+      newValues: { status: updated.status },
+      metadata: { subjectKey: failure.subjectKey, employeeId: failure.employeeId, visitRef: failure.visitRef },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+    return { message: 'Pay calculation failure dismissed', data: { ...updated, reference: updated.id.slice(0, 8) } };
   }
 
   private async resolveAllAllocations(
@@ -2590,6 +2904,9 @@ export class VisitReconciliationsService {
       bankHolidayRegion?: string | null;
     } | null = null;
     let payCardSource: string | null = null;
+    // Why a card could not be resolved, in the resolver's words (R-17).
+    let payCardProblem: string | null = null;
+    let chargeCardProblem: string | null = null;
     if (freezePayable && row.payCardId) {
       const pinned = await db.payCard.findUnique({
         where: { id: row.payCardId },
@@ -2614,22 +2931,31 @@ export class VisitReconciliationsService {
         };
       }
     } else if (row.employeeId) {
-      const resolved = await this.payCardsService.resolveForEmployee(
-        row.employeeId,
-        row.plannedStartDateTime,
-        { funderId: funding?.funderId ?? null },
-      );
-      payCardSource = resolved.data.source;
-      if (resolved.data.payCard) {
-        payCard = {
-          id: resolved.data.payCard.id,
-          status: resolved.data.payCard.status,
-          rulesCount: resolved.data.payCard.rules?.length ?? 0,
-          stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
-          version: (resolved.data.payCard as { version?: number }).version,
-          bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
-            .bankHolidayRegion,
-        };
+      // R-17: a set-up gap the resolver reports (no employment record, …) is not a reason to stop
+      // the whole evaluation and leave the visit unpriced without explanation. The carer's pay is
+      // held with the resolver's reason; the client charge is still priced. Unexpected errors
+      // still propagate and are kept as a pay evaluation failure by the caller.
+      try {
+        const resolved = await this.payCardsService.resolveForEmployee(
+          row.employeeId,
+          row.plannedStartDateTime,
+          { funderId: funding?.funderId ?? null },
+        );
+        payCardSource = resolved.data.source;
+        if (resolved.data.payCard) {
+          payCard = {
+            id: resolved.data.payCard.id,
+            status: resolved.data.payCard.status,
+            rulesCount: resolved.data.payCard.rules?.length ?? 0,
+            stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
+            version: (resolved.data.payCard as { version?: number }).version,
+            bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
+              .bankHolidayRegion,
+          };
+        }
+      } catch (err) {
+        if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
+        payCardProblem = err.message;
       }
     }
 
@@ -2652,16 +2978,21 @@ export class VisitReconciliationsService {
         };
       }
     } else if (!freezeBillable) {
-      const chargeResolved = await this.chargeCardsService.resolveForServiceUser(
-        row.serviceUserId,
-      );
-      chargeCardSource = chargeResolved.data.source;
-      if (chargeResolved.data.chargeCard) {
-        chargeCard = {
-          id: chargeResolved.data.chargeCard.id,
-          status: chargeResolved.data.chargeCard.status,
-          rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
-        };
+      try {
+        const chargeResolved = await this.chargeCardsService.resolveForServiceUser(
+          row.serviceUserId,
+        );
+        chargeCardSource = chargeResolved.data.source;
+        if (chargeResolved.data.chargeCard) {
+          chargeCard = {
+            id: chargeResolved.data.chargeCard.id,
+            status: chargeResolved.data.chargeCard.status,
+            rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
+          };
+        }
+      } catch (err) {
+        if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
+        chargeCardProblem = err.message;
       }
     } else {
       chargeCardSource = row.chargeCardSource;
@@ -2693,6 +3024,15 @@ export class VisitReconciliationsService {
       tasksIncomplete,
       funding,
     });
+    // Say why the card is missing, so the person who sees the exception knows what to fix.
+    for (const ex of exceptions) {
+      if (ex.code === FinanceExceptionCode.PAY_CARD_MISSING && payCardProblem) {
+        ex.message = `Carer pay cannot be priced: ${payCardProblem}`;
+      }
+      if (ex.code === FinanceExceptionCode.CHARGE_CARD_MISSING && chargeCardProblem) {
+        ex.message = `The client charge cannot be priced: ${chargeCardProblem}`;
+      }
+    }
 
     // VW-02: a start or finish reported by the carer app that the server could not corroborate
     // holds the visit for a person to approve (until the office verifies or corrects the times).

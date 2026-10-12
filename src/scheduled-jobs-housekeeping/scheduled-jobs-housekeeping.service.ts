@@ -1508,13 +1508,9 @@ export class ScheduledJobsHousekeepingService {
     }
 
     if (completing) {
-      try {
-        await this.visitReconciliationsService.ensureForCompletedJob(id, undefined, {
-          overrunReason,
-        });
-      } catch {
-        // Visit completion must succeed even if finance evaluate fails; ops can Sync later.
-      }
+      // Visit completion must succeed even if the pay records cannot be created. The failure is
+      // not dropped: it is kept as an open pay evaluation failure for the office (R-17).
+      await this.visitReconciliationsService.ensureForCompletedJobSafe(id, { overrunReason });
     }
 
     // Admin actor (non-empty userId) + completion → Manual (even if GPS seed exists).

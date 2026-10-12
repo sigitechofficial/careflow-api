@@ -2798,14 +2798,10 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
-    try {
-      await this.visitReconciliations.ensureForCompletedJob(jobId);
+    // A failure is kept as an open pay evaluation failure for the office (R-17).
+    if (await this.visitReconciliations.ensureForCompletedJobSafe(jobId)) {
       // The row was priced when the lead closed the visit: reprice and review it on this carer's times.
       await this.visitReconciliations.refreshAfterLateClockOut(visit.id, allocation.allocationId);
-    } catch (err) {
-      this.logger.warn(
-        `Support late clock-out reconciliation refresh failed job=${jobId}: ${String(err)}`,
-      );
     }
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 

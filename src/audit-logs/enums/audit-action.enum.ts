@@ -494,4 +494,6 @@ export enum AuditAction {
   EMPLOYEE_PAYOUT_BATCH_CANCELLED = 'employee_payout_batch_cancelled',
   FINANCIAL_TEST_DATA_RESET = 'financial_test_data_reset',
   VISIT_ATTENDANCE_TIMES_CORRECTED = 'visit_attendance_times_corrected',
+  PAY_EVALUATION_FAILURE_RETRIED = 'pay_evaluation_failure_retried',
+  PAY_EVALUATION_FAILURE_DISMISSED = 'pay_evaluation_failure_dismissed',
 }
