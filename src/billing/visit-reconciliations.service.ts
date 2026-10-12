@@ -28,6 +28,7 @@ import {
   loadPayCardRulesForVersion,
 } from './pay-card-version.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import { loadPayCalendar } from './holiday-calendar.store';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
 import {
@@ -2601,10 +2602,10 @@ export class VisitReconciliationsService {
     const { version, rules } = await loadPayCardRulesForDate(db, payCard.id, plannedStart, timeZone);
     // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
     const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
-    const payHolidayDates =
-      payRegion === DEFAULT_BANK_HOLIDAY_REGION && input.defaultHolidayDates
-        ? input.defaultHolidayDates
-        : await loadBankHolidayDateSet(db, payStart, payEnd ?? payStart, timeZone, payRegion);
+    // PC-22 to PC-24: the shared calendar, with the organisation's special days and its policy
+    // for holidays that fall on a weekend.
+    const payCalendar = await loadPayCalendar(db, payStart, payEnd ?? payStart, payRegion);
+    const payHolidayDates = payCalendar.bankHolidayKeys;
     const stackingPolicy =
       (payCard.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
     const calc = calculatePayableAmount(
@@ -2618,6 +2619,7 @@ export class VisitReconciliationsService {
         stackingPolicy,
         isBankHolidayFn: (d) => payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
         timeZone,
+        calendar: payCalendar.calendar,
       },
       input.nightDuty,
       input.plannedMinutes,
@@ -4400,10 +4402,11 @@ export class VisitReconciliationsService {
         loadPayCardRulesForVersion(db, row.payCardId, row.payCardVersion),
       ]);
       const payRegion = payCard?.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
-      const payIsBankHoliday =
-        payRegion === DEFAULT_BANK_HOLIDAY_REGION
-          ? isBankHoliday
-          : await isVisitOnBankHoliday(db, row.plannedStartDateTime, timeZone, payRegion);
+      // The explanation is worked out on the same calendar as the amount.
+      const payCalendar = await loadPayCalendar(db, payStart, payEnd, payRegion);
+      const payIsBankHoliday = payCalendar.bankHolidayKeys.has(
+        dayKeyInTimeZone(row.plannedStartDateTime, timeZone),
+      );
       const livePay = buildPayRateBreakdown(
         payRules,
         row.plannedStartDateTime,
@@ -4414,7 +4417,13 @@ export class VisitReconciliationsService {
           cardSource: row.payCardSource,
         },
         payIsBankHoliday,
-        { start: payStart, end: payEnd, timeZone },
+        {
+          start: payStart,
+          end: payEnd,
+          timeZone,
+          isBankHolidayFn: (d) => payCalendar.bankHolidayKeys.has(dayKeyInTimeZone(d, timeZone)),
+          calendar: payCalendar.calendar,
+        },
         nightDuty,
         plannedMinutes,
       );

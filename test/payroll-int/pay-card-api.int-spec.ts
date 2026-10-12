@@ -79,7 +79,8 @@ describe('PC-02: custom time band on a pay card (HTTP)', () => {
       .send({ rules: afterEdit.body.data.rules.map(ruleForPreview), date: '2026-11-03', startTime: '18:15', endTime: '20:15' });
     expect(preview.status).toBe(201);
     expect(Number(preview.body.data.amount)).toBe(32);
-    expect(preview.body.data.warnings ?? []).toEqual([]);
+    // The test database has no bank holiday dates, and the preview says so (PC-23); nothing else.
+    expect((preview.body.data.warnings ?? []).filter((w: string) => !w.includes('bank holiday calendar'))).toEqual([]);
 
     // Publish.
     const published = await request(server()).patch(`/billing/pay-cards/${id}`).set(as(editor)).send({ status: 'ACTIVE' });

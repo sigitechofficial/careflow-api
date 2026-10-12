@@ -84,9 +84,9 @@ describe('parseGovUkBankHolidays', () => {
 
   it('maps divisions to regions and skips past dates', () => {
     expect(parseGovUkBankHolidays(json, '2026-01-01')).toEqual([
-      { region: 'UK', holidayDate: '2027-01-01', name: 'New Year’s Day' },
-      { region: 'SCOTLAND', holidayDate: '2027-11-30', name: 'St Andrew’s Day' },
-      { region: 'NORTHERN_IRELAND', holidayDate: '2027-07-12', name: 'Battle of the Boyne' },
+      { region: 'UK', holidayDate: '2027-01-01', name: 'New Year’s Day', isSubstitute: false, substituteForDate: null },
+      { region: 'SCOTLAND', holidayDate: '2027-11-30', name: 'St Andrew’s Day', isSubstitute: false, substituteForDate: null },
+      { region: 'NORTHERN_IRELAND', holidayDate: '2027-07-12', name: 'Battle of the Boyne', isSubstitute: false, substituteForDate: null },
     ]);
   });
 

@@ -50,7 +50,13 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { calculatePayableAmount } from './visit-reconciliation.util';
-import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import {
+  BANK_HOLIDAY_REGION_LABELS,
+  type BankHolidayRegion,
+  DEFAULT_BANK_HOLIDAY_REGION,
+  isBankHolidayRegion,
+} from './bank-holiday-regions.util';
+import { loadHolidayCalendarStatus, loadPayCalendar } from './holiday-calendar.store';
 import { classifyPayRule } from './wage-types.util';
 import {
   assignmentsCoveringDay,
@@ -776,7 +782,9 @@ export class PayCardsService {
       },
       select: { holidayDate: true, name: true },
     });
-    const holidayKeys = new Set(holidays.map((h) => h.holidayDate.toISOString().slice(0, 10)));
+    // The same calendar and weekend-holiday policy as live pricing (PC-22 to PC-24).
+    const payCalendar = await loadPayCalendar(this.prisma, start, end, region);
+    const holidayKeys = payCalendar.bankHolidayKeys;
     const rules = mapPayRules(dto.rules);
     const stackingPolicy = (dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
     const result = calculatePayableAmount(
@@ -790,12 +798,30 @@ export class PayCardsService {
         stackingPolicy,
         isBankHolidayFn: (d) => holidayKeys.has(dayKeyInTimeZone(d, timeZone)),
         timeZone,
+        calendar: payCalendar.calendar,
       },
       dto.nightDuty ?? null,
       minutes,
     );
 
     const warnings: string[] = [];
+    // A year with dates missing prices its holidays as ordinary days without saying so.
+    const year = Number(date.slice(0, 4));
+    const calendarStatus = isBankHolidayRegion(region)
+      ? (await loadHolidayCalendarStatus(this.prisma, [year])).regions
+          .find((r) => r.region === region)
+          ?.years.find((y) => y.year === year)
+      : null;
+    if (calendarStatus && !calendarStatus.complete) {
+      warnings.push(
+        `The ${BANK_HOLIDAY_REGION_LABELS[region as BankHolidayRegion]} bank holiday calendar for ${year} is not complete: ${calendarStatus.issues.join(' ')}`,
+      );
+    }
+    if (rules.some((r) => r.dayType === 'EASTER')) {
+      warnings.push(
+        'This card has an Easter rate, but no day is classified as Easter: Good Friday and Easter Monday are paid as bank holidays. The Easter rate is not used until the organisation decides which days it covers.',
+      );
+    }
     if (!result) {
       warnings.push(
         dto.nightDuty === 'SLEEPING_NIGHT'

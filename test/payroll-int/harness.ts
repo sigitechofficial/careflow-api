@@ -29,7 +29,8 @@ export const TEST_TIMEZONE = 'Europe/London';
 export const TEST_DURATION_TOLERANCE_MINUTES = 15;
 
 export async function setDurationTolerance(prisma: PrismaService, minutes: number) {
-  const data = { domLateVisitAlertMinutes: minutes, domGlobalToleranceMinutes: minutes };
+  // The holiday pay basis is pinned too, so a test that changes it cannot leak into the next.
+  const data = { domLateVisitAlertMinutes: minutes, domGlobalToleranceMinutes: minutes, holidayPremiumBasis: 'BOTH' };
   // The application creates this row on first use; create it here so the value is always explicit.
   if (!(await prisma.organisationGeneralSettings.findFirst({ select: { id: true } }))) {
     await prisma.organisationGeneralSettings.create({ data: data as never });

@@ -906,6 +906,9 @@ model OrganisationGeneralSettings {
   dateDisplayFormat                    DateDisplayFormat          @default(DD_MM_YYYY)
   /// IANA timezone for operational calendar days (schedules, ECM, "today").
   timezone                             String                     @default("Europe/London")
+  /// Carer pay when a holiday falls on a weekend: BOTH (the date and its substitute day, the
+  /// behaviour before this setting existed), ACTUAL_DAY or STATUTORY_DAY. Policy decision D-13.
+  holidayPremiumBasis                  String                     @default("BOTH")
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -2209,8 +2212,15 @@ model BankHoliday {
   id          String   @id @default(uuid()) @db.Uuid
   holidayDate DateTime @db.Date
   name        String
+  /// UK (England & Wales), SCOTLAND, NORTHERN_IRELAND, or ORGANISATION for the organisation's own special days.
   region      String   @default("UK")
   isActive    Boolean  @default(true)
+  /// A weekday given in place of a holiday that fell on a weekend.
+  isSubstitute      Boolean   @default(false)
+  /// For a substitute day: the date the holiday itself fell on.
+  substituteForDate DateTime? @db.Date
+  /// GOV_UK (official dataset), MANUAL, or LEGACY (recorded before the source was kept).
+  source      String   @default("MANUAL")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
