@@ -3,10 +3,10 @@
 **Programme:** CareFlow carer wages, pay cards and UK payroll remediation
 **Updated:** 2026-10-12 · **Phase reported:** 0 (financial safety) · **Phases 1–9:** not started
 
-| Repository | Branch | Base commit | Head |
+| Repository | Branch | Base commit (audited) | Phase 0 commits |
 |---|---|---|---|
-| careflow-api (`careadmin-backend`) | `payroll-remediation/phase-0` | `e163815` | `9660c33` |
-| careflow-admin (`care-admin`) | `payroll-remediation/phase-0` | `a8b7b9a` | `e6c17e6` |
+| careflow-api (`careadmin-backend`) | `payroll-remediation/phase-0` | `e163815` | `71f7a1e`, `0f3e0f9`, `f728ffc`, `9660c33`, then the reports commit |
+| careflow-admin (`care-admin`) | `payroll-remediation/phase-0` | `a8b7b9a` | `e6c17e6`, `22eb4bc` |
 
 Nothing has been pushed, deployed or run against live data. All commits are local.
 

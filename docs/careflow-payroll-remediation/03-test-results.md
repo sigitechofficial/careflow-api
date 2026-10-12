@@ -1,6 +1,6 @@
 # 03 — Test Results
 
-**Run:** 2026-10-12, local development machine · backend head `9660c33` · frontend head `e6c17e6`
+**Run:** 2026-10-12, local development machine · branch `payroll-remediation/phase-0` in both repositories
 
 No test touched the development database's business data, a live system, HMRC or a bank. Integration tests run against a separate local database that holds synthetic rows only.
 
