@@ -272,9 +272,12 @@ describe('payroll API (HTTP)', () => {
       expect((await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, {})).status).toBe(400);
       expect((await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, { paymentReference: 'BACS-1', settledOn: '01/10/2026' })).status).toBe(400);
       expect((await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, { paymentReference: 'BACS-1', settledOn: '2999-01-01' })).status).toBe(400);
+      expect((await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, { paymentReference: 'BACS-1', settledOn: '2026-10-01', settlementSource: 'BANK_CONFIRMED' })).status).toBe(400);
       const paid = await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, { paymentReference: 'BACS-1', settledOn: '2026-10-01', settlementEvidence: 'Statement line 3' });
       expect(paid.status).toBe(201);
       expect(paid.body.data).toMatchObject({ status: 'PAID', paymentReference: 'BACS-1', settledOn: '2026-10-01' });
+      // R-09: recorded by a person, not confirmed by a bank; the caller cannot claim otherwise.
+      expect(paid.body.data).toMatchObject({ paymentState: 'MANUALLY_RECORDED', settlementSource: 'MANUAL_ENTRY', settlementConfirmed: false });
       expect((await post(approver, `/billing/employee-payouts/${batch}/mark-paid`, { paymentReference: 'BACS-2', settledOn: '2026-10-01' })).status).toBe(400);
     });
 

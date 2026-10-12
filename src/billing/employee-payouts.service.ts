@@ -28,6 +28,12 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { assertDifferentUser, assertFinancialResetEnvironment } from './financial-controls.util';
+import {
+  assertPaymentTransition,
+  paymentStateLabel,
+  paymentStateOfBatch,
+  type SettlementSource,
+} from './payment-state.util';
 
 const OPEN_BATCH_STATUSES: EmployeePayoutBatchStatus[] = [
   EmployeePayoutBatchStatus.DRAFT,
@@ -409,6 +415,10 @@ export class EmployeePayoutsService {
     }
     const settlementEvidence = dto.settlementEvidence?.trim() || null;
 
+    // A reference typed by a person records the payment; it does not confirm settlement.
+    assertPaymentTransition(paymentStateOfBatch(batch), 'MANUALLY_RECORDED');
+    const settlementSource: SettlementSource = 'MANUAL_ENTRY';
+
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
       const changed = await tx.employeePayoutBatch.updateMany({
@@ -420,6 +430,7 @@ export class EmployeePayoutsService {
           paymentReference,
           settledOn,
           settlementEvidence,
+          settlementSource,
         },
       });
       if (changed.count !== 1) {
@@ -444,6 +455,7 @@ export class EmployeePayoutsService {
             paymentReference,
             settledOn: dto.settledOn,
             settlementEvidence,
+            settlementSource,
           },
         },
         meta,
@@ -789,10 +801,12 @@ export class EmployeePayoutsService {
     updatedAt: Date;
     ukPayrollRunId?: string;
     ukPayrollRun?: { id: string; label: string; status: string } | null;
+    settlementSource?: string | null;
     _count?: { lines: number };
     lines?: unknown[];
   }) {
     const total = Number(batch.totalAmount);
+    const paymentState = paymentStateOfBatch(batch);
     const lineCount =
       batch._count?.lines ??
       (Array.isArray(batch.lines) ? batch.lines.length : 0);
@@ -805,6 +819,11 @@ export class EmployeePayoutsService {
       ukPayrollRunLabel: batch.ukPayrollRun?.label ?? null,
       ukPayrollRunStatus: batch.ukPayrollRun?.status ?? null,
       status: batch.status,
+      /** PAID means a person recorded the payment, unless a bank confirmed it (see payment-state.util). */
+      paymentState,
+      paymentStateLabel: paymentStateLabel(paymentState),
+      settlementSource: batch.status === EmployeePayoutBatchStatus.PAID ? (batch.settlementSource ?? 'MANUAL_ENTRY') : null,
+      settlementConfirmed: paymentState === 'CONFIRMED_SETTLEMENT',
       currency: batch.currency,
       totalAmount: formatMoney(total),
       totalAmountValue: total,

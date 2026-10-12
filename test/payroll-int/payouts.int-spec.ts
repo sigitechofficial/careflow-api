@@ -136,4 +136,49 @@ describe('employee payouts', () => {
       ['employee_payout_batch_cancelled', maker],
     ]);
   });
+
+  it('R-09: a typed reference records the payment manually; it is never shown as confirmed by a bank', async () => {
+    const run = await createUkRunWithNetPay(prisma, { ...november, netPay: { [uuid()]: 812.4 }, status: 'CLOSED' });
+    const { data: batch } = await payouts.create(maker, { ukPayrollRunId: run } as never);
+    expect(batch).toMatchObject({ paymentState: 'DRAFT', settlementSource: null, settlementConfirmed: false });
+
+    const approved = (await payouts.approve(checker, batch.id)).data;
+    expect(approved).toMatchObject({ paymentState: 'APPROVED', paymentStateLabel: 'Approved — not paid yet', settlementConfirmed: false });
+
+    const paid = (await payouts.markPaid(settler, batch.id, evidence as never)).data;
+    expect(paid).toMatchObject({
+      status: 'PAID',
+      paymentState: 'MANUALLY_RECORDED',
+      paymentStateLabel: 'Payment recorded manually',
+      settlementSource: 'MANUAL_ENTRY',
+      settlementConfirmed: false,
+    });
+    const row = await prisma.employeePayoutBatch.findUniqueOrThrow({ where: { id: batch.id } });
+    expect(row.settlementSource).toBe('MANUAL_ENTRY');
+
+    // The list shows the same state; no batch in the system reads as confirmed settlement.
+    const list = (await payouts.list({} as never)).data as Array<{ id: string; paymentState: string; settlementConfirmed: boolean }>;
+    expect(list.find((b) => b.id === batch.id)).toMatchObject({ paymentState: 'MANUALLY_RECORDED', settlementConfirmed: false });
+    expect(list.some((b) => b.settlementConfirmed)).toBe(false);
+  });
+
+  it('R-09: a batch paid before the source was stored still reads as manually recorded', async () => {
+    const run = await createUkRunWithNetPay(prisma, { ...november, netPay: { [uuid()]: 50 }, status: 'CLOSED' });
+    const { data: batch } = await payouts.create(maker, { ukPayrollRunId: run } as never);
+    await prisma.employeePayoutBatch.update({ where: { id: batch.id }, data: { status: 'PAID', paidAt: new Date(), settlementSource: null } });
+
+    expect((await payouts.getById(batch.id)).data).toMatchObject({
+      paymentState: 'MANUALLY_RECORDED',
+      settlementSource: 'MANUAL_ENTRY',
+      settlementConfirmed: false,
+    });
+  });
+
+  it('R-09: a cancelled batch is cancelled, not paid', async () => {
+    const run = await createUkRunWithNetPay(prisma, { ...november, netPay: { [uuid()]: 50 }, status: 'CLOSED' });
+    const { data: batch } = await payouts.create(maker, { ukPayrollRunId: run } as never);
+    const cancelled = (await payouts.cancel(maker, batch.id, 'Created by mistake')).data;
+    expect(cancelled).toMatchObject({ paymentState: 'CANCELLED', settlementSource: null, settlementConfirmed: false });
+    await expect(payouts.markPaid(settler, batch.id, evidence as never)).rejects.toThrow(/APPROVED/);
+  });
 });

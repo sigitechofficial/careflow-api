@@ -9229,6 +9229,9 @@ model EmployeePayoutBatch {
   paymentReference   String?
   settledOn          DateTime?             @db.Date
   settlementEvidence String?
+  /// How the system knows the batch was paid: MANUAL_ENTRY (a person typed the reference) or
+  /// BANK_CONFIRMED (matched to a bank / provider report; no such interface exists yet).
+  settlementSource   String?
 
   lines        EmployeePayoutLine[]
   ukPayrollRun UkPayrollRun         @relation(fields: [ukPayrollRunId], references: [id], onDelete: Restrict)
