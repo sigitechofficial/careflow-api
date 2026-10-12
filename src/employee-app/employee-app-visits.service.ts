@@ -571,6 +571,17 @@ export class EmployeeAppVisitsService {
           deletedAt: null,
           isActive: true,
           scheduledStartDateTime: { gte: start, lte: end },
+          // A closed visit is never active — e.g. a support carer who has not
+          // clocked out of a visit the lead already completed.
+          status: {
+            notIn: [
+              ScheduledJobStatus.COMPLETED,
+              ScheduledJobStatus.PARTIALLY_COMPLETED,
+              ScheduledJobStatus.MISSED,
+              ScheduledJobStatus.CANCELLED,
+              ScheduledJobStatus.CALLED_OFF,
+            ],
+          },
         },
       },
       select: {

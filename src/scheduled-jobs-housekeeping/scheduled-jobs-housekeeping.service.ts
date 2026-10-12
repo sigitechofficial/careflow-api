@@ -68,20 +68,13 @@ import { VisitObservationsCatalogService } from '../service-user-observations/vi
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
-import { resolveLeadEmployeeId } from '../employee-app/employee-app-multi-carer.util';
 import {
   AUTHORED_LOG_TYPES,
   logEntryRolesById,
   visitLogAuthorLabel,
   type VisitLogAuthor,
 } from '../employee-app/employee-app-log-author.util';
-import {
-  planSupportAutoClose,
-  readSupportAutoClosed,
-  SUPPORT_AUTO_CLOSE_NOTE,
-  SUPPORT_AUTO_CLOSED_META_KEY,
-  type SupportAutoCloseRecord,
-} from './support-auto-close.util';
+import { SUPPORT_AUTO_CLOSED_META_KEY } from './support-auto-close.util';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -1294,66 +1287,9 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
-      // Lead closed a multi-carer visit: clock out every SUPPORT carer still on site
-      // at the lead's clock-out time, in this same transaction (single-carer: no-op).
-      const closesCarerAttendance =
-        !markingStarted &&
-        !reopeningFromCompleted &&
-        actualEnd != null &&
-        (completing || markingMissed || visitStatus === ScheduledVisitStatus.NEEDS_ATTENTION);
-      const supportAutoClosed: Array<{ allocationId: string; employeeId: string; end: Date }> =
-        [];
-      let autoCloseLeadId: string | null = null;
-      if (closesCarerAttendance && existing.requiredCarers >= 2) {
-        const activeRows = await tx.jobAllocation.findMany({
-          where: {
-            scheduledJobId: id,
-            deletedAt: null,
-            isActive: true,
-            status: { in: ACTIVE_ALLOCATION },
-          },
-          orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            employeeId: true,
-            status: true,
-            isLeadCarer: true,
-            allocatedAt: true,
-            actualStartDateTime: true,
-            actualEndDateTime: true,
-          },
-        });
-        const leadId = resolveLeadEmployeeId(existing.requiredCarers, activeRows);
-        const leadRow = activeRows.find((a) => a.employeeId === leadId);
-        const leadClockOut =
-          carerActualRows.find((r) => r.allocationId === leadRow?.id)?.end ?? actualEnd!;
-        const plan = planSupportAutoClose({
-          requiredCarers: existing.requiredCarers,
-          allocations: activeRows,
-          leadClockOut,
-        });
-        autoCloseLeadId = plan.leadEmployeeId;
-        for (const row of plan.rows) {
-          await tx.jobAllocation.update({
-            where: { id: row.allocationId },
-            data: { actualEndDateTime: row.end },
-          });
-          await tx.visitAttendanceEvent.create({
-            data: {
-              scheduledJobId: id,
-              scheduledVisitId: existing.visits?.[0]?.id ?? null,
-              jobAllocationId: row.allocationId,
-              employeeId: row.employeeId,
-              eventType: VisitAttendanceEventType.CHECK_OUT,
-              verificationMethod: VisitAttendanceVerificationMethod.OTHER,
-              occurredAt: row.end,
-              clientEventId: `support-auto-close:${row.allocationId}`,
-              notes: SUPPORT_AUTO_CLOSE_NOTE,
-            },
-          });
-          supportAutoClosed.push(row);
-        }
-      }
+      // Lead closing a multi-carer visit never clocks a SUPPORT carer out: each carer's
+      // session is their own. A support carer still on site clocks out themselves; until
+      // then their clock-out stays empty (the office sees "Clock-out missing").
 
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
 
@@ -1368,24 +1304,14 @@ export class ScheduledJobsHousekeepingService {
           !Array.isArray(previousMeta.employeeApp)
             ? (previousMeta.employeeApp as Record<string, unknown>)
             : {};
-        const autoClosedMap = readSupportAutoClosed(previousEa);
-        const recordedAt = new Date().toISOString();
-        for (const row of supportAutoClosed) {
-          autoClosedMap[row.employeeId] = {
-            autoClosedAt: row.end.toISOString(),
-            leadEmployeeId: autoCloseLeadId ?? '',
-            reason: 'lead_clock_out',
-            recordedAt,
-          } satisfies SupportAutoCloseRecord;
-        }
-        // Re-opened / back to in progress: carer ends were cleared, so drop the markers.
+        // Re-opened / back to in progress: carer ends were cleared, so drop the markers
+        // left by older visits (support clock-outs auto-closed at lead clock-out).
         const clearMarkers =
           (reopeningFromCompleted || markingStarted) &&
           SUPPORT_AUTO_CLOSED_META_KEY in previousEa;
-        if (supportAutoClosed.length || clearMarkers) {
+        if (clearMarkers) {
           const nextEa: Record<string, unknown> = { ...previousEa };
-          if (clearMarkers) delete nextEa[SUPPORT_AUTO_CLOSED_META_KEY];
-          else nextEa[SUPPORT_AUTO_CLOSED_META_KEY] = autoClosedMap;
+          delete nextEa[SUPPORT_AUTO_CLOSED_META_KEY];
           metadataPatch.employeeApp = nextEa;
           metadataChanged = true;
         }
@@ -1516,25 +1442,8 @@ export class ScheduledJobsHousekeepingService {
       return {
         message: completing ? 'Scheduled job completed' : 'Visit outcome saved',
         data: this.mapDayJob(updated),
-        supportAutoClosed,
       };
     });
-
-    // Visit log line per auto-closed support carer (display; attendance event above is the record).
-    for (const row of result.supportAutoClosed) {
-      await this.visitTimeline.upsertEvent({
-        scheduledJobId: id,
-        scheduledVisitId: existing.visits?.[0]?.id ?? null,
-        eventType: 'clock_out',
-        sourceType: 'complete',
-        sourceId: `support_complete:${row.employeeId}`,
-        title: 'Support clocked out',
-        detail: SUPPORT_AUTO_CLOSE_NOTE,
-        tone: 'primary',
-        occurredAt: row.end,
-        createdByEmployeeId: row.employeeId,
-      });
-    }
 
     if (completing) {
       try {
