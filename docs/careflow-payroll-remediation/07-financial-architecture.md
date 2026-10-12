@@ -1,8 +1,78 @@
 # 07 — Financial Architecture
 
-**Updated:** 2026-10-12 (Gate A sprint)
+**Updated:** 2026-10-12 (Gate B sprint: section 0 is new; sections 1 to 9 are unchanged except where section 0 says otherwise)
 
 How pay moves through CareFlow, which record is the authority at each step, and where each control sits. Sections marked *(target)* describe later phases and are not built.
+
+---
+
+## 0. Added in the Gate B sprint
+
+### 0.1 Attendance evidence (replaces the storage described in section 6)
+
+```
+carer app completion ─┐
+late clock-out ───────┼─► one locked merge per (visit, carer) ─► VisitAttendanceVerification (version n)
+office time entry ────┘        │                                 └► VisitAttendanceVerificationEntry (append-only)
+                               └─ repeated delivery recognised by event id; nothing applied twice
+```
+
+The rules of section 6 are unchanged; what changed is where the evidence lives and that every writer goes through the same merge under a row lock. Evidence written before this sprint is still read from the visit.
+
+### 0.2 A calculation that cannot be completed
+
+| Cause | Result |
+|---|---|
+| A set-up gap the pay card resolver can name (no employment record, two cards, funding history unclear) | The row is held with `PAY_CARD_MISSING` and the reason; the client charge is still priced |
+| Anything else | `PayEvaluationFailure`: kind and category, a safe message, no error text; shown, retryable, dismissable with a reason; closed by the next success |
+
+### 0.3 Approval follows evidence
+
+An approval stores its source (`AUTO_VERIFIED`, `MANAGER_APPROVED`, `MANAGER_OVERRIDE`) and the evidence it was given on (start, finish, review state). When the evidence changes: automatic → withdrawn and re-given if clean; a person's → back to review with the reason; settled → flagged `EVIDENCE_CHANGED`, never edited in place (corrections, section 5).
+
+### 0.4 Which pay card
+
+```
+1. funder override for the funder on the day of the visit   (funding as at the visit day, PC-10)
+2. the carer's own card for that day                        (dated history)
+3. matching, most specific level first:
+   individual > role > branch > employment type > worker type > organisation default
+```
+
+At each step, if more than one card applies and nothing ranks them, **no card is chosen** and a `PayCardConflictException` names them (PC-32). All dates are local days (PC-19). A resolved card is pinned on the reconciliation when it is approved, so later changes to cards do not re-price approved or paid visits.
+
+### 0.5 Calendar and premium policy
+
+```
+BankHoliday rows  (nation | ORGANISATION, date, isSubstitute, substituteForDate, source)
+        │
+        ▼  holiday-calendar.store: loadPayCalendar(nation, period)      ← one reader for carer pay
+        │      + OrganisationGeneralSettings.holidayPremiumBasis (BOTH | ACTUAL_DAY | STATUTORY_DAY)
+        ▼
+  { bank holiday days, organisation special days, fixed-date rule }  ─► pricing functions
+        │
+        ▼
+  the pay card decides what is paid: a day earns more only where the card has a rate for it
+```
+
+The calendar is a fact; the basis is the organisation's policy; the amount is the card's. Client charges do not use the basis.
+
+### 0.6 Mileage
+
+```
+MileageRate (from date, vehicle)      organisation rates │ HMRC approved amounts (verified by a person, or empty)
+        │
+visit miles ─► visit pay run line: miles, amount, taxFree / taxable or NOT_VERIFIED
+        │         year-to-date = miles by journey date in the tax year (other approved / locked runs + this run)
+        ▼
+UK payroll gross:  reimbursed part ─► expense (outside taxable pay)      taxable part ─► MILEAGE_TAXABLE (inside gross)
+        ▼
+UkPayrollRunEmployee: netPay  +  reimbursementPayable  =  total payable
+        ▼
+EmployeePayoutLine: amount = net pay + reimbursement (each tracked, each paid once)
+```
+
+Reimbursements are never wages: they are not in `grossPay` of the visit pay run, not in taxable pay (except the part above the approved amount), and are added to the payment once.
 
 ---
 

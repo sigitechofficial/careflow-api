@@ -1,8 +1,72 @@
 # 04 — Database Changes
 
-**Updated:** 2026-10-12 (Gate A sprint)
+**Updated:** 2026-10-12 (Gate B sprint)
 
-Seven migrations so far. Each adds columns, indexes, triggers or an enum value; none drops a table, a column or a row. They have been applied to the local development database, the local payroll test database and, for rehearsal, a scratch database built from the pre-remediation schema. **They have not been run on production or on any shared database.**
+Thirteen migrations so far (seven to the end of the Gate A sprint, six in the Gate B sprint: section 0). Each adds columns, indexes, triggers or an enum value; none drops a table, a column or a row. They have been applied to the local development database, the local payroll test database and, for rehearsal, a scratch database built from the pre-remediation schema. **They have not been run on production or on any shared database.**
+
+---
+
+## 0. Gate B sprint — migrations 8 to 13
+
+All six are additive: new tables, new nullable or defaulted columns, one enum value, and data that is either a default or derived from what is already there. No table, column or row is dropped. No row of a locked pay run is written to. Applied to the local development database, the local payroll test database and the scratch rehearsal database only.
+
+| # | Migration | Type | What it does | Item |
+|---|---|---|---|---|
+| 8 | `20261014100000_visit_attendance_verification` | schema | Tables `scheduling.VisitAttendanceVerification` (one row per carer and visit, unique) and `VisitAttendanceVerificationEntry` (append-only history, unique per event id) | R-16 |
+| 9 | `20261014101000_pay_evaluation_failures` | schema | Table `billing.PayEvaluationFailure` (unique subject key; kind, category, safe message, status, occurrences, history) | R-17 |
+| 10 | `20261014102000_reconciliation_approval_evidence` | schema + backfill | `VisitReconciliation.approvalSource`, `approvedEvidence`, `evidenceChangedReason`, `evidenceChangedAt`; enum value `EVIDENCE_CHANGED` | R-18 |
+| 11 | `20261014103000_holiday_calendar_substitute_days` | schema + backfill | `BankHoliday.isSubstitute`, `substituteForDate`, `source`; `OrganisationGeneralSettings.holidayPremiumBasis` default `BOTH` | PC-22 to PC-24 |
+| 12 | `20261014104000_mileage_rates_and_reimbursement` | schema | Table `billing.MileageRate`; `PayrollRunLine.quantity`, `taxFreeAmount`, `taxableAmount`, `taxTreatment`; `UkPayrollRunEmployee.reimbursementPayable`, `expenseNotVerified`; `EmployeePayoutLine.reimbursementAmount` | TR-09, TR-13 |
+| 13 | `20261014104500_mileage_rate_defaults` | data only | Four `MileageRate` rows from 2000-04-06: the rates the application already used. `ON CONFLICT DO NOTHING`; safe to run twice | TR-09 |
+
+### Backfills
+
+| # | Backfill | Why it is safe |
+|---|---|---|
+| 10 | `approvalSource` = `MANAGER_APPROVED` where a person is recorded as approver, else `AUTO_VERIFIED`, for approved rows. `approvedEvidence` is left empty | Nothing is invented: a row with no recorded evidence adopts its current evidence the next time it is evaluated, without withdrawing the approval |
+| 11 | Existing holiday rows: `source` = `LEGACY`; a fixed-date holiday recorded on another date is marked as the substitute for that date; a row that only says "substitute" is marked with the date left empty | No date is added, removed or switched off. With the default basis the new columns are not used for pricing, so no visit is re-priced |
+| 12 | None. Miles are **not** back-filled onto existing mileage lines | Lines of locked runs are history and the triggers refuse to change them. Their miles are read from the description they were written with |
+| 13 | The first mileage period | The same numbers the code held, so no amount changes. HMRC approved amounts are left empty |
+
+### Rehearsal
+
+`npm run payroll-migration-rehearsal`: a scratch database is built from the schema of the commit the programme started from, filled with synthetic history, and migrations 1 to 13 are applied in order. **45 of 45 checks passed**; the scratch database is dropped afterwards. Checks added for this sprint:
+
+- visit approved by a person → `MANAGER_APPROVED`; without one → `AUTO_VERIFIED`; no evidence invented;
+- attendance verification and pay evaluation failures start empty; `EVIDENCE_CHANGED` exists;
+- "Christmas Day" on 27 December 2027 → substitute for 25 December; holidays on their own date are not substitutes; a row that only says "substitute day" is marked with no date; a switched-off holiday stays off; rows labelled `LEGACY`;
+- `holidayPremiumBasis` defaults to `BOTH`;
+- a locked mileage line is not rewritten (quantity empty, description and amount unchanged);
+- four mileage rate rows with the old numbers, none verified; no historic UK run employee is given a reimbursement to pay; the data migration can be applied twice;
+- the migrated schema equals `prisma/schema.prisma`; no row was removed.
+
+### Pre-migration reports to run on a copy of real data (in addition to queries A–D of section 6)
+
+| Report | What to look for |
+|---|---|
+| `GET billing/pay-cards/conflicts` after migration, or the query below before it | Carers who will be held because two active cards match them at the same level |
+| `GET billing/bank-holidays/status` | Years and nations with missing dates |
+| `GET billing/employee-payouts/reimbursements` | Expenses of earlier UK runs that never reached a payout |
+
+```sql
+-- E. Active pay cards for the same audience in force on the same day today (PC-32).
+SELECT a."code" AS card_a, b."code" AS card_b, a."assignmentLevel", a."assignmentTargetId", a."assignmentTargetKey"
+FROM "billing"."PayCard" a
+JOIN "billing"."PayCard" b
+  ON a."id" < b."id" AND a."assignmentLevel" = b."assignmentLevel"
+ AND a."assignmentTargetId" IS NOT DISTINCT FROM b."assignmentTargetId"
+ AND a."assignmentTargetKey" IS NOT DISTINCT FROM b."assignmentTargetKey"
+WHERE a."deletedAt" IS NULL AND b."deletedAt" IS NULL
+  AND a."status" = 'ACTIVE' AND b."status" = 'ACTIVE'
+  AND a."effectiveFrom" <= CURRENT_DATE AND (a."effectiveTo" IS NULL OR a."effectiveTo" >= CURRENT_DATE)
+  AND b."effectiveFrom" <= CURRENT_DATE AND (b."effectiveTo" IS NULL OR b."effectiveTo" >= CURRENT_DATE);
+```
+
+Such pairs are a problem only for carers with no card of their own; the conflicts endpoint lists exactly those carers.
+
+### Recovery
+
+Each of migrations 8 to 13 can be left in place if the application is rolled back: the previous code ignores the new tables and columns. Removing them would discard attendance verification history, recorded failures, approval evidence, substitute-day information, mileage rates and reimbursement amounts, and is not a routine rollback.
 
 ---
 

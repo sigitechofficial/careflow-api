@@ -6,6 +6,84 @@ No test touched the development database's business data, a live system, HMRC or
 
 ---
 
+## 0. Gate B sprint (run of 2026-10-12, branch `payroll-remediation/gate-b`, backend `9315a95`, frontend `b36a61f`)
+
+Sections 1 to 7 below are the Gate A sprint's results and are kept as they were. This section is the current state.
+
+### 0.1 Summary
+
+| Suite | Suites | Tests | Passed | Failed |
+|---|---|---|---|---|
+| Backend payroll integration, incl. HTTP (`npm run test:payroll-int`) | 26 | 264 | 264 | 0 |
+| Backend unit: `src/billing`, `src/payroll` | 48 | 349 | 349 | 0 |
+| Backend unit, whole repository (`npx jest`) | 344 | 2,679 | 2,661 | 18 in 10 suites, none in a module this programme touches (0.4) |
+| Migration rehearsal (`npm run payroll-migration-rehearsal`) | — | 45 checks | 45 | 0 |
+| Frontend: `src/features/billing`, `employees`, `auth`, `payroll`, `components/layout` | 16 files | 86 | 86 | 0 |
+| Frontend, whole repository (`npx vitest run`) | 232 files | 1,293 | 1,277 | 16, the same 16 as at Gate A (section 6.4), plus Playwright files Vitest cannot load |
+| Backend type-check (`npx tsc --noEmit -p tsconfig.build.json`) | — | — | no errors in `src` | |
+| Frontend type-check (`npx tsc --noEmit -p tsconfig.json`) | — | — | 0 errors | |
+| Browser (manual, test instance, synthetic data) | 6 flows | — | 6 | 0 (doc 09 section 6) |
+
+Growth: integration 193 → 264 tests (19 → 26 suites); frontend 1,268 → 1,293 tests (25 new, all passing).
+
+### 0.2 New and changed tests
+
+| Suite | Kind | Tests | What it proves |
+|---|---|---|---|
+| `attendance-concurrency` | int | 11 | **R-16.** Two and three carers at the same instant; the office during a completion; two offices at once; a repeated delivery; a failed transaction retried; old evidence imported once; a settled carer untouched |
+| `pay-evaluation-failures` | http | 7 | **R-17.** No employment record → held with the reason and the charge priced; an unexpected error kept without its text, retried, closed, audited; dismissal needs a reason; branch scope |
+| `approval-evidence` | http | 10 | **R-18.** Late clean clock-out re-approved automatically; contradictory time held; other carer untouched; duplicate delivery changes nothing; a manager's approval goes to review with the reason; settled pay flagged then answered; old approvals adopt |
+| `http-payroll-api` | http | 68 (+1) | **R-13.** Branch lists and organisation-only routes for a branch-limited user |
+| `rate-regressions` | int | 7 (+1) | **PC-19.** A fixed fee just after midnight in summer time |
+| `pay-card-conflicts` | http | 15 | **PC-32.** Two organisation defaults; two role cards; two branch cards and a carer in two branches; individual against branch; personal card settles a conflict; funder override against normal and two overrides; future-dated card and the form check; rate changed after the visit; historic ambiguity; conflict during a pay run; concurrent publication; concurrent assignment; concurrent funder overrides; card start on its local day; branch scope of the lists |
+| `funding-history` | int | 6 | **PC-10.** Change of funder both ways; undated funding already on record; records that cannot say (held only when it matters, settled by entering the date); funder that started later; approved visit not re-priced |
+| `holiday-calendar` | http | 11 | **PC-22 to PC-24.** Substitute days recorded; default basis unchanged; the basis needs permission and a reason and is audited; actual-day and statutory-day results; client charge unaffected; approved visit keeps its pay; Scotland; organisation special day; status with gaps and the preview warnings; GOV.UK import |
+| `mileage-settlement` | http | 9 | **TR-09 / TR-13.** £154.00 and £3.41 apart from visit to payment, paid once; cancelled batch; part above the verified approved amount taxed; year-to-date across runs, inside a run and over 6 April; change of rate by date; correction before and after lock; deleted run; no rate → exception line; rates API |
+| `visit-time-trust.util.spec` | unit | 20 | Merge rules for completion and office times |
+| `pay-evaluation-failure.util.spec`, `approval-evidence.util.spec` | unit | 6 + 9 | Classification without leaking error text; approval outcomes |
+| `local-day.pc19.spec` | unit | 15 | Local day for fixed fees, night duty, travel, mileage, waiting; clock changes |
+| `pay-card-conflict.pc32.spec` | unit | 13 | Tie at the winning level → none chosen; wording; overlap; all overrides / own-card rows of a day |
+| `funding-at-date.pc10.spec` | unit | 8 | Funder on the day; unclear cases; split funding; inclusive, local dates |
+| `holiday-calendar.pc22.spec` | unit | 20 | Substitute days; three bases; Scotland; organisation days; completeness per nation |
+| `mileage.tr09.spec` | unit | 15 | Rates by date; verified amounts only; tax year; threshold; tax split |
+| `payroll-payslip.util.spec` | unit | +3 | Reimbursement, total payable, "not verified" note |
+| `PayEvaluationFailuresCard`, `pay-scope`, `PayCardConflictNotice`, `BankHolidaysPanel`, `PayableBreakdown` | ui | 5 + 4 + 7 + 6 + 3 | The new screens and notices |
+
+### 0.3 Tests that failed first
+
+| Fix | What failed on the unfixed code |
+|---|---|
+| R-16 | Old read-modify-write kept 1 of 8 concurrent records, 5 runs out of 5 |
+| PC-19 | 8 of 14 unit tests (for example £8 instead of £10; £60 instead of £70) |
+| PC-32 (locks) | With the locks removed: two cards covering the same day after two changes at once; two funder overrides after two requests at once |
+| PC-10 | 4 of 6 integration tests (override not applied before a change of funder; applied to work the old funder paid for) |
+| TR-13 | By inspection of the payout code: the amount was net pay only. The new end-to-end test asserts the reimbursement on the payout line |
+
+### 0.4 Failures outside this programme
+
+`npx jest` over the whole backend: 18 tests fail in 10 suites — `policies` (2 suites), `dev-tools/ia-autofill-complete-catalog`, `initial-assessments/care-plan-ia-demo-overlay`, `service-user-care-plans/…/falls-care-plan.suggestions`, `service-users-medical/medical-clinical.migration`, `service-users/service-user-date-of-death.util`, `compliance-reports/compliance-board-enrichment.util`, `employee-app/employee-app-auth.service`, `employee-app/employee-app-body-map-pins.util`. None of these files, and nothing they test, was changed in this sprint. **The same 10 suites and 18 tests fail on the Gate A commit `035e482`** (run on that commit for comparison). They are not payroll failures and were not fixed here.
+
+Frontend: the same 16 tests as at Gate A (Playwright end-to-end files run by Vitest, scheduling, service users, alerts).
+
+### 0.5 How to run
+
+```
+npm run payroll-test-db                      # test database: schema, triggers, mileage rate defaults
+npm run test:payroll-int                     # 26 suites, 264 tests
+npx jest src/billing src/payroll             # 48 suites, 349 tests
+npm run payroll-migration-rehearsal          # 45 checks on a scratch database, dropped afterwards
+PAYROLL_BROWSER_LOGIN_FILE=<file outside the repository> npm run payroll-test-browser-seed
+```
+
+### 0.6 Limits
+
+- The tax and NI figures in `mileage-settlement` come from the application's own calculation and the statutory rate set the test database seeds. The tests assert relations (a twin carer without mileage has the same tax, NI and net; net = gross − tax − NI; the taxable excess is inside gross). They do not validate the statutory tables against HMRC.
+- Every rate in the tests is a labelled synthetic value.
+- Concurrency tests run in one process against one database.
+- Browser checks were manual, in an embedded browser; there are no automated browser tests.
+
+---
+
 ## 1. Summary
 
 | Suite | Suites | Tests | Passed | Failed |

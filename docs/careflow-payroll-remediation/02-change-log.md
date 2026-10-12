@@ -4,6 +4,79 @@ Newest first. Audit IDs in brackets. Database detail is in `04-database-changes.
 
 ---
 
+## Gate B sprint — Gate A hardening, pay card correctness, mileage settlement (2026-10-12)
+
+Branch `payroll-remediation/gate-b` in both repositories, on top of `gate-a`. Six migrations (doc 04, numbers 8 to 13), all additive. Nothing pushed or deployed.
+
+### Behaviour changes people will notice
+
+| Area | Before | Now |
+|---|---|---|
+| Double-up visits | Two carers finishing at the same moment could lose one carer's attendance evidence | Each carer has their own record; nothing is overwritten |
+| A pay calculation that fails | Logged on the server; the visit simply had no pay | Shown on the reconciliation screen with a reason where one can be given; retry or dismiss with a reason |
+| A carer with no employment record | Visit unpriced, no explanation | Visit held with "Carer pay cannot be priced: …"; the client charge is still priced |
+| Approval after the evidence changes | Could stay in place | An automatic approval is re-checked; a person's approval goes back to review with the reason; paid visits are flagged, not changed |
+| Branch-limited users | Organisation-wide pay screens were offered and showed errors | Hidden from the menu; opened by address they explain why they are not available |
+| A visit just after midnight in summer | Fixed fee, sleep-in and travel rates of the previous day | The rate of the local day |
+| Two pay cards for the same carers | The most recently edited card was used, silently | No card is used. The visit is held with both cards named until one is ended or the carer is given their own card. **Review the conflicts list before go-live** |
+| Pay card form | No warning about overlapping cards | Warns, before saving, which cards overlap and which carers would be held. Saving is not refused |
+| Carer paid differently for one funder | The client's funder today decided | The funder on the day of the visit decides; held for review where the funding records cannot say |
+| Bank holidays screen | A list of dates | Also: which days are substitute days and for which date, which nation and year has gaps, the organisation's own special days, and the choice of which day is paid when a holiday falls on a weekend (default unchanged) |
+| Mileage rates | Fixed in the code | Recorded per period; changed by a person with a reason; audited |
+| Mileage across the 10,000-mile threshold | Could be missed inside one pay run | Split at the right mile, by journey date, per tax year from 6 April |
+| Mileage in the carer's payment | Not included by this system | Paid once with net pay, shown apart from wages on the payout, the UK run and the payslip |
+| Mileage and tax | Always outside taxable pay | Marked "tax treatment not verified" until HMRC's approved amounts are recorded; then any part above them is taxed as pay |
+
+### Backend
+
+| Commit | Audit | Change |
+|---|---|---|
+| `7f1fa95` | R-16 / VW-02 | Per-carer attendance verification rows with history; all writers go through one locked merge |
+| `c5991ba` | R-17 / VW-03 | `PayEvaluationFailure`; resolver set-up gaps become held rows with the reason; list, retry, dismiss |
+| `fa9b5b6` | R-18 / VW-04 | Approval source and approved evidence; outcomes keep / adopt / withdraw / require review / flag settled |
+| `542a3ca` | R-13 / SI-10 | Exception queue by branch; tests of branch lists and organisation-only routes |
+| `c769cf0` | PC-19 | Local-day classification in every pricing path |
+| `ee5c6ff` | PC-32 | No card chosen on a same-level tie; `PayCardConflictException`; conflicts list and form check; locks on card changes and funder overrides; exception line in pay runs |
+| `ffb1d66` | PC-10 | Funder as at the visit day for carer pay; held when the records cannot say and it matters |
+| `43997d6` | PC-22, PC-23, PC-24 | Holiday calendar util and store; substitute days; organisation special days; completeness status; `holidayPremiumBasis` |
+| `02597b8` | TR-09, TR-13 | `MileageRate`; miles and tax treatment on lines; taxable excess into UK gross; `reimbursementPayable`; payouts carry reimbursement once; reconciliation list; payslip |
+| `0119fa4` | — | Migration rehearsal extended to the six new migrations (45 checks) |
+| `9315a95` | R-11 | Browser fixture for the test database |
+
+### Frontend
+
+| Commit | Audit | Change |
+|---|---|---|
+| `cdf4b54` | R-17 | Failed pay calculations card on the reconciliation screen |
+| `330d0ef` | R-18 | Who or what approved, and "evidence changed since" on the reconciliation dialog |
+| `383f49f` | R-13 | Menu and ten pages adapt to a branch-limited user; exception queue takes the branch |
+| `7d8c41c` | PC-32 | Conflicts banner on the pay cards list; warning in the pay card form; warning on the carer's pay card tab |
+| `0bb7f02` | PC-22 to PC-24 | Bank holidays screen: status, substitute days, organisation days, weekend-holiday policy |
+| `b36a61f` | TR-13 | Net pay and mileage shown apart, with the amount payable, on payout batches and UK runs |
+
+### New API routes
+
+| Route | Permission | Purpose |
+|---|---|---|
+| `GET billing/visit-reconciliations/evaluation-failures` | reconciliations read, branch | Pay calculations that failed |
+| `POST …/evaluation-failures/:id/retry`, `…/dismiss` | reconciliations manage | Run again; dismiss with a reason |
+| `GET billing/pay-cards/conflicts` | pay cards read, branch | Carers whose card cannot be decided today |
+| `POST billing/pay-cards/conflict-check` | pay cards read, branch | Check a card as entered; nothing is saved |
+| `GET billing/bank-holidays/status` | pay cards read | Calendar completeness and the weekend-holiday basis |
+| `PATCH billing/bank-holidays/premium-basis` | pay cards manage | Change the basis, with a reason |
+| `GET`, `POST billing/mileage-rates`, `PATCH …/:id/approved-amounts` | pay cards read / manage | Rates per period; HMRC approved amounts with their source |
+| `GET billing/employee-payouts/reimbursements` | payouts read, organisation | Expenses per UK run employee: recorded, payable, in batches, outstanding |
+
+### Set-up steps after upgrade
+
+1. Apply migrations 8 to 13 in order (doc 04). All are additive; 13 is data only and can be run twice.
+2. Open `GET billing/pay-cards/conflicts` (or the pay cards screen). Every carer listed will have visit pay held until one of the named cards is ended or the carer is given a card of their own (D-17).
+3. Open the bank holidays screen. Import from GOV.UK for the current year onwards and resolve the gaps it lists; decide the weekend-holiday basis (D-13). Leaving it alone keeps what was paid before.
+4. Have finance confirm the organisation's mileage rates and record HMRC's approved amounts for each tax year in use (`billing/mileage-rates`, D-15). Until then mileage is paid as before and reported as "tax treatment not verified".
+5. Review `GET billing/employee-payouts/reimbursements`: expenses of UK runs calculated before the upgrade were never part of a payout from this system (D-20).
+
+---
+
 ## Gate A sprint — recovery, attendance, access, corrections screen, statuses (2026-10-12)
 
 Branch `payroll-remediation/gate-a` in both repositories. Two migrations (doc 04, numbers 6 and 7). Nothing pushed or deployed.

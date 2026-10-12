@@ -127,3 +127,47 @@ Row 10 is the real state of the development system and is decision D-01. Nothing
 3. Tax, NI, payslips and HMRC are replaced by a stand-in or not touched.
 4. Browser steps were driven by the same assistant that wrote the code. They show the screens work; they are not user acceptance.
 5. The scenario dates sit in GMT; clock-change behaviour is covered by the rate tests, not by the month.
+
+---
+
+## 6. Gate B sprint — browser run of the remaining financial flows (R-11)
+
+**Run:** 2026-10-12, embedded browser, the application's second instance on the payroll test database (API port 3101, frontend port 5174), filled by `npm run payroll-test-browser-seed`. Three synthetic office users: Olivia (prepares; administrator role, no approval power), Peter (approves; holds the approval powers on a separate role), Mia (branch manager, Branch A only). Every result below was then read back from the test database.
+
+| # | Flow | What was done in the browser | Result on screen | Confirmed in the database |
+|---|---|---|---|---|
+| 1 | Approve and lock a visit pay run | As Peter: Visit pay runs → "Week ending 11 Oct 2026" (prepared by Olivia, Ready for review) → Approve → Lock. Details opened | Status Approved, then Locked; actions reduced to Export. Details show the mileage as its own section: "Mileage: 6.20 mi × £0.55/mile = £3.41"; gross pay £56.00 does not include it | Run `LOCKED`, created by Olivia, approved by Peter; `expenseTotal` 3.41 beside `grossPay` 56 |
+| 2 | Close a UK payroll run | As Peter: UK Payroll → the run (created by Olivia, tax and NI calculated) → Close run | Status CLOSED; "Reactivate run" needs a power Peter does not hold; FPS preview appears | Run `CLOSED`, closed by Peter |
+| 3 | Record a manual payment | As Olivia: "Create payout from this run" → draft batch (£56.00, two employees). As Peter: open the batch → Approve → Record bank payment (reference, date paid, where the evidence is held) | "Payment recorded manually … Ref BACS-TEST-R11-BROWSER · paid 12/10/2026 · **Not confirmed by a bank**"; both lines PAID | Batch created by Olivia, approved and paid by Peter, lines 42.00 and 14.00 |
+| 4 | Reverse an approved correction | As Peter: Pay items → Approved → the correction of visit VIS-GEN-20260929-0001 (+£7.00, entered by Olivia, approved by Peter) → Cancel | The item leaves the approved list. Before that, the visit's "Pay corrections" card showed original £28.00, corrected £35.00, difference +£7.00, who entered and who approved | Pay item `CANCELLED` |
+| 5 | Create, save and reload a custom pay card | As Olivia: New pay card → name, code, dates, notes → Add rate → period "Custom…", label, 18:30 to 21:45, £17.50 an hour → Create. Opened again for editing | Saved and returned to the list. On reload: period "Custom…", "R-11 twilight", 18:30, 21:45, 17.5. **The form warned before saving** that carers without their own card would match this card and the existing default (PC-32) | Card `DRAFT` with one rule: WEEKDAY, HOURLY, 17.5, 18:30–21:45 |
+| 6 | Wages as a branch-limited user | As Mia: UK payroll runs; Visit reconciliation; Salary | UK payroll runs: "This screen covers every branch …" instead of an error. Visit reconciliation: 4 visits, all Ann's (Branch A); Ben's are not listed. Salary: one employee, Ann, £42.00 "recorded as paid (not bank-confirmed)"; Ben absent | With Mia's own session: own branch 200; the other branch 404; organisation lists 403; Ben's earnings 404; Ann's 200 |
+
+Observations (none affects money; listed in the backlog):
+
+- Cancelling an approved pay item uses the browser's own confirmation box and asks for no reason (R-23). The embedded browser dismisses such boxes, so for flow 4 the box was accepted by script; the application code was not changed.
+- A payout batch created from the UK run page gives no confirmation there, and is filed under its week ("2026-W40") while the payouts list opens on the current month; a second attempt answered "already exists" (R-24).
+- In the embedded browser, when its pane was not being drawn, the payout dialog stayed at its opening position with its lower buttons below the window. The payment form was submitted from the keyboard. This looked like an effect of the pane not animating, not of the application; it should be looked at once in an ordinary browser.
+
+## 7. Gate B sprint — the synthetic workflow from visit to payment
+
+Carried out automatically in `mileage-settlement.int-spec` (first test) through the real controllers, with the application's own tax and NI calculation:
+
+| Step | Check |
+|---|---|
+| Two carers work the same visits through the carer app: 8 hours and 3 hours at £14.00. One records 6.2 miles | Both rows approved automatically on clean evidence |
+| Visit pay run for the week, approved and locked by a second user | Visit pay £154.00 each. One mileage line: 6.2 miles, £3.41, "tax treatment not verified". Run gross £308.00; mileage is in the expense total, not in gross |
+| UK payroll run: gross → tax and NI → closed by a second user | Both carers: gross £154.00 and identical taxable pay, tax, NI and net. The carer with mileage: expenses £3.41, reimbursement payable £3.41 |
+| Payout batch | Her line: net pay and £3.41 shown apart, amount = net + 3.41. The other carer: net only. The difference between the two lines is £3.41 |
+| A second batch for the same run | Refused while the first is open; after payment, nothing is outstanding |
+| Approve (second user) and record the payment with reference, date and evidence | Recorded as manually entered, not as confirmed |
+| Reconciliation list | Recorded 3.41 = payable 3.41 = in batches 3.41 = recorded as paid 3.41; outstanding 0 |
+
+The other eight tests of that suite cover: a cancelled batch; a rate above a verified approved amount (the £1.00 above it is inside taxable pay, £4.50 outside); the year-to-date total; a change of rate; corrections before and after the lock; a deleted run; miles with no rate; the rates API.
+
+## 8. Limits of the Gate B validation
+
+- Synthetic people, visits, rates and funders only. No real employee, bank or HMRC data.
+- The statutory tables behind the tax and NI figures were not validated; only how reimbursements relate to the calculation.
+- The mobile app was not observed.
+- Browser flows were carried out by hand once; they are not automated.
