@@ -9,7 +9,7 @@
 import request from 'supertest';
 import { PayrollRunLineType, VisitReconciliationStatus } from '@prisma/client';
 import { attendanceTimeTrustFor } from '../../src/visit-attendance/visit-time-trust.util';
-import { resetPayData } from './harness';
+import { resetPayData, setDurationTolerance } from './harness';
 import {
   bearer,
   createAllocatedVisit,
@@ -148,6 +148,22 @@ describe('carer app attendance → pay (HTTP)', () => {
       reportedStart: at('07:00').toISOString(),
       serverCheckInAt: at('09:20').toISOString(),
     });
+  });
+
+  it('a verified late start within the organisation tolerance is paid for the planned time', async () => {
+    // Existing rule, recorded so that a change is deliberate (policy decision D-14). The tolerance
+    // is the organisation's late-visit alert setting: 20 minutes on a default installation.
+    await setDurationTolerance(t.prisma, 20);
+    const carer = await createCarer(t.prisma);
+    const visit = await createAllocatedVisit(t.prisma, { carers: [carer.employeeId], start: at('09:00') });
+    clock.set(at('09:20'));
+    await checkIn(carer, visit.jobId);
+    clock.set(at('10:00'));
+    expect((await complete(carer, visit.jobId, { timingExceptionReasonCode: 'TRAFFIC_OR_ROAD_CLOSURE' })).status).toBe(201);
+
+    const row = await rowFor(visit.visitId, carer.employeeId);
+    expect((await allocation(visit.allocationIds[carer.employeeId])).actualStartDateTime).toEqual(at('09:20'));
+    expect(row!.payableMinutes).toBe(60); // 40 minutes attended, 60 paid
   });
 
   it('device clock ahead: a finish in the future is refused; small drift is accepted', async () => {

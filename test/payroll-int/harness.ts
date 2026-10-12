@@ -20,6 +20,24 @@ config({ path: join(__dirname, '..', '..', '.env') });
 
 export const TEST_TIMEZONE = 'Europe/London';
 
+/**
+ * A visit that falls short of its planned time by no more than the organisation's tolerance is
+ * paid for the planned time. The tolerance comes from the organisation settings (late-visit alert,
+ * 20 minutes by default, else the global tolerance, 30) and is 15 minutes when no settings row
+ * exists. These tests are written for 15 minutes, so the value is pinned on every reset.
+ */
+export const TEST_DURATION_TOLERANCE_MINUTES = 15;
+
+export async function setDurationTolerance(prisma: PrismaService, minutes: number) {
+  const data = { domLateVisitAlertMinutes: minutes, domGlobalToleranceMinutes: minutes };
+  // The application creates this row on first use; create it here so the value is always explicit.
+  if (!(await prisma.organisationGeneralSettings.findFirst({ select: { id: true } }))) {
+    await prisma.organisationGeneralSettings.create({ data: data as never });
+    return;
+  }
+  await prisma.organisationGeneralSettings.updateMany({ data });
+}
+
 function testDatabaseUrl(): string {
   const base = process.env.DATABASE_URL;
   if (!base) throw new Error('DATABASE_URL is not set');
@@ -61,6 +79,7 @@ export async function resetPayData(prisma: PrismaService) {
     await tx.financeException.deleteMany();
     await tx.visitReconciliation.deleteMany();
   });
+  await setDurationTolerance(prisma, TEST_DURATION_TOLERANCE_MINUTES);
 }
 
 export const stubOrgSettings = { getOperationalTimezone: async () => TEST_TIMEZONE };
