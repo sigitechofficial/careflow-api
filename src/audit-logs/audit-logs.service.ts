@@ -307,11 +307,17 @@ export class AuditLogsService {
     return { OR: or };
   }
 
-  async findAuditLogs(query: AuditLogQueryDto) {
+  /**
+   * `excludeModules`: modules the caller may not read. Pay and payroll entries are organisation
+   * wide (they name runs, amounts and approvers across branches), so a branch-limited user does
+   * not see them (SI-10).
+   */
+  async findAuditLogs(query: AuditLogQueryDto, options?: { excludeModules?: string[] }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const where: Prisma.AuditLogWhereInput = {};
+    if (options?.excludeModules?.length) where.NOT = { module: { in: options.excludeModules } };
     if (query.userId) where.userId = query.userId;
     if (query.module) where.module = query.module;
     if (query.action) where.action = query.action;
@@ -461,9 +467,11 @@ export class AuditLogsService {
     }));
   }
 
-  async findAuditLogById(id: string) {
+  async findAuditLogById(id: string, options?: { excludeModules?: string[] }) {
     const row = await this.prisma.auditLog.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException('Audit log not found');
+    if (!row || options?.excludeModules?.includes(row.module)) {
+      throw new NotFoundException('Audit log not found');
+    }
     return { data: row };
   }
 

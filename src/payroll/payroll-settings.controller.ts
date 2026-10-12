@@ -17,6 +17,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreatePayrollScheduleDto,
@@ -42,7 +43,8 @@ import { PayrollSettingsService } from './payroll-settings.service';
 
 @ApiTags('UK Payroll — Settings')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('payroll')
 export class PayrollSettingsController {
   constructor(

@@ -19,4 +19,6 @@ export const PAYROLL_APPROVER_PERMISSIONS = [
   'billing.employee_payouts.settle',
   'payroll.runs.close',
   'payroll.runs.reopen',
+  // A pay run, a UK run and a payout batch each cover every branch, so approving them does too.
+  'payroll.scope.organisation',
 ] as const;

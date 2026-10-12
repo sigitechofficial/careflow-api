@@ -37,6 +37,8 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'billing.employee_payouts.settle',
       'payroll.runs.close',
       'payroll.runs.reopen',
+      // These records cover every branch, so approving them needs organisation-wide pay access.
+      'payroll.scope.organisation',
     ],
     explicitOnly: true,
   },

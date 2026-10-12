@@ -6,6 +6,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreateEmployeePayAgreementDto,
@@ -16,12 +17,13 @@ import { PayrollEmployeesService } from './payroll-employees.service';
 
 @ApiTags('UK Payroll — Employees')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
 @Controller('payroll')
 export class PayrollEmployeesController {
   constructor(private readonly service: PayrollEmployeesService) {}
 
   @Get('employees')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'List employees with payroll setup status' })
   list(@Query('locationId') locationId?: string) {
@@ -29,6 +31,7 @@ export class PayrollEmployeesController {
   }
 
   @Get('employees/:employeeId/ytd')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({
     summary: 'Get employee year-to-date pay / tax / NI for a tax year (defaults to current)',
@@ -41,6 +44,7 @@ export class PayrollEmployeesController {
   }
 
   @Get('employees/:employeeId/profile')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'Get employee payroll profile' })
   getProfile(@Param('employeeId') employeeId: string) {
@@ -48,6 +52,7 @@ export class PayrollEmployeesController {
   }
 
   @Put('employees/:employeeId/profile')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Create or update employee payroll profile (configuration only)' })
   upsertProfile(
@@ -60,6 +65,7 @@ export class PayrollEmployeesController {
   }
 
   @Get('employees/:employeeId/pay-agreements')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'List effective-dated pay agreements' })
   listAgreements(@Param('employeeId') employeeId: string) {
@@ -67,6 +73,7 @@ export class PayrollEmployeesController {
   }
 
   @Post('employees/:employeeId/pay-agreements')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Create an effective-dated pay agreement' })
   createAgreement(
@@ -79,6 +86,7 @@ export class PayrollEmployeesController {
   }
 
   @Patch('pay-agreements/:agreementId')
+  @PayrollScope({ kind: 'payAgreement', param: 'agreementId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Update a pay agreement' })
   updateAgreement(

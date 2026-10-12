@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -17,12 +18,14 @@ import {
 
 @ApiTags('Billing — Payroll runs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('billing/payroll-runs')
 export class PayrollRunsController {
   constructor(private readonly service: PayrollRunsService) {}
 
   @Get('summary')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'Payroll run draft summary for dashboard' })
   summary(@Query('locationId') locationId?: string) {
@@ -30,6 +33,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee-salaries')
+  @PayrollScope({ kind: 'branchList' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'Organisation employee salary overview for a period' })
   employeeSalaries(@Query() query: EmployeeEarningsQueryDto) {
@@ -37,6 +41,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee/:employeeId/earnings')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'Employee earnings / monthly salary summary' })
   employeeEarnings(
@@ -47,6 +52,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee/:employeeId/salary-deductions')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'List fines and penalties for an employee' })
   listDeductions(
@@ -57,6 +63,7 @@ export class PayrollRunsController {
   }
 
   @Post('employee/:employeeId/salary-deductions')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.manage', 'employees.update')
   @ApiOperation({ summary: 'Add a fine or penalty to an employee monthly salary' })
   createDeduction(
@@ -68,6 +75,7 @@ export class PayrollRunsController {
   }
 
   @Delete('employee/:employeeId/salary-deductions/:deductionId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.manage', 'employees.update')
   @ApiOperation({ summary: 'Remove a fine or penalty from employee salary' })
   deleteDeduction(

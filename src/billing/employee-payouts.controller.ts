@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -17,7 +18,8 @@ import {
 
 @ApiTags('Billing — Employee payouts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('billing/employee-payouts')
 export class EmployeePayoutsController {
   constructor(private readonly service: EmployeePayoutsService) {}

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -22,7 +23,7 @@ import {
 
 @ApiTags('Billing — Pay cards')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
 @Controller('billing/pay-cards')
 export class PayCardsController {
   constructor(private readonly service: PayCardsService) {}
@@ -35,6 +36,7 @@ export class PayCardsController {
   }
 
   @Get('resolve/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({
     summary:
@@ -48,6 +50,7 @@ export class PayCardsController {
   }
 
   @Get('employee-funder-assignments/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: 'List employee+funder pay card overrides for a carer' })
   listEmployeeFunderAssignments(@Param('employeeId') employeeId: string) {
@@ -55,6 +58,7 @@ export class PayCardsController {
   }
 
   @Post('employee-funder-assignments')
+  @PayrollScope({ kind: 'employee', source: 'body', key: 'employeeId' })
   @Permissions('billing.pay_cards.manage')
   @ApiOperation({ summary: 'Create or update employee+funder pay card override' })
   upsertEmployeeFunderAssignment(
@@ -96,6 +100,7 @@ export class PayCardsController {
   }
 
   @Get('employee-history/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: "Dated history of a carer's own pay card" })
   getEmployeeHistory(@Param('employeeId') employeeId: string) {
@@ -103,6 +108,7 @@ export class PayCardsController {
   }
 
   @Post('employee-history/:employeeId/change')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.manage')
   @ApiOperation({ summary: "Change a carer's pay card from a date (e.g. promotion)" })
   changeEmployeePayCard(

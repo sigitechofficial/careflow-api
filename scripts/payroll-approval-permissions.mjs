@@ -27,6 +27,7 @@ const NEW_PERMISSIONS = [
   'billing.financial_reset',
   'payroll.runs.close',
   'payroll.runs.reopen',
+  'payroll.scope.organisation',
 ];
 const ROLE = 'Payroll Approver';
 const ROLE_PERMISSIONS = [
@@ -39,6 +40,7 @@ const ROLE_PERMISSIONS = [
   'billing.employee_payouts.settle',
   'payroll.runs.close',
   'payroll.runs.reopen',
+  'payroll.scope.organisation',
 ];
 
 const prisma = new PrismaClient();
