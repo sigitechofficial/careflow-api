@@ -158,7 +158,7 @@ export class EcmManualAttendanceService {
       visit.status !== ScheduledVisitStatus.COMPLETED &&
       visit.status !== ScheduledVisitStatus.PARTIALLY_COMPLETED
     ) {
-      await recordOfficeAttendanceTime(this.prisma, {
+      const { record } = await recordOfficeAttendanceTime(this.prisma, {
         scheduledJobId: job.id,
         employeeId: input.employeeId,
         jobAllocationId: allocation?.id,
@@ -168,6 +168,9 @@ export class EcmManualAttendanceService {
         reason,
         verified: false,
       });
+      // The carer's completion arrived while this was being entered: the time could not be used
+      // at completion. The record now asks for review; refresh the pay record so it is held.
+      if (record.evidence) await this.reconciliations.ensureForVisitSafe(visit.id);
       return [
         {
           reconciliationId: null,

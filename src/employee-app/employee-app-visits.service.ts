@@ -2798,11 +2798,10 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
+    // The row was priced when the lead closed the visit. Refreshing it re-evaluates it on this
+    // carer's own times: an automatic approval given for the earlier times is withdrawn (R-18).
     // A failure is kept as an open pay evaluation failure for the office (R-17).
-    if (await this.visitReconciliations.ensureForCompletedJobSafe(jobId)) {
-      // The row was priced when the lead closed the visit: reprice and review it on this carer's times.
-      await this.visitReconciliations.refreshAfterLateClockOut(visit.id, allocation.allocationId);
-    }
+    await this.visitReconciliations.ensureForCompletedJobSafe(jobId);
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
     return this.buildCompleteResponse(employeeId, jobId, ctx, {

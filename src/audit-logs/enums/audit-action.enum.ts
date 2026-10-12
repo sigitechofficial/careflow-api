@@ -482,6 +482,7 @@ export enum AuditAction {
   VISIT_PAY_RUN_DISCARDED = 'visit_pay_run_discarded',
   VISIT_PAY_RUN_EXPORTED = 'visit_pay_run_exported',
   VISIT_RECONCILIATION_APPROVED = 'visit_reconciliation_approved',
+  VISIT_RECONCILIATION_APPROVAL_WITHDRAWN = 'visit_reconciliation_approval_withdrawn',
   VISIT_RECONCILIATION_REJECTED = 'visit_reconciliation_rejected',
   VISIT_RECONCILIATION_OVERRUN_DECIDED = 'visit_reconciliation_overrun_decided',
   VISIT_RECONCILIATION_PAYABLE_AMOUNT_SET = 'visit_reconciliation_payable_amount_set',

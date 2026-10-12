@@ -8912,6 +8912,8 @@ enum FinanceExceptionCode {
   /// A start or finish time reported by the carer app that the server could not corroborate.
   /// Holds the visit for a person to approve; it does not refuse pay.
   UNVERIFIED_TIMES
+  /// Attendance evidence changed after a person approved the visit, or after its pay was settled.
+  EVIDENCE_CHANGED
 
   @@schema("billing")
 }
@@ -8984,7 +8986,18 @@ model VisitReconciliation {
   payCardSource          String?
   chargeCardSource       String?
   approvedById           String?                   @db.Uuid
-  approvedAt             DateTime?
+  approvedAt             DateTime?
+  /// Who or what approved (R-18): AUTO_VERIFIED | MANAGER_APPROVED | MANAGER_OVERRIDE.
+  /// Null on a row that is not approved, or was approved before this was recorded.
+  approvalSource         String?
+  /// The attendance evidence the approval was given for: start|finish|review flag
+  /// (see approval-evidence.util). Evidence that differs later withdraws an automatic approval
+  /// and sends a person's approval back for review.
+  approvedEvidence       String?
+  /// Set when new evidence undermined a person's approval, or reached a visit whose pay is
+  /// settled. Cleared by the next approval or by the office verifying the times.
+  evidenceChangedReason  String?
+  evidenceChangedAt      DateTime?
   approvalNotes          String?
   /**
    * Minutes actual exceeded planned (null when no overrun).

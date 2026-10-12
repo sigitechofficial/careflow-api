@@ -255,8 +255,22 @@ export function mergeOfficeTime(
   if (input.eventType === 'CHECK_IN')
     office.start = input.occurredAt.toISOString();
   else office.end = input.occurredAt.toISOString();
+  // Entered to be used at completion, but the carer's completion is already in (the two crossed).
+  // The office time was not applied to the recorded times, so a person must look at it.
+  const crossed = !input.verified && base.evidence != null;
+  const crossedReason = `The office recorded a ${
+    input.eventType === 'CHECK_IN' ? 'start' : 'finish'
+  } of ${input.occurredAt.toISOString()} while the carer's completion was being processed. It has not been applied; check which time is right and verify it.`;
   return {
     ...base,
+    ...(crossed
+      ? {
+          needsReview: true,
+          reviewReasons: [...base.reviewReasons, crossedReason],
+          verifiedAt: null,
+          verifiedByUserId: null,
+        }
+      : {}),
     office,
     ...(input.verified
       ? { verifiedAt: at, verifiedByUserId: input.byUserId }

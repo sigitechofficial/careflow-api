@@ -31,6 +31,12 @@ import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
 import {
+  approvalAfterEvidenceChange,
+  describeEvidenceChange,
+  evidenceFingerprint,
+  inferApprovalSource,
+} from './approval-evidence.util';
+import {
   classifyEvaluationFailure,
   payEvaluationSubjectKey,
   type PayEvaluationOperation,
@@ -1267,8 +1273,23 @@ export class VisitReconciliationsService {
       row.pricingSnapshot != null
         ? this.alignFrozenPricingSnapshot(row.pricingSnapshot, row, timeZone)
         : await this.buildCalculationPreview(row);
+    // Who or what approved, and on which evidence (R-18).
+    const approved =
+      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+      row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+      row.status === VisitReconciliationStatus.LOCKED;
+    const approval = {
+      source: approved || row.evidenceChangedReason ? inferApprovalSource(row) : null,
+      approvedAt: row.approvedAt?.toISOString() ?? null,
+      approvedByPerson: Boolean(row.approvedById),
+      evidenceChangedReason: row.evidenceChangedReason,
+      evidenceChangedAt: row.evidenceChangedAt?.toISOString() ?? null,
+    };
     // Settled pay is changed through a pay correction, not on this record.
-    return { data: { ...enriched, paySettled: isPaySettled(row), calculationPreview: preview } };
+    return {
+      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview },
+    };
   }
 
   private alignFrozenPricingSnapshot(
@@ -1466,6 +1487,11 @@ export class VisitReconciliationsService {
             : VisitReconciliationStatus.APPROVED_FOR_PAY;
         data.approvedById = userId;
         data.approvedAt = new Date();
+        // Entering the amount by hand is a person's decision on the evidence as it stands (R-18).
+        data.approvalSource = 'MANAGER_OVERRIDE';
+        data.approvedEvidence = null;
+        data.evidenceChangedReason = null;
+        data.evidenceChangedAt = null;
       }
     }
 
@@ -1757,6 +1783,17 @@ export class VisitReconciliationsService {
         approvedById: userId,
         approvedAt: new Date(),
         status,
+        // R-18: a person approved, on the evidence as it stands now (recorded by the evaluation
+        // that follows). An earlier "evidence changed" flag is answered by this approval; on a
+        // settled visit the flag is about its pay and stays until the times are verified.
+        ...(paySettled
+          ? {}
+          : {
+              approvalSource: dto.managerOverride ? 'MANAGER_OVERRIDE' : 'MANAGER_APPROVED',
+              approvedEvidence: null,
+              evidenceChangedReason: null,
+              evidenceChangedAt: null,
+            }),
       },
     });
 
@@ -2656,44 +2693,28 @@ export class VisitReconciliationsService {
    *    pays or recovers.
    * A manual payable amount entered by finance is kept in both cases.
    */
-  /**
-   * A carer clocked out after the visit had already been closed (a support carer whose lead
-   * finished first). That carer's row follows the new times and is reviewed again on its own
-   * evidence. A row whose pay is settled, or whose amount finance entered by hand, is left for a
-   * person to correct.
-   */
-  async refreshAfterLateClockOut(scheduledVisitId: string, jobAllocationId: string) {
-    await this.ensureForVisit(scheduledVisitId);
-    const row = await this.prisma.visitReconciliation.findFirst({
-      where: {
-        scheduledVisitId,
-        jobAllocationId,
-        status: {
-          notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
-        },
-      },
-    });
-    if (!row || isPaySettled(row) || hasManualPayableOverride(row)) return;
-    // The approval was given for the time the visit was closed at. With different times it no
-    // longer stands: a clean row is approved again by the evaluation, any other waits for a person.
-    await this.prisma.visitReconciliation.update({
-      where: { id: row.id },
-      data: {
-        status: VisitReconciliationStatus.PENDING_REVIEW,
-        approvedById: null,
-        approvedAt: null,
-        approvedPayStart: null,
-        approvedPayEnd: null,
-      },
-    });
-    await this.evaluateInternal(this.prisma, row.id, { forceRecalculatePay: true });
-  }
-
   async applyAttendanceCorrection(
     scheduledVisitId: string,
     input: { userId: string; reason: string; jobAllocationId?: string | null },
     meta?: RequestAuditMeta,
   ) {
+    // What the pay was before the corrected times reached the record: refreshing the rows already
+    // re-evaluates them on the new evidence (R-18).
+    const payBefore = new Map(
+      (
+        await this.prisma.visitReconciliation.findMany({
+          where: { scheduledVisitId },
+          select: {
+            id: true,
+            status: true,
+            payableAmount: true,
+            payableMinutes: true,
+            approvedPayStart: true,
+            approvedPayEnd: true,
+          },
+        })
+      ).map((r) => [r.id, VisitReconciliationsService.paySnapshotOf(r)]),
+    );
     await this.ensureForVisit(scheduledVisitId);
     const rows = await this.prisma.visitReconciliation.findMany({
       where: {
@@ -2714,7 +2735,7 @@ export class VisitReconciliationsService {
     }> = [];
 
     for (const row of rows) {
-      const before = VisitReconciliationsService.paySnapshotOf(row);
+      const before = payBefore.get(row.id) ?? VisitReconciliationsService.paySnapshotOf(row);
       let outcome: (typeof results)[number]['outcome'];
       let message: string;
       let payableAfter = before.payableAmount;
@@ -2765,6 +2786,27 @@ export class VisitReconciliationsService {
         }
       }
 
+      if (isPaySettled(row)) {
+        // The office has looked at the changed times of a settled visit and the pay side is
+        // dealt with above (correction recorded, or none needed): the flag is answered (R-18).
+        const reviewed = await attendanceReviewState(this.prisma, row.scheduledJobId, row.employeeId);
+        await this.prisma.visitReconciliation.update({
+          where: { id: row.id },
+          data: {
+            approvedEvidence: evidenceFingerprint({
+              actualStart: row.actualStartDateTime,
+              actualEnd: row.actualEndDateTime,
+              needsReview: reviewed.reasons.length > 0,
+            }),
+            evidenceChangedReason: null,
+            evidenceChangedAt: null,
+          },
+        });
+        await this.prisma.financeException.deleteMany({
+          where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED },
+        });
+      }
+
       await this.auditVisit(
         AuditAction.VISIT_ATTENDANCE_TIMES_CORRECTED,
         input.userId,
@@ -2798,7 +2840,7 @@ export class VisitReconciliationsService {
     id: string,
     options?: { forceRecalculateAmounts?: boolean; forceRecalculatePay?: boolean },
   ) {
-    const row = await db.visitReconciliation.findUnique({
+    let row = await db.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
     });
@@ -2831,6 +2873,87 @@ export class VisitReconciliationsService {
       jobMetadata: visit.scheduledJob?.metadata,
     });
     const timeZone = await this.orgSettings.getOperationalTimezone();
+
+    // R-18: an approval stands for the attendance evidence it was given for. The carer's own
+    // verification record (R-16) says whether their times still await review.
+    const review = await attendanceReviewState(
+      db,
+      row.scheduledJobId,
+      row.employeeId,
+      visit.scheduledJob?.metadata,
+    );
+    const currentEvidence = evidenceFingerprint({
+      actualStart: row.actualStartDateTime,
+      actualEnd: row.actualEndDateTime,
+      needsReview: review.reasons.length > 0,
+    });
+    const isApprovedStatus = (status: VisitReconciliationStatus) =>
+      status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+      status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE;
+    const evidenceOutcome = approvalAfterEvidenceChange({
+      approved: isApprovedStatus(row.status),
+      paySettled: isPaySettled(row),
+      approvalSource: row.approvalSource,
+      approvedById: row.approvedById,
+      approvedEvidence: row.approvedEvidence,
+      currentEvidence,
+    });
+    if (
+      evidenceOutcome === 'WITHDRAW_AUTO' ||
+      evidenceOutcome === 'REQUIRE_REVIEW' ||
+      evidenceOutcome === 'FLAG_SETTLED'
+    ) {
+      const change = describeEvidenceChange(row.approvedEvidence as string, currentEvidence);
+      const before = row;
+      if (evidenceOutcome === 'FLAG_SETTLED') {
+        // Settled pay is history. Nothing about the pay is touched; the change is flagged so a
+        // person can check it and, if the pay should differ, record a pay correction.
+        if (!row.evidenceChangedReason) {
+          await db.visitReconciliation.update({
+            where: { id },
+            data: {
+              evidenceChangedReason: `Attendance evidence changed after the pay of this visit was settled (${change}). Check the times; if the pay should change, record a pay correction.`,
+              evidenceChangedAt: new Date(),
+            },
+          });
+        }
+      } else {
+        const byPerson = evidenceOutcome === 'REQUIRE_REVIEW';
+        await db.visitReconciliation.update({
+          where: { id },
+          data: {
+            // Back to review. A clean visit that was approved automatically is approved again
+            // below, on the new evidence; anything else waits for a person.
+            status: VisitReconciliationStatus.PENDING_REVIEW,
+            approvedEvidence: null,
+            ...(byPerson
+              ? {
+                  // The person's approval, its time and its notes stay on the record.
+                  evidenceChangedReason: `Attendance evidence changed after this visit was approved (${change}). Review it and approve again.`,
+                  evidenceChangedAt: new Date(),
+                }
+              : { approvalSource: null, approvedAt: null }),
+            // The pay window follows the new times, unless finance entered the amount by hand.
+            ...(hasManualPayableOverride(row) ? {} : { approvedPayStart: null, approvedPayEnd: null }),
+          },
+        });
+        options = { ...options, forceRecalculatePay: true };
+      }
+      await this.auditVisit(AuditAction.VISIT_RECONCILIATION_APPROVAL_WITHDRAWN, undefined, before, {
+        oldValues: {
+          status: String(before.status),
+          approvalSource: inferApprovalSource(before),
+          approvedById: before.approvedById,
+          approvedEvidence: before.approvedEvidence,
+        },
+        newValues: { outcome: evidenceOutcome, currentEvidence },
+        reason: change,
+      });
+      row = await db.visitReconciliation.findUnique({ where: { id }, include: reconciliationInclude });
+      if (!row) return;
+    }
+    const wasApprovedBeforeEvaluation = isApprovedStatus(row.status);
 
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
@@ -3034,17 +3157,17 @@ export class VisitReconciliationsService {
       }
     }
 
+    // R-18: evidence that changed after a person's approval, or after the pay was settled.
+    if (row.evidenceChangedReason) {
+      exceptions.push({ code: FinanceExceptionCode.EVIDENCE_CHANGED, message: row.evidenceChangedReason });
+    }
+
     // VW-02: a start or finish reported by the carer app that the server could not corroborate
     // holds the visit for a person to approve (until the office verifies or corrects the times).
     if (!paySettled) {
       // Per carer: on a double-up, one carer's unverified time does not hold the other's pay.
       // The carer's own verification record (R-16); older visits fall back to job metadata.
-      const { reasons: unverified } = await attendanceReviewState(
-        db,
-        row.scheduledJobId,
-        row.employeeId,
-        visit.scheduledJob?.metadata,
-      );
+      const unverified = review.reasons;
       if (unverified.length) {
         exceptions.push({ code: FinanceExceptionCode.UNVERIFIED_TIMES, message: unverified.join(' ') });
       }
@@ -3565,7 +3688,16 @@ export class VisitReconciliationsService {
             ? row.payCardVersion
             : null,
         lastEvaluatedAt: new Date(),
-        ...(becamePendingFromApproval ? { approvedAt: null, approvedById: null } : {}),
+        ...(becamePendingFromApproval
+          ? { approvedAt: null, approvedById: null, approvalSource: null, approvedEvidence: null }
+          : {}),
+        // R-18: note what the approval stands for. A visit approved just now by this evaluation
+        // is an automatic approval; an approval that carries no evidence yet adopts the current.
+        ...(isApprovedStatus(finalStatus) && !wasApprovedBeforeEvaluation
+          ? { approvalSource: 'AUTO_VERIFIED', approvedEvidence: currentEvidence, approvedAt: new Date() }
+          : (isApprovedStatus(finalStatus) || paySettled) && !row.approvedEvidence
+            ? { approvalSource: inferApprovalSource(row), approvedEvidence: currentEvidence }
+            : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
