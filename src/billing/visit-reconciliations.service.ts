@@ -28,6 +28,8 @@ import {
 } from './pay-card-version.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { unverifiedTimeReasons } from '../visit-attendance/visit-time-trust.util';
+import { PayItemsService } from './pay-items.service';
 import {
   allowFinancialResetInTransaction,
   assertFinancialResetEnvironment,
@@ -335,6 +337,7 @@ export class VisitReconciliationsService {
     private readonly chargeCardsService: ChargeCardsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly auditLogs: AuditLogsService,
+    private readonly payItems: PayItemsService,
   ) {}
 
   private client(tx?: Prisma.TransactionClient): DbClient {
@@ -2114,10 +2117,242 @@ export class VisitReconciliationsService {
     };
   }
 
+  /**
+   * Carer pay for a pay window on a given card: the rules of the card version in force on the visit
+   * date, the card's bank holiday nation and its overlap policy. Returns no amount when a rate is
+   * missing. Used to price a visit and to work out what a corrected visit should have paid.
+   */
+  private async priceCarerPay(
+    db: DbClient,
+    input: {
+      payCard: { id: string; stackingPolicy?: string; bankHolidayRegion?: string | null };
+      plannedStart: Date;
+      payStart: Date;
+      payEnd: Date;
+      payMinutes: number;
+      plannedMinutes: number;
+      nightDuty: string | null | undefined;
+      timeZone: string;
+      /** Default (England & Wales) calendar for the window, when the caller already loaded it. */
+      defaultHolidayDates?: Set<string>;
+    },
+  ): Promise<{ amount: number | null; version: number | null }> {
+    const { payCard, plannedStart, payStart, payEnd, timeZone } = input;
+    // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
+    const { version, rules } = await loadPayCardRulesForDate(db, payCard.id, plannedStart, timeZone);
+    // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
+    const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+    const payHolidayDates =
+      payRegion === DEFAULT_BANK_HOLIDAY_REGION && input.defaultHolidayDates
+        ? input.defaultHolidayDates
+        : await loadBankHolidayDateSet(db, payStart, payEnd ?? payStart, timeZone, payRegion);
+    const stackingPolicy =
+      (payCard.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
+    const calc = calculatePayableAmount(
+      rules,
+      plannedStart,
+      input.payMinutes,
+      payHolidayDates.has(dayKeyInTimeZone(plannedStart, timeZone)),
+      {
+        start: payStart,
+        end: payEnd,
+        stackingPolicy,
+        isBankHolidayFn: (d) => payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
+        timeZone,
+      },
+      input.nightDuty,
+      input.plannedMinutes,
+    );
+    return { amount: calc?.amount ?? null, version };
+  }
+
+  /**
+   * What the carer pay of a row would be on its current recorded times, priced on the pay card and
+   * version the row was priced on. Null when there are no times, no card or no matching rate.
+   * Nothing is written.
+   */
+  private async wouldBeCarerPay(row: {
+    scheduledVisitId: string;
+    plannedStartDateTime: Date;
+    plannedEndDateTime: Date | null;
+    actualStartDateTime: Date | null;
+    actualEndDateTime: Date | null;
+    overrunDecision: VisitOverrunDecision | null;
+    overrunPayBasis: VisitOverrunTimeBasis | null;
+    overrunBillBasis: VisitOverrunTimeBasis | null;
+    payCardId: string | null;
+  }): Promise<number | null> {
+    if (!row.payCardId || !row.actualStartDateTime || !row.actualEndDateTime) return null;
+    const [payCard, visit, timeZone, durationToleranceMinutes] = await Promise.all([
+      this.prisma.payCard.findUnique({
+        where: { id: row.payCardId },
+        select: { id: true, stackingPolicy: true, bankHolidayRegion: true },
+      }),
+      this.prisma.scheduledVisit.findUnique({
+        where: { id: row.scheduledVisitId },
+        select: { visitPlanSlot: { select: { nightDuty: true } }, scheduledJob: { select: { metadata: true } } },
+      }),
+      this.orgSettings.getOperationalTimezone(),
+      this.resolveDurationToleranceMinutes(this.prisma, row.scheduledVisitId),
+    ]);
+    if (!payCard) return null;
+    const plannedMinutes = row.plannedEndDateTime
+      ? minutesBetween(row.plannedStartDateTime, row.plannedEndDateTime)
+      : 0;
+    const actualMinutes = minutesBetween(row.actualStartDateTime, row.actualEndDateTime);
+    const overrun = actualMinutes > plannedMinutes && plannedMinutes > 0;
+    const windows = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: overrun ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }] : [],
+      // An overrun not yet decided is paid on planned time, as it is for an unsettled visit.
+      overrunDecision: overrun ? (row.overrunDecision ?? VisitOverrunDecision.PENDING) : null,
+      overrunPayBasis: row.overrunPayBasis,
+      overrunBillBasis: row.overrunBillBasis,
+      durationToleranceMinutes,
+    });
+    const payMinutes = minutesBetween(windows.approvedPayStart, windows.approvedPayEnd);
+    if (payMinutes <= 0) return 0;
+    const priced = await this.priceCarerPay(this.prisma, {
+      payCard: {
+        id: payCard.id,
+        stackingPolicy: payCard.stackingPolicy ?? undefined,
+        bankHolidayRegion: payCard.bankHolidayRegion,
+      },
+      plannedStart: row.plannedStartDateTime,
+      payStart: windows.approvedPayStart,
+      payEnd: windows.approvedPayEnd,
+      payMinutes,
+      plannedMinutes,
+      nightDuty: resolveStoredNightDuty({
+        slotNightDuty: visit?.visitPlanSlot?.nightDuty,
+        jobMetadata: visit?.scheduledJob?.metadata,
+      }),
+      timeZone,
+    });
+    return priced.amount;
+  }
+
+  /**
+   * The office has verified or corrected the attendance times of a completed visit (VW-15).
+   *
+   * The corrected times are already on the visit / allocation; this carries them into pay:
+   *  - pay not settled: the approved pay window is re-derived and the draft pay is repriced;
+   *  - pay settled (locked visit pay run or closed UK run): the paid record stays as it is and the
+   *    difference is recorded as a pay correction, which a second person approves and the next run
+   *    pays or recovers.
+   * A manual payable amount entered by finance is kept in both cases.
+   */
+  async applyAttendanceCorrection(
+    scheduledVisitId: string,
+    input: { userId: string; reason: string; jobAllocationId?: string | null },
+    meta?: RequestAuditMeta,
+  ) {
+    await this.ensureForVisit(scheduledVisitId);
+    const rows = await this.prisma.visitReconciliation.findMany({
+      where: {
+        scheduledVisitId,
+        ...(input.jobAllocationId ? { jobAllocationId: input.jobAllocationId } : {}),
+        status: {
+          notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
+        },
+      },
+    });
+    const results: Array<{
+      reconciliationId: string;
+      visitRef: string;
+      outcome: 'REPRICED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
+      message: string;
+      payableBefore: string | null;
+      payableAfter: string | null;
+    }> = [];
+
+    for (const row of rows) {
+      const before = VisitReconciliationsService.paySnapshotOf(row);
+      let outcome: (typeof results)[number]['outcome'];
+      let message: string;
+      let payableAfter = before.payableAmount;
+
+      if (!isPaySettled(row)) {
+        if (hasManualPayableOverride(row)) {
+          outcome = 'MANUAL_AMOUNT_KEPT';
+          message = 'Times updated. The payable amount was entered by finance and was not changed.';
+        } else {
+          // Re-derive the pay window from the corrected times, then reprice carer pay only.
+          await this.prisma.visitReconciliation.update({
+            where: { id: row.id },
+            data: { approvedPayStart: null, approvedPayEnd: null },
+          });
+          await this.evaluateInternal(this.prisma, row.id, { forceRecalculatePay: true });
+          const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+          payableAfter = after.payableAmount != null ? String(after.payableAmount) : null;
+          outcome = 'REPRICED';
+          message = 'Times updated and carer pay recalculated.';
+        }
+      } else if (hasManualPayableOverride(row)) {
+        outcome = 'NO_CORRECTION';
+        message = 'This visit was paid on an amount entered by finance. Record a pay correction by hand if it should change.';
+      } else {
+        const corrected = await this.wouldBeCarerPay(row);
+        if (corrected == null) {
+          outcome = 'REVIEW_NEEDED';
+          message = 'This visit is already paid and its corrected pay could not be priced. Record a pay correction by hand.';
+        } else {
+          try {
+            const created = await this.payItems.recordVisitCorrection(
+              input.userId,
+              {
+                visitReconciliationId: row.id,
+                correctedAmount: corrected,
+                reason: `Attendance corrected: ${input.reason}`.slice(0, 400),
+              },
+              meta,
+            );
+            payableAfter = corrected.toFixed(2);
+            outcome = 'CORRECTION_RECORDED';
+            message = created.message;
+          } catch (err) {
+            if (!(err instanceof BadRequestException)) throw err;
+            outcome = 'NO_CORRECTION';
+            message = err.message;
+          }
+        }
+      }
+
+      await this.auditVisit(
+        AuditAction.VISIT_ATTENDANCE_TIMES_CORRECTED,
+        input.userId,
+        row,
+        {
+          oldValues: before,
+          newValues: {
+            outcome,
+            payableAmount: payableAfter,
+            actualStartDateTime: row.actualStartDateTime?.toISOString() ?? null,
+            actualEndDateTime: row.actualEndDateTime?.toISOString() ?? null,
+          },
+          reason: input.reason,
+        },
+        meta,
+      );
+      results.push({
+        reconciliationId: row.id,
+        visitRef: row.visitRef,
+        outcome,
+        message,
+        payableBefore: before.payableAmount,
+        payableAfter,
+      });
+    }
+    return { data: results };
+  }
+
   private async evaluateInternal(
     db: DbClient,
     id: string,
-    options?: { forceRecalculateAmounts?: boolean },
+    options?: { forceRecalculateAmounts?: boolean; forceRecalculatePay?: boolean },
   ) {
     const row = await db.visitReconciliation.findUnique({
       where: { id },
@@ -2183,6 +2418,7 @@ export class VisitReconciliationsService {
       manualPayableOverride ||
       paySettled ||
       (!options?.forceRecalculateAmounts &&
+        !options?.forceRecalculatePay &&
         visitCompleted &&
         row.payableAmount != null);
 
@@ -2327,6 +2563,15 @@ export class VisitReconciliationsService {
       tasksIncomplete,
       funding,
     });
+
+    // VW-02: a start or finish reported by the carer app that the server could not corroborate
+    // holds the visit for a person to approve (until the office verifies or corrects the times).
+    if (!paySettled) {
+      const unverified = unverifiedTimeReasons(visit.scheduledJob?.metadata);
+      if (unverified.length) {
+        exceptions.push({ code: FinanceExceptionCode.UNVERIFIED_TIMES, message: unverified.join(' ') });
+      }
+    }
 
     if (absentCoCarer) {
       for (let i = exceptions.length - 1; i >= 0; i -= 1) {
@@ -2543,49 +2788,19 @@ export class VisitReconciliationsService {
           ? Number(row.payableAmount)
           : resolveManualPayableAmount(row);
     } else if (payCard && payMinutes) {
-      // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
-      const { version: datedVersion, rules: payRules } = await loadPayCardRulesForDate(
-        db,
-        payCard.id,
-        row.plannedStartDateTime,
-        timeZone,
-      );
-      if (datedVersion != null) payCard.version = datedVersion;
-      // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
-      const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
-      const payHolidayDates =
-        payRegion === DEFAULT_BANK_HOLIDAY_REGION
-          ? bankHolidayDates
-          : await loadBankHolidayDateSet(
-              db,
-              approvedPayStart,
-              approvedPayEnd ?? approvedPayStart,
-              timeZone,
-              payRegion,
-            );
-      const stackingPolicy =
-        ((payCard as { stackingPolicy?: string }).stackingPolicy as
-          | 'PRIORITY'
-          | 'HIGHEST'
-          | 'STACK'
-          | undefined) ?? 'PRIORITY';
-      const calc = calculatePayableAmount(
-        payRules,
-        row.plannedStartDateTime,
+      const priced = await this.priceCarerPay(db, {
+        payCard,
+        plannedStart: row.plannedStartDateTime,
+        payStart: approvedPayStart,
+        payEnd: approvedPayEnd,
         payMinutes,
-        payHolidayDates.has(dayKeyInTimeZone(row.plannedStartDateTime, timeZone)),
-        {
-          start: approvedPayStart,
-          end: approvedPayEnd,
-          stackingPolicy,
-          isBankHolidayFn: (d) =>
-            payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
-          timeZone,
-        },
-        nightDuty,
         plannedMinutes,
-      );
-      payableAmount = calc?.amount ?? null;
+        nightDuty,
+        timeZone,
+        defaultHolidayDates: bankHolidayDates,
+      });
+      if (priced.version != null) payCard.version = priced.version;
+      payableAmount = priced.amount;
       if (payableAmount == null && payMinutes > 0) {
         activeExceptions.push({
           code: FinanceExceptionCode.RATE_MISSING,

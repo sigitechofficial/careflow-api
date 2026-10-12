@@ -280,10 +280,11 @@ export async function buildReconciliationService(
   const chargeCards = {
     resolveForServiceUser: async () => ({ data: { source: 'TEST_CARD', chargeCard } }),
   };
+  const payItems = buildPayItemsService(prisma, audit).service;
   const service = new (VisitReconciliationsService as unknown as new (
     ...args: unknown[]
-  ) => VisitReconciliationsService)(prisma, payCards, chargeCards, stubOrgSettings, audit.service);
-  return { service, audit, card };
+  ) => VisitReconciliationsService)(prisma, payCards, chargeCards, stubOrgSettings, audit.service, payItems);
+  return { service, audit, card, payItems };
 }
 
 /**

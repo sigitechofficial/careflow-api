@@ -8842,6 +8842,9 @@ enum FinanceExceptionCode {
   FUNDING_SETUP_INCOMPLETE
   PO_EXPIRED
   PO_MISSING
+  /// A start or finish time reported by the carer app that the server could not corroborate.
+  /// Holds the visit for a person to approve; it does not refuse pay.
+  UNVERIFIED_TIMES
 
   @@schema("billing")
 }

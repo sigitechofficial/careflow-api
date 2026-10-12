@@ -111,6 +111,12 @@ import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
+import {
+  FutureVisitTimeError,
+  resolveTrustedCompletionTimes,
+  type StoredAttendanceTimeTrust,
+  type TrustedCompletionTimes,
+} from '../visit-attendance/visit-time-trust.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
@@ -2235,6 +2241,36 @@ export class EmployeeAppVisitsService {
     );
   }
 
+  /**
+   * Keeps what the server observed and what the device reported side by side on the job, before
+   * the visit is completed, so the first pay evaluation already sees whether review is needed.
+   */
+  private async storeAttendanceTimeTrust(jobId: string, times: TrustedCompletionTimes) {
+    const meta = this.parseMetadata(
+      (await this.prisma.scheduledJob.findUnique({ where: { id: jobId }, select: { metadata: true } }))
+        ?.metadata,
+    );
+    const employeeApp =
+      typeof meta.employeeApp === 'object' && meta.employeeApp
+        ? (meta.employeeApp as Record<string, unknown>)
+        : {};
+    const attendanceTimes: StoredAttendanceTimeTrust = {
+      needsReview: times.needsReview,
+      reviewReasons: times.reviewReasons,
+      startSource: times.startSource,
+      endSource: times.endSource,
+      evidence: times.evidence,
+      verifiedAt: null,
+      verifiedByUserId: null,
+    };
+    await this.prisma.scheduledJob.update({
+      where: { id: jobId },
+      data: {
+        metadata: { ...meta, employeeApp: { ...employeeApp, attendanceTimes } } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
@@ -2298,11 +2334,25 @@ export class EmployeeAppVisitsService {
     }
 
     const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
-    const endIso = dto.actualEndDateTime ?? new Date().toISOString();
-    const startIso =
-      dto.actualStartDateTime ??
-      myAllocation?.actualStartDateTime?.toISOString() ??
-      ctx.primaryVisit.actualStartDateTime?.toISOString();
+    // VW-02: times the server observed come first; times the app reports are evidence. A reported
+    // time the server cannot corroborate still becomes the record (offline visits sync late), but
+    // the visit is then held for office review instead of being approved for pay automatically.
+    let times: TrustedCompletionTimes;
+    try {
+      times = resolveTrustedCompletionTimes({
+        serverNow: new Date(),
+        serverCheckInAt:
+          myAllocation?.actualStartDateTime ?? ctx.primaryVisit.actualStartDateTime ?? null,
+        reportedStart: dto.actualStartDateTime,
+        reportedEnd: dto.actualEndDateTime,
+      });
+    } catch (err) {
+      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
+      throw err;
+    }
+    const endIso = times.end.toISOString();
+    const startIso = times.start?.toISOString();
+    await this.storeAttendanceTimeTrust(jobId, times);
 
     const endDate = new Date(endIso);
     const plannedEnd =
