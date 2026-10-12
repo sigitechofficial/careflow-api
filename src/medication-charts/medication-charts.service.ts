@@ -90,6 +90,7 @@ type ChartEvent = {
   scheduledDateTime: Date | null;
   actualDateTime: Date | null;
   createdAt: Date;
+  prnOverLimit: boolean;
   managerReviewedAt: Date | null;
   visitId: string | null;
 };
@@ -104,6 +105,8 @@ export type MarChartCell = {
   color: string | null;
   textColor: string | null;
   requiresReview: boolean;
+  /** PRN dose given inside the minimum gap or over the 24-hour maximum. */
+  prnOverLimit?: boolean;
 };
 
 export type RegularChartQuery = {
@@ -327,6 +330,7 @@ export class MedicationChartsService {
               createdAt: true,
               managerReviewedAt: true,
               visitId: true,
+              prnOverLimit: true,
             },
             orderBy: { createdAt: 'desc' },
           });
@@ -429,6 +433,7 @@ export class MedicationChartsService {
               color: display.color,
               textColor: display.textColor,
               requiresReview: eventPendingManagerReview(display, event),
+              prnOverLimit: event.prnOverLimit,
             };
           } else {
             cell = {

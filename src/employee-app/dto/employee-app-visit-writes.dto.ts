@@ -253,6 +253,22 @@ export class EmployeeAppMedicationAdminDto {
   @MaxLength(2000)
   witnessNotes?: string;
 
+  @ApiPropertyOptional({
+    description: 'Co-carer witness: employee id of another carer allocated to this visit',
+  })
+  @IsOptional()
+  @IsUUID()
+  witnessEmployeeId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when a controlled drug is given with no witness',
+    enum: ['SINGLE_CARER_VISIT', 'NO_ONE_ELSE_PRESENT', 'OTHER'],
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  witnessAbsentReasonCode?: string;
+
   @ApiProperty()
   @IsBoolean()
   identityConfirmed!: boolean;

@@ -1078,6 +1078,7 @@ model Employee {
   liveInBlockedCarerLinks   ServiceUserLiveInBlockedCarer[]    @relation("LiveInBlockedEmployee")
 
   medicationAdministrations     MedicationAdministrationEvent[] @relation("MedAdministeredBy")
+  medicationAdministrationsWitnessed MedicationAdministrationEvent[] @relation("MedWitnessEmployee")
   medicationReviews             MedicationReview[]              @relation("MedReviewedBy")
   medicationStockRecords        MedicationStockRecord[]         @relation("MedStockRecordedBy")
   visitActionsCompleted         VisitAction[]                   @relation("VisitActionCompletedBy")
@@ -5858,6 +5859,12 @@ model ServiceUserMedication {
   statusEndReason          MedicationStatusEndReason?
   statusEndedAt            DateTime?
   statusEndedById          String?                    @db.Uuid
+  /// PRN only, optional: minimum hours between two doses.
+  prnMinGapHours           Float?
+  /// PRN only, optional: most doses allowed in any 24 hours.
+  prnMaxDosesIn24Hours     Int?
+  /// PRN only, optional: most to give at one time (free text, e.g. "2 tablets").
+  prnMaxDosePerTime        String?                    @db.VarChar(100)
   isActive                 Boolean                    @default(true)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -5998,6 +6005,10 @@ model MedicationAdministrationEvent {
   witnessRelationCode     String?                        @db.VarChar(32)
   witnessRelationDetail   String?                        @db.VarChar(128)
   witnessNotes            String?                        @db.VarChar(2000)
+  /// Set when the witness is a co-carer on the visit (picked from its allocated carers).
+  witnessEmployeeId       String?                        @db.Uuid
+  /// Why no witness was present: SINGLE_CARER_VISIT | NO_ONE_ELSE_PRESENT | OTHER.
+  witnessAbsentReasonCode String?                        @db.VarChar(32)
   correctionReason        String?
   correctionNotes         String?
   medicationNameSnapshot  String?
@@ -6013,6 +6024,9 @@ model MedicationAdministrationEvent {
   isPrn                   Boolean                        @default(false)
   prnReason               String?
   prnOutcome              String?
+  /// PRN dose given inside the minimum gap or over the 24-hour maximum set on the medicine.
+  prnOverLimit            Boolean                        @default(false)
+  prnOverLimitDetail      String?                        @db.VarChar(300)
   isActive                Boolean                        @default(true)
   createdAt               DateTime                       @default(now())
   updatedAt               DateTime                       @updatedAt
@@ -6026,6 +6040,7 @@ model MedicationAdministrationEvent {
   schedule               MedicationSchedule?            @relation(fields: [medicationScheduleId], references: [id])
   round                  MedicationAdministrationRound? @relation(fields: [roundId], references: [id])
   administeredBy         Employee?                      @relation("MedAdministeredBy", fields: [administeredById], references: [id])
+  witnessEmployee        Employee?                      @relation("MedWitnessEmployee", fields: [witnessEmployeeId], references: [id], onDelete: SetNull)
   enteredBy              User?                          @relation("MedEventEnteredBy", fields: [enteredById], references: [id])
   createdBy              User?                          @relation("MedEventCreatedBy", fields: [createdById], references: [id])
   managerReviewedBy      User?                          @relation("MedEventManagerReviewedBy", fields: [managerReviewedById], references: [id])

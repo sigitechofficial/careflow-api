@@ -64,6 +64,18 @@ import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-gra
 import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
 import { EmployeeAppSosService } from './employee-app-sos.service';
 import { MedicationNotificationHook } from '../medications/medication-notification.hook';
+import {
+  evaluatePrnLimits,
+  prnLimitLabels,
+  prnLimitsFromMedication,
+  prnOverLimitDetail,
+  prnSummaryLine,
+  prnWarningLine,
+} from '../medications/medication-prn-limits.util';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -99,11 +111,13 @@ import {
 import {
   dayKeyInTimeZone,
   formatHmInTimeZone,
-  formatHmUtc,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
-import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
+import {
+  VISIT_DUE_MEDICATION_SELECT,
+  filterSchedulesDueOnVisit,
+} from '../medications/medication-visit-due.util';
 import { loadVisitTaskPlacement } from '../visit-tasks/visit-task-window.util';
 import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
@@ -157,13 +171,27 @@ import {
 } from './medication/employee-app-visit-blister-packs.util';
 import { indexMarBodyMapSites } from './medication/employee-app-mar-body-map-site.util';
 import {
+  DEFAULT_GEOFENCE_DISTANCE_METERS,
+  resolveCarerGeofenceRadiusMeters,
+} from './employee-app-geofence.util';
+import { resolveDeviceEventTime } from './employee-app-device-time.util';
+import {
+  VISIT_DOSE_RECORD_SELECT,
+  dueTimesInVisitWindow,
+  pickVisitDoseRecords,
+  visitDoseRecordWhere,
+} from './medication/employee-app-mar-visit-dose-record.util';
+import {
   buildMarAdminEchoFields,
   emptyMarAdminEchoFields,
 } from './medication/employee-app-mar-echo.util';
 import {
+  MEDICATION_WITNESS_ABSENT_REASONS,
+  MEDICATION_WITNESS_ABSENT_REASON_LABELS,
   buildMedicationWitnessEcho,
   medicationWitnessTimelineDetail,
   resolveMedicationWitnessColumns,
+  type MedicationWitnessCoCarer,
 } from '../medications/medication-witness.util';
 import {
   plannedHowAssistedLabel,
@@ -285,8 +313,6 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
   ScheduledJobStatus.DRAFT,
 ];
 
-/** Carer-app check-in / shell geofence radius (meters). */
-const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 10000;
 
 /** Keys removed from `shell.location` (client computes geofence from lat/lng/radius only). */
 export const EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS = [
@@ -418,6 +444,7 @@ export class EmployeeAppVisitsService {
     private readonly ecmExceptions: EcmExceptionsService,
     private readonly incidents: IncidentsService,
     private readonly medNotifications: MedicationNotificationHook,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   /**
@@ -1238,6 +1265,9 @@ export class EmployeeAppVisitsService {
 
     const now = new Date();
     const deviceRecordedAt = dto.deviceRecordedAt ?? dto.deviceCapturedAt ?? now.toISOString();
+    // The visit starts when the carer clocked in on the phone, not when an offline
+    // clock-in reached the server. `now` stays as the time the server received it.
+    const checkInAt = resolveDeviceEventTime(deviceRecordedAt, now).at;
     const idempotencyKey = dto.idempotencyKey ?? dto.clientEventId ?? null;
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
 
@@ -1277,7 +1307,8 @@ export class EmployeeAppVisitsService {
       personSeen: dto.personSeen ?? null,
       accessViaKeySafe: dto.accessViaKeySafe ?? null,
       requiresManagerReview: dto.requiresManagerReview ?? false,
-      checkedInAt: now.toISOString(),
+      checkedInAt: checkInAt.toISOString(),
+      serverReceivedAt: now.toISOString(),
       employeeId,
       distanceMeters: geofence.distanceMeters,
       nfcTagId: nfcTag?.id ?? null,
@@ -1289,14 +1320,18 @@ export class EmployeeAppVisitsService {
         where: { id: visit.id },
         data: {
           status: ScheduledVisitStatus.STARTED,
-          // Envelope start = first carer on site (do not overwrite later partners).
-          actualStartDateTime: visit.actualStartDateTime ?? now,
+          // Envelope start = first carer on site: keep the earliest clock-in, also
+          // when a partner's earlier offline clock-in syncs after a later one.
+          actualStartDateTime:
+            visit.actualStartDateTime && visit.actualStartDateTime <= checkInAt
+              ? visit.actualStartDateTime
+              : checkInAt,
         },
       });
       if (myAllocation?.id) {
         await tx.jobAllocation.update({
           where: { id: myAllocation.id },
-          data: { actualStartDateTime: myAllocation.actualStartDateTime ?? now },
+          data: { actualStartDateTime: myAllocation.actualStartDateTime ?? checkInAt },
         });
       }
       const visits = await tx.scheduledVisit.findMany({
@@ -1345,7 +1380,7 @@ export class EmployeeAppVisitsService {
       employeeId,
       eventType: VisitAttendanceEventType.CHECK_IN,
       verificationMethod: toAttendanceVerificationMethod(checkInMethod),
-      occurredAt: now,
+      occurredAt: checkInAt,
       deviceCapturedAt: new Date(deviceRecordedAt),
       clientEventId: idempotencyKey ?? undefined,
       latitude: dto.latitude,
@@ -1380,7 +1415,7 @@ export class EmployeeAppVisitsService {
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
-    const occurredAt = parseOccurredAt(deviceRecordedAt, now);
+    const occurredAt = checkInAt;
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: visit.id,
@@ -1405,8 +1440,8 @@ export class EmployeeAppVisitsService {
         jobId,
         visitId: visit.id,
         isCheckedIn: true,
-        checkedInAt: now.toISOString(),
-        checkedInLabel: formatHmUtc(now),
+        checkedInAt: checkInAt.toISOString(),
+        checkedInLabel: formatHmInTimeZone(checkInAt, ctx.timeZone),
         method: dto.method ?? 'GPS',
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
@@ -1427,6 +1462,7 @@ export class EmployeeAppVisitsService {
         resolveLeadEmployeeId(ctx.job.requiredCarers, ctx.job.allocations) ?? employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
+      visitId: ctx.primaryVisit.id,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
       visitEnd:
         ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
@@ -1510,7 +1546,7 @@ export class EmployeeAppVisitsService {
         outcome,
         completedAt,
         completedLabel: completedAt
-          ? `Completed · ${formatHmUtc(new Date(completedAt))}`
+          ? `Completed · ${formatHmInTimeZone(new Date(completedAt), ctx.timeZone)}`
           : null,
         recordedValue: task.recordedValue ?? null,
         notes: stripVisitTaskOutcomeNotes(
@@ -1636,8 +1672,33 @@ export class EmployeeAppVisitsService {
         },
         sections: medicationPayload.sections,
         blisterPacks: medicationPayload.blisterPacks,
+        // Controlled drug witness: carers who can be picked, and reasons for "no witness".
+        witnessOptions: {
+          coCarers: this.coCarerWitnessOptions(employeeId, ctx),
+          absentReasons: MEDICATION_WITNESS_ABSENT_REASONS.map((code) => ({
+            code,
+            label: MEDICATION_WITNESS_ABSENT_REASON_LABELS[code],
+          })),
+        },
       },
     };
+  }
+
+  /** Other carers allocated to this visit — the only people a "Co-carer" witness can be. */
+  private coCarerWitnessOptions(
+    employeeId: string,
+    ctx: { job: { allocations: VisitJobRow['allocations'] } },
+  ): MedicationWitnessCoCarer[] {
+    return ctx.job.allocations
+      .filter((a) => a.employeeId !== employeeId && ACTIVE_ALLOCATION.includes(a.status))
+      .map((a) => ({
+        employeeId: a.employeeId,
+        name:
+          [a.employee?.personalDetail?.firstName, a.employee?.personalDetail?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || 'Carer',
+      }));
   }
 
   async getObservations(employeeId: string, jobId: string) {
@@ -2383,6 +2444,16 @@ export class EmployeeAppVisitsService {
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
+    // The clock-out time comes from the phone; trust it under the same rules as clock-in.
+    if (dto.actualEndDateTime) {
+      dto = {
+        ...dto,
+        actualEndDateTime: resolveDeviceEventTime(
+          dto.actualEndDateTime,
+          new Date(),
+        ).at.toISOString(),
+      };
+    }
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
 
@@ -2556,7 +2627,8 @@ export class EmployeeAppVisitsService {
       employeeId,
       eventType: VisitAttendanceEventType.CHECK_OUT,
       verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
-      occurredAt: now,
+      // When the carer clocked out on the phone; the record's createdAt is when it synced.
+      occurredAt: endDate,
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
@@ -3560,9 +3632,13 @@ export class EmployeeAppVisitsService {
     const witness = resolveMedicationWitnessColumns(
       Boolean(med.isControlledMedication),
       dto,
+      {
+        given: mapped.status === MedicationAdministrationStatus.GIVEN,
+        coCarers: this.coCarerWitnessOptions(employeeId, ctx),
+      },
     );
     const timeGiven =
-      dto.timeGiven?.trim() || formatHmUtc(recordedAt);
+      dto.timeGiven?.trim() || formatHmInTimeZone(recordedAt, ctx.timeZone);
     const roundRow = ctx.medicationRoundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
@@ -3570,44 +3646,131 @@ export class EmployeeAppVisitsService {
         })
       : null;
 
-    const created = await this.prisma.medicationAdministrationEvent.create({
-      data: {
-        serviceUserId: ctx.job.serviceUserId,
-        serviceUserMedicationId: med.id,
-        medicationScheduleId: schedule?.id,
-        roundId: roundRow?.id ?? null,
-        administeredById: employeeId,
-        scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
-        actualDateTime: recordedAt,
-        status: mapped.status,
-        statusCode: mapped.statusCode,
-        reason: dto.reasonCode ?? null,
-        notes: dto.notes?.trim() || null,
-        supportLevel: dto.supportLevel?.trim() || null,
-        timeGiven,
-        outcomeLabel: dto.outcomeLabel?.trim() || null,
-        ...witness,
-        visitId: ctx.primaryVisit.id,
-        isPrn,
-        prnReason: dto.prnIndication ?? null,
-        prnOutcome: dto.prnEffectiveness ?? null,
-        medicationNameSnapshot: med.medicationName,
-        doseSnapshot: med.dose,
-        strengthSnapshot: med.strength,
-        routeNameSnapshot: med.route?.name ?? null,
-      },
+    const doseFields = {
+      medicationScheduleId: schedule?.id,
+      roundId: roundRow?.id ?? null,
+      administeredById: employeeId,
+      actualDateTime: recordedAt,
+      status: mapped.status,
+      statusCode: mapped.statusCode,
+      reason: dto.reasonCode ?? null,
+      notes: dto.notes?.trim() || null,
+      supportLevel: dto.supportLevel?.trim() || null,
+      timeGiven,
+      outcomeLabel: dto.outcomeLabel?.trim() || null,
+      ...witness,
+      prnReason: dto.prnIndication ?? null,
+      prnOutcome: dto.prnEffectiveness ?? null,
+    };
+
+    // A carer re-saving a dose (app "Update") replaces this visit's record for that
+    // dose instead of adding another one. Serialise per visit + medicine so two saves
+    // arriving together still end up as a single record.
+    const { saved: created, previous } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`mar-dose:${ctx.primaryVisit.id}:${med.id}`}))`;
+      const previous = await tx.medicationAdministrationEvent.findFirst({
+        where: visitDoseRecordWhere({
+          serviceUserId: ctx.job.serviceUserId,
+          visitId: ctx.primaryVisit.id,
+          medicationId: med.id,
+          isPrn,
+          schedule,
+        }),
+        orderBy: { createdAt: 'desc' },
+      });
+      // A PRN dose given inside the minimum gap or over the 24-hour maximum is still
+      // saved; it is marked so the office is told and can review it.
+      let prnOverLimit: string | null = null;
+      if (isPrn && mapped.status === MedicationAdministrationStatus.GIVEN) {
+        const limits = prnLimitsFromMedication(med);
+        const others = await tx.medicationAdministrationEvent.findMany({
+          where: {
+            serviceUserId: ctx.job.serviceUserId,
+            serviceUserMedicationId: med.id,
+            deletedAt: null,
+            isPrn: true,
+            status: MedicationAdministrationStatus.GIVEN,
+            actualDateTime: {
+              gte: new Date(recordedAt.getTime() - 24 * 3_600_000),
+              lte: recordedAt,
+            },
+            ...(previous ? { id: { not: previous.id } } : {}),
+          },
+          select: { actualDateTime: true },
+        });
+        prnOverLimit = prnOverLimitDetail({
+          limits,
+          evaluation: evaluatePrnLimits({
+            limits,
+            givenAt: others.map((e) => e.actualDateTime as Date),
+            at: recordedAt,
+          }),
+          at: recordedAt,
+        });
+      }
+      const overLimitFields = {
+        prnOverLimit: prnOverLimit != null,
+        prnOverLimitDetail: prnOverLimit,
+      };
+
+      const saved = previous
+        ? await tx.medicationAdministrationEvent.update({
+            where: { id: previous.id },
+            data: { ...doseFields, ...overLimitFields, statusCodeId: null },
+          })
+        : await tx.medicationAdministrationEvent.create({
+            data: {
+              ...doseFields,
+              ...overLimitFields,
+              serviceUserId: ctx.job.serviceUserId,
+              serviceUserMedicationId: med.id,
+              scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
+              visitId: ctx.primaryVisit.id,
+              isPrn,
+              medicationNameSnapshot: med.medicationName,
+              doseSnapshot: med.dose,
+              strengthSnapshot: med.strength,
+              routeNameSnapshot: med.route?.name ?? null,
+            },
+          });
+      return { saved, previous };
     });
 
-    await this.medNotifications.notifyAdministrationEvent({
-      eventId: created.id,
-      serviceUserId: ctx.job.serviceUserId,
-      medicationName: med.medicationName,
-      status: mapped.status,
-      controlled: Boolean(med.isControlledMedication),
-      occurredAt: recordedAt,
-      actorEmployeeId: employeeId,
-      metadata: { medicationId: med.id, scheduledJobId: jobId },
-    });
+    if (previous) {
+      await this.auditLogs.logAudit({
+        userId: undefined,
+        module: AuditModule.MEDICATION,
+        action: AuditAction.MEDICATION_ADMINISTERED,
+        recordType: 'MedicationAdministrationEvent',
+        recordId: created.id,
+        oldValues: auditSnapshot(previous),
+        newValues: auditSnapshot(created),
+        metadata: {
+          serviceUserId: ctx.job.serviceUserId,
+          scheduledJobId: jobId,
+          employeeId,
+          channel: 'employee_app',
+          correction: true,
+        },
+      });
+    }
+
+    // Tell the office about a new record, or an existing one whose outcome changed
+    // or that has just gone over its PRN limit.
+    const newlyOverLimit = created.prnOverLimit && !previous?.prnOverLimit;
+    if (!previous || previous.status !== created.status || newlyOverLimit) {
+      await this.medNotifications.notifyAdministrationEvent({
+        eventId: created.id,
+        serviceUserId: ctx.job.serviceUserId,
+        medicationName: med.medicationName,
+        status: mapped.status,
+        controlled: Boolean(med.isControlledMedication),
+        prnOverLimitDetail: created.prnOverLimitDetail,
+        occurredAt: recordedAt,
+        actorEmployeeId: employeeId,
+        metadata: { medicationId: med.id, scheduledJobId: jobId },
+      });
+    }
 
     // When the scheduled MAR round is fully recorded, close eMAR-linked visit tasks
     // (e.g. "Medication prompt") so Home + Details task progress stay aligned.
@@ -3615,6 +3778,7 @@ export class EmployeeAppVisitsService {
       employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
+      visitId: ctx.primaryVisit.id,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
       visitEnd:
         ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
@@ -5264,17 +5428,17 @@ export class EmployeeAppVisitsService {
         planned: {
           startIso: visit.scheduledStartDateTime.toISOString(),
           endIso: plannedEnd?.toISOString() ?? null,
-          startLabel: formatHmUtc(visit.scheduledStartDateTime),
-          endLabel: plannedEnd ? formatHmUtc(plannedEnd) : null,
+          startLabel: formatHmInTimeZone(visit.scheduledStartDateTime, ctx.timeZone),
+          endLabel: plannedEnd ? formatHmInTimeZone(plannedEnd, ctx.timeZone) : null,
         },
         actual: {
           startIso: visit.actualStartDateTime?.toISOString() ?? null,
           endIso: visit.actualEndDateTime?.toISOString() ?? null,
           startLabel: visit.actualStartDateTime
-            ? formatHmUtc(visit.actualStartDateTime)
+            ? formatHmInTimeZone(visit.actualStartDateTime, ctx.timeZone)
             : null,
           endLabel: visit.actualEndDateTime
-            ? formatHmUtc(visit.actualEndDateTime)
+            ? formatHmInTimeZone(visit.actualEndDateTime, ctx.timeZone)
             : null,
         },
         checklist,
@@ -5455,8 +5619,8 @@ export class EmployeeAppVisitsService {
         estimatedDurationMinutes: ctx.job.estimatedDurationMinutes,
       },
     );
-    const scheduledStart = formatHmUtc(resolved.start);
-    const scheduledEnd = formatHmUtc(resolved.end);
+    const scheduledStart = formatHmInTimeZone(resolved.start, ctx.timeZone);
+    const scheduledEnd = formatHmInTimeZone(resolved.end, ctx.timeZone);
     const checkedInAt =
       (multiCarerVisit
         ? myAllocation?.actualStartDateTime
@@ -5506,7 +5670,7 @@ export class EmployeeAppVisitsService {
     const destinationLatitude = jobLatitude ?? serviceUserLatitude;
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
     const allowedRadiusMeters =
-      geofenceSettings?.allowedRadiusMeters ?? EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
+      geofenceSettings?.allowedRadiusMeters ?? DEFAULT_GEOFENCE_DISTANCE_METERS;
     const nightDuty = resolveStoredNightDuty({
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: ctx.job.metadata,
@@ -5557,7 +5721,7 @@ export class EmployeeAppVisitsService {
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
       isCheckedIn,
       checkedInAt: checkedInAt?.toISOString() ?? null,
-      checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
+      checkedInLabel: checkedInAt ? `In ${formatHmInTimeZone(checkedInAt, ctx.timeZone)}` : null,
       deliveryResetAt,
       taskResets,
       progress: this.buildProgress(progress, medProgress),
@@ -5659,8 +5823,12 @@ export class EmployeeAppVisitsService {
     };
   }
 
+  /** Visit-area radius the app shows and checks against — from the organisation settings. */
   private async loadGeofenceSettings() {
-    return { allowedRadiusMeters: EMPLOYEE_APP_ALLOWED_RADIUS_METERS };
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { domGeofenceDistanceMeters: true, domGeofenceToleranceMeters: true },
+    });
+    return { allowedRadiusMeters: resolveCarerGeofenceRadiusMeters(settings) };
   }
 
   private async loadCheckInMethodFlags() {
@@ -6006,6 +6174,7 @@ export class EmployeeAppVisitsService {
     completedById?: string;
     jobId: string;
     serviceUserId: string;
+    visitId: string;
     visitStart: Date;
     visitEnd: Date | null;
     timeZone: string;
@@ -6035,30 +6204,40 @@ export class EmployeeAppVisitsService {
       },
       select: {
         id: true,
+        ...VISIT_DUE_MEDICATION_SELECT,
         schedules: {
           where: { deletedAt: null, isActive: true, dueTime: { not: null } },
-          select: { dueTime: true },
+          select: { dueTime: true, daysOfWeek: true },
         },
       },
     });
-    const dueMeds = meds.filter((m) =>
-      m.schedules.some((s) => dueTimeFallsInHmWindow(s.dueTime, startHm, endHm)),
+    const dueMeds = meds.filter(
+      (m) => filterSchedulesDueOnVisit(m, visitDate, { startHm, endHm }).length > 0,
     );
     const dueCount = dueMeds.length;
     if (dueCount === 0) return;
 
-    const givenCount = await this.prisma.medicationAdministrationEvent.count({
-      where: {
-        serviceUserId: input.serviceUserId,
-        deletedAt: null,
-        status: MedicationAdministrationStatus.GIVEN,
-        OR: [
-          { scheduledDateTime: { gte: start, lte: end } },
-          { actualDateTime: { gte: start, lte: end } },
-        ],
-        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
-      },
-    });
+    // Count medicines whose dose on THIS visit is given: several records for one dose
+    // are one medicine, and another dose of the same medicine that day does not count.
+    const visitWindow = { startHm, endHm };
+    const givenCount = pickVisitDoseRecords(
+      await this.prisma.medicationAdministrationEvent.findMany({
+        where: {
+          serviceUserId: input.serviceUserId,
+          deletedAt: null,
+          status: MedicationAdministrationStatus.GIVEN,
+          OR: [
+            { scheduledDateTime: { gte: start, lte: end } },
+            { actualDateTime: { gte: start, lte: end } },
+          ],
+          serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: VISIT_DOSE_RECORD_SELECT,
+      }),
+      new Map(dueMeds.map((m) => [m.id, dueTimesInVisitWindow(m.schedules, visitWindow)])),
+      { visitId: input.visitId, window: visitWindow, timeZone: input.timeZone },
+    ).size;
     if (givenCount < dueCount) return;
 
     // Visit tasks attach by clock window, same as the medicines checked above.
@@ -6202,33 +6381,40 @@ export class EmployeeAppVisitsService {
       },
       select: {
         id: true,
+        ...VISIT_DUE_MEDICATION_SELECT,
         schedules: {
           where: { deletedAt: null, isActive: true, dueTime: { not: null } },
-          select: { dueTime: true, roundId: true },
+          select: { dueTime: true, roundId: true, daysOfWeek: true },
         },
       },
     });
 
-    const dueMeds = meds.filter((m) =>
-      m.schedules.some((s) =>
-        dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
-      ),
+    const dueMeds = meds.filter(
+      (m) => filterSchedulesDueOnVisit(m, visitDate, visitWindow).length > 0,
     );
     const dueCount = dueMeds.length;
     if (dueCount === 0) return { dueCount: 0, givenCount: 0 };
 
-    const givenCount = await this.prisma.medicationAdministrationEvent.count({
-      where: {
-        serviceUserId: ctx.job.serviceUserId,
-        deletedAt: null,
-        status: MedicationAdministrationStatus.GIVEN,
-        OR: [
-          { scheduledDateTime: { gte: start, lte: end } },
-          { actualDateTime: { gte: start, lte: end } },
-        ],
-        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
-      },
-    });
+    // Count medicines whose dose on THIS visit is given: several records for one dose
+    // are one medicine, and another dose of the same medicine that day does not count.
+    const givenCount = pickVisitDoseRecords(
+      await this.prisma.medicationAdministrationEvent.findMany({
+        where: {
+          serviceUserId: ctx.job.serviceUserId,
+          deletedAt: null,
+          status: MedicationAdministrationStatus.GIVEN,
+          OR: [
+            { scheduledDateTime: { gte: start, lte: end } },
+            { actualDateTime: { gte: start, lte: end } },
+          ],
+          serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: VISIT_DOSE_RECORD_SELECT,
+      }),
+      new Map(dueMeds.map((m) => [m.id, dueTimesInVisitWindow(m.schedules, visitWindow)])),
+      { visitId: ctx.primaryVisit.id, window: visitWindow, timeZone: ctx.timeZone },
+    ).size;
 
     return { dueCount, givenCount };
   }
@@ -6481,10 +6667,16 @@ export class EmployeeAppVisitsService {
           isControlledMedication: true,
           timeCritical: true,
           medicationPackId: true,
+          ...VISIT_DUE_MEDICATION_SELECT,
           route: { select: { name: true } },
           schedules: {
             where: { deletedAt: null, isActive: true },
-            select: { dueTime: true, dose: true, round: { select: { name: true } } },
+            select: {
+              dueTime: true,
+              dose: true,
+              daysOfWeek: true,
+              round: { select: { name: true } },
+            },
           },
           medicationPack: { select: { adminRules: true } },
         },
@@ -6508,6 +6700,9 @@ export class EmployeeAppVisitsService {
           howAssisted: true,
           isControlledMedication: true,
           timeCritical: true,
+          prnMinGapHours: true,
+          prnMaxDosesIn24Hours: true,
+          prnMaxDosePerTime: true,
           route: { select: { name: true } },
         },
       }),
@@ -6554,11 +6749,15 @@ export class EmployeeAppVisitsService {
                   timeCritical: true,
                   route: { select: { name: true } },
                   medicationPack: { select: { adminRules: true } },
-                  startDate: true,
-                  endDate: true,
+                  ...VISIT_DUE_MEDICATION_SELECT,
                   schedules: {
                     where: { deletedAt: null, isActive: true },
-                    select: { id: true, dueTime: true, round: { select: { name: true } } },
+                    select: {
+                      id: true,
+                      dueTime: true,
+                      daysOfWeek: true,
+                      round: { select: { name: true } },
+                    },
                   },
                 },
               },
@@ -6568,13 +6767,12 @@ export class EmployeeAppVisitsService {
       }),
     ]);
 
-    // Attach meds whose dueTime falls in this visit's clock window only (1A: no window → none).
+    // Attach meds whose dueTime falls in this visit's clock window and that are due on
+    // the visit day (start/end date + daily/weekly/monthly pattern). 1A: no window → none.
     const scheduledMeds = visitWindow
       ? scheduledMedsRaw
           .map((m) => {
-            const inWindow = m.schedules.filter((s) =>
-              dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
-            );
+            const inWindow = filterSchedulesDueOnVisit(m, visitDate, visitWindow);
             if (!inWindow.length) return null;
             const primary = inWindow[0]!;
             return {
@@ -6609,6 +6807,8 @@ export class EmployeeAppVisitsService {
                   { actualDateTime: { gte: start, lte: end } },
                 ],
               },
+              // Newest first: the row shown for a medicine is its latest record.
+              orderBy: { createdAt: 'desc' },
               select: {
                 id: true,
                 serviceUserMedicationId: true,
@@ -6624,11 +6824,16 @@ export class EmployeeAppVisitsService {
                 witnessRelationCode: true,
                 witnessRelationDetail: true,
                 witnessNotes: true,
+                witnessEmployeeId: true,
+                witnessAbsentReasonCode: true,
                 actualDateTime: true,
                 prnReason: true,
                 prnOutcome: true,
                 isPrn: true,
                 visitId: true,
+                medicationScheduleId: true,
+                scheduledDateTime: true,
+                schedule: { select: { dueTime: true } },
               },
             }),
             this.prisma.bodyMapMedicationSite.findMany({
@@ -6670,15 +6875,31 @@ export class EmployeeAppVisitsService {
 
     const bodyMapSiteByMedId = indexMarBodyMapSites(bodyMapSites);
 
-    const eventByMed = new Map<string, (typeof events)[number]>();
-    for (const e of events) {
-      if (!eventByMed.has(e.serviceUserMedicationId)) eventByMed.set(e.serviceUserMedicationId, e);
+    // A scheduled medicine is "recorded" only by a record for the dose due on THIS
+    // visit — the morning dose must not tick the evening one.
+    const dueTimesByMed = new Map<string, Array<string | null>>();
+    if (visitWindow) {
+      for (const m of scheduledMedsRaw) {
+        dueTimesByMed.set(m.id, dueTimesInVisitWindow(m.schedules, visitWindow));
+      }
+      for (const pack of activePacks) {
+        for (const member of pack.members) {
+          dueTimesByMed.set(
+            member.serviceUserMedicationId,
+            dueTimesInVisitWindow(member.serviceUserMedication.schedules, visitWindow),
+          );
+        }
+      }
     }
+    const eventByMed = pickVisitDoseRecords(
+      events.filter((e) => !e.isPrn),
+      dueTimesByMed,
+      { visitId: ctx.primaryVisit.id, window: visitWindow, timeZone: ctx.timeZone },
+    );
 
     // PRN is "as needed" — it can be given in each visit independently. Its
     // "recorded" status must be scoped to THIS visit, otherwise a PRN given in
     // an earlier same-day visit would wrongly show as already given here.
-    // (Scheduled meds keep the day-scoped `eventByMed` above — unchanged.)
     const prnEventThisVisit = new Map<string, (typeof events)[number]>();
     for (const e of events) {
       if (
@@ -6689,6 +6910,46 @@ export class EmployeeAppVisitsService {
         prnEventThisVisit.set(e.serviceUserMedicationId, e);
       }
     }
+
+    // PRN doses given in the last 24 hours on any visit, by any carer or the office —
+    // shown to the carer so a dose is not repeated too soon.
+    const now = new Date();
+    const prnGiven24h =
+      prnMeds.length > 0
+        ? await this.prisma.medicationAdministrationEvent.findMany({
+            where: {
+              serviceUserId: ctx.job.serviceUserId,
+              deletedAt: null,
+              isPrn: true,
+              status: MedicationAdministrationStatus.GIVEN,
+              serviceUserMedicationId: { in: prnMeds.map((m) => m.id) },
+              actualDateTime: { gte: new Date(now.getTime() - 24 * 3_600_000), lte: now },
+            },
+            select: { serviceUserMedicationId: true, actualDateTime: true },
+          })
+        : [];
+    const prnInfoFor = (m: (typeof prnMeds)[number]) => {
+      const limits = prnLimitsFromMedication(m);
+      const evaluation = evaluatePrnLimits({
+        limits,
+        givenAt: prnGiven24h
+          .filter((e) => e.serviceUserMedicationId === m.id && e.actualDateTime)
+          .map((e) => e.actualDateTime as Date),
+        at: now,
+      });
+      return {
+        ...limits,
+        countIn24h: evaluation.countIn24h,
+        lastGivenAt: evaluation.lastGivenAt?.toISOString() ?? null,
+        nextAllowedAt: evaluation.nextAllowedAt?.toISOString() ?? null,
+        status: evaluation.status,
+        ...prnLimitLabels(limits),
+        summary: prnSummaryLine({ limits, evaluation, now, timeZone: ctx.timeZone }),
+        warning: prnWarningLine({ limits, evaluation, now, timeZone: ctx.timeZone }),
+        checkedAt: now.toISOString(),
+        checkedAtLabel: formatHmInTimeZone(now, ctx.timeZone),
+      };
+    };
 
     const mapMed = (m: (typeof scheduledMeds)[number] | (typeof prnMeds)[number], isPrn: boolean) => {
       const dose = [m.dose, m.strength].filter(Boolean).join(' ') || null;
@@ -6719,6 +6980,7 @@ export class EmployeeAppVisitsService {
       const dueTime =
         'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;
       const scheduledDoseId = isPrn ? `${m.id}:prn` : `${m.id}:${dueTime ?? 'dose'}`;
+      const prnInfo = isPrn && 'prnMinGapHours' in m ? prnInfoFor(m) : null;
       const relatedAllergy = allergyHit
         ? allergyLower.find((a) => m.medicationName.toLowerCase().includes(a)) ?? null
         : null;
@@ -6741,6 +7003,14 @@ export class EmployeeAppVisitsService {
         relatedAllergy,
         dueStatus: isPrn ? (echo.done ? 'recorded' : 'prn') : echo.done ? 'recorded' : 'due',
         countsTowardScheduledProgress: !isPrn,
+        prnInfo,
+        // Flat copies of the PRN lines the carer app shows on the row and the dose sheet.
+        lastAdministrationLabel: prnInfo?.summary ?? null,
+        minIntervalLabel: prnInfo?.minIntervalLabel ?? null,
+        maxDoseLabel: prnInfo?.maxDoseLabel ?? null,
+        prnMaxPerTimeLabel: prnInfo?.maxPerTimeLabel ?? null,
+        prnWarning: prnInfo?.warning ?? null,
+        prnCheckedAtLabel: prnInfo?.checkedAtLabel ?? null,
         reasonForMedication: m.reasonForMedication ?? null,
         instructions: m.instructions ?? null,
         howAssisted: plannedHowAssistedLabel(m.howAssisted),
@@ -6791,6 +7061,7 @@ export class EmployeeAppVisitsService {
       bodyMapSiteByMedId,
       timeZone: ctx.timeZone,
       visitAt: ctx.primaryVisit.scheduledStartDateTime,
+      visitDayKey: visitDate,
     });
 
     return { sections, blisterPacks };
@@ -7001,7 +7272,7 @@ export class EmployeeAppVisitsService {
       };
     }
 
-    const radius = EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
+    const radius = resolveCarerGeofenceRadiusMeters(settings);
     const distanceMeters = haversineMeters(latitude, longitude, targetLat, targetLng);
     const withinArea = distanceMeters <= radius;
 

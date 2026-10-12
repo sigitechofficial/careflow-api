@@ -1,3 +1,7 @@
+import {
+  prnLimitLabels,
+  prnLimitsFromMedication,
+} from '../medications/medication-prn-limits.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { carerAuthorityCards } from '../service-user-documents/legal-authority-coverage.util';
 import {
@@ -514,6 +518,9 @@ export class EmployeeAppClientDetailService {
           frequencyText: true,
           medicationKind: true,
           isControlledMedication: true,
+          prnMinGapHours: true,
+          prnMaxDosesIn24Hours: true,
+          prnMaxDosePerTime: true,
           timeCritical: true,
           instructions: true,
           howAssisted: true,
@@ -581,11 +588,14 @@ export class EmployeeAppClientDetailService {
       const dose = [m.dose, m.strength].filter(Boolean).join(' ') || null;
       const route = m.route?.name ?? null;
       const howAssisted = plannedHowAssistedLabel(m.howAssisted);
+      const prnLimits = isPrn ? prnLimitsFromMedication(m) : null;
       const detailParts = [
         dose,
         route,
         timing,
         howAssisted ? `Support: ${howAssisted}` : null,
+        // PRN limits set by the office, when any (shown for information).
+        ...(prnLimits ? Object.values(prnLimitLabels(prnLimits)) : []),
       ].filter(Boolean);
 
       return {
@@ -598,6 +608,7 @@ export class EmployeeAppClientDetailService {
         detail: detailParts.join(' · '),
         isPrn,
         isControlled: m.isControlledMedication,
+        prnLimits,
         tags,
       };
     });

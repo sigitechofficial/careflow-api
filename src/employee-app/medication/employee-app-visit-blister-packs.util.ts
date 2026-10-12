@@ -13,6 +13,10 @@ import {
   type VisitMedicationRound,
 } from './employee-app-visit-medication-round.util';
 import { dueTimeFallsInHmWindow } from '../../service-user-visit-plans/visit-medication-window.util';
+import {
+  medicationScheduleDueOnVisit,
+  type VisitDueMedication,
+} from '../../medications/medication-visit-due.util';
 import type { MarBodyMapSite } from './employee-app-mar-body-map-site.util';
 
 function filterCompartmentsForVisit(
@@ -105,12 +109,15 @@ type PackMemberMed = {
   howAssisted?: string | null;
   isControlledMedication: boolean;
   timeCritical?: boolean;
-  startDate?: Date | string | null;
-  endDate?: Date | string | null;
   route: { name: string } | null;
   medicationPack: { adminRules: unknown } | null;
-  schedules: Array<{ id: string; dueTime: string | null; round: { name: string } | null }>;
-};
+  schedules: Array<{
+    id: string;
+    dueTime: string | null;
+    daysOfWeek?: string[] | null;
+    round: { name: string } | null;
+  }>;
+} & VisitDueMedication;
 
 type PackInput = {
   id: string;
@@ -217,6 +224,24 @@ function medicationActiveOnVisitDay(
   return true;
 }
 
+/** Pack medicine due in this compartment on the visit day (dates + daily/weekly/monthly pattern). */
+function packMedicineDueOnVisit(
+  med: PackMemberMed,
+  compartmentDueTime: string,
+  visitDayKey: string,
+  visitWindow: { startHm: string; endHm: string },
+): boolean {
+  const target = normalizePackDueTime(compartmentDueTime);
+  const schedule = med.schedules.find((s) => normalizePackDueTime(s.dueTime) === target);
+  return medicationScheduleDueOnVisit({
+    medication: med,
+    schedule: { dueTime: target, daysOfWeek: schedule?.daysOfWeek ?? [] },
+    medicationDaysOfWeek: [...new Set(med.schedules.flatMap((s) => s.daysOfWeek ?? []))],
+    visitDayKey,
+    window: visitWindow,
+  });
+}
+
 export function buildVisitBlisterPacks(input: {
   packs: PackInput[];
   visitRound: VisitMedicationRound | null;
@@ -226,6 +251,8 @@ export function buildVisitBlisterPacks(input: {
   bodyMapSiteByMedId?: Map<string, MarBodyMapSite>;
   timeZone?: string;
   visitAt?: Date;
+  /** Visit calendar day (YYYY-MM-DD) in the organisation timezone. */
+  visitDayKey?: string;
 }): EmployeeAppBlisterPack[] {
   const {
     packs,
@@ -236,6 +263,7 @@ export function buildVisitBlisterPacks(input: {
     bodyMapSiteByMedId,
     timeZone,
     visitAt,
+    visitDayKey,
   } = input;
 
   return packs
@@ -252,9 +280,17 @@ export function buildVisitBlisterPacks(input: {
             ) {
               return false;
             }
+            if (eventByMed.has(member.serviceUserMedication.id)) return true;
+            if (visitDayKey && visitWindow?.startHm && visitWindow?.endHm) {
+              return packMedicineDueOnVisit(
+                member.serviceUserMedication,
+                compartment.dueTime,
+                visitDayKey,
+                visitWindow,
+              );
+            }
             if (!visitAt) return true;
-            const recorded = eventByMed.has(member.serviceUserMedication.id);
-            return recorded || medicationActiveOnVisitDay(member.serviceUserMedication, visitAt);
+            return medicationActiveOnVisitDay(member.serviceUserMedication, visitAt);
           });
           const medicines = slotMembers.map((member) =>
             mapPackMedicine({

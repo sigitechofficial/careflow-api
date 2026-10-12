@@ -1,3 +1,4 @@
+import { isSyncedLate } from '../employee-app/employee-app-device-time.util';
 import {
   BadRequestException,
   Injectable,
@@ -1474,6 +1475,9 @@ export class EcmVisitsService {
           }),
           occurredAt: e.occurredAt.toISOString(),
           deviceCapturedAt: e.deviceCapturedAt?.toISOString() ?? null,
+          // When the server received it; well after occurredAt means an offline clock-in/out.
+          receivedAt: e.createdAt.toISOString(),
+          syncedLate: isSyncedLate(e.occurredAt, e.createdAt),
           latitude: e.latitude != null ? Number(e.latitude) : null,
           longitude: e.longitude != null ? Number(e.longitude) : null,
           accuracyMeters: e.accuracyMeters != null ? Number(e.accuracyMeters) : null,

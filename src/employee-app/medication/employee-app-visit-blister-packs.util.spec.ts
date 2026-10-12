@@ -177,4 +177,65 @@ describe('employee-app-visit-blister-packs.util', () => {
 
     expect(packs).toHaveLength(0);
   });
+
+  it('hides a weekly pack medicine on a day it is not due', () => {
+    const build = (visitDayKey: string) =>
+      buildVisitBlisterPacks({
+        visitRound: null,
+        visitWindow: { startHm: '07:30', endHm: '09:30' },
+        visitDayKey,
+        allergyLower: [],
+        eventByMed: new Map(),
+        packs: [
+          {
+            id: 'pack-1',
+            name: 'Morning blister',
+            packType: MedicationPackType.BLISTER,
+            status: MedicationPackStatus.ACTIVE,
+            roundLabel: 'Morning',
+            compartments: [
+              {
+                id: 'comp-am',
+                label: 'Morning',
+                dueTime: '08:00',
+                windowStart: '07:00',
+                windowEnd: '10:00',
+                witnessRequired: false,
+              },
+            ],
+            members: [
+              {
+                id: 'member-1',
+                serviceUserMedicationId: 'med-1',
+                serviceUserMedication: {
+                  id: 'med-1',
+                  medicationName: 'Alendronic acid',
+                  dose: '1 tablet',
+                  strength: '70 mg',
+                  instructions: null,
+                  isControlledMedication: false,
+                  route: { name: 'Oral' },
+                  medicationPack: null,
+                  startDate: new Date('2026-10-01T00:00:00.000Z'),
+                  schedulePattern: 'WEEKLY',
+                  frequencyIntervalDays: 1,
+                  schedules: [
+                    {
+                      id: 'sch-1',
+                      dueTime: '08:00',
+                      daysOfWeek: ['TUESDAY'],
+                      round: { name: 'Morning' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+    // 2026-10-12 is a Monday, 2026-10-13 a Tuesday.
+    expect(build('2026-10-12')).toHaveLength(0);
+    expect(build('2026-10-13')[0]?.compartments[0]?.medicines).toHaveLength(1);
+  });
 });
