@@ -193,8 +193,22 @@ export function resolveSpecialDay(
   return 'NONE';
 }
 
+const MINUTES_PER_DAY = 24 * 60;
+
 /**
- * Whether a wall-clock minute falls in [start, end), supporting overnight bands (22:00–06:00).
+ * True for a band end that means "to the end of the day". Screens cannot enter 24:00, so an
+ * all-day or late band is stored with an end of 23:59; a missing end means the same.
+ */
+export function isEndOfDayBandEnd(endTime?: string | null): boolean {
+  if (!endTime?.trim()) return true;
+  const end = parseHhMm(endTime);
+  return !!end && end.hours === 23 && end.minutes === 59;
+}
+
+/**
+ * Whether a wall-clock minute falls in the half-open band [start, end), supporting overnight
+ * bands (22:00–06:00). An end of 23:59 is the end of the day (24:00), so 00:00–23:59 covers every
+ * minute of the day and 19:00–23:59 runs to midnight (PC-21).
  */
 export function minuteInTimeBand(
   minuteOfDay: number,
@@ -206,7 +220,7 @@ export function minuteInTimeBand(
   const end = endTime ? parseHhMm(endTime) : { hours: 23, minutes: 59 };
   if (!start || !end) return true;
   const s = start.hours * 60 + start.minutes;
-  const e = end.hours * 60 + end.minutes;
+  const e = isEndOfDayBandEnd(endTime) ? MINUTES_PER_DAY : end.hours * 60 + end.minutes;
   if (s === e) return true;
   if (s < e) return minuteOfDay >= s && minuteOfDay < e;
   // Overnight: e.g. 22:00–06:00
@@ -271,6 +285,8 @@ export function collectBandBoundaries(
     for (const rule of rules) {
       for (const t of [rule.startTime, rule.endTime]) {
         if (!t) continue;
+        // An end of 23:59 is midnight, which is already a boundary: no extra one-minute slice.
+        if (t === rule.endTime && isEndOfDayBandEnd(t)) continue;
         const parsed = parseHhMm(t);
         if (!parsed) continue;
         let day = new Date(
@@ -337,6 +353,7 @@ export function collectBandBoundaries(
     for (const rule of rules) {
       for (const t of [rule.startTime, rule.endTime]) {
         if (!t?.trim()) continue;
+        if (t === rule.endTime && isEndOfDayBandEnd(t)) continue;
         for (const day of days) {
           const instant = combineOperationalDateAndHm(day, t.trim(), timeZone);
           if (

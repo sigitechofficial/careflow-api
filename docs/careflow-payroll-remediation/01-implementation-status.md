@@ -1,7 +1,9 @@
 # 01 — Implementation Status
 
 **Programme:** CareFlow carer wages, pay cards and UK payroll remediation
-**Updated:** 2026-10-12 · **Phase reported:** 0 (financial safety) · **Phases 1–9:** not started
+**Updated:** 2026-10-12 · **Phase 0 (financial safety):** implemented and tested · **Phases 1 and 4:** three items done (below) · **Everything else:** not started
+
+Later work continues on branch `payroll-remediation/phase-1` in both repositories.
 
 | Repository | Branch | Base commit (audited) | Phase 0 commits |
 |---|---|---|---|
@@ -50,10 +52,19 @@ Status words: **DONE** = fixed and covered by passing tests · **PARTIAL** = par
 ### Items verified and deliberately not changed in Phase 0
 | Audit ID | Verified | Why left |
 |---|---|---|
-| EL-09 | `grossPay + nmwTopUpTotal` double-counts; still present | Phase 4.1 |
 | EL-11, EL-12, EL-16, PR-06, PR-08, PR-09, PR-10 | Present as audited | Phases 4–5 |
 | TR-13 | Mileage not in payouts | Phase 2.3 |
-| PC-21, PC-23, PC-02, WM-02 | Present as audited | Phases 1 and 3 |
+| PC-23, WM-02 | Present as audited | Phases 1 and 3 |
+
+---
+
+## Phases 1 and 4 — items that needed no policy decision
+
+| Audit ID | Original issue | Reproduced | Fix | Tests | Status | Remaining risk |
+|---|---|---|---|---|---|---|
+| PC-21 (1.1) | All-day band stored as 00:00–23:59 left 23:59–00:00 uncovered | test (13 of 14 new tests failed) | Bands are half-open; an end of 23:59, or no end, means the end of the day. No extra slice is cut at 23:59. Existing rules are reinterpreted, not rewritten | `pay-time-band.all-day.spec` (14): 23:58–00:02, 23:59–00:00, full Sunday, bank holiday across midnight, both clock changes | DONE | The matcher is shared with the single-rule paths in visit reconciliation, which also select charge rules, so a charge band ending 23:59 now covers the last minute too; charge results were not re-tested. A band meant to stop at 23:59 exactly cannot be expressed (none known) |
+| PC-02 (1.3) | A rule set to "Custom…" could not be saved | code + browser | The custom entry has a real value, so the required list is satisfied; also fixes saving a card that already holds a custom-period rule | Checked in the browser on a draft card (list valid with "Custom…" chosen; nothing saved). No automated form test | PARTIAL | Form test and API validation test still to add; full create → save → reload → publish walk-through not done |
+| EL-09 (4.1) | Minimum wage top-up counted twice in run gross | test (£20.42 instead of £12.71) | Run gross is the sum of its lines; the top-up total counts only top-ups that have a line | `minimum-wage.int-spec` (2) | DONE | Top-up is still assessed on the visit pay run period (EL-08, Phase 4.3) |
 
 ---
 

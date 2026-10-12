@@ -957,12 +957,13 @@ export class PayrollRunsService {
         asOf: run.periodEnd,
       });
       if (!nmw.compliant && nmw.topUp > 0) {
-        nmwTopUpTotal += nmw.topUp;
         nmwExceptionBump += 1;
         const anyRecon =
           lineData.find((l) => l.employeeId === employeeId && l.visitReconciliationId) ??
           lineData.find((l) => l.employeeId === employeeId);
         if (anyRecon) {
+          // Counted only when the top-up line exists, so the total always equals the lines.
+          nmwTopUpTotal += nmw.topUp;
           lineData.push({
             payrollRunId: id,
             visitReconciliationId: anyRecon.visitReconciliationId,
@@ -1066,7 +1067,8 @@ export class PayrollRunsService {
                 : PayrollRunStatus.DRAFT,
           carerCount: employeeIds.size,
           visitLineCount: lineData.filter((l) => l.lineType === PayrollRunLineType.VISIT_PAY).length,
-          grossPay: grossPay + nmwTopUpTotal,
+          // grossPay already includes the NMW top-up lines (EL-09: it used to be added a second time).
+          grossPay,
           nmwTopUp: nmwTopUpTotal,
           expenseTotal,
           estimatedEmployerNi: employer.employerNi,

@@ -10,10 +10,12 @@ No test touched the development database's business data, a live system, HMRC or
 
 | Suite | Suites | Tests | Result |
 |---|---|---|---|
-| Payroll integration (`npm run test:payroll-int`) | 9 | 54 | all pass |
-| Unit: billing, payroll, ecm, visit-attendance, job-allocations, scheduled-jobs-housekeeping, service-user-referrals, common, role-responsibilities, audit-logs | 76 | 423 | all pass |
-| of which new in Phase 0 | 4 | 27 | all pass |
+| Payroll integration (`npm run test:payroll-int`) | 10 | 56 | all pass |
+| Unit: billing, payroll, ecm, visit-attendance, job-allocations, scheduled-jobs-housekeeping, service-user-referrals, common, role-responsibilities, audit-logs | 77 | 437 | all pass |
+| of which new in this programme | 5 | 41 | all pass |
 | Frontend type-check (`tsc --noEmit`) | — | — | no errors |
+
+At the end of Phase 0 the figures were 9 / 54 integration and 76 / 423 unit. The three later fixes added `minimum-wage.int-spec` (2 tests) and `pay-time-band.all-day.spec` (14 tests).
 
 Before Phase 0 the wages scope had 57 suites / 324 unit tests and no service, database or permission test.
 
@@ -52,6 +54,11 @@ Real services, real PostgreSQL, real constraints and triggers. Collaborators tha
 | `controls` | 9 | Bulk deletion refused in four environment combinations and allowed only on opt-in, with audit. Maker / checker on visit pay run and UK run close. Recalculation withdraws approval. Audit of run and visit decisions |
 | `attendance` | 5 | Office correction reprices unpaid draft pay and keeps the event. On a paid visit it leaves the record and raises a pending correction; repeating it creates nothing. Start-after-finish refused. Unverified carer time holds the visit and still prices it. Office verification clears the flag |
 | `di-wiring` | 1 | The whole application module graph still resolves after constructors and module imports changed |
+| `minimum-wage` (Phase 4.1) | 2 | A one-hour visit paid £5.00 gets one top-up line and a run gross of exactly the legal hourly rate; a visit at or above the rate gets no top-up |
+
+**Unit, Phase 1.1:** `pay-time-band.all-day.spec` (14) — an all-day band covers 23:59; adjacent bands share no minute; Sunday 22:00 → Monday 00:30 = £44.00; 23:58–00:02 = £1.13; 23:59–00:00 = £0.30; a full Sunday = 24 h; a bank holiday visit ending the next day pays each day at its own rate; no extra slice at 23:59; clocks back = 25 h Sunday and correct split at midnight; clocks forward = 23 h Sunday and correct split.
+
+**Browser, Phase 1.3:** on a draft pay card, choosing "Custom…" leaves the required list valid (it was invalid before the fix). The card was not saved.
 
 ### Mandatory Phase 0 tests from the brief
 
@@ -86,6 +93,8 @@ Tests were written first where that was practical, and run against the unfixed c
 | `payouts` | 5 of 6 failed (job approved and marked paid, payout from an unclosed run, self-approval, no evidence, no audit) |
 | `locked-history` | Service guards failed. The two "history unchanged" cases already passed because the triggers, added first, refused the write |
 | `uk-provisional`, `reassignment`, `attendance`, `pay-corrections` | Written with or after the fix; they did not run red first |
+| `pay-time-band.all-day` | 13 of 14 failed |
+| `minimum-wage` | Run gross was £20.42 where £12.71 was expected |
 
 ---
 

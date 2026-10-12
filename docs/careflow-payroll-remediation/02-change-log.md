@@ -4,6 +4,22 @@ Newest first. Audit IDs in brackets. Database detail is in `04-database-changes.
 
 ---
 
+## Phases 1.1, 1.3 and 4.1 — fixes that needed no policy decision (2026-10-12)
+
+Branch `payroll-remediation/phase-1`. No database change.
+
+| Area | Before | Now |
+|---|---|---|
+| Time bands [PC-21] | A band ending 23:59 stopped one minute before midnight. A Sunday visit running past midnight came back "rate missing"; the last minute of a bank holiday was paid at another rate | An end of 23:59 (or no end) is the end of the day. Applies wherever the shared matcher is used: banded pay and the single-rule paths in visit reconciliation, which also select charge rules |
+| Pay card screen [PC-02] | A rule set to "Custom…" could not be saved, and a card that already held a custom-period rule could not be saved either | Saves |
+| Visit pay run total [EL-09] | Gross pay included the minimum wage top-up twice | Gross pay equals the sum of the run's lines |
+
+**Effect on existing figures.** Visits already priced keep their stored amounts. A visit priced from now on that crosses 23:59 on a band ending 23:59 is paid for that minute at the band's rate. Run totals calculated from now on are lower by exactly the top-up where one applies; locked runs are not recalculated.
+
+Files: `billing/pay-time-band.util.ts` (+`pay-time-band.all-day.spec.ts`), `billing/payroll-runs.service.ts`, `test/payroll-int/minimum-wage.int-spec.ts`; frontend `BillingCardRulesEditor.tsx`.
+
+---
+
 ## Phase 0 — financial safety (2026-10-12)
 
 ### Behaviour changes people will notice

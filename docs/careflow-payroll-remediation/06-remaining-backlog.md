@@ -27,9 +27,9 @@ What is still to do after Phase 0, in the order of the programme gates. "Decisio
 
 | Phase | Item | Audit | Type | Decision first |
 |---|---|---|---|---|
-| 1.1 | Half-open time bands and an explicit all-day rule; migrate `00:00–23:59` rules | PC-21 | FIX | No |
+| 1.1 | ~~Half-open time bands; `00:00–23:59` covers the day~~ **Done.** Still open: an explicit "all day" choice in the editor instead of typed times; re-test charge results | PC-21 | FIX | No |
 | 1.2 | Calendar service: nations, substitute days, organisation special days, completeness check; remove hard-coded 25 / 26 Dec and 1 Jan; local-day everywhere | PC-19, PC-22, PC-23, PC-24 | FIX | Q15 |
-| 1.3 | "Custom…" time band can be saved; form and API tests | PC-02 | FIX | No |
+| 1.3 | ~~"Custom…" time band can be saved~~ **Done.** Still open: form test, API validation test, full create → save → reload → publish walk-through | PC-02 | TEST | No |
 | 1.4 | Conflict validation for same-level cards; funder context as at the visit date; further rate dimensions | PC-03, PC-10, PC-32, PC-11–PC-17 | FIX / BUILD | Q17 |
 | 1.5 | Version every calculation input; draft → review → published → retired | PC-35, PC-36, PC-37, SI-14 | BUILD | Q5 |
 | 1.6 | Fixed shift allowance once per shift | WM-04 | FIX | Q28 |
@@ -42,11 +42,11 @@ What is still to do after Phase 0, in the order of the programme gates. "Decisio
 | 3.3 | Overtime across runs; configurable policy | WM-18 | FIX | Q29 |
 | 3.4 | Leave year, entitlement, accrual, holiday pay | EL-02, EL-03, EL-04 | BUILD | Q35 |
 | 3.5 | SSP and family pay framework, versioned by tax year | EL-05, EL-07 | BUILD | Statutory validation |
-| 4.1 | Top-up counted once | EL-09 | FIX | No |
+| 4.1 | ~~Top-up counted once~~ **Done** | EL-09 | — | No |
 | 4.2 | Apprentice eligibility | EL-11 | FIX | Q38 |
 | 4.3 | Compliance on the pay reference period; wage floors | EL-08, EL-12, EL-13 | BUILD | Q37, Q39 |
 
-**Can start without a decision:** 1.1, 1.3, 4.1, and the tests for the resolver and pay run that the audit listed as unverified.
+**Can start without a decision:** the tests for the pay card resolver and the pay run that the audit listed as unverified; conflict validation for same-level cards (1.4, PC-32); funder context as at the visit date (1.4, PC-10); local-day handling on the fixed-visit and night-duty paths (1.2, PC-19).
 
 ---
 
@@ -79,4 +79,4 @@ End-to-end tests, the fifteen acceptance scenarios, completion of the pay screen
 
 ## Suggested next step
 
-Phase 1.1, 1.3 and 4.1 need no policy answer and remove three confirmed wrong-money defects. In parallel, obtain decisions D-01, D-03, D-05 and audit questions Q13, Q15, Q22, Q33, Q37.
+Phase 1.1, 1.3 and 4.1 are done. Next without a policy answer: PC-19, PC-32 and PC-10 from Phase 1, with resolver and pay run tests. In parallel, obtain decisions D-01, D-03, D-05 and audit questions Q13, Q15, Q22, Q33, Q37, which the rest of Gate B depends on.

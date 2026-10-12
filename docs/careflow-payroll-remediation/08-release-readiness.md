@@ -11,7 +11,7 @@
 | Gate | Scope | Status |
 |---|---|---|
 | A — Financial containment | Phase 0 | **Implemented and tested locally. Not signed off** |
-| B — Correct care earnings | Phases 1–4 | Not started |
+| B — Correct care earnings | Phases 1–4 | Started: 3 of about 20 items done (PC-21, PC-02, EL-09). The rest waits mostly on client decisions |
 | C — Native statutory payroll | Phase 5 | Not started |
 | D — Reporting and settlement | Phases 6–7 | Not started |
 | E — Production readiness | Phases 8–9 | Not started |
@@ -54,7 +54,7 @@ Completion statement: *the financial system cannot duplicate, silently change, e
 
 | Risk | Why it remains |
 |---|---|
-| Wrong-money defects are still present: minimum wage top-up double count, apprentice rate, 23:59 band gap, hard-coded holidays, mileage not paid, no PAYE refunds, fines before tax | Phases 1–5. Gate A made pay safe to hold still, not correct |
+| Wrong-money defects are still present: apprentice rate, hard-coded holidays, mileage not paid, no PAYE refunds, fines before tax, minimum wage assessed on the wrong period. (The top-up double count and the 23:59 band gap have since been fixed on branch `payroll-remediation/phase-1`.) | Phases 1–5. Gate A made pay safe to hold still, not correct |
 | A visit paid through the UK run's provisional route gets visit pay only | Decision D-03 |
 | "Paid" rests on a person typing a reference | No bank integration (Phase 6.3) |
 | Triggers can be bypassed by a database superuser or by setting the reset switch | By design for test resets; production must not set `ALLOW_FINANCIAL_TEST_RESET` and database access must be restricted |
@@ -80,4 +80,4 @@ Completion statement: *the financial system cannot duplicate, silently change, e
 - No HMRC submission and no bank payment was made or simulated as real.
 - No production or shared database was touched. Schema changes exist only on the local development database and the local test database.
 - Nothing was pushed to a remote repository.
-- Phases 1 to 9 have not started.
+- Of Phases 1 to 9, only three small fixes (PC-21, PC-02, EL-09) have been made.
