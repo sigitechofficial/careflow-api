@@ -25,7 +25,8 @@ describe('PC-02: custom time band on a pay card (HTTP)', () => {
     endTime: '21:45',
     ...over,
   });
-  const twilight = (rules: Array<{ label: string }>) => rules.find((r) => r.label === 'Twilight');
+  type StoredRule = { label: string; amount: unknown; startTime?: string; endTime?: string; dayType?: string };
+  const twilight = (rules: StoredRule[]) => rules.find((r) => r.label === 'Twilight') as StoredRule;
 
   beforeAll(async () => {
     t = await createTestApp();
