@@ -107,6 +107,26 @@ describe('PC-21: all-day rates and holidays, priced from stored cards and calend
     expect((await price('2027-12-27T10:00:00Z', 60)).pay).toBe(28);
   });
 
+  it('PC-19: just after midnight in summer time, a fixed fee is the fee of the local day', async () => {
+    const fixedFee = (dayType: string, amount: number) => ({
+      label: `${dayType} 30 min`,
+      dayType,
+      rateType: 'FIXED',
+      amount,
+      minimumMinutes: 30,
+    });
+    await setRules(
+      [fixedFee('WEEKDAY', 8), fixedFee('SATURDAY', 10), { label: 'Hourly', dayType: 'ANY', rateType: 'HOURLY', amount: 14 }],
+      [fixedFee('WEEKDAY', 13), fixedFee('SATURDAY', 16), { label: 'Hourly', dayType: 'ANY', rateType: 'HOURLY', amount: 24 }],
+    );
+    // Saturday 6 June 2026, 00:15 local (BST) is still Friday 23:15 in UTC.
+    expect(await price('2026-06-05T23:15:00Z', 30)).toEqual({ pay: 10, charge: 16 });
+    // Friday 5 June, 20:00 local, is a weekday.
+    expect(await price('2026-06-05T19:00:00Z', 30)).toEqual({ pay: 8, charge: 13 });
+    // In winter local time and UTC agree.
+    expect(await price('2026-11-07T00:15:00Z', 30)).toEqual({ pay: 10, charge: 16 });
+  });
+
   it('a fixed visit fee and an hourly rate on the same card: short visit fixed, long visit hourly', async () => {
     const fixed = (minutes: number, amount: number) => ({
       label: `${minutes} min`,

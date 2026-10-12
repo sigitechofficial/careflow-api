@@ -693,6 +693,8 @@ export class PayrollRunsService {
     const lineData: Prisma.PayrollRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
     const employeeIds = new Set<string>();
+    // PC-19: travel, waiting and mileage rules are chosen by the organisation's local day.
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     /** Auto unpaid NMW travel minutes not covered by paid TRAVEL_TIME / WAITING_TIME lines. */
     const autoUnpaidNmwByEmployee = new Map<string, number>();
 
@@ -775,12 +777,13 @@ export class PayrollRunsService {
           },
           _sum: { amount: true },
         });
-        const cardMileageRate = calculateMileageAmount(payRules, visitDate, 1)?.unitRate ?? 0.55;
+        const cardMileageRate =
+          calculateMileageAmount(payRules, visitDate, 1, false, timeZone)?.unitRate ?? 0.55;
         const priorAmount = Number(priorMileage._sum.amount ?? 0);
         const ytdBusinessMiles =
           cardMileageRate > 0 ? Math.max(0, priorAmount / cardMileageRate) : 0;
 
-        const cardMileage = calculateMileageAmount(payRules, visitDate, miles);
+        const cardMileage = calculateMileageAmount(payRules, visitDate, miles, false, timeZone);
         const ukMileage =
           miles > 0
             ? calculateUkMileage({
@@ -839,7 +842,7 @@ export class PayrollRunsService {
         }
 
         let paidTravelMins = 0;
-        const travel = calculateTravelTimeAmount(payRules, visitDate, travelMins);
+        const travel = calculateTravelTimeAmount(payRules, visitDate, travelMins, false, timeZone);
         if (travel) {
           paidTravelMins = travelMins;
           const autoNote =
@@ -862,7 +865,7 @@ export class PayrollRunsService {
         }
 
         let paidWaitingMins = 0;
-        const waiting = calculateWaitingTimeAmount(payRules, visitDate, waitingMins);
+        const waiting = calculateWaitingTimeAmount(payRules, visitDate, waitingMins, false, timeZone);
         if (waiting) {
           paidWaitingMins = waitingMins;
           lineData.push({
