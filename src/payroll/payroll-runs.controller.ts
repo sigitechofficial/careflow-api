@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  CancelUkPayrollRunDto,
   CreateUkPayrollRunDto,
   EnrolUkPayrollRunDto,
   ApproveHmrcFpsSubmissionDto,
@@ -248,13 +249,17 @@ export class PayrollRunsController {
 
   @Post(':id/cancel')
   @Permissions('payroll.runs.manage')
-  @ApiOperation({ summary: 'Cancel UK payroll run shell' })
+  @ApiOperation({
+    summary:
+      'Cancel a UK payroll run that has not been closed. Its inputs stay as a snapshot and its earnings become collectable by a replacement run',
+  })
   cancel(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
+    @Body() dto: CancelUkPayrollRunDto,
     @Req() req: Request,
   ) {
-    return this.service.cancel(user.id, id, getRequestAuditMeta(req));
+    return this.service.cancel(user.id, id, getRequestAuditMeta(req), dto?.reason);
   }
 
   @Post(':id/reactivate')

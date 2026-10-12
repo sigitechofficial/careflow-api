@@ -18,6 +18,7 @@ import {
   assertDifferentUser,
   assertFinancialResetEnvironment,
 } from '../billing/financial-controls.util';
+import { isClaimConflict } from '../billing/payroll-claim.util';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
@@ -180,7 +181,12 @@ type DraftInputLine = {
   amount: number;
   isExpense: boolean;
   isProvisional: boolean;
+  /** Claim on the earning (see UkPayrollInputLine.claimKey); null for provisional visits. */
+  claimKey: string | null;
 };
+
+/** Times gross collection reselects when another run claims some of the same earnings mid-flight. */
+const GROSS_CLAIM_RETRIES = 3;
 
 @Injectable()
 export class PayrollRunsService {
@@ -1111,7 +1117,29 @@ export class PayrollRunsService {
    * Phase 2: snapshot billing / salary / deduction inputs and sum employee gross pay.
    * Does not calculate PAYE, NI, or pensions.
    */
+  /**
+   * Collect gross inputs for a run. Every input that brings an earning into UK payroll carries a
+   * claim key that is unique across all runs, so a visit pay line, a period's salary or a deduction
+   * is held by one run only. A cancelled run releases its claims (see `cancel`), which is what lets
+   * a replacement run collect the same earnings. When another run takes a claim while this one is
+   * collecting, the database refuses the write and the collection is repeated without it.
+   */
   async calculateGross(userId: string, runId: string, meta?: RequestAuditMeta) {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await this.collectGross(userId, runId, meta);
+      } catch (err) {
+        if (!isClaimConflict(err)) throw err;
+        if (attempt >= GROSS_CLAIM_RETRIES) {
+          throw new ConflictException(
+            'Another UK payroll run is collecting the same earnings right now. Try again in a moment.',
+          );
+        }
+      }
+    }
+  }
+
+  private async collectGross(userId: string, runId: string, meta?: RequestAuditMeta) {
     const run = await this.requireRun(runId);
     if (run.status === 'CLOSED') {
       throw new BadRequestException(
@@ -1154,15 +1182,27 @@ export class PayrollRunsService {
       include: { payrollRun: { select: { id: true, periodLabel: true } } },
     });
 
-    const usedLineIds = await this.prisma.ukPayrollInputLine.findMany({
-      where: {
-        sourcePayrollRunLineId: { not: null },
-        runId: { not: runId },
-      },
-      select: { sourcePayrollRunLineId: true },
-    });
+    // Earnings another live run holds. A cancelled run has released its claims, so its lines do
+    // not count: that is how a replacement run recovers them (R-08).
+    const salaryClaim = (employeeId: string) => `SALARY:${employeeId}:${run.periodId}`;
+    const deductionClaim = (deductionId: string) => `DEDUCTION:${deductionId}:${run.periodId}`;
+    const heldClaims = new Set(
+      (
+        await this.prisma.ukPayrollInputLine.findMany({
+          where: {
+            runId: { not: runId },
+            OR: [
+              { claimKey: { in: lockedLines.map((l) => `LINE:${l.id}`) } },
+              { claimKey: { in: employeeIds.map(salaryClaim) } },
+              { claimKey: { startsWith: 'DEDUCTION:', endsWith: `:${run.periodId}` } },
+            ],
+          },
+          select: { claimKey: true },
+        })
+      ).map((r) => r.claimKey as string),
+    );
     const usedElsewhere = new Set(
-      usedLineIds.map((r) => r.sourcePayrollRunLineId).filter(Boolean) as string[],
+      lockedLines.filter((l) => heldClaims.has(`LINE:${l.id}`)).map((l) => l.id),
     );
 
     // Visits a closed UK run already paid as provisional inputs: their visit pay must not come in
@@ -1211,6 +1251,7 @@ export class PayrollRunsService {
         amount: decimalNum(line.amount),
         isExpense: isExpenseLineType(line.lineType),
         isProvisional: false,
+        claimKey: `LINE:${line.id}`,
       });
     }
 
@@ -1251,6 +1292,8 @@ export class PayrollRunsService {
         amount,
         isExpense: false,
         isProvisional: true,
+        // Claimed on the visit itself when the run closes (paidByUkPayrollRunId).
+        claimKey: null,
       });
     }
 
@@ -1271,6 +1314,8 @@ export class PayrollRunsService {
       if (annual <= 0) continue;
       const amount = prorateAnnualSalary(annual, periodStart, periodEnd);
       if (amount <= 0) continue;
+      // A period's salary belongs to one run; a supplementary run in the same period pays extras only.
+      if (heldClaims.has(salaryClaim(runEmployee.employeeId))) continue;
       draftLines.push({
         id: randomUUID(),
         runId,
@@ -1287,6 +1332,7 @@ export class PayrollRunsService {
         amount,
         isExpense: false,
         isProvisional: false,
+        claimKey: salaryClaim(runEmployee.employeeId),
       });
     }
 
@@ -1304,6 +1350,7 @@ export class PayrollRunsService {
       if (!runEmployee) continue;
       const amount = decimalNum(ded.amount);
       if (amount <= 0) continue;
+      if (heldClaims.has(deductionClaim(ded.id))) continue;
       draftLines.push({
         id: randomUUID(),
         runId,
@@ -1320,6 +1367,7 @@ export class PayrollRunsService {
         amount: -amount,
         isExpense: false,
         isProvisional: false,
+        claimKey: deductionClaim(ded.id),
       });
     }
 
@@ -1383,6 +1431,7 @@ export class PayrollRunsService {
             amount: toDecimal(l.amount),
             isExpense: l.isExpense,
             isProvisional: l.isProvisional,
+            claimKey: l.claimKey,
           })),
         });
       }
@@ -1703,8 +1752,18 @@ export class PayrollRunsService {
         })),
       });
 
-      const updated = await tx.ukPayrollRun.update({
-        where: { id: runId },
+      // Every earning being closed must still be claimed by this run (a line loses its claim when
+      // its run is cancelled; a reactivated run has to collect gross again first).
+      const unclaimed = await tx.ukPayrollInputLine.count({
+        where: { runId, isProvisional: false, claimKey: null },
+      });
+      if (unclaimed > 0) {
+        throw new ConflictException(
+          'Some earnings in this run are no longer held by it. Recalculate gross, then tax & NI, before closing.',
+        );
+      }
+      const closed = await tx.ukPayrollRun.updateMany({
+        where: { id: runId, status: 'STATUTORY_CALCULATED' },
         data: {
           status: 'CLOSED',
           closedAt: new Date(),
@@ -1712,6 +1771,10 @@ export class PayrollRunsService {
           updatedById: userId,
         },
       });
+      if (closed.count !== 1) {
+        throw new ConflictException('This run was changed by someone else. Reload and try again.');
+      }
+      const updated = await tx.ukPayrollRun.findUniqueOrThrow({ where: { id: runId } });
       const otherOpen = await tx.ukPayrollRun.count({
         where: {
           periodId: run.periodId,
@@ -1751,21 +1814,77 @@ export class PayrollRunsService {
     };
   }
 
-  async cancel(userId: string, runId: string, meta?: RequestAuditMeta) {
+  /**
+   * Cancel a run that has not been closed (R-08).
+   *
+   * Nothing has been posted for an open run, so cancelling is safe as long as no money or HMRC
+   * submission depends on it. Its input lines stay as the snapshot of what the run contained, but
+   * their claims are released in the same transaction, so a replacement run can collect those
+   * earnings. A closed run is not cancelled: it is reopened (a separate power) or corrected.
+   */
+  async cancel(userId: string, runId: string, meta?: RequestAuditMeta, reason?: string) {
     const run = await this.requireRun(runId);
     if (run.status === 'CLOSED' || run.status === 'CANCELLED') {
       throw new BadRequestException('Run is already finalised');
     }
+    const payout = await this.prisma.employeePayoutBatch.findFirst({
+      where: { ukPayrollRunId: runId, status: { in: ['DRAFT', 'APPROVED', 'PAID'] } },
+      select: { status: true },
+    });
+    if (payout) {
+      throw new BadRequestException(
+        payout.status === 'DRAFT'
+          ? 'This run has a draft payout batch. Cancel the payout batch first.'
+          : 'This run has an approved or paid payout batch and cannot be cancelled. Correct pay with an adjustment in a later run.',
+      );
+    }
+    const liveSubmission = await this.prisma.payrollHmrcSubmission.findFirst({
+      where: {
+        ukPayrollRunId: runId,
+        environment: 'LIVE',
+        mode: 'SUBMIT',
+        status: { notIn: ['DRAFT_BUILT', 'PENDING_APPROVAL', 'REJECTED_APPROVAL'] },
+      },
+      select: { id: true },
+    });
+    if (liveSubmission) {
+      throw new BadRequestException(
+        'This run has been submitted to HMRC (live) and cannot be cancelled. Correct pay with an adjustment in a later run.',
+      );
+    }
 
     const row = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.ukPayrollRun.update({
-        where: { id: runId },
+      const now = new Date();
+      // Conditional on the status read above: a close or second cancel racing this one loses cleanly.
+      const changed = await tx.ukPayrollRun.updateMany({
+        where: { id: runId, status: run.status },
         data: {
           status: 'CANCELLED',
-          cancelledAt: new Date(),
+          cancelledAt: now,
           cancelledById: userId,
           updatedById: userId,
         },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('This run was changed by someone else. Reload and try again.');
+      }
+      const released = await tx.ukPayrollInputLine.updateMany({
+        where: { runId, claimKey: { not: null } },
+        data: { claimKey: null, releasedAt: now },
+      });
+      const updated = await tx.ukPayrollRun.findUniqueOrThrow({ where: { id: runId } });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_CANCELLED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        description: reason?.trim() || undefined,
+        oldValues: mapRun(run),
+        newValues: { ...mapRun(updated), releasedClaims: released.count },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
       });
       const otherOpen = await tx.ukPayrollRun.count({
         where: {
@@ -1782,18 +1901,6 @@ export class PayrollRunsService {
         });
       }
       return updated;
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_CANCELLED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      oldValues: mapRun(run),
-      newValues: mapRun(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
     });
 
     return { message: 'UK payroll run cancelled', data: mapRun(row) };
@@ -1831,7 +1938,11 @@ export class PayrollRunsService {
     }
 
     const wasClosed = run.status === 'CLOSED';
-    const nextStatus = this.resolveReactivateStatus(run);
+    const nextStatus = wasClosed
+      ? this.resolveReactivateStatus(run)
+      : run.employeeCount > 0
+        ? 'EMPLOYEES_ENROLLED'
+        : 'DRAFT';
 
     if (wasClosed) {
       // A closed run that money or HMRC already depends on stays closed; correct it with a new run.
@@ -1886,6 +1997,9 @@ export class PayrollRunsService {
           cancelledAt: null,
           cancelledById: null,
           updatedById: userId,
+          // A cancelled run released its earnings; its old figures are a snapshot, not a basis for
+          // closing. It goes back to before gross and has to collect again.
+          ...(wasClosed ? {} : { grossCalculatedAt: null, statutoryCalculatedAt: null, statutoryBasis: null }),
         },
       });
       await tx.payrollPeriod.update({

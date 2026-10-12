@@ -10127,12 +10127,19 @@ model UkPayrollInputLine {
   amount                      Decimal                  @db.Decimal(12, 2)
   isExpense                   Boolean                  @default(false)
   isProvisional               Boolean                  @default(false)
+  /// Claim on the earning this line brings into UK payroll, unique across all runs:
+  /// LINE:<visit pay line id>, SALARY:<employee id>:<period id>, DEDUCTION:<deduction id>:<period id>.
+  /// Cleared (with releasedAt set) when the run is cancelled, so a replacement run can collect the
+  /// earning; the line itself stays as the snapshot of the cancelled run. Null for provisional
+  /// visits, which are claimed on the visit when the run closes (paidByUkPayrollRunId).
+  claimKey                    String?                  @unique
+  releasedAt                  DateTime?
   createdAt                   DateTime                 @default(now())
 
   run         UkPayrollRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
   runEmployee UkPayrollRunEmployee @relation(fields: [runEmployeeId], references: [id], onDelete: Cascade)
 
-  @@unique([sourcePayrollRunLineId])
+  @@index([sourcePayrollRunLineId])
   @@index([runId])
   @@index([runEmployeeId])
   @@index([employeeId])
