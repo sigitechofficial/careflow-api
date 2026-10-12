@@ -1,6 +1,8 @@
 # 07 — Financial Architecture
 
-How pay moves through CareFlow after Phase 0, and where each control sits. Sections marked *(target)* describe later phases and are not built.
+**Updated:** 2026-10-12 (Gate A sprint)
+
+How pay moves through CareFlow, which record is the authority at each step, and where each control sits. Sections marked *(target)* describe later phases and are not built.
 
 ---
 
@@ -10,29 +12,31 @@ How pay moves through CareFlow after Phase 0, and where each control sits. Secti
 EMPLOYMENT            PAY CARDS                 ATTENDANCE
 employment record     card → version → rules    visit, allocation (one per carer)
 pay agreement         carer card history        attendance events (append-only)
-                      funder override           time trust record (server vs device)
+                      funder override           time trust record (per carer)
         │                    │                          │
         └────────────────────┴───────────┬──────────────┘
                                          ▼
                          VISIT RECONCILIATION  (one row per visit × carer)
                          approved pay window · payable minutes · amount
                          card + version used · exceptions · approval
+                         pay side and charge side decided separately
                                          │
              ┌───────────────────────────┼─────────────────────────┐
              ▼                           ▼                         ▼
       VISIT PAY RUN               PAY ITEMS                 UK PAYROLL RUN
-      lines with claim keys       bonus, holiday, sick,     gross inputs:
+      lines with claim keys       bonus, holiday, sick,     gross inputs with claim keys:
       calculate → approve → lock  training, on-call,        locked visit-pay lines,
-             │                    corrections, reversals    salary, provisional visits
-             │                    (approved → next run)            │
+             │                    corrections, reversals    salary, deductions,
+             │                    (approved → next run)     provisional visits
              └──────────────► locked lines ───────────────────────►│
                                                              PAYE · NI → net → close
+                                                             (cancel releases the claims)
                                                                    │
                                               ┌────────────────────┼───────────────┐
                                               ▼                    ▼               ▼
                                          PAYSLIP            HMRC FPS / EPS    PAYOUT BATCH
-                                                                              draft → approved → paid
-                                                                              (evidence required)
+                                                                              draft → approved →
+                                                                              payment recorded manually
 ```
 
 Every arrow that moves money writes an audit entry.
@@ -45,81 +49,186 @@ Every arrow that moves money writes an audit entry.
 |---|---|---|
 | Employment | `EmployeeEmployment`, `EmployeePayAgreement`, `EmployeePayrollProfile` | Who is paid, on what basis, with which tax details |
 | Pay cards | `PayCard`, `PayCardVersion`, `PayCardRule`, `EmployeePayCardAssignment`, `EmployeeFunderPayAssignment` | The rate that applies to a carer on a date |
-| Attendance | `ScheduledVisit`, `JobAllocation`, `VisitAttendanceEvent` | What happened. Events are never edited; a correction is a new event |
-| Earnings (visits) | `VisitReconciliation`, `FinanceException` | The approved, priced result of a visit for one carer |
+| Attendance | `ScheduledVisit`, `JobAllocation`, `VisitAttendanceEvent`, time trust record in job metadata | What happened. Events are never edited; a correction is a new event |
+| Earnings (visits) | `VisitReconciliation`, `FinanceException` | **The authority for what a visit earned one carer**: approved, priced, with the card version used |
 | Earnings (other) | `EmployeePayItem` | Non-visit pay, and the correction ledger |
-| Visit pay | `PayrollRun`, `PayrollRunLine` | Gross pay lines for a period |
+| Visit pay | `PayrollRun`, `PayrollRunLine` | Gross pay lines for a period. Once locked, **the authority for what was put through payroll** |
 | Payroll | `UkPayrollRun`, `UkPayrollRunEmployee`, `UkPayrollInputLine`, year-to-date ledgers | Gross to net |
 | HMRC | `PayrollHmrcSubmission` | FPS / EPS attempts |
-| Payments | `EmployeePayoutBatch`, `EmployeePayoutLine` | Net pay to be paid, and proof it was |
+| Payments | `EmployeePayoutBatch`, `EmployeePayoutLine` | Net pay to be paid, and the record that someone says it was |
+| Access | `Role`, `Permission`, `UserRole`, `UserLocation` | Who may do what, and for which branches |
 | Audit | `AuditLog` | Who decided what, when |
 
 ---
 
-## 3. One entitlement, one original payment
+## 3. One entitlement, one original payment (claims)
 
 | Source | Identity | Enforced by |
 |---|---|---|
 | Visit earning | reconciliation (visit × carer) + earning component | `PayrollRunLine.claimKey` unique index |
 | Pay item | pay item id | same index, plus `includedInPayrollRunId` when locked |
 | Training / on-call activity | activity id | same index |
-| Locked visit-pay line into UK payroll | line id | `UkPayrollInputLine.sourcePayrollRunLineId` unique index |
+| Locked visit-pay line into UK payroll | line id | `UkPayrollInputLine.claimKey` = `LINE:<id>`, unique index |
+| Salary for a pay period | employee + period | `UkPayrollInputLine.claimKey` = `SALARY:<employee>:<period>` |
+| Salary deduction for a pay period | deduction + period | `UkPayrollInputLine.claimKey` = `DEDUCTION:<id>:<period>` |
 | Approved visit paid directly by a UK run | reconciliation | conditional claim at close (`paidByUkPayrollRunId`) |
 
-Claims are written in the same transaction as the lines they belong to. A run that is recalculated or discarded releases its claims. Periods may overlap: an off-cycle or supplementary run simply finds less to claim.
+```
+   source ──claim──► run A (open)     recalculate / discard / cancel ──► claim released
+                        │                                                     │
+                        │ lock / close                                        ▼
+                        ▼                                           run B may claim it
+              claim is permanent                                    (once; unique index)
+              (history; triggers)
+```
+
+Claims are written in the same transaction as the lines they belong to. A calculation that loses a race for a source re-selects and retries; it never writes a second claim. Periods may overlap: an off-cycle or supplementary run simply finds less to claim.
 
 Additional money for the same work is always a **different** record: a premium line derived inside a run, or an approved correction item with its own claim.
 
 ---
 
-## 4. Settled pay is history
+## 4. Cancelling a UK payroll run
+
+```
+ UK run (open) ──cancel(reason)──► CANCELLED
+      │   refused when a payout batch for it is draft, approved or paid, or a live FPS exists
+      ▼
+ its input lines: claimKey → NULL, releasedAt = now      (lines kept as the snapshot of the run)
+      ▼
+ replacement run ──calculate gross──► collects each released source exactly once
+```
+
+- Cancelling and closing are conditional updates on the run status, so a run cannot be closed and cancelled at the same time.
+- A closed run is not cancelled; it is reopened (separate power) or corrected by a later run.
+- A reactivated cancelled run starts again from "employees enrolled": its old figures are not trusted, and it collects only what no other run holds by then.
+- The audit entry carries the reason and the number of claims released.
+
+---
+
+## 5. Settled pay is history; corrections
 
 A visit is **settled** when it is in a locked visit pay run or was a provisional input of a closed UK run.
 
 | Layer | What it does |
 |---|---|
-| Service | Refuses pay-side edits, rejection, overrun decisions, manual amounts and repricing of a settled visit |
+| Service | Refuses pay-side edits, rejection, pay-side overrun decisions, manual amounts and repricing of a settled visit |
 | Database | Triggers refuse changes to the pay snapshot, to lines of locked runs and to locked runs, from any code path |
+| Screen | The pay and mileage editors of a settled visit are disabled and point to pay corrections |
 | Snapshot | The reconciliation keeps the approved window, minutes, amount, card and version, approver and time; the locked line keeps the amount paid |
 
-**Corrections** state what the visit should have paid in total. The system works out the difference against everything settled so far and records it as an adjustment (`EmployeePayItem`, source `VISIT_CORRECTION`) holding the original line, the original amount and the corrected amount. A second person approves it; the next visit pay run pays or recovers it. A paid item can be reversed once by an equal and opposite item.
+```
+ settled visit (£14.00)
+      │  office states the corrected total (£21.00) and a reason
+      ▼
+ correction item  +£7.00   PENDING APPROVAL      one pending correction per visit
+      │  approved by a different user
+      ▼
+ APPROVED FOR PAYROLL ──next visit pay run calculates──► INCLUDED IN PAYROLL ──lock──► SETTLED
+                                                                                        │
+                                                       reversal (once): −£7.00, approved by a
+                                                       different user, paid in the next run ──► REVERSED
+```
 
-Source attendance can still be corrected as a fact. An office correction on a completed visit updates the recorded times; unpaid draft pay is repriced, and settled pay gets a pending correction.
+The correction holds the original line, the amount settled so far and the corrected total; the difference is worked out against everything already settled, so asking for the same total twice pays nothing more. The original visit record and the original line are never changed.
+
+**Pay and charge are separate.** Settled pay does not block the charge side: the overrun of a paid visit can still be decided for the client charge ("charge only"), and the billable window and amount can be corrected. None of that touches the pay snapshot. A charge already on an approved invoice is protected by the invoice rules.
 
 ---
 
-## 5. Attendance time trust
+## 6. Attendance and time trust
+
+Kept per carer on the job (`employeeApp.attendanceTimesByEmployee[employeeId]`), so on a double-up each carer is judged on their own evidence.
 
 | Time | Kept as |
 |---|---|
-| Device-reported start / finish | Evidence on the job (`employeeApp.attendanceTimes.evidence`) |
+| Device-reported start / finish | Evidence in the carer's trust record |
 | Server-received completion time | Same record |
-| Server-recorded check-in | Allocation / visit actual start |
+| Server-recorded check-in | Allocation actual start |
+| Office-recorded time | Trust record (`office`), with who, when and why; attendance event |
 | Recorded attendance | Allocation / visit actual times, and events |
 | Approved payable interval | Reconciliation pay window |
 
-The server check-in is the start whenever there is one. A reported time the server cannot corroborate still becomes the record (offline visits sync late) and raises `UNVERIFIED_TIMES`, which holds the visit for a person to approve. Office verification clears it.
+Order of trust — start: office-verified → server check-in → carer-reported (flagged). Finish: office-verified → carer-reported within 15 minutes of the server receiving it (otherwise flagged) → server time. A time in the future is refused.
+
+```
+ completion from the app ──► trusted times resolved ──► allocation actual times
+        │                            │
+        │                            └─ needs review? ─► UNVERIFIED_TIMES on that carer's row
+        ▼                                                 (priced, held for a person; other carers unaffected)
+ evidence kept as sent                                    office verifies ─► flag cleared, row repriced
+```
+
+The same rules apply to all three completion paths: the lead carer, a support carer finishing before the lead, and a support carer clocking out after the lead has closed the visit (found and fixed in this sprint).
+
+Office corrections: on a visit still in progress the time is recorded and used when the visit completes; on a completed visit the times are updated and unpaid pay is repriced; on a settled visit a pending pay correction is raised.
 
 ---
 
-## 6. Authorisation
+## 7. Authorisation and scope
 
 | Action | Permission | Maker / checker |
 |---|---|---|
 | Prepare a visit pay run, enter pay items, record corrections | `billing.payroll_runs.manage` | — |
 | Approve / lock a visit pay run | `billing.payroll_runs.approve` | Not the run's creator |
 | Approve bonus, adjustment, correction, reversal | `billing.payroll_runs.manage` | Not the person who entered it |
+| Prepare a UK payroll run, cancel an open run | `payroll.runs.manage` | — |
 | Close a UK payroll run | `payroll.runs.close` | Not the run's creator |
 | Reopen a closed UK run | `payroll.runs.reopen` | Refused once a payout is approved or a live FPS exists |
 | Approve a payout batch | `billing.employee_payouts.approve` | Not the batch's creator |
-| Record the bank payment | `billing.employee_payouts.settle` | Needs payment reference and date |
+| Record the payment | `billing.employee_payouts.settle` | Needs payment reference and date |
 | Bulk delete / reset | `billing.financial_reset` | Environment must allow it |
 
 The six approval powers and `audit_logs.delete` are never implied by Super Admin. Scheduled jobs hold no powers: the payout job can only propose a draft.
 
+**Scope (who sees whose pay).** One company per deployment; branches are locations.
+
+| Endpoint kind | Rule (`PayrollScopeGuard`) |
+|---|---|
+| Whole-organisation records: pay runs, UK runs, payout batches, pay items, payroll settings | Needs organisation-wide pay access: a company-wide role (Super Admin, Admin, Master Staff Allocation) or the permission `payroll.scope.organisation` |
+| One employee's pay (earnings, profile, pay agreement, payslip, pay card history) | The employee must be in a branch the user is assigned to; otherwise "not found" |
+| Lists by branch (salaries, reconciliations, payslips, payroll employees) | A branch the user is assigned to must be named |
+| Pay audit entries | Hidden from users without organisation-wide pay access |
+| Carer accounts | Their own pay only |
+
+Organisation-wide pay access travels with the pay jobs on the responsibilities screen ("Approve pay and record payments", "Create payroll", "Carer pay & payouts"). There is no legal-employer dimension in the data model (decision D-07).
+
+The responsibilities screen shows, from the roles actually assigned, which users hold each pay power, and warns when nobody can approve, close or settle, or when the only approver is also the only preparer.
+
 ---
 
-## 7. Not built yet *(target)*
+## 8. Earning status and payment state
+
+One projection of where a visit's pay has reached is used by the office earnings screens and the carer app (`earning-status.util`).
+
+```
+ RECORDED ─► RECONCILED ─► APPROVED ─► IN DRAFT PAY RUN ─► IN LOCKED PAY RUN ─► IN UK PAYROLL (not closed)
+ (awaiting     (priced,     (ready for                                               │
+  review)       awaiting     payroll)                                                 ▼
+                approval)                                              PAYROLL PROCESSED  (UK run closed)
+                                                                                      │
+ REJECTED                                                PAYMENT PREPARED ─► PAYMENT APPROVED ─► PAYMENT RECORDED
+                                                         (draft batch)       (approved batch)    (batch marked paid)
+```
+
+Phases: Earned → Payroll processed → Payment prepared → Payment recorded. A visit in a cancelled UK run falls back to where it was. A correction shows beside the stage as "awaiting approval" or as the adjustment applied.
+
+Payment states of a payout batch (`payment-state.util`):
+
+| State | Reached today? | Evidence |
+|---|---|---|
+| Draft | Yes | Batch created by a person or proposed by the monthly job |
+| Approved | Yes | A second user approved it |
+| Manually recorded payment | Yes | A person typed a reference and date (`settlementSource = MANUAL_ENTRY`) |
+| Cancelled | Yes | A person cancelled a draft or approved batch |
+| Prepared, Submitted, Acknowledged, Rejected, Failed, Returned | No | Need a payment file and a bank or provider interface |
+| Confirmed settlement | No | Needs a bank statement or provider report matched by the system (`BANK_CONFIRMED`) |
+
+The states that cannot be evidenced are defined, so a later bank connection adds transitions without renaming anything, but no screen or endpoint can set them. "Payment recorded" never means "confirmed by a bank".
+
+---
+
+## 9. Not built yet *(target)*
 
 | Area | Target |
 |---|---|
@@ -128,5 +237,5 @@ The six approval powers and `audit_logs.delete` are never implied by Super Admin
 | Compliance | Minimum wage on the pay reference period for every worker type; contractual wage floors |
 | Payroll | PAYE refunds, per-year statutory catalogue, loans, pensions, deductions framework, year end |
 | HMRC | Schema validation, final outcomes, corrections |
-| Payments | Bank file or provider, submitted / failed / returned states, reconciliation |
-| Access | Branch and legal-employer scoping; encryption of bank details and NI numbers |
+| Payments | Bank file or provider, submitted / failed / returned states, statement reconciliation |
+| Access | Legal-employer scoping; encryption of bank details and NI numbers |

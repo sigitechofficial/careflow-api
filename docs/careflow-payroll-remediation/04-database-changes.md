@@ -1,20 +1,26 @@
 # 04 — Database Changes
 
-All Phase 0 changes are additive. No column, table or row is dropped. They have been applied to the local development database and the local payroll test database only.
+**Updated:** 2026-10-12 (Gate A sprint)
+
+Seven migrations so far. Each adds columns, indexes, triggers or an enum value; none drops a table, a column or a row. They have been applied to the local development database, the local payroll test database and, for rehearsal, a scratch database built from the pre-remediation schema. **They have not been run on production or on any shared database.**
 
 ---
 
 ## 1. Migrations (apply in this order)
 
-| # | Migration | Type | What it does |
-|---|---|---|---|
-| 1 | `20261012100000_payroll_source_claims_and_corrections` | schema + backfill | `PayrollRunLine.claimKey` (unique); correction columns on `EmployeePayItem`; settlement columns on `EmployeePayoutBatch` |
-| 2 | `20261012101000_locked_payroll_history_triggers` | SQL only | Trigger functions and triggers protecting locked runs, their lines and paid visits |
-| 3 | `20261012102000_uk_run_visit_claims` | schema + backfill | `VisitReconciliation.paidByUkPayrollRunId` (+index) |
-| 4 | `20261012103000_paid_visit_trigger_uk_runs` | SQL only | Extends the paid-visit trigger to UK-run settlement and the reopen path |
-| 5 | `20261012110000_finance_exception_unverified_times` | enum | `FinanceExceptionCode` gains `UNVERIFIED_TIMES` |
+| # | Migration | Type | What it does | Sprint |
+|---|---|---|---|---|
+| 1 | `20261012100000_payroll_source_claims_and_corrections` | schema + backfill | `PayrollRunLine.claimKey` (unique); correction columns on `EmployeePayItem`; settlement columns on `EmployeePayoutBatch` | Phase 0 |
+| 2 | `20261012101000_locked_payroll_history_triggers` | SQL only | Trigger functions and triggers protecting locked runs, their lines and paid visits | Phase 0 |
+| 3 | `20261012102000_uk_run_visit_claims` | schema + backfill | `VisitReconciliation.paidByUkPayrollRunId` (+index) | Phase 0 |
+| 4 | `20261012103000_paid_visit_trigger_uk_runs` | SQL only | Extends the paid-visit trigger to UK-run settlement and the reopen path | Phase 0 |
+| 5 | `20261012110000_finance_exception_unverified_times` | enum | `FinanceExceptionCode` gains `UNVERIFIED_TIMES` | Phase 0 |
+| 6 | `20261013100000_uk_payroll_input_claims` | schema + backfill | `UkPayrollInputLine.claimKey` (unique) and `releasedAt`; the unique index on `sourcePayrollRunLineId` becomes an ordinary index (R-08) | Gate A |
+| 7 | `20261013110000_payout_settlement_source` | schema + backfill | `EmployeePayoutBatch.settlementSource` (R-09) | Gate A |
 
-Migrations 2 and 4 are idempotent (`CREATE OR REPLACE`, `DROP TRIGGER IF EXISTS`). Prisma does not model triggers, so they do not appear in `schema.prisma`; `scripts/payroll-test-db.mjs` applies them to the test database.
+The folder names sort in application order, which is the order `prisma migrate deploy` uses. Migrations 2 and 4 are idempotent (`CREATE OR REPLACE`, `DROP TRIGGER IF EXISTS`). Prisma does not model triggers, so they do not appear in `schema.prisma`; `scripts/payroll-test-db.mjs` applies them to the test database.
+
+Migration 6 creates the new unique index **before** it drops the old one, so there is no moment without a uniqueness rule on collected pay lines.
 
 ---
 
@@ -22,23 +28,30 @@ Migrations 2 and 4 are idempotent (`CREATE OR REPLACE`, `DROP TRIGGER IF EXISTS`
 
 | Table | Column | Type | Purpose |
 |---|---|---|---|
-| `billing.PayrollRunLine` | `claimKey` | text, unique, nullable | One original earning per source across all runs. Null for derived lines |
+| `billing.PayrollRunLine` | `claimKey` | text, unique, nullable | One original earning per source across all visit pay runs. Null for derived lines |
 | `billing.VisitReconciliation` | `paidByUkPayrollRunId` | uuid, nullable, indexed | Visit settled as a provisional input of a closed UK run |
 | `billing.EmployeePayItem` | `originalPayrollRunLineId` | uuid | Locked line a correction refers to |
-| | `originalAmount`, `correctedAmount` | decimal(12,2) | Amount of the original line; corrected total |
+| | `originalAmount`, `correctedAmount` | decimal(12,2) | Amount settled before the correction; corrected total |
 | | `reversesPayItemId` | uuid, unique | The item a reversal cancels (one reversal per item) |
-| `billing.EmployeePayoutBatch` | `paymentReference` | text | Bank / provider reference |
+| `billing.EmployeePayoutBatch` | `paymentReference` | text | Reference typed by the person recording the payment |
 | | `settledOn` | date | Date the money left the account |
 | | `settlementEvidence` | text | Where the evidence is held |
+| | `settlementSource` | text, nullable | How the system knows the batch was paid: `MANUAL_ENTRY` (a person typed the reference). `BANK_CONFIRMED` is reserved for a later bank or provider connection; nothing writes it today |
+| `payroll.UkPayrollInputLine` | `claimKey` | text, unique, nullable | One UK payroll run per collected source. Null for provisional visit inputs (those are claimed on the visit when the run closes) and for lines of a cancelled run |
+| | `releasedAt` | timestamp, nullable | When a cancelled run gave the source back. The line itself stays as the snapshot of that run |
 
-**Claim key format**
+**Claim key formats**
 
-| Source | Key |
-|---|---|
-| Visit earning | `VISIT:<reconciliation id>:<line type>` (e.g. `VISIT_PAY`, `TRAVEL_TIME`, `MILEAGE`) |
-| Pay item | `PAY_ITEM:<pay item id>` |
-| Training / on-call activity | `NON_CORE_ACTIVITY:<activity id>` |
-| NMW top-up, overtime premium, rolled-up holiday | none (derived from the claimed lines of their own run) |
+| Where | Source | Key |
+|---|---|---|
+| Visit pay run line | Visit earning | `VISIT:<reconciliation id>:<line type>` (e.g. `VISIT_PAY`, `TRAVEL_TIME`, `MILEAGE`) |
+| | Pay item (bonus, correction, reversal, holiday…) | `PAY_ITEM:<pay item id>` |
+| | Training / on-call activity | `NON_CORE_ACTIVITY:<activity id>` |
+| | NMW top-up, overtime premium, rolled-up holiday | none (derived from the claimed lines of their own run) |
+| UK payroll input line | Locked visit pay run line | `LINE:<pay run line id>` |
+| | Salary from a pay agreement | `SALARY:<employee id>:<pay period id>` |
+| | Salary deduction | `DEDUCTION:<deduction id>:<pay period id>` |
+| | Provisional visit (no visit pay run) | none; `VisitReconciliation.paidByUkPayrollRunId` at close |
 
 A double-up visit has one reconciliation per carer, so each carer has an own key.
 
@@ -49,6 +62,7 @@ A double-up visit has one reconciliation per carer, so each carer has an own key
 | Object | Rule |
 |---|---|
 | `PayrollRunLine_claimKey_key` (unique index) | A second original line for the same source is refused, whichever run writes it |
+| `UkPayrollInputLine_claimKey_key` (unique index) | A locked pay line, a salary for a period or a deduction for a period is held by one live UK run. Cancelling the run clears the key, so a replacement run can take the source |
 | `EmployeePayItem_reversesPayItemId_key` (unique index) | An item is reversed once |
 | `billing.protect_locked_payroll_run` | A LOCKED / EXPORTED run cannot be deleted, moved to another status, or have its period or totals changed. LOCKED → EXPORTED is allowed |
 | `billing.protect_locked_payroll_run_line` | No insert, update or delete of a line whose run is LOCKED / EXPORTED |
@@ -63,20 +77,59 @@ Trigger errors use SQLSTATE `CF001` and start with `LOCKED_PAYROLL_HISTORY:`. Th
 | `careflow.allow_financial_reset = 'on'` | Test-reset code, only after the environment check (not production, `ALLOW_FINANCIAL_TEST_RESET=true`) | Everything, for that transaction |
 | `careflow.reopening_uk_run = '<run id>'` | Reopening a closed UK run | Clearing `paidByUkPayrollRunId` of visits claimed by that run only |
 
+No constraint was disabled, loosened or removed to make a test pass.
+
 ---
 
 ## 4. Backfills
 
 | Migration | Backfill |
 |---|---|
-| 1 | `claimKey` is set on existing lines. Where one source already sits in several runs, the line in a locked / exported run (oldest first) keeps the claim; the others stay NULL |
+| 1 | `PayrollRunLine.claimKey` is set on existing lines. Where one source already sits in several runs, the line in a locked / exported run (oldest first) keeps the claim; the others stay NULL |
 | 3 | `paidByUkPayrollRunId` is set from provisional visit inputs of UK runs that are already CLOSED, where the visit is not also in a locked visit pay run |
+| 6 | `UkPayrollInputLine.claimKey` is set for lines of runs that are not cancelled. Where two live runs hold the same salary or deduction for one period, the CLOSED run (oldest first) keeps the claim; the other stays NULL. Lines of cancelled runs get `releasedAt` and no claim |
+| 7 | `settlementSource = 'MANUAL_ENTRY'` for every batch already PAID (each was marked by a person). Other batches stay NULL |
 
-On the local development database both backfills touched no rows (there were no pay lines and no closed UK runs).
+No backfill deletes, merges or re-prices anything. Money already paid twice stays visible as two lines; the migrations only decide which line carries the claim.
 
-**Run these before and after migrating a database that holds real pay data.** They only read.
+On the local development database the backfills touched no rows: at the time it held 9 visit pay runs with no lines, 2 UK payroll runs with no input lines, and no payout batches (counted read-only on 2026-10-12).
 
-Sources already present in more than one run:
+---
+
+## 5. Rehearsal on a synthetic historical database
+
+```bash
+npm run payroll-migration-rehearsal
+```
+
+`scripts/payroll-migration-rehearsal.mjs` creates a scratch database on the local PostgreSQL server (it refuses any other host), builds it from the schema of commit `e163815` (the last commit before the remediation), inserts synthetic history, applies migrations 1–7 in order, checks the result and drops the database.
+
+Seeded history: three visit pay runs (two locked, one draft); seven visits; **one visit paid by both locked runs**; a visit in a locked and a draft run; a top-up line and a pay item line; a closed, a cancelled and an open UK payroll run in one pay period; a provisional visit in the closed run and one in the cancelled run; **a salary taken by two UK runs for the same period**; a pay line held only by the cancelled run; a PAID and a DRAFT payout batch.
+
+Result of the run on 2026-10-12: **28 of 28 checks passed.**
+
+| Mandatory check | Evidence in the rehearsal |
+|---|---|
+| 1. Migration ordering | All seven apply in folder order on the old schema, each on the state the previous one left |
+| 2. Schema compatibility | `prisma migrate diff` between the migrated database and `prisma/schema.prisma` is empty |
+| 3. Existing data backfills | 14 checks: claims on locked, draft, duplicated, top-up and pay item lines; provisional visits of closed and cancelled runs; UK line, salary and released claims; settlement source |
+| 4. Historical duplicate claims | The visit paid twice: the older locked line keeps the claim, the other has none; both lines still exist; the report lists the visit with both runs and £28.00 paid |
+| 5. Locked payroll records | Changing or deleting a locked line, reopening a locked run and changing the pay of a locked visit are refused by the triggers |
+| 6. Cancelled payroll records | The cancelled run's lines are kept, carry `releasedAt` and no claim; the pay line it held can be collected by a replacement run (it could not before the migration) |
+| 7. Claims involving previously closed UK runs | The closed run keeps `LINE:` and `SALARY:` claims; its provisional visit is marked paid by it and its pay can no longer be changed |
+| 8. Constraints remain enforced | A second original pay line for a claimed visit and a second UK claim on a collected pay line are refused (unique violation) |
+| 9. Safe upgrade on a representative synthetic database | Row counts of the eight pay tables are identical before and after |
+| 10. Recovery procedure | Section 8 |
+
+Limits of the rehearsal: the history is synthetic and small; it proves the migrations cope with these shapes of data, not with every shape a real database may hold, and says nothing about run time on large tables. Step 2 of section 7 (the read-only queries on a copy of the real data) is still required.
+
+---
+
+## 6. Duplicate reconciliation report
+
+**Historical duplicates are not deleted or corrected automatically.** They are reported for authorised finance review. All four queries only read. Run them on a copy of the real database before migrating, and again after.
+
+A. Sources already present in more than one visit pay run:
 
 ```sql
 SELECT k AS source, COUNT(*) AS lines, COUNT(DISTINCT "payrollRunId") AS runs
@@ -95,7 +148,20 @@ GROUP BY k
 HAVING COUNT(DISTINCT "payrollRunId") > 1;
 ```
 
-Visits paid provisionally by a closed UK run and also locked into a visit pay run (possible historical double payment):
+B. Visits with more than one locked visit pay line (money paid twice), with the runs and the total:
+
+```sql
+SELECT l."visitReconciliationId", v."visitRef", COUNT(*) AS "lockedLines", SUM(l."amount") AS "totalPaid",
+       STRING_AGG(r."periodLabel", ' + ' ORDER BY r."periodStart") AS "runs"
+FROM "billing"."PayrollRunLine" l
+JOIN "billing"."PayrollRun" r ON r."id" = l."payrollRunId"
+JOIN "billing"."VisitReconciliation" v ON v."id" = l."visitReconciliationId"
+WHERE l."lineType"::text = 'VISIT_PAY' AND r."status"::text IN ('LOCKED','EXPORTED')
+GROUP BY l."visitReconciliationId", v."visitRef"
+HAVING COUNT(*) > 1;
+```
+
+C. Visits paid provisionally by a closed UK run and also locked into a visit pay run:
 
 ```sql
 SELECT v."id", v."visitRef", v."includedInPayrollRunId", l."runId" AS "ukPayrollRunId", l."amount"
@@ -105,33 +171,46 @@ JOIN "billing"."VisitReconciliation" v ON v."id" = l."sourceVisitReconciliationI
 WHERE l."isProvisional" = true AND v."includedInPayrollRunId" IS NOT NULL;
 ```
 
-Any row returned by either query needs a finance decision; the migrations do not correct money already paid.
-
----
-
-## 5. Deployment prerequisites
-
-1. Back up the database.
-2. Run the two read-only queries above and keep the output.
-3. Stop pay processing (no calculate / lock / close in flight).
-4. Apply migrations 1–5 with `prisma migrate deploy`.
-5. Run `node scripts/payroll-approval-permissions.mjs`.
-6. Assign the Payroll Approver role.
-7. Confirm `ALLOW_FINANCIAL_TEST_RESET` is unset.
-8. Recalculate any visit pay run that was open during the upgrade (its lines need claims before it can lock).
-
----
-
-## 6. Recovery
-
-The schema changes are additive, so the previous application version keeps working against the migrated database, with one exception: the triggers will refuse the old code's unsafe writes (overwriting a locked visit, deleting locked runs). That is the intended effect.
-
-To remove the triggers in an emergency:
+D. (after migration 6) Live UK payroll inputs without a claim, because another run took the same source first:
 
 ```sql
-DROP TRIGGER IF EXISTS "protect_locked_payroll_run" ON "billing"."PayrollRun";
-DROP TRIGGER IF EXISTS "protect_locked_payroll_run_line" ON "billing"."PayrollRunLine";
-DROP TRIGGER IF EXISTS "protect_paid_visit_reconciliation" ON "billing"."VisitReconciliation";
+SELECT l."id", l."sourceType", l."amount", r."label" AS run, r."status"
+FROM "payroll"."UkPayrollInputLine" l
+JOIN "payroll"."UkPayrollRun" r ON r."id" = l."runId"
+WHERE l."claimKey" IS NULL AND l."releasedAt" IS NULL AND l."isProvisional" = false
+  AND r."status"::text <> 'CANCELLED';
 ```
 
-The new columns can stay in place unused. Dropping `claimKey` or `paidByUkPayrollRunId` after runs have been locked under the new code would remove the duplicate-payment protection and is not recommended. The enum value `UNVERIFIED_TIMES` cannot be removed while any row uses it.
+Every row returned is a question for finance: was the carer paid twice, and is the excess to be recovered (a negative pay correction), written off, or already dealt with outside the system? The answer is recorded against the row; the system does not decide.
+
+On the rehearsal database, B returned the seeded double payment (`VIS-REHEARSAL-3`, two locked lines, £28.00, "Rehearsal wk 1 + Rehearsal wk 2") and D returned the seeded second salary (£2,000.00 in "Rehearsal June run 3"). On the local development database all four return nothing.
+
+---
+
+## 7. Deployment prerequisites
+
+1. Back up the database and confirm the backup restores.
+2. Run queries A–C of section 6 on a copy of the data; give the output to finance; agree what happens to each row.
+3. Stop pay processing (no calculate / lock / close / cancel in flight).
+4. Apply migrations 1–7 with `prisma migrate deploy`.
+5. Run query D and review it with the earlier output.
+6. Run `node scripts/payroll-approval-permissions.mjs` (permission rows and the unassigned Payroll Approver role).
+7. Decide who approves pay and assign the role (decision D-01). Settings → Roles & permissions → Responsibilities shows who holds each power and warns while nobody does.
+8. Confirm `NODE_ENV=production` and that `ALLOW_FINANCIAL_TEST_RESET` is unset.
+9. Recalculate any visit pay run that was open during the upgrade (its lines need claims before it can lock), and recalculate gross on any open UK payroll run.
+
+---
+
+## 8. Recovery
+
+**Removing the financial-protection triggers or the unique claim indexes is not a rollback procedure.** They are the reason one earning cannot be paid twice and paid history cannot be rewritten; a database running without them is in the unsafe state the remediation closed.
+
+| Situation | Procedure |
+|---|---|
+| A migration fails part-way | Stop. Restore the backup taken in step 1. Nothing has been processed on the new schema, so no financial record is lost. Diagnose on a copy before trying again |
+| The new application version misbehaves after a successful migration | Fix forward, or redeploy the previous application version. The schema changes are additive, so the previous version runs against the migrated database. Its unsafe writes (overwriting a locked visit, deleting a locked run, collecting a line a cancelled run still held) are refused by the triggers and indexes. That is intended |
+| A trigger or index refuses an operation the business needs | Treat it as a defect or as a case for the designed routes: a pay correction for a settled visit; reopening a closed UK run with the reopen power; cancelling a UK run to release its earnings. Do not work around it in the database |
+| A record genuinely has to be changed outside those routes | Emergency change, not routine. It needs written authorisation naming the record, the reason and the approver from finance and from engineering; a backup immediately before; the change made in one transaction by a database administrator; before and after values exported and filed with the authorisation; and a review afterwards of why the designed routes did not cover the case. The protections stay installed for every other record |
+| Restoring a backup after pay has been processed on the new version | Only with finance sign-off, because every pay decision made since the backup is lost and must be re-entered. Export the pay runs, corrections, payout batches and audit entries made since the backup first |
+
+The new columns can stay in place unused. Dropping `claimKey` (either table) or `paidByUkPayrollRunId` after runs have been processed under the new code would remove the duplicate-payment protection. The enum value `UNVERIFIED_TIMES` cannot be removed while any row uses it.

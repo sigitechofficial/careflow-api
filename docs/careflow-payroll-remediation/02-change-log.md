@@ -4,6 +4,78 @@ Newest first. Audit IDs in brackets. Database detail is in `04-database-changes.
 
 ---
 
+## Gate A sprint — recovery, attendance, access, corrections screen, statuses (2026-10-12)
+
+Branch `payroll-remediation/gate-a` in both repositories. Two migrations (doc 04, numbers 6 and 7). Nothing pushed or deployed.
+
+### Behaviour changes people will notice
+
+| Area | Before | Now |
+|---|---|---|
+| UK payroll, cancel [R-08, PR-05] | A cancelled run kept hold of the pay lines it had collected; no other run could take them, so the earnings were stranded | Cancelling releases them and asks for a reason. The lines stay as a snapshot of the cancelled run. A replacement run collects each earning once. Cancelling is refused while a payout batch or a live FPS exists for the run |
+| UK payroll, salary [R-08] | Two runs for one pay period could each take the same salary or deduction | One run per period holds it |
+| Carer app, double-up [R-03, VW-02] | A time flag raised by one carer held every carer of the visit | Each carer is reviewed on their own evidence |
+| Carer app, support carer [R-02, VW-02] | A support carer's finish time was used as sent, including when clocking out after the lead had closed the visit (future times included) | Same rules as the lead carer on all three completion paths; a late-reported finish is kept as evidence and held for the office |
+| Office attendance correction [R-04, VW-15] | On a visit still in progress it wrote an event only | The time is recorded and becomes that carer's start or finish when the visit completes |
+| Pay screens by branch [R-05, SI-10] | Anyone with a pay permission saw every branch | Pay runs, UK runs, payouts, pay items and settings need organisation-wide pay access. A branch user sees pay only for employees of their branches. Pay audit entries are hidden from branch users |
+| Paid visit, client charge [R-07, VW-06] | Once pay was settled the overrun could not be decided at all | The charge side can still be decided ("charge only") and corrected; pay is untouched |
+| Earnings status [R-06] | "Paid" for a visit in any run; "Bank paid" for a batch marked paid; a visit in a cancelled UK run still showed "In UK payroll" | One status from the server on every screen and in the carer app: in draft pay run, in locked pay run, in UK payroll (not closed), payroll processed, payment prepared / approved / recorded. A cancelled run holds nothing |
+| Earnings totals [R-06] | Visits settled directly by a closed UK run were in neither "paid" nor "remaining" | Counted as settled |
+| Pay corrections [R-01, VW-22] | API only | "Pay corrections" on the visit reconciliation dialog and on the employee Earnings and Salary tabs: original → corrected → difference, record, approve or reject by a second user, reverse once, history with status |
+| Paid visit dialog | Mileage and manual pay could be typed, then refused on save | Disabled once pay is settled, with a pointer to pay corrections |
+| Roles screen [R-12, SI-15] | Admin roles shown as always holding the approval job, and not choosable | "Pay authorisation — who can do it today": users behind each power, a warning when nobody can approve, close or settle, or when the only approver is the only preparer. Admin roles are a choice for the approval job |
+| Roles screen, pay jobs [R-05, R-12] | — | "Approve pay", "Create payroll" and "Carer pay & payouts" now carry organisation-wide pay access with them |
+| Payouts [R-09, PR-20] | "Bank paid" | "Payment recorded manually — not confirmed by a bank". The API reports `paymentState`, `settlementSource`, `settlementConfirmed` |
+| Pay run export [found by EL-09 test] | A carer's total hours counted the visit again for every top-up or mileage line attached to it (1 hour shown as 2) | Only the visit pay line carries visit time. Amounts were already right |
+
+**Effect on existing figures.** No stored amount changes. Earnings stranded by a UK run cancelled before the upgrade become collectable again after migration 6. Run exports produced from now on show lower "total hours" where a carer had top-up or mileage lines.
+
+### Setup after deploying this sprint
+
+1. Apply migrations 6 and 7 (doc 04, section 7).
+2. Run `node scripts/payroll-approval-permissions.mjs` again: it adds the permission `payroll.scope.organisation` and gives it to the Payroll Approver role.
+3. On Settings → Roles & permissions → Responsibilities, tick the roles that prepare pay ("Create payroll", "Carer pay & payouts") again, so they receive organisation-wide pay access. Until then a non-admin role with those jobs shows as "part of the job" and gets "organisation-wide pay access is needed" on pay runs.
+4. Assign the approval job to at least one person who does not prepare pay (decision D-01). The screen warns until this is done.
+
+### Backend (`careadmin-backend`)
+
+| Commit | Content |
+|---|---|
+| `748aedd` | R-08: claim keys on UK payroll input lines; cancel releases; salary and deduction claims per period; conditional close / cancel; reactivate starts from enrolment. Migration 6 |
+| `2de38d7` | R-02, R-03, R-04: per-carer time trust record; support-carer completion uses the trust rules; office times on open visits; HTTP test harness (`test/payroll-int/http-harness.ts`) |
+| `0d9d9c0` | R-05, R-10: `PayrollScopeGuard` and `@PayrollScope` on eight controllers; pay audit entries hidden from branch users; permission `payroll.scope.organisation`; `http-payroll-api.int-spec` |
+| `d4cd104` | R-07: charge-only overrun decision and charge corrections on settled visits |
+| `1085a80` | R-06: `earning-status.util`; earnings and salary queries; cancelled runs excluded; UK-settled visits in settled totals |
+| `3a2691d` | R-01: correction history with display status, names, reversal state, `canRecordCorrection`; `paySettled` on earnings rows |
+| `5ea70f2` | R-12: `financial-authority.util`, `GET /role-responsibilities/financial-authority`, `adminRoleOptions`; job `scope` keys so saving one pay job does not strip access from another |
+| `8e058db` | R-09: `payment-state.util`; `settlementSource`. Migration 7 |
+| `205b066` | PC-21, PC-02, EL-09 regression specs; export hours fix |
+| `cf15563` | `scripts/payroll-migration-rehearsal.mjs` |
+| `60e5aa0` | `e2e-gate-a.int-spec`; support carer clocking out after the lead (`refreshAfterLateClockOut`) |
+| `d2c0a31`, `18c8291`, `c53dd9a` | `paySettled` on reconciliation detail; `scripts/payroll-test-server.mjs`; test fixes |
+
+New API surface: `GET /role-responsibilities/financial-authority`; `POST /payroll/runs/:id/cancel` accepts `{ reason }`; `POST /billing/visit-reconciliations/:id/overrun/approve` accepts `applyTo: 'CHARGE'` on a settled visit; `GET /billing/pay-items/visit-corrections/:id` returns `visit`, `originalAmount`, `netAmount`, `differenceAmount`, `canRecordCorrection` and per-item `displayStatus`, `canReverse`, names; earnings rows carry `earningStage`, `earningStageLabel`, `earningPhase`, `correctionState`, `correctionAdjustmentValue`, `paySettled`; payout batches carry `paymentState`, `paymentStateLabel`, `settlementSource`, `settlementConfirmed`. Existing fields are unchanged (`paymentState` on earnings rows keeps its values for the carer app).
+
+Responses that changed for some users: pay endpoints now return 403 ("organisation-wide pay access is needed") or 404 (employee outside the user's branches) where they used to return data.
+
+### Frontend (`care-admin`)
+
+| Commit | Content |
+|---|---|
+| `6226ebc` | UK run: cancel asks for a reason |
+| `df7c20f` | Earnings and Salary tabs use the server's earning stage (`features/employees/lib/earning-stage.ts`) |
+| `8930ce0` | `VisitPayCorrectionsCard` and dialog; hooks and API calls for corrections and reversals |
+| `6f7d49f` | `FinancialAuthorityCard`; admin-role choice for the approval job |
+| `1d27924` | Payout wording |
+| `4130cf8`, `01da8a2` | PC-02 component test; settled visit not editable in place; `scripts/payroll-test-preview.mjs` |
+
+### Tooling
+
+- `npm run payroll-migration-rehearsal` (backend): migrations on a synthetic historical database.
+- `node scripts/payroll-test-server.mjs` (backend) and `node scripts/payroll-test-preview.mjs` (frontend): the application on ports 3101 / 5174 against the payroll test database, for browser checks with synthetic data. Two entries were added to the workspace `.claude/launch.json` for them.
+
+---
+
 ## Phases 1.1, 1.3 and 4.1 — fixes that needed no policy decision (2026-10-12)
 
 Branch `payroll-remediation/phase-1`. No database change.
