@@ -215,6 +215,9 @@ export class EmployeePayoutsService {
         approvedAt: batch.approvedAt?.toISOString() ?? null,
         paidById: batch.paidById,
         paidAt: batch.paidAt?.toISOString() ?? null,
+        paymentReference: batch.paymentReference,
+        settledOn: batch.settledOn?.toISOString().slice(0, 10) ?? null,
+        settlementEvidence: batch.settlementEvidence,
         lines: batch.lines
           .map((l) => {
             const meta = empMeta.get(l.employeeId);
