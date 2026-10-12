@@ -84,6 +84,13 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { assertDifferentUser, assertFinancialResetEnvironment } from './financial-controls.util';
 import {
+  earningCorrectionState,
+  earningPhase,
+  earningStage,
+  earningStageLabel,
+  furthestPayoutState,
+} from './earning-status.util';
+import {
   activityClaimKey,
   isClaimConflict,
   payItemClaimKey,
@@ -1785,7 +1792,7 @@ export class PayrollRunsService {
     // Visits already enrolled in a UK payroll run are not "remaining" (same as
     // getEmployeeEarnings) — bank payout / UK net tracks those separately.
     const ukCoveredInputs = await this.prisma.ukPayrollInputLine.findMany({
-      where: { sourceVisitReconciliationId: { not: null } },
+      where: { sourceVisitReconciliationId: { not: null }, run: { status: { not: 'CANCELLED' } } },
       select: { sourceVisitReconciliationId: true },
       distinct: ['sourceVisitReconciliationId'],
     });
@@ -1871,6 +1878,19 @@ export class PayrollRunsService {
       }),
     ]);
 
+    // Settled by a closed UK run directly (no visit pay run): counted with the locked earnings.
+    const ukSettledGroups = await this.prisma.visitReconciliation.groupBy({
+      by: ['employeeId'],
+      where: {
+        ...dateOnVisit,
+        ...(locationEmployeeFilter ? { employeeId: locationEmployeeFilter } : {}),
+        includedInPayrollRunId: null,
+        paidByUkPayrollRunId: { not: null },
+      },
+      _sum: { payableAmount: true },
+      _count: { _all: true },
+    });
+
     const salaryMonths = salaryMonthsForEarningsQuery(query.dateFrom, query.dateTo);
     const deductions = await this.prisma.employeeSalaryDeduction.findMany({
       where: {
@@ -1933,6 +1953,12 @@ export class PayrollRunsService {
       const row = ensure(g.employeeId);
       row.paidAmount = Number(g._sum.amount ?? 0);
       row.paidLineCount = g._count._all;
+    }
+    for (const g of ukSettledGroups) {
+      if (!g.employeeId) continue;
+      const row = ensure(g.employeeId);
+      row.paidAmount += Number(g._sum.payableAmount ?? 0);
+      row.paidLineCount += g._count._all;
     }
     for (const g of remainingGroups) {
       if (!g.employeeId) continue;
@@ -2109,6 +2135,8 @@ export class PayrollRunsService {
       where: {
         employeeId,
         sourceVisitReconciliationId: { not: null },
+        // A cancelled run has released its earnings; its lines are kept only as a snapshot.
+        run: { status: { not: 'CANCELLED' } },
       },
       select: {
         sourceVisitReconciliationId: true,
@@ -2231,22 +2259,43 @@ export class PayrollRunsService {
     const ukRunEmployeeIds = [
       ...new Set([...ukByReconId.values()].map((v) => v.runEmployeeId)),
     ];
-    const paidUkRunEmployeeIds = new Set<string>();
+    const payoutLinesByRunEmployee = new Map<string, { batchStatus: string; lineStatus: string }[]>();
     if (ukRunEmployeeIds.length) {
-      const paidLines = await this.prisma.employeePayoutLine.findMany({
-        where: {
-          employeeId,
-          ukPayrollRunEmployeeId: { in: ukRunEmployeeIds },
-          status: 'PAID',
-          batch: { status: 'PAID' },
-        },
-        select: { ukPayrollRunEmployeeId: true },
+      const payoutLines = await this.prisma.employeePayoutLine.findMany({
+        where: { employeeId, ukPayrollRunEmployeeId: { in: ukRunEmployeeIds } },
+        select: { ukPayrollRunEmployeeId: true, status: true, batch: { select: { status: true } } },
       });
-      for (const line of paidLines) {
-        if (line.ukPayrollRunEmployeeId) {
-          paidUkRunEmployeeIds.add(line.ukPayrollRunEmployeeId);
-        }
+      for (const line of payoutLines) {
+        const list = payoutLinesByRunEmployee.get(line.ukPayrollRunEmployeeId) ?? [];
+        list.push({ batchStatus: line.batch.status, lineStatus: line.status });
+        payoutLinesByRunEmployee.set(line.ukPayrollRunEmployeeId, list);
       }
+    }
+
+    const visitIds = [...visitIdSet];
+    const [openRunClaims, correctionItems] = visitIds.length
+      ? await Promise.all([
+          this.prisma.payrollRunLine.findMany({
+            where: {
+              visitReconciliationId: { in: visitIds },
+              lineType: PayrollRunLineType.VISIT_PAY,
+              payrollRun: { status: { notIn: paidStatuses } },
+            },
+            select: { visitReconciliationId: true },
+          }),
+          this.prisma.employeePayItem.findMany({
+            where: { sourceId: { in: visitIds }, sourceType: { in: ['VISIT_CORRECTION', 'REVERSAL'] } },
+            select: { sourceId: true, status: true, amount: true },
+          }),
+        ])
+      : [[], []];
+    const openRunVisitIds = new Set(openRunClaims.map((l) => l.visitReconciliationId));
+    const correctionsByVisit = new Map<string, { status: string; amount: Prisma.Decimal }[]>();
+    for (const item of correctionItems) {
+      if (!item.sourceId) continue;
+      const list = correctionsByVisit.get(item.sourceId) ?? [];
+      list.push({ status: item.status, amount: item.amount });
+      correctionsByVisit.set(item.sourceId, list);
     }
 
     const salaryWhere: Prisma.VisitReconciliationWhereInput = {
@@ -2270,7 +2319,14 @@ export class PayrollRunsService {
     ]);
     const salaryAmount = Number(salaryAmountAgg._sum.payableAmount ?? 0);
 
-    const totalEarned = Number(paidAggregate._sum.amount ?? 0);
+    // Settled by a closed UK run directly (no visit pay run): counted with the locked earnings.
+    const ukSettledAgg = await this.prisma.visitReconciliation.aggregate({
+      where: { ...visitDateWhere, includedInPayrollRunId: null, paidByUkPayrollRunId: { not: null } },
+      _sum: { payableAmount: true },
+      _count: { _all: true },
+    });
+    const totalEarned =
+      Number(paidAggregate._sum.amount ?? 0) + Number(ukSettledAgg._sum.payableAmount ?? 0);
     const remainingAmount = Number(remainingAmountAgg._sum.payableAmount ?? 0);
 
     const serviceUserIds = [...new Set(visitRows.map((r) => r.serviceUserId))];
@@ -2306,7 +2362,20 @@ export class PayrollRunsService {
       const inVisitPayRun = Boolean(row.includedInPayrollRunId);
       const rejected = row.status === VisitReconciliationStatus.REJECTED_FOR_PAY;
       const uk = ukByReconId.get(row.id);
-      const bankPaid = Boolean(uk && paidUkRunEmployeeIds.has(uk.runEmployeeId));
+      const stage = earningStage({
+        status: row.status,
+        priced: row.payableAmount != null,
+        inOpenPayRun: openRunVisitIds.has(row.id),
+        inLockedPayRun: inVisitPayRun,
+        ukRunStatus: uk?.runStatus,
+        payout: uk ? furthestPayoutState(payoutLinesByRunEmployee.get(uk.runEmployeeId) ?? []) : null,
+      });
+      const corrections = correctionsByVisit.get(row.id) ?? [];
+      const correctionAdjustment = corrections
+        .filter((c) => c.status === 'APPROVED')
+        .reduce((sum, c) => sum + Number(c.amount), 0);
+      // `paymentState` is kept for existing clients (carer app); BANK_PAID means "a payout was recorded".
+      const bankPaid = stage === 'PAYMENT_RECORDED';
       const inUkPayroll = Boolean(uk);
       const remaining =
         !inVisitPayRun &&
@@ -2361,6 +2430,11 @@ export class PayrollRunsService {
         payableHours: hours,
         status: row.status,
         paymentState,
+        earningStage: stage,
+        earningStageLabel: earningStageLabel(stage),
+        earningPhase: earningPhase(stage),
+        correctionState: earningCorrectionState(corrections),
+        correctionAdjustmentValue: Math.round(correctionAdjustment * 100) / 100,
         paid: inVisitPayRun || bankPaid,
         countsTowardSalary: inVisitPayRun || remaining || inUkPayroll,
         payrollRunId: row.includedInPayrollRun?.id ?? uk?.runId ?? null,
@@ -2444,7 +2518,7 @@ export class PayrollRunsService {
         deductions: mappedDeductions,
         totalEarned: formatMoney(totalEarned),
         totalEarnedAmount: Math.round(totalEarned * 100) / 100,
-        paidVisitCount: paidVisitGroups.length,
+        paidVisitCount: paidVisitGroups.length + ukSettledAgg._count._all,
         remainingVisitCount,
         remainingAmount: formatMoney(remainingAmount),
         remainingAmountValue: Math.round(remainingAmount * 100) / 100,
