@@ -101,12 +101,6 @@ describe('PC-32: conflicting pay cards are reported, not resolved by the last ed
     await t.prisma.payEvaluationFailure.deleteMany();
     await t.prisma.visitAttendanceEvent.deleteMany();
     await t.prisma.employeeNonCoreActivity.deleteMany();
-    await t.prisma.employeeFunderPayAssignment.deleteMany({ where: { payCard: { code: { startsWith: 'TEST-' } } } });
-    await t.prisma.employeePayCardAssignment.deleteMany({ where: { payCard: { code: { startsWith: 'TEST-' } } } });
-    await t.prisma.employeeEmployment.updateMany({
-      where: { defaultPayCard: { code: { startsWith: 'TEST-' } } },
-      data: { defaultPayCardId: null },
-    });
     await resetIdentityData(t.prisma);
     defaultCardId = (await seedDefaultCards(t.prisma)).payCardId; // organisation default, £14
     office = await createStaffUser(t.prisma, { permissions: [...CARDS, ...RUNS, ...RECON, ORG] });

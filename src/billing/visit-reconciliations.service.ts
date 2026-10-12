@@ -115,6 +115,8 @@ import {
   dayKeyInTimeZone,
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
+import { payFunderOn } from './funding-at-date.util';
+import { effectiveEmployeeFunderPayAssignments } from './pay-card-assignment.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -3068,13 +3070,24 @@ export class VisitReconciliationsService {
       // held with the resolver's reason; the client charge is still priced. Unexpected errors
       // still propagate and are kept as a pay evaluation failure by the caller.
       try {
-        const resolved = await this.payCardsService.resolveForEmployee(
+        // PC-10: the funder that decides a funder pay override is the funder on the day of the
+        // visit, not the client's funding as it is today.
+        const payFunder = await this.payFunderForVisit(
+          db,
+          row.serviceUserId,
           row.employeeId,
           row.plannedStartDateTime,
-          { funderId: funding?.funderId ?? null },
         );
-        payCardSource = resolved.data.source;
-        if (resolved.data.payCard) {
+        payCardProblem = payFunder.problem;
+        const resolved = payFunder.problem
+          ? null
+          : await this.payCardsService.resolveForEmployee(
+              row.employeeId,
+              row.plannedStartDateTime,
+              { funderId: payFunder.funderId },
+            );
+        if (resolved) payCardSource = resolved.data.source;
+        if (resolved?.data.payCard) {
           payCard = {
             id: resolved.data.payCard.id,
             status: resolved.data.payCard.status,
@@ -3747,6 +3760,64 @@ export class VisitReconciliationsService {
       },
     });
     return incomplete > 0;
+  }
+
+  /**
+   * PC-10: who was funding the client's care on the day of the visit, for the carer's pay only.
+   * Where the funding records cannot say and the carer is paid differently for one of the funders
+   * it might have been, the pay is held for a person to settle instead of being priced on the
+   * funder the client has today.
+   */
+  private async payFunderForVisit(
+    db: DbClient,
+    serviceUserId: string,
+    employeeId: string,
+    at: Date,
+  ): Promise<{ funderId: string | null; problem: string | null }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const dayOf = (instant: Date) => dayKeyInTimeZone(instant, timeZone);
+    const dayKey = dayOf(at);
+    const client = await db.serviceUser.findFirst({
+      where: { id: serviceUserId },
+      select: {
+        currentFundingId: true,
+        fundings: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            funderId: true,
+            startDate: true,
+            endDate: true,
+            isPrimary: true,
+            isActive: true,
+            splitPriority: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    const found = payFunderOn(client?.fundings ?? [], client?.currentFundingId ?? null, dayKey, dayOf);
+    if (found.basis !== 'UNCLEAR') return { funderId: found.funderId, problem: null };
+
+    // Unclear only matters when the carer has a different pay card for one of those funders.
+    const overrides = await db.employeeFunderPayAssignment.findMany({
+      where: { employeeId, funderId: { in: found.uncertainFunderIds }, deletedAt: null },
+    });
+    const inForce = effectiveEmployeeFunderPayAssignments(
+      overrides,
+      new Date(`${dayKey}T00:00:00.000Z`),
+    );
+    if (!inForce.length) return { funderId: null, problem: null };
+    const funders = await db.funder.findMany({
+      where: { id: { in: [...new Set(inForce.map((o) => o.funderId))] } },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    });
+    const names = funders.map((f) => f.name).join(' or ') || 'a funder';
+    return {
+      funderId: null,
+      problem: `The client's funding records do not show who was funding their care on ${dayKey}, and this carer has a different pay card for work funded by ${names}. Enter the start and end dates on the client's funding and evaluate the visit again, or approve the pay by hand.`,
+    };
   }
 
   private async loadFundingSnapshot(db: DbClient, serviceUserId: string) {

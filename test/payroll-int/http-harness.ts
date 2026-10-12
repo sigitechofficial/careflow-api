@@ -146,6 +146,14 @@ export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 /** Organisation-default pay card (£14.00 an hour, any day) and charge card, resolved by the real services. */
 export async function seedDefaultCards(prisma: PrismaService, hourlyRate = 14) {
+  // Whatever earlier tests hung on a synthetic card goes first.
+  const synthetic = { payCard: { code: { startsWith: 'TEST-' } } };
+  await prisma.employeeFunderPayAssignment.deleteMany({ where: synthetic });
+  await prisma.employeePayCardAssignment.deleteMany({ where: synthetic });
+  await prisma.employeeEmployment.updateMany({
+    where: { defaultPayCard: { code: { startsWith: 'TEST-' } } },
+    data: { defaultPayCardId: null },
+  });
   await prisma.payCardRule.deleteMany({ where: { payCard: { code: { startsWith: 'TEST-' } } } });
   await prisma.payCard.deleteMany({ where: { code: { startsWith: 'TEST-' } } });
   await prisma.chargeCardRule.deleteMany({ where: { chargeCard: { code: { startsWith: 'TESTC-' } } } });
