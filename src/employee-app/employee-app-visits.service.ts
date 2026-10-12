@@ -2692,12 +2692,24 @@ export class EmployeeAppVisitsService {
   ) {
     const visit = ctx.primaryVisit;
     const now = new Date();
-    const requestedEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
-    const endAt =
-      Number.isNaN(requestedEnd.getTime()) ||
-      requestedEnd.getTime() < allocation.actualStartDateTime.getTime()
-        ? now
-        : requestedEnd;
+    // VW-02: same time-trust rules as every other completion. A finish the carer reports long
+    // after the fact is kept as evidence and held for office review; a future one is refused.
+    const officeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
+    let times: TrustedCompletionTimes;
+    try {
+      times = resolveTrustedCompletionTimes({
+        serverNow: now,
+        serverCheckInAt: allocation.actualStartDateTime,
+        reportedEnd: dto.actualEndDateTime,
+        officeStart: officeTimes?.start,
+        officeEnd: officeTimes?.end,
+      });
+    } catch (err) {
+      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
+      throw err;
+    }
+    const endAt = times.end.getTime() < allocation.actualStartDateTime.getTime() ? now : times.end;
+    await this.storeAttendanceTimeTrust(jobId, employeeId, times);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.jobAllocation.update({
@@ -2781,6 +2793,8 @@ export class EmployeeAppVisitsService {
 
     try {
       await this.visitReconciliations.ensureForCompletedJob(jobId);
+      // The row was priced when the lead closed the visit: reprice and review it on this carer's times.
+      await this.visitReconciliations.refreshAfterLateClockOut(visit.id, allocation.allocationId);
     } catch (err) {
       this.logger.warn(
         `Support late clock-out reconciliation refresh failed job=${jobId}: ${String(err)}`,

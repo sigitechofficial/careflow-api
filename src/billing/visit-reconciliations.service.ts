@@ -2341,6 +2341,39 @@ export class VisitReconciliationsService {
    *    pays or recovers.
    * A manual payable amount entered by finance is kept in both cases.
    */
+  /**
+   * A carer clocked out after the visit had already been closed (a support carer whose lead
+   * finished first). That carer's row follows the new times and is reviewed again on its own
+   * evidence. A row whose pay is settled, or whose amount finance entered by hand, is left for a
+   * person to correct.
+   */
+  async refreshAfterLateClockOut(scheduledVisitId: string, jobAllocationId: string) {
+    await this.ensureForVisit(scheduledVisitId);
+    const row = await this.prisma.visitReconciliation.findFirst({
+      where: {
+        scheduledVisitId,
+        jobAllocationId,
+        status: {
+          notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
+        },
+      },
+    });
+    if (!row || isPaySettled(row) || hasManualPayableOverride(row)) return;
+    // The approval was given for the time the visit was closed at. With different times it no
+    // longer stands: a clean row is approved again by the evaluation, any other waits for a person.
+    await this.prisma.visitReconciliation.update({
+      where: { id: row.id },
+      data: {
+        status: VisitReconciliationStatus.PENDING_REVIEW,
+        approvedById: null,
+        approvedAt: null,
+        approvedPayStart: null,
+        approvedPayEnd: null,
+      },
+    });
+    await this.evaluateInternal(this.prisma, row.id, { forceRecalculatePay: true });
+  }
+
   async applyAttendanceCorrection(
     scheduledVisitId: string,
     input: { userId: string; reason: string; jobAllocationId?: string | null },

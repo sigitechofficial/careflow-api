@@ -336,6 +336,40 @@ describe('carer app attendance → pay (HTTP)', () => {
       expect(new Set(both.map((l) => l.claimKey)).size).toBe(2);
     });
 
+    it('the support carer clocking out after the lead closed the visit is held to the same rules', async () => {
+      const lead = await createCarer(t.prisma);
+      const support = await createCarer(t.prisma);
+      const visit = await createAllocatedVisit(t.prisma, { carers: [lead.employeeId, support.employeeId], start: at('09:00') });
+      clock.set(at('09:01'));
+      await checkIn(lead, visit.jobId);
+      await checkIn(support, visit.jobId);
+      clock.set(at('10:00'));
+      expect((await complete(lead, visit.jobId)).status).toBe(201); // the lead closes the visit first
+
+      // A finish in the future is refused, and nothing is recorded for the support carer.
+      clock.set(at('10:05'));
+      const future = await complete(support, visit.jobId, { actualEndDateTime: at('11:30').toISOString() });
+      expect(future.status).toBe(400);
+
+      // A finish reported 40 minutes after the fact is kept as evidence and held for review.
+      clock.set(at('10:40'));
+      expect((await complete(support, visit.jobId, { actualEndDateTime: at('10:00').toISOString() })).status).toBe(201);
+      const held = await rowFor(visit.visitId, support.employeeId);
+      expect(held!.status).toBe(VisitReconciliationStatus.PENDING_REVIEW);
+      expect(held!.exceptions.map((e) => e.code)).toContain('UNVERIFIED_TIMES');
+      const trust = await trustFor(visit.jobId, support.employeeId);
+      expect(trust).toMatchObject({ endSource: 'CARER_REPORTED', needsReview: true });
+      expect(trust!.evidence).toMatchObject({ reportedEnd: at('10:00').toISOString(), serverReceivedAt: at('10:40').toISOString() });
+      // The lead, who completed in real time, is not held.
+      expect((await rowFor(visit.visitId, lead.employeeId))!.status).toBe(VisitReconciliationStatus.APPROVED_FOR_BOTH);
+
+      // The office verifies the finish: the support carer is released.
+      expect((await officeCorrect(visit.jobId, support.employeeId, 'CHECK_OUT', at('10:00'))).status).toBe(201);
+      const released = await rowFor(visit.visitId, support.employeeId);
+      expect(released!.exceptions.map((e) => e.code)).not.toContain('UNVERIFIED_TIMES');
+      expect(released!.payableMinutes).toBe(60);
+    });
+
     it('three carers: each is priced on their own times and reviewed on their own evidence', async () => {
       const lead = await createCarer(t.prisma);
       const second = await createCarer(t.prisma);
