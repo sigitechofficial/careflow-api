@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
+import { withOfficeAttendanceTime } from '../visit-attendance/visit-time-trust.util';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { EcmAuditService } from './ecm-audit.service';
 import { EcmEvaluationService } from './ecm-evaluation.service';
@@ -147,12 +148,44 @@ export class EcmManualAttendanceService {
   ) {
     const visit = job.visits[0];
     const allocation = job.allocations[0];
+    if (!visit) return null;
+    const reason = [input.reasonCode.trim(), input.note?.trim()].filter(Boolean).join(': ');
+
+    // R-04: the visit is still open. The carer's live record is left alone (a correction must not
+    // overwrite what the carer is doing on the device); the office time is recorded for this carer
+    // and becomes the recorded time when the visit completes. If the carer then reports something
+    // different, the difference is flagged for review rather than one side silently winning.
     if (
-      !visit ||
-      (visit.status !== ScheduledVisitStatus.COMPLETED &&
-        visit.status !== ScheduledVisitStatus.PARTIALLY_COMPLETED)
+      visit.status !== ScheduledVisitStatus.COMPLETED &&
+      visit.status !== ScheduledVisitStatus.PARTIALLY_COMPLETED
     ) {
-      return null;
+      const fresh = await this.prisma.scheduledJob.findUnique({
+        where: { id: job.id },
+        select: { metadata: true },
+      });
+      await this.prisma.scheduledJob.update({
+        where: { id: job.id },
+        data: {
+          metadata: withOfficeAttendanceTime(fresh?.metadata, input.employeeId, {
+            eventType: input.eventType,
+            occurredAt,
+            byUserId: input.approvedByUserId,
+            reason,
+            verified: false,
+          }) as Prisma.InputJsonValue,
+        },
+      });
+      return [
+        {
+          reconciliationId: null,
+          visitRef: null,
+          outcome: 'RECORDED_FOR_COMPLETION' as const,
+          message:
+            'The visit is still open. This time is recorded and will be used as the time for this carer when the visit is completed.',
+          payableBefore: null,
+          payableAfter: null,
+        },
+      ];
     }
 
     const isStart = input.eventType === 'CHECK_IN';
@@ -175,17 +208,6 @@ export class EcmManualAttendanceService {
         employeeId: { not: input.employeeId },
       },
     });
-    const meta = (job.metadata && typeof job.metadata === 'object' ? job.metadata : {}) as Record<string, unknown>;
-    const employeeApp = (meta.employeeApp && typeof meta.employeeApp === 'object' ? meta.employeeApp : {}) as Record<
-      string,
-      unknown
-    >;
-    const attendanceTimes = (
-      employeeApp.attendanceTimes && typeof employeeApp.attendanceTimes === 'object'
-        ? employeeApp.attendanceTimes
-        : {}
-    ) as Record<string, unknown>;
-
     await this.prisma.$transaction(async (tx) => {
       if (allocation) {
         await tx.jobAllocation.update({ where: { id: allocation.id }, data: timeField });
@@ -194,28 +216,26 @@ export class EcmManualAttendanceService {
       if (!allocation || otherCarers === 0) {
         await tx.scheduledVisit.update({ where: { id: visit.id }, data: timeField });
       }
-      // The office has now verified the times: carer-reported times no longer need review.
+      // The office has now verified this carer's times: they no longer need review. Another
+      // carer on the same visit keeps their own record (R-03).
+      const fresh = await tx.scheduledJob.findUnique({ where: { id: job.id }, select: { metadata: true } });
       await tx.scheduledJob.update({
         where: { id: job.id },
         data: {
-          metadata: {
-            ...meta,
-            employeeApp: {
-              ...employeeApp,
-              attendanceTimes: {
-                ...attendanceTimes,
-                verifiedAt: new Date().toISOString(),
-                verifiedByUserId: input.approvedByUserId,
-              },
-            },
-          } as Prisma.InputJsonValue,
+          metadata: withOfficeAttendanceTime(fresh?.metadata, input.employeeId, {
+            eventType: input.eventType,
+            occurredAt,
+            byUserId: input.approvedByUserId,
+            reason,
+            verified: true,
+          }) as Prisma.InputJsonValue,
         },
       });
     });
 
     const result = await this.reconciliations.applyAttendanceCorrection(visit.id, {
       userId: input.approvedByUserId,
-      reason: [input.reasonCode.trim(), input.note?.trim()].filter(Boolean).join(': '),
+      reason,
       jobAllocationId: allocation?.id ?? null,
     });
     return result.data;

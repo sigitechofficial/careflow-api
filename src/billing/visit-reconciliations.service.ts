@@ -2567,7 +2567,8 @@ export class VisitReconciliationsService {
     // VW-02: a start or finish reported by the carer app that the server could not corroborate
     // holds the visit for a person to approve (until the office verifies or corrects the times).
     if (!paySettled) {
-      const unverified = unverifiedTimeReasons(visit.scheduledJob?.metadata);
+      // Per carer: on a double-up, one carer's unverified time does not hold the other's pay.
+      const unverified = unverifiedTimeReasons(visit.scheduledJob?.metadata, row.employeeId);
       if (unverified.length) {
         exceptions.push({ code: FinanceExceptionCode.UNVERIFIED_TIMES, message: unverified.join(' ') });
       }

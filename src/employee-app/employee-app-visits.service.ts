@@ -114,7 +114,8 @@ import { VisitReconciliationsService } from '../billing/visit-reconciliations.se
 import {
   FutureVisitTimeError,
   resolveTrustedCompletionTimes,
-  type StoredAttendanceTimeTrust,
+  attendanceTimeTrustFor,
+  withAttendanceTimeTrust,
   type TrustedCompletionTimes,
 } from '../visit-attendance/visit-time-trust.util';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
@@ -2242,42 +2243,23 @@ export class EmployeeAppVisitsService {
   }
 
   /**
-   * Keeps what the server observed and what the device reported side by side on the job, before
-   * the visit is completed, so the first pay evaluation already sees whether review is needed.
+   * Keeps what the server observed and what the device reported side by side on the job, for this
+   * carer only, before the visit is completed, so the first pay evaluation already sees whether
+   * this carer's times need review. Another carer on the same visit is not affected (R-03).
    */
   private async storeAttendanceTimeTrust(
     jobId: string,
+    employeeId: string,
     times: TrustedCompletionTimes,
-    options?: { mergeAs?: string },
   ) {
-    const meta = this.parseMetadata(
-      (await this.prisma.scheduledJob.findUnique({ where: { id: jobId }, select: { metadata: true } }))
-        ?.metadata,
-    );
-    const employeeApp =
-      typeof meta.employeeApp === 'object' && meta.employeeApp
-        ? (meta.employeeApp as Record<string, unknown>)
-        : {};
-    // A second carer on the visit adds their review reasons to what the first one recorded.
-    const previous = options?.mergeAs
-      ? (employeeApp.attendanceTimes as StoredAttendanceTimeTrust | undefined)
-      : undefined;
-    const reasons = options?.mergeAs
-      ? times.reviewReasons.map((r) => `${options.mergeAs}: ${r}`)
-      : times.reviewReasons;
-    const attendanceTimes: StoredAttendanceTimeTrust = {
-      needsReview: times.needsReview || Boolean(previous?.needsReview),
-      reviewReasons: [...(previous?.reviewReasons ?? []), ...reasons],
-      startSource: previous?.startSource ?? times.startSource,
-      endSource: previous?.endSource ?? times.endSource,
-      evidence: previous?.evidence ?? times.evidence,
-      verifiedAt: null,
-      verifiedByUserId: null,
-    };
+    const job = await this.prisma.scheduledJob.findUnique({
+      where: { id: jobId },
+      select: { metadata: true },
+    });
     await this.prisma.scheduledJob.update({
       where: { id: jobId },
       data: {
-        metadata: { ...meta, employeeApp: { ...employeeApp, attendanceTimes } } as Prisma.InputJsonValue,
+        metadata: withAttendanceTimeTrust(job?.metadata, employeeId, times) as Prisma.InputJsonValue,
       },
     });
   }
@@ -2348,6 +2330,7 @@ export class EmployeeAppVisitsService {
     // VW-02: times the server observed come first; times the app reports are evidence. A reported
     // time the server cannot corroborate still becomes the record (offline visits sync late), but
     // the visit is then held for office review instead of being approved for pay automatically.
+    const officeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
     let times: TrustedCompletionTimes;
     try {
       times = resolveTrustedCompletionTimes({
@@ -2356,6 +2339,9 @@ export class EmployeeAppVisitsService {
           myAllocation?.actualStartDateTime ?? ctx.primaryVisit.actualStartDateTime ?? null,
         reportedStart: dto.actualStartDateTime,
         reportedEnd: dto.actualEndDateTime,
+        // Times the office entered for this carer while the visit was still open (R-04).
+        officeStart: officeTimes?.start,
+        officeEnd: officeTimes?.end,
       });
     } catch (err) {
       if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
@@ -2363,7 +2349,7 @@ export class EmployeeAppVisitsService {
     }
     const endIso = times.end.toISOString();
     const startIso = times.start?.toISOString();
-    await this.storeAttendanceTimeTrust(jobId, times);
+    await this.storeAttendanceTimeTrust(jobId, employeeId, times);
 
     const endDate = new Date(endIso);
     const plannedEnd =
@@ -2413,9 +2399,12 @@ export class EmployeeAppVisitsService {
       await this.prisma.jobAllocation.update({
         where: { id: myAllocation.id },
         data: {
+          // An office-verified start replaces the recorded one (the carer's own check-in event stays
+          // in the attendance history); otherwise the recorded check-in is kept.
           actualStartDateTime:
-            myAllocation.actualStartDateTime ??
-            (startIso ? new Date(startIso) : new Date()),
+            times.startSource === 'OFFICE' && times.start
+              ? times.start
+              : (myAllocation.actualStartDateTime ?? (startIso ? new Date(startIso) : new Date())),
           actualEndDateTime: new Date(endIso),
         },
       });
@@ -2580,6 +2569,7 @@ export class EmployeeAppVisitsService {
 
     const now = new Date();
     // VW-02: same time-trust rules as the lead carer's completion.
+    const supportOfficeTimes = attendanceTimeTrustFor(ctx.job.metadata, employeeId)?.office;
     let supportTimes: TrustedCompletionTimes;
     try {
       supportTimes = resolveTrustedCompletionTimes({
@@ -2587,6 +2577,8 @@ export class EmployeeAppVisitsService {
         serverCheckInAt: myAllocation?.actualStartDateTime ?? visit.actualStartDateTime ?? null,
         reportedStart: dto.actualStartDateTime,
         reportedEnd: dto.actualEndDateTime,
+        officeStart: supportOfficeTimes?.start,
+        officeEnd: supportOfficeTimes?.end,
       });
     } catch (err) {
       if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
@@ -2594,15 +2586,14 @@ export class EmployeeAppVisitsService {
     }
     const endAt = supportTimes.end;
     const startAt = supportTimes.start ?? now;
-    if (supportTimes.needsReview) {
-      await this.storeAttendanceTimeTrust(jobId, supportTimes, { mergeAs: 'Support carer' });
-    }
+    await this.storeAttendanceTimeTrust(jobId, employeeId, supportTimes);
 
     if (myAllocation?.id) {
       await this.prisma.jobAllocation.update({
         where: { id: myAllocation.id },
         data: {
-          actualStartDateTime: myAllocation.actualStartDateTime ?? startAt,
+          actualStartDateTime:
+            supportTimes.startSource === 'OFFICE' ? startAt : (myAllocation.actualStartDateTime ?? startAt),
           actualEndDateTime: endAt,
         },
       });
