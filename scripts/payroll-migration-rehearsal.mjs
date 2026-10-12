@@ -97,6 +97,7 @@ async function main() {
       ['payroll', 'UkPayrollRun'],
       ['payroll', 'UkPayrollRunEmployee'],
       ['payroll', 'UkPayrollInputLine'],
+      ['lookups', 'BankHoliday'],
     ];
     const count = async () =>
       Object.fromEntries(
@@ -233,6 +234,59 @@ async function main() {
       .catch(() => false);
     check('finance exception code UNVERIFIED_TIMES exists', enumOk);
 
+    // --- 5d. Gate B sprint: approval source, holiday calendar, mileage --------------------------
+    const one = async (sql, ...args) => (await db.$queryRawUnsafe(sql, ...args))[0];
+    const approval = (id) =>
+      one(`SELECT "approvalSource", "approvedEvidence"::text AS evidence FROM "billing"."VisitReconciliation" WHERE "id" = $1::uuid`, id);
+    check('visit approved by a person is recorded as MANAGER_APPROVED', (await approval(seed.V2)).approvalSource === 'MANAGER_APPROVED');
+    check('visit approved without a person is recorded as AUTO_VERIFIED', (await approval(seed.V1)).approvalSource === 'AUTO_VERIFIED');
+    check('no approval evidence is invented for old approvals', (await approval(seed.V1)).evidence === null && (await approval(seed.V2)).evidence === null);
+    const empty = async (table) => (await one(`SELECT COUNT(*)::int AS n FROM ${table}`)).n === 0;
+    check('attendance verification starts empty (old evidence is read from the visit as before)', await empty('"scheduling"."VisitAttendanceVerification"'));
+    check('pay evaluation failures start empty', await empty('"billing"."PayEvaluationFailure"'));
+    const evidenceEnum = await db
+      .$queryRawUnsafe(`SELECT 'EVIDENCE_CHANGED'::"billing"."FinanceExceptionCode"::text AS v`)
+      .then((rows) => rows[0].v === 'EVIDENCE_CHANGED')
+      .catch(() => false);
+    check('finance exception code EVIDENCE_CHANGED exists', evidenceEnum);
+
+    const holiday = (id) =>
+      one(`SELECT "name", "isActive", "isSubstitute", "substituteForDate"::text AS "for", "source" FROM "lookups"."BankHoliday" WHERE "id" = $1::uuid`, id);
+    const christmasSubstitute = await holiday(seed.H1);
+    check(
+      'Christmas Day recorded on 27 December is marked as the substitute for 25 December',
+      christmasSubstitute.isSubstitute === true && christmasSubstitute.for === '2027-12-25' && christmasSubstitute.name === 'Christmas Day',
+    );
+    check('a holiday on its own date is not a substitute day', (await holiday(seed.H2)).isSubstitute === false && (await holiday(seed.H3)).isSubstitute === false);
+    const vague = await holiday(seed.H4);
+    check('a row that only says "substitute day" is marked, with the date it stands for left empty', vague.isSubstitute === true && vague.for === null);
+    check('a switched-off holiday stays switched off', (await holiday(seed.H5)).isActive === false);
+    check('existing holiday rows are labelled as recorded before the source was kept', christmasSubstitute.source === 'LEGACY');
+    const basis = await one(
+      `SELECT column_default AS d FROM information_schema.columns WHERE table_schema = 'identity' AND table_name = 'OrganisationGeneralSettings' AND column_name = 'holidayPremiumBasis'`,
+    );
+    check('holiday pay basis defaults to BOTH (what was paid before the choice existed)', /BOTH/.test(String(basis?.d)));
+
+    const mileage = await one(
+      `SELECT "quantity"::text AS quantity, "description", "amount"::text AS amount, "taxTreatment" FROM "billing"."PayrollRunLine" WHERE "id" = $1::uuid`,
+      seed.LM,
+    );
+    check(
+      'a locked mileage line is not rewritten (its miles are read from its description)',
+      mileage.quantity === null && mileage.taxTreatment === null && mileage.amount === '3.41' && mileage.description === 'Mileage — VIS-REHEARSAL-2 (6.20 mi)',
+    );
+    const rates = await db.$queryRawUnsafe(
+      `SELECT "vehicleType"::text AS v, "rateFirst"::text AS f, "rateAfter"::text AS a, "thresholdMiles" AS t, "approvedVerifiedAt" AS verified FROM "billing"."MileageRate" ORDER BY "vehicleType"`,
+    );
+    const car = rates.find((r) => r.v === 'CAR_VAN');
+    check('the mileage rates the application used are recorded as the first period', rates.length === 4 && Number(car.f) === 0.55 && Number(car.a) === 0.25 && car.t === 10000);
+    check('no HMRC approved amount is recorded as verified by the migration', rates.every((r) => r.verified === null));
+    const historic = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."UkPayrollRunEmployee" WHERE "reimbursementPayable" <> 0 OR "expenseNotVerified" <> 0`);
+    check('no historic UK run employee is given a reimbursement to pay', historic.n === 0);
+    // Running the data migration a second time changes nothing.
+    prismaCmd(['db', 'execute', '--url', url, '--file', join('prisma', 'migrations', '20261014104500_mileage_rate_defaults', 'migration.sql')]);
+    check('the mileage rate defaults can be applied twice', (await one(`SELECT COUNT(*)::int AS n FROM "billing"."MileageRate"`)).n === 4);
+
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`
       SELECT l."visitReconciliationId"::text AS "visitReconciliationId", v."visitRef",
@@ -367,6 +421,21 @@ async function seedHistory(db) {
   await payLine(L7b, runDraft, V7, 'VISIT_PAY', 14, '2026-06-22T08:00:00Z');
   await payLine(LT, runA, V1, 'NMW_TOP_UP', 2, '2026-06-08T08:00:00Z');
   await payLine(LP, runA, null, 'ALLOWANCE', 25, '2026-06-08T08:00:00Z', { employeePayItemId: P1 });
+  // A locked mileage line as the old system wrote it: miles only in the description.
+  const LM = id();
+  await payLine(LM, runA, V2, 'MILEAGE', 3.41, '2026-06-08T08:00:00Z', { description: 'Mileage — VIS-REHEARSAL-2 (6.20 mi)' });
+  // One visit approved by a person; the others were approved without one.
+  await db.$executeRawUnsafe(`UPDATE "billing"."VisitReconciliation" SET "approvedById" = $1::uuid WHERE "id" = $2::uuid`, id(), V2);
+
+  // Bank holidays as an old calendar could hold them.
+  const [H1, H2, H3, H4, H5] = [id(), id(), id(), id(), id()];
+  const bankHoliday = (hid, date, name, extra = {}) =>
+    insert('"lookups"."BankHoliday"', uuidCols({ id: hid, holidayDate: day(date), name, region: 'UK', updatedAt: now, ...extra }));
+  await bankHoliday(H1, '2027-12-27', 'Christmas Day'); // 25 December 2027 is a Saturday
+  await bankHoliday(H2, '2026-12-25', 'Christmas Day');
+  await bankHoliday(H3, '2026-04-03', 'Good Friday');
+  await bankHoliday(H4, '2026-06-01', 'Extra day (substitute day)');
+  await bankHoliday(H5, '2026-05-04', 'Early May bank holiday', { isActive: false });
 
   // UK payroll: one period, a closed run, a cancelled run and an open second run.
   const [taxYear, schedule, period] = [id(), id(), id()];
@@ -422,7 +491,8 @@ async function seedHistory(db) {
   await batch('DRAFT');
 
   return {
-    carer, salaried, period, runA, runB, runDraft, V1, V2, V3, V4, V5, V6, V7, P1, L1, L2, L3a, L3b, L6, L7a, L7b, LT, LP,
+    carer, salaried, period, runA, runB, runDraft, V1, V2, V3, V4, V5, V6, V7, P1, L1, L2, L3a, L3b, L6, L7a, L7b, LT, LP, LM,
+    H1, H2, H3, H4, H5,
     ukClosed, ukCancelled, ukOpen, ukOpenEmployee, inClosedLine, inClosedProvisional, inClosedSalary, inCancelledLine, inOpenSalary,
   };
 }
