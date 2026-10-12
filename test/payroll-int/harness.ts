@@ -101,6 +101,41 @@ export function buildPayItemsService(prisma: PrismaService, audit = createAuditS
   return { service, audit };
 }
 
+export function buildPayoutsService(prisma: PrismaService, audit = createAuditSpy()) {
+  const service = new (EmployeePayoutsService as unknown as new (...args: unknown[]) => EmployeePayoutsService)(
+    prisma,
+    stubOrgSettings,
+    audit.service,
+  );
+  return { service, audit };
+}
+
+/** A UK run with net pay per employee, in the given status (CLOSED = final figures). */
+export async function createUkRunWithNetPay(
+  prisma: PrismaService,
+  input: { periodStart: string; periodEnd: string; netPay: Record<string, number>; status: 'STATUTORY_CALCULATED' | 'CLOSED' },
+) {
+  const runId = await createUkRun(prisma, {
+    periodStart: input.periodStart,
+    periodEnd: input.periodEnd,
+    employeeIds: Object.keys(input.netPay),
+  });
+  for (const [employeeId, netPay] of Object.entries(input.netPay)) {
+    await prisma.ukPayrollRunEmployee.updateMany({ where: { runId, employeeId }, data: { netPay, totalGross: netPay } });
+  }
+  const total = Object.values(input.netPay).reduce((a, b) => a + b, 0);
+  await prisma.ukPayrollRun.update({
+    where: { id: runId },
+    data: {
+      status: input.status,
+      statutoryCalculatedAt: new Date(),
+      totalNetPay: total,
+      closedAt: input.status === 'CLOSED' ? new Date() : null,
+    },
+  });
+  return runId;
+}
+
 export const uuid = () => randomUUID();
 
 /** An approved, priced visit for one carer (one reconciliation row = one carer on one visit). */

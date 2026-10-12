@@ -25,12 +25,12 @@ export function assertFinancialResetEnvironment(env: NodeJS.ProcessEnv = process
   }
 }
 
-/** Permissions that are never granted by the Super Admin shortcut: they must be assigned to a role. */
-export const EXPLICIT_GRANT_PERMISSIONS = [
-  'billing.payroll_runs.approve',
-  'billing.employee_payouts.approve',
-  'billing.employee_payouts.settle',
-  'billing.financial_reset',
-  'payroll.runs.close',
-  'payroll.runs.reopen',
-] as const;
+/**
+ * Opens the database reset switch for the current transaction only, so the locked-history triggers
+ * let a test reset through. Call it only after assertFinancialResetEnvironment().
+ */
+export async function allowFinancialResetInTransaction(tx: {
+  $executeRawUnsafe: (query: string) => Promise<unknown>;
+}) {
+  await tx.$executeRawUnsafe(`SELECT set_config('careflow.allow_financial_reset', 'on', true)`);
+}

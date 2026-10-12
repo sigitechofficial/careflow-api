@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class EmployeePayoutsQueryDto {
   @ApiPropertyOptional({ description: 'Period key YYYY-MM or YYYY-Www' })
@@ -22,9 +22,35 @@ export class EmployeePayoutsQueryDto {
   locationId?: string;
 }
 
+export class SettleEmployeePayoutBatchDto {
+  @ApiProperty({ description: 'Bank or payment provider reference for this batch' })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(120)
+  paymentReference!: string;
+
+  @ApiProperty({ description: 'Date the money left the account (YYYY-MM-DD), not in the future' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  settledOn!: string;
+
+  @ApiPropertyOptional({ description: 'Where the evidence is held (statement line, provider report…)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  settlementEvidence?: string;
+}
+
+export class CancelEmployeePayoutBatchDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
 export class CreateEmployeePayoutBatchDto {
   @ApiProperty({
-    description: 'UK payroll run id (must be STATUTORY_CALCULATED or CLOSED)',
+    description: 'UK payroll run id (must be CLOSED)',
   })
   @IsUUID()
   ukPayrollRunId!: string;

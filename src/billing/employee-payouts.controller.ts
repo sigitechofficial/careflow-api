@@ -1,14 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeePayoutsService } from './employee-payouts.service';
 import {
+  CancelEmployeePayoutBatchDto,
   CreateEmployeePayoutBatchDto,
   EmployeePayoutsQueryDto,
+  SettleEmployeePayoutBatchDto,
 } from './dto/employee-payouts.dto';
 
 @ApiTags('Billing — Employee payouts')
@@ -28,19 +32,24 @@ export class EmployeePayoutsController {
   @Get('eligible-uk-runs')
   @Permissions('billing.employee_payouts.read')
   @ApiOperation({
-    summary: 'List UK payroll runs eligible for payout (STATUTORY_CALCULATED or CLOSED)',
+    summary: 'List UK payroll runs eligible for payout (CLOSED, with net pay)',
   })
   listEligibleUkRuns() {
     return this.service.listPayoutEligibleUkRuns();
   }
 
   @Delete()
-  @Permissions('billing.employee_payouts.manage')
+  @Permissions('billing.financial_reset')
   @ApiOperation({
-    summary: 'Delete all payout batches (test reset). Optional periodKey limits scope.',
+    summary:
+      'Delete payout batches that were never approved or paid (test reset; disabled in production). Optional periodKey limits scope.',
   })
-  deleteAll(@Query() query: EmployeePayoutsQueryDto) {
-    return this.service.deleteAll(query.periodKey);
+  deleteAll(
+    @CurrentUser() user: RequestUser,
+    @Query() query: EmployeePayoutsQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteAll(user.id, query.periodKey, getRequestAuditMeta(req));
   }
 
   @Get(':id')
@@ -52,29 +61,48 @@ export class EmployeePayoutsController {
 
   @Post()
   @Permissions('billing.employee_payouts.manage')
-  @ApiOperation({ summary: 'Create DRAFT payout batch from UK payroll run net pay' })
-  create(@CurrentUser() user: RequestUser, @Body() dto: CreateEmployeePayoutBatchDto) {
-    return this.service.create(user.id, dto);
+  @ApiOperation({ summary: 'Create DRAFT payout batch from a closed UK payroll run' })
+  create(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateEmployeePayoutBatchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.create(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')
-  @Permissions('billing.employee_payouts.manage')
-  @ApiOperation({ summary: 'Approve DRAFT payout batch' })
-  approve(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.approve(user.id, id);
+  @Permissions('billing.employee_payouts.approve')
+  @ApiOperation({
+    summary: 'Approve DRAFT payout batch (a different user from the one who created it)',
+  })
+  approve(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.approve(user.id, id, getRequestAuditMeta(req));
   }
 
   @Post(':id/mark-paid')
-  @Permissions('billing.employee_payouts.manage')
-  @ApiOperation({ summary: 'Mark APPROVED payout batch as bank paid' })
-  markPaid(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.markPaid(user.id, id);
+  @Permissions('billing.employee_payouts.settle')
+  @ApiOperation({
+    summary:
+      'Record bank settlement of an APPROVED payout batch (payment reference and date required)',
+  })
+  markPaid(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: SettleEmployeePayoutBatchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.markPaid(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/cancel')
   @Permissions('billing.employee_payouts.manage')
   @ApiOperation({ summary: 'Cancel DRAFT or APPROVED payout batch' })
-  cancel(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.cancel(user.id, id);
+  cancel(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: CancelEmployeePayoutBatchDto,
+    @Req() req: Request,
+  ) {
+    return this.service.cancel(user.id, id, dto?.reason, getRequestAuditMeta(req));
   }
 }

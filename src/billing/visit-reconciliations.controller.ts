@@ -80,13 +80,17 @@ export class VisitReconciliationsController {
   }
 
   @Post('clear-all')
-  @Permissions('billing.visit_reconciliations.manage')
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Delete visit reconciliations (optionally scoped to one service user) and dependent payroll/invoice lines',
+      'Test reset (disabled in production): delete visit reconciliations (optionally one service user) and dependent payroll/invoice lines',
   })
-  clearAll(@Body() dto: ClearVisitReconciliationsDto) {
-    return this.service.clearAll(dto?.serviceUserId);
+  clearAll(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ClearVisitReconciliationsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.clearAll(dto?.serviceUserId, user.id, getRequestAuditMeta(req));
   }
 
   @Post('bulk-approve')

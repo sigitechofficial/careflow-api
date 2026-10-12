@@ -11,6 +11,10 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  allowFinancialResetInTransaction,
+  assertFinancialResetEnvironment,
+} from '../billing/financial-controls.util';
+import {
   CreatePayrollScheduleDto,
   CreatePayrollTaxCodeDto,
   CreatePayrollTaxYearDto,
@@ -369,11 +373,18 @@ export class PayrollSettingsService {
     dto: PurgePayrollDataDto,
     meta?: RequestAuditMeta,
   ) {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     if (dto.confirm !== 'DELETE ALL PAYROLL') {
       throw new BadRequestException('Confirmation phrase is required');
     }
 
     const counts = await this.prisma.$transaction(async (tx) => {
+      await allowFinancialResetInTransaction(tx);
+      await tx.visitReconciliation.updateMany({
+        where: { paidByUkPayrollRunId: { not: null } },
+        data: { paidByUkPayrollRunId: null, lockedAt: null },
+      });
       const ytdContributions = await tx.employeePayrollYtdContribution.deleteMany({});
       const ytdLedgers = await tx.employeePayrollYtdLedger.deleteMany({});
       const hmrcSubmissions = await tx.payrollHmrcSubmission.deleteMany({});

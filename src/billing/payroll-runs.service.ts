@@ -82,7 +82,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
-import { assertDifferentUser } from './financial-controls.util';
+import { assertDifferentUser, assertFinancialResetEnvironment } from './financial-controls.util';
 import {
   activityClaimKey,
   isClaimConflict,
@@ -2536,8 +2536,20 @@ export class PayrollRunsService {
    * - Removes them from UK payroll runs and retotals those runs (UK net / Outstanding → £0)
    * Does not delete locked/exported visit-pay run history lines.
    */
-  async resetEmployeeEarnings(userId: string, employeeId: string) {
+  /** Test reset only: refused in production and unless the server opts in (SI-06). */
+  async resetEmployeeEarnings(userId: string, employeeId: string, meta?: RequestAuditMeta) {
+    assertFinancialResetEnvironment();
     await this.ensureEmployee(employeeId);
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'Employee',
+      recordId: employeeId,
+      newValues: { operation: 'reset employee earnings' },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
 
     const payout = await this.employeePayouts.deleteLinesForEmployee(employeeId);
 
@@ -2554,6 +2566,7 @@ export class PayrollRunsService {
       where: {
         employeeId,
         includedInPayrollRunId: null,
+        paidByUkPayrollRunId: null,
         payableAmount: { not: null },
       },
       data: {

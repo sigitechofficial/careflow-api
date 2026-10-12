@@ -52,12 +52,16 @@ export class RoleResponsibilitiesService {
     existingKeys: Set<string>,
   ) {
     const act = responsibility.act.filter((k) => existingKeys.has(k));
-    const choosable = roles.filter((r) => !ADMIN_ROLE_NAMES.includes(r.name));
+    // Financial authorisation is not implied by an admin role, so admin roles are a choice there.
+    const choosable = responsibility.explicitOnly
+      ? roles
+      : roles.filter((r) => !ADMIN_ROLE_NAMES.includes(r.name));
     const held = (r: RoleRow) => act.filter((k) => r.keys.has(k)).length;
     return {
       key: responsibility.key,
       label: responsibility.label,
       description: responsibility.description,
+      explicitOnly: Boolean(responsibility.explicitOnly),
       /** Roles that can do the whole job today. */
       roleIds: choosable
         .filter((r) => act.length > 0 && held(r) === act.length)
@@ -111,9 +115,9 @@ export class RoleResponsibilitiesService {
     const existing = new Set(permissionIds.keys());
     const before = this.summarise(responsibility, roles, existing);
 
-    const adminIds = roles
-      .filter((r) => ADMIN_ROLE_NAMES.includes(r.name))
-      .map((r) => r.id);
+    const adminIds = responsibility.explicitOnly
+      ? []
+      : roles.filter((r) => ADMIN_ROLE_NAMES.includes(r.name)).map((r) => r.id);
     const known = new Set(roles.map((r) => r.id));
     const selected = [...new Set(roleIds)].filter(
       (id) => known.has(id) && !adminIds.includes(id),

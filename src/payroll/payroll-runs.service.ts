@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -12,6 +13,11 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  allowFinancialResetInTransaction,
+  assertDifferentUser,
+  assertFinancialResetEnvironment,
+} from '../billing/financial-controls.util';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
@@ -356,7 +362,15 @@ export class PayrollRunsService {
    * Leaves tax years, schedules, and employee payroll profiles intact.
    */
   async deleteAll(userId: string, meta?: RequestAuditMeta) {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     const counts = await this.prisma.$transaction(async (tx) => {
+      await allowFinancialResetInTransaction(tx);
+      // Visits these runs settled as provisional inputs are payable again once the runs are gone.
+      await tx.visitReconciliation.updateMany({
+        where: { paidByUkPayrollRunId: { not: null } },
+        data: { paidByUkPayrollRunId: null, lockedAt: null },
+      });
       // Payout batches FK → UkPayrollRun (Restrict)
       const payoutLines = await tx.employeePayoutLine.deleteMany({});
       const payoutBatches = await tx.employeePayoutBatch.deleteMany({});
@@ -1630,6 +1644,11 @@ export class PayrollRunsService {
     if (run.employeeCount < 1) {
       throw new BadRequestException('Enrol at least one employee before closing, or cancel the run');
     }
+    assertDifferentUser(
+      run.createdById,
+      userId,
+      'A UK payroll run must be closed by a different user from the one who created it.',
+    );
 
     const runEmployees = await this.prisma.ukPayrollRunEmployee.findMany({
       where: { runId },
@@ -1780,10 +1799,21 @@ export class PayrollRunsService {
     return { message: 'UK payroll run cancelled', data: mapRun(row) };
   }
 
-  async reactivate(userId: string, runId: string, meta?: RequestAuditMeta) {
+  async reactivate(
+    userId: string,
+    runId: string,
+    meta?: RequestAuditMeta,
+    options: { mayReopenClosed?: boolean } = {},
+  ) {
     const run = await this.requireRun(runId);
     if (run.status !== 'CLOSED' && run.status !== 'CANCELLED') {
       throw new BadRequestException('Only closed or cancelled runs can be reactivated');
+    }
+    // Reopening a closed run reverses posted year-to-date figures: a named power, not run editing.
+    if (run.status === 'CLOSED' && !options.mayReopenClosed) {
+      throw new ForbiddenException(
+        'Reopening a closed UK payroll run needs the "payroll.runs.reopen" permission.',
+      );
     }
 
     const openConflict = await this.prisma.ukPayrollRun.findFirst({

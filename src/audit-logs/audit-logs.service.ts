@@ -23,6 +23,9 @@ import {
 } from './audit-log-context.util';
 import { resolveAuditEventType } from './audit-event-type.util';
 import { AuditEventType } from '@prisma/client';
+import { AuditModule } from './enums/audit-module.enum';
+import { AuditAction } from './enums/audit-action.enum';
+import { assertFinancialResetEnvironment } from '../billing/financial-controls.util';
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -464,8 +467,24 @@ export class AuditLogsService {
     return { data: row };
   }
 
-  async clearAuditLogs(_userId: string, _meta?: RequestAuditMeta) {
+  /**
+   * Test reset only. The audit log is evidence: it is never cleared in production, and outside
+   * production only when the server opts in (ALLOW_FINANCIAL_TEST_RESET=true). The clearing is
+   * itself the first entry of the new log.
+   */
+  async clearAuditLogs(userId: string, meta?: RequestAuditMeta) {
+    assertFinancialResetEnvironment();
     const result = await this.prisma.auditLog.deleteMany({});
+    await this.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'AuditLog',
+      recordId: 'all',
+      newValues: { operation: 'audit log cleared', deletedCount: result.count },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
     return {
       message: 'Audit log cleared',
       data: { deletedCount: result.count },

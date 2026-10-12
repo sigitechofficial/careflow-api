@@ -152,10 +152,10 @@ export class PayrollSettingsController {
   }
 
   @Post('purge-all')
-  @Permissions('payroll.settings.manage')
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Delete UK payroll transactional data (tax years, schedules, periods, profiles, agreements, runs). Keeps employer PAYE settings. Does not touch billing or employees.',
+      'Test reset (disabled in production): delete UK payroll transactional data (tax years, schedules, periods, profiles, agreements, runs). Keeps employer PAYE settings.',
   })
   purgeAll(
     @CurrentUser() user: RequestUser,

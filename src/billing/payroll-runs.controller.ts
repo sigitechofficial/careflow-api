@@ -79,20 +79,17 @@ export class PayrollRunsController {
   }
 
   @Post('employee/:employeeId/reset-earnings')
-  @AnyPermission(
-    'billing.payroll_runs.manage',
-    'billing.employee_payouts.manage',
-    'employees.update',
-  )
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Reset employee earnings display to £0: clear payouts, fines, ready visit payable amounts, and remove from UK payroll runs. Test/ops helper.',
+      'Test reset (disabled in production): clear an employee’s payouts, fines, unpaid visit amounts and UK payroll run rows.',
   })
   resetEarnings(
     @CurrentUser() user: RequestUser,
     @Param('employeeId') employeeId: string,
+    @Req() req: Request,
   ) {
-    return this.service.resetEmployeeEarnings(user.id, employeeId);
+    return this.service.resetEmployeeEarnings(user.id, employeeId, getRequestAuditMeta(req));
   }
 
   @Get()

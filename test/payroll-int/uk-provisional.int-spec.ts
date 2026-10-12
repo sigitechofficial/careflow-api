@@ -133,7 +133,8 @@ describe('UK payroll gross collection: one settlement per visit', () => {
     const uk = await createUkRun(prisma, { periodStart: '2026-11-01', periodEnd: '2026-11-30', employeeIds: [employeeId], createdById: maker });
     await grossAndClose(uk);
 
-    await ukRuns.reactivate(checker, uk);
+    await expect(ukRuns.reactivate(checker, uk)).rejects.toThrow(/payroll\.runs\.reopen/);
+    await ukRuns.reactivate(checker, uk, undefined, { mayReopenClosed: true });
     const released = await prisma.visitReconciliation.findUniqueOrThrow({ where: { id: visit.id } });
     expect(released.paidByUkPayrollRunId).toBeNull();
 
@@ -152,7 +153,9 @@ describe('UK payroll gross collection: one settlement per visit', () => {
       },
     });
 
-    await expect(ukRuns.reactivate(checker, uk)).rejects.toThrow(/approved or paid payout batch/i);
+    await expect(ukRuns.reactivate(checker, uk, undefined, { mayReopenClosed: true })).rejects.toThrow(
+      /approved or paid payout batch/i,
+    );
     const still = await prisma.visitReconciliation.findUniqueOrThrow({ where: { id: visit.id } });
     expect(still.paidByUkPayrollRunId).toBe(uk);
   });

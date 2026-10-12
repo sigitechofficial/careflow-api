@@ -136,8 +136,8 @@ export class InvoiceRunsController {
   }
 
   @Delete()
-  @Permissions('billing.invoice_runs.manage')
-  @ApiOperation({ summary: 'Delete ALL invoice runs (destructive reset)' })
+  @Permissions('billing.financial_reset')
+  @ApiOperation({ summary: 'Test reset (disabled in production): delete ALL invoice runs' })
   deleteAll() {
     return this.service.deleteAll();
   }

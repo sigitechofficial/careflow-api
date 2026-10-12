@@ -29,6 +29,10 @@ import {
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  allowFinancialResetInTransaction,
+  assertFinancialResetEnvironment,
+} from './financial-controls.util';
+import {
   PAY_SETTLED_MESSAGE,
   isPaySettled,
   withoutPaySnapshotFields,
@@ -1922,7 +1926,9 @@ export class VisitReconciliationsService {
    * When `serviceUserId` is set, only that client's rows are removed.
    * Does not reset scheduled visits — use Sync completed visits to recreate.
    */
-  async clearAll(serviceUserId?: string) {
+  async clearAll(serviceUserId?: string, userId?: string, meta?: RequestAuditMeta) {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     const scopedWhere = serviceUserId?.trim()
       ? { serviceUserId: serviceUserId.trim() }
       : undefined;
@@ -1944,6 +1950,7 @@ export class VisitReconciliationsService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await allowFinancialResetInTransaction(tx);
       const reconIds = scopedWhere
         ? (
             await tx.visitReconciliation.findMany({
@@ -1980,6 +1987,16 @@ export class VisitReconciliationsService {
         financeExceptions: financeExceptions.count,
         visitReconciliations: visitReconciliations.count,
       };
+    });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'VisitReconciliation',
+      recordId: serviceUserId?.trim() || 'all',
+      newValues: { operation: 'clear-all visit reconciliations', before, ...result },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
     });
 
     return {

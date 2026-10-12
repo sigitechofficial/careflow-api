@@ -12,9 +12,34 @@ export type RoleResponsibility = {
   description: string;
   view: string[];
   act: string[];
+  /**
+   * Financial authorisation: not held by Super Admin / Admin automatically. Only the roles chosen
+   * here get it, and an admin role can be chosen like any other.
+   */
+  explicitOnly?: boolean;
 };
 
 export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
+  {
+    key: 'approve-pay',
+    label: 'Approve pay and record payments',
+    description:
+      'Approve and lock carer pay runs, close or reopen UK payroll runs, approve payout batches and record the bank payment. Must be a different person from the one who prepared them.',
+    view: [
+      'billing.payroll_runs.read',
+      'billing.employee_payouts.read',
+      'billing.visit_reconciliations.read',
+      'payroll.runs.read',
+    ],
+    act: [
+      'billing.payroll_runs.approve',
+      'billing.employee_payouts.approve',
+      'billing.employee_payouts.settle',
+      'payroll.runs.close',
+      'payroll.runs.reopen',
+    ],
+    explicitOnly: true,
+  },
   {
     key: 'payroll',
     label: 'Create payroll (UK payroll)',

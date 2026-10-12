@@ -4,7 +4,8 @@ import { EmployeePayoutsService } from './employee-payouts.service';
 
 /**
  * Runs at 06:00 in the organisation default timezone (Europe/London) on the 4th.
- * Pays UK net for statutory/closed UK payroll runs in the previous calendar month.
+ * Proposes DRAFT payout batches for closed UK payroll runs of the previous calendar month.
+ * It does not approve anything and does not mark anything paid: both need a person.
  */
 @Injectable()
 export class EmployeePayoutAutoJob {

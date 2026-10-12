@@ -23,15 +23,25 @@ import {
 } from './employee-payout-period.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { assertDifferentUser, assertFinancialResetEnvironment } from './financial-controls.util';
 
 const OPEN_BATCH_STATUSES: EmployeePayoutBatchStatus[] = [
   EmployeePayoutBatchStatus.DRAFT,
   EmployeePayoutBatchStatus.APPROVED,
 ];
 
-const PAYOUT_ELIGIBLE_UK_RUN_STATUSES = ['STATUTORY_CALCULATED', 'CLOSED'] as const;
+/** Only a closed UK run has final net pay (year-to-date posted); payouts are prepared from those. */
+const PAYOUT_ELIGIBLE_UK_RUN_STATUSES = ['CLOSED'] as const;
 
-export const AUTO_PAYOUT_NOTES = 'Auto-executed on the 4th of the month (UK net payout)';
+/** Runs whose net pay figure is shown on the earnings overview (not a payout permission). */
+const UK_NET_VISIBLE_RUN_STATUSES = ['STATUTORY_CALCULATED', 'CLOSED'] as const;
+
+export const AUTO_PAYOUT_NOTES =
+  'Proposed automatically on the 4th of the month. Review, approve and record the bank payment.';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -75,7 +85,31 @@ export class EmployeePayoutsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly audit: AuditLogsService,
   ) {}
+
+  private auditBatch(
+    action: AuditAction,
+    userId: string | null,
+    batchId: string,
+    values: { oldValues?: Record<string, unknown>; newValues?: Record<string, unknown>; reason?: string | null },
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.audit.logAudit({
+      tx,
+      userId: userId ?? undefined,
+      module: AuditModule.BILLING,
+      action,
+      recordType: 'EmployeePayoutBatch',
+      recordId: batchId,
+      description: values.reason?.trim() || undefined,
+      oldValues: values.oldValues,
+      newValues: values.newValues,
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+  }
 
   async list(query: EmployeePayoutsQueryDto) {
     const where: Prisma.EmployeePayoutBatchWhereInput = {};
@@ -201,7 +235,8 @@ export class EmployeePayoutsService {
     };
   }
 
-  async create(userId: string, dto: CreateEmployeePayoutBatchDto) {
+  /** `userId` is null for a batch proposed by the scheduled job (no person prepared it). */
+  async create(userId: string | null, dto: CreateEmployeePayoutBatchDto, meta?: RequestAuditMeta) {
     const run = await this.prisma.ukPayrollRun.findFirst({
       where: { id: dto.ukPayrollRunId, deletedAt: null },
       include: {
@@ -217,7 +252,7 @@ export class EmployeePayoutsService {
       )
     ) {
       throw new BadRequestException(
-        'UK payroll run must be STATUTORY_CALCULATED or CLOSED before creating a payout batch',
+        'Close the UK payroll run before creating a payout batch (net pay is final only once the run is closed)',
       );
     }
 
@@ -285,58 +320,138 @@ export class EmployeePayoutsService {
         },
       },
     });
+    await this.auditBatch(
+      AuditAction.EMPLOYEE_PAYOUT_BATCH_CREATED,
+      userId,
+      created.id,
+      {
+        newValues: {
+          ukPayrollRunId: run.id,
+          periodKey,
+          totalAmount: totalAmount.toFixed(2),
+          lines: lineInputs.length,
+          proposedByScheduledJob: userId == null,
+        },
+      },
+      meta,
+    );
 
     return this.getById(created.id);
   }
 
-  async approve(userId: string, id: string) {
+  async approve(userId: string, id: string, meta?: RequestAuditMeta) {
     const batch = await this.requireBatch(id);
     if (batch.status !== EmployeePayoutBatchStatus.DRAFT) {
       throw new BadRequestException('Only DRAFT payout batches can be approved');
     }
+    assertDifferentUser(
+      batch.createdById,
+      userId,
+      'A payout batch must be approved by a different user from the one who created it.',
+    );
 
-    await this.prisma.employeePayoutBatch.update({
-      where: { id },
-      data: {
-        status: EmployeePayoutBatchStatus.APPROVED,
-        approvedById: userId,
-        approvedAt: new Date(),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.employeePayoutBatch.updateMany({
+        where: { id, status: EmployeePayoutBatchStatus.DRAFT },
+        data: {
+          status: EmployeePayoutBatchStatus.APPROVED,
+          approvedById: userId,
+          approvedAt: new Date(),
+        },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('This payout batch was changed by someone else. Reload and try again.');
+      }
+      await this.auditBatch(
+        AuditAction.EMPLOYEE_PAYOUT_BATCH_APPROVED,
+        userId,
+        id,
+        {
+          oldValues: { status: batch.status },
+          newValues: { status: EmployeePayoutBatchStatus.APPROVED, totalAmount: batch.totalAmount.toString() },
+        },
+        meta,
+        tx,
+      );
     });
 
     return this.getById(id);
   }
 
-  async markPaid(userId: string, id: string) {
+  /**
+   * Record that an approved batch has left the bank. PAID means settled: it needs the bank or
+   * provider reference and the value date, and it is audited. Nothing in the system sets PAID
+   * without a person supplying that evidence.
+   */
+  async markPaid(
+    userId: string,
+    id: string,
+    dto: { paymentReference?: string; settledOn?: string; settlementEvidence?: string },
+    meta?: RequestAuditMeta,
+  ) {
     const batch = await this.requireBatch(id);
     if (batch.status !== EmployeePayoutBatchStatus.APPROVED) {
       throw new BadRequestException('Only APPROVED payout batches can be marked paid');
     }
+    const paymentReference = dto?.paymentReference?.trim();
+    if (!paymentReference || paymentReference.length < 3) {
+      throw new BadRequestException('Enter the bank or provider payment reference for this batch.');
+    }
+    if (!dto.settledOn || !/^\d{4}-\d{2}-\d{2}$/.test(dto.settledOn)) {
+      throw new BadRequestException('Enter the date the payment left the account (YYYY-MM-DD).');
+    }
+    const settledOn = parseBillingDateOnly(dto.settledOn);
+    if (settledOn.getTime() > Date.now()) {
+      throw new BadRequestException('The payment date cannot be in the future.');
+    }
+    const settlementEvidence = dto.settlementEvidence?.trim() || null;
 
     const now = new Date();
-    await this.prisma.$transaction([
-      this.prisma.employeePayoutBatch.update({
-        where: { id },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.employeePayoutBatch.updateMany({
+        where: { id, status: EmployeePayoutBatchStatus.APPROVED },
         data: {
           status: EmployeePayoutBatchStatus.PAID,
           paidById: userId,
           paidAt: now,
+          paymentReference,
+          settledOn,
+          settlementEvidence,
         },
-      }),
-      this.prisma.employeePayoutLine.updateMany({
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('This payout batch was changed by someone else. Reload and try again.');
+      }
+      await tx.employeePayoutLine.updateMany({
         where: {
           batchId: id,
           status: EmployeePayoutLineStatus.PENDING,
         },
         data: { status: EmployeePayoutLineStatus.PAID },
-      }),
-    ]);
+      });
+      await this.auditBatch(
+        AuditAction.EMPLOYEE_PAYOUT_BATCH_SETTLED,
+        userId,
+        id,
+        {
+          oldValues: { status: batch.status },
+          newValues: {
+            status: EmployeePayoutBatchStatus.PAID,
+            totalAmount: batch.totalAmount.toString(),
+            paymentReference,
+            settledOn: dto.settledOn,
+            settlementEvidence,
+          },
+        },
+        meta,
+        tx,
+      );
+    });
 
     return this.getById(id);
   }
 
-  async cancel(userId: string, id: string) {
-    void userId;
+  async cancel(userId: string, id: string, reason?: string, meta?: RequestAuditMeta) {
     const batch = await this.requireBatch(id);
     if (
       batch.status !== EmployeePayoutBatchStatus.DRAFT &&
@@ -345,15 +460,38 @@ export class EmployeePayoutsService {
       throw new BadRequestException('Only DRAFT or APPROVED payout batches can be cancelled');
     }
 
-    await this.prisma.employeePayoutBatch.update({
-      where: { id },
-      data: { status: EmployeePayoutBatchStatus.CANCELLED },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.employeePayoutBatch.updateMany({
+        where: { id, status: batch.status },
+        data: { status: EmployeePayoutBatchStatus.CANCELLED },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('This payout batch was changed by someone else. Reload and try again.');
+      }
+      await this.auditBatch(
+        AuditAction.EMPLOYEE_PAYOUT_BATCH_CANCELLED,
+        userId,
+        id,
+        {
+          oldValues: { status: batch.status },
+          newValues: { status: EmployeePayoutBatchStatus.CANCELLED },
+          reason,
+        },
+        meta,
+        tx,
+      );
     });
 
     return this.getById(id);
   }
 
-  async deleteAll(periodKey?: string): Promise<{ data: { deletedBatches: number } }> {
+  /** Test reset only: refused in production and unless the server opts in (SI-06). */
+  async deleteAll(
+    userId: string,
+    periodKey?: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ data: { deletedBatches: number } }> {
+    assertFinancialResetEnvironment();
     const result = await this.prisma.employeePayoutBatch.deleteMany({
       where: periodKey ? { periodKey } : undefined,
     });
@@ -361,6 +499,16 @@ export class EmployeePayoutsService {
       `Purged ${result.count} employee payout batch(es)` +
         (periodKey ? ` for period ${periodKey}` : ' (all periods)'),
     );
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'EmployeePayoutBatch',
+      recordId: periodKey ?? 'all',
+      newValues: { operation: 'delete payout batches', deletedBatches: result.count },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
     return { data: { deletedBatches: result.count } };
   }
 
@@ -373,6 +521,7 @@ export class EmployeePayoutsService {
     deletedBatches: number;
     updatedBatches: number;
   }> {
+    assertFinancialResetEnvironment();
     const lines = await this.prisma.employeePayoutLine.findMany({
       where: { employeeId },
       select: { id: true, batchId: true },
@@ -418,26 +567,23 @@ export class EmployeePayoutsService {
   }
 
   /**
-   * On the 4th: pay out eligible UK runs whose period falls in the previous calendar month.
+   * On the 4th: propose a DRAFT payout batch for each closed UK run of the previous calendar month
+   * that has net pay outstanding and no open batch.
+   *
+   * The job never approves a batch and never marks one paid (SI-09). Approval needs a person other
+   * than the one who prepared the batch, and PAID needs bank settlement evidence. A proposal has no
+   * `createdById`: no user is credited with work the scheduler did.
    */
   async executeAutomaticMonthlyPayout(asOf: Date = new Date()): Promise<{
     periodKey: string;
-    outcome: 'paid' | 'skipped';
+    outcome: 'drafted' | 'skipped';
     reason?: string;
     batchId?: string;
-    paidBatchIds?: string[];
+    draftBatchIds?: string[];
   }> {
     const timeZone = await this.orgSettings.getOperationalTimezone();
     const periodKey = previousMonthPeriodKey(asOf, timeZone);
     const range = periodRangeFromKey(periodKey);
-    const actorId = await this.resolveSystemActorId();
-    if (!actorId) {
-      return {
-        periodKey,
-        outcome: 'skipped',
-        reason: 'No active user for audit actor',
-      };
-    }
 
     const runs = await this.prisma.ukPayrollRun.findMany({
       where: {
@@ -456,11 +602,11 @@ export class EmployeePayoutsService {
       return {
         periodKey,
         outcome: 'skipped',
-        reason: 'No statutory/closed UK payroll run for previous month',
+        reason: 'No closed UK payroll run for previous month',
       };
     }
 
-    const paidBatchIds: string[] = [];
+    const draftBatchIds: string[] = [];
     const skipReasons: string[] = [];
 
     for (const run of runs) {
@@ -469,29 +615,20 @@ export class EmployeePayoutsService {
           ukPayrollRunId: run.id,
           status: { in: OPEN_BATCH_STATUSES },
         },
-        orderBy: { createdAt: 'asc' },
+        select: { id: true },
       });
+      // A batch someone is already working on is theirs to approve and settle.
+      if (open) {
+        skipReasons.push('An open payout batch already exists for this run');
+        continue;
+      }
 
       try {
-        if (open?.status === EmployeePayoutBatchStatus.DRAFT) {
-          await this.approve(actorId, open.id);
-          await this.markPaid(actorId, open.id);
-          paidBatchIds.push(open.id);
-          continue;
-        }
-        if (open?.status === EmployeePayoutBatchStatus.APPROVED) {
-          await this.markPaid(actorId, open.id);
-          paidBatchIds.push(open.id);
-          continue;
-        }
-
-        const created = await this.create(actorId, {
+        const created = await this.create(null, {
           ukPayrollRunId: run.id,
           notes: AUTO_PAYOUT_NOTES,
         });
-        await this.approve(actorId, created.data.id);
-        await this.markPaid(actorId, created.data.id);
-        paidBatchIds.push(created.data.id);
+        draftBatchIds.push(created.data.id);
       } catch (err) {
         if (err instanceof BadRequestException || err instanceof ConflictException) {
           skipReasons.push(
@@ -503,7 +640,7 @@ export class EmployeePayoutsService {
       }
     }
 
-    if (paidBatchIds.length === 0) {
+    if (draftBatchIds.length === 0) {
       return {
         periodKey,
         outcome: 'skipped',
@@ -512,13 +649,13 @@ export class EmployeePayoutsService {
     }
 
     this.logger.log(
-      `Auto UK-net payout paid ${paidBatchIds.length} batch(es) for ${periodKey}`,
+      `Proposed ${draftBatchIds.length} draft payout batch(es) for ${periodKey}; awaiting approval and settlement`,
     );
     return {
       periodKey,
-      outcome: 'paid',
-      batchId: paidBatchIds[0],
-      paidBatchIds,
+      outcome: 'drafted',
+      batchId: draftBatchIds[0],
+      draftBatchIds,
     };
   }
 
@@ -570,7 +707,7 @@ export class EmployeePayoutsService {
     const runs = await this.prisma.ukPayrollRun.findMany({
       where: {
         deletedAt: null,
-        status: { in: [...PAYOUT_ELIGIBLE_UK_RUN_STATUSES] },
+        status: { in: [...UK_NET_VISIBLE_RUN_STATUSES] },
         ...(Object.keys(periodFilter).length
           ? { period: periodFilter }
           : {}),
@@ -627,15 +764,6 @@ export class EmployeePayoutsService {
       committedByEmployee,
       hasEligibleUkRun: runs.length > 0,
     };
-  }
-
-  private async resolveSystemActorId(): Promise<string | null> {
-    const user = await this.prisma.user.findFirst({
-      where: { deletedAt: null, isActive: true },
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    return user?.id ?? null;
   }
 
   private async requireBatch(id: string) {
