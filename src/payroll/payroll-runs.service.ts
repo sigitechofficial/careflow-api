@@ -666,6 +666,7 @@ export class PayrollRunsService {
           shortfall: a.shortfall == null ? null : Number(a.shortfall),
           issueMessage: a.issue ? (NMW_ISSUE_MESSAGES[a.issue] ?? null) : null,
           // Sprint B4B: where the worker stands in the calculation year (empty when not assessed).
+          contractedWeeklyHours: a.contractedWeeklyHours,
           calcYearStart: a.calcYearStart ? dateToIsoDate(a.calcYearStart) : null,
           calcYearEnd: a.calcYearEnd ? dateToIsoDate(a.calcYearEnd) : null,
           weeksPerYear: a.weeksPerYear == null ? null : Number(a.weeksPerYear),
@@ -2287,7 +2288,20 @@ export class PayrollRunsService {
     const name = new Map(
       reviewers.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
     );
-    return rows.map((r) => ({ ...r, reviewedByName: r.resolvedById ? (name.get(r.resolvedById) ?? null) : null }));
+    // The contracted weekly hours the assessment started from: the agreement in force at the end
+    // of the period (shown beside the annual figures; the contract itself is never annualised).
+    const agreements = rows.length
+      ? await this.prisma.employeePayAgreement.findMany({
+          where: { employeeId: { in: [...new Set(rows.map((r) => r.employeeId))] }, deletedAt: null, status: { not: 'DRAFT' } },
+        })
+      : [];
+    const weeklyHours = (employeeId: string, day: Date) =>
+      governingAgreement(agreements.filter((a) => a.employeeId === employeeId).map(agreementTermsOf), day)?.contractedHours ?? null;
+    return rows.map((r) => ({
+      ...r,
+      reviewedByName: r.resolvedById ? (name.get(r.resolvedById) ?? null) : null,
+      contractedWeeklyHours: weeklyHours(r.employeeId, r.periodEnd),
+    }));
   }
 
   /**

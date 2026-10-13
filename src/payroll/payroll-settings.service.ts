@@ -1177,11 +1177,22 @@ export class PayrollSettingsService {
     const rows = await this.prisma.salariedHoursAnnualisation.findMany({ orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }] });
     const today = new Date();
     const inForce = rows.find((r) => r.status === 'APPROVED' && r.effectiveFrom <= today) ?? null;
+    const userIds = [...new Set(rows.flatMap((r) => [r.createdById, r.approvedById, r.withdrawnById]).filter((v): v is string => !!v))];
+    const users = userIds.length
+      ? await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } })
+      : [];
+    const name = new Map(users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]));
+    const withNames = (r: (typeof rows)[number]) => ({
+      ...this.mapSalariedHoursMethod(r),
+      createdByName: r.createdById ? (name.get(r.createdById) ?? null) : null,
+      approvedByName: r.approvedById ? (name.get(r.approvedById) ?? null) : null,
+      withdrawnByName: r.withdrawnById ? (name.get(r.withdrawnById) ?? null) : null,
+    });
     return {
       message: 'Salaried hours annualisation methods',
       data: {
-        inForce: inForce ? this.mapSalariedHoursMethod(inForce) : null,
-        methods: rows.map((r) => this.mapSalariedHoursMethod(r)),
+        inForce: inForce ? withNames(inForce) : null,
+        methods: rows.map(withNames),
       },
     };
   }

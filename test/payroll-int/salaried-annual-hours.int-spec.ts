@@ -111,7 +111,7 @@ describe('salaried hours work over the calculation year (UK payroll run)', () =>
     // The contract still says 35 hours a week: nothing annual was written to it.
     expect(Number((await t.prisma.employeePayAgreement.findFirstOrThrow({ where: { employeeId } })).contractedHours)).toBe(35);
     const shown = ((await ukRuns.getById(run)) as { data: { nmwAssessments: Array<Record<string, unknown>> } }).data.nmwAssessments[0];
-    expect(shown).toMatchObject({ calcYearStart: '2026-04-01', calcYearEnd: '2027-03-31', weeksPerYear: 52, annualBasicHours: 1820, yearHoursBefore: 0, excessHours: 0 });
+    expect(shown).toMatchObject({ contractedWeeklyHours: 35, calcYearStart: '2026-04-01', calcYearEnd: '2027-03-31', weeksPerYear: 52, annualBasicHours: 1820, yearHoursBefore: 0, excessHours: 0 });
   });
 
   it('within the basic hours of the year, months with more hours than their share are compliant and need no review', async () => {
@@ -280,6 +280,40 @@ describe('salaried hours work over the calculation year (UK payroll run)', () =>
       await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/1 minimum wage exception\(s\) on this run stop it being closed/);
     });
 
+    it('the method in force at the start of the pay period is the one used (Sprint B4C)', async () => {
+      await t.prisma.salariedHoursAnnualisation.deleteMany();
+      const method = (weeksPerYear: number, effectiveFrom: string, over: Record<string, unknown> = {}) =>
+        t.prisma.salariedHoursAnnualisation.create({
+          data: {
+            weeksPerYear,
+            basis: `SYNTHETIC TEST FIXTURE: weekly hours x ${weeksPerYear}. Not an employer policy.`,
+            effectiveFrom: new Date(effectiveFrom),
+            status: 'APPROVED',
+            isSynthetic: true,
+            approvedAt: new Date('2026-03-01T09:00:00Z'),
+            ...over,
+          },
+        });
+      await method(52, '2026-04-01');
+      await method(52.18, '2026-06-01');
+      await method(50, '2026-05-01', { status: 'DRAFT', approvedAt: null }); // entered, never approved
+      await method(51, '2026-05-01', { status: 'WITHDRAWN', withdrawnAt: new Date('2026-04-20T09:00:00Z') });
+      const employeeId = uuid();
+      await agree(employeeId);
+      const used = async (month: string) => {
+        const run = await ukRun([employeeId], month);
+        await gross(run);
+        const row = await assessment(run, employeeId);
+        return [Number(row?.weeksPerYear), row?.annualBasicMinutes, row?.issue];
+      };
+      expect(await used('2026-04')).toEqual([52, 109_200, null]);
+      expect(await used('2026-05')).toEqual([52, 109_200, null]); // neither the draft nor the withdrawn one
+      expect(await used('2026-06')).toEqual([52.18, 109_578, null]); // 35 x 52.18 = 1,826.3 hours
+      // A period that starts before any method applies is not assessed.
+      await t.prisma.salariedHoursAnnualisation.updateMany({ where: { status: 'APPROVED' }, data: { effectiveFrom: new Date('2026-08-01') } });
+      expect(await used('2026-07')).toEqual([0, null, 'POLICY_REVIEW_REQUIRED']);
+    });
+
     it('a method is entered by one user and counts only once a different user approves it', async () => {
       await t.prisma.salariedHoursAnnualisation.deleteMany();
       const employeeId = uuid();
@@ -308,6 +342,8 @@ describe('salaried hours work over the calculation year (UK payroll run)', () =>
       expect((await post(checker, `/payroll/salaried-hours-methods/${id}/approve`)).status).toBe(201);
       const listed = await request(server()).get('/payroll/salaried-hours-methods').set(bearer(t.staffToken(maker.id)));
       expect(listed.body.data.inForce).toMatchObject({ id, status: 'APPROVED', weeksPerYear: 52.14, approvedById: checker.id });
+      expect(listed.body.data.inForce.createdByName).toMatch(/^Test User/);
+      expect(listed.body.data.inForce.approvedByName).toMatch(/^Test User/);
 
       // Approved: the salary is assessed with it. 35 x 52.14 = 1,824.9 hours a year, 152.08 a month.
       await gross(run);
