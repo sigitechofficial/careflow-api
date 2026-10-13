@@ -10,6 +10,7 @@ import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CancelUkPayrollRunDto,
+  ReviewNmwAssessmentDto,
   CreateUkPayrollRunDto,
   EnrolUkPayrollRunDto,
   ApproveHmrcFpsSubmissionDto,
@@ -234,6 +235,21 @@ export class PayrollRunsController {
     @Req() req: Request,
   ) {
     return this.service.calculateStatutory(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/nmw-assessments/:assessmentId/review')
+  @Permissions('payroll.runs.close')
+  @ApiOperation({
+    summary: 'Record the review of a minimum wage exception that stops the run closing (not the user who created the run)',
+  })
+  reviewNmwAssessment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('assessmentId') assessmentId: string,
+    @Body() dto: ReviewNmwAssessmentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reviewNmwAssessment(user.id, id, assessmentId, dto.note, getRequestAuditMeta(req));
   }
 
   @Post(':id/close')

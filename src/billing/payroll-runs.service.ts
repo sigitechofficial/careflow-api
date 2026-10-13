@@ -100,6 +100,7 @@ import {
 } from './earning-status.util';
 import { agreementTermsOf, carriesSalary, governingAgreement, guaranteeForWeek } from '../payroll/salary.util';
 import {
+  NMW_ISSUE_MESSAGES,
   NMW_PERIOD_SOURCE,
   PayReferencePeriod,
   assessPayReferencePeriod,
@@ -674,12 +675,30 @@ export class PayrollRunsService {
       (l) => l.lineType === PayrollRunLineType.VISIT_PAY,
     ).length;
 
+    // Sprint B3: minimum wage assessments of this run that are not on the worker's own payroll
+    // period, or were not made here. Shown with the run; they do not change its status.
+    const nmwExceptions = (
+      await this.prisma.nmwPeriodAssessment.findMany({
+        where: { payrollRunId: id, issue: { not: null } },
+        orderBy: [{ employeeId: 'asc' }, { periodStart: 'asc' }],
+      })
+    ).map((a) => ({
+      employeeId: a.employeeId,
+      periodStart: a.periodStart.toISOString().slice(0, 10),
+      periodEnd: a.periodEnd.toISOString().slice(0, 10),
+      periodSource: a.periodSource,
+      issue: a.issue,
+      message: NMW_ISSUE_MESSAGES[a.issue as string] ?? a.note,
+      compliant: a.compliant,
+    }));
+
     return {
       data: {
         ...this.mapRow({ ...row, visitLineCount }),
         notes: row.notes,
         carerSummaries,
         lines,
+        nmwExceptions,
       },
     };
   }
@@ -1250,7 +1269,9 @@ export class PayrollRunsService {
             where: {
               scheduleId: { in: scheduleIds },
               deletedAt: null,
-              periodStart: { lte: new Date(Math.max(...allTimes)) },
+              // A day of margin each side: the period of a visit is decided by its local date, which
+              // can be the day after its UTC date (00:30 in summer time is 23:30 UTC the day before).
+              periodStart: { lte: new Date(Math.max(...allTimes) + 24 * 60 * 60_000) },
               periodEnd: { gte: new Date(Math.min(...allTimes) - 24 * 60 * 60_000) },
             },
             select: { scheduleId: true, periodStart: true, periodEnd: true },
@@ -1314,8 +1335,10 @@ export class PayrollRunsService {
             periodMinutes: position.periodMinutes,
             topUpAlreadyPaid,
             topUpInRun: 0,
-            compliant: position.compliant,
-            note: decision.note,
+            compliant: position.compliant as boolean | null,
+            // Sprint B3: a period that is not the worker's own payroll period is shown as such.
+            issue: period.issue as string | null,
+            note: [decision.note, period.issue ? NMW_ISSUE_MESSAGES[period.issue] : null].filter(Boolean).join(' ') || null,
           };
           // A salaried worker is paid for basic hours by the salary: this is not time work, so a
           // top-up worked out from visit lines would be wrong. The position is recorded, not paid.
@@ -1323,8 +1346,11 @@ export class PayrollRunsService {
             nmwAssessments.push({
               ...assessment,
               workType: 'SALARIED_HOURS',
-              compliant: true,
-              note: 'Salaried hours work: not assessed from visit lines. The salary is checked against the basic hours it pays for.',
+              // Not assessed here, so nothing is said about compliance: the UK payroll run checks
+              // the salary against its basic hours.
+              compliant: null,
+              issue: 'SALARIED_NOT_ASSESSED_HERE',
+              note: NMW_ISSUE_MESSAGES.SALARIED_NOT_ASSESSED_HERE,
             });
             continue;
           }
@@ -1418,6 +1444,7 @@ export class PayrollRunsService {
               description:
                 `NMW top-up — pay reference period ${period.start} to ${period.end}` +
                 (period.source === 'PAY_RUN_PERIOD' ? ' (the dates of this run: no payroll schedule period covers them)' : '') +
+                (period.source === 'CALENDAR_MONTH' ? ' (the calendar month: the worker has no payroll period of a month or less)' : '') +
                 `: £${position.periodPay.toFixed(2)} for ${hours}h = £${position.effectiveHourly.toFixed(4)}/hr, rate £${requiredHourly.toFixed(2)} (${decision.category})` +
                 (topUpAlreadyPaid ? `; £${topUpAlreadyPaid.toFixed(2)} already topped up by an earlier run` : ''),
               minutes: null,

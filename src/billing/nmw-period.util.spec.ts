@@ -1,4 +1,8 @@
 import {
+  assessSalariedHours,
+  basicHoursOfPeriod,
+  calendarMonthOf,
+  isWithinOneMonth,
   assessPayReferencePeriod,
   nmwCategoryForPeriod,
   nmwTreatment,
@@ -15,13 +19,41 @@ const MONTHS = [
 
 describe('pay reference period (Q37–Q39)', () => {
   it('is the period of the payroll schedule the worker is paid by, not the dates of the pay run', () => {
-    expect(payReferencePeriodFor('2026-11-03', MONTHS, RUN)).toEqual({ start: '2026-11-01', end: '2026-11-30', source: 'PAYROLL_SCHEDULE' });
-    expect(payReferencePeriodFor('2026-10-31', MONTHS, RUN)).toEqual({ start: '2026-10-01', end: '2026-10-31', source: 'PAYROLL_SCHEDULE' });
+    expect(payReferencePeriodFor('2026-11-03', MONTHS, RUN)).toEqual({ start: '2026-11-01', end: '2026-11-30', source: 'PAYROLL_SCHEDULE', issue: null });
+    expect(payReferencePeriodFor('2026-10-31', MONTHS, RUN)).toEqual({ start: '2026-10-01', end: '2026-10-31', source: 'PAYROLL_SCHEDULE', issue: null });
   });
 
   it('falls back to the run dates, and says so, when no schedule period covers the day', () => {
-    expect(payReferencePeriodFor('2026-11-03', [], RUN)).toEqual({ start: '2026-11-02', end: '2026-11-08', source: 'PAY_RUN_PERIOD' });
-    expect(payReferencePeriodFor('2026-12-03', MONTHS, RUN).source).toBe('PAY_RUN_PERIOD');
+    expect(payReferencePeriodFor('2026-11-03', [], RUN)).toEqual({ start: '2026-11-02', end: '2026-11-08', source: 'PAY_RUN_PERIOD', issue: 'NO_PAYROLL_SCHEDULE' });
+    expect(payReferencePeriodFor('2026-12-03', MONTHS, RUN)).toMatchObject({ source: 'PAY_RUN_PERIOD', issue: 'NO_PAYROLL_SCHEDULE' });
+  });
+
+  it('never uses a period longer than a month (Sprint B3)', () => {
+    expect(isWithinOneMonth('2026-11-01', '2026-11-30')).toBe(true);
+    expect(isWithinOneMonth('2026-11-02', '2026-12-01')).toBe(true);
+    expect(isWithinOneMonth('2026-11-01', '2026-12-01')).toBe(false);
+    expect(isWithinOneMonth('2027-01-31', '2027-02-27')).toBe(true);
+    expect(isWithinOneMonth('2027-01-31', '2027-02-28')).toBe(false);
+    expect(isWithinOneMonth('2026-11-02', '2026-11-08')).toBe(true);
+    expect(calendarMonthOf('2028-02-10')).toEqual({ start: '2028-02-01', end: '2028-02-29' });
+
+    // A run of six weeks with no schedule: each day is assessed in its calendar month.
+    const longRun = { periodStart: d('2026-11-01'), periodEnd: d('2026-12-15') };
+    expect(payReferencePeriodFor('2026-11-20', [], longRun)).toEqual({ start: '2026-11-01', end: '2026-11-30', source: 'CALENDAR_MONTH', issue: 'NO_PAYROLL_SCHEDULE' });
+    expect(payReferencePeriodFor('2026-12-03', [], longRun)).toEqual({ start: '2026-12-01', end: '2026-12-31', source: 'CALENDAR_MONTH', issue: 'NO_PAYROLL_SCHEDULE' });
+    // A schedule period of six weeks is not a pay reference period either.
+    const sixWeeks = [{ periodStart: d('2026-11-01'), periodEnd: d('2026-12-12') }];
+    expect(payReferencePeriodFor('2026-12-03', sixWeeks, RUN)).toEqual({ start: '2026-12-01', end: '2026-12-31', source: 'CALENDAR_MONTH', issue: 'PERIOD_OVER_ONE_MONTH' });
+  });
+
+  it('a weekly or four-weekly schedule period that crosses a month or the tax year is one period', () => {
+    const weekly = [{ periodStart: d('2027-03-29'), periodEnd: d('2027-04-04') }, { periodStart: d('2027-04-05'), periodEnd: d('2027-04-11') }];
+    expect(payReferencePeriodFor('2027-04-01', weekly, RUN)).toMatchObject({ start: '2027-03-29', end: '2027-04-04', issue: null });
+    // 5 April is the last day of the tax year, 6 April the first of the next: the same pay period.
+    expect(payReferencePeriodFor('2027-04-05', weekly, RUN).start).toBe('2027-04-05');
+    expect(payReferencePeriodFor('2027-04-06', weekly, RUN).start).toBe('2027-04-05');
+    const fourWeekly = [{ periodStart: d('2026-11-23'), periodEnd: d('2026-12-20') }];
+    expect(payReferencePeriodFor('2026-12-01', fourWeekly, RUN)).toMatchObject({ start: '2026-11-23', end: '2026-12-20', source: 'PAYROLL_SCHEDULE', issue: null });
   });
 });
 
@@ -120,5 +152,54 @@ describe('salaried hours work', () => {
 
   it('cannot be worked out without contracted hours', () => {
     expect(salariedHoursCheck({ periodSalary: 2000, contractedWeeklyHours: null, periodsPerYear: 12, requiredHourly: 12.71 }).compliant).toBeNull();
+  });
+});
+
+describe('minimum wage for salaried hours work (Sprint B3)', () => {
+  const RATE = 12.71;
+
+  it('basic hours of a period: contracted weekly hours over 52 weeks, divided by the pay periods of the year', () => {
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 35, days: 30 }], 30, 12)).toBe(151.67); // GOV.UK example: 1,820 hours a year
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 37.5, days: 7 }], 7, 52)).toBe(37.5);
+    // A starter half way through the month has half the basic hours.
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }], 30, 12)).toBe(65);
+    // A change of agreement: each part carries its own hours.
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }, { contractedWeeklyHours: 20, days: 15 }], 30, 12)).toBe(108.33);
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: null, days: 30 }], 30, 12)).toBeNull();
+    expect(basicHoursOfPeriod([], 30, 12)).toBeNull();
+  });
+
+  it('above the rate on the basic hours', () => {
+    const result = assessSalariedHours({ requiredHourly: RATE, basicHours: 130, pay: 2000, additionalPaidMinutes: 0, workedMinutes: 6000 });
+    expect(result).toMatchObject({ hours: 130, effectiveHourly: 15.3846, topUp: 0, compliant: true, issue: null });
+  });
+
+  it('below the rate on the basic hours: the shortfall is certain and is topped up', () => {
+    const result = assessSalariedHours({ requiredHourly: RATE, basicHours: 130, pay: 1500, additionalPaidMinutes: 0, workedMinutes: 0 });
+    expect(result).toMatchObject({ topUp: 152.3, compliant: false, issue: null, shortfall: 0 }); // 130 × 12.71 − 1,500
+    expect(result.note).toMatch(/topped up by £152\.30/);
+  });
+
+  it('hours paid on top count with their pay', () => {
+    // 130 basic hours for £1,700 and 10 further hours paid £140.
+    const result = assessSalariedHours({ requiredHourly: RATE, basicHours: 130, pay: 1840, additionalPaidMinutes: 600, workedMinutes: 8400 });
+    expect(result).toMatchObject({ hours: 140, effectiveHourly: 13.1429, topUp: 0, compliant: true });
+  });
+
+  it('more hours worked than paid for, and below the rate if they count: not declared compliant', () => {
+    // £1,700 for 130 basic hours is £13.08, but 150 hours were worked: £11.33 if the extra 20 count.
+    const result = assessSalariedHours({ requiredHourly: RATE, basicHours: 130, pay: 1700, additionalPaidMinutes: 0, workedMinutes: 9000 });
+    expect(result).toMatchObject({ topUp: 0, compliant: null, issue: 'EXCESS_HOURS_NOT_VERIFIED', shortfall: 206.5 });
+    expect(result.note).toMatch(/150\.00h were worked.*Up to £206\.50 more may be due/);
+    // The same extra hours with pay high enough either way need no review.
+    expect(assessSalariedHours({ requiredHourly: RATE, basicHours: 130, pay: 2000, additionalPaidMinutes: 0, workedMinutes: 9000 }).compliant).toBe(true);
+  });
+
+  it('with no contracted hours recorded nothing can be said', () => {
+    expect(assessSalariedHours({ requiredHourly: RATE, basicHours: null, pay: 2000, additionalPaidMinutes: 0, workedMinutes: 0 })).toMatchObject({
+      compliant: null,
+      issue: 'BASIC_HOURS_NOT_RECORDED',
+      topUp: 0,
+    });
   });
 });

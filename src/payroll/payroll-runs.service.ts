@@ -16,6 +16,7 @@ import {
   applySalaryCoverage,
   carriesSalary,
   governingAgreement,
+  periodsPerYear,
   salaryCoverageByVisit,
   salaryForPeriod,
   weekStartKey,
@@ -32,6 +33,17 @@ import {
   assertFinancialResetEnvironment,
 } from '../billing/financial-controls.util';
 import { isClaimConflict } from '../billing/payroll-claim.util';
+import { nmwHourlyRate } from '../billing/pay-compliance.util';
+import {
+  NMW_BLOCKING_ISSUES,
+  NMW_ISSUE_MESSAGES,
+  assessSalariedHours,
+  basicHoursOfPeriod,
+  isWithinOneMonth,
+  nmwCategoryForPeriod,
+  nmwTreatment,
+} from '../billing/nmw-period.util';
+import { dayKeyInTimeZone, startOfOperationalDayUtc } from '../common/utils/operational-day.util';
 import {
   RECOVERY_NOT_AUTHORISED,
   markRecoveriesApplied,
@@ -44,6 +56,7 @@ import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
 import {
   accumulateGrossLine,
+  calendarDaysInclusive,
   emptyGrossBucket,
   finalizeGrossBucket,
   isExpenseLineType,
@@ -85,6 +98,15 @@ const OPEN_RUN_STATUSES = [
   'GROSS_CALCULATED',
   'STATUTORY_CALCULATED',
 ] as const;
+
+/**
+ * UK payroll works on UK civil dates. An instant is kept as it is; where a rule asks "which day",
+ * "which week" or "which pay period", the answer is the date in the United Kingdom, so a visit at
+ * 00:30 on 1 July (23:30 UTC on 30 June) belongs to July.
+ */
+const UK_PAYROLL_TIME_ZONE = 'Europe/London';
+const ukCivilDay = (instant: Date) => new Date(`${dayKeyInTimeZone(instant, UK_PAYROLL_TIME_ZONE)}T00:00:00.000Z`);
+const ukStartOfDay = (date: Date) => startOfOperationalDayUtc(date.toISOString().slice(0, 10), UK_PAYROLL_TIME_ZONE);
 
 function decimalNum(v: Prisma.Decimal | number | null | undefined): number {
   if (v == null) return 0;
@@ -610,6 +632,30 @@ export class PayrollRunsService {
             })),
           };
         }),
+        // Sprint B3: minimum wage assessments made by this run (salaried hours work).
+        nmwAssessments: (
+          await this.prisma.nmwPeriodAssessment.findMany({
+            where: { ukPayrollRunId: id },
+            orderBy: { employeeId: 'asc' },
+          })
+        ).map((a) => ({
+          id: a.id,
+          employeeId: a.employeeId,
+          workType: a.workType,
+          category: a.category,
+          requiredHourly: Number(a.requiredHourly),
+          pay: Number(a.eligiblePay),
+          hours: Math.round((a.minutes / 60) * 100) / 100,
+          workedHours: Math.round((a.periodMinutes / 60) * 100) / 100,
+          topUp: Number(a.topUpInRun),
+          compliant: a.compliant,
+          issue: a.issue,
+          shortfall: a.shortfall == null ? null : Number(a.shortfall),
+          blocksClose: !!a.issue && NMW_BLOCKING_ISSUES.includes(a.issue) && !a.resolvedAt,
+          resolvedAt: a.resolvedAt?.toISOString() ?? null,
+          resolutionNote: a.resolutionNote,
+          note: a.note,
+        })),
         phaseNote:
           'Cumulative PAYE by default using YTD ledgers (T06/T07). Week 1/Month 1 when the employee flag is set (or BR/D0/D1). Closing posts YTD. Closed runs can preview FPS and dry-run / TEST-submit GovTalk (T16). Live HMRC send is T18.',
       },
@@ -1281,7 +1327,9 @@ export class PayrollRunsService {
     const paidProvisionally = new Set(
       lockedLineRecons.filter((r) => r.paidByUkPayrollRunId).map((r) => r.id),
     );
-    const visitStartById = new Map(lockedLineRecons.map((r) => [r.id, r.approvedPayStart]));
+    const visitDayById = new Map(
+      lockedLineRecons.map((r) => [r.id, r.approvedPayStart ? ukCivilDay(r.approvedPayStart) : null]),
+    );
 
     const coveredReconIds = new Set<string>();
     const draftLines: DraftInputLine[] = [];
@@ -1317,7 +1365,7 @@ export class PayrollRunsService {
         minutes: line.minutes,
         isProvisional: false,
         workedAt:
-          (line.visitReconciliationId ? visitStartById.get(line.visitReconciliationId) : null) ??
+          (line.visitReconciliationId ? visitDayById.get(line.visitReconciliationId) : null) ??
           line.payrollRun.periodEnd,
         fromPayItem: !!line.employeePayItemId,
       };
@@ -1352,7 +1400,8 @@ export class PayrollRunsService {
       where: {
         employeeId: { in: employeeIds },
         status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
-        approvedPayStart: { gte: periodStart, lt: periodEndExclusive },
+        // The pay period is a span of UK dates: from the first midnight to the one after the last.
+        approvedPayStart: { gte: ukStartOfDay(periodStart), lt: ukStartOfDay(periodEndExclusive) },
         // Not yet settled by a visit pay run or by another closed UK run.
         includedInPayrollRunId: null,
         paidByUkPayrollRunId: null,
@@ -1387,7 +1436,7 @@ export class PayrollRunsService {
         isProvisional: true,
         // Claimed on the visit itself when the run closes (paidByUkPayrollRunId).
         claimKey: null,
-        workedAt: recon.approvedPayStart,
+        workedAt: recon.approvedPayStart ? ukCivilDay(recon.approvedPayStart) : null,
       });
     }
 
@@ -1431,9 +1480,11 @@ export class PayrollRunsService {
         .map((l) => l.workedAt!.getTime());
       const coverageByVisit = new Map<string, VisitCoverage>();
       if (visitTimes.length) {
+        // A day of margin each side: the week of each visit is decided by its UK date below.
         const from = new Date(`${weekStartKey(new Date(Math.min(...visitTimes)))}T00:00:00.000Z`);
+        from.setUTCDate(from.getUTCDate() - 1);
         const to = new Date(`${weekStartKey(new Date(Math.max(...visitTimes)))}T00:00:00.000Z`);
-        to.setUTCDate(to.getUTCDate() + 7);
+        to.setUTCDate(to.getUTCDate() + 8);
         const weekVisits = await this.prisma.visitReconciliation.findMany({
           where: {
             employeeId: { in: [...salaried] },
@@ -1447,7 +1498,12 @@ export class PayrollRunsService {
           const cover = salaryCoverageByVisit(
             weekVisits
               .filter((v) => v.employeeId === employeeId && v.approvedPayStart)
-              .map((v) => ({ id: v.id, start: v.approvedPayStart!, minutes: v.payableMinutes ?? 0 })),
+              .map((v) => ({
+                id: v.id,
+                start: v.approvedPayStart!,
+                day: ukCivilDay(v.approvedPayStart!),
+                minutes: v.payableMinutes ?? 0,
+              })),
             agreementsByEmployee.get(employeeId) ?? [],
           );
           for (const [visitId, value] of cover) coverageByVisit.set(visitId, value);
@@ -1496,10 +1552,12 @@ export class PayrollRunsService {
       isProvisional: false,
     };
     const paysSalaryHere = new Set<string>();
+    const salaryPartsPaid = new Map<string, ReturnType<typeof salaryParts>>();
     for (const runEmployee of runEmployees) {
       // A period's salary belongs to one run; a supplementary run in the same period pays extras only.
       if (heldClaims.has(salaryClaim(runEmployee.employeeId))) continue;
       const parts = salaryParts(runEmployee.employeeId, periodStart, periodEnd, run.schedule.frequency);
+      if (parts.length) salaryPartsPaid.set(runEmployee.employeeId, parts);
       parts.forEach((part, index) => {
         draftLines.push({
           ...salaryLine,
@@ -1677,6 +1735,116 @@ export class PayrollRunsService {
       });
     }
 
+    // Sprint B3, Task 2: minimum wage for salaried hours work. The run that pays a period's salary
+    // assesses it, once: the salary and other pay that counts, after deductions, against the basic
+    // hours of the period and any hours paid on top. A certain shortfall is topped up; anything
+    // that cannot be decided from one period is recorded for a person and stops the run closing.
+    const nmwAssessments: Prisma.NmwPeriodAssessmentCreateManyInput[] = [];
+    if (salaryPartsPaid.size) {
+      const salariedIds = [...salaryPartsPaid.keys()];
+      const [facts, profiles] = await Promise.all([
+        this.prisma.employeeEmployment.findMany({
+          where: { employeeId: { in: salariedIds } },
+          select: {
+            employeeId: true,
+            contractType: { select: { name: true } },
+            employee: { select: { personalDetail: { select: { dateOfBirth: true } } } },
+          },
+        }),
+        this.prisma.employeePayrollProfile.findMany({
+          where: { employeeId: { in: salariedIds }, deletedAt: null },
+          select: { employeeId: true, apprenticeshipStartDate: true },
+        }),
+      ]);
+      const periodDays = calendarDaysInclusive(periodStart, periodEnd);
+      const validPeriod = isWithinOneMonth(dateToIsoDate(periodStart)!, dateToIsoDate(periodEnd)!);
+      for (const [employeeId, parts] of salaryPartsPaid) {
+        const runEmployee = runEmployeeByEmployeeId.get(employeeId)!;
+        const fact = facts.find((f) => f.employeeId === employeeId);
+        const decision = nmwCategoryForPeriod({
+          dateOfBirth: fact?.employee?.personalDetail?.dateOfBirth ?? null,
+          periodStart,
+          apprenticeContract: /apprentice/i.test(fact?.contractType?.name ?? ''),
+          apprenticeshipStartDate:
+            profiles.find((p) => p.employeeId === employeeId)?.apprenticeshipStartDate ?? null,
+        });
+        const requiredHourly = nmwHourlyRate(decision.category, periodStart);
+        // Salary of other periods and reimbursements are not pay of this period.
+        const own = draftLines.filter(
+          (l) =>
+            l.employeeId === employeeId &&
+            !l.isExpense &&
+            l.lineType !== 'SALARY_ADJUSTMENT' &&
+            l.lineType !== 'MILEAGE_TAXABLE',
+        );
+        const pay = round2(own.filter((l) => nmwTreatment(l.lineType).pay).reduce((sum, l) => sum + l.amount, 0));
+        const timeLines = own.filter((l) => nmwTreatment(l.lineType).hours && (l.minutes ?? 0) > 0);
+        const workedMinutes = timeLines.reduce((sum, l) => sum + (l.minutes ?? 0), 0);
+        const additionalPaidMinutes = Math.round(
+          timeLines.reduce((sum, l) => {
+            const full = l.amount + (l.unpaidAmount ?? 0);
+            return sum + (full > 0 ? ((l.minutes ?? 0) * l.amount) / full : 0);
+          }, 0),
+        );
+        const result = validPeriod
+          ? assessSalariedHours({
+              requiredHourly,
+              basicHours: basicHoursOfPeriod(
+                parts.map((p) => ({ contractedWeeklyHours: p.contractedHours, days: p.days })),
+                periodDays,
+                periodsPerYear(run.schedule.frequency),
+              ),
+              pay,
+              additionalPaidMinutes,
+              workedMinutes,
+            })
+          : {
+              hours: null,
+              effectiveHourly: null,
+              topUp: 0,
+              compliant: null,
+              issue: 'PERIOD_OVER_ONE_MONTH',
+              shortfall: 0,
+              note: NMW_ISSUE_MESSAGES.PERIOD_OVER_ONE_MONTH,
+            };
+        if (result.topUp > 0) {
+          draftLines.push({
+            ...salaryLine,
+            id: randomUUID(),
+            runId,
+            runEmployeeId: runEmployee.id,
+            employeeId,
+            lineType: 'NMW_TOP_UP',
+            description: `Minimum wage top-up (salaried hours work) — ${dateToIsoDate(periodStart)} to ${dateToIsoDate(periodEnd)}: ${result.note}`,
+            amount: result.topUp,
+            // One top-up for the period's salary: a supplementary run cannot add another.
+            claimKey: `NMW_SALARY:${employeeId}:${run.periodId}`,
+          });
+        }
+        nmwAssessments.push({
+          ukPayrollRunId: runId,
+          employeeId,
+          periodStart,
+          periodEnd,
+          periodSource: 'UK_PAYROLL_PERIOD',
+          workType: 'SALARIED_HOURS',
+          category: decision.category,
+          ageAtPeriodStart: decision.ageAtPeriodStart,
+          requiredHourly,
+          eligiblePay: pay,
+          minutes: Math.round((result.hours ?? 0) * 60),
+          periodPay: pay,
+          periodMinutes: workedMinutes,
+          topUpAlreadyPaid: 0,
+          topUpInRun: result.topUp,
+          compliant: result.compliant,
+          issue: result.issue,
+          shortfall: result.shortfall,
+          note: [decision.note, result.note].filter(Boolean).join(' '),
+        });
+      }
+    }
+
     const hasPayInput = draftLines.some((l) => l.amount > 0);
     if (!hasPayInput) {
       const from = dateToIsoDate(periodStart);
@@ -1723,6 +1891,9 @@ export class PayrollRunsService {
 
     await this.prisma.$transaction(async (tx) => {
       await withdrawStaleRecoveries(tx, runId, confirmedRecoveries);
+      // Recalculating replaces the assessments, and with them any review of an earlier figure.
+      await tx.nmwPeriodAssessment.deleteMany({ where: { ukPayrollRunId: runId } });
+      if (nmwAssessments.length) await tx.nmwPeriodAssessment.createMany({ data: nmwAssessments });
       await tx.ukPayrollInputLine.deleteMany({ where: { runId } });
       if (draftLines.length) {
         await tx.ukPayrollInputLine.createMany({
@@ -1996,10 +2167,63 @@ export class PayrollRunsService {
     return this.getById(runId);
   }
 
+  /**
+   * A person with the power to close payroll records that a minimum wage exception of this run
+   * has been looked into, and what was found. It is the checker's act: not the person who
+   * created the run. Recalculating gross clears it, because the figures may have changed.
+   */
+  async reviewNmwAssessment(
+    userId: string,
+    runId: string,
+    assessmentId: string,
+    note: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const run = await this.requireRun(runId);
+    if (!OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number])) {
+      throw new BadRequestException('Only an open run has exceptions to review');
+    }
+    assertDifferentUser(
+      run.createdById,
+      userId,
+      'A minimum wage exception is reviewed by a different user from the one who created the run.',
+    );
+    const row = await this.prisma.nmwPeriodAssessment.findFirst({
+      where: { id: assessmentId, ukPayrollRunId: runId },
+    });
+    if (!row) throw new NotFoundException('Minimum wage assessment not found on this run');
+    if (!row.issue) throw new BadRequestException('This assessment has nothing to review.');
+    await this.prisma.nmwPeriodAssessment.update({
+      where: { id: assessmentId },
+      data: { resolvedById: userId, resolvedAt: new Date(), resolutionNote: note.trim() },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.NMW_EXCEPTION_REVIEWED,
+      recordType: 'NmwPeriodAssessment',
+      recordId: assessmentId,
+      description: note.trim(),
+      newValues: { issue: row.issue, shortfall: row.shortfall == null ? null : Number(row.shortfall) },
+      metadata: { ukPayrollRunId: runId, employeeId: row.employeeId },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    return { message: 'Review recorded.', data: { id: assessmentId, issue: row.issue } };
+  }
+
   async close(userId: string, runId: string, meta?: RequestAuditMeta) {
     const run = await this.requireRun(runId);
     if (!OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number])) {
       throw new BadRequestException('Only open runs can be closed');
+    }
+    const unreviewed = await this.prisma.nmwPeriodAssessment.count({
+      where: { ukPayrollRunId: runId, issue: { in: [...NMW_BLOCKING_ISSUES] }, resolvedAt: null },
+    });
+    if (unreviewed > 0) {
+      throw new BadRequestException(
+        `${unreviewed} minimum wage exception(s) on this run have not been reviewed. Put the cause right and recalculate gross, or have a person with the power to close payroll review each one with a reason.`,
+      );
     }
     if (run.status !== 'STATUTORY_CALCULATED' || !run.statutoryCalculatedAt) {
       throw new BadRequestException(

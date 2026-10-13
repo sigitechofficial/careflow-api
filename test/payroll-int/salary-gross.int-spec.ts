@@ -45,6 +45,8 @@ describe('salary in UK payroll gross (synthetic agreements)', () => {
         salaryEntryAmount: 24_000,
         salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS',
         salaryCoverage: 'ALL_VISIT_WORK',
+        // Basic hours of the salary: without them the minimum wage cannot be checked (Sprint B3).
+        contractedHours: 30,
         createdById: maker,
         ...approvedOn('2026-01-01T09:00:00Z'),
         ...over,

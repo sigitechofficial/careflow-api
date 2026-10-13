@@ -15,21 +15,84 @@ export type PayReferencePeriod = {
   /** YYYY-MM-DD */
   start: string;
   end: string;
-  /** PAYROLL_SCHEDULE: a period of the worker's UK payroll schedule. PAY_RUN_PERIOD: none covers the day. */
-  source: 'PAYROLL_SCHEDULE' | 'PAY_RUN_PERIOD';
+  /**
+   * PAYROLL_SCHEDULE: a period of the worker's UK payroll schedule.
+   * PAY_RUN_PERIOD: no schedule period covers the day; the run's own dates (a month or less).
+   * CALENDAR_MONTH: neither can be used, because it would be longer than a month.
+   */
+  source: 'PAYROLL_SCHEDULE' | 'PAY_RUN_PERIOD' | 'CALENDAR_MONTH';
+  /** Why the period is not the worker's own payroll period, for a person to put right. */
+  issue: 'NO_PAYROLL_SCHEDULE' | 'PERIOD_OVER_ONE_MONTH' | null;
 };
+
+export const NMW_ISSUE_MESSAGES: Record<string, string> = {
+  NO_PAYROLL_SCHEDULE:
+    'No UK payroll schedule period covers this work, so the pay reference period is not known. The check was made over a period of a month or less so that nothing is averaged over longer; give the worker a payroll schedule.',
+  PERIOD_OVER_ONE_MONTH:
+    'The period this worker is paid by is longer than a month, which cannot be a pay reference period. The check was made by calendar month instead; correct the payroll schedule.',
+  SALARIED_NOT_ASSESSED_HERE:
+    'Salaried hours work: not assessed from visit lines. The salary is checked against its basic hours in the UK payroll run.',
+  BASIC_HOURS_NOT_RECORDED:
+    'The pay agreement records no contracted weekly hours, so the basic hours the salary pays for are not known and the minimum wage cannot be checked.',
+  EXCESS_HOURS_NOT_VERIFIED:
+    'More hours were worked in the period than the basic hours of the salary. If the basic hours for the year have been exceeded, the extra hours must be paid at least the minimum wage: this has to be checked against the year so far.',
+  SHORTFALL: 'Pay for the period is below the minimum wage for the hours it covers.',
+};
+
+/** Issues that stop a UK payroll run being closed until someone with that power has reviewed them. */
+export const NMW_BLOCKING_ISSUES: readonly string[] = [
+  'SHORTFALL',
+  'BASIC_HOURS_NOT_RECORDED',
+  'EXCESS_HOURS_NOT_VERIFIED',
+  'PERIOD_OVER_ONE_MONTH',
+];
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-/** The pay reference period a day of work falls in. */
+/**
+ * A pay reference period is a month, or the shorter period the worker is paid by: never longer.
+ * True when the days from `start` to `end` inclusive are no more than one calendar month.
+ */
+export function isWithinOneMonth(start: string, end: string): boolean {
+  const next = new Date(`${start}T00:00:00.000Z`);
+  const day = next.getUTCDate();
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + 1);
+  const lastOfNext = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
+  next.setUTCDate(Math.min(day, lastOfNext));
+  // `next` is the same day of the following month: the period must end before it.
+  return end < iso(next);
+}
+
+export function calendarMonthOf(dayKey: string): { start: string; end: string } {
+  const [year, month] = dayKey.split('-').map(Number);
+  return { start: `${dayKey.slice(0, 7)}-01`, end: iso(new Date(Date.UTC(year, month, 0))) };
+}
+
+/**
+ * The pay reference period a day of work falls in: the worker's payroll schedule period. Where
+ * there is none, or it is longer than a month, a period of a month or less is still used — the
+ * run's own dates if they are short enough, otherwise the calendar month — and the reason is
+ * returned so that it is shown, never silently accepted.
+ */
 export function payReferencePeriodFor(
   dayKey: string,
   schedulePeriods: Array<{ periodStart: Date; periodEnd: Date }>,
   run: { periodStart: Date; periodEnd: Date },
 ): PayReferencePeriod {
   const period = schedulePeriods.find((p) => iso(p.periodStart) <= dayKey && dayKey <= iso(p.periodEnd));
-  if (period) return { start: iso(period.periodStart), end: iso(period.periodEnd), source: 'PAYROLL_SCHEDULE' };
-  return { start: iso(run.periodStart), end: iso(run.periodEnd), source: 'PAY_RUN_PERIOD' };
+  if (period) {
+    const start = iso(period.periodStart);
+    const end = iso(period.periodEnd);
+    if (isWithinOneMonth(start, end)) return { start, end, source: 'PAYROLL_SCHEDULE', issue: null };
+    return { ...calendarMonthOf(dayKey), source: 'CALENDAR_MONTH', issue: 'PERIOD_OVER_ONE_MONTH' };
+  }
+  const runStart = iso(run.periodStart);
+  const runEnd = iso(run.periodEnd);
+  if (isWithinOneMonth(runStart, runEnd)) {
+    return { start: runStart, end: runEnd, source: 'PAY_RUN_PERIOD', issue: 'NO_PAYROLL_SCHEDULE' };
+  }
+  return { ...calendarMonthOf(dayKey), source: 'CALENDAR_MONTH', issue: 'NO_PAYROLL_SCHEDULE' };
 }
 
 export type NmwCategoryDecision = {
@@ -173,5 +236,94 @@ export function salariedHoursCheck(input: {
     basicHours: Math.round(basicHours * 100) / 100,
     effectiveHourly,
     compliant: effectiveHourly + 1e-9 >= input.requiredHourly,
+  };
+}
+
+/**
+ * Basic hours of a pay period for salaried hours work: the contracted weekly hours taken over a
+ * year (52 weeks) and divided by the number of pay periods in the year, as HMRC's guidance sets
+ * out. A part of a period (a starter, a leaver, a change of agreement) carries its share by days.
+ * Null when any part has no contracted hours recorded: the basic hours are then not known.
+ */
+export function basicHoursOfPeriod(
+  parts: Array<{ contractedWeeklyHours: number | null; days: number }>,
+  periodDays: number,
+  periodsPerYear: number,
+): number | null {
+  if (!parts.length || parts.some((p) => !(p.contractedWeeklyHours && p.contractedWeeklyHours > 0))) return null;
+  const hours = parts.reduce(
+    (sum, p) => sum + (((p.contractedWeeklyHours as number) * 52) / periodsPerYear) * (p.days / periodDays),
+    0,
+  );
+  return Math.round(hours * 100) / 100;
+}
+
+export type SalariedAssessment = {
+  /** Hours the pay of the period is measured against: basic hours and separately paid hours. */
+  hours: number | null;
+  effectiveHourly: number | null;
+  /** Pay needed to bring the period up to the rate on those hours. */
+  topUp: number;
+  /** True, false, or null when it cannot be said. */
+  compliant: boolean | null;
+  issue: string | null;
+  /** Pay that may still be missing after the top-up (hours beyond the basic hours). */
+  shortfall: number;
+  note: string;
+};
+
+/**
+ * Minimum wage for salaried hours work in one pay reference period.
+ *
+ * Pay is measured against the basic hours of the period plus any hours paid on top. A shortfall
+ * on those hours is certain, and is topped up. Hours worked beyond them are a different matter:
+ * they only count once the basic hours for the year are exceeded, which one period cannot show.
+ * If counting them would put the worker below the rate, that is reported for a person to check
+ * against the year; the worker is not declared compliant.
+ */
+export function assessSalariedHours(input: {
+  requiredHourly: number;
+  basicHours: number | null;
+  pay: number;
+  additionalPaidMinutes: number;
+  workedMinutes: number;
+}): SalariedAssessment {
+  if (input.basicHours == null) {
+    return {
+      hours: null,
+      effectiveHourly: null,
+      topUp: 0,
+      compliant: null,
+      issue: 'BASIC_HOURS_NOT_RECORDED',
+      shortfall: 0,
+      note: NMW_ISSUE_MESSAGES.BASIC_HOURS_NOT_RECORDED,
+    };
+  }
+  const hours = Math.round((input.basicHours + input.additionalPaidMinutes / 60) * 100) / 100;
+  const effectiveHourly = hours > 0 ? Math.round((input.pay / hours) * 10000) / 10000 : null;
+  const topUp = hours > 0 ? Math.max(0, round2(input.requiredHourly * hours - input.pay)) : 0;
+  const workedHours = input.workedMinutes / 60;
+  const figures = `£${input.pay.toFixed(2)} for ${hours}h (${input.basicHours}h basic${input.additionalPaidMinutes ? ` + ${(input.additionalPaidMinutes / 60).toFixed(2)}h paid on top` : ''}) = £${(effectiveHourly ?? 0).toFixed(4)}/hr against £${input.requiredHourly.toFixed(2)}`;
+  const excessShortfall =
+    workedHours > hours ? Math.max(0, round2(input.requiredHourly * workedHours - input.pay - topUp)) : 0;
+  if (excessShortfall > 0) {
+    return {
+      hours,
+      effectiveHourly,
+      topUp,
+      compliant: null,
+      issue: 'EXCESS_HOURS_NOT_VERIFIED',
+      shortfall: excessShortfall,
+      note: `${figures}. ${workedHours.toFixed(2)}h were worked. ${NMW_ISSUE_MESSAGES.EXCESS_HOURS_NOT_VERIFIED} Up to £${excessShortfall.toFixed(2)} more may be due.`,
+    };
+  }
+  return {
+    hours,
+    effectiveHourly,
+    topUp,
+    compliant: topUp === 0,
+    issue: null,
+    shortfall: 0,
+    note: topUp > 0 ? `${figures}: topped up by £${topUp.toFixed(2)}.` : `${figures}.`,
   };
 }

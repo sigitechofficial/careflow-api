@@ -320,6 +320,7 @@ async function main() {
     check('no leave terms or leave entries are created (no entitlement is invented)', (await empty('"payroll"."EmployeeLeaveTerms"')) && (await empty('"payroll"."EmployeeLeaveEntry"')));
     const apprentices = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."EmployeePayrollProfile" WHERE "apprenticeshipStartDate" IS NOT NULL`);
     check('no payroll profile is given an apprenticeship start date', apprentices.n === 0);
+    check('no wage recovery is created by the migrations (nothing is proposed or deducted for history)', await empty('"billing"."WageRecovery"'));
 
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`

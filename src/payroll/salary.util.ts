@@ -210,6 +210,9 @@ export type SalaryPart = {
   agreementId: string;
   from: Date;
   to: Date;
+  /** Days of the period this part covers, and the contracted weekly hours of its agreement. */
+  days: number;
+  contractedHours: number | null;
   amount: number;
   description: string;
 };
@@ -269,6 +272,8 @@ export function salaryForPeriod(input: {
       agreementId: seg.agreement.id,
       from: seg.from,
       to: seg.to,
+      days: seg.days,
+      contractedHours: seg.agreement.contractedHours,
       amount,
       description: `Salary ${isoDay(seg.from)} – ${isoDay(seg.to)}: £${annual.toFixed(2)} a year, ${share} (${METHOD_WORDS[method]})`,
     });
@@ -297,7 +302,8 @@ export type VisitCoverage = { coveredMinutes: number; minutes: number; notDecide
  * - salary with no coverage recorded: not decided.
  */
 export function salaryCoverageByVisit(
-  visits: Array<{ id: string; start: Date; minutes: number }>,
+  /** `day` is the civil date the visit belongs to, when that differs from the UTC date of `start`. */
+  visits: Array<{ id: string; start: Date; minutes: number; day?: Date }>,
   agreements: AgreementTerms[],
 ): Map<string, VisitCoverage> {
   const result = new Map<string, VisitCoverage>();
@@ -305,7 +311,8 @@ export function salaryCoverageByVisit(
   const ordered = [...visits].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id));
   for (const visit of ordered) {
     const minutes = Math.max(0, visit.minutes);
-    const agreement = governingAgreement(agreements, visit.start);
+    const on = visit.day ?? visit.start;
+    const agreement = governingAgreement(agreements, on);
     if (!carriesSalary(agreement)) {
       result.set(visit.id, { coveredMinutes: 0, minutes, notDecided: false });
       continue;
@@ -316,7 +323,7 @@ export function salaryCoverageByVisit(
     } else if (coverage === 'NO_VISIT_WORK') {
       result.set(visit.id, { coveredMinutes: 0, minutes, notDecided: false });
     } else if (coverage === 'CONTRACTED_HOURS') {
-      const week = weekStartKey(visit.start);
+      const week = weekStartKey(on);
       const used = usedByWeek.get(week) ?? 0;
       const allowance = Math.max(0, Math.round((agreement!.contractedHours ?? 0) * 60) - used);
       const covered = Math.min(minutes, allowance);

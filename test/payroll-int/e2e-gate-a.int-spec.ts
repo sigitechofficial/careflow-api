@@ -136,7 +136,7 @@ describe('Gate A end to end: one synthetic month', () => {
     ben = await createCarer(t.prisma, { locationId: branchB });
     sam = (await createCarer(t.prisma, { locationId: branchA })).employeeId;
     await t.prisma.employeePayAgreement.create({
-      data: { employeeId: sam, basis: 'SALARIED', annualSalary: 36525, effectiveFrom: new Date('2026-01-01'), status: 'ACTIVE' } as never,
+      data: { employeeId: sam, basis: 'SALARIED', annualSalary: 36525, contractedHours: 37.5, effectiveFrom: new Date('2026-01-01'), status: 'ACTIVE' } as never,
     });
   }, 240_000);
   afterAll(async () => {

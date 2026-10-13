@@ -96,7 +96,7 @@ describe('Gate B2 end to end: employment wages for one synthetic period', () => 
       data: { employeeId: people.gus, basis: 'HOURLY_CARE', status: 'ACTIVE', effectiveFrom: new Date('2026-01-01'), guaranteedWeeklyHours: 14, guaranteeTopUp: 'PAY_SHORTFALL', guaranteeQualifyingTime: 'VISITS', ...approved } as never,
     });
     await t.prisma.employeePayAgreement.create({
-      data: { employeeId: people.sal, basis: 'SALARIED', status: 'ACTIVE', effectiveFrom: new Date('2026-01-01'), annualSalary: 24_000, salaryEntryPeriod: 'MONTHLY', salaryEntryAmount: 2_000, salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS', salaryCoverage: 'ALL_VISIT_WORK', termsChangedAt: approved.approvedAt, ...approved } as never,
+      data: { employeeId: people.sal, basis: 'SALARIED', status: 'ACTIVE', effectiveFrom: new Date('2026-01-01'), annualSalary: 24_000, contractedHours: 30, salaryEntryPeriod: 'MONTHLY', salaryEntryAmount: 2_000, salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS', salaryCoverage: 'ALL_VISIT_WORK', termsChangedAt: approved.approvedAt, ...approved } as never,
     });
 
     // The week of Monday 2 November 2026.

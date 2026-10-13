@@ -594,6 +594,14 @@ export class CreateEmployeePayAgreementDto {
 
 export class UpdateEmployeePayAgreementDto extends PartialType(CreateEmployeePayAgreementDto) {}
 
+export class ReviewNmwAssessmentDto {
+  @ApiProperty({ description: 'What was checked and what was found' })
+  @IsString()
+  @MinLength(10)
+  @MaxLength(1000)
+  note!: string;
+}
+
 export class CancelUkPayrollRunDto {
   @ApiPropertyOptional({ description: 'Why the run is being cancelled (kept in the audit log)' })
   @IsOptional()
