@@ -550,6 +550,8 @@ export class PayrollRunsService {
       message: 'UK payroll run',
       data: {
         ...mapRun(row),
+        // Whoever created the run cannot review its minimum wage exceptions or close it.
+        createdById: row.createdById,
         period: mapPeriod(row.period),
         schedule: mapSchedule(row.schedule),
         taxYear: mapTaxYear(row.taxYear),
