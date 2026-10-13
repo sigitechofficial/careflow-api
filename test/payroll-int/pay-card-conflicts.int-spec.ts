@@ -402,8 +402,9 @@ describe('PC-32: conflicting pay cards are reported, not resolved by the last ed
     const lines = await t.prisma.payrollRunLine.findMany({ where: { payrollRunId: runId } });
     const visitPay = lines.filter((l) => l.lineType === 'VISIT_PAY');
     expect(visitPay.map((l) => [l.employeeId, Number(l.amount)])).toEqual([[paid.employeeId, 14]]);
-    const problem = lines.find((l) => l.sourceType === 'PAY_CARD_CONFLICT');
-    expect(problem).toMatchObject({ employeeId: stuck.employeeId, lineType: 'NON_VISIT_ACTIVITY' });
+    const problem = lines.find((l) => l.sourceType === 'HELD_EARNING' && l.employeeId === stuck.employeeId);
+    expect(problem).toMatchObject({ lineType: 'NON_VISIT_ACTIVITY' });
+    expect(problem!.sourceRef).toMatch(/^HELD:ACTIVITY:/); // the training activity, held under its own identity (R-22)
     expect(Number(problem!.amount)).toBe(0);
     expect(problem!.exceptionMessage).toContain('Two pay cards apply to this carer');
     expect(problem!.exceptionMessage).toContain(second.code);
@@ -417,7 +418,10 @@ describe('PC-32: conflicting pay cards are reported, not resolved by the last ed
     expect(Number(priced.payableAmount)).toBe(14);
     expect((await post(office, `/billing/payroll-runs/${runId}/calculate`)).status).toBe(201);
     const after = await t.prisma.payrollRunLine.findMany({ where: { payrollRunId: runId } });
-    expect(after.filter((l) => l.sourceType === 'PAY_CARD_CONFLICT')).toHaveLength(0);
+    // The conflict is gone. The training is still held, now for its real reason: the card has no training rate.
+    const stillHeld = after.filter((l) => l.sourceType === 'HELD_EARNING');
+    expect(stillHeld).toHaveLength(1);
+    expect(stillHeld[0].exceptionMessage).toContain('has no training rate');
     const paidVisits = after.filter((l) => l.lineType === 'VISIT_PAY' && !l.exceptionMessage);
     expect(paidVisits.map((l) => l.employeeId).sort()).toEqual([paid.employeeId, stuck.employeeId].sort());
     expect(Number((await t.prisma.payrollRun.findUniqueOrThrow({ where: { id: runId } })).grossPay)).toBe(28);

@@ -33,6 +33,16 @@ export function payrollLineClaimKey(line: ClaimableLine): string | null {
   return null;
 }
 
+/**
+ * R-22 / R-27: a line that says an earning could not be worked out. It carries no amount and no
+ * claim, so the earning stays payable; `sourceRef` names the run and what is held (`ACTIVITY:<id>`,
+ * `PAY_ITEM:<id>`, `CARD:<employeeId>`, `VISIT:<reconciliationId>`), and the reason is the line's
+ * exception message.
+ */
+export const HELD_EARNING_SOURCE = 'HELD_EARNING';
+export const heldEarningRef = (subject: string) => `HELD:${subject}`;
+export const heldEarningSubject = (sourceRef: string) => sourceRef.replace(/^HELD:/, '');
+
 export const visitPayClaimKey = (reconciliationId: string) => `VISIT:${reconciliationId}:VISIT_PAY`;
 export const payItemClaimKey = (payItemId: string) => `PAY_ITEM:${payItemId}`;
 export const activityClaimKey = (activityId: string) => `NON_CORE_ACTIVITY:${activityId}`;

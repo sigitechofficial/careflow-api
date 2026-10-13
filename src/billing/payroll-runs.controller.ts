@@ -100,6 +100,15 @@ export class PayrollRunsController {
     return this.service.resetEmployeeEarnings(user.id, employeeId, getRequestAuditMeta(req));
   }
 
+  @Get('held-earnings')
+  @Permissions('billing.payroll_runs.read')
+  @ApiOperation({
+    summary: 'Earnings a pay run could not work out, and what has happened to each since (R-22, R-27)',
+  })
+  heldEarnings() {
+    return this.service.listHeldEarnings();
+  }
+
   @Get()
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'List payroll runs' })
