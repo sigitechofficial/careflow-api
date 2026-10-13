@@ -448,21 +448,25 @@ export class VisitDisruptionsService {
     if (row.status === 'APPROVED' || row.status === 'REJECTED') {
       throw new BadRequestException('This event has already been approved or rejected.');
     }
-    const updated = await this.prisma.visitDisruptionPayDecision.update({
-      where: { id },
-      data: { status: 'REJECTED', decisionNote: note.trim(), decidedById: userId, decidedAt: new Date() },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.BILLING,
-      action: AuditAction.DISRUPTION_REJECTED,
-      recordType: 'VisitDisruptionPayDecision',
-      recordId: id,
-      description: note.trim(),
-      oldValues: { status: row.status },
-      newValues: { status: 'REJECTED' },
-      ipAddress: meta?.ipAddress ?? undefined,
-      userAgent: meta?.userAgent ?? undefined,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.visitDisruptionPayDecision.update({
+        where: { id },
+        data: { status: 'REJECTED', decisionNote: note.trim(), decidedById: userId, decidedAt: new Date() },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.DISRUPTION_REJECTED,
+        recordType: 'VisitDisruptionPayDecision',
+        recordId: id,
+        description: note.trim(),
+        oldValues: { status: row.status },
+        newValues: { status: 'REJECTED' },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return changed;
     });
     return { message: 'Event rejected: it was recorded in error.', data: this.mapDecision(updated) };
   }

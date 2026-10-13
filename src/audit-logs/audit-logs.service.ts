@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   Prisma,
@@ -169,6 +169,8 @@ export class AuditLogsService {
     return changed;
   }
 
+  private readonly auditFailures = new Logger('AuditLog');
+
   private db(tx?: Prisma.TransactionClient): Db {
     return tx ?? this.prisma;
   }
@@ -180,7 +182,8 @@ export class AuditLogsService {
       params.metadata,
       params.eventType,
     );
-    return client.auditLog.create({
+    return client.auditLog
+      .create({
       data: {
         userId: params.userId ?? undefined,
         module: params.module,
@@ -205,7 +208,34 @@ export class AuditLogsService {
         userAgent: params.userAgent ?? undefined,
         status: params.status ?? AuditStatus.SUCCESS,
       },
-    });
+      })
+      .catch((error: unknown) => {
+        throw this.auditWriteFailure(error, params);
+      });
+  }
+
+  /**
+   * An audit entry that cannot be written is never skipped: the failure is logged and the caller
+   * gets an error it can answer with. Inside a transaction that error rolls the change back with
+   * it. The usual cause is a user who no longer exists (a session left over from a deleted
+   * account): that is answered as "not signed in", not as a server fault.
+   */
+  private auditWriteFailure(error: unknown, params: LogAuditParams) {
+    const staleUser =
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2003' &&
+      String((error.meta as { constraint?: unknown } | undefined)?.constraint ?? error.message).includes('userId');
+    this.auditFailures.error(
+      `Audit entry not written (${params.module}/${params.action}, record ${params.recordType ?? '-'} ${params.recordId ?? '-'}, ` +
+        `user ${params.userId ?? '-'}): ${staleUser ? 'the user no longer exists' : error instanceof Error ? error.message.split('\n').pop() : 'unknown error'}` +
+        (params.tx ? '. The change was rolled back.' : ''),
+    );
+    if (staleUser) return new UnauthorizedException('Your account is no longer active. Sign in again.');
+    return new InternalServerErrorException(
+      params.tx
+        ? 'The change was not saved because its audit entry could not be written. Try again.'
+        : 'The action could not be recorded in the audit log.',
+    );
   }
 
   async logLogin(params: LogLoginParams) {

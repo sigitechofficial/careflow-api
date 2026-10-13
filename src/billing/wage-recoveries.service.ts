@@ -181,19 +181,22 @@ export class WageRecoveriesService {
   async withdrawPolicy(userId: string, note: string, meta?: RequestAuditMeta) {
     const policy = await recoveryPolicyInForce(this.prisma);
     if (!policy) throw new BadRequestException('No recovery policy is on record.');
-    await this.prisma.wageRecoveryPolicy.update({
-      where: { id: policy.id },
-      data: { withdrawnAt: new Date(), withdrawnById: userId, withdrawnNote: note.trim() },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.BILLING,
-      action: AuditAction.WAGE_RECOVERY_POLICY_WITHDRAWN,
-      recordType: 'WageRecoveryPolicy',
-      recordId: policy.id,
-      description: note.trim(),
-      ipAddress: meta?.ipAddress ?? undefined,
-      userAgent: meta?.userAgent ?? undefined,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.wageRecoveryPolicy.update({
+        where: { id: policy.id },
+        data: { withdrawnAt: new Date(), withdrawnById: userId, withdrawnNote: note.trim() },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.WAGE_RECOVERY_POLICY_WITHDRAWN,
+        recordType: 'WageRecoveryPolicy',
+        recordId: policy.id,
+        description: note.trim(),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
     });
     return { message: 'Recovery policy withdrawn. Nothing further is deducted until one is recorded.', data: { id: policy.id } };
   }

@@ -452,7 +452,7 @@ export class PayrollRunsService {
           updatedById: userId,
         },
       });
-      return {
+      const deleted = {
         payoutLines: payoutLines.count,
         payoutBatches: payoutBatches.count,
         inputLines: inputLines.count,
@@ -462,23 +462,25 @@ export class PayrollRunsService {
         ytdLedgers: ytdLedgers.count,
         periodsReopened: periodsReopened.count,
       };
+      // In the transaction: the deletion and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUNS_DELETED,
+        recordType: 'UkPayrollRun',
+        recordId: 'all',
+        newValues: deleted,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return deleted;
     });
 
     this.logger.warn(
       `Deleted all UK payroll runs: ${counts.runs} run(s), ${counts.payoutBatches} payout batch(es), ` +
         `${counts.ytdLedgers} YTD ledger(s) reset, ${counts.periodsReopened} period(s) reopened`,
     );
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUNS_DELETED,
-      recordType: 'UkPayrollRun',
-      recordId: 'all',
-      newValues: counts,
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
 
     return {
       message: 'All UK payroll runs deleted',
@@ -1048,18 +1050,19 @@ export class PayrollRunsService {
         where: { id: period.id },
         data: { status: 'IN_RUN', updatedById: userId },
       });
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_CREATED,
+        recordType: 'UkPayrollRun',
+        recordId: created.id,
+        newValues: mapRun(created),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
       return created;
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_CREATED,
-      recordType: 'UkPayrollRun',
-      recordId: row.id,
-      newValues: mapRun(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
     });
 
     return { message: 'UK payroll run created', data: mapRun(row) };
@@ -1212,21 +1215,22 @@ export class PayrollRunsService {
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_EMPLOYEES_ENROLLED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      newValues: {
-        enrolled: toCreate.length,
-        skippedExisting: already.size,
-        periodEnd,
-      },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_EMPLOYEES_ENROLLED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        newValues: {
+          enrolled: toCreate.length,
+          skippedExisting: already.size,
+          periodEnd,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
     });
 
     return this.getById(runId);
@@ -2014,22 +2018,23 @@ export class PayrollRunsService {
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_GROSS_CALCULATED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      newValues: {
-        inputLineCount: draftLines.length,
-        totalGross: runTotalGross,
-        totalExpenses: runTotalExpenses,
-        employeeCount: runEmployees.length,
-      },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_GROSS_CALCULATED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        newValues: {
+          inputLineCount: draftLines.length,
+          totalGross: runTotalGross,
+          totalExpenses: runTotalExpenses,
+          employeeCount: runEmployees.length,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
     });
 
     return this.getById(runId);
@@ -2187,26 +2192,27 @@ export class PayrollRunsService {
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_STATUTORY_CALCULATED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      newValues: {
-        employeeCount: runEmployees.length,
-        totalIncomeTax,
-        totalEmployeeNi,
-        totalEmployerNi,
-        totalNetPay,
-        statutoryBasis,
-        periodNumber,
-        rateSetId: rateRow.id,
-      },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_STATUTORY_CALCULATED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        newValues: {
+          employeeCount: runEmployees.length,
+          totalIncomeTax,
+          totalEmployeeNi,
+          totalEmployerNi,
+          totalNetPay,
+          statutoryBasis,
+          periodNumber,
+          rateSetId: rateRow.id,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
     });
 
     return this.getById(runId);
@@ -2270,28 +2276,32 @@ export class PayrollRunsService {
       throw new BadRequestException('This assessment has already been reviewed. Calculating gross again reopens it if the figures change.');
     }
     const confirmed = outcome === 'SHORTFALL_CONFIRMED';
-    await this.prisma.nmwPeriodAssessment.update({
-      where: { id: assessmentId },
-      data: {
-        reviewOutcome: outcome,
-        resolvedById: userId,
-        resolvedAt: new Date(),
-        resolutionNote: note.trim(),
-        ...(confirmed ? { issue: 'SHORTFALL', compliant: false } : {}),
-      },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.NMW_EXCEPTION_REVIEWED,
-      recordType: 'NmwPeriodAssessment',
-      recordId: assessmentId,
-      description: note.trim(),
-      oldValues: { issue: row.issue },
-      newValues: { outcome, issue: confirmed ? 'SHORTFALL' : row.issue, shortfall: row.shortfall == null ? null : Number(row.shortfall) },
-      metadata: { ukPayrollRunId: runId, employeeId: row.employeeId },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+    // The review and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.nmwPeriodAssessment.update({
+        where: { id: assessmentId },
+        data: {
+          reviewOutcome: outcome,
+          resolvedById: userId,
+          resolvedAt: new Date(),
+          resolutionNote: note.trim(),
+          ...(confirmed ? { issue: 'SHORTFALL', compliant: false } : {}),
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.NMW_EXCEPTION_REVIEWED,
+        recordType: 'NmwPeriodAssessment',
+        recordId: assessmentId,
+        description: note.trim(),
+        oldValues: { issue: row.issue },
+        newValues: { outcome, issue: confirmed ? 'SHORTFALL' : row.issue, shortfall: row.shortfall == null ? null : Number(row.shortfall) },
+        metadata: { ukPayrollRunId: runId, employeeId: row.employeeId },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
     });
     return {
       message: confirmed
@@ -2444,23 +2454,24 @@ export class PayrollRunsService {
           data: { status: 'CLOSED', updatedById: userId },
         });
       }
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_CLOSED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        oldValues: mapRun(run),
+        newValues: {
+          ...mapRun(updated),
+          ytdPosted: ytd.posted,
+          ytdSkipped: ytd.skipped,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
       return { updated, ytd };
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_CLOSED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      oldValues: mapRun(run),
-      newValues: {
-        ...mapRun(row.updated),
-        ytdPosted: row.ytd.posted,
-        ytdSkipped: row.ytd.skipped,
-      },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
     });
 
     return {
@@ -2661,22 +2672,23 @@ export class PayrollRunsService {
         where: { id: run.periodId },
         data: { status: 'IN_RUN', updatedById: userId },
       });
+      // In the transaction: the change and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_RUN_REACTIVATED,
+        recordType: 'UkPayrollRun',
+        recordId: runId,
+        oldValues: mapRun(run),
+        newValues: {
+          ...mapRun(updated),
+          ytdReversed: ytd.reversed,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
       return { updated, ytd };
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_RUN_REACTIVATED,
-      recordType: 'UkPayrollRun',
-      recordId: runId,
-      oldValues: mapRun(run),
-      newValues: {
-        ...mapRun(row.updated),
-        ytdReversed: row.ytd.reversed,
-      },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
     });
 
     return {
