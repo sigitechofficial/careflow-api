@@ -304,6 +304,22 @@ async function main() {
     check('an existing agreement is not marked as changed, so no salary adjustment can arise from it', agreement.changed === null);
     const unpaid = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."UkPayrollInputLine" WHERE "unpaidAmount" IS NOT NULL OR "unpaidReason" IS NOT NULL`);
     check('no existing UK payroll line is marked as covered by salary or held', unpaid.n === 0);
+    const guarantee = await one(
+      `SELECT COUNT(*)::int AS n FROM "payroll"."EmployeePayAgreement"
+        WHERE "guaranteedWeeklyHours" IS NOT NULL OR "guaranteeTopUp" IS NOT NULL OR "guaranteeQualifyingTime" IS NOT NULL OR "guaranteeLeaveTreatment" IS NOT NULL`,
+    );
+    check('no existing agreement is given guaranteed hours', guarantee.n === 0);
+    const lineType = await one(
+      `SELECT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'PayrollRunLineType' AND e.enumlabel = 'GUARANTEED_HOURS') AS ok`,
+    );
+    check('pay line type GUARANTEED_HOURS exists', lineType.ok === true);
+    check('no travel-time interval is created by the migrations', await empty('"billing"."TravelTimeInterval"'));
+    check('no rule for cancelled or disrupted visits is created (no policy is invented)', await empty('"billing"."VisitDisruptionPayRule"'));
+    check('no pay decision for a disrupted visit is created', await empty('"billing"."VisitDisruptionPayDecision"'));
+    check('minimum wage assessments start empty: earlier runs keep the lines they were paid with', await empty('"billing"."NmwPeriodAssessment"'));
+    check('no leave terms or leave entries are created (no entitlement is invented)', (await empty('"payroll"."EmployeeLeaveTerms"')) && (await empty('"payroll"."EmployeeLeaveEntry"')));
+    const apprentices = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."EmployeePayrollProfile" WHERE "apprenticeshipStartDate" IS NOT NULL`);
+    check('no payroll profile is given an apprenticeship start date', apprentices.n === 0);
 
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`

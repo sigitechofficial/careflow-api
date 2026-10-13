@@ -11,6 +11,8 @@
  *   - a visit pay run for last week, calculated, waiting for approval and lock;
  *   - a UK payroll run with tax and NI calculated, waiting to be closed (then paid out);
  *   - an approved correction to a paid visit, which can be reversed;
+ *   - Gate B2: two visits of one carer 40 minutes apart (travel time to classify), and a cancelled
+ *     visit that had a carer allocated and has no pay decision;
  *   - three synthetic office users: a preparer, an approver and a manager limited to one branch.
  *
  * Passwords are generated here and written only to PAYROLL_BROWSER_LOGIN_FILE. They are never
@@ -38,6 +40,8 @@ const APPROVER_PERMISSIONS = [
   'billing.employee_payouts.approve',
   'billing.employee_payouts.settle',
   'payroll.runs.close',
+  // Gate B2: the second person for salary agreements and leave terms.
+  'payroll.pay_agreements.approve',
   'payroll.scope.organisation',
 ];
 const BRANCH_MANAGER_PERMISSIONS = [
@@ -170,6 +174,8 @@ describe('browser fixture (not a test)', () => {
 
       // Week 2 (5 to 11 October): worked, in a calculated run waiting for approval and lock.
       await work(ann, '2026-10-06', '09:00', 2, branchA, 6.2);
+      // Forty minutes after the visit above: the gap is an estimate until someone classifies it.
+      await work(ann, '2026-10-06', '11:40', 1, branchA);
       await work(ann, '2026-10-08', '09:00', 1, branchA);
       await work(ben, '2026-10-07', '13:00', 1, branchB);
       clock.set(new Date('2026-10-12T07:00:00Z'));
@@ -183,6 +189,20 @@ describe('browser fixture (not a test)', () => {
         reason: 'Synthetic: visit ran 30 minutes longer than paid',
       });
       await post(peter, `/billing/pay-items/${correction.id}/approve`);
+
+      // A visit of that week cancelled an hour before it was due, with Ben allocated: no pay decision yet.
+      const cancelled = await createAllocatedVisit(t.prisma, { carers: [ben.employeeId], start: new Date('2026-10-09T10:00:00Z'), plannedMinutes: 60, locationId: branchB });
+      await t.prisma.scheduledJob.update({ where: { id: cancelled.jobId }, data: { status: 'CANCELLED', jobName: 'Synthetic cancelled call' } });
+      await t.prisma.scheduledJobCancellation.create({
+        data: {
+          scheduledJobId: cancelled.jobId,
+          serviceUserId: cancelled.serviceUserId,
+          outcome: 'CANCELLED',
+          reasonCode: 'CLIENT_REQUEST',
+          chargeDecision: 'NO_CHARGE',
+          cancelledAt: new Date('2026-10-09T09:00:00Z'),
+        } as never,
+      });
 
       writeFileSync(loginFile, JSON.stringify({ logins }, null, 2));
       // Identifiers only; no secret is printed.

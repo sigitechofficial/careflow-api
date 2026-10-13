@@ -124,13 +124,22 @@ export class TravelIntervalsService {
       }
     }
     const decided = decidedTravelForVisit(rows);
+    const recordedOnVisit = visit.travelMinutes ?? 0;
     return {
       message: 'Travel time of the visit',
       data: {
         visit: { id: visit.id, visitRef: visit.visitRef, employeeId: visit.employeeId, paySettled: isPaySettled(visit) },
-        // What the pay run uses: the approved intervals when there are any, otherwise the estimate.
-        basis: decided ? 'APPROVED_INTERVALS' : estimate ? 'ESTIMATED_FROM_GAP' : 'NONE',
+        // What the pay run uses, in this order: approved intervals; travel minutes entered on the
+        // visit itself; the estimate from the gap since the previous visit.
+        basis: decided
+          ? 'APPROVED_INTERVALS'
+          : recordedOnVisit > 0
+            ? 'RECORDED_ON_VISIT'
+            : estimate
+              ? 'ESTIMATED_FROM_GAP'
+              : 'NONE',
         decided,
+        recordedOnVisitMinutes: recordedOnVisit,
         estimate,
         intervals: rows.map((r) => ({
           id: r.id,

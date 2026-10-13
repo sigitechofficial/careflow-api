@@ -89,6 +89,14 @@ describe('travel-time intervals (synthetic rates)', () => {
     expect(travel.description).toMatch(/estimated from the gap between visits, not verified/);
   });
 
+  it('travel minutes entered on the visit itself are shown as what the pay run uses, not as an estimate', async () => {
+    const { second } = await twoVisits();
+    await t.prisma.visitReconciliation.update({ where: { id: second.id }, data: { travelMinutes: 25 } });
+    const seen = (await get(reader, `/billing/travel-intervals/visit/${second.id}`)).body.data;
+    expect(seen).toMatchObject({ basis: 'RECORDED_ON_VISIT', recordedOnVisitMinutes: 25 });
+    expect(of(await runLines(), 'TRAVEL_TIME')).toEqual([expect.objectContaining({ minutes: 25, amount: 5 })]);
+  });
+
   it('approved intervals split the gap: travel and required waiting are paid, a rest break is not', async () => {
     const { second } = await twoVisits();
     const travel = await interval(second.id, 'BETWEEN_SERVICE_USERS', '10:00', '10:15', { evidence: 'VERIFIED' });
