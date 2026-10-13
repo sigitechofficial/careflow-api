@@ -4,6 +4,74 @@ Newest first. Audit IDs in brackets. Database detail is in `04-database-changes.
 
 ---
 
+## Gate B2 — employment wages, salary calculations and compliance foundations (2026-10-13)
+
+Branch `payroll-remediation/gate-b2` in both repositories, on top of `gate-b`. Five migrations (doc 04, numbers 14 to 18), all additive. Nothing pushed or deployed. Summary: `12-gate-b-employment-wages-summary.md`.
+
+### Behaviour changes people will notice
+
+| Area | Before | Now |
+|---|---|---|
+| Training, on-call, overtime, rolled-up holiday that cannot be worked out | Left out of the pay run | A line on the run with the reason; the run lists what needs attention |
+| A bank holiday with no calendar entry | Paid as an ordinary day | Carer pay held, with the day named and what to do |
+| UK payroll run, per employee | Net pay and a reimbursement figure | Taxable wages, reimbursement within the approved amount, taxable excess, not verified, net wages, total payable |
+| Mileage wrong after the run is locked | Corrected as wages (taxed) | Corrected as mileage, with a second approver |
+| Pay agreements | Basis and date only; a salary could not be entered | Salary per year, month or week; contracted hours; how a part period is paid; what the salary pays for; guaranteed hours; history; end an agreement on a date |
+| Putting a salary into effect | One person | A second person approves. **Give `payroll.pay_agreements.approve` to the people who approve agreements** |
+| Salaried employee with visits | Salary plus every visit wage | The work the salary pays for is shown at £0.00 with its value, and not paid again |
+| Salary for a starter, leaver or mid-period change | A whole period | Parts, each at its own salary |
+| Salary changed after the run closed | No route | One adjustment line in the next run |
+| Overtime in a week split between two pay runs | Each run on its own: usually nothing | Counted once, over the whole week |
+| Guaranteed hours | Recorded, never paid | A top-up, only under an approved agreement that says the shortfall is paid |
+| Time between visits | Paid as travel by its length | Still estimated by default, and the line says "estimated … not verified"; the office can record what the time was, and a second person approves |
+| A cancelled visit | Nothing | Listed on the pay items page until someone records what is paid for it |
+| Rolled-up holiday pay on a card | Everyone on the card | Held for an employee whose leave terms record regular hours; a note on the line where no terms are recorded |
+| Minimum wage top-up | Per pay run | Per pay reference period (the UK payroll schedule period); a top-up for a low week can be reduced by later pay in the same period |
+| Apprentices and minimum wage | Apprentice rate for everyone on an apprentice contract | Apprentice rate only under 19 or in the first year; **record the apprenticeship start date on the payroll profile** |
+
+### Backend
+
+- **Held earnings** (R-22, R-27): `HELD_EARNING` lines; `listHeldEarnings`; calendar pre-checks in pricing and in the pay run; `expectedBankHolidays`.
+- **Mileage** (D-20, D-21): `mileage-ledger.store.ts`; system pay item `MILEAGE_CORRECTION`; `releaseHistoricReimbursement`; `payBreakdown` on the UK run.
+- **Salary** (WM-02/03/09): `payroll/salary.util.ts` (timeline, proration, cover); `collectGross` rewritten for salary parts, cover and adjustments; `approveAgreement`; `unpaidAmount` / `unpaidReason` on UK input lines.
+- **Weeks and periods** (WM-18, WM-07, Q37–Q39): one identity per employee and week or period (`OVERTIME:`, `GUARANTEE:`, `NMW:` claims) in `payroll-claim.util.ts`; whole-week and whole-period aggregation in `billing/payroll-runs.service.ts`; `nmw-period.util.ts`; `NmwPeriodAssessment`.
+- **Travel and disruptions** (TR-01/04/05/06, Q13): `travel-intervals.*`, `visit-disruptions.*`; system pay item `DISRUPTION_PAY` (line type `CANCELLATION`).
+- **Holiday** (Q35): `payroll/leave.*`.
+- **Permissions**: `payroll.pay_agreements.approve` added to the powers an administrator role never implies, to the seeded role "Payroll Approver", and as its own responsibility `approve-pay-agreements`.
+- **Audit actions** added for every new write: agreement approved; travel interval recorded / approved / rejected; disruption rule created / approved / retired; disruption recorded / decided / approved / rejected; leave terms created / approved; leave entry recorded; mileage correction recorded; historic reimbursement released.
+
+### Frontend
+
+- Pay run dialog: what needs attention (held earnings); line names for guaranteed hours and cancelled visits.
+- Visit dialog: mileage correction card (settled visits); travel and waiting time card.
+- Payroll employee dialog: pay agreements panel (replaces the two-field box); apprenticeship start date.
+- UK run page: visit work paid by the salary; visit wages held for a salary decision.
+- Pay items page: visits that did not go ahead as planned.
+
+### New API routes
+
+| Route | Permission |
+|---|---|
+| `GET /billing/payroll-runs/held-earnings` | `billing.payroll_runs.read` |
+| `POST /billing/pay-items/mileage-corrections`, `GET …/mileage-corrections/:visitReconciliationId` | `billing.payroll_runs.manage` / `.read` |
+| `POST /billing/employee-payouts/reimbursements/:runEmployeeId/release` | `billing.employee_payouts.approve` |
+| `POST /payroll/pay-agreements/:agreementId/approve` | `payroll.pay_agreements.approve` |
+| `GET /billing/travel-intervals/visit/:visitReconciliationId`; `POST /billing/travel-intervals`; `POST …/:id/approve`, `…/:id/reject` | `billing.visit_reconciliations.read` / `.manage` |
+| `GET, POST /billing/visit-disruptions/rules`; `POST …/rules/:id/approve`, `…/retire` | `billing.payroll_runs.read` / `billing.pay_cards.manage` |
+| `GET, POST /billing/visit-disruptions`; `GET …/undecided-cancellations`; `POST …/:id/decide`, `…/approve`, `…/reject` | `billing.payroll_runs.read` / `.manage` |
+| `GET /payroll/employees/:id/leave`, `GET, POST …/leave-terms`, `POST …/leave-entries`; `POST /payroll/leave-terms/:id/approve` | `payroll.employees.read` / `.manage`; `payroll.pay_agreements.approve` |
+
+### Set-up steps after upgrade
+
+1. Apply migrations 14 to 18 (doc 04 section 00).
+2. Run `node scripts/payroll-approval-permissions.mjs` (adds `payroll.pay_agreements.approve`; assigns it to nobody).
+3. Give that power to the people who approve salary agreements and leave terms. They must not be the people who enter them.
+4. Before entering any real agreement, rule or leave terms: obtain the client decisions in doc 05 section 2b.
+5. Record apprenticeship start dates for apprentices of 19 or over, or they are checked against the rate for their age.
+6. Make sure each paid employee has a UK payroll schedule with periods: those periods are the minimum wage reference periods.
+
+---
+
 ## Gate B sprint — Gate A hardening, pay card correctness, mileage settlement (2026-10-12)
 
 Branch `payroll-remediation/gate-b` in both repositories, on top of `gate-a`. Six migrations (doc 04, numbers 8 to 13), all additive. Nothing pushed or deployed.

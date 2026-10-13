@@ -1,18 +1,86 @@
 # 01 — Implementation Status
 
 **Programme:** CareFlow carer wages, pay cards and UK payroll remediation
-**Updated:** 2026-10-12 · **Phase 0 (financial safety):** implemented and tested · **Gate A sprint (R-01 to R-12):** implemented and tested, see section 1 · **Gate B sprint (R-16, R-17, R-18, R-13, R-11, PC-19, PC-32, PC-10, PC-22/23/24, TR-09, TR-13):** implemented and tested, see section 0 · **Everything else:** not started
+**Updated:** 2026-10-13 · **Gate B2 (employment wages, salary, compliance foundations):** implemented and tested with synthetic policy, see section 00 and `12-gate-b-employment-wages-summary.md` · **Phase 0 (financial safety):** implemented and tested · **Gate A sprint (R-01 to R-12):** implemented and tested, see section 1 · **Gate B sprint (R-16, R-17, R-18, R-13, R-11, PC-19, PC-32, PC-10, PC-22/23/24, TR-09, TR-13):** implemented and tested, see section 0 · **Everything else:** not started
 
 | Repository | Branch | Base commit (audited) | Gate A head | Head |
 |---|---|---|---|---|
-| careflow-api (`careadmin-backend`) | `payroll-remediation/gate-b` (on `gate-a`, on `phase-1`, on `phase-0`) | `e163815` | `035e482` | `9315a95` + the reports commit |
-| careflow-admin (`care-admin`) | `payroll-remediation/gate-b` (on `gate-a`, on `phase-1`, on `phase-0`) | `a8b7b9a` | `01da8a2` | `b36a61f` |
+| careflow-api (`careadmin-backend`) | `payroll-remediation/gate-b2` (on `gate-b`, on `gate-a`, on `phase-1`, on `phase-0`) | `e163815` | `035e482` | Gate B `ccf5741`; Gate B2 code `79ced6f`, then the reports commit |
+| careflow-admin (`care-admin`) | `payroll-remediation/gate-b2` (on `gate-b`, on `gate-a`, on `phase-1`, on `phase-0`) | `a8b7b9a` | `01da8a2` | Gate B `b36a61f`; Gate B2 `e259ab2` |
 
 Nothing has been pushed, deployed or run against live data. All commits are local. `main` is untouched in both repositories.
 
-Status words: **DONE** = fixed, covered by passing tests, and reachable by the user it is for · **PARTIAL** = part done, rest listed · **BLOCKED** = needs a client decision or something not available to development · **OPEN** = not started.
+Status words: **DONE** = fixed, covered by passing tests, and reachable by the user it is for · **PARTIAL** = part done, rest listed · **BLOCKED** = needs a client decision or something not available to development · **POLICY BLOCKED** (Gate B2) = the foundation works and is tested with synthetic policy, real use waits for a client decision · **OPEN** / **NOT STARTED** = nothing built.
 
 "Verified by": **int** = integration test on a real database · **http** = over HTTP through the real controllers and guards · **unit** · **ui** = component test · **browser** = exercised in a browser on synthetic data.
+
+---
+
+## 00. Gate B2 — employment wages, salary calculations and compliance foundations (2026-10-13)
+
+Summary, reconciliation examples, risks and what is left: `12-gate-b-employment-wages-summary.md`. Decisions: `05-policy-decisions-required.md` sections 2b and 2c. **CareFlow is not a complete UK payroll product**: this phase concerns gross earnings; statutory payroll is a later phase.
+
+Label for every POLICY BLOCKED row: *IMPLEMENTED FOUNDATION — TESTED WITH SYNTHETIC POLICY — CLIENT APPROVAL PENDING*.
+
+### Stage 1 — remaining high-risk earnings gaps
+
+| ID | Audit | Original problem | Actual fix | Main files | Verified by | Status |
+|---|---|---|---|---|---|---|
+| R-22 | VW-03 | Training, on-call, overtime premium, rolled-up holiday pay and pay items were left out of a pay run without a word when the card could not be read, had no rate, or the activity had no duration | The earning becomes a held line on the run (amount 0.00, no claim) naming the worker, the source and the reason. Recalculating is the retry; a held activity of a locked period is carried into later runs; a run cannot be locked while it holds amounts that could never be carried. `GET /billing/payroll-runs/held-earnings` lists everything held | `billing/payroll-runs.service.ts`, `payroll-claim.util.ts`, `PayrollRunAttentionList.tsx` | http `non-visit-holds` (8); ui (2); e2e V-09 | DONE |
+| R-27 | PC-24 | A year or a nation with no bank holiday dates priced its holidays as ordinary days in silence | The usual pattern of bank holidays per nation is known (never used to price). A visit on such a day, on a card that pays more for holidays, with no calendar entry, is held with the day named. Pre-check at pricing and at the pay run; the client charge is unaffected | `billing/holiday-calendar.util.ts`, `holiday-calendar.store.ts`, `visit-reconciliations.service.ts`, `payroll-runs.service.ts` | unit `holiday-calendar.r27.spec` (17); http `calendar-holds` (9: England and Wales, Scotland, Northern Ireland, missing years, substitute days, midnight); e2e V-10 | DONE. Scotland, Northern Ireland and 2027 onwards are still empty on the development calendar |
+| D-15, D-20, D-21 | TR-13 | The UK run did not show wages and reimbursements apart; settled mileage could only be corrected as wages; mileage of earlier runs had no route to payment | The run shows taxable wages, reimbursement within the approved amount, taxable excess, reimbursement not verified, net wages and total payable. A settled visit's miles are corrected as mileage with a tax split (second approver). Earlier unpaid mileage is released one employee and run at a time, with a reason, by a user with the payout approval power | `billing/pay-items.service.ts`, `mileage-ledger.store.ts`, `employee-payouts.service.ts`, `payroll/payroll-runs.service.ts`, `VisitMileageCorrectionCard.tsx` | http `mileage-corrections` (7: tax-year change, threshold, prior claims, reversal, payout reconciliation); ui (4) | DONE. POLICY BLOCKED on D-15 (rates not verified) and D-20 (which amounts to release) |
+
+### Stage 2 — salary and employment agreements
+
+| ID | Audit | Original problem | Actual fix | Main files | Verified by | Status |
+|---|---|---|---|---|---|---|
+| WM-02 | WM-02 | A salary could not be entered on any screen; the API accepted an annual figure only | Salary entered per year, month or week; the yearly figure is stored. Contracted weekly hours, part-period method and what the salary pays for are part of the agreement | `payroll/salary.util.ts`, `payroll-employees.service.ts`, `PayAgreementsPanel.tsx` | unit (24); http `salary-agreements-api` (9); ui (8); **browser** | DONE. POLICY BLOCKED (Q22) |
+| WM-03 | WM-03 | One agreement, picked at enrolment, applied to the whole period. One person could create or rewrite an active salary | Effective-dated timeline (latest start on or before the day); starter, leaver and mid-period change paid in parts, each with its own claim; a second person approves (`payroll.pay_agreements.approve`, granted by name); terms in effect are ended, not edited; history with who entered and approved | same, `payroll-runs.service.ts`, `explicit-grant-permissions.ts`, migration 15 | int `salary-gross` (21); http (9); **browser** (two users) | DONE. POLICY BLOCKED (Q22) |
+| WM-09 | WM-09 | A salaried employee in a UK run received the salary and every visit pay line for the same work | Earnings the salary covers come in at 0.00 with the value recorded and are settled by the run; hours beyond the contracted hours are paid, counted per week across runs; approved pay items and expenses are always paid; a salary with no cover recorded holds the visit wages; a salary agreement approved after a period was paid gives one adjustment in the next or a supplementary run | `payroll/payroll-runs.service.ts`, `salary.util.ts`, `UkPayrollRunDetailPage.tsx` | int `salary-gross` (21: the eleven scenarios of the brief and ten more); e2e V-02 | DONE. POLICY BLOCKED (Q22, D-22 to D-24) |
+
+### Stage 3 — guaranteed hours and overtime
+
+| ID | Audit | Original problem | Actual fix | Main files | Verified by | Status |
+|---|---|---|---|---|---|---|
+| WM-07, EL-01 | WM-07, EL-01 | Guaranteed weekly hours were recorded and never read by pay; nothing said whether a shortfall is paid | Guarantee on the pay agreement with "shortfall is paid", what counts, and the treatment of absence; second-person approval; settled per Monday-to-Sunday week by the run in which it ends, identity `GUARANTEE:<employee>:<week>:<n>`; part weeks count for their own days; an undecided visit holds the top-up; a late visit reduces it | `payroll/salary.util.ts`, `billing/payroll-runs.service.ts`, migration 16 | unit (4); http `guaranteed-hours` (13); ui (2); e2e V-03 | DONE. POLICY BLOCKED (Q23, D-25) |
+| WM-18 | WM-18 | Overtime was worked out from each run's own visits and identified by the run: a week split between two runs was two short weeks | The hours of a week are every pay-approved visit of that week; the premium due less what locked runs paid is paid by the run; identity `OVERTIME:<employee>:<week>:<n>`; two open runs on one week hold the second | `billing/payroll-runs.service.ts`, `payroll-claim.util.ts` | unit; http `overtime-weeks` (7, including a week divided between two runs and a late visit); e2e V-04 | DONE for weekly overtime. Daily overtime NOT STARTED (Q29) |
+
+### Stage 4 — travel time, cancellations and disruptions
+
+| ID | Audit | Original problem | Actual fix | Main files | Verified by | Status |
+|---|---|---|---|---|---|---|
+| TR-01, TR-04, TR-05, TR-06 | TR-01 to TR-06 | The gap between two visits was paid as travel or waiting by its length alone | Intervals classified by a person (travel between service users, required waiting, rest break, ordinary commute, training journey, journey to a cancelled visit, other) with evidence (estimated, recorded, verified), approved by a second person. Approved intervals decide travel and waiting pay and minimum wage hours; otherwise the estimate applies and its line says so. Mileage is untouched | `billing/travel-interval.util.ts`, `travel-intervals.service.ts`, `payroll-runs.service.ts`, migration 17, `VisitTravelTimeCard.tsx` | unit (5); http `travel-intervals` (7); ui (6); e2e V-05; **browser** | DONE as an override. Default still the estimate: POLICY BLOCKED (Q32) |
+| Q13 | — | A cancelled visit produced nothing for the carer, and nothing recorded that as a decision | Rules per event and notice (none exist until supplied; second-person approval); a pay decision per carer and event — proposed by a rule, or decided by a person where none applies; approved amounts paid once through a pay item; a list of cancelled visits with a carer and no decision | `billing/visit-disruption.util.ts`, `visit-disruptions.service.ts`, migration 17, `DisruptedVisitsPanel.tsx` | unit (5); http `visit-disruptions` (8); ui (4); e2e V-06; **browser** | DONE. POLICY BLOCKED: no rule exists |
+
+### Stage 5 — holiday and minimum wage
+
+| ID | Audit | Original problem | Actual fix | Main files | Verified by | Status |
+|---|---|---|---|---|---|---|
+| Q35 | — | One method for everyone: a card flag adding 12.07% rolled-up pay. No leave year, entitlement, balance or holiday pay rate | Leave terms per employee (worker category, leave year, normal week, contractual extra, carry-over, pay method) with approval; entitlement by category; ledger and balance; 52-week rate; leaver position; rolled-up pay held where it cannot lawfully be used | `payroll/leave.util.ts`, `leave.service.ts`, `leave.controller.ts`, migration 18 | unit (14); http `leave-entitlement` (11); e2e V-07 | PARTIAL: API and calculation only; no screens; leave is not booked or paid automatically. POLICY BLOCKED (Q35, D-28) |
+| Q37–Q39 | — | Minimum wage checked over the dates of each run with the age and rate of its last day; every apprentice held to the apprentice rate; premiums and pay for time not worked counted as pay | Assessed over the worker's payroll schedule period across runs, identity `NMW:<employee>:<period start>:<n>`; age and rate at period start; apprentice rate only under 19 or in the first year; non-work pay excluded; `NmwPeriodAssessment` per run, worker and period | `billing/nmw-period.util.ts`, `payroll-runs.service.ts`, migration 18 | unit (16); http `nmw-reference-period` (11); e2e V-08; **browser** (apprenticeship field) | DONE for time work. PARTIAL: salaried-hours check and deductions (D-29) |
+
+### Stage 6 to 8
+
+| Item | State |
+|---|---|
+| Policy decision register | DONE: doc 05 sections 2b and 2c |
+| Fifteen validations | DONE: `e2e-gate-b2` and the suites listed in doc 12 section 5 |
+| Regression after each stage | Run after every stage; final figures in doc 03 section 00 |
+| Financial and audit constraints | Unchanged; migration rehearsal 58 of 58 |
+| Frontend workflows | Component tests, and five flows in a browser as two synthetic users (doc 09 section 10) |
+
+### Issues found during Gate B2
+
+| # | Found by | Issue | Outcome |
+|---|---|---|---|
+| V-22 | R-27 work | A visit whose run line was an exception (£0.00) was claimed and marked as included at lock, so it was never paid | Fixed (`d1474a6`): a held line is neither claimed nor settled |
+| V-25 | Stage 2 trace | Salary and visit wages both paid for the same work | Fixed (`ac885b8`) |
+| V-30 | Stage 5 trace | Any apprentice held to the apprentice rate, whatever their age or year | Fixed (`36dbfdd`) |
+| V-37 | Stage 2 test | Adding the new approval power to the existing "approve pay" responsibility would have removed existing approver roles from it | Avoided before commit: the power is a responsibility of its own |
+| V-38 | Stage 3 design | Capping a week's hours at the run's end date made a supplementary run claw back overtime already paid | Avoided before commit: the whole week is always read |
+| V-39 | E2E | A guaranteed-hours employee with nothing scheduled in a later week receives the whole guarantee for that week from the run that covers it | Intended, and now visible; recorded so the client sees the cost of a guarantee before agreeing one |
+| V-40 | Browser | The travel card called minutes entered on the visit "an estimate of 0 minutes" | Fixed: the card says the visit's own minutes are used |
+| — | Reading | `pay-policy.util.ts` holds an unused default cancellation policy written before this programme | Not read by any pay path; left unchanged; recommended for deletion |
 
 ---
 

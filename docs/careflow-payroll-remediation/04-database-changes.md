@@ -1,8 +1,44 @@
 # 04 — Database Changes
 
-**Updated:** 2026-10-12 (Gate B sprint)
+**Updated:** 2026-10-13 (Gate B2)
 
-Thirteen migrations so far (seven to the end of the Gate A sprint, six in the Gate B sprint: section 0). Each adds columns, indexes, triggers or an enum value; none drops a table, a column or a row. They have been applied to the local development database, the local payroll test database and, for rehearsal, a scratch database built from the pre-remediation schema. **They have not been run on production or on any shared database.**
+Eighteen migrations so far (seven to the end of the Gate A sprint, six in the Gate B sprint: section 0, five in Gate B2: section 00). Each adds columns, indexes, triggers or an enum value; none drops a table, a column or a row. They have been applied to the local development database, the local payroll test database and, for rehearsal, a scratch database built from the pre-remediation schema. **They have not been run on production or on any shared database.**
+
+---
+
+## 00. Gate B2 — migrations 14 to 18
+
+All five are additive: nullable columns, new tables, one enum value. No table, column or row is dropped, no existing row is changed, and no constraint or trigger that protects financial history is altered. Applied to the local development database, the local payroll test database and the scratch rehearsal database only.
+
+| # | Migration | What it does | Item |
+|---|---|---|---|
+| 14 | `20261015100000_mileage_correction_tax_fields` | `EmployeePayItem.taxFreeAmount`, `taxableAmount`, `taxTreatment` (nullable) | D-21 |
+| 15 | `20261016100000_salary_agreement_terms` | `EmployeePayAgreement.salaryEntryPeriod`, `salaryEntryAmount`, `salaryProrationMethod`, `salaryCoverage`, `approvedById`, `approvedAt`, `termsChangedAt`; `UkPayrollInputLine.unpaidAmount`, `unpaidReason` (all nullable) | WM-02, WM-03, WM-09 |
+| 16 | `20261016140000_guaranteed_hours` | Enum value `PayrollRunLineType.GUARANTEED_HOURS` (`ADD VALUE IF NOT EXISTS`); `EmployeePayAgreement.guaranteedWeeklyHours`, `guaranteeTopUp`, `guaranteeQualifyingTime`, `guaranteeLeaveTreatment` (nullable) | WM-07, EL-01 |
+| 17 | `20261017100000_travel_intervals_and_disruption_pay` | Tables `billing.TravelTimeInterval`, `billing.VisitDisruptionPayRule`, `billing.VisitDisruptionPayDecision` (unique `payItemId`) | TR-01 to TR-06, Q13 |
+| 18 | `20261018100000_nmw_periods_and_leave_terms` | Tables `billing.NmwPeriodAssessment` (unique per run, employee and period start; deleted with its run), `payroll.EmployeeLeaveTerms`, `payroll.EmployeeLeaveEntry`; `EmployeePayrollProfile.apprenticeshipStartDate` (nullable) | Q37–Q39, Q35 |
+
+### What the migrations deliberately do not do
+
+- They create no agreement, guarantee, rule, leave terms or apprenticeship date. Every policy value is entered by people afterwards.
+- They do not back-fill any pay line. Lines of locked runs are untouched (the history triggers would refuse it, correctly). A locked overtime or minimum wage line written before Gate B2 carries no weekly or period claim and is left as it was paid.
+- An agreement that already exists gets no proration method and no salary cover: it keeps the earlier salary calculation, and, having no cover recorded, holds visit wages in UK gross until an approved agreement records one.
+
+### Identities added in existing columns (no schema change)
+
+`PayrollRunLine.claimKey`, already unique, now also carries: `OVERTIME:<employee>:<Monday of the week>:<n>`, `GUARANTEE:<employee>:<Monday>:<n>`, `NMW:<employee>:<first day of the pay reference period>:<n>`. `UkPayrollInputLine.claimKey` now also carries `SALARY:<employee>:<period>:<part>` for the second and later parts of a period's salary and `SALARY_ADJ:<employee>:<period>:<n>` for an adjustment of a paid period.
+
+### Rehearsal
+
+`npm run payroll-migration-rehearsal`: a scratch database is built at the audited commit, filled with synthetic history (now including a salary agreement made before these fields existed), all 18 migrations are applied in order, and 58 checks are made. New checks for Gate B2: an existing pay item gets no tax treatment; an existing agreement keeps its salary and status and gets no method, cover, approval or change mark; no existing UK line is marked covered or held; no agreement gets guaranteed hours; the new line type exists; no travel interval, disruption rule, disruption decision, minimum wage assessment, leave terms or leave entry is created; no profile gets an apprenticeship date. Result: **58 of 58**. The migrated schema equals `prisma/schema.prisma`, and the row counts of the nine tracked tables are unchanged.
+
+### Rollback
+
+Each migration's header says what dropping it would lose. In short: migrations 14 to 16 are nullable columns and can be dropped only while no run calculated after them needs the record (what a salary covered, how a correction was taxed); the enum value of 16 cannot be removed while a line uses it; the tables of 17 and 18 can be dropped, at the cost of the evidence they hold (approved intervals, pay decisions, assessments, leave terms). None of these is a routine rollback once real runs exist.
+
+### Deployment prerequisites added by Gate B2
+
+`node scripts/payroll-approval-permissions.mjs` (adds `payroll.pay_agreements.approve` to the permission list and to the role "Payroll Approver"; assigns it to nobody). Before real use: the conflicts list of the Gate B sprint still applies, and the queries of section 6 are unchanged.
 
 ---
 

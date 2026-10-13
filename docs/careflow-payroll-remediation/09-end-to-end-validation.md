@@ -171,3 +171,54 @@ The other eight tests of that suite cover: a cancelled batch; a rate above a ver
 - The statutory tables behind the tax and NI figures were not validated; only how reimbursements relate to the calculation.
 - The mobile app was not observed.
 - Browser flows were carried out by hand once; they are not automated.
+
+---
+
+## 9. Gate B2 — one synthetic period for employment wages
+
+Test: `test/payroll-int/e2e-gate-b2.int-spec.ts` (10 steps, run in order on shared data, through the real controllers, guards and database). Every person, rate, agreement and rule is synthetic.
+
+**Set-up.** Pay card £14.00 an hour; overtime at time and a half above 10 hours a week; travel time £12.00 an hour. Hana: hourly. Gus: hourly with an approved agreement guaranteeing 14 hours, shortfall paid. Sal: approved salary agreement, £2,000.00 a month, covering all visit work. Lou: paid £12.00 an hour. Cal: a visit that found nobody home.
+
+| V | Validation of the brief | What the test does | Asserted result |
+|---|---|---|---|
+| V-01 | Hourly carer paid correctly | Hana works 6 h, 3 h and 3 h | Visit pay £168.00; nothing else as base wages |
+| V-02 | Salaried employee not double-paid | Sal works a 2 h visit (£28.00) and is in the UK run | Salary £2,000.00; the visit comes in at £0.00, £28.00 recorded as covered; gross £2,000.00 |
+| V-03 | Guarantee top-up | Gus works 10 of 14 h; the following week nothing is scheduled | Top-up £56.00, then £196.00; each week totals £196.00 |
+| V-04 | Overtime across pay runs | 12 h in the week; identity checked. (A week divided between two runs: `overtime-weeks`, 7 tests) | 2 h × £7.00 = £14.00, claim `OVERTIME:<Hana>:2026-11-02:1` |
+| V-05 | Travel pay and mileage separate | Two visits 40 minutes apart, 10 miles on the second | Travel line: 40 minutes, no miles. Mileage line: 10 miles, no minutes |
+| V-06 | Cancelled visit follows policy | An approved synthetic rule "nobody home: paid in full"; event recorded by one user, approved by another | Cancellation pay £14.00, claimed by its pay item |
+| V-07 | Holiday pay by worker category | Leave terms: Gus regular hours, Hana irregular hours on rolled-up pay, Lou none | Gus 78.4 h a year and a 52-week rate of £14.00; Hana accrues 1 h on 12 h worked, paid rolled-up; Lou: nothing worked out |
+| V-08 | Minimum wage on the correct reference period | Lou: 10 h at £12.00 | Top-up £7.10, claim `NMW:<Lou>:<period start>:1` |
+| V-09 | Missing pay rules are visible exceptions | A training activity on a card with no training rate | A held line naming the activity and the reason; the visit pay beside it is paid |
+| V-10 | Incomplete calendars are visible holds | A visit on Easter Monday 2027 with no calendar entry, on a card with a bank holiday rate | A held line: "Carer pay is held: 2027-03-29 is normally Easter Monday…" |
+| V-11 | Corrected earnings enter a later run once | A correction of +£7.00 to a locked visit, approved by a second user | One adjustment line of £7.00 in the next run; none in the one after |
+| V-12 | Locked history unchanged | The locked week's lines are compared, field by field, before and after everything else | Identical |
+| V-13 | UK cancellation does not strand earnings | The UK run is cancelled and replaced | The replacement collects the same amounts for every person |
+| V-14 | Approved expenses included once | Mileage in UK gross; then a supplementary run | In expenses, not in gross; one live expense claim; the supplementary run finds nothing |
+| V-15 | Source earnings reconcile to pay-run lines | Every approved visit and pay item against the run's lines; every locked line against UK gross | One line per source with that source's claim and amount; no line without a claim; the run total equals its lines; every locked line appears once in UK gross |
+
+UK gross for the month, as asserted: Hana £222.00 (168 + 8 + 14 + 25 + 7), Gus £392.00, Sal £2,000.00, Lou £127.10, Cal £14.00.
+
+## 10. Gate B2 — browser run
+
+Run on 2026-10-13 against the synthetic test instance (API on port 3101, test database only; front end on port 5174) filled by `test/payroll-int/browser-fixture.seed.ts`, as two synthetic users: Olivia (prepares) and Peter (approves). The fixture gained two visits of one carer 40 minutes apart, a cancelled visit with a carer allocated, and the agreement approval power for the approver. Each result was read back from the page and confirmed in the test database. The generated login file was deleted afterwards.
+
+| # | Flow | What was seen |
+|---|---|---|
+| B2-1 | Enter a salary agreement, then approve it as a second person | Olivia: "Save for approval" is disabled until salary, part-period method and cover are chosen; saved as a draft with "Not in effect: a second person must approve it"; no approve button for her. Peter: "Approve agreement" → Active, "entered by Olivia Office · approved by Peter Payroll" |
+| B2-2 | A cancelled visit | Pay items page lists "Synthetic cancelled call … cancelled with 60 min notice (client request) · no pay decision". Record for pay → "Needs a decision — No approved rule covers this event". Olivia sets £7.00 with a reason → "Awaiting approval"; her own approval leaves it awaiting. Peter approves → the panel empties and the pay item "Cancelled / disrupted visit £7.00, Approved" is listed |
+| B2-3 | Travel time before a visit | The card says the pay run uses "Travel minutes entered on the visit: 40 min, not classified". Olivia records a rest break 12:00–12:40 (stored as 11:00–11:40 UTC: organisation time is converted correctly); her own approval leaves it awaiting. Peter approves → "Decided by approved intervals: 0 min travel, 0 min waiting, 40 min not paid" |
+| B2-4 | Salary in the UK run | "Calculate gross" on the fixture's run after the agreement took effect on 1 October: salary £1,142.86 (4 of 7 days of £2,000.00); the visits worked on 29 and 30 September, before the salary, still paid (£42.00); gross £1,184.86 |
+| B2-5 | Payroll profile | The apprenticeship start date field and the note about the pay reference period are on the employee dialog |
+
+Found by this run and fixed: the travel card described minutes entered on the visit as a zero estimate (V-40).
+
+## 11. Limits of the Gate B2 validation
+
+- Synthetic people, visits, rates, agreements and rules only.
+- Tax and NI are a stand-in in the end-to-end test; in the browser run the application's own calculation ran but its tables were not validated here.
+- The embedded browser pane does not draw, so the pages were driven through their own controls by script and read back as text; no screenshot was taken.
+- Holiday has no screens, so it was validated through the API only.
+- Salary cover was seen in the browser as a salary part beside visits worked before the salary began; the "covered, not paid again" marker itself is proved by `salary-gross` and the end-to-end test, not by the browser run.
+- The mobile app was not observed.

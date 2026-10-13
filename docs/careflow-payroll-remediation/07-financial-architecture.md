@@ -1,8 +1,64 @@
 # 07 — Financial Architecture
 
-**Updated:** 2026-10-12 (Gate B sprint: section 0 is new; sections 1 to 9 are unchanged except where section 0 says otherwise)
+**Updated:** 2026-10-13 (Gate B2: section 00 is new; section 0 is the Gate B sprint; sections 1 to 9 are unchanged except where these say otherwise)
 
 How pay moves through CareFlow, which record is the authority at each step, and where each control sits. Sections marked *(target)* describe later phases and are not built.
+
+---
+
+## 00. Added in Gate B2
+
+### 00.1 An earning that cannot be worked out is a line, not a gap
+
+A pay run line with `sourceType = HELD_EARNING` carries amount 0.00, no claim, and the reason in `exceptionMessage`. `sourceRef` says what is held: `HELD:ACTIVITY:<id>`, `HELD:PAY_ITEM:<id>`, `HELD:VISIT:<reconciliationId>`, `HELD:CARD:<employeeId>`, `HELD:GUARANTEE:<employee>:<week>`, `HELD:HOLIDAY:<employee>`, `HELD:WEEK:<kind>:<employee>:<week or period>`. Because it holds no claim, the earning stays payable: recalculating retries it, and a later run can pay it. Two kinds stop the run being locked, because locking would lose them: `CARD:` (overtime and rolled-up holiday that could not be worked out at all) and `WEEK:` (a week or period that another open run is settling).
+
+### 00.2 Earnings of a week or a period have one identity across runs
+
+Three earnings belong to a span of time, not to a run: the overtime premium of a week, the guaranteed-hours top-up of a week, the minimum wage top-up of a pay reference period. Each is settled the same way:
+
+1. Read the whole span from its sources (every pay-approved visit of the week; this run's pay and hours with those recorded by locked runs for the period).
+2. Work out what the span is due in total.
+3. Subtract what locked runs already paid for it.
+4. Pay the difference on a line whose claim is `<KIND>:<employee>:<first day of the span>:<n>`, where n is one more than the number of settlements already made.
+
+`PayrollRunLine.claimKey` is unique, so two runs cannot both make the nth settlement. Recalculating gives the same line. A visit approved late, or a correction, changes the total due and the next run that touches the span pays or takes back the difference. If another open run already holds a settlement of the span, this run holds its own with a reason and cannot be locked until the other is.
+
+### 00.3 Salary in UK gross
+
+```
+pay agreements of the employee (not drafts)
+        |  the one with the latest start on or before each day
+        v
+period split into parts  ->  one SALARY line per part   claim SALARY:<employee>:<period>[:<part>]
+        |
+visit pay run lines and approved visits of the employee
+        |  what does the agreement in force on the day of the work say the salary pays for?
+        v
+ALL_VISIT_WORK      -> amount 0.00, unpaidAmount = value, unpaidReason COVERED_BY_SALARY, claim kept (settled)
+CONTRACTED_HOURS    -> the first contracted hours of the week covered, the rest paid (visits in worked order, across runs)
+NO_VISIT_WORK       -> paid in full
+not recorded        -> amount 0.00, unpaidReason SALARY_COVERAGE_NOT_DECIDED, no claim (held; a later run pays or covers it)
+```
+
+Never touched by cover: reimbursements, and lines that come from an approved pay item. A period already paid whose salary an approved agreement has since changed gets one `SALARY_ADJUSTMENT` line (claim `SALARY_ADJ:<employee>:<period>:<n>`) in the next run that includes the employee; the trigger is `termsChangedAt` on the agreement being later than the close of that period's run, so agreements nobody has changed never produce one.
+
+Putting pay terms into effect is a second person's act (`payroll.pay_agreements.approve`). An agreement in effect is not edited; it is ended, and a new one is added. Agreements are therefore a history that can be read back for any past day.
+
+### 00.4 Travel time
+
+`TravelTimeInterval` is time before a visit, with a category, an evidence level and a status. The pay run's order of precedence for a visit: approved intervals; travel minutes entered on the visit; the estimate from the gap since the previous visit in the same run. Travel between service users and required waiting are working time; a rest break and an ordinary commute are not; a training journey, a journey to a cancelled visit and "other" are paid only when the approver says so. Intervals never create or change a mileage line.
+
+### 00.5 Visits that do not go ahead as planned
+
+`VisitDisruptionPayRule` is the employer's policy (none exists until entered and approved). `VisitDisruptionPayDecision` is one event for one carer: the rule in force proposes an amount, or the status is "needs a decision"; a second person approves; an amount becomes a pay item (`DISRUPTION_PAY`, line type `CANCELLATION`) and is claimed and paid like any other. A cancelled visit with a carer allocated and no decision is listed until it has one.
+
+### 00.6 Minimum wage
+
+The pay reference period of a worker is the period of their UK payroll schedule that contains the day worked; with none, the run's own dates, recorded as such. `NmwPeriodAssessment` holds, per run, worker and period: the category and age at the period start, the rate, this run's pay and minutes, the period's position, and the top-up. What counts: visit, travel, waiting and training lines as pay and hours; bonuses and adjustments as pay; nothing else.
+
+### 00.7 Holiday
+
+`EmployeeLeaveTerms` (approved, effective-dated) and `EmployeeLeaveEntry` (what was taken, adjusted, carried over, paid on leaving). Entitlement is worked out when asked, from the terms and the hours worked, and is not stored. The only link to pay so far is that rolled-up holiday pay on a card is held for an employee whose terms do not allow it.
 
 ---
 

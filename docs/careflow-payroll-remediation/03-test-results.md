@@ -6,6 +6,79 @@ No test touched the development database's business data, a live system, HMRC or
 
 ---
 
+## 00. Gate B2 (run of 2026-10-13, branch `payroll-remediation/gate-b2`, backend `79ced6f`, frontend `e259ab2`)
+
+Sections 0 to 7 below are the earlier sprints' results and are kept as they were. This section is the current state.
+
+### 00.1 Summary
+
+| Suite | Suites | Tests | Passed | Failed |
+|---|---|---|---|---|
+| Backend payroll integration, incl. HTTP (`npx jest --config ./test/jest-payroll-int.json`) | 38 | 385 | 385 | 0 |
+| Backend unit: `src/billing`, `src/payroll`, `src/common/guards`, `src/role-responsibilities` | 59 | 461 | 461 | 0 |
+| Backend unit, whole repository (`npx jest`) | 350 | 2,761 | 2,743 | 18 in 10 suites: the same suites and tests as at Gate A and Gate B, none in a module this programme touches |
+| Migration rehearsal (`npm run payroll-migration-rehearsal`) | — | 58 checks | 58 | 0 |
+| Frontend: `src/features/billing`, `src/features/payroll` | 11 files | 59 | 59 | 0 |
+| Frontend, whole repository (`npx vitest run`) | 236 files | 1,316 | 1,300 | 16, the same 16 as at Gate A and Gate B, plus Playwright files Vitest cannot load. One billing test was added after this run; it is in the row above |
+| Backend type-check (`npx tsc --noEmit -p tsconfig.build.json`) | — | — | no errors in `src` or `test` | |
+| Frontend type-check (`npx tsc --noEmit -p tsconfig.json`) | — | — | 0 errors | |
+| Browser (test instance, synthetic data, two users) | 5 flows | — | 5 | 0 (doc 09 section 10) |
+
+Growth since Gate B: integration 26 → 38 suites, 264 → 385 tests; billing and payroll unit 349 → 461; rehearsal 45 → 58 checks; frontend 1,293 → 1,317 tests (24 new, all passing).
+
+### 00.2 New test files
+
+| File | Tests | What it proves |
+|---|---|---|
+| `test/payroll-int/non-visit-holds.int-spec.ts` | 8 | R-22: training, on-call, pay items, overtime and rolled-up holiday that cannot be worked out are held with a reason, retried by recalculating, carried or block the lock |
+| `src/billing/holiday-calendar.r27.spec.ts`, `test/payroll-int/calendar-holds.int-spec.ts` | 17, 9 | R-27: expected holidays per nation against GOV.UK data; holds for England and Wales, Scotland, Northern Ireland, missing years, substitute days, midnight |
+| `test/payroll-int/mileage-corrections.int-spec.ts` | 7 | D-21, D-20: correction as mileage with tax split, across a tax-year change and the threshold, reversal, payout reconciliation, release of earlier mileage |
+| `src/payroll/salary.util.spec.ts` | 24 | Agreement timeline, three proration methods, salary cover per line and per week, guarantee of a week |
+| `test/payroll-int/salary-gross.int-spec.ts` | 21 | Monthly and annual salaried; starter; leaver; increase; decrease; salary with covered visits; with separately paid work; with expenses; corrected after close; supplementary run without a second salary; undecided cover held |
+| `test/payroll-int/salary-agreements-api.int-spec.ts` | 9 | Entry per year, month, week; required terms; approval by a second person with a named power; history; leaver; hourly unchanged |
+| `test/payroll-int/overtime-weeks.int-spec.ts` | 7 | A week inside one run; divided between two; two open runs; a late visit; weeks do not carry over; premium on base rate |
+| `test/payroll-int/guaranteed-hours.int-spec.ts` | 13 | No agreement, no pay; top-up; full week; divided week; part week; travel counted when stated; paid leave; absence; undecided visit; late visit; minimum wage; API |
+| `src/billing/travel-interval.util.spec.ts`, `test/payroll-int/travel-intervals.int-spec.ts` | 5, 7 | Categories; estimate labelled; approved intervals replace it; rest break unpaid; second person; policy categories; refusals |
+| `src/billing/visit-disruption.util.spec.ts`, `test/payroll-int/visit-disruptions.int-spec.ts` | 5, 8 | No rule is not zero; rules by notice; each event; rule that cannot be worked out; rule approval and retirement; paid once; undecided cancellations |
+| `src/billing/nmw-period.util.spec.ts`, `test/payroll-int/nmw-reference-period.int-spec.ts` | 16, 11 | Period from the payroll schedule; whole-period assessment across runs; top-up once; age at period start; apprentices; salaried; excluded pay |
+| `src/payroll/leave.util.spec.ts`, `test/payroll-int/leave-entitlement.int-spec.ts` | 14, 11 | Leave year; entitlement by category; balance; carry-over; 52-week rate; leaver; rolled-up eligibility |
+| `test/payroll-int/e2e-gate-b2.int-spec.ts` | 10 | The fifteen validations on one synthetic period (doc 09 section 9) |
+| `care-admin`: `PayrollRunAttentionList.test`, `VisitMileageCorrectionCard.test`, `PayAgreementsPanel.test`, `TravelAndDisruptions.test` | 2, 4, 8, 10 | The new screens |
+
+### 00.3 Tests that failed first
+
+Written before the fix and seen to fail, or the defect was read in the code path and the test added with the fix: R-22 (8 of 8 failed before), R-27 (run test showed a false top-up and a visit lost at lock: V-22), salary double payment (the "salary plus covered visits" case paid £2,042.00 before), overtime across two runs (paid £0.00 before), apprentice of 25 (apprentice rate before), a monthly run with a low week (no top-up before).
+
+During the phase these failed and were then fixed in the code, not in the test: the first R-22 rule was too strict and blocked ten existing suites (a missing employment record is not a card failure); a hold was missing when a second open run already held a period's top-up; the travel card described the visit's own minutes as a zero estimate.
+
+### 00.4 Existing tests changed
+
+`pay-card-conflicts.int-spec` and `holiday-calendar.int-spec` (a held line is now a `HELD_EARNING` line; the Scotland case uses a holiday the calendar decides, since 25 December is a premium day by date); `earning-status.int-spec` (seeds its own cards); `payroll-claim.util.spec` (+1). No expected amount was lowered or removed.
+
+### 00.5 How to run
+
+```
+# in careadmin-backend
+npm run payroll-test-db                                  # builds the synthetic test database
+npx jest --config ./test/jest-payroll-int.json           # integration and HTTP
+npx jest src/billing src/payroll src/common/guards src/role-responsibilities
+npm run payroll-migration-rehearsal                      # scratch database, created and dropped
+npx tsc --noEmit -p tsconfig.build.json
+# in care-admin
+npx vitest run src/features/billing src/features/payroll
+npx tsc --noEmit -p tsconfig.json
+```
+
+### 00.6 Limits
+
+- Tax and NI in these tests are a stand-in. Nothing here is a statutory payroll test.
+- The statutory minimum wage rates used are the constants already in the code; they were not re-verified.
+- Concurrency (two runs calculated at the same moment) is covered by the unique claim and the retry, and was exercised in one process only.
+- The carer mobile app was not available; nothing it captures was observed.
+- Browser flows were run on the synthetic test instance through the page's own controls driven by script, because the embedded browser pane does not draw; each result was read back from the page and confirmed in the database.
+
+---
+
 ## 0. Gate B sprint (run of 2026-10-12, branch `payroll-remediation/gate-b`, backend `9315a95`, frontend `b36a61f`)
 
 Sections 1 to 7 below are the Gate A sprint's results and are kept as they were. This section is the current state.

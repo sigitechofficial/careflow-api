@@ -1,8 +1,34 @@
 # 08 — Release Readiness
 
-**Updated:** 2026-10-12 (Gate B sprint)
+**Updated:** 2026-10-13 (Gate B2)
 
 **Nothing in this programme is production-ready.** No change has been deployed, pushed, used against live data, reviewed by anyone independent of its author, or put through user acceptance testing. Passing tests are evidence for the behaviours tested, on synthetic data, and nothing more.
+
+---
+
+## 0. Gate B2 — employment wages: built and tested with synthetic policy; not approved for real use
+
+Detail: `12-gate-b-employment-wages-summary.md`. Label: *IMPLEMENTED FOUNDATION — TESTED WITH SYNTHETIC POLICY — CLIENT APPROVAL PENDING*.
+
+| Criterion | Evidence | State |
+|---|---|---|
+| No earning is silently omitted | `non-visit-holds` (8), `calendar-holds` (9), `pay-evaluation-failures`; e2e V-09, V-10 | Met in test |
+| A salaried employee is not paid visit wages again for covered work | `salary-gross` (21); e2e V-02 | Met in test with synthetic agreements. **Real agreements: POLICY BLOCKED (Q22)** |
+| Salary for starters, leavers and mid-period changes; correction after close; supplementary run | `salary-gross`, `salary.util.spec` | Met in test |
+| Pay terms need a second person | `salary-agreements-api` (9); browser as two users | Met in test. Nobody holds the power on the development system (D-01) |
+| Guarantee top-up paid once, never with base pay for the same hours | `guaranteed-hours` (13) | Met in test. **POLICY BLOCKED (Q23)** |
+| Overtime correct when a week is divided between runs | `overtime-weeks` (7) | Met in test |
+| Travel time is classified, not assumed; kept apart from mileage | `travel-intervals` (7); browser | Met as an override. **The default is still an estimate (Q32)** |
+| A cancelled visit is not zero by default | `visit-disruptions` (8); browser | Met. **No rule exists (Q13)** |
+| Holiday pay by worker category | `leave-entitlement` (11) | Part met: calculation and API; no screens, not paid by the system |
+| Minimum wage on the pay reference period; apprentices | `nmw-reference-period` (11) | Met for time work. Open: salaried-hours work, premiums inside visit pay, deductions (D-29) |
+| Corrected earnings enter a later run once; locked history unchanged; UK cancellation strands nothing; expenses once; sources reconcile to lines | `e2e-gate-b2` (10) with the earlier suites | Met in test |
+| Earlier controls preserved | Every earlier integration suite passes; rehearsal 58 of 58; whole-repository baselines unchanged outside the programme | Met |
+| Migrations additive and rehearsed | Doc 04 section 00 | Met on a synthetic historical database. **Not run on a copy of real data** |
+
+**Can Gate B be signed off?** No. The gaps are: the client decisions (doc 05 section 2b); the parts listed as PARTIAL in doc 12 section 3; no independent review; no user acceptance testing; no run on a copy of real data. What Gate B2 changes is that these features now exist to be reviewed and decided on, with tests that state exactly what each does.
+
+**Statements that must not be made on the strength of this phase:** that CareFlow is a complete UK payroll product; that tax, NI or net pay are compliant (the figures in these tests are stand-ins); that mileage is tax-free (the approved amounts are not recorded); that any synthetic rate, agreement or rule is Allfor Care's policy.
 
 ---
 
@@ -11,7 +37,7 @@
 | Gate | Scope | Status |
 |---|---|---|
 | A — Financial containment | Phase 0, the Gate A sprint and Sprint A of the Gate B sprint | **Evidence complete for A1, A3 (branches) and A4 (synthetic history). A2 has one gap that development cannot close (the mobile app). Ready to be submitted for independent review and client UAT. Not signed off** |
-| B — Correct care earnings | Phases 1–4 | **Pay card correctness and mileage settlement: evidence complete in the test environment (section 5a). Salary, guaranteed hours, overtime across runs, travel, cancellation pay, holiday and minimum wage period are not started and wait on client decisions. Not signed off** |
+| B — Correct care earnings | Phases 1–4 | **Pay card correctness and mileage settlement: evidence complete in the test environment (section 5a). Gate B2 (section 0): salary, guaranteed hours, overtime across runs, travel categories, cancellation pay and the minimum wage period are built and tested with synthetic policy; holiday is part built. Every one of them waits on a client decision before real use. Not signed off** |
 | C — Native statutory payroll | Phase 5 | Not started |
 | D — Reporting and settlement | Phases 6–7 | Not started (payment state foundation only) |
 | E — Production readiness | Phases 8–9 | Not started |
