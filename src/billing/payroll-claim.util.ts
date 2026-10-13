@@ -37,6 +37,10 @@ export function payrollLineClaimKey(line: ClaimableLine): string | null {
   if (line.sourceType === GUARANTEED_HOURS_SOURCE && line.sourceRef) {
     return weekEarningClaimKey('GUARANTEE', line.sourceRef);
   }
+  // Minimum wage top-up of a pay reference period: NMW:<employee>:<first day of the period>:<n>.
+  if (line.sourceType === 'NMW_PERIOD' && line.sourceRef) {
+    return weekEarningClaimKey('NMW', line.sourceRef);
+  }
   if (
     line.visitReconciliationId &&
     line.lineType !== 'NMW_TOP_UP' &&

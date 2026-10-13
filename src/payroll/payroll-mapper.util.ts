@@ -207,6 +207,7 @@ export function mapProfile(row: {
   postgraduateLoan: boolean;
   pensionOptedIn: boolean;
   pensionSchemeRef: string | null;
+  apprenticeshipStartDate?: Date | null;
   deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
@@ -242,6 +243,7 @@ export function mapProfile(row: {
     postgraduateLoan: row.postgraduateLoan,
     pensionOptedIn: row.pensionOptedIn,
     pensionSchemeRef: row.pensionSchemeRef,
+    apprenticeshipStartDate: dateToIsoDate(row.apprenticeshipStartDate ?? null),
     deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,

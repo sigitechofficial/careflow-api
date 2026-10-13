@@ -66,10 +66,7 @@ import {
 } from './pay-inter-visit-travel.util';
 import {
   estimateEmployerCost,
-  resolveNmwCategory,
-  validateMinimumWage,
-  ageInFullYears,
-  type NmwPayComponent,
+  nmwHourlyRate,
 } from './pay-compliance.util';
 import {
   derivePeriodKeyFromRange,
@@ -101,7 +98,15 @@ import {
   earningStageLabel,
   furthestPayoutState,
 } from './earning-status.util';
-import { agreementTermsOf, guaranteeForWeek } from '../payroll/salary.util';
+import { agreementTermsOf, carriesSalary, governingAgreement, guaranteeForWeek } from '../payroll/salary.util';
+import {
+  NMW_PERIOD_SOURCE,
+  PayReferencePeriod,
+  assessPayReferencePeriod,
+  nmwCategoryForPeriod,
+  nmwTreatment,
+  payReferencePeriodFor,
+} from './nmw-period.util';
 import { DecidedTravel, decidedTravelForVisit } from './travel-interval.util';
 import { isPaySettled } from './pay-settlement.util';
 import {
@@ -831,7 +836,9 @@ export class PayrollRunsService {
     // PC-19: travel, waiting and mileage rules are chosen by the organisation's local day.
     const timeZone = await this.orgSettings.getOperationalTimezone();
     /** Auto unpaid NMW travel minutes not covered by paid TRAVEL_TIME / WAITING_TIME lines. */
-    const autoUnpaidNmwByEmployee = new Map<string, number>();
+    const autoUnpaidNmwByEmployee = new Map<string, Array<{ at: Date; minutes: number }>>();
+    const addUnpaidNmw = (employeeId: string, at: Date, minutes: number) =>
+      autoUnpaidNmwByEmployee.set(employeeId, [...(autoUnpaidNmwByEmployee.get(employeeId) ?? []), { at, minutes }]);
     // TR-09: mileage rates in force on the day of each journey, and business miles so far in the
     // carer's tax year: journeys in other approved or locked runs, plus earlier ones in this run.
     const mileageRateRows = await this.prisma.mileageRate.findMany();
@@ -1106,12 +1113,7 @@ export class PayrollRunsService {
           manualUnpaid,
           Math.max(0, autoNmw - paidTravelMins - paidWaitingMins),
         );
-        if (unpaidForNmw > 0) {
-          autoUnpaidNmwByEmployee.set(
-            recon.employeeId,
-            (autoUnpaidNmwByEmployee.get(recon.employeeId) ?? 0) + unpaidForNmw,
-          );
-        }
+        if (unpaidForNmw > 0) addUnpaidNmw(recon.employeeId, visitDate, unpaidForNmw);
       } else if (recon.employeeId && !issues.length) {
         // No pay card — still surface auto travel as unpaid NMW hours.
         const auto = autoByDestination.get(recon.id);
@@ -1121,12 +1123,7 @@ export class PayrollRunsService {
             (recon as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0,
             decided ? decided.travelMinutes + decided.waitingMinutes : (auto?.nmwMinutes ?? 0),
           );
-        if (unpaid > 0) {
-          autoUnpaidNmwByEmployee.set(
-            recon.employeeId,
-            (autoUnpaidNmwByEmployee.get(recon.employeeId) ?? 0) + unpaid,
-          );
-        }
+        if (unpaid > 0) addUnpaidNmw(recon.employeeId, recon.approvedPayStart ?? recon.plannedStartDateTime, unpaid);
       }
     }
 
@@ -1137,94 +1134,246 @@ export class PayrollRunsService {
     for (const employeeId of nonVisit.employeeIds) employeeIds.add(employeeId);
     exceptionCount += nonVisit.problemCount;
 
-    // Pay-reference-period NMW validation per worker (DOB-derived age; unpaid travel hours included).
-    const nmwByEmployee = new Map<string, NmwPayComponent[]>();
+    // Minimum wage (Q37–Q39). The check is made over each worker's pay reference period: the
+    // period of their UK payroll schedule, not the dates this run happens to cover. Hours count in
+    // the period they were worked. A period divided between runs is assessed as a whole — this
+    // run's pay and hours with those of the locked runs before it — and topped up once.
+    type NmwComponent = { at: Date; amount: number; minutes: number; pay: boolean; hours: boolean };
+    const nmwByEmployee = new Map<string, NmwComponent[]>();
+    const reconStart = new Map(reconciliations.map((r) => [r.id, r.approvedPayStart ?? r.plannedStartDateTime]));
+    const payItemIds = lineData.map((l) => l.employeePayItemId).filter((v): v is string => !!v);
+    const activityIds = lineData
+      .filter((l) => l.sourceType === 'NON_CORE_ACTIVITY' && l.sourceRef)
+      .map((l) => l.sourceRef as string);
+    const [payItemDates, activityDates] = await Promise.all([
+      payItemIds.length
+        ? this.prisma.employeePayItem.findMany({ where: { id: { in: payItemIds } }, select: { id: true, workDate: true } })
+        : [],
+      activityIds.length
+        ? this.prisma.employeeNonCoreActivity.findMany({ where: { id: { in: activityIds } }, select: { id: true, dateFrom: true } })
+        : [],
+    ]);
+    const payItemDate = new Map(payItemDates.map((i) => [i.id, i.workDate]));
+    const activityDate = new Map(activityDates.map((a) => [a.id, a.dateFrom]));
+    const runEnd = new Date(`${run.periodEnd.toISOString().slice(0, 10)}T12:00:00.000Z`);
+    /** The day the work of a line was done; a line with no day of its own belongs to the end of the run. */
+    const lineWorkedAt = (line: Prisma.PayrollRunLineCreateManyInput): Date => {
+      if (line.visitReconciliationId) return reconStart.get(line.visitReconciliationId) ?? runEnd;
+      if (line.employeePayItemId) {
+        const day = payItemDate.get(line.employeePayItemId);
+        if (day) return new Date(`${day.toISOString().slice(0, 10)}T12:00:00.000Z`);
+      }
+      if (line.sourceType === 'NON_CORE_ACTIVITY' && line.sourceRef) return activityDate.get(line.sourceRef) ?? runEnd;
+      return runEnd;
+    };
+    const addNmw = (employeeId: string, component: NmwComponent) =>
+      nmwByEmployee.set(employeeId, [...(nmwByEmployee.get(employeeId) ?? []), component]);
     for (const line of lineData) {
       if (!line.employeeId) continue;
       // A held line is not paid in this run: its hours are not this run's working time either.
       // Counting them produced a minimum wage top-up for pay that was only being held.
       if (line.exceptionMessage) continue;
-      const isExpense =
-        line.lineType === PayrollRunLineType.MILEAGE ||
-        line.lineType === ('PASSENGER_MILEAGE' as PayrollRunLineType) ||
-        line.lineType === ('EXPENSE' as PayrollRunLineType);
-      const list = nmwByEmployee.get(line.employeeId) ?? [];
-      // Holiday and sick pay are not pay for working time; training hours are working time.
-      const notWorkPay =
-        line.lineType === PayrollRunLineType.HOLIDAY_PAY ||
-        line.lineType === ('SICK_PAY' as PayrollRunLineType) ||
-        // Pay for guaranteed hours that were not worked: it must not hide a minimum wage shortfall.
-        line.lineType === ('GUARANTEED_HOURS' as PayrollRunLineType);
-      list.push({
+      const treatment = nmwTreatment(String(line.lineType));
+      if (!treatment.pay && !treatment.hours) continue;
+      addNmw(line.employeeId, {
+        at: lineWorkedAt(line),
         amount: Number(line.amount),
-        includesInNmwPay: !isExpense && !notWorkPay && line.lineType !== PayrollRunLineType.NMW_TOP_UP,
-        countsAsNmwHours:
-          line.lineType === PayrollRunLineType.VISIT_PAY ||
-          line.lineType === PayrollRunLineType.TRAVEL_TIME ||
-          line.lineType === ('WAITING_TIME' as PayrollRunLineType) ||
-          line.lineType === PayrollRunLineType.NON_VISIT_ACTIVITY,
-        hours: line.minutes != null ? line.minutes / 60 : 0,
+        minutes: line.minutes ?? 0,
+        pay: treatment.pay,
+        hours: treatment.hours,
       });
-      nmwByEmployee.set(line.employeeId, list);
     }
-
-    for (const [employeeId, unpaidMins] of autoUnpaidNmwByEmployee) {
-      if (unpaidMins <= 0) continue;
-      const list = nmwByEmployee.get(employeeId) ?? [];
-      list.push({
-        amount: 0,
-        includesInNmwPay: true,
-        countsAsNmwHours: true,
-        hours: unpaidMins / 60,
-      });
-      nmwByEmployee.set(employeeId, list);
+    // Working time that was not paid as travel or waiting still counts as hours.
+    for (const [employeeId, unpaid] of autoUnpaidNmwByEmployee) {
+      for (const entry of unpaid) {
+        if (entry.minutes > 0) addNmw(employeeId, { at: entry.at, amount: 0, minutes: entry.minutes, pay: true, hours: true });
+      }
     }
 
     let nmwTopUpTotal = 0;
     let nmwExceptionBump = 0;
-    for (const [employeeId, components] of nmwByEmployee) {
-      const employment = await this.prisma.employeeEmployment.findFirst({
-        where: { employeeId, deletedAt: null },
-        select: {
-          contractType: { select: { name: true } },
-          employee: { select: { personalDetail: { select: { dateOfBirth: true } } } },
-        },
-      });
-      const dob = employment?.employee?.personalDetail?.dateOfBirth ?? null;
-      const ageOnPayPeriodEnd = dob
-        ? ageInFullYears(dob, run.periodEnd)
-        : 21;
-      const isApprentice = /apprentice/i.test(employment?.contractType?.name ?? '');
-      const category = resolveNmwCategory({
-        ageOnPayPeriodEnd,
-        isApprentice,
-        apprenticeEligible: isApprentice,
-      });
-      const nmw = validateMinimumWage({
-        category,
-        components,
-        asOf: run.periodEnd,
-      });
-      if (!nmw.compliant && nmw.topUp > 0) {
-        nmwExceptionBump += 1;
-        const anyRecon =
-          lineData.find((l) => l.employeeId === employeeId && l.visitReconciliationId) ??
-          lineData.find((l) => l.employeeId === employeeId);
-        if (anyRecon) {
-          // Counted only when the top-up line exists, so the total always equals the lines.
-          nmwTopUpTotal += nmw.topUp;
-          lineData.push({
-            payrollRunId: id,
-            visitReconciliationId: anyRecon.visitReconciliationId,
-            employeeId,
-            lineType: PayrollRunLineType.NMW_TOP_UP,
-            description: `NMW top-up — ${nmw.explanation}`,
-            minutes: null,
-            amount: nmw.topUp,
-            payCardId: anyRecon.payCardId ?? null,
-            visitRef: anyRecon.visitRef ?? null,
-            exceptionMessage: null,
+    const nmwAssessments: Prisma.NmwPeriodAssessmentCreateManyInput[] = [];
+    const nmwEmployeeIds = [...nmwByEmployee.keys()];
+    if (nmwEmployeeIds.length) {
+      const [employments, profiles, agreementRows, otherAssessments, otherTopUps] = await Promise.all([
+        this.prisma.employeeEmployment.findMany({
+          where: { employeeId: { in: nmwEmployeeIds }, deletedAt: null },
+          select: {
+            employeeId: true,
+            contractType: { select: { name: true } },
+            employee: { select: { personalDetail: { select: { dateOfBirth: true } } } },
+          },
+        }),
+        this.prisma.employeePayrollProfile.findMany({
+          where: { employeeId: { in: nmwEmployeeIds }, deletedAt: null },
+          select: { employeeId: true, scheduleId: true, apprenticeshipStartDate: true },
+        }),
+        this.prisma.employeePayAgreement.findMany({
+          where: { employeeId: { in: nmwEmployeeIds }, deletedAt: null, status: { not: 'DRAFT' } },
+        }),
+        // The same periods in runs that are locked: their pay and hours are part of the period.
+        this.prisma.nmwPeriodAssessment.findMany({
+          where: {
+            employeeId: { in: nmwEmployeeIds },
+            payrollRunId: { not: id },
+            payrollRun: { status: { in: [PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED] } },
+          },
+          select: { employeeId: true, periodStart: true, eligiblePay: true, minutes: true },
+        }),
+        this.prisma.payrollRunLine.findMany({
+          where: { payrollRunId: { not: id }, sourceType: NMW_PERIOD_SOURCE, employeeId: { in: nmwEmployeeIds } },
+          select: { employeeId: true, sourceRef: true, amount: true, payrollRun: { select: { status: true, periodLabel: true } } },
+        }),
+      ]);
+      const scheduleIds = [...new Set(profiles.map((p) => p.scheduleId).filter((v): v is string => !!v))];
+      const allTimes = [...nmwByEmployee.values()].flat().map((c) => c.at.getTime());
+      const schedulePeriods = scheduleIds.length
+        ? await this.prisma.payrollPeriod.findMany({
+            where: {
+              scheduleId: { in: scheduleIds },
+              deletedAt: null,
+              periodStart: { lte: new Date(Math.max(...allTimes)) },
+              periodEnd: { gte: new Date(Math.min(...allTimes) - 24 * 60 * 60_000) },
+            },
+            select: { scheduleId: true, periodStart: true, periodEnd: true },
+          })
+        : [];
+      const isoKey = (d: Date) => d.toISOString().slice(0, 10);
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+
+      for (const [employeeId, components] of nmwByEmployee) {
+        const employment = employments.find((e) => e.employeeId === employeeId);
+        const profile = profiles.find((p) => p.employeeId === employeeId);
+        const periodsOfWorker = schedulePeriods.filter((p) => p.scheduleId === profile?.scheduleId);
+        const agreements = agreementRows.filter((a) => a.employeeId === employeeId).map(agreementTermsOf);
+
+        // This run's components, by the pay reference period their day falls in.
+        const byPeriod = new Map<string, { period: PayReferencePeriod; components: NmwComponent[] }>();
+        for (const component of components) {
+          const period = payReferencePeriodFor(dayKeyInTimeZone(component.at, timeZone), periodsOfWorker, run);
+          const bucket = byPeriod.get(period.start) ?? { period, components: [] };
+          bucket.components.push(component);
+          byPeriod.set(period.start, bucket);
+        }
+
+        for (const { period, components: inPeriod } of byPeriod.values()) {
+          const periodStart = new Date(`${period.start}T00:00:00.000Z`);
+          const decision = nmwCategoryForPeriod({
+            dateOfBirth: employment?.employee?.personalDetail?.dateOfBirth ?? null,
+            periodStart,
+            apprenticeContract: /apprentice/i.test(employment?.contractType?.name ?? ''),
+            apprenticeshipStartDate: profile?.apprenticeshipStartDate ?? null,
           });
+          const requiredHourly = nmwHourlyRate(decision.category, periodStart);
+          const thisPay = round2(inPeriod.filter((c) => c.pay).reduce((sum, c) => sum + c.amount, 0));
+          const thisMinutes = inPeriod.filter((c) => c.hours).reduce((sum, c) => sum + c.minutes, 0);
+          const before = otherAssessments.filter((a) => a.employeeId === employeeId && isoKey(a.periodStart) === period.start);
+          const settled = otherTopUps.filter(
+            (l) => l.employeeId === employeeId && weekEarningParts(l.sourceRef).weekKey === period.start,
+          );
+          const topUpAlreadyPaid = round2(settled.reduce((sum, l) => sum + Number(l.amount), 0));
+          const position = assessPayReferencePeriod({
+            requiredHourly,
+            thisPay,
+            thisMinutes,
+            otherPay: before.reduce((sum, a) => sum + Number(a.eligiblePay), 0),
+            otherMinutes: before.reduce((sum, a) => sum + a.minutes, 0),
+            topUpAlreadyPaid,
+          });
+          const assessment = {
+            payrollRunId: id,
+            employeeId,
+            periodStart,
+            periodEnd: new Date(`${period.end}T00:00:00.000Z`),
+            periodSource: period.source,
+            workType: 'TIME_WORK',
+            category: decision.category,
+            ageAtPeriodStart: decision.ageAtPeriodStart,
+            requiredHourly,
+            eligiblePay: thisPay,
+            minutes: thisMinutes,
+            periodPay: position.periodPay,
+            periodMinutes: position.periodMinutes,
+            topUpAlreadyPaid,
+            topUpInRun: 0,
+            compliant: position.compliant,
+            note: decision.note,
+          };
+          // A salaried worker is paid for basic hours by the salary: this is not time work, so a
+          // top-up worked out from visit lines would be wrong. The position is recorded, not paid.
+          if (carriesSalary(governingAgreement(agreements, periodStart))) {
+            nmwAssessments.push({
+              ...assessment,
+              workType: 'SALARIED_HOURS',
+              compliant: true,
+              note: 'Salaried hours work: not assessed from visit lines. The salary is checked against the basic hours it pays for.',
+            });
+            continue;
+          }
+          const openElsewhere = settled.find(
+            (l) => l.payrollRun.status !== PayrollRunStatus.LOCKED && l.payrollRun.status !== PayrollRunStatus.EXPORTED,
+          );
+          if (openElsewhere) {
+            // What the open run has topped up is not settled, so it cannot be netted off here.
+            if (position.topUpDue > 0) {
+              exceptionCount += 1;
+              lineData.push({
+                payrollRunId: id,
+                visitReconciliationId: null,
+                employeeId,
+                lineType: PayrollRunLineType.NMW_TOP_UP,
+                sourceType: HELD_EARNING_SOURCE,
+                sourceRef: heldEarningRef(`WEEK:NMW:${employeeId}:${period.start}`),
+                description: `Not worked out: minimum wage top-up for the pay reference period ${period.start} to ${period.end}`,
+                minutes: null,
+                amount: 0,
+                payCardId: null,
+                visitRef: null,
+                exceptionMessage: `The minimum wage top-up of the pay reference period ${period.start} to ${period.end} is on pay run "${openElsewhere.payrollRun.periodLabel}", which is not locked yet. Lock or recalculate that run, then recalculate this one.`,
+              });
+            }
+            nmwAssessments.push(assessment);
+            continue;
+          }
+          if (position.topUpInRun !== 0) {
+            const inPeriodDay = (visitId: string | null | undefined) => {
+              const start = visitId ? reconStart.get(visitId) : null;
+              if (!start) return false;
+              const day = dayKeyInTimeZone(start, timeZone);
+              return day >= period.start && day <= period.end;
+            };
+            const anchor =
+              lineData.find(
+                (l) =>
+                  l.employeeId === employeeId &&
+                  l.lineType === PayrollRunLineType.VISIT_PAY &&
+                  !l.exceptionMessage &&
+                  inPeriodDay(l.visitReconciliationId),
+              ) ?? null;
+            if (position.topUpInRun > 0) nmwExceptionBump += 1;
+            nmwTopUpTotal += position.topUpInRun;
+            assessment.topUpInRun = position.topUpInRun;
+            const hours = (position.periodMinutes / 60).toFixed(2).replace(/\.00$/, '');
+            lineData.push({
+              payrollRunId: id,
+              visitReconciliationId: anchor?.visitReconciliationId ?? null,
+              employeeId,
+              lineType: PayrollRunLineType.NMW_TOP_UP,
+              sourceType: NMW_PERIOD_SOURCE,
+              sourceRef: weekEarningRef(id, employeeId, period.start, settled.length + 1),
+              description:
+                `NMW top-up — pay reference period ${period.start} to ${period.end}` +
+                (period.source === 'PAY_RUN_PERIOD' ? ' (the dates of this run: no payroll schedule period covers them)' : '') +
+                `: £${position.periodPay.toFixed(2)} for ${hours}h = £${position.effectiveHourly.toFixed(4)}/hr, rate £${requiredHourly.toFixed(2)} (${decision.category})` +
+                (topUpAlreadyPaid ? `; £${topUpAlreadyPaid.toFixed(2)} already topped up by an earlier run` : ''),
+              minutes: null,
+              amount: position.topUpInRun,
+              payCardId: anchor?.payCardId ?? null,
+              visitRef: anchor?.visitRef ?? null,
+              exceptionMessage: null,
+            });
+          }
+          nmwAssessments.push(assessment);
         }
       }
     }
@@ -1286,6 +1435,8 @@ export class PayrollRunsService {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.payrollRunLine.deleteMany({ where: { payrollRunId: id } });
+      await tx.nmwPeriodAssessment.deleteMany({ where: { payrollRunId: id } });
+      if (nmwAssessments.length) await tx.nmwPeriodAssessment.createMany({ data: nmwAssessments });
       try {
         await (tx as { payComponent?: { deleteMany: Function } }).payComponent?.deleteMany({
           where: { payrollRunId: id },
@@ -2136,7 +2287,7 @@ export class PayrollRunsService {
     const weekHeld = heldSubjects.filter((subject) => subject.startsWith('WEEK:'));
     if (weekHeld.length) {
       throw new BadRequestException(
-        `${weekHeld.length} weekly earning(s) of this run are waiting for another pay run that covers part of the same week. Lock or recalculate that run, then recalculate this one before locking.`,
+        `${weekHeld.length} earning(s) of this run are waiting for another pay run that covers part of the same week or pay reference period. Lock or recalculate that run, then recalculate this one before locking.`,
       );
     }
     const lostIfLocked = run.lines.filter(

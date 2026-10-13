@@ -9282,6 +9282,7 @@ model PayrollRun {
   createdById              String?          @db.Uuid
 
   lines                 PayrollRunLine[]
+  nmwAssessments        NmwPeriodAssessment[]
   lockedReconciliations VisitReconciliation[] @relation("ReconciliationPayrollRun")
 
   @@index([status])
@@ -9438,6 +9439,43 @@ model VisitDisruptionPayDecision {
   @@index([employeeId, eventAt])
   @@index([scheduledJobId])
   @@index([status])
+  @@schema("billing")
+}
+
+/// Q37–Q39: minimum wage is checked over the worker's pay reference period, not over whatever
+/// dates a visit pay run happens to cover. One row per run, worker and pay reference period: this
+/// run's pay and hours for the period, and the position of the whole period so far.
+model NmwPeriodAssessment {
+  id               String   @id @default(uuid()) @db.Uuid
+  payrollRunId     String   @db.Uuid
+  employeeId       String   @db.Uuid
+  periodStart      DateTime @db.Date
+  periodEnd        DateTime @db.Date
+  /// PAYROLL_SCHEDULE: the period of the worker's UK payroll schedule.
+  /// PAY_RUN_PERIOD: no schedule period covers the date, so the run's own dates were used.
+  periodSource     String
+  /// TIME_WORK | SALARIED_HOURS (a salaried worker is not assessed as time work here)
+  workType         String
+  category         String
+  ageAtPeriodStart Int?
+  requiredHourly   Decimal  @db.Decimal(8, 4)
+  /// This run's part of the period.
+  eligiblePay      Decimal  @db.Decimal(12, 2)
+  minutes          Int
+  /// The whole period so far: this run and the locked runs before it.
+  periodPay        Decimal  @db.Decimal(12, 2)
+  periodMinutes    Int
+  topUpAlreadyPaid Decimal  @db.Decimal(12, 2)
+  /// The top-up line of this run for the period (negative when an earlier top-up is reduced).
+  topUpInRun       Decimal  @db.Decimal(12, 2)
+  compliant        Boolean
+  note             String?
+  createdAt        DateTime @default(now())
+
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  @@unique([payrollRunId, employeeId, periodStart])
+  @@index([employeeId, periodStart])
   @@schema("billing")
 }
 
@@ -10174,6 +10212,9 @@ model EmployeePayrollProfile {
   postgraduateLoan    Boolean                      @default(false)
   pensionOptedIn      Boolean                      @default(false)
   pensionSchemeRef    String?
+  /// Q37–Q39: the day the apprenticeship began. The apprentice minimum wage rate applies under 19,
+  /// or in the first year of the apprenticeship; without this date it cannot be shown for 19+.
+  apprenticeshipStartDate DateTime? @db.Date
   /// Selected UK deduction catalogue codes (2026/27) — configuration only until engines land.
   deductionElections  Json?
   bankSortCode        String?
@@ -10246,6 +10287,60 @@ model EmployeePayAgreement {
   @@index([employeeId, status])
   @@index([payCardId])
   @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Q35: how one employee's holiday is earned and paid, from a date. Nothing here is assumed for
+/// anyone: an employee with no terms recorded has no entitlement worked out by the system.
+model EmployeeLeaveTerms {
+  id                   String    @id @default(uuid()) @db.Uuid
+  employeeId           String    @db.Uuid
+  /// REGULAR_HOURS | IRREGULAR_HOURS | PART_YEAR
+  workerCategory       String
+  /// First day of the leave year, as month and day (for example 4 and 1 for 1 April).
+  leaveYearStartMonth  Int
+  leaveYearStartDay    Int       @default(1)
+  /// Regular hours: the hours of a normal working week. Statutory leave is 5.6 of these weeks.
+  weeklyHours          Decimal?  @db.Decimal(6, 2)
+  /// Leave the contract gives beyond the statutory 5.6 weeks, in hours a year.
+  contractualExtraHours Decimal? @db.Decimal(8, 2)
+  /// How a day of holiday is paid: NORMAL_REMUNERATION_52_WEEKS | ROLLED_UP_12_07
+  payMethod            String
+  /// Hours of untaken leave that may be carried into the next leave year (empty: none).
+  carryOverMaxHours    Decimal?  @db.Decimal(8, 2)
+  effectiveFrom        DateTime  @db.Date
+  effectiveTo          DateTime? @db.Date
+  /// DRAFT | ACTIVE | SUPERSEDED
+  status               String    @default("DRAFT")
+  note                 String?
+  createdById          String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  approvedById         String?   @db.Uuid
+  approvedAt           DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  @@index([employeeId, effectiveFrom])
+  @@schema("payroll")
+}
+
+/// Leave movements of an employee in hours: what was taken, adjusted, carried over or paid on
+/// leaving. Accrual is worked out from the terms and the hours worked; it is not stored here.
+model EmployeeLeaveEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  /// TAKEN | ADJUSTMENT | CARRY_OVER | LEAVER_PAYMENT
+  entryType       String
+  /// STATUTORY | CONTRACTUAL
+  entitlementType String   @default("STATUTORY")
+  /// Hours. TAKEN and LEAVER_PAYMENT reduce the balance; ADJUSTMENT and CARRY_OVER are signed.
+  hours           Decimal  @db.Decimal(8, 2)
+  /// The day the leave was taken, or the day the movement applies to.
+  date            DateTime @db.Date
+  note            String?
+  createdById     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  @@index([employeeId, date])
   @@schema("payroll")
 }
 

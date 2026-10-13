@@ -453,6 +453,14 @@ export class UpsertEmployeePayrollProfileDto {
   @MaxLength(80)
   pensionSchemeRef?: string | null;
 
+  @ApiPropertyOptional({
+    example: '2026-03-01',
+    description: 'The day the apprenticeship began: decides whether the apprentice minimum wage rate applies at 19 or over',
+  })
+  @IsOptional()
+  @IsDateString()
+  apprenticeshipStartDate?: string | null;
+
   @ApiPropertyOptional({ example: '12-34-56' })
   @IsOptional()
   @IsString()

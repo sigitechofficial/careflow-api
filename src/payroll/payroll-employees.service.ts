@@ -358,6 +358,12 @@ export class PayrollEmployeesService {
       deductionElections: sanitizedElections === undefined ? undefined : sanitizedElections,
       pensionSchemeRef:
         dto.pensionSchemeRef === undefined ? undefined : dto.pensionSchemeRef?.trim() || null,
+      apprenticeshipStartDate:
+        dto.apprenticeshipStartDate === undefined
+          ? undefined
+          : dto.apprenticeshipStartDate
+            ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
+            : null,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
       bankAccountNumber:
         dto.bankAccountNumber === undefined ? undefined : dto.bankAccountNumber?.trim() || null,
@@ -394,6 +400,9 @@ export class PayrollEmployeesService {
             pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
             deductionElections: createElections,
             pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
+            apprenticeshipStartDate: dto.apprenticeshipStartDate
+              ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
+              : null,
             bankSortCode: dto.bankSortCode?.trim() || null,
             bankAccountNumber: dto.bankAccountNumber?.trim() || null,
             bankAccountName: dto.bankAccountName?.trim() || null,
