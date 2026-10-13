@@ -108,6 +108,7 @@ import {
   payReferencePeriodFor,
 } from './nmw-period.util';
 import { DecidedTravel, decidedTravelForVisit } from './travel-interval.util';
+import { rolledUpAllowedFor } from '../payroll/leave.util';
 import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
@@ -2151,6 +2152,34 @@ export class PayrollRunsService {
         continue;
       }
       if ((resolved.card as { holidayPayMethod?: string | null }).holidayPayMethod !== 'ROLLED_UP_12_07') continue;
+      // Q35: rolled-up holiday pay is lawful only for a worker with irregular hours or who works
+      // part of the year. The card says how the pay is worked out; the employee's own leave terms
+      // say whether it may be used for them. It is not applied to everyone on the card by default.
+      const leaveTerms = await this.prisma.employeeLeaveTerms.findFirst({
+        where: {
+          employeeId,
+          status: { in: ['ACTIVE', 'SUPERSEDED'] },
+          effectiveFrom: { lte: run.periodEnd },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gte: run.periodEnd } }],
+        },
+        orderBy: [{ effectiveFrom: 'desc' }, { approvedAt: 'desc' }],
+        select: { workerCategory: true, payMethod: true },
+      });
+      if (leaveTerms && (!rolledUpAllowedFor(leaveTerms.workerCategory) || leaveTerms.payMethod !== 'ROLLED_UP_12_07')) {
+        hold({
+          employeeId,
+          subject: `HOLIDAY:${employeeId}`,
+          lineType: PayrollRunLineType.HOLIDAY_PAY,
+          description: 'Not paid: rolled-up holiday pay',
+          reason: rolledUpAllowedFor(leaveTerms.workerCategory)
+            ? `Pay card ${resolved.card.name} adds rolled-up holiday pay, but this employee's leave terms say holiday is paid when it is taken. Correct the card or the leave terms.`
+            : `Pay card ${resolved.card.name} adds rolled-up holiday pay, but this employee's leave terms record regular hours: rolled-up holiday pay cannot be used for them. Their holiday is paid when it is taken.`,
+        });
+        continue;
+      }
+      const eligibilityNote = leaveTerms
+        ? ''
+        : ' (no leave terms recorded for this employee: whether rolled-up holiday pay may be used for them is not verified)';
       lines.push({
         payrollRunId: run.id,
         visitReconciliationId: null,
@@ -2158,7 +2187,7 @@ export class PayrollRunsService {
         lineType: PayrollRunLineType.HOLIDAY_PAY,
         sourceType: 'HOLIDAY_ROLLED_UP',
         sourceRef: `${run.id}:${employeeId}`,
-        description: `Rolled-up holiday pay — 12.07% of £${roundPence(pay).toFixed(2)} worked pay`,
+        description: `Rolled-up holiday pay — 12.07% of £${roundPence(pay).toFixed(2)} worked pay${eligibilityNote}`,
         minutes: null,
         unitAmount: null,
         amount: rolledUpHolidayPay(pay),

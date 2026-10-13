@@ -3,6 +3,8 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PayrollEmployeesController } from './payroll-employees.controller';
 import { PayrollEmployeesService } from './payroll-employees.service';
+import { LeaveController } from './leave.controller';
+import { LeaveService } from './leave.service';
 import { PayrollHmrcEpsSubmissionsService } from './payroll-hmrc-eps-submissions.service';
 import { PayrollHmrcRtiClient } from './payroll-hmrc-rti.client';
 import { PayrollHmrcSubmissionsService } from './payroll-hmrc-submissions.service';
@@ -17,12 +19,14 @@ import { PayrollSettingsService } from './payroll-settings.service';
   controllers: [
     PayrollSettingsController,
     PayrollEmployeesController,
+    LeaveController,
     PayrollRunsController,
     PayrollPayslipsController,
   ],
   providers: [
     PayrollSettingsService,
     PayrollEmployeesService,
+    LeaveService,
     PayrollRunsService,
     PayrollHmrcRtiClient,
     PayrollHmrcSubmissionsService,
