@@ -12,6 +12,8 @@ import {
   UNPAID_COVERAGE_NOT_DECIDED,
   UNPAID_COVERED_BY_SALARY,
   VisitCoverage,
+  EmploymentDates,
+  agreementSegments,
   agreementTermsOf,
   applySalaryCoverage,
   carriesSalary,
@@ -38,8 +40,13 @@ import {
   NMW_BLOCKING_ISSUES,
   NMW_ISSUE_MESSAGES,
   NmwReviewOutcome,
+  SalariedAssessment,
+  SalariedYearPosition,
+  annualBasicHours,
   assessSalariedHours,
   basicHoursOfPeriod,
+  payPeriodWindows,
+  salariedCalculationYear,
   isWithinOneMonth,
   nmwBlocksClose,
   nmwCanBeReviewed,
@@ -658,6 +665,13 @@ export class PayrollRunsService {
           issue: a.issue,
           shortfall: a.shortfall == null ? null : Number(a.shortfall),
           issueMessage: a.issue ? (NMW_ISSUE_MESSAGES[a.issue] ?? null) : null,
+          // Sprint B4B: where the worker stands in the calculation year (empty when not assessed).
+          calcYearStart: a.calcYearStart ? dateToIsoDate(a.calcYearStart) : null,
+          calcYearEnd: a.calcYearEnd ? dateToIsoDate(a.calcYearEnd) : null,
+          weeksPerYear: a.weeksPerYear == null ? null : Number(a.weeksPerYear),
+          annualBasicHours: a.annualBasicMinutes == null ? null : Math.round((a.annualBasicMinutes / 60) * 100) / 100,
+          yearHoursBefore: a.yearMinutesBefore == null ? null : Math.round((a.yearMinutesBefore / 60) * 100) / 100,
+          excessHours: a.excessMinutes == null ? null : Math.round((a.excessMinutes / 60) * 100) / 100,
           blocksClose: nmwBlocksClose(a),
           canReview: nmwCanBeReviewed(a),
           // The review, if one was recorded: what it found, by whom, and the facts it rests on.
@@ -1773,6 +1787,23 @@ export class PayrollRunsService {
       ]);
       const periodDays = calendarDaysInclusive(periodStart, periodEnd);
       const validPeriod = isWithinOneMonth(dateToIsoDate(periodStart)!, dateToIsoDate(periodEnd)!);
+      // Sprint B4B: how contracted weekly hours become the basic hours of a year is the employer's
+      // approved method. With none in force nothing is assumed: the salary is not assessed.
+      const method = await this.prisma.salariedHoursAnnualisation.findFirst({
+        where: { status: 'APPROVED', effectiveFrom: { lte: periodStart } },
+        orderBy: [{ effectiveFrom: 'desc' }, { approvedAt: 'desc' }],
+      });
+      const weeksPerYear = method ? Number(method.weeksPerYear) : null;
+      const unassessed = (issue: string): SalariedAssessment => ({
+        hours: null,
+        effectiveHourly: null,
+        topUp: 0,
+        compliant: null,
+        issue,
+        shortfall: 0,
+        excessHours: 0,
+        note: NMW_ISSUE_MESSAGES[issue],
+      });
       for (const [employeeId, parts] of salaryPartsPaid) {
         const runEmployee = runEmployeeByEmployeeId.get(employeeId)!;
         const fact = facts.find((f) => f.employeeId === employeeId);
@@ -1801,27 +1832,44 @@ export class PayrollRunsService {
             return sum + (full > 0 ? ((l.minutes ?? 0) * l.amount) / full : 0);
           }, 0),
         );
-        const result = validPeriod
-          ? assessSalariedHours({
-              requiredHourly,
-              basicHours: basicHoursOfPeriod(
-                parts.map((p) => ({ contractedWeeklyHours: p.contractedHours, days: p.days })),
-                periodDays,
-                periodsPerYear(run.schedule.frequency),
-              ),
-              pay,
-              additionalPaidMinutes,
-              workedMinutes,
-            })
-          : {
-              hours: null,
-              effectiveHourly: null,
-              topUp: 0,
-              compliant: null,
-              issue: 'PERIOD_OVER_ONE_MONTH',
-              shortfall: 0,
-              note: NMW_ISSUE_MESSAGES.PERIOD_OVER_ONE_MONTH,
-            };
+        const partHours = parts.map((p) => ({ contractedWeeklyHours: p.contractedHours, days: p.days }));
+        let inYear: Awaited<ReturnType<PayrollRunsService['salariedYearPosition']>> = null;
+        let result: SalariedAssessment;
+        if (!validPeriod) {
+          result = unassessed('PERIOD_OVER_ONE_MONTH');
+        } else if (partHours.some((p) => !((p.contractedWeeklyHours ?? 0) > 0))) {
+          result = unassessed('BASIC_HOURS_NOT_RECORDED');
+        } else if (weeksPerYear == null) {
+          result = unassessed('POLICY_REVIEW_REQUIRED');
+        } else {
+          inYear = await this.salariedYearPosition({
+            runId,
+            employeeId,
+            agreements: agreementsByEmployee.get(employeeId) ?? [],
+            employment: employmentByEmployee.get(employeeId),
+            frequency: run.schedule.frequency,
+            periodStart,
+            periodEnd,
+            firstDayPaid: parts[0].from,
+            partHours,
+            weeksPerYear,
+            timeLines,
+          });
+          // Null: some part of the calculation year has no contracted hours recorded.
+          result = inYear
+            ? assessSalariedHours({
+                requiredHourly,
+                basicHours: basicHoursOfPeriod(partHours, periodDays, periodsPerYear(run.schedule.frequency), weeksPerYear),
+                pay,
+                additionalPaidMinutes,
+                workedMinutes,
+                year: inYear.position,
+              })
+            : unassessed('BASIC_HOURS_NOT_RECORDED');
+        }
+        const yearNote = inYear
+          ? `Calculation year ${dateToIsoDate(inYear.year.start)} to ${dateToIsoDate(inYear.year.end)}; basic hours from contracted weekly hours x ${weeksPerYear} weeks (${method?.isSynthetic ? 'SYNTHETIC TEST METHOD, not an employer policy' : 'approved method'})${inYear.leaver ? '; leaves in the year, so the basic hours are those of the pay periods employed' : ''}.`
+          : null;
         if (result.topUp > 0) {
           draftLines.push({
             ...salaryLine,
@@ -1855,7 +1903,13 @@ export class PayrollRunsService {
           compliant: result.compliant,
           issue: result.issue,
           shortfall: result.shortfall,
-          note: [decision.note, result.note].filter(Boolean).join(' '),
+          calcYearStart: inYear?.year.start ?? null,
+          calcYearEnd: inYear?.year.end ?? null,
+          weeksPerYear: inYear ? weeksPerYear : null,
+          annualBasicMinutes: inYear ? Math.round(inYear.position.thresholdHours * 60) : null,
+          yearMinutesBefore: inYear ? Math.round(inYear.position.hoursBefore * 60) : null,
+          excessMinutes: inYear ? Math.round(result.excessHours * 60) : null,
+          note: [decision.note, result.note, yearNote].filter(Boolean).join(' '),
         });
       }
     }
@@ -1927,8 +1981,8 @@ export class PayrollRunsService {
         if (!before) continue;
         if (!sameEvidence) {
           // The next reviewer is told that a shortfall was confirmed on the figures as they were.
-          if (before.reviewOutcome === 'SHORTFALL_CONFIRMED' && next.issue) {
-            next.note = `${next.note} A shortfall was confirmed on earlier figures, which have since changed: review again.`;
+          if (before.reviewOutcome === 'SHORTFALL_CONFIRMED') {
+            next.note = `${next.note} A shortfall was confirmed on earlier figures, which have since changed${next.issue ? ': review again' : ''}.`;
           }
           continue;
         }
@@ -2708,6 +2762,154 @@ export class PayrollRunsService {
     if (run.grossCalculatedAt) return 'GROSS_CALCULATED';
     if (run.employeeCount > 0) return 'EMPLOYEES_ENROLLED';
     return 'DRAFT';
+  }
+
+  /**
+   * Where a salaried worker stands in the calculation year when a period is assessed (HMRC,
+   * "Working hours for which the minimum wage must be paid").
+   *
+   * The year starts when the salaried contract started: the first salaried agreement on record,
+   * or the employment start date if that is later. Its basic hours are the contracted weekly
+   * hours of the agreements in force, by days, times the weeks of the approved method. Hours
+   * worked are the time lines that UK payroll runs have collected for the worker in the year,
+   * each source once (its claim, or the visit or pay line it comes from), however many runs show
+   * it; a cancelled run's lines are not counted. Null when a part of the year has no contracted
+   * hours.
+   */
+  private async salariedYearPosition(input: {
+    runId: string;
+    employeeId: string;
+    agreements: AgreementTerms[];
+    employment?: EmploymentDates;
+    frequency: string;
+    periodStart: Date;
+    periodEnd: Date;
+    firstDayPaid: Date;
+    partHours: Array<{ contractedWeeklyHours: number | null; days: number }>;
+    weeksPerYear: number;
+    timeLines: Array<{
+      id: string;
+      minutes: number | null;
+      claimKey: string | null;
+      sourceVisitReconciliationId: string | null;
+      sourcePayrollRunLineId: string | null;
+    }>;
+  }): Promise<{ year: { start: Date; end: Date }; position: SalariedYearPosition; leaver: boolean } | null> {
+    const salaried = input.agreements.filter((a) => a.status !== 'DRAFT' && carriesSalary(a));
+    if (!salaried.length) return null;
+    let anchor = salaried.reduce((first, a) => (a.effectiveFrom < first ? a.effectiveFrom : first), salaried[0].effectiveFrom);
+    if (input.employment?.startDate && input.employment.startDate > anchor) anchor = input.employment.startDate;
+    const year = salariedCalculationYear(anchor, input.frequency, input.firstDayPaid);
+    if (!year) return null;
+
+    const stretchHours = (from: Date, to: Date) =>
+      agreementSegments(input.agreements, from, to, input.employment)
+        .filter((segment) => carriesSalary(segment.agreement))
+        .map((segment) => ({ days: segment.days, contractedWeeklyHours: segment.agreement.contractedHours, to: segment.to }));
+    const stretches = stretchHours(year.start, year.end);
+    const annual = annualBasicHours(stretches, input.weeksPerYear);
+    if (annual == null) return null;
+
+    // A worker who leaves during the year is measured against the basic hours of the pay periods
+    // employed, in the last period (HMRC's leaver example: 6 x 170 hours).
+    const lastDay = stretches[stretches.length - 1].to;
+    const leaver = lastDay.getTime() < year.end.getTime() && lastDay.getTime() <= input.periodEnd.getTime();
+    let thresholdHours = annual;
+    if (leaver) {
+      thresholdHours = 0;
+      for (const window of payPeriodWindows(year.start, lastDay, input.frequency)) {
+        const inWindow = stretchHours(window.start, window.end);
+        if (!inWindow.length) continue;
+        thresholdHours +=
+          basicHoursOfPeriod(
+            inWindow,
+            calendarDaysInclusive(window.start, window.end),
+            periodsPerYear(input.frequency),
+            input.weeksPerYear,
+          ) ?? 0;
+      }
+      thresholdHours = round2(thresholdHours);
+    }
+
+    const [earlierLines, countedRows] = await Promise.all([
+      this.prisma.ukPayrollInputLine.findMany({
+        where: {
+          employeeId: input.employeeId,
+          runId: { not: input.runId },
+          minutes: { gt: 0 },
+          run: {
+            deletedAt: null,
+            status: { not: 'CANCELLED' },
+            period: { periodStart: { gte: year.start, lte: input.periodStart } },
+          },
+        },
+        select: {
+          id: true,
+          lineType: true,
+          minutes: true,
+          claimKey: true,
+          sourceVisitReconciliationId: true,
+          sourcePayrollRunLineId: true,
+        },
+      }),
+      this.prisma.nmwPeriodAssessment.findMany({
+        where: {
+          employeeId: input.employeeId,
+          workType: 'SALARIED_HOURS',
+          ukPayrollRunId: { not: input.runId },
+          periodStart: { gte: year.start, lt: input.periodStart },
+          excessMinutes: { gt: 0 },
+        },
+        select: { ukPayrollRunId: true, excessMinutes: true },
+      }),
+    ]);
+    const liveRunIds = countedRows.length
+      ? new Set(
+          (
+            await this.prisma.ukPayrollRun.findMany({
+              where: {
+                id: { in: countedRows.map((r) => r.ukPayrollRunId as string) },
+                deletedAt: null,
+                status: { not: 'CANCELLED' },
+              },
+              select: { id: true },
+            })
+          ).map((r) => r.id),
+        )
+      : new Set<string>();
+    // One source of time is one entry: a visit shown by two runs, or by a run calculated twice,
+    // is the same visit.
+    const sourceOf = (l: (typeof input.timeLines)[number]) =>
+      l.claimKey ??
+      (l.sourceVisitReconciliationId ? `VISIT:${l.sourceVisitReconciliationId}` : null) ??
+      (l.sourcePayrollRunLineId ? `LINE:${l.sourcePayrollRunLineId}` : null) ??
+      l.id;
+    const earlier = new Map<string, number>();
+    for (const l of earlierLines) {
+      if (nmwTreatment(l.lineType).hours && !earlier.has(sourceOf(l))) earlier.set(sourceOf(l), l.minutes ?? 0);
+    }
+    const minutesBefore = [...earlier.values()].reduce((sum, m) => sum + m, 0);
+    const here = new Map<string, number>();
+    for (const l of input.timeLines) {
+      if (!earlier.has(sourceOf(l)) && !here.has(sourceOf(l))) here.set(sourceOf(l), l.minutes ?? 0);
+    }
+    const minutesInPeriod = [...here.values()].reduce((sum, m) => sum + m, 0);
+    const excessCountedMinutes = countedRows
+      .filter((r) => liveRunIds.has(r.ukPayrollRunId as string))
+      .reduce((sum, r) => sum + (r.excessMinutes ?? 0), 0);
+    // By days, to one decimal place as in HMRC's example (55.9 + 100.6 hours for February).
+    const byDays = annualBasicHours(input.partHours, input.weeksPerYear);
+    return {
+      year,
+      leaver,
+      position: {
+        thresholdHours,
+        hoursBefore: round2(minutesBefore / 60),
+        hoursInPeriod: round2(minutesInPeriod / 60),
+        excessCountedBefore: round2(excessCountedMinutes / 60),
+        exceedingPeriodBasicHours: leaver || byDays == null ? null : Math.round(byDays * 10) / 10,
+      },
+    };
   }
 
   private async requireRun(id: string) {

@@ -1,6 +1,9 @@
 import {
   assessSalariedHours,
+  annualBasicHours,
   basicHoursOfPeriod,
+  payPeriodWindows,
+  salariedCalculationYear,
   calendarMonthOf,
   isWithinOneMonth,
   assessPayReferencePeriod,
@@ -143,14 +146,14 @@ describe('minimum wage for salaried hours work (Sprint B3)', () => {
   const RATE = 12.71;
 
   it('basic hours of a period: contracted weekly hours over 52 weeks, divided by the pay periods of the year', () => {
-    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 35, days: 30 }], 30, 12)).toBe(151.67); // GOV.UK example: 1,820 hours a year
-    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 37.5, days: 7 }], 7, 52)).toBe(37.5);
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 35, days: 30 }], 30, 12, 52)).toBe(151.67); // GOV.UK example: 1,820 hours a year
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 37.5, days: 7 }], 7, 52, 52)).toBe(37.5);
     // A starter half way through the month has half the basic hours.
-    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }], 30, 12)).toBe(65);
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }], 30, 12, 52)).toBe(65);
     // A change of agreement: each part carries its own hours.
-    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }, { contractedWeeklyHours: 20, days: 15 }], 30, 12)).toBe(108.33);
-    expect(basicHoursOfPeriod([{ contractedWeeklyHours: null, days: 30 }], 30, 12)).toBeNull();
-    expect(basicHoursOfPeriod([], 30, 12)).toBeNull();
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: 30, days: 15 }, { contractedWeeklyHours: 20, days: 15 }], 30, 12, 52)).toBe(108.33);
+    expect(basicHoursOfPeriod([{ contractedWeeklyHours: null, days: 30 }], 30, 12, 52)).toBeNull();
+    expect(basicHoursOfPeriod([], 30, 12, 52)).toBeNull();
   });
 
   it('above the rate on the basic hours', () => {
@@ -185,5 +188,147 @@ describe('minimum wage for salaried hours work (Sprint B3)', () => {
       issue: 'BASIC_HOURS_NOT_RECORDED',
       topUp: 0,
     });
+  });
+});
+
+/**
+ * Sprint B4B. Figures are those of HMRC's examples in "Working hours for which the minimum wage
+ * must be paid" (GOV.UK, last updated 6 January 2026, read 2026-10-13). Rates in the examples are
+ * HMRC's illustrations. Multipliers below are test values, not an employer's policy.
+ */
+describe('salaried hours work over the calculation year (Sprint B4B, HMRC examples)', () => {
+  const d = (day: string) => new Date(`${day}T00:00:00.000Z`);
+  const year = (anchor: string, frequency: string, on: string) => {
+    const y = salariedCalculationYear(d(anchor), frequency, d(on));
+    return y && [y.start.toISOString().slice(0, 10), y.end.toISOString().slice(0, 10)];
+  };
+
+  it('calculation year: monthly from the 1st, monthly from mid-month, weekly from the start date', () => {
+    // "Monthly-paid, starting 1 May: runs 1 May to 30 April the following year."
+    expect(year('2026-05-01', 'MONTHLY', '2026-05-01')).toEqual(['2026-05-01', '2027-04-30']);
+    expect(year('2026-05-01', 'MONTHLY', '2027-04-30')).toEqual(['2026-05-01', '2027-04-30']);
+    expect(year('2026-05-01', 'MONTHLY', '2027-05-01')).toEqual(['2027-05-01', '2028-04-30']);
+    // "Starting 15 May: runs 15 May to 31 May the following year, then 1 June to 31 May each year."
+    expect(year('2026-05-15', 'MONTHLY', '2026-05-15')).toEqual(['2026-05-15', '2027-05-31']);
+    expect(year('2026-05-15', 'MONTHLY', '2027-05-31')).toEqual(['2026-05-15', '2027-05-31']);
+    expect(year('2026-05-15', 'MONTHLY', '2027-06-01')).toEqual(['2027-06-01', '2028-05-31']);
+    expect(year('2026-05-15', 'MONTHLY', '2029-01-10')).toEqual(['2028-06-01', '2029-05-31']);
+    // "Weekly or fortnightly-paid, starting 22 May: runs 22 May to 21 May the following year."
+    expect(year('2026-05-22', 'WEEKLY', '2026-12-01')).toEqual(['2026-05-22', '2027-05-21']);
+    expect(year('2026-05-22', 'FORTNIGHTLY', '2027-05-22')).toEqual(['2027-05-22', '2028-05-21']);
+    expect(year('2026-05-22', 'MONTHLY', '2026-05-21')).toBeNull(); // before the contract started
+  });
+
+  it('basic hours of a pay period: the year divided by the number of payments (HMRC monthly and weekly examples)', () => {
+    // £24,000 a year, 1,920 basic hours: 1,920 / 12 = 160 hours; £2,000 / 160 = £12.50.
+    const monthly = basicHoursOfPeriod([{ contractedWeeklyHours: 40, days: 30 }], 30, 12, 48);
+    expect(monthly).toBe(160);
+    expect(assessSalariedHours({ requiredHourly: 12.21, basicHours: monthly, pay: 2000, additionalPaidMinutes: 0, workedMinutes: 0 }).effectiveHourly).toBe(12.5);
+    // 40 hours x 35 weeks = 1,400 hours: 1,400 / 52 = 26.92 hours; £346.15 / 26.92 = £12.86.
+    const weekly = basicHoursOfPeriod([{ contractedWeeklyHours: 40, days: 7 }], 7, 52, 35);
+    expect(weekly).toBe(26.92);
+    expect(Math.round((346.15 / (weekly as number)) * 100) / 100).toBe(12.86);
+  });
+
+  it('the multiplier decides the basic hours of the year: it is never 52 by default', () => {
+    expect(annualBasicHours([{ days: 365, contractedWeeklyHours: 35 }], 52)).toBe(1820);
+    expect(annualBasicHours([{ days: 365, contractedWeeklyHours: 35 }], 52.14)).toBe(1824.9);
+    expect(annualBasicHours([{ days: 365, contractedWeeklyHours: 35 }], 52.18)).toBe(1826.3);
+    expect(annualBasicHours([{ days: 365, contractedWeeklyHours: null }], 52)).toBeNull();
+    expect(annualBasicHours([], 52)).toBeNull();
+  });
+
+  it('a contract whose hours change in the year: days / 365 of each (HMRC: 1,196 + 786 = 1,982; then 1,196 + 479 + 291)', () => {
+    // 2,040 hours a year = 40 a week x 51 weeks; 1,900 = 38 x 50; 1,800 = 36 x 50.
+    const hours = (days: number, annual: number) => Math.round((days / 365) * annual);
+    expect([hours(214, 2040), hours(151, 1900)]).toEqual([1196, 786]);
+    expect(Math.round(annualBasicHours([{ days: 214, contractedWeeklyHours: 40.8 }, { days: 151, contractedWeeklyHours: 38 }], 50) as number)).toBe(1982);
+    expect([hours(214, 2040), hours(92, 1900), hours(59, 1800)]).toEqual([1196, 479, 291]);
+    expect(
+      Math.round(
+        annualBasicHours(
+          [{ days: 214, contractedWeeklyHours: 40.8 }, { days: 92, contractedWeeklyHours: 38 }, { days: 59, contractedWeeklyHours: 36 }],
+          50,
+        ) as number,
+      ),
+    ).toBe(1966);
+  });
+
+  // HMRC excess hours example: 2,040 hours a year, £20,400 (£1,700 a month, 170 hours), rate £10.
+  const excessCase = { requiredHourly: 10, basicHours: 170, pay: 1700, additionalPaidMinutes: 0 };
+
+  it('within the basic hours of the year, extra hours in one period change nothing', () => {
+    const result = assessSalariedHours({
+      ...excessCase,
+      workedMinutes: 200 * 60,
+      year: { thresholdHours: 2040, hoursBefore: 1500, hoursInPeriod: 200, excessCountedBefore: 0, exceedingPeriodBasicHours: 156.5 },
+    });
+    expect(result).toMatchObject({ hours: 170, topUp: 0, compliant: true, issue: null, excessHours: 0 });
+    expect(result.note).toMatch(/1700\.00h worked in the calculation year \(200\.00h in this period\) against 2040h basic: within the basic hours/);
+  });
+
+  it('the period in which the basic hours are exceeded (HMRC: 55.9 + 100.6 + 70 = 226.5 hours, at least £2,265.00)', () => {
+    // February, 28 days: 28 / 365 x 2,040 = 156.5 basic hours by days; 70 hours worked beyond the year's basic hours.
+    const byDays = Math.round((28 / 365) * 2040 * 10) / 10;
+    expect(byDays).toBe(156.5);
+    const result = assessSalariedHours({
+      ...excessCase,
+      workedMinutes: 210 * 60,
+      year: { thresholdHours: 2040, hoursBefore: 1900, hoursInPeriod: 210, excessCountedBefore: 0, exceedingPeriodBasicHours: byDays },
+    });
+    expect(result).toMatchObject({ hours: 226.5, excessHours: 70, topUp: 565, compliant: false, issue: null });
+    expect(result.note).toMatch(/The pay must cover 226\.5h \(156\.5h basic by days \+ 70\.00h beyond the basic hours\) at £10\.00 = £2265\.00; £1700\.00 is paid: topped up by £565\.00/);
+  });
+
+  it('every later period: basic hours and all hours worked (HMRC: 170 + 170 = 340 hours, £3,400, a further £1,700)', () => {
+    const result = assessSalariedHours({
+      ...excessCase,
+      workedMinutes: 170 * 60,
+      year: { thresholdHours: 2040, hoursBefore: 2110, hoursInPeriod: 170, excessCountedBefore: 70, exceedingPeriodBasicHours: 173.3 },
+    });
+    expect(result).toMatchObject({ hours: 340, excessHours: 170, topUp: 1700, compliant: false });
+  });
+
+  it('a leaver: excess over the basic hours of the periods employed, in the last period (HMRC: 170 + 130 = 300 hours, £3,663)', () => {
+    // Six months employed: 6 x 170 = 1,020 basic hours; 1,150 worked.
+    const result = assessSalariedHours({
+      requiredHourly: 12.21,
+      basicHours: 170,
+      pay: 1700,
+      additionalPaidMinutes: 0,
+      workedMinutes: 190 * 60,
+      year: { thresholdHours: 1020, hoursBefore: 960, hoursInPeriod: 190, excessCountedBefore: 0, exceedingPeriodBasicHours: null },
+    });
+    expect(result).toMatchObject({ hours: 300, excessHours: 130, topUp: 1963, compliant: false }); // £3,663.00 due, £1,700.00 paid
+  });
+
+  it('excess hours are counted once: what an earlier assessment counted is not counted again, what it missed is', () => {
+    const position = { thresholdHours: 2040, hoursBefore: 2110, hoursInPeriod: 0, exceedingPeriodBasicHours: 156.5 };
+    // Calculated again with nothing new: the 70 hours were counted before.
+    expect(assessSalariedHours({ ...excessCase, workedMinutes: 0, year: { ...position, excessCountedBefore: 70 } })).toMatchObject({ excessHours: 0, topUp: 0, hours: 170 });
+    // 20 of them reached payroll late (a supplementary run) and no assessment counted them: counted now.
+    expect(assessSalariedHours({ ...excessCase, workedMinutes: 0, year: { ...position, excessCountedBefore: 50 } })).toMatchObject({ excessHours: 20, hours: 190, topUp: 200 });
+  });
+
+  it('hours paid on top of the salary are not added twice to the excess hours', () => {
+    // 30 hours paid on top (£330.00) are among the 70 excess hours.
+    const result = assessSalariedHours({
+      ...excessCase,
+      pay: 2030,
+      additionalPaidMinutes: 30 * 60,
+      workedMinutes: 210 * 60,
+      year: { thresholdHours: 2040, hoursBefore: 1900, hoursInPeriod: 210, excessCountedBefore: 0, exceedingPeriodBasicHours: 156.5 },
+    });
+    expect(result).toMatchObject({ hours: 226.5, topUp: 235 }); // £2,265.00 less £2,030.00
+  });
+
+  it('pay periods of a calculation year, for the basic hours of the periods a leaver was employed', () => {
+    const keys = (frequency: string, from: string, to: string) =>
+      payPeriodWindows(d(from), d(to), frequency).map((w) => `${w.start.toISOString().slice(5, 10)}..${w.end.toISOString().slice(5, 10)}`);
+    expect(keys('MONTHLY', '2026-04-01', '2026-06-30')).toEqual(['04-01..04-30', '05-01..05-31', '06-01..06-30']);
+    expect(keys('MONTHLY', '2026-04-01', '2026-06-10')).toEqual(['04-01..04-30', '05-01..05-31', '06-01..06-30']);
+    expect(keys('WEEKLY', '2026-05-22', '2026-06-04')).toEqual(['05-22..05-28', '05-29..06-04']);
+    expect(payPeriodWindows(d('2026-04-01'), d('2027-03-31'), 'MONTHLY')).toHaveLength(12);
+    expect(payPeriodWindows(d('2026-05-22'), d('2027-05-21'), 'FOUR_WEEKLY')).toHaveLength(14); // 13 full periods and one day
   });
 });

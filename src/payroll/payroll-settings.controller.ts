@@ -24,6 +24,8 @@ import {
   CreatePayrollTaxCodeDto,
   CreatePayrollTaxYearDto,
   DeletePayrollPeriodsDto,
+  EnterSalariedHoursMethodDto,
+  WithdrawSalariedHoursMethodDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PreviewEpsQueryDto,
@@ -356,5 +358,38 @@ export class PayrollSettingsController {
     @Req() req: Request,
   ) {
     return this.service.deletePeriods(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('salaried-hours-methods')
+  @Permissions('payroll.settings.read')
+  @ApiOperation({ summary: 'How contracted weekly hours become basic hours for a year (minimum wage, salaried hours work)' })
+  listSalariedHoursMethods() {
+    return this.service.listSalariedHoursMethods();
+  }
+
+  @Post('salaried-hours-methods')
+  @Permissions('payroll.settings.manage')
+  @ApiOperation({ summary: 'Enter an annualisation method; it is used once a second person approves it' })
+  enterSalariedHoursMethod(@CurrentUser() user: RequestUser, @Body() dto: EnterSalariedHoursMethodDto, @Req() req: Request) {
+    return this.service.enterSalariedHoursMethod(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('salaried-hours-methods/:id/approve')
+  @Permissions('payroll.pay_agreements.approve')
+  @ApiOperation({ summary: 'Approve an annualisation method (a different user from the one who entered it)' })
+  approveSalariedHoursMethod(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.approveSalariedHoursMethod(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Post('salaried-hours-methods/:id/withdraw')
+  @Permissions('payroll.pay_agreements.approve')
+  @ApiOperation({ summary: 'Withdraw an annualisation method' })
+  withdrawSalariedHoursMethod(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: WithdrawSalariedHoursMethodDto,
+    @Req() req: Request,
+  ) {
+    return this.service.withdrawSalariedHoursMethod(user.id, id, dto.note, getRequestAuditMeta(req));
   }
 }

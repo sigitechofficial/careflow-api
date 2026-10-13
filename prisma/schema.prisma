@@ -9445,6 +9445,34 @@ model VisitDisruptionPayDecision {
 /// Q37–Q39: minimum wage is checked over the worker's pay reference period, not over whatever
 /// dates a visit pay run happens to cover. One row per run, worker and pay reference period: this
 /// run's pay and hours for the period, and the position of the whole period so far.
+/// How the employer turns contracted weekly hours into basic hours for a year, for the minimum
+/// wage on salaried hours work. HMRC accepts a multiplier or formula, and the employer must be
+/// able to show how the hours were ascertained. Nothing is assumed: with no approved method in
+/// force, the annual hours are not assessed (POLICY_REVIEW_REQUIRED). A method is entered by one
+/// user and approved by another; rows are never edited, only withdrawn.
+model SalariedHoursAnnualisation {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Weeks of contracted hours in a year, for example 52, 52.14 or 52.18.
+  weeksPerYear  Decimal   @db.Decimal(6, 3)
+  /// Where the method is written down and why it is right for these contracts.
+  basis         String
+  effectiveFrom DateTime  @db.Date
+  /// DRAFT | APPROVED | WITHDRAWN
+  status        String    @default("DRAFT")
+  /// A test fixture, never an employer's policy.
+  isSynthetic   Boolean   @default(false)
+  createdById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  approvedById  String?   @db.Uuid
+  approvedAt    DateTime?
+  withdrawnById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  withdrawnNote String?
+
+  @@index([status, effectiveFrom])
+  @@schema("payroll")
+}
+
 model NmwPeriodAssessment {
   id               String   @id @default(uuid()) @db.Uuid
   /// The visit pay run that made the assessment (time work). Empty for a UK payroll run.
@@ -9481,6 +9509,16 @@ model NmwPeriodAssessment {
   /// What the review found: EVIDENCE_SUPPORTS_COMPLIANCE (the issue no longer stops the run
   /// closing) | SHORTFALL_CONFIRMED (pay must be topped up or corrected; a review cannot clear it).
   reviewOutcome    String?
+  /// Salaried hours work, Sprint B4B: the calculation year the period falls in, the basic hours
+  /// of that year and how they were derived (contracted weekly hours x weeksPerYear of the
+  /// approved method), the hours worked in the year before this period, and the hours beyond
+  /// the basic hours that this assessment counted. Empty when the year could not be assessed.
+  calcYearStart      DateTime? @db.Date
+  calcYearEnd        DateTime? @db.Date
+  weeksPerYear       Decimal?  @db.Decimal(6, 3)
+  annualBasicMinutes Int?
+  yearMinutesBefore  Int?
+  excessMinutes      Int?
   /// The person with the power to close payroll who reviewed the issue, and when.
   resolvedById     String?  @db.Uuid
   resolvedAt       DateTime?

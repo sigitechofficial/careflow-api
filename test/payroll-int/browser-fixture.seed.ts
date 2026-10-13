@@ -14,7 +14,7 @@
  *   - Gate B2: two visits of one carer 40 minutes apart (travel time to classify), and a cancelled
  *     visit that had a carer allocated and has no pay decision;
  *   - Sprint B4A: a December UK payroll run with a proposed salary recovery (no recovery policy on
- *     record), a salaried employee who worked more hours than the salary pays for (minimum wage
+ *     record), a salaried employee whose agreement records no contracted hours (minimum wage
  *     exception to review) and one topped up to the minimum wage;
  *   - three synthetic office users: a preparer, an approver and a manager limited to one branch.
  *
@@ -208,8 +208,9 @@ describe('browser fixture (not a test)', () => {
       });
 
       // Sprint B4A: salaried staff. Sam's November salary is lowered after it was paid (a proposed
-      // recovery); Erin worked 150 hours on a salary for 130 (an exception to review); Lee's salary
-      // is below the minimum wage on its basic hours (topped up by the run).
+      // recovery); Erin's agreement records no contracted hours (an exception to review); Lee's salary
+      // is below the minimum wage on its basic hours (topped up by the run). Basic hours use the
+      // harness's SYNTHETIC annualisation method (weekly hours x 52), which is not an employer policy.
       const salaried = async (firstName: string, annualSalary: number) => {
         const carer = await createCarer(t.prisma, { locationId: branchA });
         await t.prisma.employeePersonalDetail
@@ -240,6 +241,7 @@ describe('browser fixture (not a test)', () => {
       const sam = await salaried('Sam', 24_000);
       const erin = await salaried('Erin', 20_400);
       const lee = await salaried('Lee', 18_000);
+      await t.prisma.employeePayAgreement.update({ where: { id: erin.agreement.id }, data: { contractedHours: null } });
       const november = await createUkRun(t.prisma, { periodStart: '2026-11-01', periodEnd: '2026-11-30', employeeIds: [sam.employeeId], createdById: olivia.id });
       await post(olivia, `/payroll/runs/${november}/calculate-gross`);
       await markStatutoryCalculated(t.prisma, november);

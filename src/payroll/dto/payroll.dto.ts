@@ -1086,3 +1086,30 @@ export class RejectHmrcEpsSubmissionDto {
   @MaxLength(500)
   reason?: string;
 }
+
+/** Sprint B4B: the employer's method for turning contracted weekly hours into basic hours for a year. */
+export class EnterSalariedHoursMethodDto {
+  @ApiProperty({ description: 'Weeks of contracted hours in a year, for example 52, 52.14 or 52.18', example: 52.14 })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(1)
+  @Max(53)
+  weeksPerYear!: number;
+
+  @ApiProperty({ description: 'Where the method is written down and why it is right for these contracts' })
+  @IsString()
+  @MinLength(20)
+  @MaxLength(1000)
+  basis!: string;
+
+  @ApiProperty({ description: 'First day of the pay periods it applies to (YYYY-MM-DD)' })
+  @IsDateString()
+  effectiveFrom!: string;
+}
+
+export class WithdrawSalariedHoursMethodDto {
+  @ApiProperty({ description: 'Why the method is withdrawn' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  note!: string;
+}

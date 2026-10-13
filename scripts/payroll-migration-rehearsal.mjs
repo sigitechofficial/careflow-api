@@ -322,6 +322,7 @@ async function main() {
     check('no payroll profile is given an apprenticeship start date', apprentices.n === 0);
     check('no wage recovery is created by the migrations (nothing is proposed or deducted for history)', await empty('"billing"."WageRecovery"'));
     check('no recovery policy is recorded by the migrations (no employer policy is invented)', await empty('"billing"."WageRecoveryPolicy"'));
+    check('no annualisation method for salaried hours is created by the migrations (52 weeks is not assumed)', await empty('"payroll"."SalariedHoursAnnualisation"'));
 
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`

@@ -59,6 +59,16 @@ export function createTestPrisma(): PrismaService {
   return new PrismaClient({ datasources: { db: { url } } }) as unknown as PrismaService;
 }
 
+/** Test fixture only: contracted weekly hours x 52. No employer has approved this. */
+export const SYNTHETIC_ANNUALISATION = {
+  weeksPerYear: 52,
+  basis: 'SYNTHETIC TEST FIXTURE: contracted weekly hours x 52. Not an employer policy.',
+  effectiveFrom: new Date('2020-01-01'),
+  status: 'APPROVED',
+  isSynthetic: true,
+  approvedAt: new Date('2020-01-01T09:00:00Z'),
+};
+
 /** Remove all synthetic pay rows. Uses the reset switch the locked-history triggers honour. */
 export async function resetPayData(prisma: PrismaService) {
   await prisma.$transaction(async (tx) => {
@@ -79,6 +89,10 @@ export async function resetPayData(prisma: PrismaService) {
     await tx.payrollRun.deleteMany();
     await tx.wageRecovery.deleteMany();
     await tx.wageRecoveryPolicy.deleteMany();
+    // Salaried hours: a clearly labelled test method (weekly hours x 52), so that salaried pay can
+    // be assessed at all. It is not an employer's policy; a test of the missing-policy case deletes it.
+    await tx.salariedHoursAnnualisation.deleteMany();
+    await tx.salariedHoursAnnualisation.create({ data: SYNTHETIC_ANNUALISATION });
     await tx.employeeLeaveEntry.deleteMany();
     await tx.employeeLeaveTerms.deleteMany();
     await tx.visitDisruptionPayDecision.deleteMany();
