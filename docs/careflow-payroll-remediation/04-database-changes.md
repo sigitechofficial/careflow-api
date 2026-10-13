@@ -314,3 +314,13 @@ On the rehearsal database, B returned the seeded double payment (`VIS-REHEARSAL-
 | Restoring a backup after pay has been processed on the new version | Only with finance sign-off, because every pay decision made since the backup is lost and must be re-entered. Export the pay runs, corrections, payout batches and audit entries made since the backup first |
 
 The new columns can stay in place unused. Dropping `claimKey` (either table) or `paidByUkPayrollRunId` after runs have been processed under the new code would remove the duplicate-payment protection. The enum value `UNVERIFIED_TIMES` cannot be removed while any row uses it.
+
+## Sprint B4A — `20261020100000_wage_recovery_review_fields` (additive)
+
+| Change | Why |
+|---|---|
+| `billing.WageRecovery.paidAmount`, `dueAmount` (nullable decimals) | The screen shows the original payment and what is now due, not only the difference. Empty on recoveries proposed before this migration |
+| `billing.WageRecoveryPolicy` (new table: reference, recorded by/at, withdrawn by/at/note) | Whether the employer has an approved recovery policy on record. Append-only: a newer record or a withdrawal closes the earlier row. No row is created by the migration, so nothing is deducted until a person records one |
+| `billing.NmwPeriodAssessment.reviewOutcome` (nullable text) | What a review found: `EVIDENCE_SUPPORTS_COMPLIANCE` or `SHORTFALL_CONFIRMED`. Empty on assessments reviewed before this migration, which therefore block closing again until reviewed with an outcome (only open runs are affected; closed runs are not re-checked) |
+
+No column is dropped or rewritten and no existing row is changed. Rehearsed with `npm run payroll-migration-rehearsal` (see `14-sprint-b4a-summary.md`).

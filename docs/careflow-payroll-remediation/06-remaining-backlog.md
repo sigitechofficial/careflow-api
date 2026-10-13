@@ -1,6 +1,6 @@
 # 06 — Remaining Backlog
 
-**Updated:** 2026-10-13 (Sprint B3: B2-04, B2-14, B2-15 closed or reduced; B3-01 to B3-05 added. See `13-sprint-b3-summary.md`)
+**Updated:** 2026-10-13 (Sprint B4A: B3-01 and B3-02 done, B4A-01 to B4A-03 added; see `14-sprint-b4a-summary.md`. Sprint B3: B2-04, B2-14, B2-15 closed or reduced; B3-01 to B3-05 added. See `13-sprint-b3-summary.md`)
 
 What is still to do, in the order of the programme gates. Completed items have been removed; they are in `01-implementation-status.md`. "Decision" points to `05-policy-decisions-required.md` or to the audit question.
 
@@ -30,11 +30,14 @@ Closed in Gate B2 and removed from the lists below: **R-21** (mileage correction
 | B2-16 | Mileage correction: passengers and threshold | Passenger mileage cannot be corrected; later journeys are not re-split around the 10,000-mile threshold | D-21 |
 | B2-17 | Unused default cancellation policy | `pay-policy.util.ts` holds a default written before this programme; nothing reads it; delete it | — |
 | B2-18 | Ending a salary agreement | Needs the manage permission only, not a second person | D-23 |
-| B3-01 | Screen for wage recoveries | Proposals are shown on the run; authorising or rejecting one is API only | — |
-| B3-02 | Minimum wage on the UK run page | Assessments, why a run cannot be closed, and the review action are API only | — |
+| B3-01 | Screen for wage recoveries | **Done in Sprint B4A**: Billing → Wage recoveries (list, detail with history, authorise with authority and reason, reject, employer recovery policy on record or not) | — |
+| B3-02 | Minimum wage on the UK run page | **Done in Sprint B4A**: Minimum wage compliance section on the UK payroll run (assessments, what stops closing, review with outcome and facts; a confirmed shortfall cannot be reviewed away) | — |
 | B3-03 | Authority for other negative amounts | Pay corrections, mileage corrections and fines entered by people need a second approver but record no authority for the deduction; fines are not tested against the minimum wage | D-23, D-29 |
 | B3-04 | Year-to-date basic hours for salaried staff | So that excess hours are decided, not reviewed each period | Basic hours decision |
 | B3-05 | Ageing of undecided recoveries | A proposal left undecided is re-shown on each later run with no escalation | D-23 |
+| B4A-01 | Amount of the top-up for a confirmed excess-hours shortfall | A reviewer can confirm a shortfall; the run then stays blocked until pay is corrected by hand and gross recalculated. The system does not work out the amount (it depends on the hours of the year) | B3-04 |
+| B4A-02 | Minimum wage assessments of hourly workers on a screen | The UK run section shows the assessments the UK run makes (salaried). Hourly assessments are made by visit pay runs and are shown there only as top-up or held lines | — |
+| B4A-03 | Evidence attached to a recovery authority or a review | Authority and facts are free text with an audit entry; no document is attached and nothing checks the text against a contract | D-23 |
 
 ---
 
