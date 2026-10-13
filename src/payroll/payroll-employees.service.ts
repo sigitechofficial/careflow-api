@@ -376,54 +376,58 @@ export class PayrollEmployeesService {
     const createElections = sanitizedElections ?? [];
     const createFlags = loanFlagsFromElections(createElections);
 
-    const row = existing
-      ? await this.prisma.employeePayrollProfile.update({
-          where: { id: existing.id },
-          data,
-        })
-      : await this.prisma.employeePayrollProfile.create({
-          data: {
-            employeeId,
-            scheduleId: dto.scheduleId ?? null,
-            status: dto.status ?? 'DRAFT',
-            taxCode: dto.taxCode?.trim() || null,
-            taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
-            niCategory: dto.niCategory ?? null,
-            starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
-            hoursNormallyWorked: dto.hoursNormallyWorked ?? null,
-            p45Received: dto.p45Received ?? false,
-            studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
-            studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
-            studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),
-            studentLoanPlan5: createFlags.studentLoanPlan5 || (dto.studentLoanPlan5 ?? false),
-            postgraduateLoan: createFlags.postgraduateLoan || (dto.postgraduateLoan ?? false),
-            pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
-            deductionElections: createElections,
-            pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
-            apprenticeshipStartDate: dto.apprenticeshipStartDate
-              ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
-              : null,
-            bankSortCode: dto.bankSortCode?.trim() || null,
-            bankAccountNumber: dto.bankAccountNumber?.trim() || null,
-            bankAccountName: dto.bankAccountName?.trim() || null,
-            notes: dto.notes?.trim() || null,
-            createdById: userId,
-            updatedById: userId,
-          },
-        });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: existing
-        ? AuditAction.PAYROLL_EMPLOYEE_PROFILE_UPDATED
-        : AuditAction.PAYROLL_EMPLOYEE_PROFILE_CREATED,
-      recordType: 'EmployeePayrollProfile',
-      recordId: row.id,
-      oldValues: existing ? mapProfile(existing) : undefined,
-      newValues: mapProfile(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+    // The profile and its audit entry are saved together or not at all.
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = existing
+        ? await tx.employeePayrollProfile.update({
+            where: { id: existing.id },
+            data,
+          })
+        : await tx.employeePayrollProfile.create({
+            data: {
+              employeeId,
+              scheduleId: dto.scheduleId ?? null,
+              status: dto.status ?? 'DRAFT',
+              taxCode: dto.taxCode?.trim() || null,
+              taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
+              niCategory: dto.niCategory ?? null,
+              starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
+              hoursNormallyWorked: dto.hoursNormallyWorked ?? null,
+              p45Received: dto.p45Received ?? false,
+              studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
+              studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
+              studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),
+              studentLoanPlan5: createFlags.studentLoanPlan5 || (dto.studentLoanPlan5 ?? false),
+              postgraduateLoan: createFlags.postgraduateLoan || (dto.postgraduateLoan ?? false),
+              pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
+              deductionElections: createElections,
+              pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
+              apprenticeshipStartDate: dto.apprenticeshipStartDate
+                ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
+                : null,
+              bankSortCode: dto.bankSortCode?.trim() || null,
+              bankAccountNumber: dto.bankAccountNumber?.trim() || null,
+              bankAccountName: dto.bankAccountName?.trim() || null,
+              notes: dto.notes?.trim() || null,
+              createdById: userId,
+              updatedById: userId,
+            },
+          });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: existing
+          ? AuditAction.PAYROLL_EMPLOYEE_PROFILE_UPDATED
+          : AuditAction.PAYROLL_EMPLOYEE_PROFILE_CREATED,
+        recordType: 'EmployeePayrollProfile',
+        recordId: saved.id,
+        oldValues: existing ? mapProfile(existing) : undefined,
+        newValues: mapProfile(saved),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return saved;
     });
 
     const assessment = assessEmployeeRti(employee, {

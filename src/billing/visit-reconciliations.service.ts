@@ -301,6 +301,9 @@ export type VisitReconciliationListRow = {
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
+/** A pay decision is repriced inside its transaction: allow for that rather than the 5 second default. */
+const DECISION_TRANSACTION = { timeout: 20_000, maxWait: 10_000 };
+
 async function isVisitOnBankHoliday(
   db: DbClient,
   date: Date,
@@ -371,8 +374,10 @@ export class VisitReconciliationsService {
     row: { id: string; visitRef?: string | null; employeeId?: string | null },
     values: { oldValues?: Record<string, unknown>; newValues?: Record<string, unknown>; reason?: string | null },
     meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
   ) {
     return this.auditLogs.logAudit({
+      tx,
       userId,
       module: AuditModule.BILLING,
       action,
@@ -1776,47 +1781,51 @@ export class VisitReconciliationsService {
       throw new BadRequestException(PAY_SETTLED_MESSAGE);
     }
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        ...(paySettled ? {} : { approvedPayStart, approvedPayEnd }),
-        approvedBillStart,
-        approvedBillEnd,
-        approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status,
-        // R-18: a person approved, on the evidence as it stands now (recorded by the evaluation
-        // that follows). An earlier "evidence changed" flag is answered by this approval; on a
-        // settled visit the flag is about its pay and stays until the times are verified.
-        ...(paySettled
-          ? {}
-          : {
-              approvalSource: dto.managerOverride ? 'MANAGER_OVERRIDE' : 'MANAGER_APPROVED',
-              approvedEvidence: null,
-              evidenceChangedReason: null,
-              evidenceChangedAt: null,
-            }),
-      },
-    });
-
-    await this.evaluateInternal(this.prisma, id);
-    const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id } });
-    await this.auditVisit(
-      AuditAction.VISIT_RECONCILIATION_APPROVED,
-      userId,
-      row,
-      {
-        oldValues: VisitReconciliationsService.paySnapshotOf(row),
-        newValues: {
-          ...VisitReconciliationsService.paySnapshotOf(after),
-          scope: dto.scope ?? 'BOTH',
-          managerOverride: Boolean(dto.managerOverride),
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          ...(paySettled ? {} : { approvedPayStart, approvedPayEnd }),
+          approvedBillStart,
+          approvedBillEnd,
+          approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status,
+          // R-18: a person approved, on the evidence as it stands now (recorded by the evaluation
+          // that follows). An earlier "evidence changed" flag is answered by this approval; on a
+          // settled visit the flag is about its pay and stays until the times are verified.
+          ...(paySettled
+            ? {}
+            : {
+                approvalSource: dto.managerOverride ? 'MANAGER_OVERRIDE' : 'MANAGER_APPROVED',
+                approvedEvidence: null,
+                evidenceChangedReason: null,
+                evidenceChangedAt: null,
+              }),
         },
-        reason: dto.approvalNotes,
-      },
-      meta,
-    );
+      });
+
+      await this.evaluateInternal(tx, id);
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_APPROVED,
+        userId,
+        row,
+        {
+          oldValues: VisitReconciliationsService.paySnapshotOf(row),
+          newValues: {
+            ...VisitReconciliationsService.paySnapshotOf(after),
+            scope: dto.scope ?? 'BOTH',
+            managerOverride: Boolean(dto.managerOverride),
+          },
+          reason: dto.approvalNotes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1839,26 +1848,30 @@ export class VisitReconciliationsService {
     // Pay that is already settled cannot be rejected; the charge side still can.
     if (status === VisitReconciliationStatus.REJECTED_FOR_PAY) this.assertPayNotSettled(row);
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        status,
-        approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
-        approvedById: userId,
-        approvedAt: new Date(),
-      },
-    });
-    await this.auditVisit(
-      AuditAction.VISIT_RECONCILIATION_REJECTED,
-      userId,
-      row,
-      {
-        oldValues: { status: String(row.status) },
-        newValues: { status: String(status), scope: dto.scope ?? 'PAY' },
-        reason: dto.approvalNotes,
-      },
-      meta,
-    );
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          status,
+          approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
+          approvedById: userId,
+          approvedAt: new Date(),
+        },
+      });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_REJECTED,
+        userId,
+        row,
+        {
+          oldValues: { status: String(row.status) },
+          newValues: { status: String(status), scope: dto.scope ?? 'PAY' },
+          reason: dto.approvalNotes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
 
     return this.getById(id);
   }
@@ -1925,26 +1938,29 @@ export class VisitReconciliationsService {
 
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        overrunDecision: VisitOverrunDecision.APPROVED,
-        overrunPayBasis,
-        overrunBillBasis,
-        approvedPayStart: defaults.approvedPayStart,
-        approvedPayEnd: defaults.approvedPayEnd,
-        approvedBillStart: defaults.approvedBillStart,
-        approvedBillEnd: defaults.approvedBillEnd,
-        approvalNotes: notes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status: VisitReconciliationStatus.PENDING_REVIEW,
-      },
-    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          overrunDecision: VisitOverrunDecision.APPROVED,
+          overrunPayBasis,
+          overrunBillBasis,
+          approvedPayStart: defaults.approvedPayStart,
+          approvedPayEnd: defaults.approvedPayEnd,
+          approvedBillStart: defaults.approvedBillStart,
+          approvedBillEnd: defaults.approvedBillEnd,
+          approvalNotes: notes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status: VisitReconciliationStatus.PENDING_REVIEW,
+        },
+      });
 
-    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
-    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
-    await this.auditOverrunDecision(userId, row, 'APPROVED', dto, meta);
+      // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+      await this.evaluateInternal(tx, id, { forceRecalculateAmounts: true });
+      await this.auditOverrunDecision(userId, row, 'APPROVED', dto, meta, tx);
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1999,37 +2015,41 @@ export class VisitReconciliationsService {
       overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
       durationToleranceMinutes: await this.resolveDurationToleranceMinutes(this.prisma, row.scheduledVisitId),
     });
-    await this.prisma.visitReconciliation.update({
-      where: { id: row.id },
-      data: {
-        overrunDecision,
-        overrunPayBasis: anyActual ? payBasis : null,
-        overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
-        approvedBillStart: windows.approvedBillStart,
-        approvedBillEnd: windows.approvedBillEnd,
-        approvalNotes: [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null,
-      },
-    });
-    // Reprices the charge; the pay snapshot of a settled visit is never written.
-    await this.evaluateInternal(this.prisma, row.id, { forceRecalculateAmounts: true });
-    const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
-    await this.auditVisit(
-      AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
-      userId,
-      row,
-      {
-        oldValues: { billableAmount: row.billableAmount?.toString() ?? null, ...VisitReconciliationsService.paySnapshotOf(row) },
-        newValues: {
-          billableAmount: after.billableAmount?.toString() ?? null,
-          ...VisitReconciliationsService.paySnapshotOf(after),
-          decision: 'CHARGE_ONLY',
-          chargeBasis: billBasis,
-          overrunMinutes: row.overrunMinutes,
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id: row.id },
+        data: {
+          overrunDecision,
+          overrunPayBasis: anyActual ? payBasis : null,
+          overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
+          approvedBillStart: windows.approvedBillStart,
+          approvedBillEnd: windows.approvedBillEnd,
+          approvalNotes: [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null,
         },
-        reason: dto.notes,
-      },
-      meta,
-    );
+      });
+      // Reprices the charge; the pay snapshot of a settled visit is never written.
+      await this.evaluateInternal(tx, row.id, { forceRecalculateAmounts: true });
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
+        userId,
+        row,
+        {
+          oldValues: { billableAmount: row.billableAmount?.toString() ?? null, ...VisitReconciliationsService.paySnapshotOf(row) },
+          newValues: {
+            billableAmount: after.billableAmount?.toString() ?? null,
+            ...VisitReconciliationsService.paySnapshotOf(after),
+            decision: 'CHARGE_ONLY',
+            chargeBasis: billBasis,
+            overrunMinutes: row.overrunMinutes,
+          },
+          reason: dto.notes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(row.id);
   }
 
@@ -2044,8 +2064,9 @@ export class VisitReconciliationsService {
     decision: 'APPROVED' | 'REJECTED',
     dto: DecideVisitOverrunDto,
     meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
   ) {
-    const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id: before.id } });
+    const after = await this.client(tx).visitReconciliation.findUniqueOrThrow({ where: { id: before.id } });
     await this.auditVisit(
       AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
       userId,
@@ -2062,6 +2083,7 @@ export class VisitReconciliationsService {
         reason: dto.notes,
       },
       meta,
+      tx,
     );
   }
 
@@ -2098,26 +2120,29 @@ export class VisitReconciliationsService {
     });
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        overrunDecision: VisitOverrunDecision.REJECTED,
-        overrunPayBasis: null,
-        overrunBillBasis: null,
-        approvedPayStart: defaults.approvedPayStart,
-        approvedPayEnd: defaults.approvedPayEnd,
-        approvedBillStart: defaults.approvedBillStart,
-        approvedBillEnd: defaults.approvedBillEnd,
-        approvalNotes: notes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status: VisitReconciliationStatus.PENDING_REVIEW,
-      },
-    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          overrunDecision: VisitOverrunDecision.REJECTED,
+          overrunPayBasis: null,
+          overrunBillBasis: null,
+          approvedPayStart: defaults.approvedPayStart,
+          approvedPayEnd: defaults.approvedPayEnd,
+          approvedBillStart: defaults.approvedBillStart,
+          approvedBillEnd: defaults.approvedBillEnd,
+          approvalNotes: notes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status: VisitReconciliationStatus.PENDING_REVIEW,
+        },
+      });
 
-    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
-    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
-    await this.auditOverrunDecision(userId, row, 'REJECTED', dto, meta);
+      // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+      await this.evaluateInternal(tx, id, { forceRecalculateAmounts: true });
+      await this.auditOverrunDecision(userId, row, 'REJECTED', dto, meta, tx);
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
