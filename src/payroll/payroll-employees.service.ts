@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,12 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
+import { assertDifferentUser } from '../billing/financial-controls.util';
+import {
+  SalaryEntryPeriod,
+  annualSalaryFromEntry,
+  carriesSalary,
+} from './salary.util';
 import {
   CreateEmployeePayAgreementDto,
   UpdateEmployeePayAgreementDto,
@@ -135,8 +142,10 @@ export class PayrollEmployeesService {
       this.prisma.employeePayrollProfile.findMany({
         where: { deletedAt: null },
       }),
+      // The agreement in force today: a later-dated one may already be approved and waiting.
       this.prisma.employeePayAgreement.findMany({
-        where: { deletedAt: null, status: 'ACTIVE' },
+        where: { deletedAt: null, status: 'ACTIVE', effectiveFrom: { lte: new Date() } },
+        orderBy: [{ effectiveFrom: 'asc' }, { createdAt: 'asc' }],
       }),
     ]);
 
@@ -424,9 +433,123 @@ export class PayrollEmployeesService {
     await this.requireEmployee(employeeId);
     const rows = await this.prisma.employeePayAgreement.findMany({
       where: { employeeId, deletedAt: null },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
-    return { message: 'Pay agreements', data: rows.map(mapAgreement) };
+    const ids = [...new Set(rows.flatMap((r) => [r.createdById, r.approvedById]).filter((v): v is string => !!v))];
+    const users = ids.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const names = new Map(
+      users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    const salaryInEffect = rows.some((r) => r.status !== 'DRAFT' && this.rowCarriesSalary(r));
+    return {
+      message: 'Pay agreements',
+      data: rows.map((r) => ({
+        ...mapAgreement(r),
+        createdByName: r.createdById ? (names.get(r.createdById) ?? null) : null,
+        approvedByName: r.approvedById ? (names.get(r.approvedById) ?? null) : null,
+        // A draft that carries a salary, or replaces one, takes effect only when a second person approves it.
+        awaitingApproval: r.status === 'DRAFT' && (this.rowCarriesSalary(r) || salaryInEffect),
+      })),
+    };
+  }
+
+  private rowCarriesSalary(row: { basis: string; annualSalary: Prisma.Decimal | number | null }) {
+    return carriesSalary({
+      basis: row.basis,
+      annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
+    });
+  }
+
+  /**
+   * The pay terms of an agreement, checked. A salary may be entered per year, per month or per
+   * week; the yearly figure is what is stored and calculated from. A salary states how a part
+   * period is paid and what work it already pays for: neither is assumed.
+   */
+  private agreementTermsFrom(input: {
+    basis: string;
+    annualSalary: number | null;
+    salaryEntryPeriod: string | null;
+    salaryEntryAmount: number | null;
+    contractedHours: number | null;
+    salaryProrationMethod: string | null;
+    salaryCoverage: string | null;
+  }) {
+    const entryPeriod = (input.salaryEntryPeriod ?? 'ANNUAL') as SalaryEntryPeriod;
+    const entryAmount = input.salaryEntryAmount ?? (entryPeriod === 'ANNUAL' ? input.annualSalary : null);
+    const annualSalary = entryAmount == null ? input.annualSalary : annualSalaryFromEntry(entryPeriod, entryAmount);
+    const salaried = input.basis === 'SALARIED' || input.basis === 'HYBRID';
+
+    if (!salaried) {
+      if ((annualSalary ?? 0) > 0) {
+        throw new BadRequestException(
+          'An hourly agreement does not carry a salary. Choose Salaried, or Hybrid for a salary with separately paid visit work.',
+        );
+      }
+      return {
+        annualSalary: null,
+        salaryEntryPeriod: null,
+        salaryEntryAmount: null,
+        salaryProrationMethod: null,
+        salaryCoverage: null,
+      };
+    }
+    if (!((annualSalary ?? 0) > 0)) {
+      throw new BadRequestException('Enter the salary: an amount per year, per month or per week.');
+    }
+    if (!input.salaryProrationMethod) {
+      throw new BadRequestException(
+        'Choose how a part period is paid (a starter, a leaver or a change part way through a pay period).',
+      );
+    }
+    if (!input.salaryCoverage) {
+      throw new BadRequestException(
+        'Choose what work the salary already pays for, so visit wages are not paid again on top of it.',
+      );
+    }
+    if (input.salaryCoverage === 'CONTRACTED_HOURS' && !((input.contractedHours ?? 0) > 0)) {
+      throw new BadRequestException(
+        'Enter the contracted weekly hours: the salary pays for visit work up to them, and work beyond them is paid separately.',
+      );
+    }
+    return {
+      annualSalary: new Prisma.Decimal(annualSalary as number),
+      salaryEntryPeriod: entryPeriod,
+      salaryEntryAmount: new Prisma.Decimal(entryAmount as number),
+      salaryProrationMethod: input.salaryProrationMethod,
+      salaryCoverage: input.salaryCoverage,
+    };
+  }
+
+  /** An agreement that carries a salary, or replaces one in effect, needs a second person. */
+  private async needsApproval(employeeId: string, salaried: boolean, exceptId?: string) {
+    if (salaried) return true;
+    const others = await this.prisma.employeePayAgreement.findMany({
+      where: { employeeId, deletedAt: null, status: { not: 'DRAFT' }, id: exceptId ? { not: exceptId } : undefined },
+      select: { basis: true, annualSalary: true },
+    });
+    return others.some((r) => this.rowCarriesSalary(r));
+  }
+
+  /** Agreements this one replaces from its start date. A later-dated one stays as it is. */
+  private supersedeEarlier(
+    tx: Prisma.TransactionClient,
+    input: { employeeId: string; effectiveFrom: Date; userId: string; exceptId?: string },
+  ) {
+    return tx.employeePayAgreement.updateMany({
+      where: {
+        employeeId: input.employeeId,
+        deletedAt: null,
+        status: 'ACTIVE',
+        effectiveFrom: { lte: input.effectiveFrom },
+        id: input.exceptId ? { not: input.exceptId } : undefined,
+      },
+      data: { status: 'SUPERSEDED', updatedById: input.userId },
+    });
   }
 
   async createAgreement(
@@ -445,13 +568,21 @@ export class PayrollEmployeesService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
-    const status = dto.status ?? 'DRAFT';
+    const terms = this.agreementTermsFrom({
+      basis: dto.basis,
+      annualSalary: dto.annualSalary ?? null,
+      salaryEntryPeriod: dto.salaryEntryPeriod ?? null,
+      salaryEntryAmount: dto.salaryEntryAmount ?? null,
+      contractedHours: dto.contractedHours ?? null,
+      salaryProrationMethod: dto.salaryProrationMethod ?? null,
+      salaryCoverage: dto.salaryCoverage ?? null,
+    });
+    const awaitingApproval = await this.needsApproval(employeeId, terms.annualSalary != null);
+    // A salary, or the end of one, takes effect only when a second person approves the agreement.
+    const status = awaitingApproval ? 'DRAFT' : (dto.status ?? 'DRAFT');
     const row = await this.prisma.$transaction(async (tx) => {
       if (status === 'ACTIVE') {
-        await tx.employeePayAgreement.updateMany({
-          where: { employeeId, deletedAt: null, status: 'ACTIVE' },
-          data: { status: 'SUPERSEDED', updatedById: userId },
-        });
+        await this.supersedeEarlier(tx, { employeeId, effectiveFrom, userId });
       }
       return tx.employeePayAgreement.create({
         data: {
@@ -462,8 +593,7 @@ export class PayrollEmployeesService {
           effectiveFrom,
           effectiveTo,
           payCardId: dto.payCardId ?? null,
-          annualSalary:
-            dto.annualSalary == null ? null : new Prisma.Decimal(dto.annualSalary),
+          ...terms,
           contractedHours:
             dto.contractedHours == null ? null : new Prisma.Decimal(dto.contractedHours),
           hourlyRateOverride:
@@ -488,7 +618,61 @@ export class PayrollEmployeesService {
       userAgent: meta?.userAgent,
     });
 
-    return { message: 'Pay agreement created', data: mapAgreement(row) };
+    return {
+      message: awaitingApproval
+        ? 'Pay agreement saved. It takes effect when a second person approves it.'
+        : 'Pay agreement created',
+      data: { ...mapAgreement(row), awaitingApproval },
+    };
+  }
+
+  /**
+   * A second person puts an agreement into effect. It then applies from its start date, replacing
+   * the agreements that started on or before that date; they stay as history.
+   */
+  async approveAgreement(userId: string, agreementId: string, meta?: RequestAuditMeta) {
+    const existing = await this.prisma.employeePayAgreement.findFirst({
+      where: { id: agreementId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Pay agreement not found');
+    if (existing.status !== 'DRAFT') {
+      throw new BadRequestException('Only an agreement that is not yet in effect can be approved.');
+    }
+    const message = 'A pay agreement is approved by a different person from the one who entered or last changed it.';
+    assertDifferentUser(existing.createdById, userId, message);
+    assertDifferentUser(existing.updatedById, userId, message);
+
+    const now = new Date();
+    const row = await this.prisma.$transaction(async (tx) => {
+      const approved = await tx.employeePayAgreement.updateMany({
+        where: { id: agreementId, status: 'DRAFT', deletedAt: null },
+        data: { status: 'ACTIVE', approvedById: userId, approvedAt: now, termsChangedAt: now },
+      });
+      if (approved.count !== 1) {
+        throw new ConflictException('This agreement was changed by someone else. Reload and try again.');
+      }
+      await this.supersedeEarlier(tx, {
+        employeeId: existing.employeeId,
+        effectiveFrom: existing.effectiveFrom,
+        userId,
+        exceptId: agreementId,
+      });
+      return tx.employeePayAgreement.findUniqueOrThrow({ where: { id: agreementId } });
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.PAYROLL,
+      action: AuditAction.PAYROLL_PAY_AGREEMENT_APPROVED,
+      recordType: 'EmployeePayAgreement',
+      recordId: row.id,
+      oldValues: mapAgreement(existing),
+      newValues: mapAgreement(row),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return { message: 'Pay agreement approved. It applies from its start date.', data: mapAgreement(row) };
   }
 
   async updateAgreement(
@@ -518,16 +702,82 @@ export class PayrollEmployeesService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
+    const num = (v: Prisma.Decimal | null) => (v == null ? null : Number(v));
+    const pick = <T,>(next: T | undefined, current: T) => (next === undefined ? current : next);
+    const basis = dto.basis ?? existing.basis;
+    // A salary entered again in one form replaces the other form.
+    const entryGiven = dto.salaryEntryAmount !== undefined || dto.salaryEntryPeriod !== undefined;
+    const annualGiven = dto.annualSalary !== undefined;
+    const terms = this.agreementTermsFrom({
+      basis,
+      annualSalary: annualGiven ? (dto.annualSalary ?? null) : entryGiven ? null : num(existing.annualSalary),
+      salaryEntryPeriod: entryGiven
+        ? (dto.salaryEntryPeriod ?? existing.salaryEntryPeriod)
+        : annualGiven
+          ? 'ANNUAL'
+          : existing.salaryEntryPeriod,
+      salaryEntryAmount: entryGiven
+        ? pick(dto.salaryEntryAmount, num(existing.salaryEntryAmount))
+        : annualGiven
+          ? null
+          : num(existing.salaryEntryAmount),
+      contractedHours: pick(dto.contractedHours, num(existing.contractedHours)),
+      salaryProrationMethod: pick(dto.salaryProrationMethod, existing.salaryProrationMethod),
+      salaryCoverage: pick(dto.salaryCoverage, existing.salaryCoverage),
+    });
+
+    const inEffect = existing.status !== 'DRAFT';
+    const salaryInvolved = this.rowCarriesSalary(existing) || terms.annualSalary != null;
+    let termsChangedAt: Date | undefined;
+    if (inEffect && salaryInvolved) {
+      // Pay terms in effect are history: they are not rewritten. Only the end of the agreement
+      // (and a note) can be recorded on it; a different salary is a new agreement.
+      const termKeys = [
+        'basis',
+        'effectiveFrom',
+        'annualSalary',
+        'salaryEntryPeriod',
+        'salaryEntryAmount',
+        'contractedHours',
+        'salaryProrationMethod',
+        'salaryCoverage',
+        'hourlyRateOverride',
+        'payCardId',
+        'scheduleId',
+      ] as const;
+      if (termKeys.some((k) => dto[k] !== undefined)) {
+        throw new BadRequestException(
+          'The pay terms of an agreement in effect are not edited. Add a new agreement from the date the change applies; this one stays as history.',
+        );
+      }
+      if (dto.status !== undefined && dto.status !== existing.status && dto.status !== 'TERMINATED') {
+        throw new BadRequestException('An agreement in effect can only be ended.');
+      }
+      if (dto.status === 'TERMINATED' && !effectiveTo) {
+        throw new BadRequestException('Enter the last day the agreement applies to before ending it.');
+      }
+      const endChanged = (effectiveTo?.getTime() ?? null) !== (existing.effectiveTo?.getTime() ?? null);
+      if (endChanged || (dto.status === 'TERMINATED' && existing.status !== 'TERMINATED')) {
+        termsChangedAt = new Date();
+      }
+    } else if (
+      !inEffect &&
+      dto.status !== undefined &&
+      dto.status !== 'DRAFT' &&
+      (await this.needsApproval(existing.employeeId, terms.annualSalary != null, agreementId))
+    ) {
+      throw new BadRequestException(
+        'This agreement carries a salary, or replaces one. A second person approves it; it cannot be put into effect by editing it.',
+      );
+    }
+
     const row = await this.prisma.$transaction(async (tx) => {
-      if (dto.status === 'ACTIVE') {
-        await tx.employeePayAgreement.updateMany({
-          where: {
-            employeeId: existing.employeeId,
-            deletedAt: null,
-            status: 'ACTIVE',
-            id: { not: agreementId },
-          },
-          data: { status: 'SUPERSEDED', updatedById: userId },
+      if (dto.status === 'ACTIVE' && existing.status !== 'ACTIVE') {
+        await this.supersedeEarlier(tx, {
+          employeeId: existing.employeeId,
+          effectiveFrom,
+          userId,
+          exceptId: agreementId,
         });
       }
       return tx.employeePayAgreement.update({
@@ -539,12 +789,7 @@ export class PayrollEmployeesService {
           effectiveFrom: dto.effectiveFrom ? effectiveFrom : undefined,
           effectiveTo: dto.effectiveTo === undefined ? undefined : effectiveTo,
           payCardId: dto.payCardId === undefined ? undefined : dto.payCardId,
-          annualSalary:
-            dto.annualSalary === undefined
-              ? undefined
-              : dto.annualSalary == null
-                ? null
-                : new Prisma.Decimal(dto.annualSalary),
+          ...(inEffect && salaryInvolved ? {} : terms),
           contractedHours:
             dto.contractedHours === undefined
               ? undefined
@@ -558,6 +803,7 @@ export class PayrollEmployeesService {
                 ? null
                 : new Prisma.Decimal(dto.hourlyRateOverride),
           notes: dto.notes === undefined ? undefined : dto.notes?.trim() || null,
+          termsChangedAt,
           updatedById: userId,
         },
       });

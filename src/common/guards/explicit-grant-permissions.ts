@@ -1,7 +1,7 @@
 /**
  * Permissions the "Super Admin" shortcut does not grant.
  *
- * Authorising pay, recording a bank settlement, closing or reopening a payroll run, deleting
+ * Authorising pay, approving a salary agreement, recording a bank settlement, closing or reopening a payroll run, deleting
  * financial test data and clearing the audit log are powers of a named role, not of system
  * administration. A user holds one of these only when a role assigned to them lists it.
  */
@@ -12,6 +12,7 @@ export const EXPLICIT_GRANT_PERMISSIONS: readonly string[] = [
   'billing.financial_reset',
   'payroll.runs.close',
   'payroll.runs.reopen',
+  'payroll.pay_agreements.approve',
   'audit_logs.delete',
 ];
 

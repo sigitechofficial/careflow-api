@@ -287,6 +287,24 @@ async function main() {
     prismaCmd(['db', 'execute', '--url', url, '--file', join('prisma', 'migrations', '20261014104500_mileage_rate_defaults', 'migration.sql')]);
     check('the mileage rate defaults can be applied twice', (await one(`SELECT COUNT(*)::int AS n FROM "billing"."MileageRate"`)).n === 4);
 
+    // --- 5b. Gate B2: mileage corrections and salary agreements ---------------------------------
+    const payItem = await one(`SELECT "taxTreatment" AS t, "taxFreeAmount" AS f, "taxableAmount" AS x FROM "billing"."EmployeePayItem" WHERE id = $1::uuid`, seed.P1);
+    check('an existing pay item is given no mileage tax treatment', payItem.t === null && payItem.f === null && payItem.x === null);
+    const agreement = await one(
+      `SELECT "annualSalary"::float AS salary, "salaryProrationMethod" AS method, "salaryCoverage" AS coverage, "salaryEntryPeriod" AS entry,
+              "approvedById" AS approver, "approvedAt" AS approved, "termsChangedAt" AS changed, status::text AS status
+         FROM "payroll"."EmployeePayAgreement" WHERE id = $1::uuid`,
+      seed.A1,
+    );
+    check('an existing salary agreement keeps its salary and status', agreement.salary === 24000 && agreement.status === 'ACTIVE');
+    check(
+      'no proration method, salary cover or approval is invented for an existing agreement',
+      agreement.method === null && agreement.coverage === null && agreement.entry === null && agreement.approver === null && agreement.approved === null,
+    );
+    check('an existing agreement is not marked as changed, so no salary adjustment can arise from it', agreement.changed === null);
+    const unpaid = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."UkPayrollInputLine" WHERE "unpaidAmount" IS NOT NULL OR "unpaidReason" IS NOT NULL`);
+    check('no existing UK payroll line is marked as covered by salary or held', unpaid.n === 0);
+
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`
       SELECT l."visitReconciliationId"::text AS "visitReconciliationId", v."visitRef",
@@ -405,6 +423,14 @@ async function seedHistory(db) {
     status: 'APPROVED', includedInPayrollRunId: runA, updatedAt: now,
   }));
 
+  // A salary agreement made before agreements recorded how a part period is paid or what the
+  // salary pays for.
+  const A1 = id();
+  await insert('"payroll"."EmployeePayAgreement"', uuidCols(
+    { id: A1, employeeId: salaried, basis: 'SALARIED', status: 'ACTIVE', effectiveFrom: day('2026-01-01'), annualSalary: 24000, updatedAt: now },
+    { basis: '::"payroll"."EmployeePayAgreementBasis"', status: '::"payroll"."EmployeePayAgreementStatus"' },
+  ));
+
   // Pay lines. createdAt orders the two lines of the visit paid twice.
   const [L1, L2, L3a, L3b, L6, L7a, L7b, LT, LP] = [id(), id(), id(), id(), id(), id(), id(), id(), id()];
   const payLine = (lid, runId, visitId, lineType, amount, createdAt, extra = {}) =>
@@ -491,7 +517,7 @@ async function seedHistory(db) {
   await batch('DRAFT');
 
   return {
-    carer, salaried, period, runA, runB, runDraft, V1, V2, V3, V4, V5, V6, V7, P1, L1, L2, L3a, L3b, L6, L7a, L7b, LT, LP, LM,
+    A1, carer, salaried, period, runA, runB, runDraft, V1, V2, V3, V4, V5, V6, V7, P1, L1, L2, L3a, L3b, L6, L7a, L7b, LT, LP, LM,
     H1, H2, H3, H4, H5,
     ukClosed, ukCancelled, ukOpen, ukOpenEmployee, inClosedLine, inClosedProvisional, inClosedSalary, inCancelledLine, inOpenSalary,
   };

@@ -264,6 +264,13 @@ export function mapAgreement(row: {
   annualSalary: Prisma.Decimal | null;
   contractedHours: Prisma.Decimal | null;
   hourlyRateOverride: Prisma.Decimal | null;
+  salaryEntryPeriod?: string | null;
+  salaryEntryAmount?: Prisma.Decimal | null;
+  salaryProrationMethod?: string | null;
+  salaryCoverage?: string | null;
+  approvedById?: string | null;
+  approvedAt?: Date | null;
+  createdById?: string | null;
   currency: string;
   notes: string | null;
   createdAt: Date;
@@ -281,6 +288,13 @@ export function mapAgreement(row: {
     annualSalary: decimalToNumber(row.annualSalary),
     contractedHours: decimalToNumber(row.contractedHours),
     hourlyRateOverride: decimalToNumber(row.hourlyRateOverride),
+    salaryEntryPeriod: row.salaryEntryPeriod ?? null,
+    salaryEntryAmount: decimalToNumber(row.salaryEntryAmount ?? null),
+    salaryProrationMethod: row.salaryProrationMethod ?? null,
+    salaryCoverage: row.salaryCoverage ?? null,
+    createdById: row.createdById ?? null,
+    approvedById: row.approvedById ?? null,
+    approvedAt: row.approvedAt?.toISOString() ?? null,
     currency: row.currency,
     notes: row.notes,
     createdAt: row.createdAt.toISOString(),

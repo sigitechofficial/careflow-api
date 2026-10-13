@@ -51,6 +51,16 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     explicitOnly: true,
   },
   {
+    // A job of its own, so the roles that already approve pay keep that job as it is.
+    key: 'approve-pay-agreements',
+    label: 'Approve salary agreements',
+    description:
+      'Put a pay agreement into effect when it carries a salary or replaces one. Must be a different person from the one who entered it.',
+    view: ['payroll.employees.read'],
+    act: ['payroll.pay_agreements.approve'],
+    explicitOnly: true,
+  },
+  {
     key: 'payroll',
     label: 'Create payroll (UK payroll)',
     description:

@@ -10102,6 +10102,21 @@ model EmployeePayAgreement {
   annualSalary       Decimal?                   @db.Decimal(12, 2)
   contractedHours    Decimal?                   @db.Decimal(8, 2)
   hourlyRateOverride Decimal?                   @db.Decimal(12, 4)
+  /// ANNUAL | MONTHLY | WEEKLY: how the salary was entered. `annualSalary` is always the yearly figure.
+  salaryEntryPeriod     String?
+  salaryEntryAmount     Decimal? @db.Decimal(12, 2)
+  /// How a part period is paid: CALENDAR_DAYS_365_25 (also when empty: the earlier behaviour) |
+  /// EQUAL_PERIODS_CALENDAR_DAYS | EQUAL_PERIODS_WORKING_DAYS.
+  salaryProrationMethod String?
+  /// What the salary already pays for: ALL_VISIT_WORK | CONTRACTED_HOURS | NO_VISIT_WORK.
+  /// Empty = not decided: the salary is paid and the visit wages are held, never paid on top.
+  salaryCoverage        String?
+  /// Second person who approved the agreement (required when it carries or replaces a salary).
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  /// When a person last put these pay terms into effect or ended them. A change made after a
+  /// period was paid is what produces a salary adjustment for that period.
+  termsChangedAt        DateTime?
   currency           String                     @default("GBP")
   notes              String?
   createdAt          DateTime                   @default(now())
@@ -10323,6 +10338,11 @@ model UkPayrollInputLine {
   /// visits, which are claimed on the visit when the run closes (paidByUkPayrollRunId).
   claimKey                    String?                  @unique
   releasedAt                  DateTime?
+  /// Value of the source earning that this line does not pay, and why:
+  /// COVERED_BY_SALARY (the salary already pays for the work; the earning is settled by this run) |
+  /// SALARY_COVERAGE_NOT_DECIDED (held: not paid and not claimed, a later run can still pay it).
+  unpaidAmount                Decimal?                 @db.Decimal(12, 2)
+  unpaidReason                String?
   createdAt                   DateTime                 @default(now())
 
   run         UkPayrollRun         @relation(fields: [runId], references: [id], onDelete: Cascade)

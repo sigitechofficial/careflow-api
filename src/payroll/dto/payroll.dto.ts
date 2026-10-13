@@ -18,6 +18,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import { SALARY_COVERAGES, SALARY_ENTRY_PERIODS, SALARY_PRORATION_METHODS } from '../salary.util';
 
 export enum PayrollTaxYearStatusDto {
   DRAFT = 'DRAFT',
@@ -509,6 +510,29 @@ export class CreateEmployeePayAgreementDto {
   @Min(0)
   @Max(168)
   contractedHours?: number | null;
+
+  @ApiPropertyOptional({ enum: SALARY_ENTRY_PERIODS, description: 'How the salary is entered' })
+  @IsOptional()
+  @IsIn(SALARY_ENTRY_PERIODS as unknown as string[])
+  salaryEntryPeriod?: string | null;
+
+  @ApiPropertyOptional({ description: 'Salary per year, month or week, as salaryEntryPeriod says' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000_000)
+  salaryEntryAmount?: number | null;
+
+  @ApiPropertyOptional({ enum: SALARY_PRORATION_METHODS, description: 'How a part period is paid' })
+  @IsOptional()
+  @IsIn(SALARY_PRORATION_METHODS as unknown as string[])
+  salaryProrationMethod?: string | null;
+
+  @ApiPropertyOptional({ enum: SALARY_COVERAGES, description: 'What work the salary already pays for' })
+  @IsOptional()
+  @IsIn(SALARY_COVERAGES as unknown as string[])
+  salaryCoverage?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -97,4 +97,18 @@ export class PayrollEmployeesController {
   ) {
     return this.service.updateAgreement(user.id, agreementId, dto, getRequestAuditMeta(req));
   }
+
+  @Post('pay-agreements/:agreementId/approve')
+  @PayrollScope({ kind: 'payAgreement', param: 'agreementId' })
+  @Permissions('payroll.pay_agreements.approve')
+  @ApiOperation({
+    summary: 'Second person puts a pay agreement into effect (required when it carries or replaces a salary)',
+  })
+  approveAgreement(
+    @CurrentUser() user: RequestUser,
+    @Param('agreementId') agreementId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.approveAgreement(user.id, agreementId, getRequestAuditMeta(req));
+  }
 }

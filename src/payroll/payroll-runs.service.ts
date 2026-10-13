@@ -7,6 +7,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  AgreementTerms,
+  UNPAID_COVERAGE_NOT_DECIDED,
+  UNPAID_COVERED_BY_SALARY,
+  VisitCoverage,
+  applySalaryCoverage,
+  carriesSalary,
+  governingAgreement,
+  salaryCoverageByVisit,
+  salaryForPeriod,
+  weekStartKey,
+} from './salary.util';
 import { randomUUID } from 'crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -27,7 +39,6 @@ import {
   emptyGrossBucket,
   finalizeGrossBucket,
   isExpenseLineType,
-  prorateAnnualSalary,
   round2,
   salaryMonthKeysForPeriod,
   toDecimal,
@@ -66,6 +77,36 @@ const OPEN_RUN_STATUSES = [
   'GROSS_CALCULATED',
   'STATUTORY_CALCULATED',
 ] as const;
+
+/** A stored pay agreement as the salary rules read it. */
+function agreementTerms(row: {
+  id: string;
+  basis: string;
+  status: string;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  annualSalary: Prisma.Decimal | null;
+  contractedHours: Prisma.Decimal | null;
+  salaryProrationMethod: string | null;
+  salaryCoverage: string | null;
+  approvedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): AgreementTerms {
+  return {
+    id: row.id,
+    basis: row.basis,
+    status: row.status,
+    effectiveFrom: row.effectiveFrom,
+    effectiveTo: row.effectiveTo,
+    annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
+    contractedHours: row.contractedHours == null ? null : Number(row.contractedHours),
+    salaryProrationMethod: row.salaryProrationMethod,
+    salaryCoverage: row.salaryCoverage,
+    decidedAt: row.approvedAt ?? row.createdAt,
+    endedAt: row.status === 'TERMINATED' ? row.updatedAt : null,
+  };
+}
 
 function decimalNum(v: Prisma.Decimal | number | null | undefined): number {
   if (v == null) return 0;
@@ -186,6 +227,13 @@ type DraftInputLine = {
   claimKey: string | null;
   /** A reimbursement whose tax treatment nobody has verified (TR-13). Not stored on the line. */
   notVerified?: boolean;
+  /** When the work was done (the visit start), to find the pay agreement in force. Not stored. */
+  workedAt?: Date | null;
+  /** Entered and approved by people as a pay item: always paid as well as a salary. Not stored. */
+  fromPayItem?: boolean;
+  /** Value of the source earning this line does not pay, and why (see UkPayrollInputLine). */
+  unpaidAmount?: number | null;
+  unpaidReason?: string | null;
 };
 
 /** Times gross collection reselects when another run claims some of the same earnings mid-flight. */
@@ -540,6 +588,18 @@ export class PayrollRunsService {
               netWages: decimalNum(e.netPay),
               totalPayable: round2(decimalNum(e.netPay) + decimalNum(e.reimbursementPayable)),
             },
+            // WM-09: earnings the salary already pays for (settled by this run, not paid again) and
+            // earnings held because the agreement does not say what the salary pays for.
+            coveredBySalary: round2(
+              lines
+                .filter((l) => l.unpaidReason === UNPAID_COVERED_BY_SALARY)
+                .reduce((sum, l) => sum + decimalNum(l.unpaidAmount), 0),
+            ),
+            heldForSalaryDecision: round2(
+              lines
+                .filter((l) => l.unpaidReason === UNPAID_COVERAGE_NOT_DECIDED)
+                .reduce((sum, l) => sum + decimalNum(l.unpaidAmount), 0),
+            ),
             deductionTotal: decimalNum(e.deductionTotal),
             totalGross: decimalNum(e.totalGross),
             inputLineCount: e.inputLineCount,
@@ -564,6 +624,8 @@ export class PayrollRunsService {
               amount: decimalNum(l.amount),
               isExpense: l.isExpense,
               isProvisional: l.isProvisional,
+              unpaidAmount: l.unpaidAmount == null ? null : decimalNum(l.unpaidAmount),
+              unpaidReason: l.unpaidReason,
               sourcePayrollRunId: l.sourcePayrollRunId,
               sourcePayrollRunLineId: l.sourcePayrollRunLineId,
               sourceVisitReconciliationId: l.sourceVisitReconciliationId,
@@ -1203,7 +1265,7 @@ export class PayrollRunsService {
           periodEnd: { gte: periodStart },
         },
       },
-      include: { payrollRun: { select: { id: true, periodLabel: true } } },
+      include: { payrollRun: { select: { id: true, periodLabel: true, periodEnd: true } } },
     });
 
     // Earnings another live run holds. A cancelled run has released its claims, so its lines do
@@ -1234,14 +1296,14 @@ export class PayrollRunsService {
     const lockedLineReconIds = [
       ...new Set(lockedLines.map((l) => l.visitReconciliationId).filter((v): v is string => !!v)),
     ];
+    const lockedLineRecons = await this.prisma.visitReconciliation.findMany({
+      where: { id: { in: lockedLineReconIds } },
+      select: { id: true, paidByUkPayrollRunId: true, approvedPayStart: true },
+    });
     const paidProvisionally = new Set(
-      (
-        await this.prisma.visitReconciliation.findMany({
-          where: { id: { in: lockedLineReconIds }, paidByUkPayrollRunId: { not: null } },
-          select: { id: true },
-        })
-      ).map((r) => r.id),
+      lockedLineRecons.filter((r) => r.paidByUkPayrollRunId).map((r) => r.id),
     );
+    const visitStartById = new Map(lockedLineRecons.map((r) => [r.id, r.approvedPayStart]));
 
     const coveredReconIds = new Set<string>();
     const draftLines: DraftInputLine[] = [];
@@ -1276,6 +1338,10 @@ export class PayrollRunsService {
         sourceSalaryDeductionId: null,
         minutes: line.minutes,
         isProvisional: false,
+        workedAt:
+          (line.visitReconciliationId ? visitStartById.get(line.visitReconciliationId) : null) ??
+          line.payrollRun.periodEnd,
+        fromPayItem: !!line.employeePayItemId,
       };
       const reimbursed = round2(decimalNum(line.amount) - taxable);
       if (!isExpense || reimbursed !== 0 || taxable === 0) {
@@ -1343,46 +1409,224 @@ export class PayrollRunsService {
         isProvisional: true,
         // Claimed on the visit itself when the run closes (paidByUkPayrollRunId).
         claimKey: null,
+        workedAt: recon.approvedPayStart,
       });
     }
 
-    const agreements = await this.prisma.employeePayAgreement.findMany({
-      where: {
-        id: { in: runEmployees.map((e) => e.payAgreementId).filter(Boolean) as string[] },
-        deletedAt: null,
-      },
-    });
-    const agreementById = new Map(agreements.map((a) => [a.id, a]));
+    // WM-02 / WM-03 / WM-09: what each employee's pay agreements say. A salary is worked out from
+    // every agreement in force during the period, and a salaried employee is not paid visit wages
+    // again for the work the salary already pays for.
+    const [agreementRows, employmentRows] = await Promise.all([
+      this.prisma.employeePayAgreement.findMany({
+        where: { employeeId: { in: employeeIds }, deletedAt: null, status: { not: 'DRAFT' } },
+      }),
+      this.prisma.employeeEmployment.findMany({
+        where: { employeeId: { in: employeeIds } },
+        select: { employeeId: true, startDate: true, endDate: true },
+      }),
+    ]);
+    const agreementsByEmployee = new Map<string, AgreementTerms[]>();
+    for (const row of agreementRows) {
+      agreementsByEmployee.set(row.employeeId, [
+        ...(agreementsByEmployee.get(row.employeeId) ?? []),
+        agreementTerms(row),
+      ]);
+    }
+    const employmentByEmployee = new Map(employmentRows.map((e) => [e.employeeId, e]));
+    const salaryParts = (employeeId: string, start: Date, end: Date, frequency: string) =>
+      salaryForPeriod({
+        agreements: agreementsByEmployee.get(employeeId) ?? [],
+        periodStart: start,
+        periodEnd: end,
+        frequency,
+        employment: employmentByEmployee.get(employeeId),
+      });
 
+    const salaried = new Set(
+      employeeIds.filter((id) => (agreementsByEmployee.get(id) ?? []).some((a) => carriesSalary(a))),
+    );
+    if (salaried.size) {
+      // Contracted hours are counted per week from every approved visit of that week, in the order
+      // worked, so a week split between two runs gives each visit the same answer in both.
+      const visitTimes = draftLines
+        .filter((l) => salaried.has(l.employeeId) && l.sourceVisitReconciliationId && l.workedAt)
+        .map((l) => l.workedAt!.getTime());
+      const coverageByVisit = new Map<string, VisitCoverage>();
+      if (visitTimes.length) {
+        const from = new Date(`${weekStartKey(new Date(Math.min(...visitTimes)))}T00:00:00.000Z`);
+        const to = new Date(`${weekStartKey(new Date(Math.max(...visitTimes)))}T00:00:00.000Z`);
+        to.setUTCDate(to.getUTCDate() + 7);
+        const weekVisits = await this.prisma.visitReconciliation.findMany({
+          where: {
+            employeeId: { in: [...salaried] },
+            status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH', 'LOCKED'] },
+            approvedPayStart: { gte: from, lt: to },
+            payableMinutes: { gt: 0 },
+          },
+          select: { id: true, employeeId: true, approvedPayStart: true, payableMinutes: true },
+        });
+        for (const employeeId of salaried) {
+          const cover = salaryCoverageByVisit(
+            weekVisits
+              .filter((v) => v.employeeId === employeeId && v.approvedPayStart)
+              .map((v) => ({ id: v.id, start: v.approvedPayStart!, minutes: v.payableMinutes ?? 0 })),
+            agreementsByEmployee.get(employeeId) ?? [],
+          );
+          for (const [visitId, value] of cover) coverageByVisit.set(visitId, value);
+        }
+      }
+      for (const line of draftLines) {
+        if (!salaried.has(line.employeeId) || line.isExpense || line.fromPayItem) continue;
+        const covered = applySalaryCoverage({
+          lineType: line.lineType,
+          amount: line.amount,
+          agreement: governingAgreement(
+            agreementsByEmployee.get(line.employeeId) ?? [],
+            line.workedAt ?? periodEnd,
+          ),
+          visit: line.sourceVisitReconciliationId
+            ? (coverageByVisit.get(line.sourceVisitReconciliationId) ?? null)
+            : null,
+        });
+        if (!covered.reason) continue;
+        const full = line.amount;
+        line.amount = covered.paid;
+        line.unpaidAmount = covered.unpaid;
+        line.unpaidReason = covered.reason;
+        if (covered.reason === UNPAID_COVERAGE_NOT_DECIDED) {
+          // Held, not settled: the earning is neither paid nor claimed, so a later run pays it (or
+          // records it as covered) once the agreement says what the salary pays for.
+          line.claimKey = null;
+          line.isProvisional = false;
+          line.description = `Held — the pay agreement does not say whether the salary already pays for this work. £${full.toFixed(2)} is not paid by this run. ${line.description}`;
+        } else if (covered.paid === 0) {
+          line.description = `${line.description} — £${full.toFixed(2)} already paid by the salary, not paid again`;
+        } else {
+          line.description = `${line.description} — £${covered.unpaid.toFixed(2)} of £${full.toFixed(2)} already paid by the salary; £${covered.paid.toFixed(2)} is for hours beyond the contracted hours`;
+        }
+      }
+    }
+
+    const salaryLine = {
+      sourceType: 'PAY_AGREEMENT_SALARY' as const,
+      sourcePayrollRunId: null,
+      sourcePayrollRunLineId: null,
+      sourceVisitReconciliationId: null,
+      sourceSalaryDeductionId: null,
+      minutes: null,
+      isExpense: false,
+      isProvisional: false,
+    };
+    const paysSalaryHere = new Set<string>();
     for (const runEmployee of runEmployees) {
-      if (!runEmployee.payAgreementId) continue;
-      const agreement = agreementById.get(runEmployee.payAgreementId);
-      if (!agreement) continue;
-      if (agreement.basis !== 'SALARIED' && agreement.basis !== 'HYBRID') continue;
-      const annual = decimalNum(agreement.annualSalary);
-      if (annual <= 0) continue;
-      const amount = prorateAnnualSalary(annual, periodStart, periodEnd);
-      if (amount <= 0) continue;
       // A period's salary belongs to one run; a supplementary run in the same period pays extras only.
       if (heldClaims.has(salaryClaim(runEmployee.employeeId))) continue;
-      draftLines.push({
-        id: randomUUID(),
-        runId,
-        runEmployeeId: runEmployee.id,
-        employeeId: runEmployee.employeeId,
-        sourceType: 'PAY_AGREEMENT_SALARY',
-        sourcePayrollRunId: null,
-        sourcePayrollRunLineId: null,
-        sourceVisitReconciliationId: null,
-        sourceSalaryDeductionId: null,
-        lineType: 'SALARY',
-        description: `Prorated salary (${dateToIsoDate(periodStart)} – ${dateToIsoDate(periodEnd)})`,
-        minutes: null,
-        amount,
-        isExpense: false,
-        isProvisional: false,
-        claimKey: salaryClaim(runEmployee.employeeId),
+      const parts = salaryParts(runEmployee.employeeId, periodStart, periodEnd, run.schedule.frequency);
+      parts.forEach((part, index) => {
+        draftLines.push({
+          ...salaryLine,
+          id: randomUUID(),
+          runId,
+          runEmployeeId: runEmployee.id,
+          employeeId: runEmployee.employeeId,
+          lineType: 'SALARY',
+          description: part.description,
+          amount: part.amount,
+          // One part for each agreement in force during the period (a change part way through).
+          claimKey:
+            index === 0
+              ? salaryClaim(runEmployee.employeeId)
+              : `${salaryClaim(runEmployee.employeeId)}:${index + 1}`,
+        });
       });
+      if (parts.length) paysSalaryHere.add(runEmployee.employeeId);
+    }
+
+    // Salary of a period that is already paid, changed afterwards by an approved agreement: the
+    // difference is paid (or recovered) here, once. The closed run is not touched.
+    const changedAgreements = agreementRows.filter((a) => a.termsChangedAt);
+    if (changedAgreements.length) {
+      const changedEmployeeIds = [...new Set(changedAgreements.map((a) => a.employeeId))];
+      const [closedElsewhere, salaryClaims] = await Promise.all([
+        this.prisma.ukPayrollRunEmployee.findMany({
+          where: {
+            employeeId: { in: changedEmployeeIds },
+            runId: { not: runId },
+            run: { status: 'CLOSED', deletedAt: null },
+          },
+          select: {
+            employeeId: true,
+            run: {
+              select: {
+                closedAt: true,
+                period: { select: { id: true, label: true, periodStart: true, periodEnd: true } },
+                schedule: { select: { frequency: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.ukPayrollInputLine.findMany({
+          where: {
+            runId: { not: runId },
+            employeeId: { in: changedEmployeeIds },
+            OR: [{ claimKey: { startsWith: 'SALARY:' } }, { claimKey: { startsWith: 'SALARY_ADJ:' } }],
+          },
+          select: { claimKey: true, amount: true, run: { select: { status: true } } },
+        }),
+      ]);
+      const paidPeriods = new Map<string, (typeof closedElsewhere)[number]>();
+      for (const row of closedElsewhere) {
+        const key = `${row.employeeId}:${row.run.period.id}`;
+        const seen = paidPeriods.get(key);
+        // The first close of the period is when its salary was paid.
+        if (!seen || (row.run.closedAt && seen.run.closedAt && row.run.closedAt < seen.run.closedAt)) {
+          paidPeriods.set(key, row);
+        }
+      }
+      for (const row of paidPeriods.values()) {
+        const { employeeId } = row;
+        const period = row.run.period;
+        const runEmployee = runEmployeeByEmployeeId.get(employeeId);
+        if (!runEmployee) continue;
+        // This run pays the period's salary itself (nothing was paid for it before).
+        if (period.id === run.periodId && paysSalaryHere.has(employeeId)) continue;
+        const closedAt = row.run.closedAt;
+        const changedSince = changedAgreements.some(
+          (a) =>
+            a.employeeId === employeeId &&
+            a.effectiveFrom.getTime() <= period.periodEnd.getTime() &&
+            (!closedAt || a.termsChangedAt!.getTime() > closedAt.getTime()),
+        );
+        if (!changedSince) continue;
+        const salaryPrefix = `SALARY:${employeeId}:${period.id}`;
+        const adjustmentPrefix = `SALARY_ADJ:${employeeId}:${period.id}:`;
+        const held = salaryClaims.filter(
+          (l) => l.claimKey!.startsWith(salaryPrefix) || l.claimKey!.startsWith(adjustmentPrefix),
+        );
+        // Another open run is paying or adjusting that period's salary: leave it to that run.
+        if (held.some((l) => l.run.status !== 'CLOSED')) continue;
+        const paid = round2(held.reduce((sum, l) => sum + decimalNum(l.amount), 0));
+        const due = round2(
+          salaryParts(employeeId, period.periodStart, period.periodEnd, row.run.schedule.frequency).reduce(
+            (sum, part) => sum + part.amount,
+            0,
+          ),
+        );
+        const difference = round2(due - paid);
+        if (difference === 0) continue;
+        const sequence = held.filter((l) => l.claimKey!.startsWith(adjustmentPrefix)).length + 1;
+        draftLines.push({
+          ...salaryLine,
+          id: randomUUID(),
+          runId,
+          runEmployeeId: runEmployee.id,
+          employeeId,
+          lineType: 'SALARY_ADJUSTMENT',
+          description: `Salary adjustment for ${period.label} (${dateToIsoDate(period.periodStart)} – ${dateToIsoDate(period.periodEnd)}): the salary for that period is now £${due.toFixed(2)}, £${paid.toFixed(2)} was paid`,
+          amount: difference,
+          claimKey: `${adjustmentPrefix}${sequence}`,
+        });
+      }
     }
 
     const salaryMonths = salaryMonthKeysForPeriod(periodStart, periodEnd);
@@ -1485,6 +1729,8 @@ export class PayrollRunsService {
             isExpense: l.isExpense,
             isProvisional: l.isProvisional,
             claimKey: l.claimKey,
+            unpaidAmount: l.unpaidAmount == null ? null : toDecimal(l.unpaidAmount),
+            unpaidReason: l.unpaidReason ?? null,
           })),
         });
       }
@@ -1765,10 +2011,14 @@ export class PayrollRunsService {
       // runs closing together cannot both take the same visit.
       const provisional = await tx.ukPayrollInputLine.findMany({
         where: { runId, isProvisional: true, sourceVisitReconciliationId: { not: null } },
-        select: { sourceVisitReconciliationId: true, amount: true },
+        select: { sourceVisitReconciliationId: true, amount: true, unpaidAmount: true },
       });
       if (provisional.length) {
-        const amountByVisit = new Map(provisional.map((l) => [l.sourceVisitReconciliationId!, l.amount]));
+        // What the visit was worth when gross was collected: the part paid and any part the
+        // salary already pays for.
+        const amountByVisit = new Map(
+          provisional.map((l) => [l.sourceVisitReconciliationId!, l.amount.add(l.unpaidAmount ?? 0)]),
+        );
         const visitIds = [...amountByVisit.keys()];
         const visits = await tx.visitReconciliation.findMany({
           where: { id: { in: visitIds } },
@@ -1810,8 +2060,14 @@ export class PayrollRunsService {
 
       // Every earning being closed must still be claimed by this run (a line loses its claim when
       // its run is cancelled; a reactivated run has to collect gross again first).
+      // A line held because the salary coverage is not decided is deliberately not claimed.
       const unclaimed = await tx.ukPayrollInputLine.count({
-        where: { runId, isProvisional: false, claimKey: null },
+        where: {
+          runId,
+          isProvisional: false,
+          claimKey: null,
+          NOT: { unpaidReason: UNPAID_COVERAGE_NOT_DECIDED },
+        },
       });
       if (unclaimed > 0) {
         throw new ConflictException(

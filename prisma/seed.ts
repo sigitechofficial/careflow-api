@@ -407,6 +407,7 @@ async function main() {
     'billing.financial_reset',
     'payroll.runs.close',
     'payroll.runs.reopen',
+    'payroll.pay_agreements.approve',
     // WHERE, not WHAT: pay data for every branch, for a user who is otherwise limited to branches
     'payroll.scope.organisation',
     'billing.invoice_runs.read',
