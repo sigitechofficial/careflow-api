@@ -141,6 +141,7 @@ describe('minimum wage by pay reference period', () => {
     expect(recovery).toMatchObject({ kind: 'NMW_TOP_UP', status: 'PROPOSED' });
     expect(Number(recovery.amount)).toBe(14.2);
 
+    await t.prisma.wageRecoveryPolicy.create({ data: { reference: 'Synthetic recovery policy on record' } });
     await t.prisma.wageRecovery.update({ where: { id: recovery.id }, data: { status: 'APPROVED', authorityBasis: 'Synthetic authority', decidedAt: new Date() } });
     await calculate(third);
     expect(await amounts(third)).toEqual([-14.2]);

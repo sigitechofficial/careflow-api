@@ -1390,13 +1390,15 @@ export class PayrollRunsService {
               amount: -position.topUpInRun,
               reason: `Minimum wage top-up for the pay reference period ${period.start} to ${period.end} is no longer needed in full: the period now needs £${position.topUpDue.toFixed(2)}.`,
               originalReference: `£${topUpAlreadyPaid.toFixed(2)} topped up by locked pay run(s) for that period; £${position.topUpDue.toFixed(2)} is due on £${position.periodPay.toFixed(2)} for ${(position.periodMinutes / 60).toFixed(2)}h.`,
+              paidAmount: topUpAlreadyPaid,
+              dueAmount: position.topUpDue,
               runId: id,
               userId: recoveries.userId,
             });
             recoveries.confirmed.push(weekEarningClaimKey('NMW', nmwRef)!);
             if (outcome !== 'APPLY') {
               recoveryHeld = true;
-              if (outcome === 'HOLD') {
+              if (outcome !== 'WRITTEN_OFF') {
                 exceptionCount += 1;
                 lineData.push({
                   payrollRunId: id,
@@ -1410,7 +1412,7 @@ export class PayrollRunsService {
                   amount: 0,
                   payCardId: null,
                   visitRef: null,
-                  exceptionMessage: recoveryHeldMessage(-position.topUpInRun),
+                  exceptionMessage: recoveryHeldMessage(-position.topUpInRun, outcome),
                 });
               }
             }
@@ -1603,17 +1605,19 @@ export class PayrollRunsService {
       amount: input.amount,
       reason: `Overpaid ${input.what}: £${input.due.toFixed(2)} is now due, £${input.paid.toFixed(2)} was paid.`,
       originalReference: `£${input.paid.toFixed(2)} paid by locked pay run(s) as ${input.what}.`,
+      paidAmount: input.paid,
+      dueAmount: input.due,
       runId: input.run.id,
       userId: recoveries.userId,
     });
     if (outcome === 'APPLY') return true;
-    if (outcome === 'HOLD') {
+    if (outcome !== 'WRITTEN_OFF') {
       hold({
         employeeId: input.employeeId,
         subject: `RECOVERY:${input.claimKey}`,
         lineType: input.lineType,
         description: `Not deducted: overpaid ${input.what}`,
-        reason: recoveryHeldMessage(input.amount),
+        reason: recoveryHeldMessage(input.amount, outcome),
       });
     }
     return false;

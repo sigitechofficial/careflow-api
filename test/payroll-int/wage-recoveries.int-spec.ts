@@ -26,6 +26,8 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
   const NOVEMBER = { periodStart: '2026-11-01', periodEnd: '2026-11-30' };
   const DECEMBER = { periodStart: '2026-12-01', periodEnd: '2026-12-31' };
   const BASIS = 'Synthetic: clause 9.2 of the contract allows recovery of overpaid wages';
+  const AUTHORISE = { authorityBasis: BASIS, reason: 'Synthetic: overpayment confirmed with the employee' };
+  const POLICY = 'Synthetic: recovery policy v1, approved by the directors on 2026-09-01';
 
   const server = () => t.app.getHttpServer();
   const as = (user: { id: string }) => bearer(t.staffToken(user.id));
@@ -111,6 +113,8 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
     preparer = await createStaffUser(t.prisma, { permissions: ['billing.payroll_runs.read', 'billing.payroll_runs.manage', org] });
     approver = await createStaffUser(t.prisma, { permissions: ['billing.payroll_runs.read', 'billing.payroll_runs.approve', org] });
     employeeId = (await createCarer(t.prisma)).employeeId;
+    // The employer's recovery policy is on record, unless a test removes it (Sprint B4A).
+    await t.prisma.wageRecoveryPolicy.create({ data: { reference: POLICY, recordedById: approver.id } });
   });
   afterAll(async () => {
     await t.close();
@@ -152,16 +156,16 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
 
       // Not the person whose calculation proposed it, not without the power, not without the basis.
       const both = await createStaffUser(t.prisma, { permissions: ['billing.payroll_runs.read', 'billing.payroll_runs.manage', 'billing.payroll_runs.approve', 'payroll.scope.organisation'] });
-      expect((await post(preparer, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS })).status).toBe(403);
+      expect((await post(preparer, `/billing/wage-recoveries/${id}/approve`, AUTHORISE)).status).toBe(403);
       expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, {})).status).toBe(400);
       await t.prisma.wageRecovery.update({ where: { id }, data: { detectedById: both.id } });
-      const own = await post(both, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS });
+      const own = await post(both, `/billing/wage-recoveries/${id}/approve`, AUTHORISE);
       expect(own.status).toBe(403);
       expect(own.body.message).toMatch(/different user from the one whose calculation proposed it/);
 
-      const approved = await post(approver, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS });
+      const approved = await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE);
       expect(approved.status).toBe(201);
-      expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS })).status).toBe(400);
+      expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE)).status).toBe(400);
 
       await gross(december);
       const adjustments = (await ukLines(december)).filter((l) => l.lineType === 'SALARY_ADJUSTMENT');
@@ -207,7 +211,7 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
       const december = await ukRun(DECEMBER);
       await gross(december);
       const [{ id }] = await recoveries();
-      await post(approver, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS });
+      await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE);
       // The salary for November is lowered again before the deduction is made.
       const now = new Date(Date.now() + 1000);
       await t.prisma.employeePayAgreement.updateMany({ where: { employeeId, status: 'ACTIVE' }, data: { status: 'SUPERSEDED' } });
@@ -244,6 +248,104 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
     });
   });
 
+  describe('what the wage recoveries screen reads and enforces (Sprint B4A)', () => {
+    const get = (user: { id: string }, path: string) => request(server()).get(path).set(as(user));
+
+    it('lists a pending recovery with the employee, the original payment, the amount now due and who proposed it', async () => {
+      await t.prisma.employeePersonalDetail.create({ data: { employeeId, firstName: 'Synthetic', lastName: 'Sal' } as never });
+      await novemberPaidThenSalaryBecomes(21_600);
+      const december = await ukRun(DECEMBER);
+      await gross(december);
+      const listed = (await get(preparer, '/billing/wage-recoveries?status=PROPOSED')).body.data;
+      expect(listed).toHaveLength(1);
+      expect(listed[0]).toMatchObject({
+        employeeName: 'Synthetic Sal',
+        kind: 'SALARY',
+        status: 'PROPOSED',
+        paidAmount: 2000,
+        dueAmount: 1800,
+        amount: 200,
+        proposedById: preparer.id,
+        decidedByName: null,
+        authorityBasis: null,
+        appliedInRun: null,
+      });
+      expect(listed[0].proposedByName).toMatch(/^Test User/);
+      expect(listed[0].proposedInRun).toMatch(/^UK payroll run Test run/);
+      expect(listed[0].originalReference).toMatch(/£2000\.00 paid as salary/);
+    });
+
+    it('authorising needs both the authority and a reason; the amount cannot be entered or edited', async () => {
+      await novemberPaidThenSalaryBecomes(21_600);
+      const december = await ukRun(DECEMBER);
+      await gross(december);
+      const [{ id }] = await recoveries();
+      const path = `/billing/wage-recoveries/${id}/approve`;
+      expect((await post(approver, path, { reason: AUTHORISE.reason })).status).toBe(400); // no authority
+      expect((await post(approver, path, { authorityBasis: 'clause', reason: AUTHORISE.reason })).status).toBe(400); // too short to be a reference
+      expect((await post(approver, path, { authorityBasis: BASIS })).status).toBe(400); // no reason
+      // An amount sent with the decision is refused, and there is no route that changes one.
+      expect((await post(approver, path, { ...AUTHORISE, amount: 50 })).status).toBe(400);
+      expect((await request(server()).patch(`/billing/wage-recoveries/${id}`).set(as(approver)).send({ amount: 50 })).status).toBe(404);
+      expect((await post(approver, path, AUTHORISE)).status).toBe(201);
+      expect(Number((await recoveries())[0].amount)).toBe(200);
+    });
+
+    it('the history shows the proposal, the decision with its authority, and the run it was deducted in', async () => {
+      await novemberPaidThenSalaryBecomes(21_600);
+      const december = await ukRun(DECEMBER);
+      await gross(december);
+      const [{ id }] = await recoveries();
+      await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE);
+      await gross(december);
+      await close(december);
+      const detail = (await get(preparer, `/billing/wage-recoveries/${id}`)).body.data;
+      expect(detail).toMatchObject({ status: 'APPLIED', authorityBasis: BASIS, decisionNote: AUTHORISE.reason });
+      expect(detail.appliedInRun).toMatch(/^UK payroll run Test run/);
+      expect(detail.decidedByName).toMatch(/^Test User/);
+      expect(detail.history.map((h: { event: string }) => h.event)).toEqual(['PROPOSED', 'AUTHORISED', 'APPLIED']);
+      expect(detail.history[1].detail).toBe(`${AUTHORISE.reason} — authority: ${BASIS} (for £200.00)`);
+      // Applied: it can be neither authorised nor rejected again.
+      expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE)).status).toBe(400);
+      expect((await post(approver, `/billing/wage-recoveries/${id}/reject`, { note: 'Too late' })).status).toBe(400);
+      expect((await get(preparer, '/billing/wage-recoveries/00000000-0000-0000-0000-000000000000')).status).toBe(404);
+    });
+
+    it('with no approved recovery policy on record, an authorised recovery is still not deducted', async () => {
+      await t.prisma.wageRecoveryPolicy.deleteMany();
+      expect((await get(preparer, '/billing/wage-recoveries/policy')).body.data).toMatchObject({ inForce: false });
+      await novemberPaidThenSalaryBecomes(21_600);
+      const december = await ukRun(DECEMBER);
+      await gross(december);
+      const [{ id }] = await recoveries();
+      const approved = await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE);
+      expect(approved.body.data).toMatchObject({ status: 'APPROVED', deductionBlockedByPolicy: true });
+      expect(approved.body.message).toMatch(/not deducted yet: no approved recovery policy/);
+
+      await gross(december);
+      const lines = await ukLines(december);
+      expect(lines.filter((l) => Number(l.amount) < 0)).toEqual([]);
+      const [shown] = lines.filter((l) => l.unpaidReason === 'RECOVERY_NOT_AUTHORISED');
+      expect(shown.description).toMatch(/has been authorised, but no approved recovery policy of the employer is on record/);
+      expect(await salaryPay(december)).toBe(1_800);
+
+      // Recording the policy takes the approval power; then the deduction is made, once.
+      expect((await post(preparer, '/billing/wage-recoveries/policy', { reference: POLICY })).status).toBe(403);
+      expect((await post(approver, '/billing/wage-recoveries/policy', { reference: 'short' })).status).toBe(400);
+      expect((await post(approver, '/billing/wage-recoveries/policy', { reference: POLICY })).status).toBe(201);
+      expect((await get(preparer, '/billing/wage-recoveries/policy')).body.data).toMatchObject({ inForce: true, reference: POLICY });
+      await gross(december);
+      expect((await ukLines(december)).filter((l) => l.lineType === 'SALARY_ADJUSTMENT').map((l) => Number(l.amount))).toEqual([-200]);
+
+      // Withdrawn before the run is closed: the deduction comes back out.
+      expect((await post(approver, '/billing/wage-recoveries/policy/withdraw', { note: 'Synthetic: under legal review' })).status).toBe(201);
+      await gross(december);
+      expect((await ukLines(december)).filter((l) => Number(l.amount) < 0)).toEqual([]);
+      const audit = (await t.prisma.auditLog.findMany({ where: { recordType: 'WageRecoveryPolicy' }, select: { action: true } })).map((a) => a.action);
+      expect(audit.sort()).toEqual(['wage_recovery_policy_recorded', 'wage_recovery_policy_withdrawn']);
+    });
+  });
+
   describe('a guaranteed-hours top-up overtaken by a visit approved late', () => {
     it('the late visit is paid; the overpaid top-up is proposed, shown and not deducted', async () => {
       const supplementary = await topUpPaidThenLateVisit();
@@ -269,7 +371,7 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
     it('authorised: deducted once, with the week identity, and applied when the run is locked', async () => {
       const supplementary = await topUpPaidThenLateVisit();
       const [{ id }] = await recoveries();
-      expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, { authorityBasis: BASIS })).status).toBe(201);
+      expect((await post(approver, `/billing/wage-recoveries/${id}/approve`, AUTHORISE)).status).toBe(201);
       await calculate(supplementary);
       const lines = await runLines(supplementary);
       const [deduction] = lines.filter((l) => l.sourceType === 'GUARANTEED_HOURS');

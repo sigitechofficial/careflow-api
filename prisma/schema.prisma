@@ -9478,7 +9478,10 @@ model NmwPeriodAssessment {
   issue            String?
   /// Pay still missing against the rate after any top-up of this run.
   shortfall        Decimal? @db.Decimal(12, 2)
-  /// A person with the power to close payroll reviewed an issue that blocks closing.
+  /// What the review found: EVIDENCE_SUPPORTS_COMPLIANCE (the issue no longer stops the run
+  /// closing) | SHORTFALL_CONFIRMED (pay must be topped up or corrected; a review cannot clear it).
+  reviewOutcome    String?
+  /// The person with the power to close payroll who reviewed the issue, and when.
   resolvedById     String?  @db.Uuid
   resolvedAt       DateTime?
   resolutionNote   String?
@@ -9490,6 +9493,23 @@ model NmwPeriodAssessment {
   @@unique([ukPayrollRunId, employeeId, periodStart])
   @@unique([payrollRunId, employeeId, periodStart])
   @@index([employeeId, periodStart])
+  @@schema("billing")
+}
+
+/// D-23: the employer's own statement that it has an approved policy, with legal authority, for
+/// recovering overpaid wages. Until one is in force, a recovery can be reviewed and authorised but
+/// is still not deducted. Rows are history: the one in force is the latest that is not withdrawn.
+model WageRecoveryPolicy {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Where the policy and its authority are recorded (document, clause, date approved, by whom).
+  reference     String
+  recordedById  String?   @db.Uuid
+  recordedAt    DateTime  @default(now())
+  withdrawnById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  withdrawnNote String?
+
+  @@index([withdrawnAt])
   @@schema("billing")
 }
 
@@ -9507,6 +9527,9 @@ model WageRecovery {
   subjectKey        String    @unique
   /// The overpayment, as a positive amount.
   amount            Decimal   @db.Decimal(12, 2)
+  /// What was originally paid for the week or period, and what is now due (amount = paid - due).
+  paidAmount        Decimal?  @db.Decimal(12, 2)
+  dueAmount         Decimal?  @db.Decimal(12, 2)
   /// What the overpayment is and how it arose.
   reason            String
   /// The original payment: what was paid for the week or period, and what is now due.

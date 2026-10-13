@@ -21,8 +21,21 @@ export const RECOVERY_NOT_AUTHORISED = 'RECOVERY_NOT_AUTHORISED';
 export const WAGE_RECOVERY_KINDS = ['SALARY', 'GUARANTEED_HOURS', 'OVERTIME', 'NMW_TOP_UP'] as const;
 export type WageRecoveryKind = (typeof WAGE_RECOVERY_KINDS)[number];
 
-/** APPLY: deduct on this run. HOLD: show it, deduct nothing. WRITTEN_OFF: nothing to do or show. */
-export type RecoveryOutcome = 'APPLY' | 'HOLD' | 'WRITTEN_OFF';
+/**
+ * APPLY: deduct on this run. HOLD: show it, deduct nothing. POLICY_BLOCKED: a person has authorised
+ * it, but the employer has no approved recovery policy on record, so it is still shown and not
+ * deducted. WRITTEN_OFF: nothing to do or show.
+ */
+export type RecoveryOutcome = 'APPLY' | 'HOLD' | 'POLICY_BLOCKED' | 'WRITTEN_OFF';
+
+/**
+ * The employer's recovery policy in force (D-23), or null. Authorising one recovery says who took
+ * the decision and on what basis; it does not establish that the employer may deduct at all. That
+ * is the policy, and until one is recorded nothing is deducted.
+ */
+export function recoveryPolicyInForce(db: Db) {
+  return db.wageRecoveryPolicy.findFirst({ where: { withdrawnAt: null }, orderBy: { recordedAt: 'desc' } });
+}
 
 const pence = (n: number) => Math.round(n * 100);
 
@@ -41,6 +54,9 @@ export async function resolveWageRecovery(
     amount: number;
     reason: string;
     originalReference: string;
+    /** What was originally paid for the week or period, and what is now due. */
+    paidAmount?: number | null;
+    dueAmount?: number | null;
     runId: string;
     userId?: string | null;
   },
@@ -50,6 +66,8 @@ export async function resolveWageRecovery(
     amount: input.amount,
     reason: input.reason,
     originalReference: input.originalReference,
+    paidAmount: input.paidAmount ?? null,
+    dueAmount: input.dueAmount ?? null,
     detectedInRunId: input.runId,
     detectedById: input.userId ?? null,
   };
@@ -61,7 +79,9 @@ export async function resolveWageRecovery(
   }
   const sameAmount = pence(Number(existing.amount)) === pence(input.amount);
   if (existing.status === 'APPLIED') return 'WRITTEN_OFF';
-  if (existing.status === 'APPROVED' && sameAmount) return 'APPLY';
+  if (existing.status === 'APPROVED' && sameAmount) {
+    return (await recoveryPolicyInForce(db)) ? 'APPLY' : 'POLICY_BLOCKED';
+  }
   if (existing.status === 'REJECTED' && sameAmount) return 'WRITTEN_OFF';
   if (existing.status === 'PROPOSED' && sameAmount && existing.detectedInRunId === input.runId) return 'HOLD';
   // Proposed, withdrawn, or decided for a different amount: it is (again) a proposal.
@@ -101,5 +121,7 @@ export function markRecoveriesApplied(db: Db, runId: string, claimKeys: string[]
   });
 }
 
-export const recoveryHeldMessage = (amount: number) =>
-  `£${amount.toFixed(2)} was paid above what is now due. It is a proposed recovery awaiting authorisation (Billing → wage recoveries); nothing is deducted from pay until a person with the authority approves it, and it may be written off.`;
+export const recoveryHeldMessage = (amount: number, outcome: RecoveryOutcome = 'HOLD') =>
+  outcome === 'POLICY_BLOCKED'
+    ? `£${amount.toFixed(2)} was paid above what is now due. Its recovery has been authorised, but no approved recovery policy of the employer is on record (Billing → wage recoveries), so nothing is deducted from pay.`
+    : `£${amount.toFixed(2)} was paid above what is now due. It is a proposed recovery awaiting authorisation (Billing → wage recoveries); nothing is deducted from pay until a person with the authority approves it, and it may be written off.`;

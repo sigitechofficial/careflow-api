@@ -489,6 +489,8 @@ export enum AuditAction {
   DISRUPTION_REJECTED = 'disruption_rejected',
   WAGE_RECOVERY_APPROVED = 'wage_recovery_approved',
   WAGE_RECOVERY_REJECTED = 'wage_recovery_rejected',
+  WAGE_RECOVERY_POLICY_RECORDED = 'wage_recovery_policy_recorded',
+  WAGE_RECOVERY_POLICY_WITHDRAWN = 'wage_recovery_policy_withdrawn',
   NMW_EXCEPTION_REVIEWED = 'nmw_exception_reviewed',
   HISTORIC_REIMBURSEMENT_RELEASED = 'historic_reimbursement_released',
   MILEAGE_APPROVED_AMOUNTS_VERIFIED = 'mileage_approved_amounts_verified',
