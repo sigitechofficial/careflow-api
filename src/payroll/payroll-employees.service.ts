@@ -638,7 +638,7 @@ export class PayrollEmployeesService {
       if (status === 'ACTIVE') {
         await this.supersedeEarlier(tx, { employeeId, effectiveFrom, userId });
       }
-      return tx.employeePayAgreement.create({
+      const created = await tx.employeePayAgreement.create({
         data: {
           employeeId,
           scheduleId: dto.scheduleId ?? null,
@@ -659,17 +659,19 @@ export class PayrollEmployeesService {
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_PAY_AGREEMENT_CREATED,
-      recordType: 'EmployeePayAgreement',
-      recordId: row.id,
-      newValues: mapAgreement(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_CREATED,
+        recordType: 'EmployeePayAgreement',
+        recordId: created.id,
+        newValues: mapAgreement(created),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return created;
     });
 
     return {
@@ -711,19 +713,21 @@ export class PayrollEmployeesService {
         userId,
         exceptId: agreementId,
       });
-      return tx.employeePayAgreement.findUniqueOrThrow({ where: { id: agreementId } });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_PAY_AGREEMENT_APPROVED,
-      recordType: 'EmployeePayAgreement',
-      recordId: row.id,
-      oldValues: mapAgreement(existing),
-      newValues: mapAgreement(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      const approvedRow = await tx.employeePayAgreement.findUniqueOrThrow({ where: { id: agreementId } });
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_APPROVED,
+        recordType: 'EmployeePayAgreement',
+        recordId: approvedRow.id,
+        oldValues: mapAgreement(existing),
+        newValues: mapAgreement(approvedRow),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return approvedRow;
     });
 
     return { message: 'Pay agreement approved. It applies from its start date.', data: mapAgreement(row) };
@@ -843,7 +847,7 @@ export class PayrollEmployeesService {
           exceptId: agreementId,
         });
       }
-      return tx.employeePayAgreement.update({
+      const updated = await tx.employeePayAgreement.update({
         where: { id: agreementId },
         data: {
           scheduleId: dto.scheduleId === undefined ? undefined : dto.scheduleId,
@@ -870,18 +874,20 @@ export class PayrollEmployeesService {
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_PAY_AGREEMENT_UPDATED,
-      recordType: 'EmployeePayAgreement',
-      recordId: row.id,
-      oldValues: mapAgreement(existing),
-      newValues: mapAgreement(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_UPDATED,
+        recordType: 'EmployeePayAgreement',
+        recordId: updated.id,
+        oldValues: mapAgreement(existing),
+        newValues: mapAgreement(updated),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return updated;
     });
 
     return { message: 'Pay agreement updated', data: mapAgreement(row) };
