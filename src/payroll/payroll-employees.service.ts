@@ -458,11 +458,18 @@ export class PayrollEmployeesService {
     };
   }
 
-  private rowCarriesSalary(row: { basis: string; annualSalary: Prisma.Decimal | number | null }) {
-    return carriesSalary({
-      basis: row.basis,
-      annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
-    });
+  /** Pay terms that only a second person can put into effect: a salary, or a paid guarantee of hours. */
+  private rowCarriesSalary(row: {
+    basis: string;
+    annualSalary: Prisma.Decimal | number | null;
+    guaranteeTopUp?: string | null;
+  }) {
+    return (
+      carriesSalary({
+        basis: row.basis,
+        annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
+      }) || row.guaranteeTopUp === 'PAY_SHORTFALL'
+    );
   }
 
   /**
@@ -478,11 +485,36 @@ export class PayrollEmployeesService {
     contractedHours: number | null;
     salaryProrationMethod: string | null;
     salaryCoverage: string | null;
+    guaranteedWeeklyHours: number | null;
+    guaranteeTopUp: string | null;
+    guaranteeQualifyingTime: string | null;
+    guaranteeLeaveTreatment: string | null;
   }) {
     const entryPeriod = (input.salaryEntryPeriod ?? 'ANNUAL') as SalaryEntryPeriod;
     const entryAmount = input.salaryEntryAmount ?? (entryPeriod === 'ANNUAL' ? input.annualSalary : null);
     const annualSalary = entryAmount == null ? input.annualSalary : annualSalaryFromEntry(entryPeriod, entryAmount);
     const salaried = input.basis === 'SALARIED' || input.basis === 'HYBRID';
+
+    // A guarantee of hours is stated, never assumed: with no top-up chosen it is recorded only.
+    const guaranteePaid = input.guaranteeTopUp === 'PAY_SHORTFALL';
+    if (guaranteePaid && salaried) {
+      throw new BadRequestException(
+        'A guaranteed hours top-up applies to hourly pay. A salary already pays for the hours it covers.',
+      );
+    }
+    if (guaranteePaid && !((input.guaranteedWeeklyHours ?? 0) > 0)) {
+      throw new BadRequestException('Enter the guaranteed weekly hours before choosing to pay the shortfall.');
+    }
+    if (guaranteePaid && !input.guaranteeQualifyingTime) {
+      throw new BadRequestException('Choose what counts towards the guaranteed hours.');
+    }
+    const guarantee = {
+      guaranteedWeeklyHours:
+        input.guaranteedWeeklyHours == null ? null : new Prisma.Decimal(input.guaranteedWeeklyHours),
+      guaranteeTopUp: guaranteePaid ? 'PAY_SHORTFALL' : null,
+      guaranteeQualifyingTime: guaranteePaid ? input.guaranteeQualifyingTime : null,
+      guaranteeLeaveTreatment: guaranteePaid ? input.guaranteeLeaveTreatment : null,
+    };
 
     if (!salaried) {
       if ((annualSalary ?? 0) > 0) {
@@ -496,6 +528,7 @@ export class PayrollEmployeesService {
         salaryEntryAmount: null,
         salaryProrationMethod: null,
         salaryCoverage: null,
+        ...guarantee,
       };
     }
     if (!((annualSalary ?? 0) > 0)) {
@@ -522,6 +555,7 @@ export class PayrollEmployeesService {
       salaryEntryAmount: new Prisma.Decimal(entryAmount as number),
       salaryProrationMethod: input.salaryProrationMethod,
       salaryCoverage: input.salaryCoverage,
+      ...guarantee,
     };
   }
 
@@ -530,7 +564,7 @@ export class PayrollEmployeesService {
     if (salaried) return true;
     const others = await this.prisma.employeePayAgreement.findMany({
       where: { employeeId, deletedAt: null, status: { not: 'DRAFT' }, id: exceptId ? { not: exceptId } : undefined },
-      select: { basis: true, annualSalary: true },
+      select: { basis: true, annualSalary: true, guaranteeTopUp: true },
     });
     return others.some((r) => this.rowCarriesSalary(r));
   }
@@ -576,8 +610,15 @@ export class PayrollEmployeesService {
       contractedHours: dto.contractedHours ?? null,
       salaryProrationMethod: dto.salaryProrationMethod ?? null,
       salaryCoverage: dto.salaryCoverage ?? null,
+      guaranteedWeeklyHours: dto.guaranteedWeeklyHours ?? null,
+      guaranteeTopUp: dto.guaranteeTopUp ?? null,
+      guaranteeQualifyingTime: dto.guaranteeQualifyingTime ?? null,
+      guaranteeLeaveTreatment: dto.guaranteeLeaveTreatment ?? null,
     });
-    const awaitingApproval = await this.needsApproval(employeeId, terms.annualSalary != null);
+    const awaitingApproval = await this.needsApproval(
+      employeeId,
+      terms.annualSalary != null || terms.guaranteeTopUp != null,
+    );
     // A salary, or the end of one, takes effect only when a second person approves the agreement.
     const status = awaitingApproval ? 'DRAFT' : (dto.status ?? 'DRAFT');
     const row = await this.prisma.$transaction(async (tx) => {
@@ -724,10 +765,15 @@ export class PayrollEmployeesService {
       contractedHours: pick(dto.contractedHours, num(existing.contractedHours)),
       salaryProrationMethod: pick(dto.salaryProrationMethod, existing.salaryProrationMethod),
       salaryCoverage: pick(dto.salaryCoverage, existing.salaryCoverage),
+      guaranteedWeeklyHours: pick(dto.guaranteedWeeklyHours, num(existing.guaranteedWeeklyHours)),
+      guaranteeTopUp: pick(dto.guaranteeTopUp, existing.guaranteeTopUp),
+      guaranteeQualifyingTime: pick(dto.guaranteeQualifyingTime, existing.guaranteeQualifyingTime),
+      guaranteeLeaveTreatment: pick(dto.guaranteeLeaveTreatment, existing.guaranteeLeaveTreatment),
     });
+    const approvedTerms = terms.annualSalary != null || terms.guaranteeTopUp != null;
 
     const inEffect = existing.status !== 'DRAFT';
-    const salaryInvolved = this.rowCarriesSalary(existing) || terms.annualSalary != null;
+    const salaryInvolved = this.rowCarriesSalary(existing) || approvedTerms;
     let termsChangedAt: Date | undefined;
     if (inEffect && salaryInvolved) {
       // Pay terms in effect are history: they are not rewritten. Only the end of the agreement
@@ -741,6 +787,10 @@ export class PayrollEmployeesService {
         'contractedHours',
         'salaryProrationMethod',
         'salaryCoverage',
+        'guaranteedWeeklyHours',
+        'guaranteeTopUp',
+        'guaranteeQualifyingTime',
+        'guaranteeLeaveTreatment',
         'hourlyRateOverride',
         'payCardId',
         'scheduleId',
@@ -764,10 +814,10 @@ export class PayrollEmployeesService {
       !inEffect &&
       dto.status !== undefined &&
       dto.status !== 'DRAFT' &&
-      (await this.needsApproval(existing.employeeId, terms.annualSalary != null, agreementId))
+      (await this.needsApproval(existing.employeeId, approvedTerms, agreementId))
     ) {
       throw new BadRequestException(
-        'This agreement carries a salary, or replaces one. A second person approves it; it cannot be put into effect by editing it.',
+        'This agreement carries a salary or a paid guarantee of hours, or replaces one. A second person approves it; it cannot be put into effect by editing it.',
       );
     }
 

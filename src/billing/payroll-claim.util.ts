@@ -9,10 +9,13 @@
  * their own run and carry no claim. Corrections to a paid earning are separate pay items, each
  * with its own PAY_ITEM claim.
  *
- * Earnings of a whole working week (overtime premium, WM-18) are claimed per employee and week:
- * OVERTIME:<employee>:<Monday of the week>:<n> is the nth settlement of that week, so two runs
- * cannot both pay the same part of a week that is split between them.
+ * Earnings of a whole working week (overtime premium, WM-18; guaranteed hours top-up, WM-07) are
+ * claimed per employee and week: OVERTIME:<employee>:<Monday of the week>:<n> and
+ * GUARANTEE:<employee>:<Monday>:<n> are the nth settlement of that week, so two runs cannot both
+ * pay the same part of a week that is split between them.
  */
+
+export const GUARANTEED_HOURS_SOURCE = 'GUARANTEED_HOURS';
 
 export type ClaimableLine = {
   visitReconciliationId?: string | null;
@@ -30,6 +33,9 @@ export function payrollLineClaimKey(line: ClaimableLine): string | null {
   if (line.sourceType === 'OVERTIME' && line.sourceRef) {
     const claim = weekEarningClaimKey('OVERTIME', line.sourceRef);
     if (claim) return claim;
+  }
+  if (line.sourceType === GUARANTEED_HOURS_SOURCE && line.sourceRef) {
+    return weekEarningClaimKey('GUARANTEE', line.sourceRef);
   }
   if (
     line.visitReconciliationId &&

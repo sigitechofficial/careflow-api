@@ -21,6 +21,10 @@ export const LEGACY_PRORATION_METHOD: SalaryProrationMethod = 'CALENDAR_DAYS_365
 export const SALARY_COVERAGES = ['ALL_VISIT_WORK', 'CONTRACTED_HOURS', 'NO_VISIT_WORK'] as const;
 export type SalaryCoverage = (typeof SALARY_COVERAGES)[number];
 
+export const GUARANTEE_TOP_UPS = ['PAY_SHORTFALL'] as const;
+export const GUARANTEE_QUALIFYING_TIMES = ['VISITS', 'VISITS_AND_TRAVEL'] as const;
+export const GUARANTEE_LEAVE_TREATMENTS = ['COUNT_PAID_LEAVE_HOURS', 'REDUCE_FOR_ABSENCE_DAYS'] as const;
+
 export const UNPAID_COVERED_BY_SALARY = 'COVERED_BY_SALARY';
 export const UNPAID_COVERAGE_NOT_DECIDED = 'SALARY_COVERAGE_NOT_DECIDED';
 
@@ -73,11 +77,56 @@ export type AgreementTerms = {
   contractedHours: number | null;
   salaryProrationMethod: string | null;
   salaryCoverage: string | null;
+  guaranteedWeeklyHours?: number | null;
+  guaranteeTopUp?: string | null;
+  guaranteeQualifyingTime?: string | null;
+  guaranteeLeaveTreatment?: string | null;
   /** When it was approved, or created when it needed no approval. Decides between equal dates. */
   decidedAt: Date;
   /** For an agreement ended without an end date: the day it was ended. */
   endedAt?: Date | null;
 };
+
+type DecimalLike = { toString(): string } | number | null | undefined;
+const num = (v: DecimalLike) => (v == null ? null : Number(v));
+
+/** A stored pay agreement as these rules read it. */
+export function agreementTermsOf(row: {
+  id: string;
+  basis: string;
+  status: string;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  annualSalary: DecimalLike;
+  contractedHours: DecimalLike;
+  salaryProrationMethod: string | null;
+  salaryCoverage: string | null;
+  guaranteedWeeklyHours?: DecimalLike;
+  guaranteeTopUp?: string | null;
+  guaranteeQualifyingTime?: string | null;
+  guaranteeLeaveTreatment?: string | null;
+  approvedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): AgreementTerms {
+  return {
+    id: row.id,
+    basis: row.basis,
+    status: row.status,
+    effectiveFrom: row.effectiveFrom,
+    effectiveTo: row.effectiveTo,
+    annualSalary: num(row.annualSalary),
+    contractedHours: num(row.contractedHours),
+    salaryProrationMethod: row.salaryProrationMethod,
+    salaryCoverage: row.salaryCoverage,
+    guaranteedWeeklyHours: num(row.guaranteedWeeklyHours),
+    guaranteeTopUp: row.guaranteeTopUp ?? null,
+    guaranteeQualifyingTime: row.guaranteeQualifyingTime ?? null,
+    guaranteeLeaveTreatment: row.guaranteeLeaveTreatment ?? null,
+    decidedAt: row.approvedAt ?? row.createdAt,
+    endedAt: row.status === 'TERMINATED' ? row.updatedAt : null,
+  };
+}
 
 export const carriesSalary = (a: Pick<AgreementTerms, 'basis' | 'annualSalary'> | null | undefined) =>
   !!a && (a.basis === 'SALARIED' || a.basis === 'HYBRID') && (a.annualSalary ?? 0) > 0;
@@ -310,4 +359,57 @@ export function applySalaryCoverage(input: {
     return { paid: round2(amount - unpaid), unpaid, reason: UNPAID_COVERED_BY_SALARY };
   }
   return { paid: 0, unpaid: amount, reason: UNPAID_COVERAGE_NOT_DECIDED };
+}
+
+/**
+ * Guaranteed hours (WM-07 / EL-01). A top-up exists only under an agreement that states a
+ * guarantee and that the shortfall is paid. A salary already pays for the hours, so a salaried
+ * agreement never adds a top-up.
+ */
+export const paysGuarantee = (a: AgreementTerms | null | undefined) =>
+  !!a && a.guaranteeTopUp === 'PAY_SHORTFALL' && (a.guaranteedWeeklyHours ?? 0) > 0 && !carriesSalary(a);
+
+export type GuaranteeWeek = {
+  /** Minutes guaranteed for the week, after part weeks and absence days are taken off. */
+  guaranteedMinutes: number;
+  /** The agreement in force on the last guaranteed day of the week. */
+  agreement: AgreementTerms | null;
+  daysInForce: number;
+  daysReducedForAbsence: number;
+  /** The days (YYYY-MM-DD) the guarantee was in force: only work on these days counts towards it. */
+  dayKeysInForce: string[];
+};
+
+/**
+ * The guarantee of one Monday–Sunday week. Each day carries one seventh of the weekly guarantee
+ * of the agreement in force that day, so a guarantee that starts, ends or changes part way
+ * through a week counts only for its own days. A day of recorded absence carries nothing when
+ * the agreement says the guarantee is reduced for absence.
+ */
+export function guaranteeForWeek(
+  agreements: AgreementTerms[],
+  weekKey: string,
+  employment?: EmploymentDates,
+  absentDayKeys: ReadonlySet<string> = new Set(),
+): GuaranteeWeek {
+  const monday = new Date(`${weekKey}T00:00:00.000Z`).getTime();
+  let minutes = 0;
+  let agreement: AgreementTerms | null = null;
+  let daysInForce = 0;
+  let daysReducedForAbsence = 0;
+  const dayKeysInForce: string[] = [];
+  for (let i = 0; i < 7; i += 1) {
+    const t = monday + i * DAY_MS;
+    const governing = employedOn(employment, t) ? governingAgreement(agreements, new Date(t)) : null;
+    if (!paysGuarantee(governing)) continue;
+    agreement = governing;
+    daysInForce += 1;
+    dayKeysInForce.push(isoDay(new Date(t)));
+    if (governing!.guaranteeLeaveTreatment === 'REDUCE_FOR_ABSENCE_DAYS' && absentDayKeys.has(isoDay(new Date(t)))) {
+      daysReducedForAbsence += 1;
+      continue;
+    }
+    minutes += ((governing!.guaranteedWeeklyHours as number) * 60) / 7;
+  }
+  return { guaranteedMinutes: Math.round(minutes), agreement, daysInForce, daysReducedForAbsence, dayKeysInForce };
 }

@@ -101,10 +101,12 @@ import {
   earningStageLabel,
   furthestPayoutState,
 } from './earning-status.util';
+import { agreementTermsOf, guaranteeForWeek } from '../payroll/salary.util';
 import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
   isClaimConflict,
+  GUARANTEED_HOURS_SOURCE,
   weekEarningParts,
   weekEarningRef,
   HELD_EARNING_SOURCE,
@@ -1122,7 +1124,9 @@ export class PayrollRunsService {
       // Holiday and sick pay are not pay for working time; training hours are working time.
       const notWorkPay =
         line.lineType === PayrollRunLineType.HOLIDAY_PAY ||
-        line.lineType === ('SICK_PAY' as PayrollRunLineType);
+        line.lineType === ('SICK_PAY' as PayrollRunLineType) ||
+        // Pay for guaranteed hours that were not worked: it must not hide a minimum wage shortfall.
+        line.lineType === ('GUARANTEED_HOURS' as PayrollRunLineType);
       list.push({
         amount: Number(line.amount),
         includesInNmwPay: !isExpense && !notWorkPay && line.lineType !== PayrollRunLineType.NMW_TOP_UP,
@@ -1702,6 +1706,240 @@ export class PayrollRunsService {
             exceptionMessage: null,
           });
           employeeIds.add(employeeId);
+        }
+      }
+    }
+
+    // 3b) Guaranteed hours top-up (WM-07 / EL-01). Only under a pay agreement that states a
+    // guarantee and that the shortfall is paid, approved by a second person. The week is the
+    // guarantee period: it is settled by the run in which it ends, once, from every pay-approved
+    // visit of that week whichever run paid it. Base pay and top-up are never both paid for the
+    // same hours: a visit approved after the top-up was paid reduces it in the next run.
+    const guaranteeEmployeeIds = [
+      ...new Set(
+        (
+          await this.prisma.employeePayAgreement.findMany({
+            where: { deletedAt: null, status: { not: 'DRAFT' }, guaranteeTopUp: 'PAY_SHORTFALL' },
+            select: { employeeId: true },
+          })
+        ).map((a) => a.employeeId),
+      ),
+    ];
+    if (guaranteeEmployeeIds.length) {
+      const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+      const addDays = (key: string, days: number) => {
+        const d = new Date(`${key}T00:00:00.000Z`);
+        d.setUTCDate(d.getUTCDate() + days);
+        return isoDay(d);
+      };
+      // Weeks that end inside this run's period, and earlier weeks this run pays a visit of.
+      const startKey = isoDay(run.periodStart);
+      const endKey = isoDay(run.periodEnd);
+      const weeksEnded = new Set<string>();
+      for (let day = startKey; day <= endKey; day = addDays(day, 1)) {
+        if (new Date(`${day}T00:00:00.000Z`).getUTCDay() === 0) weeksEnded.add(addDays(day, -6));
+      }
+      const weeksOf = (employeeId: string) =>
+        [...new Set([...weeksEnded, ...[...(weeksTouched.get(employeeId) ?? [])].filter((w) => addDays(w, 6) <= endKey)])].sort();
+      const allWeeks = [...new Set(guaranteeEmployeeIds.flatMap(weeksOf))].sort();
+      if (allWeeks.length) {
+        const from = new Date(`${addDays(allWeeks[0], -1)}T00:00:00.000Z`);
+        const to = new Date(`${addDays(allWeeks[allWeeks.length - 1], 8)}T00:00:00.000Z`);
+        const [agreementRows, employments, weekVisits, leaveItems, absences, settledLines] = await Promise.all([
+          this.prisma.employeePayAgreement.findMany({
+            where: { employeeId: { in: guaranteeEmployeeIds }, deletedAt: null, status: { not: 'DRAFT' } },
+          }),
+          this.prisma.employeeEmployment.findMany({
+            where: { employeeId: { in: guaranteeEmployeeIds } },
+            select: { employeeId: true, startDate: true, endDate: true },
+          }),
+          this.prisma.visitReconciliation.findMany({
+            where: { employeeId: { in: guaranteeEmployeeIds }, approvedPayStart: { gte: from, lt: to } },
+            select: { id: true, employeeId: true, approvedPayStart: true, payableMinutes: true, status: true },
+          }),
+          this.prisma.employeePayItem.findMany({
+            where: {
+              employeeId: { in: guaranteeEmployeeIds },
+              wageTypeCode: { in: ['HOLIDAY_PAY', 'SICK_PAY'] },
+              status: 'APPROVED',
+              unit: 'HOURS',
+              workDate: { gte: from, lt: to },
+            },
+            select: { employeeId: true, workDate: true, quantity: true },
+          }),
+          this.prisma.employeeAbsenceRecord.findMany({
+            where: { employeeId: { in: guaranteeEmployeeIds }, fromDateTime: { lt: to }, toDateTime: { gte: from } },
+            select: { employeeId: true, fromDateTime: true, toDateTime: true },
+          }),
+          this.prisma.payrollRunLine.findMany({
+            where: {
+              payrollRunId: { not: run.id },
+              sourceType: GUARANTEED_HOURS_SOURCE,
+              employeeId: { in: guaranteeEmployeeIds },
+            },
+            select: {
+              employeeId: true,
+              sourceRef: true,
+              amount: true,
+              minutes: true,
+              payrollRun: { select: { status: true, periodLabel: true } },
+            },
+          }),
+        ]);
+        const visitIds = weekVisits.map((v) => v.id);
+        // Travel and waiting time paid with those visits: by other runs, and by this one.
+        const travelElsewhere = visitIds.length
+          ? await this.prisma.payrollRunLine.findMany({
+              where: {
+                payrollRunId: { not: run.id },
+                visitReconciliationId: { in: visitIds },
+                lineType: { in: [PayrollRunLineType.TRAVEL_TIME, PayrollRunLineType.WAITING_TIME] },
+                exceptionMessage: null,
+              },
+              select: { visitReconciliationId: true, minutes: true },
+            })
+          : [];
+        const travelMinutes = new Map<string, number>();
+        const addTravel = (visitId: string | null | undefined, minutes: number | null | undefined) => {
+          if (visitId && minutes) travelMinutes.set(visitId, (travelMinutes.get(visitId) ?? 0) + minutes);
+        };
+        for (const l of travelElsewhere) addTravel(l.visitReconciliationId, l.minutes);
+        for (const l of visitLines) {
+          const type = String(l.lineType);
+          if ((type === 'TRAVEL_TIME' || type === 'WAITING_TIME') && !l.exceptionMessage) {
+            addTravel(l.visitReconciliationId, l.minutes);
+          }
+        }
+        const eligible = new Set<string>([...PAYROLL_ELIGIBLE_RECON, VisitReconciliationStatus.LOCKED]);
+        const undecided = new Set<string>([
+          VisitReconciliationStatus.PENDING_REVIEW,
+          VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL,
+        ]);
+
+        for (const employeeId of guaranteeEmployeeIds) {
+          const agreements = agreementRows.filter((a) => a.employeeId === employeeId).map(agreementTermsOf);
+          const employment = employments.find((e) => e.employeeId === employeeId);
+          const absentDays = new Set<string>();
+          for (const absence of absences.filter((a) => a.employeeId === employeeId)) {
+            for (let t = absence.fromDateTime.getTime(); t <= absence.toDateTime.getTime(); t += 6 * 60 * 60_000) {
+              absentDays.add(dayKeyInTimeZone(new Date(t), timeZone));
+            }
+            absentDays.add(dayKeyInTimeZone(absence.toDateTime, timeZone));
+          }
+          for (const weekKey of weeksOf(employeeId)) {
+            const settled = settledLines.filter(
+              (l) => l.employeeId === employeeId && weekEarningParts(l.sourceRef).weekKey === weekKey,
+            );
+            const week = guaranteeForWeek(agreements, weekKey, employment, absentDays);
+            if (!week.agreement && !settled.length) continue;
+            const subject = `GUARANTEE:${employeeId}:${weekKey}`;
+            const holdWeek = (reason: string, blocksLock = false) =>
+              hold({
+                employeeId,
+                subject: blocksLock ? `WEEK:${subject}` : subject,
+                lineType: 'GUARANTEED_HOURS' as PayrollRunLineType,
+                description: `Not worked out: guaranteed hours top-up for the week of ${weekKey}`,
+                reason,
+              });
+            const inWeek = weekVisits.filter(
+              (v) =>
+                v.employeeId === employeeId &&
+                v.approvedPayStart &&
+                weekKeyInTimeZone(v.approvedPayStart, timeZone) === weekKey,
+            );
+            const notDecided = inWeek.filter((v) => undecided.has(v.status)).length;
+            if (notDecided) {
+              holdWeek(
+                `${notDecided} visit(s) of that week are not yet approved or rejected for pay, so the hours worked are not known. Decide them, then recalculate.`,
+              );
+              continue;
+            }
+            const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekKey, i));
+            const absentInWeek = weekDays.filter((d) => absentDays.has(d)).length;
+            const treatment = week.agreement?.guaranteeLeaveTreatment ?? null;
+            if (absentInWeek && week.agreement && !treatment) {
+              holdWeek(
+                `An absence is recorded on ${absentInWeek} day(s) of that week and the pay agreement does not say how absence affects the guarantee. Nothing is paid automatically: if a top-up is due, enter it as a pay item.`,
+              );
+              continue;
+            }
+            // Only work on the days the guarantee was in force counts towards it.
+            const inForce = new Set(week.dayKeysInForce);
+            const worked = inWeek.filter(
+              (v) => eligible.has(v.status) && inForce.has(dayKeyInTimeZone(v.approvedPayStart!, timeZone)),
+            );
+            const visitMinutes = worked.reduce((sum, v) => sum + (v.payableMinutes ?? 0), 0);
+            const travel =
+              week.agreement?.guaranteeQualifyingTime === 'VISITS_AND_TRAVEL'
+                ? worked.reduce((sum, v) => sum + (travelMinutes.get(v.id) ?? 0), 0)
+                : 0;
+            const leaveMinutes =
+              treatment === 'COUNT_PAID_LEAVE_HOURS'
+                ? Math.round(
+                    leaveItems
+                      .filter((i) => i.employeeId === employeeId && inForce.has(isoDay(i.workDate)))
+                      .reduce((sum, i) => sum + Number(i.quantity ?? 0), 0) * 60,
+                  )
+                : 0;
+            const qualifying = visitMinutes + travel + leaveMinutes;
+            const shortfall = Math.max(0, week.guaranteedMinutes - qualifying);
+
+            const openElsewhere = settled.find(
+              (l) =>
+                l.payrollRun.status !== PayrollRunStatus.LOCKED && l.payrollRun.status !== PayrollRunStatus.EXPORTED,
+            );
+            if (openElsewhere) {
+              holdWeek(
+                `The guaranteed hours of the week of ${weekKey} are on pay run "${openElsewhere.payrollRun.periodLabel}", which is not locked yet. Lock or recalculate that run, then recalculate this one.`,
+                true,
+              );
+              continue;
+            }
+            const paid = settled.reduce((sum, l) => sum.add(l.amount), new Prisma.Decimal(0));
+            const paidMinutes = settled.reduce((sum, l) => sum + (l.minutes ?? 0), 0);
+            if (shortfall === 0 && paid.isZero()) continue;
+
+            const weekEnd = new Date(`${addDays(weekKey, 6)}T12:00:00.000Z`);
+            const resolved = await rulesAt(employeeId, weekEnd);
+            const baseRate = resolved ? cardBaseHourlyRate(resolved.rules) : 0;
+            if (!(baseRate > 0)) {
+              holdWeek(
+                resolved
+                  ? `Pay card ${resolved.card.name} has no hourly rate to pay the guaranteed hours at.`
+                  : noCardReason(employeeId, weekEnd),
+              );
+              continue;
+            }
+            const due = payItemAmount(new Prisma.Decimal(shortfall).div(60), baseRate);
+            const amount = due.sub(paid);
+            if (amount.isZero()) continue;
+            const counted = [
+              `${hours(visitMinutes)} visits`,
+              ...(travel ? [`${hours(travel)} travel and waiting`] : []),
+              ...(leaveMinutes ? [`${hours(leaveMinutes)} paid leave`] : []),
+            ].join(', ');
+            lines.push({
+              payrollRunId: run.id,
+              visitReconciliationId: null,
+              employeeId,
+              lineType: 'GUARANTEED_HOURS' as PayrollRunLineType,
+              sourceType: GUARANTEED_HOURS_SOURCE,
+              sourceRef: weekEarningRef(run.id, employeeId, weekKey, settled.length + 1),
+              description:
+                `Guaranteed hours top-up — week of ${weekKey}: ${hours(week.guaranteedMinutes)} guaranteed` +
+                (week.daysInForce < 7 ? ` (${week.daysInForce} of 7 days)` : '') +
+                (week.daysReducedForAbsence ? `, reduced for ${week.daysReducedForAbsence} day(s) of absence` : '') +
+                `, ${counted} counted, ${hours(shortfall)} short × £${baseRate.toFixed(2)}` +
+                (settled.length ? `; £${paid.toFixed(2)} already paid by an earlier run` : ''),
+              minutes: shortfall - paidMinutes,
+              unitAmount: new Prisma.Decimal(baseRate),
+              amount,
+              payCardId: resolved!.card.id,
+              visitRef: null,
+              exceptionMessage: null,
+            });
+            employeeIds.add(employeeId);
+          }
         }
       }
     }

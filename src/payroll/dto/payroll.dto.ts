@@ -18,7 +18,14 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { SALARY_COVERAGES, SALARY_ENTRY_PERIODS, SALARY_PRORATION_METHODS } from '../salary.util';
+import {
+  GUARANTEE_LEAVE_TREATMENTS,
+  GUARANTEE_QUALIFYING_TIMES,
+  GUARANTEE_TOP_UPS,
+  SALARY_COVERAGES,
+  SALARY_ENTRY_PERIODS,
+  SALARY_PRORATION_METHODS,
+} from '../salary.util';
 
 export enum PayrollTaxYearStatusDto {
   DRAFT = 'DRAFT',
@@ -533,6 +540,29 @@ export class CreateEmployeePayAgreementDto {
   @IsOptional()
   @IsIn(SALARY_COVERAGES as unknown as string[])
   salaryCoverage?: string | null;
+
+  @ApiPropertyOptional({ description: 'Hours a week the employer guarantees (WM-07)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(168)
+  guaranteedWeeklyHours?: number | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_TOP_UPS, description: 'Empty: the guarantee is recorded only, nothing is paid' })
+  @IsOptional()
+  @IsIn(GUARANTEE_TOP_UPS as unknown as string[])
+  guaranteeTopUp?: string | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_QUALIFYING_TIMES })
+  @IsOptional()
+  @IsIn(GUARANTEE_QUALIFYING_TIMES as unknown as string[])
+  guaranteeQualifyingTime?: string | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_LEAVE_TREATMENTS, description: 'Empty: a week with absence is held for a person' })
+  @IsOptional()
+  @IsIn(GUARANTEE_LEAVE_TREATMENTS as unknown as string[])
+  guaranteeLeaveTreatment?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

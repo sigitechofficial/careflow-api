@@ -12,6 +12,7 @@ import {
   UNPAID_COVERAGE_NOT_DECIDED,
   UNPAID_COVERED_BY_SALARY,
   VisitCoverage,
+  agreementTermsOf,
   applySalaryCoverage,
   carriesSalary,
   governingAgreement,
@@ -77,36 +78,6 @@ const OPEN_RUN_STATUSES = [
   'GROSS_CALCULATED',
   'STATUTORY_CALCULATED',
 ] as const;
-
-/** A stored pay agreement as the salary rules read it. */
-function agreementTerms(row: {
-  id: string;
-  basis: string;
-  status: string;
-  effectiveFrom: Date;
-  effectiveTo: Date | null;
-  annualSalary: Prisma.Decimal | null;
-  contractedHours: Prisma.Decimal | null;
-  salaryProrationMethod: string | null;
-  salaryCoverage: string | null;
-  approvedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}): AgreementTerms {
-  return {
-    id: row.id,
-    basis: row.basis,
-    status: row.status,
-    effectiveFrom: row.effectiveFrom,
-    effectiveTo: row.effectiveTo,
-    annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
-    contractedHours: row.contractedHours == null ? null : Number(row.contractedHours),
-    salaryProrationMethod: row.salaryProrationMethod,
-    salaryCoverage: row.salaryCoverage,
-    decidedAt: row.approvedAt ?? row.createdAt,
-    endedAt: row.status === 'TERMINATED' ? row.updatedAt : null,
-  };
-}
 
 function decimalNum(v: Prisma.Decimal | number | null | undefined): number {
   if (v == null) return 0;
@@ -1429,7 +1400,7 @@ export class PayrollRunsService {
     for (const row of agreementRows) {
       agreementsByEmployee.set(row.employeeId, [
         ...(agreementsByEmployee.get(row.employeeId) ?? []),
-        agreementTerms(row),
+        agreementTermsOf(row),
       ]);
     }
     const employmentByEmployee = new Map(employmentRows.map((e) => [e.employeeId, e]));

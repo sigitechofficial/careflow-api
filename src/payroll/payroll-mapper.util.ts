@@ -268,6 +268,10 @@ export function mapAgreement(row: {
   salaryEntryAmount?: Prisma.Decimal | null;
   salaryProrationMethod?: string | null;
   salaryCoverage?: string | null;
+  guaranteedWeeklyHours?: Prisma.Decimal | null;
+  guaranteeTopUp?: string | null;
+  guaranteeQualifyingTime?: string | null;
+  guaranteeLeaveTreatment?: string | null;
   approvedById?: string | null;
   approvedAt?: Date | null;
   createdById?: string | null;
@@ -292,6 +296,10 @@ export function mapAgreement(row: {
     salaryEntryAmount: decimalToNumber(row.salaryEntryAmount ?? null),
     salaryProrationMethod: row.salaryProrationMethod ?? null,
     salaryCoverage: row.salaryCoverage ?? null,
+    guaranteedWeeklyHours: decimalToNumber(row.guaranteedWeeklyHours ?? null),
+    guaranteeTopUp: row.guaranteeTopUp ?? null,
+    guaranteeQualifyingTime: row.guaranteeQualifyingTime ?? null,
+    guaranteeLeaveTreatment: row.guaranteeLeaveTreatment ?? null,
     createdById: row.createdById ?? null,
     approvedById: row.approvedById ?? null,
     approvedAt: row.approvedAt?.toISOString() ?? null,

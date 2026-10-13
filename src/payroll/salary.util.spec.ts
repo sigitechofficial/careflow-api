@@ -6,6 +6,8 @@ import {
   annualSalaryFromEntry,
   applySalaryCoverage,
   governingAgreement,
+  guaranteeForWeek,
+  paysGuarantee,
   salaryCoverageByVisit,
   salaryForPeriod,
 } from './salary.util';
@@ -200,5 +202,53 @@ describe('what a salary already pays for', () => {
     const hourly = agreement({ effectiveFrom: d('2026-01-01'), basis: 'HOURLY_CARE', annualSalary: null });
     expect(applySalaryCoverage({ lineType: 'VISIT_PAY', amount: 28, agreement: hourly, visit: null }).paid).toBe(28);
     expect(applySalaryCoverage({ lineType: 'VISIT_PAY', amount: 28, agreement: null, visit: null }).paid).toBe(28);
+  });
+});
+
+describe('guaranteed hours of a week (WM-07 / EL-01)', () => {
+  const hourly = (over: Partial<AgreementTerms> & { effectiveFrom: Date }) =>
+    agreement({
+      basis: 'HOURLY_CARE',
+      annualSalary: null,
+      salaryProrationMethod: null,
+      salaryCoverage: null,
+      guaranteedWeeklyHours: 14,
+      guaranteeTopUp: 'PAY_SHORTFALL',
+      guaranteeQualifyingTime: 'VISITS',
+      ...over,
+    });
+  const WEEK = '2026-11-02'; // a Monday
+
+  it('exists only where the agreement states a guarantee and that the shortfall is paid', () => {
+    expect(paysGuarantee(hourly({ effectiveFrom: d('2026-01-01') }))).toBe(true);
+    expect(paysGuarantee(hourly({ effectiveFrom: d('2026-01-01'), guaranteeTopUp: null }))).toBe(false); // recorded only
+    expect(paysGuarantee(hourly({ effectiveFrom: d('2026-01-01'), guaranteedWeeklyHours: null }))).toBe(false);
+    expect(paysGuarantee(agreement({ effectiveFrom: d('2026-01-01'), guaranteedWeeklyHours: 14, guaranteeTopUp: 'PAY_SHORTFALL' }))).toBe(false); // salaried
+    expect(paysGuarantee(null)).toBe(false);
+    expect(guaranteeForWeek([], WEEK).guaranteedMinutes).toBe(0);
+  });
+
+  it('a whole week under the agreement carries the whole guarantee', () => {
+    const week = guaranteeForWeek([hourly({ effectiveFrom: d('2026-01-01') })], WEEK);
+    expect(week).toMatchObject({ guaranteedMinutes: 840, daysInForce: 7, daysReducedForAbsence: 0 });
+    expect(week.dayKeysInForce).toEqual(['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08']);
+  });
+
+  it('a guarantee that starts, ends or changes part way through a week counts for its own days', () => {
+    const starts = guaranteeForWeek([hourly({ effectiveFrom: d('2026-11-05') })], WEEK);
+    expect(starts).toMatchObject({ guaranteedMinutes: 480, daysInForce: 4 }); // 4 of 7 days of 14 hours
+    const leaves = guaranteeForWeek([hourly({ effectiveFrom: d('2026-01-01') })], WEEK, { endDate: d('2026-11-03') });
+    expect(leaves).toMatchObject({ guaranteedMinutes: 240, daysInForce: 2 });
+    const before = hourly({ effectiveFrom: d('2026-01-01'), status: 'SUPERSEDED' });
+    const raised = hourly({ effectiveFrom: d('2026-11-05'), guaranteedWeeklyHours: 21 });
+    expect(guaranteeForWeek([before, raised], WEEK).guaranteedMinutes).toBe(360 + 720); // 3 days of 14h, 4 days of 21h
+  });
+
+  it('absence days reduce the guarantee only when the agreement says so', () => {
+    const absent = new Set(['2026-11-03', '2026-11-04']);
+    const reduce = hourly({ effectiveFrom: d('2026-01-01'), guaranteeLeaveTreatment: 'REDUCE_FOR_ABSENCE_DAYS' });
+    expect(guaranteeForWeek([reduce], WEEK, undefined, absent)).toMatchObject({ guaranteedMinutes: 600, daysReducedForAbsence: 2 });
+    const count = hourly({ effectiveFrom: d('2026-01-01'), guaranteeLeaveTreatment: 'COUNT_PAID_LEAVE_HOURS' });
+    expect(guaranteeForWeek([count], WEEK, undefined, absent)).toMatchObject({ guaranteedMinutes: 840, daysReducedForAbsence: 0 });
   });
 });

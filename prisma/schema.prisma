@@ -9204,6 +9204,7 @@ enum PayrollRunLineType {
   SICK_PAY
   BONUS
   LIVE_IN
+  GUARANTEED_HOURS
 
   @@schema("billing")
 }
@@ -10111,6 +10112,15 @@ model EmployeePayAgreement {
   /// What the salary already pays for: ALL_VISIT_WORK | CONTRACTED_HOURS | NO_VISIT_WORK.
   /// Empty = not decided: the salary is paid and the visit wages are held, never paid on top.
   salaryCoverage        String?
+  /// Guaranteed hours (WM-07 / EL-01). Hours a week the employer guarantees.
+  guaranteedWeeklyHours    Decimal? @db.Decimal(6, 2)
+  /// PAY_SHORTFALL: hours short of the guarantee are paid as a top-up. Empty: recorded only, nothing is paid.
+  guaranteeTopUp           String?
+  /// What counts towards the guarantee: VISITS | VISITS_AND_TRAVEL.
+  guaranteeQualifyingTime  String?
+  /// A week with recorded absence: COUNT_PAID_LEAVE_HOURS | REDUCE_FOR_ABSENCE_DAYS. Empty: the
+  /// top-up of such a week is held for a person to decide.
+  guaranteeLeaveTreatment  String?
   /// Second person who approved the agreement (required when it carries or replaces a salary).
   approvedById          String?   @db.Uuid
   approvedAt            DateTime?
