@@ -28,7 +28,7 @@ import {
   loadPayCardRulesForVersion,
 } from './pay-card-version.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
-import { loadPayCalendar } from './holiday-calendar.store';
+import { calendarHoldForPay, loadPayCalendar } from './holiday-calendar.store';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
 import {
@@ -2596,12 +2596,22 @@ export class VisitReconciliationsService {
       /** Default (England & Wales) calendar for the window, when the caller already loaded it. */
       defaultHolidayDates?: Set<string>;
     },
-  ): Promise<{ amount: number | null; version: number | null }> {
+  ): Promise<{ amount: number | null; version: number | null; hold?: string }> {
     const { payCard, plannedStart, payStart, payEnd, timeZone } = input;
     // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
     const { version, rules } = await loadPayCardRulesForDate(db, payCard.id, plannedStart, timeZone);
     // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
     const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+    // R-27: a day that is normally a bank holiday with no entry in the calendar is not priced as
+    // an ordinary day. The pay is held with the reason until a person settles the calendar.
+    const hold = await calendarHoldForPay(db, {
+      region: payRegion,
+      rules,
+      start: payStart,
+      end: payEnd ?? payStart,
+      dayOf: (instant) => dayKeyInTimeZone(instant, timeZone),
+    });
+    if (hold) return { amount: null, version, hold };
     // PC-22 to PC-24: the shared calendar, with the organisation's special days and its policy
     // for holidays that fall on a weekend.
     const payCalendar = await loadPayCalendar(db, payStart, payEnd ?? payStart, payRegion);
@@ -3425,7 +3435,9 @@ export class VisitReconciliationsService {
       });
       if (priced.version != null) payCard.version = priced.version;
       payableAmount = priced.amount;
-      if (payableAmount == null && payMinutes > 0) {
+      if (priced.hold) {
+        activeExceptions.push({ code: FinanceExceptionCode.RATE_MISSING, message: priced.hold });
+      } else if (payableAmount == null && payMinutes > 0) {
         activeExceptions.push({
           code: FinanceExceptionCode.RATE_MISSING,
           message:

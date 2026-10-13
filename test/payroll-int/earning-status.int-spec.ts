@@ -7,7 +7,7 @@ import { PayrollRunsService } from '../../src/billing/payroll-runs.service';
 import { EmployeePayoutsService } from '../../src/billing/employee-payouts.service';
 import { PayrollRunsService as UkPayrollRunsService } from '../../src/payroll/payroll-runs.service';
 import { createApprovedVisit, createRun, createUkRun, markStatutoryCalculated, resetPayData } from './harness';
-import { bearer, createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp } from './http-harness';
+import { bearer, createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp, seedDefaultCards } from './http-harness';
 
 describe('earning status projection (HTTP)', () => {
   let t: TestApp;
@@ -53,6 +53,8 @@ describe('earning status projection (HTTP)', () => {
   beforeEach(async () => {
     await resetPayData(t.prisma);
     await resetIdentityData(t.prisma);
+    // One organisation default card, so the carer's card is decided whatever earlier suites left behind.
+    await seedDefaultCards(t.prisma);
     office = await createStaffUser(t.prisma, {
       permissions: ['billing.payroll_runs.read', 'payroll.scope.organisation'],
     });

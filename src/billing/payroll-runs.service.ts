@@ -37,6 +37,8 @@ import {
 import { dayKeyInTimeZone, formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
 import { PayCardsService } from './billing-cards.service';
 import { classifyEvaluationFailure } from './pay-evaluation-failure.util';
+import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import { calendarHoldForPay } from './holiday-calendar.store';
 import {
   PAY_ITEM_CONFIG,
   cardBaseHourlyRate,
@@ -812,6 +814,7 @@ export class PayrollRunsService {
     // TR-09: mileage rates in force on the day of each journey, and business miles so far in the
     // carer's tax year: journeys in other approved or locked runs, plus earlier ones in this run.
     const mileageRateRows = await this.prisma.mileageRate.findMany();
+    const calendarCards = new Map<string, { region: string; rules: Array<{ dayType?: string | null }> }>();
     const mileageInOtherRuns = new Map<string, Array<{ at: Date; miles: number }>>();
     const mileageInThisRun = new Map<string, number>();
 
@@ -821,6 +824,36 @@ export class PayrollRunsService {
       if (recon.payableAmount == null) issues.push('Payable amount not calculated');
       if (!recon.approvedPayStart || !recon.approvedPayEnd) {
         issues.push('Approved payable time missing');
+      }
+
+      // R-27: a visit priced while the calendar had no entry for a day that is normally a bank
+      // holiday (or approved before this check existed) is held here, not paid at an ordinary rate.
+      if (!issues.length && recon.payCardId && recon.approvedPayStart && recon.approvedPayEnd) {
+        const cardKey = `${recon.payCardId}|${recon.payCardVersion ?? ''}`;
+        if (!calendarCards.has(cardKey)) {
+          const [card, rules] = await Promise.all([
+            this.prisma.payCard.findUnique({ where: { id: recon.payCardId }, select: { bankHolidayRegion: true } }),
+            loadPayCardRulesForVersion(this.prisma, recon.payCardId, recon.payCardVersion),
+          ]);
+          calendarCards.set(cardKey, { region: card?.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION, rules });
+        }
+        const card = calendarCards.get(cardKey)!;
+        const hold = await calendarHoldForPay(this.prisma, {
+          region: card.region,
+          rules: card.rules,
+          start: recon.approvedPayStart,
+          end: recon.approvedPayEnd,
+          dayOf: (instant) => dayKeyInTimeZone(instant, timeZone),
+        });
+        if (hold) {
+          // The visit is already approved, so evaluating it again keeps its amount.
+          issues.push(
+            hold.replace(
+              'then evaluate the visit again.',
+              'then use "Recalculate amounts" for the visit (it was approved at an ordinary-day rate) and recalculate this run.',
+            ),
+          );
+        }
       }
 
       const amount = recon.payableAmount != null ? Number(recon.payableAmount) : 0;
@@ -839,6 +872,11 @@ export class PayrollRunsService {
         payCardId: recon.payCardId,
         visitRef: recon.visitRef,
         exceptionMessage: issues.length ? issues.join('; ') : null,
+        // A visit that cannot be paid is held, not claimed: locking this run must not mark it as
+        // paid at nothing. It stays payable by a later run over the same period.
+        ...(issues.length
+          ? { sourceType: HELD_EARNING_SOURCE, sourceRef: heldEarningRef(`VISIT:${recon.id}`) }
+          : {}),
       });
 
       const auto = autoByDestination.get(recon.id);
@@ -1065,6 +1103,9 @@ export class PayrollRunsService {
     const nmwByEmployee = new Map<string, NmwPayComponent[]>();
     for (const line of lineData) {
       if (!line.employeeId) continue;
+      // A held line is not paid in this run: its hours are not this run's working time either.
+      // Counting them produced a minimum wage top-up for pay that was only being held.
+      if (line.exceptionMessage) continue;
       const isExpense =
         line.lineType === PayrollRunLineType.MILEAGE ||
         line.lineType === ('PASSENGER_MILEAGE' as PayrollRunLineType) ||
@@ -1321,7 +1362,7 @@ export class PayrollRunsService {
     // it (the pay card cannot be decided, no employment record, no rate on the card, an unexpected
     // error) becomes a held line on the run: the worker, the source, the reason. Recalculating the
     // run is the retry; a held training or on-call activity is picked up again by later runs.
-    const cardProblems = new Map<string, string>();
+    const cardProblems = new Map<string, { message: string; category: string }>();
     const rulesAt = async (employeeId: string, at: Date) => {
       const key = `${employeeId}|${dayKeyInTimeZone(at, timeZone)}`;
       if (!cache.has(key)) {
@@ -1335,17 +1376,25 @@ export class PayrollRunsService {
                 err instanceof Error ? err.stack : undefined,
               );
             }
-            cardProblems.set(key, failure.message);
+            cardProblems.set(key, { message: failure.message, category: failure.category });
             return null;
           }),
         );
       }
       return cache.get(key) ?? null;
     };
+    /**
+     * True when the carer's card could not be decided or read that day. A carer with no employment
+     * record simply has no card, so no card rule (overtime, rolled-up holiday) can apply to them.
+     */
+    const cardFailed = (employeeId: string, at: Date) => {
+      const problem = cardProblems.get(`${employeeId}|${dayKeyInTimeZone(at, timeZone)}`);
+      return !!problem && problem.category !== 'EMPLOYMENT_RECORD_MISSING';
+    };
     /** Why no card was returned for the carer that day: the recorded problem, or simply none applies. */
     const noCardReason = (employeeId: string, at: Date) => {
       const day = dayKeyInTimeZone(at, timeZone);
-      return cardProblems.get(`${employeeId}|${day}`) ?? `No pay card applies to this carer on ${day}.`;
+      return cardProblems.get(`${employeeId}|${day}`)?.message ?? `No pay card applies to this carer on ${day}.`;
     };
     let problemCount = 0;
     const held = new Set<string>();
@@ -1561,6 +1610,8 @@ export class PayrollRunsService {
       for (const [weekKey, shifts] of byWeek) {
         const lastStart = shifts.reduce((a, s) => (s.start > a ? s.start : a), shifts[0].start);
         const resolved = await rulesAt(employeeId, lastStart);
+        // No card applying means no overtime rule to apply. A card that could not be read is different.
+        if (!resolved && !cardFailed(employeeId, lastStart)) continue;
         if (!resolved) {
           hold({
             employeeId,
@@ -1612,6 +1663,7 @@ export class PayrollRunsService {
     for (const [employeeId, pay] of workedPay) {
       if (pay.lte(0)) continue;
       const resolved = await rulesAt(employeeId, run.periodEnd);
+      if (!resolved && !cardFailed(employeeId, run.periodEnd)) continue;
       if (!resolved) {
         hold({
           employeeId,
@@ -1740,8 +1792,14 @@ export class PayrollRunsService {
       throw new BadRequestException('Approve the payroll run before locking');
     }
 
+    // Visits whose line is held (it could not be paid) are not settled by this run.
     const reconIds = [
-      ...new Set(run.lines.map((l) => l.visitReconciliationId).filter((v): v is string => !!v)),
+      ...new Set(
+        run.lines
+          .filter((l) => l.sourceType !== HELD_EARNING_SOURCE)
+          .map((l) => l.visitReconciliationId)
+          .filter((v): v is string => !!v),
+      ),
     ];
 
     // R-22: overtime premium and rolled-up holiday pay are worked out from this run's own lines.
@@ -1793,6 +1851,7 @@ export class PayrollRunsService {
         const visitById = new Map(visits.map((v) => [v.id, v]));
         const stale = run.lines.filter((l) => {
           if (l.lineType !== PayrollRunLineType.VISIT_PAY || !l.visitReconciliationId) return false;
+          if (l.sourceType === HELD_EARNING_SOURCE) return false; // held: not settled by this run
           const visit = visitById.get(l.visitReconciliationId);
           if (!visit) return true;
           if (visit.includedInPayrollRunId || visit.paidByUkPayrollRunId) return true;

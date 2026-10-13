@@ -176,8 +176,9 @@ describe('PC-22 to PC-24: the holiday calendar for carer pay', () => {
     expect(await pays(days)).toEqual([16, 28]); // BOTH: unchanged from before
     await setBasis('ACTUAL_DAY');
     expect(await pays(days)).toEqual([28, 14]);
-    // The England & Wales substitute days are not holidays on a Scottish card.
-    expect(await pays(['2027-12-27'])).toEqual([14]);
+    // An England & Wales holiday that Scotland does not have is an ordinary day on a Scottish card.
+    expect((await holiday('2027-03-29', 'Easter Monday', 'UK')).status).toBe(201);
+    expect(await pays(['2027-03-29'])).toEqual([14]);
   });
 
   it('an organisation special day is paid only where the card has a rate for special days', async () => {
@@ -212,9 +213,11 @@ describe('PC-22 to PC-24: the holiday calendar for carer pay', () => {
       rules: [hourly('WEEKDAY', 14), hourly('BANK_HOLIDAY', 28), hourly('EASTER', 30)],
     });
     expect(preview.status).toBe(201);
-    expect(preview.body.data.amount).toBe(14); // Good Friday 2028 is not in the calendar yet
+    // Good Friday 2028 is not in the calendar: no ordinary-day amount is shown for it (R-27).
+    expect(preview.body.data.amount).toBeNull();
     expect(preview.body.data.warnings).toEqual(
       expect.arrayContaining([
+        expect.stringContaining('Carer pay is held: 2028-04-14 is normally Good Friday in England & Wales'),
         'The England & Wales bank holiday calendar for 2028 is not complete: No dates are recorded for 2028.',
         expect.stringContaining('This card has an Easter rate, but no day is classified as Easter'),
       ]),

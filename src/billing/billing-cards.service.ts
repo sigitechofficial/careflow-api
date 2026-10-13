@@ -56,7 +56,7 @@ import {
   DEFAULT_BANK_HOLIDAY_REGION,
   isBankHolidayRegion,
 } from './bank-holiday-regions.util';
-import { loadHolidayCalendarStatus, loadPayCalendar } from './holiday-calendar.store';
+import { calendarHoldForPay, loadHolidayCalendarStatus, loadPayCalendar } from './holiday-calendar.store';
 import { classifyPayRule } from './wage-types.util';
 import {
   assignmentsCoveringDay,
@@ -787,7 +787,16 @@ export class PayCardsService {
     const holidayKeys = payCalendar.bankHolidayKeys;
     const rules = mapPayRules(dto.rules);
     const stackingPolicy = (dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
-    const result = calculatePayableAmount(
+    // R-27: live pricing holds a visit on a day that is normally a bank holiday when the calendar
+    // has no entry for it. The preview says the same instead of showing an ordinary-day amount.
+    const calendarHold = await calendarHoldForPay(this.prisma, {
+      region,
+      rules,
+      start,
+      end,
+      dayOf: (instant) => dayKeyInTimeZone(instant, timeZone),
+    });
+    const result = calendarHold ? null : calculatePayableAmount(
       rules,
       start,
       minutes,
@@ -805,6 +814,7 @@ export class PayCardsService {
     );
 
     const warnings: string[] = [];
+    if (calendarHold) warnings.push(calendarHold);
     // A year with dates missing prices its holidays as ordinary days without saying so.
     const year = Number(date.slice(0, 4));
     const calendarStatus = isBankHolidayRegion(region)
@@ -822,7 +832,7 @@ export class PayCardsService {
         'This card has an Easter rate, but no day is classified as Easter: Good Friday and Easter Monday are paid as bank holidays. The Easter rate is not used until the organisation decides which days it covers.',
       );
     }
-    if (!result) {
+    if (!result && !calendarHold) {
       warnings.push(
         dto.nightDuty === 'SLEEPING_NIGHT'
           ? 'No sleeping night rate on this pay card.'

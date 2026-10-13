@@ -8,9 +8,13 @@
  */
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { BANK_HOLIDAY_REGIONS } from './bank-holiday-regions.util';
+import { BANK_HOLIDAY_REGION_LABELS, BANK_HOLIDAY_REGIONS, isBankHolidayRegion } from './bank-holiday-regions.util';
 import {
   buildPayCalendar,
+  cardHasHolidayRates,
+  describeUnresolvedHolidays,
+  localDaysTouched,
+  unresolvedHolidayDays,
   DEFAULT_HOLIDAY_PREMIUM_BASIS,
   type HolidayPremiumBasis,
   isHolidayPremiumBasis,
@@ -89,4 +93,41 @@ export async function loadHolidayCalendarStatus(db: Db, years: number[]) {
     organisationSpecialDays: rows.filter((row) => row.region === ORGANISATION_SPECIAL_DAY_REGION)
       .length,
   };
+}
+
+/**
+ * R-27: the reason carer pay for a period of work cannot be priced because of the calendar, or
+ * null. It is a reason only when the card pays a different rate on a bank holiday, and a day of
+ * the work is normally a bank holiday in the card's nation but the calendar has no entry for it.
+ */
+export async function calendarHoldForPay(
+  db: Db,
+  input: {
+    region: string;
+    rules: Array<{ dayType?: string | null }>;
+    start: Date;
+    end: Date;
+    dayOf: (instant: Date) => string;
+  },
+): Promise<string | null> {
+  if (!isBankHolidayRegion(input.region) || !cardHasHolidayRates(input.rules)) return null;
+  const days = localDaysTouched(input.start, input.end, input.dayOf);
+  const years = [...new Set(days.map((day) => Number(day.slice(0, 4))))];
+  const [basis, entries] = await Promise.all([
+    loadHolidayPremiumBasis(db),
+    db.bankHoliday.findMany({
+      where: {
+        region: input.region,
+        holidayDate: {
+          gte: new Date(`${Math.min(...years)}-01-01T00:00:00.000Z`),
+          lte: new Date(`${Math.max(...years)}-12-31T00:00:00.000Z`),
+        },
+      },
+      select: { holidayDate: true, name: true, region: true },
+    }),
+  ]);
+  const unresolved = unresolvedHolidayDays(entries, input.region, basis, days);
+  return unresolved.length
+    ? describeUnresolvedHolidays(unresolved, BANK_HOLIDAY_REGION_LABELS[input.region])
+    : null;
 }
