@@ -113,6 +113,18 @@ export function isPayItemWageType(code: string): code is PayItemWageTypeCode {
  * reimbursement: it is paid on a mileage line, outside wages and outside the minimum wage check.
  */
 export const SYSTEM_PAY_ITEM_CONFIG: Record<string, PayItemConfig & { label: string }> = {
+  // Q13: an approved payment for a visit that did not go ahead as planned. It is not pay for
+  // time worked, so it never counts towards minimum wage pay or hours.
+  DISRUPTION_PAY: {
+    label: 'Cancelled / disrupted visit',
+    lineType: 'CANCELLATION',
+    units: ['AMOUNT'],
+    allowNegative: false,
+    requiresSecondApprover: true,
+    includesInNmwPay: false,
+    countsAsNmwHours: false,
+    sourceTypes: [],
+  },
   MILEAGE_CORRECTION: {
     label: 'Mileage correction',
     lineType: 'MILEAGE',

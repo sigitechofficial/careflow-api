@@ -27,6 +27,10 @@ import { BankHolidaysController, WageTypesController } from './wage-types.contro
 import { WageTypesService } from './wage-types.service';
 import { PayItemsService } from './pay-items.service';
 import { PayItemsController } from './pay-items.controller';
+import { TravelIntervalsService } from './travel-intervals.service';
+import { TravelIntervalsController } from './travel-intervals.controller';
+import { VisitDisruptionsService } from './visit-disruptions.service';
+import { VisitDisruptionsController } from './visit-disruptions.controller';
 import { BankHolidaysService } from './bank-holidays.service';
 import { MileageRatesController } from './mileage-rates.controller';
 import { MileageRatesService } from './mileage-rates.service';
@@ -47,6 +51,8 @@ import { MileageRatesService } from './mileage-rates.service';
     BankHolidaysController,
     MileageRatesController,
     PayItemsController,
+    TravelIntervalsController,
+    VisitDisruptionsController,
   ],
   providers: [
     PayCardsService,
@@ -63,6 +69,8 @@ import { MileageRatesService } from './mileage-rates.service';
     BankHolidaysService,
     MileageRatesService,
     PayItemsService,
+    TravelIntervalsService,
+    VisitDisruptionsService,
   ],
   exports: [
     PayCardsService,

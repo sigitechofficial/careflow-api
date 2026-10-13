@@ -102,6 +102,7 @@ import {
   furthestPayoutState,
 } from './earning-status.util';
 import { agreementTermsOf, guaranteeForWeek } from '../payroll/salary.util';
+import { DecidedTravel, decidedTravelForVisit } from './travel-interval.util';
 import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
@@ -809,6 +810,21 @@ export class PayrollRunsService {
       ]),
     );
 
+    // TR-01 / TR-04 / TR-05 / TR-06: where a person has classified the time before a visit and a
+    // second person approved it, that decides travel and waiting time for the visit. The estimate
+    // made from the gap between visits is used only where nothing has been approved.
+    const approvedIntervals = reconciliations.length
+      ? await this.prisma.travelTimeInterval.findMany({
+          where: { toVisitReconciliationId: { in: reconciliations.map((r) => r.id) }, status: 'APPROVED' },
+          orderBy: { startAt: 'asc' },
+        })
+      : [];
+    const decidedTravelByVisit = new Map<string, DecidedTravel>();
+    for (const visitId of new Set(approvedIntervals.map((i) => i.toVisitReconciliationId))) {
+      const decided = decidedTravelForVisit(approvedIntervals.filter((i) => i.toVisitReconciliationId === visitId));
+      if (decided) decidedTravelByVisit.set(visitId, decided);
+    }
+
     const lineData: Prisma.PayrollRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
     const employeeIds = new Set<string>();
@@ -909,9 +925,14 @@ export class PayrollRunsService {
         const manualTravelMins = recon.travelMinutes ?? 0;
         const autoTravelMins = auto?.payableTravelMinutes ?? 0;
         const autoWaitingMins = auto?.payableWaitingMinutes ?? 0;
-        // Prefer explicit manual minutes; otherwise use auto inter-visit detection.
-        const travelMins = manualTravelMins > 0 ? manualTravelMins : autoTravelMins;
-        const waitingMins = manualTravelMins > 0 ? 0 : autoWaitingMins;
+        // Approved intervals decide; otherwise explicit manual minutes; otherwise the estimate.
+        const decidedTravel = decidedTravelByVisit.get(recon.id) ?? null;
+        const travelMins = decidedTravel
+          ? decidedTravel.travelMinutes
+          : manualTravelMins > 0
+            ? manualTravelMins
+            : autoTravelMins;
+        const waitingMins = decidedTravel ? decidedTravel.waitingMinutes : manualTravelMins > 0 ? 0 : autoWaitingMins;
         const passengerMiles =
           (recon as { passengerMiles?: unknown }).passengerMiles != null
             ? Number((recon as { passengerMiles?: unknown }).passengerMiles)
@@ -1033,9 +1054,10 @@ export class PayrollRunsService {
         const travel = calculateTravelTimeAmount(payRules, visitDate, travelMins, false, timeZone);
         if (travel) {
           paidTravelMins = travelMins;
-          const autoNote =
-            manualTravelMins <= 0 && autoTravelMins > 0
-              ? ` [auto inter-visit: ${(auto?.explanations ?? []).join('; ')}]`
+          const autoNote = decidedTravel
+            ? ` [approved: ${decidedTravel.summary}]`
+            : manualTravelMins <= 0 && autoTravelMins > 0
+              ? ` [estimated from the gap between visits, not verified: ${(auto?.explanations ?? []).join('; ')}]`
               : '';
           lineData.push({
             payrollRunId: id,
@@ -1061,7 +1083,9 @@ export class PayrollRunsService {
             visitReconciliationId: recon.id,
             employeeId: recon.employeeId,
             lineType: 'WAITING_TIME' as PayrollRunLineType,
-            description: `Waiting time — ${recon.visitRef} (${waitingMins} min) [auto inter-visit]`,
+            description: `Waiting time — ${recon.visitRef} (${waitingMins} min) ${
+              decidedTravel ? `[approved: ${decidedTravel.summary}]` : '[estimated from the gap between visits, not verified]'
+            }`,
             minutes: waitingMins,
             unitAmount: waiting.unitRate,
             amount: waiting.amount,
@@ -1074,7 +1098,10 @@ export class PayrollRunsService {
         // NMW: remaining auto travel/wait hours that were not paid as wages still count as hours.
         const manualUnpaid =
           (recon as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0;
-        const autoNmw = auto?.nmwMinutes ?? 0;
+        // Approved travel and waiting are working time; a rest break or commute is not.
+        const autoNmw = decidedTravel
+          ? decidedTravel.travelMinutes + decidedTravel.waitingMinutes
+          : (auto?.nmwMinutes ?? 0);
         const unpaidForNmw = Math.max(
           manualUnpaid,
           Math.max(0, autoNmw - paidTravelMins - paidWaitingMins),
@@ -1088,10 +1115,11 @@ export class PayrollRunsService {
       } else if (recon.employeeId && !issues.length) {
         // No pay card — still surface auto travel as unpaid NMW hours.
         const auto = autoByDestination.get(recon.id);
+        const decided = decidedTravelByVisit.get(recon.id);
         const unpaid =
           Math.max(
             (recon as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? 0,
-            auto?.nmwMinutes ?? 0,
+            decided ? decided.travelMinutes + decided.waitingMinutes : (auto?.nmwMinutes ?? 0),
           );
         if (unpaid > 0) {
           autoUnpaidNmwByEmployee.set(

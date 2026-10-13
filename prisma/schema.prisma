@@ -9336,6 +9336,111 @@ model PayrollRunLine {
   @@schema("billing")
 }
 
+/// TR-01 / TR-04 / TR-05 / TR-06: a stretch of time before a visit, classified by a person.
+/// An approved interval replaces the estimate made from the gap between two visits. It is time,
+/// never distance: mileage stays on its own lines.
+model TravelTimeInterval {
+  id                        String    @id @default(uuid()) @db.Uuid
+  employeeId                String    @db.Uuid
+  /// The visit the journey or wait led to (stored UUID); the pay run of that visit pays it.
+  toVisitReconciliationId   String    @db.Uuid
+  fromVisitReconciliationId String?   @db.Uuid
+  startAt                   DateTime
+  endAt                     DateTime
+  minutes                   Int
+  /// BETWEEN_SERVICE_USERS | REQUIRED_WAITING | REST_BREAK | ORDINARY_COMMUTE | TRAINING_JOURNEY |
+  /// CANCELLED_VISIT_JOURNEY | OTHER
+  category                  String
+  /// How the times are known: ESTIMATED | RECORDED | VERIFIED.
+  evidence                  String
+  /// PENDING | APPROVED | REJECTED. Only an approved interval changes pay.
+  status                    String    @default("PENDING")
+  /// A training journey, a journey to a cancelled visit and "other" are paid only when this is set.
+  payable                   Boolean   @default(false)
+  note                      String?
+  createdById               String?   @db.Uuid
+  createdAt                 DateTime  @default(now())
+  decidedById               String?   @db.Uuid
+  decidedAt                 DateTime?
+  decisionNote              String?
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([toVisitReconciliationId, status])
+  @@index([employeeId, startAt])
+  @@schema("billing")
+}
+
+/// Q13: what a carer is paid when a visit does not go ahead as planned. This is the employer's
+/// policy: effective-dated and put into effect by a second person. Where no rule covers an event
+/// nothing is assumed, and the event waits for a person's decision.
+model VisitDisruptionPayRule {
+  id                 String    @id @default(uuid()) @db.Uuid
+  /// CLIENT_CANCELLED | LATE_CANCELLATION | CARER_ALREADY_TRAVELLING | NOBODY_HOME |
+  /// REPLACEMENT_WORKER | EMERGENCY_VISIT | SHORTENED_VISIT | ENDED_EARLY | ADDITIONAL_WAITING
+  eventType          String
+  /// Applies when the notice given was shorter than this many minutes. Empty: any notice.
+  noticeBelowMinutes Int?
+  /// NO_PAY | PERCENT_OF_SCHEDULED | FULL_SCHEDULED | FIXED_AMOUNT | HOURLY_FOR_AFFECTED_MINUTES
+  outcome            String
+  percent            Decimal?  @db.Decimal(5, 2)
+  fixedAmount        Decimal?  @db.Decimal(12, 2)
+  effectiveFrom      DateTime  @db.Date
+  effectiveTo        DateTime? @db.Date
+  /// DRAFT | ACTIVE | RETIRED
+  status             String    @default("DRAFT")
+  /// A rule entered to test the calculation. It is never the employer's policy.
+  isSynthetic        Boolean   @default(false)
+  note               String?
+  createdById        String?   @db.Uuid
+  createdAt          DateTime  @default(now())
+  approvedById       String?   @db.Uuid
+  approvedAt         DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  @@index([eventType, status, effectiveFrom])
+  @@schema("billing")
+}
+
+/// One event for one carer on one visit, and what was decided to pay for it. An approved decision
+/// with an amount is paid through a pay item, so it is claimed and paid once like any other.
+model VisitDisruptionPayDecision {
+  id                    String    @id @default(uuid()) @db.Uuid
+  employeeId            String    @db.Uuid
+  scheduledJobId        String?   @db.Uuid
+  visitReconciliationId String?   @db.Uuid
+  eventType             String
+  /// When the visit was due, or when the event happened.
+  eventAt               DateTime
+  noticeMinutes         Int?
+  scheduledMinutes      Int?
+  /// Minutes waited, or minutes the visit was cut short by.
+  affectedMinutes       Int?
+  hourlyRate            Decimal?  @db.Decimal(12, 4)
+  ruleId                String?   @db.Uuid
+  /// What the rule in force proposes, or NOT_DECIDED when no rule covers the event.
+  proposedOutcome       String
+  proposedAmount        Decimal?  @db.Decimal(12, 2)
+  amount                Decimal?  @db.Decimal(12, 2)
+  /// NEEDS_DECISION | PENDING_APPROVAL | APPROVED | REJECTED
+  status                String
+  reason                String
+  decisionNote          String?
+  /// The pay item that pays an approved amount (stored UUID).
+  payItemId             String?   @unique @db.Uuid
+  createdById           String?   @db.Uuid
+  createdAt             DateTime  @default(now())
+  decidedById           String?   @db.Uuid
+  decidedAt             DateTime?
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  updatedAt             DateTime  @updatedAt
+
+  @@index([employeeId, eventAt])
+  @@index([scheduledJobId])
+  @@index([status])
+  @@schema("billing")
+}
+
 enum SalaryDeductionType {
   FINE
   PENALTY

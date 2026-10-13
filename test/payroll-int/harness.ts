@@ -76,6 +76,9 @@ export async function resetPayData(prisma: PrismaService) {
     await tx.payrollSchedule.deleteMany();
     await tx.payrollRunLine.deleteMany();
     await tx.payrollRun.deleteMany();
+    await tx.visitDisruptionPayDecision.deleteMany();
+    await tx.visitDisruptionPayRule.deleteMany();
+    await tx.travelTimeInterval.deleteMany();
     await tx.employeePayItem.deleteMany();
     await tx.visitAttendanceVerification.deleteMany(); // history entries go with it
     await tx.financeException.deleteMany();
