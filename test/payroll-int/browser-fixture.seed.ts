@@ -13,6 +13,9 @@
  *   - an approved correction to a paid visit, which can be reversed;
  *   - Gate B2: two visits of one carer 40 minutes apart (travel time to classify), and a cancelled
  *     visit that had a carer allocated and has no pay decision;
+ *   - Sprint B4A: a December UK payroll run with a proposed salary recovery (no recovery policy on
+ *     record), a salaried employee who worked more hours than the salary pays for (minimum wage
+ *     exception to review) and one topped up to the minimum wage;
  *   - three synthetic office users: a preparer, an approver and a manager limited to one branch.
  *
  * Passwords are generated here and written only to PAYROLL_BROWSER_LOGIN_FILE. They are never
@@ -22,7 +25,7 @@ import { randomBytes } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createUkRun, resetPayData } from './harness';
+import { createApprovedVisit, createUkRun, markStatutoryCalculated, resetPayData } from './harness';
 import {
   bearer,
   createAllocatedVisit,
@@ -204,6 +207,59 @@ describe('browser fixture (not a test)', () => {
         } as never,
       });
 
+      // Sprint B4A: salaried staff. Sam's November salary is lowered after it was paid (a proposed
+      // recovery); Erin worked 150 hours on a salary for 130 (an exception to review); Lee's salary
+      // is below the minimum wage on its basic hours (topped up by the run).
+      const salaried = async (firstName: string, annualSalary: number) => {
+        const carer = await createCarer(t.prisma, { locationId: branchA });
+        await t.prisma.employeePersonalDetail
+          .upsert({
+            where: { employeeId: carer.employeeId },
+            update: { firstName, lastName: 'Salaried' },
+            create: { employeeId: carer.employeeId, firstName, lastName: 'Salaried' } as never,
+          })
+          .catch(() => undefined);
+        const agree = (salary: number, over: Record<string, unknown> = {}) =>
+          t.prisma.employeePayAgreement.create({
+            data: {
+              employeeId: carer.employeeId,
+              basis: 'SALARIED',
+              status: 'ACTIVE',
+              effectiveFrom: new Date('2026-01-01'),
+              annualSalary: salary,
+              contractedHours: 30,
+              salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS',
+              salaryCoverage: 'ALL_VISIT_WORK',
+              approvedAt: new Date('2026-01-01T09:00:00Z'),
+              ...over,
+            } as never,
+          });
+        const agreement = await agree(annualSalary);
+        return { employeeId: carer.employeeId, agreement, agree };
+      };
+      const sam = await salaried('Sam', 24_000);
+      const erin = await salaried('Erin', 20_400);
+      const lee = await salaried('Lee', 18_000);
+      const november = await createUkRun(t.prisma, { periodStart: '2026-11-01', periodEnd: '2026-11-30', employeeIds: [sam.employeeId], createdById: olivia.id });
+      await post(olivia, `/payroll/runs/${november}/calculate-gross`);
+      await markStatutoryCalculated(t.prisma, november);
+      await post(peter, `/payroll/runs/${november}/close`);
+      await t.prisma.employeePayAgreement.update({ where: { id: sam.agreement.id }, data: { status: 'SUPERSEDED' } });
+      // The salary is changed after November was paid (the clock here is a controlled one).
+      clock.set(new Date('2026-12-02T09:00:00Z'));
+      const changedAt = new Date();
+      await sam.agree(21_600, { effectiveFrom: new Date('2026-11-01'), approvedAt: changedAt, termsChangedAt: changedAt });
+      for (const day of ['01', '08', '15', '22', '28']) {
+        await createApprovedVisit(t.prisma, { employeeId: erin.employeeId, start: `2026-12-${day}T08:00:00Z`, minutes: 1800, amount: 420 });
+      }
+      const december = await createUkRun(t.prisma, {
+        periodStart: '2026-12-01',
+        periodEnd: '2026-12-31',
+        employeeIds: [sam.employeeId, erin.employeeId, lee.employeeId],
+        createdById: olivia.id,
+      });
+      await post(olivia, `/payroll/runs/${december}/calculate-gross`);
+
       writeFileSync(loginFile, JSON.stringify({ logins }, null, 2));
       // Identifiers only; no secret is printed.
       console.log(
@@ -213,6 +269,7 @@ describe('browser fixture (not a test)', () => {
           carers: { ann: ann.employeeId, ben: ben.employeeId },
           visitPayRuns: { lockedWeek1: week1.id, awaitingApprovalWeek2: week2.id },
           ukPayrollRunAwaitingClose: ukRunId,
+          ukPayrollRunDecemberSalaried: december,
           approvedCorrection: correction.id,
           correctedVisit: annTuesday,
         }),

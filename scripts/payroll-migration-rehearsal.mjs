@@ -321,6 +321,7 @@ async function main() {
     const apprentices = await one(`SELECT COUNT(*)::int AS n FROM "payroll"."EmployeePayrollProfile" WHERE "apprenticeshipStartDate" IS NOT NULL`);
     check('no payroll profile is given an apprenticeship start date', apprentices.n === 0);
     check('no wage recovery is created by the migrations (nothing is proposed or deducted for history)', await empty('"billing"."WageRecovery"'));
+    check('no recovery policy is recorded by the migrations (no employer policy is invented)', await empty('"billing"."WageRecoveryPolicy"'));
 
     // --- 6. duplicate reconciliation report (nothing is deleted) --------------------------------
     const duplicateVisits = await db.$queryRawUnsafe(`

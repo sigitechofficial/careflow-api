@@ -312,6 +312,7 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
     });
 
     it('with no approved recovery policy on record, an authorised recovery is still not deducted', async () => {
+      const since = new Date(); // the audit log is kept between test runs
       await t.prisma.wageRecoveryPolicy.deleteMany();
       expect((await get(preparer, '/billing/wage-recoveries/policy')).body.data).toMatchObject({ inForce: false });
       await novemberPaidThenSalaryBecomes(21_600);
@@ -341,7 +342,7 @@ describe('wage recoveries: proposed, authorised, then deducted once', () => {
       expect((await post(approver, '/billing/wage-recoveries/policy/withdraw', { note: 'Synthetic: under legal review' })).status).toBe(201);
       await gross(december);
       expect((await ukLines(december)).filter((l) => Number(l.amount) < 0)).toEqual([]);
-      const audit = (await t.prisma.auditLog.findMany({ where: { recordType: 'WageRecoveryPolicy' }, select: { action: true } })).map((a) => a.action);
+      const audit = (await t.prisma.auditLog.findMany({ where: { recordType: 'WageRecoveryPolicy', createdAt: { gte: since } }, select: { action: true } })).map((a) => a.action);
       expect(audit.sort()).toEqual(['wage_recovery_policy_recorded', 'wage_recovery_policy_withdrawn']);
     });
   });
