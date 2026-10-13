@@ -9447,7 +9447,10 @@ model VisitDisruptionPayDecision {
 /// run's pay and hours for the period, and the position of the whole period so far.
 model NmwPeriodAssessment {
   id               String   @id @default(uuid()) @db.Uuid
-  payrollRunId     String   @db.Uuid
+  /// The visit pay run that made the assessment (time work). Empty for a UK payroll run.
+  payrollRunId     String?  @db.Uuid
+  /// The UK payroll run that made the assessment (salaried hours work; stored UUID).
+  ukPayrollRunId   String?  @db.Uuid
   employeeId       String   @db.Uuid
   periodStart      DateTime @db.Date
   periodEnd        DateTime @db.Date
@@ -9468,14 +9471,65 @@ model NmwPeriodAssessment {
   topUpAlreadyPaid Decimal  @db.Decimal(12, 2)
   /// The top-up line of this run for the period (negative when an earlier top-up is reduced).
   topUpInRun       Decimal  @db.Decimal(12, 2)
-  compliant        Boolean
+  /// Empty = not assessed: nothing is claimed about compliance.
+  compliant        Boolean?
+  /// Why the assessment needs a person: NO_PAYROLL_SCHEDULE | SALARIED_NOT_ASSESSED_HERE |
+  /// BASIC_HOURS_NOT_RECORDED | EXCESS_HOURS_NOT_VERIFIED | SHORTFALL
+  issue            String?
+  /// Pay still missing against the rate after any top-up of this run.
+  shortfall        Decimal? @db.Decimal(12, 2)
+  /// A person with the power to close payroll reviewed an issue that blocks closing.
+  resolvedById     String?  @db.Uuid
+  resolvedAt       DateTime?
+  resolutionNote   String?
   note             String?
   createdAt        DateTime @default(now())
 
-  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  payrollRun PayrollRun? @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
 
+  @@unique([ukPayrollRunId, employeeId, periodStart])
   @@unique([payrollRunId, employeeId, periodStart])
   @@index([employeeId, periodStart])
+  @@schema("billing")
+}
+
+/// An overpayment of wages that a calculation found, and whether the employer has authorised
+/// taking it back. Finding an overpayment is arithmetic; recovering it from wages is a decision
+/// with legal conditions. Nothing is deducted until a person with the authority approves it and
+/// records the basis. A rejected recovery is written off for that amount.
+model WageRecovery {
+  id                String    @id @default(uuid()) @db.Uuid
+  employeeId        String    @db.Uuid
+  /// SALARY | GUARANTEED_HOURS | OVERTIME | NMW_TOP_UP
+  kind              String
+  /// The claim the deduction line would carry, e.g. GUARANTEE:<employee>:<week>:<n>. One
+  /// recovery per settlement of a week or period, so it cannot be proposed or applied twice.
+  subjectKey        String    @unique
+  /// The overpayment, as a positive amount.
+  amount            Decimal   @db.Decimal(12, 2)
+  /// What the overpayment is and how it arose.
+  reason            String
+  /// The original payment: what was paid for the week or period, and what is now due.
+  originalReference String
+  /// PROPOSED | APPROVED | REJECTED | APPLIED | WITHDRAWN
+  status            String    @default("PROPOSED")
+  /// The contractual or legal authority for the deduction, recorded by the approver.
+  authorityBasis    String?
+  decisionNote      String?
+  /// The pay run (visit pay run or UK payroll run) whose calculation proposed it, and who ran it.
+  detectedInRunId   String?   @db.Uuid
+  detectedById      String?   @db.Uuid
+  decidedById       String?   @db.Uuid
+  decidedAt         DateTime?
+  /// Set when the run holding the deduction line is locked or closed.
+  appliedInRunId    String?   @db.Uuid
+  appliedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([detectedInRunId])
   @@schema("billing")
 }
 

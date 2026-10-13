@@ -32,6 +32,13 @@ import {
   assertFinancialResetEnvironment,
 } from '../billing/financial-controls.util';
 import { isClaimConflict } from '../billing/payroll-claim.util';
+import {
+  RECOVERY_NOT_AUTHORISED,
+  markRecoveriesApplied,
+  recoveryHeldMessage,
+  resolveWageRecovery,
+  withdrawStaleRecoveries,
+} from '../billing/wage-recovery.store';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
@@ -1515,6 +1522,7 @@ export class PayrollRunsService {
 
     // Salary of a period that is already paid, changed afterwards by an approved agreement: the
     // difference is paid (or recovered) here, once. The closed run is not touched.
+    const confirmedRecoveries: string[] = [];
     const changedAgreements = agreementRows.filter((a) => a.termsChangedAt);
     if (changedAgreements.length) {
       const changedEmployeeIds = [...new Set(changedAgreements.map((a) => a.employeeId))];
@@ -1586,6 +1594,40 @@ export class PayrollRunsService {
         const difference = round2(due - paid);
         if (difference === 0) continue;
         const sequence = held.filter((l) => l.claimKey!.startsWith(adjustmentPrefix)).length + 1;
+        if (difference < 0) {
+          // Sprint B3: a lower salary for a period already paid is an overpayment. It is proposed
+          // for recovery and shown; nothing is deducted until a person with the authority approves.
+          const subjectKey = `${adjustmentPrefix}${sequence}`;
+          confirmedRecoveries.push(subjectKey);
+          const outcome = await resolveWageRecovery(this.prisma, {
+            subjectKey,
+            kind: 'SALARY',
+            employeeId,
+            amount: -difference,
+            reason: `Salary for ${period.label} (${dateToIsoDate(period.periodStart)} – ${dateToIsoDate(period.periodEnd)}) is now £${due.toFixed(2)}; £${paid.toFixed(2)} was paid.`,
+            originalReference: `£${paid.toFixed(2)} paid as salary by closed UK payroll run(s) for ${period.label}.`,
+            runId,
+            userId,
+          });
+          if (outcome !== 'APPLY') {
+            if (outcome === 'HOLD') {
+              draftLines.push({
+                ...salaryLine,
+                id: randomUUID(),
+                runId,
+                runEmployeeId: runEmployee.id,
+                employeeId,
+                lineType: 'SALARY_ADJUSTMENT',
+                description: `Not deducted — salary overpaid for ${period.label}: ${recoveryHeldMessage(-difference)}`,
+                amount: 0,
+                claimKey: null,
+                unpaidAmount: -difference,
+                unpaidReason: RECOVERY_NOT_AUTHORISED,
+              });
+            }
+            continue;
+          }
+        }
         draftLines.push({
           ...salaryLine,
           id: randomUUID(),
@@ -1680,6 +1722,7 @@ export class PayrollRunsService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await withdrawStaleRecoveries(tx, runId, confirmedRecoveries);
       await tx.ukPayrollInputLine.deleteMany({ where: { runId } });
       if (draftLines.length) {
         await tx.ukPayrollInputLine.createMany({
@@ -2031,13 +2074,18 @@ export class PayrollRunsService {
 
       // Every earning being closed must still be claimed by this run (a line loses its claim when
       // its run is cancelled; a reactivated run has to collect gross again first).
-      // A line held because the salary coverage is not decided is deliberately not claimed.
+      // A line held because the salary coverage is not decided, or showing a recovery that is not
+      // authorised, is deliberately not claimed. Every other line must hold its claim. (A reason of
+      // null has to be named: "not equal" alone would leave those lines out of the count.)
       const unclaimed = await tx.ukPayrollInputLine.count({
         where: {
           runId,
           isProvisional: false,
           claimKey: null,
-          NOT: { unpaidReason: UNPAID_COVERAGE_NOT_DECIDED },
+          OR: [
+            { unpaidReason: null },
+            { unpaidReason: { notIn: [UNPAID_COVERAGE_NOT_DECIDED, RECOVERY_NOT_AUTHORISED] } },
+          ],
         },
       });
       if (unclaimed > 0) {
@@ -2045,6 +2093,11 @@ export class PayrollRunsService {
           'Some earnings in this run are no longer held by it. Recalculate gross, then tax & NI, before closing.',
         );
       }
+      const closingClaims = await tx.ukPayrollInputLine.findMany({
+        where: { runId, claimKey: { startsWith: 'SALARY_ADJ:' } },
+        select: { claimKey: true },
+      });
+      await markRecoveriesApplied(tx, runId, closingClaims.map((l) => l.claimKey as string));
       const closed = await tx.ukPayrollRun.updateMany({
         where: { id: runId, status: 'STATUTORY_CALCULATED' },
         data: {

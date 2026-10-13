@@ -223,7 +223,7 @@ describe('WM-07 / EL-01: guaranteed hours top-up (synthetic agreement)', () => {
     expect((await held(run))[0].exceptionMessage).toMatch(/1 visit\(s\) of that week are not yet approved or rejected for pay/);
   });
 
-  it('a visit of a settled week approved late reduces the top-up already paid, once', async () => {
+  it('a visit of a settled week approved late: the overpaid top-up is proposed for recovery, not deducted (Sprint B3)', async () => {
     await guarantee();
     await work('2026-11-03', 6);
     const first = await newRun();
@@ -234,16 +234,16 @@ describe('WM-07 / EL-01: guaranteed hours top-up (synthetic agreement)', () => {
     await work('2026-11-05', 2); // approved after the lock
     const supplementary = await newRun();
     await calculate(supplementary);
-    const [adjustment] = await topUps(supplementary);
-    expect(Number(adjustment.amount)).toBe(-28);
-    expect(adjustment.claimKey).toBe(`GUARANTEE:${employeeId}:2026-11-02:2`);
-    expect(adjustment.description).toMatch(/£112\.00 already paid by an earlier run/);
-    // The late visit is paid as a visit; with the reduced top-up the week still totals the guarantee.
+    // No top-up line and no deduction: the late visit is paid, and the £28.00 overpaid is shown.
+    expect(await topUps(supplementary)).toEqual([]);
+    const [shown] = await held(supplementary);
+    expect(shown.sourceRef).toBe(`HELD:RECOVERY:GUARANTEE:${employeeId}:2026-11-02:2`);
     const lines = await t.prisma.payrollRunLine.findMany({ where: { payrollRunId: supplementary } });
-    expect(lines.reduce((sum, l) => sum + Number(l.amount), 0)).toBe(0);
-    await lock(supplementary);
-    const everything = await t.prisma.payrollRunLine.findMany({ where: { employeeId } });
-    expect(everything.reduce((sum, l) => sum + Number(l.amount), 0)).toBe(196);
+    expect(lines.reduce((sum, l) => sum + Number(l.amount), 0)).toBe(28);
+    const [recovery] = await t.prisma.wageRecovery.findMany({ where: { employeeId } });
+    expect(recovery).toMatchObject({ status: 'PROPOSED', kind: 'GUARANTEED_HOURS' });
+    expect(Number(recovery.amount)).toBe(28);
+    // Authorising it, and the week then totalling the guarantee, is covered in wage-recoveries.int-spec.
   });
 
   it('the top-up is not counted as pay for work when minimum wage is checked', async () => {

@@ -411,7 +411,7 @@ describe('salary in UK payroll gross (synthetic agreements)', () => {
       expect(amounts(await lines(december, employeeId), 'SALARY_ADJUSTMENT')).toEqual([]);
     });
 
-    it('a salary reduced for a paid period is recovered once, as a negative salary adjustment', async () => {
+    it('a salary reduced for a paid period is proposed for recovery, not deducted (Sprint B3; see wage-recoveries)', async () => {
       const employeeId = uuid();
       const original = await agree(employeeId);
       const november = await ukRun([employeeId]);
@@ -420,8 +420,10 @@ describe('salary in UK payroll gross (synthetic agreements)', () => {
       await agree(employeeId, { effectiveFrom: new Date('2026-11-01'), annualSalary: 21_600, ...approvedOn(new Date().toISOString()) });
       const december = await ukRun([employeeId], DECEMBER);
       await gross(december);
-      expect(amounts(await lines(december, employeeId), 'SALARY_ADJUSTMENT')).toEqual([-200]);
-      expect(await totals(december, employeeId)).toMatchObject({ salaryPay: 1_600, totalGross: 1_600 });
+      const shown = (await lines(december, employeeId)).filter((l) => l.lineType === 'SALARY_ADJUSTMENT');
+      expect(shown.map((l) => [Number(l.amount), Number(l.unpaidAmount), l.unpaidReason])).toEqual([[0, 200, 'RECOVERY_NOT_AUTHORISED']]);
+      expect(await totals(december, employeeId)).toMatchObject({ salaryPay: 1_800, totalGross: 1_800 });
+      expect(await prisma.wageRecovery.count({ where: { employeeId, status: 'PROPOSED' } })).toBe(1);
     });
 
     it('agreements that nobody changed after a period was paid never produce an adjustment', async () => {

@@ -125,16 +125,28 @@ describe('minimum wage by pay reference period', () => {
     expect(further.description).toMatch(/£240\.00 for 20h.*£7\.10 already topped up by an earlier run/);
     await lock(second);
 
-    // Higher pay later in the period lifts the whole period above the rate: the top-ups are taken back.
+    // Higher pay later in the period lifts the whole period above the rate. The top-ups already
+    // paid are then an overpayment: proposed for recovery and shown, never deducted by themselves
+    // (Sprint B3). Authorised, they are deducted once.
     await work('2026-11-17', 16, 20);
     const third = await newRun('2026-11-16', '2026-11-22');
     await calculate(third);
-    expect(await amounts(third)).toEqual([-14.2]);
+    expect(await amounts(third)).toEqual([]);
     const [position] = await assessments(third);
     expect(position).toMatchObject({ periodMinutes: 2400, compliant: true });
     expect(Number(position.periodPay)).toBe(560); // £14.00 an hour over the period
+    const [shown] = await t.prisma.payrollRunLine.findMany({ where: { payrollRunId: third, sourceType: 'HELD_EARNING' } });
+    expect(shown.sourceRef).toBe(`HELD:RECOVERY:NMW:${employeeId}:2026-11-01:3`);
+    const [recovery] = await t.prisma.wageRecovery.findMany({ where: { employeeId } });
+    expect(recovery).toMatchObject({ kind: 'NMW_TOP_UP', status: 'PROPOSED' });
+    expect(Number(recovery.amount)).toBe(14.2);
+
+    await t.prisma.wageRecovery.update({ where: { id: recovery.id }, data: { status: 'APPROVED', authorityBasis: 'Synthetic authority', decidedAt: new Date() } });
+    await calculate(third);
+    expect(await amounts(third)).toEqual([-14.2]);
     await lock(third);
     expect((await amounts()).reduce((a, b) => a + b, 0)).toBeCloseTo(0, 2);
+    expect((await t.prisma.wageRecovery.findUniqueOrThrow({ where: { id: recovery.id } })).status).toBe('APPLIED');
   });
 
   it('a supplementary run over a locked period adds no second top-up', async () => {

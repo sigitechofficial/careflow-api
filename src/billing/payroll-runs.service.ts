@@ -109,11 +109,19 @@ import {
 } from './nmw-period.util';
 import { DecidedTravel, decidedTravelForVisit } from './travel-interval.util';
 import { rolledUpAllowedFor } from '../payroll/leave.util';
+import {
+  WageRecoveryKind,
+  markRecoveriesApplied,
+  recoveryHeldMessage,
+  resolveWageRecovery,
+  withdrawStaleRecoveries,
+} from './wage-recovery.store';
 import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
   isClaimConflict,
   GUARANTEED_HOURS_SOURCE,
+  weekEarningClaimKey,
   weekEarningParts,
   weekEarningRef,
   HELD_EARNING_SOURCE,
@@ -259,6 +267,9 @@ export type PayrollRunRow = {
   nmwTopUp: string;
   exceptions: number;
 };
+
+/** Recoveries proposed or confirmed while one run is being calculated. */
+type RecoveryContext = { userId: string | null; confirmed: string[] };
 
 @Injectable()
 export class PayrollRunsService {
@@ -723,7 +734,7 @@ export class PayrollRunsService {
     try {
       for (let attempt = 1; ; attempt += 1) {
         try {
-          heldByOtherRuns = await this.calculateLines(run);
+          heldByOtherRuns = await this.calculateLines(run, userId);
           break;
         } catch (err) {
           if (!isClaimConflict(err) || attempt >= CLAIM_RETRIES) throw err;
@@ -763,12 +774,18 @@ export class PayrollRunsService {
   }
 
   /** Builds and writes the lines of a run. Returns how many approved visits another run already holds. */
-  private async calculateLines(run: {
-    id: string;
-    periodStart: Date;
-    periodEnd: Date;
-  }): Promise<number> {
+  private async calculateLines(
+    run: {
+      id: string;
+      periodStart: Date;
+      periodEnd: Date;
+    },
+    userId?: string,
+  ): Promise<number> {
     const id = run.id;
+    // Sprint B3: an overpayment found by this calculation is proposed for recovery and shown; it
+    // is deducted only once a person with the authority has approved it.
+    const recoveries: RecoveryContext = { userId: userId ?? null, confirmed: [] };
     const periodEnd = endOfBillingDate(run.periodEnd);
     const candidates = await this.prisma.visitReconciliation.findMany({
       where: {
@@ -1130,7 +1147,7 @@ export class PayrollRunsService {
 
     // Non-visit earnings: approved pay items, training / on-call activity, overtime premium and
     // rolled-up holiday pay. Each only appears when configured, so existing runs are unchanged.
-    const nonVisit = await this.buildNonVisitLines(run, reconciliations, lineData);
+    const nonVisit = await this.buildNonVisitLines(run, reconciliations, lineData, recoveries);
     lineData.push(...nonVisit.lines);
     for (const employeeId of nonVisit.employeeIds) employeeIds.add(employeeId);
     exceptionCount += nonVisit.problemCount;
@@ -1336,7 +1353,43 @@ export class PayrollRunsService {
             nmwAssessments.push(assessment);
             continue;
           }
-          if (position.topUpInRun !== 0) {
+          const nmwRef = weekEarningRef(id, employeeId, period.start, settled.length + 1);
+          let recoveryHeld = false;
+          if (position.topUpInRun < 0) {
+            // A top-up already paid that later pay in the period has overtaken.
+            const outcome = await resolveWageRecovery(this.prisma, {
+              subjectKey: weekEarningClaimKey('NMW', nmwRef)!,
+              kind: 'NMW_TOP_UP',
+              employeeId,
+              amount: -position.topUpInRun,
+              reason: `Minimum wage top-up for the pay reference period ${period.start} to ${period.end} is no longer needed in full: the period now needs £${position.topUpDue.toFixed(2)}.`,
+              originalReference: `£${topUpAlreadyPaid.toFixed(2)} topped up by locked pay run(s) for that period; £${position.topUpDue.toFixed(2)} is due on £${position.periodPay.toFixed(2)} for ${(position.periodMinutes / 60).toFixed(2)}h.`,
+              runId: id,
+              userId: recoveries.userId,
+            });
+            recoveries.confirmed.push(weekEarningClaimKey('NMW', nmwRef)!);
+            if (outcome !== 'APPLY') {
+              recoveryHeld = true;
+              if (outcome === 'HOLD') {
+                exceptionCount += 1;
+                lineData.push({
+                  payrollRunId: id,
+                  visitReconciliationId: null,
+                  employeeId,
+                  lineType: PayrollRunLineType.NMW_TOP_UP,
+                  sourceType: HELD_EARNING_SOURCE,
+                  sourceRef: heldEarningRef(`RECOVERY:${weekEarningClaimKey('NMW', nmwRef)}`),
+                  description: `Not deducted: minimum wage top-up overpaid for the pay reference period ${period.start} to ${period.end}`,
+                  minutes: null,
+                  amount: 0,
+                  payCardId: null,
+                  visitRef: null,
+                  exceptionMessage: recoveryHeldMessage(-position.topUpInRun),
+                });
+              }
+            }
+          }
+          if (position.topUpInRun !== 0 && !recoveryHeld) {
             const inPeriodDay = (visitId: string | null | undefined) => {
               const start = visitId ? reconStart.get(visitId) : null;
               if (!start) return false;
@@ -1361,7 +1414,7 @@ export class PayrollRunsService {
               employeeId,
               lineType: PayrollRunLineType.NMW_TOP_UP,
               sourceType: NMW_PERIOD_SOURCE,
-              sourceRef: weekEarningRef(id, employeeId, period.start, settled.length + 1),
+              sourceRef: nmwRef,
               description:
                 `NMW top-up — pay reference period ${period.start} to ${period.end}` +
                 (period.source === 'PAY_RUN_PERIOD' ? ' (the dates of this run: no payroll schedule period covers them)' : '') +
@@ -1438,6 +1491,7 @@ export class PayrollRunsService {
       await tx.payrollRunLine.deleteMany({ where: { payrollRunId: id } });
       await tx.nmwPeriodAssessment.deleteMany({ where: { payrollRunId: id } });
       if (nmwAssessments.length) await tx.nmwPeriodAssessment.createMany({ data: nmwAssessments });
+      await withdrawStaleRecoveries(tx, id, recoveries.confirmed);
       try {
         await (tx as { payComponent?: { deleteMany: Function } }).payComponent?.deleteMany({
           where: { payrollRunId: id },
@@ -1494,10 +1548,55 @@ export class PayrollRunsService {
    *     minutes is already in visit pay);
    *  4. rolled-up holiday pay (12.07%) when the card's holiday pay method is ROLLED_UP_12_07.
    */
+  /**
+   * An overpayment of a week's earning found by this calculation. Returns true when an approved
+   * recovery allows the negative line; otherwise nothing is deducted, and an unresolved proposal
+   * is shown on the run.
+   */
+  private async recoverOrHold(
+    recoveries: RecoveryContext,
+    hold: (input: { employeeId: string; subject: string; lineType: PayrollRunLineType; description: string; reason: string }) => void,
+    input: {
+      run: { id: string };
+      kind: WageRecoveryKind;
+      employeeId: string;
+      claimKey: string;
+      amount: number;
+      lineType: PayrollRunLineType;
+      what: string;
+      paid: number;
+      due: number;
+    },
+  ): Promise<boolean> {
+    recoveries.confirmed.push(input.claimKey);
+    const outcome = await resolveWageRecovery(this.prisma, {
+      subjectKey: input.claimKey,
+      kind: input.kind,
+      employeeId: input.employeeId,
+      amount: input.amount,
+      reason: `Overpaid ${input.what}: £${input.due.toFixed(2)} is now due, £${input.paid.toFixed(2)} was paid.`,
+      originalReference: `£${input.paid.toFixed(2)} paid by locked pay run(s) as ${input.what}.`,
+      runId: input.run.id,
+      userId: recoveries.userId,
+    });
+    if (outcome === 'APPLY') return true;
+    if (outcome === 'HOLD') {
+      hold({
+        employeeId: input.employeeId,
+        subject: `RECOVERY:${input.claimKey}`,
+        lineType: input.lineType,
+        description: `Not deducted: overpaid ${input.what}`,
+        reason: recoveryHeldMessage(input.amount),
+      });
+    }
+    return false;
+  }
+
   private async buildNonVisitLines(
     run: { id: string; periodStart: Date; periodEnd: Date },
     reconciliations: Array<{ id: string; approvedPayStart: Date | null }>,
     visitLines: Prisma.PayrollRunLineCreateManyInput[],
+    recoveries: RecoveryContext = { userId: null, confirmed: [] },
   ): Promise<{
     lines: Prisma.PayrollRunLineCreateManyInput[];
     employeeIds: Set<string>;
@@ -1867,6 +1966,23 @@ export class PayrollRunsService {
           const paidMinutes = settled.reduce((sum, l) => sum + (l.minutes ?? 0), 0);
           const amount = due.sub(paid);
           if (amount.isZero()) continue;
+          const overtimeRef = weekEarningRef(run.id, employeeId, weekKey, settled.length + 1);
+          if (
+            amount.isNegative() &&
+            !(await this.recoverOrHold(recoveries, hold, {
+              run,
+              kind: 'OVERTIME',
+              employeeId,
+              claimKey: weekEarningClaimKey('OVERTIME', overtimeRef)!,
+              amount: amount.neg().toNumber(),
+              lineType: PayrollRunLineType.OVERTIME,
+              what: `overtime premium for the week of ${weekKey}`,
+              paid: paid.toNumber(),
+              due: due.toNumber(),
+            }))
+          ) {
+            continue;
+          }
           const overtimeMinutes = week?.overtimeMinutes ?? 0;
           lines.push({
             payrollRunId: run.id,
@@ -1874,7 +1990,7 @@ export class PayrollRunsService {
             employeeId,
             lineType: PayrollRunLineType.OVERTIME,
             sourceType: 'OVERTIME',
-            sourceRef: weekEarningRef(run.id, employeeId, weekKey, settled.length + 1),
+            sourceRef: overtimeRef,
             description:
               `Overtime premium — week of ${weekKey}: ${hours(week?.workedMinutes ?? 0)} worked, threshold ${hours(rule.minimumMinutes)}, ${hours(overtimeMinutes)} × £${premium.toFixed(2)} (base pay already in visit pay)` +
               (settled.length ? `; £${paid.toFixed(2)} of it already paid by an earlier run` : ''),
@@ -2093,6 +2209,23 @@ export class PayrollRunsService {
             const due = payItemAmount(new Prisma.Decimal(shortfall).div(60), baseRate);
             const amount = due.sub(paid);
             if (amount.isZero()) continue;
+            const guaranteeRef = weekEarningRef(run.id, employeeId, weekKey, settled.length + 1);
+            if (
+              amount.isNegative() &&
+              !(await this.recoverOrHold(recoveries, hold, {
+                run,
+                kind: 'GUARANTEED_HOURS',
+                employeeId,
+                claimKey: weekEarningClaimKey('GUARANTEE', guaranteeRef)!,
+                amount: amount.neg().toNumber(),
+                lineType: 'GUARANTEED_HOURS' as PayrollRunLineType,
+                what: `guaranteed hours top-up for the week of ${weekKey}`,
+                paid: paid.toNumber(),
+                due: due.toNumber(),
+              }))
+            ) {
+              continue;
+            }
             const counted = [
               `${hours(visitMinutes)} visits`,
               ...(travel ? [`${hours(travel)} travel and waiting`] : []),
@@ -2104,7 +2237,7 @@ export class PayrollRunsService {
               employeeId,
               lineType: 'GUARANTEED_HOURS' as PayrollRunLineType,
               sourceType: GUARANTEED_HOURS_SOURCE,
-              sourceRef: weekEarningRef(run.id, employeeId, weekKey, settled.length + 1),
+              sourceRef: guaranteeRef,
               description:
                 `Guaranteed hours top-up — week of ${weekKey}: ${hours(week.guaranteedMinutes)} guaranteed` +
                 (week.daysInForce < 7 ? ` (${week.daysInForce} of 7 days)` : '') +
@@ -2350,6 +2483,11 @@ export class PayrollRunsService {
       if (locked.count !== 1) {
         throw new ConflictException('This payroll run was changed by someone else. Reload and try again.');
       }
+      await markRecoveriesApplied(
+        tx,
+        id,
+        run.lines.map((l) => l.claimKey).filter((key): key is string => !!key),
+      );
       if (reconIds.length) {
         // The figures being locked must still be the approved figures of each visit.
         const visits = await tx.visitReconciliation.findMany({

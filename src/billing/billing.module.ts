@@ -31,6 +31,8 @@ import { TravelIntervalsService } from './travel-intervals.service';
 import { TravelIntervalsController } from './travel-intervals.controller';
 import { VisitDisruptionsService } from './visit-disruptions.service';
 import { VisitDisruptionsController } from './visit-disruptions.controller';
+import { WageRecoveriesService } from './wage-recoveries.service';
+import { WageRecoveriesController } from './wage-recoveries.controller';
 import { BankHolidaysService } from './bank-holidays.service';
 import { MileageRatesController } from './mileage-rates.controller';
 import { MileageRatesService } from './mileage-rates.service';
@@ -53,6 +55,7 @@ import { MileageRatesService } from './mileage-rates.service';
     PayItemsController,
     TravelIntervalsController,
     VisitDisruptionsController,
+    WageRecoveriesController,
   ],
   providers: [
     PayCardsService,
@@ -71,6 +74,7 @@ import { MileageRatesService } from './mileage-rates.service';
     PayItemsService,
     TravelIntervalsService,
     VisitDisruptionsService,
+    WageRecoveriesService,
   ],
   exports: [
     PayCardsService,
