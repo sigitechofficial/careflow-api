@@ -8707,7 +8707,7 @@ model EmployeePayItem {
   amount                 Decimal   @db.Decimal(12, 2)
   reason                 String
   notes                  String?
-  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE | VISIT_CORRECTION | REVERSAL
+  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE | VISIT_CORRECTION | REVERSAL | MILEAGE_CORRECTION
   sourceType             String    @default("MANUAL")
   sourceId               String?   @db.Uuid
   /// Correction ledger (sourceType VISIT_CORRECTION): the locked pay line being corrected, the amount
@@ -8717,6 +8717,12 @@ model EmployeePayItem {
   correctedAmount          Decimal? @db.Decimal(12, 2)
   /// Reversal (sourceType REVERSAL): the pay item this one cancels out. One reversal per item.
   reversesPayItemId        String? @unique @db.Uuid
+  /// Mileage correction (sourceType MILEAGE_CORRECTION): `quantity` is the difference in miles and
+  /// `amount` the difference in reimbursement. A reimbursement is not wages: these say how much of
+  /// the difference is within HMRC's approved amount and how much above it (NOT_VERIFIED: unknown).
+  taxFreeAmount            Decimal? @db.Decimal(12, 2)
+  taxableAmount            Decimal? @db.Decimal(12, 2)
+  taxTreatment             String?
   payCardId              String?   @db.Uuid
   payCardVersion         Int?
   /// PENDING_APPROVAL | APPROVED | REJECTED | CANCELLED

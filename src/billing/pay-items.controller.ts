@@ -13,6 +13,7 @@ import {
   CreatePayItemDto,
   PayItemQueryDto,
   PayItemSuggestionQueryDto,
+  RecordMileageCorrectionDto,
   RecordVisitPayCorrectionDto,
   RejectPayItemDto,
   ReversePayItemDto,
@@ -66,6 +67,27 @@ export class PayItemsController {
   @ApiOperation({ summary: 'Original pay line, corrections and reversals of one visit' })
   visitCorrectionHistory(@Param('visitReconciliationId') visitReconciliationId: string) {
     return this.service.visitCorrectionHistory(visitReconciliationId);
+  }
+
+  @Post('mileage-corrections')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({
+    summary:
+      'Correct the miles of a visit in a locked payroll run: the difference is reimbursed or recovered as mileage, not as wages (second approval needed)',
+  })
+  recordMileageCorrection(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RecordMileageCorrectionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordMileageCorrection(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('mileage-corrections/:visitReconciliationId')
+  @Permissions('billing.payroll_runs.read')
+  @ApiOperation({ summary: 'Settled mileage, corrections and reversals of one visit' })
+  mileageCorrectionHistory(@Param('visitReconciliationId') visitReconciliationId: string) {
+    return this.service.mileageCorrectionHistory(visitReconciliationId);
   }
 
   @Post(':id/reverse')

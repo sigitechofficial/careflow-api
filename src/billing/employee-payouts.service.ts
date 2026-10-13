@@ -296,11 +296,11 @@ export class EmployeePayoutsService {
       // batches of this run already cover is taken off its own part.
       const already = committed.get(emp.employeeId) ?? { wages: 0, reimbursement: 0 };
       const wages = Math.max(0, pence(Number(emp.netPay) - already.wages));
-      const reimbursementAmount = Math.max(
-        0,
-        pence(Number(emp.reimbursementPayable) - already.reimbursement),
-      );
+      // A mileage correction can make this negative (a recovery): it then comes off the payment.
+      const reimbursementAmount = pence(Number(emp.reimbursementPayable) - already.reimbursement);
       const amount = pence(wages + reimbursementAmount);
+      // A recovery larger than the net pay is not turned into a payment of nothing: it is left
+      // outstanding and shows in the reimbursement reconciliation.
       if (amount <= 0) continue;
       lineInputs.push({
         employeeId: emp.employeeId,
@@ -724,6 +724,71 @@ export class EmployeePayoutsService {
       map.set(employeeId, sum.wages + sum.reimbursement);
     }
     return map;
+  }
+
+  /**
+   * D-20: expenses of a UK payroll run calculated before reimbursements were paid through payouts
+   * were recorded but never paid by this system. Nothing releases them automatically. A person
+   * with the payout approval power, having checked that they were not paid another way, releases
+   * one employee's amount with a reason; the next payout batch for that run then carries it once.
+   */
+  async releaseHistoricReimbursement(
+    userId: string,
+    runEmployeeId: string,
+    reason: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const row = await this.prisma.ukPayrollRunEmployee.findUnique({
+      where: { id: runEmployeeId },
+      select: {
+        id: true,
+        employeeId: true,
+        expenseTotal: true,
+        reimbursementPayable: true,
+        run: { select: { id: true, status: true, label: true } },
+      },
+    });
+    if (!row) throw new NotFoundException('UK payroll run employee not found');
+    if (
+      !PAYOUT_ELIGIBLE_UK_RUN_STATUSES.includes(
+        row.run.status as (typeof PAYOUT_ELIGIBLE_UK_RUN_STATUSES)[number],
+      )
+    ) {
+      throw new BadRequestException('Only expenses of a closed UK payroll run can be released for payment.');
+    }
+    if (Number(row.expenseTotal) <= 0) {
+      throw new BadRequestException('This employee has no expenses recorded on that run.');
+    }
+    if (Number(row.reimbursementPayable) !== 0) {
+      throw new BadRequestException('The expenses of this employee on that run are already payable through payouts.');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const released = await tx.ukPayrollRunEmployee.updateMany({
+        where: { id: runEmployeeId, reimbursementPayable: 0 },
+        data: { reimbursementPayable: row.expenseTotal },
+      });
+      if (released.count !== 1) {
+        throw new ConflictException('These expenses were released by someone else. Reload and check.');
+      }
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.HISTORIC_REIMBURSEMENT_RELEASED,
+        recordType: 'UkPayrollRunEmployee',
+        recordId: runEmployeeId,
+        description: reason.trim(),
+        oldValues: { reimbursementPayable: '0.00' },
+        newValues: { reimbursementPayable: Number(row.expenseTotal).toFixed(2) },
+        metadata: { employeeId: row.employeeId, ukPayrollRunId: row.run.id, runLabel: row.run.label },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+    });
+    return {
+      message: `£${Number(row.expenseTotal).toFixed(2)} released. It will be in the next payout batch created for ${row.run.label}.`,
+      data: { runEmployeeId, ukPayrollRunId: row.run.id, released: Number(row.expenseTotal) },
+    };
   }
 
   /**

@@ -61,3 +61,12 @@ export class CreateEmployeePayoutBatchDto {
   @MaxLength(2000)
   notes?: string;
 }
+
+/** D-20: why expenses of an earlier UK run are being released for payment now. */
+export class ReleaseHistoricReimbursementDto {
+  @ApiProperty({ description: 'Who checked that these expenses were not paid another way, and how' })
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  reason!: string;
+}

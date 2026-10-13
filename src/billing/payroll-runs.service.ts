@@ -39,12 +39,14 @@ import { PayCardsService } from './billing-cards.service';
 import { classifyEvaluationFailure } from './pay-evaluation-failure.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import { calendarHoldForPay } from './holiday-calendar.store';
+import { MILEAGE_CORRECTION, mileageJourneysInTaxYear } from './mileage-ledger.store';
 import {
   PAY_ITEM_CONFIG,
   cardBaseHourlyRate,
   cardRuleOfType,
   isPayItemWageType,
   overtimePremiumPerHour,
+  payItemConfigOf,
   payItemAmount,
   rolledUpHolidayPay,
   roundPence,
@@ -53,7 +55,6 @@ import {
 } from './pay-items.util';
 import {
   calculateUkMileage,
-  milesOfMileageLine,
   type MileageVehicleType,
   pickMileageRates,
   ukTaxYearStartKey,
@@ -918,7 +919,12 @@ export class PayrollRunsService {
         if (miles > 0 && !mileageInOtherRuns.has(ytdKey)) {
           mileageInOtherRuns.set(
             ytdKey,
-            await this.mileageInOtherRuns(id, recon.employeeId, taxYearKey, timeZone),
+            await mileageJourneysInTaxYear(this.prisma, {
+              employeeId: recon.employeeId,
+              taxYearStartKey: taxYearKey,
+              timeZone,
+              excludeRunId: id,
+            }),
           );
         }
         // Miles before this journey, by the date of the journey (not by the date of the run).
@@ -1295,48 +1301,6 @@ export class PayrollRunsService {
   }
 
   /**
-   * TR-09: a carer's reimbursed journeys in a tax year that are in other approved or locked runs.
-   * Journeys are placed by the date they were made, so a run for an earlier period that is
-   * calculated late still sees the right running total.
-   */
-  private async mileageInOtherRuns(
-    runId: string,
-    employeeId: string,
-    taxYearStartKey: string,
-    timeZone: string,
-  ): Promise<Array<{ at: Date; miles: number }>> {
-    const nextYearKey = `${Number(taxYearStartKey.slice(0, 4)) + 1}-04-06`;
-    const lines = await this.prisma.payrollRunLine.findMany({
-      where: {
-        employeeId,
-        lineType: PayrollRunLineType.MILEAGE,
-        exceptionMessage: null,
-        payrollRunId: { not: runId },
-        payrollRun: {
-          status: {
-            in: [PayrollRunStatus.APPROVED, PayrollRunStatus.LOCKED, PayrollRunStatus.EXPORTED],
-          },
-        },
-        visitReconciliation: {
-          plannedStartDateTime: {
-            gte: operationalDayBounds(taxYearStartKey, timeZone).start,
-            lt: operationalDayBounds(nextYearKey, timeZone).start,
-          },
-        },
-      },
-      select: {
-        quantity: true,
-        description: true,
-        visitReconciliation: { select: { plannedStartDateTime: true } },
-      },
-    });
-    return lines.map((line) => ({
-      at: line.visitReconciliation!.plannedStartDateTime,
-      miles: milesOfMileageLine(line),
-    }));
-  }
-
-  /**
    * Non-visit earning lines for a visit pay run:
    *  1. approved pay items dated on/before the period end and not yet paid (backdated items sweep in);
    *  2. non-core activities marked "include in payroll" priced by the card's TRAINING / ON_CALL rate;
@@ -1446,7 +1410,8 @@ export class PayrollRunsService {
     );
     for (const item of items) {
       if (itemsHeldElsewhere.has(item.id)) continue;
-      if (!isPayItemWageType(item.wageTypeCode)) {
+      const config = payItemConfigOf(item.wageTypeCode);
+      if (!config) {
         hold({
           employeeId: item.employeeId,
           subject: `PAY_ITEM:${item.id}`,
@@ -1456,7 +1421,6 @@ export class PayrollRunsService {
         });
         continue;
       }
-      const config = PAY_ITEM_CONFIG[item.wageTypeCode];
       employeeIds.add(item.employeeId);
       lines.push({
         payrollRunId: run.id,
@@ -1466,7 +1430,16 @@ export class PayrollRunsService {
         sourceType: 'PAY_ITEM',
         sourceRef: item.id,
         employeePayItemId: item.id,
-        description: `${wageTypeNames.get(item.wageTypeCode) ?? item.wageTypeCode} (${item.workDate.toISOString().slice(0, 10)}) — ${item.reason}`,
+        description: `${wageTypeNames.get(item.wageTypeCode) ?? config.label ?? item.wageTypeCode} (${item.workDate.toISOString().slice(0, 10)}) — ${item.reason}`,
+        // A mileage correction is a reimbursement: its miles and tax treatment travel with it.
+        ...(item.wageTypeCode === MILEAGE_CORRECTION
+          ? {
+              quantity: item.quantity,
+              taxTreatment: item.taxTreatment ?? 'NOT_VERIFIED',
+              taxFreeAmount: item.taxFreeAmount,
+              taxableAmount: item.taxableAmount,
+            }
+          : {}),
         minutes:
           config.countsAsNmwHours && item.unit === 'HOUR' && item.quantity != null
             ? Math.round(Number(item.quantity) * 60)

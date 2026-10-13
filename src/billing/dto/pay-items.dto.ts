@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
   MinLength,
@@ -137,6 +138,26 @@ export class RecordVisitPayCorrectionDto {
   correctedAmount!: number;
 
   @ApiProperty({ description: 'Why the paid amount was wrong' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+}
+
+/** D-21: the miles a settled visit's journey should have had in total. */
+export class RecordMileageCorrectionDto {
+  @ApiProperty({ description: 'Visit reconciliation whose pay is already in a locked payroll run' })
+  @IsUUID()
+  visitReconciliationId!: string;
+
+  @ApiProperty({ description: 'Business miles the journey should have been reimbursed for in total' })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(2000)
+  correctedMiles!: number;
+
+  @ApiProperty({ description: 'Why the reimbursed miles were wrong' })
   @IsString()
   @MinLength(5)
   @MaxLength(500)

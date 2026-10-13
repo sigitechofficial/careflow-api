@@ -524,6 +524,22 @@ export class PayrollRunsService {
             reimbursementPayable: decimalNum(e.reimbursementPayable),
             expenseNotVerified: decimalNum(e.expenseNotVerified),
             totalPayable: round2(decimalNum(e.netPay) + decimalNum(e.reimbursementPayable)),
+            // The figures a payment is made of, kept apart (TR-13): wages that are taxed, reimbursement
+            // within HMRC's approved amount, reimbursement above it (taxed, and inside gross),
+            // reimbursement whose treatment nobody has verified, net wages and the total payable.
+            payBreakdown: {
+              grossTaxableWages: round2(
+                decimalNum(e.totalGross) -
+                  lines.filter((l) => l.lineType === 'MILEAGE_TAXABLE').reduce((sum, l) => sum + decimalNum(l.amount), 0),
+              ),
+              reimbursementTaxFree: round2(decimalNum(e.expenseTotal) - decimalNum(e.expenseNotVerified)),
+              reimbursementTaxableExcess: round2(
+                lines.filter((l) => l.lineType === 'MILEAGE_TAXABLE').reduce((sum, l) => sum + decimalNum(l.amount), 0),
+              ),
+              reimbursementNotVerified: decimalNum(e.expenseNotVerified),
+              netWages: decimalNum(e.netPay),
+              totalPayable: round2(decimalNum(e.netPay) + decimalNum(e.reimbursementPayable)),
+            },
             deductionTotal: decimalNum(e.deductionTotal),
             totalGross: decimalNum(e.totalGross),
             inputLineCount: e.inputLineCount,
@@ -1274,7 +1290,7 @@ export class PayrollRunsService {
           notVerified: isMileage && line.taxTreatment !== 'TAX_FREE' && line.taxTreatment !== 'PART_TAXABLE',
         });
       }
-      if (taxable > 0) {
+      if (taxable !== 0) {
         draftLines.push({
           ...base,
           id: randomUUID(),

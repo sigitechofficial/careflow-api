@@ -13,6 +13,7 @@ import {
   CancelEmployeePayoutBatchDto,
   CreateEmployeePayoutBatchDto,
   EmployeePayoutsQueryDto,
+  ReleaseHistoricReimbursementDto,
   SettleEmployeePayoutBatchDto,
 } from './dto/employee-payouts.dto';
 
@@ -48,6 +49,21 @@ export class EmployeePayoutsController {
   })
   reimbursements(@Query('ukPayrollRunId') ukPayrollRunId?: string) {
     return this.service.reimbursementReconciliation(ukPayrollRunId);
+  }
+
+  @Post('reimbursements/:runEmployeeId/release')
+  @Permissions('billing.employee_payouts.approve')
+  @ApiOperation({
+    summary:
+      'Release the expenses of an earlier UK run for payment, after finance has checked they were not paid another way (D-20)',
+  })
+  releaseHistoricReimbursement(
+    @CurrentUser() user: RequestUser,
+    @Param('runEmployeeId') runEmployeeId: string,
+    @Body() dto: ReleaseHistoricReimbursementDto,
+    @Req() req: Request,
+  ) {
+    return this.service.releaseHistoricReimbursement(user.id, runEmployeeId, dto.reason, getRequestAuditMeta(req));
   }
 
   @Delete()
