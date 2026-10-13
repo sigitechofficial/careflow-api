@@ -18,6 +18,7 @@ import {
   SubmitHmrcFpsDto,
 } from './dto/payroll.dto';
 import { PayrollHmrcSubmissionsService } from './payroll-hmrc-submissions.service';
+import type { NmwReviewOutcome } from '../billing/nmw-period.util';
 import { PayrollRunsService } from './payroll-runs.service';
 
 @ApiTags('UK Payroll — Runs')
@@ -249,7 +250,14 @@ export class PayrollRunsController {
     @Body() dto: ReviewNmwAssessmentDto,
     @Req() req: Request,
   ) {
-    return this.service.reviewNmwAssessment(user.id, id, assessmentId, dto.note, getRequestAuditMeta(req));
+    return this.service.reviewNmwAssessment(
+      user.id,
+      id,
+      assessmentId,
+      dto.note,
+      (dto.outcome as NmwReviewOutcome | undefined) ?? 'EVIDENCE_SUPPORTS_COMPLIANCE',
+      getRequestAuditMeta(req),
+    );
   }
 
   @Post(':id/close')

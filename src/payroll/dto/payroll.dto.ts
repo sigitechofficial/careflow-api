@@ -26,6 +26,7 @@ import {
   SALARY_ENTRY_PERIODS,
   SALARY_PRORATION_METHODS,
 } from '../salary.util';
+import { NMW_REVIEW_OUTCOMES } from '../../billing/nmw-period.util';
 
 export enum PayrollTaxYearStatusDto {
   DRAFT = 'DRAFT',
@@ -595,11 +596,19 @@ export class CreateEmployeePayAgreementDto {
 export class UpdateEmployeePayAgreementDto extends PartialType(CreateEmployeePayAgreementDto) {}
 
 export class ReviewNmwAssessmentDto {
-  @ApiProperty({ description: 'What was checked and what was found' })
+  @ApiProperty({ description: 'The facts the review rests on: what was checked, against what, and what it showed' })
   @IsString()
-  @MinLength(10)
+  @MinLength(20)
   @MaxLength(1000)
   note!: string;
+
+  @ApiPropertyOptional({
+    enum: NMW_REVIEW_OUTCOMES,
+    description: 'What the review found. A confirmed shortfall keeps the run from closing until pay is topped up or corrected.',
+  })
+  @IsOptional()
+  @IsIn(NMW_REVIEW_OUTCOMES as unknown as string[])
+  outcome?: string;
 }
 
 export class CancelUkPayrollRunDto {

@@ -169,7 +169,7 @@ describe('minimum wage for salaried hours work (UK payroll run)', () => {
       expect(detail.data.nmwAssessments).toEqual([expect.objectContaining({ issue: 'EXCESS_HOURS_NOT_VERIFIED', blocksClose: true, shortfall: 206.5, workedHours: 150 })]);
 
       await markStatutoryCalculated(t.prisma, run);
-      await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/1 minimum wage exception\(s\) on this run have not been reviewed/);
+      await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/1 minimum wage exception\(s\) on this run stop it being closed/);
 
       // The review is the checker's act, over HTTP with the closing power.
       const path = `/payroll/runs/${run}/nmw-assessments/${row?.id}/review`;
@@ -180,11 +180,13 @@ describe('minimum wage for salaried hours work (UK payroll run)', () => {
       await t.prisma.ukPayrollRun.update({ where: { id: run }, data: { createdById: makerWithPower.id } });
       expect((await post(makerWithPower, { note: 'Checked against the year so far' })).status).toBe(403); // created the run
       expect((await post(checker, { note: 'short' })).status).toBe(400);
+      expect((await post(checker, { note: 'Checked, it is fine' })).status).toBe(400); // not a statement of the facts
+      expect((await post(checker, { note: 'Checked against the year so far', outcome: 'WAIVED' })).status).toBe(400);
       const reviewed = await post(checker, { note: 'Synthetic: annual basic hours of 1,560 not exceeded; 1,180 worked to date' });
       expect(reviewed.status).toBe(201);
       await ukRuns.close(checker.id, run);
       const kept = await t.prisma.nmwPeriodAssessment.findUniqueOrThrow({ where: { id: row!.id } });
-      expect(kept).toMatchObject({ resolvedById: checker.id, issue: 'EXCESS_HOURS_NOT_VERIFIED', compliant: null });
+      expect(kept).toMatchObject({ resolvedById: checker.id, issue: 'EXCESS_HOURS_NOT_VERIFIED', compliant: null, reviewOutcome: 'EVIDENCE_SUPPORTS_COMPLIANCE' });
     });
 
     it('no contracted hours on the agreement: the minimum wage cannot be checked, and the run says so', async () => {
@@ -202,16 +204,125 @@ describe('minimum wage for salaried hours work (UK payroll run)', () => {
       await close(run);
     });
 
-    it('recalculating gross replaces the assessment, and with it an earlier review', async () => {
+    const FACTS = 'Synthetic: annual basic hours of 1,560 not exceeded; 1,180 worked to date';
+    /** £1,700.00 for 130 basic hours, 150 hours worked: up to £206.50 may be missing. */
+    const excessHoursRun = async () => {
       const employeeId = uuid();
-      await agree(employeeId, 24_000, { contractedHours: null });
+      await agree(employeeId, 20_400);
+      for (const day of ['02', '09', '16', '23', '27']) {
+        await createApprovedVisit(t.prisma, { employeeId, start: `2026-11-${day}T08:00:00Z`, minutes: 1800, amount: 420 });
+      }
       const run = await ukRun([employeeId]);
       await gross(run);
+      return { employeeId, run };
+    };
+    const shown = async (runId: string) =>
+      ((await ukRuns.getById(runId)) as { data: { nmwAssessments: Array<Record<string, unknown>> } }).data.nmwAssessments;
+
+    it('recalculating gross keeps a review while the figures are the same, and drops it when they change', async () => {
+      const { employeeId, run } = await excessHoursRun();
       const first = await assessment(run, employeeId);
-      await ukRuns.reviewNmwAssessment(checker.id, run, first!.id, 'Synthetic review of the earlier figures');
+      await ukRuns.reviewNmwAssessment(checker.id, run, first!.id, FACTS);
+      // Same pay, same hours: the review still stands, and says who made it.
       await gross(run);
-      expect(await assessment(run, employeeId)).toMatchObject({ issue: 'BASIC_HOURS_NOT_RECORDED', resolvedAt: null });
+      expect(await shown(run)).toEqual([
+        expect.objectContaining({ issue: 'EXCESS_HOURS_NOT_VERIFIED', reviewOutcome: 'EVIDENCE_SUPPORTS_COMPLIANCE', reviewNote: FACTS, blocksClose: false, canReview: false }),
+      ]);
+      expect((await shown(run))[0].reviewedByName).toMatch(/^Test User/);
+      // Another visit is approved: the review was of other figures, and no longer counts.
+      await createApprovedVisit(t.prisma, { employeeId, start: '2026-11-28T08:00:00Z', minutes: 600, amount: 140 });
+      await gross(run);
+      expect(await assessment(run, employeeId)).toMatchObject({ issue: 'EXCESS_HOURS_NOT_VERIFIED', periodMinutes: 9600, reviewOutcome: null, resolvedAt: null, resolvedById: null });
+      expect(await shown(run)).toEqual([expect.objectContaining({ blocksClose: true, canReview: true, reviewedByName: null })]);
       expect(await t.prisma.nmwPeriodAssessment.count({ where: { ukPayrollRunId: run } })).toBe(1);
+      await markStatutoryCalculated(t.prisma, run);
+      await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/minimum wage exception/);
+    });
+
+    it('a confirmed shortfall cannot be reviewed away: it stops the run until the pay is corrected', async () => {
+      const { employeeId, run } = await excessHoursRun();
+      const first = await assessment(run, employeeId);
+      const confirmed = await request(t.app.getHttpServer())
+        .post(`/payroll/runs/${run}/nmw-assessments/${first!.id}/review`)
+        .set(bearer(t.staffToken(checker.id)))
+        .send({ note: 'Synthetic: 1,640 hours worked this year against 1,560 basic hours', outcome: 'SHORTFALL_CONFIRMED' });
+      expect(confirmed.status).toBe(201);
+      expect(confirmed.body.message).toMatch(/cannot be closed until the pay is topped up or corrected/);
+      expect(await assessment(run, employeeId)).toMatchObject({ issue: 'SHORTFALL', compliant: false, reviewOutcome: 'SHORTFALL_CONFIRMED' });
+      expect(await shown(run)).toEqual([expect.objectContaining({ issue: 'SHORTFALL', shortfall: 206.5, blocksClose: true, canReview: false })]);
+      expect((await shown(run))[0].issueMessage).toMatch(/cannot be cleared by a review/);
+
+      // No review clears it, whoever makes it and whatever it says.
+      const other = await createStaffUser(t.prisma, { permissions: ['payroll.runs.read', 'payroll.runs.close', 'payroll.scope.organisation'] });
+      for (const outcome of ['EVIDENCE_SUPPORTS_COMPLIANCE', 'SHORTFALL_CONFIRMED'] as const) {
+        await expect(ukRuns.reviewNmwAssessment(other.id, run, first!.id, FACTS, outcome)).rejects.toThrow(/cannot be cleared by a review/);
+      }
+      await markStatutoryCalculated(t.prisma, run);
+      await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/1 confirmed shortfall\(s\): pay the top-up or correct the pay/);
+
+      // Calculating again on the same figures does not clear it either.
+      await gross(run);
+      const again = await assessment(run, employeeId);
+      expect(again).toMatchObject({ issue: 'SHORTFALL', compliant: false, reviewOutcome: 'SHORTFALL_CONFIRMED' });
+      await expect(ukRuns.reviewNmwAssessment(other.id, run, again!.id, FACTS)).rejects.toThrow(/cannot be cleared by a review/);
+
+      // The pay is corrected (£2,000.00 for the period: £13.33 an hour on all 150 hours): compliant.
+      await t.prisma.employeePayAgreement.updateMany({ where: { employeeId }, data: { annualSalary: 24_000 } });
+      await gross(run);
+      expect(await assessment(run, employeeId)).toMatchObject({ issue: null, compliant: true, reviewOutcome: null });
+      await close(run);
+      const audit = await t.prisma.auditLog.findMany({ where: { action: 'nmw_exception_reviewed' as never, recordId: first!.id }, select: { newValues: true } });
+      expect(audit.map((a) => (a.newValues as { outcome: string }).outcome)).toEqual(['SHORTFALL_CONFIRMED']);
+    });
+
+    it('figures that change after a shortfall was confirmed are reviewed afresh, and the reviewer is told', async () => {
+      const { employeeId, run } = await excessHoursRun();
+      const first = await assessment(run, employeeId);
+      await ukRuns.reviewNmwAssessment(checker.id, run, first!.id, 'Synthetic: 1,640 hours worked this year against 1,560 basic hours', 'SHORTFALL_CONFIRMED');
+      await t.prisma.employeePayAgreement.updateMany({ where: { employeeId }, data: { annualSalary: 21_600 } }); // £1,800.00: still below on 150 hours
+      await gross(run);
+      const next = await assessment(run, employeeId);
+      expect(next).toMatchObject({ issue: 'EXCESS_HOURS_NOT_VERIFIED', reviewOutcome: null });
+      expect(next?.note).toMatch(/A shortfall was confirmed on earlier figures, which have since changed: review again\./);
+      await markStatutoryCalculated(t.prisma, run);
+      await expect(ukRuns.close(checker.id, run)).rejects.toThrow(/minimum wage exception/);
+    });
+
+    it('there is nothing to review on a compliant salary or on one already topped up; both are shown', async () => {
+      const fine = uuid();
+      const low = uuid();
+      await agree(fine, 24_000);
+      await agree(low, 18_000);
+      const run = await ukRun([fine, low]);
+      await gross(run);
+      const rows = await shown(run);
+      expect(rows.find((r) => r.employeeId === fine)).toMatchObject({
+        periodStart: '2026-11-01',
+        periodEnd: '2026-11-30',
+        workType: 'SALARIED_HOURS',
+        category: 'AGE_21_AND_OVER',
+        requiredHourly: 12.71,
+        pay: 2000,
+        hours: 130,
+        topUp: 0,
+        compliant: true,
+        issue: null,
+        issueMessage: null,
+        blocksClose: false,
+        canReview: false,
+        reviewOutcome: null,
+      });
+      expect(rows.find((r) => r.employeeId === low)).toMatchObject({ pay: 1500, hours: 130, topUp: 152.3, compliant: false, issue: null, blocksClose: false, canReview: false });
+      for (const employeeId of [fine, low]) {
+        const row = await assessment(run, employeeId);
+        await expect(ukRuns.reviewNmwAssessment(checker.id, run, row!.id, FACTS)).rejects.toThrow(/nothing to review/);
+      }
+      await close(run);
+      // A closed run is history: nothing on it is reviewed or recalculated.
+      const row = await assessment(run, low);
+      await expect(ukRuns.reviewNmwAssessment(checker.id, run, row!.id, FACTS)).rejects.toThrow(/Only an open run/);
+      await expect(gross(run)).rejects.toThrow();
+      expect(await assessment(run, low)).toMatchObject({ id: row!.id });
     });
 
     it('a pay period longer than a month is not used as a pay reference period', async () => {

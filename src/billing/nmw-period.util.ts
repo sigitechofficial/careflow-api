@@ -36,8 +36,27 @@ export const NMW_ISSUE_MESSAGES: Record<string, string> = {
     'The pay agreement records no contracted weekly hours, so the basic hours the salary pays for are not known and the minimum wage cannot be checked.',
   EXCESS_HOURS_NOT_VERIFIED:
     'More hours were worked in the period than the basic hours of the salary. If the basic hours for the year have been exceeded, the extra hours must be paid at least the minimum wage: this has to be checked against the year so far.',
-  SHORTFALL: 'Pay for the period is below the minimum wage for the hours it covers.',
+  SHORTFALL:
+    'A shortfall against the minimum wage has been confirmed. It cannot be cleared by a review: pay the top-up or correct the pay, then calculate gross again.',
 };
+
+/** What a review of an assessment found (Sprint B4A). */
+export const NMW_REVIEW_OUTCOMES = ['EVIDENCE_SUPPORTS_COMPLIANCE', 'SHORTFALL_CONFIRMED'] as const;
+export type NmwReviewOutcome = (typeof NMW_REVIEW_OUTCOMES)[number];
+
+/**
+ * Whether an assessment stops its UK payroll run being closed. An issue stops it until a review
+ * finds, on stated facts, that the evidence supports compliance. A confirmed shortfall always
+ * stops it: only more pay (a top-up or a correction) and a new calculation can clear it.
+ */
+export function nmwBlocksClose(a: { issue: string | null; reviewOutcome: string | null }): boolean {
+  return !!a.issue && NMW_BLOCKING_ISSUES.includes(a.issue) && a.reviewOutcome !== 'EVIDENCE_SUPPORTS_COMPLIANCE';
+}
+
+/** Whether a review may be recorded: there is an open question, and it is not a confirmed shortfall. */
+export function nmwCanBeReviewed(a: { issue: string | null; reviewOutcome: string | null }): boolean {
+  return !!a.issue && a.issue !== 'SHORTFALL' && NMW_BLOCKING_ISSUES.includes(a.issue) && !a.reviewOutcome;
+}
 
 /** Issues that stop a UK payroll run being closed until someone with that power has reviewed them. */
 export const NMW_BLOCKING_ISSUES: readonly string[] = [

@@ -37,9 +37,12 @@ import { nmwHourlyRate } from '../billing/pay-compliance.util';
 import {
   NMW_BLOCKING_ISSUES,
   NMW_ISSUE_MESSAGES,
+  NmwReviewOutcome,
   assessSalariedHours,
   basicHoursOfPeriod,
   isWithinOneMonth,
+  nmwBlocksClose,
+  nmwCanBeReviewed,
   nmwCategoryForPeriod,
   nmwTreatment,
 } from '../billing/nmw-period.util';
@@ -634,13 +637,12 @@ export class PayrollRunsService {
         }),
         // Sprint B3: minimum wage assessments made by this run (salaried hours work).
         nmwAssessments: (
-          await this.prisma.nmwPeriodAssessment.findMany({
-            where: { ukPayrollRunId: id },
-            orderBy: { employeeId: 'asc' },
-          })
+          await this.nmwAssessmentsWithReviewers(id)
         ).map((a) => ({
           id: a.id,
           employeeId: a.employeeId,
+          periodStart: dateToIsoDate(a.periodStart),
+          periodEnd: dateToIsoDate(a.periodEnd),
           workType: a.workType,
           category: a.category,
           requiredHourly: Number(a.requiredHourly),
@@ -651,9 +653,14 @@ export class PayrollRunsService {
           compliant: a.compliant,
           issue: a.issue,
           shortfall: a.shortfall == null ? null : Number(a.shortfall),
-          blocksClose: !!a.issue && NMW_BLOCKING_ISSUES.includes(a.issue) && !a.resolvedAt,
-          resolvedAt: a.resolvedAt?.toISOString() ?? null,
-          resolutionNote: a.resolutionNote,
+          issueMessage: a.issue ? (NMW_ISSUE_MESSAGES[a.issue] ?? null) : null,
+          blocksClose: nmwBlocksClose(a),
+          canReview: nmwCanBeReviewed(a),
+          // The review, if one was recorded: what it found, by whom, and the facts it rests on.
+          reviewOutcome: a.reviewOutcome,
+          reviewedAt: a.resolvedAt?.toISOString() ?? null,
+          reviewedByName: a.reviewedByName,
+          reviewNote: a.resolutionNote,
           note: a.note,
         })),
         phaseNote:
@@ -1664,11 +1671,13 @@ export class PayrollRunsService {
             amount: -difference,
             reason: `Salary for ${period.label} (${dateToIsoDate(period.periodStart)} – ${dateToIsoDate(period.periodEnd)}) is now £${due.toFixed(2)}; £${paid.toFixed(2)} was paid.`,
             originalReference: `£${paid.toFixed(2)} paid as salary by closed UK payroll run(s) for ${period.label}.`,
+            paidAmount: paid,
+            dueAmount: due,
             runId,
             userId,
           });
           if (outcome !== 'APPLY') {
-            if (outcome === 'HOLD') {
+            if (outcome !== 'WRITTEN_OFF') {
               draftLines.push({
                 ...salaryLine,
                 id: randomUUID(),
@@ -1676,7 +1685,7 @@ export class PayrollRunsService {
                 runEmployeeId: runEmployee.id,
                 employeeId,
                 lineType: 'SALARY_ADJUSTMENT',
-                description: `Not deducted — salary overpaid for ${period.label}: ${recoveryHeldMessage(-difference)}`,
+                description: `Not deducted — salary overpaid for ${period.label}: ${recoveryHeldMessage(-difference, outcome)}`,
                 amount: 0,
                 claimKey: null,
                 unpaidAmount: -difference,
@@ -1891,7 +1900,41 @@ export class PayrollRunsService {
 
     await this.prisma.$transaction(async (tx) => {
       await withdrawStaleRecoveries(tx, runId, confirmedRecoveries);
-      // Recalculating replaces the assessments, and with them any review of an earlier figure.
+      // Recalculating replaces the assessments. A review stays only where the evidence it looked
+      // at is exactly the same (pay, hours, rate, top-up) and there is still a question; any
+      // change in the figures invalidates it, and a confirmed shortfall stays confirmed.
+      const earlier = await tx.nmwPeriodAssessment.findMany({
+        where: { ukPayrollRunId: runId, reviewOutcome: { not: null } },
+      });
+      for (const next of nmwAssessments) {
+        const before = earlier.find(
+          (e) => e.employeeId === next.employeeId && e.periodStart.getTime() === (next.periodStart as Date).getTime(),
+        );
+        const sameEvidence =
+          !!before &&
+          !!next.issue &&
+          Number(before.eligiblePay) === Number(next.eligiblePay) &&
+          before.minutes === next.minutes &&
+          before.periodMinutes === next.periodMinutes &&
+          Number(before.requiredHourly) === Number(next.requiredHourly) &&
+          Number(before.topUpInRun) === Number(next.topUpInRun);
+        if (!before) continue;
+        if (!sameEvidence) {
+          // The next reviewer is told that a shortfall was confirmed on the figures as they were.
+          if (before.reviewOutcome === 'SHORTFALL_CONFIRMED' && next.issue) {
+            next.note = `${next.note} A shortfall was confirmed on earlier figures, which have since changed: review again.`;
+          }
+          continue;
+        }
+        next.reviewOutcome = before.reviewOutcome;
+        next.resolvedById = before.resolvedById;
+        next.resolvedAt = before.resolvedAt;
+        next.resolutionNote = before.resolutionNote;
+        if (before.reviewOutcome === 'SHORTFALL_CONFIRMED') {
+          next.issue = 'SHORTFALL';
+          next.compliant = false;
+        }
+      }
       await tx.nmwPeriodAssessment.deleteMany({ where: { ukPayrollRunId: runId } });
       if (nmwAssessments.length) await tx.nmwPeriodAssessment.createMany({ data: nmwAssessments });
       await tx.ukPayrollInputLine.deleteMany({ where: { runId } });
@@ -2167,16 +2210,41 @@ export class PayrollRunsService {
     return this.getById(runId);
   }
 
+  private async nmwAssessmentsWithReviewers(runId: string) {
+    const rows = await this.prisma.nmwPeriodAssessment.findMany({
+      where: { ukPayrollRunId: runId },
+      orderBy: { employeeId: 'asc' },
+    });
+    const reviewerIds = [...new Set(rows.map((r) => r.resolvedById).filter((v): v is string => !!v))];
+    const reviewers = reviewerIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: reviewerIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const name = new Map(
+      reviewers.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    return rows.map((r) => ({ ...r, reviewedByName: r.resolvedById ? (name.get(r.resolvedById) ?? null) : null }));
+  }
+
   /**
-   * A person with the power to close payroll records that a minimum wage exception of this run
-   * has been looked into, and what was found. It is the checker's act: not the person who
-   * created the run. Recalculating gross clears it, because the figures may have changed.
+   * A person with the power to close payroll records what looking into a minimum wage exception
+   * of this run found, and the facts it rests on. It is the checker's act: not the person who
+   * created the run.
+   *
+   * A review answers a question of fact (the basic hours were not recorded; more hours were worked
+   * than the salary pays for). It can find that the evidence supports compliance, which lets the
+   * run close, or that there is a shortfall. A confirmed shortfall is not something a review can
+   * clear: it needs a top-up or a correction and a new calculation. Recalculating gross keeps a
+   * review only while the figures it looked at are unchanged.
    */
   async reviewNmwAssessment(
     userId: string,
     runId: string,
     assessmentId: string,
     note: string,
+    outcome: NmwReviewOutcome = 'EVIDENCE_SUPPORTS_COMPLIANCE',
     meta?: RequestAuditMeta,
   ) {
     const run = await this.requireRun(runId);
@@ -2193,9 +2261,22 @@ export class PayrollRunsService {
     });
     if (!row) throw new NotFoundException('Minimum wage assessment not found on this run');
     if (!row.issue) throw new BadRequestException('This assessment has nothing to review.');
+    if (row.issue === 'SHORTFALL') {
+      throw new BadRequestException(NMW_ISSUE_MESSAGES.SHORTFALL);
+    }
+    if (!nmwCanBeReviewed(row)) {
+      throw new BadRequestException('This assessment has already been reviewed. Calculating gross again reopens it if the figures change.');
+    }
+    const confirmed = outcome === 'SHORTFALL_CONFIRMED';
     await this.prisma.nmwPeriodAssessment.update({
       where: { id: assessmentId },
-      data: { resolvedById: userId, resolvedAt: new Date(), resolutionNote: note.trim() },
+      data: {
+        reviewOutcome: outcome,
+        resolvedById: userId,
+        resolvedAt: new Date(),
+        resolutionNote: note.trim(),
+        ...(confirmed ? { issue: 'SHORTFALL', compliant: false } : {}),
+      },
     });
     await this.audit.logAudit({
       userId,
@@ -2204,12 +2285,18 @@ export class PayrollRunsService {
       recordType: 'NmwPeriodAssessment',
       recordId: assessmentId,
       description: note.trim(),
-      newValues: { issue: row.issue, shortfall: row.shortfall == null ? null : Number(row.shortfall) },
+      oldValues: { issue: row.issue },
+      newValues: { outcome, issue: confirmed ? 'SHORTFALL' : row.issue, shortfall: row.shortfall == null ? null : Number(row.shortfall) },
       metadata: { ukPayrollRunId: runId, employeeId: row.employeeId },
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
-    return { message: 'Review recorded.', data: { id: assessmentId, issue: row.issue } };
+    return {
+      message: confirmed
+        ? 'Shortfall confirmed. The run cannot be closed until the pay is topped up or corrected and gross is calculated again.'
+        : 'Review recorded: the evidence supports compliance.',
+      data: { id: assessmentId, issue: confirmed ? 'SHORTFALL' : row.issue, reviewOutcome: outcome },
+    };
   }
 
   async close(userId: string, runId: string, meta?: RequestAuditMeta) {
@@ -2217,12 +2304,18 @@ export class PayrollRunsService {
     if (!OPEN_RUN_STATUSES.includes(run.status as (typeof OPEN_RUN_STATUSES)[number])) {
       throw new BadRequestException('Only open runs can be closed');
     }
-    const unreviewed = await this.prisma.nmwPeriodAssessment.count({
-      where: { ukPayrollRunId: runId, issue: { in: [...NMW_BLOCKING_ISSUES] }, resolvedAt: null },
-    });
-    if (unreviewed > 0) {
+    const blocking = (
+      await this.prisma.nmwPeriodAssessment.findMany({
+        where: { ukPayrollRunId: runId, issue: { in: [...NMW_BLOCKING_ISSUES] } },
+        select: { issue: true, reviewOutcome: true },
+      })
+    ).filter(nmwBlocksClose);
+    if (blocking.length > 0) {
+      const confirmed = blocking.filter((a) => a.issue === 'SHORTFALL').length;
       throw new BadRequestException(
-        `${unreviewed} minimum wage exception(s) on this run have not been reviewed. Put the cause right and recalculate gross, or have a person with the power to close payroll review each one with a reason.`,
+        `${blocking.length} minimum wage exception(s) on this run stop it being closed` +
+          (confirmed ? ` (${confirmed} confirmed shortfall(s): pay the top-up or correct the pay)` : '') +
+          `. Put the cause right and recalculate gross, or have a person with the power to close payroll review each open one with the facts it rests on.`,
       );
     }
     if (run.status !== 'STATUTORY_CALCULATED' || !run.statutoryCalculatedAt) {
