@@ -292,8 +292,10 @@ export class PayItemsService {
     userId: string,
     dto: { visitReconciliationId: string; correctedAmount: number; reason: string },
     meta?: RequestAuditMeta,
+    /** The caller's transaction, when the correction is part of a larger change that must be saved with it. */
+    outer?: Prisma.TransactionClient,
   ) {
-    const visit = await this.prisma.visitReconciliation.findUnique({
+    const visit = await (outer ?? this.prisma).visitReconciliation.findUnique({
       where: { id: dto.visitReconciliationId },
       select: {
         id: true,
@@ -317,7 +319,7 @@ export class PayItemsService {
     if (!visit.employeeId) throw new BadRequestException('This visit has no carer to pay.');
     const employeeId = visit.employeeId;
 
-    const item = await this.prisma.$transaction(async (tx) => {
+    const record = async (tx: Prisma.TransactionClient) => {
       // One correction at a time per visit, also when two people submit together.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-correction:${visit.id}`}))`;
 
@@ -395,7 +397,8 @@ export class PayItemsService {
         userAgent: meta?.userAgent ?? undefined,
       });
       return created;
-    });
+    };
+    const item = outer ? await record(outer) : await this.prisma.$transaction(record);
     return {
       message:
         Number(item.amount) > 0

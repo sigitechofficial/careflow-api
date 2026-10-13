@@ -358,6 +358,17 @@ export class VisitReconciliationsService {
     private readonly payItems: PayItemsService,
   ) {}
 
+  /** The open transaction behind a client, to pass on to an audit entry; none for the plain client. */
+  private txOf(db: DbClient): Prisma.TransactionClient | undefined {
+    return db === this.prisma ? undefined : (db as Prisma.TransactionClient);
+  }
+
+  /** Runs work in the transaction that is already open, or in one of its own. */
+  private atomic<T>(db: DbClient, work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    const open = this.txOf(db);
+    return open ? work(open) : this.prisma.$transaction(work, DECISION_TRANSACTION);
+  }
+
   private client(tx?: Prisma.TransactionClient): DbClient {
     return tx ?? this.prisma;
   }
@@ -724,19 +735,28 @@ export class VisitReconciliationsService {
         continue;
       }
       const note = 'Superseded: this carer was removed from the visit after it was completed.';
-      await db.visitReconciliation.update({
-        where: { id: row.id },
-        data: {
-          status: VisitReconciliationStatus.REJECTED_FOR_PAY,
-          approvedAt: null,
-          approvedById: null,
-          approvalNotes: [row.approvalNotes, note].filter(Boolean).join('\n').slice(0, 2000),
-        },
-      });
-      await this.auditVisit(AuditAction.VISIT_RECONCILIATION_REJECTED, undefined, row, {
-        oldValues: { status: String(row.status) },
-        newValues: { status: VisitReconciliationStatus.REJECTED_FOR_PAY },
-        reason: note,
+      await this.atomic(db, async (tx) => {
+        await tx.visitReconciliation.update({
+          where: { id: row.id },
+          data: {
+            status: VisitReconciliationStatus.REJECTED_FOR_PAY,
+            approvedAt: null,
+            approvedById: null,
+            approvalNotes: [row.approvalNotes, note].filter(Boolean).join('\n').slice(0, 2000),
+          },
+        });
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_REJECTED,
+          undefined,
+          row,
+          {
+            oldValues: { status: String(row.status) },
+            newValues: { status: VisitReconciliationStatus.REJECTED_FOR_PAY },
+            reason: note,
+          },
+          undefined,
+          tx,
+        );
       });
     }
   }
@@ -1420,30 +1440,34 @@ export class VisitReconciliationsService {
         dto.passengerMiles != null ? dto.passengerMiles : null;
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
-    await this.evaluateInternal(this.prisma, id);
-    if (touchesPay) {
-      const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id } });
-      await this.auditVisit(
-        AuditAction.VISIT_RECONCILIATION_UPDATED,
-        userId,
-        existing,
-        {
-          oldValues: {
-            ...VisitReconciliationsService.paySnapshotOf(existing),
-            travelMiles: existing.travelMiles?.toString() ?? null,
-            travelMinutes: existing.travelMinutes,
+    // The change, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.evaluateInternal(tx, id);
+      if (touchesPay) {
+        const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_UPDATED,
+          userId,
+          existing,
+          {
+            oldValues: {
+              ...VisitReconciliationsService.paySnapshotOf(existing),
+              travelMiles: existing.travelMiles?.toString() ?? null,
+              travelMinutes: existing.travelMinutes,
+            },
+            newValues: {
+              ...VisitReconciliationsService.paySnapshotOf(after),
+              travelMiles: after.travelMiles?.toString() ?? null,
+              travelMinutes: after.travelMinutes,
+            },
+            reason: dto.approvalNotes,
           },
-          newValues: {
-            ...VisitReconciliationsService.paySnapshotOf(after),
-            travelMiles: after.travelMiles?.toString() ?? null,
-            travelMinutes: after.travelMinutes,
-          },
-          reason: dto.approvalNotes,
-        },
-        meta,
-      );
-    }
+          meta,
+          tx,
+        );
+      }
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1503,18 +1527,22 @@ export class VisitReconciliationsService {
       }
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
-    await this.auditVisit(
-      AuditAction.VISIT_RECONCILIATION_PAYABLE_AMOUNT_SET,
-      userId,
-      existing,
-      {
-        oldValues: VisitReconciliationsService.paySnapshotOf(existing),
-        newValues: { payableAmount: amount.toFixed(2), status: String(data.status ?? existing.status) },
-        reason: note,
-      },
-      meta,
-    );
+    // The change, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_PAYABLE_AMOUNT_SET,
+        userId,
+        existing,
+        {
+          oldValues: VisitReconciliationsService.paySnapshotOf(existing),
+          newValues: { payableAmount: amount.toFixed(2), status: String(data.status ?? existing.status) },
+          reason: note,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -2246,6 +2274,52 @@ export class VisitReconciliationsService {
    * Manual carer/client amount overrides are preserved (only card-derived amounts reprice).
    */
   /** `reason` comes from the user-triggered action and is audited; internal re-runs omit it. */
+  /**
+   * Reprices one visit for a recalculation a person asked for. The new amounts and the audit entry
+   * of the change are one transaction; a visit whose amounts do not change gets no entry, so asking
+   * twice records nothing twice. A failure is kept as an open pay evaluation failure, as elsewhere.
+   */
+  private async recalculateAudited(
+    row: {
+      id: string;
+      visitRef: string;
+      employeeId: string | null;
+      payableAmount: Prisma.Decimal | null;
+      billableAmount: Prisma.Decimal | null;
+    },
+    reason: string,
+    userId?: string,
+    meta?: { ipAddress?: string | null; userAgent?: string | null },
+  ): Promise<boolean> {
+    const amount = (v: Prisma.Decimal | null | undefined) => (v == null ? null : Number(v).toFixed(2));
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.evaluateInternal(tx, row.id, { forceRecalculateAmounts: true });
+        const next = await tx.visitReconciliation.findUnique({
+          where: { id: row.id },
+          select: { payableAmount: true, billableAmount: true },
+        });
+        if (!next) return;
+        const before = { payableAmount: amount(row.payableAmount), billableAmount: amount(row.billableAmount) };
+        const after = { payableAmount: amount(next.payableAmount), billableAmount: amount(next.billableAmount) };
+        if (before.payableAmount === after.payableAmount && before.billableAmount === after.billableAmount) return;
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_AMOUNTS_RECALCULATED,
+          userId,
+          row,
+          { oldValues: before, newValues: after, reason },
+          meta ? { ipAddress: meta.ipAddress ?? null, userAgent: meta.userAgent ?? null } : undefined,
+          tx,
+        );
+      }, DECISION_TRANSACTION);
+      await this.closeEvaluationFailure('EVALUATE', row.id, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('EVALUATE', row.id, err);
+      return false;
+    }
+  }
+
   async recalculateAmounts(
     dto: Omit<RecalculateVisitReconciliationsDto, 'reason'> & { reason?: string },
     userId?: string,
@@ -2281,9 +2355,14 @@ export class VisitReconciliationsService {
       take: RECALC_LIMIT,
     });
 
+    const reason = dto.reason?.trim();
     const failedIds = new Set<string>();
     for (const row of pending) {
-      const ok = await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      // Asked for by a person (a reason is given): each visit whose amounts change gets its own
+      // audit entry, saved with the change. Without a reason this is a system refresh, as before.
+      const ok = reason
+        ? await this.recalculateAudited(row, reason, userId, meta)
+        : await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
       if (!ok) failedIds.add(row.id);
     }
     const failed = failedIds.size;
@@ -2372,7 +2451,7 @@ export class VisitReconciliationsService {
       },
     };
 
-    const reason = dto.reason?.trim();
+    // The summary of the batch. Each changed visit already has its own entry, saved with its change.
     if (reason) {
       await this.auditLogs.logAudit({
         userId,
@@ -2763,131 +2842,143 @@ export class VisitReconciliationsService {
         })
       ).map((r) => [r.id, VisitReconciliationsService.paySnapshotOf(r)]),
     );
-    await this.ensureForVisit(scheduledVisitId);
-    const rows = await this.prisma.visitReconciliation.findMany({
-      where: {
-        scheduledVisitId,
-        ...(input.jobAllocationId ? { jobAllocationId: input.jobAllocationId } : {}),
-        status: {
-          notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
+    // One transaction for the visit: the refreshed rows, the repriced pay or the correction
+    // recorded for settled pay, the answered flags and the audit entries are saved together or
+    // not at all. The corrected attendance times themselves were recorded before this and stay.
+    return this.prisma.$transaction(async (tx) => {
+      await this.ensureForVisit(scheduledVisitId, tx);
+      const rows = await tx.visitReconciliation.findMany({
+        where: {
+          scheduledVisitId,
+          ...(input.jobAllocationId ? { jobAllocationId: input.jobAllocationId } : {}),
+          status: {
+            notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
+          },
         },
-      },
-    });
-    const results: Array<{
-      reconciliationId: string;
-      visitRef: string;
-      outcome: 'REPRICED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
-      message: string;
-      payableBefore: string | null;
-      payableAfter: string | null;
-    }> = [];
+      });
+      const results: Array<{
+        reconciliationId: string;
+        visitRef: string;
+        outcome: 'REPRICED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
+        message: string;
+        payableBefore: string | null;
+        payableAfter: string | null;
+      }> = [];
 
-    for (const row of rows) {
-      const before = payBefore.get(row.id) ?? VisitReconciliationsService.paySnapshotOf(row);
-      let outcome: (typeof results)[number]['outcome'];
-      let message: string;
-      let payableAfter = before.payableAmount;
+      for (const row of rows) {
+        const before = payBefore.get(row.id) ?? VisitReconciliationsService.paySnapshotOf(row);
+        let outcome: (typeof results)[number]['outcome'];
+        let message: string;
+        let payableAfter = before.payableAmount;
 
-      if (!isPaySettled(row)) {
-        if (hasManualPayableOverride(row)) {
-          outcome = 'MANUAL_AMOUNT_KEPT';
-          message = 'Times updated. The payable amount was entered by finance and was not changed.';
+        if (!isPaySettled(row)) {
+          if (hasManualPayableOverride(row)) {
+            outcome = 'MANUAL_AMOUNT_KEPT';
+            message = 'Times updated. The payable amount was entered by finance and was not changed.';
+          } else {
+            // Re-derive the pay window from the corrected times, then reprice carer pay only.
+            await tx.visitReconciliation.update({
+              where: { id: row.id },
+              data: { approvedPayStart: null, approvedPayEnd: null },
+            });
+            await this.evaluateInternal(tx, row.id, { forceRecalculatePay: true });
+            const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+            payableAfter = after.payableAmount != null ? String(after.payableAmount) : null;
+            outcome = 'REPRICED';
+            message = 'Times updated and carer pay recalculated.';
+          }
+        } else if (hasManualPayableOverride(row)) {
+          outcome = 'NO_CORRECTION';
+          message = 'This visit was paid on an amount entered by finance. Record a pay correction by hand if it should change.';
         } else {
-          // Re-derive the pay window from the corrected times, then reprice carer pay only.
-          await this.prisma.visitReconciliation.update({
-            where: { id: row.id },
-            data: { approvedPayStart: null, approvedPayEnd: null },
-          });
-          await this.evaluateInternal(this.prisma, row.id, { forceRecalculatePay: true });
-          const after = await this.prisma.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
-          payableAfter = after.payableAmount != null ? String(after.payableAmount) : null;
-          outcome = 'REPRICED';
-          message = 'Times updated and carer pay recalculated.';
-        }
-      } else if (hasManualPayableOverride(row)) {
-        outcome = 'NO_CORRECTION';
-        message = 'This visit was paid on an amount entered by finance. Record a pay correction by hand if it should change.';
-      } else {
-        const corrected = await this.wouldBeCarerPay(row);
-        if (corrected == null) {
-          outcome = 'REVIEW_NEEDED';
-          message = 'This visit is already paid and its corrected pay could not be priced. Record a pay correction by hand.';
-        } else {
-          try {
-            const created = await this.payItems.recordVisitCorrection(
-              input.userId,
-              {
-                visitReconciliationId: row.id,
-                correctedAmount: corrected,
-                reason: `Attendance corrected: ${input.reason}`.slice(0, 400),
-              },
-              meta,
-            );
-            payableAfter = corrected.toFixed(2);
-            outcome = 'CORRECTION_RECORDED';
-            message = created.message;
-          } catch (err) {
-            if (!(err instanceof BadRequestException)) throw err;
-            outcome = 'NO_CORRECTION';
-            message = err.message;
+          const corrected = await this.wouldBeCarerPay(row);
+          if (corrected == null) {
+            outcome = 'REVIEW_NEEDED';
+            message = 'This visit is already paid and its corrected pay could not be priced. Record a pay correction by hand.';
+          } else {
+            try {
+              const created = await this.payItems.recordVisitCorrection(
+                input.userId,
+                {
+                  visitReconciliationId: row.id,
+                  correctedAmount: corrected,
+                  reason: `Attendance corrected: ${input.reason}`.slice(0, 400),
+                },
+                meta,
+                tx,
+              );
+              payableAfter = corrected.toFixed(2);
+              outcome = 'CORRECTION_RECORDED';
+              message = created.message;
+            } catch (err) {
+              if (!(err instanceof BadRequestException)) throw err;
+              outcome = 'NO_CORRECTION';
+              message = err.message;
+            }
           }
         }
-      }
 
-      if (isPaySettled(row)) {
-        // The office has looked at the changed times of a settled visit and the pay side is
-        // dealt with above (correction recorded, or none needed): the flag is answered (R-18).
-        const reviewed = await attendanceReviewState(this.prisma, row.scheduledJobId, row.employeeId);
-        await this.prisma.visitReconciliation.update({
-          where: { id: row.id },
-          data: {
-            approvedEvidence: evidenceFingerprint({
-              actualStart: row.actualStartDateTime,
-              actualEnd: row.actualEndDateTime,
-              needsReview: reviewed.reasons.length > 0,
-            }),
-            evidenceChangedReason: null,
-            evidenceChangedAt: null,
+        if (isPaySettled(row)) {
+          // The office has looked at the changed times of a settled visit and the pay side is
+          // dealt with above (correction recorded, or none needed): the flag is answered (R-18).
+          const reviewed = await attendanceReviewState(tx, row.scheduledJobId, row.employeeId);
+          await tx.visitReconciliation.update({
+            where: { id: row.id },
+            data: {
+              approvedEvidence: evidenceFingerprint({
+                actualStart: row.actualStartDateTime,
+                actualEnd: row.actualEndDateTime,
+                needsReview: reviewed.reasons.length > 0,
+              }),
+              evidenceChangedReason: null,
+              evidenceChangedAt: null,
+            },
+          });
+          await tx.financeException.deleteMany({
+            where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED },
+          });
+        }
+
+        await this.auditVisit(
+          AuditAction.VISIT_ATTENDANCE_TIMES_CORRECTED,
+          input.userId,
+          row,
+          {
+            oldValues: before,
+            newValues: {
+              outcome,
+              payableAmount: payableAfter,
+              actualStartDateTime: row.actualStartDateTime?.toISOString() ?? null,
+              actualEndDateTime: row.actualEndDateTime?.toISOString() ?? null,
+            },
+            reason: input.reason,
           },
-        });
-        await this.prisma.financeException.deleteMany({
-          where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED },
+          meta,
+          tx,
+        );
+        results.push({
+          reconciliationId: row.id,
+          visitRef: row.visitRef,
+          outcome,
+          message,
+          payableBefore: before.payableAmount,
+          payableAfter,
         });
       }
-
-      await this.auditVisit(
-        AuditAction.VISIT_ATTENDANCE_TIMES_CORRECTED,
-        input.userId,
-        row,
-        {
-          oldValues: before,
-          newValues: {
-            outcome,
-            payableAmount: payableAfter,
-            actualStartDateTime: row.actualStartDateTime?.toISOString() ?? null,
-            actualEndDateTime: row.actualEndDateTime?.toISOString() ?? null,
-          },
-          reason: input.reason,
-        },
-        meta,
-      );
-      results.push({
-        reconciliationId: row.id,
-        visitRef: row.visitRef,
-        outcome,
-        message,
-        payableBefore: before.payableAmount,
-        payableAfter,
-      });
-    }
-    return { data: results };
+      return { data: results };
+    }, DECISION_TRANSACTION);
   }
 
   private async evaluateInternal(
     db: DbClient,
     id: string,
     options?: { forceRecalculateAmounts?: boolean; forceRecalculatePay?: boolean },
-  ) {
+  ): Promise<void> {
+    // Everything an evaluation writes (amounts, exceptions, an approval it withdraws and the audit
+    // entry of that withdrawal) is saved together or not at all.
+    if (db === this.prisma) {
+      return this.prisma.$transaction((tx) => this.evaluateInternal(tx, id, options), DECISION_TRANSACTION);
+    }
     let row = await db.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
@@ -2997,7 +3088,7 @@ export class VisitReconciliationsService {
         },
         newValues: { outcome: evidenceOutcome, currentEvidence },
         reason: change,
-      });
+      }, undefined, this.txOf(db));
       row = await db.visitReconciliation.findUnique({ where: { id }, include: reconciliationInclude });
       if (!row) return;
     }
