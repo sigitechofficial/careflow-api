@@ -1,4 +1,4 @@
-import { isClaimConflict, payrollLineClaimKey } from './payroll-claim.util';
+import { isClaimConflict, payrollLineClaimKey, weekEarningParts, weekEarningRef } from './payroll-claim.util';
 
 describe('payrollLineClaimKey (SI-01)', () => {
   it('claims a visit per earning component', () => {
@@ -24,6 +24,17 @@ describe('payrollLineClaimKey (SI-01)', () => {
     expect(payrollLineClaimKey({ visitReconciliationId: 'r1', lineType: 'NMW_TOP_UP' })).toBeNull();
     expect(payrollLineClaimKey({ sourceType: 'OVERTIME', sourceRef: 'run:emp:2026-10-12', lineType: 'OVERTIME' })).toBeNull();
     expect(payrollLineClaimKey({ sourceType: 'HOLIDAY_ROLLED_UP', sourceRef: 'run:emp', lineType: 'HOLIDAY_PAY' })).toBeNull();
+  });
+
+  it('claims overtime per employee and week, not per run (WM-18)', () => {
+    const inRunA = payrollLineClaimKey({ sourceType: 'OVERTIME', sourceRef: weekEarningRef('run-a', 'emp', '2026-11-02', 1), lineType: 'OVERTIME' });
+    const inRunB = payrollLineClaimKey({ sourceType: 'OVERTIME', sourceRef: weekEarningRef('run-b', 'emp', '2026-11-02', 1), lineType: 'OVERTIME' });
+    expect(inRunA).toBe('OVERTIME:emp:2026-11-02:1');
+    expect(inRunB).toBe(inRunA); // two runs cannot both hold the first settlement of that week
+    expect(
+      payrollLineClaimKey({ sourceType: 'OVERTIME', sourceRef: weekEarningRef('run-b', 'emp', '2026-11-02', 2), lineType: 'OVERTIME' }),
+    ).toBe('OVERTIME:emp:2026-11-02:2');
+    expect(weekEarningParts('run-a:emp:2026-11-02')).toEqual({ employeeId: 'emp', weekKey: '2026-11-02', sequence: null });
   });
 });
 

@@ -105,6 +105,8 @@ import { isPaySettled } from './pay-settlement.util';
 import {
   activityClaimKey,
   isClaimConflict,
+  weekEarningParts,
+  weekEarningRef,
   HELD_EARNING_SOURCE,
   heldEarningRef,
   heldEarningSubject,
@@ -1567,56 +1569,140 @@ export class PayrollRunsService {
       employeeIds.add(activity.employeeId);
     }
 
-    // 3) Weekly overtime premium
+    // 3) Weekly overtime premium (WM-18). A Monday–Sunday week is one work period, whichever pay
+    // runs its visits fall in. The hours of the week are every pay-approved visit of that week;
+    // the premium due for them, less what locked runs already paid for that week, is paid here.
+    // So a week split between two runs is counted once, calculating a run again adds nothing, and
+    // a visit approved late is settled by the next run that touches its week.
     const startById = new Map(reconciliations.map((r) => [r.id, r.approvedPayStart]));
-    const weeks = new Map<string, Map<string, Array<{ start: Date; minutes: number }>>>();
+    const heldHere = new Set<string>();
+    const weeksTouched = new Map<string, Set<string>>();
     for (const line of visitLines) {
-      if (line.lineType !== PayrollRunLineType.VISIT_PAY || !line.employeeId || line.exceptionMessage) continue;
+      if (line.lineType !== PayrollRunLineType.VISIT_PAY || !line.employeeId) continue;
+      if (line.exceptionMessage) {
+        if (line.visitReconciliationId) heldHere.add(line.visitReconciliationId);
+        continue;
+      }
       const start = line.visitReconciliationId ? startById.get(line.visitReconciliationId) : null;
       if (!start || !line.minutes) continue;
-      const byWeek = weeks.get(line.employeeId) ?? new Map<string, Array<{ start: Date; minutes: number }>>();
-      const key = weekKeyInTimeZone(start, timeZone);
-      byWeek.set(key, [...(byWeek.get(key) ?? []), { start, minutes: line.minutes }]);
-      weeks.set(line.employeeId, byWeek);
+      const touched = weeksTouched.get(line.employeeId) ?? new Set<string>();
+      touched.add(weekKeyInTimeZone(start, timeZone));
+      weeksTouched.set(line.employeeId, touched);
     }
-    for (const [employeeId, byWeek] of weeks) {
-      for (const [weekKey, shifts] of byWeek) {
-        const lastStart = shifts.reduce((a, s) => (s.start > a ? s.start : a), shifts[0].start);
-        const resolved = await rulesAt(employeeId, lastStart);
-        // No card applying means no overtime rule to apply. A card that could not be read is different.
-        if (!resolved && !cardFailed(employeeId, lastStart)) continue;
-        if (!resolved) {
-          hold({
-            employeeId,
-            subject: `CARD:${employeeId}`,
-            lineType: PayrollRunLineType.NON_VISIT_ACTIVITY,
-            description: 'Not worked out: overtime premium and rolled-up holiday pay',
-            reason: noCardReason(employeeId, lastStart),
+    if (weeksTouched.size) {
+      const overtimeEmployeeIds = [...weeksTouched.keys()];
+      const touchedWeeks = [...weeksTouched.values()].flatMap((w) => [...w]).sort();
+      // A day of margin each side for the timezone; the week of each visit is decided below.
+      const from = new Date(`${touchedWeeks[0]}T00:00:00.000Z`);
+      from.setUTCDate(from.getUTCDate() - 1);
+      const to = new Date(`${touchedWeeks[touchedWeeks.length - 1]}T00:00:00.000Z`);
+      to.setUTCDate(to.getUTCDate() + 8);
+      const [weekVisits, weekLines] = await Promise.all([
+        this.prisma.visitReconciliation.findMany({
+          where: {
+            employeeId: { in: overtimeEmployeeIds },
+            status: { in: [...PAYROLL_ELIGIBLE_RECON, VisitReconciliationStatus.LOCKED] },
+            approvedPayStart: { gte: from, lt: to },
+            payableMinutes: { gt: 0 },
+          },
+          select: { id: true, employeeId: true, approvedPayStart: true, payableMinutes: true },
+        }),
+        this.prisma.payrollRunLine.findMany({
+          where: {
+            payrollRunId: { not: run.id },
+            lineType: PayrollRunLineType.OVERTIME,
+            sourceType: 'OVERTIME',
+            employeeId: { in: overtimeEmployeeIds },
+          },
+          select: {
+            employeeId: true,
+            sourceRef: true,
+            amount: true,
+            minutes: true,
+            payrollRun: { select: { status: true, periodLabel: true } },
+          },
+        }),
+      ]);
+      for (const [employeeId, touched] of weeksTouched) {
+        for (const weekKey of [...touched].sort()) {
+          const shifts = weekVisits
+            .filter(
+              (v) =>
+                v.employeeId === employeeId &&
+                v.approvedPayStart &&
+                !heldHere.has(v.id) &&
+                weekKeyInTimeZone(v.approvedPayStart, timeZone) === weekKey,
+            )
+            .map((v) => ({ start: v.approvedPayStart!, minutes: v.payableMinutes ?? 0 }));
+          if (!shifts.length) continue;
+          const lastStart = shifts.reduce((a, s) => (s.start > a ? s.start : a), shifts[0].start);
+          const resolved = await rulesAt(employeeId, lastStart);
+          // No card applying means no overtime rule to apply. A card that could not be read is different.
+          if (!resolved && !cardFailed(employeeId, lastStart)) continue;
+          if (!resolved) {
+            hold({
+              employeeId,
+              subject: `CARD:${employeeId}`,
+              lineType: PayrollRunLineType.NON_VISIT_ACTIVITY,
+              description: 'Not worked out: overtime premium and rolled-up holiday pay',
+              reason: noCardReason(employeeId, lastStart),
+            });
+            continue;
+          }
+          const rule = cardRuleOfType(resolved.rules, 'OVERTIME');
+          if (!rule || !(rule.minimumMinutes && rule.minimumMinutes > 0)) continue;
+          const [week] = weeklyOvertime(shifts, rule.minimumMinutes, timeZone);
+          const premium = overtimePremiumPerHour(rule, cardBaseHourlyRate(resolved.rules));
+          const due =
+            week && week.overtimeMinutes > 0 && premium.gt(0)
+              ? payItemAmount(new Prisma.Decimal(week.overtimeMinutes).div(60), premium)
+              : new Prisma.Decimal(0);
+
+          const settled = weekLines.filter((l) => {
+            const ref = weekEarningParts(l.sourceRef);
+            return l.employeeId === employeeId && ref.weekKey === weekKey;
           });
-          continue;
+          const openElsewhere = settled.find(
+            (l) =>
+              l.payrollRun.status !== PayrollRunStatus.LOCKED && l.payrollRun.status !== PayrollRunStatus.EXPORTED,
+          );
+          if (openElsewhere) {
+            // Two open runs must not both pay the same hours of one week.
+            if (due.gt(0)) {
+              hold({
+                employeeId,
+                subject: `WEEK:OVERTIME:${employeeId}:${weekKey}`,
+                lineType: PayrollRunLineType.OVERTIME,
+                description: `Not worked out: overtime premium for the week of ${weekKey}`,
+                reason: `Overtime for the week of ${weekKey} is on pay run "${openElsewhere.payrollRun.periodLabel}", which is not locked yet. Lock or recalculate that run, then recalculate this one.`,
+              });
+            }
+            continue;
+          }
+          const paid = settled.reduce((sum, l) => sum.add(l.amount), new Prisma.Decimal(0));
+          const paidMinutes = settled.reduce((sum, l) => sum + (l.minutes ?? 0), 0);
+          const amount = due.sub(paid);
+          if (amount.isZero()) continue;
+          const overtimeMinutes = week?.overtimeMinutes ?? 0;
+          lines.push({
+            payrollRunId: run.id,
+            visitReconciliationId: null,
+            employeeId,
+            lineType: PayrollRunLineType.OVERTIME,
+            sourceType: 'OVERTIME',
+            sourceRef: weekEarningRef(run.id, employeeId, weekKey, settled.length + 1),
+            description:
+              `Overtime premium — week of ${weekKey}: ${hours(week?.workedMinutes ?? 0)} worked, threshold ${hours(rule.minimumMinutes)}, ${hours(overtimeMinutes)} × £${premium.toFixed(2)} (base pay already in visit pay)` +
+              (settled.length ? `; £${paid.toFixed(2)} of it already paid by an earlier run` : ''),
+            minutes: overtimeMinutes - paidMinutes,
+            unitAmount: premium,
+            amount,
+            payCardId: resolved.card.id,
+            visitRef: null,
+            exceptionMessage: null,
+          });
+          employeeIds.add(employeeId);
         }
-        const rule = cardRuleOfType(resolved.rules, 'OVERTIME');
-        if (!rule || !(rule.minimumMinutes && rule.minimumMinutes > 0)) continue;
-        const [week] = weeklyOvertime(shifts, rule.minimumMinutes, timeZone);
-        if (!week || week.overtimeMinutes <= 0) continue;
-        const premium = overtimePremiumPerHour(rule, cardBaseHourlyRate(resolved.rules));
-        if (premium.lte(0)) continue;
-        lines.push({
-          payrollRunId: run.id,
-          visitReconciliationId: null,
-          employeeId,
-          lineType: PayrollRunLineType.OVERTIME,
-          sourceType: 'OVERTIME',
-          sourceRef: `${run.id}:${employeeId}:${weekKey}`,
-          description: `Overtime premium — week of ${weekKey}: ${hours(week.workedMinutes)} worked, threshold ${hours(rule.minimumMinutes)}, ${hours(week.overtimeMinutes)} × £${premium.toFixed(2)} (base pay already in visit pay)`,
-          minutes: week.overtimeMinutes,
-          unitAmount: premium,
-          amount: payItemAmount(new Prisma.Decimal(week.overtimeMinutes).div(60), premium),
-          payCardId: resolved.card.id,
-          visitRef: null,
-          exceptionMessage: null,
-        });
-        employeeIds.add(employeeId);
       }
     }
 
@@ -1777,6 +1863,16 @@ export class PayrollRunsService {
 
     // R-22: overtime premium and rolled-up holiday pay are worked out from this run's own lines.
     // If they could not be worked out for a carer, locking would lose them for good.
+    const heldSubjects = run.lines
+      .filter((l) => l.sourceType === HELD_EARNING_SOURCE)
+      .map((l) => heldEarningSubject(l.sourceRef ?? ''));
+    // WM-18: earnings of a week that another open run is settling would be skipped by locking now.
+    const weekHeld = heldSubjects.filter((subject) => subject.startsWith('WEEK:'));
+    if (weekHeld.length) {
+      throw new BadRequestException(
+        `${weekHeld.length} weekly earning(s) of this run are waiting for another pay run that covers part of the same week. Lock or recalculate that run, then recalculate this one before locking.`,
+      );
+    }
     const lostIfLocked = run.lines.filter(
       (l) => l.sourceType === HELD_EARNING_SOURCE && heldEarningSubject(l.sourceRef ?? '').startsWith('CARD:'),
     );
