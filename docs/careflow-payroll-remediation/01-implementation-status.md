@@ -1,7 +1,7 @@
 # 01 — Implementation Status
 
 **Programme:** CareFlow carer wages, pay cards and UK payroll remediation
-**Updated:** 2026-10-13 · **Gate B2 (employment wages, salary, compliance foundations):** implemented and tested with synthetic policy, see section 00 and `12-gate-b-employment-wages-summary.md` · **Phase 0 (financial safety):** implemented and tested · **Gate A sprint (R-01 to R-12):** implemented and tested, see section 1 · **Gate B sprint (R-16, R-17, R-18, R-13, R-11, PC-19, PC-32, PC-10, PC-22/23/24, TR-09, TR-13):** implemented and tested, see section 0 · **Everything else:** not started
+**Updated:** 2026-10-13 · **Sprint B3 (unauthorised wage recoveries stopped; minimum wage for salaried-hours work; pay reference period of a month or less; UK dates):** implemented and tested on branch `payroll-remediation/sprint-b3`, see `13-sprint-b3-summary.md` · **Gate B2 (employment wages, salary, compliance foundations):** implemented and tested with synthetic policy, see section 00 and `12-gate-b-employment-wages-summary.md` · **Phase 0 (financial safety):** implemented and tested · **Gate A sprint (R-01 to R-12):** implemented and tested, see section 1 · **Gate B sprint (R-16, R-17, R-18, R-13, R-11, PC-19, PC-32, PC-10, PC-22/23/24, TR-09, TR-13):** implemented and tested, see section 0 · **Everything else:** not started
 
 | Repository | Branch | Base commit (audited) | Gate A head | Head |
 |---|---|---|---|---|

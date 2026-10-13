@@ -218,28 +218,6 @@ export function assessPayReferencePeriod(input: {
 }
 
 /**
- * Salaried hours work: the salary of a pay period against the basic hours it pays for. Used to
- * show whether a salary alone meets the rate; it does not decide a top-up.
- */
-export function salariedHoursCheck(input: {
-  periodSalary: number;
-  contractedWeeklyHours: number | null;
-  periodsPerYear: number;
-  requiredHourly: number;
-}): { basicHours: number | null; effectiveHourly: number | null; compliant: boolean | null } {
-  if (!(input.contractedWeeklyHours && input.contractedWeeklyHours > 0)) {
-    return { basicHours: null, effectiveHourly: null, compliant: null };
-  }
-  const basicHours = (input.contractedWeeklyHours * 52) / input.periodsPerYear;
-  const effectiveHourly = Math.round((input.periodSalary / basicHours) * 10000) / 10000;
-  return {
-    basicHours: Math.round(basicHours * 100) / 100,
-    effectiveHourly,
-    compliant: effectiveHourly + 1e-9 >= input.requiredHourly,
-  };
-}
-
-/**
  * Basic hours of a pay period for salaried hours work: the contracted weekly hours taken over a
  * year (52 weeks) and divided by the number of pay periods in the year, as HMRC's guidance sets
  * out. A part of a period (a starter, a leaver, a change of agreement) carries its share by days.

@@ -7,7 +7,6 @@ import {
   nmwCategoryForPeriod,
   nmwTreatment,
   payReferencePeriodFor,
-  salariedHoursCheck,
 } from './nmw-period.util';
 
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -137,21 +136,6 @@ describe('position of a pay reference period', () => {
 
   it('no working time means nothing to check', () => {
     expect(assessPayReferencePeriod({ ...base, thisPay: 50 })).toMatchObject({ topUpDue: 0, compliant: true });
-  });
-});
-
-describe('salaried hours work', () => {
-  it('compares the salary of a period with the basic hours it pays for', () => {
-    expect(salariedHoursCheck({ periodSalary: 2000, contractedWeeklyHours: 37.5, periodsPerYear: 12, requiredHourly: 12.71 })).toEqual({
-      basicHours: 162.5,
-      effectiveHourly: 12.3077,
-      compliant: false,
-    });
-    expect(salariedHoursCheck({ periodSalary: 2200, contractedWeeklyHours: 37.5, periodsPerYear: 12, requiredHourly: 12.71 }).compliant).toBe(true);
-  });
-
-  it('cannot be worked out without contracted hours', () => {
-    expect(salariedHoursCheck({ periodSalary: 2000, contractedWeeklyHours: null, periodsPerYear: 12, requiredHourly: 12.71 }).compliant).toBeNull();
   });
 });
 

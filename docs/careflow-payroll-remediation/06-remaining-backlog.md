@@ -1,6 +1,6 @@
 # 06 — Remaining Backlog
 
-**Updated:** 2026-10-13 (Gate B2)
+**Updated:** 2026-10-13 (Sprint B3: B2-04, B2-14, B2-15 closed or reduced; B3-01 to B3-05 added. See `13-sprint-b3-summary.md`)
 
 What is still to do, in the order of the programme gates. Completed items have been removed; they are in `01-implementation-status.md`. "Decision" points to `05-policy-decisions-required.md` or to the audit question.
 
@@ -15,7 +15,7 @@ Closed in Gate B2 and removed from the lists below: **R-21** (mileage correction
 | B2-01 | Screens for holiday | Leave terms, leave entries and the leave position are API only | — |
 | B2-02 | Holiday in pay | Book leave against the balance (from the holiday record or the rota); pay it at the reference rate; overtime, bonuses and allowances in the 52-week average; the 28-day yearly maximum | Q35, D-28 |
 | B2-03 | Minimum wage on the pay run screen | Show `NmwPeriodAssessment` (period, source, category, rate, position) on the pay run | — |
-| B2-04 | Minimum wage for salaried-hours work | Run `salariedHoursCheck` in UK gross and show the result; today the worker is only recorded as salaried | D-29 |
+| B2-04 | Minimum wage for salaried-hours work | **Done in Sprint B3** for the single pay period (assessment, top-up, close check, review). Left: hours beyond the basic hours are flagged for review each period instead of being decided from the year so far (B3-04) | Basic hours decision (doc 13 section 6) |
 | B2-05 | Premium inside visit pay | Split a visit's amount into basic pay and premium, so premiums can be left out of the minimum wage check and brought into holiday pay | D-29, D-28 |
 | B2-06 | Deductions against the minimum wage | Test fines and penalties against the rate before they are taken | D-29 |
 | B2-07 | Disruption events raised automatically | When a visit with a carer allocated is cancelled, create the event instead of waiting for the office to record it | Q13 |
@@ -25,11 +25,16 @@ Closed in Gate B2 and removed from the lists below: **R-21** (mileage correction
 | B2-11 | Guarantee: other qualifying time and periods | Training and on-call time are not counted; only a weekly guarantee | Q23, D-25 |
 | B2-12 | Salary cover of non-visit time | Under "contracted hours" training time is treated as covered, not counted against the hours | Q22, D-24 |
 | B2-13 | UK payslip lines | Overtime, guarantee top-up, cancellation pay and salary adjustment are inside "Other pay" / "Salary" | Phase 5 |
-| B2-14 | Pay reference period guard | A worker with no payroll schedule is assessed on the run dates; a run longer than a month is not refused | Q37–Q39 |
-| B2-15 | Timezone of UK payroll periods | The UK module compares days in UTC; visit pay runs use the organisation's timezone | — |
+| B2-14 | Pay reference period guard | **Done in Sprint B3**: a period longer than a month is never used; a missing or invalid schedule is recorded and shown. Left: the client's answer for workers with no payroll schedule | Q37–Q39 |
+| B2-15 | Timezone of UK payroll periods | **Done in Sprint B3** for UK gross (pay period, week, agreement by UK date). Left: the leave calculations still read the UTC date of a visit | — |
 | B2-16 | Mileage correction: passengers and threshold | Passenger mileage cannot be corrected; later journeys are not re-split around the 10,000-mile threshold | D-21 |
 | B2-17 | Unused default cancellation policy | `pay-policy.util.ts` holds a default written before this programme; nothing reads it; delete it | — |
 | B2-18 | Ending a salary agreement | Needs the manage permission only, not a second person | D-23 |
+| B3-01 | Screen for wage recoveries | Proposals are shown on the run; authorising or rejecting one is API only | — |
+| B3-02 | Minimum wage on the UK run page | Assessments, why a run cannot be closed, and the review action are API only | — |
+| B3-03 | Authority for other negative amounts | Pay corrections, mileage corrections and fines entered by people need a second approver but record no authority for the deduction; fines are not tested against the minimum wage | D-23, D-29 |
+| B3-04 | Year-to-date basic hours for salaried staff | So that excess hours are decided, not reviewed each period | Basic hours decision |
+| B3-05 | Ageing of undecided recoveries | A proposal left undecided is re-shown on each later run with no escalation | D-23 |
 
 ---
 
@@ -132,7 +137,7 @@ Gate B2 built the foundations the previous list asked for. What should come next
 
 1. **Client decisions** (doc 05 section 2b): Q22, Q23, Q13, Q35 first; nothing built in Gate B2 should carry a real employee before them. D-01 (named approvers) is still open and blocks all real use.
 2. **Make the new records visible**: B2-01 (holiday screens), B2-03 (minimum wage assessment on the pay run), B2-08 (disruption rules screen), R-26 (mileage rates screen).
-3. **Close the minimum wage gaps**: B2-05 (basic pay and premium apart), B2-04 (salaried-hours check), B2-06 (deductions), B2-14 (period guard).
+3. **Close the minimum wage gaps** (B2-04 and B2-14 were done in Sprint B3): B3-01 and B3-02 (screens for what B3 built), B3-03 and B2-06 (deductions), B3-04 (basic hours over the year), B2-05 (basic pay and premium apart).
 4. **Holiday in pay**: B2-02.
 5. **Disruption events from the rota**: B2-07.
 6. **Employment wage policies** that are contractual rather than card settings (PC-11 to PC-17). Decision Q17.
