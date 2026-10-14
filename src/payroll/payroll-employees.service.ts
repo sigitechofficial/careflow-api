@@ -21,6 +21,7 @@ import {
   CreateEmployeePayAgreementDto,
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
+  RecordLoanNoticeDto,
 } from './dto/payroll.dto';
 import { dateToIsoDate, mapAgreement, mapProfile } from './payroll-mapper.util';
 import { parsePayrollDateOnly } from './payroll-period.util';
@@ -35,6 +36,34 @@ import {
 } from './payroll-rti-identity.util';
 import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
 import { mapYtdLedger } from './payroll-ytd.util';
+
+function mapLoanNotice(row: {
+  id: string;
+  employeeId: string;
+  noticeType: string;
+  studentLoanPlan: string | null;
+  hmrcReference: string | null;
+  noticeDate: Date;
+  receivedOn: Date;
+  effectivePayday: Date;
+  notes: string | null;
+  createdById: string;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    employeeId: row.employeeId,
+    noticeType: row.noticeType,
+    studentLoanPlan: row.studentLoanPlan,
+    hmrcReference: row.hmrcReference,
+    noticeDate: dateToIsoDate(row.noticeDate),
+    receivedOn: dateToIsoDate(row.receivedOn),
+    effectivePayday: dateToIsoDate(row.effectivePayday),
+    notes: row.notes,
+    createdById: row.createdById,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 type EmployeeIdentityRow = {
   id: string
@@ -451,6 +480,83 @@ export class PayrollEmployeesService {
       data: mapProfile(row),
       rtiIdentity: mapRtiIdentityPayload(employee, assessment),
     };
+  }
+
+  /**
+   * Gate C13: record an HMRC loan start/stop notice with its audit entry, in one transaction. The
+   * same reference again is not recorded twice; the notice cannot apply before it was received
+   * or before its own date (deductions are not backdated).
+   */
+  async recordLoanNotice(userId: string, employeeId: string, dto: RecordLoanNoticeDto, meta?: RequestAuditMeta) {
+    await this.requireEmployeeWithIdentity(employeeId);
+    if (dto.noticeType === 'SL1' && !dto.studentLoanPlan) {
+      throw new BadRequestException('An SL1 notice needs the student loan plan (1, 2, 4 or 5) it states');
+    }
+    if (dto.noticeType !== 'SL1' && dto.studentLoanPlan) {
+      throw new BadRequestException(`A ${dto.noticeType} notice does not carry a student loan plan`);
+    }
+    const noticeDate = parsePayrollDateOnly(dto.noticeDate);
+    const receivedOn = parsePayrollDateOnly(dto.receivedOn);
+    const effectivePayday = parsePayrollDateOnly(dto.effectivePayday);
+    if (effectivePayday < receivedOn || effectivePayday < noticeDate) {
+      throw new BadRequestException(
+        'The effective payday cannot be before the notice was received or before the date on the notice: deductions are not backdated',
+      );
+    }
+    const hmrcReference = dto.hmrcReference?.trim() || null;
+    const plan = dto.noticeType === 'SL1' ? dto.studentLoanPlan! : null;
+    const same = await this.prisma.employeeLoanNotice.findFirst({
+      where: hmrcReference
+        ? { employeeId, noticeType: dto.noticeType, hmrcReference }
+        : { employeeId, noticeType: dto.noticeType, hmrcReference: null, noticeDate, receivedOn, studentLoanPlan: plan },
+    });
+    if (same) {
+      const identical =
+        same.studentLoanPlan === plan &&
+        same.noticeDate.getTime() === noticeDate.getTime() &&
+        same.receivedOn.getTime() === receivedOn.getTime() &&
+        same.effectivePayday.getTime() === effectivePayday.getTime();
+      if (!identical) {
+        throw new ConflictException(`A ${dto.noticeType} notice with this reference is already recorded with different details`);
+      }
+      return { message: 'Notice already recorded', duplicate: true, data: mapLoanNotice(same) };
+    }
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.employeeLoanNotice.create({
+        data: {
+          employeeId,
+          noticeType: dto.noticeType,
+          studentLoanPlan: plan,
+          hmrcReference,
+          noticeDate,
+          receivedOn,
+          effectivePayday,
+          notes: dto.notes?.trim() || null,
+          createdById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_LOAN_NOTICE_RECORDED,
+        recordType: 'EmployeeLoanNotice',
+        recordId: saved.id,
+        newValues: mapLoanNotice(saved),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return saved;
+    });
+    return { message: 'Notice recorded', duplicate: false, data: mapLoanNotice(row) };
+  }
+
+  async listLoanNotices(employeeId: string) {
+    const rows = await this.prisma.employeeLoanNotice.findMany({
+      where: { employeeId },
+      orderBy: [{ effectivePayday: 'asc' }, { createdAt: 'asc' }],
+    });
+    return { data: rows.map(mapLoanNotice) };
   }
 
   async listAgreements(employeeId: string) {

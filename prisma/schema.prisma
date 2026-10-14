@@ -10612,6 +10612,30 @@ model PayrollHmrcSubmissionEvent {
   @@schema("payroll")
 }
 
+/// Gate C13: an HMRC student or postgraduate loan start/stop notice (SL1, SL2, PGL1, PGL2) as
+/// recorded by payroll staff. It applies from effectivePayday: the first payday on which the
+/// employer could operate it (never before the notice was received). Recorded once per reference.
+model EmployeeLoanNotice {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  /// SL1, SL2, PGL1 or PGL2.
+  noticeType      String
+  /// SL1 only: 1, 2, 4 or 5.
+  studentLoanPlan String?
+  hmrcReference   String?
+  /// The start or stop date stated on the notice.
+  noticeDate      DateTime @db.Date
+  receivedOn      DateTime @db.Date
+  effectivePayday DateTime @db.Date
+  notes           String?
+  createdAt       DateTime @default(now())
+  createdById     String   @db.Uuid
+
+  @@unique([employeeId, noticeType, hmrcReference])
+  @@index([employeeId])
+  @@schema("payroll")
+}
+
 model UkPayrollRunEmployee {
   id                    String    @id @default(uuid()) @db.Uuid
   runId                 String    @db.Uuid

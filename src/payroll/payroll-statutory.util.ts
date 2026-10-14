@@ -66,6 +66,9 @@ export type StatutoryCalcInput = {
     postgraduateThreshold: number | null;
     /** Gate C12: weeks in the earnings period when the thresholds are weekly (1, 2 or 4); null for monthly. */
     weeks?: number | null;
+    /** Gate C13: where each instruction comes from (an HMRC notice, or the profile setting). */
+    planSource?: string;
+    postgraduateSource?: string;
     earlierStudentLoan: number;
     earlierPostgraduateLoan: number;
   } | null;
@@ -642,8 +645,8 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const loanExplanation =
     loans?.plan || loans?.postgraduate
       ? [
-          loans.plan ? `Student loan Plan ${loans.plan}: 9% over £${loans.planThreshold?.toFixed(2)}${perWeek} = £${studentLoanDeduction.toFixed(2)}.` : '',
-          loans.postgraduate ? `Postgraduate loan: 6% over £${loans.postgraduateThreshold?.toFixed(2)}${perWeek} = £${postgraduateLoanDeduction.toFixed(2)}.` : '',
+          loans.plan ? `Student loan Plan ${loans.plan}: 9% over £${loans.planThreshold?.toFixed(2)}${perWeek} = £${studentLoanDeduction.toFixed(2)}${loans.planSource ? ` (${loans.planSource})` : ''}.` : '',
+          loans.postgraduate ? `Postgraduate loan: 6% over £${loans.postgraduateThreshold?.toFixed(2)}${perWeek} = £${postgraduateLoanDeduction.toFixed(2)}${loans.postgraduateSource ? ` (${loans.postgraduateSource})` : ''}.` : '',
         ].filter(Boolean).join(' ')
       : 'No student or postgraduate loan recorded.';
 

@@ -10,6 +10,7 @@ import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
   CreateEmployeePayAgreementDto,
+  RecordLoanNoticeDto,
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
 } from './dto/payroll.dto';
@@ -62,6 +63,27 @@ export class PayrollEmployeesController {
     @Req() req: Request,
   ) {
     return this.service.upsertProfile(user.id, employeeId, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('employees/:employeeId/loan-notices')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.read')
+  @ApiOperation({ summary: 'List HMRC student / postgraduate loan notices (SL1, SL2, PGL1, PGL2)' })
+  listLoanNotices(@Param('employeeId') employeeId: string) {
+    return this.service.listLoanNotices(employeeId);
+  }
+
+  @Post('employees/:employeeId/loan-notices')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.manage')
+  @ApiOperation({ summary: 'Record an HMRC student / postgraduate loan start or stop notice' })
+  recordLoanNotice(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: RecordLoanNoticeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordLoanNotice(user.id, employeeId, dto, getRequestAuditMeta(req));
   }
 
   @Get('employees/:employeeId/pay-agreements')

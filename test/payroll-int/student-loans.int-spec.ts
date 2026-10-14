@@ -5,6 +5,7 @@
  * Synthetic employee on 1257L and NI category A, paid £3,000 a month in 2026-27, with Plan 2 and a
  * postgraduate loan recorded (GOV.UK 2026-27 monthly thresholds £2,448.75 and £1,750.00).
  */
+import { PayrollEmployeesService } from '../../src/payroll/payroll-employees.service';
 import { PayrollRunsService as UkPayrollRunsService } from '../../src/payroll/payroll-runs.service';
 import { buildUkPayrollRunsService, createUkRun, giveTaxCode, resetPayData } from './harness';
 import { createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp } from './http-harness';
@@ -154,5 +155,75 @@ describe('student and postgraduate loans through the UK run (Gate C11)', () => {
     const after = await ledger();
     expect([Number(after.studentLoanYtd), Number(after.postgraduateLoanYtd)]).toEqual([32, 40]);
     expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
+  });
+
+  /**
+   * Gate C13: HMRC SL1 / SL2 / PGL1 / PGL2 notices, applied from their effective payday by the
+   * run's payment date (these runs are paid on the last day of the month). The profile's loan
+   * checkboxes are cleared first so that only the notices decide.
+   */
+  describe('HMRC loan start / stop notices (Gate C13)', () => {
+    const JUNE = { periodStart: '2026-06-01', periodEnd: '2026-06-30' };
+    const employees = () => t.app.get(PayrollEmployeesService, { strict: false });
+    const notice = (body: Record<string, unknown>) => employees().recordLoanNotice(maker.id, employeeId, body as never);
+    const closeMonth = async (period: { periodStart: string; periodEnd: string }) => {
+      const id = await run(period);
+      await calculate(id);
+      const r = await row(id);
+      await ukRuns.close(checker.id, id);
+      return { id, ...r };
+    };
+    beforeEach(async () => {
+      await t.prisma.employeeLoanNotice.deleteMany();
+      await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { studentLoanPlan2: false, postgraduateLoan: false } });
+    });
+
+    it('SL1 starts Plan 2 on its effective payday and SL2 stops it on its own; net pay follows', async () => {
+      await notice({ noticeType: 'SL1', studentLoanPlan: '2', hmrcReference: 'SL1-A', noticeDate: '2026-05-01', receivedOn: '2026-05-12', effectivePayday: '2026-05-31' });
+      await notice({ noticeType: 'SL2', hmrcReference: 'SL2-A', noticeDate: '2026-06-05', receivedOn: '2026-06-10', effectivePayday: '2026-06-30' });
+      const april = await closeMonth(APRIL); // paid 30 April: before the SL1 payday
+      expect(april).toMatchObject({ plan: 'NONE', studentLoan: 0, netPay: 2453.64 });
+      const may = await closeMonth(MAY); // 31 May: Plan 2, £49; net 3,000 − 390.40 − 156.16 − 49
+      expect(may).toMatchObject({ plan: '2', studentLoan: 49, netPay: 2404.44 });
+      expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: may.id, employeeId } })).statutoryExplanation)
+        .toContain('HMRC SL1 SL1-A from payday 2026-05-31');
+      const june = await closeMonth(JUNE); // 30 June: stopped by SL2
+      expect(june).toMatchObject({ plan: 'NONE', studentLoan: 0, netPay: 2453.44 });
+      expect(Number((await ledger()).studentLoanYtd)).toBe(49);
+    });
+
+    it('postgraduate notices work apart from student loan notices, and a later SL1 changes the plan', async () => {
+      await notice({ noticeType: 'SL1', studentLoanPlan: '2', hmrcReference: 'SL1-B', noticeDate: '2026-04-06', receivedOn: '2026-04-20', effectivePayday: '2026-04-30' });
+      await notice({ noticeType: 'PGL1', hmrcReference: 'PGL1-B', noticeDate: '2026-05-01', receivedOn: '2026-05-20', effectivePayday: '2026-05-31' });
+      await notice({ noticeType: 'SL1', studentLoanPlan: '1', hmrcReference: 'SL1-C', noticeDate: '2026-06-01', receivedOn: '2026-06-15', effectivePayday: '2026-06-30' });
+      expect(await closeMonth(APRIL)).toMatchObject({ plan: '2', studentLoan: 49, postgraduate: false, postgraduateLoan: 0 });
+      expect(await closeMonth(MAY)).toMatchObject({ plan: '2', studentLoan: 49, postgraduate: true, postgraduateLoan: 75 });
+      // June: Plan 1 replaces Plan 2 (£68); the postgraduate loan carries on (£75).
+      expect(await closeMonth(JUNE)).toMatchObject({ plan: '1', studentLoan: 68, postgraduate: true, postgraduateLoan: 75 });
+      const after = await ledger();
+      expect([Number(after.studentLoanYtd), Number(after.postgraduateLoanYtd)]).toEqual([166, 150]);
+    });
+
+    it('a repeated notice is kept once with one audit entry; late, mismatched and conflicting notices are refused; closed runs stay as they were', async () => {
+      const april = await closeMonth(APRIL); // closed before any notice
+      const sl1 = { noticeType: 'SL1', studentLoanPlan: '2', hmrcReference: 'SL1-D', noticeDate: '2026-05-01', receivedOn: '2026-05-12', effectivePayday: '2026-05-31' };
+      const first = await notice(sl1);
+      const again = await notice(sl1);
+      expect([first.duplicate, again.duplicate, again.data.id]).toEqual([false, true, first.data.id]);
+      expect(await t.prisma.employeeLoanNotice.count({ where: { employeeId } })).toBe(1);
+      expect(await t.prisma.auditLog.count({ where: { recordId: first.data.id, action: 'payroll_loan_notice_recorded' as never } })).toBe(1);
+      await expect(notice({ ...sl1, studentLoanPlan: '1' })).rejects.toThrow(/already recorded with different details/);
+      // Received on 10 June: it cannot be operated on the 31 May payday (no backdating).
+      await expect(notice({ noticeType: 'PGL1', noticeDate: '2026-05-01', receivedOn: '2026-06-10', effectivePayday: '2026-05-31' })).rejects.toThrow(/not backdated/);
+      await expect(notice({ noticeType: 'SL1', noticeDate: '2026-05-01', receivedOn: '2026-05-12', effectivePayday: '2026-05-31' })).rejects.toThrow(/needs the student loan plan/);
+      // An SL2 for the same payday as the SL1: which applies cannot be told, so May is not calculated.
+      await notice({ noticeType: 'SL2', hmrcReference: 'SL2-D', noticeDate: '2026-05-20', receivedOn: '2026-05-25', effectivePayday: '2026-05-31' });
+      const may = await run(MAY);
+      await ukRuns.calculateGross(maker.id, may);
+      await expect(ukRuns.calculateStatutory(maker.id, may)).rejects.toThrow(/conflicting student loan notices from the same payday \(SL1 2, SL2\)/);
+      // April, closed before the notices, keeps what it was calculated with.
+      expect(await row(april.id)).toMatchObject({ plan: 'NONE', studentLoan: 0, netPay: 2453.64 });
+      await expect(ukRuns.calculateStatutory(maker.id, april.id)).rejects.toThrow(/Reactivate this closed run/);
+    });
   });
 });

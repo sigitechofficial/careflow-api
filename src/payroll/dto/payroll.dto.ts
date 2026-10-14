@@ -1128,3 +1128,39 @@ export class WithdrawSalariedHoursMethodDto {
   @MaxLength(500)
   note!: string;
 }
+
+/** Gate C13: an HMRC student / postgraduate loan start or stop notice. */
+export class RecordLoanNoticeDto {
+  @ApiProperty({ enum: ['SL1', 'SL2', 'PGL1', 'PGL2'] })
+  @IsIn(['SL1', 'SL2', 'PGL1', 'PGL2'])
+  noticeType!: 'SL1' | 'SL2' | 'PGL1' | 'PGL2';
+
+  @ApiPropertyOptional({ enum: ['1', '2', '4', '5'], description: 'SL1 only: the student loan plan' })
+  @IsOptional()
+  @IsIn(['1', '2', '4', '5'])
+  studentLoanPlan?: '1' | '2' | '4' | '5';
+
+  @ApiPropertyOptional({ description: 'HMRC notice reference, if given' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  hmrcReference?: string;
+
+  @ApiProperty({ example: '2026-05-01', description: 'The start or stop date on the notice' })
+  @IsDateString()
+  noticeDate!: string;
+
+  @ApiProperty({ example: '2026-05-12', description: 'The day the employer received the notice' })
+  @IsDateString()
+  receivedOn!: string;
+
+  @ApiProperty({ example: '2026-05-31', description: 'The first payday on which the notice can be operated' })
+  @IsDateString()
+  effectivePayday!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
+}

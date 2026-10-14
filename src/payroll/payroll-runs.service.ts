@@ -1,3 +1,4 @@
+import { applicableLoanNotice } from './payroll-loan-notice.util';
 import {
   BadRequestException,
   ConflictException,
@@ -2302,6 +2303,11 @@ export class PayrollRunsService {
     // fortnightly, four-weekly and monthly pay in 2026-27; anything this version cannot deduct
     // correctly stops the calculation.
     const loanThresholds = studentLoanThresholds(run.taxYear.startDate, frequency);
+    // Gate C13: HMRC notices in force on this run's payment date decide each loan; without one
+    // the profile setting (starter checklist, P45 or earlier entry; source not verified) applies.
+    const loanNotices = await this.prisma.employeeLoanNotice.findMany({
+      where: { employeeId: { in: employeeIds }, effectivePayday: { lte: paidOn } },
+    });
     const loansByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['studentLoans']>>();
     const loanReasonByEmployeeId = new Map<string, string>();
     for (const re of runEmployees) {
@@ -2316,10 +2322,31 @@ export class PayrollRunsService {
       )
         .filter(([, on]) => on)
         .map(([plan]) => plan);
-      const plan = plans[0] ?? null;
-      const postgraduate = Boolean(profile?.postgraduateLoan);
+      let plan: StudentLoanPlan | null = plans[0] ?? null;
+      let postgraduate = Boolean(profile?.postgraduateLoan);
+      let planSource = 'profile setting, source not verified';
+      let postgraduateSource = planSource;
       const earlier = earlierInPeriod.filter((e) => e.employeeId === re.employeeId);
       const refuse = (reason: string) => loanReasonByEmployeeId.set(re.employeeId, reason);
+      const mine = loanNotices.filter((n) => n.employeeId === re.employeeId);
+      const studentNotice = applicableLoanNotice(mine, 'STUDENT', paidOn);
+      const postgraduateNotice = applicableLoanNotice(mine, 'POSTGRADUATE', paidOn);
+      if (studentNotice.kind === 'CONFLICT' || postgraduateNotice.kind === 'CONFLICT') {
+        refuse(studentNotice.kind === 'CONFLICT' ? studentNotice.reason : (postgraduateNotice as { reason: string }).reason);
+        continue;
+      }
+      const describe = (n: { noticeType: string; hmrcReference: string | null; effectivePayday: Date }) =>
+        `HMRC ${n.noticeType}${n.hmrcReference ? ` ${n.hmrcReference}` : ''} from payday ${dateToIsoDate(n.effectivePayday)}`;
+      if (studentNotice.kind !== 'NONE') {
+        plans.length = 0;
+        plan = studentNotice.kind === 'ON' ? (studentNotice.plan as StudentLoanPlan) : null;
+        if (plan) plans.push(plan);
+        planSource = describe(studentNotice.notice);
+      }
+      if (postgraduateNotice.kind !== 'NONE') {
+        postgraduate = postgraduateNotice.kind === 'ON';
+        postgraduateSource = describe(postgraduateNotice.notice);
+      }
       if (plans.length > 1) {
         refuse(`more than one student loan plan recorded (${plans.join(', ')}); record the plan HMRC has notified`);
         continue;
@@ -2348,6 +2375,8 @@ export class PayrollRunsService {
         postgraduateThreshold: postgraduate ? loanThresholds.postgraduate : null,
         // Gate C12: the NI earnings period of the schedule (1, 2 or 4 weeks; null for monthly).
         weeks: loanThresholds.weeks,
+        planSource,
+        postgraduateSource,
         earlierStudentLoan: earlier.reduce((sum, e) => sum + decimalNum(e.studentLoanDeduction), 0),
         earlierPostgraduateLoan: earlier.reduce((sum, e) => sum + decimalNum(e.postgraduateLoanDeduction), 0),
       });
