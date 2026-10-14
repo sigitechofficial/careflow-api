@@ -494,6 +494,31 @@ export class UpsertEmployeePayrollProfileDto {
   @MaxLength(120)
   pensionPolicyRef?: string | null;
 
+  @ApiPropertyOptional({ enum: ['LOAN_DECLARED', 'NO_LOAN_CONFIRMED'], description: 'Student loan declaration (null: not yet verified)' })
+  @IsOptional()
+  @IsIn(['LOAN_DECLARED', 'NO_LOAN_CONFIRMED'])
+  loanDeclarationStatus?: 'LOAN_DECLARED' | 'NO_LOAN_CONFIRMED' | null;
+
+  @ApiPropertyOptional({ enum: ['STARTER_CHECKLIST', 'P45', 'OTHER_RECORD'] })
+  @IsOptional()
+  @IsIn(['STARTER_CHECKLIST', 'P45', 'OTHER_RECORD'])
+  loanDeclarationSource?: 'STARTER_CHECKLIST' | 'P45' | 'OTHER_RECORD' | null;
+
+  @ApiPropertyOptional({ example: '2026-04-01' })
+  @IsOptional()
+  @IsDateString()
+  loanDeclarationDate?: string | null;
+
+  @ApiPropertyOptional({ description: 'Ordinarily works in the UK (automatic enrolment evidence)' })
+  @IsOptional()
+  @IsBoolean()
+  pensionUkWorker?: boolean | null;
+
+  @ApiPropertyOptional({ example: '2028-05-14', description: 'Recorded State Pension age date (transitional birth dates)' })
+  @IsOptional()
+  @IsDateString()
+  statePensionAgeDate?: string | null;
+
   @ApiPropertyOptional({
     example: '2026-03-01',
     description: 'The day the apprenticeship began: decides whether the apprentice minimum wage rate applies at 19 or over',
@@ -1228,4 +1253,84 @@ export class CorrectLoanNoticeDto {
   @ValidateNested()
   @Type(() => RecordLoanNoticeDto)
   replacement?: RecordLoanNoticeDto;
+}
+
+/** Correction of a loan / pension amount in a CLOSED run (maker). */
+export class ProposeDeductionAdjustmentDto {
+  @ApiProperty()
+  @IsUUID()
+  employeeId!: string;
+
+  @ApiProperty({ enum: ['STUDENT_LOAN', 'POSTGRADUATE_LOAN', 'PENSION_EMPLOYEE', 'PENSION_EMPLOYER'] })
+  @IsIn(['STUDENT_LOAN', 'POSTGRADUATE_LOAN', 'PENSION_EMPLOYEE', 'PENSION_EMPLOYER'])
+  kind!: 'STUDENT_LOAN' | 'POSTGRADUATE_LOAN' | 'PENSION_EMPLOYEE' | 'PENSION_EMPLOYER';
+
+  @ApiProperty({ description: 'The CLOSED run whose amount was wrong' })
+  @IsUUID()
+  sourceRunId!: string;
+
+  @ApiProperty({ description: 'What the amount should have been' })
+  @IsNumber()
+  @Min(0)
+  correctedAmount!: number;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiProperty({ description: 'HMRC notice, scheme letter or other evidence' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  evidenceRef!: string;
+}
+
+/** Checker decision on a proposed correction. */
+export class ReviewDeductionAdjustmentDto {
+  @ApiProperty({ enum: ['APPROVE', 'REJECT'] })
+  @IsIn(['APPROVE', 'REJECT'])
+  decision!: 'APPROVE' | 'REJECT';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
+/** An automatic enrolment event for one worker. */
+export class PensionAeEventDto {
+  @ApiProperty({
+    enum: ['POSTPONEMENT', 'ENROLMENT_NOTICE_SENT', 'OPT_IN_REQUEST', 'JOINING_REQUEST', 'OPT_OUT', 'CEASE_MEMBERSHIP', 'RE_ENROLMENT_DUE'],
+  })
+  @IsIn(['POSTPONEMENT', 'ENROLMENT_NOTICE_SENT', 'OPT_IN_REQUEST', 'JOINING_REQUEST', 'OPT_OUT', 'CEASE_MEMBERSHIP', 'RE_ENROLMENT_DUE'])
+  type!: 'POSTPONEMENT' | 'ENROLMENT_NOTICE_SENT' | 'OPT_IN_REQUEST' | 'JOINING_REQUEST' | 'OPT_OUT' | 'CEASE_MEMBERSHIP' | 'RE_ENROLMENT_DUE';
+
+  @ApiProperty({ example: '2026-05-01', description: 'The event date (deferral date for a postponement, date received for an opt-out)' })
+  @IsDateString()
+  date!: string;
+
+  @ApiPropertyOptional({ description: 'Postponement end date' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Date the postponement notice was given' })
+  @IsOptional()
+  @IsDateString()
+  noticeSentOn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  evidenceRef?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }

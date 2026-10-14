@@ -10363,6 +10363,15 @@ model EmployeePayrollProfile {
   pensionEmployeeRatePercent Decimal?  @db.Decimal(5, 2)
   pensionEmployerRatePercent Decimal?  @db.Decimal(5, 2)
   pensionPolicyRef           String?
+  /// Loan/pension completion: the employee's student loan declaration (starter checklist or P45):
+  /// LOAN_DECLARED or NO_LOAN_CONFIRMED; null = not yet verified. With its source and date.
+  loanDeclarationStatus      String?
+  loanDeclarationSource      String?
+  loanDeclarationDate        DateTime? @db.Date
+  /// Automatic enrolment evidence: ordinarily works in the UK (null = not recorded), and a
+  /// recorded State Pension age date where it cannot be derived from the date of birth.
+  pensionUkWorker            Boolean?
+  statePensionAgeDate        DateTime? @db.Date
   /// Q37–Q39: the day the apprenticeship began. The apprentice minimum wage rate applies under 19,
   /// or in the first year of the apprenticeship; without this date it cannot be shown for 19+.
   apprenticeshipStartDate DateTime? @db.Date
@@ -10668,6 +10677,69 @@ model EmployeeLoanNotice {
   @@schema("payroll")
 }
 
+/// A maker/checker correction of a student loan, postgraduate loan or pension amount already in a
+/// CLOSED run. The closed run is never rewritten: once approved, the difference is applied in the
+/// next run of the same tax year. Only refunds and reversals (negative amounts) are applied here.
+model PayrollDeductionAdjustment {
+  id              String    @id @default(uuid()) @db.Uuid
+  employeeId      String    @db.Uuid
+  taxYearId       String    @db.Uuid
+  /// STUDENT_LOAN, POSTGRADUATE_LOAN, PENSION_EMPLOYEE (net deduction) or PENSION_EMPLOYER.
+  kind            String
+  sourceRunId     String    @db.Uuid
+  originalAmount  Decimal   @db.Decimal(12, 2)
+  correctedAmount Decimal   @db.Decimal(12, 2)
+  /// correctedAmount - originalAmount (negative: refund to the employee / reversal).
+  amount          Decimal   @db.Decimal(12, 2)
+  reason          String
+  evidenceRef     String
+  /// MANUAL_CORRECTION or PENSION_OPT_OUT.
+  origin          String
+  /// PROPOSED, APPROVED or REJECTED.
+  status          String    @default("PROPOSED")
+  proposedById    String    @db.Uuid
+  proposedAt      DateTime  @default(now())
+  reviewedById    String?   @db.Uuid
+  reviewedAt      DateTime?
+  reviewNote      String?
+  appliedRunId    String?   @db.Uuid
+  appliedAt       DateTime?
+  /// "employeeId|sourceRunId|kind" while not rejected: one live correction per amount.
+  activeKey       String?   @unique
+
+  @@index([employeeId])
+  @@index([appliedRunId])
+  @@schema("payroll")
+}
+
+/// Automatic enrolment duties of one worker: the latest assessment, the dates that follow from it,
+/// postponement, statutory notices, opt-in / joining requests, opt-out and re-enrolment. Each
+/// change is also kept in the audit log.
+model EmployeePensionAe {
+  id                       String    @id @default(uuid()) @db.Uuid
+  employeeId               String    @unique @db.Uuid
+  lastAssessedOn           DateTime? @db.Date
+  lastCategory             String?
+  lastExplanation          String?
+  lastRunId                String?   @db.Uuid
+  automaticEnrolmentDate   DateTime? @db.Date
+  enrolmentDeadline        DateTime? @db.Date
+  enrolmentNoticeSentOn    DateTime? @db.Date
+  postponementFrom         DateTime? @db.Date
+  postponementEndsOn       DateTime? @db.Date
+  postponementNoticeSentOn DateTime? @db.Date
+  optInRequestedOn         DateTime? @db.Date
+  joiningRequestedOn       DateTime? @db.Date
+  optOutReceivedOn         DateTime? @db.Date
+  optOutEvidenceRef        String?
+  ceasedOn                 DateTime? @db.Date
+  reEnrolmentDueOn         DateTime? @db.Date
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@schema("payroll")
+}
+
 model UkPayrollRunEmployee {
   id                    String    @id @default(uuid()) @db.Uuid
   runId                 String    @db.Uuid
@@ -10728,6 +10800,17 @@ model UkPayrollRunEmployee {
   pensionEmployeeNet        Decimal   @default(0) @db.Decimal(12, 2)
   pensionTaxRelief          Decimal   @default(0) @db.Decimal(12, 2)
   pensionEmployer           Decimal   @default(0) @db.Decimal(12, 2)
+  /// Approved corrections of earlier closed runs applied in this run (negative = refund or
+  /// reversal). The employee ones change net pay; the employer one does not.
+  studentLoanAdjustment       Decimal  @default(0) @db.Decimal(12, 2)
+  postgraduateLoanAdjustment  Decimal  @default(0) @db.Decimal(12, 2)
+  pensionEmployeeAdjustment   Decimal  @default(0) @db.Decimal(12, 2)
+  pensionEmployerAdjustment   Decimal  @default(0) @db.Decimal(12, 2)
+  /// Pension scheme reference in force when this run was calculated.
+  pensionSchemeRefApplied     String?
+  /// Automatic enrolment assessment of this pay reference period.
+  aeCategory                  String?
+  aeExplanation               String?
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())

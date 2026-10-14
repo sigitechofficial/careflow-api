@@ -423,6 +423,13 @@ export class PayrollEmployeesService {
       pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent,
       pensionEmployerRatePercent: dto.pensionEmployerRatePercent,
       pensionPolicyRef: dto.pensionPolicyRef === undefined ? undefined : dto.pensionPolicyRef?.trim() || null,
+      loanDeclarationStatus: dto.loanDeclarationStatus,
+      loanDeclarationSource: dto.loanDeclarationSource,
+      loanDeclarationDate:
+        dto.loanDeclarationDate === undefined ? undefined : dto.loanDeclarationDate ? parsePayrollDateOnly(dto.loanDeclarationDate) : null,
+      pensionUkWorker: dto.pensionUkWorker,
+      statePensionAgeDate:
+        dto.statePensionAgeDate === undefined ? undefined : dto.statePensionAgeDate ? parsePayrollDateOnly(dto.statePensionAgeDate) : null,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
       bankAccountNumber:
         dto.bankAccountNumber === undefined ? undefined : dto.bankAccountNumber?.trim() || null,
@@ -474,6 +481,11 @@ export class PayrollEmployeesService {
               pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent ?? null,
               pensionEmployerRatePercent: dto.pensionEmployerRatePercent ?? null,
               pensionPolicyRef: dto.pensionPolicyRef?.trim() || null,
+              loanDeclarationStatus: dto.loanDeclarationStatus ?? null,
+              loanDeclarationSource: dto.loanDeclarationSource ?? null,
+              loanDeclarationDate: dto.loanDeclarationDate ? parsePayrollDateOnly(dto.loanDeclarationDate) : null,
+              pensionUkWorker: dto.pensionUkWorker ?? null,
+              statePensionAgeDate: dto.statePensionAgeDate ? parsePayrollDateOnly(dto.statePensionAgeDate) : null,
               bankSortCode: dto.bankSortCode?.trim() || null,
               bankAccountNumber: dto.bankAccountNumber?.trim() || null,
               bankAccountName: dto.bankAccountName?.trim() || null,

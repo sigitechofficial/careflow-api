@@ -14,6 +14,12 @@ export type PayslipYtdSnapshot = {
   employeeNiYtd: number
   employerNiYtd: number
   netPayYtd: number
+  /** Loan/pension completion: to date from the YTD ledger (absent on older snapshots). */
+  studentLoanYtd?: number
+  postgraduateLoanYtd?: number
+  pensionEmployeeNetYtd?: number
+  pensionEmployeeGrossYtd?: number
+  pensionEmployerYtd?: number
 }
 
 export type CarePayslipData = {

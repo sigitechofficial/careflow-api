@@ -86,6 +86,7 @@ import {
   directorNiPeriod,
   studentLoanThresholds,
   pensionQualifyingLimits,
+  assessAutoEnrolment,
   type StudentLoanPlan,
   unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
@@ -784,6 +785,14 @@ export class PayrollRunsService {
 
     const employer = mapEmployerSettings(employerRow);
     const profileByEmployee = new Map(profiles.map((p) => [p.employeeId, p]));
+    // Loan figures: a closed run of this tax year from before loans were recorded leaves the YTD incomplete.
+    const yearRows = employeeIds.length
+      ? await this.prisma.ukPayrollRunEmployee.findMany({
+          where: { employeeId: { in: employeeIds }, run: { taxYearId: row.taxYearId, status: 'CLOSED', deletedAt: null } },
+          select: { employeeId: true, studentLoanPlanApplied: true, postgraduateLoanApplied: true },
+        })
+      : [];
+    const loanGap = new Set(yearRows.filter((r) => r.studentLoanPlanApplied == null || r.postgraduateLoanApplied == null).map((r) => r.employeeId));
     const ytdByEmployee = new Map(ytdRows.map((y) => [y.employeeId, mapYtdLedger(y)]));
     const period = mapPeriod(row.period);
     const schedule = mapSchedule(row.schedule);
@@ -850,6 +859,15 @@ export class PayrollRunsService {
             ? profile.hoursNormallyWorked
             : null,
           p45Received: Boolean(profile?.p45Received),
+          loans: {
+            planApplied: e.studentLoanPlanApplied,
+            studentLoanRecovered: round2(decimalNum(e.studentLoanDeduction) + decimalNum(e.studentLoanAdjustment)),
+            studentLoanYtd: ytd?.studentLoanYtd ?? 0,
+            postgraduateApplied: e.postgraduateLoanApplied,
+            postgraduateLoanRecovered: round2(decimalNum(e.postgraduateLoanDeduction) + decimalNum(e.postgraduateLoanAdjustment)),
+            postgraduateLoanYtd: ytd?.postgraduateLoanYtd ?? 0,
+            historicalGap: loanGap.has(e.employeeId) || e.studentLoanPlanApplied == null || e.postgraduateLoanApplied == null,
+          },
           ytd: ytd
             ? {
                 grossPayYtd: ytd.grossPayYtd,
@@ -994,6 +1012,10 @@ export class PayrollRunsService {
         pensionEmployeeGross: decimalNum(runEmployee.pensionEmployeeGross),
         pensionTaxRelief: decimalNum(runEmployee.pensionTaxRelief),
         pensionEmployer: decimalNum(runEmployee.pensionEmployer),
+        studentLoanAdjustment: decimalNum(runEmployee.studentLoanAdjustment),
+        postgraduateLoanAdjustment: decimalNum(runEmployee.postgraduateLoanAdjustment),
+        pensionEmployeeAdjustment: decimalNum(runEmployee.pensionEmployeeAdjustment),
+        pensionEmployerAdjustment: decimalNum(runEmployee.pensionEmployerAdjustment),
       },
       employee: {
         displayName,
@@ -2378,6 +2400,31 @@ export class PayrollRunsService {
         postgraduate = postgraduateNotice.kind === 'ON';
         postgraduateSource = describe(postgraduateNotice.notice);
       }
+      // Starter checklist / P45 declaration (an HMRC notice in force always takes precedence).
+      const declaration = profile?.loanDeclarationStatus ?? null;
+      const declaredFrom = profile?.loanDeclarationSource
+        ? `${profile.loanDeclarationSource.replace(/_/g, ' ').toLowerCase()} declaration${profile.loanDeclarationDate ? ` of ${dateToIsoDate(profile.loanDeclarationDate)}` : ''}`
+        : null;
+      if (studentNotice.kind === 'NONE') {
+        if (declaration === 'NO_LOAN_CONFIRMED' && (plans.length || (postgraduateNotice.kind === 'NONE' && postgraduate))) {
+          refuse('the loan declaration says no loan but a loan is set on the profile (review the starter checklist / P45)');
+          continue;
+        }
+        if (declaration === 'LOAN_DECLARED' && !plans.length && !postgraduate) {
+          refuse('a student loan is declared but no plan is recorded (the plan is not chosen here)');
+          continue;
+        }
+        if (declaredFrom) planSource = declaredFrom;
+        // HMRC: on more than one plan, deduct for the plan with the lowest recovery threshold until an SL1.
+        if (plans.length > 1 && declaredFrom) {
+          const lowest = (['5', '1', '2', '4'] as StudentLoanPlan[]).find((p) => plans.includes(p))!;
+          plans.length = 0;
+          plans.push(lowest);
+          plan = lowest;
+          planSource = `${declaredFrom}; more than one plan declared, so the lowest-threshold plan until an SL1 arrives (HMRC)`;
+        }
+      }
+      if (postgraduateNotice.kind === 'NONE' && declaredFrom) postgraduateSource = declaredFrom;
       if (plans.length > 1) {
         refuse(`more than one student loan plan recorded (${plans.join(', ')}); record the plan HMRC has notified`);
         continue;
@@ -2424,7 +2471,7 @@ export class PayrollRunsService {
       const refuse = (reason: string) => pensionReasonByEmployeeId.set(re.employeeId, reason);
       const earlier = earlierInPeriod.filter((e) => e.employeeId === re.employeeId);
       const status = profile?.pensionStatus ?? null;
-      if (status !== 'ENROLLED' && status !== 'NOT_ENROLLED') {
+      if (status !== 'ENROLLED' && status !== 'NOT_ENROLLED' && status !== 'OPTED_OUT' && status !== 'CEASED') {
         refuse('workplace pension status not recorded (record whether the person is enrolled)');
         continue;
       }
@@ -2439,7 +2486,7 @@ export class PayrollRunsService {
         refuse('workplace pension status changed since an earlier payment in this pay reference period (not calculated by this version)');
         continue;
       }
-      if (status === 'NOT_ENROLLED') continue;
+      if (status !== 'ENROLLED') continue; // NOT_ENROLLED, OPTED_OUT, CEASED: no contribution
       const missing = [
         profile?.pensionEnrolledFrom ? null : 'enrolment date',
         profile?.pensionSchemeRef ? null : 'scheme reference',
@@ -2500,6 +2547,36 @@ export class PayrollRunsService {
       });
     }
 
+    // Loan/pension completion: approved corrections of closed runs of this tax year, applied once
+    // here (claimed by this run; a claim of a cancelled run is released).
+    const candidateAdjustments = await this.prisma.payrollDeductionAdjustment.findMany({
+      where: { employeeId: { in: employeeIds }, status: 'APPROVED', taxYearId: run.taxYearId },
+    });
+    const claimedElsewhere = [...new Set(candidateAdjustments.map((a) => a.appliedRunId).filter((id): id is string => Boolean(id) && id !== runId))];
+    const cancelledClaims = claimedElsewhere.length
+      ? new Set(
+          (await this.prisma.ukPayrollRun.findMany({ where: { id: { in: claimedElsewhere }, status: 'CANCELLED' }, select: { id: true } })).map((r) => r.id),
+        )
+      : new Set<string>();
+    const adjustments = candidateAdjustments.filter((a) => !a.appliedRunId || a.appliedRunId === runId || cancelledClaims.has(a.appliedRunId));
+    const adjByEmployeeId = new Map<string, { studentLoan: number; postgraduateLoan: number; pensionEmployee: number; pensionEmployer: number }>();
+    for (const a of adjustments) {
+      const sum = adjByEmployeeId.get(a.employeeId) ?? { studentLoan: 0, postgraduateLoan: 0, pensionEmployee: 0, pensionEmployer: 0 };
+      const amount = decimalNum(a.amount);
+      if (a.kind === 'STUDENT_LOAN') sum.studentLoan = round2(sum.studentLoan + amount);
+      else if (a.kind === 'POSTGRADUATE_LOAN') sum.postgraduateLoan = round2(sum.postgraduateLoan + amount);
+      else if (a.kind === 'PENSION_EMPLOYEE') sum.pensionEmployee = round2(sum.pensionEmployee + amount);
+      else if (a.kind === 'PENSION_EMPLOYER') sum.pensionEmployer = round2(sum.pensionEmployer + amount);
+      adjByEmployeeId.set(a.employeeId, sum);
+    }
+    // Automatic enrolment assessment inputs (never blocks: missing evidence gives REVIEW_REQUIRED).
+    const [aePeople, aeRecords] = await Promise.all([
+      this.prisma.employee.findMany({ where: { id: { in: employeeIds } }, select: { id: true, personalDetail: { select: { dateOfBirth: true } } } }),
+      this.prisma.employeePensionAe.findMany({ where: { employeeId: { in: employeeIds } } }),
+    ]);
+    const dobByEmployeeId = new Map(aePeople.map((p) => [p.id, p.personalDetail?.dateOfBirth ?? null]));
+    const aeByEmployeeId = new Map(aeRecords.map((r) => [r.employeeId, r]));
+
     // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
     // Gate C3: S codes use this tax year's Scottish bands, and are refused when none are known.
     // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
@@ -2551,6 +2628,11 @@ export class PayrollRunsService {
     let usedNonCumulative = 0;
     const perEmployee: Array<{
       id: string;
+      employeeId: string;
+      adjustments: { studentLoan: number; postgraduateLoan: number; pensionEmployee: number; pensionEmployer: number };
+      pensionSchemeRefApplied: string | null;
+      aeCategory: string;
+      aeExplanation: string;
       taxablePay: number;
       incomeTax: number;
       employeeNi: number;
@@ -2590,17 +2672,46 @@ export class PayrollRunsService {
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;
+      const adj = adjByEmployeeId.get(re.employeeId) ?? { studentLoan: 0, postgraduateLoan: 0, pensionEmployee: 0, pensionEmployer: 0 };
+      const netPay = round2(result.netPay - adj.studentLoan - adj.postgraduateLoan - adj.pensionEmployee);
+      const adjustmentNote =
+        adj.studentLoan || adj.postgraduateLoan || adj.pensionEmployee || adj.pensionEmployer
+          ? ` Approved corrections of earlier closed runs applied: student loan £${adj.studentLoan.toFixed(2)}, postgraduate loan £${adj.postgraduateLoan.toFixed(2)}, pension employee £${adj.pensionEmployee.toFixed(2)}, pension employer £${adj.pensionEmployer.toFixed(2)} (negative: refund / reversal).`
+          : '';
+      const aeRecord = aeByEmployeeId.get(re.employeeId);
+      const ae = assessAutoEnrolment({
+        taxYearStart: run.taxYear.startDate,
+        frequency,
+        earnings: round2(decimalNum(re.totalGross) + (niEarlierByEmployeeId.get(re.employeeId)?.niableEarnings ?? 0)),
+        payDate: paidOn,
+        dateOfBirth: dobByEmployeeId.get(re.employeeId) ?? null,
+        statePensionAgeDate: profile?.statePensionAgeDate ?? null,
+        ukWorker: profile?.pensionUkWorker ?? null,
+      });
+      const aeDuty =
+        ae.category === 'ELIGIBLE_JOBHOLDER' && profile?.pensionStatus !== 'ENROLLED'
+          ? aeRecord?.postponementEndsOn && aeRecord.postponementEndsOn >= paidOn
+            ? ` Automatic enrolment postponed until ${dateToIsoDate(aeRecord.postponementEndsOn)}.`
+            : aeRecord?.enrolmentDeadline && aeRecord.enrolmentDeadline < paidOn
+              ? ` Automatic enrolment overdue: the deadline was ${dateToIsoDate(aeRecord.enrolmentDeadline)}.`
+              : ' Automatic enrolment duty: enrol within six weeks of the automatic enrolment date.'
+          : '';
       totalIncomeTax += result.incomeTax;
       totalEmployeeNi += result.employeeNi;
       totalEmployerNi += result.employerNi;
-      totalNetPay += result.netPay;
+      totalNetPay += netPay;
       perEmployee.push({
         id: re.id,
+        employeeId: re.employeeId,
+        adjustments: adj,
+        pensionSchemeRefApplied: result.pension.applied ? profile?.pensionSchemeRef ?? null : null,
+        aeCategory: ae.category,
+        aeExplanation: `${ae.explanation}${aeDuty}`,
         taxablePay: result.taxablePay,
         incomeTax: result.incomeTax,
         employeeNi: result.employeeNi,
         employerNi: result.employerNi,
-        netPay: result.netPay,
+        netPay,
         taxCodeApplied: result.taxCodeApplied,
         niCategoryApplied: result.niCategoryApplied,
         directorNicMethodApplied: result.directorNicMethodApplied,
@@ -2610,7 +2721,7 @@ export class PayrollRunsService {
         postgraduateLoanApplied: result.postgraduateLoanApplied,
         postgraduateLoanDeduction: result.postgraduateLoanDeduction,
         pension: result.pension,
-        statutoryExplanation: result.explanation,
+        statutoryExplanation: `${result.explanation}${adjustmentNote}`,
       });
     }
 
@@ -2654,9 +2765,44 @@ export class PayrollRunsService {
             pensionEmployeeNet: toDecimal(row.pension.employeeNet),
             pensionTaxRelief: toDecimal(row.pension.taxRelief),
             pensionEmployer: toDecimal(row.pension.employer),
+            studentLoanAdjustment: toDecimal(row.adjustments.studentLoan),
+            postgraduateLoanAdjustment: toDecimal(row.adjustments.postgraduateLoan),
+            pensionEmployeeAdjustment: toDecimal(row.adjustments.pensionEmployee),
+            pensionEmployerAdjustment: toDecimal(row.adjustments.pensionEmployer),
+            pensionSchemeRefApplied: row.pensionSchemeRefApplied,
+            aeCategory: row.aeCategory,
+            aeExplanation: row.aeExplanation,
             statutoryExplanation: row.statutoryExplanation,
             statutoryCalculatedAt: now,
           },
+        });
+      }
+
+      // Corrections applied in this run are claimed by it (released claims of cancelled runs move here).
+      if (adjustments.length) {
+        await tx.payrollDeductionAdjustment.updateMany({
+          where: { id: { in: adjustments.map((a) => a.id) } },
+          data: { appliedRunId: runId, appliedAt: now },
+        });
+      }
+      // Automatic enrolment record: latest assessment; the automatic enrolment date the first time
+      // someone not enrolled is assessed an eligible jobholder (deadline six weeks later).
+      for (const row of perEmployee) {
+        const existing = aeByEmployeeId.get(row.employeeId);
+        const profile = profileByEmployeeId.get(row.employeeId);
+        const firstEligible =
+          row.aeCategory === 'ELIGIBLE_JOBHOLDER' && !existing?.automaticEnrolmentDate && profile?.pensionStatus !== 'ENROLLED';
+        const assessed = {
+          lastAssessedOn: paidOn,
+          lastCategory: row.aeCategory,
+          lastExplanation: row.aeExplanation,
+          lastRunId: runId,
+          ...(firstEligible ? { automaticEnrolmentDate: paidOn, enrolmentDeadline: new Date(paidOn.getTime() + 42 * 86400000) } : {}),
+        };
+        await tx.employeePensionAe.upsert({
+          where: { employeeId: row.employeeId },
+          create: { employeeId: row.employeeId, ...assessed },
+          update: assessed,
         });
       }
 
@@ -2894,11 +3040,12 @@ export class PayrollRunsService {
           employeeNi: decimalNum(e.employeeNi) ?? 0,
           employerNi: decimalNum(e.employerNi) ?? 0,
           netPay: decimalNum(e.netPay) ?? 0,
-          studentLoan: decimalNum(e.studentLoanDeduction) ?? 0,
-          postgraduateLoan: decimalNum(e.postgraduateLoanDeduction) ?? 0,
-          pensionEmployeeGross: decimalNum(e.pensionEmployeeGross) ?? 0,
-          pensionEmployeeNet: decimalNum(e.pensionEmployeeNet) ?? 0,
-          pensionEmployer: decimalNum(e.pensionEmployer) ?? 0,
+          // Posted with the approved corrections applied in this run (a refund reduces the YTD).
+          studentLoan: round2(decimalNum(e.studentLoanDeduction) + decimalNum(e.studentLoanAdjustment)),
+          postgraduateLoan: round2(decimalNum(e.postgraduateLoanDeduction) + decimalNum(e.postgraduateLoanAdjustment)),
+          pensionEmployeeGross: round2(decimalNum(e.pensionEmployeeGross) + decimalNum(e.pensionEmployeeAdjustment) / 0.8),
+          pensionEmployeeNet: round2(decimalNum(e.pensionEmployeeNet) + decimalNum(e.pensionEmployeeAdjustment)),
+          pensionEmployer: round2(decimalNum(e.pensionEmployer) + decimalNum(e.pensionEmployerAdjustment)),
           // Gate C10: the run row's NI data for RTI, as calculated (null on a legacy row).
           ni: {
             category: e.niCategoryApplied,

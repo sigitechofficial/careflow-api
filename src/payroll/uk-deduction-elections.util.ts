@@ -112,7 +112,7 @@ export function legacyPensionConflict(
   const reasons = [
     codes.has('SS_PENSION') ? 'salary sacrifice pension election (not calculated by this version)' : null,
     codes.has('AVC_PENSION') ? 'additional voluntary contribution election (not calculated by this version)' : null,
-    pensionStatus === 'NOT_ENROLLED' && codes.has('PENSION_EMPLOYEE') ? 'pension opt-in recorded but the enrolment says NOT_ENROLLED' : null,
+    pensionStatus && pensionStatus !== 'ENROLLED' && codes.has('PENSION_EMPLOYEE') ? `pension opt-in recorded but the enrolment says ${pensionStatus}` : null,
   ].filter(Boolean);
   return reasons.length
     ? `PENSION_CONFIGURATION_CONFLICT: the legacy pension settings disagree with the workplace pension enrolment (${reasons.join('; ')}); review and correct the profile`

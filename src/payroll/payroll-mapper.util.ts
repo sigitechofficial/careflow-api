@@ -218,6 +218,11 @@ export function mapProfile(row: {
   pensionEmployeeRatePercent?: { toString(): string } | number | null;
   pensionEmployerRatePercent?: { toString(): string } | number | null;
   pensionPolicyRef?: string | null;
+  loanDeclarationStatus?: string | null;
+  loanDeclarationSource?: string | null;
+  loanDeclarationDate?: Date | null;
+  pensionUkWorker?: boolean | null;
+  statePensionAgeDate?: Date | null;
   deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
@@ -264,6 +269,11 @@ export function mapProfile(row: {
     pensionEmployeeRatePercent: row.pensionEmployeeRatePercent == null ? null : Number(row.pensionEmployeeRatePercent),
     pensionEmployerRatePercent: row.pensionEmployerRatePercent == null ? null : Number(row.pensionEmployerRatePercent),
     pensionPolicyRef: row.pensionPolicyRef ?? null,
+    loanDeclarationStatus: row.loanDeclarationStatus ?? null,
+    loanDeclarationSource: row.loanDeclarationSource ?? null,
+    loanDeclarationDate: dateToIsoDate(row.loanDeclarationDate ?? null),
+    pensionUkWorker: row.pensionUkWorker ?? null,
+    statePensionAgeDate: dateToIsoDate(row.statePensionAgeDate ?? null),
     deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,

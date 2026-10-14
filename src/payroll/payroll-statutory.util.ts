@@ -79,12 +79,92 @@ export type StatutoryCalcInput = {
 export type StudentLoanPlan = '1' | '2' | '4' | '5';
 
 /**
- * Gate C16: The Pensions Regulator, 2026-27 qualifying earnings, monthly: lower £520, upper £4,189.
- * Monthly pay only, and only the tax year starting 6 April 2026; null otherwise.
+ * The Pensions Regulator, 2026-27 automatic enrolment figures for the pay reference period (the pay
+ * period): qualifying earnings lower and upper limits and the earnings trigger. Annual £6,240 /
+ * £50,270 / £10,000; monthly £520 / £4,189 / £833; weekly £120 / £967 / £192; fortnightly £240 /
+ * £1,934 / £384; four-weekly £480 / £3,867 / £768. Only the tax year starting 6 April 2026.
+ * (Gate C16 monthly; weekly, fortnightly and four-weekly added in the loan/pension completion.)
  */
+const AE_LIMITS_2026_27: Record<PayFrequencyCode, { lower: number; upper: number; trigger: number }> = {
+  MONTHLY: { lower: 520, upper: 4189, trigger: 833 },
+  WEEKLY: { lower: 120, upper: 967, trigger: 192 },
+  FORTNIGHTLY: { lower: 240, upper: 1934, trigger: 384 },
+  FOUR_WEEKLY: { lower: 480, upper: 3867, trigger: 768 },
+};
+
 export function pensionQualifyingLimits(taxYearStart: Date, frequency: PayFrequencyCode): { lower: number; upper: number } | null {
-  if (frequency !== 'MONTHLY' || taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
-  return { lower: 520, upper: 4189 };
+  if (taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  const limits = AE_LIMITS_2026_27[frequency];
+  return limits ? { lower: limits.lower, upper: limits.upper } : null;
+}
+
+export function aeEarningsTrigger(taxYearStart: Date, frequency: PayFrequencyCode): number | null {
+  if (taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  return AE_LIMITS_2026_27[frequency]?.trigger ?? null;
+}
+
+const birthday = (dob: Date, years: number) =>
+  new Date(Date.UTC(dob.getUTCFullYear() + years, dob.getUTCMonth(), dob.getUTCDate()));
+
+/**
+ * State Pension age date from the date of birth where the law fixes it without a month table:
+ * born before 6 April 1960, 66th birthday (anyone born earlier reached State Pension age before
+ * 2026); 6 March 1961 to 5 April 1977, 67th birthday; from 6 April 1978, 68th birthday. The
+ * transitional births (6 April 1960 - 5 March 1961, 6 April 1977 - 5 April 1978) return null: a
+ * State Pension age date must then be recorded.
+ */
+export function statePensionAgeDateFor(dob: Date): Date | null {
+  const t = Date.UTC(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate());
+  if (t < Date.UTC(1960, 3, 6)) return birthday(dob, 66);
+  if (t < Date.UTC(1961, 2, 6)) return null;
+  if (t < Date.UTC(1977, 3, 6)) return birthday(dob, 67);
+  if (t < Date.UTC(1978, 3, 6)) return null;
+  return birthday(dob, 68);
+}
+
+export type AeCategory = 'ELIGIBLE_JOBHOLDER' | 'NON_ELIGIBLE_JOBHOLDER' | 'ENTITLED_WORKER' | 'NOT_IN_SCOPE' | 'REVIEW_REQUIRED';
+
+/**
+ * The Pensions Regulator's worker categories for one pay reference period, on the earnings paid in
+ * it and the worker's age on the payment date. Eligible jobholder: aged 22 to State Pension age
+ * and earning more than the earnings trigger. Non-eligible jobholder: aged 16 to 74 and earning
+ * more than the lower qualifying earnings limit, but not eligible. Entitled worker: aged 16 to 74
+ * and earning up to the lower limit. Missing UK-worker evidence, date of birth, State Pension age
+ * or figures for the year give REVIEW_REQUIRED, never a guessed category.
+ */
+export function assessAutoEnrolment(input: {
+  taxYearStart: Date;
+  frequency: PayFrequencyCode;
+  earnings: number;
+  payDate: Date;
+  dateOfBirth: Date | null;
+  statePensionAgeDate?: Date | null;
+  ukWorker: boolean | null;
+}): { category: AeCategory; explanation: string } {
+  const review = (why: string) => ({ category: 'REVIEW_REQUIRED' as const, explanation: `Automatic enrolment review required: ${why}.` });
+  if (input.ukWorker == null) return review('whether the worker ordinarily works in the UK is not recorded');
+  if (!input.ukWorker) return { category: 'NOT_IN_SCOPE', explanation: 'Not in scope: recorded as not ordinarily working in the UK.' };
+  if (!input.dateOfBirth) return review('date of birth not recorded');
+  const limits = pensionQualifyingLimits(input.taxYearStart, input.frequency);
+  const trigger = aeEarningsTrigger(input.taxYearStart, input.frequency);
+  if (!limits || trigger == null) return review('no automatic enrolment thresholds recorded for this tax year');
+  const pay = input.payDate.getTime();
+  const age = (() => {
+    const d = input.dateOfBirth!;
+    let years = input.payDate.getUTCFullYear() - d.getUTCFullYear();
+    if (birthday(d, years).getTime() > pay) years -= 1;
+    return years;
+  })();
+  if (age < 16 || age >= 75) return { category: 'NOT_IN_SCOPE', explanation: `Not in scope: aged ${age} on the pay date.` };
+  const earnings = round2(input.earnings);
+  const base = `aged ${age}, earnings £${earnings.toFixed(2)} in the pay reference period (trigger £${trigger}, lower limit £${limits.lower})`;
+  if (earnings > trigger && age >= 22) {
+    const spa = input.statePensionAgeDate ?? statePensionAgeDateFor(input.dateOfBirth);
+    if (!spa) return review(`${base}; State Pension age date not recorded (transitional birth date)`);
+    if (pay < spa.getTime()) return { category: 'ELIGIBLE_JOBHOLDER', explanation: `Eligible jobholder: ${base}, below State Pension age.` };
+  }
+  if (earnings > limits.lower) return { category: 'NON_ELIGIBLE_JOBHOLDER', explanation: `Non-eligible jobholder: ${base}.` };
+  return { category: 'ENTITLED_WORKER', explanation: `Entitled worker: ${base}.` };
 }
 
 export type PensionSetup = {

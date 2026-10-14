@@ -106,6 +106,11 @@ export type BuildCarePayslipInput = {
     pensionEmployeeGross?: number
     pensionTaxRelief?: number
     pensionEmployer?: number
+    /** Approved corrections of earlier closed runs applied in this run (negative: refund / reversal). */
+    studentLoanAdjustment?: number
+    postgraduateLoanAdjustment?: number
+    pensionEmployeeAdjustment?: number
+    pensionEmployerAdjustment?: number
   }
   employee: {
     displayName: string
@@ -231,6 +236,9 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
     studentLoanLine,
     postgraduateLine,
     pensionLine,
+    moneyLine('Student loan correction (earlier period)', re.studentLoanAdjustment ?? 0, true),
+    moneyLine('Postgraduate loan correction (earlier period)', re.postgraduateLoanAdjustment ?? 0, true),
+    moneyLine('Workplace pension correction (earlier period)', re.pensionEmployeeAdjustment ?? 0, true),
     moneyLine('Other deductions', re.deductionTotal, true),
   ].filter((l): l is PayslipMoneyLine => l != null)
   const pensionInformation: PayslipMoneyLine[] = re.pensionApplied
@@ -240,6 +248,8 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
         exact('Basic-rate tax relief claimed by the pension provider', re.pensionTaxRelief, false),
       ]
     : []
+  const employerCorrection = moneyLine('Employer pension correction (earlier period)', re.pensionEmployerAdjustment ?? 0, false)
+  if (employerCorrection) pensionInformation.push(employerCorrection)
   // Reconciliation on the stored figures: gross (after other deductions) less every employee deduction.
   const expectedNetPay = round2(
     re.totalGross -
@@ -247,7 +257,10 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
       re.employeeNi -
       (re.studentLoanDeduction ?? 0) -
       (re.postgraduateLoanDeduction ?? 0) -
-      (re.pensionEmployeeNet ?? 0),
+      (re.pensionEmployeeNet ?? 0) -
+      (re.studentLoanAdjustment ?? 0) -
+      (re.postgraduateLoanAdjustment ?? 0) -
+      (re.pensionEmployeeAdjustment ?? 0),
   )
 
   const employerCosts: PayslipMoneyLine[] = [
@@ -367,6 +380,11 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
           employeeNiYtd: round2(input.ytd.employeeNiYtd),
           employerNiYtd: round2(input.ytd.employerNiYtd),
           netPayYtd: round2(input.ytd.netPayYtd),
+          studentLoanYtd: input.ytd.studentLoanYtd == null ? undefined : round2(input.ytd.studentLoanYtd),
+          postgraduateLoanYtd: input.ytd.postgraduateLoanYtd == null ? undefined : round2(input.ytd.postgraduateLoanYtd),
+          pensionEmployeeNetYtd: input.ytd.pensionEmployeeNetYtd == null ? undefined : round2(input.ytd.pensionEmployeeNetYtd),
+          pensionEmployeeGrossYtd: input.ytd.pensionEmployeeGrossYtd == null ? undefined : round2(input.ytd.pensionEmployeeGrossYtd),
+          pensionEmployerYtd: input.ytd.pensionEmployerYtd == null ? undefined : round2(input.ytd.pensionEmployerYtd),
         }
       : null,
     notes,
