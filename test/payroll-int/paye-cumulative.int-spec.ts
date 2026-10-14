@@ -3,7 +3,7 @@
  * year and the year-to-date ledger.
  *
  * Synthetic employee on code 1257L, paid monthly in tax year 2026-27, with figures worked by
- * HMRC's method (Pay Adjustment Tables A: £1,048.25 free pay a month for code 1257; taxable pay to
+ * HMRC's method (Pay Adjustment Tables A: £1,048.26 free pay a month for code 1257; taxable pay to
  * date rounded down to the pound; 20% basic rate). The calculation itself is tested against HMRC's
  * printed examples in src/payroll/payroll-statutory.util.spec.ts.
  */
@@ -72,13 +72,13 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
   it('cumulative tax, a refund when pay falls, net pay, and a year-to-date ledger posted once per closed run', async () => {
     const original = await agree(36_000); // £3,000.00 a month
     const april = await run(APRIL);
-    // £3,000 − £1,048.25 = £1,951.75, taxable £1,951, tax £390.20; NI (3,000 − 1,048) × 8% = £156.16.
+    // £3,000 − £1,048.26 = £1,951.74, taxable £1,951, tax £390.20; NI (3,000 − 1,048) × 8% = £156.16.
     expect(await taxAndNi(april)).toEqual({ gross: 3000, taxablePay: 1951, incomeTax: 390.2, employeeNi: 156.16, netPay: 2453.64, taxCodeApplied: '1257L' });
     await ukRuns.close(checker.id, april);
     expect(await ledger()).toMatchObject({ grossPayYtd: expect.anything() });
     expect(Number((await ledger())!.incomeTaxYtd)).toBe(390.2);
 
-    // From May the salary is £6,000 a year (£500 a month). To date £3,500 − £2,096.50 = £1,403.50,
+    // From May the salary is £6,000 a year (£500 a month). To date £3,500 − £2,096.52 = £1,403.48,
     // taxable £1,403, tax due £280.60: £109.60 is refunded, and £500 is below the NI threshold.
     await t.prisma.employeePayAgreement.update({ where: { id: original.id }, data: { status: 'SUPERSEDED' } });
     await agree(6_000, { effectiveFrom: new Date('2026-05-01'), approvedAt: new Date('2026-04-20T09:00:00Z') });
@@ -109,8 +109,29 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await agree(6_000, { effectiveFrom: new Date('2026-05-01'), approvedAt: new Date('2026-04-20T09:00:00Z') });
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCodeWeek1Month1: true } });
     const may = await run(MAY);
-    // £500 alone against £1,048.25 of free pay: no tax, and April's tax is not looked at.
+    // £500 alone against £1,048.26 of free pay: no tax, and April's tax is not looked at.
     expect(await taxAndNi(may)).toMatchObject({ gross: 500, incomeTax: 0, netPay: 500 });
+  });
+
+  it('Gate C2: a K code limited to 50% of pay; the rest is collected later where it can be, and the ledger holds what was deducted', async () => {
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'K1500' } });
+    await agree(4_800); // £400.00 a month
+    const april = await run(APRIL);
+    // £400 + £1,250.76 additional pay → £1,650, tax due £330.00, deducted £200.00 (50% of £400).
+    expect(await taxAndNi(april)).toMatchObject({ gross: 400, incomeTax: 200, employeeNi: 0, netPay: 200, taxCodeApplied: 'K1500' });
+    const explained = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } });
+    expect(explained.statutoryExplanation).toMatch(/Regulatory limit: tax due this period £330\.00 .* £130\.00 not deducted/);
+    await ukRuns.close(checker.id, april);
+    expect(Number((await ledger())!.incomeTaxYtd)).toBe(200);
+
+    // May: to date £800 + £2,501.52 → £3,301, due £660.20 less £200.00 = £460.20; deducted £200.00 again.
+    const may = await run(MAY);
+    const first = await taxAndNi(may);
+    expect(first).toMatchObject({ gross: 400, incomeTax: 200, netPay: 200 });
+    expect(await taxAndNi(may)).toEqual(first); // calculated again: nothing added twice
+    await ukRuns.close(checker.id, may);
+    expect(Number((await ledger())!.incomeTaxYtd)).toBe(400);
+    expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
   });
 
   it('nothing is guessed: no tax code, a code not supported yet, or a period outside the tax year stops the calculation', async () => {
@@ -123,7 +144,8 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'S1257L' } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish tax code S1257L/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'K475' } });
-    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/K code K475/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'CK475' } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Welsh K code CK475/);
     expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } })).statutoryCalculatedAt).toBeNull();
 
     // A period paid on 31 March 2026 belongs to tax year 2025-26, not to this run's 2026-27.

@@ -53,6 +53,10 @@ export type StatutoryCalcResult = {
   niCategoryApplied: string;
   periodFreePay: number;
   calculationBasis: StatutoryCalculationBasis;
+  /** Tax due this period before the 50% regulatory limit (negative: a refund). */
+  taxDueThisPeriod: number;
+  /** Tax the regulatory limit kept from being deducted this period (0 when it did not apply). */
+  taxNotDeductedOverLimit: number;
   explanation: string;
 };
 
@@ -112,8 +116,9 @@ export function unsupportedTaxCodeReason(taxCode: string | null | undefined): st
   const raw = (taxCode ?? '').trim().toUpperCase().replace(/\s+/g, '');
   if (!raw) return 'no tax code recorded';
   if (raw.startsWith('S')) return `Scottish tax code ${raw} (Scottish rates are not calculated yet)`;
+  if (raw.startsWith('CK')) return `Welsh K code ${raw} (not calculated yet)`;
   const parsed = parseUkTaxCode(raw);
-  if (/^C?K\d+/.test(raw)) return `K code ${raw} (the regulatory limit is not applied yet)`;
+  if (raw.startsWith('K') && !/^K[1-9]\d*$/.test(raw)) return `tax code ${raw} is not recognised`;
   if (parsed.special === 'UNKNOWN') return `tax code ${raw} is not recognised`;
   return null;
 }
@@ -128,18 +133,41 @@ function floorPound(amount: number): number {
   return Math.floor(amount + 1e-7);
 }
 
+const ceilPenny = (amount: number) => Math.ceil(amount * 100 - 1e-7) / 100;
+
 /**
- * HMRC Pay Adjustment Tables A: the free pay of one period for a code number is
- * (code number x 10 + 9) / periods in the year, rounded up to the next penny; to date it is that
- * figure times the period number (code 431L: £359.92 a month, £1,439.68 at month 4; £83.06 a
- * week, £913.66 at week 11). A K code's figure is an addition to pay, rounded the same way.
+ * HMRC Pay Adjustment Tables A, per period (to date it is this times the period number).
+ * Codes 1 to 500: (code x 10 + 9) / periods, rounded up to the penny (Month 1: 154 → £129.09,
+ * 257 → £214.92, 431 → £359.92, 500 → £417.42). A code over 500 is split into units of 500: the
+ * remainder from that table plus each unit at 5,000 / periods rounded up (£416.67 a month,
+ * £96.16 a week); a code that divides exactly takes one unit of 500 from the table (1257:
+ * £214.92 + 2 x £416.67 = £1,048.26 a month). A K code's "additional pay" is worked out the same
+ * way and added to pay instead of taken off it.
  */
-function payAdjustmentPerPeriod(parsed: ReturnType<typeof parseUkTaxCode>, periods: number): number {
+export function payAdjustmentPerPeriod(parsed: ReturnType<typeof parseUkTaxCode>, periods: number): number {
   if (parsed.annualFreePay == null || parsed.special !== 'NORMAL') return 0;
   const codeNumber = Math.abs(parsed.annualFreePay) / 10;
   if (codeNumber === 0) return 0;
-  const perPeriod = Math.ceil(((codeNumber * 10 + 9) / periods) * 100 - 1e-7) / 100;
+  let units = Math.floor(codeNumber / 500);
+  let remainder = codeNumber - units * 500;
+  if (remainder === 0) {
+    remainder = 500;
+    units -= 1;
+  }
+  const perPeriod = round2(ceilPenny((remainder * 10 + 9) / periods) + units * ceilPenny(5000 / periods));
   return parsed.annualFreePay < 0 ? -perPeriod : perPeriod;
+}
+
+/**
+ * HMRC: "Tax deducted on any one day cannot exceed 50% of the gross pay for that period" — for
+ * every tax code since 6 April 2015 (PAYE11050, PAYE11095). A refund is not limited. Tax the
+ * limit holds back stays due: on a cumulative code the next pay day collects it where it can.
+ */
+function applyRegulatoryLimit(taxDue: number, periodGross: number) {
+  if (taxDue <= 0) return { deducted: taxDue, notDeducted: 0 };
+  const limit = Math.floor(Math.max(0, periodGross) * 50 + 1e-7) / 100;
+  const deducted = Math.min(taxDue, limit);
+  return { deducted, notDeducted: round2(taxDue - deducted) };
 }
 
 /** Parse common UK tax codes. Digits × 10 = annual personal allowance (e.g. 1257L → 12570). */
@@ -310,7 +338,9 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
 
     const taxablePay =
       parsed.special === 'NT' ? 0 : floorPound(Math.max(0, gross - periodFreePay));
-    const incomeTax = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
+    const taxDue = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
+    const limited = applyRegulatoryLimit(taxDue, gross);
+    const incomeTax = limited.deducted;
     const netPay = round2(gross - incomeTax - employeeNi);
     const basisLabel = input.week1Month1
       ? 'Week 1 / Month 1 (non-cumulative)'
@@ -320,6 +350,9 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       `Basis: ${basisLabel}, ${input.frequency}, period ${periodNumber}/${periods}.`,
       `Tax code ${parsed.code}; period free pay £${periodFreePay.toFixed(2)}.`,
       `Period gross £${gross.toFixed(2)}; taxable £${taxablePay.toFixed(2)}; tax £${incomeTax.toFixed(2)}.`,
+      ...(limited.notDeducted > 0
+        ? [`Regulatory limit: tax due £${taxDue.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted (not collected later on this basis).`]
+        : []),
       `NI category ${niCategory}; PT £${niTh.pt.toFixed(2)} UEL £${niTh.uel.toFixed(2)}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)}.`,
       'Student loans / pensions / Scotland bands not included.',
     ].join(' ');
@@ -334,6 +367,8 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       niCategoryApplied: niCategory,
       periodFreePay,
       calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+      taxDueThisPeriod: taxDue,
+      taxNotDeductedOverLimit: limited.notDeducted,
       explanation,
     };
   }
@@ -354,15 +389,22 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   // Band widths to date: annual band × periodNumber / periods  ⇒ divide annual by (periods/periodNumber)
   const bandScale = periods / periodNumber;
   const taxDueYtd = taxOnTaxable(taxableYtd, input.rates, bandScale, parsed.special);
-  const incomeTax = round2(taxDueYtd - ytdTaxBefore);
+  const taxDueThisPeriod = round2(taxDueYtd - ytdTaxBefore);
+  const limited = applyRegulatoryLimit(taxDueThisPeriod, gross);
+  const incomeTax = limited.deducted;
   const periodFreePay = round2(freePayToDate - freePayPrevious);
   const netPay = round2(gross - incomeTax - employeeNi);
 
   const explanation = [
     `Basis: Cumulative PAYE, ${input.frequency}, period ${periodNumber}/${periods}.`,
-    `Tax code ${parsed.code}; free pay to date £${freePayToDate.toFixed(2)} (this period £${periodFreePay.toFixed(2)}).`,
+    freePayToDate < 0
+      ? `Tax code ${parsed.code}; additional pay to date £${(-freePayToDate).toFixed(2)} (this period £${(-periodFreePay).toFixed(2)}).`
+      : `Tax code ${parsed.code}; free pay to date £${freePayToDate.toFixed(2)} (this period £${periodFreePay.toFixed(2)}).`,
     `YTD gross before £${ytdGrossBefore.toFixed(2)} + period £${gross.toFixed(2)} = £${grossYtd.toFixed(2)}.`,
     `Taxable YTD £${taxableYtd.toFixed(2)}; tax due YTD £${taxDueYtd.toFixed(2)}; tax paid YTD £${ytdTaxBefore.toFixed(2)}; this period ${incomeTax < 0 ? `refund £${(-incomeTax).toFixed(2)}` : `tax £${incomeTax.toFixed(2)}`}.`,
+    ...(limited.notDeducted > 0
+      ? [`Regulatory limit: tax due this period £${taxDueThisPeriod.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted, still due and collected on a later pay day where the limit allows.`]
+      : []),
     `NI category ${niCategory}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (period basis).`,
     'Student loans / pensions / Scotland bands not included.',
   ].join(' ');
@@ -377,6 +419,8 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     niCategoryApplied: niCategory,
     periodFreePay,
     calculationBasis: 'CUMULATIVE',
+    taxDueThisPeriod,
+    taxNotDeductedOverLimit: limited.notDeducted,
     explanation,
   };
 }
