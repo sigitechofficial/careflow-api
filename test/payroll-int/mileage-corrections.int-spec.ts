@@ -10,7 +10,7 @@
  * EVERY RATE HERE IS A SYNTHETIC TEST VALUE, labelled "TEST synthetic".
  */
 import request from 'supertest';
-import { createUkRun, resetPayData } from './harness';
+import { createUkRun, resetPayData, giveTaxCode } from './harness';
 import {
   bearer,
   createAllocatedVisit,
@@ -98,6 +98,7 @@ describe('D-21 / D-20: mileage corrections and historic mileage', () => {
   };
   const ukRun = async (periodStart: string, periodEnd: string, employeeIds: string[]) => {
     const id = await createUkRun(t.prisma, { periodStart, periodEnd, employeeIds, createdById: preparer.id });
+    await giveTaxCode(t.prisma, employeeIds); // synthetic 1257L: tax is never calculated on a guessed code
     expect((await post(preparer, `/payroll/runs/${id}/calculate-gross`)).status).toBe(201);
     expect((await post(preparer, `/payroll/runs/${id}/calculate-statutory`)).status).toBe(201);
     expect((await post(approver, `/payroll/runs/${id}/close`)).status).toBe(201);

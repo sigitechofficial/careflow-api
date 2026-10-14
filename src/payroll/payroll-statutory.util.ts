@@ -76,7 +76,15 @@ export function taxYearPeriodNumber(
   periodStart: Date,
   frequency: PayFrequencyCode,
 ): number {
-  const max = periodsInTaxYear(frequency);
+  return Math.min(periodsInTaxYear(frequency), Math.max(1, rawTaxYearPeriodNumber(taxYearStart, periodStart, frequency)));
+}
+
+/**
+ * The pay period index inside a UK tax year, not clamped: 53 for a weekly week 53, 27 for a
+ * fortnightly week 54, 14 for a four-weekly week 56. HMRC: those periods are taxed on a
+ * Week 1 basis.
+ */
+export function rawTaxYearPeriodNumber(taxYearStart: Date, periodStart: Date, frequency: PayFrequencyCode): number {
   const start = new Date(
     Date.UTC(taxYearStart.getUTCFullYear(), taxYearStart.getUTCMonth(), taxYearStart.getUTCDate()),
   );
@@ -85,18 +93,53 @@ export function taxYearPeriodNumber(
   );
 
   if (frequency === 'MONTHLY') {
-    const n =
-      (period.getUTCFullYear() - start.getUTCFullYear()) * 12 +
-      (period.getUTCMonth() - start.getUTCMonth()) +
-      1;
-    return Math.min(max, Math.max(1, n));
+    return (period.getUTCFullYear() - start.getUTCFullYear()) * 12 + (period.getUTCMonth() - start.getUTCMonth()) + 1;
   }
 
   const dayMs = 24 * 60 * 60 * 1000;
   const days = Math.floor((period.getTime() - start.getTime()) / dayMs);
-  if (frequency === 'WEEKLY') return Math.min(max, Math.max(1, Math.floor(days / 7) + 1));
-  if (frequency === 'FORTNIGHTLY') return Math.min(max, Math.max(1, Math.floor(days / 14) + 1));
-  return Math.min(max, Math.max(1, Math.floor(days / 28) + 1));
+  if (frequency === 'WEEKLY') return Math.floor(days / 7) + 1;
+  if (frequency === 'FORTNIGHTLY') return Math.floor(days / 14) + 1;
+  return Math.floor(days / 28) + 1;
+}
+
+/**
+ * Whether this version can calculate PAYE for a tax code (Gate C1): England and Northern Ireland
+ * codes, and Welsh C codes (same rates). Missing codes, Scottish S codes, K codes and codes it
+ * does not recognise are refused rather than guessed.
+ */
+export function unsupportedTaxCodeReason(taxCode: string | null | undefined): string | null {
+  const raw = (taxCode ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!raw) return 'no tax code recorded';
+  if (raw.startsWith('S')) return `Scottish tax code ${raw} (Scottish rates are not calculated yet)`;
+  const parsed = parseUkTaxCode(raw);
+  if (/^C?K\d+/.test(raw)) return `K code ${raw} (the regulatory limit is not applied yet)`;
+  if (parsed.special === 'UNKNOWN') return `tax code ${raw} is not recognised`;
+  return null;
+}
+
+/** HMRC: tax is never more than its exact amount; tables and software round tax down to the penny. */
+function floorPenny(amount: number): number {
+  return Math.floor(amount * 100 + 1e-7) / 100;
+}
+
+/** HMRC: taxable pay to date is rounded down to the nearest pound. */
+function floorPound(amount: number): number {
+  return Math.floor(amount + 1e-7);
+}
+
+/**
+ * HMRC Pay Adjustment Tables A: the free pay of one period for a code number is
+ * (code number x 10 + 9) / periods in the year, rounded up to the next penny; to date it is that
+ * figure times the period number (code 431L: £359.92 a month, £1,439.68 at month 4; £83.06 a
+ * week, £913.66 at week 11). A K code's figure is an addition to pay, rounded the same way.
+ */
+function payAdjustmentPerPeriod(parsed: ReturnType<typeof parseUkTaxCode>, periods: number): number {
+  if (parsed.annualFreePay == null || parsed.special !== 'NORMAL') return 0;
+  const codeNumber = Math.abs(parsed.annualFreePay) / 10;
+  if (codeNumber === 0) return 0;
+  const perPeriod = Math.ceil(((codeNumber * 10 + 9) / periods) * 100 - 1e-7) / 100;
+  return parsed.annualFreePay < 0 ? -perPeriod : perPeriod;
 }
 
 /** Parse common UK tax codes. Digits × 10 = annual personal allowance (e.g. 1257L → 12570). */
@@ -160,15 +203,16 @@ function taxOnTaxable(
   special: ReturnType<typeof parseUkTaxCode>['special'],
 ): number {
   if (special === 'NT' || taxable <= 0) return 0;
-  if (special === 'BR') return round2(taxable * (rates.basicRatePercent / 100));
-  if (special === 'D0') return round2(taxable * (rates.higherRatePercent / 100));
-  if (special === 'D1') return round2(taxable * (rates.additionalRatePercent / 100));
+  if (special === 'BR') return floorPenny(taxable * (rates.basicRatePercent / 100));
+  if (special === 'D0') return floorPenny(taxable * (rates.higherRatePercent / 100));
+  if (special === 'D1') return floorPenny(taxable * (rates.additionalRatePercent / 100));
 
+  // Bands to date are the annual bands in proportion to the periods to date, not rounded (HMRC
+  // Tables C: £628.46 tax due on £3,142 at month 1). The bands are of taxable pay: basic up to
+  // £37,700, higher up to £125,140, additional above.
   const scale = Math.max(1, bandScalePeriods);
   const basicWidth = rates.basicRateBandAnnual / scale;
-  const higherWidth =
-    (rates.additionalRateThresholdAnnual - rates.personalAllowanceAnnual - rates.basicRateBandAnnual) /
-    scale;
+  const higherWidth = (rates.additionalRateThresholdAnnual - rates.basicRateBandAnnual) / scale;
 
   let remaining = taxable;
   let tax = 0;
@@ -185,7 +229,7 @@ function taxOnTaxable(
   if (remaining > 0) {
     tax += remaining * (rates.additionalRatePercent / 100);
   }
-  return round2(tax);
+  return floorPenny(tax);
 }
 
 function employeeNiOnGross(
@@ -242,7 +286,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     Math.max(1, input.periodNumber ?? 1),
   );
   const ytdGrossBefore = Math.max(0, round2(input.ytdGrossBefore ?? 0));
-  const ytdTaxBefore = Math.max(0, round2(input.ytdTaxBefore ?? 0));
+  const ytdTaxBefore = round2(input.ytdTaxBefore ?? 0);
 
   const forceNonCumulative =
     Boolean(input.week1Month1) ||
@@ -255,15 +299,17 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const employerNi = employerNiOnGross(gross, niTh, input.rates, niCategory);
 
   if (forceNonCumulative || parsed.special === 'NT') {
+    // Week 1 / Month 1: the period 1 figures on this period's pay alone; earlier pay and tax are
+    // not looked at, so there is never a refund (HMRC PAYE11090).
     let periodFreePay = 0;
     if (parsed.special === 'NT') {
       periodFreePay = gross;
-    } else if (parsed.annualFreePay != null) {
-      periodFreePay = round2(parsed.annualFreePay / periods);
+    } else {
+      periodFreePay = payAdjustmentPerPeriod(parsed, periods);
     }
 
     const taxablePay =
-      parsed.special === 'NT' ? 0 : round2(Math.max(0, gross - periodFreePay));
+      parsed.special === 'NT' ? 0 : floorPound(Math.max(0, gross - periodFreePay));
     const incomeTax = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
     const netPay = round2(gross - incomeTax - employeeNi);
     const basisLabel = input.week1Month1
@@ -292,20 +338,23 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     };
   }
 
-  // Cumulative PAYE (standard letter codes).
-  const annualFree = parsed.annualFreePay ?? 0;
-  const freePayToDate = round2((annualFree / periods) * periodNumber);
-  const freePayPrevious =
-    periodNumber <= 1 ? 0 : round2((annualFree / periods) * (periodNumber - 1));
+  // Cumulative PAYE (standard letter codes), as HMRC's tables work it: free pay to date from Pay
+  // Adjustment Tables A, taxable pay to date rounded down to the pound, tax due to date on the
+  // bands to date, less the tax already deducted. When less is due than was deducted, the
+  // difference is refunded through pay (PAYE11090: the employer "deducts more or less tax, or
+  // makes a refund, as the rate of pay rises or falls").
+  const adjustment = payAdjustmentPerPeriod(parsed, periods);
+  const freePayToDate = round2(adjustment * periodNumber);
+  const freePayPrevious = round2(adjustment * (periodNumber - 1));
   const grossYtd = round2(ytdGrossBefore + gross);
-  const taxableYtd = round2(Math.max(0, grossYtd - freePayToDate));
-  const taxablePrevious = round2(Math.max(0, ytdGrossBefore - freePayPrevious));
-  const taxablePay = round2(Math.max(0, taxableYtd - taxablePrevious));
+  const taxableYtd = floorPound(Math.max(0, grossYtd - freePayToDate));
+  const taxablePrevious = floorPound(Math.max(0, ytdGrossBefore - freePayPrevious));
+  const taxablePay = round2(taxableYtd - taxablePrevious);
 
   // Band widths to date: annual band × periodNumber / periods  ⇒ divide annual by (periods/periodNumber)
   const bandScale = periods / periodNumber;
   const taxDueYtd = taxOnTaxable(taxableYtd, input.rates, bandScale, parsed.special);
-  const incomeTax = round2(Math.max(0, taxDueYtd - ytdTaxBefore));
+  const incomeTax = round2(taxDueYtd - ytdTaxBefore);
   const periodFreePay = round2(freePayToDate - freePayPrevious);
   const netPay = round2(gross - incomeTax - employeeNi);
 
@@ -313,7 +362,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     `Basis: Cumulative PAYE, ${input.frequency}, period ${periodNumber}/${periods}.`,
     `Tax code ${parsed.code}; free pay to date £${freePayToDate.toFixed(2)} (this period £${periodFreePay.toFixed(2)}).`,
     `YTD gross before £${ytdGrossBefore.toFixed(2)} + period £${gross.toFixed(2)} = £${grossYtd.toFixed(2)}.`,
-    `Taxable YTD £${taxableYtd.toFixed(2)}; tax due YTD £${taxDueYtd.toFixed(2)}; tax paid YTD £${ytdTaxBefore.toFixed(2)}; this period tax £${incomeTax.toFixed(2)}.`,
+    `Taxable YTD £${taxableYtd.toFixed(2)}; tax due YTD £${taxDueYtd.toFixed(2)}; tax paid YTD £${ytdTaxBefore.toFixed(2)}; this period ${incomeTax < 0 ? `refund £${(-incomeTax).toFixed(2)}` : `tax £${incomeTax.toFixed(2)}`}.`,
     `NI category ${niCategory}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (period basis).`,
     'Student loans / pensions / Scotland bands not included.',
   ].join(' ');

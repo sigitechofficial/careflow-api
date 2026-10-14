@@ -237,6 +237,20 @@ export function buildUkPayrollRunsService(prisma: PrismaService, audit = createA
   return { service, audit };
 }
 
+/**
+ * Gate C1: tax is calculated only on a recorded, supported tax code. Gives each employee a
+ * payroll profile with this (synthetic) code, or sets it on the profile they have.
+ */
+export async function giveTaxCode(prisma: PrismaService, employeeIds: string[], taxCode = '1257L') {
+  for (const employeeId of employeeIds) {
+    await prisma.employeePayrollProfile.upsert({
+      where: { employeeId },
+      update: { taxCode },
+      create: { employeeId, taxCode },
+    });
+  }
+}
+
 /** A UK payroll run with enrolled employees on its own schedule (so periods may overlap other runs). */
 export async function createUkRun(
   prisma: PrismaService,

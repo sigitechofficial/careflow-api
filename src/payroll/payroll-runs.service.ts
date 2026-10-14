@@ -78,7 +78,10 @@ import {
 import { ensureEnglandStatutoryRateSet } from './payroll-statutory-rates.seed';
 import {
   calculatePeriodStatutory,
+  periodsInTaxYear,
+  rawTaxYearPeriodNumber,
   taxYearPeriodNumber,
+  unsupportedTaxCodeReason,
   type PayFrequencyCode,
   type StatutoryRateSnapshot,
 } from './payroll-statutory.util';
@@ -2125,7 +2128,27 @@ export class PayrollRunsService {
       throw new BadRequestException('Enrol employees before calculating statutory amounts');
     }
 
-    await ensureEnglandStatutoryRateSet(this.prisma, run.taxYearId);
+    // Gate C1: the period must be paid in this tax year, and the rates must be the year's own.
+    const paidOn = run.period.paymentDate ?? run.period.periodEnd;
+    if (paidOn < run.taxYear.startDate || paidOn > run.taxYear.endDate) {
+      throw new BadRequestException(
+        `This period is paid on ${dateToIsoDate(paidOn)}, outside tax year ${run.taxYear.code} (${dateToIsoDate(run.taxYear.startDate)} to ${dateToIsoDate(run.taxYear.endDate)}). Use the period of the tax year it is paid in.`,
+      );
+    }
+    const hasRates = await this.prisma.payrollStatutoryRateSet.count({
+      where: { taxYearId: run.taxYearId, nation: 'ENG', isActive: true },
+    });
+    if (!hasRates) {
+      // The built-in figures are GOV.UK's for 2026-27 (and the same frozen figures for 2025-26);
+      // they are not assumed for any other year.
+      const start = dateToIsoDate(run.taxYear.startDate);
+      if (start !== '2026-04-06' && start !== '2025-04-06') {
+        throw new BadRequestException(
+          `No tax and NI rates are recorded for tax year ${run.taxYear.code}. Record that year's rates before calculating; other years' rates are not assumed.`,
+        );
+      }
+      await ensureEnglandStatutoryRateSet(this.prisma, run.taxYearId);
+    }
     const rateRow = await this.prisma.payrollStatutoryRateSet.findFirst({
       where: { taxYearId: run.taxYearId, nation: 'ENG', isActive: true },
       orderBy: { version: 'desc' },
@@ -2140,6 +2163,10 @@ export class PayrollRunsService {
       run.period.periodStart,
       frequency,
     );
+    // HMRC: a week 53 (fortnightly week 54, four-weekly week 56) payment is taxed on a Week 1 basis.
+    const extraPeriod =
+      frequency !== 'MONTHLY' &&
+      rawTaxYearPeriodNumber(run.taxYear.startDate, run.period.periodStart, frequency) > periodsInTaxYear(frequency);
 
     const employeeIds = runEmployees.map((e) => e.employeeId);
     const [profiles, ytdLedgers] = await Promise.all([
@@ -2152,6 +2179,21 @@ export class PayrollRunsService {
     ]);
     const profileByEmployeeId = new Map(profiles.map((p) => [p.employeeId, p]));
     const ytdByEmployeeId = new Map(ytdLedgers.map((y) => [y.employeeId, y]));
+
+    // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
+    const refused = new Map<string, number>();
+    for (const re of runEmployees) {
+      const reason = unsupportedTaxCodeReason(profileByEmployeeId.get(re.employeeId)?.taxCode);
+      if (reason) refused.set(reason, (refused.get(reason) ?? 0) + 1);
+    }
+    if (refused.size) {
+      const count = [...refused.values()].reduce((a, b) => a + b, 0);
+      throw new BadRequestException(
+        `Tax and NI not calculated: ${count} employee(s) cannot be taxed by this version: ${[...refused]
+          .map(([reason, n]) => `${reason} (${n})`)
+          .join('; ')}. Record or correct the tax code on each employee's payroll profile.`,
+      );
+    }
 
     const now = new Date();
     let totalIncomeTax = 0;
@@ -2177,11 +2219,11 @@ export class PayrollRunsService {
       const ytd = ytdByEmployeeId.get(re.employeeId);
       const result = calculatePeriodStatutory({
         periodGross: decimalNum(re.totalGross),
-        taxCode: profile?.taxCode ?? '1257L',
+        taxCode: profile?.taxCode,
         niCategory: profile?.niCategory ?? 'A',
         frequency,
         rates,
-        week1Month1: profile?.taxCodeWeek1Month1 ?? false,
+        week1Month1: (profile?.taxCodeWeek1Month1 ?? false) || extraPeriod,
         periodNumber,
         ytdGrossBefore: ytd ? decimalNum(ytd.grossPayYtd) : 0,
         ytdTaxBefore: ytd ? decimalNum(ytd.incomeTaxYtd) : 0,

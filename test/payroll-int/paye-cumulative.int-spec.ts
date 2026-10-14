@@ -1,0 +1,135 @@
+/**
+ * Gate C1 — PAYE through the UK payroll run: cumulative tax, refunds, Week 1 / Month 1, the tax
+ * year and the year-to-date ledger.
+ *
+ * Synthetic employee on code 1257L, paid monthly in tax year 2026-27, with figures worked by
+ * HMRC's method (Pay Adjustment Tables A: £1,048.25 free pay a month for code 1257; taxable pay to
+ * date rounded down to the pound; 20% basic rate). The calculation itself is tested against HMRC's
+ * printed examples in src/payroll/payroll-statutory.util.spec.ts.
+ */
+import { PayrollRunsService as UkPayrollRunsService } from '../../src/payroll/payroll-runs.service';
+import { buildUkPayrollRunsService, createUkRun, giveTaxCode, resetPayData } from './harness';
+import { createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp } from './http-harness';
+
+describe('PAYE through the UK payroll run (Gate C1)', () => {
+  let t: TestApp;
+  let ukRuns: UkPayrollRunsService;
+  let maker: { id: string };
+  let checker: { id: string };
+  let employeeId: string;
+
+  const APRIL = { periodStart: '2026-04-01', periodEnd: '2026-04-30' }; // tax month 1
+  const MAY = { periodStart: '2026-05-01', periodEnd: '2026-05-31' }; // tax month 2
+  const agree = (annualSalary: number, over: Record<string, unknown> = {}) =>
+    t.prisma.employeePayAgreement.create({
+      data: {
+        employeeId,
+        basis: 'SALARIED',
+        status: 'ACTIVE',
+        effectiveFrom: new Date('2026-04-01'),
+        annualSalary,
+        contractedHours: 5, // well above the minimum wage at either salary
+        salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS',
+        salaryCoverage: 'ALL_VISIT_WORK',
+        approvedAt: new Date('2026-03-20T09:00:00Z'),
+        ...over,
+      } as never,
+    });
+  const run = (period: { periodStart: string; periodEnd: string }) => createUkRun(t.prisma, { ...period, employeeIds: [employeeId], createdById: maker.id });
+  const taxAndNi = async (runId: string) => {
+    await ukRuns.calculateGross(maker.id, runId);
+    await ukRuns.calculateStatutory(maker.id, runId);
+    const row = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId, employeeId } });
+    return {
+      gross: Number(row.totalGross),
+      taxablePay: Number(row.taxablePay),
+      incomeTax: Number(row.incomeTax),
+      employeeNi: Number(row.employeeNi),
+      netPay: Number(row.netPay),
+      taxCodeApplied: row.taxCodeApplied,
+    };
+  };
+  const ledger = () => t.prisma.employeePayrollYtdLedger.findFirst({ where: { employeeId } });
+
+  beforeAll(async () => {
+    t = await createTestApp();
+    ukRuns = buildUkPayrollRunsService(t.prisma).service;
+  }, 240_000);
+  beforeEach(async () => {
+    await resetPayData(t.prisma);
+    await resetIdentityData(t.prisma);
+    await t.prisma.employeePayrollYtdContribution.deleteMany();
+    await t.prisma.employeePayrollYtdLedger.deleteMany();
+    maker = await createStaffUser(t.prisma, { permissions: ['payroll.runs.read', 'payroll.runs.manage', 'payroll.scope.organisation'] });
+    checker = await createStaffUser(t.prisma, { permissions: ['payroll.runs.read', 'payroll.runs.close', 'payroll.scope.organisation'] });
+    employeeId = (await createCarer(t.prisma)).employeeId;
+    await giveTaxCode(t.prisma, [employeeId], '1257L');
+  });
+  afterAll(async () => {
+    await t.close();
+  });
+
+  it('cumulative tax, a refund when pay falls, net pay, and a year-to-date ledger posted once per closed run', async () => {
+    const original = await agree(36_000); // £3,000.00 a month
+    const april = await run(APRIL);
+    // £3,000 − £1,048.25 = £1,951.75, taxable £1,951, tax £390.20; NI (3,000 − 1,048) × 8% = £156.16.
+    expect(await taxAndNi(april)).toEqual({ gross: 3000, taxablePay: 1951, incomeTax: 390.2, employeeNi: 156.16, netPay: 2453.64, taxCodeApplied: '1257L' });
+    await ukRuns.close(checker.id, april);
+    expect(await ledger()).toMatchObject({ grossPayYtd: expect.anything() });
+    expect(Number((await ledger())!.incomeTaxYtd)).toBe(390.2);
+
+    // From May the salary is £6,000 a year (£500 a month). To date £3,500 − £2,096.50 = £1,403.50,
+    // taxable £1,403, tax due £280.60: £109.60 is refunded, and £500 is below the NI threshold.
+    await t.prisma.employeePayAgreement.update({ where: { id: original.id }, data: { status: 'SUPERSEDED' } });
+    await agree(6_000, { effectiveFrom: new Date('2026-05-01'), approvedAt: new Date('2026-04-20T09:00:00Z') });
+    const may = await run(MAY);
+    const first = await taxAndNi(may);
+    expect(first).toMatchObject({ gross: 500, incomeTax: -109.6, employeeNi: 0, netPay: 609.6 });
+    // Calculated again: the same figures, nothing added twice, and nothing posted before closing.
+    expect(await taxAndNi(may)).toEqual(first);
+    expect(Number((await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: may } })).totalIncomeTax)).toBe(-109.6);
+    expect(Number((await ledger())!.incomeTaxYtd)).toBe(390.2);
+    await ukRuns.close(checker.id, may);
+    const after = (await ledger())!;
+    expect([Number(after.grossPayYtd), Number(after.incomeTaxYtd)]).toEqual([3500, 280.6]);
+    expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
+
+    // Closed history stays as it was, and cannot be recalculated.
+    const aprilRow = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } });
+    expect([Number(aprilRow.incomeTax), Number(aprilRow.netPay)]).toEqual([390.2, 2453.64]);
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Reactivate this closed run/);
+  });
+
+  it('Week 1 / Month 1: the same fall in pay gives no refund', async () => {
+    const original = await agree(36_000);
+    const april = await run(APRIL);
+    await taxAndNi(april);
+    await ukRuns.close(checker.id, april);
+    await t.prisma.employeePayAgreement.update({ where: { id: original.id }, data: { status: 'SUPERSEDED' } });
+    await agree(6_000, { effectiveFrom: new Date('2026-05-01'), approvedAt: new Date('2026-04-20T09:00:00Z') });
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCodeWeek1Month1: true } });
+    const may = await run(MAY);
+    // £500 alone against £1,048.25 of free pay: no tax, and April's tax is not looked at.
+    expect(await taxAndNi(may)).toMatchObject({ gross: 500, incomeTax: 0, netPay: 500 });
+  });
+
+  it('nothing is guessed: no tax code, a code not supported yet, or a period outside the tax year stops the calculation', async () => {
+    await agree(36_000, { effectiveFrom: new Date('2026-03-01') }); // paid in March too
+    const april = await run(APRIL);
+    await ukRuns.calculateGross(maker.id, april);
+
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: null } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Tax and NI not calculated: 1 employee\(s\) cannot be taxed by this version: no tax code recorded \(1\)/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'S1257L' } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish tax code S1257L/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'K475' } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/K code K475/);
+    expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } })).statutoryCalculatedAt).toBeNull();
+
+    // A period paid on 31 March 2026 belongs to tax year 2025-26, not to this run's 2026-27.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: '1257L' } });
+    const march = await run({ periodStart: '2026-03-01', periodEnd: '2026-03-31' });
+    await ukRuns.calculateGross(maker.id, march);
+    await expect(ukRuns.calculateStatutory(maker.id, march)).rejects.toThrow(/paid on 2026-03-31, outside tax year TEST-2026-27/);
+  });
+});

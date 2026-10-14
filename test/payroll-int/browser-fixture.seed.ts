@@ -25,7 +25,7 @@ import { randomBytes } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { createApprovedVisit, createUkRun, markStatutoryCalculated, resetPayData } from './harness';
+import { createApprovedVisit, createUkRun, giveTaxCode, markStatutoryCalculated, resetPayData } from './harness';
 import {
   bearer,
   createAllocatedVisit,
@@ -172,6 +172,7 @@ describe('browser fixture (not a test)', () => {
         employeeIds: [ann.employeeId, ben.employeeId],
         createdById: olivia.id,
       });
+      await giveTaxCode(t.prisma, [ann.employeeId, ben.employeeId]); // synthetic 1257L
       await post(olivia, `/payroll/runs/${ukRunId}/calculate-gross`);
       await post(olivia, `/payroll/runs/${ukRunId}/calculate-statutory`);
 
