@@ -2142,10 +2142,10 @@ export class PayrollRunsService {
       where: { taxYearId: run.taxYearId, nation: 'ENG', isActive: true },
     });
     if (!hasRates) {
-      // The built-in figures are GOV.UK's for 2026-27 (and the same frozen figures for 2025-26);
-      // they are not assumed for any other year.
+      // The built-in figures are GOV.UK's for 2026-27 only; they are not assumed for any other
+      // year (Gate C6: 2025-26 differs, its NI Lower Earnings Limit was not £129 / £559).
       const start = dateToIsoDate(run.taxYear.startDate);
-      if (start !== '2026-04-06' && start !== '2025-04-06') {
+      if (start !== '2026-04-06') {
         throw new BadRequestException(
           `No tax and NI rates are recorded for tax year ${run.taxYear.code}. Record that year's rates before calculating; other years' rates are not assumed.`,
         );
