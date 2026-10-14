@@ -44,6 +44,7 @@ import {
   payEvaluationSubjectKey,
   type PayEvaluationOperation,
 } from './pay-evaluation-failure.util';
+import { lockAttendancePayFailures } from './attendance-pay-guard.util';
 import { PayItemsService } from './pay-items.service';
 import {
   allowFinancialResetInTransaction,
@@ -894,42 +895,53 @@ export class VisitReconciliationsService {
     else this.logger.warn(`${logLine}: ${failure.message}`);
 
     try {
-      const now = new Date();
-      const subject = await this.evaluationFailureSubject(operation, id);
-      const existing = await this.prisma.payEvaluationFailure.findUnique({ where: { subjectKey } });
-      const entry = {
-        at: now.toISOString(),
-        action: retriedByUserId ? 'RETRIED' : existing ? 'FAILED_AGAIN' : 'FAILED',
-        byUserId: retriedByUserId ?? null,
-        outcome: failure.category,
+      const write = async (db: DbClient) => {
+        const now = new Date();
+        const subject = await this.evaluationFailureSubject(operation, id);
+        const existing = await db.payEvaluationFailure.findUnique({ where: { subjectKey } });
+        const entry = {
+          at: now.toISOString(),
+          action: retriedByUserId ? 'RETRIED' : existing ? 'FAILED_AGAIN' : 'FAILED',
+          byUserId: retriedByUserId ?? null,
+          outcome: failure.category,
+        };
+        const state = {
+          kind: failure.kind,
+          category: failure.category,
+          message: failure.message,
+          context: (retryInput ? { ...failure.detail, retryInput } : failure.detail) as Prisma.InputJsonValue,
+          retryable: failure.retryable,
+          status: 'OPEN',
+          lastOccurredAt: now,
+          resolvedAt: null,
+          resolvedById: null,
+          resolution: null,
+        };
+        if (existing) {
+          const history = Array.isArray(existing.history) ? existing.history : [];
+          await db.payEvaluationFailure.update({
+            where: { id: existing.id },
+            data: {
+              ...state,
+              ...subject,
+              occurrences: { increment: 1 },
+              history: [...history, entry] as Prisma.InputJsonValue,
+            },
+          });
+        } else {
+          await db.payEvaluationFailure.create({
+            data: { subjectKey, operation, ...subject, ...state, history: [entry] },
+          });
+        }
       };
-      const state = {
-        kind: failure.kind,
-        category: failure.category,
-        message: failure.message,
-        context: (retryInput ? { ...failure.detail, retryInput } : failure.detail) as Prisma.InputJsonValue,
-        retryable: failure.retryable,
-        status: 'OPEN',
-        lastOccurredAt: now,
-        resolvedAt: null,
-        resolvedById: null,
-        resolution: null,
-      };
-      if (existing) {
-        const history = Array.isArray(existing.history) ? existing.history : [];
-        await this.prisma.payEvaluationFailure.update({
-          where: { id: existing.id },
-          data: {
-            ...state,
-            ...subject,
-            occurrences: { increment: 1 },
-            history: [...history, entry] as Prisma.InputJsonValue,
-          },
+      // An attendance pay failure and a run settling visits never pass each other (B4G).
+      if (operation === 'ATTENDANCE_CORRECTION') {
+        await this.prisma.$transaction(async (tx) => {
+          await lockAttendancePayFailures(tx);
+          await write(tx);
         });
       } else {
-        await this.prisma.payEvaluationFailure.create({
-          data: { subjectKey, operation, ...subject, ...state, history: [entry] },
-        });
+        await write(this.prisma);
       }
     } catch (recordErr) {
       this.logger.error(

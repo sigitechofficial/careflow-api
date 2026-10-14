@@ -61,6 +61,7 @@ import {
   resolveWageRecovery,
   withdrawStaleRecoveries,
 } from '../billing/wage-recovery.store';
+import { assertNoOpenAttendancePayFailures } from '../billing/attendance-pay-guard.util';
 import { CreateUkPayrollRunDto, EnrolUkPayrollRunDto } from './dto/payroll.dto';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
 import { dateToIsoDate, mapEmployerSettings, mapPeriod, mapSchedule, mapTaxYear } from './payroll-mapper.util';
@@ -2431,6 +2432,8 @@ export class PayrollRunsService {
           provisional.map((l) => [l.sourceVisitReconciliationId!, l.amount.add(l.unpaidAmount ?? 0)]),
         );
         const visitIds = [...amountByVisit.keys()];
+        // B4G: the same safeguard as locking a visit pay run.
+        await assertNoOpenAttendancePayFailures(tx, visitIds, 'close this payroll run');
         const visits = await tx.visitReconciliation.findMany({
           where: { id: { in: visitIds } },
           select: { id: true, payableAmount: true },

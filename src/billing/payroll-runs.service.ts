@@ -37,6 +37,7 @@ import {
 import { dayKeyInTimeZone, formatHmInTimeZone, operationalDayBounds } from '../common/utils/operational-day.util';
 import { PayCardsService } from './billing-cards.service';
 import { classifyEvaluationFailure } from './pay-evaluation-failure.util';
+import { assertNoOpenAttendancePayFailures } from './attendance-pay-guard.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
 import { calendarHoldForPay } from './holiday-calendar.store';
 import { MILEAGE_CORRECTION, mileageJourneysInTaxYear } from './mileage-ledger.store';
@@ -2514,6 +2515,8 @@ export class PayrollRunsService {
       if (locked.count !== 1) {
         throw new ConflictException('This payroll run was changed by someone else. Reload and try again.');
       }
+      // B4G: no visit is settled while its corrected attendance times have not reached its pay.
+      await assertNoOpenAttendancePayFailures(tx, reconIds, 'lock this pay run');
       await markRecoveriesApplied(
         tx,
         id,
