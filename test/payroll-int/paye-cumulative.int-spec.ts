@@ -313,10 +313,9 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: null } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/no NI category recorded/);
 
-    // Gate C7: director status must be confirmed; a director needs an appointment date and method AN.
-    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: 'A', isDirector: null } });
-    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director status not recorded/);
-    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { isDirector: true } });
+    // Gate C7: a director needs an appointment date and method AN. A status not recorded is treated
+    // as not a director (only carers are managed), so it no longer stops the run.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: 'A', isDirector: true } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director appointment date not recorded/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { directorAppointedOn: new Date('2020-01-01') } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director NI method not recorded \(only the standard annual method AN/);

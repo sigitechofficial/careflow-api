@@ -2382,11 +2382,9 @@ export class PayrollRunsService {
     for (const re of runEmployees) {
       const profile = profileByEmployeeId.get(re.employeeId);
       const refuse = (reason: string) => directorReasonByEmployeeId.set(re.employeeId, reason);
-      if (!profile || profile.isDirector == null) {
-        refuse('director status not recorded (confirm whether the person is a company director)');
-        continue;
-      }
-      if (!profile.isDirector) continue;
+      // Only carers are managed here (the Director tab is hidden): a status not recorded is not a
+      // director. Director NI still applies to a profile explicitly recorded as a director.
+      if (!profile || !profile.isDirector) continue;
       if (!profile.directorAppointedOn) {
         refuse('director appointment date not recorded');
         continue;
