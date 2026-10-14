@@ -3,10 +3,12 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   AllocationStatus,
@@ -300,6 +302,9 @@ export type VisitReconciliationListRow = {
 };
 
 type DbClient = PrismaService | Prisma.TransactionClient;
+
+/** Starts the evidence-changed reason of a visit whose corrected times have not reached its pay yet. */
+const PAY_STEP_FAILED = 'Attendance times were corrected but carer pay could not be recalculated';
 
 /** A pay decision is repriced inside its transaction: allow for that rather than the 5 second default. */
 const DECISION_TRANSACTION = { timeout: 20_000, maxWait: 10_000 };
@@ -850,7 +855,7 @@ export class VisitReconciliationsService {
       return { visitReconciliationId: id, ...(row ?? {}) };
     }
     const visit =
-      operation === 'ENSURE_VISIT'
+      operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION'
         ? await this.prisma.scheduledVisit.findUnique({
             where: { id },
             select: { id: true, scheduledJobId: true, serviceUserId: true },
@@ -862,7 +867,7 @@ export class VisitReconciliationsService {
           });
     return {
       scheduledJobId: visit?.scheduledJobId ?? (operation === 'ENSURE_JOB' ? id : null),
-      scheduledVisitId: visit?.id ?? (operation === 'ENSURE_VISIT' ? id : null),
+      scheduledVisitId: visit?.id ?? (operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION' ? id : null),
       serviceUserId: visit?.serviceUserId ?? null,
     };
   }
@@ -876,6 +881,8 @@ export class VisitReconciliationsService {
     id: string,
     err: unknown,
     retriedByUserId?: string,
+    /** What a retry needs to repeat the operation (an attendance correction's reason and carer). */
+    retryInput?: Record<string, string | null>,
   ) {
     const failure = classifyEvaluationFailure(err);
     const subjectKey = payEvaluationSubjectKey(operation, id);
@@ -900,7 +907,7 @@ export class VisitReconciliationsService {
         kind: failure.kind,
         category: failure.category,
         message: failure.message,
-        context: failure.detail,
+        context: (retryInput ? { ...failure.detail, retryInput } : failure.detail) as Prisma.InputJsonValue,
         retryable: failure.retryable,
         status: 'OPEN',
         lastOccurredAt: now,
@@ -1036,7 +1043,7 @@ export class VisitReconciliationsService {
     const subjectId =
       operation === 'EVALUATE'
         ? failure.visitReconciliationId
-        : operation === 'ENSURE_VISIT'
+        : operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION'
           ? failure.scheduledVisitId
           : failure.scheduledJobId;
     if (!subjectId) throw new BadRequestException('This failure has nothing left to retry. Dismiss it instead.');
@@ -1044,12 +1051,21 @@ export class VisitReconciliationsService {
     let succeeded = true;
     try {
       if (operation === 'EVALUATE') await this.evaluateInternal(this.prisma, subjectId);
-      else if (operation === 'ENSURE_VISIT') await this.ensureForVisit(subjectId);
+      else if (operation === 'ATTENDANCE_CORRECTION') {
+        // The same correction again, on the times now on record (they were kept when pay failed).
+        const input = (failure.context as { retryInput?: { reason?: string; jobAllocationId?: string | null } } | null)?.retryInput;
+        await this.carryAttendanceIntoPay(
+          subjectId,
+          { userId, reason: input?.reason ?? 'Retry of an attendance correction', jobAllocationId: input?.jobAllocationId ?? null },
+          meta,
+        );
+      } else if (operation === 'ENSURE_VISIT') await this.ensureForVisit(subjectId);
       else await this.ensureForCompletedJob(subjectId);
       await this.closeEvaluationFailure(operation, subjectId, 'SUCCEEDED_ON_RETRY', userId);
     } catch (err) {
       succeeded = false;
       await this.recordEvaluationFailure(operation, subjectId, err, userId);
+      if (operation === 'ATTENDANCE_CORRECTION') await this.flagPayStepFailed(subjectId, failure, userId, meta);
     }
     const after = await this.prisma.payEvaluationFailure.findUniqueOrThrow({ where: { id } });
     await this.auditLogs.logAudit({
@@ -2974,6 +2990,108 @@ export class VisitReconciliationsService {
     input: { userId: string; reason: string; jobAllocationId?: string | null },
     meta?: RequestAuditMeta,
   ) {
+    try {
+      const result = await this.carryAttendanceIntoPay(scheduledVisitId, input, meta);
+      // A pay step that failed before is done now: its failure is closed.
+      await this.closeEvaluationFailure('ATTENDANCE_CORRECTION', scheduledVisitId, 'SUCCEEDED_LATER');
+      return result;
+    } catch (err) {
+      // A user who no longer exists, or lacks the power, is answered as such: nothing is flagged.
+      if (err instanceof UnauthorizedException || err instanceof ForbiddenException) throw err;
+      // The corrected times are recorded (by the caller, before this); pay is not. Say so, keep the
+      // failure for a retry, and hold the visit so that no pay run pays it on the old times.
+      await this.recordEvaluationFailure('ATTENDANCE_CORRECTION', scheduledVisitId, err, undefined, {
+        reason: input.reason,
+        jobAllocationId: input.jobAllocationId ?? null,
+      });
+      const failure = await this.prisma.payEvaluationFailure.findUnique({
+        where: { subjectKey: payEvaluationSubjectKey('ATTENDANCE_CORRECTION', scheduledVisitId) },
+      });
+      const flagged = await this.flagPayStepFailed(scheduledVisitId, failure, input.userId, meta, input.jobAllocationId);
+      return { data: flagged };
+    }
+  }
+
+  /**
+   * Flags each carer's pay on a visit whose corrected times did not reach pay: an EVIDENCE_CHANGED
+   * exception that says so, and pay that was approved and not yet settled goes back to review so
+   * that it is held from pay runs. One transaction with its audit entries; settled pay is never
+   * rewritten. Doing it again replaces the flag, it does not add one. Never throws.
+   */
+  private async flagPayStepFailed(
+    scheduledVisitId: string,
+    failure: { id: string; message: string } | null,
+    userId: string,
+    meta?: RequestAuditMeta,
+    jobAllocationId?: string | null,
+  ) {
+    const reference = failure?.id.slice(0, 8) ?? null;
+    const reason = `${PAY_STEP_FAILED}: ${failure?.message ?? 'unexpected error'} Retry it from Pay calculation failures${
+      reference ? ` (reference ${reference})` : ''
+    }.`;
+    const rows = await this.prisma.visitReconciliation.findMany({
+      where: {
+        scheduledVisitId,
+        ...(jobAllocationId ? { jobAllocationId } : {}),
+        status: { notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE] },
+      },
+    });
+    let flagged = false;
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const now = new Date();
+        for (const row of rows) {
+          const hold =
+            !isPaySettled(row) &&
+            (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY || row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
+          await tx.visitReconciliation.update({
+            where: { id: row.id },
+            data: { evidenceChangedReason: reason, evidenceChangedAt: now, ...(hold ? { status: VisitReconciliationStatus.PENDING_REVIEW } : {}) },
+          });
+          await tx.financeException.deleteMany({ where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED } });
+          await tx.financeException.create({
+            data: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED, message: reason },
+          });
+          await this.auditVisit(
+            AuditAction.VISIT_ATTENDANCE_PAY_NOT_RECALCULATED,
+            userId,
+            row,
+            {
+              oldValues: VisitReconciliationsService.paySnapshotOf(row),
+              newValues: { status: String(hold ? VisitReconciliationStatus.PENDING_REVIEW : row.status), held: hold, failureId: failure?.id ?? null },
+              reason,
+            },
+            meta,
+            tx,
+          );
+        }
+      }, DECISION_TRANSACTION);
+      flagged = true;
+    } catch (flagErr) {
+      // Nothing was changed without its audit entry; the failure itself is still listed.
+      this.logger.error(
+        `Could not flag visit ${scheduledVisitId} after a failed pay step: ${flagErr instanceof Error ? flagErr.constructor.name : 'unknown error'}`,
+      );
+    }
+    return rows.map((row) => ({
+      reconciliationId: row.id,
+      visitRef: row.visitRef,
+      outcome: 'PAY_NOT_RECALCULATED' as const,
+      message: flagged
+        ? `Times recorded, but carer pay could not be recalculated: ${failure?.message ?? 'unexpected error'} The visit is held for review; retry it from Pay calculation failures${reference ? ` (reference ${reference})` : ''}.`
+        : `Times recorded, but carer pay could not be recalculated and the visit could not be flagged. It is listed under Pay calculation failures${reference ? ` (reference ${reference})` : ''}; retry it there.`,
+      payableBefore: row.payableAmount != null ? String(row.payableAmount) : null,
+      payableAfter: row.payableAmount != null ? String(row.payableAmount) : null,
+      failureId: failure?.id ?? null,
+    }));
+  }
+
+  /** The pay step of an attendance correction, in one transaction. Throws when it cannot be done. */
+  private async carryAttendanceIntoPay(
+    scheduledVisitId: string,
+    input: { userId: string; reason: string; jobAllocationId?: string | null },
+    meta?: RequestAuditMeta,
+  ) {
     // What the pay was before the corrected times reached the record: refreshing the rows already
     // re-evaluates them on the new evidence (R-18).
     const payBefore = new Map(
@@ -2994,7 +3112,15 @@ export class VisitReconciliationsService {
     // One transaction for the visit: the refreshed rows, the repriced pay or the correction
     // recorded for settled pay, the answered flags and the audit entries are saved together or
     // not at all. The corrected attendance times themselves were recorded before this and stay.
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
+      // The flag of an earlier failed pay step is answered by doing the pay step now.
+      await tx.visitReconciliation.updateMany({
+        where: { scheduledVisitId, evidenceChangedReason: { startsWith: PAY_STEP_FAILED } },
+        data: { evidenceChangedReason: null, evidenceChangedAt: null },
+      });
+      await tx.financeException.deleteMany({
+        where: { visitReconciliation: { scheduledVisitId }, code: FinanceExceptionCode.EVIDENCE_CHANGED, message: { startsWith: PAY_STEP_FAILED } },
+      });
       await this.ensureForVisit(scheduledVisitId, tx);
       const rows = await tx.visitReconciliation.findMany({
         where: {
@@ -3009,6 +3135,7 @@ export class VisitReconciliationsService {
         reconciliationId: string;
         visitRef: string;
         outcome: 'REPRICED' | 'PAY_UNCHANGED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
+      failureId?: string | null;
         message: string;
         payableBefore: string | null;
         payableAfter: string | null;
@@ -3126,6 +3253,7 @@ export class VisitReconciliationsService {
       }
       return { data: results };
     }, DECISION_TRANSACTION);
+    return result;
   }
 
   private async evaluateInternal(

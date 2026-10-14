@@ -516,6 +516,8 @@ export enum AuditAction {
   VISIT_RECONCILIATION_BILLABLE_AMOUNT_SET = 'visit_reconciliation_billable_amount_set',
   /** A request to change the payable time that a pay rule did not let take effect (not a change). */
   VISIT_PAY_TIME_EDIT_NOT_APPLIED = 'visit_pay_time_edit_not_applied',
+  /** Attendance times were corrected but carer pay could not be recalculated: the visit is flagged and held. */
+  VISIT_ATTENDANCE_PAY_NOT_RECALCULATED = 'visit_attendance_pay_not_recalculated',
   VISIT_RECONCILIATION_UPDATED = 'visit_reconciliation_updated',
   VISIT_PAY_CORRECTION_RECORDED = 'visit_pay_correction_recorded',
   PAY_ITEM_REVERSED = 'pay_item_reversed',

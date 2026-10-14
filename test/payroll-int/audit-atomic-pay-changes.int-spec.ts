@@ -311,7 +311,10 @@ describe('audit entries are saved with the change: pay agreements and visit pay 
       expect(before).toMatchObject({ status: 'APPROVED_FOR_BOTH', approvalSource: 'MANAGER_APPROVED', payableAmount: 14 });
 
       breakAuditTable();
-      expect((await officeTime(jobId, carer.employeeId, at('09:30'))).status).toBe(500);
+      // B4F: the times are recorded, so the answer is not an error; it says pay was not recalculated.
+      const refused = await officeTime(jobId, carer.employeeId, at('09:30'));
+      expect(refused.status).toBe(201);
+      expect(refused.body.data.pay).toMatchObject([{ outcome: 'PAY_NOT_RECALCULATED' }]);
       // The corrected time is on record: attendance evidence is not undone.
       expect(await visitEnd(visitId)).toBe(at('09:30').toISOString());
       // The pay and its approval are exactly as they were, and nothing claims otherwise.
@@ -352,7 +355,10 @@ describe('audit entries are saved with the change: pay agreements and visit pay 
 
       // The office corrects the finish time, but the audit entry cannot be written: no correction is left behind.
       breakAuditTable();
-      expect((await officeTime(jobId, carer.employeeId, at('09:30', '2026-11-03'))).status).toBe(500);
+      // B4F: the times are recorded, so the answer is not an error; it says pay was not recalculated.
+      const refused = await officeTime(jobId, carer.employeeId, at('09:30', '2026-11-03'));
+      expect(refused.status).toBe(201);
+      expect(refused.body.data.pay).toMatchObject([{ outcome: 'PAY_NOT_RECALCULATED' }]);
       expect(await corrections()).toEqual([]);
       expect(await entries(id, 'visit_attendance_times_corrected')).toEqual([]);
       expect(await state(id)).toEqual(before);

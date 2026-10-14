@@ -98,7 +98,8 @@ export function classifyEvaluationFailure(
   };
 }
 
-export type PayEvaluationOperation = 'EVALUATE' | 'ENSURE_VISIT' | 'ENSURE_JOB';
+/** ATTENDANCE_CORRECTION: an office-verified time was recorded but carer pay was not recalculated. */
+export type PayEvaluationOperation = 'EVALUATE' | 'ENSURE_VISIT' | 'ENSURE_JOB' | 'ATTENDANCE_CORRECTION';
 
 /** One open failure per subject: a later failure of the same thing updates it. */
 export function payEvaluationSubjectKey(
@@ -110,6 +111,8 @@ export function payEvaluationSubjectKey(
       ? 'RECON'
       : operation === 'ENSURE_VISIT'
         ? 'VISIT'
-        : 'JOB';
+        : operation === 'ATTENDANCE_CORRECTION'
+          ? 'ATTENDANCE'
+          : 'JOB';
   return `${prefix}:${id}`;
 }
