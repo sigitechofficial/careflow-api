@@ -144,4 +144,49 @@ describe('workplace pension through the UK run (Gate C16)', () => {
     await ukRuns.calculateStatutory(maker.id, april);
     expect(await row(april)).toMatchObject({ applied: false, net: 0, employer: 0, netPay: 2453.64 });
   });
+
+  /**
+   * Gate C18: the C16 enrolment alone decides workplace pension. The legacy elections
+   * (PENSION_EMPLOYEE / AVC_PENSION / SS_PENSION) and pensionOptedIn never add, remove or
+   * duplicate a contribution; contradictions stop payroll for review.
+   */
+  describe('legacy pension settings and the C16 enrolment (Gate C18)', () => {
+    it('ENROLLED with the legacy opt-in also set: one C16 contribution, posted once', async () => {
+      await profile({ pensionOptedIn: true, deductionElections: ['PENSION_EMPLOYEE'] });
+      const april = await run(APRIL);
+      await calculate(april);
+      expect(await row(april)).toMatchObject({ applied: true, gross: 124, net: 99.2, employer: 74.4, netPay: 2354.44 });
+      await ukRuns.close(checker.id, april);
+      const ledger = await t.prisma.employeePayrollYtdLedger.findFirstOrThrow({ where: { employeeId } });
+      expect([Number(ledger.pensionEmployeeGrossYtd), Number(ledger.pensionEmployeeNetYtd), Number(ledger.pensionEmployerYtd)]).toEqual([124, 99.2, 74.4]);
+      expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(1);
+    });
+
+    it('legacy settings that contradict the enrolment stop the calculation (PENSION_CONFIGURATION_CONFLICT)', async () => {
+      const april = await run(APRIL);
+      await ukRuns.calculateGross(maker.id, april);
+      await profile({ deductionElections: ['SS_PENSION'] });
+      await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/PENSION_CONFIGURATION_CONFLICT: .*salary sacrifice pension election/);
+      await profile({ deductionElections: ['PENSION_EMPLOYEE', 'AVC_PENSION'] });
+      await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/PENSION_CONFIGURATION_CONFLICT: .*additional voluntary contribution/);
+      await profile({ pensionStatus: 'NOT_ENROLLED', deductionElections: [], pensionOptedIn: true });
+      await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/PENSION_CONFIGURATION_CONFLICT: .*opt-in recorded but the enrolment says NOT_ENROLLED/);
+      expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april } })).statutoryCalculatedAt).toBeNull();
+      // The legacy settings were not changed by payroll.
+      expect(await t.prisma.employeePayrollProfile.findFirstOrThrow({ where: { employeeId } })).toMatchObject({ pensionOptedIn: true, pensionStatus: 'NOT_ENROLLED' });
+    });
+
+    it('NOT_ENROLLED without legacy opt-in contributes nothing and keeps PAYE, NI and the student loan; a missing status is not filled in from the legacy flags', async () => {
+      await profile({ pensionStatus: 'NOT_ENROLLED', studentLoanPlan2: true });
+      const april = await run(APRIL);
+      await calculate(april);
+      const r = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } });
+      expect([r.pensionApplied, Number(r.pensionEmployeeNet), Number(r.pensionEmployer)]).toEqual([false, 0, 0]);
+      expect([Number(r.incomeTax), Number(r.employeeNi), Number(r.employerNi), Number(r.studentLoanDeduction), Number(r.netPay)]).toEqual([390.2, 156.16, 387.45, 49, 2404.64]);
+      // Status missing, legacy opt-in set: still refused as not recorded (the flag is not an enrolment).
+      await profile({ pensionStatus: null, pensionOptedIn: true, deductionElections: ['PENSION_EMPLOYEE'] });
+      await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/workplace pension status not recorded/);
+      expect((await t.prisma.employeePayrollProfile.findFirstOrThrow({ where: { employeeId } })).pensionStatus).toBeNull();
+    });
+  });
 });

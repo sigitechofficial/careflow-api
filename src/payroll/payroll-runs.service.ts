@@ -1,3 +1,4 @@
+import { legacyPensionConflict } from './uk-deduction-elections.util';
 import { applicableLoanNotice } from './payroll-loan-notice.util';
 import {
   BadRequestException,
@@ -2401,6 +2402,12 @@ export class PayrollRunsService {
       const status = profile?.pensionStatus ?? null;
       if (status !== 'ENROLLED' && status !== 'NOT_ENROLLED') {
         refuse('workplace pension status not recorded (record whether the person is enrolled)');
+        continue;
+      }
+      // Gate C18: the legacy elections never decide a contribution; a contradiction stops payroll.
+      const conflict = legacyPensionConflict(status, profile!);
+      if (conflict) {
+        refuse(conflict);
         continue;
       }
       const effective = status === 'ENROLLED' && profile?.pensionEnrolledFrom != null && profile.pensionEnrolledFrom <= paidOn;
