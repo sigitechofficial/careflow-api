@@ -22,6 +22,7 @@ import {
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
   RecordLoanNoticeDto,
+  CorrectLoanNoticeDto,
 } from './dto/payroll.dto';
 import { dateToIsoDate, mapAgreement, mapProfile } from './payroll-mapper.util';
 import { parsePayrollDateOnly } from './payroll-period.util';
@@ -49,8 +50,21 @@ function mapLoanNotice(row: {
   notes: string | null;
   createdById: string;
   createdAt: Date;
+  voidedAt?: Date | null;
+  voidedById?: string | null;
+  voidReason?: string | null;
+  voidEvidenceRef?: string | null;
+  replacedById?: string | null;
+  replacesId?: string | null;
 }) {
   return {
+    status: row.voidedAt ? (row.replacedById ? 'CORRECTED' : 'VOIDED') : 'ACTIVE',
+    voidedAt: row.voidedAt ? row.voidedAt.toISOString() : null,
+    voidedById: row.voidedById ?? null,
+    voidReason: row.voidReason ?? null,
+    voidEvidenceRef: row.voidEvidenceRef ?? null,
+    replacedById: row.replacedById ?? null,
+    replacesId: row.replacesId ?? null,
     id: row.id,
     employeeId: row.employeeId,
     noticeType: row.noticeType,
@@ -489,6 +503,44 @@ export class PayrollEmployeesService {
    */
   async recordLoanNotice(userId: string, employeeId: string, dto: RecordLoanNoticeDto, meta?: RequestAuditMeta) {
     await this.requireEmployeeWithIdentity(employeeId);
+    const fields = this.loanNoticeFields(employeeId, dto);
+    const { noticeDate, receivedOn, effectivePayday, hmrcReference, plan } = fields;
+    const same = await this.prisma.employeeLoanNotice.findFirst({
+      where: hmrcReference
+        ? { employeeId, noticeType: dto.noticeType, hmrcReference, voidedAt: null }
+        : { employeeId, noticeType: dto.noticeType, hmrcReference: null, noticeDate, receivedOn, studentLoanPlan: plan, voidedAt: null },
+    });
+    if (same) {
+      const identical =
+        same.studentLoanPlan === plan &&
+        same.noticeDate.getTime() === noticeDate.getTime() &&
+        same.receivedOn.getTime() === receivedOn.getTime() &&
+        same.effectivePayday.getTime() === effectivePayday.getTime();
+      if (!identical) {
+        throw new ConflictException(`A ${dto.noticeType} notice with this reference is already recorded with different details`);
+      }
+      return { message: 'Notice already recorded', duplicate: true, data: mapLoanNotice(same) };
+    }
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.employeeLoanNotice.create({ data: { ...fields.data, createdById: userId } });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_LOAN_NOTICE_RECORDED,
+        recordType: 'EmployeeLoanNotice',
+        recordId: saved.id,
+        newValues: mapLoanNotice(saved),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return saved;
+    });
+    return { message: 'Notice recorded', duplicate: false, data: mapLoanNotice(row) };
+  }
+
+  /** The checked, stored form of a loan notice (shared by recording and correcting). */
+  private loanNoticeFields(employeeId: string, dto: RecordLoanNoticeDto) {
     if (dto.noticeType === 'SL1' && !dto.studentLoanPlan) {
       throw new BadRequestException('An SL1 notice needs the student loan plan (1, 2, 4 or 5) it states');
     }
@@ -505,50 +557,115 @@ export class PayrollEmployeesService {
     }
     const hmrcReference = dto.hmrcReference?.trim() || null;
     const plan = dto.noticeType === 'SL1' ? dto.studentLoanPlan! : null;
-    const same = await this.prisma.employeeLoanNotice.findFirst({
-      where: hmrcReference
-        ? { employeeId, noticeType: dto.noticeType, hmrcReference }
-        : { employeeId, noticeType: dto.noticeType, hmrcReference: null, noticeDate, receivedOn, studentLoanPlan: plan },
-    });
-    if (same) {
-      const identical =
-        same.studentLoanPlan === plan &&
-        same.noticeDate.getTime() === noticeDate.getTime() &&
-        same.receivedOn.getTime() === receivedOn.getTime() &&
-        same.effectivePayday.getTime() === effectivePayday.getTime();
-      if (!identical) {
-        throw new ConflictException(`A ${dto.noticeType} notice with this reference is already recorded with different details`);
+    return {
+      noticeDate,
+      receivedOn,
+      effectivePayday,
+      hmrcReference,
+      plan,
+      data: {
+        employeeId,
+        noticeType: dto.noticeType,
+        studentLoanPlan: plan,
+        hmrcReference,
+        noticeDate,
+        receivedOn,
+        effectivePayday,
+        notes: dto.notes?.trim() || null,
+        activeReferenceKey: hmrcReference ? `${employeeId}|${dto.noticeType}|${hmrcReference}` : null,
+      },
+    };
+  }
+
+  /**
+   * Gate C15: correct a notice entered wrongly in Careflow: void the local record (it stays, with
+   * who, when, why and the evidence) and optionally record the correct notice in its place, in one
+   * transaction with its audit entry. Refused when a closed payroll was paid on or after the
+   * payday either notice applies from (that needs a payroll correction); open runs calculated on
+   * it are set back to "gross calculated", so they cannot close without recalculating.
+   */
+  async correctLoanNotice(userId: string, employeeId: string, noticeId: string, dto: CorrectLoanNoticeDto, meta?: RequestAuditMeta) {
+    const original = await this.prisma.employeeLoanNotice.findFirst({ where: { id: noticeId, employeeId } });
+    if (!original) throw new NotFoundException('Loan notice not found');
+    const reason = dto.reason.trim();
+    const evidenceReference = dto.evidenceReference.trim();
+    if (original.voidedAt) {
+      if (original.voidReason === reason && original.voidEvidenceRef === evidenceReference) {
+        const replacement = original.replacedById
+          ? await this.prisma.employeeLoanNotice.findUnique({ where: { id: original.replacedById } })
+          : null;
+        return {
+          message: 'This correction was already recorded',
+          duplicate: true,
+          data: { original: mapLoanNotice(original), replacement: replacement ? mapLoanNotice(replacement) : null },
+        };
       }
-      return { message: 'Notice already recorded', duplicate: true, data: mapLoanNotice(same) };
+      throw new ConflictException('This notice has already been corrected');
     }
-    const row = await this.prisma.$transaction(async (tx) => {
-      const saved = await tx.employeeLoanNotice.create({
-        data: {
-          employeeId,
-          noticeType: dto.noticeType,
-          studentLoanPlan: plan,
-          hmrcReference,
-          noticeDate,
-          receivedOn,
-          effectivePayday,
-          notes: dto.notes?.trim() || null,
-          createdById: userId,
-        },
+    const fields = dto.replacement ? this.loanNoticeFields(employeeId, dto.replacement) : null;
+    const from = new Date(
+      Math.min(original.effectivePayday.getTime(), fields ? fields.effectivePayday.getTime() : Number.POSITIVE_INFINITY),
+    );
+    const affected = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: { employeeId, run: { status: { not: 'CANCELLED' }, deletedAt: null } },
+      select: {
+        runId: true,
+        statutoryCalculatedAt: true,
+        run: { select: { status: true, label: true, period: { select: { paymentDate: true, periodEnd: true } } } },
+      },
+    });
+    const paidFrom = affected.filter((r) => (r.run.period.paymentDate ?? r.run.period.periodEnd) >= from);
+    const closed = paidFrom.filter((r) => r.run.status === 'CLOSED');
+    if (closed.length) {
+      throw new ConflictException(
+        `This notice affects closed payroll (${closed.map((r) => r.run.label).join(', ')}). The notice cannot be corrected here: a separate payroll correction is needed.`,
+      );
+    }
+    const stale = [...new Set(paidFrom.filter((r) => r.statutoryCalculatedAt).map((r) => r.runId))];
+    const now = new Date();
+    const result = await this.prisma.$transaction(async (tx) => {
+      const voided = await tx.employeeLoanNotice.update({
+        where: { id: original.id },
+        data: { voidedAt: now, voidedById: userId, voidReason: reason, voidEvidenceRef: evidenceReference, activeReferenceKey: null },
       });
+      let replacement: typeof voided | null = null;
+      if (fields) {
+        replacement = await tx.employeeLoanNotice.create({ data: { ...fields.data, replacesId: original.id, createdById: userId } });
+        await tx.employeeLoanNotice.update({ where: { id: original.id }, data: { replacedById: replacement.id } });
+      }
+      // Open runs calculated on the old instruction must be recalculated before they can close.
+      if (stale.length) {
+        await tx.ukPayrollRun.updateMany({
+          where: { id: { in: stale }, status: 'STATUTORY_CALCULATED' },
+          data: { status: 'GROSS_CALCULATED', statutoryCalculatedAt: null, statutoryBasis: null, updatedById: userId },
+        });
+        await tx.ukPayrollRunEmployee.updateMany({ where: { runId: { in: stale }, employeeId }, data: { statutoryCalculatedAt: null } });
+      }
+      const final = { ...voided, replacedById: replacement?.id ?? null };
       await this.audit.logAudit({
         tx,
         userId,
         module: AuditModule.PAYROLL,
-        action: AuditAction.PAYROLL_LOAN_NOTICE_RECORDED,
+        action: AuditAction.PAYROLL_LOAN_NOTICE_CORRECTED,
         recordType: 'EmployeeLoanNotice',
-        recordId: saved.id,
-        newValues: mapLoanNotice(saved),
+        recordId: original.id,
+        oldValues: mapLoanNotice(original),
+        newValues: {
+          voided: mapLoanNotice(final),
+          replacement: replacement ? mapLoanNotice(replacement) : null,
+          runsToRecalculate: stale,
+        },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
-      return saved;
+      return { original: final, replacement };
     });
-    return { message: 'Notice recorded', duplicate: false, data: mapLoanNotice(row) };
+    return {
+      message: result.replacement ? 'Notice corrected' : 'Notice marked as recorded in error',
+      duplicate: false,
+      runsToRecalculate: stale,
+      data: { original: mapLoanNotice(result.original), replacement: result.replacement ? mapLoanNotice(result.replacement) : null },
+    };
   }
 
   async listLoanNotices(employeeId: string) {

@@ -9,6 +9,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  CorrectLoanNoticeDto,
   CreateEmployeePayAgreementDto,
   RecordLoanNoticeDto,
   UpdateEmployeePayAgreementDto,
@@ -84,6 +85,20 @@ export class PayrollEmployeesController {
     @Req() req: Request,
   ) {
     return this.service.recordLoanNotice(user.id, employeeId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('employees/:employeeId/loan-notices/:noticeId/correction')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.manage')
+  @ApiOperation({ summary: 'Correct a loan notice recorded in error (voids the local record; optional replacement)' })
+  correctLoanNotice(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Param('noticeId') noticeId: string,
+    @Body() dto: CorrectLoanNoticeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.correctLoanNotice(user.id, employeeId, noticeId, dto, getRequestAuditMeta(req));
   }
 
   @Get('employees/:employeeId/pay-agreements')

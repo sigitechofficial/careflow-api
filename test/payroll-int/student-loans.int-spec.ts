@@ -7,8 +7,10 @@
  */
 import { PayrollEmployeesService } from '../../src/payroll/payroll-employees.service';
 import { PayrollRunsService as UkPayrollRunsService } from '../../src/payroll/payroll-runs.service';
+import request from 'supertest';
+import { AuditLogsService } from '../../src/audit-logs/audit-logs.service';
 import { buildUkPayrollRunsService, createUkRun, giveTaxCode, resetPayData } from './harness';
-import { createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp } from './http-harness';
+import { bearer, createCarer, createStaffUser, createTestApp, resetIdentityData, TestApp } from './http-harness';
 
 describe('student and postgraduate loans through the UK run (Gate C11)', () => {
   let t: TestApp;
@@ -224,6 +226,73 @@ describe('student and postgraduate loans through the UK run (Gate C11)', () => {
       // April, closed before the notices, keeps what it was calculated with.
       expect(await row(april.id)).toMatchObject({ plan: 'NONE', studentLoan: 0, netPay: 2453.64 });
       await expect(ukRuns.calculateStatutory(maker.id, april.id)).rejects.toThrow(/Reactivate this closed run/);
+    });
+
+    /** Gate C15: correcting a notice entered wrongly in Careflow (not stopping an HMRC instruction). */
+    describe('correcting a notice recorded in error (Gate C15)', () => {
+      const correct = (noticeId: string, body: Record<string, unknown>) =>
+        employees().correctLoanNotice(maker.id, employeeId, noticeId, body as never);
+      const wrong = { noticeType: 'SL1', studentLoanPlan: '1', hmrcReference: 'SL1-X', noticeDate: '2026-05-01', receivedOn: '2026-05-12', effectivePayday: '2026-05-31' };
+      const why = { reason: 'Plan keyed as 1; the SL1 says Plan 2', evidenceReference: 'HMRC SL1 letter SL1-X' };
+      const corrections = (recordId: string) =>
+        t.prisma.auditLog.count({ where: { recordId, action: 'payroll_loan_notice_corrected' as never } });
+
+      it('the wrong entry is voided and kept; the replacement (same reference) is the one payroll uses', async () => {
+        const original = (await notice(wrong)).data;
+        const result = await correct(original.id, { ...why, replacement: { ...wrong, studentLoanPlan: '2' } });
+        expect(result.data.original).toMatchObject({ status: 'CORRECTED', studentLoanPlan: '1', voidReason: why.reason, voidEvidenceRef: why.evidenceReference, replacedById: result.data.replacement!.id });
+        expect(result.data.replacement).toMatchObject({ status: 'ACTIVE', studentLoanPlan: '2', hmrcReference: 'SL1-X', replacesId: original.id });
+        expect((await employees().listLoanNotices(employeeId)).data.map((n) => [n.studentLoanPlan, n.status])).toEqual([['1', 'CORRECTED'], ['2', 'ACTIVE']]);
+        expect(await corrections(original.id)).toBe(1);
+        await closeMonth(APRIL);
+        expect(await closeMonth(MAY)).toMatchObject({ plan: '2', studentLoan: 49 }); // the replacement, not the voided Plan 1
+      });
+
+      it('a repeated correction is not applied twice; a different one, a failed audit entry and a reader are refused', async () => {
+        const original = (await notice(wrong)).data;
+        // The audit table cannot be written: nothing is saved.
+        const audit = t.app.get(AuditLogsService, { strict: false });
+        const broken = jest
+          .spyOn(audit as unknown as { db: () => unknown }, 'db')
+          .mockReturnValue({ auditLog: { create: () => Promise.reject(new Error('synthetic: audit table unavailable')) } });
+        await expect(correct(original.id, why)).rejects.toThrow();
+        broken.mockRestore();
+        expect(await t.prisma.employeeLoanNotice.findUniqueOrThrow({ where: { id: original.id } })).toMatchObject({ voidedAt: null });
+        // A reader (read permission only) cannot correct over HTTP.
+        const reader = await createStaffUser(t.prisma, { permissions: ['payroll.employees.read', 'payroll.scope.organisation'] });
+        const denied = await request(t.app.getHttpServer())
+          .post(`/payroll/employees/${employeeId}/loan-notices/${original.id}/correction`)
+          .set(bearer(t.staffToken(reader.id)))
+          .send(why);
+        expect(denied.status).toBe(403);
+        // Recorded in error (no replacement), then the same request again: one correction, one audit entry.
+        expect((await correct(original.id, why)).data.original.status).toBe('VOIDED');
+        expect((await correct(original.id, why)).duplicate).toBe(true);
+        await expect(correct(original.id, { ...why, reason: 'A different reason entirely' })).rejects.toThrow(/already been corrected/);
+        expect(await corrections(original.id)).toBe(1);
+        expect(await t.prisma.employeeLoanNotice.count({ where: { employeeId } })).toBe(1);
+      });
+
+      it('a notice that closed payroll used cannot be corrected here; an open run calculated on it must be recalculated', async () => {
+        const used = (await notice({ ...wrong, hmrcReference: 'SL1-Y', studentLoanPlan: '2', noticeDate: '2026-04-06', receivedOn: '2026-04-20', effectivePayday: '2026-04-30' })).data;
+        const april = await closeMonth(APRIL);
+        expect(april).toMatchObject({ plan: '2', studentLoan: 49 });
+        await expect(correct(used.id, why)).rejects.toThrow(/affects closed payroll .* a separate payroll correction is needed/);
+        expect((await t.prisma.employeeLoanNotice.findUniqueOrThrow({ where: { id: used.id } })).voidedAt).toBeNull();
+        expect(await row(april.id)).toMatchObject({ plan: '2', studentLoan: 49 }); // closed run unchanged
+
+        // A notice from the May payday, used by a May run not yet closed: voiding it sends May back.
+        const mayNotice = (await notice({ noticeType: 'PGL1', hmrcReference: 'PGL1-Y', noticeDate: '2026-05-01', receivedOn: '2026-05-12', effectivePayday: '2026-05-31' })).data;
+        const may = await run(MAY);
+        await calculate(may);
+        expect(await row(may)).toMatchObject({ postgraduate: true, postgraduateLoan: 75 });
+        const result = await correct(mayNotice.id, { reason: 'Keyed against the wrong employee', evidenceReference: 'HMRC PGL1 PGL1-Y' });
+        expect(result.runsToRecalculate).toEqual([may]);
+        expect((await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: may } })).status).toBe('GROSS_CALCULATED');
+        await expect(ukRuns.close(checker.id, may)).rejects.toThrow(/Calculate tax & NI before closing/);
+        await ukRuns.calculateStatutory(maker.id, may);
+        expect(await row(may)).toMatchObject({ plan: '2', postgraduate: false, postgraduateLoan: 0 });
+      });
     });
   });
 });

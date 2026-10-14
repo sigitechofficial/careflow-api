@@ -10630,8 +10630,19 @@ model EmployeeLoanNotice {
   notes           String?
   createdAt       DateTime @default(now())
   createdById     String   @db.Uuid
+  /// Gate C15: "employeeId|noticeType|reference" while the notice is in force and has a reference;
+  /// null once voided, so a controlled replacement can carry the same reference.
+  activeReferenceKey String?   @unique
+  /// Gate C15: the local record was entered wrongly and is voided (it was not an HMRC instruction
+  /// to stop). The original values stay as they were.
+  voidedAt           DateTime?
+  voidedById         String?   @db.Uuid
+  voidReason         String?
+  voidEvidenceRef    String?
+  /// Gate C15: the notice recorded in its place, and on that notice, the one it replaces.
+  replacedById       String?   @db.Uuid
+  replacesId         String?   @db.Uuid
 
-  @@unique([employeeId, noticeType, hmrcReference])
   @@index([employeeId])
   @@schema("payroll")
 }

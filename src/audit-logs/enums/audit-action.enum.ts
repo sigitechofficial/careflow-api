@@ -393,6 +393,7 @@ export enum AuditAction {
   PAYROLL_EMPLOYEE_PROFILE_CREATED = 'payroll_employee_profile_created',
   PAYROLL_EMPLOYEE_PROFILE_UPDATED = 'payroll_employee_profile_updated',
   PAYROLL_LOAN_NOTICE_RECORDED = 'payroll_loan_notice_recorded',
+  PAYROLL_LOAN_NOTICE_CORRECTED = 'payroll_loan_notice_corrected',
   PAYROLL_PAY_AGREEMENT_CREATED = 'payroll_pay_agreement_created',
   PAYROLL_PAY_AGREEMENT_UPDATED = 'payroll_pay_agreement_updated',
   PAYROLL_PAY_AGREEMENT_APPROVED = 'payroll_pay_agreement_approved',

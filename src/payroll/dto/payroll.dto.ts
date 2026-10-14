@@ -1164,3 +1164,28 @@ export class RecordLoanNoticeDto {
   @MaxLength(500)
   notes?: string;
 }
+
+/**
+ * Gate C15: correct a loan notice that was entered wrongly in Careflow. It voids the local
+ * record (the original stays as it was) and may record the correct notice in its place. It is
+ * not a way to stop a genuine HMRC instruction.
+ */
+export class CorrectLoanNoticeDto {
+  @ApiProperty({ description: 'Why the recorded notice is wrong' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiProperty({ description: 'The HMRC notice or document that shows the correct details' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  evidenceReference!: string;
+
+  @ApiPropertyOptional({ type: RecordLoanNoticeDto, description: 'The notice as it should have been recorded' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RecordLoanNoticeDto)
+  replacement?: RecordLoanNoticeDto;
+}

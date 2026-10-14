@@ -2306,7 +2306,7 @@ export class PayrollRunsService {
     // Gate C13: HMRC notices in force on this run's payment date decide each loan; without one
     // the profile setting (starter checklist, P45 or earlier entry; source not verified) applies.
     const loanNotices = await this.prisma.employeeLoanNotice.findMany({
-      where: { employeeId: { in: employeeIds }, effectivePayday: { lte: paidOn } },
+      where: { employeeId: { in: employeeIds }, effectivePayday: { lte: paidOn }, voidedAt: null },
     });
     const loansByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['studentLoans']>>();
     const loanReasonByEmployeeId = new Map<string, string>();
