@@ -4,6 +4,7 @@ import {
   parseUkTaxCode,
   periodsInTaxYear,
   rawTaxYearPeriodNumber,
+  scottishIncomeTaxBands,
   taxYearPeriodNumber,
   unsupportedTaxCodeReason,
 } from './payroll-statutory.util';
@@ -161,7 +162,7 @@ describe('payroll-statutory.util', () => {
       for (const code of ['1257L', 'C1257L', 'BR', 'NT', '0T', 'D0', 'D1', ' 1257L ']) expect(unsupportedTaxCodeReason(code)).toBeNull();
       expect(unsupportedTaxCodeReason(null)).toBe('no tax code recorded');
       expect(unsupportedTaxCodeReason('  ')).toBe('no tax code recorded');
-      expect(unsupportedTaxCodeReason('S1257L')).toMatch(/^Scottish tax code S1257L/);
+      expect(unsupportedTaxCodeReason('S1257L')).toMatch(/^Scottish tax code S1257L \(no Scottish rates recorded/);
       expect(unsupportedTaxCodeReason('K475')).toBeNull(); // supported from Gate C2
       expect(unsupportedTaxCodeReason('12A57')).toMatch(/not recognised/);
     });
@@ -226,6 +227,68 @@ describe('payroll-statutory.util', () => {
       const m1 = run({ taxCode: 'K1500', week1Month1: true, periodNumber: 6, ytdGrossBefore: 2000, ytdTaxBefore: 1000, periodGross: 400 });
       expect(m1).toMatchObject({ calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE', incomeTax: 200, taxNotDeductedOverLimit: 130 });
       expect(m1.explanation).toContain('not collected later on this basis');
+    });
+  });
+
+  /**
+   * Gate C3. Expected values as HMRC prints them in the Taxable Pay Tables Manual Method for
+   * 2026-27 (Scottish pages 12 to 25): example 7 (S431L, week 18), examples 8 and 9 (month 4,
+   * Tables C1 and C5) and the Scottish Tables C limits at month 1 and month 2.
+   */
+  describe('Scottish PAYE 2026-27, standard S codes (Gate C3)', () => {
+    const scottishBands = scottishIncomeTaxBands(new Date(Date.UTC(2026, 3, 6)));
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: 'S1257L', niCategory: 'A', frequency: 'MONTHLY', rates, scottishBands, ...over });
+
+    it('cumulative S codes as HMRC examples 7 and 8: S431L week 18 tax due £22.04; month 4 taxable £4,133 is £813.37', () => {
+      // Example 7: pay to date £1,612.00 less Tables A £1,495.08 = £116.92 → £116; 19% = £22.04.
+      const ex7 = run({ taxCode: 'S431L', frequency: 'WEEKLY', periodNumber: 18, ytdGrossBefore: 1527, periodGross: 85 });
+      expect(ex7).toMatchObject({ calculationBasis: 'CUMULATIVE', incomeTax: 22.04, taxCodeApplied: 'S431L', taxNotDeductedOverLimit: 0 });
+      expect(ex7.explanation).toContain('free pay to date £1495.08');
+      expect(ex7.explanation).toContain('Taxable YTD £116.00; tax due YTD £22.04');
+      expect(ex7.explanation).toContain('Scottish income tax bands applied');
+      // Example 8: S1257L month 4, free pay to date 4 × £1,048.26; taxable £4,133 → £251.37 + £562.00.
+      const ex8 = run({ periodNumber: 4, ytdGrossBefore: 6000, ytdTaxBefore: 400, periodGross: 2326.04 });
+      expect(ex8.explanation).toContain('Taxable YTD £4133.00; tax due YTD £813.37');
+      expect(ex8.incomeTax).toBe(413.37);
+      // The same pay on 1257L (England bands) is taxed differently.
+      expect(run({ taxCode: '1257L', periodNumber: 4, ytdGrossBefore: 6000, ytdTaxBefore: 400, periodGross: 2326.04 }).incomeTax).toBe(426.6);
+    });
+
+    it('band limits and higher pay: Tables C at month 1 and example 9 (month 4, top rate) as printed; only 2026-27 bands are used', () => {
+      // Month 1 (taxable to date = gross less £1,048.26): HMRC columns 3, 6, 9, 12 and 14.
+      const month1 = (taxable: number) => run({ periodNumber: 1, periodGross: taxable + 1048.26 }).taxDueThisPeriod;
+      expect([331, 1413, 2591, 5203, 10429].map(month1)).toEqual([62.89, 279.29, 526.67, 1623.72, 3975.44]);
+      // Example 9: month 4, taxable £49,214: £15,900.83 to £41,714 plus 48% of £7,500 = £19,500.83.
+      const ex9 = run({ periodNumber: 4, ytdGrossBefore: 40000, ytdTaxBefore: 15000, periodGross: 13407.04 });
+      expect(ex9.explanation).toContain('Taxable YTD £49214.00; tax due YTD £19500.83');
+      expect(ex9.incomeTax).toBe(4500.83);
+      // No Scottish bands are assumed for another year, and an S code never falls back to England bands.
+      expect(scottishIncomeTaxBands(new Date(Date.UTC(2025, 3, 6)))).toBeNull();
+      expect(() => run({ scottishBands: null, periodNumber: 1, periodGross: 3000 })).toThrow(/no Scottish rates recorded/);
+      // Supported: standard allowance codes. Refused: SK, flat-rate SBR / SD codes, and anything else.
+      for (const code of ['S1257L', 'S431L', 'S1383M', 'S1131N', 'S1257T']) expect(unsupportedTaxCodeReason(code, true)).toBeNull();
+      expect(unsupportedTaxCodeReason('SK475', true)).toMatch(/^Scottish K code SK475/);
+      for (const code of ['SBR', 'SD0', 'SD1', 'SD2', 'SD3']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/^Scottish flat-rate code/);
+      for (const code of ['S', 'S0T', 'SNT', 'S12A57', 'S1257', 'S1257LX']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/not supported by this version/);
+      expect(() => run({ taxCode: 'SBR', periodNumber: 1, periodGross: 3000 })).toThrow(/Scottish flat-rate code SBR/);
+    });
+
+    it('Week 1 / Month 1 on Scottish bands (no refund); the 50% limit holds back Scottish tax over half of pay', () => {
+      // Month 1 alone: £2,000 − £1,048.26 → £951; £62.81 at 19% + £124.08 at 20% → £186.89. Earlier tax is not looked at.
+      expect(run({ week1Month1: true, periodNumber: 6, ytdGrossBefore: 6000, ytdTaxBefore: 1000, periodGross: 2000 })).toMatchObject({
+        calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+        taxablePay: 951,
+        incomeTax: 186.89,
+      });
+      expect(run({ week1Month1: true, periodNumber: 2, ytdGrossBefore: 6000, ytdTaxBefore: 1000, periodGross: 500 }).incomeTax).toBe(0);
+      // Cumulative refund is kept: the same fall in pay refunds tax already deducted.
+      expect(run({ periodNumber: 2, ytdGrossBefore: 6000, ytdTaxBefore: 1000, periodGross: 500 }).incomeTax).toBeLessThan(0);
+      // Month 2, nothing deducted on £6,000, £1,000 now: taxable £4,903 → £558.58 to £2,826 (HMRC col 6)
+      // + 21% of £2,077 = £994.75 due; limit £500.00, £494.75 held back.
+      const limited = run({ periodNumber: 2, ytdGrossBefore: 6000, ytdTaxBefore: 0, periodGross: 1000 });
+      expect(limited).toMatchObject({ taxDueThisPeriod: 994.75, incomeTax: 500, taxNotDeductedOverLimit: 494.75 });
+      expect(limited.explanation).toContain('Regulatory limit');
     });
   });
 });

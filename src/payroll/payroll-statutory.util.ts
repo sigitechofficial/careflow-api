@@ -37,7 +37,29 @@ export type StatutoryCalcInput = {
   ytdGrossBefore?: number;
   /** Income tax already posted to YTD before this period. */
   ytdTaxBefore?: number;
+  /** Scottish bands of the run's tax year (scottishIncomeTaxBands); used only for an S code. */
+  scottishBands?: IncomeTaxBand[] | null;
 };
+
+/** One band of annual taxable pay: taxed at ratePercent up to upToAnnual (null: no upper limit). */
+export type IncomeTaxBand = { upToAnnual: number | null; ratePercent: number };
+
+/**
+ * Scottish income tax bands of taxable pay, for the tax year starting 6 April 2026 only (GOV.UK
+ * "Rates and thresholds for employers 2026 to 2027"; HMRC Taxable Pay Tables 2026-27, Scottish
+ * Tables C). Another year's Scottish bands are not assumed: null means none are recorded.
+ */
+export function scottishIncomeTaxBands(taxYearStart: Date): IncomeTaxBand[] | null {
+  if (taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  return [
+    { upToAnnual: 3967, ratePercent: 19 },
+    { upToAnnual: 16956, ratePercent: 20 },
+    { upToAnnual: 31092, ratePercent: 21 },
+    { upToAnnual: 62430, ratePercent: 42 },
+    { upToAnnual: 125140, ratePercent: 45 },
+    { upToAnnual: null, ratePercent: 48 },
+  ];
+}
 
 export type StatutoryCalculationBasis =
   | 'WEEK1_MONTH1_NON_CUMULATIVE'
@@ -108,14 +130,25 @@ export function rawTaxYearPeriodNumber(taxYearStart: Date, periodStart: Date, fr
 }
 
 /**
- * Whether this version can calculate PAYE for a tax code (Gate C1): England and Northern Ireland
- * codes, and Welsh C codes (same rates). Missing codes, Scottish S codes, K codes and codes it
- * does not recognise are refused rather than guessed.
+ * Whether this version can calculate PAYE for a tax code: England and Northern Ireland codes,
+ * Welsh C codes (same rates), K codes, and (Gate C3) standard Scottish allowance codes such as
+ * S1257L when the tax year's Scottish bands are known. Missing codes, Scottish K, BR and D codes,
+ * other Scottish codes and codes it does not recognise are refused rather than guessed; a
+ * Scottish code is never taxed on England bands.
  */
-export function unsupportedTaxCodeReason(taxCode: string | null | undefined): string | null {
+export function unsupportedTaxCodeReason(
+  taxCode: string | null | undefined,
+  scottishBandsAvailable = false,
+): string | null {
   const raw = (taxCode ?? '').trim().toUpperCase().replace(/\s+/g, '');
   if (!raw) return 'no tax code recorded';
-  if (raw.startsWith('S')) return `Scottish tax code ${raw} (Scottish rates are not calculated yet)`;
+  if (raw.startsWith('SK')) return `Scottish K code ${raw} (not calculated yet)`;
+  if (/^S(BR|D\d+)$/.test(raw)) return `Scottish flat-rate code ${raw} (not calculated yet)`;
+  if (raw.startsWith('S')) {
+    if (!/^S[1-9]\d*[LMNT]$/.test(raw)) return `Scottish tax code ${raw} is not supported by this version`;
+    if (!scottishBandsAvailable) return `Scottish tax code ${raw} (no Scottish rates recorded for this tax year)`;
+    return null;
+  }
   if (raw.startsWith('CK')) return `Welsh K code ${raw} (not calculated yet)`;
   const parsed = parseUkTaxCode(raw);
   if (raw.startsWith('K') && !/^K[1-9]\d*$/.test(raw)) return `tax code ${raw} is not recognised`;
@@ -229,8 +262,22 @@ function taxOnTaxable(
   rates: StatutoryRateSnapshot,
   bandScalePeriods: number,
   special: ReturnType<typeof parseUkTaxCode>['special'],
+  bands?: IncomeTaxBand[] | null,
 ): number {
   if (special === 'NT' || taxable <= 0) return 0;
+  if (bands) {
+    // Scottish: the same method on the Scottish bands, in proportion to the periods to date and
+    // not rounded (HMRC Scottish Tables C, month 4: £4,133 taxable → £813.37).
+    const scale = Math.max(1, bandScalePeriods);
+    let lower = 0;
+    let tax = 0;
+    for (const band of bands) {
+      const upper = band.upToAnnual == null ? Infinity : band.upToAnnual / scale;
+      if (taxable > lower) tax += (Math.min(taxable, upper) - lower) * (band.ratePercent / 100);
+      lower = upper;
+    }
+    return floorPenny(tax);
+  }
   if (special === 'BR') return floorPenny(taxable * (rates.basicRatePercent / 100));
   if (special === 'D0') return floorPenny(taxable * (rates.higherRatePercent / 100));
   if (special === 'D1') return floorPenny(taxable * (rates.additionalRatePercent / 100));
@@ -315,6 +362,15 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   );
   const ytdGrossBefore = Math.max(0, round2(input.ytdGrossBefore ?? 0));
   const ytdTaxBefore = round2(input.ytdTaxBefore ?? 0);
+  const scottish = parsed.code.startsWith('S');
+  if (scottish) {
+    const reason = unsupportedTaxCodeReason(parsed.code, Boolean(input.scottishBands));
+    if (reason) throw new Error(`PAYE not calculated: ${reason}`);
+  }
+  const bands = scottish ? input.scottishBands : null;
+  const notIncluded = scottish
+    ? 'Scottish income tax bands applied. Student loans / pensions not included.'
+    : 'Student loans / pensions / Scotland bands not included.';
 
   const forceNonCumulative =
     Boolean(input.week1Month1) ||
@@ -338,7 +394,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
 
     const taxablePay =
       parsed.special === 'NT' ? 0 : floorPound(Math.max(0, gross - periodFreePay));
-    const taxDue = taxOnTaxable(taxablePay, input.rates, periods, parsed.special);
+    const taxDue = taxOnTaxable(taxablePay, input.rates, periods, parsed.special, bands);
     const limited = applyRegulatoryLimit(taxDue, gross);
     const incomeTax = limited.deducted;
     const netPay = round2(gross - incomeTax - employeeNi);
@@ -354,7 +410,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
         ? [`Regulatory limit: tax due £${taxDue.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted (not collected later on this basis).`]
         : []),
       `NI category ${niCategory}; PT £${niTh.pt.toFixed(2)} UEL £${niTh.uel.toFixed(2)}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)}.`,
-      'Student loans / pensions / Scotland bands not included.',
+      notIncluded,
     ].join(' ');
 
     return {
@@ -388,7 +444,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
 
   // Band widths to date: annual band × periodNumber / periods  ⇒ divide annual by (periods/periodNumber)
   const bandScale = periods / periodNumber;
-  const taxDueYtd = taxOnTaxable(taxableYtd, input.rates, bandScale, parsed.special);
+  const taxDueYtd = taxOnTaxable(taxableYtd, input.rates, bandScale, parsed.special, bands);
   const taxDueThisPeriod = round2(taxDueYtd - ytdTaxBefore);
   const limited = applyRegulatoryLimit(taxDueThisPeriod, gross);
   const incomeTax = limited.deducted;
@@ -406,7 +462,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       ? [`Regulatory limit: tax due this period £${taxDueThisPeriod.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted, still due and collected on a later pay day where the limit allows.`]
       : []),
     `NI category ${niCategory}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (period basis).`,
-    'Student loans / pensions / Scotland bands not included.',
+    notIncluded,
   ].join(' ');
 
   return {
