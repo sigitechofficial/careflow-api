@@ -18,7 +18,6 @@ describe('student and postgraduate loans through the UK run (Gate C11)', () => {
 
   const APRIL = { periodStart: '2026-04-01', periodEnd: '2026-04-30' };
   const MAY = { periodStart: '2026-05-01', periodEnd: '2026-05-31' };
-  const JUNE = { periodStart: '2026-06-01', periodEnd: '2026-06-30' };
   const run = (period: { periodStart: string; periodEnd: string }) => createUkRun(t.prisma, { ...period, employeeIds: [employeeId], createdById: maker.id });
   const calculate = async (runId: string) => {
     await ukRuns.calculateGross(maker.id, runId);
@@ -107,7 +106,7 @@ describe('student and postgraduate loans through the UK run (Gate C11)', () => {
     expect(await row(april)).toEqual(expected); // closed history unchanged
   });
 
-  it('a supplementary payment applies the monthly threshold once; changed, multiple or non-monthly loan cases are refused', async () => {
+  it('a supplementary payment applies the monthly threshold once; changed or multiple loan cases are refused', async () => {
     const april = await run(APRIL);
     await calculate(april);
     await ukRuns.close(checker.id, april);
@@ -126,13 +125,34 @@ describe('student and postgraduate loans through the UK run (Gate C11)', () => {
     const may = await run(MAY);
     await ukRuns.calculateGross(maker.id, may);
     await expect(ukRuns.calculateStatutory(maker.id, may)).rejects.toThrow(/more than one student loan plan recorded \(1, 2\)/);
+  });
 
-    // A weekly schedule: not deducted rather than deducted wrongly.
-    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { studentLoanPlan1: false } });
-    const june = await run(JUNE);
-    await ukRuns.calculateGross(maker.id, june);
-    const juneRun = await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: june } });
-    await t.prisma.payrollSchedule.update({ where: { id: juneRun.scheduleId }, data: { frequency: 'WEEKLY' } });
-    await expect(ukRuns.calculateStatutory(maker.id, june)).rejects.toThrow(/calculated for monthly pay only/);
+  it('Gate C12: fortnightly pay uses the weekly thresholds on average weekly pay; YTD, recalculation and a supplementary payment', async () => {
+    // A fortnightly run for tax weeks 1-2 (6 to 19 April 2026) paying £1,300: £650 a week on average.
+    const first = await run({ periodStart: '2026-04-06', periodEnd: '2026-04-19' });
+    const created = await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: first } });
+    await t.prisma.payrollSchedule.update({ where: { id: created.scheduleId }, data: { frequency: 'FORTNIGHTLY' } });
+    await t.prisma.ukPayrollRun.update({ where: { id: first }, data: { status: 'GROSS_CALCULATED', grossCalculatedAt: new Date() } });
+    await t.prisma.ukPayrollRunEmployee.updateMany({ where: { runId: first }, data: { totalGross: 1300, grossCalculatedAt: new Date() } });
+    await ukRuns.calculateStatutory(maker.id, first);
+    // Plan 2: £7 a week × 2 = £14; postgraduate: 6% of £246.16 = £14.77 → £14 × 2 = £28.
+    const r1 = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: first, employeeId } });
+    expect([r1.studentLoanPlanApplied, Number(r1.studentLoanDeduction), Number(r1.postgraduateLoanDeduction)]).toEqual(['2', 14, 28]);
+    expect(Number(r1.employeeNi)).toBe(65.28); // NI unchanged: (1,300 − 484) × 8%
+    expect(Number(r1.netPay)).toBe(Math.round((1300 - Number(r1.incomeTax) - 65.28 - 14 - 28) * 100) / 100);
+    expect(r1.statutoryExplanation).toContain('a week (on average weekly pay over 2 weeks)');
+    await ukRuns.calculateStatutory(maker.id, first); // draft recalculation: nothing doubled
+    expect(await row(first)).toMatchObject({ studentLoan: 14, postgraduateLoan: 28 });
+    await ukRuns.close(checker.id, first);
+
+    // £200 more in the same fortnight: on £1,500 (£750 a week), £16 × 2 = £32 and £20 × 2 = £40,
+    // less £14 and £28 already deducted: £18 and £12.
+    const supplementary = await supplementaryOf(first, 200);
+    await ukRuns.calculateStatutory(maker.id, supplementary);
+    expect(await row(supplementary)).toMatchObject({ studentLoan: 18, postgraduateLoan: 12 });
+    await ukRuns.close(checker.id, supplementary);
+    const after = await ledger();
+    expect([Number(after.studentLoanYtd), Number(after.postgraduateLoanYtd)]).toEqual([32, 40]);
+    expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
   });
 });

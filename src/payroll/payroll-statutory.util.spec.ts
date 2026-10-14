@@ -1,6 +1,7 @@
 import {
   calculatePeriodStatutory,
   directorNiPeriod,
+  loanDeductionForPeriod,
   loanDeductionOn,
   studentLoanThresholds,
   type StudentLoanPlan,
@@ -559,7 +560,7 @@ describe('payroll-statutory.util', () => {
     });
 
     it('Plans 1, 2, 4 and 5 on £3,000 a month: 9% over the threshold, rounded down to the pound', () => {
-      expect(th).toEqual({ plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750 });
+      expect(th).toEqual({ plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750, weeks: null });
       // 9% of £758.34 = £68.25; of £551.25 = £49.61; of £183.75 = £16.54; of £916.67 = £82.50.
       const cases: Array<[StudentLoanPlan, number]> = [['1', 68], ['2', 49], ['4', 16], ['5', 82]];
       for (const [plan, expected] of cases) {
@@ -572,9 +573,9 @@ describe('payroll-statutory.util', () => {
       expect(loanDeductionOn(2448.75, 2448.75, 9)).toBe(0);
       expect(loanDeductionOn(2459.86, 2448.75, 9)).toBe(0); // £0.9999
       expect(loanDeductionOn(2459.87, 2448.75, 9)).toBe(1); // £1.0008
-      // No thresholds are assumed for another year or another pay interval.
+      // No thresholds are assumed for another year.
       expect(studentLoanThresholds(new Date(Date.UTC(2025, 3, 6)), 'MONTHLY')).toBeNull();
-      expect(studentLoanThresholds(new Date(Date.UTC(2026, 3, 6)), 'WEEKLY')).toBeNull();
+      expect(studentLoanThresholds(new Date(Date.UTC(2025, 3, 6)), 'WEEKLY')).toBeNull();
     });
 
     it('postgraduate 6%, alongside Plan 2: £49 + £75 = £124 off net pay; PAYE and NI unchanged; a supplementary payment applies the threshold once', () => {
@@ -599,6 +600,44 @@ describe('payroll-statutory.util', () => {
         studentLoans: loans('2', true, [49, 75]),
       });
       expect([more.studentLoanDeduction, more.postgraduateLoanDeduction]).toEqual([90, 60]);
+    });
+  });
+
+  /**
+   * Gate C12. GOV.UK 2026 to 2027 weekly thresholds: Plan 1 £517.30, Plan 2 £565.09, Plan 4
+   * £649.90, Plan 5 £480.76 (9%), postgraduate loan £403.84 (6%). HMRC SL3: for 2 or 4 weeks,
+   * the weekly deduction on average weekly pay, rounded down, times the weeks.
+   */
+  describe('student and postgraduate loans, weekly, fortnightly and four-weekly (Gate C12)', () => {
+    const start = new Date(Date.UTC(2026, 3, 6));
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: '1257L', niCategory: 'A', frequency: 'WEEKLY', rates, periodNumber: 1, ...over });
+
+    it('weekly: Plans 1, 2, 4, 5 and the postgraduate loan on £650 a week', () => {
+      const weekly = studentLoanThresholds(start, 'WEEKLY')!;
+      expect(weekly).toEqual({ plans: { '1': 517.3, '2': 565.09, '4': 649.9, '5': 480.76 }, postgraduate: 403.84, weeks: 1 });
+      // 9% of £132.70 = £11.94; of £84.91 = £7.64; of £0.10 = £0.009; of £169.24 = £15.23; 6% of £246.16 = £14.77.
+      const cases: Array<[StudentLoanPlan, number]> = [['1', 11], ['2', 7], ['4', 0], ['5', 15]];
+      for (const [plan, expected] of cases) {
+        const r = run({
+          periodGross: 650,
+          studentLoans: { plan, planThreshold: weekly.plans[plan], postgraduate: true, postgraduateThreshold: weekly.postgraduate, weeks: weekly.weeks, earlierStudentLoan: 0, earlierPostgraduateLoan: 0 },
+        });
+        expect([r.studentLoanDeduction, r.postgraduateLoanDeduction]).toEqual([expected, 14]);
+        expect(r.netPay).toBe(Math.round((650 - r.incomeTax - r.employeeNi - expected - 14) * 100) / 100);
+      }
+    });
+
+    it('fortnightly and four-weekly: the weekly deduction on average weekly pay, rounded down, then times the weeks', () => {
+      expect(studentLoanThresholds(start, 'FORTNIGHTLY')?.weeks).toBe(2);
+      expect(studentLoanThresholds(start, 'FOUR_WEEKLY')?.weeks).toBe(4);
+      // Plan 2 on £650 a week on average: £7 a week, £14 a fortnight, £28 for four weeks.
+      expect(loanDeductionForPeriod(650, 565.09, 9, 1)).toBe(7);
+      expect(loanDeductionForPeriod(1300, 565.09, 9, 2)).toBe(14);
+      expect(loanDeductionForPeriod(2600, 565.09, 9, 4)).toBe(28);
+      // Not the threshold multiplied up and rounded once: 9% of (2,600 − 2,260.36) = £30.56 → £30.
+      expect(loanDeductionOn(2600, 565.09 * 4, 9)).toBe(30);
+      expect(loanDeductionForPeriod(3000, 2448.75, 9, null)).toBe(49); // monthly unchanged
     });
   });
 });

@@ -64,6 +64,8 @@ export type StatutoryCalcInput = {
     planThreshold: number | null;
     postgraduate: boolean;
     postgraduateThreshold: number | null;
+    /** Gate C12: weeks in the earnings period when the thresholds are weekly (1, 2 or 4); null for monthly. */
+    weeks?: number | null;
     earlierStudentLoan: number;
     earlierPostgraduateLoan: number;
   } | null;
@@ -72,16 +74,33 @@ export type StatutoryCalcInput = {
 export type StudentLoanPlan = '1' | '2' | '4' | '5';
 
 /**
- * GOV.UK "Special rules for student loans", 2026 to 2027 monthly thresholds: Plan 1 £2,241.66,
- * Plan 2 £2,448.75, Plan 4 £2,816.25, Plan 5 £2,083.33, postgraduate loan £1,750.00. Monthly pay
- * only, and only for the tax year starting 6 April 2026; null for any other year or pay interval.
+ * GOV.UK "Special rules for student loans", 2026 to 2027. Monthly thresholds: Plan 1 £2,241.66,
+ * Plan 2 £2,448.75, Plan 4 £2,816.25, Plan 5 £2,083.33, postgraduate loan £1,750.00. Weekly (Gate
+ * C12): £517.30, £565.09, £649.90, £480.76 and £403.84, used for weekly pay and, on average weekly
+ * pay, for fortnightly and four-weekly pay (`weeks` 2 or 4). Only for the tax year starting
+ * 6 April 2026; null for any other year.
  */
 export function studentLoanThresholds(
   taxYearStart: Date,
   frequency: PayFrequencyCode,
-): { plans: Record<StudentLoanPlan, number>; postgraduate: number } | null {
-  if (frequency !== 'MONTHLY' || taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
-  return { plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750 };
+): { plans: Record<StudentLoanPlan, number>; postgraduate: number; weeks: number | null } | null {
+  if (taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  if (frequency === 'MONTHLY') {
+    return { plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750, weeks: null };
+  }
+  const weeks = frequency === 'WEEKLY' ? 1 : frequency === 'FORTNIGHTLY' ? 2 : frequency === 'FOUR_WEEKLY' ? 4 : null;
+  if (weeks == null) return null;
+  return { plans: { '1': 517.3, '2': 565.09, '4': 649.9, '5': 480.76 }, postgraduate: 403.84, weeks };
+}
+
+/**
+ * HMRC SL3 for a period of several weeks: divide the period's pay by the number of weeks, work out
+ * the weekly deduction on that average (rounded down to the pound), then multiply it by the weeks
+ * (Plan 2, £1,300 a fortnight: £650 a week → £7, so £14). Not the threshold multiplied up.
+ */
+export function loanDeductionForPeriod(earnings: number, threshold: number, ratePercent: number, weeks: number | null | undefined): number {
+  if (!weeks) return loanDeductionOn(earnings, threshold, ratePercent);
+  return loanDeductionOn(earnings / weeks, threshold, ratePercent) * weeks;
 }
 
 /**
@@ -607,11 +626,11 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const loans = input.studentLoans ?? null;
   const studentLoanDeduction =
     loans?.plan && loans.planThreshold != null
-      ? Math.max(0, loanDeductionOn(niableEarnings, loans.planThreshold, 9) - loans.earlierStudentLoan)
+      ? Math.max(0, loanDeductionForPeriod(niableEarnings, loans.planThreshold, 9, loans.weeks) - loans.earlierStudentLoan)
       : 0;
   const postgraduateLoanDeduction =
     loans?.postgraduate && loans.postgraduateThreshold != null
-      ? Math.max(0, loanDeductionOn(niableEarnings, loans.postgraduateThreshold, 6) - loans.earlierPostgraduateLoan)
+      ? Math.max(0, loanDeductionForPeriod(niableEarnings, loans.postgraduateThreshold, 6, loans.weeks) - loans.earlierPostgraduateLoan)
       : 0;
   const loanFields = {
     studentLoanPlanApplied: (loans?.plan ?? 'NONE') as StudentLoanPlan | 'NONE',
@@ -619,11 +638,12 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     postgraduateLoanApplied: Boolean(loans?.postgraduate),
     postgraduateLoanDeduction,
   };
+  const perWeek = loans?.weeks ? ` a week (on average weekly pay over ${loans.weeks} week${loans.weeks > 1 ? 's' : ''})` : '';
   const loanExplanation =
     loans?.plan || loans?.postgraduate
       ? [
-          loans.plan ? `Student loan Plan ${loans.plan}: 9% over £${loans.planThreshold?.toFixed(2)} = £${studentLoanDeduction.toFixed(2)}.` : '',
-          loans.postgraduate ? `Postgraduate loan: 6% over £${loans.postgraduateThreshold?.toFixed(2)} = £${postgraduateLoanDeduction.toFixed(2)}.` : '',
+          loans.plan ? `Student loan Plan ${loans.plan}: 9% over £${loans.planThreshold?.toFixed(2)}${perWeek} = £${studentLoanDeduction.toFixed(2)}.` : '',
+          loans.postgraduate ? `Postgraduate loan: 6% over £${loans.postgraduateThreshold?.toFixed(2)}${perWeek} = £${postgraduateLoanDeduction.toFixed(2)}.` : '',
         ].filter(Boolean).join(' ')
       : 'No student or postgraduate loan recorded.';
 

@@ -2298,8 +2298,9 @@ export class PayrollRunsService {
       });
     }
 
-    // Gate C11: student and postgraduate loans from the recorded profile settings. Monthly pay in
-    // 2026-27 only; anything this version cannot deduct correctly stops the calculation.
+    // Gate C11/C12: student and postgraduate loans from the recorded profile settings, for weekly,
+    // fortnightly, four-weekly and monthly pay in 2026-27; anything this version cannot deduct
+    // correctly stops the calculation.
     const loanThresholds = studentLoanThresholds(run.taxYear.startDate, frequency);
     const loansByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['studentLoans']>>();
     const loanReasonByEmployeeId = new Map<string, string>();
@@ -2329,11 +2330,7 @@ export class PayrollRunsService {
       }
       if (!plan && !postgraduate) continue;
       if (!loanThresholds) {
-        refuse(
-          frequency !== 'MONTHLY'
-            ? 'student or postgraduate loan deductions are calculated for monthly pay only in this version'
-            : `no student loan thresholds recorded for tax year ${run.taxYear.code}`,
-        );
+        refuse(`no student loan thresholds recorded for tax year ${run.taxYear.code} and ${frequency.toLowerCase()} pay`);
         continue;
       }
       if (directorNiByEmployeeId.has(re.employeeId)) {
@@ -2349,6 +2346,8 @@ export class PayrollRunsService {
         planThreshold: plan ? loanThresholds.plans[plan] : null,
         postgraduate,
         postgraduateThreshold: postgraduate ? loanThresholds.postgraduate : null,
+        // Gate C12: the NI earnings period of the schedule (1, 2 or 4 weeks; null for monthly).
+        weeks: loanThresholds.weeks,
         earlierStudentLoan: earlier.reduce((sum, e) => sum + decimalNum(e.studentLoanDeduction), 0),
         earlierPostgraduateLoan: earlier.reduce((sum, e) => sum + decimalNum(e.postgraduateLoanDeduction), 0),
       });
