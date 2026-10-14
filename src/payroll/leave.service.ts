@@ -159,6 +159,25 @@ export class LeaveService {
     return { message: 'Leave terms approved. They apply from their start date.', data: { id: termsId, status: 'ACTIVE' } };
   }
 
+  /** Leave entries of an employee, most recent first (for the payroll profile screen). */
+  async listEntries(employeeId: string) {
+    await this.requireEmployee(employeeId);
+    const rows = await this.prisma.employeeLeaveEntry.findMany({ where: { employeeId }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 500 });
+    return {
+      message: 'Leave entries',
+      data: rows.map((r) => ({
+        id: r.id,
+        entryType: r.entryType,
+        entitlementType: r.entitlementType,
+        hours: Number(r.hours),
+        date: isoDay(r.date),
+        note: r.note,
+        createdById: r.createdById,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
+  }
+
   async recordEntry(userId: string, employeeId: string, dto: RecordLeaveEntryDto, meta?: RequestAuditMeta) {
     await this.requireEmployee(employeeId);
     if ((dto.entryType === 'TAKEN' || dto.entryType === 'LEAVER_PAYMENT') && !(dto.hours > 0)) {

@@ -59,6 +59,14 @@ export class LeaveController {
     return this.service.approveTerms(user.id, termsId, getRequestAuditMeta(req));
   }
 
+  @Get('employees/:employeeId/leave-entries')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.read')
+  @ApiOperation({ summary: 'Leave entries of an employee (taken, adjustments, carry-over, paid on leaving)' })
+  listEntries(@Param('employeeId') employeeId: string) {
+    return this.service.listEntries(employeeId);
+  }
+
   @Post('employees/:employeeId/leave-entries')
   @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.manage')
