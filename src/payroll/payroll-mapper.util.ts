@@ -211,6 +211,13 @@ export function mapProfile(row: {
   isDirector?: boolean | null;
   directorAppointedOn?: Date | null;
   directorNicMethod?: string | null;
+  pensionStatus?: string | null;
+  pensionEnrolledFrom?: Date | null;
+  pensionContributionBasis?: string | null;
+  pensionTaxRelief?: string | null;
+  pensionEmployeeRatePercent?: { toString(): string } | number | null;
+  pensionEmployerRatePercent?: { toString(): string } | number | null;
+  pensionPolicyRef?: string | null;
   deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
@@ -250,6 +257,13 @@ export function mapProfile(row: {
     isDirector: row.isDirector ?? null,
     directorAppointedOn: dateToIsoDate(row.directorAppointedOn ?? null),
     directorNicMethod: row.directorNicMethod ?? null,
+    pensionStatus: row.pensionStatus ?? null,
+    pensionEnrolledFrom: dateToIsoDate(row.pensionEnrolledFrom ?? null),
+    pensionContributionBasis: row.pensionContributionBasis ?? null,
+    pensionTaxRelief: row.pensionTaxRelief ?? null,
+    pensionEmployeeRatePercent: row.pensionEmployeeRatePercent == null ? null : Number(row.pensionEmployeeRatePercent),
+    pensionEmployerRatePercent: row.pensionEmployerRatePercent == null ? null : Number(row.pensionEmployerRatePercent),
+    pensionPolicyRef: row.pensionPolicyRef ?? null,
     deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,

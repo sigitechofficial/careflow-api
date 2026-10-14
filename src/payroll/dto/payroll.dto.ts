@@ -454,6 +454,46 @@ export class UpsertEmployeePayrollProfileDto {
   @MaxLength(80)
   pensionSchemeRef?: string | null;
 
+  @ApiPropertyOptional({ enum: ['ENROLLED', 'NOT_ENROLLED'], description: 'Workplace pension enrolment as confirmed' })
+  @IsOptional()
+  @IsIn(['ENROLLED', 'NOT_ENROLLED'])
+  pensionStatus?: 'ENROLLED' | 'NOT_ENROLLED' | null;
+
+  @ApiPropertyOptional({ example: '2026-04-01' })
+  @IsOptional()
+  @IsDateString()
+  pensionEnrolledFrom?: string | null;
+
+  @ApiPropertyOptional({ enum: ['QUALIFYING_EARNINGS'] })
+  @IsOptional()
+  @IsIn(['QUALIFYING_EARNINGS'])
+  pensionContributionBasis?: 'QUALIFYING_EARNINGS' | null;
+
+  @ApiPropertyOptional({ enum: ['RAS', 'NET_PAY'], description: 'Only RAS is calculated; NET_PAY is recorded but refused by payroll' })
+  @IsOptional()
+  @IsIn(['RAS', 'NET_PAY'])
+  pensionTaxRelief?: 'RAS' | 'NET_PAY' | null;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  pensionEmployeeRatePercent?: number | null;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  pensionEmployerRatePercent?: number | null;
+
+  @ApiPropertyOptional({ description: 'Reference of the approved scheme policy the rates come from' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  pensionPolicyRef?: string | null;
+
   @ApiPropertyOptional({
     example: '2026-03-01',
     description: 'The day the apprenticeship began: decides whether the apprentice minimum wage rate applies at 19 or over',

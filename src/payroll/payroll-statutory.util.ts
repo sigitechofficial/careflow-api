@@ -72,9 +72,60 @@ export type StatutoryCalcInput = {
     earlierStudentLoan: number;
     earlierPostgraduateLoan: number;
   } | null;
+  /** Gate C16: workplace pension (relief at source) when enrolled and effective; null: none. */
+  pension?: PensionSetup | null;
 };
 
 export type StudentLoanPlan = '1' | '2' | '4' | '5';
+
+/**
+ * Gate C16: The Pensions Regulator, 2026-27 qualifying earnings, monthly: lower £520, upper £4,189.
+ * Monthly pay only, and only the tax year starting 6 April 2026; null otherwise.
+ */
+export function pensionQualifyingLimits(taxYearStart: Date, frequency: PayFrequencyCode): { lower: number; upper: number } | null {
+  if (frequency !== 'MONTHLY' || taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  return { lower: 520, upper: 4189 };
+}
+
+export type PensionSetup = {
+  pensionablePay: number;
+  lower: number;
+  upper: number;
+  employeeRatePercent: number;
+  employerRatePercent: number;
+  /** What earlier closed payments in the same pay reference period counted and contributed. */
+  earlier?: { pensionablePay: number; employeeGross: number; employeeNet: number; employer: number } | null;
+};
+
+/**
+ * Gate C16: defined contribution, qualifying earnings, relief at source. Qualifying earnings are the
+ * pensionable pay between the lower and upper limits; the gross employee contribution is its rate
+ * of them, the employee pays 80% of that from net pay and the provider claims the 20% basic-rate
+ * relief; the employer pays its rate on top (£3,000: £2,480; £124.00 gross, £99.20 from pay,
+ * £24.80 relief, £74.40 employer). Each to the penny. A further payment in the same pay reference
+ * period counts on the period's total, less what was contributed before, so the limits apply once.
+ */
+export function pensionContributions(setup: PensionSetup) {
+  const qeOn = (pay: number) => round2(Math.max(0, Math.min(pay, setup.upper) - setup.lower));
+  const on = (pay: number) => {
+    const qualifyingEarnings = qeOn(pay);
+    const employeeGross = round2((qualifyingEarnings * setup.employeeRatePercent) / 100);
+    const employeeNet = round2(employeeGross * 0.8);
+    return { qualifyingEarnings, employeeGross, employeeNet, employer: round2((qualifyingEarnings * setup.employerRatePercent) / 100) };
+  };
+  const earlierPay = setup.earlier?.pensionablePay ?? 0;
+  const total = on(round2(earlierPay + setup.pensionablePay));
+  const employeeGross = round2(total.employeeGross - (setup.earlier?.employeeGross ?? 0));
+  const employeeNet = round2(total.employeeNet - (setup.earlier?.employeeNet ?? 0));
+  return {
+    pensionablePay: round2(setup.pensionablePay),
+    qualifyingEarnings: round2(total.qualifyingEarnings - qeOn(earlierPay)),
+    employeeGross,
+    employeeNet,
+    taxRelief: round2(employeeGross - employeeNet),
+    employer: round2(total.employer - (setup.earlier?.employer ?? 0)),
+  };
+}
 
 /**
  * GOV.UK "Special rules for student loans", 2026 to 2027. Monthly thresholds: Plan 1 £2,241.66,
@@ -218,6 +269,8 @@ export type StatutoryCalcResult = {
   niCategoryApplied: string;
   /** Gate C7: AN when NI was worked out on a director's earnings period, otherwise null. */
   directorNicMethodApplied: 'AN' | null;
+  /** Gate C16: the workplace pension figures (all 0 and applied false when none). */
+  pension: ReturnType<typeof pensionContributions> & { applied: boolean };
   /** Gate C11: plan applied (NONE when no plan) and the loan deductions taken from net pay. */
   studentLoanPlanApplied: StudentLoanPlan | 'NONE';
   studentLoanDeduction: number;
@@ -650,6 +703,14 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
         ].filter(Boolean).join(' ')
       : 'No student or postgraduate loan recorded.';
 
+  // Gate C16: relief at source: taken from net pay after tax and NI, which it does not change.
+  const pension = input.pension
+    ? { ...pensionContributions(input.pension), applied: true }
+    : { pensionablePay: 0, qualifyingEarnings: 0, employeeGross: 0, employeeNet: 0, taxRelief: 0, employer: 0, applied: false };
+  const pensionExplanation = input.pension
+    ? `Workplace pension (relief at source): qualifying earnings £${pension.qualifyingEarnings.toFixed(2)}; employee £${pension.employeeGross.toFixed(2)} gross, £${pension.employeeNet.toFixed(2)} from pay, £${pension.taxRelief.toFixed(2)} tax relief claimed by the provider; employer £${pension.employer.toFixed(2)} (not deducted from pay).`
+    : 'No workplace pension contribution.';
+
   if (forceNonCumulative || parsed.special === 'NT') {
     // Week 1 / Month 1: the period 1 figures on this period's pay alone; earlier pay and tax are
     // not looked at, so there is never a refund (HMRC PAYE11090).
@@ -665,7 +726,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     const taxDue = taxOnTaxable(taxablePay, input.rates, periods, parsed.special, bands, flatRate);
     const limited = applyRegulatoryLimit(taxDue, gross);
     const incomeTax = limited.deducted;
-    const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction);
+    const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction - pension.employeeNet);
     const basisLabel = input.week1Month1
       ? 'Week 1 / Month 1 (non-cumulative)'
       : `Non-cumulative (${parsed.special})`;
@@ -679,6 +740,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
         : []),
       niExplanation,
       loanExplanation,
+      pensionExplanation,
       notIncluded,
     ].join(' ');
 
@@ -697,6 +759,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       taxNotDeductedOverLimit: limited.notDeducted,
       niRti,
       ...loanFields,
+      pension,
       explanation,
     };
   }
@@ -721,7 +784,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const limited = applyRegulatoryLimit(taxDueThisPeriod, gross);
   const incomeTax = limited.deducted;
   const periodFreePay = round2(freePayToDate - freePayPrevious);
-  const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction);
+  const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction - pension.employeeNet);
 
   const explanation = [
     `Basis: Cumulative PAYE, ${input.frequency}, period ${periodNumber}/${periods}.`,
@@ -735,6 +798,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       : []),
     niExplanation,
     loanExplanation,
+    pensionExplanation,
     notIncluded,
   ].join(' ');
 
@@ -753,6 +817,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     taxNotDeductedOverLimit: limited.notDeducted,
     niRti,
     ...loanFields,
+    pension,
     explanation,
   };
 }

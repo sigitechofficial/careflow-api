@@ -415,6 +415,14 @@ export class PayrollEmployeesService {
             ? parsePayrollDateOnly(dto.directorAppointedOn)
             : null,
       directorNicMethod: dto.directorNicMethod,
+      pensionStatus: dto.pensionStatus,
+      pensionEnrolledFrom:
+        dto.pensionEnrolledFrom === undefined ? undefined : dto.pensionEnrolledFrom ? parsePayrollDateOnly(dto.pensionEnrolledFrom) : null,
+      pensionContributionBasis: dto.pensionContributionBasis,
+      pensionTaxRelief: dto.pensionTaxRelief,
+      pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent,
+      pensionEmployerRatePercent: dto.pensionEmployerRatePercent,
+      pensionPolicyRef: dto.pensionPolicyRef === undefined ? undefined : dto.pensionPolicyRef?.trim() || null,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
       bankAccountNumber:
         dto.bankAccountNumber === undefined ? undefined : dto.bankAccountNumber?.trim() || null,
@@ -459,6 +467,13 @@ export class PayrollEmployeesService {
               isDirector: dto.isDirector ?? null,
               directorAppointedOn: dto.directorAppointedOn ? parsePayrollDateOnly(dto.directorAppointedOn) : null,
               directorNicMethod: dto.directorNicMethod ?? null,
+              pensionStatus: dto.pensionStatus ?? null,
+              pensionEnrolledFrom: dto.pensionEnrolledFrom ? parsePayrollDateOnly(dto.pensionEnrolledFrom) : null,
+              pensionContributionBasis: dto.pensionContributionBasis ?? null,
+              pensionTaxRelief: dto.pensionTaxRelief ?? null,
+              pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent ?? null,
+              pensionEmployerRatePercent: dto.pensionEmployerRatePercent ?? null,
+              pensionPolicyRef: dto.pensionPolicyRef?.trim() || null,
               bankSortCode: dto.bankSortCode?.trim() || null,
               bankAccountNumber: dto.bankAccountNumber?.trim() || null,
               bankAccountName: dto.bankAccountName?.trim() || null,

@@ -247,7 +247,7 @@ export async function giveTaxCode(prisma: PrismaService, employeeIds: string[], 
       where: { employeeId },
       update: { taxCode },
       // synthetic: NI is never calculated on a guessed category or director status
-      create: { employeeId, taxCode, niCategory: 'A', isDirector: false },
+      create: { employeeId, taxCode, niCategory: 'A', isDirector: false, pensionStatus: 'NOT_ENROLLED' },
     });
   }
 }

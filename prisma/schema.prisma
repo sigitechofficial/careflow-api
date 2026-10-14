@@ -10038,6 +10038,10 @@ model EmployeePayrollYtdLedger {
   /// Gate C11: student and postgraduate loan deducted to date (closed runs).
   studentLoanYtd      Decimal @default(0) @db.Decimal(12, 2)
   postgraduateLoanYtd Decimal @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension to date (closed runs).
+  pensionEmployeeGrossYtd Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNetYtd   Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployerYtd      Decimal @default(0) @db.Decimal(12, 2)
   lastClosedRunId String?  @db.Uuid
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -10078,6 +10082,10 @@ model EmployeePayrollYtdContribution {
   /// Gate C11: student and postgraduate loan deducted by this run.
   studentLoan       Decimal   @default(0) @db.Decimal(12, 2)
   postgraduateLoan  Decimal   @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension posted by this run.
+  pensionEmployeeGross Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNet   Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployer      Decimal @default(0) @db.Decimal(12, 2)
   isReversed     Boolean   @default(false)
   postedAt       DateTime  @default(now())
   reversedAt     DateTime?
@@ -10342,6 +10350,19 @@ model EmployeePayrollProfile {
   postgraduateLoan    Boolean                      @default(false)
   pensionOptedIn      Boolean                      @default(false)
   pensionSchemeRef    String?
+  /// Gate C16: workplace pension enrolment as confirmed by a person: ENROLLED or NOT_ENROLLED; null
+  /// means not recorded (tax and NI are then not calculated). NOT_ENROLLED is not an auto-enrolment
+  /// eligibility assessment.
+  pensionStatus              String?
+  pensionEnrolledFrom        DateTime? @db.Date
+  /// QUALIFYING_EARNINGS is the only basis calculated.
+  pensionContributionBasis   String?
+  /// RAS (relief at source) is the only method calculated; NET_PAY is refused.
+  pensionTaxRelief           String?
+  /// Gross employee and employer contribution rates of the approved scheme policy.
+  pensionEmployeeRatePercent Decimal?  @db.Decimal(5, 2)
+  pensionEmployerRatePercent Decimal?  @db.Decimal(5, 2)
+  pensionPolicyRef           String?
   /// Q37–Q39: the day the apprenticeship began. The apprentice minimum wage rate applies under 19,
   /// or in the first year of the apprenticeship; without this date it cannot be shown for 19+.
   apprenticeshipStartDate DateTime? @db.Date
@@ -10697,6 +10718,16 @@ model UkPayrollRunEmployee {
   studentLoanDeduction      Decimal   @default(0) @db.Decimal(12, 2)
   postgraduateLoanApplied   Boolean?
   postgraduateLoanDeduction Decimal   @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension (relief at source). pensionApplied null on rows calculated before
+  /// C16; pensionablePay is the pay counted for qualifying earnings (no expenses). The employee
+  /// net deduction reduces net pay; the employer contribution does not.
+  pensionApplied            Boolean?
+  pensionablePay            Decimal   @default(0) @db.Decimal(12, 2)
+  pensionQualifyingEarnings Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployeeGross      Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNet        Decimal   @default(0) @db.Decimal(12, 2)
+  pensionTaxRelief          Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployer           Decimal   @default(0) @db.Decimal(12, 2)
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())

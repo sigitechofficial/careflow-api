@@ -84,6 +84,7 @@ import {
   taxYearPeriodNumber,
   directorNiPeriod,
   studentLoanThresholds,
+  pensionQualifyingLimits,
   type StudentLoanPlan,
   unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
@@ -2205,6 +2206,11 @@ export class PayrollRunsService {
         studentLoanDeduction: true,
         postgraduateLoanApplied: true,
         postgraduateLoanDeduction: true,
+        pensionApplied: true,
+        pensionablePay: true,
+        pensionEmployeeGross: true,
+        pensionEmployeeNet: true,
+        pensionEmployer: true,
       },
     });
     const niEarlierByEmployeeId = new Map<string, { niableEarnings: number; employeeNi: number; employerNi: number }>();
@@ -2382,6 +2388,87 @@ export class PayrollRunsService {
       });
     }
 
+    // Gate C16: workplace pension (defined contribution, qualifying earnings, relief at source),
+    // only from a recorded enrolment; anything this version cannot work out correctly stops the
+    // calculation rather than deducting nothing.
+    const pensionLimits = pensionQualifyingLimits(run.taxYear.startDate, frequency);
+    const pensionByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['pension']>>();
+    const pensionReasonByEmployeeId = new Map<string, string>();
+    for (const re of runEmployees) {
+      const profile = profileByEmployeeId.get(re.employeeId);
+      const refuse = (reason: string) => pensionReasonByEmployeeId.set(re.employeeId, reason);
+      const earlier = earlierInPeriod.filter((e) => e.employeeId === re.employeeId);
+      const status = profile?.pensionStatus ?? null;
+      if (status !== 'ENROLLED' && status !== 'NOT_ENROLLED') {
+        refuse('workplace pension status not recorded (record whether the person is enrolled)');
+        continue;
+      }
+      const effective = status === 'ENROLLED' && profile?.pensionEnrolledFrom != null && profile.pensionEnrolledFrom <= paidOn;
+      if (earlier.some((e) => e.pensionApplied != null && e.pensionApplied !== effective)) {
+        refuse('workplace pension status changed since an earlier payment in this pay reference period (not calculated by this version)');
+        continue;
+      }
+      if (status === 'NOT_ENROLLED') continue;
+      const missing = [
+        profile?.pensionEnrolledFrom ? null : 'enrolment date',
+        profile?.pensionSchemeRef ? null : 'scheme reference',
+        profile?.pensionPolicyRef ? null : 'approved policy reference',
+        profile?.pensionContributionBasis ? null : 'contribution basis',
+        profile?.pensionTaxRelief ? null : 'tax relief method',
+        profile?.pensionEmployeeRatePercent != null ? null : 'employee rate',
+        profile?.pensionEmployerRatePercent != null ? null : 'employer rate',
+      ].filter(Boolean);
+      if (missing.length) {
+        refuse(`workplace pension details not recorded: ${missing.join(', ')}`);
+        continue;
+      }
+      if (profile!.pensionTaxRelief !== 'RAS') {
+        refuse(`pension tax relief method ${profile!.pensionTaxRelief} (only relief at source is calculated; net pay arrangement is not)`);
+        continue;
+      }
+      if (profile!.pensionContributionBasis !== 'QUALIFYING_EARNINGS') {
+        refuse(`pension contribution basis ${profile!.pensionContributionBasis} (only qualifying earnings is calculated)`);
+        continue;
+      }
+      const employeeRate = decimalNum(profile!.pensionEmployeeRatePercent);
+      const employerRate = decimalNum(profile!.pensionEmployerRatePercent);
+      if (employerRate < 3 || employeeRate + employerRate < 8) {
+        refuse('pension rates below the statutory minimum on qualifying earnings (8% in total, at least 3% from the employer)');
+        continue;
+      }
+      if (!effective) continue; // enrolled from a later payday: nothing yet
+      if (!pensionLimits) {
+        refuse(`no pension qualifying earnings limits recorded for tax year ${run.taxYear.code} and ${frequency.toLowerCase()} pay`);
+        continue;
+      }
+      // Pensionable pay: wages, salary, paid travel time and minimum wage top-up (expenses are not in
+      // gross). Pay of any other or unknown kind is not assumed to be pensionable.
+      const pensionable = round2(decimalNum(re.visitPay) + decimalNum(re.salaryPay) + decimalNum(re.travelPay) + decimalNum(re.nmwTopUp));
+      if (decimalNum(re.otherPay) !== 0 || decimalNum(re.deductionTotal) !== 0 || Math.abs(pensionable - decimalNum(re.totalGross)) > 0.005) {
+        refuse('pay in this run is not classified for pension (other pay or deductions); not calculated by this version');
+        continue;
+      }
+      if (earlier.some((e) => e.pensionApplied == null)) {
+        refuse('an earlier payment in this pay reference period was calculated before pension contributions were supported');
+        continue;
+      }
+      pensionByEmployeeId.set(re.employeeId, {
+        pensionablePay: pensionable,
+        lower: pensionLimits.lower,
+        upper: pensionLimits.upper,
+        employeeRatePercent: employeeRate,
+        employerRatePercent: employerRate,
+        earlier: earlier.length
+          ? {
+              pensionablePay: earlier.reduce((sum, e) => sum + decimalNum(e.pensionablePay), 0),
+              employeeGross: earlier.reduce((sum, e) => sum + decimalNum(e.pensionEmployeeGross), 0),
+              employeeNet: earlier.reduce((sum, e) => sum + decimalNum(e.pensionEmployeeNet), 0),
+              employer: earlier.reduce((sum, e) => sum + decimalNum(e.pensionEmployer), 0),
+            }
+          : null,
+      });
+    }
+
     // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
     // Gate C3: S codes use this tax year's Scottish bands, and are refused when none are known.
     // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
@@ -2402,6 +2489,8 @@ export class PayrollRunsService {
       if (directorReason) refused.set(directorReason, (refused.get(directorReason) ?? 0) + 1);
       const loanReason = loanReasonByEmployeeId.get(re.employeeId);
       if (loanReason) refused.set(loanReason, (refused.get(loanReason) ?? 0) + 1);
+      const pensionReason = pensionReasonByEmployeeId.get(re.employeeId);
+      if (pensionReason) refused.set(pensionReason, (refused.get(pensionReason) ?? 0) + 1);
       // Gate C10: a supplementary payment adds to its earnings period's earlier payments; under a
       // different category the RTI figures could not be kept apart, so it is refused.
       const category = (profileByEmployeeId.get(re.employeeId)?.niCategory ?? '').toUpperCase();
@@ -2444,6 +2533,7 @@ export class PayrollRunsService {
       studentLoanDeduction: number;
       postgraduateLoanApplied: boolean;
       postgraduateLoanDeduction: number;
+      pension: ReturnType<typeof calculatePeriodStatutory>['pension'];
       statutoryExplanation: string;
     }> = [];
 
@@ -2465,6 +2555,7 @@ export class PayrollRunsService {
         niEarlierInPeriod: niEarlierByEmployeeId.get(re.employeeId) ?? null,
         directorNi: directorNiByEmployeeId.get(re.employeeId) ?? null,
         studentLoans: loansByEmployeeId.get(re.employeeId) ?? null,
+        pension: pensionByEmployeeId.get(re.employeeId) ?? null,
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;
@@ -2487,6 +2578,7 @@ export class PayrollRunsService {
         studentLoanDeduction: result.studentLoanDeduction,
         postgraduateLoanApplied: result.postgraduateLoanApplied,
         postgraduateLoanDeduction: result.postgraduateLoanDeduction,
+        pension: result.pension,
         statutoryExplanation: result.explanation,
       });
     }
@@ -2524,6 +2616,13 @@ export class PayrollRunsService {
             studentLoanDeduction: toDecimal(row.studentLoanDeduction),
             postgraduateLoanApplied: row.postgraduateLoanApplied,
             postgraduateLoanDeduction: toDecimal(row.postgraduateLoanDeduction),
+            pensionApplied: row.pension.applied,
+            pensionablePay: toDecimal(row.pension.pensionablePay),
+            pensionQualifyingEarnings: toDecimal(row.pension.qualifyingEarnings),
+            pensionEmployeeGross: toDecimal(row.pension.employeeGross),
+            pensionEmployeeNet: toDecimal(row.pension.employeeNet),
+            pensionTaxRelief: toDecimal(row.pension.taxRelief),
+            pensionEmployer: toDecimal(row.pension.employer),
             statutoryExplanation: row.statutoryExplanation,
             statutoryCalculatedAt: now,
           },
@@ -2766,6 +2865,9 @@ export class PayrollRunsService {
           netPay: decimalNum(e.netPay) ?? 0,
           studentLoan: decimalNum(e.studentLoanDeduction) ?? 0,
           postgraduateLoan: decimalNum(e.postgraduateLoanDeduction) ?? 0,
+          pensionEmployeeGross: decimalNum(e.pensionEmployeeGross) ?? 0,
+          pensionEmployeeNet: decimalNum(e.pensionEmployeeNet) ?? 0,
+          pensionEmployer: decimalNum(e.pensionEmployer) ?? 0,
           // Gate C10: the run row's NI data for RTI, as calculated (null on a legacy row).
           ni: {
             category: e.niCategoryApplied,
