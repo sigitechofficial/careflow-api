@@ -7,6 +7,7 @@ import {
   scottishFlatRatePercent,
   scottishIncomeTaxBands,
   taxYearPeriodNumber,
+  unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
   welshIncomeTaxBands,
 } from './payroll-statutory.util';
@@ -420,6 +421,56 @@ describe('payroll-statutory.util', () => {
       // No verified Welsh bands for the year: refused, never England's.
       expect(unsupportedTaxCodeReason('C1257L', true, false)).toMatch(/^Welsh tax code C1257L \(no Welsh rates recorded/);
       expect(() => run({ taxCode: 'C1257L', welshBands: null, periodNumber: 1, periodGross: 3000 })).toThrow(/no Welsh rates recorded/);
+    });
+  });
+
+  /**
+   * Gate C6. GOV.UK "Rates and thresholds for employers 2026 to 2027": LEL £129 / £559, PT £242 /
+   * £1,048, ST £96 / £417, UEL and the upper secondary thresholds (AUST, UST, VUST) £967 / £4,189
+   * (weekly / monthly); employee 8% PT to UEL and 2% above; employer 15%. Rounding (CWG2,
+   * NIM11002): each contribution separately to the nearest penny, £0.005 or less disregarded.
+   */
+  describe('Class 1 NI, categories A, C, H, M and V (Gate C6)', () => {
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: '1257L', niCategory: 'A', frequency: 'MONTHLY', rates, periodNumber: 1, ...over });
+    const ni = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) => {
+      const r = run(over);
+      return [r.employeeNi, r.employerNi];
+    };
+
+    it('category A: £3,000 a month is £156.16 employee and £387.45 employer NI; employer NI does not reduce net pay', () => {
+      const a = run({ periodGross: 3000 });
+      // (3,000 − 1,048) × 8% = £156.16; (3,000 − 417) × 15% = £387.45; net £3,000 − £390.20 tax − £156.16.
+      expect(a).toMatchObject({ employeeNi: 156.16, employerNi: 387.45, netPay: 2453.64, niCategoryApplied: 'A' });
+      expect(a.explanation).toContain('NI-able earnings £3000.00');
+      expect(a.explanation).toContain('bands: at LEL £559.00, LEL–PT £489.00, PT–UEL £1952.00');
+      expect(ni({ periodGross: 5000 })).toEqual([267.5, 687.45]); // £251.28 + 2% of £811; (5,000 − 417) × 15%
+      expect(ni({ frequency: 'WEEKLY', periodGross: 500 })).toEqual([20.64, 60.6]); // weekly thresholds
+      expect(ni({ periodGross: 1000 })).toEqual([0, 87.45]); // below the PT: no employee NI
+      expect(ni({ periodGross: 1000.1 })).toEqual([0, 87.46]); // £87.465: the half penny is disregarded
+      // A second payment in the same earnings period: NI on the £3,000 total less the £2,000 payment's NI.
+      const more = run({ periodGross: 1000, niEarlierInPeriod: { niableEarnings: 2000, employeeNi: 76.16, employerNi: 237.45 } });
+      expect([more.employeeNi, more.employerNi]).toEqual([80, 150]);
+      expect(more.explanation).toContain('including £2000.00 paid earlier in this earnings period');
+    });
+
+    it('category C: no employee NI, standard employer NI', () => {
+      expect(run({ niCategory: 'C', periodGross: 3000 })).toMatchObject({ employeeNi: 0, employerNi: 387.45, netPay: 2609.8 });
+      expect(ni({ niCategory: 'C', periodGross: 5000 })).toEqual([0, 687.45]);
+    });
+
+    it('categories H, M and V: no employer NI up to the upper secondary threshold, 15% above it; anything else is refused, never taken as A', () => {
+      for (const niCategory of ['H', 'M', 'V']) {
+        expect(ni({ niCategory, periodGross: 3000 })).toEqual([156.16, 0]);
+        expect(ni({ niCategory, periodGross: 4189 })).toEqual([251.28, 0]);
+        expect(ni({ niCategory, periodGross: 5000 })).toEqual([267.5, 121.65]); // (5,000 − 4,189) × 15%
+        expect(ni({ niCategory, frequency: 'WEEKLY', periodGross: 1000 })).toEqual([58.66, 4.95]); // above £967
+      }
+      for (const category of ['A', 'C', 'H', 'M', 'V', ' m ']) expect(unsupportedNiCategoryReason(category)).toBeNull();
+      for (const category of ['B', 'F', 'I', 'J', 'L', 'S', 'Z', 'X', 'Q']) expect(unsupportedNiCategoryReason(category)).toMatch(/not calculated by this version/);
+      expect(unsupportedNiCategoryReason(null)).toBe('no NI category recorded');
+      expect(() => run({ niCategory: 'J', periodGross: 3000 })).toThrow(/NI not calculated: NI category J/);
+      expect(() => run({ niCategory: undefined, periodGross: 3000 })).toThrow(/no NI category recorded/);
     });
   });
 });

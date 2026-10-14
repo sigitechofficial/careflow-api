@@ -81,6 +81,7 @@ import {
   periodsInTaxYear,
   rawTaxYearPeriodNumber,
   taxYearPeriodNumber,
+  unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
   scottishIncomeTaxBands,
   welshIncomeTaxBands,
@@ -2195,6 +2196,9 @@ export class PayrollRunsService {
         welshBands != null,
       );
       if (reason) refused.set(reason, (refused.get(reason) ?? 0) + 1);
+      // Gate C6: NI only on a recorded category this version calculates; never assumed to be A.
+      const niReason = unsupportedNiCategoryReason(profileByEmployeeId.get(re.employeeId)?.niCategory);
+      if (niReason) refused.set(niReason, (refused.get(niReason) ?? 0) + 1);
     }
     if (refused.size) {
       const count = [...refused.values()].reduce((a, b) => a + b, 0);
@@ -2203,6 +2207,25 @@ export class PayrollRunsService {
           .map(([reason, n]) => `${reason} (${n})`)
           .join('; ')}. Record or correct the tax code on each employee's payroll profile.`,
       );
+    }
+
+    // Gate C6: a supplementary run pays more in an earnings period already paid by a closed run;
+    // NI is worked out again on the total of the period's payments (HMRC CWG2).
+    const earlierInPeriod = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        runId: { not: runId },
+        run: { periodId: run.periodId, status: 'CLOSED', deletedAt: null },
+      },
+      select: { employeeId: true, totalGross: true, employeeNi: true, employerNi: true },
+    });
+    const niEarlierByEmployeeId = new Map<string, { niableEarnings: number; employeeNi: number; employerNi: number }>();
+    for (const row of earlierInPeriod) {
+      const sum = niEarlierByEmployeeId.get(row.employeeId) ?? { niableEarnings: 0, employeeNi: 0, employerNi: 0 };
+      sum.niableEarnings += decimalNum(row.totalGross);
+      sum.employeeNi += decimalNum(row.employeeNi);
+      sum.employerNi += decimalNum(row.employerNi);
+      niEarlierByEmployeeId.set(row.employeeId, sum);
     }
 
     const now = new Date();
@@ -2230,7 +2253,7 @@ export class PayrollRunsService {
       const result = calculatePeriodStatutory({
         periodGross: decimalNum(re.totalGross),
         taxCode: profile?.taxCode,
-        niCategory: profile?.niCategory ?? 'A',
+        niCategory: profile?.niCategory,
         frequency,
         rates,
         week1Month1: (profile?.taxCodeWeek1Month1 ?? false) || extraPeriod,
@@ -2239,6 +2262,7 @@ export class PayrollRunsService {
         ytdTaxBefore: ytd ? decimalNum(ytd.incomeTaxYtd) : 0,
         scottishBands,
         welshBands,
+        niEarlierInPeriod: niEarlierByEmployeeId.get(re.employeeId) ?? null,
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;

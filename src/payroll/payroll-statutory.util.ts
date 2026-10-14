@@ -41,6 +41,12 @@ export type StatutoryCalcInput = {
   scottishBands?: IncomeTaxBand[] | null;
   /** Welsh bands of the run's tax year (welshIncomeTaxBands); used only for a CK code. */
   welshBands?: IncomeTaxBand[] | null;
+  /**
+   * Earnings and NI of earlier closed payments in the same NI earnings period (a supplementary
+   * run). HMRC CWG2: NI "has to be worked out again on the total payment"; this period pays the
+   * difference.
+   */
+  niEarlierInPeriod?: { niableEarnings: number; employeeNi: number; employerNi: number } | null;
 };
 
 /** One band of annual taxable pay: taxed at ratePercent up to upToAnnual (null: no upper limit). */
@@ -203,6 +209,29 @@ export function unsupportedTaxCodeReason(
   return null;
 }
 
+/** Gate C6: the Class 1 NI category letters this version calculates. */
+const SUPPORTED_NI_CATEGORIES = ['A', 'C', 'H', 'M', 'V'];
+
+/**
+ * Whether this version can calculate Class 1 NI for a category letter: A, C, H, M and V. A missing
+ * category or any other letter is refused, never treated as A.
+ */
+export function unsupportedNiCategoryReason(category: string | null | undefined): string | null {
+  const raw = (category ?? '').trim().toUpperCase();
+  if (!raw) return 'no NI category recorded';
+  if (!SUPPORTED_NI_CATEGORIES.includes(raw)) return `NI category ${raw} (not calculated by this version)`;
+  return null;
+}
+
+/**
+ * HMRC exact percentage method: employee and employer contributions are worked out separately,
+ * each to the nearest penny, with "amounts of £0.005 or less" disregarded (CWG2; NIM11002).
+ */
+function roundNiPenny(amount: number): number {
+  const rounded = Math.ceil(amount * 100 - 0.5 - 1e-7) / 100;
+  return rounded === 0 ? 0 : rounded;
+}
+
 /** HMRC: tax is never more than its exact amount; tables and software round tax down to the penny. */
 function floorPenny(amount: number): number {
   return Math.floor(amount * 100 + 1e-7) / 100;
@@ -356,42 +385,40 @@ function taxOnTaxable(
   return floorPenny(tax);
 }
 
-function employeeNiOnGross(
-  gross: number,
+/**
+ * Employee (primary) Class 1 NI on the NI-able earnings of the earnings period: categories A, H,
+ * M and V pay the main rate between the Primary Threshold and the UEL and the upper rate above
+ * it; category C (over State Pension age) pays none.
+ */
+function employeeNiOnEarnings(
+  earnings: number,
   thresholds: { pt: number; uel: number },
   rates: StatutoryRateSnapshot,
   category: string,
 ): number {
-  if (category === 'C' || category === 'S' || category === 'K' || category === 'X') return 0;
-  const mainRate =
-    category === 'B' || category === 'E' || category === 'I'
-      ? 1.85
-      : category === 'J' || category === 'L' || category === 'Z' || category === 'D'
-        ? rates.niEmployeeRateUpperPercent
-        : rates.niEmployeeRateMainPercent;
-  const upperRate = rates.niEmployeeRateUpperPercent;
-
-  if (gross <= thresholds.pt) return 0;
-  const mainBand = Math.min(gross, thresholds.uel) - thresholds.pt;
-  const upperBand = Math.max(0, gross - thresholds.uel);
-  return round2(mainBand * (mainRate / 100) + upperBand * (upperRate / 100));
+  if (category === 'C' || earnings <= thresholds.pt) return 0;
+  const mainBand = Math.min(earnings, thresholds.uel) - thresholds.pt;
+  const upperBand = Math.max(0, earnings - thresholds.uel);
+  return roundNiPenny(
+    mainBand * (rates.niEmployeeRateMainPercent / 100) + upperBand * (rates.niEmployeeRateUpperPercent / 100),
+  );
 }
 
-function employerNiOnGross(
-  gross: number,
+/**
+ * Employer (secondary) Class 1 NI: A and C pay the employer rate above the Secondary Threshold;
+ * H (apprentice under 25), M (under 21) and V (veteran) pay 0% up to their upper secondary
+ * threshold (AUST, UST, VUST) and the employer rate above it. GOV.UK 2026-27: those thresholds
+ * equal the UEL (£967 a week, £4,189 a month), which is what the rate set holds.
+ */
+function employerNiOnEarnings(
+  earnings: number,
   thresholds: { st: number; uel: number },
   rates: StatutoryRateSnapshot,
   category: string,
 ): number {
-  if (category === 'X') return 0;
-  // Under-21 / apprentice under 25 / veteran: 0% up to UEL, then employer rate above UEL.
-  if (category === 'H' || category === 'M' || category === 'V') {
-    if (gross <= thresholds.uel) return 0;
-    return round2((gross - thresholds.uel) * (rates.niEmployerRatePercent / 100));
-  }
-  // Category A (and similar): employer rate on earnings above secondary threshold.
-  if (gross <= thresholds.st) return 0;
-  return round2((gross - thresholds.st) * (rates.niEmployerRatePercent / 100));
+  const from = category === 'H' || category === 'M' || category === 'V' ? thresholds.uel : thresholds.st;
+  if (earnings <= from) return 0;
+  return roundNiPenny((earnings - from) * (rates.niEmployerRatePercent / 100));
 }
 
 /**
@@ -402,7 +429,9 @@ function employerNiOnGross(
 export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCalcResult {
   const gross = Math.max(0, round2(input.periodGross));
   const parsed = parseUkTaxCode(input.taxCode);
-  const niCategory = (input.niCategory ?? 'A').toUpperCase();
+  const niReason = unsupportedNiCategoryReason(input.niCategory);
+  if (niReason) throw new Error(`NI not calculated: ${niReason}`);
+  const niCategory = (input.niCategory as string).trim().toUpperCase();
   const periods = periodsInTaxYear(input.frequency);
   const niTh = periodNiThresholds(input.frequency, input.rates);
   const periodNumber = Math.min(
@@ -436,8 +465,24 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     (flatRate == null &&
       (parsed.special === 'BR' || parsed.special === 'D0' || parsed.special === 'D1' || parsed.special === '0T'));
 
-  const employeeNi = employeeNiOnGross(gross, niTh, input.rates, niCategory);
-  const employerNi = employerNiOnGross(gross, niTh, input.rates, niCategory);
+  // NI-able earnings: this period's gross pay (before the tax allowance; expense reimbursements
+  // are not in it), plus earlier closed payments in the same earnings period. Each contribution
+  // on the total, less what those payments already paid.
+  const earlier = input.niEarlierInPeriod;
+  const niableEarnings = round2(gross + (earlier?.niableEarnings ?? 0));
+  const employeeNi = round2(employeeNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employeeNi ?? 0));
+  const employerNi = round2(employerNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employerNi ?? 0));
+  // Earnings bands kept for RTI: at the LEL, LEL to PT, PT to UEL.
+  const atLel = niableEarnings >= niTh.lel ? niTh.lel : 0;
+  const lelToPt = round2(Math.max(0, Math.min(niableEarnings, niTh.pt) - niTh.lel));
+  const ptToUel = round2(Math.max(0, Math.min(niableEarnings, niTh.uel) - niTh.pt));
+  const niExplanation = [
+    `NI category ${niCategory}; NI-able earnings £${niableEarnings.toFixed(2)}`,
+    earlier ? ` (including £${round2(earlier.niableEarnings).toFixed(2)} paid earlier in this earnings period)` : '',
+    `; LEL £${niTh.lel.toFixed(2)} PT £${niTh.pt.toFixed(2)} ST £${niTh.st.toFixed(2)} UEL £${niTh.uel.toFixed(2)};`,
+    ` bands: at LEL £${atLel.toFixed(2)}, LEL–PT £${lelToPt.toFixed(2)}, PT–UEL £${ptToUel.toFixed(2)};`,
+    ` employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (employer cost, not deducted from pay).`,
+  ].join('');
 
   if (forceNonCumulative || parsed.special === 'NT') {
     // Week 1 / Month 1: the period 1 figures on this period's pay alone; earlier pay and tax are
@@ -466,7 +511,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       ...(limited.notDeducted > 0
         ? [`Regulatory limit: tax due £${taxDue.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted (not collected later on this basis).`]
         : []),
-      `NI category ${niCategory}; PT £${niTh.pt.toFixed(2)} UEL £${niTh.uel.toFixed(2)}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)}.`,
+      niExplanation,
       notIncluded,
     ].join(' ');
 
@@ -518,7 +563,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     ...(limited.notDeducted > 0
       ? [`Regulatory limit: tax due this period £${taxDueThisPeriod.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted, still due and collected on a later pay day where the limit allows.`]
       : []),
-    `NI category ${niCategory}; employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (period basis).`,
+    niExplanation,
     notIncluded,
   ].join(' ');
 

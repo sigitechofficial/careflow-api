@@ -205,6 +205,57 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
   });
 
+  it('Gate C6: employee NI reduces net pay, employer NI is recorded separately, nothing doubles, and a supplementary run pays NI on the period total', async () => {
+    const employerSide = async (runId: string) => {
+      const row = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId, employeeId } });
+      const r = await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: runId } });
+      return {
+        employerNi: Number(row.employerNi),
+        niCategoryApplied: row.niCategoryApplied,
+        runTotals: [Number(r.totalEmployeeNi), Number(r.totalEmployerNi), Number(r.totalNetPay)],
+      };
+    };
+    await agree(36_000); // £3,000.00 a month
+    const april = await run(APRIL);
+    // £156.16 employee NI is deducted; £387.45 employer NI is the employer's cost, not taken from pay.
+    expect(await taxAndNi(april)).toMatchObject({ gross: 3000, incomeTax: 390.2, employeeNi: 156.16, netPay: 2453.64 });
+    expect(await employerSide(april)).toEqual({ employerNi: 387.45, niCategoryApplied: 'A', runTotals: [156.16, 387.45, 2453.64] });
+    // Calculated again: the same figures, run totals not added twice.
+    await taxAndNi(april);
+    expect(await employerSide(april)).toEqual({ employerNi: 387.45, niCategoryApplied: 'A', runTotals: [156.16, 387.45, 2453.64] });
+    // Category M recorded instead: no employer NI below the upper secondary threshold.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: 'M' } });
+    expect(await taxAndNi(april)).toMatchObject({ employeeNi: 156.16, netPay: 2453.64 });
+    expect(await employerSide(april)).toEqual({ employerNi: 0, niCategoryApplied: 'M', runTotals: [156.16, 0, 2453.64] });
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: 'A' } });
+    await taxAndNi(april);
+    await ukRuns.close(checker.id, april);
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Reactivate this closed run/);
+
+    // A supplementary run in the same earnings period pays £1,000 more: NI on the £4,000 total
+    // (£236.16 / £537.45) less April's (£156.16 / £387.45); tax cumulative: £590.20 less £390.20.
+    const closed = await t.prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: april } });
+    const supplementary = await t.prisma.ukPayrollRun.create({
+      data: {
+        periodId: closed.periodId,
+        taxYearId: closed.taxYearId,
+        scheduleId: closed.scheduleId,
+        runNumber: 2,
+        label: 'Test supplementary run',
+        status: 'GROSS_CALCULATED',
+        grossCalculatedAt: new Date(),
+        employeeCount: 1,
+        createdById: maker.id,
+        employees: { create: [{ employeeId, totalGross: 1000, grossCalculatedAt: new Date() }] },
+      },
+    });
+    await ukRuns.calculateStatutory(maker.id, supplementary.id);
+    const row = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: supplementary.id, employeeId } });
+    expect([Number(row.incomeTax), Number(row.employeeNi), Number(row.employerNi), Number(row.netPay)]).toEqual([200, 80, 150, 720]);
+    // The closed April run is untouched.
+    expect(await employerSide(april)).toEqual({ employerNi: 387.45, niCategoryApplied: 'A', runTotals: [156.16, 387.45, 2453.64] });
+  });
+
   it('nothing is guessed: no tax code, a code not supported yet, or a period outside the tax year stops the calculation', async () => {
     await agree(36_000, { effectiveFrom: new Date('2026-03-01') }); // paid in March too
     const april = await run(APRIL);
@@ -221,8 +272,14 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Welsh K code CK0 is not recognised/);
     expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } })).statutoryCalculatedAt).toBeNull();
 
+    // Gate C6: NI only on a recorded category this version calculates, never assumed to be A.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: '1257L', niCategory: 'B' } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/NI category B \(not calculated by this version\)/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: null } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/no NI category recorded/);
+
     // A period paid on 31 March 2026 belongs to tax year 2025-26, not to this run's 2026-27.
-    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: '1257L' } });
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: '1257L', niCategory: 'A' } });
     const march = await run({ periodStart: '2026-03-01', periodEnd: '2026-03-31' });
     await ukRuns.calculateGross(maker.id, march);
     await expect(ukRuns.calculateStatutory(maker.id, march)).rejects.toThrow(/paid on 2026-03-31, outside tax year TEST-2026-27/);
