@@ -83,6 +83,7 @@ import {
   taxYearPeriodNumber,
   unsupportedTaxCodeReason,
   scottishIncomeTaxBands,
+  welshIncomeTaxBands,
   type PayFrequencyCode,
   type StatutoryRateSnapshot,
 } from './payroll-statutory.util';
@@ -2183,10 +2184,16 @@ export class PayrollRunsService {
 
     // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
     // Gate C3: S codes use this tax year's Scottish bands, and are refused when none are known.
+    // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
     const scottishBands = scottishIncomeTaxBands(run.taxYear.startDate);
+    const welshBands = welshIncomeTaxBands(run.taxYear.startDate);
     const refused = new Map<string, number>();
     for (const re of runEmployees) {
-      const reason = unsupportedTaxCodeReason(profileByEmployeeId.get(re.employeeId)?.taxCode, scottishBands != null);
+      const reason = unsupportedTaxCodeReason(
+        profileByEmployeeId.get(re.employeeId)?.taxCode,
+        scottishBands != null,
+        welshBands != null,
+      );
       if (reason) refused.set(reason, (refused.get(reason) ?? 0) + 1);
     }
     if (refused.size) {
@@ -2231,6 +2238,7 @@ export class PayrollRunsService {
         ytdGrossBefore: ytd ? decimalNum(ytd.grossPayYtd) : 0,
         ytdTaxBefore: ytd ? decimalNum(ytd.incomeTaxYtd) : 0,
         scottishBands,
+        welshBands,
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;

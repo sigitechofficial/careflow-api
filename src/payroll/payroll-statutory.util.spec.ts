@@ -7,6 +7,7 @@ import {
   scottishIncomeTaxBands,
   taxYearPeriodNumber,
   unsupportedTaxCodeReason,
+  welshIncomeTaxBands,
 } from './payroll-statutory.util';
 
 describe('payroll-statutory.util', () => {
@@ -268,7 +269,7 @@ describe('payroll-statutory.util', () => {
       expect(() => run({ scottishBands: null, periodNumber: 1, periodGross: 3000 })).toThrow(/no Scottish rates recorded/);
       // Supported: standard allowance codes. Refused: SK, flat-rate SBR / SD codes, and anything else.
       for (const code of ['S1257L', 'S431L', 'S1383M', 'S1131N', 'S1257T']) expect(unsupportedTaxCodeReason(code, true)).toBeNull();
-      expect(unsupportedTaxCodeReason('SK475', true)).toMatch(/^Scottish K code SK475/);
+      expect(unsupportedTaxCodeReason('SK0', true)).toMatch(/^Scottish K code SK0 is not recognised/); // SK475 supported from Gate C4
       for (const code of ['SBR', 'SD0', 'SD1', 'SD2', 'SD3']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/^Scottish flat-rate code/);
       for (const code of ['S', 'S0T', 'SNT', 'S12A57', 'S1257', 'S1257LX']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/not supported by this version/);
       expect(() => run({ taxCode: 'SBR', periodNumber: 1, periodGross: 3000 })).toThrow(/Scottish flat-rate code SBR/);
@@ -289,6 +290,70 @@ describe('payroll-statutory.util', () => {
       const limited = run({ periodNumber: 2, ytdGrossBefore: 6000, ytdTaxBefore: 0, periodGross: 1000 });
       expect(limited).toMatchObject({ taxDueThisPeriod: 994.75, incomeTax: 500, taxNotDeductedOverLimit: 494.75 });
       expect(limited.explanation).toContain('Regulatory limit');
+    });
+  });
+
+  /**
+   * Gate C4. Additional pay from HMRC Pay Adjustment Tables A as printed (Month 1: 475 £396.59;
+   * 1500 = £417.42 + 2 × £416.67 = £1,250.76); Scottish tax from the 2026-27 Scottish Tables C
+   * (month 1 column 6 £279.29 at £1,413; month 2 column 6 £558.58 at £2,826) plus Tables D2 at
+   * 21%; Welsh 2026-27 bands from GOV.UK (20% to £37,700, 40% to £125,140, 45% above).
+   */
+  describe('Scottish SK and Welsh CK codes (Gate C4)', () => {
+    const start2026 = new Date(Date.UTC(2026, 3, 6));
+    const scottishBands = scottishIncomeTaxBands(start2026);
+    const welshBands = welshIncomeTaxBands(start2026);
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: 'SK475', niCategory: 'A', frequency: 'MONTHLY', rates, scottishBands, welshBands, ...over });
+
+    it('SK475 cumulative: Tables A additional pay on the Scottish bands (month 1 £485.72, month 2 £485.93)', () => {
+      // Month 1: £2,000 + £396.59 → £2,396; £279.29 to £1,413 + 21% of £983 (£206.43) = £485.72.
+      const m1 = run({ periodNumber: 1, periodGross: 2000 });
+      expect(m1).toMatchObject({ calculationBasis: 'CUMULATIVE', taxablePay: 2396, incomeTax: 485.72, taxCodeApplied: 'SK475' });
+      expect(m1.explanation).toContain('additional pay to date £396.59');
+      expect(m1.explanation).toContain('Scottish income tax bands applied');
+      // Month 2: £4,000 + £793.18 → £4,793; £558.58 to £2,826 + 21% of £1,967 (£413.07) = £971.65, less £485.72.
+      const m2 = run({ periodNumber: 2, ytdGrossBefore: 2000, ytdTaxBefore: 485.72, periodGross: 2000 });
+      expect(m2.explanation).toContain('Taxable YTD £4793.00; tax due YTD £971.65');
+      expect(m2.incomeTax).toBe(485.93);
+      // A refund is kept: more deducted before than is due to date comes back in full.
+      expect(run({ periodNumber: 2, ytdGrossBefore: 2000, ytdTaxBefore: 700, periodGross: 0 }).incomeTax).toBe(-148.02);
+    });
+
+    it('CK475 cumulative: the same additional pay on the 2026-27 Welsh bands (month 1 £479.20, month 2 £479.40)', () => {
+      const m1 = run({ taxCode: 'CK475', periodNumber: 1, periodGross: 2000 });
+      expect(m1).toMatchObject({ taxablePay: 2396, incomeTax: 479.2, taxCodeApplied: 'CK475' });
+      expect(m1.explanation).toContain('Welsh income tax bands applied');
+      const m2 = run({ taxCode: 'CK475', periodNumber: 2, ytdGrossBefore: 2000, ytdTaxBefore: 479.2, periodGross: 2000 });
+      expect(m2.explanation).toContain('Taxable YTD £4793.00; tax due YTD £958.60');
+      expect(m2.incomeTax).toBe(479.4);
+      // Higher pay crosses the Welsh 40% band: taxable £4,142 at month 1 = £628.46 to £3,142 (Tables C) + 40% of £1,000.
+      expect(run({ taxCode: 'CK475', periodNumber: 1, periodGross: 3745.41 }).taxDueThisPeriod).toBe(1028.46);
+    });
+
+    it('Week 1 / Month 1 and the 50% limit: SK1500 and CK1500 on £400 are held to £200.00, nothing carried', () => {
+      // SK1500: £400 + £1,250.76 → £1,650; £279.29 + 21% of £237 (£49.77) = £329.06 due.
+      const sk = run({ taxCode: 'SK1500', week1Month1: true, periodNumber: 6, ytdGrossBefore: 2000, ytdTaxBefore: 1000, periodGross: 400 });
+      expect(sk).toMatchObject({ calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE', taxDueThisPeriod: 329.06, incomeTax: 200, taxNotDeductedOverLimit: 129.06, netPay: 200 });
+      expect(sk.explanation).toContain('not collected later on this basis');
+      // CK1500: £1,650 at 20% = £330.00 due.
+      const ck = run({ taxCode: 'CK1500', week1Month1: true, periodNumber: 6, periodGross: 400 });
+      expect(ck).toMatchObject({ taxDueThisPeriod: 330, incomeTax: 200, taxNotDeductedOverLimit: 130 });
+      // Cumulative: the limit holds back what is over half of pay; it stays due.
+      expect(run({ taxCode: 'SK1500', periodNumber: 1, periodGross: 400 })).toMatchObject({ incomeTax: 200, taxNotDeductedOverLimit: 129.06 });
+    });
+
+    it('malformed SK / CK codes and tax years without verified bands are refused, never taxed on England bands', () => {
+      for (const code of ['SK475', 'SK1500', 'CK475', 'CK1500']) expect(unsupportedTaxCodeReason(code, true, true)).toBeNull();
+      for (const code of ['SK', 'SK0', 'SK012', 'SK475L', 'SKX']) expect(unsupportedTaxCodeReason(code, true, true)).toMatch(/^Scottish K code .* is not recognised/);
+      for (const code of ['CK', 'CK0', 'CK012', 'CK475L', 'CKX']) expect(unsupportedTaxCodeReason(code, true, true)).toMatch(/^Welsh K code .* is not recognised/);
+      expect(unsupportedTaxCodeReason('SK475', false, true)).toMatch(/no Scottish rates recorded for this tax year/);
+      expect(unsupportedTaxCodeReason('CK475', true, false)).toMatch(/no Welsh rates recorded for this tax year/);
+      expect(welshIncomeTaxBands(new Date(Date.UTC(2025, 3, 6)))).toBeNull();
+      expect(welshIncomeTaxBands(new Date(Date.UTC(2027, 3, 6)))).toBeNull();
+      expect(() => run({ taxCode: 'CK475', welshBands: null, periodNumber: 1, periodGross: 2000 })).toThrow(/no Welsh rates recorded/);
+      expect(() => run({ scottishBands: null, periodNumber: 1, periodGross: 2000 })).toThrow(/no Scottish rates recorded/);
+      expect(() => run({ taxCode: 'SK0', periodNumber: 1, periodGross: 2000 })).toThrow(/not recognised/);
     });
   });
 });
