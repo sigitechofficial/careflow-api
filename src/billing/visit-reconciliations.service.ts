@@ -1440,12 +1440,28 @@ export class VisitReconciliationsService {
         dto.passengerMiles != null ? dto.passengerMiles : null;
     }
 
+    const requestsPayTime = dto.approvedPayStart !== undefined || dto.approvedPayEnd !== undefined;
+    const requested = {
+      start: dto.approvedPayStart === undefined ? existing.approvedPayStart : dto.approvedPayStart ? new Date(dto.approvedPayStart) : null,
+      end: dto.approvedPayEnd === undefined ? existing.approvedPayEnd : dto.approvedPayEnd ? new Date(dto.approvedPayEnd) : null,
+    };
+    const travelOf = (r: typeof existing) =>
+      [r.travelMiles?.toString() ?? null, r.travelMinutes, r.unpaidTravelMinutes, r.passengerMiles?.toString() ?? null].join('|');
+
     // The change, the amounts it produces and its audit entry are saved together or not at all.
-    await this.prisma.$transaction(async (tx) => {
+    // A payable time named by hand is priced like a corrected attendance time: the amount follows
+    // the minutes, unless finance entered the amount by hand.
+    const reprice = requestsPayTime && !hasManualPayableOverride(existing);
+    const payTimeEdit = await this.prisma.$transaction(async (tx) => {
       await tx.visitReconciliation.update({ where: { id }, data });
-      await this.evaluateInternal(tx, id);
-      if (touchesPay) {
-        const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+      await this.evaluateInternal(tx, id, reprice ? { forceRecalculatePay: true } : undefined);
+      if (!touchesPay) return null;
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+      const edit = requestsPayTime ? await this.describePayTimeEdit(tx, existing, after, requested, !reprice) : null;
+      const payChanged =
+        JSON.stringify(VisitReconciliationsService.paySnapshotOf(existing)) !==
+          JSON.stringify(VisitReconciliationsService.paySnapshotOf(after)) || travelOf(existing) !== travelOf(after);
+      if (payChanged) {
         await this.auditVisit(
           AuditAction.VISIT_RECONCILIATION_UPDATED,
           userId,
@@ -1460,15 +1476,122 @@ export class VisitReconciliationsService {
               ...VisitReconciliationsService.paySnapshotOf(after),
               travelMiles: after.travelMiles?.toString() ?? null,
               travelMinutes: after.travelMinutes,
+              ...(edit ? { payTimeOutcome: edit.outcome } : {}),
             },
             reason: dto.approvalNotes,
           },
           meta,
           tx,
         );
+      } else if (edit?.outcome === 'PAY_TIME_NOT_APPLIED') {
+        // Not a change to pay: a record that it was asked for, and why it had no effect.
+        await this.auditVisit(
+          AuditAction.VISIT_PAY_TIME_EDIT_NOT_APPLIED,
+          userId,
+          existing,
+          {
+            oldValues: VisitReconciliationsService.paySnapshotOf(existing),
+            newValues: { requested: edit.requested, effective: edit.effective, rule: edit.rule },
+            reason: edit.reason,
+          },
+          meta,
+          tx,
+        );
       }
+      return edit;
     }, DECISION_TRANSACTION);
-    return this.getById(id);
+    const detail = await this.getById(id);
+    // Only a request that names a payable time carries the outcome; other callers see no change.
+    return payTimeEdit ? { message: payTimeEdit.message, data: { ...detail, payTimeEdit } } : detail;
+  }
+
+  /** The payable window of a visit in words, in the organisation's time zone. */
+  private async payWindowText(row: { approvedPayStart: Date | null; approvedPayEnd: Date | null; payableMinutes: number | null }) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const hm = (d: Date | null) =>
+      d ? new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(d) : '—';
+    return `${hm(row.approvedPayStart)}–${hm(row.approvedPayEnd)} (${row.payableMinutes ?? 0} min)`;
+  }
+
+  /**
+   * Why the pay rules set a visit's payable time from its attendance times rather than from a
+   * window entered by hand. Read from the same tests the evaluation uses; nothing is decided here.
+   */
+  private async payTimeRule(
+    db: DbClient,
+    row: {
+      scheduledVisitId: string;
+      plannedStartDateTime: Date;
+      plannedEndDateTime: Date | null;
+      actualStartDateTime: Date | null;
+      actualEndDateTime: Date | null;
+      overrunMinutes: number | null;
+    },
+  ): Promise<{ rule: 'DURATION_TOLERANCE' | 'OVERRUN_DECISION' | 'PAY_RULE'; reason: string }> {
+    const tolerance = await this.resolveDurationToleranceMinutes(db, row.scheduledVisitId);
+    const within = isDurationShortfallWithinTolerance({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime ?? new Date(row.plannedStartDateTime.getTime() + 30 * 60_000),
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      durationToleranceMinutes: tolerance,
+    });
+    if (within) {
+      return {
+        rule: 'DURATION_TOLERANCE',
+        reason: `The visit is within the duration tolerance of ${tolerance} minutes, so it is paid its planned time.`,
+      };
+    }
+    if ((row.overrunMinutes ?? 0) > 0) {
+      return {
+        rule: 'OVERRUN_DECISION',
+        reason: 'The visit overran, so its payable time follows the overrun decision. Approve or reject the overrun to change it.',
+      };
+    }
+    return { rule: 'PAY_RULE', reason: 'A pay rule sets the payable time of this visit from its attendance times.' };
+  }
+
+  /** What a request to change the payable time did, after the visit was evaluated again. */
+  private async describePayTimeEdit(
+    db: DbClient,
+    before: { approvedPayStart: Date | null; approvedPayEnd: Date | null },
+    after: Parameters<VisitReconciliationsService['payTimeRule']>[1] & {
+      approvedPayStart: Date | null;
+      approvedPayEnd: Date | null;
+      payableMinutes: number | null;
+      payableAmount: Prisma.Decimal | null;
+    },
+    requested: { start: Date | null; end: Date | null },
+    manualAmount = false,
+  ) {
+    const same = (a: Date | null, b: Date | null) => (a?.getTime() ?? null) === (b?.getTime() ?? null);
+    const kept = same(after.approvedPayStart, requested.start) && same(after.approvedPayEnd, requested.end);
+    const moved = !same(after.approvedPayStart, before.approvedPayStart) || !same(after.approvedPayEnd, before.approvedPayEnd);
+    const window = await this.payWindowText(after);
+    const shown = {
+      requested: { start: requested.start?.toISOString() ?? null, end: requested.end?.toISOString() ?? null },
+      effective: {
+        start: after.approvedPayStart?.toISOString() ?? null,
+        end: after.approvedPayEnd?.toISOString() ?? null,
+        payableMinutes: after.payableMinutes,
+      },
+    };
+    if (kept && moved) {
+      const pay = `£${Number(after.payableAmount ?? 0).toFixed(2)}`;
+      const amount = manualAmount ? `The payable amount was entered by hand and stays ${pay}.` : `Carer pay is now ${pay}.`;
+      return { outcome: 'PAY_TIME_CHANGED' as const, message: `Payable time changed to ${window}. ${amount}`, rule: null, reason: null, ...shown };
+    }
+    if (kept) {
+      return { outcome: 'PAY_TIME_UNCHANGED' as const, message: `Payable time is already ${window}: nothing changed.`, rule: null, reason: null, ...shown };
+    }
+    const { rule, reason } = await this.payTimeRule(db, after);
+    return {
+      outcome: 'PAY_TIME_NOT_APPLIED' as const,
+      message: `Payable time not changed. ${reason} It stays ${window}.`,
+      rule,
+      reason,
+      ...shown,
+    };
   }
 
   /**
@@ -1577,7 +1700,7 @@ export class VisitReconciliationsService {
    * Manually set billable (client/funder) amount. Optionally accept the visit for invoice.
    * Stores the visit total; multi-funder % splits continue from that total on invoice runs.
    */
-  async setBillableAmount(userId: string, id: string, dto: SetVisitBillableAmountDto) {
+  async setBillableAmount(userId: string, id: string, dto: SetVisitBillableAmountDto, meta?: RequestAuditMeta) {
     const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Visit reconciliation not found');
     if (existing.status === VisitReconciliationStatus.LOCKED) {
@@ -1614,21 +1737,47 @@ export class VisitReconciliationsService {
       pricingSnapshot: this.patchManualAmountSnapshot(existing.pricingSnapshot, 'bill', amount),
     };
 
-    if (approveForInvoice) {
-      const invoiceApproved =
-        existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-        existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
-      if (!invoiceApproved) {
-        data.status =
-          existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY
-            ? VisitReconciliationStatus.APPROVED_FOR_BOTH
-            : VisitReconciliationStatus.APPROVED_FOR_INVOICE;
-        data.approvedById = userId;
-        data.approvedAt = new Date();
-      }
+    const invoiceApproved =
+      existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+      existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+    if (approveForInvoice && !invoiceApproved) {
+      data.status =
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY
+          ? VisitReconciliationStatus.APPROVED_FOR_BOTH
+          : VisitReconciliationStatus.APPROVED_FOR_INVOICE;
+      data.approvedById = userId;
+      data.approvedAt = new Date();
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
+    // The same amount, already entered by hand, with nothing to approve: nothing is written or
+    // audited, so sending the request again changes nothing.
+    const previous = existing.billableAmount == null ? null : Number(existing.billableAmount).toFixed(2);
+    if (previous === amount.toFixed(2) && hasManualBillableOverride(existing) && !data.status) {
+      return this.getById(id);
+    }
+
+    // The charge (and the invoice approval it implies) and its audit entry are saved together or
+    // not at all. Carer pay is not touched.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_BILLABLE_AMOUNT_SET,
+        userId,
+        existing,
+        {
+          oldValues: { billableAmount: previous, status: String(existing.status) },
+          newValues: {
+            billableAmount: amount.toFixed(2),
+            status: String(data.status ?? existing.status),
+            approvedForInvoice: !!data.status,
+            permission: 'billing.visit_reconciliations.manage',
+          },
+          reason: note,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -2859,7 +3008,7 @@ export class VisitReconciliationsService {
       const results: Array<{
         reconciliationId: string;
         visitRef: string;
-        outcome: 'REPRICED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
+        outcome: 'REPRICED' | 'PAY_UNCHANGED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
         message: string;
         payableBefore: string | null;
         payableAfter: string | null;
@@ -2884,8 +3033,18 @@ export class VisitReconciliationsService {
             await this.evaluateInternal(tx, row.id, { forceRecalculatePay: true });
             const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
             payableAfter = after.payableAmount != null ? String(after.payableAmount) : null;
-            outcome = 'REPRICED';
-            message = 'Times updated and carer pay recalculated.';
+            if (
+              Number(payableAfter ?? 0) === Number(before.payableAmount ?? 0) &&
+              after.payableMinutes === before.payableMinutes
+            ) {
+              // The evidence changed; the pay it produces did not. Say which rule kept it.
+              const { reason } = await this.payTimeRule(tx, after);
+              outcome = 'PAY_UNCHANGED';
+              message = `Times updated. Carer pay is unchanged: ${reason} Payable time stays ${await this.payWindowText(after)}.`;
+            } else {
+              outcome = 'REPRICED';
+              message = 'Times updated and carer pay recalculated.';
+            }
           }
         } else if (hasManualPayableOverride(row)) {
           outcome = 'NO_CORRECTION';

@@ -187,8 +187,9 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: SetVisitBillableAmountDto,
+    @Req() req: Request,
   ) {
-    return this.service.setBillableAmount(user.id, id, dto);
+    return this.service.setBillableAmount(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')
