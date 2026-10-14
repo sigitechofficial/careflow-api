@@ -10063,6 +10063,15 @@ model EmployeePayrollYtdContribution {
   employeeNi     Decimal   @db.Decimal(12, 2)
   employerNi     Decimal   @db.Decimal(12, 2)
   netPay         Decimal   @db.Decimal(12, 2)
+  /// Gate C10, for RTI: the NI category and method (AN for a director, null otherwise) this
+  /// contribution belongs to, with its NI-able earnings and band shares. YTD per category is the
+  /// sum of the contributions not reversed. Null figures: posted without NI data (legacy run).
+  niCategory        String?
+  directorNicMethod String?
+  niableEarnings    Decimal?  @db.Decimal(12, 2)
+  niEarningsAtLel   Decimal?  @db.Decimal(12, 2)
+  niEarningsLelToPt Decimal?  @db.Decimal(12, 2)
+  niEarningsPtToUel Decimal?  @db.Decimal(12, 2)
   isReversed     Boolean   @default(false)
   postedAt       DateTime  @default(now())
   reversedAt     DateTime?
@@ -10634,6 +10643,13 @@ model UkPayrollRunEmployee {
   niCategoryApplied     String?
   /// Gate C7: AN when NI was worked out on a director's annual (or pro rata annual) earnings period.
   directorNicMethodApplied String?
+  /// Gate C10, for RTI: this payment's NI-able earnings and its share of the earnings bands (at the
+  /// LEL, LEL to PT, PT to UEL) of its earnings period; a supplementary payment or a director's
+  /// later payment holds only the part not reported before. Null: not recorded (legacy).
+  niableEarnings        Decimal?  @db.Decimal(12, 2)
+  niEarningsAtLel       Decimal?  @db.Decimal(12, 2)
+  niEarningsLelToPt     Decimal?  @db.Decimal(12, 2)
+  niEarningsPtToUel     Decimal?  @db.Decimal(12, 2)
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())

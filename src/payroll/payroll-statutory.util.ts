@@ -157,6 +157,12 @@ export type StatutoryCalcResult = {
   niCategoryApplied: string;
   /** Gate C7: AN when NI was worked out on a director's earnings period, otherwise null. */
   directorNicMethodApplied: 'AN' | null;
+  /**
+   * Gate C10, for RTI: this payment's NI-able earnings and its share of the earnings bands of its
+   * earnings period: the bands on the period's total so far less those of the earlier payments
+   * (a supplementary run, a director's earlier payments), so that summed they are never counted twice.
+   */
+  niRti: { niableEarnings: number; atLel: number; lelToPt: number; ptToUel: number };
   periodFreePay: number;
   calculationBasis: StatutoryCalculationBasis;
   /** Tax due this period before the 50% regulatory limit (negative: a refund). */
@@ -527,9 +533,19 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const employeeNi = round2(employeeNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employeeNi ?? 0));
   const employerNi = round2(employerNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employerNi ?? 0));
   // Earnings bands kept for RTI: at the LEL, LEL to PT, PT to UEL.
-  const atLel = niableEarnings >= niTh.lel ? niTh.lel : 0;
-  const lelToPt = round2(Math.max(0, Math.min(niableEarnings, niTh.pt) - niTh.lel));
-  const ptToUel = round2(Math.max(0, Math.min(niableEarnings, niTh.uel) - niTh.pt));
+  const bandsOn = (earnings: number) => ({
+    atLel: earnings >= niTh.lel ? niTh.lel : 0,
+    lelToPt: round2(Math.max(0, Math.min(earnings, niTh.pt) - niTh.lel)),
+    ptToUel: round2(Math.max(0, Math.min(earnings, niTh.uel) - niTh.pt)),
+  });
+  const { atLel, lelToPt, ptToUel } = bandsOn(niableEarnings);
+  const bandsBefore = bandsOn(round2(earlier?.niableEarnings ?? 0));
+  const niRti = {
+    niableEarnings: gross,
+    atLel: round2(atLel - bandsBefore.atLel),
+    lelToPt: round2(lelToPt - bandsBefore.lelToPt),
+    ptToUel: round2(ptToUel - bandsBefore.ptToUel),
+  };
   const niExplanation = [
     director
       ? `Director NI (method AN, ${director.annual ? 'annual' : 'pro rata annual'} earnings period of ${director.weeks} weeks); `
@@ -585,6 +601,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
       taxDueThisPeriod: taxDue,
       taxNotDeductedOverLimit: limited.notDeducted,
+      niRti,
       explanation,
     };
   }
@@ -638,6 +655,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     calculationBasis: 'CUMULATIVE',
     taxDueThisPeriod,
     taxNotDeductedOverLimit: limited.notDeducted,
+    niRti,
     explanation,
   };
 }

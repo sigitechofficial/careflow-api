@@ -2184,6 +2184,25 @@ export class PayrollRunsService {
     const profileByEmployeeId = new Map(profiles.map((p) => [p.employeeId, p]));
     const ytdByEmployeeId = new Map(ytdLedgers.map((y) => [y.employeeId, y]));
 
+    // Gate C6: a supplementary run pays more in an earnings period already paid by a closed run;
+    // NI is worked out again on the total of the period's payments (HMRC CWG2).
+    const earlierInPeriod = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        runId: { not: runId },
+        run: { periodId: run.periodId, status: 'CLOSED', deletedAt: null },
+      },
+      select: { employeeId: true, totalGross: true, employeeNi: true, employerNi: true, niCategoryApplied: true },
+    });
+    const niEarlierByEmployeeId = new Map<string, { niableEarnings: number; employeeNi: number; employerNi: number }>();
+    for (const row of earlierInPeriod) {
+      const sum = niEarlierByEmployeeId.get(row.employeeId) ?? { niableEarnings: 0, employeeNi: 0, employerNi: 0 };
+      sum.niableEarnings += decimalNum(row.totalGross);
+      sum.employeeNi += decimalNum(row.employeeNi);
+      sum.employerNi += decimalNum(row.employerNi);
+      niEarlierByEmployeeId.set(row.employeeId, sum);
+    }
+
     // Gate C7: directors' NI on the standard annual method (AN). The director's earnings period
     // holds the earnings paid on or after the appointment date in this tax year (CA44 para 33:
     // earlier earnings as an employee are kept apart, with the NI they paid). Anything this
@@ -2285,6 +2304,16 @@ export class PayrollRunsService {
       if (niReason) refused.set(niReason, (refused.get(niReason) ?? 0) + 1);
       const directorReason = directorReasonByEmployeeId.get(re.employeeId);
       if (directorReason) refused.set(directorReason, (refused.get(directorReason) ?? 0) + 1);
+      // Gate C10: a supplementary payment adds to its earnings period's earlier payments; under a
+      // different category the RTI figures could not be kept apart, so it is refused.
+      const category = (profileByEmployeeId.get(re.employeeId)?.niCategory ?? '').toUpperCase();
+      if (
+        category &&
+        earlierInPeriod.some((e) => e.employeeId === re.employeeId && (e.niCategoryApplied ?? '').toUpperCase() !== category)
+      ) {
+        const reason = 'NI category differs from an earlier payment in this earnings period (not calculated by this version)';
+        refused.set(reason, (refused.get(reason) ?? 0) + 1);
+      }
     }
     if (refused.size) {
       const count = [...refused.values()].reduce((a, b) => a + b, 0);
@@ -2293,25 +2322,6 @@ export class PayrollRunsService {
           .map(([reason, n]) => `${reason} (${n})`)
           .join('; ')}. Record or correct the tax code on each employee's payroll profile.`,
       );
-    }
-
-    // Gate C6: a supplementary run pays more in an earnings period already paid by a closed run;
-    // NI is worked out again on the total of the period's payments (HMRC CWG2).
-    const earlierInPeriod = await this.prisma.ukPayrollRunEmployee.findMany({
-      where: {
-        employeeId: { in: employeeIds },
-        runId: { not: runId },
-        run: { periodId: run.periodId, status: 'CLOSED', deletedAt: null },
-      },
-      select: { employeeId: true, totalGross: true, employeeNi: true, employerNi: true },
-    });
-    const niEarlierByEmployeeId = new Map<string, { niableEarnings: number; employeeNi: number; employerNi: number }>();
-    for (const row of earlierInPeriod) {
-      const sum = niEarlierByEmployeeId.get(row.employeeId) ?? { niableEarnings: 0, employeeNi: 0, employerNi: 0 };
-      sum.niableEarnings += decimalNum(row.totalGross);
-      sum.employeeNi += decimalNum(row.employeeNi);
-      sum.employerNi += decimalNum(row.employerNi);
-      niEarlierByEmployeeId.set(row.employeeId, sum);
     }
 
     const now = new Date();
@@ -2331,6 +2341,7 @@ export class PayrollRunsService {
       taxCodeApplied: string;
       niCategoryApplied: string;
       directorNicMethodApplied: string | null;
+      niRti: { niableEarnings: number; atLel: number; lelToPt: number; ptToUel: number };
       statutoryExplanation: string;
     }> = [];
 
@@ -2368,6 +2379,7 @@ export class PayrollRunsService {
         taxCodeApplied: result.taxCodeApplied,
         niCategoryApplied: result.niCategoryApplied,
         directorNicMethodApplied: result.directorNicMethodApplied,
+        niRti: result.niRti,
         statutoryExplanation: result.explanation,
       });
     }
@@ -2397,6 +2409,10 @@ export class PayrollRunsService {
             taxCodeApplied: row.taxCodeApplied,
             niCategoryApplied: row.niCategoryApplied,
             directorNicMethodApplied: row.directorNicMethodApplied,
+            niableEarnings: toDecimal(row.niRti.niableEarnings),
+            niEarningsAtLel: toDecimal(row.niRti.atLel),
+            niEarningsLelToPt: toDecimal(row.niRti.lelToPt),
+            niEarningsPtToUel: toDecimal(row.niRti.ptToUel),
             statutoryExplanation: row.statutoryExplanation,
             statutoryCalculatedAt: now,
           },
@@ -2637,6 +2653,15 @@ export class PayrollRunsService {
           employeeNi: decimalNum(e.employeeNi) ?? 0,
           employerNi: decimalNum(e.employerNi) ?? 0,
           netPay: decimalNum(e.netPay) ?? 0,
+          // Gate C10: the run row's NI data for RTI, as calculated (null on a legacy row).
+          ni: {
+            category: e.niCategoryApplied,
+            directorNicMethod: e.directorNicMethodApplied,
+            niableEarnings: e.niableEarnings == null ? null : decimalNum(e.niableEarnings),
+            atLel: e.niEarningsAtLel == null ? null : decimalNum(e.niEarningsAtLel),
+            lelToPt: e.niEarningsLelToPt == null ? null : decimalNum(e.niEarningsLelToPt),
+            ptToUel: e.niEarningsPtToUel == null ? null : decimalNum(e.niEarningsPtToUel),
+          },
         })),
       });
 
