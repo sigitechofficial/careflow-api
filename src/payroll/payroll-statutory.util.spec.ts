@@ -1,6 +1,9 @@
 import {
   calculatePeriodStatutory,
   directorNiPeriod,
+  loanDeductionOn,
+  studentLoanThresholds,
+  type StudentLoanPlan,
   govUkEnglandRateSnapshot2026_27,
   parseUkTaxCode,
   periodsInTaxYear,
@@ -534,6 +537,68 @@ describe('payroll-statutory.util', () => {
       const both = run({ periodGross: 10000, directorNi: director(inPost, [10000, 0, 750]), niEarlierInPeriod: { niableEarnings: 10000, employeeNi: 0, employerNi: 750 } });
       expect([both.employeeNi, both.employerNi]).toEqual([594.4, 1500]);
       expect(() => run({ niCategory: 'M', periodGross: 1000, directorNi: director(inPost) })).toThrow(/director NI category M \(only A and C/);
+    });
+  });
+
+  /**
+   * Gate C11. GOV.UK "Special rules for student loans", 2026 to 2027 monthly thresholds: Plan 1
+   * £2,241.66, Plan 2 £2,448.75, Plan 4 £2,816.25, Plan 5 £2,083.33 (9%); postgraduate loan
+   * £1,750.00 (6%). Deductions are whole pounds, rounded down; on the pay employer NI is worked on.
+   */
+  describe('student and postgraduate loans, monthly (Gate C11)', () => {
+    const th = studentLoanThresholds(new Date(Date.UTC(2026, 3, 6)), 'MONTHLY')!;
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: '1257L', niCategory: 'A', frequency: 'MONTHLY', rates, periodNumber: 1, ...over });
+    const loans = (plan: StudentLoanPlan | null, postgraduate = false, earlier = [0, 0]) => ({
+      plan,
+      planThreshold: plan ? th.plans[plan] : null,
+      postgraduate,
+      postgraduateThreshold: postgraduate ? th.postgraduate : null,
+      earlierStudentLoan: earlier[0],
+      earlierPostgraduateLoan: earlier[1],
+    });
+
+    it('Plans 1, 2, 4 and 5 on £3,000 a month: 9% over the threshold, rounded down to the pound', () => {
+      expect(th).toEqual({ plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750 });
+      // 9% of £758.34 = £68.25; of £551.25 = £49.61; of £183.75 = £16.54; of £916.67 = £82.50.
+      const cases: Array<[StudentLoanPlan, number]> = [['1', 68], ['2', 49], ['4', 16], ['5', 82]];
+      for (const [plan, expected] of cases) {
+        expect(run({ periodGross: 3000, studentLoans: loans(plan) })).toMatchObject({
+          studentLoanPlanApplied: plan,
+          studentLoanDeduction: expected,
+          postgraduateLoanDeduction: 0,
+        });
+      }
+      expect(loanDeductionOn(2448.75, 2448.75, 9)).toBe(0);
+      expect(loanDeductionOn(2459.86, 2448.75, 9)).toBe(0); // £0.9999
+      expect(loanDeductionOn(2459.87, 2448.75, 9)).toBe(1); // £1.0008
+      // No thresholds are assumed for another year or another pay interval.
+      expect(studentLoanThresholds(new Date(Date.UTC(2025, 3, 6)), 'MONTHLY')).toBeNull();
+      expect(studentLoanThresholds(new Date(Date.UTC(2026, 3, 6)), 'WEEKLY')).toBeNull();
+    });
+
+    it('postgraduate 6%, alongside Plan 2: £49 + £75 = £124 off net pay; PAYE and NI unchanged; a supplementary payment applies the threshold once', () => {
+      const both = run({ periodGross: 3000, studentLoans: loans('2', true) });
+      expect(both).toMatchObject({
+        studentLoanDeduction: 49,
+        postgraduateLoanApplied: true,
+        postgraduateLoanDeduction: 75,
+        incomeTax: 390.2,
+        employeeNi: 156.16,
+        employerNi: 387.45,
+        netPay: 2329.64, // 3,000 − 390.20 − 156.16 − 49 − 75
+      });
+      expect(both.explanation).toContain('Student loan Plan 2: 9% over £2448.75 = £49.00. Postgraduate loan: 6% over £1750.00 = £75.00.');
+      expect(run({ periodGross: 3000, studentLoans: loans(null, true) })).toMatchObject({ studentLoanPlanApplied: 'NONE', studentLoanDeduction: 0, postgraduateLoanDeduction: 75 });
+      const none = run({ periodGross: 3000 });
+      expect(none).toMatchObject({ studentLoanPlanApplied: 'NONE', studentLoanDeduction: 0, postgraduateLoanApplied: false, netPay: 2453.64 });
+      // £1,000 more in the same month after £3,000: on £4,000, £139 and £135, less £49 and £75 already deducted.
+      const more = run({
+        periodGross: 1000,
+        niEarlierInPeriod: { niableEarnings: 3000, employeeNi: 156.16, employerNi: 387.45 },
+        studentLoans: loans('2', true, [49, 75]),
+      });
+      expect([more.studentLoanDeduction, more.postgraduateLoanDeduction]).toEqual([90, 60]);
     });
   });
 });

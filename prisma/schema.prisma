@@ -10035,6 +10035,9 @@ model EmployeePayrollYtdLedger {
   employeeNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
   employerNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
   netPayYtd       Decimal  @default(0) @db.Decimal(12, 2)
+  /// Gate C11: student and postgraduate loan deducted to date (closed runs).
+  studentLoanYtd      Decimal @default(0) @db.Decimal(12, 2)
+  postgraduateLoanYtd Decimal @default(0) @db.Decimal(12, 2)
   lastClosedRunId String?  @db.Uuid
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -10072,6 +10075,9 @@ model EmployeePayrollYtdContribution {
   niEarningsAtLel   Decimal?  @db.Decimal(12, 2)
   niEarningsLelToPt Decimal?  @db.Decimal(12, 2)
   niEarningsPtToUel Decimal?  @db.Decimal(12, 2)
+  /// Gate C11: student and postgraduate loan deducted by this run.
+  studentLoan       Decimal   @default(0) @db.Decimal(12, 2)
+  postgraduateLoan  Decimal   @default(0) @db.Decimal(12, 2)
   isReversed     Boolean   @default(false)
   postedAt       DateTime  @default(now())
   reversedAt     DateTime?
@@ -10650,6 +10656,12 @@ model UkPayrollRunEmployee {
   niEarningsAtLel       Decimal?  @db.Decimal(12, 2)
   niEarningsLelToPt     Decimal?  @db.Decimal(12, 2)
   niEarningsPtToUel     Decimal?  @db.Decimal(12, 2)
+  /// Gate C11: student loan plan applied (1, 2, 4, 5 or NONE) and whether a postgraduate loan
+  /// applied; null on rows calculated before C11. The deductions reduce net pay.
+  studentLoanPlanApplied    String?
+  studentLoanDeduction      Decimal   @default(0) @db.Decimal(12, 2)
+  postgraduateLoanApplied   Boolean?
+  postgraduateLoanDeduction Decimal   @default(0) @db.Decimal(12, 2)
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())

@@ -82,6 +82,8 @@ import {
   rawTaxYearPeriodNumber,
   taxYearPeriodNumber,
   directorNiPeriod,
+  studentLoanThresholds,
+  type StudentLoanPlan,
   unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
   scottishIncomeTaxBands,
@@ -2192,7 +2194,17 @@ export class PayrollRunsService {
         runId: { not: runId },
         run: { periodId: run.periodId, status: 'CLOSED', deletedAt: null },
       },
-      select: { employeeId: true, totalGross: true, employeeNi: true, employerNi: true, niCategoryApplied: true },
+      select: {
+        employeeId: true,
+        totalGross: true,
+        employeeNi: true,
+        employerNi: true,
+        niCategoryApplied: true,
+        studentLoanPlanApplied: true,
+        studentLoanDeduction: true,
+        postgraduateLoanApplied: true,
+        postgraduateLoanDeduction: true,
+      },
     });
     const niEarlierByEmployeeId = new Map<string, { niableEarnings: number; employeeNi: number; employerNi: number }>();
     for (const row of earlierInPeriod) {
@@ -2286,6 +2298,62 @@ export class PayrollRunsService {
       });
     }
 
+    // Gate C11: student and postgraduate loans from the recorded profile settings. Monthly pay in
+    // 2026-27 only; anything this version cannot deduct correctly stops the calculation.
+    const loanThresholds = studentLoanThresholds(run.taxYear.startDate, frequency);
+    const loansByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['studentLoans']>>();
+    const loanReasonByEmployeeId = new Map<string, string>();
+    for (const re of runEmployees) {
+      const profile = profileByEmployeeId.get(re.employeeId);
+      const plans = (
+        [
+          ['1', profile?.studentLoanPlan1],
+          ['2', profile?.studentLoanPlan2],
+          ['4', profile?.studentLoanPlan4],
+          ['5', profile?.studentLoanPlan5],
+        ] as Array<[StudentLoanPlan, boolean | undefined]>
+      )
+        .filter(([, on]) => on)
+        .map(([plan]) => plan);
+      const plan = plans[0] ?? null;
+      const postgraduate = Boolean(profile?.postgraduateLoan);
+      const earlier = earlierInPeriod.filter((e) => e.employeeId === re.employeeId);
+      const refuse = (reason: string) => loanReasonByEmployeeId.set(re.employeeId, reason);
+      if (plans.length > 1) {
+        refuse(`more than one student loan plan recorded (${plans.join(', ')}); record the plan HMRC has notified`);
+        continue;
+      }
+      if (earlier.some((e) => e.studentLoanPlanApplied != null && (e.studentLoanPlanApplied !== (plan ?? 'NONE') || e.postgraduateLoanApplied !== postgraduate))) {
+        refuse('student or postgraduate loan changed since an earlier payment in this earnings period (not calculated by this version)');
+        continue;
+      }
+      if (!plan && !postgraduate) continue;
+      if (!loanThresholds) {
+        refuse(
+          frequency !== 'MONTHLY'
+            ? 'student or postgraduate loan deductions are calculated for monthly pay only in this version'
+            : `no student loan thresholds recorded for tax year ${run.taxYear.code}`,
+        );
+        continue;
+      }
+      if (directorNiByEmployeeId.has(re.employeeId)) {
+        refuse("student or postgraduate loan on a director's annual earnings period (not calculated by this version)");
+        continue;
+      }
+      if (earlier.some((e) => e.studentLoanPlanApplied == null)) {
+        refuse('an earlier payment in this earnings period was calculated before loan deductions were supported');
+        continue;
+      }
+      loansByEmployeeId.set(re.employeeId, {
+        plan,
+        planThreshold: plan ? loanThresholds.plans[plan] : null,
+        postgraduate,
+        postgraduateThreshold: postgraduate ? loanThresholds.postgraduate : null,
+        earlierStudentLoan: earlier.reduce((sum, e) => sum + decimalNum(e.studentLoanDeduction), 0),
+        earlierPostgraduateLoan: earlier.reduce((sum, e) => sum + decimalNum(e.postgraduateLoanDeduction), 0),
+      });
+    }
+
     // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
     // Gate C3: S codes use this tax year's Scottish bands, and are refused when none are known.
     // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
@@ -2304,6 +2372,8 @@ export class PayrollRunsService {
       if (niReason) refused.set(niReason, (refused.get(niReason) ?? 0) + 1);
       const directorReason = directorReasonByEmployeeId.get(re.employeeId);
       if (directorReason) refused.set(directorReason, (refused.get(directorReason) ?? 0) + 1);
+      const loanReason = loanReasonByEmployeeId.get(re.employeeId);
+      if (loanReason) refused.set(loanReason, (refused.get(loanReason) ?? 0) + 1);
       // Gate C10: a supplementary payment adds to its earnings period's earlier payments; under a
       // different category the RTI figures could not be kept apart, so it is refused.
       const category = (profileByEmployeeId.get(re.employeeId)?.niCategory ?? '').toUpperCase();
@@ -2342,6 +2412,10 @@ export class PayrollRunsService {
       niCategoryApplied: string;
       directorNicMethodApplied: string | null;
       niRti: { niableEarnings: number; atLel: number; lelToPt: number; ptToUel: number };
+      studentLoanPlanApplied: string;
+      studentLoanDeduction: number;
+      postgraduateLoanApplied: boolean;
+      postgraduateLoanDeduction: number;
       statutoryExplanation: string;
     }> = [];
 
@@ -2362,6 +2436,7 @@ export class PayrollRunsService {
         welshBands,
         niEarlierInPeriod: niEarlierByEmployeeId.get(re.employeeId) ?? null,
         directorNi: directorNiByEmployeeId.get(re.employeeId) ?? null,
+        studentLoans: loansByEmployeeId.get(re.employeeId) ?? null,
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;
@@ -2380,6 +2455,10 @@ export class PayrollRunsService {
         niCategoryApplied: result.niCategoryApplied,
         directorNicMethodApplied: result.directorNicMethodApplied,
         niRti: result.niRti,
+        studentLoanPlanApplied: result.studentLoanPlanApplied,
+        studentLoanDeduction: result.studentLoanDeduction,
+        postgraduateLoanApplied: result.postgraduateLoanApplied,
+        postgraduateLoanDeduction: result.postgraduateLoanDeduction,
         statutoryExplanation: result.explanation,
       });
     }
@@ -2413,6 +2492,10 @@ export class PayrollRunsService {
             niEarningsAtLel: toDecimal(row.niRti.atLel),
             niEarningsLelToPt: toDecimal(row.niRti.lelToPt),
             niEarningsPtToUel: toDecimal(row.niRti.ptToUel),
+            studentLoanPlanApplied: row.studentLoanPlanApplied,
+            studentLoanDeduction: toDecimal(row.studentLoanDeduction),
+            postgraduateLoanApplied: row.postgraduateLoanApplied,
+            postgraduateLoanDeduction: toDecimal(row.postgraduateLoanDeduction),
             statutoryExplanation: row.statutoryExplanation,
             statutoryCalculatedAt: now,
           },
@@ -2653,6 +2736,8 @@ export class PayrollRunsService {
           employeeNi: decimalNum(e.employeeNi) ?? 0,
           employerNi: decimalNum(e.employerNi) ?? 0,
           netPay: decimalNum(e.netPay) ?? 0,
+          studentLoan: decimalNum(e.studentLoanDeduction) ?? 0,
+          postgraduateLoan: decimalNum(e.postgraduateLoanDeduction) ?? 0,
           // Gate C10: the run row's NI data for RTI, as calculated (null on a legacy row).
           ni: {
             category: e.niCategoryApplied,

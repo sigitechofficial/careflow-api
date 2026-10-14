@@ -7,6 +7,9 @@ export type YtdPeriodAmounts = {
   employeeNi: number
   employerNi: number
   netPay: number
+  /** Gate C11: student and postgraduate loan deducted (0 when none). */
+  studentLoan?: number
+  postgraduateLoan?: number
   /** Gate C10: NI data for RTI; null figures when the run row has none (legacy). */
   ni?: {
     category: string | null
@@ -27,6 +30,8 @@ export type YtdLedgerSnapshot = {
   employeeNiYtd: number
   employerNiYtd: number
   netPayYtd: number
+  studentLoanYtd: number
+  postgraduateLoanYtd: number
   lastClosedRunId: string | null
   updatedAt: string
 }
@@ -55,6 +60,8 @@ export function mapYtdLedger(row: {
   employeeNiYtd: Prisma.Decimal | number
   employerNiYtd: Prisma.Decimal | number
   netPayYtd: Prisma.Decimal | number
+  studentLoanYtd?: Prisma.Decimal | number
+  postgraduateLoanYtd?: Prisma.Decimal | number
   lastClosedRunId: string | null
   updatedAt: Date
 }): YtdLedgerSnapshot {
@@ -67,6 +74,8 @@ export function mapYtdLedger(row: {
     employeeNiYtd: n(row.employeeNiYtd),
     employerNiYtd: n(row.employerNiYtd),
     netPayYtd: n(row.netPayYtd),
+    studentLoanYtd: n(row.studentLoanYtd),
+    postgraduateLoanYtd: n(row.postgraduateLoanYtd),
     lastClosedRunId: row.lastClosedRunId,
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -135,6 +144,8 @@ export async function postRunEmployeesToYtd(
           employerNi: d(emp.employerNi),
           netPay: d(emp.netPay),
           ...niColumns(emp),
+          studentLoan: d(emp.studentLoan ?? 0),
+          postgraduateLoan: d(emp.postgraduateLoan ?? 0),
           isReversed: false,
           postedAt: new Date(),
           reversedAt: null,
@@ -156,6 +167,8 @@ export async function postRunEmployeesToYtd(
           employerNi: d(emp.employerNi),
           netPay: d(emp.netPay),
           ...niColumns(emp),
+          studentLoan: d(emp.studentLoan ?? 0),
+          postgraduateLoan: d(emp.postgraduateLoan ?? 0),
           createdById: args.userId,
         },
       })
@@ -170,6 +183,8 @@ export async function postRunEmployeesToYtd(
         employeeNiYtd: { increment: emp.employeeNi },
         employerNiYtd: { increment: emp.employerNi },
         netPayYtd: { increment: emp.netPay },
+        studentLoanYtd: { increment: emp.studentLoan ?? 0 },
+        postgraduateLoanYtd: { increment: emp.postgraduateLoan ?? 0 },
         lastClosedRunId: args.runId,
         updatedById: args.userId,
       },
@@ -200,6 +215,8 @@ export async function reverseRunEmployeesFromYtd(
         employeeNiYtd: { decrement: n(row.employeeNi) },
         employerNiYtd: { decrement: n(row.employerNi) },
         netPayYtd: { decrement: n(row.netPay) },
+        studentLoanYtd: { decrement: n(row.studentLoan) },
+        postgraduateLoanYtd: { decrement: n(row.postgraduateLoan) },
         updatedById: args.userId,
       },
     })

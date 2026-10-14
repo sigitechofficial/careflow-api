@@ -54,7 +54,46 @@ export type StatutoryCalcInput = {
    * niEarlierInPeriod is then not used: the earnings period is the director's.
    */
   directorNi?: (DirectorNiPeriod & { earningsBefore: number; employeeNiBefore: number; employerNiBefore: number }) | null;
+  /**
+   * Gate C11: the student loan plan and postgraduate loan recorded, with the period thresholds
+   * (studentLoanThresholds) and what earlier payments in the same earnings period already deducted.
+   * Omitted or null: no loan is deducted.
+   */
+  studentLoans?: {
+    plan: StudentLoanPlan | null;
+    planThreshold: number | null;
+    postgraduate: boolean;
+    postgraduateThreshold: number | null;
+    earlierStudentLoan: number;
+    earlierPostgraduateLoan: number;
+  } | null;
 };
+
+export type StudentLoanPlan = '1' | '2' | '4' | '5';
+
+/**
+ * GOV.UK "Special rules for student loans", 2026 to 2027 monthly thresholds: Plan 1 £2,241.66,
+ * Plan 2 £2,448.75, Plan 4 £2,816.25, Plan 5 £2,083.33, postgraduate loan £1,750.00. Monthly pay
+ * only, and only for the tax year starting 6 April 2026; null for any other year or pay interval.
+ */
+export function studentLoanThresholds(
+  taxYearStart: Date,
+  frequency: PayFrequencyCode,
+): { plans: Record<StudentLoanPlan, number>; postgraduate: number } | null {
+  if (frequency !== 'MONTHLY' || taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  return { plans: { '1': 2241.66, '2': 2448.75, '4': 2816.25, '5': 2083.33 }, postgraduate: 1750 };
+}
+
+/**
+ * A student (9%) or postgraduate (6%) loan deduction on one earnings period's pay: the rate on
+ * earnings above the period threshold, rounded down to the whole pound (deductions are whole
+ * pounds). Non-cumulative: nothing is carried between periods.
+ */
+export function loanDeductionOn(earnings: number, threshold: number, ratePercent: number): number {
+  const overPence = Math.round((earnings - threshold) * 100);
+  if (overPence <= 0) return 0;
+  return Math.floor((overPence * ratePercent) / 10000 + 1e-9);
+}
 
 export type DirectorNiPeriod = {
   method: 'AN';
@@ -157,6 +196,11 @@ export type StatutoryCalcResult = {
   niCategoryApplied: string;
   /** Gate C7: AN when NI was worked out on a director's earnings period, otherwise null. */
   directorNicMethodApplied: 'AN' | null;
+  /** Gate C11: plan applied (NONE when no plan) and the loan deductions taken from net pay. */
+  studentLoanPlanApplied: StudentLoanPlan | 'NONE';
+  studentLoanDeduction: number;
+  postgraduateLoanApplied: boolean;
+  postgraduateLoanDeduction: number;
   /**
    * Gate C10, for RTI: this payment's NI-able earnings and its share of the earnings bands of its
    * earnings period: the bands on the period's total so far less those of the earlier payments
@@ -511,12 +555,12 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const flatRate = scottish ? scottishFlatRatePercent(parsed.code, input.scottishBands) : null;
   const notIncluded =
     flatRate != null
-      ? `Scottish flat rate ${flatRate}% on all pay (no allowance). Student loans / pensions not included.`
+      ? `Scottish flat rate ${flatRate}% on all pay (no allowance). Pensions not included.`
       : scottish
-        ? 'Scottish income tax bands applied. Student loans / pensions not included.'
+        ? 'Scottish income tax bands applied. Pensions not included.'
         : welsh
-          ? 'Welsh income tax bands applied. Student loans / pensions not included.'
-          : 'Student loans / pensions / Scotland bands not included.';
+          ? 'Welsh income tax bands applied. Pensions not included.'
+          : 'Pensions / Scotland bands not included.';
 
   const forceNonCumulative =
     Boolean(input.week1Month1) ||
@@ -557,6 +601,32 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     ` employee NI £${employeeNi.toFixed(2)}; employer NI £${employerNi.toFixed(2)} (employer cost, not deducted from pay).`,
   ].join('');
 
+  // Gate C11: student and postgraduate loans on the NI-able earnings of the earnings period (the
+  // pay employer NI is worked on, not taxable pay), less what earlier payments in the period
+  // deducted, so the period threshold is applied once. Taken from net pay only.
+  const loans = input.studentLoans ?? null;
+  const studentLoanDeduction =
+    loans?.plan && loans.planThreshold != null
+      ? Math.max(0, loanDeductionOn(niableEarnings, loans.planThreshold, 9) - loans.earlierStudentLoan)
+      : 0;
+  const postgraduateLoanDeduction =
+    loans?.postgraduate && loans.postgraduateThreshold != null
+      ? Math.max(0, loanDeductionOn(niableEarnings, loans.postgraduateThreshold, 6) - loans.earlierPostgraduateLoan)
+      : 0;
+  const loanFields = {
+    studentLoanPlanApplied: (loans?.plan ?? 'NONE') as StudentLoanPlan | 'NONE',
+    studentLoanDeduction,
+    postgraduateLoanApplied: Boolean(loans?.postgraduate),
+    postgraduateLoanDeduction,
+  };
+  const loanExplanation =
+    loans?.plan || loans?.postgraduate
+      ? [
+          loans.plan ? `Student loan Plan ${loans.plan}: 9% over £${loans.planThreshold?.toFixed(2)} = £${studentLoanDeduction.toFixed(2)}.` : '',
+          loans.postgraduate ? `Postgraduate loan: 6% over £${loans.postgraduateThreshold?.toFixed(2)} = £${postgraduateLoanDeduction.toFixed(2)}.` : '',
+        ].filter(Boolean).join(' ')
+      : 'No student or postgraduate loan recorded.';
+
   if (forceNonCumulative || parsed.special === 'NT') {
     // Week 1 / Month 1: the period 1 figures on this period's pay alone; earlier pay and tax are
     // not looked at, so there is never a refund (HMRC PAYE11090).
@@ -572,7 +642,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     const taxDue = taxOnTaxable(taxablePay, input.rates, periods, parsed.special, bands, flatRate);
     const limited = applyRegulatoryLimit(taxDue, gross);
     const incomeTax = limited.deducted;
-    const netPay = round2(gross - incomeTax - employeeNi);
+    const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction);
     const basisLabel = input.week1Month1
       ? 'Week 1 / Month 1 (non-cumulative)'
       : `Non-cumulative (${parsed.special})`;
@@ -585,6 +655,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
         ? [`Regulatory limit: tax due £${taxDue.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted (not collected later on this basis).`]
         : []),
       niExplanation,
+      loanExplanation,
       notIncluded,
     ].join(' ');
 
@@ -602,6 +673,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       taxDueThisPeriod: taxDue,
       taxNotDeductedOverLimit: limited.notDeducted,
       niRti,
+      ...loanFields,
       explanation,
     };
   }
@@ -626,7 +698,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const limited = applyRegulatoryLimit(taxDueThisPeriod, gross);
   const incomeTax = limited.deducted;
   const periodFreePay = round2(freePayToDate - freePayPrevious);
-  const netPay = round2(gross - incomeTax - employeeNi);
+  const netPay = round2(gross - incomeTax - employeeNi - studentLoanDeduction - postgraduateLoanDeduction);
 
   const explanation = [
     `Basis: Cumulative PAYE, ${input.frequency}, period ${periodNumber}/${periods}.`,
@@ -639,6 +711,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       ? [`Regulatory limit: tax due this period £${taxDueThisPeriod.toFixed(2)} is more than 50% of pay; £${limited.notDeducted.toFixed(2)} not deducted, still due and collected on a later pay day where the limit allows.`]
       : []),
     niExplanation,
+    loanExplanation,
     notIncluded,
   ].join(' ');
 
@@ -656,6 +729,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     taxDueThisPeriod,
     taxNotDeductedOverLimit: limited.notDeducted,
     niRti,
+    ...loanFields,
     explanation,
   };
 }
