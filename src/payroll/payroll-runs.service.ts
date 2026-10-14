@@ -976,6 +976,16 @@ export class PayrollRunsService {
         netPay: decimalNum(runEmployee.netPay),
         taxCodeApplied: runEmployee.taxCodeApplied,
         niCategoryApplied: runEmployee.niCategoryApplied,
+        // Gate C19: the closed row's stored loan and pension figures.
+        studentLoanPlanApplied: runEmployee.studentLoanPlanApplied,
+        studentLoanDeduction: decimalNum(runEmployee.studentLoanDeduction),
+        postgraduateLoanApplied: runEmployee.postgraduateLoanApplied,
+        postgraduateLoanDeduction: decimalNum(runEmployee.postgraduateLoanDeduction),
+        pensionApplied: runEmployee.pensionApplied,
+        pensionEmployeeNet: decimalNum(runEmployee.pensionEmployeeNet),
+        pensionEmployeeGross: decimalNum(runEmployee.pensionEmployeeGross),
+        pensionTaxRelief: decimalNum(runEmployee.pensionTaxRelief),
+        pensionEmployer: decimalNum(runEmployee.pensionEmployer),
       },
       employee: {
         displayName,
@@ -1008,6 +1018,12 @@ export class PayrollRunsService {
         : null,
     });
 
+    // Gate C19: the stored net pay must agree with the stored deductions; nothing is corrected here.
+    if (!payslip.reconciliation.ok) {
+      throw new ConflictException(
+        `Payslip not issued: the stored net pay £${payslip.reconciliation.storedNetPay.toFixed(2)} does not agree with gross less the stored deductions (£${payslip.reconciliation.expectedNetPay.toFixed(2)}). Review this payroll record.`,
+      );
+    }
     const buffer = await buildPayslipPdf(payslip);
     const filename = payslipPdfFilename(payslip);
 

@@ -93,6 +93,19 @@ export type BuildCarePayslipInput = {
     netPay: number
     taxCodeApplied: string | null
     niCategoryApplied: string | null
+    /**
+     * Gate C19: the stored C11-C16 figures of the run row. A null applied marker means the row was
+     * calculated before that figure existed (historical detail unavailable, not a zero).
+     */
+    studentLoanPlanApplied?: string | null
+    studentLoanDeduction?: number
+    postgraduateLoanApplied?: boolean | null
+    postgraduateLoanDeduction?: number
+    pensionApplied?: boolean | null
+    pensionEmployeeNet?: number
+    pensionEmployeeGross?: number
+    pensionTaxRelief?: number
+    pensionEmployer?: number
   }
   employee: {
     displayName: string
@@ -180,8 +193,10 @@ export function hoursFromPaidMinutes(minutes: number): number {
 }
 
 /**
- * Build a Care payslip snapshot from a CLOSED run employee row.
- * Does not invent loans/pension amounts - notes when those engines are pending.
+ * Build a Care payslip snapshot from a CLOSED run employee row: only the figures stored on the row
+ * (never current employee settings). Student loan, postgraduate loan and workplace pension lines
+ * appear when the run calculated them (a calculated £0.00 included); rows from before they were
+ * recorded say so instead of showing a zero.
  */
 export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipData {
   if (input.run.status !== 'CLOSED') {
@@ -201,11 +216,39 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
     earnings.push({ label: 'Gross pay', amount: round2(re.totalGross), isDeduction: false })
   }
 
+  const exact = (label: string, amount: number | undefined, isDeduction: boolean): PayslipMoneyLine => ({
+    label,
+    amount: round2(amount ?? 0),
+    isDeduction,
+  })
+  const plan = re.studentLoanPlanApplied ?? null
+  const studentLoanLine = plan && plan !== 'NONE' ? exact(`Student Loan (Plan ${plan})`, re.studentLoanDeduction, true) : null
+  const postgraduateLine = re.postgraduateLoanApplied ? exact('Postgraduate Loan', re.postgraduateLoanDeduction, true) : null
+  const pensionLine = re.pensionApplied ? exact('Workplace pension (employee, relief at source)', re.pensionEmployeeNet, true) : null
   const deductions: PayslipMoneyLine[] = [
     moneyLine('Income Tax (PAYE)', re.incomeTax, true),
     moneyLine('National Insurance (employee)', re.employeeNi, true),
+    studentLoanLine,
+    postgraduateLine,
+    pensionLine,
     moneyLine('Other deductions', re.deductionTotal, true),
   ].filter((l): l is PayslipMoneyLine => l != null)
+  const pensionInformation: PayslipMoneyLine[] = re.pensionApplied
+    ? [
+        exact('Employer pension contribution', re.pensionEmployer, false),
+        exact('Gross employee pension contribution', re.pensionEmployeeGross, false),
+        exact('Basic-rate tax relief claimed by the pension provider', re.pensionTaxRelief, false),
+      ]
+    : []
+  // Reconciliation on the stored figures: gross (after other deductions) less every employee deduction.
+  const expectedNetPay = round2(
+    re.totalGross -
+      re.incomeTax -
+      re.employeeNi -
+      (re.studentLoanDeduction ?? 0) -
+      (re.postgraduateLoanDeduction ?? 0) -
+      (re.pensionEmployeeNet ?? 0),
+  )
 
   const employerCosts: PayslipMoneyLine[] = [
     moneyLine('National Insurance (employer)', re.employerNi, false),
@@ -216,10 +259,22 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
   const timeVaryingGross = round2(re.visitPay + re.travelPay + re.nmwTopUp + re.otherPay)
   const hoursRequired = timeVaryingGross > 0 && paidHours > 0
 
+  const unavailable = [
+    re.studentLoanPlanApplied == null ? 'student loan' : null,
+    re.postgraduateLoanApplied == null ? 'postgraduate loan' : null,
+    re.pensionApplied == null ? 'workplace pension' : null,
+  ].filter(Boolean)
   const notes: string[] = [
     'Itemised pay statement under Employment Rights Act 1996 s.8.',
-    'Student loan, postgraduate loan, and workplace pension deductions are not calculated in Care yet - they will not appear until those engines ship.',
+    unavailable.length
+      ? `Historical detail unavailable: this run was calculated before ${unavailable.join(', ')} figures were recorded. They are not shown and are not assumed to be zero.`
+      : 'Student loan, postgraduate loan and workplace pension figures are those calculated and stored for this run.',
   ]
+  if (pensionInformation.length) {
+    notes.push(
+      'Workplace pension (relief at source): the employee deduction is the net contribution; the employer contribution, the gross employee contribution and the tax relief the provider claims are shown for information and are not deducted again.',
+    )
+  }
   const reimbursement = round2(re.reimbursementPayable ?? 0)
   if (reimbursement > 0) {
     notes.push(
@@ -277,6 +332,12 @@ export function buildCarePayslipData(input: BuildCarePayslipInput): CarePayslipD
     earnings,
     deductions,
     employerCosts,
+    pensionInformation,
+    reconciliation: {
+      ok: Math.abs(expectedNetPay - round2(re.netPay)) <= 0.005,
+      expectedNetPay,
+      storedNetPay: round2(re.netPay),
+    },
     totals: {
       grossPay: round2(re.totalGross),
       totalDeductions,

@@ -55,6 +55,17 @@ export type CarePayslipData = {
   deductions: PayslipMoneyLine[]
   /** Informational — not deducted from employee net. */
   employerCosts: PayslipMoneyLine[]
+  /**
+   * Gate C19: workplace pension figures for information (employer contribution, gross employee
+   * contribution, provider basic-rate relief). Not deducted: the employee's net contribution is the
+   * deduction line.
+   */
+  pensionInformation: PayslipMoneyLine[]
+  /**
+   * Gate C19: the stored net pay checked against the stored figures (gross less PAYE, employee NI,
+   * student loan, postgraduate loan and the pension deduction). ok false: do not issue the payslip.
+   */
+  reconciliation: { ok: boolean; expectedNetPay: number; storedNetPay: number }
   totals: {
     grossPay: number
     totalDeductions: number

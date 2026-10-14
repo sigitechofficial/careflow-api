@@ -174,4 +174,79 @@ describe('TR-13: reimbursements on the pay statement', () => {
     )
     expect(withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41 }).notes.some((n) => n.includes('not been verified'))).toBe(false)
   })
+
+  /**
+   * Gate C19: the stored C11-C16 figures on the payslip. £3,000 salary, PAYE £390.20, NI £156.16 /
+   * £387.45, Plan 2 £49, postgraduate £75, pension (relief at source) £99.20 from pay, £124.00
+   * gross, £24.80 relief, £74.40 employer: net £2,205.44.
+   */
+  describe('student loans and workplace pension on the payslip (Gate C19)', () => {
+    const stored = {
+      visitPay: 0,
+      salaryPay: 3000,
+      travelPay: 0,
+      expenseTotal: 0,
+      totalGross: 3000,
+      taxablePay: 1951,
+      incomeTax: 390.2,
+      employeeNi: 156.16,
+      employerNi: 387.45,
+      studentLoanPlanApplied: '2',
+      studentLoanDeduction: 49,
+      postgraduateLoanApplied: true,
+      postgraduateLoanDeduction: 75,
+      pensionApplied: true,
+      pensionEmployeeNet: 99.2,
+      pensionEmployeeGross: 124,
+      pensionTaxRelief: 24.8,
+      pensionEmployer: 74.4,
+      netPay: 2230.44,
+    }
+    const slip = (over: Record<string, unknown> = {}) => {
+      const base = baseInput()
+      return buildCarePayslipData({ ...base, runEmployee: { ...base.runEmployee, ...stored, ...over } })
+    }
+
+    it('Student Loan Plan 2 and the Postgraduate Loan are separate deductions', () => {
+      const data = slip()
+      expect(data.deductions.map((d) => [d.label, d.amount])).toEqual([
+        ['Income Tax (PAYE)', 390.2],
+        ['National Insurance (employee)', 156.16],
+        ['Student Loan (Plan 2)', 49],
+        ['Postgraduate Loan', 75],
+        ['Workplace pension (employee, relief at source)', 99.2],
+      ])
+      // A calculated zero is shown; no plan applied shows no line.
+      expect(slip({ studentLoanDeduction: 0, netPay: 2279.44 }).deductions.find((d) => d.label === 'Student Loan (Plan 2)')?.amount).toBe(0)
+      expect(slip({ studentLoanPlanApplied: 'NONE', studentLoanDeduction: 0, netPay: 2279.44 }).deductions.some((d) => d.label.startsWith('Student Loan'))).toBe(false)
+      expect(data.notes.some((n) => n.includes('not calculated in Care yet'))).toBe(false)
+    })
+
+    it('relief at source: £99.20 deducted once; employer £74.40, gross £124.00 and relief £24.80 shown for information only', () => {
+      const data = slip()
+      expect(data.pensionInformation.map((d) => [d.label, d.amount, d.isDeduction])).toEqual([
+        ['Employer pension contribution', 74.4, false],
+        ['Gross employee pension contribution', 124, false],
+        ['Basic-rate tax relief claimed by the pension provider', 24.8, false],
+      ])
+      expect(data.deductions.filter((d) => d.label.includes('pension'))).toHaveLength(1)
+      expect(data.totals).toMatchObject({ grossPay: 3000, totalDeductions: 769.56, netPay: 2230.44 })
+      expect(data.employerCosts.map((c) => c.label)).toEqual(['National Insurance (employer)']) // not a deduction
+      expect(data.reconciliation).toEqual({ ok: true, expectedNetPay: 2230.44, storedNetPay: 2230.44 })
+      // Built again from the same row: the same figures, nothing added twice.
+      expect(slip()).toEqual({ ...data, meta: { ...data.meta } })
+    })
+
+    it('a row from before loans and pensions were recorded says so instead of showing zeros; a stored net pay that does not agree is flagged', () => {
+      const legacy = buildCarePayslipData(baseInput()) // no C11-C16 fields: an old closed run
+      expect(legacy.deductions.some((d) => /Student Loan|Postgraduate|pension/.test(d.label))).toBe(false)
+      expect(legacy.pensionInformation).toEqual([])
+      expect(legacy.notes).toContain(
+        'Historical detail unavailable: this run was calculated before student loan, postgraduate loan, workplace pension figures were recorded. They are not shown and are not assumed to be zero.',
+      )
+      expect(legacy.reconciliation.ok).toBe(true) // 840 − 68.20 − 32.40 = 739.40
+      const wrong = slip({ netPay: 2329.64 }) // as if the pension had not been deducted
+      expect(wrong.reconciliation).toEqual({ ok: false, expectedNetPay: 2230.44, storedNetPay: 2329.64 })
+    })
+  })
 })

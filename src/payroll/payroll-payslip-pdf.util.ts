@@ -386,6 +386,22 @@ export function buildPayslipPdf(data: CarePayslipData): Promise<Buffer> {
       y += 14
     }
 
+    if (data.pensionInformation.length > 0) {
+      doc
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(C.muted)
+        .text(
+          `Workplace pension (information, not deducted again): ${data.pensionInformation
+            .map((c) => `${c.label} ${gbp(c.amount)}`)
+            .join('  |  ')}`,
+          left,
+          y,
+          { width: contentW },
+        )
+      y += 14
+    }
+
     // —— YTD ——
     if (data.ytd) {
       const ytdH = 52
