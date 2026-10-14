@@ -1,3 +1,5 @@
+import { LeaveService } from './leave.service';
+import { leaveTakenInAdvanceValue } from './leave.util';
 import { legacyPensionConflict } from './uk-deduction-elections.util';
 import { applicableLoanNotice } from './payroll-loan-notice.util';
 import {
@@ -1789,6 +1791,85 @@ export class PayrollRunsService {
       }
     }
 
+    // Leave taken in advance (employer decision 2026-10-14): an employee who leaves in this period
+    // having taken more leave than earned by the leaving date has the excess days, at annual
+    // salary / 260, proposed for recovery. Like every wage recovery it needs a second person's
+    // approval with the authority (the contract term) and the employer's recovery policy on record;
+    // until then it is shown and nothing is deducted.
+    const leave = new LeaveService(this.prisma, this.audit);
+    for (const runEmployee of runEmployees) {
+      const employeeId = runEmployee.employeeId;
+      const leavingDate = employmentByEmployee.get(employeeId)?.endDate ?? null;
+      if (!leavingDate || leavingDate < periodStart || leavingDate > periodEnd) continue;
+      const position = (await leave.summary(employeeId, undefined, dateToIsoDate(leavingDate)!)).data as {
+        terms?: { weeklyHours: number | null } | null;
+        leaveYear?: { start: string };
+        leaver?: { untakenHours: number; takenMoreThanEarned: boolean } | null;
+      };
+      if (!position.leaver?.takenMoreThanEarned) continue;
+      const excessHours = round2(-position.leaver.untakenHours);
+      const salaryAgreement = (agreementsByEmployee.get(employeeId) ?? [])
+        .filter(
+          (a) =>
+            carriesSalary(a) &&
+            a.annualSalary != null &&
+            a.effectiveFrom.getTime() <= leavingDate.getTime() &&
+            (!a.effectiveTo || a.effectiveTo.getTime() >= leavingDate.getTime()),
+        )
+        .sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime() || b.decidedAt.getTime() - a.decidedAt.getTime())[0];
+      const value = leaveTakenInAdvanceValue({
+        excessHours,
+        weeklyHours: position.terms?.weeklyHours ?? null,
+        annualSalary: salaryAgreement?.annualSalary ?? null,
+      });
+      const subjectKey = `LEAVE_ADVANCE:${employeeId}:${position.leaveYear?.start ?? dateToIsoDate(leavingDate)}`;
+      if (!value) {
+        draftLines.push({
+          ...salaryLine,
+          id: randomUUID(),
+          runId,
+          runEmployeeId: runEmployee.id,
+          employeeId,
+          lineType: 'SALARY_ADJUSTMENT',
+          description: `Not deducted — ${excessHours.toFixed(2)} hours of leave taken beyond what was earned by the leaving date ${dateToIsoDate(leavingDate)}: it cannot be valued at annual salary / 260 (no annual salary or no weekly hours on record).`,
+          amount: 0,
+          claimKey: null,
+          unpaidAmount: 0,
+          unpaidReason: RECOVERY_NOT_AUTHORISED,
+        });
+        continue;
+      }
+      confirmedRecoveries.push(subjectKey);
+      const outcome = await resolveWageRecovery(this.prisma, {
+        subjectKey,
+        kind: 'LEAVE_IN_ADVANCE',
+        employeeId,
+        amount: value.amount,
+        reason: `Leave taken in advance: ${value.days.toFixed(2)} day(s) (${excessHours.toFixed(2)} hours) more than earned by the leaving date ${dateToIsoDate(leavingDate)}, at £${salaryAgreement!.annualSalary!.toFixed(2)} / 260 = £${value.dayRate.toFixed(2)} a day.`,
+        originalReference: `Leave position on ${dateToIsoDate(leavingDate)}: ${excessHours.toFixed(2)} hours taken beyond the leave earned.`,
+        paidAmount: null,
+        dueAmount: null,
+        runId,
+        userId,
+      });
+      if (outcome === 'WRITTEN_OFF') continue;
+      draftLines.push({
+        ...salaryLine,
+        id: randomUUID(),
+        runId,
+        runEmployeeId: runEmployee.id,
+        employeeId,
+        lineType: 'SALARY_ADJUSTMENT',
+        description:
+          outcome === 'APPLY'
+            ? `Leave taken in advance recovered on leaving: ${value.days.toFixed(2)} day(s) at £${value.dayRate.toFixed(2)} (annual salary / 260)`
+            : `Not deducted — leave taken in advance (${value.days.toFixed(2)} day(s)): ${recoveryHeldMessage(value.amount, outcome)}`,
+        amount: outcome === 'APPLY' ? -value.amount : 0,
+        claimKey: outcome === 'APPLY' ? subjectKey : null,
+        ...(outcome === 'APPLY' ? {} : { unpaidAmount: value.amount, unpaidReason: RECOVERY_NOT_AUTHORISED }),
+      });
+    }
+
     const salaryMonths = salaryMonthKeysForPeriod(periodStart, periodEnd);
     const deductions = await this.prisma.employeeSalaryDeduction.findMany({
       where: {
@@ -3080,7 +3161,8 @@ export class PayrollRunsService {
         );
       }
       const closingClaims = await tx.ukPayrollInputLine.findMany({
-        where: { runId, claimKey: { startsWith: 'SALARY_ADJ:' } },
+        // Salary recoveries and (employer decision 2026-10-14) leave taken in advance.
+        where: { runId, OR: [{ claimKey: { startsWith: 'SALARY_ADJ:' } }, { claimKey: { startsWith: 'LEAVE_ADVANCE:' } }] },
         select: { claimKey: true },
       });
       await markRecoveriesApplied(tx, runId, closingClaims.map((l) => l.claimKey as string));

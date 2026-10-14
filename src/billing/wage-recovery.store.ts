@@ -18,7 +18,7 @@ import { Prisma } from '@prisma/client';
 type Db = Prisma.TransactionClient;
 
 export const RECOVERY_NOT_AUTHORISED = 'RECOVERY_NOT_AUTHORISED';
-export const WAGE_RECOVERY_KINDS = ['SALARY', 'GUARANTEED_HOURS', 'OVERTIME', 'NMW_TOP_UP'] as const;
+export const WAGE_RECOVERY_KINDS = ['SALARY', 'GUARANTEED_HOURS', 'OVERTIME', 'NMW_TOP_UP', 'LEAVE_IN_ADVANCE'] as const;
 export type WageRecoveryKind = (typeof WAGE_RECOVERY_KINDS)[number];
 
 /**

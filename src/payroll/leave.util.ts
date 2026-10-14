@@ -165,3 +165,21 @@ export function normalRemuneration(weeks: WeekOfPay[], leaveWeekKey: string) {
     complete: used.length === REFERENCE_WEEKS,
   };
 }
+
+/**
+ * Employer decision (2026-10-14): leave taken beyond what was earned by the leaving date is valued
+ * at annual salary / 260 a day (52 weeks of 5 days), a day being a fifth of the contracted weekly
+ * hours. Returns null when it cannot be valued (no weekly hours or no annual salary).
+ */
+export function leaveTakenInAdvanceValue(input: {
+  excessHours: number;
+  weeklyHours: number | null;
+  annualSalary: number | null;
+}): { days: number; dayRate: number; amount: number } | null {
+  if (!(input.excessHours > 0) || !input.weeklyHours || input.weeklyHours <= 0 || !input.annualSalary || input.annualSalary <= 0) {
+    return null;
+  }
+  const days = round2(input.excessHours / (input.weeklyHours / 5));
+  const dayRate = round2(input.annualSalary / 260);
+  return { days, dayRate, amount: round2((days * input.annualSalary) / 260) };
+}
