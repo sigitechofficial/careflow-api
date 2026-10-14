@@ -4,6 +4,7 @@ import {
   parseUkTaxCode,
   periodsInTaxYear,
   rawTaxYearPeriodNumber,
+  scottishFlatRatePercent,
   scottishIncomeTaxBands,
   taxYearPeriodNumber,
   unsupportedTaxCodeReason,
@@ -160,7 +161,7 @@ describe('payroll-statutory.util', () => {
     });
 
     it('codes this version does not calculate are named, not guessed', () => {
-      for (const code of ['1257L', 'C1257L', 'BR', 'NT', '0T', 'D0', 'D1', ' 1257L ']) expect(unsupportedTaxCodeReason(code)).toBeNull();
+      for (const code of ['1257L', 'C1257L', 'BR', 'NT', '0T', 'D0', 'D1', ' 1257L ']) expect(unsupportedTaxCodeReason(code, true, true)).toBeNull();
       expect(unsupportedTaxCodeReason(null)).toBe('no tax code recorded');
       expect(unsupportedTaxCodeReason('  ')).toBe('no tax code recorded');
       expect(unsupportedTaxCodeReason('S1257L')).toMatch(/^Scottish tax code S1257L \(no Scottish rates recorded/);
@@ -267,12 +268,12 @@ describe('payroll-statutory.util', () => {
       // No Scottish bands are assumed for another year, and an S code never falls back to England bands.
       expect(scottishIncomeTaxBands(new Date(Date.UTC(2025, 3, 6)))).toBeNull();
       expect(() => run({ scottishBands: null, periodNumber: 1, periodGross: 3000 })).toThrow(/no Scottish rates recorded/);
-      // Supported: standard allowance codes. Refused: SK, flat-rate SBR / SD codes, and anything else.
+      // Supported: standard allowance codes (and, from Gate C5, SBR / SD0-SD3). Refused: anything else.
       for (const code of ['S1257L', 'S431L', 'S1383M', 'S1131N', 'S1257T']) expect(unsupportedTaxCodeReason(code, true)).toBeNull();
       expect(unsupportedTaxCodeReason('SK0', true)).toMatch(/^Scottish K code SK0 is not recognised/); // SK475 supported from Gate C4
-      for (const code of ['SBR', 'SD0', 'SD1', 'SD2', 'SD3']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/^Scottish flat-rate code/);
+      for (const code of ['SBR', 'SD0', 'SD1', 'SD2', 'SD3']) expect(unsupportedTaxCodeReason(code, true)).toBeNull();
       for (const code of ['S', 'S0T', 'SNT', 'S12A57', 'S1257', 'S1257LX']) expect(unsupportedTaxCodeReason(code, true)).toMatch(/not supported by this version/);
-      expect(() => run({ taxCode: 'SBR', periodNumber: 1, periodGross: 3000 })).toThrow(/Scottish flat-rate code SBR/);
+      expect(() => run({ taxCode: 'SD4', periodNumber: 1, periodGross: 3000 })).toThrow(/Scottish flat-rate code SD4 is not recognised/);
     });
 
     it('Week 1 / Month 1 on Scottish bands (no refund); the 50% limit holds back Scottish tax over half of pay', () => {
@@ -354,6 +355,71 @@ describe('payroll-statutory.util', () => {
       expect(() => run({ taxCode: 'CK475', welshBands: null, periodNumber: 1, periodGross: 2000 })).toThrow(/no Welsh rates recorded/);
       expect(() => run({ scottishBands: null, periodNumber: 1, periodGross: 2000 })).toThrow(/no Scottish rates recorded/);
       expect(() => run({ taxCode: 'SK0', periodNumber: 1, periodGross: 2000 })).toThrow(/not recognised/);
+    });
+  });
+
+  /**
+   * Gate C5. GOV.UK "What your tax code means": SBR, SD0, SD1, SD2 and SD3 tax all pay at the
+   * Scottish basic, intermediate, higher, advanced and top rate (2026-27: 20%, 21%, 42%, 45%,
+   * 48%, GOV.UK "Rates and thresholds for employers 2026 to 2027"); C codes use the rates in
+   * Wales. Welsh figures: Pay Adjustment Tables A (1257: £1,048.26 a month) and Tables C (month 1:
+   * £628.46 at £3,142).
+   */
+  describe('Scottish flat-rate codes and Welsh C allowance codes (Gate C5)', () => {
+    const start2026 = new Date(Date.UTC(2026, 3, 6));
+    const scottishBands = scottishIncomeTaxBands(start2026);
+    const welshBands = welshIncomeTaxBands(start2026);
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: 'SD1', niCategory: 'A', frequency: 'MONTHLY', rates, scottishBands, welshBands, ...over });
+
+    it('SBR, SD0, SD1, SD2 and SD3 map to 20%, 21%, 42%, 45% and 48% of all pay, with no allowance', () => {
+      expect(['SBR', 'SD0', 'SD1', 'SD2', 'SD3'].map((code) => scottishFlatRatePercent(code, scottishBands))).toEqual([20, 21, 42, 45, 48]);
+      const onPay = (taxCode: string) => run({ taxCode, week1Month1: true, periodNumber: 1, periodGross: 1000 });
+      expect(['SBR', 'SD0', 'SD1', 'SD2', 'SD3'].map((code) => onPay(code).incomeTax)).toEqual([200, 210, 420, 450, 480]);
+      expect(onPay('SD1')).toMatchObject({ periodFreePay: 0, taxablePay: 1000, taxCodeApplied: 'SD1' });
+      expect(onPay('SD1').explanation).toContain('Scottish flat rate 42% on all pay (no allowance)');
+      // Not England's rates: D0 is 40% there.
+      expect(onPay('D0').incomeTax).toBe(400);
+      // Existing rounding: taxable pay down to the pound, tax down to the penny (£1,234 × 21% = £259.14).
+      expect(run({ taxCode: 'SD0', week1Month1: true, periodGross: 1234.56 })).toMatchObject({ taxablePay: 1234, incomeTax: 259.14 });
+    });
+
+    it('flat rate on the recorded basis: cumulative refunds and the 50% limit; malformed codes and years without Scottish rates refused', () => {
+      // Cumulative (no Week 1 / Month 1 recorded): month 2, £5,000 to date × 48% = £2,400 due; limit £500.
+      expect(run({ taxCode: 'SD3', periodNumber: 2, ytdGrossBefore: 4000, ytdTaxBefore: 0, periodGross: 1000 })).toMatchObject({
+        calculationBasis: 'CUMULATIVE',
+        taxDueThisPeriod: 2400,
+        incomeTax: 500,
+        taxNotDeductedOverLimit: 1900,
+      });
+      // Over-deducted before: £4,000 × 42% = £1,680 due, £2,000 deducted: £320 refunded in full.
+      expect(run({ periodNumber: 2, ytdGrossBefore: 4000, ytdTaxBefore: 2000, periodGross: 0 }).incomeTax).toBe(-320);
+      // Week 1 / Month 1 recorded: this period alone, earlier tax not looked at.
+      expect(run({ taxCode: 'SD3', week1Month1: true, periodNumber: 2, ytdGrossBefore: 4000, ytdTaxBefore: 2000, periodGross: 1000 })).toMatchObject({
+        calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
+        incomeTax: 480,
+      });
+      expect(unsupportedTaxCodeReason('SD4', true)).toMatch(/^Scottish flat-rate code SD4 is not recognised/);
+      expect(unsupportedTaxCodeReason('SBR', false)).toMatch(/^Scottish flat-rate code SBR \(no Scottish rates recorded/);
+      expect(() => run({ taxCode: 'SBR', scottishBands: null, periodGross: 1000 })).toThrow(/no Scottish rates recorded/);
+    });
+
+    it('C1257L uses the Welsh bands of the tax year (not England\'s), keeps cumulative refunds, and is refused without Welsh rates', () => {
+      // 2026-27: £3,000 − £1,048.26 → £1,951 at 20% = £390.20; taxable £4,142 = £628.46 + 40% of £1,000.
+      const m1 = run({ taxCode: 'C1257L', periodNumber: 1, periodGross: 3000 });
+      expect(m1).toMatchObject({ taxablePay: 1951, incomeTax: 390.2, taxCodeApplied: 'C1257L' });
+      expect(m1.explanation).toContain('Welsh income tax bands applied');
+      expect(run({ taxCode: 'C1257L', periodNumber: 1, periodGross: 5190.26 }).taxDueThisPeriod).toBe(1028.46);
+      // Routing: a (synthetic) Welsh rate different from England's changes C1257L only.
+      const otherWelsh = [{ upToAnnual: 37700, ratePercent: 21 }, { upToAnnual: 125140, ratePercent: 40 }, { upToAnnual: null, ratePercent: 45 }];
+      expect(run({ taxCode: 'C1257L', welshBands: otherWelsh, periodNumber: 1, periodGross: 3000 }).incomeTax).toBe(409.71);
+      expect(run({ taxCode: '1257L', welshBands: otherWelsh, periodNumber: 1, periodGross: 3000 }).incomeTax).toBe(390.2);
+      // Cumulative refund and Week 1 / Month 1 as before.
+      expect(run({ taxCode: 'C1257L', periodNumber: 2, ytdGrossBefore: 3000, ytdTaxBefore: 390.2, periodGross: 500 }).incomeTax).toBe(-109.6);
+      expect(run({ taxCode: 'C1257L', week1Month1: true, periodNumber: 2, ytdGrossBefore: 3000, ytdTaxBefore: 390.2, periodGross: 500 }).incomeTax).toBe(0);
+      // No verified Welsh bands for the year: refused, never England's.
+      expect(unsupportedTaxCodeReason('C1257L', true, false)).toMatch(/^Welsh tax code C1257L \(no Welsh rates recorded/);
+      expect(() => run({ taxCode: 'C1257L', welshBands: null, periodNumber: 1, periodGross: 3000 })).toThrow(/no Welsh rates recorded/);
     });
   });
 });

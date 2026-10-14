@@ -180,6 +180,31 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
   });
 
+  it('Gate C5: C1257L on the Welsh bands, then SD1 at 42% cumulative: tax, net pay and the year-to-date ledger', async () => {
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'C1257L' } });
+    await agree(24_000); // £2,000.00 a month
+    const april = await run(APRIL);
+    // C1257L: £2,000 − £1,048.26 → £951 at 20% = £190.20; NI (2,000 − 1,048) × 8% = £76.16.
+    expect(await taxAndNi(april)).toEqual({ gross: 2000, taxablePay: 951, incomeTax: 190.2, employeeNi: 76.16, netPay: 1733.64, taxCodeApplied: 'C1257L' });
+    expect((await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId: april, employeeId } })).statutoryExplanation).toContain('Welsh income tax bands applied');
+
+    // Corrected to SD1 before closing: 42% of all pay, £840.00.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SD1' } });
+    expect(await taxAndNi(april)).toEqual({ gross: 2000, taxablePay: 2000, incomeTax: 840, employeeNi: 76.16, netPay: 1083.84, taxCodeApplied: 'SD1' });
+    await ukRuns.close(checker.id, april);
+    expect(Number((await ledger())!.incomeTaxYtd)).toBe(840);
+
+    // May, cumulative: £4,000 × 42% = £1,680 less £840 = £840.
+    const may = await run(MAY);
+    const first = await taxAndNi(may);
+    expect(first).toMatchObject({ gross: 2000, incomeTax: 840, netPay: 1083.84 });
+    expect(await taxAndNi(may)).toEqual(first);
+    await ukRuns.close(checker.id, may);
+    const after = (await ledger())!;
+    expect([Number(after.grossPayYtd), Number(after.incomeTaxYtd)]).toEqual([4000, 1680]);
+    expect(await t.prisma.employeePayrollYtdContribution.count({ where: { employeeId } })).toBe(2);
+  });
+
   it('nothing is guessed: no tax code, a code not supported yet, or a period outside the tax year stops the calculation', async () => {
     await agree(36_000, { effectiveFrom: new Date('2026-03-01') }); // paid in March too
     const april = await run(APRIL);
@@ -189,8 +214,8 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Tax and NI not calculated: 1 employee\(s\) cannot be taxed by this version: no tax code recorded \(1\)/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SK0' } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish K code SK0 is not recognised/);
-    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SBR' } });
-    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish flat-rate code SBR/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SD4' } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish flat-rate code SD4 is not recognised/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'K475' } });
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'CK0' } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Welsh K code CK0 is not recognised/);
