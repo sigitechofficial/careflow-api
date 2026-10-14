@@ -81,6 +81,7 @@ import {
   periodsInTaxYear,
   rawTaxYearPeriodNumber,
   taxYearPeriodNumber,
+  directorNiPeriod,
   unsupportedNiCategoryReason,
   unsupportedTaxCodeReason,
   scottishIncomeTaxBands,
@@ -2183,6 +2184,89 @@ export class PayrollRunsService {
     const profileByEmployeeId = new Map(profiles.map((p) => [p.employeeId, p]));
     const ytdByEmployeeId = new Map(ytdLedgers.map((y) => [y.employeeId, y]));
 
+    // Gate C7: directors' NI on the standard annual method (AN). The director's earnings period
+    // holds the earnings paid on or after the appointment date in this tax year (CA44 para 33:
+    // earlier earnings as an employee are kept apart, with the NI they paid). Anything this
+    // version cannot attribute or calculate safely stops the calculation.
+    const closedInYear = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        runId: { not: runId },
+        run: { taxYearId: run.taxYearId, status: 'CLOSED', deletedAt: null },
+      },
+      select: {
+        employeeId: true,
+        totalGross: true,
+        employeeNi: true,
+        employerNi: true,
+        niCategoryApplied: true,
+        run: { select: { period: { select: { paymentDate: true, periodEnd: true } } } },
+      },
+    });
+    const openInYear = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        runId: { not: runId },
+        run: { taxYearId: run.taxYearId, status: { notIn: ['CLOSED', 'CANCELLED'] }, deletedAt: null },
+      },
+      select: { employeeId: true },
+    });
+    const directorNiByEmployeeId = new Map<string, NonNullable<Parameters<typeof calculatePeriodStatutory>[0]['directorNi']>>();
+    const directorReasonByEmployeeId = new Map<string, string>();
+    for (const re of runEmployees) {
+      const profile = profileByEmployeeId.get(re.employeeId);
+      const refuse = (reason: string) => directorReasonByEmployeeId.set(re.employeeId, reason);
+      if (!profile || profile.isDirector == null) {
+        refuse('director status not recorded (confirm whether the person is a company director)');
+        continue;
+      }
+      if (!profile.isDirector) continue;
+      if (!profile.directorAppointedOn) {
+        refuse('director appointment date not recorded');
+        continue;
+      }
+      if (profile.directorNicMethod !== 'AN') {
+        refuse(`director NI method ${profile.directorNicMethod ?? 'not recorded'} (only the standard annual method AN is calculated)`);
+        continue;
+      }
+      // Paid before the appointment: an employee's earnings, on the ordinary period rules.
+      if (profile.directorAppointedOn > paidOn) continue;
+      const period = directorNiPeriod(run.taxYear.startDate, profile.directorAppointedOn);
+      if (!period) {
+        refuse(`no director NI thresholds recorded for tax year ${run.taxYear.code}`);
+        continue;
+      }
+      const category = (profile.niCategory ?? '').toUpperCase();
+      if (category !== 'A' && category !== 'C') {
+        refuse(`director NI category ${category || 'not recorded'} (only A and C are calculated for directors)`);
+        continue;
+      }
+      if (openInYear.some((o) => o.employeeId === re.employeeId)) {
+        refuse('director NI is cumulative over the year: another run in this tax year that includes the director is not closed');
+        continue;
+      }
+      const closed = closedInYear.filter((c) => c.employeeId === re.employeeId);
+      const closedGross = closed.reduce((sum, c) => sum + decimalNum(c.totalGross), 0);
+      const ledgerGross = decimalNum(ytdByEmployeeId.get(re.employeeId)?.grossPayYtd ?? 0);
+      if (Math.abs(ledgerGross - closedGross) > 0.005) {
+        refuse('year-to-date pay includes amounts not paid by closed runs here (director earnings cannot be attributed safely)');
+        continue;
+      }
+      const inDirectorPeriod = closed.filter(
+        (c) => (c.run.period.paymentDate ?? c.run.period.periodEnd) >= profile.directorAppointedOn!,
+      );
+      if (inDirectorPeriod.some((c) => (c.niCategoryApplied ?? '').toUpperCase() !== category)) {
+        refuse("NI category changed during the director's earnings period (not calculated by this version)");
+        continue;
+      }
+      directorNiByEmployeeId.set(re.employeeId, {
+        ...period,
+        earningsBefore: inDirectorPeriod.reduce((sum, c) => sum + decimalNum(c.totalGross), 0),
+        employeeNiBefore: inDirectorPeriod.reduce((sum, c) => sum + decimalNum(c.employeeNi), 0),
+        employerNiBefore: inDirectorPeriod.reduce((sum, c) => sum + decimalNum(c.employerNi), 0),
+      });
+    }
+
     // Gate C1: tax is worked out only on a tax code this version supports; nothing is guessed.
     // Gate C3: S codes use this tax year's Scottish bands, and are refused when none are known.
     // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
@@ -2199,6 +2283,8 @@ export class PayrollRunsService {
       // Gate C6: NI only on a recorded category this version calculates; never assumed to be A.
       const niReason = unsupportedNiCategoryReason(profileByEmployeeId.get(re.employeeId)?.niCategory);
       if (niReason) refused.set(niReason, (refused.get(niReason) ?? 0) + 1);
+      const directorReason = directorReasonByEmployeeId.get(re.employeeId);
+      if (directorReason) refused.set(directorReason, (refused.get(directorReason) ?? 0) + 1);
     }
     if (refused.size) {
       const count = [...refused.values()].reduce((a, b) => a + b, 0);
@@ -2244,6 +2330,7 @@ export class PayrollRunsService {
       netPay: number;
       taxCodeApplied: string;
       niCategoryApplied: string;
+      directorNicMethodApplied: string | null;
       statutoryExplanation: string;
     }> = [];
 
@@ -2263,6 +2350,7 @@ export class PayrollRunsService {
         scottishBands,
         welshBands,
         niEarlierInPeriod: niEarlierByEmployeeId.get(re.employeeId) ?? null,
+        directorNi: directorNiByEmployeeId.get(re.employeeId) ?? null,
       });
       if (result.calculationBasis === 'CUMULATIVE') usedCumulative += 1;
       else usedNonCumulative += 1;
@@ -2279,6 +2367,7 @@ export class PayrollRunsService {
         netPay: result.netPay,
         taxCodeApplied: result.taxCodeApplied,
         niCategoryApplied: result.niCategoryApplied,
+        directorNicMethodApplied: result.directorNicMethodApplied,
         statutoryExplanation: result.explanation,
       });
     }
@@ -2307,6 +2396,7 @@ export class PayrollRunsService {
             netPay: toDecimal(row.netPay),
             taxCodeApplied: row.taxCodeApplied,
             niCategoryApplied: row.niCategoryApplied,
+            directorNicMethodApplied: row.directorNicMethodApplied,
             statutoryExplanation: row.statutoryExplanation,
             statutoryCalculatedAt: now,
           },

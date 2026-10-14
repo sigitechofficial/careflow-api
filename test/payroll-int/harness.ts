@@ -246,7 +246,8 @@ export async function giveTaxCode(prisma: PrismaService, employeeIds: string[], 
     await prisma.employeePayrollProfile.upsert({
       where: { employeeId },
       update: { taxCode },
-      create: { employeeId, taxCode, niCategory: 'A' }, // synthetic: NI is never calculated on a guessed category
+      // synthetic: NI is never calculated on a guessed category or director status
+      create: { employeeId, taxCode, niCategory: 'A', isDirector: false },
     });
   }
 }

@@ -208,6 +208,9 @@ export function mapProfile(row: {
   pensionOptedIn: boolean;
   pensionSchemeRef: string | null;
   apprenticeshipStartDate?: Date | null;
+  isDirector?: boolean | null;
+  directorAppointedOn?: Date | null;
+  directorNicMethod?: string | null;
   deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
@@ -244,6 +247,9 @@ export function mapProfile(row: {
     pensionOptedIn: row.pensionOptedIn,
     pensionSchemeRef: row.pensionSchemeRef,
     apprenticeshipStartDate: dateToIsoDate(row.apprenticeshipStartDate ?? null),
+    isDirector: row.isDirector ?? null,
+    directorAppointedOn: dateToIsoDate(row.directorAppointedOn ?? null),
+    directorNicMethod: row.directorNicMethod ?? null,
     deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,

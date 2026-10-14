@@ -364,6 +364,14 @@ export class PayrollEmployeesService {
           : dto.apprenticeshipStartDate
             ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
             : null,
+      isDirector: dto.isDirector,
+      directorAppointedOn:
+        dto.directorAppointedOn === undefined
+          ? undefined
+          : dto.directorAppointedOn
+            ? parsePayrollDateOnly(dto.directorAppointedOn)
+            : null,
+      directorNicMethod: dto.directorNicMethod,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
       bankAccountNumber:
         dto.bankAccountNumber === undefined ? undefined : dto.bankAccountNumber?.trim() || null,
@@ -405,6 +413,9 @@ export class PayrollEmployeesService {
               apprenticeshipStartDate: dto.apprenticeshipStartDate
                 ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
                 : null,
+              isDirector: dto.isDirector ?? null,
+              directorAppointedOn: dto.directorAppointedOn ? parsePayrollDateOnly(dto.directorAppointedOn) : null,
+              directorNicMethod: dto.directorNicMethod ?? null,
               bankSortCode: dto.bankSortCode?.trim() || null,
               bankAccountNumber: dto.bankAccountNumber?.trim() || null,
               bankAccountName: dto.bankAccountName?.trim() || null,

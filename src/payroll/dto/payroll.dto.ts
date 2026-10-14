@@ -462,6 +462,21 @@ export class UpsertEmployeePayrollProfileDto {
   @IsDateString()
   apprenticeshipStartDate?: string | null;
 
+  @ApiPropertyOptional({ description: 'Company director for NI, as confirmed (null: not yet classified)' })
+  @IsOptional()
+  @IsBoolean()
+  isDirector?: boolean | null;
+
+  @ApiPropertyOptional({ example: '2026-05-10', description: 'The day the person was appointed a director' })
+  @IsOptional()
+  @IsDateString()
+  directorAppointedOn?: string | null;
+
+  @ApiPropertyOptional({ enum: ['AN'], description: "Directors' NIC method: AN, the standard annual earnings period" })
+  @IsOptional()
+  @IsIn(['AN'])
+  directorNicMethod?: 'AN' | null;
+
   @ApiPropertyOptional({ example: '12-34-56' })
   @IsOptional()
   @IsString()

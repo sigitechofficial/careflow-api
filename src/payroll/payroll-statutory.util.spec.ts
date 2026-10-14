@@ -1,5 +1,6 @@
 import {
   calculatePeriodStatutory,
+  directorNiPeriod,
   govUkEnglandRateSnapshot2026_27,
   parseUkTaxCode,
   periodsInTaxYear,
@@ -471,6 +472,68 @@ describe('payroll-statutory.util', () => {
       expect(unsupportedNiCategoryReason(null)).toBe('no NI category recorded');
       expect(() => run({ niCategory: 'J', periodGross: 3000 })).toThrow(/NI not calculated: NI category J/);
       expect(() => run({ niCategory: undefined, periodGross: 3000 })).toThrow(/no NI category recorded/);
+    });
+  });
+
+  /**
+   * Gate C7. HMRC CA44 (2026 to 2027), standard annual method AN: NI on the total earnings in the
+   * annual (or pro rata annual) earnings period less NI already paid. Annual thresholds from GOV.UK
+   * 2026-27: LEL £6,708, PT £12,570, ST £5,000, UEL £50,270. Pro rata figures as printed in CA44's
+   * quick guide to pro rata annual earnings periods.
+   */
+  describe('directors, standard annual method AN (Gate C7)', () => {
+    const start2026 = new Date(Date.UTC(2026, 3, 6));
+    const inPost = directorNiPeriod(start2026, new Date(Date.UTC(2020, 0, 1)))!;
+    const run = (over: Partial<Parameters<typeof calculatePeriodStatutory>[0]>) =>
+      calculatePeriodStatutory({ periodGross: 0, taxCode: '1257L', niCategory: 'A', frequency: 'MONTHLY', rates, periodNumber: 1, ...over });
+    const director = (period: NonNullable<ReturnType<typeof directorNiPeriod>>, before = [0, 0, 0]) => ({
+      ...period,
+      earningsBefore: before[0],
+      employeeNiBefore: before[1],
+      employerNiBefore: before[2],
+    });
+
+    it('director in post at the start of the year: annual thresholds, not the monthly ones', () => {
+      expect(inPost).toEqual({ method: 'AN', annual: true, weeks: 52, thresholds: { lel: 6708, pt: 12570, st: 5000, uel: 50270 } });
+      // £3,000 in month 1: below the annual ST and PT, no NI (an ordinary employee pays £156.16 / £387.45).
+      const m1 = run({ periodGross: 3000, directorNi: director(inPost) });
+      expect([m1.employeeNi, m1.employerNi, m1.directorNicMethodApplied]).toEqual([0, 0, 'AN']);
+      expect(m1.netPay).toBe(2609.8);
+      expect(m1.explanation).toContain('Director NI (method AN, annual earnings period of 52 weeks)');
+      // £60,000: (50,270 − 12,570) × 8% + (60,000 − 50,270) × 2% = £3,210.60; (60,000 − 5,000) × 15% = £8,250.00.
+      const big = run({ periodGross: 60000, directorNi: director(inPost) });
+      expect([big.employeeNi, big.employerNi]).toEqual([3210.6, 8250]);
+      const c = run({ niCategory: 'C', periodGross: 60000, directorNi: director(inPost) });
+      expect([c.employeeNi, c.employerNi]).toEqual([0, 8250]);
+      expect(run({ periodGross: 3000 }).directorNicMethodApplied).toBeNull();
+    });
+
+    it('director appointed during the year: pro rata thresholds from the week of appointment, as HMRC prints them', () => {
+      const at = (y: number, m: number, d: number) => directorNiPeriod(start2026, new Date(Date.UTC(y, m - 1, d)));
+      expect(at(2026, 4, 13)).toMatchObject({ annual: false, weeks: 51, thresholds: { lel: 6579, pt: 12329, st: 4904, uel: 49304 } }); // week 2
+      expect(at(2026, 6, 8)).toMatchObject({ weeks: 43, thresholds: { lel: 5547, pt: 10395, st: 4135, uel: 41570 } }); // week 10
+      expect(at(2026, 10, 7)).toMatchObject({ weeks: 26, thresholds: { lel: 3354, pt: 6285, st: 2500, uel: 25135 } }); // week 27
+      expect(at(2027, 3, 29)).toMatchObject({ weeks: 1, thresholds: { lel: 129, pt: 242, st: 97, uel: 967 } }); // week 52
+      expect(at(2027, 4, 5)).toMatchObject({ weeks: 1, thresholds: { lel: 129, pt: 242, st: 97, uel: 967 } }); // week 53
+      // 26 weeks, £10,000 since appointment: (10,000 − 6,285) × 8% = £297.20; (10,000 − 2,500) × 15% = £1,125.00.
+      const r = run({ periodGross: 10000, directorNi: director(at(2026, 10, 7)!) });
+      expect([r.employeeNi, r.employerNi]).toEqual([297.2, 1125]);
+      expect(r.explanation).toContain('pro rata annual earnings period of 26 weeks');
+      // No figures are assumed for another year.
+      expect(directorNiPeriod(new Date(Date.UTC(2025, 3, 6)), new Date(Date.UTC(2020, 0, 1)))).toBeNull();
+    });
+
+    it('two payments: NI on the total to date less NI already paid, no double deduction; other categories refused', () => {
+      // £10,000: no employee NI (below £12,570); employer (10,000 − 5,000) × 15% = £750.00.
+      const first = run({ periodGross: 10000, directorNi: director(inPost) });
+      expect([first.employeeNi, first.employerNi]).toEqual([0, 750]);
+      // Another £10,000: on £20,000, £594.40 and £2,250.00, less £0 and £750.00 already paid.
+      const second = run({ periodGross: 10000, directorNi: director(inPost, [10000, 0, 750]) });
+      expect([second.employeeNi, second.employerNi]).toEqual([594.4, 1500]);
+      // The ordinary same-period figures are not added again on a director's earnings period.
+      const both = run({ periodGross: 10000, directorNi: director(inPost, [10000, 0, 750]), niEarlierInPeriod: { niableEarnings: 10000, employeeNi: 0, employerNi: 750 } });
+      expect([both.employeeNi, both.employerNi]).toEqual([594.4, 1500]);
+      expect(() => run({ niCategory: 'M', periodGross: 1000, directorNi: director(inPost) })).toThrow(/director NI category M \(only A and C/);
     });
   });
 });

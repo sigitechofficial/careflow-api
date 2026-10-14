@@ -47,7 +47,53 @@ export type StatutoryCalcInput = {
    * difference.
    */
   niEarlierInPeriod?: { niableEarnings: number; employeeNi: number; employerNi: number } | null;
+  /**
+   * Gate C7: a company director on the standard annual method (AN). NI is worked out on the
+   * earnings paid in the director's earnings period to date (this payment included) against the
+   * annual or pro rata annual thresholds, less the NI those earlier payments already paid.
+   * niEarlierInPeriod is then not used: the earnings period is the director's.
+   */
+  directorNi?: (DirectorNiPeriod & { earningsBefore: number; employeeNiBefore: number; employerNiBefore: number }) | null;
 };
+
+export type DirectorNiPeriod = {
+  method: 'AN';
+  annual: boolean;
+  weeks: number;
+  thresholds: { lel: number; pt: number; st: number; uel: number };
+};
+
+/**
+ * HMRC CA44 (2026 to 2027): a director at the start of the tax year has an annual earnings period;
+ * a director first appointed during the year a pro rata annual one of the tax week of appointment
+ * and the remaining weeks, on 52 weeks (appointed in week 53: 1 week). Pro rata LEL = weekly LEL x
+ * weeks; every other threshold = annual / 52 x weeks, rounded up to the next whole pound (CA44
+ * para 25; week 27, 26 weeks: £3,354, £6,285, £2,500, £25,135). Annual figures are GOV.UK's for
+ * 2026-27 only; null for any other year. The upper secondary thresholds equal the UEL that year.
+ */
+export function directorNiPeriod(taxYearStart: Date, appointedOn: Date): DirectorNiPeriod | null {
+  if (taxYearStart.toISOString().slice(0, 10) !== '2026-04-06') return null;
+  const annualFigures = { lel: 6708, pt: 12570, st: 5000, uel: 50270 };
+  const weeklyLel = 129;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const start = Date.UTC(taxYearStart.getUTCFullYear(), taxYearStart.getUTCMonth(), taxYearStart.getUTCDate());
+  const appointed = Date.UTC(appointedOn.getUTCFullYear(), appointedOn.getUTCMonth(), appointedOn.getUTCDate());
+  if (appointed <= start) return { method: 'AN', annual: true, weeks: 52, thresholds: annualFigures };
+  const week = Math.floor((appointed - start) / dayMs / 7) + 1;
+  const weeks = week >= 53 ? 1 : 53 - week;
+  const proRata = (annual: number) => Math.ceil((annual * weeks) / 52 - 1e-9);
+  return {
+    method: 'AN',
+    annual: false,
+    weeks,
+    thresholds: {
+      lel: weeklyLel * weeks,
+      pt: proRata(annualFigures.pt),
+      st: proRata(annualFigures.st),
+      uel: proRata(annualFigures.uel),
+    },
+  };
+}
 
 /** One band of annual taxable pay: taxed at ratePercent up to upToAnnual (null: no upper limit). */
 export type IncomeTaxBand = { upToAnnual: number | null; ratePercent: number };
@@ -109,6 +155,8 @@ export type StatutoryCalcResult = {
   netPay: number;
   taxCodeApplied: string;
   niCategoryApplied: string;
+  /** Gate C7: AN when NI was worked out on a director's earnings period, otherwise null. */
+  directorNicMethodApplied: 'AN' | null;
   periodFreePay: number;
   calculationBasis: StatutoryCalculationBasis;
   /** Tax due this period before the 50% regulatory limit (negative: a refund). */
@@ -432,8 +480,12 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const niReason = unsupportedNiCategoryReason(input.niCategory);
   if (niReason) throw new Error(`NI not calculated: ${niReason}`);
   const niCategory = (input.niCategory as string).trim().toUpperCase();
+  const director = input.directorNi ?? null;
+  if (director && niCategory !== 'A' && niCategory !== 'C') {
+    throw new Error(`NI not calculated: director NI category ${niCategory} (only A and C are calculated for directors)`);
+  }
   const periods = periodsInTaxYear(input.frequency);
-  const niTh = periodNiThresholds(input.frequency, input.rates);
+  const niTh = director ? director.thresholds : periodNiThresholds(input.frequency, input.rates);
   const periodNumber = Math.min(
     periods,
     Math.max(1, input.periodNumber ?? 1),
@@ -468,7 +520,9 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   // NI-able earnings: this period's gross pay (before the tax allowance; expense reimbursements
   // are not in it), plus earlier closed payments in the same earnings period. Each contribution
   // on the total, less what those payments already paid.
-  const earlier = input.niEarlierInPeriod;
+  const earlier = director
+    ? { niableEarnings: director.earningsBefore, employeeNi: director.employeeNiBefore, employerNi: director.employerNiBefore }
+    : input.niEarlierInPeriod;
   const niableEarnings = round2(gross + (earlier?.niableEarnings ?? 0));
   const employeeNi = round2(employeeNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employeeNi ?? 0));
   const employerNi = round2(employerNiOnEarnings(niableEarnings, niTh, input.rates, niCategory) - (earlier?.employerNi ?? 0));
@@ -477,6 +531,9 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
   const lelToPt = round2(Math.max(0, Math.min(niableEarnings, niTh.pt) - niTh.lel));
   const ptToUel = round2(Math.max(0, Math.min(niableEarnings, niTh.uel) - niTh.pt));
   const niExplanation = [
+    director
+      ? `Director NI (method AN, ${director.annual ? 'annual' : 'pro rata annual'} earnings period of ${director.weeks} weeks); `
+      : '',
     `NI category ${niCategory}; NI-able earnings £${niableEarnings.toFixed(2)}`,
     earlier ? ` (including £${round2(earlier.niableEarnings).toFixed(2)} paid earlier in this earnings period)` : '',
     `; LEL £${niTh.lel.toFixed(2)} PT £${niTh.pt.toFixed(2)} ST £${niTh.st.toFixed(2)} UEL £${niTh.uel.toFixed(2)};`,
@@ -523,6 +580,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
       netPay,
       taxCodeApplied: parsed.code,
       niCategoryApplied: niCategory,
+      directorNicMethodApplied: director ? 'AN' : null,
       periodFreePay,
       calculationBasis: 'WEEK1_MONTH1_NON_CUMULATIVE',
       taxDueThisPeriod: taxDue,
@@ -575,6 +633,7 @@ export function calculatePeriodStatutory(input: StatutoryCalcInput): StatutoryCa
     netPay,
     taxCodeApplied: parsed.code,
     niCategoryApplied: niCategory,
+    directorNicMethodApplied: director ? 'AN' : null,
     periodFreePay,
     calculationBasis: 'CUMULATIVE',
     taxDueThisPeriod,

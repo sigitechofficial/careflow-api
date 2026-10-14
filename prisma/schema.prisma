@@ -10330,6 +10330,14 @@ model EmployeePayrollProfile {
   /// Q37–Q39: the day the apprenticeship began. The apprentice minimum wage rate applies under 19,
   /// or in the first year of the apprenticeship; without this date it cannot be shown for 19+.
   apprenticeshipStartDate DateTime? @db.Date
+  /// Gate C7: company director for NI, as confirmed by a person; null means not yet classified,
+  /// and tax and NI are then not calculated. Never inferred from a job title.
+  isDirector          Boolean?
+  /// Gate C7: the day the person was appointed a director.
+  directorAppointedOn DateTime?                    @db.Date
+  /// Gate C7: directors' NIC method for the FPS. AN: standard annual earnings period (AL is not
+  /// calculated by this version).
+  directorNicMethod   String?
   /// Selected UK deduction catalogue codes (2026/27) — configuration only until engines land.
   deductionElections  Json?
   bankSortCode        String?
@@ -10624,6 +10632,8 @@ model UkPayrollRunEmployee {
   netPay                Decimal   @default(0) @db.Decimal(12, 2)
   taxCodeApplied        String?
   niCategoryApplied     String?
+  /// Gate C7: AN when NI was worked out on a director's annual (or pro rata annual) earnings period.
+  directorNicMethodApplied String?
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())

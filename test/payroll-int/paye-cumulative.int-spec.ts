@@ -256,6 +256,41 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     expect(await employerSide(april)).toEqual({ employerNi: 387.45, niCategoryApplied: 'A', runTotals: [156.16, 387.45, 2453.64] });
   });
 
+  it('Gate C7: a director appointed in May — April stays ordinary NI; from May NI is on the pro rata annual period, cumulative', async () => {
+    const JUNE = { periodStart: '2026-06-01', periodEnd: '2026-06-30' }; // tax month 3
+    const row = async (runId: string) => {
+      const r = await t.prisma.ukPayrollRunEmployee.findFirstOrThrow({ where: { runId, employeeId } });
+      return [Number(r.incomeTax), Number(r.employeeNi), Number(r.employerNi), Number(r.netPay), r.directorNicMethodApplied];
+    };
+    await agree(36_000); // £3,000.00 a month
+    // April, as an employee: ordinary monthly NI, £156.16 / £387.45.
+    const april = await run(APRIL);
+    await taxAndNi(april);
+    expect(await row(april)).toEqual([390.2, 156.16, 387.45, 2453.64, null]);
+    await ukRuns.close(checker.id, april);
+
+    // Appointed director on 10 May 2026 (tax week 5: 48 weeks, PT £11,604, ST £4,616, CA44).
+    await t.prisma.employeePayrollProfile.update({
+      where: { employeeId },
+      data: { isDirector: true, directorAppointedOn: new Date('2026-05-10'), directorNicMethod: 'AN' },
+    });
+    // May: £3,000 since appointment, below both: no NI. April's pay and NI are not in the director's period.
+    const may = await run(MAY);
+    await taxAndNi(may);
+    expect(await row(may)).toEqual([390.4, 0, 0, 2609.6, 'AN']);
+    await taxAndNi(may); // calculated again: nothing added twice
+    expect(await row(may)).toEqual([390.4, 0, 0, 2609.6, 'AN']);
+    await ukRuns.close(checker.id, may);
+
+    // June: £6,000 since appointment: employer (6,000 − 4,616) × 15% = £207.60, not deducted from pay.
+    const june = await run(JUNE);
+    await taxAndNi(june);
+    expect(await row(june)).toEqual([390.4, 0, 207.6, 2609.6, 'AN']);
+    await ukRuns.close(checker.id, june);
+    await expect(ukRuns.calculateStatutory(maker.id, june)).rejects.toThrow(/Reactivate this closed run/);
+    expect(await row(april)).toEqual([390.2, 156.16, 387.45, 2453.64, null]); // closed history untouched
+  });
+
   it('nothing is guessed: no tax code, a code not supported yet, or a period outside the tax year stops the calculation', async () => {
     await agree(36_000, { effectiveFrom: new Date('2026-03-01') }); // paid in March too
     const april = await run(APRIL);
@@ -277,6 +312,15 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/NI category B \(not calculated by this version\)/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: null } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/no NI category recorded/);
+
+    // Gate C7: director status must be confirmed; a director needs an appointment date and method AN.
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { niCategory: 'A', isDirector: null } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director status not recorded/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { isDirector: true } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director appointment date not recorded/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { directorAppointedOn: new Date('2020-01-01') } });
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/director NI method not recorded \(only the standard annual method AN/);
+    await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { isDirector: false, directorAppointedOn: null } });
 
     // A period paid on 31 March 2026 belongs to tax year 2025-26, not to this run's 2026-27.
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: '1257L', niCategory: 'A' } });
