@@ -22,11 +22,15 @@ export type EmployeeAppCheckInBlob = {
   timingExceptionReasonCode?: string | null;
   timingExceptionNotes?: string | null;
   outsideGeofenceReason?: string | null;
+  /** Name of the NFC tag scanned at an NFC check-in. */
+  nfcTagLabel?: string | null;
 };
 
 export type AdminCheckInSummary = {
   method: string;
+  /** e.g. "GPS", "Manual", or "NFC (Main tag)" when the tag name is known. */
   methodLabel: string;
+  nfcTagLabel: string | null;
   reasonCode: string | null;
   reasonLabel: string | null;
   notes: string | null;
@@ -119,6 +123,7 @@ function parseCheckInBlob(raw: unknown): EmployeeAppCheckInBlob | null {
   const timingExceptionReasonCode = readString(row.timingExceptionReasonCode);
   const timingExceptionNotes = readString(row.timingExceptionNotes);
   const outsideGeofenceReason = readString(row.outsideGeofenceReason);
+  const nfcTagLabel = readString(row.nfcTagLabel);
   if (
     !method &&
     !manualOverrideReasonCode &&
@@ -138,6 +143,7 @@ function parseCheckInBlob(raw: unknown): EmployeeAppCheckInBlob | null {
     timingExceptionReasonCode,
     timingExceptionNotes,
     outsideGeofenceReason,
+    nfcTagLabel,
   };
 }
 
@@ -183,9 +189,11 @@ export function buildAdminCheckInSummary(
   ) {
     return null;
   }
+  const nfcTagLabel = method === 'NFC' ? blob.nfcTagLabel?.trim() || null : null;
   return {
     method,
-    methodLabel: checkInMethodLabel(method),
+    methodLabel: nfcTagLabel ? `NFC (${nfcTagLabel})` : checkInMethodLabel(method),
+    nfcTagLabel,
     reasonCode,
     reasonLabel: manualCheckInReasonLabel(reasonCode),
     notes,
@@ -205,7 +213,8 @@ export function formatCheckInTimelineDetail(
   methodFallback?: string | null,
 ): string {
   const method = blob?.method ?? methodFallback;
-  const lines = [checkInMethodDetailLine(method)];
+  const tag = normalizeCheckInMethod(method) === 'NFC' ? blob?.nfcTagLabel?.trim() : null;
+  const lines = [tag ? `NFC confirmed · ${tag}` : checkInMethodDetailLine(method)];
   const reason = manualCheckInReasonLabel(blob?.manualOverrideReasonCode);
   if (reason) lines.push(`Reason: ${reason}`);
   const notes = blob?.manualOverrideNotes?.trim();

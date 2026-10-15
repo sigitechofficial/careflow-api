@@ -161,6 +161,8 @@ export function normaliseIncidentCategoryDetails(
         const id = inner.pattern('employeeId', 'Alleged staff member', UUID);
         if (!id && options.strict)
           inner.errors.push('Select the alleged staff member');
+        // The carer app can't list every staff member offline, so a carer may only name them.
+        if (!id) inner.text('name', 'Alleged staff member name', { max: 200 });
       }
       if (kind === 'OTHER_PERSON') {
         inner.text('name', 'Alleged person name', { required: true, max: 200 });

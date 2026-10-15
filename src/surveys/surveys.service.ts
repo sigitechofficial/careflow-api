@@ -1,11 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  NotificationModule,
+  NotificationSeverity,
+  NotificationType,
   Prisma,
   SurveyQuestionType,
   SurveyRecurrence,
@@ -18,6 +22,8 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { FcmPushService } from '../notifications/fcm-push.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -73,6 +79,7 @@ export class SurveysService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly push: FcmPushService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(query: ListSurveysQueryDto) {
@@ -723,6 +730,7 @@ export class SurveysService {
           data: {
             type: 'SURVEY',
             surveyId: survey.id,
+            token: r.token,
             ...(link ? { url: link } : {}),
           },
         });
@@ -1692,12 +1700,138 @@ export class SurveysService {
     return { message: 'Portal surveys', data: items };
   }
 
+  /**
+   * Carer app: surveys sent to the signed-in employee. Open surveys carry their
+   * questions so the app can keep them for answering offline.
+   */
+  async listForEmployeeApp(employeeId: string) {
+    const rows = await this.prisma.surveyRecipient.findMany({
+      where: {
+        employeeId,
+        targetKind: SurveyTargetKind.EMPLOYEE,
+        survey: { deletedAt: null, status: { not: SurveyStatus.DRAFT } },
+      },
+      orderBy: { sentAt: 'desc' },
+      select: {
+        token: true,
+        status: true,
+        sentAt: true,
+        survey: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            isAnonymous: true,
+            status: true,
+            opensAt: true,
+            closesAt: true,
+          },
+        },
+        response: { select: { submittedAt: true } },
+      },
+    });
+
+    const items = rows.map((r) => {
+      const completed = Boolean(r.response) || r.status === 'COMPLETED';
+      const availability = this.evaluateAvailability(r.survey, completed);
+      const state: 'OPEN' | 'UNAVAILABLE' | 'COMPLETED' = completed
+        ? 'COMPLETED'
+        : availability.canSubmit
+          ? 'OPEN'
+          : 'UNAVAILABLE';
+      return { r, state, reason: completed ? null : availability.reason };
+    });
+
+    const openSurveyIds = [
+      ...new Set(items.filter((i) => i.state === 'OPEN').map((i) => i.r.survey.id)),
+    ];
+    const questions = openSurveyIds.length
+      ? await this.prisma.surveyQuestion.findMany({
+          where: { surveyId: { in: openSurveyIds }, deletedAt: null, isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        })
+      : [];
+    const formQuestions = questions.map((q) => ({
+      surveyId: q.surveyId,
+      question: this.toFormQuestion(q),
+    }));
+    const questionsBySurvey = new Map<string, (typeof formQuestions)[number]['question'][]>();
+    for (const { surveyId, question } of formQuestions) {
+      const list = questionsBySurvey.get(surveyId) ?? [];
+      list.push(question);
+      questionsBySurvey.set(surveyId, list);
+    }
+
+    const data = items.map(({ r, state, reason }) => ({
+      token: r.token,
+      title: r.survey.title,
+      description: r.survey.description,
+      isAnonymous: r.survey.isAnonymous,
+      sentAt: r.sentAt?.toISOString() ?? null,
+      opensAt: r.survey.opensAt?.toISOString() ?? null,
+      closesAt: r.survey.closesAt?.toISOString() ?? null,
+      state,
+      unavailableReason: reason,
+      completedAt: r.response?.submittedAt?.toISOString() ?? null,
+      questions: state === 'OPEN' ? (questionsBySurvey.get(r.survey.id) ?? []) : [],
+    }));
+    const order = { OPEN: 0, UNAVAILABLE: 1, COMPLETED: 2 } as const;
+    data.sort((a, b) => order[a.state] - order[b.state]);
+    return { message: 'My surveys', data };
+  }
+
+  /** Carer app: one of the employee's own surveys (marks it started, like opening the link). */
+  async getEmployeeAppForm(employeeId: string, token: string) {
+    await this.requireEmployeeRecipient(employeeId, token);
+    return this.getPublicByToken(token);
+  }
+
+  /**
+   * Carer app: submit answers for one of the employee's own surveys.
+   * Already answered (e.g. via the email link, or a replayed offline send) → 409.
+   */
+  async submitEmployeeAppResponse(
+    employeeId: string,
+    token: string,
+    dto: SubmitSurveyResponseDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const recipient = await this.requireEmployeeRecipient(employeeId, token);
+    if (recipient.response || recipient.status === 'COMPLETED') {
+      throw new ConflictException('You have already completed this survey.');
+    }
+    return this.submitRecipientResponse(recipient, dto, meta);
+  }
+
+  private async requireEmployeeRecipient(employeeId: string, token: string) {
+    const recipient = await this.requireRecipientByToken(token);
+    if (
+      recipient.employeeId !== employeeId ||
+      recipient.targetKind !== SurveyTargetKind.EMPLOYEE
+    ) {
+      throw new NotFoundException('Survey link not found');
+    }
+    return recipient;
+  }
+
   /** Portal: the answers the signed-in service user (or their representative) submitted. */
   async getPortalSurveyAnswers(serviceUserId: string, token: string) {
+    return this.loadOwnSurveyAnswers({ token: token?.trim(), serviceUserId });
+  }
+
+  /** Carer app: the answers the signed-in employee submitted for one of their surveys. */
+  async getEmployeeAppAnswers(employeeId: string, token: string) {
+    return this.loadOwnSurveyAnswers({
+      token: token?.trim(),
+      employeeId,
+      targetKind: SurveyTargetKind.EMPLOYEE,
+    });
+  }
+
+  private async loadOwnSurveyAnswers(where: Prisma.SurveyRecipientWhereInput) {
     const recipient = await this.prisma.surveyRecipient.findFirst({
       where: {
-        token: token?.trim(),
-        serviceUserId,
+        ...where,
         survey: { deletedAt: null },
       },
       select: {
@@ -1874,17 +2008,30 @@ export class SurveysService {
         linkKind: opts.linkKind,
         askRespondent: opts.askRespondent ?? false,
         forName: opts.forName ?? null,
-        questions: questions.map((q) => ({
-          id: q.id,
-          questionText: q.questionText,
-          helpText: q.helpText,
-          questionType: q.questionType,
-          options: this.normalizeOptions(q.questionType, q.options),
-          config: q.config,
-          isRequired: q.isRequired,
-          sortOrder: q.sortOrder,
-        })),
+        questions: questions.map((q) => this.toFormQuestion(q)),
       },
+    };
+  }
+
+  private toFormQuestion(q: {
+    id: string;
+    questionText: string;
+    helpText: string | null;
+    questionType: SurveyQuestionType;
+    options: Prisma.JsonValue;
+    config: Prisma.JsonValue;
+    isRequired: boolean;
+    sortOrder: number;
+  }) {
+    return {
+      id: q.id,
+      questionText: q.questionText,
+      helpText: q.helpText,
+      questionType: q.questionType,
+      options: this.normalizeOptions(q.questionType, q.options),
+      config: q.config,
+      isRequired: q.isRequired,
+      sortOrder: q.sortOrder,
     };
   }
 
@@ -1954,11 +2101,91 @@ export class SurveysService {
     };
   }
 
+  /**
+   * In-app notification to office users who can see survey results
+   * (surveys.read / surveys.manage, plus Super Admin). Anonymous surveys never name the carer.
+   */
+  private async notifyOfficeOfEmployeeResponse(surveyId: string, employeeId: string | null) {
+    const recipientUserIds = await this.surveyResultsUserIds();
+    if (!recipientUserIds.length) return;
+
+    const [survey, completed, total] = await Promise.all([
+      this.prisma.survey.findUnique({
+        where: { id: surveyId },
+        select: { title: true, isAnonymous: true },
+      }),
+      this.prisma.surveyRecipient.count({ where: { surveyId, status: 'COMPLETED' } }),
+      this.prisma.surveyRecipient.count({ where: { surveyId } }),
+    ]);
+    if (!survey) return;
+
+    let who = 'A carer';
+    if (!survey.isAnonymous && employeeId) {
+      const detail = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId },
+        select: { firstName: true, lastName: true },
+      });
+      const name = `${detail?.firstName ?? ''} ${detail?.lastName ?? ''}`.trim();
+      if (name) who = name;
+    }
+
+    await this.notifications.notifyUsers({
+      recipientUserIds,
+      type: NotificationType.SYSTEM_MESSAGE,
+      module: NotificationModule.EMPLOYEE,
+      severity: NotificationSeverity.INFO,
+      title: `Survey response — ${survey.title}`,
+      message: `${who} completed "${survey.title}"${
+        survey.isAnonymous ? ' (anonymous survey)' : ''
+      }. ${completed} of ${total} responded.`,
+      recordType: 'Survey',
+      recordId: surveyId,
+      metadata: {
+        href: `/surveys/${surveyId}/responses`,
+        surveyId,
+        eventType: 'SURVEY_RESPONSE_SUBMITTED',
+      },
+    });
+  }
+
+  private async surveyResultsUserIds(): Promise<string[]> {
+    const [perms, superAdmin] = await Promise.all([
+      this.prisma.permission.findMany({
+        where: {
+          key: { in: ['surveys.read', 'surveys.manage'] },
+          deletedAt: null,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+      this.prisma.role.findMany({
+        where: { name: IDENTITY_ROLE.SUPER_ADMIN, deletedAt: null, isActive: true },
+        select: { id: true },
+      }),
+    ]);
+    const roleLinks = perms.length
+      ? await this.prisma.rolePermission.findMany({
+          where: { permissionId: { in: perms.map((p) => p.id) }, role: { deletedAt: null } },
+          select: { roleId: true },
+        })
+      : [];
+    const roleIds = [
+      ...new Set([...roleLinks.map((r) => r.roleId), ...superAdmin.map((r) => r.id)]),
+    ];
+    if (!roleIds.length) return [];
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { roleId: { in: roleIds }, user: { deletedAt: null, isActive: true } },
+      select: { userId: true },
+    });
+    return [...new Set(userRoles.map((ur) => ur.userId))];
+  }
+
   private async submitRecipientResponse(
     recipient: {
       id: string;
       status: string;
       targetKind: SurveyTargetKind;
+      employeeId: string | null;
       response: { id: string; submittedAt: Date } | null;
       survey: {
         id: string;
@@ -2049,6 +2276,16 @@ export class SurveysService {
       metadata: { surveyId: survey.id },
       ...meta,
     });
+
+    // Carer answered (app or email link) — tell the office. Never fails the submit.
+    if (recipient.targetKind === SurveyTargetKind.EMPLOYEE) {
+      void this.notifyOfficeOfEmployeeResponse(survey.id, recipient.employeeId).catch(
+        (err) =>
+          this.logger.warn(
+            `Survey ${survey.id} response notification failed: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+      );
+    }
 
     return {
       message: 'Survey response submitted',

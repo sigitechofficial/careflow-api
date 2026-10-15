@@ -13,6 +13,7 @@ import { OrganisationGeneralSettingsService } from '../organisation-general-sett
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import type { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
 import { FcmPushService } from '../notifications/fcm-push.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   EMPLOYEE_APP_SESSION_BLOCK_MESSAGE,
   shouldBlockSecondEmployeeAppLogin,
@@ -27,6 +28,7 @@ export class EmployeeAppAuthService {
     private readonly portalAccounts: EmployeePortalAccountsService,
     private readonly fcm: FcmPushService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async login(dto: EmployeeAppLoginDto, req: Request) {
@@ -217,7 +219,19 @@ export class EmployeeAppAuthService {
     return { message: 'Logout successful', data: {} };
   }
 
-  me(user: RequestUser) {
+  async me(user: RequestUser) {
+    const employment = user.employeeId
+      ? await this.prisma.employeeEmployment.findFirst({
+          where: { employeeId: user.employeeId, deletedAt: null },
+          select: {
+            employeeNumber: true,
+            jobTitle: { select: { name: true } },
+            role: { select: { name: true } },
+            location: { select: { name: true } },
+            baseLocation: { select: { name: true } },
+          },
+        })
+      : null;
     return {
       data: {
         accountId: user.id,
@@ -229,6 +243,9 @@ export class EmployeeAppAuthService {
         accountKind: user.accountKind,
         roles: user.roles,
         permissions: user.permissions,
+        jobTitle: employment?.jobTitle?.name ?? employment?.role?.name ?? null,
+        branch: employment?.location?.name ?? employment?.baseLocation?.name ?? null,
+        employeeNumber: employment?.employeeNumber ?? null,
       },
     };
   }

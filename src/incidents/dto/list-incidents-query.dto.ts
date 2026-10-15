@@ -90,6 +90,16 @@ export class ListIncidentsQueryDto {
   @IsUUID()
   employeeId?: string;
 
+  @ApiPropertyOptional({ description: 'Carer who reported the incident (app or recorded by the office)' })
+  @IsOptional()
+  @IsUUID()
+  reporterEmployeeId?: string;
+
+  @ApiPropertyOptional({ enum: ['overdue'], description: 'Duty of Candour overdue' })
+  @IsOptional()
+  @IsIn(['overdue'])
+  candour?: 'overdue';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

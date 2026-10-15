@@ -1,7 +1,9 @@
-import { resolveLeadEmployeeId } from '../employee-app/employee-app-multi-carer.util';
+/**
+ * Older visits only: until 12 Oct 2026 a support carer still clocked in was clocked
+ * out by the system at the lead's clock-out. That no longer happens (each carer's
+ * session is their own); these helpers only read the markers those visits kept.
+ */
 
-/** Attendance note + timeline text for a support clock-out closed by the system. */
-export const SUPPORT_AUTO_CLOSE_NOTE = 'Auto-closed at lead clock-out';
 /** Key under ScheduledJob.metadata.employeeApp: { [employeeId]: SupportAutoCloseRecord }. */
 export const SUPPORT_AUTO_CLOSED_META_KEY = 'supportAutoClosed';
 
@@ -11,50 +13,6 @@ export type SupportAutoCloseRecord = {
   reason: 'lead_clock_out';
   recordedAt: string;
 };
-
-type AllocationForAutoClose = {
-  id: string;
-  employeeId: string;
-  status: string;
-  isLeadCarer: boolean;
-  allocatedAt: Date;
-  actualStartDateTime: Date | null;
-  actualEndDateTime: Date | null;
-};
-
-/**
- * Lead closed a multi-carer visit: every SUPPORT carer still clocked in
- * (start, no end) is clocked out at the lead's clock-out time. Never earlier
- * than their own clock-in. Single-carer visits: nothing to close.
- */
-export function planSupportAutoClose(input: {
-  requiredCarers: number;
-  allocations: AllocationForAutoClose[];
-  leadClockOut: Date;
-}): {
-  leadEmployeeId: string | null;
-  rows: Array<{ allocationId: string; employeeId: string; end: Date }>;
-} {
-  const leadEmployeeId = resolveLeadEmployeeId(input.requiredCarers, input.allocations);
-  if (!leadEmployeeId) return { leadEmployeeId: null, rows: [] };
-  const rows = input.allocations
-    .filter(
-      (a) =>
-        a.employeeId !== leadEmployeeId &&
-        ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'].includes(a.status) &&
-        a.actualStartDateTime != null &&
-        a.actualEndDateTime == null,
-    )
-    .map((a) => ({
-      allocationId: a.id,
-      employeeId: a.employeeId,
-      end:
-        input.leadClockOut.getTime() > a.actualStartDateTime!.getTime()
-          ? input.leadClockOut
-          : a.actualStartDateTime!,
-    }));
-  return { leadEmployeeId, rows };
-}
 
 /** Auto-close records stored on the job (employeeId → record). */
 export function readSupportAutoClosed(

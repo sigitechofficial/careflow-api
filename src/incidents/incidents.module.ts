@@ -12,6 +12,8 @@ import { IncidentsService } from './incidents.service';
 import { IncidentCareController } from './incident-care.controller';
 import { IncidentCareService } from './incident-care.service';
 import { IncidentAnalyticsService } from './incident-analytics.service';
+import { IncidentCandourController } from './incident-candour.controller';
+import { IncidentCandourService } from './incident-candour.service';
 import { IncidentSuspensionStartJob } from './incident-suspension-start.job';
 
 @Module({
@@ -25,11 +27,12 @@ import { IncidentSuspensionStartJob } from './incident-suspension-start.job';
     UsersModule,
     OrganisationGeneralSettingsModule,
   ],
-  controllers: [IncidentsController, IncidentCareController],
+  controllers: [IncidentsController, IncidentCareController, IncidentCandourController],
   providers: [
     IncidentsService,
     IncidentCareService,
     IncidentAnalyticsService,
+    IncidentCandourService,
     IncidentSuspensionStartJob,
   ],
   exports: [IncidentsService],

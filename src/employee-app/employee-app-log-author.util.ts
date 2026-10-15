@@ -36,6 +36,10 @@ export function logEntryRolesById(
     if (Array.isArray(list)) list.forEach(add);
   }
   add(employeeAppMeta?.handoverNote);
+  const supportHandovers = employeeAppMeta?.supportHandovers;
+  if (supportHandovers && typeof supportHandovers === 'object' && !Array.isArray(supportHandovers)) {
+    Object.values(supportHandovers).forEach(add);
+  }
   return out;
 }
 

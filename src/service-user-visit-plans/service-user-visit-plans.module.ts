@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { ScheduledJobsModule } from '../scheduled-jobs/scheduled-jobs.module';
@@ -14,6 +14,9 @@ import { VisitPlanBulkScheduleController } from './visit-plan-bulk-schedule.cont
 import { VisitPlanBulkScheduleService } from './visit-plan-bulk-schedule.service';
 import { VisitPlanAmendmentImpactService } from './visit-plan-amendment-impact.service';
 import { VisitPlanGovernanceController } from './visit-plan-governance.controller';
+import { ScheduledJobsHousekeepingModule } from '../scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
+import { VisitPlanDateChangesController } from './visit-plan-date-changes.controller';
+import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
 
 @Module({
   imports: [
@@ -26,9 +29,20 @@ import { VisitPlanGovernanceController } from './visit-plan-governance.controlle
     EmployeeComplianceModule,
     NotificationsModule,
     EmployeeHoursApprovalsModule,
+    forwardRef(() => ScheduledJobsHousekeepingModule),
   ],
-  controllers: [ServiceUserVisitPlansController, VisitPlanBulkScheduleController, VisitPlanGovernanceController],
-  providers: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
+  controllers: [
+    ServiceUserVisitPlansController,
+    VisitPlanBulkScheduleController,
+    VisitPlanGovernanceController,
+    VisitPlanDateChangesController,
+  ],
+  providers: [
+    ServiceUserVisitPlansService,
+    VisitPlanBulkScheduleService,
+    VisitPlanAmendmentImpactService,
+    VisitPlanDateChangesService,
+  ],
   exports: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
 })
 export class ServiceUserVisitPlansModule {}

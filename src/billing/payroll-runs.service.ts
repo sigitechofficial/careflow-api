@@ -3546,6 +3546,7 @@ export class PayrollRunsService {
 
     let fineTotal = 0;
     let penaltyTotal = 0;
+    const deductionIncidentRefs = await this.incidentRefsForDeductions(deductions);
     const mappedDeductions = deductions.map((d) => {
       const amount = Number(d.amount);
       if (d.type === SalaryDeductionType.FINE) fineTotal += amount;
@@ -3559,6 +3560,8 @@ export class PayrollRunsService {
         notes: d.notes,
         salaryMonth: d.salaryMonth,
         createdAt: d.createdAt.toISOString(),
+        incidentId: d.incidentId,
+        incidentReference: d.incidentId ? (deductionIncidentRefs.get(d.incidentId) ?? null) : null,
       };
     });
     fineTotal = Math.round(fineTotal * 100) / 100;
@@ -3624,6 +3627,19 @@ export class PayrollRunsService {
     };
   }
 
+  /** Fines decided on an incident: its reference (they are changed / removed there, not here). */
+  private async incidentRefsForDeductions(
+    rows: { incidentId: string | null }[],
+  ): Promise<Map<string, string>> {
+    const ids = [...new Set(rows.map((d) => d.incidentId).filter((v): v is string => !!v))];
+    if (!ids.length) return new Map();
+    const incidents = await this.prisma.incident.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, referenceNumber: true },
+    });
+    return new Map(incidents.map((i) => [i.id, i.referenceNumber]));
+  }
+
   async listEmployeeSalaryDeductions(employeeId: string, salaryMonth?: string) {
     await this.ensureEmployee(employeeId);
     const rows = await this.prisma.employeeSalaryDeduction.findMany({
@@ -3635,6 +3651,7 @@ export class PayrollRunsService {
       },
       orderBy: [{ salaryMonth: 'desc' }, { createdAt: 'desc' }],
     });
+    const refById = await this.incidentRefsForDeductions(rows);
     return {
       data: rows.map((d) => ({
         id: d.id,
@@ -3645,6 +3662,8 @@ export class PayrollRunsService {
         notes: d.notes,
         salaryMonth: d.salaryMonth,
         createdAt: d.createdAt.toISOString(),
+        incidentId: d.incidentId,
+        incidentReference: d.incidentId ? (refById.get(d.incidentId) ?? null) : null,
       })),
     };
   }
@@ -3691,6 +3710,11 @@ export class PayrollRunsService {
       where: { id: deductionId, employeeId, deletedAt: null },
     });
     if (!row) throw new NotFoundException('Salary deduction not found');
+    if (row.incidentStaffActionId) {
+      throw new BadRequestException(
+        'This fine was decided on an incident — change or remove it there (Outcome → Staff actions)',
+      );
+    }
     await this.prisma.employeeSalaryDeduction.update({
       where: { id: row.id },
       data: {

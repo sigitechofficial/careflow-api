@@ -66,6 +66,9 @@ describe('employee-app-mar-echo.util', () => {
       relationLabel: 'Relative',
       relationDetail: 'Daughter',
       notes: null,
+      employeeId: null,
+      absentReasonCode: null,
+      absentReasonLabel: null,
     });
   });
 });

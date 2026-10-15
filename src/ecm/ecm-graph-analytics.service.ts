@@ -92,6 +92,7 @@ const OPS_REASON_LABELS: Record<string, string> = {
   CARER_SOS: 'Carer SOS',
   OUTSIDE_AREA_CHECK_IN_REQUEST: 'Outside area check-in request',
   UNABLE_TO_START: 'Unable to start',
+  NFC_TAG_MISMATCH: 'Wrong NFC tag',
   MOCK_LOCATION: 'Mock location',
   LOW_GPS_ACCURACY: 'Low GPS accuracy',
   NO_ACCESS: 'No access',

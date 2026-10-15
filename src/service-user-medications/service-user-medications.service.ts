@@ -79,6 +79,28 @@ function buildAllergyWarnings(
   return hits.map((h) => `Possible interaction with recorded allergy: "${h.allergyName}"`);
 }
 
+/**
+ * Optional PRN limits. They only apply to a PRN medicine, so a timed medicine clears
+ * them. `undefined` leaves a column unchanged; `null` (or blank text) clears it.
+ */
+function prnLimitColumns(
+  kind: MedicationKind,
+  dto: Pick<
+    UpdateServiceUserMedicationDto,
+    'prnMinGapHours' | 'prnMaxDosesIn24Hours' | 'prnMaxDosePerTime'
+  >,
+) {
+  if (kind !== MedicationKind.PRN) {
+    return { prnMinGapHours: null, prnMaxDosesIn24Hours: null, prnMaxDosePerTime: null };
+  }
+  return {
+    prnMinGapHours: dto.prnMinGapHours,
+    prnMaxDosesIn24Hours: dto.prnMaxDosesIn24Hours,
+    prnMaxDosePerTime:
+      dto.prnMaxDosePerTime === undefined ? undefined : dto.prnMaxDosePerTime?.trim() || null,
+  };
+}
+
 @Injectable()
 export class ServiceUserMedicationsService {
   constructor(
@@ -352,6 +374,7 @@ export class ServiceUserMedicationsService {
           notes: dto.notes,
           isControlledMedication: dto.isControlledMedication ?? false,
           isDecongestantMedication: dto.isDecongestantMedication ?? false,
+          ...prnLimitColumns(dto.medicationKind, dto),
           timeCritical: dto.timeCritical ?? false,
           timeToleranceMinutes: dto.timeToleranceMinutes ?? 30,
           medicationKind: dto.medicationKind,
@@ -493,6 +516,20 @@ export class ServiceUserMedicationsService {
       scheduleFrequencyText = this.buildMedicationFrequencyText(freqDto, timesPerDay);
     }
 
+    // The edit form sends times only, so keep the weekdays already saved for this medicine.
+    const existingDaysOfWeek = replacingSchedules
+      ? [
+          ...new Set(
+            (
+              await this.prisma.medicationSchedule.findMany({
+                where: { serviceUserMedicationId: medicationId, deletedAt: null },
+                select: { daysOfWeek: true },
+              })
+            ).flatMap((s) => s.daysOfWeek),
+          ),
+        ]
+      : [];
+
     const nextEndDate =
       dto.endDate === undefined
         ? existing.endDate
@@ -546,6 +583,7 @@ export class ServiceUserMedicationsService {
       notes: dto.notes,
       isControlledMedication: dto.isControlledMedication,
       isDecongestantMedication: dto.isDecongestantMedication,
+      ...prnLimitColumns(nextKind, dto),
       timeCritical: dto.timeCritical,
       timeToleranceMinutes: dto.timeToleranceMinutes,
       medicationKind: dto.medicationKind,
@@ -592,7 +630,7 @@ export class ServiceUserMedicationsService {
               endDate: nextEndDate ?? undefined,
               frequencyId: scheduleFrequencyId,
               frequencyText: scheduleFrequencyText,
-              daysOfWeek: slot.daysOfWeek ?? [],
+              daysOfWeek: slot.daysOfWeek ?? existingDaysOfWeek,
               instructions: dto.instructions ?? existing.instructions ?? undefined,
               createdById: userId,
               updatedById: userId,

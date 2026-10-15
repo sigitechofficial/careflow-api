@@ -7,6 +7,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { SurveysController } from './surveys.controller';
 import { SurveysPublicController } from './surveys-public.controller';
 import { SurveysPortalController } from './surveys-portal.controller';
+import { SurveysEmployeeAppController } from './surveys-employee-app.controller';
 import { SurveysService } from './surveys.service';
 import { SurveyDistributionJob } from './survey-distribution.job';
 
@@ -22,6 +23,7 @@ import { SurveyDistributionJob } from './survey-distribution.job';
     SurveysController,
     SurveysPublicController,
     SurveysPortalController,
+    SurveysEmployeeAppController,
   ],
   providers: [SurveysService, SurveyDistributionJob],
   exports: [SurveysService],

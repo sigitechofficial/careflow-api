@@ -1,5 +1,6 @@
 import {
   chartEventDueHm,
+  findRoundByWindow,
   formatHm,
   resolveChartSlotEvent,
   resolvePackRowDueTime,
@@ -50,6 +51,19 @@ describe('medication-chart-rounds.util', () => {
     expect(slot.dueTime).toBe('07:00');
     expect(slot.roundWindowStart).toBe('07:00');
     expect(slot.roundWindowEnd).toBe('10:00');
+  });
+
+  it('maps due times to a window that runs past midnight', () => {
+    const withNight = [
+      ...rounds,
+      { id: '5', name: 'Night', code: 'NIGHT', time: '22:00', windowStart: '20:00', windowEnd: '07:00', sortOrder: 5 },
+    ];
+    expect(findRoundByWindow('21:30', withNight)?.code).toBe('NIGHT');
+    expect(findRoundByWindow('02:00', withNight)?.code).toBe('NIGHT');
+    expect(findRoundByWindow('06:30', withNight)?.code).toBe('NIGHT');
+    // Shared boundary goes to the earlier slot in the day order, as before.
+    expect(findRoundByWindow('07:00', withNight)?.code).toBe('MORNING');
+    expect(findRoundByWindow('12:00', withNight)).toBeNull();
   });
 
   it('formats hm consistently', () => {

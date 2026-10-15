@@ -23,6 +23,8 @@ export type MarAdminEventEchoSource = {
   witnessRelationCode?: string | null;
   witnessRelationDetail?: string | null;
   witnessNotes?: string | null;
+  witnessEmployeeId?: string | null;
+  witnessAbsentReasonCode?: string | null;
 };
 
 export type MarAdminEchoFields = {

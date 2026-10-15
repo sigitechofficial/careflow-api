@@ -32,8 +32,19 @@ describe('check-in-display.util', () => {
       timingExceptionReasonCode: null,
       timingExceptionNotes: null,
       outsideGeofenceReason: null,
+      nfcTagLabel: null,
     });
     expect(extractEmployeeAppCheckIn({})).toBeNull();
+  });
+
+  it('names the NFC tag in the admin summary and timeline', () => {
+    const blob = { method: 'NFC', nfcTagLabel: 'Main tag' };
+    const summary = buildAdminCheckInSummary(blob);
+    expect(summary?.methodLabel).toBe('NFC (Main tag)');
+    expect(summary?.nfcTagLabel).toBe('Main tag');
+    expect(formatCheckInTimelineDetail(blob)).toBe('NFC confirmed · Main tag');
+    // Tag name is ignored for non-NFC methods.
+    expect(buildAdminCheckInSummary({ method: 'GPS', nfcTagLabel: 'Main tag' })?.methodLabel).toBe('GPS');
   });
 
   it('falls back to employeeApp.checkIns when legacy checkIn is missing', () => {

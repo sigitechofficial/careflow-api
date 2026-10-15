@@ -3,9 +3,14 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 import {
   VisitCancellationReasonCode,
@@ -57,4 +62,42 @@ export class CancelJobDto {
   @IsString()
   @MaxLength(4000)
   notes?: string;
+
+  @ApiPropertyOptional({ enum: ['SERVICE_USER', 'AGENCY', 'OTHER'], description: 'Who asked for the cancellation' })
+  @IsOptional()
+  @IsIn(['SERVICE_USER', 'AGENCY', 'OTHER'])
+  cancelledByParty?: 'SERVICE_USER' | 'AGENCY' | 'OTHER';
+
+  @ApiPropertyOptional({ description: 'Required when cancelledByParty is OTHER' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  cancelledByDescription?: string;
+
+  @ApiPropertyOptional({ enum: ['ROTA', 'VISIT_PLAN'] })
+  @IsOptional()
+  @IsIn(['ROTA', 'VISIT_PLAN'])
+  cancellationSource?: 'ROTA' | 'VISIT_PLAN';
+
+  @ApiPropertyOptional({ description: 'Hours between recording the cancellation and the planned visit start' })
+  @IsOptional()
+  @IsNumber()
+  noticeHours?: number;
+
+  @ApiPropertyOptional({ enum: VisitChargeDecision, description: 'What the cancellation policy suggested' })
+  @IsOptional()
+  @IsEnum(VisitChargeDecision)
+  suggestedChargeDecision?: VisitChargeDecision;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  suggestedChargePercent?: number;
+
+  @ApiPropertyOptional({ description: 'Copy of the policy rule that was applied' })
+  @IsOptional()
+  @IsObject()
+  policySnapshot?: Record<string, unknown>;
 }

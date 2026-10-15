@@ -1,3 +1,6 @@
+import { combineOperationalDateAndHm, operationalTodayIso } from '../common/utils/operational-day.util';
+import { wallClockVisitEnd } from './visit-plan-slot-window.util';
+
 export type VisitPlanSlotSnapshot = {
   id?: string;
   slotCode: string;
@@ -143,5 +146,24 @@ export function resolveEndFromStartAndTimes(
   if (end.getTime() <= start.getTime()) {
     end = new Date(end.getTime() + 86400000);
   }
+  return { start, end };
+}
+
+/**
+ * New start/end for a rota visit when its plan time changes: `startTime` / `endTime` are
+ * wall-clock times in the organisation timezone, applied on the visit's own operational day.
+ * (Applying them as UTC moved visits an hour late during British Summer Time.)
+ */
+export function resolveOperationalStartEnd(
+  jobStart: Date,
+  startTime: string,
+  endTime: string,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const hm = (value: string) => value.slice(0, 5);
+  const dayIso = operationalTodayIso(jobStart, timeZone);
+  const start = combineOperationalDateAndHm(dayIso, hm(startTime), timeZone);
+  // An end at or before the start is on the next day, at that clock time (right on clock-change nights too).
+  const end = wallClockVisitEnd(dayIso, hm(startTime), hm(endTime), timeZone);
   return { start, end };
 }

@@ -68,20 +68,13 @@ import { VisitObservationsCatalogService } from '../service-user-observations/vi
 import { EcmEvaluationService } from '../ecm/ecm-evaluation.service';
 import { VisitAttendanceService } from '../visit-attendance/visit-attendance.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
-import { resolveLeadEmployeeId } from '../employee-app/employee-app-multi-carer.util';
 import {
   AUTHORED_LOG_TYPES,
   logEntryRolesById,
   visitLogAuthorLabel,
   type VisitLogAuthor,
 } from '../employee-app/employee-app-log-author.util';
-import {
-  planSupportAutoClose,
-  readSupportAutoClosed,
-  SUPPORT_AUTO_CLOSE_NOTE,
-  SUPPORT_AUTO_CLOSED_META_KEY,
-  type SupportAutoCloseRecord,
-} from './support-auto-close.util';
+import { SUPPORT_AUTO_CLOSED_META_KEY } from './support-auto-close.util';
 import {
   pickScheduleFromAssignment,
   visitTaskMatchesDay,
@@ -305,6 +298,28 @@ export class ScheduledJobsHousekeepingService {
   }
 
   /**
+   * Carer app: the same voice note groups, with download URLs on the employee-app route.
+   * The caller must already have checked the carer is allocated to the visit.
+   */
+  async listVoiceNoteGroupsForCarerApp(jobId: string): Promise<VisitVoiceNoteGroupApi[]> {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { id: true, metadata: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const jobMeta = this.parseJobMetadata(job.metadata);
+    const employeeAppMeta =
+      jobMeta.employeeApp && typeof jobMeta.employeeApp === 'object' && !Array.isArray(jobMeta.employeeApp)
+        ? (jobMeta.employeeApp as Record<string, unknown>)
+        : null;
+    return this.resolveJobVoiceNotes(
+      jobId,
+      employeeAppMeta,
+      (voiceNoteId) => `/employee-app/visits/${jobId}/voice-notes/${voiceNoteId}/file`,
+    );
+  }
+
+  /**
    * Resolves the voice notes on a visit to the records they belong to:
    * - notes / handover / concerns point at theirs on their own entry (`voiceNoteIds`);
    * - every other record via `voiceNoteLinks`: the save's idempotency key finds the server
@@ -315,6 +330,8 @@ export class ScheduledJobsHousekeepingService {
   private async resolveJobVoiceNotes(
     jobId: string,
     employeeAppMeta: Record<string, unknown> | null,
+    downloadUrlFor: (voiceNoteId: string) => string = (voiceNoteId) =>
+      `/scheduled-jobs-housekeeping/jobs/${jobId}/voice-notes/${voiceNoteId}/file`,
   ): Promise<VisitVoiceNoteGroupApi[]> {
     const logPointers = voiceNoteIdsByLogEntryId(employeeAppMeta);
     // Latest link per record — older saves of the same task / incident are superseded.
@@ -350,7 +367,7 @@ export class ScheduledJobsHousekeepingService {
             mimeType: row.mimeType,
             sizeBytes: row.fileSize,
             recordedAt: row.recordedAt?.toISOString() ?? null,
-            downloadUrl: `/scheduled-jobs-housekeeping/jobs/${jobId}/voice-notes/${row.id}/file`,
+            downloadUrl: downloadUrlFor(row.id),
           },
         ];
       });
@@ -437,6 +454,11 @@ export class ScheduledJobsHousekeepingService {
   /** Permission + org-scope checked voice note file for streaming playback. */
   async getVoiceNoteFile(user: RequestUser, jobId: string, voiceNoteId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return this.voiceNoteFileForJob(jobId, voiceNoteId);
+  }
+
+  /** Voice note file on a visit — callers check access (office scope, or carer allocation). */
+  async voiceNoteFileForJob(jobId: string, voiceNoteId: string) {
     const row = await this.prisma.visitVoiceNote.findFirst({
       where: { id: voiceNoteId, scheduledJobId: jobId, deletedAt: null },
     });
@@ -1265,66 +1287,9 @@ export class ScheduledJobsHousekeepingService {
         }
       }
 
-      // Lead closed a multi-carer visit: clock out every SUPPORT carer still on site
-      // at the lead's clock-out time, in this same transaction (single-carer: no-op).
-      const closesCarerAttendance =
-        !markingStarted &&
-        !reopeningFromCompleted &&
-        actualEnd != null &&
-        (completing || markingMissed || visitStatus === ScheduledVisitStatus.NEEDS_ATTENTION);
-      const supportAutoClosed: Array<{ allocationId: string; employeeId: string; end: Date }> =
-        [];
-      let autoCloseLeadId: string | null = null;
-      if (closesCarerAttendance && existing.requiredCarers >= 2) {
-        const activeRows = await tx.jobAllocation.findMany({
-          where: {
-            scheduledJobId: id,
-            deletedAt: null,
-            isActive: true,
-            status: { in: ACTIVE_ALLOCATION },
-          },
-          orderBy: [{ allocatedAt: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            employeeId: true,
-            status: true,
-            isLeadCarer: true,
-            allocatedAt: true,
-            actualStartDateTime: true,
-            actualEndDateTime: true,
-          },
-        });
-        const leadId = resolveLeadEmployeeId(existing.requiredCarers, activeRows);
-        const leadRow = activeRows.find((a) => a.employeeId === leadId);
-        const leadClockOut =
-          carerActualRows.find((r) => r.allocationId === leadRow?.id)?.end ?? actualEnd!;
-        const plan = planSupportAutoClose({
-          requiredCarers: existing.requiredCarers,
-          allocations: activeRows,
-          leadClockOut,
-        });
-        autoCloseLeadId = plan.leadEmployeeId;
-        for (const row of plan.rows) {
-          await tx.jobAllocation.update({
-            where: { id: row.allocationId },
-            data: { actualEndDateTime: row.end },
-          });
-          await tx.visitAttendanceEvent.create({
-            data: {
-              scheduledJobId: id,
-              scheduledVisitId: existing.visits?.[0]?.id ?? null,
-              jobAllocationId: row.allocationId,
-              employeeId: row.employeeId,
-              eventType: VisitAttendanceEventType.CHECK_OUT,
-              verificationMethod: VisitAttendanceVerificationMethod.OTHER,
-              occurredAt: row.end,
-              clientEventId: `support-auto-close:${row.allocationId}`,
-              notes: SUPPORT_AUTO_CLOSE_NOTE,
-            },
-          });
-          supportAutoClosed.push(row);
-        }
-      }
+      // Lead closing a multi-carer visit never clocks a SUPPORT carer out: each carer's
+      // session is their own. A support carer still on site clocks out themselves; until
+      // then their clock-out stays empty (the office sees "Clock-out missing").
 
       await this.scheduledJobsService.syncJobStatusFromVisits(tx, id, userId || null);
 
@@ -1339,24 +1304,14 @@ export class ScheduledJobsHousekeepingService {
           !Array.isArray(previousMeta.employeeApp)
             ? (previousMeta.employeeApp as Record<string, unknown>)
             : {};
-        const autoClosedMap = readSupportAutoClosed(previousEa);
-        const recordedAt = new Date().toISOString();
-        for (const row of supportAutoClosed) {
-          autoClosedMap[row.employeeId] = {
-            autoClosedAt: row.end.toISOString(),
-            leadEmployeeId: autoCloseLeadId ?? '',
-            reason: 'lead_clock_out',
-            recordedAt,
-          } satisfies SupportAutoCloseRecord;
-        }
-        // Re-opened / back to in progress: carer ends were cleared, so drop the markers.
+        // Re-opened / back to in progress: carer ends were cleared, so drop the markers
+        // left by older visits (support clock-outs auto-closed at lead clock-out).
         const clearMarkers =
           (reopeningFromCompleted || markingStarted) &&
           SUPPORT_AUTO_CLOSED_META_KEY in previousEa;
-        if (supportAutoClosed.length || clearMarkers) {
+        if (clearMarkers) {
           const nextEa: Record<string, unknown> = { ...previousEa };
-          if (clearMarkers) delete nextEa[SUPPORT_AUTO_CLOSED_META_KEY];
-          else nextEa[SUPPORT_AUTO_CLOSED_META_KEY] = autoClosedMap;
+          delete nextEa[SUPPORT_AUTO_CLOSED_META_KEY];
           metadataPatch.employeeApp = nextEa;
           metadataChanged = true;
         }
@@ -1487,25 +1442,8 @@ export class ScheduledJobsHousekeepingService {
       return {
         message: completing ? 'Scheduled job completed' : 'Visit outcome saved',
         data: this.mapDayJob(updated),
-        supportAutoClosed,
       };
     });
-
-    // Visit log line per auto-closed support carer (display; attendance event above is the record).
-    for (const row of result.supportAutoClosed) {
-      await this.visitTimeline.upsertEvent({
-        scheduledJobId: id,
-        scheduledVisitId: existing.visits?.[0]?.id ?? null,
-        eventType: 'clock_out',
-        sourceType: 'complete',
-        sourceId: `support_complete:${row.employeeId}`,
-        title: 'Support clocked out',
-        detail: SUPPORT_AUTO_CLOSE_NOTE,
-        tone: 'primary',
-        occurredAt: row.end,
-        createdByEmployeeId: row.employeeId,
-      });
-    }
 
     if (completing) {
       // Visit completion must succeed even if the pay records cannot be created. The failure is
@@ -1664,6 +1602,14 @@ export class ScheduledJobsHousekeepingService {
         reinstatedAt: null,
         reinstatedById: null,
         reinstateNotes: null,
+        // Who asked for it and what the cancellation policy suggested (set by the visit plan's date changes).
+        cancelledByParty: dto.cancelledByParty ?? null,
+        cancelledByDescription: dto.cancelledByDescription?.trim() || null,
+        cancellationSource: dto.cancellationSource ?? 'ROTA',
+        noticeHours: dto.noticeHours ?? null,
+        suggestedChargeDecision: dto.suggestedChargeDecision ?? null,
+        suggestedChargePercent: dto.suggestedChargePercent ?? null,
+        policySnapshot: (dto.policySnapshot as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
       };
 
       const cancellation =
@@ -2294,6 +2240,7 @@ export class ScheduledJobsHousekeepingService {
             id: true,
             scheduledStartDateTime: true,
             actualStartDateTime: true,
+            actualEndDateTime: true,
           },
         },
       },
@@ -2309,6 +2256,7 @@ export class ScheduledJobsHousekeepingService {
       serviceUserId: job.serviceUserId,
       since,
       scheduledJobId: job.id,
+      until: primaryVisit?.actualEndDateTime ?? null,
     });
 
     return {

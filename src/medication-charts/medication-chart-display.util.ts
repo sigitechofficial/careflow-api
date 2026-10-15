@@ -126,12 +126,19 @@ export function displayForCode(
   };
 }
 
-/** True when this status code needs review and the event is not yet reviewed. */
+/**
+ * True when the event is not yet reviewed and either its status code needs review
+ * or it is a PRN dose given over its limits.
+ */
 export function eventPendingManagerReview(
   display: MarStatusDisplay,
-  event: { managerReviewedAt: Date | null } | null | undefined,
+  event: { managerReviewedAt: Date | null; prnOverLimit?: boolean | null } | null | undefined,
 ): boolean {
-  return Boolean(event && display.requiresReview && event.managerReviewedAt == null);
+  return Boolean(
+    event &&
+      (display.requiresReview || event.prnOverLimit) &&
+      event.managerReviewedAt == null,
+  );
 }
 
 export function legendFromStatusCodes(rows: MedicationStatusCode[]): MarStatusDisplay[] {

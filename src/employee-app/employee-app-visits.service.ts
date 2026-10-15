@@ -64,6 +64,18 @@ import { VisitCheckInMethodGrantService } from '../ecm/visit-check-in-method-gra
 import { isAuthorisedManualGrantActive } from '../ecm/visit-check-in-method-grant.util';
 import { EmployeeAppSosService } from './employee-app-sos.service';
 import { MedicationNotificationHook } from '../medications/medication-notification.hook';
+import {
+  evaluatePrnLimits,
+  prnLimitLabels,
+  prnLimitsFromMedication,
+  prnOverLimitDetail,
+  prnSummaryLine,
+  prnWarningLine,
+} from '../medications/medication-prn-limits.util';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import type { EmployeeAppSosDto } from './dto/employee-app-sos.dto';
 import { resolveJobMedicationRoundCode } from '../scheduled-jobs-housekeeping/visit-job-tasks.util';
@@ -88,10 +100,8 @@ import {
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   DEFAULT_INCIDENT_SEVERITY_SETTINGS,
-  DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
   incidentCatalogForApp,
   parseIncidentSeveritySettings,
-  parseIncidentWhoInformedSettings,
 } from '../organisation-general-settings/incident-management.util';
 import {
   jobMetadataIsOvernight,
@@ -101,11 +111,13 @@ import {
 import {
   dayKeyInTimeZone,
   formatHmInTimeZone,
-  formatHmUtc,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
-import { dueTimeFallsInHmWindow } from '../service-user-visit-plans/visit-medication-window.util';
+import {
+  VISIT_DUE_MEDICATION_SELECT,
+  filterSchedulesDueOnVisit,
+} from '../medications/medication-visit-due.util';
 import { loadVisitTaskPlacement } from '../visit-tasks/visit-task-window.util';
 import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-date-label.util';
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
@@ -129,6 +141,13 @@ import {
   orgHasOptInCheckInMethod,
   resolveEnabledCheckInMethods,
 } from './employee-app-check-in-methods.util';
+import {
+  nfcCheckInTimelineDetail,
+  nfcTagHash,
+  toAttendanceVerificationMethod,
+} from './employee-app-nfc-check-in.util';
+import { formatNfcTagUid, normalizeNfcTagUid } from '../service-user-nfc-tags/nfc-tag-uid.util';
+import type { EmployeeAppNfcTagMismatchDto } from './dto/employee-app-nfc-tag-mismatch.dto';
 import type { EmployeeAppCheckInMethodRequestDto } from './dto/employee-app-check-in-method-request.dto';
 import type { EmployeeAppVisitCompleteDto } from './dto/employee-app-visit-complete.dto';
 import type {
@@ -159,13 +178,27 @@ import {
 } from './medication/employee-app-visit-blister-packs.util';
 import { indexMarBodyMapSites } from './medication/employee-app-mar-body-map-site.util';
 import {
+  DEFAULT_GEOFENCE_DISTANCE_METERS,
+  resolveCarerGeofenceRadiusMeters,
+} from './employee-app-geofence.util';
+import { resolveDeviceEventTime } from './employee-app-device-time.util';
+import {
+  VISIT_DOSE_RECORD_SELECT,
+  dueTimesInVisitWindow,
+  pickVisitDoseRecords,
+  visitDoseRecordWhere,
+} from './medication/employee-app-mar-visit-dose-record.util';
+import {
   buildMarAdminEchoFields,
   emptyMarAdminEchoFields,
 } from './medication/employee-app-mar-echo.util';
 import {
+  MEDICATION_WITNESS_ABSENT_REASONS,
+  MEDICATION_WITNESS_ABSENT_REASON_LABELS,
   buildMedicationWitnessEcho,
   medicationWitnessTimelineDetail,
   resolveMedicationWitnessColumns,
+  type MedicationWitnessCoCarer,
 } from '../medications/medication-witness.util';
 import {
   plannedHowAssistedLabel,
@@ -221,7 +254,14 @@ import {
 } from './visit-task-obs-link.util';
 import { syncObservationFromCompletedVisitTask } from './visit-task-obs-sync.util';
 import { VisitTimelineService } from './visit-timeline.service';
-import { IncidentsService } from '../incidents/incidents.service';
+import {
+  IncidentsService,
+  type CarerAppIncidentParams,
+} from '../incidents/incidents.service';
+import {
+  buildIncidentFormCatalog,
+  severityHintForAppKey,
+} from '../incidents/incident-app-form.util';
 import {
   CARER_INCIDENT_PHOTO_TYPES,
   incidentAttachmentBytesMatchType,
@@ -240,6 +280,7 @@ import {
   observationTimelineTone,
   parseOccurredAt,
   summarizeTimelineDetail,
+  LOG_DETAIL_MAX,
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
@@ -251,6 +292,7 @@ import {
   type UnableToStartSummary,
 } from './employee-app-unable-to-start.util';
 import {
+  activeAllocations,
   allocationIso,
   isLeadCarerOnVisit,
   SUPPORT_READ_ONLY_CODE,
@@ -278,8 +320,6 @@ const EXCLUDED_JOB_STATUSES: ScheduledJobStatus[] = [
   ScheduledJobStatus.DRAFT,
 ];
 
-/** Carer-app check-in / shell geofence radius (meters). */
-const EMPLOYEE_APP_ALLOWED_RADIUS_METERS = 10000;
 
 /** Keys removed from `shell.location` (client computes geofence from lat/lng/radius only). */
 export const EMPLOYEE_APP_SHELL_LOCATION_REMOVED_KEYS = [
@@ -411,12 +451,13 @@ export class EmployeeAppVisitsService {
     private readonly ecmExceptions: EcmExceptionsService,
     private readonly incidents: IncidentsService,
     private readonly medNotifications: MedicationNotificationHook,
+    private readonly auditLogs: AuditLogsService,
   ) {}
 
   /**
-   * Shared (multi-carer) visit: only the LEAD writes clinical / care records
-   * (tasks, MAR, observations, body map, identity). Support may still write log
-   * notes, handover, concerns and incidents. Single-carer visits: always allowed.
+   * Shared (multi-carer) visit: only the LEAD writes tasks, MAR, body map and identity.
+   * Support may write log notes, their own handover, concerns, incidents and Obs-tab
+   * observations (each reading belongs to its recorder). Single-carer: always allowed.
    */
   private assertLeadMayWriteCareRecord(
     employeeId: string,
@@ -428,6 +469,41 @@ export class EmployeeAppVisitsService {
         message: SUPPORT_READ_ONLY_MESSAGE,
       });
     }
+  }
+
+  /** "Completed by" on just these task rows (planned by assignment, extras by catalogue task). */
+  private async stampTaskCompleter(
+    jobId: string,
+    employeeId: string,
+    tasks: Array<{ assignmentId?: string | null; taskCatalogueTaskId?: string | null }>,
+  ) {
+    const rows = tasks
+      .map((t) =>
+        t.assignmentId
+          ? { assignmentId: t.assignmentId }
+          : t.taskCatalogueTaskId
+            ? { assignmentId: null, taskCatalogueTaskId: t.taskCatalogueTaskId }
+            : null,
+      )
+      .filter((w): w is NonNullable<typeof w> => w != null);
+    if (rows.length === 0) return;
+    await this.prisma.scheduledVisitTaskCompletion.updateMany({
+      where: { scheduledJobId: jobId, isCompleted: true, OR: rows },
+      data: { completedById: employeeId },
+    });
+  }
+
+  /**
+   * Log singletons (visit note, handover) are one timeline row per visit; a support
+   * carer gets their own row so they never replace the lead's.
+   */
+  private perCarerLogSourceId(
+    baseSourceId: string,
+    employeeId: string,
+    ctx: { job: { requiredCarers: number; allocations: VisitJobRow['allocations'] } },
+  ): string {
+    const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
+    return role === 'support' ? `${baseSourceId}:${employeeId}` : baseSourceId;
   }
 
   async sendSos(employeeId: string, jobId: string, dto: EmployeeAppSosDto) {
@@ -460,7 +536,9 @@ export class EmployeeAppVisitsService {
     // Same-day only: past stuck check-ins are flagged in admin, not blocked here.
     await this.assertNoOtherSameDayActiveVisit(employeeId, jobId, ctx.timeZone);
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
+    const nfcTagAvailable = (await this.loadActiveNfcTags(ctx.job.serviceUserId)).length > 0;
     return this.checkInMethodGrants.createRequest({
+      nfcTagAvailable,
       scheduledJobId: jobId,
       employeeId,
       note: dto.note,
@@ -500,6 +578,17 @@ export class EmployeeAppVisitsService {
           deletedAt: null,
           isActive: true,
           scheduledStartDateTime: { gte: start, lte: end },
+          // A closed visit is never active — e.g. a support carer who has not
+          // clocked out of a visit the lead already completed.
+          status: {
+            notIn: [
+              ScheduledJobStatus.COMPLETED,
+              ScheduledJobStatus.PARTIALLY_COMPLETED,
+              ScheduledJobStatus.MISSED,
+              ScheduledJobStatus.CANCELLED,
+              ScheduledJobStatus.CALLED_OFF,
+            ],
+          },
         },
       },
       select: {
@@ -548,11 +637,14 @@ export class EmployeeAppVisitsService {
         this.getEmergencyProtocols(),
         this.loadIncidentCatalog(),
       ]);
+    const nfcTags = await this.loadActiveNfcTags(ctx.job.serviceUserId);
+    const nfcTagAvailable = nfcTags.length > 0;
+    const nfcVisit = { nfcTagAvailable };
     const methodGrants = methodGrant;
     const latestGrant = methodGrants[0] ?? null;
     const checkInMethod = this.resolveCheckInMethod(ctx, employeeId);
     const gpsCheckIn = checkInMethod === 'GPS';
-    const orgMethods = resolveEnabledCheckInMethods(checkInFlags);
+    const orgMethods = resolveEnabledCheckInMethods(checkInFlags, nfcVisit);
     const enabledMethods = mergeEnabledMethodsWithGrant(orgMethods, latestGrant);
     const manualFromGrant = isAuthorisedManualGrantActive(latestGrant);
 
@@ -575,7 +667,12 @@ export class EmployeeAppVisitsService {
           allowManualOverride:
             Boolean(checkInFlags.domCheckInManualEnabled) || manualFromGrant,
           allowedRadiusMeters: geofenceSettings.allowedRadiusMeters,
-          requestOfficeAvailable: !orgHasOptInCheckInMethod(checkInFlags),
+          requestOfficeAvailable: !orgHasOptInCheckInMethod(checkInFlags, nfcVisit),
+          // sha256(`${serviceUserId}:${UID}`) per active tag — lets the app reject a
+          // wrong tag offline. Empty when NFC is not usable for this visit.
+          nfcTagHashes: enabledMethods.includes('NFC')
+            ? nfcTags.map((t) => nfcTagHash(ctx.job.serviceUserId, t.uid))
+            : [],
           checkInMethodRequest: latestGrant,
           checkInMethodRequests: methodGrants,
           ...(await this.getClockInArrivalReasons()),
@@ -593,6 +690,11 @@ export class EmployeeAppVisitsService {
    * Admin Settings → Incident Management catalogs for Report an incident.
    * `required: false` hides a row; empty enabled set falls back to defaults.
    */
+  /** Incident form catalog (types, severities, office-form lists) — also used outside a visit. */
+  getIncidentCatalog() {
+    return this.loadIncidentCatalog();
+  }
+
   private async loadIncidentCatalog() {
     try {
       // Types come from the admin IncidentCategory catalog (same taxonomy as the
@@ -600,39 +702,39 @@ export class EmployeeAppVisitsService {
       // option carries its subtypes so the app can offer a subtype picker.
       const [settings, categories] = await Promise.all([
         this.prisma.organisationGeneralSettings.findFirst({
-          select: {
-            incidentSeveritySettings: true,
-            incidentWhoInformedSettings: true,
-          },
+          select: { incidentSeveritySettings: true },
         }),
         this.prisma.incidentCategory.findMany({
           where: { isActive: true, deletedAt: null },
           orderBy: { sortOrder: 'asc' },
           select: {
             id: true,
+            key: true,
             label: true,
             subtypes: {
               where: { isActive: true, deletedAt: null },
               orderBy: { sortOrder: 'asc' },
-              select: { id: true, label: true },
+              select: { id: true, key: true, label: true },
             },
           },
         }),
       ]);
+      // `form` carries the office Raise form's option lists so the app asks the same questions.
+      // Who-informed uses that same office list (it adds police, 111 and "no one yet").
+      const form = buildIncidentFormCatalog();
       return {
         types: categories.map((c) => ({
           key: c.id,
+          code: c.key,
           label: c.label,
-          subtypes: c.subtypes.map((s) => ({ key: s.id, label: s.label })),
+          subtypes: c.subtypes.map((s) => ({ key: s.id, code: s.key, label: s.label })),
         })),
         severities: incidentCatalogForApp(
           parseIncidentSeveritySettings(settings?.incidentSeveritySettings),
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
-        ),
-        whoInformed: incidentCatalogForApp(
-          parseIncidentWhoInformedSettings(settings?.incidentWhoInformedSettings),
-          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
-        ),
+        ).map((o) => ({ ...o, description: severityHintForAppKey(o.key) })),
+        whoInformed: form.whoInformed,
+        form,
       };
     } catch {
       return {
@@ -641,10 +743,8 @@ export class EmployeeAppVisitsService {
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
           DEFAULT_INCIDENT_SEVERITY_SETTINGS,
         ),
-        whoInformed: incidentCatalogForApp(
-          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
-          DEFAULT_INCIDENT_WHO_INFORMED_SETTINGS,
-        ),
+        whoInformed: buildIncidentFormCatalog().whoInformed,
+        form: buildIncidentFormCatalog(),
       };
     }
   }
@@ -1175,8 +1275,17 @@ export class EmployeeAppVisitsService {
       );
     }
 
+    // NFC must prove presence with a real, active tag belonging to this client.
+    const nfcTag =
+      normalizeCheckInMethod(dto.method) === 'NFC'
+        ? await this.resolveCheckInNfcTag(ctx.job.serviceUserId, dto.nfcTagUid, jobId, employeeId)
+        : null;
+
     const now = new Date();
     const deviceRecordedAt = dto.deviceRecordedAt ?? dto.deviceCapturedAt ?? now.toISOString();
+    // The visit starts when the carer clocked in on the phone, not when an offline
+    // clock-in reached the server. `now` stays as the time the server received it.
+    const checkInAt = resolveDeviceEventTime(deviceRecordedAt, now).at;
     const idempotencyKey = dto.idempotencyKey ?? dto.clientEventId ?? null;
     const geofence = await this.evaluateGeofence(ctx, dto.latitude, dto.longitude);
 
@@ -1216,9 +1325,12 @@ export class EmployeeAppVisitsService {
       personSeen: dto.personSeen ?? null,
       accessViaKeySafe: dto.accessViaKeySafe ?? null,
       requiresManagerReview: dto.requiresManagerReview ?? false,
-      checkedInAt: now.toISOString(),
+      checkedInAt: checkInAt.toISOString(),
+      serverReceivedAt: now.toISOString(),
       employeeId,
       distanceMeters: geofence.distanceMeters,
+      nfcTagId: nfcTag?.id ?? null,
+      nfcTagLabel: nfcTag?.label ?? null,
     };
 
     await this.prisma.$transaction(async (tx) => {
@@ -1226,14 +1338,18 @@ export class EmployeeAppVisitsService {
         where: { id: visit.id },
         data: {
           status: ScheduledVisitStatus.STARTED,
-          // Envelope start = first carer on site (do not overwrite later partners).
-          actualStartDateTime: visit.actualStartDateTime ?? now,
+          // Envelope start = first carer on site: keep the earliest clock-in, also
+          // when a partner's earlier offline clock-in syncs after a later one.
+          actualStartDateTime:
+            visit.actualStartDateTime && visit.actualStartDateTime <= checkInAt
+              ? visit.actualStartDateTime
+              : checkInAt,
         },
       });
       if (myAllocation?.id) {
         await tx.jobAllocation.update({
           where: { id: myAllocation.id },
-          data: { actualStartDateTime: myAllocation.actualStartDateTime ?? now },
+          data: { actualStartDateTime: myAllocation.actualStartDateTime ?? checkInAt },
         });
       }
       const visits = await tx.scheduledVisit.findMany({
@@ -1281,8 +1397,8 @@ export class EmployeeAppVisitsService {
       jobAllocationId: ctx.allocationId,
       employeeId,
       eventType: VisitAttendanceEventType.CHECK_IN,
-      verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
-      occurredAt: now,
+      verificationMethod: toAttendanceVerificationMethod(checkInMethod),
+      occurredAt: checkInAt,
       deviceCapturedAt: new Date(deviceRecordedAt),
       clientEventId: idempotencyKey ?? undefined,
       latitude: dto.latitude,
@@ -1297,9 +1413,27 @@ export class EmployeeAppVisitsService {
 
     await this.checkInMethodGrants.consumeOnSuccessfulCheckIn(jobId, employeeId);
 
+    if (nfcTag) {
+      await this.prisma.serviceUserNfcTag.update({
+        where: { id: nfcTag.id },
+        data: { lastScannedAt: now },
+      });
+      await this.prisma.serviceUserNfcTagScan.create({
+        data: {
+          tagId: nfcTag.id,
+          scheduledJobId: jobId,
+          visitServiceUserId: ctx.job.serviceUserId,
+          employeeId,
+          result: 'ACCEPTED',
+          source: 'CHECK_IN',
+          scannedAt: now,
+        },
+      });
+    }
+
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
-    const occurredAt = parseOccurredAt(deviceRecordedAt, now);
+    const occurredAt = checkInAt;
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: visit.id,
@@ -1307,7 +1441,7 @@ export class EmployeeAppVisitsService {
       sourceType: 'check_in',
       sourceId: `check_in:${employeeId}`,
       title: 'Clocked in',
-      detail: checkInTimelineDetail(dto.method),
+      detail: nfcTag ? nfcCheckInTimelineDetail(nfcTag.label) : checkInTimelineDetail(dto.method),
       tone: 'primary',
       occurredAt,
       createdByEmployeeId: employeeId,
@@ -1324,8 +1458,8 @@ export class EmployeeAppVisitsService {
         jobId,
         visitId: visit.id,
         isCheckedIn: true,
-        checkedInAt: now.toISOString(),
-        checkedInLabel: formatHmUtc(now),
+        checkedInAt: checkInAt.toISOString(),
+        checkedInLabel: formatHmInTimeZone(checkInAt, ctx.timeZone),
         method: dto.method ?? 'GPS',
         withinArea: geofence.withinArea,
         distanceMeters: geofence.distanceMeters,
@@ -1339,10 +1473,14 @@ export class EmployeeAppVisitsService {
   async getTasks(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     // Heal eMAR-linked tasks if the MAR round is already complete (Home reads completions).
+    // Whoever opens Tasks first, the lead gave the doses — credit the lead.
     await this.syncEmarLinkedTasksIfRoundComplete({
       employeeId,
+      completedById:
+        resolveLeadEmployeeId(ctx.job.requiredCarers, ctx.job.allocations) ?? employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
+      visitId: ctx.primaryVisit.id,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
       visitEnd:
         ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
@@ -1355,7 +1493,12 @@ export class EmployeeAppVisitsService {
     const [raw, medProgress, obsCount, progress] = await Promise.all([
       this.housekeeping.getVisitJobTasks('', jobId),
       this.resolveMedicationProgress(ctx),
-      this.countVisitObservations(ctx.job.serviceUserId, since),
+      this.countVisitObservations(
+        ctx.job.serviceUserId,
+        since,
+        jobId,
+        ctx.primaryVisit.actualEndDateTime,
+      ),
       this.resolveProgress(ctx),
     ]);
 
@@ -1421,7 +1564,7 @@ export class EmployeeAppVisitsService {
         outcome,
         completedAt,
         completedLabel: completedAt
-          ? `Completed · ${formatHmUtc(new Date(completedAt))}`
+          ? `Completed · ${formatHmInTimeZone(new Date(completedAt), ctx.timeZone)}`
           : null,
         recordedValue: task.recordedValue ?? null,
         notes: stripVisitTaskOutcomeNotes(
@@ -1456,7 +1599,14 @@ export class EmployeeAppVisitsService {
 
     // One-way heal only: completed Obs-linked tasks mirror into observations.
     // Never re-complete a task from Obs on GET (that fought Home after reopen).
-    for (const task of tasks) {
+    // Lead only on a shared visit: the lead recorded the task, so a support carer
+    // opening Tasks must not create a second copy of the reading in their name.
+    const mayHealObservations = isLeadCarerOnVisit(
+      employeeId,
+      ctx.job.requiredCarers,
+      ctx.job.allocations,
+    );
+    for (const task of mayHealObservations ? tasks : []) {
       if (!task.isCompleted || !task.observationTypeCode) continue;
       if (!task.recordedValue && !task.notes) continue;
       await this.syncObservationFromCompletedTask({
@@ -1494,12 +1644,25 @@ export class EmployeeAppVisitsService {
   async saveTasks(employeeId: string, jobId: string, dto: SaveVisitJobTasksDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     this.assertLeadMayWriteCareRecord(employeeId, await this.loadJobForEmployee(employeeId, jobId));
+    // Which tasks were already done before this save (e.g. marked by the office).
+    const doneBefore = await this.prisma.scheduledVisitTaskCompletion.findMany({
+      where: { scheduledJobId: jobId, isCompleted: true },
+      select: { assignmentId: true, taskCatalogueTaskId: true },
+    });
     const result = await this.housekeeping.saveVisitJobTasks('', jobId, dto);
 
-    await this.prisma.scheduledVisitTaskCompletion.updateMany({
-      where: { scheduledJobId: jobId, isCompleted: true },
-      data: { completedById: employeeId },
-    });
+    // The carer is recorded only on the tasks THIS save completed.
+    const alreadyDone = (t: { assignmentId?: string | null; taskCatalogueTaskId?: string | null }) =>
+      doneBefore.some((d) =>
+        t.assignmentId
+          ? d.assignmentId === t.assignmentId
+          : d.assignmentId === null && d.taskCatalogueTaskId === t.taskCatalogueTaskId,
+      );
+    await this.stampTaskCompleter(
+      jobId,
+      employeeId,
+      (dto.tasks ?? []).filter((t) => t.isCompleted && !alreadyDone(t)),
+    );
 
     return this.getTasks(employeeId, jobId);
   }
@@ -1527,8 +1690,33 @@ export class EmployeeAppVisitsService {
         },
         sections: medicationPayload.sections,
         blisterPacks: medicationPayload.blisterPacks,
+        // Controlled drug witness: carers who can be picked, and reasons for "no witness".
+        witnessOptions: {
+          coCarers: this.coCarerWitnessOptions(employeeId, ctx),
+          absentReasons: MEDICATION_WITNESS_ABSENT_REASONS.map((code) => ({
+            code,
+            label: MEDICATION_WITNESS_ABSENT_REASON_LABELS[code],
+          })),
+        },
       },
     };
+  }
+
+  /** Other carers allocated to this visit — the only people a "Co-carer" witness can be. */
+  private coCarerWitnessOptions(
+    employeeId: string,
+    ctx: { job: { allocations: VisitJobRow['allocations'] } },
+  ): MedicationWitnessCoCarer[] {
+    return ctx.job.allocations
+      .filter((a) => a.employeeId !== employeeId && ACTIVE_ALLOCATION.includes(a.status))
+      .map((a) => ({
+        employeeId: a.employeeId,
+        name:
+          [a.employee?.personalDetail?.firstName, a.employee?.personalDetail?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || 'Carer',
+      }));
   }
 
   async getObservations(employeeId: string, jobId: string) {
@@ -1541,13 +1729,25 @@ export class EmployeeAppVisitsService {
         serviceUserId: ctx.job.serviceUserId,
         since,
         scheduledJobId: jobId,
+        until: ctx.primaryVisit.actualEndDateTime,
       }),
     ]);
+
+    // Shared visit: label each reading with its recorder's role (lead / support).
+    const allocatedIds = new Set(activeAllocations(ctx.job.allocations).map((a) => a.employeeId));
+    const recordedThisVisit = payload.recordedThisVisit.map((row) => ({
+      ...row,
+      recordedByRole:
+        row.recordedByEmployeeId && allocatedIds.has(row.recordedByEmployeeId)
+          ? resolveCarerRole(row.recordedByEmployeeId, ctx.job.requiredCarers, ctx.job.allocations)
+          : null,
+    }));
 
     return {
       data: {
         progress: this.buildProgress(progress, medProgress),
         ...payload,
+        recordedThisVisit,
       },
     };
   }
@@ -1734,6 +1934,24 @@ export class EmployeeAppVisitsService {
         handoverNote,
       },
     };
+  }
+
+  /**
+   * Every carer voice note on the visit, grouped by the record it belongs to (log entry,
+   * handover, incident, task …), so any carer on the visit — e.g. support on a double-up —
+   * can play what another carer recorded. `timelineEventId` matches the log timeline row.
+   */
+  async getVoiceNotes(employeeId: string, jobId: string) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    return {
+      data: { jobId, groups: await this.housekeeping.listVoiceNoteGroupsForCarerApp(jobId) },
+    };
+  }
+
+  /** Voice note file for playback — only for carers allocated to the visit. */
+  async getVoiceNoteFile(employeeId: string, jobId: string, voiceNoteId: string) {
+    await this.loadJobForEmployee(employeeId, jobId);
+    return this.housekeeping.voiceNoteFileForJob(jobId, voiceNoteId);
   }
 
   async getBodyMap(employeeId: string, jobId: string) {
@@ -2280,6 +2498,16 @@ export class EmployeeAppVisitsService {
 
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
+    // The clock-out time comes from the phone; trust it under the same rules as clock-in.
+    if (dto.actualEndDateTime) {
+      dto = {
+        ...dto,
+        actualEndDateTime: resolveDeviceEventTime(
+          dto.actualEndDateTime,
+          new Date(),
+        ).at.toISOString(),
+      };
+    }
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const role = resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations);
 
@@ -2472,7 +2700,8 @@ export class EmployeeAppVisitsService {
       employeeId,
       eventType: VisitAttendanceEventType.CHECK_OUT,
       verificationMethod: VisitAttendanceVerificationMethod.MOBILE_GPS,
-      occurredAt: now,
+      // When the carer clocked out on the phone; the record's createdAt is when it synced.
+      occurredAt: endDate,
       latitude: dto.latitude,
       longitude: dto.longitude,
       accuracyMeters: dto.accuracyMeters,
@@ -3344,10 +3573,14 @@ export class EmployeeAppVisitsService {
       { pruneMissingExtras: false },
     );
 
-    await this.prisma.scheduledVisitTaskCompletion.updateMany({
-      where: { scheduledJobId: jobId, isCompleted: true },
-      data: { completedById: employeeId },
-    });
+    // Record the carer on this task only — never on tasks others completed
+    // (office in admin, a previous lead).
+    await this.stampTaskCompleter(jobId, employeeId, [
+      {
+        assignmentId: match.assignmentId ? String(match.assignmentId) : null,
+        taskCatalogueTaskId: match.taskCatalogueTaskId ? String(match.taskCatalogueTaskId) : null,
+      },
+    ]);
 
     // Only fully completed clinical readings sync into Obs (not decline/partial).
     if (isFullyCompleted) {
@@ -3490,9 +3723,13 @@ export class EmployeeAppVisitsService {
     const witness = resolveMedicationWitnessColumns(
       Boolean(med.isControlledMedication),
       dto,
+      {
+        given: mapped.status === MedicationAdministrationStatus.GIVEN,
+        coCarers: this.coCarerWitnessOptions(employeeId, ctx),
+      },
     );
     const timeGiven =
-      dto.timeGiven?.trim() || formatHmUtc(recordedAt);
+      dto.timeGiven?.trim() || formatHmInTimeZone(recordedAt, ctx.timeZone);
     const roundRow = ctx.medicationRoundCode
       ? await this.prisma.medicationAdministrationRound.findFirst({
           where: { code: ctx.medicationRoundCode, deletedAt: null, isActive: true },
@@ -3500,44 +3737,131 @@ export class EmployeeAppVisitsService {
         })
       : null;
 
-    const created = await this.prisma.medicationAdministrationEvent.create({
-      data: {
-        serviceUserId: ctx.job.serviceUserId,
-        serviceUserMedicationId: med.id,
-        medicationScheduleId: schedule?.id,
-        roundId: roundRow?.id ?? null,
-        administeredById: employeeId,
-        scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
-        actualDateTime: recordedAt,
-        status: mapped.status,
-        statusCode: mapped.statusCode,
-        reason: dto.reasonCode ?? null,
-        notes: dto.notes?.trim() || null,
-        supportLevel: dto.supportLevel?.trim() || null,
-        timeGiven,
-        outcomeLabel: dto.outcomeLabel?.trim() || null,
-        ...witness,
-        visitId: ctx.primaryVisit.id,
-        isPrn,
-        prnReason: dto.prnIndication ?? null,
-        prnOutcome: dto.prnEffectiveness ?? null,
-        medicationNameSnapshot: med.medicationName,
-        doseSnapshot: med.dose,
-        strengthSnapshot: med.strength,
-        routeNameSnapshot: med.route?.name ?? null,
-      },
+    const doseFields = {
+      medicationScheduleId: schedule?.id,
+      roundId: roundRow?.id ?? null,
+      administeredById: employeeId,
+      actualDateTime: recordedAt,
+      status: mapped.status,
+      statusCode: mapped.statusCode,
+      reason: dto.reasonCode ?? null,
+      notes: dto.notes?.trim() || null,
+      supportLevel: dto.supportLevel?.trim() || null,
+      timeGiven,
+      outcomeLabel: dto.outcomeLabel?.trim() || null,
+      ...witness,
+      prnReason: dto.prnIndication ?? null,
+      prnOutcome: dto.prnEffectiveness ?? null,
+    };
+
+    // A carer re-saving a dose (app "Update") replaces this visit's record for that
+    // dose instead of adding another one. Serialise per visit + medicine so two saves
+    // arriving together still end up as a single record.
+    const { saved: created, previous } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`mar-dose:${ctx.primaryVisit.id}:${med.id}`}))`;
+      const previous = await tx.medicationAdministrationEvent.findFirst({
+        where: visitDoseRecordWhere({
+          serviceUserId: ctx.job.serviceUserId,
+          visitId: ctx.primaryVisit.id,
+          medicationId: med.id,
+          isPrn,
+          schedule,
+        }),
+        orderBy: { createdAt: 'desc' },
+      });
+      // A PRN dose given inside the minimum gap or over the 24-hour maximum is still
+      // saved; it is marked so the office is told and can review it.
+      let prnOverLimit: string | null = null;
+      if (isPrn && mapped.status === MedicationAdministrationStatus.GIVEN) {
+        const limits = prnLimitsFromMedication(med);
+        const others = await tx.medicationAdministrationEvent.findMany({
+          where: {
+            serviceUserId: ctx.job.serviceUserId,
+            serviceUserMedicationId: med.id,
+            deletedAt: null,
+            isPrn: true,
+            status: MedicationAdministrationStatus.GIVEN,
+            actualDateTime: {
+              gte: new Date(recordedAt.getTime() - 24 * 3_600_000),
+              lte: recordedAt,
+            },
+            ...(previous ? { id: { not: previous.id } } : {}),
+          },
+          select: { actualDateTime: true },
+        });
+        prnOverLimit = prnOverLimitDetail({
+          limits,
+          evaluation: evaluatePrnLimits({
+            limits,
+            givenAt: others.map((e) => e.actualDateTime as Date),
+            at: recordedAt,
+          }),
+          at: recordedAt,
+        });
+      }
+      const overLimitFields = {
+        prnOverLimit: prnOverLimit != null,
+        prnOverLimitDetail: prnOverLimit,
+      };
+
+      const saved = previous
+        ? await tx.medicationAdministrationEvent.update({
+            where: { id: previous.id },
+            data: { ...doseFields, ...overLimitFields, statusCodeId: null },
+          })
+        : await tx.medicationAdministrationEvent.create({
+            data: {
+              ...doseFields,
+              ...overLimitFields,
+              serviceUserId: ctx.job.serviceUserId,
+              serviceUserMedicationId: med.id,
+              scheduledDateTime: ctx.primaryVisit.scheduledStartDateTime,
+              visitId: ctx.primaryVisit.id,
+              isPrn,
+              medicationNameSnapshot: med.medicationName,
+              doseSnapshot: med.dose,
+              strengthSnapshot: med.strength,
+              routeNameSnapshot: med.route?.name ?? null,
+            },
+          });
+      return { saved, previous };
     });
 
-    await this.medNotifications.notifyAdministrationEvent({
-      eventId: created.id,
-      serviceUserId: ctx.job.serviceUserId,
-      medicationName: med.medicationName,
-      status: mapped.status,
-      controlled: Boolean(med.isControlledMedication),
-      occurredAt: recordedAt,
-      actorEmployeeId: employeeId,
-      metadata: { medicationId: med.id, scheduledJobId: jobId },
-    });
+    if (previous) {
+      await this.auditLogs.logAudit({
+        userId: undefined,
+        module: AuditModule.MEDICATION,
+        action: AuditAction.MEDICATION_ADMINISTERED,
+        recordType: 'MedicationAdministrationEvent',
+        recordId: created.id,
+        oldValues: auditSnapshot(previous),
+        newValues: auditSnapshot(created),
+        metadata: {
+          serviceUserId: ctx.job.serviceUserId,
+          scheduledJobId: jobId,
+          employeeId,
+          channel: 'employee_app',
+          correction: true,
+        },
+      });
+    }
+
+    // Tell the office about a new record, or an existing one whose outcome changed
+    // or that has just gone over its PRN limit.
+    const newlyOverLimit = created.prnOverLimit && !previous?.prnOverLimit;
+    if (!previous || previous.status !== created.status || newlyOverLimit) {
+      await this.medNotifications.notifyAdministrationEvent({
+        eventId: created.id,
+        serviceUserId: ctx.job.serviceUserId,
+        medicationName: med.medicationName,
+        status: mapped.status,
+        controlled: Boolean(med.isControlledMedication),
+        prnOverLimitDetail: created.prnOverLimitDetail,
+        occurredAt: recordedAt,
+        actorEmployeeId: employeeId,
+        metadata: { medicationId: med.id, scheduledJobId: jobId },
+      });
+    }
 
     // When the scheduled MAR round is fully recorded, close eMAR-linked visit tasks
     // (e.g. "Medication prompt") so Home + Details task progress stay aligned.
@@ -3545,6 +3869,7 @@ export class EmployeeAppVisitsService {
       employeeId,
       jobId,
       serviceUserId: ctx.job.serviceUserId,
+      visitId: ctx.primaryVisit.id,
       visitStart: ctx.primaryVisit.scheduledStartDateTime,
       visitEnd:
         ctx.primaryVisit.scheduledEndDateTime ?? ctx.job.scheduledEndDateTime ?? null,
@@ -3606,8 +3931,9 @@ export class EmployeeAppVisitsService {
       return this.createObservation(employeeId, jobId, dto as CreateServiceUserObservationDto);
     }
 
+    // Support on a shared visit may record Obs-tab readings too; task-linked readings
+    // come from the task flow, which only the lead can save.
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
       if (replay) return { data: replay };
@@ -3686,7 +4012,12 @@ export class EmployeeAppVisitsService {
     });
     await this.persistWellbeingScores(row.id, wellbeingScores);
 
-    if (dto.outcome === 'recorded' || dto.outcome === 'unable') {
+    // A reading completes the matching visit task only when the lead takes it —
+    // tasks are the lead's on a shared visit; a support reading stays a reading.
+    if (
+      (dto.outcome === 'recorded' || dto.outcome === 'unable') &&
+      isLeadCarerOnVisit(employeeId, ctx.job.requiredCarers, ctx.job.allocations)
+    ) {
       await this.syncVisitTaskFromObservation({
         employeeId,
         jobId,
@@ -3766,7 +4097,6 @@ export class EmployeeAppVisitsService {
   ) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (dto.idempotencyKey) {
       const replay = await this.findIdempotentReplay(jobId, dto.idempotencyKey);
       if (replay) return { data: replay };
@@ -3781,6 +4111,15 @@ export class EmployeeAppVisitsService {
       include: { observationType: true },
     });
     if (!existing) throw new NotFoundException('Observation not found');
+    // A reading is changed only by the carer who took it. "Until clock-out" is
+    // enforced in the app when the edit is made — not here, so an edit queued
+    // offline before clock-out still syncs after the visit closes.
+    if (existing.recordedByEmployeeId && existing.recordedByEmployeeId !== employeeId) {
+      throw new ForbiddenException({
+        code: 'NOT_RECORDER',
+        message: 'Only the carer who recorded this reading can change it',
+      });
+    }
 
     const prevPayload =
       existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload)
@@ -3931,9 +4270,22 @@ export class EmployeeAppVisitsService {
     },
   ) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    this.assertLeadMayWriteCareRecord(employeeId, ctx);
     if (!this.isEmployeeCheckedInForVisit(employeeId, ctx)) {
       contractError('NOT_CHECKED_IN', 'Clock in before adding an observation photo');
+    }
+    // Photos go on your own reading only (lead or support).
+    const photoTarget = await this.prisma.serviceUserObservation.findFirst({
+      where: { id: observationId, serviceUserId: ctx.job.serviceUserId, deletedAt: null },
+      select: { recordedByEmployeeId: true },
+    });
+    if (
+      photoTarget?.recordedByEmployeeId &&
+      photoTarget.recordedByEmployeeId !== employeeId
+    ) {
+      throw new ForbiddenException({
+        code: 'NOT_RECORDER',
+        message: 'Only the carer who recorded this reading can add photos to it',
+      });
     }
     if (!file) validationError('file is required');
     const idempotencyKey = body.idempotencyKey?.trim() ?? '';
@@ -4048,7 +4400,7 @@ export class EmployeeAppVisitsService {
       scheduledVisitId: ctx.primaryVisit.id,
       eventType: 'visit_note',
       sourceType: 'log_note',
-      sourceId: VISIT_NOTE_TIMELINE_SOURCE_ID,
+      sourceId: this.perCarerLogSourceId(VISIT_NOTE_TIMELINE_SOURCE_ID, employeeId, ctx),
       title,
       detail,
       tone: 'ink',
@@ -4110,9 +4462,20 @@ export class EmployeeAppVisitsService {
      * True network retries with identical content are safe (idempotent overwrite).
      */
     const existingEa = await this.readEmployeeAppMeta(jobId);
+    // Shared visit: each support carer keeps their own handover; the lead's stays
+    // the visit handover (Overview "Last handover", acknowledgement).
+    const isSupport =
+      resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations) === 'support';
+    const supportHandovers =
+      typeof existingEa.supportHandovers === 'object' &&
+      existingEa.supportHandovers &&
+      !Array.isArray(existingEa.supportHandovers)
+        ? (existingEa.supportHandovers as Record<string, unknown>)
+        : {};
+    const ownHandover = isSupport ? supportHandovers[employeeId] : existingEa.handoverNote;
     const existingHandover =
-      typeof existingEa.handoverNote === 'object' && existingEa.handoverNote
-        ? (existingEa.handoverNote as Record<string, unknown>)
+      typeof ownHandover === 'object' && ownHandover
+        ? (ownHandover as Record<string, unknown>)
         : null;
     const entryId =
       dto.clientEntryId?.trim() ||
@@ -4134,13 +4497,13 @@ export class EmployeeAppVisitsService {
     if (outstandingAction) handoverParts.push(`Outstanding action: ${outstandingAction}`);
     const detail = handoverParts.length
       ? handoverParts.join('\n')
-      : summarizeTimelineDetail(dto.body);
+      : summarizeTimelineDetail(dto.body, LOG_DETAIL_MAX);
     const timelineItem = await this.visitTimeline.upsertEvent({
       scheduledJobId: jobId,
       scheduledVisitId: ctx.primaryVisit.id,
       eventType: 'handover',
       sourceType: 'handover',
-      sourceId: HANDOVER_TIMELINE_SOURCE_ID,
+      sourceId: this.perCarerLogSourceId(HANDOVER_TIMELINE_SOURCE_ID, employeeId, ctx),
       title: 'Handover',
       detail,
       tone: handoverTimelineTone(dto.priority),
@@ -4158,6 +4521,38 @@ export class EmployeeAppVisitsService {
       deviceRecordedAt: occurredAtIso,
       ...(timelineItem && !dto.isDraft ? { timelineItem } : {}),
     };
+
+    const handoverRecord = {
+      id: entryId,
+      body: dto.body,
+      priority: dto.priority ?? 'normal',
+      outstandingAction: dto.outstandingAction ?? null,
+      voiceNoteIds: voiceNoteIdsOf(dto),
+      voiceNoteDurationMs: hasVoiceNotes(dto) ? (dto.voiceNoteDurationMs ?? null) : null,
+      isDraft: Boolean(dto.isDraft),
+      deviceRecordedAt: occurredAtIso,
+      recordedByEmployeeId: employeeId,
+      recordedByRole: resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations),
+      recordedAt: occurredAtIso,
+    };
+    if (isSupport) {
+      await this.mergeEmployeeAppMeta(jobId, (ea) => ({
+        ...ea,
+        supportHandovers: {
+          ...(typeof ea.supportHandovers === 'object' &&
+          ea.supportHandovers &&
+          !Array.isArray(ea.supportHandovers)
+            ? (ea.supportHandovers as Record<string, unknown>)
+            : {}),
+          [employeeId]: handoverRecord,
+        },
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey]: response,
+        },
+      }));
+      return { data: response };
+    }
 
     await this.mergeEmployeeAppMeta(jobId, (ea) => ({
       ...ea,
@@ -4417,6 +4812,15 @@ export class EmployeeAppVisitsService {
 
     const incidentId = dto.clientEntryId ?? randomUUID();
     const now = new Date().toISOString();
+    // Same clientEntryId already submitted from this visit = the carer edited their report.
+    // (Newer app builds send a new idempotency key per save, so it is not a replay.)
+    const prior = dto.isDraft ? null : await this.findSubmittedBlobIncident(jobId, incidentId);
+    const params = dto.isDraft || !userId ? null : this.carerAppIncidentParams(dto, ctx, employeeId, userId, jobId, now);
+
+    if (prior) {
+      return this.updateSubmittedIncident(jobId, incidentId, dto, ctx, employeeId, prior, params, now);
+    }
+
     const auditRecordId = newAuditRecordId();
     const officeNotified = !dto.isDraft;
     const response = {
@@ -4429,7 +4833,10 @@ export class EmployeeAppVisitsService {
     };
 
     await this.mergeEmployeeAppMeta(jobId, (ea) => {
-      const incidents = Array.isArray(ea.incidents) ? [...(ea.incidents as unknown[])] : [];
+      // A server-side draft of the same entry is replaced by the final submit.
+      const incidents = (Array.isArray(ea.incidents) ? [...(ea.incidents as unknown[])] : []).filter(
+        (i) => !(i && typeof i === 'object' && String((i as Record<string, unknown>).id) === incidentId),
+      );
       incidents.push({
         id: incidentId,
         ...dto,
@@ -4450,101 +4857,19 @@ export class EmployeeAppVisitsService {
       };
     });
 
-    await this.visitTimeline.upsertEvent({
-      scheduledJobId: jobId,
-      scheduledVisitId: ctx.primaryVisit.id,
-      eventType: 'incident',
-      sourceType: 'incident',
-      sourceId: incidentId,
-      title: (dto.incidentType ?? 'Incident').toString().trim() || 'Incident',
-      detail: summarizeTimelineDetail(
-        [dto.body, dto.severity ? `Severity: ${dto.severity}` : null].filter(Boolean).join(' · '),
-      ),
-      tone: 'danger',
-      occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
-      logEntryId: incidentId,
-      isDraft: Boolean(dto.isDraft),
-      createdByEmployeeId: employeeId,
-      writeIdempotencyKey: dto.idempotencyKey,
-    });
+    await this.upsertIncidentTimelineEvent(jobId, ctx, incidentId, dto, employeeId, now);
 
     // Mirror the submitted (non-draft) incident into the real Incident register so it
     // appears in the admin Accident & Incident module, linked to this visit. The blob
     // above is kept for offline sync + the visit timeline. A failure here must never
     // break the carer's submit (the incident is already saved locally/on the blob).
-    if (!dto.isDraft && userId) {
+    if (params) {
       try {
-        const kinds = (dto.affectedPersonKinds ?? []) as IncidentPersonKind[];
-        const created = await this.incidents.createFromCarerApp({
-          userId,
-          employeeId,
-          scheduledJobId: jobId,
-          categoryRef: dto.incidentTypeKey ?? null,
-          subtypeRef: dto.subtypeKey ?? null,
-          incidentTypeLabel: dto.incidentType ?? null,
-          // Carer-entered date/time is organisation wall-clock time, not UTC.
-          occurredAt: parseCarerDateTimeInZone(
-            dto.incidentDate,
-            dto.incidentTime,
-            ctx.timeZone,
-            parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
-          ),
-          // API-18 documents `severity`; newer app builds send `severityKey`.
-          severity: this.mapAppIncidentSeverity(dto.severityKey ?? dto.severity),
-          primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
-            ? ctx.job.serviceUserId ?? null
-            : null,
-          primaryEmployeeId: kinds.includes(IncidentPersonKind.EMPLOYEE)
-            ? employeeId
-            : null,
-          affectedPersonKinds: kinds,
-          primaryPersonName: dto.affectedPersonName ?? null,
-          description: dto.body,
-          contextBefore: dto.contextBefore ?? null,
-          contextAfter: dto.contextAfter ?? null,
-          immediateActions: dto.immediateAction ?? null,
-          injuryOccurred:
-            Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap),
-          witnesses: dto.witnesses ?? null,
-          injuryType: dto.incidentType ?? null,
-          specificArea: dto.location ?? null,
-          injuryDetails: dto.injuryInfo ?? null,
-          peopleInvolved: dto.peopleInvolved ?? null,
-          whoInformedKeys: dto.whoInformedKeys ?? [],
-          carerSafeguardingConcern: dto.safeguardingConcern ?? null,
-          followUpRequired: dto.followUpRequired ?? false,
-          emergencyServicesDetails: dto.emergencyServices ?? null,
-          familyInformed: dto.familyInformed ?? false,
-          carerNotes: dto.notes ?? null,
-          bodyMap: dto.bodyMap
-            ? {
-                marks: (dto.bodyMap.marks ?? []).map((m) => ({
-                  view: m.view ?? null,
-                  recordView: m.recordView ?? null,
-                  canvasView: m.canvasView ?? null,
-                  x: m.x,
-                  y: m.y,
-                  part: m.part ?? null,
-                })),
-              }
-            : null,
-        });
+        const created = await this.incidents.createFromCarerApp(params);
         this.logger.log(
           `Carer-app incident ${incidentId} mirrored to register as ${created.referenceNumber}`,
         );
-        // Remember the register incident id on the blob so later photo uploads
-        // (a separate endpoint) can be mirrored as IncidentAttachment rows.
-        const registerIncidentId = created.id;
-        await this.mergeEmployeeAppMeta(jobId, (current) => {
-          const list = Array.isArray(current.incidents)
-            ? [...(current.incidents as Array<Record<string, unknown>>)]
-            : [];
-          const idx = list.findIndex((i) => String(i.id) === incidentId);
-          if (idx >= 0) {
-            list[idx] = { ...list[idx], registerIncidentId };
-          }
-          return { ...current, incidents: list };
-        });
+        await this.setBlobIncidentFields(jobId, incidentId, { registerIncidentId: created.id });
       } catch (e) {
         // Don't tell the carer the office was notified when the register copy failed.
         response.officeNotified = false;
@@ -4570,6 +4895,246 @@ export class EmployeeAppVisitsService {
     }
 
     return { data: response };
+  }
+
+  /**
+   * The carer changed a report they already submitted. The register copy is updated only while
+   * the office has not started the review; after that the change is refused (nothing is saved)
+   * so the app shows it was not accepted.
+   */
+  private async updateSubmittedIncident(
+    jobId: string,
+    incidentId: string,
+    dto: EmployeeAppIncidentDto,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    employeeId: string,
+    prior: Record<string, unknown>,
+    params: CarerAppIncidentParams | null,
+    now: string,
+  ) {
+    if (prior.recordedByEmployeeId && prior.recordedByEmployeeId !== employeeId) {
+      throw new ForbiddenException('Only the carer who reported this incident can change it');
+    }
+    const registerIncidentId =
+      typeof prior.registerIncidentId === 'string' ? prior.registerIncidentId : null;
+    let newRegisterId: string | null = null;
+    if (params) {
+      if (registerIncidentId) {
+        // Throws 409 once the office has started the review — before anything is saved.
+        await this.incidents.updateFromCarerApp(registerIncidentId, params);
+      } else {
+        // The first register copy failed earlier: create it now.
+        const created = await this.incidents.createFromCarerApp(params);
+        newRegisterId = created.id;
+      }
+    }
+    const response = {
+      incidentId,
+      entryType: 'incident',
+      isDraft: false,
+      serverConfirmedAt: now,
+      auditRecordId: (prior.auditRecordId as string | undefined) ?? newAuditRecordId(),
+      officeNotified: Boolean(params) || prior.officeNotified === true,
+      updated: true,
+    };
+    await this.mergeEmployeeAppMeta(jobId, (ea) => {
+      const list = Array.isArray(ea.incidents)
+        ? [...(ea.incidents as Array<Record<string, unknown>>)]
+        : [];
+      const idx = list.findIndex((i) => String(i.id) === incidentId);
+      const keep = idx >= 0 ? list[idx] : {};
+      const next = {
+        ...keep,
+        ...dto,
+        id: incidentId,
+        attachments: keep.attachments ?? [],
+        recordedByEmployeeId: keep.recordedByEmployeeId ?? employeeId,
+        recordedAt: keep.recordedAt ?? now,
+        updatedAt: now,
+        officeNotified: response.officeNotified,
+        ...(newRegisterId ? { registerIncidentId: newRegisterId } : {}),
+      };
+      if (idx >= 0) list[idx] = next;
+      else list.push(next);
+      return {
+        ...ea,
+        incidents: list,
+        idempotency: {
+          ...((ea.idempotency as Record<string, unknown>) ?? {}),
+          [dto.idempotencyKey]: response,
+        },
+      };
+    });
+    await this.upsertIncidentTimelineEvent(jobId, ctx, incidentId, dto, employeeId, now);
+    return { data: response };
+  }
+
+  private async upsertIncidentTimelineEvent(
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    incidentId: string,
+    dto: EmployeeAppIncidentDto,
+    employeeId: string,
+    now: string,
+  ) {
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: ctx.primaryVisit.id,
+      eventType: 'incident',
+      sourceType: 'incident',
+      sourceId: incidentId,
+      title: (dto.incidentType ?? 'Incident').toString().trim() || 'Incident',
+      detail: summarizeTimelineDetail(
+        [dto.body, dto.severity ? `Severity: ${dto.severity}` : null].filter(Boolean).join(' · '),
+        LOG_DETAIL_MAX,
+      ),
+      tone: 'danger',
+      occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+      logEntryId: incidentId,
+      isDraft: Boolean(dto.isDraft),
+      createdByEmployeeId: employeeId,
+      writeIdempotencyKey: dto.idempotencyKey,
+    });
+  }
+
+  /** A non-draft incident already on this visit's blob (by clientEntryId), if any. */
+  private async findSubmittedBlobIncident(
+    jobId: string,
+    incidentId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const ea = await this.readEmployeeAppMeta(jobId);
+    const list = Array.isArray(ea.incidents) ? (ea.incidents as Array<Record<string, unknown>>) : [];
+    const hit = list.find((i) => String(i.id) === incidentId);
+    return hit && hit.isDraft !== true ? hit : null;
+  }
+
+  private async setBlobIncidentFields(
+    jobId: string,
+    incidentId: string,
+    fields: Record<string, unknown>,
+  ) {
+    await this.mergeEmployeeAppMeta(jobId, (current) => {
+      const list = Array.isArray(current.incidents)
+        ? [...(current.incidents as Array<Record<string, unknown>>)]
+        : [];
+      const idx = list.findIndex((i) => String(i.id) === incidentId);
+      if (idx >= 0) list[idx] = { ...list[idx], ...fields };
+      return { ...current, incidents: list };
+    });
+  }
+
+  /** Map the app submission to the register fields (the same questions as the office form). */
+  private carerAppIncidentParams(
+    dto: EmployeeAppIncidentDto,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    employeeId: string,
+    userId: string,
+    jobId: string,
+    now: string,
+  ): CarerAppIncidentParams {
+    return this.buildCarerAppIncidentParams(dto, {
+      employeeId,
+      userId,
+      scheduledJobId: jobId,
+      serviceUserId: ctx.job.serviceUserId ?? null,
+      timeZone: ctx.timeZone,
+      visitCarerIds: ctx.job.allocations
+        .map((a) => a.employeeId)
+        .filter((id): id is string => Boolean(id)),
+      now,
+    });
+  }
+
+  /** Shared by visit reports and reports made outside a visit (Me tab). */
+  buildCarerAppIncidentParams(
+    dto: EmployeeAppIncidentDto,
+    x: {
+      employeeId: string;
+      userId: string;
+      scheduledJobId: string | null;
+      serviceUserId: string | null;
+      timeZone: string;
+      visitCarerIds: string[];
+      now: string;
+    },
+  ): CarerAppIncidentParams {
+    const { employeeId, userId, now } = x;
+    const kinds = (dto.affectedPersonKinds ?? []) as IncidentPersonKind[];
+    // Staff choices must be carers on this visit (allocations can change while offline,
+    // so unknown ids are dropped rather than rejecting the report). Outside a visit
+    // the only staff member is the reporter.
+    const onVisit = new Set<string>([employeeId, ...x.visitCarerIds]);
+    const visitCarer = (id?: string | null) => (id && onVisit.has(id) ? id : null);
+    const affectedEmployeeId = visitCarer(dto.affectedEmployeeId) ?? employeeId;
+    const injuries = dto.injuries?.map((i) => ({
+      ...i,
+      personEmployeeId: i.personKind === 'EMPLOYEE' ? (visitCarer(i.personEmployeeId) ?? employeeId) : null,
+    }));
+    return {
+      userId,
+      employeeId,
+      scheduledJobId: x.scheduledJobId,
+      visitServiceUserId: x.serviceUserId,
+      categoryRef: dto.incidentTypeKey ?? null,
+      subtypeRef: dto.subtypeKey ?? null,
+      incidentTypeLabel: dto.incidentType ?? null,
+      // Carer-entered date/time is organisation wall-clock time, not UTC.
+      occurredAt: parseCarerDateTimeInZone(
+        dto.incidentDate,
+        dto.incidentTime,
+        x.timeZone,
+        parseOccurredAt(dto.deviceRecordedAt, new Date(now)),
+      ),
+      // API-18 documents `severity`; newer app builds send `severityKey`.
+      severity: this.mapAppIncidentSeverity(dto.severityKey ?? dto.severity),
+      primaryServiceUserId: kinds.includes(IncidentPersonKind.SERVICE_USER)
+        ? x.serviceUserId
+        : null,
+      primaryEmployeeId: kinds.includes(IncidentPersonKind.EMPLOYEE) ? affectedEmployeeId : null,
+      affectedPersonKinds: kinds,
+      primaryPersonName: dto.affectedPersonName ?? null,
+      description: dto.body,
+      contextBefore: dto.contextBefore ?? null,
+      contextAfter: dto.contextAfter ?? null,
+      immediateActions: dto.immediateAction ?? null,
+      injuryOccurred: Boolean(dto.injuryInfo?.trim()) || Boolean(dto.bodyMap) || Boolean(injuries?.length),
+      witnesses: dto.witnesses ?? null,
+      injuryType: null,
+      specificArea: dto.location ?? null,
+      injuryDetails: dto.injuryInfo ?? null,
+      peopleInvolved: dto.peopleInvolved ?? null,
+      whoInformedKeys: dto.whoInformedKeys ?? [],
+      carerSafeguardingConcern: dto.safeguardingConcern ?? null,
+      followUpRequired: dto.followUpRequired ?? false,
+      emergencyServicesDetails: dto.emergencyServices ?? null,
+      familyInformed: dto.familyInformed ?? false,
+      carerNotes: dto.notes ?? null,
+      locationKey: dto.locationKey ?? null,
+      locationDetail: dto.locationDetail ?? null,
+      immediateActionCodes: dto.immediateActionCodes ?? [],
+      ambulanceAttended: dto.ambulanceAttended ?? null,
+      takenToAe: dto.takenToAe ?? null,
+      admittedToHospital: dto.admittedToHospital ?? null,
+      categoryDetails: dto.categoryDetails ?? null,
+      involvedEmployeeIds: (dto.involvedEmployeeIds ?? [])
+        .map((id) => visitCarer(id))
+        .filter((id): id is string => Boolean(id)),
+      injuries: injuries ?? null,
+      // Older app builds: body-map marks only (no structured injuries).
+      bodyMap:
+        !injuries?.length && dto.bodyMap
+          ? {
+              marks: (dto.bodyMap.marks ?? []).map((m) => ({
+                view: m.view ?? null,
+                recordView: m.recordView ?? null,
+                canvasView: m.canvasView ?? null,
+                x: m.x,
+                y: m.y,
+                part: m.part ?? null,
+              })),
+            }
+          : null,
+    };
   }
 
   /** Map the carer-app severity key to the office IncidentSeverity enum. */
@@ -4808,6 +5373,8 @@ export class EmployeeAppVisitsService {
       this.countVisitObservations(
         job.serviceUserId,
         visit.actualStartDateTime ?? visit.scheduledStartDateTime,
+        jobId,
+        visit.actualEndDateTime,
       ),
       this.bodyMap.handoverPreview(job.serviceUserId).catch(() => null),
       this.prisma.serviceUserMedication.count({
@@ -4952,17 +5519,17 @@ export class EmployeeAppVisitsService {
         planned: {
           startIso: visit.scheduledStartDateTime.toISOString(),
           endIso: plannedEnd?.toISOString() ?? null,
-          startLabel: formatHmUtc(visit.scheduledStartDateTime),
-          endLabel: plannedEnd ? formatHmUtc(plannedEnd) : null,
+          startLabel: formatHmInTimeZone(visit.scheduledStartDateTime, ctx.timeZone),
+          endLabel: plannedEnd ? formatHmInTimeZone(plannedEnd, ctx.timeZone) : null,
         },
         actual: {
           startIso: visit.actualStartDateTime?.toISOString() ?? null,
           endIso: visit.actualEndDateTime?.toISOString() ?? null,
           startLabel: visit.actualStartDateTime
-            ? formatHmUtc(visit.actualStartDateTime)
+            ? formatHmInTimeZone(visit.actualStartDateTime, ctx.timeZone)
             : null,
           endLabel: visit.actualEndDateTime
-            ? formatHmUtc(visit.actualEndDateTime)
+            ? formatHmInTimeZone(visit.actualEndDateTime, ctx.timeZone)
             : null,
         },
         checklist,
@@ -5143,8 +5710,8 @@ export class EmployeeAppVisitsService {
         estimatedDurationMinutes: ctx.job.estimatedDurationMinutes,
       },
     );
-    const scheduledStart = formatHmUtc(resolved.start);
-    const scheduledEnd = formatHmUtc(resolved.end);
+    const scheduledStart = formatHmInTimeZone(resolved.start, ctx.timeZone);
+    const scheduledEnd = formatHmInTimeZone(resolved.end, ctx.timeZone);
     const checkedInAt =
       (multiCarerVisit
         ? myAllocation?.actualStartDateTime
@@ -5194,7 +5761,7 @@ export class EmployeeAppVisitsService {
     const destinationLatitude = jobLatitude ?? serviceUserLatitude;
     const destinationLongitude = jobLongitude ?? serviceUserLongitude;
     const allowedRadiusMeters =
-      geofenceSettings?.allowedRadiusMeters ?? EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
+      geofenceSettings?.allowedRadiusMeters ?? DEFAULT_GEOFENCE_DISTANCE_METERS;
     const nightDuty = resolveStoredNightDuty({
       slotNightDuty: visit.visitPlanSlot?.nightDuty,
       jobMetadata: ctx.job.metadata,
@@ -5245,7 +5812,7 @@ export class EmployeeAppVisitsService {
       identityBadge: ctx.identityConfirmed ? { label: 'ID', tone: 'success' as Tone } : null,
       isCheckedIn,
       checkedInAt: checkedInAt?.toISOString() ?? null,
-      checkedInLabel: checkedInAt ? `In ${formatHmUtc(checkedInAt)}` : null,
+      checkedInLabel: checkedInAt ? `In ${formatHmInTimeZone(checkedInAt, ctx.timeZone)}` : null,
       deliveryResetAt,
       taskResets,
       progress: this.buildProgress(progress, medProgress),
@@ -5347,8 +5914,12 @@ export class EmployeeAppVisitsService {
     };
   }
 
+  /** Visit-area radius the app shows and checks against — from the organisation settings. */
   private async loadGeofenceSettings() {
-    return { allowedRadiusMeters: EMPLOYEE_APP_ALLOWED_RADIUS_METERS };
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { domGeofenceDistanceMeters: true, domGeofenceToleranceMeters: true },
+    });
+    return { allowedRadiusMeters: resolveCarerGeofenceRadiusMeters(settings) };
   }
 
   private async loadCheckInMethodFlags() {
@@ -5366,6 +5937,137 @@ export class EmployeeAppVisitsService {
       domCheckInNfcEnabled: settings?.domCheckInNfcEnabled,
       domCheckInQrEnabled: settings?.domCheckInQrEnabled,
     };
+  }
+
+  /** App rejected a tag locally (often offline) — record it for the office. */
+  async reportNfcTagMismatch(
+    employeeId: string,
+    jobId: string,
+    dto: EmployeeAppNfcTagMismatchDto,
+  ) {
+    const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    const uid = normalizeNfcTagUid(dto.nfcTagUid);
+    if (!uid) validationError('nfcTagUid must be a tag UID in hex.');
+    const isClientTag = await this.prisma.serviceUserNfcTag.findFirst({
+      where: { serviceUserId: ctx.job.serviceUserId, uid, status: 'ACTIVE', deletedAt: null },
+      select: { id: true },
+    });
+    if (isClientTag) return { data: { recorded: false } };
+    const scannedAt = dto.deviceRecordedAt ? new Date(dto.deviceRecordedAt) : undefined;
+    await this.raiseNfcMismatchSafe(
+      ctx.job.serviceUserId,
+      uid,
+      jobId,
+      employeeId,
+      'APP_REPORT',
+      scannedAt && !Number.isNaN(scannedAt.getTime()) ? scannedAt : undefined,
+    );
+    return { data: { recorded: true } };
+  }
+
+  /** Never let exception bookkeeping change the carer's response. */
+  private async raiseNfcMismatchSafe(
+    serviceUserId: string,
+    uid: string,
+    jobId: string,
+    employeeId: string,
+    source: 'CHECK_IN' | 'APP_REPORT',
+    scannedAt: Date = new Date(),
+  ) {
+    try {
+      // A registered tag scanned in the wrong place goes into that tag's history.
+      const known = await this.prisma.serviceUserNfcTag.findFirst({
+        where: { uid, deletedAt: null },
+        orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+        select: { id: true, serviceUserId: true },
+      });
+      if (known) {
+        await this.prisma.serviceUserNfcTagScan.create({
+          data: {
+            tagId: known.id,
+            scheduledJobId: jobId,
+            visitServiceUserId: serviceUserId,
+            employeeId,
+            result: known.serviceUserId === serviceUserId ? 'INACTIVE' : 'WRONG_CLIENT',
+            source,
+            scannedAt,
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`NFC scan history not recorded job=${jobId}: ${String(err)}`);
+    }
+    try {
+      await this.ecmExceptions.raiseNfcTagMismatch({
+        scheduledJobId: jobId,
+        employeeId,
+        uid,
+        source,
+        detail: await this.describeNfcMismatch(serviceUserId, uid),
+      });
+    } catch (err) {
+      this.logger.warn(`NFC mismatch exception not recorded job=${jobId}: ${String(err)}`);
+    }
+  }
+
+  /** Office-facing reason a scanned tag was not accepted. */
+  private async describeNfcMismatch(serviceUserId: string, uid: string): Promise<string> {
+    const shown = formatNfcTagUid(uid);
+    const own = await this.prisma.serviceUserNfcTag.findFirst({
+      where: { serviceUserId, uid, deletedAt: null },
+      select: { label: true, status: true },
+    });
+    if (own) {
+      return `Tag ${shown} ("${own.label}") is marked ${own.status.toLowerCase()} for this client.`;
+    }
+    const elsewhere = await this.prisma.serviceUserNfcTag.findFirst({
+      where: { uid, status: 'ACTIVE', deletedAt: null },
+      select: { label: true, serviceUser: { select: { firstName: true, lastName: true } } },
+    });
+    if (elsewhere) {
+      const who = [elsewhere.serviceUser.firstName, elsewhere.serviceUser.lastName]
+        .filter(Boolean)
+        .join(' ');
+      return `Tag ${shown} belongs to another client (${who || 'unknown'}, "${elsewhere.label}").`;
+    }
+    return `Tag ${shown} is not registered to any client.`;
+  }
+
+  /** Active, non-deleted NFC tags fixed in this service user's home. */
+  private async loadActiveNfcTags(serviceUserId: string) {
+    return this.prisma.serviceUserNfcTag.findMany({
+      where: { serviceUserId, status: 'ACTIVE', deletedAt: null },
+      select: { id: true, uid: true, label: true },
+    });
+  }
+
+  /**
+   * NFC check-in: the scanned UID must be an ACTIVE tag of this visit's client.
+   * A wrong client's tag, a lost/retired tag or an unknown tag is rejected so
+   * NFC always proves the carer was at this address.
+   */
+  private async resolveCheckInNfcTag(
+    serviceUserId: string,
+    rawUid: string | null | undefined,
+    jobId: string,
+    employeeId: string,
+  ) {
+    const uid = normalizeNfcTagUid(rawUid);
+    if (!uid) {
+      validationError('Scan the NFC tag in the client’s home to clock in with NFC.');
+    }
+    const tag = await this.prisma.serviceUserNfcTag.findFirst({
+      where: { serviceUserId, uid, status: 'ACTIVE', deletedAt: null },
+      select: { id: true, label: true },
+    });
+    if (!tag) {
+      await this.raiseNfcMismatchSafe(serviceUserId, uid, jobId, employeeId, 'CHECK_IN');
+      contractError(
+        'NFC_TAG_NOT_RECOGNISED',
+        'This tag is not registered for this client. Scan the client’s tag, or clock in with GPS.',
+      );
+    }
+    return tag;
   }
 
   private async assertCheckInMethodEnabled(
@@ -5489,7 +6191,12 @@ export class EmployeeAppVisitsService {
           notes: true,
         },
       }),
-      this.countVisitObservations(ctx.job.serviceUserId, since),
+      this.countVisitObservations(
+        ctx.job.serviceUserId,
+        since,
+        ctx.job.id,
+        ctx.primaryVisit.actualEndDateTime,
+      ),
     ]);
 
     const visitDay = new Date(
@@ -5554,8 +6261,11 @@ export class EmployeeAppVisitsService {
    */
   private async syncEmarLinkedTasksIfRoundComplete(input: {
     employeeId: string;
+    /** Who the auto-completed task is credited to (the lead on a shared visit). */
+    completedById?: string;
     jobId: string;
     serviceUserId: string;
+    visitId: string;
     visitStart: Date;
     visitEnd: Date | null;
     timeZone: string;
@@ -5585,30 +6295,40 @@ export class EmployeeAppVisitsService {
       },
       select: {
         id: true,
+        ...VISIT_DUE_MEDICATION_SELECT,
         schedules: {
           where: { deletedAt: null, isActive: true, dueTime: { not: null } },
-          select: { dueTime: true },
+          select: { dueTime: true, daysOfWeek: true },
         },
       },
     });
-    const dueMeds = meds.filter((m) =>
-      m.schedules.some((s) => dueTimeFallsInHmWindow(s.dueTime, startHm, endHm)),
+    const dueMeds = meds.filter(
+      (m) => filterSchedulesDueOnVisit(m, visitDate, { startHm, endHm }).length > 0,
     );
     const dueCount = dueMeds.length;
     if (dueCount === 0) return;
 
-    const givenCount = await this.prisma.medicationAdministrationEvent.count({
-      where: {
-        serviceUserId: input.serviceUserId,
-        deletedAt: null,
-        status: MedicationAdministrationStatus.GIVEN,
-        OR: [
-          { scheduledDateTime: { gte: start, lte: end } },
-          { actualDateTime: { gte: start, lte: end } },
-        ],
-        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
-      },
-    });
+    // Count medicines whose dose on THIS visit is given: several records for one dose
+    // are one medicine, and another dose of the same medicine that day does not count.
+    const visitWindow = { startHm, endHm };
+    const givenCount = pickVisitDoseRecords(
+      await this.prisma.medicationAdministrationEvent.findMany({
+        where: {
+          serviceUserId: input.serviceUserId,
+          deletedAt: null,
+          status: MedicationAdministrationStatus.GIVEN,
+          OR: [
+            { scheduledDateTime: { gte: start, lte: end } },
+            { actualDateTime: { gte: start, lte: end } },
+          ],
+          serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: VISIT_DOSE_RECORD_SELECT,
+      }),
+      new Map(dueMeds.map((m) => [m.id, dueTimesInVisitWindow(m.schedules, visitWindow)])),
+      { visitId: input.visitId, window: visitWindow, timeZone: input.timeZone },
+    ).size;
     if (givenCount < dueCount) return;
 
     // Visit tasks attach by clock window, same as the medicines checked above.
@@ -5652,7 +6372,7 @@ export class EmployeeAppVisitsService {
           recordedValue: 'COMPLETED',
           notes: null,
           completedAt: now,
-          completedById: input.employeeId,
+          completedById: input.completedById ?? input.employeeId,
         },
       });
     }
@@ -5752,33 +6472,40 @@ export class EmployeeAppVisitsService {
       },
       select: {
         id: true,
+        ...VISIT_DUE_MEDICATION_SELECT,
         schedules: {
           where: { deletedAt: null, isActive: true, dueTime: { not: null } },
-          select: { dueTime: true, roundId: true },
+          select: { dueTime: true, roundId: true, daysOfWeek: true },
         },
       },
     });
 
-    const dueMeds = meds.filter((m) =>
-      m.schedules.some((s) =>
-        dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
-      ),
+    const dueMeds = meds.filter(
+      (m) => filterSchedulesDueOnVisit(m, visitDate, visitWindow).length > 0,
     );
     const dueCount = dueMeds.length;
     if (dueCount === 0) return { dueCount: 0, givenCount: 0 };
 
-    const givenCount = await this.prisma.medicationAdministrationEvent.count({
-      where: {
-        serviceUserId: ctx.job.serviceUserId,
-        deletedAt: null,
-        status: MedicationAdministrationStatus.GIVEN,
-        OR: [
-          { scheduledDateTime: { gte: start, lte: end } },
-          { actualDateTime: { gte: start, lte: end } },
-        ],
-        serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
-      },
-    });
+    // Count medicines whose dose on THIS visit is given: several records for one dose
+    // are one medicine, and another dose of the same medicine that day does not count.
+    const givenCount = pickVisitDoseRecords(
+      await this.prisma.medicationAdministrationEvent.findMany({
+        where: {
+          serviceUserId: ctx.job.serviceUserId,
+          deletedAt: null,
+          status: MedicationAdministrationStatus.GIVEN,
+          OR: [
+            { scheduledDateTime: { gte: start, lte: end } },
+            { actualDateTime: { gte: start, lte: end } },
+          ],
+          serviceUserMedicationId: { in: dueMeds.map((m) => m.id) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: VISIT_DOSE_RECORD_SELECT,
+      }),
+      new Map(dueMeds.map((m) => [m.id, dueTimesInVisitWindow(m.schedules, visitWindow)])),
+      { visitId: ctx.primaryVisit.id, window: visitWindow, timeZone: ctx.timeZone },
+    ).size;
 
     return { dueCount, givenCount };
   }
@@ -6031,10 +6758,16 @@ export class EmployeeAppVisitsService {
           isControlledMedication: true,
           timeCritical: true,
           medicationPackId: true,
+          ...VISIT_DUE_MEDICATION_SELECT,
           route: { select: { name: true } },
           schedules: {
             where: { deletedAt: null, isActive: true },
-            select: { dueTime: true, dose: true, round: { select: { name: true } } },
+            select: {
+              dueTime: true,
+              dose: true,
+              daysOfWeek: true,
+              round: { select: { name: true } },
+            },
           },
           medicationPack: { select: { adminRules: true } },
         },
@@ -6058,6 +6791,9 @@ export class EmployeeAppVisitsService {
           howAssisted: true,
           isControlledMedication: true,
           timeCritical: true,
+          prnMinGapHours: true,
+          prnMaxDosesIn24Hours: true,
+          prnMaxDosePerTime: true,
           route: { select: { name: true } },
         },
       }),
@@ -6104,11 +6840,15 @@ export class EmployeeAppVisitsService {
                   timeCritical: true,
                   route: { select: { name: true } },
                   medicationPack: { select: { adminRules: true } },
-                  startDate: true,
-                  endDate: true,
+                  ...VISIT_DUE_MEDICATION_SELECT,
                   schedules: {
                     where: { deletedAt: null, isActive: true },
-                    select: { id: true, dueTime: true, round: { select: { name: true } } },
+                    select: {
+                      id: true,
+                      dueTime: true,
+                      daysOfWeek: true,
+                      round: { select: { name: true } },
+                    },
                   },
                 },
               },
@@ -6118,13 +6858,12 @@ export class EmployeeAppVisitsService {
       }),
     ]);
 
-    // Attach meds whose dueTime falls in this visit's clock window only (1A: no window → none).
+    // Attach meds whose dueTime falls in this visit's clock window and that are due on
+    // the visit day (start/end date + daily/weekly/monthly pattern). 1A: no window → none.
     const scheduledMeds = visitWindow
       ? scheduledMedsRaw
           .map((m) => {
-            const inWindow = m.schedules.filter((s) =>
-              dueTimeFallsInHmWindow(s.dueTime, visitWindow.startHm, visitWindow.endHm),
-            );
+            const inWindow = filterSchedulesDueOnVisit(m, visitDate, visitWindow);
             if (!inWindow.length) return null;
             const primary = inWindow[0]!;
             return {
@@ -6159,6 +6898,8 @@ export class EmployeeAppVisitsService {
                   { actualDateTime: { gte: start, lte: end } },
                 ],
               },
+              // Newest first: the row shown for a medicine is its latest record.
+              orderBy: { createdAt: 'desc' },
               select: {
                 id: true,
                 serviceUserMedicationId: true,
@@ -6174,11 +6915,16 @@ export class EmployeeAppVisitsService {
                 witnessRelationCode: true,
                 witnessRelationDetail: true,
                 witnessNotes: true,
+                witnessEmployeeId: true,
+                witnessAbsentReasonCode: true,
                 actualDateTime: true,
                 prnReason: true,
                 prnOutcome: true,
                 isPrn: true,
                 visitId: true,
+                medicationScheduleId: true,
+                scheduledDateTime: true,
+                schedule: { select: { dueTime: true } },
               },
             }),
             this.prisma.bodyMapMedicationSite.findMany({
@@ -6220,15 +6966,31 @@ export class EmployeeAppVisitsService {
 
     const bodyMapSiteByMedId = indexMarBodyMapSites(bodyMapSites);
 
-    const eventByMed = new Map<string, (typeof events)[number]>();
-    for (const e of events) {
-      if (!eventByMed.has(e.serviceUserMedicationId)) eventByMed.set(e.serviceUserMedicationId, e);
+    // A scheduled medicine is "recorded" only by a record for the dose due on THIS
+    // visit — the morning dose must not tick the evening one.
+    const dueTimesByMed = new Map<string, Array<string | null>>();
+    if (visitWindow) {
+      for (const m of scheduledMedsRaw) {
+        dueTimesByMed.set(m.id, dueTimesInVisitWindow(m.schedules, visitWindow));
+      }
+      for (const pack of activePacks) {
+        for (const member of pack.members) {
+          dueTimesByMed.set(
+            member.serviceUserMedicationId,
+            dueTimesInVisitWindow(member.serviceUserMedication.schedules, visitWindow),
+          );
+        }
+      }
     }
+    const eventByMed = pickVisitDoseRecords(
+      events.filter((e) => !e.isPrn),
+      dueTimesByMed,
+      { visitId: ctx.primaryVisit.id, window: visitWindow, timeZone: ctx.timeZone },
+    );
 
     // PRN is "as needed" — it can be given in each visit independently. Its
     // "recorded" status must be scoped to THIS visit, otherwise a PRN given in
     // an earlier same-day visit would wrongly show as already given here.
-    // (Scheduled meds keep the day-scoped `eventByMed` above — unchanged.)
     const prnEventThisVisit = new Map<string, (typeof events)[number]>();
     for (const e of events) {
       if (
@@ -6239,6 +7001,46 @@ export class EmployeeAppVisitsService {
         prnEventThisVisit.set(e.serviceUserMedicationId, e);
       }
     }
+
+    // PRN doses given in the last 24 hours on any visit, by any carer or the office —
+    // shown to the carer so a dose is not repeated too soon.
+    const now = new Date();
+    const prnGiven24h =
+      prnMeds.length > 0
+        ? await this.prisma.medicationAdministrationEvent.findMany({
+            where: {
+              serviceUserId: ctx.job.serviceUserId,
+              deletedAt: null,
+              isPrn: true,
+              status: MedicationAdministrationStatus.GIVEN,
+              serviceUserMedicationId: { in: prnMeds.map((m) => m.id) },
+              actualDateTime: { gte: new Date(now.getTime() - 24 * 3_600_000), lte: now },
+            },
+            select: { serviceUserMedicationId: true, actualDateTime: true },
+          })
+        : [];
+    const prnInfoFor = (m: (typeof prnMeds)[number]) => {
+      const limits = prnLimitsFromMedication(m);
+      const evaluation = evaluatePrnLimits({
+        limits,
+        givenAt: prnGiven24h
+          .filter((e) => e.serviceUserMedicationId === m.id && e.actualDateTime)
+          .map((e) => e.actualDateTime as Date),
+        at: now,
+      });
+      return {
+        ...limits,
+        countIn24h: evaluation.countIn24h,
+        lastGivenAt: evaluation.lastGivenAt?.toISOString() ?? null,
+        nextAllowedAt: evaluation.nextAllowedAt?.toISOString() ?? null,
+        status: evaluation.status,
+        ...prnLimitLabels(limits),
+        summary: prnSummaryLine({ limits, evaluation, now, timeZone: ctx.timeZone }),
+        warning: prnWarningLine({ limits, evaluation, now, timeZone: ctx.timeZone }),
+        checkedAt: now.toISOString(),
+        checkedAtLabel: formatHmInTimeZone(now, ctx.timeZone),
+      };
+    };
 
     const mapMed = (m: (typeof scheduledMeds)[number] | (typeof prnMeds)[number], isPrn: boolean) => {
       const dose = [m.dose, m.strength].filter(Boolean).join(' ') || null;
@@ -6269,6 +7071,7 @@ export class EmployeeAppVisitsService {
       const dueTime =
         'schedules' in m && m.schedules[0]?.dueTime ? String(m.schedules[0].dueTime) : null;
       const scheduledDoseId = isPrn ? `${m.id}:prn` : `${m.id}:${dueTime ?? 'dose'}`;
+      const prnInfo = isPrn && 'prnMinGapHours' in m ? prnInfoFor(m) : null;
       const relatedAllergy = allergyHit
         ? allergyLower.find((a) => m.medicationName.toLowerCase().includes(a)) ?? null
         : null;
@@ -6291,6 +7094,14 @@ export class EmployeeAppVisitsService {
         relatedAllergy,
         dueStatus: isPrn ? (echo.done ? 'recorded' : 'prn') : echo.done ? 'recorded' : 'due',
         countsTowardScheduledProgress: !isPrn,
+        prnInfo,
+        // Flat copies of the PRN lines the carer app shows on the row and the dose sheet.
+        lastAdministrationLabel: prnInfo?.summary ?? null,
+        minIntervalLabel: prnInfo?.minIntervalLabel ?? null,
+        maxDoseLabel: prnInfo?.maxDoseLabel ?? null,
+        prnMaxPerTimeLabel: prnInfo?.maxPerTimeLabel ?? null,
+        prnWarning: prnInfo?.warning ?? null,
+        prnCheckedAtLabel: prnInfo?.checkedAtLabel ?? null,
         reasonForMedication: m.reasonForMedication ?? null,
         instructions: m.instructions ?? null,
         howAssisted: plannedHowAssistedLabel(m.howAssisted),
@@ -6341,15 +7152,20 @@ export class EmployeeAppVisitsService {
       bodyMapSiteByMedId,
       timeZone: ctx.timeZone,
       visitAt: ctx.primaryVisit.scheduledStartDateTime,
+      visitDayKey: visitDate,
     });
 
     return { sections, blisterPacks };
   }
 
-  private async countVisitObservations(serviceUserId: string, since: Date) {
-    return this.prisma.serviceUserObservation.count({
-      where: { serviceUserId, deletedAt: null, recordedAt: { gte: since } },
-    });
+  /** Readings on this visit — same rules as the Obs tab list (stamped to the visit). */
+  private async countVisitObservations(
+    serviceUserId: string,
+    since: Date,
+    jobId: string,
+    until: Date | null,
+  ) {
+    return this.visitObservationsCatalog.countVisitObservations(serviceUserId, since, jobId, until);
   }
 
   private resolveHandoverNote(ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>) {
@@ -6547,7 +7363,7 @@ export class EmployeeAppVisitsService {
       };
     }
 
-    const radius = EMPLOYEE_APP_ALLOWED_RADIUS_METERS;
+    const radius = resolveCarerGeofenceRadiusMeters(settings);
     const distanceMeters = haversineMeters(latitude, longitude, targetLat, targetLng);
     const withinArea = distanceMeters <= radius;
 
@@ -6626,7 +7442,7 @@ function assertBodyOrVoiceNote(dto: LogEntryVoiceFields, message: string): void 
 
 /** Timeline detail: the text, or a "Voice note (m:ss)" placeholder for voice-only entries. */
 function logEntryTimelineDetail(body: string | null | undefined, dto: LogEntryVoiceFields) {
-  const text = summarizeTimelineDetail(body);
+  const text = summarizeTimelineDetail(body, LOG_DETAIL_MAX);
   if (text) return text;
   return hasVoiceNotes(dto)
     ? voiceOnlyTimelineDetail(dto.voiceNoteDurationMs, voiceNoteIdsOf(dto).length)

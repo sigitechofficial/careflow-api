@@ -1,5 +1,6 @@
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
+  addDaysToOperationalIso,
   combineOperationalDateAndHm,
   dayKeyInTimeZone,
 } from '../common/utils/operational-day.util';
@@ -47,32 +48,73 @@ function minutesBetween(start: Date, end: Date): number {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 }
 
+function hmToMinutes(time: string): number {
+  const { hours, minutes } = parseHm(time.slice(0, 5));
+  return hours * 60 + minutes;
+}
+
+/** Minutes from `startTime` to `endTime` on the clock face; an end at or before the start is the next day. */
+export function clockSpanMinutes(startTime: string, endTime: string): number {
+  const span = (hmToMinutes(endTime) - hmToMinutes(startTime) + 1440) % 1440;
+  return span === 0 ? 1440 : span;
+}
+
+/**
+ * The instant a visit ends: `endTime` on the clock, on the start day or — when it is at or before
+ * `startTime` — the next day. Overnight visits therefore end at the planned time even on the nights
+ * the clocks change (22:00–07:00 is 10 hours in October and 8 in March), instead of adding 24 hours.
+ */
+export function wallClockVisitEnd(
+  dayIso: string,
+  startTime: string,
+  endTime: string,
+  timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
+): Date {
+  const nextDay = hmToMinutes(endTime) <= hmToMinutes(startTime);
+  return combineOperationalDateAndHm(nextDay ? addDaysToOperationalIso(dayIso, 1) : dayIso, endTime.slice(0, 5), timeZone);
+}
+
+/**
+ * End of a visit that also has a duration: a duration that matches the planned start and end
+ * times follows the clock (see `wallClockVisitEnd`); any other duration is kept as given.
+ */
+function visitEndFromDuration(
+  dayIso: string,
+  start: Date,
+  startTime: string,
+  endTime: string | null | undefined,
+  durationMinutes: number,
+  timeZone: string,
+): Date {
+  if (endTime?.trim() && clockSpanMinutes(startTime, endTime) === durationMinutes) {
+    return wallClockVisitEnd(dayIso, startTime, endTime, timeZone);
+  }
+  return new Date(start.getTime() + durationMinutes * 60000);
+}
+
 /** Resolve absolute visit window for a calendar day from slot pattern fields. */
 export function resolveSlotVisitWindow(
   day: Date,
   slot: SlotTimeWindowInput,
   timeZone: string = DEFAULT_OPERATIONAL_TIMEZONE,
 ): ResolvedVisitWindow {
-  const start = combineDateAndTimeUtc(day, slot.plannedStartTime, timeZone);
-  let end = combineDateAndTimeUtc(day, slot.plannedEndTime, timeZone);
+  const dayIso = dayIsoFromUtcCalendarDay(day);
+  const start = combineOperationalDateAndHm(dayIso, slot.plannedStartTime, timeZone);
+  const sameDayEnd = combineOperationalDateAndHm(dayIso, slot.plannedEndTime, timeZone);
 
   const overnightByKind = slot.slotKind === 'OVERNIGHT';
-  const overnightByTime = end.getTime() <= start.getTime();
+  const overnightByTime = sameDayEnd.getTime() <= start.getTime();
 
+  let end: Date;
   if (slot.durationMinutes != null && slot.durationMinutes > 0) {
-    end = new Date(start.getTime() + slot.durationMinutes * 60000);
-    if (overnightByKind || overnightByTime) {
-      const span = slot.durationMinutes;
-      const sameDayEnd = combineDateAndTimeUtc(day, slot.plannedEndTime, timeZone);
-      if (sameDayEnd.getTime() <= start.getTime() && span > minutesBetween(start, sameDayEnd)) {
-        // duration spans past midnight when end time is on next day
-        if (end.getTime() <= start.getTime() || overnightByTime) {
-          // keep duration-based end
-        }
-      }
-    }
-  } else if (overnightByKind || overnightByTime) {
-    end = new Date(end.getTime() + DAY_MS);
+    end = visitEndFromDuration(dayIso, start, slot.plannedStartTime, slot.plannedEndTime, slot.durationMinutes, timeZone);
+  } else if (overnightByTime) {
+    end = wallClockVisitEnd(dayIso, slot.plannedStartTime, slot.plannedEndTime, timeZone);
+  } else if (overnightByKind) {
+    // Old "Overnight" rows with a same-day end time: the end time is on the next day.
+    end = combineOperationalDateAndHm(addDaysToOperationalIso(dayIso, 1), slot.plannedEndTime, timeZone);
+  } else {
+    end = sameDayEnd;
   }
 
   if (end.getTime() <= start.getTime()) {
@@ -119,15 +161,13 @@ export function resolveCarerWindows(
   return carers.map((carer) => {
     const startTime = carer.plannedStartTime?.trim() || slot.plannedStartTime;
     const start = combineDateAndTimeUtc(day, startTime, timeZone);
+    const dayIso = dayIsoFromUtcCalendarDay(day);
     let end: Date;
 
     if (carer.durationMinutes != null && carer.durationMinutes > 0) {
-      end = new Date(start.getTime() + carer.durationMinutes * 60000);
+      end = visitEndFromDuration(dayIso, start, startTime, carer.plannedEndTime, carer.durationMinutes, timeZone);
     } else if (carer.plannedEndTime?.trim()) {
-      end = combineDateAndTimeUtc(day, carer.plannedEndTime, timeZone);
-      if (end.getTime() <= start.getTime()) {
-        end = new Date(end.getTime() + DAY_MS);
-      }
+      end = wallClockVisitEnd(dayIso, startTime, carer.plannedEndTime, timeZone);
     } else {
       end = new Date(base.end);
       if (start.getTime() > base.start.getTime()) {

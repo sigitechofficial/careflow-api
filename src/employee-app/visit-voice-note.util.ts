@@ -276,6 +276,10 @@ export function voiceNoteIdsByLogEntryId(
   if (Array.isArray(employeeApp.notes)) employeeApp.notes.forEach(add);
   if (Array.isArray(employeeApp.concerns)) employeeApp.concerns.forEach(add);
   add(employeeApp.handoverNote);
+  const supportHandovers = employeeApp.supportHandovers;
+  if (supportHandovers && typeof supportHandovers === 'object' && !Array.isArray(supportHandovers)) {
+    Object.values(supportHandovers).forEach(add);
+  }
   return map;
 }
 

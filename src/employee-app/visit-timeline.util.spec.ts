@@ -6,6 +6,7 @@ import {
   mapRowToTimelineApiItem,
   sortTimelineRows,
   summarizeTimelineDetail,
+  LOG_DETAIL_MAX,
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
@@ -160,5 +161,33 @@ describe('visit-timeline.util', () => {
       sourceId: 'check_in',
     });
     expect(item.occurredAt).toBe('2026-08-06T05:02:00.000Z');
+  });
+});
+
+describe('full text for carer log entries', () => {
+  it('keeps a long log entry whole but still caps other details', () => {
+    const long = 'word '.repeat(200).trim();
+    expect(summarizeTimelineDetail(long, LOG_DETAIL_MAX)).toBe(long);
+    expect(summarizeTimelineDetail(long)!.length).toBeLessThanOrEqual(280);
+    const note = buildTimelineUpsertData({
+      scheduledJobId: 'job-1',
+      eventType: 'visit_note',
+      sourceType: 'log_note',
+      sourceId: 'visit_note',
+      title: 'Visit note',
+      detail: long,
+      occurredAt: new Date('2026-10-07T10:00:00Z'),
+    });
+    expect(note.detail).toBe(long);
+    const task = buildTimelineUpsertData({
+      scheduledJobId: 'job-1',
+      eventType: 'task',
+      sourceType: 'task',
+      sourceId: 't1',
+      title: 'Task',
+      detail: long,
+      occurredAt: new Date('2026-10-07T10:00:00Z'),
+    });
+    expect(task.detail!.length).toBeLessThanOrEqual(280);
   });
 });

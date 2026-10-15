@@ -41,8 +41,9 @@ export class MedicationNotificationHook {
   ) {}
 
   /**
-   * One office alert per MAR event when it is missed/refused or involves a
-   * controlled medication. Other outcomes are ignored.
+   * One office alert per MAR event when it is missed/refused, involves a
+   * controlled medication, or is a PRN dose given over its limits. Other outcomes
+   * are ignored.
    */
   async notifyAdministrationEvent(params: {
     eventId: string;
@@ -50,6 +51,8 @@ export class MedicationNotificationHook {
     medicationName: string;
     status: MedicationAdministrationStatus;
     controlled: boolean;
+    /** Set when a PRN dose was given inside the minimum gap or over the 24h maximum. */
+    prnOverLimitDetail?: string | null;
     occurredAt?: Date | null;
     actorUserId?: string | null;
     actorEmployeeId?: string | null;
@@ -57,7 +60,8 @@ export class MedicationNotificationHook {
   }): Promise<void> {
     const missed = params.status === MedicationAdministrationStatus.MISSED;
     const refused = params.status === MedicationAdministrationStatus.REFUSED;
-    if (!missed && !refused && !params.controlled) return;
+    const overLimit = params.prnOverLimitDetail?.trim() || null;
+    if (!missed && !refused && !params.controlled && !overLimit) return;
     if (!this.notifications) return;
 
     try {
@@ -100,7 +104,9 @@ export class MedicationNotificationHook {
         ? `Medication missed — ${suName}`
         : refused
           ? `Medication refused — ${suName}`
-          : `Controlled medication ${statusLabel} — ${suName}`;
+          : overLimit
+            ? `PRN given over limit — ${suName}`
+            : `Controlled medication ${statusLabel} — ${suName}`;
 
       let when = '';
       if (params.occurredAt) {
@@ -110,7 +116,7 @@ export class MedicationNotificationHook {
       const drug = params.controlled
         ? `${params.medicationName} (controlled)`
         : params.medicationName;
-      const message = `${drug} was ${statusLabel}${when} — ${fullName}.`;
+      const message = `${drug} was ${statusLabel}${when} — ${fullName}.${overLimit ? ` ${overLimit}.` : ''}`;
 
       await this.notifications.notifyUsers({
         recipientUserIds: [...recipientIds],
@@ -125,6 +131,7 @@ export class MedicationNotificationHook {
           serviceUserId: params.serviceUserId,
           status: params.status,
           controlledMedication: params.controlled,
+          prnOverLimit: Boolean(overLimit),
           ...(params.metadata ?? {}),
         },
       });

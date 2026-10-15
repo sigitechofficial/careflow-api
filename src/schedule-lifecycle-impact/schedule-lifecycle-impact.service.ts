@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isVisitPlanExtraJobMetadata } from '../service-user-visit-plans/visit-plan-extra-visit.util';
 import {
   AllocationStatus,
   CarerVisitPushKind,
@@ -139,11 +140,14 @@ export class ScheduleLifecycleImpactService {
         visitPlanSlotId: params.visitPlanSlotId,
         weekdays: params.weekdays,
       }),
-      select: { id: true, scheduledStartDateTime: true },
+      select: { id: true, scheduledStartDateTime: true, metadata: true },
       orderBy: { scheduledStartDateTime: 'asc' },
       take: SCHEDULE_IMPACT_PREVIEW_MAX + 1,
     });
-    const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+    // Extra visits keep their own time when the slot's time changes.
+    const filtered = filterJobsByWeekdays(jobs, params.weekdays).filter(
+      (j) => !isVisitPlanExtraJobMetadata(j.metadata),
+    );
     const truncated = filtered.length > SCHEDULE_IMPACT_PREVIEW_MAX;
     const capped = truncated ? filtered.slice(0, SCHEDULE_IMPACT_PREVIEW_MAX) : filtered;
     const jobIds = capped.map((j) => j.id);
@@ -249,6 +253,7 @@ export class ScheduleLifecycleImpactService {
         select: {
           id: true,
           scheduledStartDateTime: true,
+          metadata: true,
           visits: {
             where: { deletedAt: null, isActive: true, visitPlanSlotId: params.visitPlanSlotId },
             select: { id: true },
@@ -258,7 +263,9 @@ export class ScheduleLifecycleImpactService {
         orderBy: { scheduledStartDateTime: 'asc' },
         take: SCHEDULE_IMPACT_PREVIEW_MAX,
       });
-      const filtered = filterJobsByWeekdays(jobs, params.weekdays);
+      const filtered = filterJobsByWeekdays(jobs, params.weekdays).filter(
+        (j) => !isVisitPlanExtraJobMetadata(j.metadata),
+      );
 
       const jobIds: string[] = [];
       for (const job of filtered) {

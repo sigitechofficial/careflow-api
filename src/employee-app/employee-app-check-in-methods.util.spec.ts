@@ -49,6 +49,24 @@ describe('employee-app-check-in-methods', () => {
     expect(orgHasOptInCheckInMethod({ domCheckInQrEnabled: true })).toBe(true);
   });
 
+  it('drops NFC for a visit whose client has no active tag', () => {
+    const flags = { domCheckInGpsEnabled: true, domCheckInNfcEnabled: true };
+    expect(resolveEnabledCheckInMethods(flags, { nfcTagAvailable: false })).toEqual(['GPS']);
+    expect(resolveEnabledCheckInMethods(flags, { nfcTagAvailable: true })).toEqual(['GPS', 'NFC']);
+    expect(resolveEnabledCheckInMethods(flags)).toEqual(['GPS', 'NFC']);
+  });
+
+  it('keeps Request office where NFC is on but the client has no tag', () => {
+    expect(orgHasOptInCheckInMethod({ domCheckInNfcEnabled: true }, { nfcTagAvailable: false })).toBe(false);
+    expect(orgHasOptInCheckInMethod({ domCheckInNfcEnabled: true }, { nfcTagAvailable: true })).toBe(true);
+    expect(
+      orgHasOptInCheckInMethod(
+        { domCheckInNfcEnabled: true, domCheckInManualEnabled: true },
+        { nfcTagAvailable: false },
+      ),
+    ).toBe(true);
+  });
+
   it('merges Manual onto GPS-only when office grant is authorised and unexpired', () => {
     const expiresAt = new Date('2026-09-08T22:59:59.999Z');
     const now = new Date('2026-09-08T12:00:00.000Z');

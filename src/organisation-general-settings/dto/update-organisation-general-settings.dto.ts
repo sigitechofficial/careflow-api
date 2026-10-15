@@ -66,6 +66,18 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Max(168)
   handoverReportLastHours?: number;
 
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 90,
+    nullable: true,
+    description: 'Flag Duty of Candour overdue after this many days (null = off)',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  incidentCandourOverdueDays?: number | null;
+
   @ApiPropertyOptional({ minimum: 1, maximum: 120 })
   @IsOptional()
   @Type(() => Number)
@@ -396,6 +408,11 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsOptional()
   @IsBoolean()
   domAutoExtendRotaEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Never charge the service user when the reason is a hospital admission' })
+  @IsOptional()
+  @IsBoolean()
+  domCancellationHospitalExemption?: boolean;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 90 })
   @IsOptional()

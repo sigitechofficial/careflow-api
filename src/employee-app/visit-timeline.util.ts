@@ -15,13 +15,29 @@ import { checkInMethodDetailLine } from './check-in-display.util';
 
 const DETAIL_MAX = 280;
 
+/**
+ * Carer-written log entries keep their full text (visit note, handover, concern,
+ * incident) so every carer on the visit can read the whole entry. Covers the
+ * longest body (8000) plus a handover's outstanding action (2000).
+ */
+export const LOG_DETAIL_MAX = 12000;
+export const FULL_DETAIL_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'visit_note',
+  'handover',
+  'concern',
+  'incident',
+]);
+
 /** Clock-face HH:mm for timeline — prefer org timezone when provided. */
 export function formatTimelineHm(d: Date, timeZone?: string): string {
   if (timeZone) return formatHmInTimeZone(d, timeZone);
   return formatHmUtc(d);
 }
 
-export function summarizeTimelineDetail(value: string | null | undefined): string | null {
+export function summarizeTimelineDetail(
+  value: string | null | undefined,
+  maxLength: number = DETAIL_MAX,
+): string | null {
   if (value == null) return null;
   // Collapse horizontal whitespace but PRESERVE line breaks so multi-line
   // details (e.g. a handover with an "Outstanding action:" line) stay multi-line.
@@ -31,8 +47,8 @@ export function summarizeTimelineDetail(value: string | null | undefined): strin
     .replace(/ *\n */g, '\n') // trim spaces around line breaks
     .replace(/\n{3,}/g, '\n\n'); // cap consecutive blank lines
   if (!trimmed) return null;
-  if (trimmed.length <= DETAIL_MAX) return trimmed;
-  return `${trimmed.slice(0, DETAIL_MAX - 1)}…`;
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
 }
 
 export function timelineIdempotencyKey(
@@ -249,7 +265,10 @@ export function sortTimelineRows<T extends { occurredAt: Date; id: string }>(row
 export function buildTimelineUpsertData(input: VisitTimelineUpsertInput, timeZone?: string) {
   const occurredAt = input.occurredAt;
   const timeLabel = formatTimelineHm(occurredAt, timeZone);
-  const detail = summarizeTimelineDetail(input.detail);
+  const detail = summarizeTimelineDetail(
+    input.detail,
+    FULL_DETAIL_EVENT_TYPES.has(input.eventType) ? LOG_DETAIL_MAX : undefined,
+  );
   const idempotencyKey = timelineIdempotencyKey(
     input.scheduledJobId,
     input.sourceType,

@@ -74,6 +74,7 @@ type SettingsRow = {
   id: string;
   reviewCarePlanAfterDays: number;
   handoverReportLastHours: number;
+  incidentCandourOverdueDays: number | null;
   archiveServiceUserAfterMonths: number;
   timeDisplayFormat: string;
   dateDisplayFormat: string;
@@ -128,6 +129,7 @@ type SettingsRow = {
   domDownloadAllServiceUsers: boolean;
   domFutureVisitsDays: number;
   domAutoExtendRotaEnabled: boolean;
+  domCancellationHospitalExemption: boolean;
   domRotaHorizonDays: number;
   domRotaHorizonMode: string;
   domAutoExtendRotaRunHour: number;
@@ -206,6 +208,7 @@ function mapRow(row: SettingsRow) {
     id: row.id,
     reviewCarePlanAfterDays: row.reviewCarePlanAfterDays,
     handoverReportLastHours: row.handoverReportLastHours,
+    incidentCandourOverdueDays: row.incidentCandourOverdueDays,
     archiveServiceUserAfterMonths: row.archiveServiceUserAfterMonths,
     timeDisplayFormat: row.timeDisplayFormat,
     dateDisplayFormat: row.dateDisplayFormat,
@@ -268,6 +271,7 @@ function mapRow(row: SettingsRow) {
     domDownloadAllServiceUsers: row.domDownloadAllServiceUsers,
     domFutureVisitsDays: row.domFutureVisitsDays,
     domAutoExtendRotaEnabled: row.domAutoExtendRotaEnabled,
+    domCancellationHospitalExemption: row.domCancellationHospitalExemption,
     domRotaHorizonDays: row.domRotaHorizonDays,
     domRotaHorizonMode: parseRotaHorizonMode(row.domRotaHorizonMode),
     domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
@@ -331,6 +335,7 @@ function buildUpdateData(
 
   set('reviewCarePlanAfterDays', dto.reviewCarePlanAfterDays);
   set('handoverReportLastHours', dto.handoverReportLastHours);
+  set('incidentCandourOverdueDays', dto.incidentCandourOverdueDays);
   set('archiveServiceUserAfterMonths', dto.archiveServiceUserAfterMonths);
   set('timeDisplayFormat', dto.timeDisplayFormat);
   set('dateDisplayFormat', dto.dateDisplayFormat);
@@ -397,6 +402,7 @@ function buildUpdateData(
   set('domDownloadAllServiceUsers', dto.domDownloadAllServiceUsers);
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
   set('domAutoExtendRotaEnabled', dto.domAutoExtendRotaEnabled);
+  set('domCancellationHospitalExemption', dto.domCancellationHospitalExemption);
   set('domRotaHorizonDays', dto.domRotaHorizonDays);
   set('domRotaHorizonMode', dto.domRotaHorizonMode);
   set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);

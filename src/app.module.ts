@@ -54,6 +54,7 @@ import { ServiceUserPhotosModule } from './service-user-photos/service-user-phot
 import { ServiceUserLookupsModule } from './service-user-lookups/service-user-lookups.module';
 import { ServiceUserInventoryModule } from './service-user-inventory/service-user-inventory.module';
 import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
+import { ServiceUserNfcTagsModule } from './service-user-nfc-tags/service-user-nfc-tags.module';
 import { ServiceUsersMedicalModule } from './service-users-medical/service-users-medical.module';
 import { ObservationLookupsModule } from './observation-lookups/observation-lookups.module';
 import { ServiceUserObservationsModule } from './service-user-observations/service-user-observations.module';
@@ -204,6 +205,7 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     ServiceUserLookupsModule,
     ServiceUserInventoryModule,
     ServiceUserAllergiesModule,
+    ServiceUserNfcTagsModule,
     ServiceUsersMedicalModule,
     ObservationLookupsModule,
     ServiceUserObservationsModule,

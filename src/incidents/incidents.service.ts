@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -11,6 +12,7 @@ import {
   IncidentActionPriority,
   BodyMapBodyView,
   BodyMapLinkedModule,
+  BodyMapRecordStatus,
   BodyMapRecordType,
   BodyMapRiskLevel,
   BodyMapSide,
@@ -119,7 +121,25 @@ import {
   sanitizeRecordsReviewedDetails,
 } from './incident-factor-details.util';
 import { buildIncidentReviewFlagNotification } from './incident-review-flag-notification.util';
-import { sanitizeOutcomeSharing } from './incident-outcome.util';
+import {
+  applyCandourToSharing,
+  sanitizeOutcomeSharing,
+  type OutcomeSharingEntry,
+} from './incident-outcome.util';
+import { IncidentCandourService } from './incident-candour.service';
+import {
+  incidentServiceUserIds,
+  versionCompletesCarePlanMeasure,
+} from './incident-care-plan-measure.util';
+import {
+  fineSummary,
+  staffActionLabel,
+  staffActionProblems,
+} from './incident-staff-action.util';
+import type {
+  CreateIncidentStaffActionDto,
+  UpdateIncidentStaffActionDto,
+} from './dto/incident-staff-action.dto';
 import {
   INCIDENT_MEASURE_TYPE_LABELS,
   type IncidentMeasureType,
@@ -192,6 +212,129 @@ function affectedAllows(
   return !kinds?.length || kinds.includes(kind);
 }
 
+/** A carer-app incident as passed from the employee-app visit service. */
+export type CarerAppIncidentParams = {
+  userId: string;
+  employeeId: string;
+  /** The visit, or null when the carer reports outside a visit (Me tab). */
+  scheduledJobId: string | null;
+  /** Category id, key (e.g. `ACCIDENT`) or carer-app label (e.g. `Fall/slip`). */
+  categoryRef?: string | null;
+  /** Subtype id or key within the resolved category. */
+  subtypeRef?: string | null;
+  /** The carer-app `incidentType` label (API-18), used when no category ref resolves. */
+  incidentTypeLabel?: string | null;
+  occurredAt: Date;
+  severity: IncidentSeverity;
+  primaryServiceUserId?: string | null;
+  primaryEmployeeId?: string | null;
+  affectedPersonKinds?: IncidentPersonKind[];
+  primaryPersonName?: string | null;
+  description: string;
+  contextBefore?: string | null;
+  contextAfter?: string | null;
+  immediateActions?: string | null;
+  injuryOccurred?: boolean;
+  specificArea?: string | null;
+  /** Free-text witnesses captured in the carer app; stored as written (witnessDetails). */
+  witnesses?: string | null;
+  /** Optional injury type label for injuries derived from body-map marks. */
+  injuryType?: string | null;
+  injuryDetails?: string | null;
+  peopleInvolved?: string | null;
+  whoInformedKeys?: string[];
+  carerSafeguardingConcern?: boolean | null;
+  followUpRequired?: boolean;
+  emergencyServicesDetails?: string | null;
+  familyInformed?: boolean;
+  carerNotes?: string | null;
+  /**
+   * Body-map marks captured on the carer-app incident. When a primary service
+   * user is present, each mark is mirrored as a real BodyMapRecord (type
+   * INJURY) linked to the incident, plus an IncidentInjury row — so the mark
+   * renders in the admin incident "Injuries" section (same shape as an
+   * admin-added injury).
+   */
+  bodyMap?: {
+    marks?: Array<{
+      view?: string | null;
+      recordView?: string | null;
+      canvasView?: string | null;
+      x: number;
+      y: number;
+      part?: string | null;
+    }>;
+  } | null;
+  /** The visit's client: gives the branch (same rule as the office form). */
+  visitServiceUserId?: string | null;
+  /** Where did it happen? (office keys) — OTHER needs locationDetail. */
+  locationKey?: string | null;
+  locationDetail?: string | null;
+  /** "What was done?" codes. */
+  immediateActionCodes?: string[];
+  /** Hospital outcome; null / missing = not known. */
+  ambulanceAttended?: boolean | null;
+  takenToAe?: boolean | null;
+  admittedToHospital?: boolean | null;
+  /** Category-specific answers; checked leniently (a carer may answer "not sure"). */
+  categoryDetails?: Record<string, unknown> | null;
+  /** Other carers on the visit who were involved (validated by the caller). */
+  involvedEmployeeIds?: string[];
+  /** Structured injuries (newer app builds); replaces the body-map-marks fallback. */
+  injuries?: CarerAppInjuryInput[] | null;
+  /** Reports outside a visit: the app's entry id and this save's write key. */
+  appClientEntryId?: string | null;
+  appWriteKey?: string | null;
+  /** Branch when no client is involved (the carer's own branch). */
+  fallbackLocationId?: string | null;
+};
+
+export type CarerAppInjuryInput = {
+  personKind: 'SERVICE_USER' | 'EMPLOYEE' | 'OTHER';
+  personEmployeeId?: string | null;
+  personName?: string | null;
+  injuryType: string;
+  injurySeverity: 'MINOR' | 'MODERATE' | 'SERIOUS';
+  bodyRegion?: string | null;
+  notes?: string | null;
+  mark?: {
+    view?: string | null;
+    recordView?: string | null;
+    canvasView?: string | null;
+    x: number;
+    y: number;
+    part?: string | null;
+  } | null;
+};
+
+/** Timeline kind for each audited incident record type (anything else is a review flag). */
+const HISTORY_KIND_BY_RECORD_TYPE: Record<string, string> = {
+  IncidentInjury: 'INJURY',
+  IncidentWitness: 'WITNESS',
+  IncidentReviewChange: 'REVIEW',
+  IncidentInvestigationChange: 'INVESTIGATION',
+  IncidentCarerSuspensionChange: 'SUSPENSION',
+  IncidentStaffActionChange: 'STAFF_ACTION',
+  IncidentCandourChange: 'CANDOUR',
+  IncidentExternalBodyChange: 'EXTERNAL',
+  IncidentActionChange: 'ACTION',
+};
+
+/**
+ * Service users on a carer-app incident: the affected one, plus — outside a visit — the client the
+ * carer chose under "Client involved" (a visit report is already linked to its client by the visit).
+ */
+function carerAppInvolvedServiceUserIds(params: {
+  primaryServiceUserId?: string | null;
+  scheduledJobId: string | null;
+  visitServiceUserId?: string | null;
+}): string[] {
+  const chosenClient = params.scheduledJobId ? null : (params.visitServiceUserId ?? null);
+  return [
+    ...new Set([params.primaryServiceUserId, chosenClient].filter((v): v is string => !!v)),
+  ];
+}
+
 @Injectable()
 export class IncidentsService {
   private readonly logger = new Logger(IncidentsService.name);
@@ -206,6 +349,7 @@ export class IncidentsService {
     private readonly learningAssignments: LearningAssignmentsService,
     private readonly users: UsersService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly candour: IncidentCandourService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -677,67 +821,17 @@ export class IncidentsService {
    * permission checks and links the incident to the visit (scheduledJobId). Returns
    * the created incident so the caller can surface its reference number.
    */
-  async createFromCarerApp(params: {
-    userId: string;
-    employeeId: string;
-    scheduledJobId: string;
-    /** Category id, key (e.g. `ACCIDENT`) or carer-app label (e.g. `Fall/slip`). */
-    categoryRef?: string | null;
-    /** Subtype id or key within the resolved category. */
-    subtypeRef?: string | null;
-    /** The carer-app `incidentType` label (API-18), used when no category ref resolves. */
-    incidentTypeLabel?: string | null;
-    occurredAt: Date;
-    severity: IncidentSeverity;
-    primaryServiceUserId?: string | null;
-    primaryEmployeeId?: string | null;
-    affectedPersonKinds?: IncidentPersonKind[];
-    primaryPersonName?: string | null;
-    description: string;
-    contextBefore?: string | null;
-    contextAfter?: string | null;
-    immediateActions?: string | null;
-    injuryOccurred?: boolean;
-    specificArea?: string | null;
-    /** Free-text witnesses captured in the carer app; mirrored as IncidentWitness rows. */
-    witnesses?: string | null;
-    /** Optional injury type label for injuries derived from body-map marks. */
-    injuryType?: string | null;
-    injuryDetails?: string | null;
-    peopleInvolved?: string | null;
-    whoInformedKeys?: string[];
-    carerSafeguardingConcern?: boolean | null;
-    followUpRequired?: boolean;
-    emergencyServicesDetails?: string | null;
-    familyInformed?: boolean;
-    carerNotes?: string | null;
-    /**
-     * Body-map marks captured on the carer-app incident. When a primary service
-     * user is present, each mark is mirrored as a real BodyMapRecord (type
-     * INJURY) linked to the incident, plus an IncidentInjury row — so the mark
-     * renders in the admin incident "Injuries" section (same shape as an
-     * admin-added injury).
-     */
-    bodyMap?: {
-      marks?: Array<{
-        view?: string | null;
-        recordView?: string | null;
-        canvasView?: string | null;
-        x: number;
-        y: number;
-        part?: string | null;
-      }>;
-    } | null;
-  }): Promise<IncidentWithRefs> {
+  async createFromCarerApp(params: CarerAppIncidentParams): Promise<IncidentWithRefs> {
     // Never lose a carer report over an unrecognised category: resolve id / key / app label,
     // falling back to "Other".
-    const { categoryId, subtypeId } = await this.resolveCarerAppCategory(
+    const { categoryId, subtypeId, categoryKey, subtypeKey } = await this.resolveCarerAppCategory(
       params.categoryRef,
       params.subtypeRef,
       params.incidentTypeLabel,
     );
     const description =
       params.description.trim() || params.incidentTypeLabel?.trim() || 'Reported from the carer app';
+    const reg = await this.carerAppRegisterFields(params, categoryKey, subtypeKey);
 
     const year = new Date().getUTCFullYear();
     let created: IncidentWithRefs | null = null;
@@ -752,10 +846,20 @@ export class IncidentsService {
               subtypeId,
               status: IncidentStatus.REPORTED,
               severity: params.severity,
-              privacyLevel: IncidentPrivacyLevel.NORMAL,
+              privacyLevel: reg.privacyLevel,
               shareWithHandover: false,
-              occurredAt: params.occurredAt,
+              occurredAt: reg.occurredAt,
               scheduledJobId: params.scheduledJobId,
+              locationId: reg.locationId,
+              locationKey: reg.locationKey,
+              locationDetail: reg.locationDetail,
+              categoryDetails: reg.categoryDetails,
+              ambulanceAttended: reg.ambulanceAttended,
+              takenToAe: reg.takenToAe,
+              admittedToHospital: reg.admittedToHospital,
+              immediateActionCodes: reg.immediateActionCodes,
+              appClientEntryId: params.appClientEntryId ?? null,
+              appLastWriteKey: params.appWriteKey ?? null,
               specificArea: params.specificArea?.trim() || null,
               // The carer is an employee-app account, not a platform User, so we do
               // not set reportedById/createdById (User FK). reporterEmployeeId links
@@ -764,8 +868,8 @@ export class IncidentsService {
               reporterEmployeeId: params.employeeId,
               primaryServiceUserId: params.primaryServiceUserId ?? null,
               primaryEmployeeId: params.primaryEmployeeId ?? null,
-              involvedServiceUserIds: params.primaryServiceUserId ? [params.primaryServiceUserId] : [],
-              involvedEmployeeIds: params.primaryEmployeeId ? [params.primaryEmployeeId] : [],
+              involvedServiceUserIds: carerAppInvolvedServiceUserIds(params),
+              involvedEmployeeIds: reg.involvedEmployeeIds,
               affectedPersonKinds: params.affectedPersonKinds ?? [],
               primaryPersonKind: params.affectedPersonKinds?.[0] ?? null,
               primaryPersonName: params.primaryPersonName?.trim() || null,
@@ -773,9 +877,13 @@ export class IncidentsService {
               contextBefore: params.contextBefore?.trim() || null,
               contextAfter: params.contextAfter?.trim() || null,
               immediateActions: params.immediateActions?.trim() || null,
-              injuryOccurred: params.injuryOccurred ?? false,
+              injuryOccurred: reg.injuryOccurred,
               injuryDetails: params.injuryDetails?.trim() || null,
               peopleInvolved: params.peopleInvolved?.trim() || null,
+              // Kept as the carer wrote it. Splitting free text into witness rows made
+              // "No witnesses" a witness and cut sentences in half; the office records
+              // structured witnesses from this text instead.
+              witnessDetails: params.witnesses?.trim() || null,
               whoInformedKeys: params.whoInformedKeys ?? [],
               carerSafeguardingConcern: params.carerSafeguardingConcern ?? null,
               followUpRequired: params.followUpRequired ?? false,
@@ -843,20 +951,14 @@ export class IncidentsService {
       ),
     );
 
-    // Mirror any body-map marks as real injuries + body-map records so they show
-    // in the admin incident "Injuries" section. Non-fatal: the incident is
-    // already created, so a failure here must not fail the carer submit.
-    await this.mirrorCarerAppInjuries(created.id, params).catch((e) =>
+    // Injuries show in the admin "Injuries" section (and pins on the service user's body map).
+    // Non-fatal: the incident is already created, so a failure here must not fail the carer submit.
+    const injuriesDone = params.injuries?.length
+      ? this.createCarerAppInjuries(created.id, params.injuries, reg.serviceUserId)
+      : this.mirrorCarerAppInjuries(created.id, params);
+    await injuriesDone.catch((e) =>
       this.logger.warn(
         `Failed to mirror carer-app injuries for ${created?.referenceNumber}: ${e}`,
-      ),
-    );
-
-    // Mirror free-text witnesses as IncidentWitness rows (admin "Witnesses"
-    // section). Non-fatal, same rationale as injuries.
-    await this.mirrorCarerAppWitnesses(created.id, params.witnesses).catch((e) =>
-      this.logger.warn(
-        `Failed to mirror carer-app witnesses for ${created?.referenceNumber}: ${e}`,
       ),
     );
 
@@ -864,34 +966,352 @@ export class IncidentsService {
   }
 
   /**
-   * Turn the carer app's free-text "witnesses" field into IncidentWitness rows.
-   * Splits on newlines / semicolons / commas so "John Smith, Jane Doe" becomes
-   * two witnesses; a single sentence becomes one row.
+   * A carer edits their own report from the app. Allowed only until the office starts the
+   * review — after that the record belongs to the review and the carer calls the office.
    */
-  private async mirrorCarerAppWitnesses(
+  async updateFromCarerApp(
     incidentId: string,
-    witnesses?: string | null,
-  ): Promise<void> {
-    const raw = witnesses?.trim();
-    if (!raw) return;
-    const names = raw
-      .split(/[\n;,]+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    const list = names.length > 0 ? names : [raw];
-    for (const name of list) {
-      try {
-        await this.prisma.incidentWitness.create({
+    params: CarerAppIncidentParams,
+  ): Promise<IncidentWithRefs> {
+    const existing = await this.prisma.incident.findFirst({
+      where: { id: incidentId, deletedAt: null },
+      include: { category: true, subtype: true },
+    });
+    if (!existing) throw new NotFoundException('Incident not found');
+    if (existing.reporterEmployeeId !== params.employeeId) {
+      throw new ForbiddenException('Only the carer who reported this incident can change it');
+    }
+    if (existing.status !== IncidentStatus.REPORTED) {
+      throw new ConflictException(
+        'The office has started reviewing this incident, so it can no longer be changed from the app. Call the office to add information.',
+      );
+    }
+    const { categoryId, subtypeId, categoryKey, subtypeKey } = await this.resolveCarerAppCategory(
+      params.categoryRef,
+      params.subtypeRef,
+      params.incidentTypeLabel,
+    );
+    const reg = await this.carerAppRegisterFields(params, categoryKey, subtypeKey);
+    const description =
+      params.description.trim() || params.incidentTypeLabel?.trim() || existing.description;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.incident.update({
+        where: { id: incidentId },
+        data: {
+          categoryId,
+          subtypeId,
+          severity: params.severity,
+          // Privacy is never lowered by an edit.
+          privacyLevel:
+            existing.privacyLevel === IncidentPrivacyLevel.NORMAL
+              ? reg.privacyLevel
+              : existing.privacyLevel,
+          occurredAt: reg.occurredAt,
+          locationId: reg.locationId,
+          locationKey: reg.locationKey,
+          locationDetail: reg.locationDetail,
+          specificArea: params.specificArea?.trim() || null,
+          categoryDetails: reg.categoryDetails,
+          ambulanceAttended: reg.ambulanceAttended,
+          takenToAe: reg.takenToAe,
+          admittedToHospital: reg.admittedToHospital,
+          immediateActionCodes: reg.immediateActionCodes,
+          primaryServiceUserId: params.primaryServiceUserId ?? null,
+          primaryEmployeeId: params.primaryEmployeeId ?? null,
+          involvedServiceUserIds: carerAppInvolvedServiceUserIds(params),
+          involvedEmployeeIds: reg.involvedEmployeeIds,
+          affectedPersonKinds: params.affectedPersonKinds ?? [],
+          primaryPersonKind: params.affectedPersonKinds?.[0] ?? null,
+          primaryPersonName: params.primaryPersonName?.trim() || null,
+          description,
+          contextBefore: params.contextBefore?.trim() || null,
+          contextAfter: params.contextAfter?.trim() || null,
+          immediateActions: params.immediateActions?.trim() || null,
+          injuryOccurred: reg.injuryOccurred,
+          injuryDetails: params.injuryDetails?.trim() || null,
+          peopleInvolved: params.peopleInvolved?.trim() || null,
+          witnessDetails: params.witnesses?.trim() || null,
+          whoInformedKeys: params.whoInformedKeys ?? [],
+          carerSafeguardingConcern: params.carerSafeguardingConcern ?? null,
+          followUpRequired: params.followUpRequired ?? false,
+          emergencyServicesDetails: params.emergencyServicesDetails?.trim() || null,
+          familyInformed: params.familyInformed ?? false,
+          carerNotes: params.carerNotes?.trim() || null,
+          ...(params.appWriteKey ? { appLastWriteKey: params.appWriteKey } : {}),
+        },
+        include: { category: true, subtype: true },
+      });
+      if (row.severity !== existing.severity) {
+        await tx.incidentSeverityHistory.create({
           data: {
             incidentId,
-            personKind: IncidentPersonKind.OTHER,
-            personName: name.slice(0, 255),
+            fromSeverity: existing.severity,
+            toSeverity: row.severity,
+            changedById: null,
+            reason: 'Changed by the carer in the app before review',
+          },
+        });
+      }
+      await this.audit.logAudit({
+        tx,
+        userId: undefined,
+        module: AuditModule.INCIDENT,
+        action: AuditAction.INCIDENT_UPDATED,
+        recordType: 'Incident',
+        recordId: incidentId,
+        description: `Incident ${row.referenceNumber} changed by the carer in the app (before review)`,
+        oldValues: auditSnapshot(existing),
+        newValues: auditSnapshot(row),
+      });
+      return row;
+    });
+
+    // Newer app builds send the full injury list: keep unchanged ones, replace the rest.
+    if (params.injuries) {
+      await this.replaceCarerAppInjuries(incidentId, params.injuries, reg.serviceUserId).catch((e) =>
+        this.logger.warn(`Failed to update carer-app injuries for ${updated.referenceNumber}: ${e}`),
+      );
+    }
+    return updated;
+  }
+
+  /** Register fields shared by carer-app create and edit — the same rules as the office form. */
+  private async carerAppRegisterFields(
+    params: CarerAppIncidentParams,
+    categoryKey: string,
+    subtypeKey: string | null,
+  ) {
+    const now = new Date();
+    // A device clock ahead of the server must not lose the report: a future time becomes now.
+    const occurredAt = params.occurredAt.getTime() > now.getTime() ? now : params.occurredAt;
+    const serviceUserId = params.visitServiceUserId ?? params.primaryServiceUserId ?? null;
+    const su = serviceUserId
+      ? await this.prisma.serviceUser.findFirst({
+          where: { id: serviceUserId },
+          select: { locationId: true },
+        })
+      : null;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    // Lenient: a carer may leave out what they don't know; the office completes it.
+    const { details } = normaliseIncidentCategoryDetails(
+      categoryKey,
+      subtypeKey,
+      params.categoryDetails ?? null,
+      { strict: false, today: dayKeyInTimeZone(now, timeZone) },
+    );
+    const allegedKind = (details?.allegedPerson as { kind?: string } | undefined)?.kind;
+    // A suspected colleague — or the carer isn't sure who — must not be readable by every carer.
+    const restricted =
+      categoryKey === 'SAFEGUARDING' && (allegedKind === 'STAFF' || allegedKind === 'UNKNOWN');
+    const kinds = params.affectedPersonKinds ?? [];
+    const outcomeApplies = kinds.length > 0 && !NO_HOSPITAL_OUTCOME_CATEGORIES.has(categoryKey);
+    const outcome = (v?: boolean | null) => (outcomeApplies ? (v ?? null) : null);
+    let codes = [...new Set(params.immediateActionCodes ?? [])];
+    if (codes.includes('NO_ACTION_NEEDED') && codes.length > 1) {
+      codes = codes.filter((c) => c !== 'NO_ACTION_NEEDED');
+    }
+    const locationKey = params.locationKey ?? null;
+    return {
+      serviceUserId,
+      occurredAt,
+      locationId: su?.locationId ?? params.fallbackLocationId ?? null,
+      locationKey,
+      locationDetail: locationKey === 'OTHER' ? params.locationDetail?.trim() || null : null,
+      categoryDetails: details
+        ? (details as Prisma.InputJsonObject)
+        : (Prisma.DbNull as typeof Prisma.DbNull),
+      privacyLevel: restricted ? IncidentPrivacyLevel.RESTRICTED : IncidentPrivacyLevel.NORMAL,
+      ambulanceAttended: outcome(params.ambulanceAttended),
+      takenToAe: outcome(params.takenToAe),
+      admittedToHospital: outcome(params.admittedToHospital),
+      immediateActionCodes: codes,
+      involvedEmployeeIds: [
+        ...new Set(
+          [params.primaryEmployeeId, ...(params.involvedEmployeeIds ?? [])].filter(
+            (id): id is string => Boolean(id),
+          ),
+        ),
+      ],
+      injuryOccurred:
+        Boolean(params.injuryOccurred) || (params.injuries?.length ?? 0) > 0,
+    };
+  }
+
+  /** Structured injuries from the app — the same rows the office "Add injury" dialog creates. */
+  private async createCarerAppInjuries(
+    incidentId: string,
+    injuries: CarerAppInjuryInput[],
+    serviceUserId: string | null,
+  ): Promise<void> {
+    for (const inj of injuries) {
+      try {
+        const severity = inj.injurySeverity as IncidentInjurySeverity;
+        const personKind = inj.personKind as IncidentPersonKind;
+        const injuryType = inj.injuryType.trim() || 'Injury';
+        let bodyRegion = inj.bodyRegion?.trim() || null;
+        let side: BodyMapSide | null = null;
+        let bodyMapRecordId: string | null = null;
+        // Body-map pins are for service users only (staff never get a body map).
+        if (personKind === IncidentPersonKind.SERVICE_USER && serviceUserId && inj.mark) {
+          const pin = await this.pinCarerAppInjury(incidentId, serviceUserId, inj.mark, {
+            injuryType,
+            description: inj.notes?.trim() || injuryType,
+            severity,
+          });
+          if (pin) {
+            bodyMapRecordId = pin.recordId;
+            bodyRegion = bodyRegion ?? pin.bodyPart;
+            side = pin.side;
+          }
+        }
+        await this.prisma.incidentInjury.create({
+          data: {
+            incidentId,
+            personKind,
+            personServiceUserId:
+              personKind === IncidentPersonKind.SERVICE_USER ? serviceUserId : null,
+            personEmployeeId:
+              personKind === IncidentPersonKind.EMPLOYEE ? (inj.personEmployeeId ?? null) : null,
+            personName:
+              personKind === IncidentPersonKind.OTHER ? inj.personName?.trim() || null : null,
+            injurySeverity: severity,
+            injuryType,
+            bodyRegion,
+            side,
+            notes: inj.notes?.trim() || null,
+            bodyMapRecordId,
+            // createdById stays null: null marks a carer-app injury (office ones carry the user).
           },
         });
       } catch (e) {
-        this.logger.warn(`Failed to mirror one carer-app witness: ${e}`);
+        this.logger.warn(`Failed to save one carer-app injury: ${e}`);
       }
     }
+  }
+
+  /**
+   * Carer edit: injuries recorded from the app (createdById null) are compared with the new list.
+   * Unchanged ones stay; removed ones are soft-deleted and their body-map pin is unlinked and
+   * closed (kept for history); new ones are added. Office-added injuries are never touched.
+   */
+  private async replaceCarerAppInjuries(
+    incidentId: string,
+    injuries: CarerAppInjuryInput[],
+    serviceUserId: string | null,
+  ): Promise<void> {
+    const current = await this.prisma.incidentInjury.findMany({
+      where: { incidentId, deletedAt: null, createdById: null },
+    });
+
+    const sig = (v: {
+      personKind: string;
+      person: string | null | undefined;
+      injuryType: string;
+      injurySeverity: string;
+      notes: string | null | undefined;
+      region: string | null | undefined;
+    }) =>
+      JSON.stringify([
+        v.personKind,
+        v.person ?? '',
+        v.injuryType.trim(),
+        v.injurySeverity,
+        (v.notes ?? '').trim(),
+        (v.region ?? '').trim().toLowerCase(),
+      ]);
+    const currentSigs = current.map((c) =>
+      sig({
+        personKind: c.personKind,
+        person: c.personEmployeeId ?? c.personName,
+        injuryType: c.injuryType,
+        injurySeverity: c.injurySeverity,
+        notes: c.notes,
+        region: c.bodyRegion,
+      }),
+    );
+    const remaining = [...currentSigs];
+    const toAdd: CarerAppInjuryInput[] = [];
+    for (const inj of injuries) {
+      const s2 = sig({
+        personKind: inj.personKind,
+        person: inj.personKind === 'EMPLOYEE' ? inj.personEmployeeId : inj.personKind === 'OTHER' ? inj.personName?.trim() : null,
+        injuryType: inj.injuryType,
+        injurySeverity: inj.injurySeverity,
+        notes: inj.notes,
+        region:
+          inj.bodyRegion?.trim() ||
+          (inj.personKind === 'SERVICE_USER' ? inj.mark?.part?.trim() || (inj.mark ? 'Marked site' : null) : null),
+      });
+      const idx = remaining.indexOf(s2);
+      if (idx >= 0) remaining[idx] = '';
+      else toAdd.push(inj);
+    }
+    for (let i = 0; i < current.length; i++) {
+      if (remaining[i] === '') continue;
+      const old = current[i];
+      await this.prisma.incidentInjury.update({
+        where: { id: old.id },
+        data: { deletedAt: new Date() },
+      });
+      if (old.bodyMapRecordId) {
+        await this.prisma.bodyMapLink.deleteMany({
+          where: {
+            bodyMapRecordId: old.bodyMapRecordId,
+            linkedModule: BodyMapLinkedModule.INCIDENT,
+            linkedRecordId: incidentId,
+          },
+        });
+        await this.prisma.bodyMapRecord.update({
+          where: { id: old.bodyMapRecordId },
+          data: { status: BodyMapRecordStatus.CLOSED },
+        });
+      }
+    }
+    if (toAdd.length) await this.createCarerAppInjuries(incidentId, toAdd, serviceUserId);
+  }
+
+  /** Pin one carer-app injury on the service user's body map and link it to the incident. */
+  private async pinCarerAppInjury(
+    incidentId: string,
+    serviceUserId: string,
+    mark: NonNullable<CarerAppInjuryInput['mark']>,
+    info: { injuryType: string; description: string; severity: IncidentInjurySeverity },
+  ): Promise<{ recordId: string; bodyPart: string; side: BodyMapSide | null } | null> {
+    const x = Number(mark.x);
+    const y = Number(mark.y);
+    if (Number.isNaN(x) || Number.isNaN(y)) return null;
+    const bodyPart = (mark.part ?? '').trim() || 'Marked site';
+    const side = this.resolveSideFromPart(bodyPart);
+    const record = await this.bodyMap.createRecord(undefined, {
+      serviceUserId,
+      recordType: BodyMapRecordType.INJURY,
+      subType: info.injuryType,
+      description: info.description,
+      riskLevel: this.mapInjurySeverityToRisk(info.severity),
+      bodyView: this.resolveBodyView(mark.view, mark.recordView),
+      side: side ?? undefined,
+      bodyPart,
+      specificLocation: bodyPart,
+      xCoordinate: x,
+      yCoordinate: y,
+      safeguardingTriggered: false,
+      observationDetails: {
+        recordView: mark.recordView ?? undefined,
+        canvasView: mark.canvasView ?? undefined,
+        source: 'incident',
+        incidentId,
+      },
+    });
+    await this.prisma.bodyMapLink.create({
+      data: {
+        bodyMapRecordId: record.id,
+        linkedModule: BodyMapLinkedModule.INCIDENT,
+        linkedRecordId: incidentId,
+        label: 'Incident injury',
+      },
+    });
+    return { recordId: record.id, bodyPart, side };
   }
 
   /**
@@ -958,8 +1378,8 @@ export class IncidentsService {
 
   private mapIncidentSeverityToInjury(severity: IncidentSeverity): IncidentInjurySeverity {
     switch (severity) {
+      // FATAL is never derived: a death is an incident outcome, not an injury severity.
       case IncidentSeverity.CRITICAL:
-        return IncidentInjurySeverity.FATAL;
       case IncidentSeverity.HIGH:
         return IncidentInjurySeverity.SERIOUS;
       case IncidentSeverity.MEDIUM:
@@ -1182,6 +1602,9 @@ export class IncidentsService {
     if (query.employeeId) {
       await this.orgScope.assertEmployeeInScope(scope, query.employeeId);
     }
+    if (query.reporterEmployeeId) {
+      await this.orgScope.assertEmployeeInScope(scope, query.reporterEmployeeId);
+    }
 
     const where: Prisma.IncidentWhereInput = {
       deletedAt: null,
@@ -1189,7 +1612,7 @@ export class IncidentsService {
       ...(query.includeArchived ? {} : { isArchived: false }),
       ...(query.status ? { status: query.status } : {}),
       ...(query.severity ? { severity: query.severity } : {}),
-      ...(query.privacyLevel ? { privacyLevel: query.privacyLevel } : {}),
+      ...(query.reporterEmployeeId ? { reporterEmployeeId: query.reporterEmployeeId } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.subtypeId ? { subtypeId: query.subtypeId } : {}),
       ...(query.serviceUserId
@@ -1200,12 +1623,21 @@ export class IncidentsService {
         : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
     };
+    // A privacy filter narrows what the user may see; it must never replace that rule.
+    if (query.privacyLevel) {
+      andWhereFragment(where, { privacyLevel: query.privacyLevel });
+    }
     // AND these in so they narrow `status` / `severity` rather than replacing them.
     if (query.openOnly) {
       andWhereFragment(where, { status: { in: OPEN_INCIDENT_STATUSES } });
     }
     if (query.severities?.length) {
       andWhereFragment(where, { severity: { in: query.severities } });
+    }
+    // Duty of Candour overdue (organisation setting; empty when the setting is off).
+    const candourOverdueIds = new Set(await this.candour.overdueIncidentIds());
+    if (query.candour === 'overdue') {
+      andWhereFragment(where, { id: { in: [...candourOverdueIds] } });
     }
 
     if (locationIds?.length) {
@@ -1273,15 +1705,26 @@ export class IncidentsService {
 
     return {
       data: {
-        items: await this.withVisitRef(
-          await this.withReportedBy(rows.map((r) => this.mapIncident(r))),
-        ),
+        items: (
+          await this.withPlaceAndPersonNames(
+            await this.withVisitRef(
+              await this.withReportedBy(rows.map((r) => this.mapIncident(r))),
+            ),
+          )
+        ).map((item) => ({ ...item, candourOverdue: candourOverdueIds.has(item.id) })),
         page,
         limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
+  }
+
+  /** Open incidents (in this user's view) with Duty of Candour overdue. */
+  private async countCandourOverdue(base: Prisma.IncidentWhereInput): Promise<number> {
+    const ids = await this.candour.overdueIncidentIds();
+    if (!ids.length) return 0;
+    return this.prisma.incident.count({ where: { AND: [base, { id: { in: ids } }] } });
   }
 
   async getById(user: RequestUser, id: string) {
@@ -1301,6 +1744,10 @@ export class IncidentsService {
         carerSuspensions: {
           where: { deletedAt: null },
           orderBy: { suspendedAt: 'asc' },
+        },
+        staffActions: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'asc' },
         },
         externalBodies: {
           where: { deletedAt: null },
@@ -1375,6 +1822,8 @@ export class IncidentsService {
           return incident.carerSuspensions.map((s) => this.mapCarerSuspension(s, today));
         })(),
         externalBodies: incident.externalBodies.map((b) => mapExternalBody(b)),
+        staffActions: incident.staffActions.map((a) => this.mapStaffAction(a)),
+        candour: await this.candour.forIncident(incident.id),
         courseRecommendations: await this.mapCourseRecommendations(
           incident.courseRecommendations,
         ),
@@ -1466,13 +1915,25 @@ export class IncidentsService {
       }
       await this.assertClosable(id, incident.severity, dto, user);
       await this.assertExternalBodiesClosable(id, dto, user);
+      await this.assertCandourClosable(id, dto, user);
       const outcome = await this.prisma.incidentOutcome.findUnique({
         where: { incidentId: id },
-        select: { finalOutcome: true },
+        select: { finalOutcome: true, outcomeSharing: true },
       });
       if (!outcome?.finalOutcome?.trim()) {
         throw new BadRequestException(
           'Record the closure outcome (final outcome) before closing this incident',
+        );
+      }
+      // Rows can change after the outcome was saved (e.g. a Duty of Candour results letter replaced
+      // by "no further enquiries"), so check them again at close.
+      const sharingErrors = sanitizeOutcomeSharing(
+        outcome.outcomeSharing,
+        dayKeyInTimeZone(new Date(), await this.orgSettings.getOperationalTimezone()),
+      ).errors;
+      if (sharingErrors.length) {
+        throw new BadRequestException(
+          `Update "Outcome shared with" before closing: add ${sharingErrors.join(', ')}`,
         );
       }
     }
@@ -2114,6 +2575,8 @@ export class IncidentsService {
                 'IncidentReviewChange',
                 'IncidentInvestigationChange',
                 'IncidentCarerSuspensionChange',
+                'IncidentStaffActionChange',
+                'IncidentCandourChange',
                 'IncidentExternalBodyChange',
                 'IncidentActionChange',
               ],
@@ -2162,22 +2625,7 @@ export class IncidentsService {
       ...documentEvents,
       ...logs.filter((l) => l.recordType !== 'IncidentAttachment').map((l) => ({
       at: l.createdAt.toISOString(),
-      kind:
-        l.recordType === 'IncidentInjury'
-          ? 'INJURY'
-          : l.recordType === 'IncidentWitness'
-            ? 'WITNESS'
-            : l.recordType === 'IncidentReviewChange'
-              ? 'REVIEW'
-              : l.recordType === 'IncidentInvestigationChange'
-                ? 'INVESTIGATION'
-                : l.recordType === 'IncidentCarerSuspensionChange'
-                  ? 'SUSPENSION'
-                  : l.recordType === 'IncidentExternalBodyChange'
-                    ? 'EXTERNAL'
-                    : l.recordType === 'IncidentActionChange'
-                      ? 'ACTION'
-                      : 'REVIEW_FLAG',
+      kind: (l.recordType && HISTORY_KIND_BY_RECORD_TYPE[l.recordType]) || 'REVIEW_FLAG',
       detail: l.description ?? (l.recordType === 'IncidentInjury' ? 'Injury changed' : 'Witness changed'),
       byId: l.userId,
       })),
@@ -3731,6 +4179,16 @@ export class IncidentsService {
     if (sharing.errors.length) {
       throw new BadRequestException(`To save the outcome, add: ${sharing.errors.join(', ')}`);
     }
+    // Duty of Candour results letters fill (and override) those people's "outcome shared" rows.
+    const candourLinks = await this.candour.outcomeLinks(id);
+    const savedSharing = (
+      Array.isArray(existing?.outcomeSharing) ? existing.outcomeSharing : []
+    ) as unknown as OutcomeSharingEntry[];
+    const baseSharing = sharing.entries ?? savedSharing;
+    const sharingEntries =
+      candourLinks.length || baseSharing.some((e) => e.source === 'CANDOUR')
+        ? applyCandourToSharing(baseSharing, candourLinks)
+        : sharing.entries;
     const learningSharedOn =
       dto.learningSharedOn !== undefined ? dto.learningSharedOn : dateOnlyKey(existing?.learningSharedOn);
     const learningSharedMethod =
@@ -3754,8 +4212,12 @@ export class IncidentsService {
       serviceUserInformed: dto.serviceUserInformed ?? existing?.serviceUserInformed ?? null,
       nokInformed: dto.nokInformed ?? existing?.nokInformed ?? null,
       finalManagementComments: dto.finalManagementComments?.trim() || null,
-      ...(sharing.entries !== null
-        ? { outcomeSharing: sharing.entries.length ? sharing.entries : Prisma.JsonNull }
+      ...(sharingEntries !== null
+        ? {
+            outcomeSharing: sharingEntries.length
+              ? (sharingEntries as unknown as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+          }
         : {}),
       learningSharedOn: learningSharedOn ? new Date(`${learningSharedOn}T00:00:00.000Z`) : null,
       learningSharedMethod,
@@ -3821,6 +4283,7 @@ export class IncidentsService {
           underInvestigation: 0,
           actionsRequired: 0,
           highOrCritical: 0,
+          candourOverdue: 0,
           byStatus: {},
           bySeverity: {},
         },
@@ -3918,6 +4381,7 @@ export class IncidentsService {
           statusCounts[IncidentStatus.UNDER_INVESTIGATION] ?? 0,
         actionsRequired: statusCounts[IncidentStatus.ACTIONS_REQUIRED] ?? 0,
         highOrCritical: openHighOrCritical,
+        candourOverdue: await this.countCandourOverdue(base),
         /** First day of the current organisation month (YYYY-MM-DD) — for "closed this month" links. */
         monthStart: monthStartDay,
         byStatus: statusCounts,
@@ -4003,6 +4467,346 @@ export class IncidentsService {
       recordType: 'Incident',
       recordId: incidentId,
       createdById: actorId,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Staff actions (Outcome & close): warning, fine, dismissal… per staff member
+  // ---------------------------------------------------------------------------
+
+  /** Decided after the investigation, at Outcome & close (same window as continuing a suspension). */
+  private async loadForStaffAction(user: RequestUser, id: string) {
+    if (!this.can(user, 'incidents.investigate') && !this.can(user, 'incidents.close')) {
+      throw new ForbiddenException('You do not have permission to record staff actions');
+    }
+    const incident = await this.loadForEdit(user, id);
+    if (
+      incident.status !== IncidentStatus.ACTIONS_REQUIRED &&
+      incident.status !== IncidentStatus.AWAITING_CLOSURE
+    ) {
+      throw new BadRequestException(
+        'Staff actions are decided after the review or investigation, at Outcome & close',
+      );
+    }
+    return incident;
+  }
+
+  /** A fine is a salary deduction: the same permission as adding one on the Salary tab. */
+  private assertCanFine(user: RequestUser) {
+    if (!this.can(user, 'billing.payroll_runs.manage') && !this.can(user, 'employees.update')) {
+      throw new ForbiddenException('You do not have permission to add a fine to a salary');
+    }
+  }
+
+  private async currentSalaryMonth(): Promise<string> {
+    const tz = await this.orgSettings.getOperationalTimezone();
+    return dayKeyInTimeZone(new Date(), tz).slice(0, 7);
+  }
+
+  async createStaffAction(
+    user: RequestUser,
+    id: string,
+    dto: CreateIncidentStaffActionDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const incident = await this.loadForStaffAction(user, id);
+    await this.assertEmployeeExists(dto.employeeId);
+    await this.orgScope.assertEmployeeInScope(
+      this.orgScope.fromRequestUser(user),
+      dto.employeeId,
+    );
+    const existing = await this.prisma.incidentStaffAction.findFirst({
+      where: { incidentId: id, employeeId: dto.employeeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'A staff action is already recorded for this person — change it instead',
+      );
+    }
+    const isFine = dto.actionType === 'FINE';
+    if (isFine) this.assertCanFine(user);
+    const problems = staffActionProblems(dto, await this.currentSalaryMonth());
+    if (problems.length) {
+      throw new BadRequestException(`To record a fine, add: ${problems.join(', ')}`);
+    }
+    const reason = dto.reason.trim();
+    const amount = isFine ? Math.round(Number(dto.fineAmount) * 100) / 100 : null;
+    const month = isFine ? dto.fineSalaryMonth!.trim() : null;
+
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.incidentStaffAction.create({
+        data: {
+          incidentId: id,
+          employeeId: dto.employeeId,
+          actionType: dto.actionType,
+          reason,
+          staffInformedOn: dto.staffInformedOn ? this.parseDateOnly(dto.staffInformedOn) : null,
+          fineAmount: amount,
+          fineSalaryMonth: month,
+          deductionAllowedConfirmed: isFine && dto.deductionAllowedConfirmed === true,
+          createdById: user.id,
+          updatedById: user.id,
+        },
+      });
+      if (!isFine) return created;
+      const deduction = await tx.employeeSalaryDeduction.create({
+        data: {
+          employeeId: dto.employeeId,
+          type: 'FINE',
+          amount: amount!,
+          reason: `${incident.referenceNumber}: ${reason}`.slice(0, 500),
+          notes: 'Fine decided on the incident (Outcome & close → Staff actions)',
+          salaryMonth: month!,
+          incidentId: id,
+          incidentStaffActionId: created.id,
+          createdById: user.id,
+          updatedById: user.id,
+        },
+      });
+      return tx.incidentStaffAction.update({
+        where: { id: created.id },
+        data: { salaryDeductionId: deduction.id },
+      });
+    });
+
+    const name = (await this.employeeNames([dto.employeeId]))[dto.employeeId] ?? 'Staff member';
+    await this.logStaffActionChange(
+      user.id,
+      id,
+      `Staff action: ${name} — ${this.describeStaffAction(row)} — ${reason}`,
+      undefined,
+      this.staffActionAuditValues(row),
+      meta,
+    );
+    return { message: 'Staff action recorded', data: this.mapStaffAction(row) };
+  }
+
+  async updateStaffAction(
+    user: RequestUser,
+    id: string,
+    staffActionId: string,
+    dto: UpdateIncidentStaffActionDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.loadForStaffAction(user, id);
+    const existing = await this.prisma.incidentStaffAction.findFirst({
+      where: { id: staffActionId, incidentId: id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Staff action not found');
+    const changeReason = dto.changeReason.trim();
+    if (!changeReason) throw new BadRequestException('Say why the decision changed');
+
+    const actionType = dto.actionType ?? existing.actionType;
+    const isFine = actionType === 'FINE';
+    const wasFine = existing.actionType === 'FINE';
+    const next = {
+      actionType,
+      reason: dto.reason !== undefined ? dto.reason.trim() : existing.reason,
+      staffInformedOn:
+        dto.staffInformedOn !== undefined
+          ? dto.staffInformedOn
+            ? this.parseDateOnly(dto.staffInformedOn)
+            : null
+          : existing.staffInformedOn,
+      fineAmount: isFine
+        ? dto.fineAmount !== undefined
+          ? dto.fineAmount
+          : existing.fineAmount === null
+            ? null
+            : Number(existing.fineAmount)
+        : null,
+      fineSalaryMonth: isFine
+        ? dto.fineSalaryMonth !== undefined
+          ? dto.fineSalaryMonth?.trim() || null
+          : existing.fineSalaryMonth
+        : null,
+      deductionAllowedConfirmed: isFine
+        ? (dto.deductionAllowedConfirmed ?? existing.deductionAllowedConfirmed)
+        : false,
+    };
+    if (isFine || wasFine) this.assertCanFine(user);
+    if (isFine) {
+      const fineChanged =
+        !wasFine ||
+        Number(existing.fineAmount) !== Number(next.fineAmount) ||
+        existing.fineSalaryMonth !== next.fineSalaryMonth;
+      // An unchanged fine may stay in a month that has since passed.
+      if (fineChanged) {
+        const problems = staffActionProblems(next, await this.currentSalaryMonth());
+        if (problems.length) {
+          throw new BadRequestException(`To record a fine, add: ${problems.join(', ')}`);
+        }
+      }
+    }
+    const amount = isFine ? Math.round(Number(next.fineAmount) * 100) / 100 : null;
+    const incidentRef = (
+      await this.prisma.incident.findUnique({ where: { id }, select: { referenceNumber: true } })
+    )?.referenceNumber;
+
+    const row = await this.prisma.$transaction(async (tx) => {
+      let salaryDeductionId = existing.salaryDeductionId;
+      const deductionData = {
+        amount: amount!,
+        reason: `${incidentRef}: ${next.reason}`.slice(0, 500),
+        salaryMonth: next.fineSalaryMonth!,
+        updatedById: user.id,
+      };
+      if (isFine && salaryDeductionId) {
+        await tx.employeeSalaryDeduction.update({
+          where: { id: salaryDeductionId },
+          data: deductionData,
+        });
+      } else if (isFine) {
+        const created = await tx.employeeSalaryDeduction.create({
+          data: {
+            ...deductionData,
+            employeeId: existing.employeeId,
+            type: 'FINE',
+            notes: 'Fine decided on the incident (Outcome & close → Staff actions)',
+            incidentId: id,
+            incidentStaffActionId: existing.id,
+            createdById: user.id,
+          },
+        });
+        salaryDeductionId = created.id;
+      } else if (salaryDeductionId) {
+        // No longer a fine: take it off the salary.
+        await tx.employeeSalaryDeduction.update({
+          where: { id: salaryDeductionId },
+          data: { deletedAt: new Date(), isActive: false, updatedById: user.id },
+        });
+        salaryDeductionId = null;
+      }
+      return tx.incidentStaffAction.update({
+        where: { id: existing.id },
+        data: {
+          ...next,
+          fineAmount: amount,
+          salaryDeductionId,
+          updatedById: user.id,
+        },
+      });
+    });
+
+    const name =
+      (await this.employeeNames([existing.employeeId]))[existing.employeeId] ?? 'Staff member';
+    await this.logStaffActionChange(
+      user.id,
+      id,
+      `Staff action changed: ${name} — ${this.describeStaffAction(existing)} → ${this.describeStaffAction(row)} — ${changeReason}`,
+      this.staffActionAuditValues(existing),
+      this.staffActionAuditValues(row),
+      meta,
+    );
+    return { message: 'Staff action updated', data: this.mapStaffAction(row) };
+  }
+
+  async removeStaffAction(
+    user: RequestUser,
+    id: string,
+    staffActionId: string,
+    dto: { reason: string },
+    meta?: RequestAuditMeta,
+  ) {
+    await this.loadForStaffAction(user, id);
+    const existing = await this.prisma.incidentStaffAction.findFirst({
+      where: { id: staffActionId, incidentId: id, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Staff action not found');
+    if (existing.salaryDeductionId) this.assertCanFine(user);
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Say why the staff action is removed');
+    await this.prisma.$transaction(async (tx) => {
+      if (existing.salaryDeductionId) {
+        await tx.employeeSalaryDeduction.update({
+          where: { id: existing.salaryDeductionId },
+          data: { deletedAt: new Date(), isActive: false, updatedById: user.id },
+        });
+      }
+      await tx.incidentStaffAction.update({
+        where: { id: existing.id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: user.id,
+          deleteReason: reason,
+          updatedById: user.id,
+        },
+      });
+    });
+    const name =
+      (await this.employeeNames([existing.employeeId]))[existing.employeeId] ?? 'Staff member';
+    await this.logStaffActionChange(
+      user.id,
+      id,
+      `Staff action removed: ${name} — ${this.describeStaffAction(existing)} — ${reason}`,
+      this.staffActionAuditValues(existing),
+      undefined,
+      meta,
+    );
+    return { message: 'Staff action removed', data: { id: existing.id } };
+  }
+
+  private describeStaffAction(row: {
+    actionType: string;
+    fineAmount: Prisma.Decimal | number | null;
+    fineSalaryMonth: string | null;
+  }): string {
+    const label = staffActionLabel(row.actionType);
+    if (row.actionType !== 'FINE' || row.fineAmount === null || !row.fineSalaryMonth) return label;
+    return `${label} (${fineSummary(Number(row.fineAmount), row.fineSalaryMonth)})`;
+  }
+
+  private staffActionAuditValues(row: import('@prisma/client').IncidentStaffAction) {
+    return {
+      employeeId: row.employeeId,
+      actionType: row.actionType,
+      reason: row.reason,
+      staffInformedOn: dateOnlyKey(row.staffInformedOn),
+      fineAmount: row.fineAmount === null ? null : Number(row.fineAmount),
+      fineSalaryMonth: row.fineSalaryMonth,
+      deductionAllowedConfirmed: row.deductionAllowedConfirmed,
+      salaryDeductionId: row.salaryDeductionId,
+    };
+  }
+
+  private mapStaffAction(row: import('@prisma/client').IncidentStaffAction) {
+    return {
+      id: row.id,
+      employeeId: row.employeeId,
+      actionType: row.actionType,
+      actionLabel: staffActionLabel(row.actionType),
+      reason: row.reason,
+      staffInformedOn: dateOnlyKey(row.staffInformedOn),
+      fineAmount: row.fineAmount === null ? null : Number(row.fineAmount),
+      fineSalaryMonth: row.fineSalaryMonth,
+      deductionAllowedConfirmed: row.deductionAllowedConfirmed,
+      salaryDeductionId: row.salaryDeductionId,
+      createdAt: row.createdAt.toISOString(),
+      createdById: row.createdById,
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  private async logStaffActionChange(
+    userId: string,
+    incidentId: string,
+    description: string,
+    oldValues?: Record<string, unknown>,
+    newValues?: Record<string, unknown>,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentStaffActionChange',
+      recordId: incidentId,
+      description,
+      oldValues,
+      newValues,
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
     });
   }
 
@@ -4222,23 +5026,38 @@ export class IncidentsService {
     if (!completionNotes) {
       throw new BadRequestException('Say how the measure was completed');
     }
-    // Record-changing measures name the record that was actually updated or added.
-    const completedRecords = sanitizeLinkedItems(dto.completedRecords);
+    // Record-changing measures name the record that was actually updated or added. A care plan
+    // update is proven by a published version (chosen from the ones that qualify).
+    const carePlanVersion =
+      existing.measureType === 'CARE_PLAN_UPDATE'
+        ? await this.resolveCarePlanEvidence(existing, dto.carePlanVersionId)
+        : null;
+    const completedRecords = carePlanVersion
+      ? [{ id: carePlanVersion.instanceId, label: carePlanVersion.label }]
+      : sanitizeLinkedItems(dto.completedRecords);
     if (needsCompletedRecord(existing.measureType) && !completedRecords.length) {
       throw new BadRequestException(
         'Choose the record that was updated or added to complete this measure',
       );
     }
-    const action = await this.prisma.incidentAction.update({
-      where: { id: actionId },
-      data: {
-        status: IncidentActionStatus.COMPLETED,
-        completionNotes,
-        completedRecords: completedRecords.length ? completedRecords : Prisma.JsonNull,
-        completedById: user.id,
-        completedAt: new Date(),
-        updatedById: user.id,
-      },
+    const action = await this.prisma.$transaction(async (tx) => {
+      if (carePlanVersion) {
+        await tx.serviceUserCarePlanPublishedVersion.update({
+          where: { id: carePlanVersion.id },
+          data: { incidentActionId: actionId },
+        });
+      }
+      return tx.incidentAction.update({
+        where: { id: actionId },
+        data: {
+          status: IncidentActionStatus.COMPLETED,
+          completionNotes,
+          completedRecords: completedRecords.length ? completedRecords : Prisma.JsonNull,
+          completedById: user.id,
+          completedAt: new Date(),
+          updatedById: user.id,
+        },
+      });
     });
     await this.audit.logAudit({
       userId: user.id,
@@ -4417,6 +5236,41 @@ export class IncidentsService {
     });
   }
 
+  /**
+   * Duty of Candour at close: an undecided or "not known yet" person always blocks; a Yes that
+   * isn't complete needs a manager's reason (kept on the timeline).
+   */
+  private async assertCandourClosable(
+    incidentId: string,
+    dto: ChangeIncidentStatusDto,
+    user: RequestUser,
+  ): Promise<void> {
+    const { blocking, incomplete } = await this.candour.closeCheck(incidentId);
+    if (blocking.length) {
+      throw new BadRequestException(
+        `Decide Duty of Candour for ${blocking.join(', ')} before closing (Review tab)`,
+      );
+    }
+    if (!incomplete.length) return;
+    if (!dto.overrideIncompleteCandour) {
+      throw new BadRequestException(
+        `Duty of Candour isn't complete for ${incomplete.join(', ')}. Complete it, or close with a reason.`,
+      );
+    }
+    if (!dto.reason?.trim()) {
+      throw new BadRequestException('A reason is required to close while Duty of Candour is incomplete');
+    }
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.INCIDENT,
+      action: AuditAction.INCIDENT_UPDATED,
+      recordType: 'IncidentCandourChange',
+      recordId: incidentId,
+      description: `Closed with Duty of Candour incomplete for ${incomplete.join(', ')} — ${dto.reason.trim()}`,
+      newValues: { overrideReason: dto.reason.trim(), people: incomplete },
+    });
+  }
+
   private async loadActionForManage(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
@@ -4434,6 +5288,164 @@ export class IncidentsService {
   }
 
   /** Completion is allowed for managers OR the assigned employee themselves. */
+  /**
+   * "Care plan update" measure: the plans it is about (to open them) and the published versions
+   * that can complete it (see incident-care-plan-measure.util).
+   */
+  async carePlanEvidenceForAction(user: RequestUser, actionId: string) {
+    const action = await this.loadActionForComplete(user, actionId);
+    if (action.measureType !== 'CARE_PLAN_UPDATE') {
+      throw new BadRequestException('This measure is not a care plan update');
+    }
+    const { incident, candidates } = await this.carePlanCandidates(action);
+    const plans = await this.prisma.serviceUserCarePlanInstance.findMany({
+      where: {
+        serviceUserId: { in: incidentServiceUserIds(incident) },
+        ...(action.newRecordNeeded ? {} : { id: { in: this.linkedInstanceIds(action) } }),
+      },
+      select: {
+        id: true,
+        serviceUserId: true,
+        carePathwayFormId: true,
+        carePathwayForm: { select: { name: true } },
+      },
+    });
+    const userIds = [...new Set(candidates.map((v) => v.publishedById).filter((v): v is string => !!v))];
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const userName = new Map(
+      users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || null]),
+    );
+    return {
+      data: {
+        newRecordNeeded: action.newRecordNeeded,
+        measureCreatedAt: action.createdAt.toISOString(),
+        serviceUserIds: incidentServiceUserIds(incident),
+        plans: action.newRecordNeeded
+          ? []
+          : plans.map((p) => ({
+              instanceId: p.id,
+              serviceUserId: p.serviceUserId,
+              carePathwayFormId: p.carePathwayFormId,
+              formName: p.carePathwayForm.name,
+            })),
+        versions: candidates.map((v) => ({
+          id: v.id,
+          instanceId: v.instanceId,
+          serviceUserId: v.instance.serviceUserId,
+          carePathwayFormId: v.instance.carePathwayFormId,
+          formName: v.instance.carePathwayForm.name,
+          versionNumber: v.versionNumber,
+          summary: v.summary,
+          publishedAt: v.publishedAt.toISOString(),
+          publishedByName: v.publishedById ? (userName.get(v.publishedById) ?? null) : null,
+          linkedToThisMeasure: v.incidentActionId === action.id,
+        })),
+      },
+    };
+  }
+
+  private linkedInstanceIds(action: { linkedRecords: Prisma.JsonValue }): string[] {
+    return sanitizeLinkedItems(action.linkedRecords).map((r) => r.id);
+  }
+
+  /** Published versions that qualify as evidence for this care plan measure, newest first. */
+  private async carePlanCandidates(action: {
+    id: string;
+    incidentId: string;
+    createdAt: Date;
+    newRecordNeeded: boolean;
+    linkedRecords: Prisma.JsonValue;
+  }) {
+    const incident = await this.prisma.incident.findUniqueOrThrow({
+      where: { id: action.incidentId },
+      select: { primaryServiceUserId: true, involvedServiceUserIds: true },
+    });
+    const suIds = incidentServiceUserIds(incident);
+    const measure = {
+      id: action.id,
+      createdAt: action.createdAt,
+      newRecordNeeded: action.newRecordNeeded,
+      linkedInstanceIds: this.linkedInstanceIds(action),
+    };
+    const rows = suIds.length
+      ? await this.prisma.serviceUserCarePlanPublishedVersion.findMany({
+          where: {
+            instance: { serviceUserId: { in: suIds } },
+            publishedAt: { gt: action.createdAt },
+            ...(action.newRecordNeeded ? {} : { instanceId: { in: measure.linkedInstanceIds } }),
+          },
+          include: {
+            instance: {
+              select: {
+                serviceUserId: true,
+                carePathwayFormId: true,
+                createdAt: true,
+                carePathwayForm: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { publishedAt: 'desc' },
+        })
+      : [];
+    const candidates = rows.filter((v) =>
+      versionCompletesCarePlanMeasure(
+        measure,
+        {
+          instanceId: v.instanceId,
+          instanceServiceUserId: v.instance.serviceUserId,
+          instanceCreatedAt: v.instance.createdAt,
+          publishedAt: v.publishedAt,
+          incidentActionId: v.incidentActionId,
+        },
+        suIds,
+      ),
+    );
+    return { incident, candidates };
+  }
+
+  private async resolveCarePlanEvidence(
+    action: {
+      id: string;
+      incidentId: string;
+      createdAt: Date;
+      newRecordNeeded: boolean;
+      linkedRecords: Prisma.JsonValue;
+    },
+    versionId: string | undefined,
+  ) {
+    if (!versionId) {
+      throw new BadRequestException(
+        'Choose the published care plan version that made this change (publish the care plan first)',
+      );
+    }
+    const { candidates } = await this.carePlanCandidates(action);
+    const version = candidates.find((v) => v.id === versionId);
+    if (!version) {
+      const used = await this.prisma.serviceUserCarePlanPublishedVersion.findFirst({
+        where: { id: versionId, incidentActionId: { not: null } },
+        select: { incidentActionId: true },
+      });
+      if (used && used.incidentActionId !== action.id) {
+        throw new BadRequestException('That version is already the evidence for another measure');
+      }
+      throw new BadRequestException(
+        action.newRecordNeeded
+          ? 'That version does not complete this measure: it must be a care plan created after the measure was added'
+          : 'That version does not complete this measure: it must be the named care plan, published after the measure was added',
+      );
+    }
+    return {
+      id: version.id,
+      instanceId: version.instanceId,
+      label: `${version.instance.carePathwayForm.name} — version ${version.versionNumber}`,
+    };
+  }
+
   private async loadActionForComplete(user: RequestUser, actionId: string) {
     const action = await this.prisma.incidentAction.findFirst({
       where: { id: actionId, deletedAt: null },
@@ -4621,7 +5633,12 @@ export class IncidentsService {
     categoryRef?: string | null,
     subtypeRef?: string | null,
     incidentTypeLabel?: string | null,
-  ): Promise<{ categoryId: string; subtypeId: string | null }> {
+  ): Promise<{
+    categoryId: string;
+    subtypeId: string | null;
+    categoryKey: string;
+    subtypeKey: string | null;
+  }> {
     const categories = await this.prisma.incidentCategory.findMany({
       where: { deletedAt: null, isActive: true },
       include: { subtypes: { where: { deletedAt: null, isActive: true } } },
@@ -4648,7 +5665,12 @@ export class IncidentsService {
       (mapped?.subtype && mapped.category === category.key
         ? category.subtypes.find((s) => s.key === mapped.subtype)
         : undefined);
-    return { categoryId: category.id, subtypeId: subtype?.id ?? null };
+    return {
+      categoryId: category.id,
+      subtypeId: subtype?.id ?? null,
+      categoryKey: category.key,
+      subtypeKey: subtype?.key ?? null,
+    };
   }
 
   private mapIncident(incident: IncidentWithRefs) {
@@ -4698,6 +5720,7 @@ export class IncidentsService {
       injuryOccurred: incident.injuryOccurred,
       injuryDetails: incident.injuryDetails,
       peopleInvolved: incident.peopleInvolved,
+      witnessDetails: incident.witnessDetails,
       whoInformedKeys: incident.whoInformedKeys,
       carerSafeguardingConcern: incident.carerSafeguardingConcern,
       followUpRequired: incident.followUpRequired,
@@ -4893,6 +5916,37 @@ export class IncidentsService {
       visitRef: item.scheduledJobId
         ? (refByJobId.get(item.scheduledJobId) ?? null)
         : null,
+    }));
+  }
+
+  /** Readable names for list rows / exports: the primary service user and the branch. */
+  private async withPlaceAndPersonNames<
+    T extends { primaryServiceUserId: string | null; locationId: string | null },
+  >(items: T[]): Promise<Array<T & { serviceUserName: string | null; locationName: string | null }>> {
+    const suIds = [...new Set(items.map((i) => i.primaryServiceUserId).filter((id): id is string => Boolean(id)))];
+    const locIds = [...new Set(items.map((i) => i.locationId).filter((id): id is string => Boolean(id)))];
+    const [sus, locs] = await Promise.all([
+      suIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+      locIds.length
+        ? this.prisma.location.findMany({
+            where: { id: { in: locIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
+    const suName = new Map(
+      sus.map((s) => [s.id, [s.firstName, s.lastName].filter(Boolean).join(' ').trim() || null]),
+    );
+    const locName = new Map(locs.map((l) => [l.id, l.name]));
+    return items.map((item) => ({
+      ...item,
+      serviceUserName: item.primaryServiceUserId ? (suName.get(item.primaryServiceUserId) ?? null) : null,
+      locationName: item.locationId ? (locName.get(item.locationId) ?? null) : null,
     }));
   }
 

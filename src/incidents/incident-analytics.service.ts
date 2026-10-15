@@ -12,6 +12,8 @@ import { allowedPrivacyLevels } from './incident-access.util';
 import { incidentOccurredAtRange, OPEN_INCIDENT_STATUSES } from './incident-workflow.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { IncidentAnalyticsQueryDto } from './dto/incident-analytics-query.dto';
+import { analyticsCalendarParts, lastMonthKeys } from './incident-analytics.util';
+import { operationalTodayIso } from '../common/utils/operational-day.util';
 
 const ROW_CAP = 10_000;
 const DAY_MS = 86_400_000;
@@ -35,6 +37,8 @@ type LeanRow = Prisma.IncidentGetPayload<{
     primaryEmployeeId: true;
     involvedServiceUserIds: true;
     involvedEmployeeIds: true;
+    reporterEmployeeId: true;
+    createdById: true;
     category: { select: { key: true; label: true } };
     subtype: { select: { key: true; label: true } };
   };
@@ -100,6 +104,7 @@ export class IncidentAnalyticsService {
 
   async getAnalytics(user: RequestUser, q: IncidentAnalyticsQueryDto) {
     const where = await this.baseWhere(user, q);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
 
     const rows: LeanRow[] = await this.prisma.incident.findMany({
       where,
@@ -114,6 +119,8 @@ export class IncidentAnalyticsService {
         primaryEmployeeId: true,
         involvedServiceUserIds: true,
         involvedEmployeeIds: true,
+        reporterEmployeeId: true,
+        createdById: true,
         category: { select: { key: true, label: true } },
         subtype: { select: { key: true, label: true } },
       },
@@ -127,6 +134,9 @@ export class IncidentAnalyticsService {
     const bySubtype = new Map<string, { label: string; count: number }>();
     const byLocation = new Map<string, number>();
     const byServiceUser = new Map<string, number>();
+    const byReporter = new Map<string, number>();
+    // Carer-app reports have no office creator; office-recorded ones do.
+    const bySource = { carerApp: 0, office: 0 };
     const byTimeOfDay = TIME_BUCKETS.map((b) => ({
       key: b.key,
       label: b.label,
@@ -176,15 +186,19 @@ export class IncidentAnalyticsService {
         byServiceUser.set(serviceUserId, (byServiceUser.get(serviceUserId) ?? 0) + 1);
       }
       if (r.involvedEmployeeIds.length > 0) involvingEmployees += 1;
+      if (r.reporterEmployeeId) {
+        byReporter.set(r.reporterEmployeeId, (byReporter.get(r.reporterEmployeeId) ?? 0) + 1);
+      }
+      if (r.createdById) bySource.office += 1;
+      else bySource.carerApp += 1;
 
-      const hour = r.occurredAt.getUTCHours();
+      // Organisation time (Europe/London), not UTC.
+      const { hour, weekday, monthKey } = analyticsCalendarParts(r.occurredAt, timeZone);
       const bucket = byTimeOfDay.find(
         (_, i) => hour >= TIME_BUCKETS[i].from && hour <= TIME_BUCKETS[i].to,
       );
       if (bucket) bucket.count += 1;
-      byDayOfWeek[r.occurredAt.getUTCDay()].count += 1;
-
-      const monthKey = `${r.occurredAt.getUTCFullYear()}-${String(r.occurredAt.getUTCMonth() + 1).padStart(2, '0')}`;
+      byDayOfWeek[weekday].count += 1;
       monthly.set(monthKey, (monthly.get(monthKey) ?? 0) + 1);
 
       if (r.status === IncidentStatus.CLOSED && r.closedAt) {
@@ -222,12 +236,13 @@ export class IncidentAnalyticsService {
       },
     });
 
-    const [locationNames, serviceUserNames] = await Promise.all([
+    const [locationNames, serviceUserNames, reporterNames] = await Promise.all([
       this.resolveLocationNames([...byLocation.keys()]),
       this.resolveServiceUserNames(this.topKeys(byServiceUser, 10)),
+      this.resolveEmployeeNames(this.topKeys(byReporter, 10)),
     ]);
 
-    const warnings = await this.getWarnings(user);
+    const warnings = await this.getWarnings(user, timeZone);
 
     return {
       data: {
@@ -271,25 +286,34 @@ export class IncidentAnalyticsService {
           name: serviceUserNames.get(id) ?? 'Unknown',
           count: byServiceUser.get(id) ?? 0,
         })),
+        byReporter: this.topKeys(byReporter, 10).map((id) => ({
+          id,
+          name: reporterNames.get(id) ?? 'Unknown',
+          count: byReporter.get(id) ?? 0,
+        })),
+        bySource,
         byTimeOfDay,
         byDayOfWeek,
         injuryTypes: injuryGroups.map((g) => ({
           type: g.injuryType,
           count: g._count,
         })),
-        monthlyTrend: this.lastMonths(monthly, 12),
+        monthlyTrend: lastMonthKeys(12, new Date(), timeZone).map((month) => ({
+          month,
+          count: monthly.get(month) ?? 0,
+        })),
         warnings,
       },
     };
   }
 
   /** Objective, explainable operational warnings (privacy-filtered). */
-  private async getWarnings(user: RequestUser) {
+  private async getWarnings(user: RequestUser, timeZone: string) {
     const privacy = { in: allowedPrivacyLevels(user) };
     const now = Date.now();
-    const monthStart = new Date();
-    monthStart.setUTCDate(1);
-    monthStart.setUTCHours(0, 0, 0, 0);
+    // Start of the current month on the organisation calendar (00:00 UK time on the 1st).
+    const monthStartDay = `${operationalTodayIso(new Date(now), timeZone).slice(0, 8)}01`;
+    const monthStart = incidentOccurredAtRange(monthStartDay, undefined, timeZone)!.gte!;
 
     const warnings: { level: 'info' | 'warning'; label: string }[] = [];
 
@@ -370,21 +394,6 @@ export class IncidentAnalyticsService {
       .map(([k]) => k);
   }
 
-  private lastMonths(
-    map: Map<string, number>,
-    n: number,
-  ): { month: string; count: number }[] {
-    const out: { month: string; count: number }[] = [];
-    const d = new Date();
-    d.setUTCDate(1);
-    for (let i = n - 1; i >= 0; i--) {
-      const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1));
-      const key = `${m.getUTCFullYear()}-${String(m.getUTCMonth() + 1).padStart(2, '0')}`;
-      out.push({ month: key, count: map.get(key) ?? 0 });
-    }
-    return out;
-  }
-
   private async resolveLocationNames(
     ids: string[],
   ): Promise<Map<string, string>> {
@@ -394,6 +403,17 @@ export class IncidentAnalyticsService {
       select: { id: true, name: true },
     });
     return new Map(rows.map((r) => [r.id, r.name]));
+  }
+
+  private async resolveEmployeeNames(ids: string[]): Promise<Map<string, string>> {
+    if (!ids.length) return new Map();
+    const rows = await this.prisma.employeePersonalDetail.findMany({
+      where: { employeeId: { in: ids } },
+      select: { employeeId: true, firstName: true, lastName: true },
+    });
+    return new Map(
+      rows.map((r) => [r.employeeId, [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || 'Unknown']),
+    );
   }
 
   private async resolveServiceUserNames(

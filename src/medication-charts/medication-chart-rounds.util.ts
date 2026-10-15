@@ -42,7 +42,11 @@ export function findRoundByWindow(
     const ws = formatHm(r.windowStart);
     const we = formatHm(r.windowEnd);
     if (!ws || !we) continue;
-    if (dueM >= hmToMinutes(ws) && dueM <= hmToMinutes(we)) return r;
+    const start = hmToMinutes(ws);
+    const end = hmToMinutes(we);
+    // A window that ends before it starts runs past midnight (e.g. Night 20:00–07:00).
+    const inWindow = end >= start ? dueM >= start && dueM <= end : dueM >= start || dueM <= end;
+    if (inWindow) return r;
   }
   return null;
 }

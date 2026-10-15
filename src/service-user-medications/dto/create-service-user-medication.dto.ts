@@ -7,6 +7,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -172,6 +173,42 @@ export class CreateServiceUserMedicationDto {
   @Min(0)
   @Max(240)
   timeToleranceMinutes?: number;
+
+  @ApiPropertyOptional({
+    description: 'PRN only: minimum hours between two doses. Null clears it.',
+    minimum: 0.25,
+    maximum: 168,
+    nullable: true,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.25)
+  @Max(168)
+  prnMinGapHours?: number | null;
+
+  @ApiPropertyOptional({
+    description: 'PRN only: most doses allowed in any 24 hours. Null clears it.',
+    minimum: 1,
+    maximum: 48,
+    nullable: true,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(48)
+  prnMaxDosesIn24Hours?: number | null;
+
+  @ApiPropertyOptional({
+    description: 'PRN only: most to give at one time (free text, e.g. "2 tablets"). Null clears it.',
+    maxLength: 100,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  prnMaxDosePerTime?: string | null;
 
   @ApiProperty({ enum: MedicationKind })
   @IsEnum(MedicationKind)
