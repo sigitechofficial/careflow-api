@@ -1,19 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateSpecialVisitDto {
   @ApiProperty()
   @IsUUID()
   employeeId!: string;
 
-  @ApiProperty({ description: 'Visit date (YYYY-MM-DD)' })
-  @IsDateString()
-  visitDate!: string;
+  @ApiProperty()
+  @IsUUID()
+  serviceUserId!: string;
 
-  @ApiProperty({ description: 'Duration in minutes' })
-  @IsInt()
-  @Min(1)
-  durationMinutes!: number;
+  @ApiProperty({ description: 'Start date/time (ISO)' })
+  @IsDateString()
+  startDateTime!: string;
+
+  @ApiProperty({ description: 'End date/time (ISO)' })
+  @IsDateString()
+  endDateTime!: string;
 
   @ApiProperty({ description: 'Short title / reason for the special visit' })
   @IsString()
