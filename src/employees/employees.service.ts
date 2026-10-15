@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DataAccessType, Prisma } from '@prisma/client';
+import { DataAccessType, Prisma, EmployeeComplianceStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -548,22 +548,23 @@ export class EmployeesService {
 
     const horizon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Classify by the record's status (as the compliance report does): a missing, rejected or
+    // unreviewed document is never "up to date" just because it has no expiry date.
+    const requiredRecord = {
+      deletedAt: null,
+      isNoLongerRequired: false,
+      status: { notIn: [EmployeeComplianceStatus.NOT_REQUIRED, EmployeeComplianceStatus.NO_LONGER_REQUIRED] },
+      employee: listWhere,
+    };
     const complianceUpToDate = await this.prisma.employeeCompliance.count({
       where: {
-        deletedAt: null,
-        isNoLongerRequired: false,
+        ...requiredRecord,
+        status: EmployeeComplianceStatus.VALID,
         OR: [{ expiryDate: null }, { expiryDate: { gt: horizon } }],
-        employee: listWhere,
       },
     });
-    const complianceNeedsAttention = await this.prisma.employeeCompliance.count({
-      where: {
-        deletedAt: null,
-        isNoLongerRequired: false,
-        expiryDate: { lte: horizon },
-        employee: listWhere,
-      },
-    });
+    const complianceRequired = await this.prisma.employeeCompliance.count({ where: requiredRecord });
+    const complianceNeedsAttention = Math.max(0, complianceRequired - complianceUpToDate);
 
     type SkillAggRow = { skillTypeId: string | null; cnt: number };
     const skillGroups = await this.prisma.employeeSkill.groupBy({

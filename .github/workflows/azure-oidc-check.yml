@@ -1,0 +1,38 @@
+name: Azure OIDC check
+
+# Proves GitHub Actions can sign in to Azure with no stored password (OIDC ->
+# user-assigned managed identity id-careflow-github-deploy), and that the
+# identity has only the access deployments need.
+on:
+  workflow_dispatch:
+  push:
+    branches: [azure]
+    paths: [".github/workflows/azure-oidc-check.yml"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login (OIDC, no secrets)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Can see what deployments need
+        run: |
+          az account show --query "{subscription:name, signedInAs:user.type}" -o table
+          az acr show -n acrcareflowprod --query loginServer -o tsv
+          az containerapp env show -g rg-careflow-prod -n cae-careflow-prod --query name -o tsv
+
+      - name: Cannot read application secrets (least privilege)
+        run: |
+          if az keyvault secret show --vault-name kv-careflow-prod --name database-url --query name -o tsv 2>/dev/null; then
+            echo "::error::deploy identity can read Key Vault secrets - it should not"; exit 1
+          fi
+          echo "Key Vault secrets correctly denied"

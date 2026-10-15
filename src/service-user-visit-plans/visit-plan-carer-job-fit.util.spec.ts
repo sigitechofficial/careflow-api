@@ -12,6 +12,9 @@ import {
   type SlotCarerPatternInput,
 } from './visit-plan-carer-job-fit.util';
 import type { WorkingPatternCycleConfig } from '../employee-working-patterns/working-pattern-cycle.util';
+const LONDON = 'Europe/London';
+const KARACHI = 'Asia/Karachi';
+
 describe('visit-plan-carer-job-fit.util', () => {
   const cycleConfig: WorkingPatternCycleConfig = {
     workingPatternCycleWeeks: 1,
@@ -40,19 +43,19 @@ describe('visit-plan-carer-job-fit.util', () => {
   it('isEmployeeAvailableForVisit returns false on Saturday', () => {
     const start = new Date('2026-06-20T10:00:00.000Z'); // Saturday
     const end = new Date('2026-06-20T11:00:00.000Z');
-    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end)).toBe(false);
+    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(false);
   });
 
   it('isEmployeeAvailableForVisit returns true on Monday within hours', () => {
     const start = new Date('2026-06-22T10:00:00.000Z'); // Monday
     const end = new Date('2026-06-22T11:00:00.000Z');
-    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end)).toBe(true);
+    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(true);
   });
 
   it('isEmployeeAvailableForVisit returns false when visit is before pattern start', () => {
     const start = new Date('2026-06-22T07:00:00.000Z');
     const end = new Date('2026-06-22T08:00:00.000Z');
-    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end)).toBe(false);
+    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(false);
   });
 
   it('collectCarerPatternConflicts flags weekend assignment on weekday-only carer', () => {
@@ -75,7 +78,7 @@ describe('visit-plan-carer-job-fit.util', () => {
   it('isEmployeeAvailableForVisit returns true when visit overlaps working hours', () => {
     const start = new Date('2026-06-22T07:00:00.000Z');
     const end = new Date('2026-06-22T10:00:00.000Z');
-    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end)).toBe(true);
+    expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(true);
   });
 
   it('collectCarerPatternConflicts flags time outside pattern', () => {
@@ -104,6 +107,93 @@ describe('visit-plan-carer-job-fit.util', () => {
     };
     const conflicts = collectCarerPatternConflicts([slot], [employee]);
     expect(conflicts).toEqual([]);
+  });
+
+  describe('isEmployeeAvailableForVisit reads weekday + HH:mm in the org timezone', () => {
+    // Mon 09:00–17:00 London-local pattern; weekend off.
+    it('London BST (2026-07-15 Wed): 08:30Z = 09:30 BST is inside the pattern', () => {
+      const start = new Date('2026-07-15T08:30:00.000Z');
+      const end = new Date('2026-07-15T09:30:00.000Z');
+      expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(true);
+    });
+
+    it('London BST: 07:00Z–07:45Z (08:00–08:45 BST) is fully before a 09:00 start', () => {
+      const start = new Date('2026-07-15T07:00:00.000Z');
+      const end = new Date('2026-07-15T07:45:00.000Z');
+      expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(false);
+    });
+
+    it('London GMT (2026-01-15 Thu): 08:00Z–08:45Z = 08:00–08:45 GMT is fully before a 09:00 start', () => {
+      const start = new Date('2026-01-15T08:00:00.000Z');
+      const end = new Date('2026-01-15T08:45:00.000Z');
+      expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, LONDON)).toBe(false);
+      // Same instants are 13:00–13:45 in Karachi — inside the pattern there.
+      expect(isEmployeeAvailableForVisit(weekdayPatterns, cycleConfig, start, end, KARACHI)).toBe(true);
+    });
+
+    it('late-evening London visit 23:30 BST Fri (22:30Z) stays on Friday, not Saturday', () => {
+      const lateFriday: CarerPatternRow[] = weekdayPatterns.map((p) =>
+        p.dayOfWeek === DayOfWeek.FRIDAY ? { ...p, startTime: '18:00', endTime: '23:59' } : p,
+      );
+      const start = new Date('2026-07-17T22:30:00.000Z'); // Fri 23:30 BST
+      const end = new Date('2026-07-17T22:55:00.000Z');
+      expect(isEmployeeAvailableForVisit(lateFriday, cycleConfig, start, end, LONDON)).toBe(true);
+      // In Karachi the same instant is Sat 03:30 — carer is off on Saturday.
+      expect(isEmployeeAvailableForVisit(lateFriday, cycleConfig, start, end, KARACHI)).toBe(false);
+    });
+
+    it('early-morning Karachi Monday 00:30 PKT (Sun 19:30Z) resolves Monday in Karachi', () => {
+      const nightMonday: CarerPatternRow[] = weekdayPatterns.map((p) =>
+        p.dayOfWeek === DayOfWeek.MONDAY ? { ...p, startTime: '00:00', endTime: '06:00' } : p,
+      );
+      const start = new Date('2026-08-23T19:30:00.000Z');
+      const end = new Date('2026-08-23T20:00:00.000Z');
+      expect(isEmployeeAvailableForVisit(nightMonday, cycleConfig, start, end, KARACHI)).toBe(true);
+      // London: Sun 20:30 BST — Sunday is unavailable.
+      expect(isEmployeeAvailableForVisit(nightMonday, cycleConfig, start, end, LONDON)).toBe(false);
+    });
+
+    it('around DST transitions (2026-03-29 spring forward, 2026-10-25 fall back)', () => {
+      // 2026-03-30 Mon 09:15 BST = 08:15Z (clocks went forward on the 29th)
+      expect(
+        isEmployeeAvailableForVisit(
+          weekdayPatterns,
+          cycleConfig,
+          new Date('2026-03-30T08:15:00.000Z'),
+          new Date('2026-03-30T08:45:00.000Z'),
+          LONDON,
+        ),
+      ).toBe(true);
+      // 2026-10-26 Mon 08:30 GMT = 08:30Z (clocks went back on the 25th) — before 09:00
+      expect(
+        isEmployeeAvailableForVisit(
+          weekdayPatterns,
+          cycleConfig,
+          new Date('2026-10-26T08:00:00.000Z'),
+          new Date('2026-10-26T08:45:00.000Z'),
+          LONDON,
+        ),
+      ).toBe(false);
+      // DST days themselves are Sundays → unavailable regardless of clock.
+      expect(
+        isEmployeeAvailableForVisit(
+          weekdayPatterns,
+          cycleConfig,
+          new Date('2026-03-29T10:00:00.000Z'),
+          new Date('2026-03-29T11:00:00.000Z'),
+          LONDON,
+        ),
+      ).toBe(false);
+      expect(
+        isEmployeeAvailableForVisit(
+          weekdayPatterns,
+          cycleConfig,
+          new Date('2026-10-25T10:00:00.000Z'),
+          new Date('2026-10-25T11:00:00.000Z'),
+          LONDON,
+        ),
+      ).toBe(false);
+    });
   });
 });
 
@@ -141,4 +231,5 @@ describe('DAY_LABEL', () => {
   it('maps Sunday to Sun', () => {
     expect(DAY_LABEL[0]).toBe('Sun');
   });
+
 });

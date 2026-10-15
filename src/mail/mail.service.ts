@@ -4,6 +4,8 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EmailClient, type EmailMessage } from '@azure/communication-email';
+import { DefaultAzureCredential } from '@azure/identity';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
@@ -22,7 +24,7 @@ export type SendMailInput = {
   attachments?: MailAttachment[];
 };
 
-export type MailSendMode = 'api' | 'smtp' | 'log';
+export type MailSendMode = 'acs' | 'api' | 'smtp' | 'log';
 
 type ParsedFrom = { address: string; name?: string };
 
@@ -52,12 +54,14 @@ function toBase64(content: string | Buffer): string {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: Transporter | null = null;
+  private acsClient: EmailClient | null = null;
 
   constructor(private readonly config: ConfigService) {}
 
   isConfigured(): boolean {
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
     if (mode === 'log') return true;
+    if (mode === 'acs') return Boolean(this.config.get<string>('mail.acsEndpoint'));
     if (mode === 'api') return Boolean(this.config.get<string>('mail.apiToken'));
     return Boolean(this.config.get<string>('mail.host'));
   }
@@ -96,9 +100,7 @@ export class MailService {
       );
     }
 
-    const from = parseFromHeader(
-      this.config.get<string>('mail.from', 'CareAdmin <noreply@careadmin.local>'),
-    );
+    const from = parseFromHeader(this.requireFrom());
     const recipients = (Array.isArray(input.to) ? input.to : [input.to])
       .map((addr) => addr.trim())
       .filter(Boolean);
@@ -167,14 +169,71 @@ export class MailService {
     return { messageId };
   }
 
+  /**
+   * Azure Communication Services Email via Microsoft Entra ID (DefaultAzureCredential):
+   * managed identity on Azure (AZURE_CLIENT_ID selects the user-assigned one), `az login`
+   * on a developer machine. The sender must be a MailFrom address on a domain linked to
+   * the ACS resource; ACS ignores a display name in MAIL_FROM.
+   */
+  private async sendViaAcs(input: SendMailInput): Promise<{ messageId: string }> {
+    const endpoint = this.config.get<string>('mail.acsEndpoint', '');
+    if (!endpoint) {
+      throw new ServiceUnavailableException(
+        'Azure email is not configured. Set ACS_ENDPOINT (e.g. https://<name>.uk.communication.azure.com).',
+      );
+    }
+    this.acsClient ??= new EmailClient(endpoint, new DefaultAzureCredential());
+
+    const from = parseFromHeader(this.requireFrom());
+    const recipients = (Array.isArray(input.to) ? input.to : [input.to])
+      .map((address) => address.trim())
+      .filter(Boolean);
+
+    const message: EmailMessage = {
+      senderAddress: from.address,
+      content: {
+        subject: input.subject,
+        plainText: input.text,
+        html: input.html ?? `<pre>${escapeHtml(input.text)}</pre>`,
+      },
+      recipients: { to: recipients.map((address) => ({ address })) },
+      attachments: input.attachments?.map((a) => ({
+        name: a.filename,
+        contentType: a.contentType ?? 'application/octet-stream',
+        contentInBase64: toBase64(a.content),
+      })),
+    };
+
+    const poller = await this.acsClient.beginSend(message);
+    const result = await poller.pollUntilDone();
+    if (result.status !== 'Succeeded') {
+      const reason = result.error?.message ?? result.status;
+      this.logger.warn(`Azure email send ${result.id} did not succeed: ${reason}`);
+      throw new ServiceUnavailableException(`Email could not be sent (${reason})`);
+    }
+    return { messageId: result.id };
+  }
+
+  /** Sender from MAIL_FROM only — never a hard-coded address. */
+  private requireFrom(): string {
+    const from = (this.config.get<string>('mail.from') ?? '').trim();
+    if (!from) {
+      throw new ServiceUnavailableException(
+        'Email sender is not configured. Set MAIL_FROM (e.g. "Allfor Care <noreply@allforcare.co.uk>").',
+      );
+    }
+    return from;
+  }
+
   async send(
     input: SendMailInput,
   ): Promise<{ messageId: string; mode: MailSendMode }> {
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
-    const from = this.config.get<string>(
-      'mail.from',
-      'CareAdmin <noreply@careadmin.local>',
-    );
+    const redirectTo = this.config.get<string | undefined>('mail.redirectTo');
+    if (redirectTo) {
+      const original = (Array.isArray(input.to) ? input.to : [input.to]).join(', ');
+      input = { ...input, to: redirectTo, subject: `[to: ${original}] ${input.subject}` };
+    }
     const toList = Array.isArray(input.to) ? input.to : [input.to];
     const to = toList.join(', ');
 
@@ -186,13 +245,18 @@ export class MailService {
       return { messageId: `log-${Date.now()}`, mode: 'log' };
     }
 
+    if (mode === 'acs') {
+      const result = await this.sendViaAcs(input);
+      return { messageId: result.messageId, mode: 'acs' };
+    }
+
     if (mode === 'api') {
       const result = await this.sendViaApi(input);
       return { messageId: result.messageId, mode: 'api' };
     }
 
     const info = await this.getTransporter().sendMail({
-      from,
+      from: this.requireFrom(),
       to,
       subject: input.subject,
       text: input.text,

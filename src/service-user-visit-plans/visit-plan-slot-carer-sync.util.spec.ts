@@ -4,6 +4,7 @@ import {
   targetEmployeeIdsForVisit,
   visitCarerPatternMismatchWarnings,
   desiredEmployeeIdsForVisitSync,
+  countVisitsSkippedIfRespecting,
 } from './visit-plan-slot-carer-sync.util';
 import { DayOfWeek, VisitPlanSlotCarerRole } from '@prisma/client';
 import type { EmployeePatternContext } from './visit-plan-carer-job-fit.util';
@@ -159,7 +160,7 @@ describe('visit-plan-slot-carer-sync.util', () => {
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', weekdayCtx]]);
-      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap);
+      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap, 'Europe/London');
       expect(target).toEqual(['emp-1']);
     });
 
@@ -190,7 +191,7 @@ describe('visit-plan-slot-carer-sync.util', () => {
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', weekdayCtx]]);
-      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap);
+      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap, 'Europe/London');
       expect(target).toEqual([]);
     });
 
@@ -221,7 +222,7 @@ describe('visit-plan-slot-carer-sync.util', () => {
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', weekdayCtx]]);
-      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap);
+      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap, 'Europe/London');
       expect(target).toEqual(['emp-1']);
     });
 
@@ -232,7 +233,7 @@ describe('visit-plan-slot-carer-sync.util', () => {
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', patternCtx]]);
-      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap);
+      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, true, patternMap, 'Europe/London');
       expect(target).toEqual([]);
     });
 
@@ -243,7 +244,7 @@ describe('visit-plan-slot-carer-sync.util', () => {
         requiredCarers: 1,
       };
       const patternMap = new Map([['emp-1', patternCtx]]);
-      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, false, patternMap);
+      const target = targetEmployeeIdsForVisit(['emp-1'], visit, 1, false, patternMap, 'Europe/London');
       expect(target).toEqual(['emp-1']);
     });
   });
@@ -277,8 +278,140 @@ describe('visit-plan-slot-carer-sync.util', () => {
           scheduledEndDateTime: new Date('2026-06-22T10:00:00.000Z'),
         },
         new Map([['emp-1', ctx]]),
+        'Europe/London',
       );
       expect(warnings).toEqual([]);
+    });
+  });
+
+  describe('organisation timezone is honoured for working-pattern checks', () => {
+    const fridayLateCtx: EmployeePatternContext = {
+      employeeId: 'emp-1',
+      employeeName: 'Late carer',
+      patterns: [
+        {
+          weekInCycle: 1,
+          dayOfWeek: DayOfWeek.FRIDAY,
+          startTime: '18:00',
+          endTime: '23:59',
+          isAvailable: true,
+          notes: null,
+        },
+        {
+          weekInCycle: 1,
+          dayOfWeek: DayOfWeek.SATURDAY,
+          startTime: null,
+          endTime: null,
+          isAvailable: false,
+          notes: null,
+        },
+      ],
+      cycleConfig: {
+        workingPatternCycleWeeks: 1,
+        workingPatternCycleAnchorDate: null,
+        startDate: null,
+        employeeCreatedAt: new Date('2025-01-01'),
+      },
+    };
+    // Fri 2026-07-17 23:30 BST = 22:30Z; in Karachi it is Sat 03:30.
+    const lateFridayVisit = {
+      scheduledStartDateTime: new Date('2026-07-17T22:30:00.000Z'),
+      scheduledEndDateTime: new Date('2026-07-17T22:55:00.000Z'),
+      requiredCarers: 1,
+    };
+
+    it('London: late-evening Friday visit fits the Friday pattern (no warning, carer kept)', () => {
+      const map = new Map([['emp-1', fridayLateCtx]]);
+      expect(visitCarerPatternMismatchWarnings(['emp-1'], lateFridayVisit, map, 'Europe/London')).toEqual(
+        [],
+      );
+      expect(targetEmployeeIdsForVisit(['emp-1'], lateFridayVisit, 1, true, map, 'Europe/London')).toEqual(
+        ['emp-1'],
+      );
+    });
+
+    it('Karachi: the same instant is Saturday — warning names Saturday and carer is skipped', () => {
+      const map = new Map([['emp-1', fridayLateCtx]]);
+      const warnings = visitCarerPatternMismatchWarnings(
+        ['emp-1'],
+        lateFridayVisit,
+        map,
+        'Asia/Karachi',
+      );
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('Sat');
+      expect(targetEmployeeIdsForVisit(['emp-1'], lateFridayVisit, 1, true, map, 'Asia/Karachi')).toEqual(
+        [],
+      );
+    });
+
+    it('time-mismatch message uses org-local HH:mm (London GMT 2026-01-16 Fri 17:00–18:30)', () => {
+      const map = new Map([['emp-1', fridayLateCtx]]);
+      const warnings = visitCarerPatternMismatchWarnings(
+        ['emp-1'],
+        {
+          scheduledStartDateTime: new Date('2026-01-16T17:00:00.000Z'),
+          scheduledEndDateTime: new Date('2026-01-16T17:30:00.000Z'),
+        },
+        map,
+        'Europe/London',
+      );
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('1 hour before');
+    });
+
+    it('countVisitsSkippedIfRespecting uses the org timezone', () => {
+      const map = new Map([['emp-1', fridayLateCtx]]);
+      expect(countVisitsSkippedIfRespecting([lateFridayVisit], ['emp-1'], 1, map, 'Europe/London')).toBe(
+        0,
+      );
+      expect(countVisitsSkippedIfRespecting([lateFridayVisit], ['emp-1'], 1, map, 'Asia/Karachi')).toBe(
+        1,
+      );
+    });
+
+    it('desiredEmployeeIdsForVisitSync: 00:30 BST Tuesday (Mon 23:30Z) picks the Tuesday carer in London', () => {
+      const assignments = [
+        {
+          dayOfWeek: 1,
+          employeeId: 'mon-carer',
+          role: VisitPlanSlotCarerRole.LEAD,
+          durationMinutes: null,
+          plannedStartTime: null,
+          plannedEndTime: null,
+          sortOrder: 0,
+        },
+        {
+          dayOfWeek: 2,
+          employeeId: 'tue-carer',
+          role: VisitPlanSlotCarerRole.LEAD,
+          durationMinutes: null,
+          plannedStartTime: null,
+          plannedEndTime: null,
+          sortOrder: 1,
+        },
+      ];
+      const visitStart = new Date('2026-07-13T23:30:00.000Z');
+      expect(
+        desiredEmployeeIdsForVisitSync({
+          visitStart,
+          requiredCarers: 1,
+          assignedEmployeeIds: [],
+          carerAssignments: assignments,
+          timeZone: 'Europe/London',
+        }),
+      ).toEqual(['tue-carer']);
+    });
+  });
+
+  describe('visitPlanCarerSyncFromDateTime (London)', () => {
+    it('BST day starts 23:00Z the previous UTC day; GMT day starts at 00:00Z', () => {
+      expect(visitPlanCarerSyncFromDateTime('2026-07-15', 'Europe/London').toISOString()).toBe(
+        '2026-07-14T23:00:00.000Z',
+      );
+      expect(visitPlanCarerSyncFromDateTime('2026-01-15', 'Europe/London').toISOString()).toBe(
+        '2026-01-15T00:00:00.000Z',
+      );
     });
   });
 });

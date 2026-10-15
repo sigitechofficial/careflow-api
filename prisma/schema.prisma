@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies", "surveys"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies", "surveys", "platform"]
 }
 
 enum DayOfWeek {
@@ -591,9 +591,30 @@ model User {
   policyDocumentsApproved            PolicyDocument[]                 @relation("PolicyDocumentApprover")
   policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
   policyAcknowledgements             PolicyAcknowledgement[]
+  passwordResetTokens                PasswordResetToken[]
 
   @@index([email])
   @@index([deletedAt])
+  @@schema("identity")
+}
+
+/// Single-use password reset token (POST /auth/forgot-password → /auth/reset-password).
+/// Only the SHA-256 hash of the emailed token is stored.
+model PasswordResetToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  /// Set when consumed, or when superseded by a newer request / a completed reset.
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  requestedIp String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, usedAt])
+  @@index([expiresAt])
   @@schema("identity")
 }
 
@@ -794,6 +815,26 @@ model CompanyProfile {
   /// Organisation-operated care settings (ServiceUserCareType codes, e.g. DOMICILIARY, RESIDENTIAL, SUPPORTED_LIVING).
   /// Empty = not configured. Used for policy visibility; not inferred from service-user records.
   careServiceTypes     String[] @default([])
+  /// Registered legal name at Companies House (companyNumber holds the Companies House number).
+  legalName            String?
+  /// CQC provider id (e.g. 1-101656545) — one per organisation; branches carry cqcLocationId.
+  cqcProviderId        String?
+  /// Companies House status / type as published (e.g. "Active", "Private Limited Company").
+  companyStatus        String?
+  companyType          String?
+  incorporationDate    DateTime? @db.Date
+  /// UK SIC 2007 codes (e.g. 86900).
+  sicCodes             String[] @default([])
+  registeredAddressLine1 String?
+  registeredAddressLine2 String?
+  registeredTown       String?
+  registeredCounty     String?
+  registeredPostcode   String?
+  registeredCountry    String?
+  /// ISO 3166-1 alpha-2 / ISO 4217 / BCP 47 organisation defaults (timezone lives on OrganisationGeneralSettings).
+  countryCode          String   @default("GB")
+  currency             String   @default("GBP")
+  locale               String   @default("en-GB")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   updatedById          String?  @db.Uuid
@@ -6518,6 +6559,32 @@ enum ScheduleBuildSource {
   @@schema("scheduling")
 }
 
+/** Branch lifecycle (ScheduleArea.status). */
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+/** CQC overall rating of a registered branch. */
+enum CqcRating {
+  OUTSTANDING
+  GOOD
+  REQUIRES_IMPROVEMENT
+  INADEQUATE
+
+  @@schema("scheduling")
+}
+
+enum CqcRatingStatus {
+  RATED
+  NOT_YET_RATED
+
+  @@schema("scheduling")
+}
+
 enum ScheduleRunStatus {
   DRAFT
   PUBLISHED
@@ -6529,32 +6596,58 @@ enum ScheduleRunStatus {
 }
 
 model ScheduleArea {
-  id                     String    @id @default(uuid()) @db.Uuid
-  name                   String
-  code                   String    @unique
-  /**
-   * 3-character branch code used in visit references (VIS-[BRANCH]-…).
-   */
-  visitRefCode           String?   @unique @db.VarChar(3)
-  description            String?
-  /**
-   * Physical / postal address for this branch.
-   */
-  address                String?
-  locationId             String?   @db.Uuid
-  zoneId                 String?   @db.Uuid
-  sortOrder              Int       @default(0)
-  isActive               Boolean   @default(true)
-  markerColorHex         String?
-  incidentMessageUserIds Json      @default("[]")
-  incidentEmailUserIds   Json      @default("[]")
-  parentZoneName         String?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  deletedAt              DateTime?
-  createdById            String?   @db.Uuid
-  updatedById            String?   @db.Uuid
-  deletedById            String?   @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String   @unique
+  /** 3-character branch code used in visit references (VIS-[BRANCH]-…). */
+  visitRefCode String?  @unique @db.VarChar(3)
+  description String?
+  /** Physical / postal address for this branch. */
+  address     String?
+  locationId  String?  @db.Uuid
+  zoneId      String?  @db.Uuid
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  markerColorHex          String?
+  incidentMessageUserIds  Json     @default("[]")
+  incidentEmailUserIds    Json     @default("[]")
+  parentZoneName          String?
+  /** CQC registration of this branch (null for unregistered branches). Stable seed key. */
+  cqcLocationId           String?  @unique
+  officialCqcName         String?
+  /** Structured postal address (`address` keeps the single-line form shown in the UI). */
+  addressLine1            String?
+  addressLine2            String?
+  town                    String?
+  county                  String?
+  postcode                String?
+  country                 String?
+  countryCode             String   @default("GB")
+  localAuthority          String?
+  phone                   String?
+  email                   String?
+  website                 String?
+  serviceTypes            String[] @default([])
+  regulatedActivities     String[] @default([])
+  /** A branch can have several CQC registered managers. */
+  registeredManagers      String[] @default([])
+  nominatedIndividual     String?
+  cqcRegistrationDate     DateTime? @db.Date
+  cqcRating               CqcRating?
+  cqcRatingStatus         CqcRatingStatus?
+  status                  BranchStatus @default(ACTIVE)
+  timezone                String   @default("Europe/London")
+  currency                String   @default("GBP")
+  locale                  String   @default("en-GB")
+  /** Set by geocoding (prisma/scripts/geocode-branches.ts); never guessed. */
+  latitude                Decimal? @db.Decimal(10, 7)
+  longitude               Decimal? @db.Decimal(10, 7)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  deletedById String?  @db.Uuid
 
   location         Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
   zone             Zone?                @relation(fields: [zoneId], references: [id], onDelete: SetNull)
@@ -12803,6 +12896,200 @@ model SurveyAnswer {
   @@index([responseId])
   @@index([questionId])
   @@schema("surveys")
+}
+
+// ─── Azure Pricing (platform costs) ─────────────────────────────────────────────
+// Platform-operations data about the Careflow Azure subscription itself (not care data),
+// kept in its own `platform` schema. Read-only mirror of Azure Cost Management / Retail
+// Prices / Consumption budgets / Advisor; money in Decimal (major units of `currency`).
+
+/// One row per usage day × resource group × service × resource × meter category (ActualCost).
+model AzureCostDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  date          DateTime @db.Date
+  /// Lower-cased resource group name.
+  resourceGroup String
+  serviceName   String
+  /// Lower-cased ARM resource id ('' when Azure reports none).
+  resourceId    String
+  meterCategory String
+  cost          Decimal  @db.Decimal(18, 6)
+  currency      String   @default("GBP")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([date, resourceGroup, serviceName, resourceId, meterCategory])
+  @@index([date])
+  @@index([serviceName, date])
+  @@schema("platform")
+}
+
+/// Azure Retail Prices catalogue (public list prices) for the services Careflow uses.
+model AzureRetailPrice {
+  id                   String    @id @default(uuid()) @db.Uuid
+  /// meterId|skuId|type|armRegionName|tierMinimumUnits|currency
+  priceKey             String    @unique
+  meterId              String
+  skuId                String?
+  serviceName          String
+  serviceFamily        String?
+  productName          String
+  skuName              String
+  armSkuName           String?
+  meterName            String
+  unitOfMeasure        String
+  unitPrice            Decimal   @db.Decimal(20, 10)
+  retailPrice          Decimal   @db.Decimal(20, 10)
+  tierMinimumUnits     Decimal   @default(0) @db.Decimal(20, 4)
+  currency             String
+  armRegionName        String
+  location             String?
+  type                 String
+  isPrimaryMeterRegion Boolean?
+  effectiveStartDate   DateTime?
+  refreshedAt          DateTime  @default(now())
+
+  @@index([serviceName])
+  @@index([currency, armRegionName])
+  @@schema("platform")
+}
+
+/// Consumption budget snapshot (no notification contact e-mails are stored).
+model AzureBudgetSnapshot {
+  id            String    @id @default(uuid()) @db.Uuid
+  budgetId      String
+  name          String
+  amount        Decimal   @db.Decimal(18, 2)
+  timeGrain     String
+  currentSpend  Decimal   @db.Decimal(18, 6)
+  forecastSpend Decimal?  @db.Decimal(18, 6)
+  currency      String
+  /// [{ percent, type: 'Actual' | 'Forecasted', enabled }]
+  thresholds    Json
+  periodStart   DateTime? @db.Date
+  periodEnd     DateTime? @db.Date
+  capturedAt    DateTime  @default(now())
+
+  @@index([capturedAt])
+  @@index([name, capturedAt])
+  @@schema("platform")
+}
+
+/// Month-end forecast snapshot (Azure forecast, or linear fallback when Azure has too little history).
+model AzureForecastSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid
+  /// YYYY-MM (UTC billing month)
+  month         String
+  actualToDate  Decimal  @db.Decimal(18, 6)
+  forecastTotal Decimal  @db.Decimal(18, 6)
+  /// 'azure' | 'linear'
+  source        String
+  currency      String
+  capturedAt    DateTime @default(now())
+
+  @@index([month, capturedAt])
+  @@schema("platform")
+}
+
+/// Azure Advisor cost recommendation (replaced on every advisor refresh).
+model AzureAdvisorRecommendation {
+  id               String   @id @default(uuid()) @db.Uuid
+  recommendationId String   @unique
+  impact           String
+  problem          String
+  solution         String
+  resourceId       String?
+  resourceName     String?
+  annualSavings    Decimal? @db.Decimal(18, 2)
+  currency         String?
+  refreshedAt      DateTime @default(now())
+
+  @@schema("platform")
+}
+
+/// Daily cost spike (one per usage date).
+model AzureCostAnomaly {
+  id               String    @id @default(uuid()) @db.Uuid
+  date             DateTime  @unique @db.Date
+  cost             Decimal   @db.Decimal(18, 6)
+  baseline         Decimal   @db.Decimal(18, 6)
+  increasePercent  Decimal   @db.Decimal(12, 2)
+  topDriver        String?
+  /// 'open' | 'acknowledged'
+  status           String    @default("open")
+  acknowledgedAt   DateTime?
+  acknowledgedById String?   @db.Uuid
+  notifiedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, date])
+  @@schema("platform")
+}
+
+/// Audit trail of every Azure sync (scheduled or manual); also backs the manual-sync rate limit.
+model AzureSyncRun {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// 'costs' | 'prices' | 'budgets' | 'forecast' | 'advisor'
+  kind          String
+  /// 'schedule' | 'manual'
+  trigger       String
+  /// 'running' | 'success' | 'failed'
+  status        String    @default("running")
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  rowsUpserted  Int       @default(0)
+  error         String?
+  triggeredById String?   @db.Uuid
+
+  @@index([startedAt])
+  @@index([kind, status, startedAt])
+  @@index([trigger, startedAt])
+  @@schema("platform")
+}
+
+/// Singleton (id = 'default') — anomaly rule + monthly report settings.
+model PlatformCostSettings {
+  id                      String   @id @default("default")
+  anomalyThresholdPercent Int      @default(50)
+  anomalyMinDailyIncrease Decimal  @default(1) @db.Decimal(12, 2)
+  monthlyReportEnabled    Boolean  @default(true)
+  monthlyReportRecipients String[] @default([])
+  /// YYYY-MM of the last period whose scheduled monthly report was sent (idempotency).
+  lastMonthlyReportPeriod String?
+  updatedById             String?  @db.Uuid
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@schema("platform")
+}
+
+/// Scheduled job run history (System jobs). One row per job per period: the
+/// (jobName, periodKey) unique constraint makes every scheduled period run exactly once,
+/// whichever trigger (in-process @Cron, Azure Function, Container Apps Job, manual) gets there first.
+model JobRun {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Canonical job name from the catalogue (src/jobs/job-catalogue.ts), e.g. 'rolling-rota'
+  jobName       String
+  /// Minute/hour bucket ('2026-10-02T10:05Z'), date ('2026-10-02') or 'manual:<ISO minute>'
+  periodKey     String
+  /// 'internal' | 'function' | 'container-job' | 'manual'
+  source        String
+  /// 'running' | 'success' | 'failed' | 'skipped'
+  status        String    @default("running")
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  durationMs    Int?
+  summary       Json?
+  error         String?
+  triggeredById String?   @db.Uuid
+  /// 1 for the first run of a period; +1 each time a failed/stale run of the same period is retried
+  attempt       Int       @default(1)
+
+  @@unique([jobName, periodKey])
+  @@index([jobName, startedAt(sort: Desc)])
+  @@index([status])
+  @@schema("platform")
 }
 
 // ---------------------------------------------------------------------------

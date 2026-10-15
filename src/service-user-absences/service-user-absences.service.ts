@@ -21,6 +21,7 @@ import {
 } from '../service-user-visit-plans/visit-plan-effective-dates.util';
 import { ServiceUserVisitPlansService } from '../service-user-visit-plans/service-user-visit-plans.service';
 import type { VisitPlanReturnImpactPreviewQueryDto } from '../service-user-visit-plans/dto/visit-plan-impact-preview.dto';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 
 /** Aligns with Prisma `ServiceUserAbsenceType` (generated after `npx prisma generate`). */
 type StoredAbsenceType = 'PLANNED' | 'UNPLANNED' | 'NOT_APPLICABLE';
@@ -57,8 +58,12 @@ function absenceStartDayUtc(startDate: Date): Date {
   );
 }
 
-function validateAbsenceRetrospectiveReason(startDate: Date, retrospectiveReason?: string | null): string {
-  const today = visitPlanTodayUtc();
+function validateAbsenceRetrospectiveReason(
+  startDate: Date,
+  retrospectiveReason: string | null | undefined,
+  timeZone: string,
+): string {
+  const today = visitPlanTodayUtc(new Date(), timeZone);
   try {
     return assertRetrospectiveReasonWhenBackdated(absenceStartDayUtc(startDate), today, retrospectiveReason);
   } catch (e) {
@@ -124,6 +129,7 @@ export class ServiceUserAbsencesService {
     private readonly scheduleNotifications: ScheduleLifecycleNotificationHook,
     @Inject(forwardRef(() => ServiceUserVisitPlansService))
     private readonly visitPlans: ServiceUserVisitPlansService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   /** New Prisma delegates; remove cast after `npx prisma generate` refreshes the client. */
@@ -191,7 +197,11 @@ export class ServiceUserAbsencesService {
     const absenceType = toAbsenceType(dto.absenceType);
     const notes = dto.notes?.trim() ?? '';
     const contactInformation = dto.contactInformation?.trim() ?? '';
-    const retrospectiveReason = validateAbsenceRetrospectiveReason(startDate, dto.retrospectiveReason);
+    const retrospectiveReason = validateAbsenceRetrospectiveReason(
+      startDate,
+      dto.retrospectiveReason,
+      await this.orgSettings.getOperationalTimezone(),
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const abs = this.txAbsence(tx);
@@ -312,7 +322,11 @@ export class ServiceUserAbsencesService {
       if (dto.retrospectiveReason !== undefined) {
         retrospectiveReason = dto.retrospectiveReason.trim();
       } else if (startDate !== undefined) {
-        retrospectiveReason = validateAbsenceRetrospectiveReason(effectiveStart, before.retrospectiveReason);
+        retrospectiveReason = validateAbsenceRetrospectiveReason(
+          effectiveStart,
+          before.retrospectiveReason,
+          await this.orgSettings.getOperationalTimezone(),
+        );
       }
 
       const updated = await abs.update({

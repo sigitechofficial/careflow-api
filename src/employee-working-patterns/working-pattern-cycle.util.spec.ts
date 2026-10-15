@@ -2,6 +2,7 @@ import { DayOfWeek } from '@prisma/client';
 import {
   resolveCycleWeekIndex,
   resolvePatternForDate,
+  resolvePatternForDateTime,
   utcMonday,
   type WorkingPatternCycleConfig,
   type WorkingPatternRow,
@@ -80,5 +81,37 @@ describe('resolvePatternForDate', () => {
     const p = resolvePatternForDate(rows, config, '2026-01-12');
     expect(p?.weekInCycle).toBe(1);
     expect(p?.isAvailable).toBe(true);
+  });
+});
+
+describe('resolvePatternForDateTime (org timezone calendar day)', () => {
+  const rows = [
+    row(1, DayOfWeek.SUNDAY),
+    row(1, DayOfWeek.MONDAY),
+    row(2, DayOfWeek.SUNDAY, false),
+    row(2, DayOfWeek.MONDAY, false),
+  ];
+
+  it('London BST: 00:30 BST Monday (23:30Z Sunday) resolves Monday and the new cycle week', () => {
+    // 2026-07-12 is a Sunday. 23:30Z on the 12th is 00:30 BST Monday 13th.
+    const instant = new Date('2026-07-12T23:30:00.000Z');
+    const london = resolvePatternForDateTime(rows, baseConfig, instant, 'Europe/London');
+    expect(london?.dayOfWeek).toBe(DayOfWeek.MONDAY);
+    // Same instant in UTC is still Sunday (the old, wrong behaviour).
+    const utc = resolvePatternForDateTime(rows, baseConfig, instant, 'UTC');
+    expect(utc?.dayOfWeek).toBe(DayOfWeek.SUNDAY);
+    // The Monday falls in a new cycle week, so the week index flips as well.
+    expect(london?.weekInCycle).not.toBe(utc?.weekInCycle);
+  });
+
+  it('London GMT and Karachi disagree on the day for a late-evening instant', () => {
+    // Sun 2026-01-18 22:30Z = 22:30 GMT Sunday (London) = 03:30 PKT Monday (Karachi)
+    const instant = new Date('2026-01-18T22:30:00.000Z');
+    expect(resolvePatternForDateTime(rows, baseConfig, instant, 'Europe/London')?.dayOfWeek).toBe(
+      DayOfWeek.SUNDAY,
+    );
+    expect(resolvePatternForDateTime(rows, baseConfig, instant, 'Asia/Karachi')?.dayOfWeek).toBe(
+      DayOfWeek.MONDAY,
+    );
   });
 });

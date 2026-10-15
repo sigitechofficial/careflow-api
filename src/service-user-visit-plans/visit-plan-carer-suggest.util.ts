@@ -387,8 +387,10 @@ export function evaluateCarerAvailability(
 
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
+  addDaysToOperationalIso,
   combineOperationalDateAndHm,
   dayKeyInTimeZone,
+  operationalDayBounds,
 } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
@@ -418,11 +420,13 @@ export function visitPlanSuggestJobWindow(
 /** How far ahead visit-plan carer suggest scans the rota for double bookings. */
 export const VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS = 8;
 
-export function visitPlanPatternRotaLookaheadEnd(from: Date): Date {
-  const end = new Date(from);
-  end.setUTCHours(0, 0, 0, 0);
-  end.setUTCDate(end.getUTCDate() + VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS * 7);
-  return end;
+/** Org-local midnight VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS after the org-local day containing `from`. */
+export function visitPlanPatternRotaLookaheadEnd(from: Date, timeZone: string): Date {
+  const endDay = addDaysToOperationalIso(
+    dayKeyInTimeZone(from, timeZone),
+    VISIT_PLAN_ROTA_LOOKAHEAD_WEEKS * 7,
+  );
+  return operationalDayBounds(endDay, timeZone).start;
 }
 
 export function visitTimesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {

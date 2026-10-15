@@ -1,4 +1,5 @@
 import { DayOfWeek } from '@prisma/client';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 
 export type WorkingPatternRow = {
   weekInCycle: number;
@@ -90,13 +91,18 @@ export function resolvePatternForDate(
   return rows.find((r) => r.weekInCycle === weekInCycle && r.dayOfWeek === dow) ?? null;
 }
 
+/**
+ * Pattern row for a true-UTC visit instant. The weekday (and cycle week) is the
+ * calendar day of `dateTime` in the organisation timezone — not the UTC date
+ * (a 23:30 London BST visit is 22:30Z, still the same London day).
+ */
 export function resolvePatternForDateTime(
   rows: WorkingPatternRow[],
   config: WorkingPatternCycleConfig,
   dateTime: Date,
+  timeZone: string,
 ): WorkingPatternRow | null {
-  const iso = `${dateTime.getUTCFullYear()}-${String(dateTime.getUTCMonth() + 1).padStart(2, '0')}-${String(dateTime.getUTCDate()).padStart(2, '0')}`;
-  return resolvePatternForDate(rows, config, iso);
+  return resolvePatternForDate(rows, config, dayKeyInTimeZone(dateTime, timeZone));
 }
 
 export function mapPatternToDayPattern(row: WorkingPatternRow | null): ResolvedDayPattern | null {

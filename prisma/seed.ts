@@ -7,10 +7,19 @@ import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
 import { seedInitialAssessmentEnterprise } from './seeds/initial-assessment-enterprise.seed';
 import { seedBodyMapRecordTypeCatalog } from './seeds/body-map-record-type-catalog.seed';
-import { seedScheduleAreas } from './seeds/schedule-areas.seed';
+import {
+  LEGACY_SAMPLE_ZONE_NAMES,
+  SAMPLE_CITY_ZONES,
+  SAMPLE_LOCATION_NAMES,
+  seedScheduleAreas,
+} from './seeds/schedule-areas.seed';
 import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
+import {
+  seedAllforCareOrganisation,
+  summariseAllforCareChanges,
+} from './seeds/allforcare-branches.seed';
 import { seedOrganisationGeneralSettings } from './seeds/organisation-general-settings.seed';
 import { seedCarePathway } from './seeds/care-pathway.seed';
 import { seedTaskCatalogue } from './seeds/task-catalogue.seed';
@@ -31,6 +40,7 @@ import { seedVitalAcceptedRanges } from './seeds/vital-accepted-ranges.seed';
 import { seedEcmThresholdLookups } from './seeds/ecm-threshold-lookups.seed';
 import { seedServiceUserFundingTypes } from './seeds/service-user-funding-types.seed';
 import { seedBillingCards } from './seeds/billing-cards.seed';
+import { ensureAdditionalRoles } from './seeds/additional-roles.seed';
 import { seedInvoiceTemplates } from './seeds/invoice-templates.seed';
 import { seedLearningCatalog } from './seeds/learning.seed';
 import { DEFAULT_MEDICATION_STATUS_CODES } from './seed-data/medication-status-codes.defaults';
@@ -41,11 +51,33 @@ import {
 } from './seed-data/service-user-ethnicity-language.defaults';
 import { DEFAULT_VISIT_STATUS_REASONS } from './seed-data/visit-status-reasons.defaults';
 import {
+  ensureHierarchyRoles,
   ensureSuperAdminAllPermissions,
   seedDemoOfficeUsers,
 } from './seeds/demo-office-users.seed';
 
 const prisma = new PrismaClient();
+
+// Sample people — demo staff, carers, service users, office logins, and demo records
+// attached to existing people — belong in dev/test databases only. Default OFF so any
+// database where nobody set the flag (e.g. Azure production) gets reference data only.
+// Environments that want the Greenwich roster / demo data set SEED_SAMPLE_PEOPLE=true.
+const seedSamplePeople = process.env.SEED_SAMPLE_PEOPLE === 'true';
+
+// Sample branches / service-user areas / postcodes (Croydon 1–5, Merton, Greenwich…) are demo
+// data too. The sample people are attached to them, so by default they follow SEED_SAMPLE_PEOPLE;
+// SEED_SAMPLE_BRANCHES=true|false overrides. Azure production forces both off
+// (prisma/scripts/run-azure-seeds.sh). The real organisation + branches always seed.
+const seedSampleBranches =
+  process.env.SEED_SAMPLE_BRANCHES === 'true' ||
+  (process.env.SEED_SAMPLE_BRANCHES !== 'false' && seedSamplePeople);
+
+// Sample pay / charge rate cards (PAY-*-2026, CHG-*-2026) use made-up demo rates. They follow
+// SEED_SAMPLE_PEOPLE by default; SEED_SAMPLE_BILLING_CARDS=true|false overrides. Azure production
+// forces this off — real rate cards are set up by the office in Billing.
+const seedSampleBillingCards =
+  process.env.SEED_SAMPLE_BILLING_CARDS === 'true' ||
+  (process.env.SEED_SAMPLE_BILLING_CARDS !== 'false' && seedSamplePeople);
 
 async function upsertLookup(model: any, name: string) {
   return model.upsert({
@@ -142,91 +174,42 @@ async function main() {
   ])
     await upsertLookup(prisma.nonCoreActivityReason, name);
 
-  for (const name of [
-    'Croydon - Croydon 1',
-    'Croydon - Croydon 2',
-    'Croydon - Croydon 3',
-    'Croydon - Croydon 4',
-    'Croydon - Croydon 5',
-    'Merton - Merton',
-    'Hackney - Harrow 1',
-    'Haringey - Haringey',
-    'Croydon Private - Croydon 1 Private',
-    'Croydon admin - Croydon office',
-    'Bexley ISF - Bexley',
-    'Cleaners - Cleaning 1',
-    'ALF Private - ALF Private',
-    'Greenwich council - Greenwich',
-    'Transport - Croydon Transport',
-  ]) {
-    await upsertLookup(prisma.location, name);
+  // Sample branch Location labels (Croydon, Merton, Greenwich…) — demo data, never production.
+  if (seedSampleBranches) {
+    for (const name of SAMPLE_LOCATION_NAMES) {
+      await upsertLookup(prisma.location, name);
+    }
+  } else {
+    console.log('[seed] Sample branch locations: skipped (SEED_SAMPLE_BRANCHES is not true).');
   }
 
-  // Location-management zones = cities (not “Zone - Branch” location labels).
-  const CITY_ZONES: Array<{ name: string; country: string; city: string }> = [
-    { name: 'London', country: 'United Kingdom', city: 'London' },
-    { name: 'Birmingham', country: 'United Kingdom', city: 'Birmingham' },
-    { name: 'Manchester', country: 'United Kingdom', city: 'Manchester' },
-    { name: 'Leeds', country: 'United Kingdom', city: 'Leeds' },
-    { name: 'Glasgow', country: 'United Kingdom', city: 'Glasgow' },
-    { name: 'Edinburgh', country: 'United Kingdom', city: 'Edinburgh' },
-    { name: 'Liverpool', country: 'United Kingdom', city: 'Liverpool' },
-    { name: 'Bristol', country: 'United Kingdom', city: 'Bristol' },
-    { name: 'Sheffield', country: 'United Kingdom', city: 'Sheffield' },
-    { name: 'Newcastle', country: 'United Kingdom', city: 'Newcastle' },
-    { name: 'Cardiff', country: 'United Kingdom', city: 'Cardiff' },
-    { name: 'Belfast', country: 'United Kingdom', city: 'Belfast' },
-  ];
-  for (const zone of CITY_ZONES) {
-    await prisma.zone.upsert({
-      where: { name: zone.name },
-      update: {
-        country: zone.country,
-        city: zone.city,
-        isActive: true,
-        deletedAt: null,
-      },
-      create: {
-        name: zone.name,
-        country: zone.country,
-        city: zone.city,
-        isActive: true,
-      },
-    });
+  // Location-management zones = cities (not “Zone - Branch” location labels). The generic UK
+  // city list is demo data (empty zones in Location Management); the real organisation's zones
+  // (London, Doncaster) are created by seedAllforCareOrganisation below.
+  if (seedSampleBranches) {
+    for (const zone of SAMPLE_CITY_ZONES) {
+      await prisma.zone.upsert({
+        where: { name: zone.name },
+        update: {
+          country: zone.country,
+          city: zone.city,
+          isActive: true,
+          deletedAt: null,
+        },
+        create: {
+          name: zone.name,
+          country: zone.country,
+          city: zone.city,
+          isActive: true,
+        },
+      });
+    }
   }
 
   // Soft-deactivate legacy zone rows that were seeded as location labels / borough names.
-  const legacyZoneNames = [
-    'Croydon - Croydon 1',
-    'Croydon - Croydon 2',
-    'Croydon - Croydon 3',
-    'Croydon - Croydon 4',
-    'Croydon - Croydon 5',
-    'Merton - Merton',
-    'Hackney - Harrow 1',
-    'Haringey - Haringey',
-    'Croydon Private - Croydon 1 Private',
-    'Croydon admin - Croydon office',
-    'Bexley ISF - Bexley',
-    'Cleaners - Cleaning 1',
-    'ALF Private - ALF Private',
-    'Greenwich council - Greenwich',
-    'Transport - Croydon Transport',
-    'Croydon',
-    'Merton',
-    'Haringey',
-    'Bexley',
-    'Greenwich',
-    'Transport',
-    'Hackney',
-    'ALF Private',
-    'Cleaners',
-    'Croydon Private',
-    'Croydon admin',
-  ];
   await prisma.zone.updateMany({
     where: {
-      name: { in: legacyZoneNames },
+      name: { in: [...LEGACY_SAMPLE_ZONE_NAMES] },
       deletedAt: null,
     },
     data: { isActive: false, deletedAt: new Date() },
@@ -638,6 +621,12 @@ async function main() {
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
+    // Azure Pricing (platform costs) — Super Admin only (granted via the all-permissions sweep)
+    'platform_costs.read',
+    'platform_costs.manage',
+    // System jobs (scheduled job health / run history / run now) — Super Admin only (all-permissions sweep)
+    'system_jobs.read',
+    'system_jobs.manage',
     // Office user salaries (Super Admin + Admin only)
     'office_salaries.manage',
     // Setup checklist (Super Admin + Admin only)
@@ -1571,26 +1560,42 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log('[seed] Compliance types & requirements upserted.');
+  // Super admin is create-only: an existing account (and its password) is never touched,
+  // so a deploy can't reset the live admin password. Production has no default password.
+  // Matched by email OR the fixed `superadmin` username, so an admin who later changes
+  // their email in the app is still recognised instead of a duplicate being attempted.
   const email = process.env.ADMIN_SEED_EMAIL?.trim() || 'admin@careadmin.local';
-  const password = process.env.ADMIN_SEED_PASSWORD?.trim() || 'Admin@12345';
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      passwordHash,
-      isActive: true,
-      deletedAt: null,
-    },
-    create: {
-      email,
-      username: 'superadmin',
-      passwordHash,
-      firstName: 'Super',
-      lastName: 'Admin',
-      isActive: true,
-    },
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ email }, { username: 'superadmin' }] },
   });
+  if (user) {
+    // eslint-disable-next-line no-console
+    console.log(`[seed] Super admin ${user.email} already exists — password left unchanged.`);
+  } else {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const password =
+      process.env.ADMIN_SEED_PASSWORD?.trim() || (isProduction ? '' : 'Admin@12345');
+    if (!password) {
+      throw new Error(
+        '[seed] ADMIN_SEED_PASSWORD is required to create the first super admin in production (there is no default password).',
+      );
+    }
+    if (isProduction && password.length < 12) {
+      throw new Error('[seed] ADMIN_SEED_PASSWORD must be at least 12 characters in production.');
+    }
+    user = await prisma.user.create({
+      data: {
+        email,
+        username: 'superadmin',
+        passwordHash: await bcrypt.hash(password, 12),
+        firstName: 'Super',
+        lastName: 'Admin',
+        isActive: true,
+      },
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[seed] Super admin ${email} created.`);
+  }
 
   if (superAdminRole) {
     await prisma.userRole.upsert({
@@ -1713,7 +1718,11 @@ async function main() {
   }
 
   const fundingTypeCount = await seedServiceUserFundingTypes(prisma);
-  await seedBillingCards(prisma);
+  if (seedSampleBillingCards) {
+    await seedBillingCards(prisma);
+  } else {
+    console.log('[seed] Sample pay/charge rate cards: skipped (SEED_SAMPLE_BILLING_CARDS is not true).');
+  }
   await seedInvoiceTemplates(prisma);
   await seedLearningCatalog(prisma);
   console.log(`Service user funding types seeded (${fundingTypeCount} entries).`);
@@ -1917,7 +1926,10 @@ async function main() {
     take: 15,
     orderBy: { createdAt: 'asc' },
   });
-  if (skillTypes.length > 0 && employeesForSkills.length > 0) {
+  if (!seedSamplePeople) {
+    // eslint-disable-next-line no-console
+    console.log('[seed] Employee skills: skipped (SEED_SAMPLE_PEOPLE is not true).');
+  } else if (skillTypes.length > 0 && employeesForSkills.length > 0) {
     let seeded = 0;
     for (let i = 0; i < employeesForSkills.length; i++) {
       const emp = employeesForSkills[i];
@@ -2260,7 +2272,11 @@ async function main() {
     }
   }
 
-  const demoSu = await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
+  // Demo calendar events + blister pack are attached to the first service user, which on a
+  // real database is a real person — sample-people databases only.
+  const demoSu = seedSamplePeople
+    ? await prisma.serviceUser.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } })
+    : null;
   if (demoSu) {
     const birthdayType = await prisma.calendarEventType.findFirst({ where: { code: 'BIRTHDAY' } });
     const careReviewType = await prisma.calendarEventType.findFirst({ where: { code: 'CARE_REVIEW' } });
@@ -2376,52 +2392,66 @@ async function main() {
     }
   }
 
-  await seedScheduleAreas(prisma);
-  try {
-    const sua = await seedServiceUserAreas(prisma);
-    console.log(
-      `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
-    );
-  } catch (err) {
-    console.warn(
-      '[seed] Service user areas skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSampleBranches) {
+    await seedScheduleAreas(prisma);
+    try {
+      const sua = await seedServiceUserAreas(prisma);
+      console.log(
+        `[seed] Service user areas: branches=${sua.branches} areas=${sua.areas} postcodes=${sua.postcodes}`,
+      );
+    } catch (err) {
+      console.warn(
+        '[seed] Service user areas skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  } else {
+    console.log('[seed] Sample branches/areas/postcodes: skipped (SEED_SAMPLE_BRANCHES is not true).');
   }
 
-  // Greenwich staff + in-service caseload. Always-on and idempotent so production
-  // deploy (`SEED_DEMO_DATA=false`) still creates the branch roster. Location is
+  // Greenwich staff + in-service caseload (sample people). Idempotent; location is
   // resolved by name — server UUIDs will not match local.
-  try {
-    await seedGreenwichBranchUsers(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich branch users skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
-  }
-  try {
-    await seedGreenwichServiceUsers(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich service users skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSamplePeople) {
+    try {
+      await seedGreenwichBranchUsers(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich branch users skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+    try {
+      await seedGreenwichServiceUsers(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich service users skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  } else {
+    console.log('[seed] Greenwich staff/service users: skipped (SEED_SAMPLE_PEOPLE is not true).');
   }
 
   await seedServiceUserObservations(prisma);
   await seedCompanyProfile(prisma);
   await seedOrganisationGeneralSettings(prisma);
+  // Real organisation + CQC-registered branches (reference data, every environment).
+  const allforCare = await seedAllforCareOrganisation(prisma, {
+    alignTimezone: process.env.NODE_ENV === 'production',
+  });
+  console.log(`[seed] Allfor Care organisation/branches: ${summariseAllforCareChanges(allforCare)}`);
   await seedServiceUserDocumentTypeCatalog(prisma);
 
   await seedCarePathway(prisma);
-  try {
-    await seedGreenwichManagerAttention(prisma);
-  } catch (err) {
-    console.warn(
-      '[seed] Greenwich manager attention skipped (non-fatal):',
-      err instanceof Error ? err.message : err,
-    );
+  if (seedSamplePeople) {
+    try {
+      await seedGreenwichManagerAttention(prisma);
+    } catch (err) {
+      console.warn(
+        '[seed] Greenwich manager attention skipped (non-fatal):',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
   await seedTaskCatalogue(prisma);
   try {
@@ -2437,9 +2467,11 @@ async function main() {
   // body-map data, so it must NEVER run against production — otherwise a deploy that runs
   // `prisma db seed` would inject demo data into the live DB. Default OFF on production:
   // an explicit SEED_DEMO_DATA flag wins; otherwise demo seeds everywhere EXCEPT production.
+  // Demo service users are sample people, so SEED_SAMPLE_PEOPLE=true is required as well.
   const seedDemoData =
-    process.env.SEED_DEMO_DATA === 'true' ||
-    (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production');
+    seedSamplePeople &&
+    (process.env.SEED_DEMO_DATA === 'true' ||
+      (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production'));
 
   if (seedDemoData) {
     // Demo service user for initial-assessment enterprise testing (Margaret Hughes, SU-1042)
@@ -2488,7 +2520,7 @@ async function main() {
     }
   } else {
     console.log(
-      '[seed] Demo seeding disabled (SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
+      '[seed] Demo seeding disabled (SEED_SAMPLE_PEOPLE!=true, SEED_DEMO_DATA!=true or NODE_ENV=production) — skipping demo service users, body-map reset, and personas. Reference/catalog/care-plan-form seeding still runs.',
     );
   }
 
@@ -2744,9 +2776,14 @@ async function main() {
     });
   }
 
-  // Platform Super Admin = every permission; plus demo users for each hierarchy role.
+  // Hierarchy roles are reference data (always); Platform Super Admin = every permission.
+  // The demo office logins for each hierarchy role are sample people.
+  await ensureHierarchyRoles(prisma);
+  await ensureAdditionalRoles(prisma);
   await ensureSuperAdminAllPermissions(prisma);
-  await seedDemoOfficeUsers(prisma);
+  if (seedSamplePeople) {
+    await seedDemoOfficeUsers(prisma);
+  }
 
   const policyCategories: Array<{ name: string; code: string; displayOrder: number }> = [
     { name: 'Safeguarding', code: 'SAFEGUARDING', displayOrder: 10 },

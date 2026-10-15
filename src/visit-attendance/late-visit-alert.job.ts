@@ -20,6 +20,9 @@ import {
   getOperationalTimeZone,
 } from '../common/utils/operational-day.util';
 import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
+import { JobHandler } from '../jobs/job-handler.registry';
+import { JobRunner, runCronTick } from '../jobs/job-runner.service';
+import { jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
 
 /** Same office audience as ECM alerts. */
 const LATE_ALERT_ROLE_NAMES: string[] = [
@@ -61,10 +64,18 @@ export class LateVisitAlertJob {
     private readonly prisma: PrismaService,
     @Optional() private readonly notifications?: NotificationsService,
     @Optional() private readonly carerPush?: CarerVisitPushHook,
+    @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
   @Cron('*/5 * * * *', { timeZone: 'UTC' })
   async handleLateVisits(): Promise<void> {
+    await runCronTick(this.jobRunner, 'late-visit-alert', () =>
+      this.runLateVisitAlert(),
+    );
+  }
+
+  @JobHandler('late-visit-alert')
+  async runLateVisitAlert(): Promise<JobOutcome> {
     const settings = await this.prisma.organisationGeneralSettings.findFirst({
       select: {
         domLateVisitAlertRequired: true,
@@ -76,7 +87,11 @@ export class LateVisitAlertJob {
       },
     });
 
-    if (!settings?.domLateVisitAlertRequired) return;
+    if (!settings?.domLateVisitAlertRequired) {
+      return jobSkipped(
+        'Late visit alerts are turned off in organisation settings',
+      );
+    }
     const timeZone = getOperationalTimeZone(settings.timezone);
 
     const thresholdMinutes = Math.max(1, settings.domLateVisitAlertMinutes ?? 15);
@@ -139,7 +154,9 @@ export class LateVisitAlertJob {
       },
     });
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) {
+      return jobSuccess({ thresholdMinutes, candidates: 0, alerted: 0 });
+    }
 
     const recipients = settings.domLateVisitAlertNotification
       ? await this.managerUserIds()
@@ -244,6 +261,11 @@ export class LateVisitAlertJob {
     if (alerted > 0) {
       this.logger.log(`ECM late-visit monitor: alerted on ${alerted} job(s)`);
     }
+    return jobSuccess({
+      thresholdMinutes,
+      candidates: candidates.length,
+      alerted,
+    });
   }
 
   private async managerUserIds(): Promise<string[]> {

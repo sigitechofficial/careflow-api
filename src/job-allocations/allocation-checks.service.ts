@@ -25,6 +25,13 @@ import {
 } from './allocation-window.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
+import {
+  addDaysToOperationalIso,
+  dayKeyInTimeZone,
+  getOperationalTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -77,6 +84,15 @@ export class AllocationChecksService {
       row?.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
     );
     return this.allocationRulesCache;
+  }
+
+  /** Organisation operational timezone (not cached — settings can change at runtime). */
+  private async loadOperationalTimezone(): Promise<string> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: ORG_SETTINGS_ID },
+      select: { timezone: true },
+    });
+    return getOperationalTimeZone(row?.timezone);
   }
 
   async runAllChecks(ctx: AllocationCheckContext): Promise<AllocationWarning[]> {
@@ -170,8 +186,9 @@ export class AllocationChecksService {
       notes: p.notes,
     }));
     const cycleConfig = employmentToCycleConfig(employee.employment, employee.createdAt);
-    const pattern = resolvePatternForDateTime(patternRows, cycleConfig, ctx.jobStart);
-    const dowLabel = DAY_LABEL[ctx.jobStart.getUTCDay()] ?? 'this day';
+    const timeZone = await this.loadOperationalTimezone();
+    const pattern = resolvePatternForDateTime(patternRows, cycleConfig, ctx.jobStart, timeZone);
+    const dowLabel = DAY_LABEL[weekdayIndexInTimeZone(ctx.jobStart, timeZone)] ?? 'this day';
 
     if (pattern && !pattern.isAvailable) {
       push({
@@ -192,8 +209,8 @@ export class AllocationChecksService {
     }
 
     if (pattern) {
-      const jobStartHm = hmFromJobDate(ctx.jobStart);
-      const jobEndHm = hmFromJobDate(ctx.jobEnd);
+      const jobStartHm = hmFromJobDate(ctx.jobStart, timeZone);
+      const jobEndHm = hmFromJobDate(ctx.jobEnd, timeZone);
       if (
         !visitTimeFitsWithinPattern(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)
       ) {
@@ -229,9 +246,9 @@ export class AllocationChecksService {
     const rule = allocationRuleWarning(rules, 'carer_on_holiday');
     if (!rule.warn) return;
 
-    const jobDay = new Date(
-      Date.UTC(ctx.jobStart.getUTCFullYear(), ctx.jobStart.getUTCMonth(), ctx.jobStart.getUTCDate(), 12, 0, 0, 0),
-    );
+    // Holiday dates are calendar labels; compare against the visit's org-local calendar day.
+    const timeZone = await this.loadOperationalTimezone();
+    const jobDay = new Date(`${dayKeyInTimeZone(ctx.jobStart, timeZone)}T12:00:00.000Z`);
     const holiday = await this.prisma.employeeHoliday.findFirst({
       where: {
         employeeId: ctx.employeeId,
@@ -339,11 +356,15 @@ export class AllocationChecksService {
     const maxWeekly = employment?.maximumWeeklyHours ?? employment?.contractedWeeklyHours;
     if (!maxWeekly || maxWeekly <= 0) return;
 
-    const weekStart = new Date(ctx.jobStart);
-    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
-    weekStart.setUTCHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+    // Sunday-start week of the visit's org-local calendar day, as true-UTC bounds.
+    const timeZone = await this.loadOperationalTimezone();
+    const jobDayKey = dayKeyInTimeZone(ctx.jobStart, timeZone);
+    const weekStartKey = addDaysToOperationalIso(
+      jobDayKey,
+      -weekdayIndexInTimeZone(ctx.jobStart, timeZone),
+    );
+    const weekStart = operationalDayBounds(weekStartKey, timeZone).start;
+    const weekEnd = operationalDayBounds(addDaysToOperationalIso(weekStartKey, 7), timeZone).start;
 
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {

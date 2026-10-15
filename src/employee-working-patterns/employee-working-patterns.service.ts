@@ -12,10 +12,14 @@ import {
   syncEmployeeJobAllocationsAfterPatternChange,
 } from './employee-working-pattern-assignment-sync.util';
 import { parseIsoDateOnly } from './working-pattern-cycle.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 
 @Injectable()
 export class EmployeeWorkingPatternsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
+  ) {}
 
   async list(employeeId: string) {
     const [items, employment] = await Promise.all([
@@ -112,6 +116,7 @@ export class EmployeeWorkingPatternsService {
     }
 
     const now = new Date();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     let assignmentSync: { visitsUpdated: number; allocationsRemoved: number } | null = null;
     const created = await this.prisma.$transaction(async (tx) => {
       await tx.employeeWorkingPattern.updateMany({
@@ -163,6 +168,7 @@ export class EmployeeWorkingPatternsService {
           employeeId,
           userId,
           respectWorkingPattern: dto.respectWorkingPatternOnSync !== false,
+          timeZone,
         });
       }
 
@@ -188,7 +194,12 @@ export class EmployeeWorkingPatternsService {
     const proposedContext = patternContextFromBulkDto(employee, dto);
     const scheduledVisitsUnassigned =
       dto.syncAssignments && dto.respectWorkingPatternOnSync !== false
-        ? await countScheduledVisitsToUnassignForPattern(this.prisma, employeeId, proposedContext)
+        ? await countScheduledVisitsToUnassignForPattern(
+            this.prisma,
+            employeeId,
+            proposedContext,
+            await this.orgSettings.getOperationalTimezone(),
+          )
         : 0;
 
     return { data: { visitSlots, scheduledVisitsUnassigned } };

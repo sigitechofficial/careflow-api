@@ -1,0 +1,60 @@
+version: v1.1.0
+# Run: az acr run -r acrcareflowprod -f deploy/azure/acr-smoke-test.yaml --set tag=<image-tag> /dev/null
+# End-to-end smoke test of the careflow images, run inside ACR Tasks.
+# Uses a throwaway postgres container on the task network; touches nothing in production.
+steps:
+  - id: db
+    cmd: postgres:16-alpine
+    env:
+      - POSTGRES_PASSWORD=smoke
+      - POSTGRES_DB=careflow
+    detach: true
+
+  - id: wait-db
+    cmd: postgres:16-alpine sh -c "until pg_isready -h db -U postgres; do sleep 2; done"
+    timeout: 120
+
+  - id: migrate
+    workingDirectory: /app
+    cmd: $Registry/careflow-migrate:{{.Values.tag}}
+    env:
+      - DATABASE_URL=postgresql://postgres:smoke@db:5432/careflow?schema=public
+      - ADMIN_SEED_EMAIL=smoke-admin@example.test
+      - ADMIN_SEED_PASSWORD=smoke-test-password-123
+    timeout: 900
+
+  - id: seeded-counts
+    cmd: >-
+      postgres:16-alpine psql postgresql://postgres:smoke@db:5432/careflow -At -c
+      "select 'users=' || (select count(*) from identity.\"User\") || ' employees=' || (select count(*) from employees.\"Employee\") || ' service_users=' || (select count(*) from service_users.\"ServiceUser\") || ' roles=' || (select count(*) from identity.\"Role\") || ' permissions=' || (select count(*) from identity.\"Permission\")"
+
+  - id: api
+    workingDirectory: /app
+    cmd: $Registry/careflow-api:{{.Values.tag}}
+    env:
+      - DATABASE_URL=postgresql://postgres:smoke@db:5432/careflow?schema=public
+      - JWT_ACCESS_TOKEN_SECRET=smoke-access
+      - JWT_REFRESH_TOKEN_SECRET=smoke-refresh
+      - FIELD_ENCRYPTION_KEY=c21va2UtdGVzdC1rZXktMzItYnl0ZXMtbG9uZyEhISE=
+      - MAIL_MODE=log
+    detach: true
+
+  - id: probe-ready
+    cmd: curlimages/curl -fsS --retry 40 --retry-delay 3 --retry-all-errors http://api:3000/health/ready
+    timeout: 180
+
+  - id: probe-live-and-auth
+    cmd: >-
+      curlimages/curl -sS -o /dev/null -w "live=%{http_code}\n" http://api:3000/health/live
+    timeout: 30
+
+  - id: pdf
+    workingDirectory: /app
+    cmd: >-
+      $Registry/careflow-api:{{.Values.tag}} node -e
+      "require('./dist/src/common/utils/html-to-pdf.util').renderHtmlToPdfBuffer('<h1>Careflow PDF check</h1><p>Zoë Łukasz Ñandú مرحبا</p>').then(b => { console.log('PDF ok: ' + b.length + ' bytes, header ' + b.subarray(0,5).toString()); process.exit(0); }).catch(e => { console.error('PDF FAILED', e); process.exit(1); })"
+    timeout: 120
+
+  - id: runs-as
+    workingDirectory: /app
+    cmd: $Registry/careflow-api:{{.Values.tag}} sh -c "id; ls -ld /app/uploads; node --version"
