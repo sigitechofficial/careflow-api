@@ -14,7 +14,10 @@ import {
 } from '../employee-working-patterns/working-pattern-time.util';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
-import { ROTA_BLOCKING_LEAVE_TYPES } from '../employee-absences/dto/employee-absence.dto';
+import {
+  PARENTAL_LEAVE_TYPES,
+  ROTA_BLOCKING_LEAVE_TYPES,
+} from '../employee-absences/dto/employee-absence.dto';
 import {
   allocationRuleWarning,
   parseDomCareAllocationRules,
@@ -87,6 +90,7 @@ export class AllocationChecksService {
 
     await this.checkEmployeeAvailability(ctx, push);
     await this.checkEmployeeHoliday(ctx, push, rules);
+    await this.checkEmployeeParentalLeave(ctx, push);
     await this.checkEmployeeNca(ctx, push, rules);
     await this.checkEmployeeOnLeave(ctx, push);
     await this.checkTimeConflict(ctx, push);
@@ -248,6 +252,30 @@ export class AllocationChecksService {
       type: AllocationWarningType.EMPLOYEE_ON_HOLIDAY,
       message: 'Employee is on holiday for this visit date',
       severity: rule.severity,
+    });
+  }
+
+  /** Block allocating a carer who has approved maternity/paternity leave over the visit. */
+  async checkEmployeeParentalLeave(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+  ): Promise<void> {
+    const leave = await this.prisma.employeeAbsenceRecord.findFirst({
+      where: {
+        employeeId: ctx.employeeId,
+        deletedAt: null,
+        absenceType: { in: [...PARENTAL_LEAVE_TYPES] },
+        permissionStatus: 'Authorised',
+        fromDateTime: { lte: ctx.jobEnd },
+        toDateTime: { gte: ctx.jobStart },
+      },
+      select: { absenceType: true },
+    });
+    if (!leave) return;
+    push({
+      type: AllocationWarningType.EMPLOYEE_ON_PARENTAL_LEAVE,
+      message: `Employee is on ${leave.absenceType.toLowerCase()} leave for this visit date`,
+      severity: 'blocking',
     });
   }
 

@@ -19,6 +19,8 @@ export const ABSENCE_TYPES = [
   'Sickness',
   'Casual leave',
   'Non-working Time',
+  'Maternity',
+  'Paternity',
   'Unauthorised',
   'Other',
 ] as const;
@@ -26,6 +28,10 @@ export type AbsenceType = (typeof ABSENCE_TYPES)[number];
 
 /** Absence types that make a carer unavailable on the rota for the dates they cover. */
 export const ROTA_BLOCKING_LEAVE_TYPES = ['Sickness', 'Casual leave'] as const;
+/** Parental leave types that are capped at a maximum approved duration. */
+export const PARENTAL_LEAVE_TYPES = ['Maternity', 'Paternity'] as const;
+/** Maximum approved length for maternity/paternity leave. */
+export const MAX_PARENTAL_LEAVE_WEEKS = 52;
 
 export const ABSENCE_PERMISSION_STATUSES = ['Authorised', 'Unauthorised', 'Pending'] as const;
 export type AbsencePermissionStatus = (typeof ABSENCE_PERMISSION_STATUSES)[number];

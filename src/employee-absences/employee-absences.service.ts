@@ -2,6 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { resolveEnterpriseVisaMeta } from '../organisation-general-settings/employee-visa-catalog.constants';
+import {
+  MAX_PARENTAL_LEAVE_WEEKS,
+  PARENTAL_LEAVE_TYPES,
+} from './dto/employee-absence.dto';
 import type {
   CreateEmployeeAbsenceDto,
   ListEmployeeAbsencesQueryDto,
@@ -274,6 +278,17 @@ export class EmployeeAbsencesService {
     return { from, to };
   }
 
+  /** Maternity/Paternity leave cannot be approved for longer than the statutory cap. */
+  private static enforceParentalLeaveCap(absenceType: string, from: Date, to: Date): void {
+    if (!(PARENTAL_LEAVE_TYPES as readonly string[]).includes(absenceType)) return;
+    const maxMs = MAX_PARENTAL_LEAVE_WEEKS * 7 * 86_400_000;
+    if (to.getTime() - from.getTime() > maxMs) {
+      throw new BadRequestException(
+        `${absenceType} leave cannot exceed ${MAX_PARENTAL_LEAVE_WEEKS} weeks.`,
+      );
+    }
+  }
+
   private static optionalDate(value: string | null | undefined): Date | null | undefined {
     if (value === undefined) return undefined;
     return value ? new Date(value) : null;
@@ -286,6 +301,7 @@ export class EmployeeAbsencesService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
     const { from, to } = EmployeeAbsencesService.parseSpan(dto.fromDateTime, dto.toDateTime);
+    EmployeeAbsencesService.enforceParentalLeaveCap(dto.absenceType, from, to);
 
     const record = await this.prisma.employeeAbsenceRecord.create({
       data: {
@@ -345,6 +361,11 @@ export class EmployeeAbsencesService {
     const fromIso = dto.fromDateTime ?? existing.fromDateTime.toISOString();
     const toIso = dto.toDateTime ?? existing.toDateTime.toISOString();
     const { from, to } = EmployeeAbsencesService.parseSpan(fromIso, toIso);
+    EmployeeAbsencesService.enforceParentalLeaveCap(
+      dto.absenceType ?? existing.absenceType,
+      from,
+      to,
+    );
 
     const data: Prisma.EmployeeAbsenceRecordUncheckedUpdateInput = {
       fromDateTime: from,
