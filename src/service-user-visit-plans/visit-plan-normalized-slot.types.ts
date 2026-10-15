@@ -19,6 +19,7 @@ export type NormalizedVisitPlanSlot = {
   oneOffDate: string | null;
   allowBackfillDays: number;
   carerAssignments: VisitPlanSlotCarerAssignmentDto[];
-  exceptions: VisitPlanSlotExceptionDto[];
+  /** Undefined = not part of this save; stored date changes are left untouched. */
+  exceptions?: VisitPlanSlotExceptionDto[];
 } & VisitPlanSlotSchedulingOptions &
   VisitPlanSlotLinkFields;

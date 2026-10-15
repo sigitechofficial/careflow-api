@@ -7,7 +7,7 @@ import { OrganisationGeneralSettingsService } from '../organisation-general-sett
 import { operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
 import {
   diffVisitPlanSnapshots,
-  resolveEndFromStartAndTimes,
+  resolveOperationalStartEnd,
   type AmendmentImpactAction,
   type VisitPlanSnapshotShape,
 } from './visit-plan-amendment-impact.util';
@@ -131,6 +131,7 @@ export class VisitPlanAmendmentImpactService {
     });
 
     const from = await this.opsTodayStart();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     let jobsCancelled = 0;
     let jobsRescheduled = 0;
     const jobIds: string[] = [];
@@ -164,8 +165,9 @@ export class VisitPlanAmendmentImpactService {
           serviceUserId: params.serviceUserId,
           visitPlanSlotId: action.visitPlanSlotId,
           fromDate: from,
+          // The plan's times are wall-clock times in the organisation timezone, not UTC.
           resolveNewTimes: (jobStart) =>
-            resolveEndFromStartAndTimes(jobStart, action.newStartTime!, action.newEndTime!),
+            resolveOperationalStartEnd(jobStart, action.newStartTime!, action.newEndTime!, timeZone),
           reason: params.amendmentReason,
           source: 'visit_plan_amendment',
         }, meta);

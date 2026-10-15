@@ -1606,6 +1606,14 @@ export class ScheduledJobsHousekeepingService {
         reinstatedAt: null,
         reinstatedById: null,
         reinstateNotes: null,
+        // Who asked for it and what the cancellation policy suggested (set by the visit plan's date changes).
+        cancelledByParty: dto.cancelledByParty ?? null,
+        cancelledByDescription: dto.cancelledByDescription?.trim() || null,
+        cancellationSource: dto.cancellationSource ?? 'ROTA',
+        noticeHours: dto.noticeHours ?? null,
+        suggestedChargeDecision: dto.suggestedChargeDecision ?? null,
+        suggestedChargePercent: dto.suggestedChargePercent ?? null,
+        policySnapshot: (dto.policySnapshot as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
       };
 
       const cancellation =

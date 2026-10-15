@@ -965,6 +965,8 @@ model OrganisationGeneralSettings {
   domDownloadAllServiceUsers           Boolean                    @default(false)
   domFutureVisitsDays                  Int                        @default(14)
   domAutoExtendRotaEnabled             Boolean                    @default(true)
+  /// Visit cancellation policy: emergency hospital admission is never charged to the service user.
+  domCancellationHospitalExemption     Boolean                    @default(true)
   domRotaHorizonDays                   Int                        @default(28)
   domRotaHorizonMode                   String                     @default("FIXED_DAYS")
   domAutoExtendRotaRunHour             Int                        @default(12)
@@ -4988,6 +4990,16 @@ model VisitPlanSlotException {
   durationMinutes  Int?
   requiredCarers   Int?
   notes            String                     @default("") @db.Text
+  /// Who asked for the cancellation: SERVICE_USER | AGENCY | OTHER (SKIP rows recorded from "Changes for specific dates").
+  cancelledByParty       String?
+  cancelledByDescription String?
+  /// VisitCancellationReasonCode value (kept as text — enum lives in the scheduling schema).
+  reasonCode             String?
+  chargeDecision         String?
+  chargeDecisionNotes    String?
+  /// Carers chosen for an EXTRA visit (empty = slot's usual carers).
+  assignedEmployeeIds    String[]             @default([])
+  createdById            String?              @db.Uuid
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
 
@@ -7058,6 +7070,17 @@ model ScheduledJobCancellation {
   reinstatedAt          DateTime?
   reinstatedById        String?                     @db.Uuid
   reinstateNotes        String?
+  /// Who asked for the cancellation: SERVICE_USER | AGENCY | OTHER.
+  cancelledByParty       String?
+  cancelledByDescription String?
+  /// Where it was recorded: ROTA | VISIT_PLAN.
+  cancellationSource     String?
+  /// Hours between recording the cancellation and the visit's planned start.
+  noticeHours            Float?
+  /// What the organisation cancellation policy suggested at the time (never recalculated).
+  suggestedChargeDecision String?
+  suggestedChargePercent  Int?
+  policySnapshot          Json?
   createdAt             DateTime                    @default(now())
   updatedAt             DateTime                    @updatedAt
 

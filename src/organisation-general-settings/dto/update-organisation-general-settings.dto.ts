@@ -409,6 +409,11 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsBoolean()
   domAutoExtendRotaEnabled?: boolean;
 
+  @ApiPropertyOptional({ description: 'Never charge the service user when the reason is a hospital admission' })
+  @IsOptional()
+  @IsBoolean()
+  domCancellationHospitalExemption?: boolean;
+
   @ApiPropertyOptional({ minimum: 1, maximum: 90 })
   @IsOptional()
   @Type(() => Number)

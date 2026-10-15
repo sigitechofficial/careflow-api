@@ -129,6 +129,7 @@ type SettingsRow = {
   domDownloadAllServiceUsers: boolean;
   domFutureVisitsDays: number;
   domAutoExtendRotaEnabled: boolean;
+  domCancellationHospitalExemption: boolean;
   domRotaHorizonDays: number;
   domRotaHorizonMode: string;
   domAutoExtendRotaRunHour: number;
@@ -270,6 +271,7 @@ function mapRow(row: SettingsRow) {
     domDownloadAllServiceUsers: row.domDownloadAllServiceUsers,
     domFutureVisitsDays: row.domFutureVisitsDays,
     domAutoExtendRotaEnabled: row.domAutoExtendRotaEnabled,
+    domCancellationHospitalExemption: row.domCancellationHospitalExemption,
     domRotaHorizonDays: row.domRotaHorizonDays,
     domRotaHorizonMode: parseRotaHorizonMode(row.domRotaHorizonMode),
     domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
@@ -400,6 +402,7 @@ function buildUpdateData(
   set('domDownloadAllServiceUsers', dto.domDownloadAllServiceUsers);
   set('domFutureVisitsDays', dto.domFutureVisitsDays);
   set('domAutoExtendRotaEnabled', dto.domAutoExtendRotaEnabled);
+  set('domCancellationHospitalExemption', dto.domCancellationHospitalExemption);
   set('domRotaHorizonDays', dto.domRotaHorizonDays);
   set('domRotaHorizonMode', dto.domRotaHorizonMode);
   set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);
