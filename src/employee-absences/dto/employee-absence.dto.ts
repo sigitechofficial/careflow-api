@@ -17,11 +17,15 @@ export const ABSENCE_TYPES = [
   'Holiday',
   'Days Off',
   'Sickness',
+  'Casual leave',
   'Non-working Time',
   'Unauthorised',
   'Other',
 ] as const;
 export type AbsenceType = (typeof ABSENCE_TYPES)[number];
+
+/** Absence types that make a carer unavailable on the rota for the dates they cover. */
+export const ROTA_BLOCKING_LEAVE_TYPES = ['Sickness', 'Casual leave'] as const;
 
 export const ABSENCE_PERMISSION_STATUSES = ['Authorised', 'Unauthorised', 'Pending'] as const;
 export type AbsencePermissionStatus = (typeof ABSENCE_PERMISSION_STATUSES)[number];

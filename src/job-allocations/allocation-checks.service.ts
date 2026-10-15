@@ -14,6 +14,7 @@ import {
 } from '../employee-working-patterns/working-pattern-time.util';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
+import { ROTA_BLOCKING_LEAVE_TYPES } from '../employee-absences/dto/employee-absence.dto';
 import {
   allocationRuleWarning,
   parseDomCareAllocationRules,
@@ -87,6 +88,7 @@ export class AllocationChecksService {
     await this.checkEmployeeAvailability(ctx, push);
     await this.checkEmployeeHoliday(ctx, push, rules);
     await this.checkEmployeeNca(ctx, push, rules);
+    await this.checkEmployeeOnLeave(ctx, push);
     await this.checkTimeConflict(ctx, push);
     await this.checkCapacity(ctx, push);
     await this.checkPreferredBlockedCarer(ctx, push);
@@ -271,6 +273,33 @@ export class AllocationChecksService {
       type: AllocationWarningType.EMPLOYEE_ON_NCA,
       message: 'Employee has non-core activity during this visit',
       severity: rule.severity,
+    });
+  }
+
+  /** Block allocating a carer who is on sick or casual leave over the visit date. */
+  async checkEmployeeOnLeave(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+  ): Promise<void> {
+    const leave = await this.prisma.employeeAbsenceRecord.findFirst({
+      where: {
+        employeeId: ctx.employeeId,
+        deletedAt: null,
+        absenceType: { in: [...ROTA_BLOCKING_LEAVE_TYPES] },
+        fromDateTime: { lte: ctx.jobEnd },
+        toDateTime: { gte: ctx.jobStart },
+      },
+      select: { absenceType: true },
+    });
+    if (!leave) return;
+    const message =
+      leave.absenceType === 'Sickness'
+        ? 'Employee is off sick for this visit date'
+        : 'Employee is on casual leave for this visit date';
+    push({
+      type: AllocationWarningType.EMPLOYEE_ON_LEAVE,
+      message,
+      severity: 'blocking',
     });
   }
 
