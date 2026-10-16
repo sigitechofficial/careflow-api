@@ -13,12 +13,24 @@ export function slotTimesCrossMidnight(start: string | null | undefined, end: st
   return endHm <= startHm;
 }
 
+/** Code of the Night time slot (Settings → time slots). */
+export const NIGHT_TIME_SLOT_CODE = 'NIGHT';
+
+/** True for the Night time slot, including its extra rows (`NIGHT__2`, `NIGHT__X`). */
+export function isNightTimeSlotCode(code: string | null | undefined): boolean {
+  return (code ?? '').trim().toUpperCase().replace(/__.*$/, '') === NIGHT_TIME_SLOT_CODE;
+}
+
+/** Waking / sleeping night applies to visits in the Night time slot or that run past midnight. */
 export function slotAllowsNightDuty(slot: {
   slotKind?: string | null;
   plannedStartTime?: string | null;
   plannedEndTime?: string | null;
+  slotCode?: string | null;
+  medicationRoundCode?: string | null;
 }): boolean {
   if (slot.slotKind === VisitPlanSlotKind.OVERNIGHT) return true;
+  if (isNightTimeSlotCode(slot.medicationRoundCode ?? slot.slotCode)) return true;
   return slotTimesCrossMidnight(slot.plannedStartTime, slot.plannedEndTime);
 }
 
@@ -26,6 +38,8 @@ export function resolveVisitPlanNightDuty(slot: {
   slotKind?: string | null;
   plannedStartTime?: string | null;
   plannedEndTime?: string | null;
+  slotCode?: string | null;
+  medicationRoundCode?: string | null;
   nightDuty?: string | null;
 }): VisitPlanNightDuty {
   if (!slotAllowsNightDuty(slot)) return VisitPlanNightDuty.NONE;

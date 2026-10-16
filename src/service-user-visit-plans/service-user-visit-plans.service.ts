@@ -433,6 +433,8 @@ export class ServiceUserVisitPlansService {
           slotKind: input?.slotKind ?? slotKind,
           plannedStartTime: plannedStart,
           plannedEndTime: plannedEnd,
+          slotCode,
+          medicationRoundCode: input?.medicationRoundCode,
           nightDuty: input?.nightDuty,
         }),
         slotEffectiveFrom: input?.slotEffectiveFrom ?? null,

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -11,6 +11,8 @@ import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
 import {
   VisitPlanAddExtraVisitsDto,
   VisitPlanCancelVisitsDto,
+  VisitPlanDeleteExtraVisitDto,
+  VisitPlanEditExtraVisitDto,
   VisitPlanCancelVisitsPreviewDto,
   VisitPlanDateChangesRangeQueryDto,
   VisitPlanExtraVisitsPreviewDto,
@@ -87,5 +89,33 @@ export class VisitPlanDateChangesController {
     @Req() req: Request,
   ) {
     return this.service.addExtraVisits(user, serviceUserId, planId, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('extra/:exceptionId')
+  @AnyPermission('service_users.visit_plan.write', 'service_users.update')
+  @ApiOperation({ summary: 'Edit one extra visit before it starts (time, duration, carers, night type, reason)' })
+  editExtra(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Param('exceptionId', ParseUUIDPipe) exceptionId: string,
+    @Body() dto: VisitPlanEditExtraVisitDto,
+    @Req() req: Request,
+  ) {
+    return this.service.editExtraVisit(user, serviceUserId, planId, exceptionId, dto, getRequestAuditMeta(req));
+  }
+
+  @Delete('extra/:exceptionId')
+  @AnyPermission('service_users.visit_plan.write', 'service_users.update')
+  @ApiOperation({ summary: 'Delete one extra visit before it starts and take it off the rota' })
+  deleteExtra(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Param('exceptionId', ParseUUIDPipe) exceptionId: string,
+    @Body() dto: VisitPlanDeleteExtraVisitDto,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteExtraVisit(user, serviceUserId, planId, exceptionId, dto, getRequestAuditMeta(req));
   }
 }

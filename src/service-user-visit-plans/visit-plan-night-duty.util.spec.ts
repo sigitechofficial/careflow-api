@@ -1,5 +1,6 @@
 import { VisitPlanNightDuty, VisitPlanSlotKind } from '@prisma/client';
 import {
+  isNightTimeSlotCode,
   nightDutyAppLabel,
   nightDutyHomeTag,
   resolveStoredNightDuty,
@@ -25,6 +26,26 @@ describe('visit-plan-night-duty.util', () => {
     expect(slotAllowsNightDuty({ slotKind: VisitPlanSlotKind.STANDARD, plannedStartTime: '08:00', plannedEndTime: '09:00' })).toBe(
       false,
     );
+  });
+
+  it('allows night duty for any visit in the Night time slot, even one that does not cross midnight', () => {
+    expect(isNightTimeSlotCode('NIGHT')).toBe(true);
+    expect(isNightTimeSlotCode('NIGHT__2')).toBe(true);
+    expect(isNightTimeSlotCode('NIGHT__X')).toBe(true);
+    expect(isNightTimeSlotCode('EVENING')).toBe(false);
+    expect(
+      resolveVisitPlanNightDuty({
+        slotKind: VisitPlanSlotKind.STANDARD,
+        plannedStartTime: '02:00',
+        plannedEndTime: '03:00',
+        slotCode: 'NIGHT__2',
+        medicationRoundCode: 'NIGHT',
+        nightDuty: VisitPlanNightDuty.WAKING_NIGHT,
+      }),
+    ).toBe(VisitPlanNightDuty.WAKING_NIGHT);
+    expect(
+      slotAllowsNightDuty({ plannedStartTime: '18:00', plannedEndTime: '19:00', slotCode: 'EVENING' }),
+    ).toBe(false);
   });
 
   it('forces NONE when the slot is not an overnight window', () => {
