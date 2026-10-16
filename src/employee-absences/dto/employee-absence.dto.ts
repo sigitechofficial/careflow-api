@@ -232,6 +232,15 @@ export class CreateEmployeeAbsenceDto extends EmployeeAbsenceFieldsDto {
   @ApiProperty({ example: '2026-05-28T23:55:00.000Z' })
   @IsDateString()
   toDateTime!: string;
+
+  @ApiPropertyOptional({
+    description: 'Email the carer to tell them this absence was recorded.',
+    default: false,
+  })
+  @IsOptional()
+  @Transform(toBool)
+  @IsBoolean()
+  notifyByEmail?: boolean;
 }
 
 export class UpdateEmployeeAbsenceDto extends EmployeeAbsenceFieldsDto {
