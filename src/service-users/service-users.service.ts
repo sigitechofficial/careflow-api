@@ -683,6 +683,7 @@ export class ServiceUsersService implements OnModuleInit {
         maritalStatus: dto.maritalStatusId ? { connect: { id: dto.maritalStatusId } } : undefined,
         status: dto.statusId ? { connect: { id: dto.statusId } } : undefined,
         careType: dto.careTypeId ? { connect: { id: dto.careTypeId } } : undefined,
+        careLevel: dto.careLevel ?? undefined,
         fundingType: dto.fundingTypeId ? { connect: { id: dto.fundingTypeId } } : undefined,
         riskLevel: dto.riskLevelId ? { connect: { id: dto.riskLevelId } } : undefined,
         location: locationId ? { connect: { id: locationId } } : undefined,
@@ -854,6 +855,7 @@ export class ServiceUsersService implements OnModuleInit {
         data.maritalStatus = dto.maritalStatusId ? { connect: { id: dto.maritalStatusId } } : { disconnect: true };
       if (dto.statusId !== undefined) data.status = dto.statusId ? { connect: { id: dto.statusId } } : { disconnect: true };
       if (dto.careTypeId !== undefined) data.careType = dto.careTypeId ? { connect: { id: dto.careTypeId } } : { disconnect: true };
+      if (dto.careLevel !== undefined) data.careLevel = dto.careLevel || null;
       if (dto.fundingTypeId !== undefined)
         data.fundingType = dto.fundingTypeId ? { connect: { id: dto.fundingTypeId } } : { disconnect: true };
       if (dto.riskLevelId !== undefined)

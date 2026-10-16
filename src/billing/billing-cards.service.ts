@@ -1942,7 +1942,15 @@ export class ChargeCardsService {
         funderId: serviceUser.currentFunding?.funderId ?? null,
         packageName: serviceUser.currentFunding?.packageName ?? null,
         householdKey: null,
-        serviceTypeKey: null,
+        // Care level drives a SERVICE_TYPE charge-card default: a Complex/Standard care
+        // card (assignmentTargetKey "Complex care" / "Standard care") applies when nothing
+        // more specific (funding / service user / funder) is set.
+        serviceTypeKey:
+          serviceUser.careLevel === 'COMPLEX'
+            ? 'Complex care'
+            : serviceUser.careLevel === 'STANDARD'
+              ? 'Standard care'
+              : null,
       },
       cards,
     );

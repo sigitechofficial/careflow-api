@@ -2916,6 +2916,8 @@ model ServiceUser {
   maritalStatusId         String?   @db.Uuid
   statusId                String?   @db.Uuid
   careTypeId              String?   @db.Uuid
+  /// Standard vs Complex care classification (STANDARD | COMPLEX). Drives the SERVICE_TYPE charge-card default.
+  careLevel               String?
   fundingTypeId           String?   @db.Uuid
   riskLevelId             String?   @db.Uuid
   profilePhotoUrl         String?
