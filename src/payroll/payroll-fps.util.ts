@@ -58,6 +58,17 @@ export type FpsBuilderRunEmployee = {
   /** Explicit FPS band from payroll profile (T04). Preferred over contracted-hours inference. */
   hoursNormallyWorked?: FpsHoursNormallyWorked | null
   p45Received?: boolean
+  /** Loan/pension completion: stored student / postgraduate loan figures of the run row. */
+  loans?: {
+    planApplied: string | null
+    studentLoanRecovered: number
+    studentLoanYtd: number
+    postgraduateApplied: boolean | null
+    postgraduateLoanRecovered: number
+    postgraduateLoanYtd: number
+    /** A closed run this tax year (or this row) was calculated before loans were recorded. */
+    historicalGap: boolean
+  }
   ytd: {
     grossPayYtd: number
     taxablePayYtd: number
@@ -148,6 +159,11 @@ export function buildCareFpsPayload(input: {
     if (!emp.ytd) {
       issues.push('YTD figures missing — close the run to post year-to-date ledgers')
     }
+    if (emp.loans?.historicalGap) {
+      issues.push(
+        'Student / postgraduate loan figures are missing for a run of this tax year calculated before they were recorded — reconstruct them before an FPS',
+      )
+    }
     const hours = resolveHoursNormallyWorked({
       profileBand: emp.hoursNormallyWorked,
       contractedWeeklyHours: id?.contractedWeeklyHours ?? null,
@@ -221,6 +237,17 @@ export function buildCareFpsPayload(input: {
         grossPayYtd: emp.ytd?.grossPayYtd ?? 0,
         netPayYtd: emp.ytd?.netPayYtd ?? 0,
       },
+      studentLoans: emp.loans
+        ? {
+            planType: emp.loans.planApplied && emp.loans.planApplied !== 'NONE' ? emp.loans.planApplied : null,
+            studentLoanRecoveredInPeriod: emp.loans.studentLoanRecovered,
+            studentLoanRecoveredYtd: emp.loans.studentLoanYtd,
+            postgraduateLoan: Boolean(emp.loans.postgraduateApplied),
+            postgraduateLoanRecoveredInPeriod: emp.loans.postgraduateLoanRecovered,
+            postgraduateLoanRecoveredYtd: emp.loans.postgraduateLoanYtd,
+            complete: !emp.loans.historicalGap,
+          }
+        : null,
       issues,
     })
   }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,10 +11,18 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { employeeIdsForLocation } from '../billing/billing-location-scope.util';
+import { assertDifferentUser } from '../billing/financial-controls.util';
+import {
+  SalaryEntryPeriod,
+  annualSalaryFromEntry,
+  carriesSalary,
+} from './salary.util';
 import {
   CreateEmployeePayAgreementDto,
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
+  RecordLoanNoticeDto,
+  CorrectLoanNoticeDto,
 } from './dto/payroll.dto';
 import { dateToIsoDate, mapAgreement, mapProfile } from './payroll-mapper.util';
 import { parsePayrollDateOnly } from './payroll-period.util';
@@ -28,6 +37,47 @@ import {
 } from './payroll-rti-identity.util';
 import { isPayrollHoursNormallyWorked } from './payroll-hours-normally-worked.util';
 import { mapYtdLedger } from './payroll-ytd.util';
+
+function mapLoanNotice(row: {
+  id: string;
+  employeeId: string;
+  noticeType: string;
+  studentLoanPlan: string | null;
+  hmrcReference: string | null;
+  noticeDate: Date;
+  receivedOn: Date;
+  effectivePayday: Date;
+  notes: string | null;
+  createdById: string;
+  createdAt: Date;
+  voidedAt?: Date | null;
+  voidedById?: string | null;
+  voidReason?: string | null;
+  voidEvidenceRef?: string | null;
+  replacedById?: string | null;
+  replacesId?: string | null;
+}) {
+  return {
+    status: row.voidedAt ? (row.replacedById ? 'CORRECTED' : 'VOIDED') : 'ACTIVE',
+    voidedAt: row.voidedAt ? row.voidedAt.toISOString() : null,
+    voidedById: row.voidedById ?? null,
+    voidReason: row.voidReason ?? null,
+    voidEvidenceRef: row.voidEvidenceRef ?? null,
+    replacedById: row.replacedById ?? null,
+    replacesId: row.replacesId ?? null,
+    id: row.id,
+    employeeId: row.employeeId,
+    noticeType: row.noticeType,
+    studentLoanPlan: row.studentLoanPlan,
+    hmrcReference: row.hmrcReference,
+    noticeDate: dateToIsoDate(row.noticeDate),
+    receivedOn: dateToIsoDate(row.receivedOn),
+    effectivePayday: dateToIsoDate(row.effectivePayday),
+    notes: row.notes,
+    createdById: row.createdById,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 type EmployeeIdentityRow = {
   id: string
@@ -135,8 +185,10 @@ export class PayrollEmployeesService {
       this.prisma.employeePayrollProfile.findMany({
         where: { deletedAt: null },
       }),
+      // The agreement in force today: a later-dated one may already be approved and waiting.
       this.prisma.employeePayAgreement.findMany({
-        where: { deletedAt: null, status: 'ACTIVE' },
+        where: { deletedAt: null, status: 'ACTIVE', effectiveFrom: { lte: new Date() } },
+        orderBy: [{ effectiveFrom: 'asc' }, { createdAt: 'asc' }],
       }),
     ]);
 
@@ -349,6 +401,35 @@ export class PayrollEmployeesService {
       deductionElections: sanitizedElections === undefined ? undefined : sanitizedElections,
       pensionSchemeRef:
         dto.pensionSchemeRef === undefined ? undefined : dto.pensionSchemeRef?.trim() || null,
+      apprenticeshipStartDate:
+        dto.apprenticeshipStartDate === undefined
+          ? undefined
+          : dto.apprenticeshipStartDate
+            ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
+            : null,
+      isDirector: dto.isDirector,
+      directorAppointedOn:
+        dto.directorAppointedOn === undefined
+          ? undefined
+          : dto.directorAppointedOn
+            ? parsePayrollDateOnly(dto.directorAppointedOn)
+            : null,
+      directorNicMethod: dto.directorNicMethod,
+      pensionStatus: dto.pensionStatus,
+      pensionEnrolledFrom:
+        dto.pensionEnrolledFrom === undefined ? undefined : dto.pensionEnrolledFrom ? parsePayrollDateOnly(dto.pensionEnrolledFrom) : null,
+      pensionContributionBasis: dto.pensionContributionBasis,
+      pensionTaxRelief: dto.pensionTaxRelief,
+      pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent,
+      pensionEmployerRatePercent: dto.pensionEmployerRatePercent,
+      pensionPolicyRef: dto.pensionPolicyRef === undefined ? undefined : dto.pensionPolicyRef?.trim() || null,
+      loanDeclarationStatus: dto.loanDeclarationStatus,
+      loanDeclarationSource: dto.loanDeclarationSource,
+      loanDeclarationDate:
+        dto.loanDeclarationDate === undefined ? undefined : dto.loanDeclarationDate ? parsePayrollDateOnly(dto.loanDeclarationDate) : null,
+      pensionUkWorker: dto.pensionUkWorker,
+      statePensionAgeDate:
+        dto.statePensionAgeDate === undefined ? undefined : dto.statePensionAgeDate ? parsePayrollDateOnly(dto.statePensionAgeDate) : null,
       bankSortCode: dto.bankSortCode === undefined ? undefined : dto.bankSortCode?.trim() || null,
       bankAccountNumber:
         dto.bankAccountNumber === undefined ? undefined : dto.bankAccountNumber?.trim() || null,
@@ -361,51 +442,73 @@ export class PayrollEmployeesService {
     const createElections = sanitizedElections ?? [];
     const createFlags = loanFlagsFromElections(createElections);
 
-    const row = existing
-      ? await this.prisma.employeePayrollProfile.update({
-          where: { id: existing.id },
-          data,
-        })
-      : await this.prisma.employeePayrollProfile.create({
-          data: {
-            employeeId,
-            scheduleId: dto.scheduleId ?? null,
-            status: dto.status ?? 'DRAFT',
-            taxCode: dto.taxCode?.trim() || null,
-            taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
-            niCategory: dto.niCategory ?? null,
-            starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
-            hoursNormallyWorked: dto.hoursNormallyWorked ?? null,
-            p45Received: dto.p45Received ?? false,
-            studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
-            studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
-            studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),
-            studentLoanPlan5: createFlags.studentLoanPlan5 || (dto.studentLoanPlan5 ?? false),
-            postgraduateLoan: createFlags.postgraduateLoan || (dto.postgraduateLoan ?? false),
-            pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
-            deductionElections: createElections,
-            pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
-            bankSortCode: dto.bankSortCode?.trim() || null,
-            bankAccountNumber: dto.bankAccountNumber?.trim() || null,
-            bankAccountName: dto.bankAccountName?.trim() || null,
-            notes: dto.notes?.trim() || null,
-            createdById: userId,
-            updatedById: userId,
-          },
-        });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: existing
-        ? AuditAction.PAYROLL_EMPLOYEE_PROFILE_UPDATED
-        : AuditAction.PAYROLL_EMPLOYEE_PROFILE_CREATED,
-      recordType: 'EmployeePayrollProfile',
-      recordId: row.id,
-      oldValues: existing ? mapProfile(existing) : undefined,
-      newValues: mapProfile(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+    // The profile and its audit entry are saved together or not at all.
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = existing
+        ? await tx.employeePayrollProfile.update({
+            where: { id: existing.id },
+            data,
+          })
+        : await tx.employeePayrollProfile.create({
+            data: {
+              employeeId,
+              scheduleId: dto.scheduleId ?? null,
+              status: dto.status ?? 'DRAFT',
+              taxCode: dto.taxCode?.trim() || null,
+              taxCodeWeek1Month1: dto.taxCodeWeek1Month1 ?? false,
+              niCategory: dto.niCategory ?? null,
+              starterDeclaration: dto.starterDeclaration ?? 'UNKNOWN',
+              hoursNormallyWorked: dto.hoursNormallyWorked ?? null,
+              p45Received: dto.p45Received ?? false,
+              studentLoanPlan1: createFlags.studentLoanPlan1 || (dto.studentLoanPlan1 ?? false),
+              studentLoanPlan2: createFlags.studentLoanPlan2 || (dto.studentLoanPlan2 ?? false),
+              studentLoanPlan4: createFlags.studentLoanPlan4 || (dto.studentLoanPlan4 ?? false),
+              studentLoanPlan5: createFlags.studentLoanPlan5 || (dto.studentLoanPlan5 ?? false),
+              postgraduateLoan: createFlags.postgraduateLoan || (dto.postgraduateLoan ?? false),
+              pensionOptedIn: createFlags.pensionOptedIn || (dto.pensionOptedIn ?? false),
+              deductionElections: createElections,
+              pensionSchemeRef: dto.pensionSchemeRef?.trim() || null,
+              apprenticeshipStartDate: dto.apprenticeshipStartDate
+                ? parsePayrollDateOnly(dto.apprenticeshipStartDate)
+                : null,
+              isDirector: dto.isDirector ?? null,
+              directorAppointedOn: dto.directorAppointedOn ? parsePayrollDateOnly(dto.directorAppointedOn) : null,
+              directorNicMethod: dto.directorNicMethod ?? null,
+              pensionStatus: dto.pensionStatus ?? null,
+              pensionEnrolledFrom: dto.pensionEnrolledFrom ? parsePayrollDateOnly(dto.pensionEnrolledFrom) : null,
+              pensionContributionBasis: dto.pensionContributionBasis ?? null,
+              pensionTaxRelief: dto.pensionTaxRelief ?? null,
+              pensionEmployeeRatePercent: dto.pensionEmployeeRatePercent ?? null,
+              pensionEmployerRatePercent: dto.pensionEmployerRatePercent ?? null,
+              pensionPolicyRef: dto.pensionPolicyRef?.trim() || null,
+              loanDeclarationStatus: dto.loanDeclarationStatus ?? null,
+              loanDeclarationSource: dto.loanDeclarationSource ?? null,
+              loanDeclarationDate: dto.loanDeclarationDate ? parsePayrollDateOnly(dto.loanDeclarationDate) : null,
+              pensionUkWorker: dto.pensionUkWorker ?? null,
+              statePensionAgeDate: dto.statePensionAgeDate ? parsePayrollDateOnly(dto.statePensionAgeDate) : null,
+              bankSortCode: dto.bankSortCode?.trim() || null,
+              bankAccountNumber: dto.bankAccountNumber?.trim() || null,
+              bankAccountName: dto.bankAccountName?.trim() || null,
+              notes: dto.notes?.trim() || null,
+              createdById: userId,
+              updatedById: userId,
+            },
+          });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: existing
+          ? AuditAction.PAYROLL_EMPLOYEE_PROFILE_UPDATED
+          : AuditAction.PAYROLL_EMPLOYEE_PROFILE_CREATED,
+        recordType: 'EmployeePayrollProfile',
+        recordId: saved.id,
+        oldValues: existing ? mapProfile(existing) : undefined,
+        newValues: mapProfile(saved),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return saved;
     });
 
     const assessment = assessEmployeeRti(employee, {
@@ -420,13 +523,341 @@ export class PayrollEmployeesService {
     };
   }
 
+  /**
+   * Gate C13: record an HMRC loan start/stop notice with its audit entry, in one transaction. The
+   * same reference again is not recorded twice; the notice cannot apply before it was received
+   * or before its own date (deductions are not backdated).
+   */
+  async recordLoanNotice(userId: string, employeeId: string, dto: RecordLoanNoticeDto, meta?: RequestAuditMeta) {
+    await this.requireEmployeeWithIdentity(employeeId);
+    const fields = this.loanNoticeFields(employeeId, dto);
+    const { noticeDate, receivedOn, effectivePayday, hmrcReference, plan } = fields;
+    const same = await this.prisma.employeeLoanNotice.findFirst({
+      where: hmrcReference
+        ? { employeeId, noticeType: dto.noticeType, hmrcReference, voidedAt: null }
+        : { employeeId, noticeType: dto.noticeType, hmrcReference: null, noticeDate, receivedOn, studentLoanPlan: plan, voidedAt: null },
+    });
+    if (same) {
+      const identical =
+        same.studentLoanPlan === plan &&
+        same.noticeDate.getTime() === noticeDate.getTime() &&
+        same.receivedOn.getTime() === receivedOn.getTime() &&
+        same.effectivePayday.getTime() === effectivePayday.getTime();
+      if (!identical) {
+        throw new ConflictException(`A ${dto.noticeType} notice with this reference is already recorded with different details`);
+      }
+      return { message: 'Notice already recorded', duplicate: true, data: mapLoanNotice(same) };
+    }
+    const row = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.employeeLoanNotice.create({ data: { ...fields.data, createdById: userId } });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_LOAN_NOTICE_RECORDED,
+        recordType: 'EmployeeLoanNotice',
+        recordId: saved.id,
+        newValues: mapLoanNotice(saved),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return saved;
+    });
+    return { message: 'Notice recorded', duplicate: false, data: mapLoanNotice(row) };
+  }
+
+  /** The checked, stored form of a loan notice (shared by recording and correcting). */
+  private loanNoticeFields(employeeId: string, dto: RecordLoanNoticeDto) {
+    if (dto.noticeType === 'SL1' && !dto.studentLoanPlan) {
+      throw new BadRequestException('An SL1 notice needs the student loan plan (1, 2, 4 or 5) it states');
+    }
+    if (dto.noticeType !== 'SL1' && dto.studentLoanPlan) {
+      throw new BadRequestException(`A ${dto.noticeType} notice does not carry a student loan plan`);
+    }
+    const noticeDate = parsePayrollDateOnly(dto.noticeDate);
+    const receivedOn = parsePayrollDateOnly(dto.receivedOn);
+    const effectivePayday = parsePayrollDateOnly(dto.effectivePayday);
+    if (effectivePayday < receivedOn || effectivePayday < noticeDate) {
+      throw new BadRequestException(
+        'The effective payday cannot be before the notice was received or before the date on the notice: deductions are not backdated',
+      );
+    }
+    const hmrcReference = dto.hmrcReference?.trim() || null;
+    const plan = dto.noticeType === 'SL1' ? dto.studentLoanPlan! : null;
+    return {
+      noticeDate,
+      receivedOn,
+      effectivePayday,
+      hmrcReference,
+      plan,
+      data: {
+        employeeId,
+        noticeType: dto.noticeType,
+        studentLoanPlan: plan,
+        hmrcReference,
+        noticeDate,
+        receivedOn,
+        effectivePayday,
+        notes: dto.notes?.trim() || null,
+        activeReferenceKey: hmrcReference ? `${employeeId}|${dto.noticeType}|${hmrcReference}` : null,
+      },
+    };
+  }
+
+  /**
+   * Gate C15: correct a notice entered wrongly in Careflow: void the local record (it stays, with
+   * who, when, why and the evidence) and optionally record the correct notice in its place, in one
+   * transaction with its audit entry. Refused when a closed payroll was paid on or after the
+   * payday either notice applies from (that needs a payroll correction); open runs calculated on
+   * it are set back to "gross calculated", so they cannot close without recalculating.
+   */
+  async correctLoanNotice(userId: string, employeeId: string, noticeId: string, dto: CorrectLoanNoticeDto, meta?: RequestAuditMeta) {
+    const original = await this.prisma.employeeLoanNotice.findFirst({ where: { id: noticeId, employeeId } });
+    if (!original) throw new NotFoundException('Loan notice not found');
+    const reason = dto.reason.trim();
+    const evidenceReference = dto.evidenceReference.trim();
+    if (original.voidedAt) {
+      if (original.voidReason === reason && original.voidEvidenceRef === evidenceReference) {
+        const replacement = original.replacedById
+          ? await this.prisma.employeeLoanNotice.findUnique({ where: { id: original.replacedById } })
+          : null;
+        return {
+          message: 'This correction was already recorded',
+          duplicate: true,
+          data: { original: mapLoanNotice(original), replacement: replacement ? mapLoanNotice(replacement) : null },
+        };
+      }
+      throw new ConflictException('This notice has already been corrected');
+    }
+    const fields = dto.replacement ? this.loanNoticeFields(employeeId, dto.replacement) : null;
+    const from = new Date(
+      Math.min(original.effectivePayday.getTime(), fields ? fields.effectivePayday.getTime() : Number.POSITIVE_INFINITY),
+    );
+    const affected = await this.prisma.ukPayrollRunEmployee.findMany({
+      where: { employeeId, run: { status: { not: 'CANCELLED' }, deletedAt: null } },
+      select: {
+        runId: true,
+        statutoryCalculatedAt: true,
+        run: { select: { status: true, label: true, period: { select: { paymentDate: true, periodEnd: true } } } },
+      },
+    });
+    const paidFrom = affected.filter((r) => (r.run.period.paymentDate ?? r.run.period.periodEnd) >= from);
+    const closed = paidFrom.filter((r) => r.run.status === 'CLOSED');
+    if (closed.length) {
+      throw new ConflictException(
+        `This notice affects closed payroll (${closed.map((r) => r.run.label).join(', ')}). The notice cannot be corrected here: a separate payroll correction is needed.`,
+      );
+    }
+    const stale = [...new Set(paidFrom.filter((r) => r.statutoryCalculatedAt).map((r) => r.runId))];
+    const now = new Date();
+    const result = await this.prisma.$transaction(async (tx) => {
+      const voided = await tx.employeeLoanNotice.update({
+        where: { id: original.id },
+        data: { voidedAt: now, voidedById: userId, voidReason: reason, voidEvidenceRef: evidenceReference, activeReferenceKey: null },
+      });
+      let replacement: typeof voided | null = null;
+      if (fields) {
+        replacement = await tx.employeeLoanNotice.create({ data: { ...fields.data, replacesId: original.id, createdById: userId } });
+        await tx.employeeLoanNotice.update({ where: { id: original.id }, data: { replacedById: replacement.id } });
+      }
+      // Open runs calculated on the old instruction must be recalculated before they can close.
+      if (stale.length) {
+        await tx.ukPayrollRun.updateMany({
+          where: { id: { in: stale }, status: 'STATUTORY_CALCULATED' },
+          data: { status: 'GROSS_CALCULATED', statutoryCalculatedAt: null, statutoryBasis: null, updatedById: userId },
+        });
+        await tx.ukPayrollRunEmployee.updateMany({ where: { runId: { in: stale }, employeeId }, data: { statutoryCalculatedAt: null } });
+      }
+      const final = { ...voided, replacedById: replacement?.id ?? null };
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_LOAN_NOTICE_CORRECTED,
+        recordType: 'EmployeeLoanNotice',
+        recordId: original.id,
+        oldValues: mapLoanNotice(original),
+        newValues: {
+          voided: mapLoanNotice(final),
+          replacement: replacement ? mapLoanNotice(replacement) : null,
+          runsToRecalculate: stale,
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return { original: final, replacement };
+    });
+    return {
+      message: result.replacement ? 'Notice corrected' : 'Notice marked as recorded in error',
+      duplicate: false,
+      runsToRecalculate: stale,
+      data: { original: mapLoanNotice(result.original), replacement: result.replacement ? mapLoanNotice(result.replacement) : null },
+    };
+  }
+
+  async listLoanNotices(employeeId: string) {
+    const rows = await this.prisma.employeeLoanNotice.findMany({
+      where: { employeeId },
+      orderBy: [{ effectivePayday: 'asc' }, { createdAt: 'asc' }],
+    });
+    return { data: rows.map(mapLoanNotice) };
+  }
+
   async listAgreements(employeeId: string) {
     await this.requireEmployee(employeeId);
     const rows = await this.prisma.employeePayAgreement.findMany({
       where: { employeeId, deletedAt: null },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
-    return { message: 'Pay agreements', data: rows.map(mapAgreement) };
+    const ids = [...new Set(rows.flatMap((r) => [r.createdById, r.approvedById]).filter((v): v is string => !!v))];
+    const users = ids.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const names = new Map(
+      users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
+    );
+    const salaryInEffect = rows.some((r) => r.status !== 'DRAFT' && this.rowCarriesSalary(r));
+    return {
+      message: 'Pay agreements',
+      data: rows.map((r) => ({
+        ...mapAgreement(r),
+        createdByName: r.createdById ? (names.get(r.createdById) ?? null) : null,
+        approvedByName: r.approvedById ? (names.get(r.approvedById) ?? null) : null,
+        // A draft that carries a salary, or replaces one, takes effect only when a second person approves it.
+        awaitingApproval: r.status === 'DRAFT' && (this.rowCarriesSalary(r) || salaryInEffect),
+      })),
+    };
+  }
+
+  /** Pay terms that only a second person can put into effect: a salary, or a paid guarantee of hours. */
+  private rowCarriesSalary(row: {
+    basis: string;
+    annualSalary: Prisma.Decimal | number | null;
+    guaranteeTopUp?: string | null;
+  }) {
+    return (
+      carriesSalary({
+        basis: row.basis,
+        annualSalary: row.annualSalary == null ? null : Number(row.annualSalary),
+      }) || row.guaranteeTopUp === 'PAY_SHORTFALL'
+    );
+  }
+
+  /**
+   * The pay terms of an agreement, checked. A salary may be entered per year, per month or per
+   * week; the yearly figure is what is stored and calculated from. A salary states how a part
+   * period is paid and what work it already pays for: neither is assumed.
+   */
+  private agreementTermsFrom(input: {
+    basis: string;
+    annualSalary: number | null;
+    salaryEntryPeriod: string | null;
+    salaryEntryAmount: number | null;
+    contractedHours: number | null;
+    salaryProrationMethod: string | null;
+    salaryCoverage: string | null;
+    guaranteedWeeklyHours: number | null;
+    guaranteeTopUp: string | null;
+    guaranteeQualifyingTime: string | null;
+    guaranteeLeaveTreatment: string | null;
+  }) {
+    const entryPeriod = (input.salaryEntryPeriod ?? 'ANNUAL') as SalaryEntryPeriod;
+    const entryAmount = input.salaryEntryAmount ?? (entryPeriod === 'ANNUAL' ? input.annualSalary : null);
+    const annualSalary = entryAmount == null ? input.annualSalary : annualSalaryFromEntry(entryPeriod, entryAmount);
+    const salaried = input.basis === 'SALARIED' || input.basis === 'HYBRID';
+
+    // A guarantee of hours is stated, never assumed: with no top-up chosen it is recorded only.
+    const guaranteePaid = input.guaranteeTopUp === 'PAY_SHORTFALL';
+    if (guaranteePaid && salaried) {
+      throw new BadRequestException(
+        'A guaranteed hours top-up applies to hourly pay. A salary already pays for the hours it covers.',
+      );
+    }
+    if (guaranteePaid && !((input.guaranteedWeeklyHours ?? 0) > 0)) {
+      throw new BadRequestException('Enter the guaranteed weekly hours before choosing to pay the shortfall.');
+    }
+    if (guaranteePaid && !input.guaranteeQualifyingTime) {
+      throw new BadRequestException('Choose what counts towards the guaranteed hours.');
+    }
+    const guarantee = {
+      guaranteedWeeklyHours:
+        input.guaranteedWeeklyHours == null ? null : new Prisma.Decimal(input.guaranteedWeeklyHours),
+      guaranteeTopUp: guaranteePaid ? 'PAY_SHORTFALL' : null,
+      guaranteeQualifyingTime: guaranteePaid ? input.guaranteeQualifyingTime : null,
+      guaranteeLeaveTreatment: guaranteePaid ? input.guaranteeLeaveTreatment : null,
+    };
+
+    if (!salaried) {
+      if ((annualSalary ?? 0) > 0) {
+        throw new BadRequestException(
+          'An hourly agreement does not carry a salary. Choose Salaried, or Hybrid for a salary with separately paid visit work.',
+        );
+      }
+      return {
+        annualSalary: null,
+        salaryEntryPeriod: null,
+        salaryEntryAmount: null,
+        salaryProrationMethod: null,
+        salaryCoverage: null,
+        ...guarantee,
+      };
+    }
+    if (!((annualSalary ?? 0) > 0)) {
+      throw new BadRequestException('Enter the salary: an amount per year, per month or per week.');
+    }
+    if (!input.salaryProrationMethod) {
+      throw new BadRequestException(
+        'Choose how a part period is paid (a starter, a leaver or a change part way through a pay period).',
+      );
+    }
+    if (!input.salaryCoverage) {
+      throw new BadRequestException(
+        'Choose what work the salary already pays for, so visit wages are not paid again on top of it.',
+      );
+    }
+    if (input.salaryCoverage === 'CONTRACTED_HOURS' && !((input.contractedHours ?? 0) > 0)) {
+      throw new BadRequestException(
+        'Enter the contracted weekly hours: the salary pays for visit work up to them, and work beyond them is paid separately.',
+      );
+    }
+    return {
+      annualSalary: new Prisma.Decimal(annualSalary as number),
+      salaryEntryPeriod: entryPeriod,
+      salaryEntryAmount: new Prisma.Decimal(entryAmount as number),
+      salaryProrationMethod: input.salaryProrationMethod,
+      salaryCoverage: input.salaryCoverage,
+      ...guarantee,
+    };
+  }
+
+  /** An agreement that carries a salary, or replaces one in effect, needs a second person. */
+  private async needsApproval(employeeId: string, salaried: boolean, exceptId?: string) {
+    if (salaried) return true;
+    const others = await this.prisma.employeePayAgreement.findMany({
+      where: { employeeId, deletedAt: null, status: { not: 'DRAFT' }, id: exceptId ? { not: exceptId } : undefined },
+      select: { basis: true, annualSalary: true, guaranteeTopUp: true },
+    });
+    return others.some((r) => this.rowCarriesSalary(r));
+  }
+
+  /** Agreements this one replaces from its start date. A later-dated one stays as it is. */
+  private supersedeEarlier(
+    tx: Prisma.TransactionClient,
+    input: { employeeId: string; effectiveFrom: Date; userId: string; exceptId?: string },
+  ) {
+    return tx.employeePayAgreement.updateMany({
+      where: {
+        employeeId: input.employeeId,
+        deletedAt: null,
+        status: 'ACTIVE',
+        effectiveFrom: { lte: input.effectiveFrom },
+        id: input.exceptId ? { not: input.exceptId } : undefined,
+      },
+      data: { status: 'SUPERSEDED', updatedById: input.userId },
+    });
   }
 
   async createAgreement(
@@ -445,15 +876,30 @@ export class PayrollEmployeesService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
-    const status = dto.status ?? 'DRAFT';
+    const terms = this.agreementTermsFrom({
+      basis: dto.basis,
+      annualSalary: dto.annualSalary ?? null,
+      salaryEntryPeriod: dto.salaryEntryPeriod ?? null,
+      salaryEntryAmount: dto.salaryEntryAmount ?? null,
+      contractedHours: dto.contractedHours ?? null,
+      salaryProrationMethod: dto.salaryProrationMethod ?? null,
+      salaryCoverage: dto.salaryCoverage ?? null,
+      guaranteedWeeklyHours: dto.guaranteedWeeklyHours ?? null,
+      guaranteeTopUp: dto.guaranteeTopUp ?? null,
+      guaranteeQualifyingTime: dto.guaranteeQualifyingTime ?? null,
+      guaranteeLeaveTreatment: dto.guaranteeLeaveTreatment ?? null,
+    });
+    const awaitingApproval = await this.needsApproval(
+      employeeId,
+      terms.annualSalary != null || terms.guaranteeTopUp != null,
+    );
+    // A salary, or the end of one, takes effect only when a second person approves the agreement.
+    const status = awaitingApproval ? 'DRAFT' : (dto.status ?? 'DRAFT');
     const row = await this.prisma.$transaction(async (tx) => {
       if (status === 'ACTIVE') {
-        await tx.employeePayAgreement.updateMany({
-          where: { employeeId, deletedAt: null, status: 'ACTIVE' },
-          data: { status: 'SUPERSEDED', updatedById: userId },
-        });
+        await this.supersedeEarlier(tx, { employeeId, effectiveFrom, userId });
       }
-      return tx.employeePayAgreement.create({
+      const created = await tx.employeePayAgreement.create({
         data: {
           employeeId,
           scheduleId: dto.scheduleId ?? null,
@@ -462,8 +908,7 @@ export class PayrollEmployeesService {
           effectiveFrom,
           effectiveTo,
           payCardId: dto.payCardId ?? null,
-          annualSalary:
-            dto.annualSalary == null ? null : new Prisma.Decimal(dto.annualSalary),
+          ...terms,
           contractedHours:
             dto.contractedHours == null ? null : new Prisma.Decimal(dto.contractedHours),
           hourlyRateOverride:
@@ -475,20 +920,78 @@ export class PayrollEmployeesService {
           updatedById: userId,
         },
       });
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_CREATED,
+        recordType: 'EmployeePayAgreement',
+        recordId: created.id,
+        newValues: mapAgreement(created),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return created;
     });
 
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_PAY_AGREEMENT_CREATED,
-      recordType: 'EmployeePayAgreement',
-      recordId: row.id,
-      newValues: mapAgreement(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+    return {
+      message: awaitingApproval
+        ? 'Pay agreement saved. It takes effect when a second person approves it.'
+        : 'Pay agreement created',
+      data: { ...mapAgreement(row), awaitingApproval },
+    };
+  }
+
+  /**
+   * A second person puts an agreement into effect. It then applies from its start date, replacing
+   * the agreements that started on or before that date; they stay as history.
+   */
+  async approveAgreement(userId: string, agreementId: string, meta?: RequestAuditMeta) {
+    const existing = await this.prisma.employeePayAgreement.findFirst({
+      where: { id: agreementId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundException('Pay agreement not found');
+    if (existing.status !== 'DRAFT') {
+      throw new BadRequestException('Only an agreement that is not yet in effect can be approved.');
+    }
+    const message = 'A pay agreement is approved by a different person from the one who entered or last changed it.';
+    assertDifferentUser(existing.createdById, userId, message);
+    assertDifferentUser(existing.updatedById, userId, message);
+
+    const now = new Date();
+    const row = await this.prisma.$transaction(async (tx) => {
+      const approved = await tx.employeePayAgreement.updateMany({
+        where: { id: agreementId, status: 'DRAFT', deletedAt: null },
+        data: { status: 'ACTIVE', approvedById: userId, approvedAt: now, termsChangedAt: now },
+      });
+      if (approved.count !== 1) {
+        throw new ConflictException('This agreement was changed by someone else. Reload and try again.');
+      }
+      await this.supersedeEarlier(tx, {
+        employeeId: existing.employeeId,
+        effectiveFrom: existing.effectiveFrom,
+        userId,
+        exceptId: agreementId,
+      });
+      const approvedRow = await tx.employeePayAgreement.findUniqueOrThrow({ where: { id: agreementId } });
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_APPROVED,
+        recordType: 'EmployeePayAgreement',
+        recordId: approvedRow.id,
+        oldValues: mapAgreement(existing),
+        newValues: mapAgreement(approvedRow),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return approvedRow;
     });
 
-    return { message: 'Pay agreement created', data: mapAgreement(row) };
+    return { message: 'Pay agreement approved. It applies from its start date.', data: mapAgreement(row) };
   }
 
   async updateAgreement(
@@ -518,19 +1021,94 @@ export class PayrollEmployeesService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
+    const num = (v: Prisma.Decimal | null) => (v == null ? null : Number(v));
+    const pick = <T,>(next: T | undefined, current: T) => (next === undefined ? current : next);
+    const basis = dto.basis ?? existing.basis;
+    // A salary entered again in one form replaces the other form.
+    const entryGiven = dto.salaryEntryAmount !== undefined || dto.salaryEntryPeriod !== undefined;
+    const annualGiven = dto.annualSalary !== undefined;
+    const terms = this.agreementTermsFrom({
+      basis,
+      annualSalary: annualGiven ? (dto.annualSalary ?? null) : entryGiven ? null : num(existing.annualSalary),
+      salaryEntryPeriod: entryGiven
+        ? (dto.salaryEntryPeriod ?? existing.salaryEntryPeriod)
+        : annualGiven
+          ? 'ANNUAL'
+          : existing.salaryEntryPeriod,
+      salaryEntryAmount: entryGiven
+        ? pick(dto.salaryEntryAmount, num(existing.salaryEntryAmount))
+        : annualGiven
+          ? null
+          : num(existing.salaryEntryAmount),
+      contractedHours: pick(dto.contractedHours, num(existing.contractedHours)),
+      salaryProrationMethod: pick(dto.salaryProrationMethod, existing.salaryProrationMethod),
+      salaryCoverage: pick(dto.salaryCoverage, existing.salaryCoverage),
+      guaranteedWeeklyHours: pick(dto.guaranteedWeeklyHours, num(existing.guaranteedWeeklyHours)),
+      guaranteeTopUp: pick(dto.guaranteeTopUp, existing.guaranteeTopUp),
+      guaranteeQualifyingTime: pick(dto.guaranteeQualifyingTime, existing.guaranteeQualifyingTime),
+      guaranteeLeaveTreatment: pick(dto.guaranteeLeaveTreatment, existing.guaranteeLeaveTreatment),
+    });
+    const approvedTerms = terms.annualSalary != null || terms.guaranteeTopUp != null;
+
+    const inEffect = existing.status !== 'DRAFT';
+    const salaryInvolved = this.rowCarriesSalary(existing) || approvedTerms;
+    let termsChangedAt: Date | undefined;
+    if (inEffect && salaryInvolved) {
+      // Pay terms in effect are history: they are not rewritten. Only the end of the agreement
+      // (and a note) can be recorded on it; a different salary is a new agreement.
+      const termKeys = [
+        'basis',
+        'effectiveFrom',
+        'annualSalary',
+        'salaryEntryPeriod',
+        'salaryEntryAmount',
+        'contractedHours',
+        'salaryProrationMethod',
+        'salaryCoverage',
+        'guaranteedWeeklyHours',
+        'guaranteeTopUp',
+        'guaranteeQualifyingTime',
+        'guaranteeLeaveTreatment',
+        'hourlyRateOverride',
+        'payCardId',
+        'scheduleId',
+      ] as const;
+      if (termKeys.some((k) => dto[k] !== undefined)) {
+        throw new BadRequestException(
+          'The pay terms of an agreement in effect are not edited. Add a new agreement from the date the change applies; this one stays as history.',
+        );
+      }
+      if (dto.status !== undefined && dto.status !== existing.status && dto.status !== 'TERMINATED') {
+        throw new BadRequestException('An agreement in effect can only be ended.');
+      }
+      if (dto.status === 'TERMINATED' && !effectiveTo) {
+        throw new BadRequestException('Enter the last day the agreement applies to before ending it.');
+      }
+      const endChanged = (effectiveTo?.getTime() ?? null) !== (existing.effectiveTo?.getTime() ?? null);
+      if (endChanged || (dto.status === 'TERMINATED' && existing.status !== 'TERMINATED')) {
+        termsChangedAt = new Date();
+      }
+    } else if (
+      !inEffect &&
+      dto.status !== undefined &&
+      dto.status !== 'DRAFT' &&
+      (await this.needsApproval(existing.employeeId, approvedTerms, agreementId))
+    ) {
+      throw new BadRequestException(
+        'This agreement carries a salary or a paid guarantee of hours, or replaces one. A second person approves it; it cannot be put into effect by editing it.',
+      );
+    }
+
     const row = await this.prisma.$transaction(async (tx) => {
-      if (dto.status === 'ACTIVE') {
-        await tx.employeePayAgreement.updateMany({
-          where: {
-            employeeId: existing.employeeId,
-            deletedAt: null,
-            status: 'ACTIVE',
-            id: { not: agreementId },
-          },
-          data: { status: 'SUPERSEDED', updatedById: userId },
+      if (dto.status === 'ACTIVE' && existing.status !== 'ACTIVE') {
+        await this.supersedeEarlier(tx, {
+          employeeId: existing.employeeId,
+          effectiveFrom,
+          userId,
+          exceptId: agreementId,
         });
       }
-      return tx.employeePayAgreement.update({
+      const updated = await tx.employeePayAgreement.update({
         where: { id: agreementId },
         data: {
           scheduleId: dto.scheduleId === undefined ? undefined : dto.scheduleId,
@@ -539,12 +1117,7 @@ export class PayrollEmployeesService {
           effectiveFrom: dto.effectiveFrom ? effectiveFrom : undefined,
           effectiveTo: dto.effectiveTo === undefined ? undefined : effectiveTo,
           payCardId: dto.payCardId === undefined ? undefined : dto.payCardId,
-          annualSalary:
-            dto.annualSalary === undefined
-              ? undefined
-              : dto.annualSalary == null
-                ? null
-                : new Prisma.Decimal(dto.annualSalary),
+          ...(inEffect && salaryInvolved ? {} : terms),
           contractedHours:
             dto.contractedHours === undefined
               ? undefined
@@ -558,21 +1131,24 @@ export class PayrollEmployeesService {
                 ? null
                 : new Prisma.Decimal(dto.hourlyRateOverride),
           notes: dto.notes === undefined ? undefined : dto.notes?.trim() || null,
+          termsChangedAt,
           updatedById: userId,
         },
       });
-    });
-
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.PAYROLL,
-      action: AuditAction.PAYROLL_PAY_AGREEMENT_UPDATED,
-      recordType: 'EmployeePayAgreement',
-      recordId: row.id,
-      oldValues: mapAgreement(existing),
-      newValues: mapAgreement(row),
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
+      // In the transaction: the agreement and its audit entry are saved together or not at all.
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.PAYROLL_PAY_AGREEMENT_UPDATED,
+        recordType: 'EmployeePayAgreement',
+        recordId: updated.id,
+        oldValues: mapAgreement(existing),
+        newValues: mapAgreement(updated),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return updated;
     });
 
     return { message: 'Pay agreement updated', data: mapAgreement(row) };

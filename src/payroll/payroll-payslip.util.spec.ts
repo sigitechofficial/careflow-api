@@ -143,3 +143,110 @@ describe('payroll-payslip.util', () => {
     expect(payslipPdfFilename(slip)).toBe('payslip-jane-carer-20260430-11111111.pdf')
   })
 })
+
+describe('TR-13: reimbursements on the pay statement', () => {
+  const withRunEmployee = (over: Record<string, number>) => {
+    const base = baseInput()
+    return buildCarePayslipData({ ...base, runEmployee: { ...base.runEmployee, ...over } })
+  }
+
+  it('mileage paid with the run is shown apart from wages, with the total payable', () => {
+    const data = withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41, netPay: 154 })
+    expect(data.totals).toMatchObject({ netPay: 154, expenseTotal: 3.41, reimbursement: 3.41, totalPayable: 157.41 })
+    // Gross taxable pay is not changed by the reimbursement.
+    expect(data.totals.grossPay).toBe(840)
+    expect(data.notes).toContain(
+      'Mileage and expenses of GBP 3.41 are reimbursed with this payment. They are not wages and are not part of gross taxable pay; total payable is GBP 157.41.',
+    )
+  })
+
+  it('a run from before reimbursements were paid through payouts keeps its old wording', () => {
+    const data = withRunEmployee({ expenseTotal: 12.5 })
+    expect(data.totals).toMatchObject({ reimbursement: 0, totalPayable: 739.4 })
+    expect(data.notes.some((n) => n.includes('Expenses of GBP 12.50 are tracked separately'))).toBe(true)
+  })
+
+  it('says when the tax treatment of mileage has not been verified', () => {
+    const data = withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41, expenseNotVerified: 3.41 })
+    expect(data.totals.expenseNotVerified).toBe(3.41)
+    expect(data.notes).toContain(
+      'The tax treatment of GBP 3.41 of mileage has not been verified against HMRC approved amounts for the period.',
+    )
+    expect(withRunEmployee({ expenseTotal: 3.41, reimbursementPayable: 3.41 }).notes.some((n) => n.includes('not been verified'))).toBe(false)
+  })
+
+  /**
+   * Gate C19: the stored C11-C16 figures on the payslip. £3,000 salary, PAYE £390.20, NI £156.16 /
+   * £387.45, Plan 2 £49, postgraduate £75, pension (relief at source) £99.20 from pay, £124.00
+   * gross, £24.80 relief, £74.40 employer: net £2,205.44.
+   */
+  describe('student loans and workplace pension on the payslip (Gate C19)', () => {
+    const stored = {
+      visitPay: 0,
+      salaryPay: 3000,
+      travelPay: 0,
+      expenseTotal: 0,
+      totalGross: 3000,
+      taxablePay: 1951,
+      incomeTax: 390.2,
+      employeeNi: 156.16,
+      employerNi: 387.45,
+      studentLoanPlanApplied: '2',
+      studentLoanDeduction: 49,
+      postgraduateLoanApplied: true,
+      postgraduateLoanDeduction: 75,
+      pensionApplied: true,
+      pensionEmployeeNet: 99.2,
+      pensionEmployeeGross: 124,
+      pensionTaxRelief: 24.8,
+      pensionEmployer: 74.4,
+      netPay: 2230.44,
+    }
+    const slip = (over: Record<string, unknown> = {}) => {
+      const base = baseInput()
+      return buildCarePayslipData({ ...base, runEmployee: { ...base.runEmployee, ...stored, ...over } })
+    }
+
+    it('Student Loan Plan 2 and the Postgraduate Loan are separate deductions', () => {
+      const data = slip()
+      expect(data.deductions.map((d) => [d.label, d.amount])).toEqual([
+        ['Income Tax (PAYE)', 390.2],
+        ['National Insurance (employee)', 156.16],
+        ['Student Loan (Plan 2)', 49],
+        ['Postgraduate Loan', 75],
+        ['Workplace pension (employee, relief at source)', 99.2],
+      ])
+      // A calculated zero is shown; no plan applied shows no line.
+      expect(slip({ studentLoanDeduction: 0, netPay: 2279.44 }).deductions.find((d) => d.label === 'Student Loan (Plan 2)')?.amount).toBe(0)
+      expect(slip({ studentLoanPlanApplied: 'NONE', studentLoanDeduction: 0, netPay: 2279.44 }).deductions.some((d) => d.label.startsWith('Student Loan'))).toBe(false)
+      expect(data.notes.some((n) => n.includes('not calculated in Care yet'))).toBe(false)
+    })
+
+    it('relief at source: £99.20 deducted once; employer £74.40, gross £124.00 and relief £24.80 shown for information only', () => {
+      const data = slip()
+      expect(data.pensionInformation.map((d) => [d.label, d.amount, d.isDeduction])).toEqual([
+        ['Employer pension contribution', 74.4, false],
+        ['Gross employee pension contribution', 124, false],
+        ['Basic-rate tax relief claimed by the pension provider', 24.8, false],
+      ])
+      expect(data.deductions.filter((d) => d.label.includes('pension'))).toHaveLength(1)
+      expect(data.totals).toMatchObject({ grossPay: 3000, totalDeductions: 769.56, netPay: 2230.44 })
+      expect(data.employerCosts.map((c) => c.label)).toEqual(['National Insurance (employer)']) // not a deduction
+      expect(data.reconciliation).toEqual({ ok: true, expectedNetPay: 2230.44, storedNetPay: 2230.44 })
+      // Built again from the same row: the same figures, nothing added twice.
+      expect(slip()).toEqual({ ...data, meta: { ...data.meta } })
+    })
+
+    it('a row from before loans and pensions were recorded says so instead of showing zeros; a stored net pay that does not agree is flagged', () => {
+      const legacy = buildCarePayslipData(baseInput()) // no C11-C16 fields: an old closed run
+      expect(legacy.deductions.some((d) => /Student Loan|Postgraduate|pension/.test(d.label))).toBe(false)
+      expect(legacy.pensionInformation).toEqual([])
+      expect(legacy.notes).toContain(
+        'Historical detail unavailable: this run was calculated before student loan, postgraduate loan, workplace pension figures were recorded. They are not shown and are not assumed to be zero.',
+      )
+      expect(legacy.reconciliation.ok).toBe(true) // 840 − 68.20 − 32.40 = 739.40
+      const wrong = slip({ netPay: 2329.64 }) // as if the pension had not been deducted
+      expect(wrong.reconciliation).toEqual({ ok: false, expectedNetPay: 2230.44, storedNetPay: 2329.64 })
+    })
+  })
+})

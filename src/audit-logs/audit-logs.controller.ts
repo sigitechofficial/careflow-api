@@ -13,6 +13,12 @@ import { DataAccessLogQueryDto } from './dto/data-access-log-query.dto';
 import { ExportLogQueryDto } from './dto/export-log-query.dto';
 import { AUDIT_EVENT_TYPE_VALUES } from './enums/audit-event-type.enum';
 import { auditEventTypeLabel } from './audit-event-type.util';
+import { AuditModule } from './enums/audit-module.enum';
+import { hasOrganisationPayrollScope } from '../common/guards/payroll-scope.guard';
+
+/** Pay and payroll audit entries span every branch: hidden from a branch-limited user (SI-10). */
+const payAuditModulesHiddenFrom = (user: RequestUser): string[] =>
+  hasOrganisationPayrollScope(user) ? [] : [AuditModule.BILLING, AuditModule.PAYROLL];
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -24,8 +30,8 @@ export class AuditLogsController {
   @Get()
   @Permissions('audit_logs.read')
   @ApiOperation({ summary: 'List immutable audit log entries' })
-  async list(@Query() query: AuditLogQueryDto) {
-    return this.auditLogsService.findAuditLogs(query);
+  async list(@CurrentUser() user: RequestUser, @Query() query: AuditLogQueryDto) {
+    return this.auditLogsService.findAuditLogs(query, { excludeModules: payAuditModulesHiddenFrom(user) });
   }
 
   @Delete()
@@ -85,7 +91,7 @@ export class AuditLogsController {
   @Get(':id')
   @Permissions('audit_logs.read')
   @ApiOperation({ summary: 'Get a single audit log by id' })
-  async getById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.auditLogsService.findAuditLogById(id);
+  async getById(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.auditLogsService.findAuditLogById(id, { excludeModules: payAuditModulesHiddenFrom(user) });
   }
 }

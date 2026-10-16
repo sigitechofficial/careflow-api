@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   Prisma,
@@ -26,6 +26,7 @@ import { AuditEventType } from '@prisma/client';
 import { AuditModule } from './enums/audit-module.enum';
 import { AuditAction } from './enums/audit-action.enum';
 import { SecurityEventType } from './enums/security-event.enum';
+import { assertFinancialResetEnvironment } from '../billing/financial-controls.util';
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -200,6 +201,8 @@ export class AuditLogsService {
     return changed;
   }
 
+  private readonly auditFailures = new Logger('AuditLog');
+
   private db(tx?: Prisma.TransactionClient): Db {
     return tx ?? this.prisma;
   }
@@ -211,7 +214,8 @@ export class AuditLogsService {
       params.metadata,
       params.eventType,
     );
-    return client.auditLog.create({
+    return client.auditLog
+      .create({
       data: {
         userId: params.userId ?? undefined,
         module: params.module,
@@ -236,7 +240,34 @@ export class AuditLogsService {
         userAgent: params.userAgent ?? undefined,
         status: params.status ?? AuditStatus.SUCCESS,
       },
-    });
+      })
+      .catch((error: unknown) => {
+        throw this.auditWriteFailure(error, params);
+      });
+  }
+
+  /**
+   * An audit entry that cannot be written is never skipped: the failure is logged and the caller
+   * gets an error it can answer with. Inside a transaction that error rolls the change back with
+   * it. The usual cause is a user who no longer exists (a session left over from a deleted
+   * account): that is answered as "not signed in", not as a server fault.
+   */
+  private auditWriteFailure(error: unknown, params: LogAuditParams) {
+    const staleUser =
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2003' &&
+      String((error.meta as { constraint?: unknown } | undefined)?.constraint ?? error.message).includes('userId');
+    this.auditFailures.error(
+      `Audit entry not written (${params.module}/${params.action}, record ${params.recordType ?? '-'} ${params.recordId ?? '-'}, ` +
+        `user ${params.userId ?? '-'}): ${staleUser ? 'the user no longer exists' : error instanceof Error ? error.message.split('\n').pop() : 'unknown error'}` +
+        (params.tx ? '. The change was rolled back.' : ''),
+    );
+    if (staleUser) return new UnauthorizedException('Your account is no longer active. Sign in again.');
+    return new InternalServerErrorException(
+      params.tx
+        ? 'The change was not saved because its audit entry could not be written. Try again.'
+        : 'The action could not be recorded in the audit log.',
+    );
   }
 
   async logLogin(params: LogLoginParams) {
@@ -405,11 +436,17 @@ export class AuditLogsService {
     return { OR: or };
   }
 
-  async findAuditLogs(query: AuditLogQueryDto) {
+  /**
+   * `excludeModules`: modules the caller may not read. Pay and payroll entries are organisation
+   * wide (they name runs, amounts and approvers across branches), so a branch-limited user does
+   * not see them (SI-10).
+   */
+  async findAuditLogs(query: AuditLogQueryDto, options?: { excludeModules?: string[] }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const where: Prisma.AuditLogWhereInput = {};
+    if (options?.excludeModules?.length) where.NOT = { module: { in: options.excludeModules } };
     if (query.userId) where.userId = query.userId;
     if (query.module) where.module = query.module;
     if (query.action) where.action = query.action;
@@ -559,14 +596,32 @@ export class AuditLogsService {
     }));
   }
 
-  async findAuditLogById(id: string) {
+  async findAuditLogById(id: string, options?: { excludeModules?: string[] }) {
     const row = await this.prisma.auditLog.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException('Audit log not found');
+    if (!row || options?.excludeModules?.includes(row.module)) {
+      throw new NotFoundException('Audit log not found');
+    }
     return { data: row };
   }
 
-  async clearAuditLogs(_userId: string, _meta?: RequestAuditMeta) {
+  /**
+   * Test reset only. The audit log is evidence: it is never cleared in production, and outside
+   * production only when the server opts in (ALLOW_FINANCIAL_TEST_RESET=true). The clearing is
+   * itself the first entry of the new log.
+   */
+  async clearAuditLogs(userId: string, meta?: RequestAuditMeta) {
+    assertFinancialResetEnvironment();
     const result = await this.prisma.auditLog.deleteMany({});
+    await this.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'AuditLog',
+      recordId: 'all',
+      newValues: { operation: 'audit log cleared', deletedCount: result.count },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
     return {
       message: 'Audit log cleared',
       data: { deletedCount: result.count },

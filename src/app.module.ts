@@ -27,6 +27,7 @@ import { EmployeeCertificationsModule } from './employee-certifications/employee
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
 import { EmployeeReviewsModule } from './employee-reviews/employee-reviews.module';
 import { EmployeeNonCoreActivitiesModule } from './employee-non-core-activities/employee-non-core-activities.module';
+import { SpecialVisitsModule } from './special-visits/special-visits.module';
 import { EmployeeAllocationsModule } from './employee-allocations/employee-allocations.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { ServiceUserReferralsModule } from './service-user-referrals/service-user-referrals.module';
@@ -180,6 +181,7 @@ import { JobsModule } from './jobs/jobs.module';
     EmployeeDocumentsModule,
     EmployeeReviewsModule,
     EmployeeNonCoreActivitiesModule,
+    SpecialVisitsModule,
     EmployeeAllocationsModule,
     FeedbackModule,
     ServiceUserReferralsModule,

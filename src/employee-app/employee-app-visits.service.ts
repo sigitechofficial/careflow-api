@@ -123,6 +123,13 @@ import { formatUkDateLabel, parseCarerDateTimeInZone } from '../common/utils/uk-
 import { deriveJobStatusFromVisits } from '../scheduling/scheduling-job-status.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
+import {
+  FutureVisitTimeError,
+  resolveTrustedCompletionTimes,
+  type StoredAttendanceTimeTrust,
+  type TrustedCompletionTimes,
+} from '../visit-attendance/visit-time-trust.util';
+import { recordAttendanceCompletion } from '../visit-attendance/visit-attendance-verification.store';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
 import { ScheduledVisitStatus as LocalVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import type { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
@@ -2453,6 +2460,42 @@ export class EmployeeAppVisitsService {
     );
   }
 
+  /**
+   * Resolves this carer's completion times and keeps what the server observed and what the device
+   * reported side by side in the carer's own verification record, before the visit is completed,
+   * so the first pay evaluation already sees whether this carer's times need review.
+   *
+   * R-16: each carer has an own record, changed under a row lock, so carers completing a double-up
+   * at the same moment cannot overwrite each other's evidence. The office times are read under
+   * that lock: an office entry made a moment earlier is taken into account (R-04). A request the
+   * device sends twice (same idempotency key) is recorded once.
+   */
+  private async resolveAndRecordCompletionTimes(
+    jobId: string,
+    employeeId: string,
+    input: {
+      jobAllocationId?: string | null;
+      idempotencyKey?: string | null;
+      kind?: 'COMPLETION' | 'LATE_CLOCK_OUT';
+      resolve: (office: StoredAttendanceTimeTrust['office']) => TrustedCompletionTimes;
+    },
+  ): Promise<TrustedCompletionTimes> {
+    try {
+      const { times } = await recordAttendanceCompletion(this.prisma, {
+        scheduledJobId: jobId,
+        employeeId,
+        jobAllocationId: input.jobAllocationId,
+        clientEventId: input.idempotencyKey?.trim() ? `complete:${input.idempotencyKey.trim()}` : null,
+        kind: input.kind,
+        resolve: input.resolve,
+      });
+      return times;
+    } catch (err) {
+      if (err instanceof FutureVisitTimeError) throw new BadRequestException(err.message);
+      throw err;
+    }
+  }
+
   async complete(employeeId: string, jobId: string, dto: EmployeeAppVisitCompleteDto) {
     await this.assertOperationsUnlocked(employeeId, jobId);
     // The clock-out time comes from the phone; trust it under the same rules as clock-in.
@@ -2526,11 +2569,27 @@ export class EmployeeAppVisitsService {
     }
 
     const myAllocation = ctx.job.allocations.find((a) => a.employeeId === employeeId);
-    const endIso = dto.actualEndDateTime ?? new Date().toISOString();
-    const startIso =
-      dto.actualStartDateTime ??
-      myAllocation?.actualStartDateTime?.toISOString() ??
-      ctx.primaryVisit.actualStartDateTime?.toISOString();
+    // VW-02: times the server observed come first; times the app reports are evidence. A reported
+    // time the server cannot corroborate still becomes the record (offline visits sync late), but
+    // the visit is then held for office review instead of being approved for pay automatically.
+    const serverNow = new Date();
+    const times = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: myAllocation?.id,
+      idempotencyKey: dto.idempotencyKey,
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow,
+          serverCheckInAt:
+            myAllocation?.actualStartDateTime ?? ctx.primaryVisit.actualStartDateTime ?? null,
+          reportedStart: dto.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          // Times the office entered for this carer while the visit was still open (R-04).
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
+    const endIso = times.end.toISOString();
+    const startIso = times.start?.toISOString();
 
     const endDate = new Date(endIso);
     const plannedEnd =
@@ -2580,9 +2639,12 @@ export class EmployeeAppVisitsService {
       await this.prisma.jobAllocation.update({
         where: { id: myAllocation.id },
         data: {
+          // An office-verified start replaces the recorded one (the carer's own check-in event stays
+          // in the attendance history); otherwise the recorded check-in is kept.
           actualStartDateTime:
-            myAllocation.actualStartDateTime ??
-            (startIso ? new Date(startIso) : new Date()),
+            times.startSource === 'OFFICE' && times.start
+              ? times.start
+              : (myAllocation.actualStartDateTime ?? (startIso ? new Date(startIso) : new Date())),
           actualEndDateTime: new Date(endIso),
         },
       });
@@ -2747,18 +2809,29 @@ export class EmployeeAppVisitsService {
     await this.assertSupportTwoPersonTasksDone(jobId);
 
     const now = new Date();
-    const endAt = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
-    const startAt =
-      myAllocation?.actualStartDateTime ??
-      (dto.actualStartDateTime ? new Date(dto.actualStartDateTime) : null) ??
-      visit.actualStartDateTime ??
-      now;
+    // VW-02: same time-trust rules as the lead carer's completion.
+    const supportTimes = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: myAllocation?.id,
+      idempotencyKey: dto.idempotencyKey,
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow: now,
+          serverCheckInAt: myAllocation?.actualStartDateTime ?? visit.actualStartDateTime ?? null,
+          reportedStart: dto.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
+    const endAt = supportTimes.end;
+    const startAt = supportTimes.start ?? now;
 
     if (myAllocation?.id) {
       await this.prisma.jobAllocation.update({
         where: { id: myAllocation.id },
         data: {
-          actualStartDateTime: myAllocation.actualStartDateTime ?? startAt,
+          actualStartDateTime:
+            supportTimes.startSource === 'OFFICE' ? startAt : (myAllocation.actualStartDateTime ?? startAt),
           actualEndDateTime: endAt,
         },
       });
@@ -2857,12 +2930,22 @@ export class EmployeeAppVisitsService {
   ) {
     const visit = ctx.primaryVisit;
     const now = new Date();
-    const requestedEnd = dto.actualEndDateTime ? new Date(dto.actualEndDateTime) : now;
-    const endAt =
-      Number.isNaN(requestedEnd.getTime()) ||
-      requestedEnd.getTime() < allocation.actualStartDateTime.getTime()
-        ? now
-        : requestedEnd;
+    // VW-02: same time-trust rules as every other completion. A finish the carer reports long
+    // after the fact is kept as evidence and held for office review; a future one is refused.
+    const times = await this.resolveAndRecordCompletionTimes(jobId, employeeId, {
+      jobAllocationId: allocation.allocationId,
+      idempotencyKey: dto.idempotencyKey,
+      kind: 'LATE_CLOCK_OUT',
+      resolve: (office) =>
+        resolveTrustedCompletionTimes({
+          serverNow: now,
+          serverCheckInAt: allocation.actualStartDateTime,
+          reportedEnd: dto.actualEndDateTime,
+          officeStart: office?.start,
+          officeEnd: office?.end,
+        }),
+    });
+    const endAt = times.end.getTime() < allocation.actualStartDateTime.getTime() ? now : times.end;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.jobAllocation.update({
@@ -2944,13 +3027,10 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
-    try {
-      await this.visitReconciliations.ensureForCompletedJob(jobId);
-    } catch (err) {
-      this.logger.warn(
-        `Support late clock-out reconciliation refresh failed job=${jobId}: ${String(err)}`,
-      );
-    }
+    // The row was priced when the lead closed the visit. Refreshing it re-evaluates it on this
+    // carer's own times: an automatic approval given for the earlier times is withdrawn (R-18).
+    // A failure is kept as an open pay evaluation failure for the office (R-17).
+    await this.visitReconciliations.ensureForCompletedJobSafe(jobId);
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
     return this.buildCompleteResponse(employeeId, jobId, ctx, {

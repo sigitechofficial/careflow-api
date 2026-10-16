@@ -3056,11 +3056,9 @@ export class ServiceUserVisitPlansService {
 
     const visitId = (result.data as { id?: string }).id;
     if (visitId) {
-      try {
-        await this.visitReconciliationsService.ensureForVisit(visitId);
-      } catch {
-        // Outcome already saved; finance sync can be retried via backfill.
-      }
+      // The outcome is already saved. A failure here is kept as an open pay evaluation failure
+      // for the office, with a retry (R-17).
+      await this.visitReconciliationsService.ensureForVisitSafe(visitId);
     }
 
     return result;

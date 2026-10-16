@@ -15,6 +15,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { VisitReconciliationStatus } from '@prisma/client';
 
@@ -322,4 +323,24 @@ export class ClearVisitReconciliationsDto {
   @IsOptional()
   @IsUUID()
   serviceUserId?: string;
+}
+
+export class PayEvaluationFailuresQueryDto {
+  @ApiPropertyOptional({ enum: ['OPEN', 'RESOLVED', 'DISMISSED', 'ALL'], default: 'OPEN' })
+  @IsOptional()
+  @IsIn(['OPEN', 'RESOLVED', 'DISMISSED', 'ALL', 'open', 'resolved', 'dismissed', 'all'])
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Only failures for service users of this branch' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+}
+
+export class DismissPayEvaluationFailureDto {
+  @ApiProperty({ description: 'Why no pay calculation is needed any more' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
 }

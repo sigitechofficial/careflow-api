@@ -108,6 +108,41 @@ export function isPayItemWageType(code: string): code is PayItemWageTypeCode {
   return Object.prototype.hasOwnProperty.call(PAY_ITEM_CONFIG, code);
 }
 
+/**
+ * Pay items the system writes itself and a person cannot enter by hand. A mileage correction is a
+ * reimbursement: it is paid on a mileage line, outside wages and outside the minimum wage check.
+ */
+export const SYSTEM_PAY_ITEM_CONFIG: Record<string, PayItemConfig & { label: string }> = {
+  // Q13: an approved payment for a visit that did not go ahead as planned. It is not pay for
+  // time worked, so it never counts towards minimum wage pay or hours.
+  DISRUPTION_PAY: {
+    label: 'Cancelled / disrupted visit',
+    lineType: 'CANCELLATION',
+    units: ['AMOUNT'],
+    allowNegative: false,
+    requiresSecondApprover: true,
+    includesInNmwPay: false,
+    countsAsNmwHours: false,
+    sourceTypes: [],
+  },
+  MILEAGE_CORRECTION: {
+    label: 'Mileage correction',
+    lineType: 'MILEAGE',
+    units: ['AMOUNT'],
+    allowNegative: true,
+    requiresSecondApprover: true,
+    includesInNmwPay: false,
+    countsAsNmwHours: false,
+    sourceTypes: [],
+  },
+};
+
+/** Configuration of any pay item a pay run can pay, entered by hand or written by the system. */
+export function payItemConfigOf(code: string): (PayItemConfig & { label?: string }) | null {
+  if (isPayItemWageType(code)) return PAY_ITEM_CONFIG[code];
+  return SYSTEM_PAY_ITEM_CONFIG[code] ?? null;
+}
+
 /** quantity × rate in decimal arithmetic, rounded half-up to pence. */
 export function payItemAmount(quantity: Prisma.Decimal.Value, rate: Prisma.Decimal.Value): Prisma.Decimal {
   return new Prisma.Decimal(quantity)

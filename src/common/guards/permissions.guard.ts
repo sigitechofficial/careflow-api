@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { ANY_PERMISSIONS_KEY, PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RequestUser } from '../decorators/current-user.decorator';
+import { requiresExplicitGrant } from './explicit-grant-permissions';
 
 const SUPER_ADMIN_ROLE_NAME = 'Super Admin';
 
@@ -38,7 +39,10 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Staff access required');
     }
 
-    if (user.roles?.includes(SUPER_ADMIN_ROLE_NAME)) {
+    // Super Admin passes ordinary permissions. Financial authorisation powers are never implied:
+    // they must be listed on a role the user holds (see explicit-grant-permissions.ts).
+    const explicitOnly = requiresExplicitGrant(requiredAll) || requiresExplicitGrant(requiredAny);
+    if (user.roles?.includes(SUPER_ADMIN_ROLE_NAME) && !explicitOnly) {
       return true;
     }
 

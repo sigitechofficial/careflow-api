@@ -12,6 +12,7 @@ import { BankHolidaysService } from './bank-holidays.service';
 import {
   BankHolidayQueryDto,
   CreateBankHolidayDto,
+  SetHolidayPremiumBasisDto,
   UpdateBankHolidayDto,
   UpdateWageTypeDto,
 } from './dto/wage-types.dto';
@@ -62,6 +63,26 @@ export class BankHolidaysController {
   @ApiOperation({ summary: 'Add a bank holiday date for a nation' })
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateBankHolidayDto, @Req() req: Request) {
     return this.service.create(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('status')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({
+    summary: 'Is each nation\'s calendar complete, and how are holidays on a weekend paid',
+  })
+  status(@Query('years') years?: string) {
+    return this.service.status(years);
+  }
+
+  @Patch('premium-basis')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Set which day carries the holiday rate when a holiday falls on a weekend' })
+  setPremiumBasis(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetHolidayPremiumBasisDto,
+    @Req() req: Request,
+  ) {
+    return this.service.setPremiumBasis(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post('import-gov-uk')

@@ -4,6 +4,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { PayrollEmployeesController } from './payroll-employees.controller';
 import { PayrollEmployeesService } from './payroll-employees.service';
+import { PayrollLoanPensionController } from './payroll-loan-pension.controller';
+import { PayrollLoanPensionService } from './payroll-loan-pension.service';
+import { LeaveController } from './leave.controller';
+import { LeaveService } from './leave.service';
 import { PayrollHmrcEpsSubmissionsService } from './payroll-hmrc-eps-submissions.service';
 import { PayrollHmrcRtiClient } from './payroll-hmrc-rti.client';
 import { PayrollHmrcSubmissionsService } from './payroll-hmrc-submissions.service';
@@ -18,16 +22,20 @@ import { PayrollSettingsService } from './payroll-settings.service';
   controllers: [
     PayrollSettingsController,
     PayrollEmployeesController,
+    LeaveController,
     PayrollRunsController,
     PayrollPayslipsController,
+    PayrollLoanPensionController,
   ],
   providers: [
     PayrollSettingsService,
     PayrollEmployeesService,
+    LeaveService,
     PayrollRunsService,
     PayrollHmrcRtiClient,
     PayrollHmrcSubmissionsService,
     PayrollHmrcEpsSubmissionsService,
+    PayrollLoanPensionService,
   ],
   exports: [PayrollSettingsService, PayrollEmployeesService, PayrollRunsService],
 })

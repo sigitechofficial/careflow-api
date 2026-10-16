@@ -6,17 +6,20 @@ import type { RequestUser } from '../common/decorators/current-user.decorator'
 import { Permissions } from '../common/decorators/permissions.decorator'
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../common/guards/permissions.guard'
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util'
 import { PayrollRunsService } from './payroll-runs.service'
 
 @ApiTags('UK Payroll — Payslips')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('payroll/payslips')
 export class PayrollPayslipsController {
   constructor(private readonly runs: PayrollRunsService) {}
 
   @Get()
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('payroll.runs.read')
   @ApiOperation({
     summary:
@@ -27,6 +30,7 @@ export class PayrollPayslipsController {
   }
 
   @Get(':runEmployeeId/pdf')
+  @PayrollScope({ kind: 'runEmployee', param: 'runEmployeeId' })
   @Permissions('payroll.runs.read')
   @ApiOperation({
     summary: 'Download payslip PDF by run-employee id (must belong to a CLOSED run)',

@@ -27,7 +27,15 @@ import { BankHolidaysController, WageTypesController } from './wage-types.contro
 import { WageTypesService } from './wage-types.service';
 import { PayItemsService } from './pay-items.service';
 import { PayItemsController } from './pay-items.controller';
+import { TravelIntervalsService } from './travel-intervals.service';
+import { TravelIntervalsController } from './travel-intervals.controller';
+import { VisitDisruptionsService } from './visit-disruptions.service';
+import { VisitDisruptionsController } from './visit-disruptions.controller';
+import { WageRecoveriesService } from './wage-recoveries.service';
+import { WageRecoveriesController } from './wage-recoveries.controller';
 import { BankHolidaysService } from './bank-holidays.service';
+import { MileageRatesController } from './mileage-rates.controller';
+import { MileageRatesService } from './mileage-rates.service';
 
 @Module({
   imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule, AuditLogsModule],
@@ -43,7 +51,11 @@ import { BankHolidaysService } from './bank-holidays.service';
     EmployeePayoutsController,
     WageTypesController,
     BankHolidaysController,
+    MileageRatesController,
     PayItemsController,
+    TravelIntervalsController,
+    VisitDisruptionsController,
+    WageRecoveriesController,
   ],
   providers: [
     PayCardsService,
@@ -58,7 +70,11 @@ import { BankHolidaysService } from './bank-holidays.service';
     EmployeePayoutAutoJob,
     WageTypesService,
     BankHolidaysService,
+    MileageRatesService,
     PayItemsService,
+    TravelIntervalsService,
+    VisitDisruptionsService,
+    WageRecoveriesService,
   ],
   exports: [
     PayCardsService,

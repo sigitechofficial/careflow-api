@@ -3,9 +3,12 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
   BadRequestException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   AllocationStatus,
@@ -27,6 +30,32 @@ import {
   loadPayCardRulesForVersion,
 } from './pay-card-version.util';
 import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import { calendarHoldForPay, loadPayCalendar } from './holiday-calendar.store';
+import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { attendanceReviewState } from '../visit-attendance/visit-attendance-verification.store';
+import {
+  approvalAfterEvidenceChange,
+  describeEvidenceChange,
+  evidenceFingerprint,
+  inferApprovalSource,
+} from './approval-evidence.util';
+import {
+  classifyEvaluationFailure,
+  payEvaluationSubjectKey,
+  type PayEvaluationOperation,
+} from './pay-evaluation-failure.util';
+import { lockAttendancePayFailures } from './attendance-pay-guard.util';
+import { PayItemsService } from './pay-items.service';
+import {
+  allowFinancialResetInTransaction,
+  assertFinancialResetEnvironment,
+} from './financial-controls.util';
+import {
+  PAY_SETTLED_MESSAGE,
+  isPaySettled,
+  withoutPaySnapshotFields,
+  type PaySettlementRef,
+} from './pay-settlement.util';
 import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
@@ -90,6 +119,8 @@ import {
   dayKeyInTimeZone,
   operationalDayBounds,
 } from '../common/utils/operational-day.util';
+import { payFunderOn } from './funding-at-date.util';
+import { effectiveEmployeeFunderPayAssignments } from './pay-card-assignment.util';
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -273,6 +304,12 @@ export type VisitReconciliationListRow = {
 
 type DbClient = PrismaService | Prisma.TransactionClient;
 
+/** Starts the evidence-changed reason of a visit whose corrected times have not reached its pay yet. */
+const PAY_STEP_FAILED = 'Attendance times were corrected but carer pay could not be recalculated';
+
+/** A pay decision is repriced inside its transaction: allow for that rather than the 5 second default. */
+const DECISION_TRANSACTION = { timeout: 20_000, maxWait: 10_000 };
+
 async function isVisitOnBankHoliday(
   db: DbClient,
   date: Date,
@@ -324,10 +361,68 @@ export class VisitReconciliationsService {
     private readonly chargeCardsService: ChargeCardsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly auditLogs: AuditLogsService,
+    private readonly payItems: PayItemsService,
   ) {}
+
+  /** The open transaction behind a client, to pass on to an audit entry; none for the plain client. */
+  private txOf(db: DbClient): Prisma.TransactionClient | undefined {
+    return db === this.prisma ? undefined : (db as Prisma.TransactionClient);
+  }
+
+  /** Runs work in the transaction that is already open, or in one of its own. */
+  private atomic<T>(db: DbClient, work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    const open = this.txOf(db);
+    return open ? work(open) : this.prisma.$transaction(work, DECISION_TRANSACTION);
+  }
 
   private client(tx?: Prisma.TransactionClient): DbClient {
     return tx ?? this.prisma;
+  }
+
+  /** Refuse a change to carer pay once the visit is in a locked visit pay run or a closed UK run. */
+  private assertPayNotSettled(row: PaySettlementRef) {
+    if (isPaySettled(row)) throw new BadRequestException(PAY_SETTLED_MESSAGE);
+  }
+
+  /** Audit a decision on one visit (approval, rejection, overrun, manual amount, time edit). */
+  private auditVisit(
+    action: AuditAction,
+    userId: string | undefined,
+    row: { id: string; visitRef?: string | null; employeeId?: string | null },
+    values: { oldValues?: Record<string, unknown>; newValues?: Record<string, unknown>; reason?: string | null },
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.auditLogs.logAudit({
+      tx,
+      userId,
+      module: AuditModule.BILLING,
+      action,
+      recordType: 'VisitReconciliation',
+      recordId: row.id,
+      description: values.reason?.trim() || undefined,
+      oldValues: values.oldValues,
+      newValues: values.newValues,
+      metadata: { visitRef: row.visitRef ?? null, employeeId: row.employeeId ?? null },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+  }
+
+  private static paySnapshotOf(row: {
+    status: unknown;
+    payableAmount: unknown;
+    payableMinutes: number | null;
+    approvedPayStart: Date | null;
+    approvedPayEnd: Date | null;
+  }) {
+    return {
+      status: String(row.status),
+      payableAmount: row.payableAmount != null ? String(row.payableAmount) : null,
+      payableMinutes: row.payableMinutes,
+      approvedPayStart: row.approvedPayStart?.toISOString() ?? null,
+      approvedPayEnd: row.approvedPayEnd?.toISOString() ?? null,
+    };
   }
 
   /**
@@ -544,7 +639,10 @@ export class VisitReconciliationsService {
             plannedEndDateTime: planned.end,
             actualStartDateTime: actual.start,
             actualEndDateTime: actual.end,
-            employeeId: allocation.employeeId ?? existing.employeeId,
+            // The carer who was paid stays on a settled row; a change of carer is a pay correction.
+            employeeId: isPaySettled(existing)
+              ? existing.employeeId
+              : (allocation.employeeId ?? existing.employeeId),
             jobAllocationId: allocation.id ?? existing.jobAllocationId,
             ...(overrunReason != null ? { overrunReason } : {}),
             ...(canRepairRef ? { visitRef: sharedVisitRef } : {}),
@@ -578,7 +676,95 @@ export class VisitReconciliationsService {
       firstId ??= created.id;
     }
 
+    if (!options?.issueRefOnly) {
+      await this.supersedeRowsOfRemovedCarers(db, visit.id);
+    }
+
     return firstId;
+  }
+
+  /** Rows of this visit split by whether their allocation is still live (not removed or cancelled). */
+  private async rowsByAllocationState(db: DbClient, scheduledVisitId: string) {
+    const rows = await db.visitReconciliation.findMany({
+      where: { scheduledVisitId, jobAllocationId: { not: null } },
+      select: {
+        id: true,
+        visitRef: true,
+        employeeId: true,
+        status: true,
+        jobAllocationId: true,
+        approvalNotes: true,
+        includedInPayrollRunId: true,
+        paidByUkPayrollRunId: true,
+        includedInInvoiceRunId: true,
+      },
+    });
+    if (rows.length < 2) return { live: rows, removed: [] as typeof rows };
+    const allocations = await db.jobAllocation.findMany({
+      where: { id: { in: rows.map((r) => r.jobAllocationId!) } },
+      select: { id: true, status: true, isActive: true, deletedAt: true },
+    });
+    const liveIds = new Set(
+      allocations
+        .filter(
+          (a) =>
+            !a.deletedAt &&
+            a.isActive &&
+            a.status !== AllocationStatus.CANCELLED &&
+            a.status !== AllocationStatus.UNALLOCATED,
+        )
+        .map((a) => a.id),
+    );
+    return {
+      live: rows.filter((r) => liveIds.has(r.jobAllocationId!)),
+      removed: rows.filter((r) => !liveIds.has(r.jobAllocationId!)),
+    };
+  }
+
+  /**
+   * A carer taken off a visit after it was completed leaves a reconciliation row behind while the
+   * replacement carer gets a new one: two payable rows for one piece of work (VW-11).
+   * The row of the removed carer is withdrawn from pay and charge. A row that is already paid or
+   * invoiced is history and stays; the replacement row is then held for a manager
+   * (see evaluateInternal), because paying it means the first payment has to be recovered.
+   */
+  private async supersedeRowsOfRemovedCarers(db: DbClient, scheduledVisitId: string) {
+    const { live, removed } = await this.rowsByAllocationState(db, scheduledVisitId);
+    if (!live.length) return;
+    for (const row of removed) {
+      if (
+        row.status === VisitReconciliationStatus.REJECTED_FOR_PAY ||
+        row.status === VisitReconciliationStatus.REJECTED_FOR_INVOICE ||
+        isPaySettled(row) ||
+        row.includedInInvoiceRunId
+      ) {
+        continue;
+      }
+      const note = 'Superseded: this carer was removed from the visit after it was completed.';
+      await this.atomic(db, async (tx) => {
+        await tx.visitReconciliation.update({
+          where: { id: row.id },
+          data: {
+            status: VisitReconciliationStatus.REJECTED_FOR_PAY,
+            approvedAt: null,
+            approvedById: null,
+            approvalNotes: [row.approvalNotes, note].filter(Boolean).join('\n').slice(0, 2000),
+          },
+        });
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_REJECTED,
+          undefined,
+          row,
+          {
+            oldValues: { status: String(row.status) },
+            newValues: { status: VisitReconciliationStatus.REJECTED_FOR_PAY },
+            reason: note,
+          },
+          undefined,
+          tx,
+        );
+      });
+    }
   }
 
   /**
@@ -603,7 +789,12 @@ export class VisitReconciliationsService {
     return ensureScheduledVisitRef(db, visit);
   }
 
-  /** Returns false when evaluation failed (already logged). */
+  /**
+   * Evaluates without letting a failure stop the caller (a visit must complete even when its pay
+   * cannot be worked out yet). R-17: the failure is not dropped. It is kept as an open pay
+   * evaluation failure that the office sees and can retry, and it is closed when a later
+   * evaluation succeeds. Returns false when evaluation failed.
+   */
   private async safeEvaluate(
     db: DbClient,
     id: string,
@@ -611,15 +802,340 @@ export class VisitReconciliationsService {
   ): Promise<boolean> {
     try {
       await this.evaluateInternal(db, id, options);
+      await this.closeEvaluationFailure('EVALUATE', id, 'SUCCEEDED_LATER');
       return true;
     } catch (err) {
-      this.logger.warn(
-        `Visit reconciliation evaluate failed for ${id}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      await this.recordEvaluationFailure('EVALUATE', id, err);
       return false;
     }
+  }
+
+  /**
+   * Creates or refreshes the pay records of a completed job without letting a failure stop the
+   * caller. A failure is kept as an open pay evaluation failure for the job (R-17).
+   */
+  async ensureForCompletedJobSafe(
+    jobId: string,
+    options?: { overrunReason?: string | null },
+  ): Promise<boolean> {
+    try {
+      await this.ensureForCompletedJob(jobId, undefined, options);
+      await this.closeEvaluationFailure('ENSURE_JOB', jobId, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('ENSURE_JOB', jobId, err);
+      return false;
+    }
+  }
+
+  /** As ensureForCompletedJobSafe, for one visit. */
+  async ensureForVisitSafe(scheduledVisitId: string): Promise<boolean> {
+    try {
+      await this.ensureForVisit(scheduledVisitId);
+      await this.closeEvaluationFailure('ENSURE_VISIT', scheduledVisitId, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('ENSURE_VISIT', scheduledVisitId, err);
+      return false;
+    }
+  }
+
+  /** Who and what a failure is about, from whatever already exists for the subject. */
+  private async evaluationFailureSubject(operation: PayEvaluationOperation, id: string) {
+    if (operation === 'EVALUATE') {
+      const row = await this.prisma.visitReconciliation.findUnique({
+        where: { id },
+        select: {
+          scheduledJobId: true,
+          scheduledVisitId: true,
+          serviceUserId: true,
+          employeeId: true,
+          visitRef: true,
+        },
+      });
+      return { visitReconciliationId: id, ...(row ?? {}) };
+    }
+    const visit =
+      operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION'
+        ? await this.prisma.scheduledVisit.findUnique({
+            where: { id },
+            select: { id: true, scheduledJobId: true, serviceUserId: true },
+          })
+        : await this.prisma.scheduledVisit.findFirst({
+            where: { scheduledJobId: id },
+            select: { id: true, scheduledJobId: true, serviceUserId: true },
+            orderBy: { scheduledStartDateTime: 'asc' },
+          });
+    return {
+      scheduledJobId: visit?.scheduledJobId ?? (operation === 'ENSURE_JOB' ? id : null),
+      scheduledVisitId: visit?.id ?? (operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION' ? id : null),
+      serviceUserId: visit?.serviceUserId ?? null,
+    };
+  }
+
+  /**
+   * Keeps a failed pay calculation where a person will see it. Never throws: recording a failure
+   * must not become a second failure. Written outside any caller transaction, which may be aborted.
+   */
+  private async recordEvaluationFailure(
+    operation: PayEvaluationOperation,
+    id: string,
+    err: unknown,
+    retriedByUserId?: string,
+    /** What a retry needs to repeat the operation (an attendance correction's reason and carer). */
+    retryInput?: Record<string, string | null>,
+  ) {
+    const failure = classifyEvaluationFailure(err);
+    const subjectKey = payEvaluationSubjectKey(operation, id);
+    // Ids, error class and code only: the error text of a database failure holds query values.
+    const logLine = `Pay evaluation failed ${subjectKey} kind=${failure.kind} category=${failure.category} error=${failure.detail.errorName}${
+      failure.detail.errorCode ? ` code=${failure.detail.errorCode}` : ''
+    }`;
+    if (failure.kind === 'TECHNICAL') this.logger.error(logLine);
+    else this.logger.warn(`${logLine}: ${failure.message}`);
+
+    try {
+      const write = async (db: DbClient) => {
+        const now = new Date();
+        const subject = await this.evaluationFailureSubject(operation, id);
+        const existing = await db.payEvaluationFailure.findUnique({ where: { subjectKey } });
+        const entry = {
+          at: now.toISOString(),
+          action: retriedByUserId ? 'RETRIED' : existing ? 'FAILED_AGAIN' : 'FAILED',
+          byUserId: retriedByUserId ?? null,
+          outcome: failure.category,
+        };
+        const state = {
+          kind: failure.kind,
+          category: failure.category,
+          message: failure.message,
+          context: (retryInput ? { ...failure.detail, retryInput } : failure.detail) as Prisma.InputJsonValue,
+          retryable: failure.retryable,
+          status: 'OPEN',
+          lastOccurredAt: now,
+          resolvedAt: null,
+          resolvedById: null,
+          resolution: null,
+        };
+        if (existing) {
+          const history = Array.isArray(existing.history) ? existing.history : [];
+          await db.payEvaluationFailure.update({
+            where: { id: existing.id },
+            data: {
+              ...state,
+              ...subject,
+              occurrences: { increment: 1 },
+              history: [...history, entry] as Prisma.InputJsonValue,
+            },
+          });
+        } else {
+          await db.payEvaluationFailure.create({
+            data: { subjectKey, operation, ...subject, ...state, history: [entry] },
+          });
+        }
+      };
+      // An attendance pay failure and a run settling visits never pass each other (B4G).
+      if (operation === 'ATTENDANCE_CORRECTION') {
+        await this.prisma.$transaction(async (tx) => {
+          await lockAttendancePayFailures(tx);
+          await write(tx);
+        });
+      } else {
+        await write(this.prisma);
+      }
+    } catch (recordErr) {
+      this.logger.error(
+        `Could not record pay evaluation failure ${subjectKey}: ${
+          recordErr instanceof Error ? recordErr.constructor.name : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  /** Closes an open failure once the same calculation has succeeded. Never throws. */
+  private async closeEvaluationFailure(
+    operation: PayEvaluationOperation,
+    id: string,
+    resolution: 'SUCCEEDED_ON_RETRY' | 'SUCCEEDED_LATER',
+    userId?: string,
+  ) {
+    try {
+      const subjectKey = payEvaluationSubjectKey(operation, id);
+      const open = await this.prisma.payEvaluationFailure.findFirst({
+        where: { subjectKey, status: 'OPEN' },
+      });
+      if (!open) return;
+      const now = new Date();
+      const history = Array.isArray(open.history) ? open.history : [];
+      await this.prisma.payEvaluationFailure.update({
+        where: { id: open.id },
+        data: {
+          status: 'RESOLVED',
+          resolvedAt: now,
+          resolvedById: userId ?? null,
+          resolution,
+          history: [
+            ...history,
+            { at: now.toISOString(), action: userId ? 'RETRIED' : 'SUCCEEDED', byUserId: userId ?? null, outcome: resolution },
+          ] as Prisma.InputJsonValue,
+        },
+      });
+    } catch (closeErr) {
+      this.logger.error(
+        `Could not close pay evaluation failure for ${id}: ${
+          closeErr instanceof Error ? closeErr.constructor.name : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Pay calculations that failed and still need attention (or, with `status`, the history).
+   * `locationId` limits the list to service users of that branch.
+   */
+  async listEvaluationFailures(query: { status?: string; locationId?: string }) {
+    const status = query.status?.trim().toUpperCase() || 'OPEN';
+    const serviceUserIds = query.locationId
+      ? await serviceUserIdsForLocation(this.prisma, query.locationId)
+      : null;
+    const rows = await this.prisma.payEvaluationFailure.findMany({
+      where: {
+        ...(status === 'ALL' ? {} : { status }),
+        ...(serviceUserIds ? { serviceUserId: { in: serviceUserIds } } : {}),
+      },
+      orderBy: { lastOccurredAt: 'desc' },
+      take: 200,
+    });
+    const employeeIds = [...new Set(rows.map((r) => r.employeeId).filter((v): v is string => !!v))];
+    const suIds = [...new Set(rows.map((r) => r.serviceUserId).filter((v): v is string => !!v))];
+    const [employees, serviceUsers] = await Promise.all([
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds } },
+            select: { id: true, personalDetail: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
+      suIds.length
+        ? this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+    ]);
+    const employeeName = new Map(
+      employees.map((e) => [
+        e.id,
+        [e.personalDetail?.firstName, e.personalDetail?.lastName].filter(Boolean).join(' ') || 'Carer',
+      ]),
+    );
+    const serviceUserName = new Map(
+      serviceUsers.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ')]),
+    );
+    return {
+      data: rows.map((r) => ({
+        ...r,
+        reference: r.id.slice(0, 8),
+        employeeName: r.employeeId ? (employeeName.get(r.employeeId) ?? null) : null,
+        serviceUserName: r.serviceUserId ? (serviceUserName.get(r.serviceUserId) ?? null) : null,
+      })),
+    };
+  }
+
+  /** Runs the failed calculation again. Success closes the failure; another failure is recorded on it. */
+  async retryEvaluationFailure(userId: string, id: string, meta?: RequestAuditMeta) {
+    const failure = await this.prisma.payEvaluationFailure.findUnique({ where: { id } });
+    if (!failure) throw new NotFoundException('Pay calculation failure not found');
+    if (failure.status !== 'OPEN') {
+      throw new BadRequestException('This pay calculation failure is already closed.');
+    }
+    if (!failure.retryable) {
+      throw new BadRequestException(failure.message);
+    }
+    const operation = failure.operation as PayEvaluationOperation;
+    const subjectId =
+      operation === 'EVALUATE'
+        ? failure.visitReconciliationId
+        : operation === 'ENSURE_VISIT' || operation === 'ATTENDANCE_CORRECTION'
+          ? failure.scheduledVisitId
+          : failure.scheduledJobId;
+    if (!subjectId) throw new BadRequestException('This failure has nothing left to retry. Dismiss it instead.');
+
+    let succeeded = true;
+    try {
+      if (operation === 'EVALUATE') await this.evaluateInternal(this.prisma, subjectId);
+      else if (operation === 'ATTENDANCE_CORRECTION') {
+        // The same correction again, on the times now on record (they were kept when pay failed).
+        const input = (failure.context as { retryInput?: { reason?: string; jobAllocationId?: string | null } } | null)?.retryInput;
+        await this.carryAttendanceIntoPay(
+          subjectId,
+          { userId, reason: input?.reason ?? 'Retry of an attendance correction', jobAllocationId: input?.jobAllocationId ?? null },
+          meta,
+        );
+      } else if (operation === 'ENSURE_VISIT') await this.ensureForVisit(subjectId);
+      else await this.ensureForCompletedJob(subjectId);
+      await this.closeEvaluationFailure(operation, subjectId, 'SUCCEEDED_ON_RETRY', userId);
+    } catch (err) {
+      succeeded = false;
+      await this.recordEvaluationFailure(operation, subjectId, err, userId);
+      if (operation === 'ATTENDANCE_CORRECTION') await this.flagPayStepFailed(subjectId, failure, userId, meta);
+    }
+    const after = await this.prisma.payEvaluationFailure.findUniqueOrThrow({ where: { id } });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.PAY_EVALUATION_FAILURE_RETRIED,
+      recordType: 'PayEvaluationFailure',
+      recordId: id,
+      oldValues: { status: failure.status, category: failure.category },
+      newValues: { status: after.status, category: after.category, succeeded },
+      metadata: { subjectKey: failure.subjectKey, employeeId: failure.employeeId, visitRef: failure.visitRef },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+    return {
+      message: succeeded
+        ? 'The pay calculation succeeded. The visit is back in the normal review list.'
+        : `The pay calculation failed again: ${after.message}`,
+      data: { ...after, reference: after.id.slice(0, 8), succeeded },
+    };
+  }
+
+  /** Closes a failure that needs no pay calculation any more (for example a visit entered in error). */
+  async dismissEvaluationFailure(userId: string, id: string, reason: string, meta?: RequestAuditMeta) {
+    const failure = await this.prisma.payEvaluationFailure.findUnique({ where: { id } });
+    if (!failure) throw new NotFoundException('Pay calculation failure not found');
+    if (failure.status !== 'OPEN') {
+      throw new BadRequestException('This pay calculation failure is already closed.');
+    }
+    const now = new Date();
+    const history = Array.isArray(failure.history) ? failure.history : [];
+    const updated = await this.prisma.payEvaluationFailure.update({
+      where: { id },
+      data: {
+        status: 'DISMISSED',
+        resolvedAt: now,
+        resolvedById: userId,
+        resolution: 'DISMISSED',
+        history: [
+          ...history,
+          { at: now.toISOString(), action: 'DISMISSED', byUserId: userId, outcome: 'DISMISSED', note: reason.trim() },
+        ] as Prisma.InputJsonValue,
+      },
+    });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.PAY_EVALUATION_FAILURE_DISMISSED,
+      recordType: 'PayEvaluationFailure',
+      recordId: id,
+      description: reason.trim(),
+      oldValues: { status: failure.status },
+      newValues: { status: updated.status },
+      metadata: { subjectKey: failure.subjectKey, employeeId: failure.employeeId, visitRef: failure.visitRef },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+    return { message: 'Pay calculation failure dismissed', data: { ...updated, reference: updated.id.slice(0, 8) } };
   }
 
   private async resolveAllAllocations(
@@ -813,7 +1329,23 @@ export class VisitReconciliationsService {
       row.pricingSnapshot != null
         ? this.alignFrozenPricingSnapshot(row.pricingSnapshot, row, timeZone)
         : await this.buildCalculationPreview(row);
-    return { data: { ...enriched, calculationPreview: preview } };
+    // Who or what approved, and on which evidence (R-18).
+    const approved =
+      row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+      row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+      row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+      row.status === VisitReconciliationStatus.LOCKED;
+    const approval = {
+      source: approved || row.evidenceChangedReason ? inferApprovalSource(row) : null,
+      approvedAt: row.approvedAt?.toISOString() ?? null,
+      approvedByPerson: Boolean(row.approvedById),
+      evidenceChangedReason: row.evidenceChangedReason,
+      evidenceChangedAt: row.evidenceChangedAt?.toISOString() ?? null,
+    };
+    // Settled pay is changed through a pay correction, not on this record.
+    return {
+      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview },
+    };
   }
 
   private alignFrozenPricingSnapshot(
@@ -890,12 +1422,20 @@ export class VisitReconciliationsService {
     return { reEvaluated: pending.length };
   }
 
-  async update(id: string, dto: UpdateVisitReconciliationDto) {
+  async update(id: string, dto: UpdateVisitReconciliationDto, userId?: string, meta?: RequestAuditMeta) {
     const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Visit reconciliation not found');
     if (existing.status === VisitReconciliationStatus.LOCKED) {
       throw new BadRequestException('Reconciliation is locked');
     }
+    const touchesPay =
+      dto.approvedPayStart !== undefined ||
+      dto.approvedPayEnd !== undefined ||
+      dto.travelMiles !== undefined ||
+      dto.travelMinutes !== undefined ||
+      dto.unpaidTravelMinutes !== undefined ||
+      dto.passengerMiles !== undefined;
+    if (touchesPay) this.assertPayNotSettled(existing);
 
     const data: Prisma.VisitReconciliationUpdateInput = {};
     if (dto.approvedPayStart !== undefined) {
@@ -928,26 +1468,176 @@ export class VisitReconciliationsService {
         dto.passengerMiles != null ? dto.passengerMiles : null;
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
-    await this.evaluateInternal(this.prisma, id);
-    return this.getById(id);
+    const requestsPayTime = dto.approvedPayStart !== undefined || dto.approvedPayEnd !== undefined;
+    const requested = {
+      start: dto.approvedPayStart === undefined ? existing.approvedPayStart : dto.approvedPayStart ? new Date(dto.approvedPayStart) : null,
+      end: dto.approvedPayEnd === undefined ? existing.approvedPayEnd : dto.approvedPayEnd ? new Date(dto.approvedPayEnd) : null,
+    };
+    const travelOf = (r: typeof existing) =>
+      [r.travelMiles?.toString() ?? null, r.travelMinutes, r.unpaidTravelMinutes, r.passengerMiles?.toString() ?? null].join('|');
+
+    // The change, the amounts it produces and its audit entry are saved together or not at all.
+    // A payable time named by hand is priced like a corrected attendance time: the amount follows
+    // the minutes, unless finance entered the amount by hand.
+    const reprice = requestsPayTime && !hasManualPayableOverride(existing);
+    const payTimeEdit = await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.evaluateInternal(tx, id, reprice ? { forceRecalculatePay: true } : undefined);
+      if (!touchesPay) return null;
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+      const edit = requestsPayTime ? await this.describePayTimeEdit(tx, existing, after, requested, !reprice) : null;
+      const payChanged =
+        JSON.stringify(VisitReconciliationsService.paySnapshotOf(existing)) !==
+          JSON.stringify(VisitReconciliationsService.paySnapshotOf(after)) || travelOf(existing) !== travelOf(after);
+      if (payChanged) {
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_UPDATED,
+          userId,
+          existing,
+          {
+            oldValues: {
+              ...VisitReconciliationsService.paySnapshotOf(existing),
+              travelMiles: existing.travelMiles?.toString() ?? null,
+              travelMinutes: existing.travelMinutes,
+            },
+            newValues: {
+              ...VisitReconciliationsService.paySnapshotOf(after),
+              travelMiles: after.travelMiles?.toString() ?? null,
+              travelMinutes: after.travelMinutes,
+              ...(edit ? { payTimeOutcome: edit.outcome } : {}),
+            },
+            reason: dto.approvalNotes,
+          },
+          meta,
+          tx,
+        );
+      } else if (edit?.outcome === 'PAY_TIME_NOT_APPLIED') {
+        // Not a change to pay: a record that it was asked for, and why it had no effect.
+        await this.auditVisit(
+          AuditAction.VISIT_PAY_TIME_EDIT_NOT_APPLIED,
+          userId,
+          existing,
+          {
+            oldValues: VisitReconciliationsService.paySnapshotOf(existing),
+            newValues: { requested: edit.requested, effective: edit.effective, rule: edit.rule },
+            reason: edit.reason,
+          },
+          meta,
+          tx,
+        );
+      }
+      return edit;
+    }, DECISION_TRANSACTION);
+    const detail = await this.getById(id);
+    // Only a request that names a payable time carries the outcome; other callers see no change.
+    return payTimeEdit ? { message: payTimeEdit.message, data: { ...detail, payTimeEdit } } : detail;
+  }
+
+  /** The payable window of a visit in words, in the organisation's time zone. */
+  private async payWindowText(row: { approvedPayStart: Date | null; approvedPayEnd: Date | null; payableMinutes: number | null }) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const hm = (d: Date | null) =>
+      d ? new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(d) : '—';
+    return `${hm(row.approvedPayStart)}–${hm(row.approvedPayEnd)} (${row.payableMinutes ?? 0} min)`;
+  }
+
+  /**
+   * Why the pay rules set a visit's payable time from its attendance times rather than from a
+   * window entered by hand. Read from the same tests the evaluation uses; nothing is decided here.
+   */
+  private async payTimeRule(
+    db: DbClient,
+    row: {
+      scheduledVisitId: string;
+      plannedStartDateTime: Date;
+      plannedEndDateTime: Date | null;
+      actualStartDateTime: Date | null;
+      actualEndDateTime: Date | null;
+      overrunMinutes: number | null;
+    },
+  ): Promise<{ rule: 'DURATION_TOLERANCE' | 'OVERRUN_DECISION' | 'PAY_RULE'; reason: string }> {
+    const tolerance = await this.resolveDurationToleranceMinutes(db, row.scheduledVisitId);
+    const within = isDurationShortfallWithinTolerance({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime ?? new Date(row.plannedStartDateTime.getTime() + 30 * 60_000),
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      durationToleranceMinutes: tolerance,
+    });
+    if (within) {
+      return {
+        rule: 'DURATION_TOLERANCE',
+        reason: `The visit is within the duration tolerance of ${tolerance} minutes, so it is paid its planned time.`,
+      };
+    }
+    if ((row.overrunMinutes ?? 0) > 0) {
+      return {
+        rule: 'OVERRUN_DECISION',
+        reason: 'The visit overran, so its payable time follows the overrun decision. Approve or reject the overrun to change it.',
+      };
+    }
+    return { rule: 'PAY_RULE', reason: 'A pay rule sets the payable time of this visit from its attendance times.' };
+  }
+
+  /** What a request to change the payable time did, after the visit was evaluated again. */
+  private async describePayTimeEdit(
+    db: DbClient,
+    before: { approvedPayStart: Date | null; approvedPayEnd: Date | null },
+    after: Parameters<VisitReconciliationsService['payTimeRule']>[1] & {
+      approvedPayStart: Date | null;
+      approvedPayEnd: Date | null;
+      payableMinutes: number | null;
+      payableAmount: Prisma.Decimal | null;
+    },
+    requested: { start: Date | null; end: Date | null },
+    manualAmount = false,
+  ) {
+    const same = (a: Date | null, b: Date | null) => (a?.getTime() ?? null) === (b?.getTime() ?? null);
+    const kept = same(after.approvedPayStart, requested.start) && same(after.approvedPayEnd, requested.end);
+    const moved = !same(after.approvedPayStart, before.approvedPayStart) || !same(after.approvedPayEnd, before.approvedPayEnd);
+    const window = await this.payWindowText(after);
+    const shown = {
+      requested: { start: requested.start?.toISOString() ?? null, end: requested.end?.toISOString() ?? null },
+      effective: {
+        start: after.approvedPayStart?.toISOString() ?? null,
+        end: after.approvedPayEnd?.toISOString() ?? null,
+        payableMinutes: after.payableMinutes,
+      },
+    };
+    if (kept && moved) {
+      const pay = `£${Number(after.payableAmount ?? 0).toFixed(2)}`;
+      const amount = manualAmount ? `The payable amount was entered by hand and stays ${pay}.` : `Carer pay is now ${pay}.`;
+      return { outcome: 'PAY_TIME_CHANGED' as const, message: `Payable time changed to ${window}. ${amount}`, rule: null, reason: null, ...shown };
+    }
+    if (kept) {
+      return { outcome: 'PAY_TIME_UNCHANGED' as const, message: `Payable time is already ${window}: nothing changed.`, rule: null, reason: null, ...shown };
+    }
+    const { rule, reason } = await this.payTimeRule(db, after);
+    return {
+      outcome: 'PAY_TIME_NOT_APPLIED' as const,
+      message: `Payable time not changed. ${reason} It stays ${window}.`,
+      rule,
+      reason,
+      ...shown,
+    };
   }
 
   /**
    * Manually set payable amount for salary. Optionally accept the visit for pay
    * so the amount is included in employee salary totals.
    */
-  async setPayableAmount(userId: string, id: string, dto: SetVisitPayableAmountDto) {
+  async setPayableAmount(
+    userId: string,
+    id: string,
+    dto: SetVisitPayableAmountDto,
+    meta?: RequestAuditMeta,
+  ) {
     const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Visit reconciliation not found');
     if (existing.status === VisitReconciliationStatus.LOCKED) {
       throw new BadRequestException('Reconciliation is locked');
     }
-    if (existing.includedInPayrollRunId) {
-      throw new BadRequestException(
-        'Visit is already included in a payroll run — unlock or remove it before changing the amount',
-      );
-    }
+    this.assertPayNotSettled(existing);
 
     const amount = Math.round(Number(dto.payableAmount) * 100) / 100;
     if (!Number.isFinite(amount) || amount < 0) {
@@ -980,10 +1670,30 @@ export class VisitReconciliationsService {
             : VisitReconciliationStatus.APPROVED_FOR_PAY;
         data.approvedById = userId;
         data.approvedAt = new Date();
+        // Entering the amount by hand is a person's decision on the evidence as it stands (R-18).
+        data.approvalSource = 'MANAGER_OVERRIDE';
+        data.approvedEvidence = null;
+        data.evidenceChangedReason = null;
+        data.evidenceChangedAt = null;
       }
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
+    // The change, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_PAYABLE_AMOUNT_SET,
+        userId,
+        existing,
+        {
+          oldValues: VisitReconciliationsService.paySnapshotOf(existing),
+          newValues: { payableAmount: amount.toFixed(2), status: String(data.status ?? existing.status) },
+          reason: note,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1018,7 +1728,7 @@ export class VisitReconciliationsService {
    * Manually set billable (client/funder) amount. Optionally accept the visit for invoice.
    * Stores the visit total; multi-funder % splits continue from that total on invoice runs.
    */
-  async setBillableAmount(userId: string, id: string, dto: SetVisitBillableAmountDto) {
+  async setBillableAmount(userId: string, id: string, dto: SetVisitBillableAmountDto, meta?: RequestAuditMeta) {
     const existing = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Visit reconciliation not found');
     if (existing.status === VisitReconciliationStatus.LOCKED) {
@@ -1055,21 +1765,47 @@ export class VisitReconciliationsService {
       pricingSnapshot: this.patchManualAmountSnapshot(existing.pricingSnapshot, 'bill', amount),
     };
 
-    if (approveForInvoice) {
-      const invoiceApproved =
-        existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
-        existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
-      if (!invoiceApproved) {
-        data.status =
-          existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY
-            ? VisitReconciliationStatus.APPROVED_FOR_BOTH
-            : VisitReconciliationStatus.APPROVED_FOR_INVOICE;
-        data.approvedById = userId;
-        data.approvedAt = new Date();
-      }
+    const invoiceApproved =
+      existing.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE ||
+      existing.status === VisitReconciliationStatus.APPROVED_FOR_BOTH;
+    if (approveForInvoice && !invoiceApproved) {
+      data.status =
+        existing.status === VisitReconciliationStatus.APPROVED_FOR_PAY
+          ? VisitReconciliationStatus.APPROVED_FOR_BOTH
+          : VisitReconciliationStatus.APPROVED_FOR_INVOICE;
+      data.approvedById = userId;
+      data.approvedAt = new Date();
     }
 
-    await this.prisma.visitReconciliation.update({ where: { id }, data });
+    // The same amount, already entered by hand, with nothing to approve: nothing is written or
+    // audited, so sending the request again changes nothing.
+    const previous = existing.billableAmount == null ? null : Number(existing.billableAmount).toFixed(2);
+    if (previous === amount.toFixed(2) && hasManualBillableOverride(existing) && !data.status) {
+      return this.getById(id);
+    }
+
+    // The charge (and the invoice approval it implies) and its audit entry are saved together or
+    // not at all. Carer pay is not touched.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({ where: { id }, data });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_BILLABLE_AMOUNT_SET,
+        userId,
+        existing,
+        {
+          oldValues: { billableAmount: previous, status: String(existing.status) },
+          newValues: {
+            billableAmount: amount.toFixed(2),
+            status: String(data.status ?? existing.status),
+            approvedForInvoice: !!data.status,
+            permission: 'billing.visit_reconciliations.manage',
+          },
+          reason: note,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1149,7 +1885,12 @@ export class VisitReconciliationsService {
     return snap as Prisma.InputJsonValue;
   }
 
-  async approve(userId: string, id: string, dto: ApproveVisitReconciliationDto) {
+  async approve(
+    userId: string,
+    id: string,
+    dto: ApproveVisitReconciliationDto,
+    meta?: RequestAuditMeta,
+  ) {
     const row = await this.prisma.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
@@ -1235,25 +1976,70 @@ export class VisitReconciliationsService {
       }
     }
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        approvedPayStart,
-        approvedPayEnd,
-        approvedBillStart,
-        approvedBillEnd,
-        approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status,
-      },
-    });
+    // A settled visit keeps its pay approval; only the charge side can still be decided.
+    const paySettled = isPaySettled(row);
+    if (
+      paySettled &&
+      status !== VisitReconciliationStatus.APPROVED_FOR_PAY &&
+      status !== VisitReconciliationStatus.APPROVED_FOR_BOTH
+    ) {
+      throw new BadRequestException(PAY_SETTLED_MESSAGE);
+    }
 
-    await this.evaluateInternal(this.prisma, id);
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          ...(paySettled ? {} : { approvedPayStart, approvedPayEnd }),
+          approvedBillStart,
+          approvedBillEnd,
+          approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status,
+          // R-18: a person approved, on the evidence as it stands now (recorded by the evaluation
+          // that follows). An earlier "evidence changed" flag is answered by this approval; on a
+          // settled visit the flag is about its pay and stays until the times are verified.
+          ...(paySettled
+            ? {}
+            : {
+                approvalSource: dto.managerOverride ? 'MANAGER_OVERRIDE' : 'MANAGER_APPROVED',
+                approvedEvidence: null,
+                evidenceChangedReason: null,
+                evidenceChangedAt: null,
+              }),
+        },
+      });
+
+      await this.evaluateInternal(tx, id);
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id } });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_APPROVED,
+        userId,
+        row,
+        {
+          oldValues: VisitReconciliationsService.paySnapshotOf(row),
+          newValues: {
+            ...VisitReconciliationsService.paySnapshotOf(after),
+            scope: dto.scope ?? 'BOTH',
+            managerOverride: Boolean(dto.managerOverride),
+          },
+          reason: dto.approvalNotes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
-  async reject(userId: string, id: string, dto: RejectVisitReconciliationDto) {
+  async reject(
+    userId: string,
+    id: string,
+    dto: RejectVisitReconciliationDto,
+    meta?: RequestAuditMeta,
+  ) {
     const row = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Visit reconciliation not found');
     if (row.status === VisitReconciliationStatus.LOCKED) {
@@ -1264,21 +2050,43 @@ export class VisitReconciliationsService {
     if (dto.scope === 'PAY') status = VisitReconciliationStatus.REJECTED_FOR_PAY;
     else if (dto.scope === 'INVOICE') status = VisitReconciliationStatus.REJECTED_FOR_INVOICE;
     else status = VisitReconciliationStatus.REJECTED_FOR_PAY;
+    // Pay that is already settled cannot be rejected; the charge side still can.
+    if (status === VisitReconciliationStatus.REJECTED_FOR_PAY) this.assertPayNotSettled(row);
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        status,
-        approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
-        approvedById: userId,
-        approvedAt: new Date(),
-      },
-    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          status,
+          approvalNotes: dto.approvalNotes?.trim() || row.approvalNotes,
+          approvedById: userId,
+          approvedAt: new Date(),
+        },
+      });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_REJECTED,
+        userId,
+        row,
+        {
+          oldValues: { status: String(row.status) },
+          newValues: { status: String(status), scope: dto.scope ?? 'PAY' },
+          reason: dto.approvalNotes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
 
     return this.getById(id);
   }
 
-  async approveOverrun(userId: string, id: string, dto: DecideVisitOverrunDto) {
+  async approveOverrun(
+    userId: string,
+    id: string,
+    dto: DecideVisitOverrunDto,
+    meta?: RequestAuditMeta,
+  ) {
     const row = await this.prisma.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
@@ -1289,6 +2097,15 @@ export class VisitReconciliationsService {
     }
     if (!row.overrunMinutes || row.overrunMinutes <= 0) {
       throw new BadRequestException('This visit has no overrun to approve');
+    }
+    if (isPaySettled(row)) {
+      // Pay is history; the client charge has its own lifecycle and can still be decided (R-07).
+      if (dto.applyTo !== 'CHARGE') {
+        throw new BadRequestException(
+          `${PAY_SETTLED_MESSAGE} The client charge can still be decided: choose "charge only".`,
+        );
+      }
+      return this.decideChargeOverrunOnSettledVisit(userId, row, dto.timeBasis ?? 'ACTUAL', dto, meta);
     }
 
     // Admin choice: planned vs actual time, for carer pay, client charge or both.
@@ -1326,29 +2143,161 @@ export class VisitReconciliationsService {
 
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        overrunDecision: VisitOverrunDecision.APPROVED,
-        overrunPayBasis,
-        overrunBillBasis,
-        approvedPayStart: defaults.approvedPayStart,
-        approvedPayEnd: defaults.approvedPayEnd,
-        approvedBillStart: defaults.approvedBillStart,
-        approvedBillEnd: defaults.approvedBillEnd,
-        approvalNotes: notes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status: VisitReconciliationStatus.PENDING_REVIEW,
-      },
-    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          overrunDecision: VisitOverrunDecision.APPROVED,
+          overrunPayBasis,
+          overrunBillBasis,
+          approvedPayStart: defaults.approvedPayStart,
+          approvedPayEnd: defaults.approvedPayEnd,
+          approvedBillStart: defaults.approvedBillStart,
+          approvedBillEnd: defaults.approvedBillEnd,
+          approvalNotes: notes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status: VisitReconciliationStatus.PENDING_REVIEW,
+        },
+      });
 
-    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
-    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
+      // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+      await this.evaluateInternal(tx, id, { forceRecalculateAmounts: true });
+      await this.auditOverrunDecision(userId, row, 'APPROVED', dto, meta, tx);
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
-  async rejectOverrun(userId: string, id: string, dto: DecideVisitOverrunDto) {
+  /**
+   * Overrun decision for the client charge of a visit whose carer pay is already settled (R-07).
+   * Only charge-side fields are written: the pay window, amount and approval stay exactly as paid,
+   * and the basis the carer was paid on is carried forward so later pay corrections are worked out
+   * on the same footing. A charge that sits on an approved invoice follows the invoice process.
+   */
+  private async decideChargeOverrunOnSettledVisit(
+    userId: string,
+    row: {
+      id: string;
+      visitRef: string;
+      employeeId: string | null;
+      scheduledVisitId: string;
+      status: VisitReconciliationStatus;
+      plannedStartDateTime: Date;
+      plannedEndDateTime: Date | null;
+      actualStartDateTime: Date | null;
+      actualEndDateTime: Date | null;
+      approvedPayStart: Date | null;
+      approvedPayEnd: Date | null;
+      payableAmount: Prisma.Decimal | null;
+      payableMinutes: number | null;
+      billableAmount: Prisma.Decimal | null;
+      overrunMinutes: number | null;
+      overrunDecision: VisitOverrunDecision | null;
+      overrunPayBasis: VisitOverrunTimeBasis | null;
+      approvalNotes: string | null;
+    },
+    billBasis: 'PLANNED' | 'ACTUAL',
+    dto: DecideVisitOverrunDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.assertBillableNotOnApprovedInvoice(row.id);
+    // What the carer was paid on: decided ACTUAL, the older "acknowledged = actual" rule, or planned.
+    const payBasis: VisitOverrunTimeBasis =
+      row.overrunDecision === VisitOverrunDecision.APPROVED
+        ? (row.overrunPayBasis ?? VisitOverrunTimeBasis.ACTUAL)
+        : VisitOverrunTimeBasis.PLANNED;
+    const anyActual = payBasis === VisitOverrunTimeBasis.ACTUAL || billBasis === 'ACTUAL';
+    const overrunDecision = anyActual ? VisitOverrunDecision.APPROVED : VisitOverrunDecision.REJECTED;
+    const windows = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: [{ code: FinanceExceptionCode.OVERRUN, message: '' }],
+      overrunDecision,
+      overrunPayBasis: anyActual ? payBasis : null,
+      overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
+      durationToleranceMinutes: await this.resolveDurationToleranceMinutes(this.prisma, row.scheduledVisitId),
+    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id: row.id },
+        data: {
+          overrunDecision,
+          overrunPayBasis: anyActual ? payBasis : null,
+          overrunBillBasis: anyActual ? (billBasis as VisitOverrunTimeBasis) : null,
+          approvedBillStart: windows.approvedBillStart,
+          approvedBillEnd: windows.approvedBillEnd,
+          approvalNotes: [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null,
+        },
+      });
+      // Reprices the charge; the pay snapshot of a settled visit is never written.
+      await this.evaluateInternal(tx, row.id, { forceRecalculateAmounts: true });
+      const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+      await this.auditVisit(
+        AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
+        userId,
+        row,
+        {
+          oldValues: { billableAmount: row.billableAmount?.toString() ?? null, ...VisitReconciliationsService.paySnapshotOf(row) },
+          newValues: {
+            billableAmount: after.billableAmount?.toString() ?? null,
+            ...VisitReconciliationsService.paySnapshotOf(after),
+            decision: 'CHARGE_ONLY',
+            chargeBasis: billBasis,
+            overrunMinutes: row.overrunMinutes,
+          },
+          reason: dto.notes,
+        },
+        meta,
+        tx,
+      );
+    }, DECISION_TRANSACTION);
+    return this.getById(row.id);
+  }
+
+  private async auditOverrunDecision(
+    userId: string,
+    before: Parameters<typeof VisitReconciliationsService.paySnapshotOf>[0] & {
+      id: string;
+      visitRef?: string | null;
+      employeeId?: string | null;
+      overrunMinutes: number | null;
+    },
+    decision: 'APPROVED' | 'REJECTED',
+    dto: DecideVisitOverrunDto,
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const after = await this.client(tx).visitReconciliation.findUniqueOrThrow({ where: { id: before.id } });
+    await this.auditVisit(
+      AuditAction.VISIT_RECONCILIATION_OVERRUN_DECIDED,
+      userId,
+      before,
+      {
+        oldValues: VisitReconciliationsService.paySnapshotOf(before),
+        newValues: {
+          ...VisitReconciliationsService.paySnapshotOf(after),
+          decision,
+          overrunMinutes: before.overrunMinutes,
+          timeBasis: dto.timeBasis ?? null,
+          applyTo: dto.applyTo ?? null,
+        },
+        reason: dto.notes,
+      },
+      meta,
+      tx,
+    );
+  }
+
+  async rejectOverrun(
+    userId: string,
+    id: string,
+    dto: DecideVisitOverrunDto,
+    meta?: RequestAuditMeta,
+  ) {
     const row = await this.prisma.visitReconciliation.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Visit reconciliation not found');
     if (row.status === VisitReconciliationStatus.LOCKED) {
@@ -1356,6 +2305,10 @@ export class VisitReconciliationsService {
     }
     if (!row.overrunMinutes || row.overrunMinutes <= 0) {
       throw new BadRequestException('This visit has no overrun to reject');
+    }
+    if (isPaySettled(row)) {
+      // Rejecting the overrun of a paid visit can only mean "charge the planned time": pay stays.
+      return this.decideChargeOverrunOnSettledVisit(userId, row, 'PLANNED', dto, meta);
     }
 
     const defaults = resolveDefaultApprovedWindows({
@@ -1372,25 +2325,29 @@ export class VisitReconciliationsService {
     });
     const notes = [row.approvalNotes, dto.notes?.trim()].filter(Boolean).join('\n') || null;
 
-    await this.prisma.visitReconciliation.update({
-      where: { id },
-      data: {
-        overrunDecision: VisitOverrunDecision.REJECTED,
-        overrunPayBasis: null,
-        overrunBillBasis: null,
-        approvedPayStart: defaults.approvedPayStart,
-        approvedPayEnd: defaults.approvedPayEnd,
-        approvedBillStart: defaults.approvedBillStart,
-        approvedBillEnd: defaults.approvedBillEnd,
-        approvalNotes: notes,
-        approvedById: userId,
-        approvedAt: new Date(),
-        status: VisitReconciliationStatus.PENDING_REVIEW,
-      },
-    });
+    // The decision, the amounts it produces and its audit entry are saved together or not at all.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitReconciliation.update({
+        where: { id },
+        data: {
+          overrunDecision: VisitOverrunDecision.REJECTED,
+          overrunPayBasis: null,
+          overrunBillBasis: null,
+          approvedPayStart: defaults.approvedPayStart,
+          approvedPayEnd: defaults.approvedPayEnd,
+          approvedBillStart: defaults.approvedBillStart,
+          approvedBillEnd: defaults.approvedBillEnd,
+          approvalNotes: notes,
+          approvedById: userId,
+          approvedAt: new Date(),
+          status: VisitReconciliationStatus.PENDING_REVIEW,
+        },
+      });
 
-    // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
-    await this.evaluateInternal(this.prisma, id, { forceRecalculateAmounts: true });
+      // Reprice with the decided time windows (completed visits otherwise keep stored amounts).
+      await this.evaluateInternal(tx, id, { forceRecalculateAmounts: true });
+      await this.auditOverrunDecision(userId, row, 'REJECTED', dto, meta, tx);
+    }, DECISION_TRANSACTION);
     return this.getById(id);
   }
 
@@ -1494,11 +2451,59 @@ export class VisitReconciliationsService {
    * Manual carer/client amount overrides are preserved (only card-derived amounts reprice).
    */
   /** `reason` comes from the user-triggered action and is audited; internal re-runs omit it. */
+  /**
+   * Reprices one visit for a recalculation a person asked for. The new amounts and the audit entry
+   * of the change are one transaction; a visit whose amounts do not change gets no entry, so asking
+   * twice records nothing twice. A failure is kept as an open pay evaluation failure, as elsewhere.
+   */
+  private async recalculateAudited(
+    row: {
+      id: string;
+      visitRef: string;
+      employeeId: string | null;
+      payableAmount: Prisma.Decimal | null;
+      billableAmount: Prisma.Decimal | null;
+    },
+    reason: string,
+    userId?: string,
+    meta?: { ipAddress?: string | null; userAgent?: string | null },
+  ): Promise<boolean> {
+    const amount = (v: Prisma.Decimal | null | undefined) => (v == null ? null : Number(v).toFixed(2));
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.evaluateInternal(tx, row.id, { forceRecalculateAmounts: true });
+        const next = await tx.visitReconciliation.findUnique({
+          where: { id: row.id },
+          select: { payableAmount: true, billableAmount: true },
+        });
+        if (!next) return;
+        const before = { payableAmount: amount(row.payableAmount), billableAmount: amount(row.billableAmount) };
+        const after = { payableAmount: amount(next.payableAmount), billableAmount: amount(next.billableAmount) };
+        if (before.payableAmount === after.payableAmount && before.billableAmount === after.billableAmount) return;
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_AMOUNTS_RECALCULATED,
+          userId,
+          row,
+          { oldValues: before, newValues: after, reason },
+          meta ? { ipAddress: meta.ipAddress ?? null, userAgent: meta.userAgent ?? null } : undefined,
+          tx,
+        );
+      }, DECISION_TRANSACTION);
+      await this.closeEvaluationFailure('EVALUATE', row.id, 'SUCCEEDED_LATER');
+      return true;
+    } catch (err) {
+      await this.recordEvaluationFailure('EVALUATE', row.id, err);
+      return false;
+    }
+  }
+
   async recalculateAmounts(
     dto: Omit<RecalculateVisitReconciliationsDto, 'reason'> & { reason?: string },
     userId?: string,
     meta?: { ipAddress?: string | null; userAgent?: string | null },
   ) {
+    // Visits whose pay is settled stay in scope for their charge side only: evaluateInternal never
+    // reprices or rewrites the pay snapshot of a settled visit, forced or not.
     const where: Prisma.VisitReconciliationWhereInput = {
       status: { not: VisitReconciliationStatus.LOCKED },
     };
@@ -1527,9 +2532,14 @@ export class VisitReconciliationsService {
       take: RECALC_LIMIT,
     });
 
+    const reason = dto.reason?.trim();
     const failedIds = new Set<string>();
     for (const row of pending) {
-      const ok = await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
+      // Asked for by a person (a reason is given): each visit whose amounts change gets its own
+      // audit entry, saved with the change. Without a reason this is a system refresh, as before.
+      const ok = reason
+        ? await this.recalculateAudited(row, reason, userId, meta)
+        : await this.safeEvaluate(this.prisma, row.id, { forceRecalculateAmounts: true });
       if (!ok) failedIds.add(row.id);
     }
     const failed = failedIds.size;
@@ -1618,7 +2628,7 @@ export class VisitReconciliationsService {
       },
     };
 
-    const reason = dto.reason?.trim();
+    // The summary of the batch. Each changed visit already has its own entry, saved with its change.
     if (reason) {
       await this.auditLogs.logAudit({
         userId,
@@ -1651,7 +2661,9 @@ export class VisitReconciliationsService {
    * When `serviceUserId` is set, only that client's rows are removed.
    * Does not reset scheduled visits — use Sync completed visits to recreate.
    */
-  async clearAll(serviceUserId?: string) {
+  async clearAll(serviceUserId?: string, userId?: string, meta?: RequestAuditMeta) {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     const scopedWhere = serviceUserId?.trim()
       ? { serviceUserId: serviceUserId.trim() }
       : undefined;
@@ -1673,6 +2685,7 @@ export class VisitReconciliationsService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      await allowFinancialResetInTransaction(tx);
       const reconIds = scopedWhere
         ? (
             await tx.visitReconciliation.findMany({
@@ -1709,6 +2722,16 @@ export class VisitReconciliationsService {
         financeExceptions: financeExceptions.count,
         visitReconciliations: visitReconciliations.count,
       };
+    });
+    await this.auditLogs.logAudit({
+      userId,
+      module: AuditModule.BILLING,
+      action: AuditAction.FINANCIAL_TEST_DATA_RESET,
+      recordType: 'VisitReconciliation',
+      recordId: serviceUserId?.trim() || 'all',
+      newValues: { operation: 'clear-all visit reconciliations', before, ...result },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
     });
 
     return {
@@ -1784,9 +2807,18 @@ export class VisitReconciliationsService {
     };
   }
 
-  async getExceptionQueue(limit = 10) {
+  /** `locationId` limits the queue to service users of that branch (R-13). */
+  async getExceptionQueue(limit = 10, locationId?: string) {
+    const branchServiceUserIds = locationId
+      ? await serviceUserIdsForLocation(this.prisma, locationId)
+      : null;
     const rows = await this.prisma.financeException.findMany({
-      where: { resolvedAt: null },
+      where: {
+        resolvedAt: null,
+        ...(branchServiceUserIds
+          ? { visitReconciliation: { serviceUserId: { in: branchServiceUserIds } } }
+          : {}),
+      },
       include: {
         visitReconciliation: {
           select: {
@@ -1826,12 +2858,427 @@ export class VisitReconciliationsService {
     };
   }
 
+  /**
+   * Carer pay for a pay window on a given card: the rules of the card version in force on the visit
+   * date, the card's bank holiday nation and its overlap policy. Returns no amount when a rate is
+   * missing. Used to price a visit and to work out what a corrected visit should have paid.
+   */
+  private async priceCarerPay(
+    db: DbClient,
+    input: {
+      payCard: { id: string; stackingPolicy?: string; bankHolidayRegion?: string | null };
+      plannedStart: Date;
+      payStart: Date;
+      payEnd: Date;
+      payMinutes: number;
+      plannedMinutes: number;
+      nightDuty: string | null | undefined;
+      timeZone: string;
+      /** Default (England & Wales) calendar for the window, when the caller already loaded it. */
+      defaultHolidayDates?: Set<string>;
+    },
+  ): Promise<{ amount: number | null; version: number | null; hold?: string }> {
+    const { payCard, plannedStart, payStart, payEnd, timeZone } = input;
+    // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
+    const { version, rules } = await loadPayCardRulesForDate(db, payCard.id, plannedStart, timeZone);
+    // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
+    const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
+    // R-27: a day that is normally a bank holiday with no entry in the calendar is not priced as
+    // an ordinary day. The pay is held with the reason until a person settles the calendar.
+    const hold = await calendarHoldForPay(db, {
+      region: payRegion,
+      rules,
+      start: payStart,
+      end: payEnd ?? payStart,
+      dayOf: (instant) => dayKeyInTimeZone(instant, timeZone),
+    });
+    if (hold) return { amount: null, version, hold };
+    // PC-22 to PC-24: the shared calendar, with the organisation's special days and its policy
+    // for holidays that fall on a weekend.
+    const payCalendar = await loadPayCalendar(db, payStart, payEnd ?? payStart, payRegion);
+    const payHolidayDates = payCalendar.bankHolidayKeys;
+    const stackingPolicy =
+      (payCard.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
+    const calc = calculatePayableAmount(
+      rules,
+      plannedStart,
+      input.payMinutes,
+      payHolidayDates.has(dayKeyInTimeZone(plannedStart, timeZone)),
+      {
+        start: payStart,
+        end: payEnd,
+        stackingPolicy,
+        isBankHolidayFn: (d) => payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
+        timeZone,
+        calendar: payCalendar.calendar,
+      },
+      input.nightDuty,
+      input.plannedMinutes,
+    );
+    return { amount: calc?.amount ?? null, version };
+  }
+
+  /**
+   * What the carer pay of a row would be on its current recorded times, priced on the pay card and
+   * version the row was priced on. Null when there are no times, no card or no matching rate.
+   * Nothing is written.
+   */
+  private async wouldBeCarerPay(row: {
+    scheduledVisitId: string;
+    plannedStartDateTime: Date;
+    plannedEndDateTime: Date | null;
+    actualStartDateTime: Date | null;
+    actualEndDateTime: Date | null;
+    overrunDecision: VisitOverrunDecision | null;
+    overrunPayBasis: VisitOverrunTimeBasis | null;
+    overrunBillBasis: VisitOverrunTimeBasis | null;
+    payCardId: string | null;
+  }): Promise<number | null> {
+    if (!row.payCardId || !row.actualStartDateTime || !row.actualEndDateTime) return null;
+    const [payCard, visit, timeZone, durationToleranceMinutes] = await Promise.all([
+      this.prisma.payCard.findUnique({
+        where: { id: row.payCardId },
+        select: { id: true, stackingPolicy: true, bankHolidayRegion: true },
+      }),
+      this.prisma.scheduledVisit.findUnique({
+        where: { id: row.scheduledVisitId },
+        select: { visitPlanSlot: { select: { nightDuty: true } }, scheduledJob: { select: { metadata: true } } },
+      }),
+      this.orgSettings.getOperationalTimezone(),
+      this.resolveDurationToleranceMinutes(this.prisma, row.scheduledVisitId),
+    ]);
+    if (!payCard) return null;
+    const plannedMinutes = row.plannedEndDateTime
+      ? minutesBetween(row.plannedStartDateTime, row.plannedEndDateTime)
+      : 0;
+    const actualMinutes = minutesBetween(row.actualStartDateTime, row.actualEndDateTime);
+    const overrun = actualMinutes > plannedMinutes && plannedMinutes > 0;
+    const windows = resolveDefaultApprovedWindows({
+      plannedStartDateTime: row.plannedStartDateTime,
+      plannedEndDateTime: row.plannedEndDateTime,
+      actualStartDateTime: row.actualStartDateTime,
+      actualEndDateTime: row.actualEndDateTime,
+      exceptions: overrun ? [{ code: FinanceExceptionCode.OVERRUN, message: '' }] : [],
+      // An overrun not yet decided is paid on planned time, as it is for an unsettled visit.
+      overrunDecision: overrun ? (row.overrunDecision ?? VisitOverrunDecision.PENDING) : null,
+      overrunPayBasis: row.overrunPayBasis,
+      overrunBillBasis: row.overrunBillBasis,
+      durationToleranceMinutes,
+    });
+    const payMinutes = minutesBetween(windows.approvedPayStart, windows.approvedPayEnd);
+    if (payMinutes <= 0) return 0;
+    const priced = await this.priceCarerPay(this.prisma, {
+      payCard: {
+        id: payCard.id,
+        stackingPolicy: payCard.stackingPolicy ?? undefined,
+        bankHolidayRegion: payCard.bankHolidayRegion,
+      },
+      plannedStart: row.plannedStartDateTime,
+      payStart: windows.approvedPayStart,
+      payEnd: windows.approvedPayEnd,
+      payMinutes,
+      plannedMinutes,
+      nightDuty: resolveStoredNightDuty({
+        slotNightDuty: visit?.visitPlanSlot?.nightDuty,
+        jobMetadata: visit?.scheduledJob?.metadata,
+      }),
+      timeZone,
+    });
+    return priced.amount;
+  }
+
+  /**
+   * The office has verified or corrected the attendance times of a completed visit (VW-15).
+   *
+   * The corrected times are already on the visit / allocation; this carries them into pay:
+   *  - pay not settled: the approved pay window is re-derived and the draft pay is repriced;
+   *  - pay settled (locked visit pay run or closed UK run): the paid record stays as it is and the
+   *    difference is recorded as a pay correction, which a second person approves and the next run
+   *    pays or recovers.
+   * A manual payable amount entered by finance is kept in both cases.
+   */
+  async applyAttendanceCorrection(
+    scheduledVisitId: string,
+    input: { userId: string; reason: string; jobAllocationId?: string | null },
+    meta?: RequestAuditMeta,
+  ) {
+    try {
+      const result = await this.carryAttendanceIntoPay(scheduledVisitId, input, meta);
+      // A pay step that failed before is done now: its failure is closed.
+      await this.closeEvaluationFailure('ATTENDANCE_CORRECTION', scheduledVisitId, 'SUCCEEDED_LATER');
+      return result;
+    } catch (err) {
+      // A user who no longer exists, or lacks the power, is answered as such: nothing is flagged.
+      if (err instanceof UnauthorizedException || err instanceof ForbiddenException) throw err;
+      // The corrected times are recorded (by the caller, before this); pay is not. Say so, keep the
+      // failure for a retry, and hold the visit so that no pay run pays it on the old times.
+      await this.recordEvaluationFailure('ATTENDANCE_CORRECTION', scheduledVisitId, err, undefined, {
+        reason: input.reason,
+        jobAllocationId: input.jobAllocationId ?? null,
+      });
+      const failure = await this.prisma.payEvaluationFailure.findUnique({
+        where: { subjectKey: payEvaluationSubjectKey('ATTENDANCE_CORRECTION', scheduledVisitId) },
+      });
+      const flagged = await this.flagPayStepFailed(scheduledVisitId, failure, input.userId, meta, input.jobAllocationId);
+      return { data: flagged };
+    }
+  }
+
+  /**
+   * Flags each carer's pay on a visit whose corrected times did not reach pay: an EVIDENCE_CHANGED
+   * exception that says so, and pay that was approved and not yet settled goes back to review so
+   * that it is held from pay runs. One transaction with its audit entries; settled pay is never
+   * rewritten. Doing it again replaces the flag, it does not add one. Never throws.
+   */
+  private async flagPayStepFailed(
+    scheduledVisitId: string,
+    failure: { id: string; message: string } | null,
+    userId: string,
+    meta?: RequestAuditMeta,
+    jobAllocationId?: string | null,
+  ) {
+    const reference = failure?.id.slice(0, 8) ?? null;
+    const reason = `${PAY_STEP_FAILED}: ${failure?.message ?? 'unexpected error'} Retry it from Pay calculation failures${
+      reference ? ` (reference ${reference})` : ''
+    }.`;
+    const rows = await this.prisma.visitReconciliation.findMany({
+      where: {
+        scheduledVisitId,
+        ...(jobAllocationId ? { jobAllocationId } : {}),
+        status: { notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE] },
+      },
+    });
+    let flagged = false;
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const now = new Date();
+        for (const row of rows) {
+          const hold =
+            !isPaySettled(row) &&
+            (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY || row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH);
+          await tx.visitReconciliation.update({
+            where: { id: row.id },
+            data: { evidenceChangedReason: reason, evidenceChangedAt: now, ...(hold ? { status: VisitReconciliationStatus.PENDING_REVIEW } : {}) },
+          });
+          await tx.financeException.deleteMany({ where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED } });
+          await tx.financeException.create({
+            data: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED, message: reason },
+          });
+          await this.auditVisit(
+            AuditAction.VISIT_ATTENDANCE_PAY_NOT_RECALCULATED,
+            userId,
+            row,
+            {
+              oldValues: VisitReconciliationsService.paySnapshotOf(row),
+              newValues: { status: String(hold ? VisitReconciliationStatus.PENDING_REVIEW : row.status), held: hold, failureId: failure?.id ?? null },
+              reason,
+            },
+            meta,
+            tx,
+          );
+        }
+      }, DECISION_TRANSACTION);
+      flagged = true;
+    } catch (flagErr) {
+      // Nothing was changed without its audit entry; the failure itself is still listed.
+      this.logger.error(
+        `Could not flag visit ${scheduledVisitId} after a failed pay step: ${flagErr instanceof Error ? flagErr.constructor.name : 'unknown error'}`,
+      );
+    }
+    return rows.map((row) => ({
+      reconciliationId: row.id,
+      visitRef: row.visitRef,
+      outcome: 'PAY_NOT_RECALCULATED' as const,
+      message: flagged
+        ? `Times recorded, but carer pay could not be recalculated: ${failure?.message ?? 'unexpected error'} The visit is held for review; retry it from Pay calculation failures${reference ? ` (reference ${reference})` : ''}.`
+        : `Times recorded, but carer pay could not be recalculated and the visit could not be flagged. It is listed under Pay calculation failures${reference ? ` (reference ${reference})` : ''}; retry it there.`,
+      payableBefore: row.payableAmount != null ? String(row.payableAmount) : null,
+      payableAfter: row.payableAmount != null ? String(row.payableAmount) : null,
+      failureId: failure?.id ?? null,
+    }));
+  }
+
+  /** The pay step of an attendance correction, in one transaction. Throws when it cannot be done. */
+  private async carryAttendanceIntoPay(
+    scheduledVisitId: string,
+    input: { userId: string; reason: string; jobAllocationId?: string | null },
+    meta?: RequestAuditMeta,
+  ) {
+    // What the pay was before the corrected times reached the record: refreshing the rows already
+    // re-evaluates them on the new evidence (R-18).
+    const payBefore = new Map(
+      (
+        await this.prisma.visitReconciliation.findMany({
+          where: { scheduledVisitId },
+          select: {
+            id: true,
+            status: true,
+            payableAmount: true,
+            payableMinutes: true,
+            approvedPayStart: true,
+            approvedPayEnd: true,
+          },
+        })
+      ).map((r) => [r.id, VisitReconciliationsService.paySnapshotOf(r)]),
+    );
+    // One transaction for the visit: the refreshed rows, the repriced pay or the correction
+    // recorded for settled pay, the answered flags and the audit entries are saved together or
+    // not at all. The corrected attendance times themselves were recorded before this and stay.
+    const result = await this.prisma.$transaction(async (tx) => {
+      // The flag of an earlier failed pay step is answered by doing the pay step now.
+      await tx.visitReconciliation.updateMany({
+        where: { scheduledVisitId, evidenceChangedReason: { startsWith: PAY_STEP_FAILED } },
+        data: { evidenceChangedReason: null, evidenceChangedAt: null },
+      });
+      await tx.financeException.deleteMany({
+        where: { visitReconciliation: { scheduledVisitId }, code: FinanceExceptionCode.EVIDENCE_CHANGED, message: { startsWith: PAY_STEP_FAILED } },
+      });
+      await this.ensureForVisit(scheduledVisitId, tx);
+      const rows = await tx.visitReconciliation.findMany({
+        where: {
+          scheduledVisitId,
+          ...(input.jobAllocationId ? { jobAllocationId: input.jobAllocationId } : {}),
+          status: {
+            notIn: [VisitReconciliationStatus.REJECTED_FOR_PAY, VisitReconciliationStatus.REJECTED_FOR_INVOICE],
+          },
+        },
+      });
+      const results: Array<{
+        reconciliationId: string;
+        visitRef: string;
+        outcome: 'REPRICED' | 'PAY_UNCHANGED' | 'MANUAL_AMOUNT_KEPT' | 'CORRECTION_RECORDED' | 'NO_CORRECTION' | 'REVIEW_NEEDED';
+      failureId?: string | null;
+        message: string;
+        payableBefore: string | null;
+        payableAfter: string | null;
+      }> = [];
+
+      for (const row of rows) {
+        const before = payBefore.get(row.id) ?? VisitReconciliationsService.paySnapshotOf(row);
+        let outcome: (typeof results)[number]['outcome'];
+        let message: string;
+        let payableAfter = before.payableAmount;
+
+        if (!isPaySettled(row)) {
+          if (hasManualPayableOverride(row)) {
+            outcome = 'MANUAL_AMOUNT_KEPT';
+            message = 'Times updated. The payable amount was entered by finance and was not changed.';
+          } else {
+            // Re-derive the pay window from the corrected times, then reprice carer pay only.
+            await tx.visitReconciliation.update({
+              where: { id: row.id },
+              data: { approvedPayStart: null, approvedPayEnd: null },
+            });
+            await this.evaluateInternal(tx, row.id, { forceRecalculatePay: true });
+            const after = await tx.visitReconciliation.findUniqueOrThrow({ where: { id: row.id } });
+            payableAfter = after.payableAmount != null ? String(after.payableAmount) : null;
+            if (
+              Number(payableAfter ?? 0) === Number(before.payableAmount ?? 0) &&
+              after.payableMinutes === before.payableMinutes
+            ) {
+              // The evidence changed; the pay it produces did not. Say which rule kept it.
+              const { reason } = await this.payTimeRule(tx, after);
+              outcome = 'PAY_UNCHANGED';
+              message = `Times updated. Carer pay is unchanged: ${reason} Payable time stays ${await this.payWindowText(after)}.`;
+            } else {
+              outcome = 'REPRICED';
+              message = 'Times updated and carer pay recalculated.';
+            }
+          }
+        } else if (hasManualPayableOverride(row)) {
+          outcome = 'NO_CORRECTION';
+          message = 'This visit was paid on an amount entered by finance. Record a pay correction by hand if it should change.';
+        } else {
+          const corrected = await this.wouldBeCarerPay(row);
+          if (corrected == null) {
+            outcome = 'REVIEW_NEEDED';
+            message = 'This visit is already paid and its corrected pay could not be priced. Record a pay correction by hand.';
+          } else {
+            try {
+              const created = await this.payItems.recordVisitCorrection(
+                input.userId,
+                {
+                  visitReconciliationId: row.id,
+                  correctedAmount: corrected,
+                  reason: `Attendance corrected: ${input.reason}`.slice(0, 400),
+                },
+                meta,
+                tx,
+              );
+              payableAfter = corrected.toFixed(2);
+              outcome = 'CORRECTION_RECORDED';
+              message = created.message;
+            } catch (err) {
+              if (!(err instanceof BadRequestException)) throw err;
+              outcome = 'NO_CORRECTION';
+              message = err.message;
+            }
+          }
+        }
+
+        if (isPaySettled(row)) {
+          // The office has looked at the changed times of a settled visit and the pay side is
+          // dealt with above (correction recorded, or none needed): the flag is answered (R-18).
+          const reviewed = await attendanceReviewState(tx, row.scheduledJobId, row.employeeId);
+          await tx.visitReconciliation.update({
+            where: { id: row.id },
+            data: {
+              approvedEvidence: evidenceFingerprint({
+                actualStart: row.actualStartDateTime,
+                actualEnd: row.actualEndDateTime,
+                needsReview: reviewed.reasons.length > 0,
+              }),
+              evidenceChangedReason: null,
+              evidenceChangedAt: null,
+            },
+          });
+          await tx.financeException.deleteMany({
+            where: { visitReconciliationId: row.id, code: FinanceExceptionCode.EVIDENCE_CHANGED },
+          });
+        }
+
+        await this.auditVisit(
+          AuditAction.VISIT_ATTENDANCE_TIMES_CORRECTED,
+          input.userId,
+          row,
+          {
+            oldValues: before,
+            newValues: {
+              outcome,
+              payableAmount: payableAfter,
+              actualStartDateTime: row.actualStartDateTime?.toISOString() ?? null,
+              actualEndDateTime: row.actualEndDateTime?.toISOString() ?? null,
+            },
+            reason: input.reason,
+          },
+          meta,
+          tx,
+        );
+        results.push({
+          reconciliationId: row.id,
+          visitRef: row.visitRef,
+          outcome,
+          message,
+          payableBefore: before.payableAmount,
+          payableAfter,
+        });
+      }
+      return { data: results };
+    }, DECISION_TRANSACTION);
+    return result;
+  }
+
   private async evaluateInternal(
     db: DbClient,
     id: string,
-    options?: { forceRecalculateAmounts?: boolean },
-  ) {
-    const row = await db.visitReconciliation.findUnique({
+    options?: { forceRecalculateAmounts?: boolean; forceRecalculatePay?: boolean },
+  ): Promise<void> {
+    // Everything an evaluation writes (amounts, exceptions, an approval it withdraws and the audit
+    // entry of that withdrawal) is saved together or not at all.
+    if (db === this.prisma) {
+      return this.prisma.$transaction((tx) => this.evaluateInternal(tx, id, options), DECISION_TRANSACTION);
+    }
+    let row = await db.visitReconciliation.findUnique({
       where: { id },
       include: reconciliationInclude,
     });
@@ -1865,6 +3312,87 @@ export class VisitReconciliationsService {
     });
     const timeZone = await this.orgSettings.getOperationalTimezone();
 
+    // R-18: an approval stands for the attendance evidence it was given for. The carer's own
+    // verification record (R-16) says whether their times still await review.
+    const review = await attendanceReviewState(
+      db,
+      row.scheduledJobId,
+      row.employeeId,
+      visit.scheduledJob?.metadata,
+    );
+    const currentEvidence = evidenceFingerprint({
+      actualStart: row.actualStartDateTime,
+      actualEnd: row.actualEndDateTime,
+      needsReview: review.reasons.length > 0,
+    });
+    const isApprovedStatus = (status: VisitReconciliationStatus) =>
+      status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+      status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+      status === VisitReconciliationStatus.APPROVED_FOR_INVOICE;
+    const evidenceOutcome = approvalAfterEvidenceChange({
+      approved: isApprovedStatus(row.status),
+      paySettled: isPaySettled(row),
+      approvalSource: row.approvalSource,
+      approvedById: row.approvedById,
+      approvedEvidence: row.approvedEvidence,
+      currentEvidence,
+    });
+    if (
+      evidenceOutcome === 'WITHDRAW_AUTO' ||
+      evidenceOutcome === 'REQUIRE_REVIEW' ||
+      evidenceOutcome === 'FLAG_SETTLED'
+    ) {
+      const change = describeEvidenceChange(row.approvedEvidence as string, currentEvidence);
+      const before = row;
+      if (evidenceOutcome === 'FLAG_SETTLED') {
+        // Settled pay is history. Nothing about the pay is touched; the change is flagged so a
+        // person can check it and, if the pay should differ, record a pay correction.
+        if (!row.evidenceChangedReason) {
+          await db.visitReconciliation.update({
+            where: { id },
+            data: {
+              evidenceChangedReason: `Attendance evidence changed after the pay of this visit was settled (${change}). Check the times; if the pay should change, record a pay correction.`,
+              evidenceChangedAt: new Date(),
+            },
+          });
+        }
+      } else {
+        const byPerson = evidenceOutcome === 'REQUIRE_REVIEW';
+        await db.visitReconciliation.update({
+          where: { id },
+          data: {
+            // Back to review. A clean visit that was approved automatically is approved again
+            // below, on the new evidence; anything else waits for a person.
+            status: VisitReconciliationStatus.PENDING_REVIEW,
+            approvedEvidence: null,
+            ...(byPerson
+              ? {
+                  // The person's approval, its time and its notes stay on the record.
+                  evidenceChangedReason: `Attendance evidence changed after this visit was approved (${change}). Review it and approve again.`,
+                  evidenceChangedAt: new Date(),
+                }
+              : { approvalSource: null, approvedAt: null }),
+            // The pay window follows the new times, unless finance entered the amount by hand.
+            ...(hasManualPayableOverride(row) ? {} : { approvedPayStart: null, approvedPayEnd: null }),
+          },
+        });
+        options = { ...options, forceRecalculatePay: true };
+      }
+      await this.auditVisit(AuditAction.VISIT_RECONCILIATION_APPROVAL_WITHDRAWN, undefined, before, {
+        oldValues: {
+          status: String(before.status),
+          approvalSource: inferApprovalSource(before),
+          approvedById: before.approvedById,
+          approvedEvidence: before.approvedEvidence,
+        },
+        newValues: { outcome: evidenceOutcome, currentEvidence },
+        reason: change,
+      }, undefined, this.txOf(db));
+      row = await db.visitReconciliation.findUnique({ where: { id }, include: reconciliationInclude });
+      if (!row) return;
+    }
+    const wasApprovedBeforeEvaluation = isApprovedStatus(row.status);
+
     // After the visit is complete and amounts were priced once, keep those amounts
     // even if charge/pay cards change later (unless forceRecalculateAmounts).
     // Manual overrides always freeze — including during force recalculate — so
@@ -1882,6 +3410,9 @@ export class VisitReconciliationsService {
     });
     const manualPayableOverride = hasManualPayableOverride(row);
     const manualBillableOverride = hasManualBillableOverride(row);
+    // Pay settled by a locked visit pay run or a closed UK run: the pay snapshot is history.
+    // It is never repriced (forced or not) and none of its columns are written below.
+    const paySettled = isPaySettled(row);
     const freezeBillable =
       manualBillableOverride ||
       (!options?.forceRecalculateAmounts &&
@@ -1890,7 +3421,9 @@ export class VisitReconciliationsService {
         row.billableAmount != null);
     const freezePayable =
       manualPayableOverride ||
+      paySettled ||
       (!options?.forceRecalculateAmounts &&
+        !options?.forceRecalculatePay &&
         visitCompleted &&
         row.payableAmount != null);
 
@@ -1932,6 +3465,9 @@ export class VisitReconciliationsService {
       bankHolidayRegion?: string | null;
     } | null = null;
     let payCardSource: string | null = null;
+    // Why a card could not be resolved, in the resolver's words (R-17).
+    let payCardProblem: string | null = null;
+    let chargeCardProblem: string | null = null;
     if (freezePayable && row.payCardId) {
       const pinned = await db.payCard.findUnique({
         where: { id: row.payCardId },
@@ -1956,22 +3492,42 @@ export class VisitReconciliationsService {
         };
       }
     } else if (row.employeeId) {
-      const resolved = await this.payCardsService.resolveForEmployee(
-        row.employeeId,
-        row.plannedStartDateTime,
-        { funderId: funding?.funderId ?? null },
-      );
-      payCardSource = resolved.data.source;
-      if (resolved.data.payCard) {
-        payCard = {
-          id: resolved.data.payCard.id,
-          status: resolved.data.payCard.status,
-          rulesCount: resolved.data.payCard.rules?.length ?? 0,
-          stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
-          version: (resolved.data.payCard as { version?: number }).version,
-          bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
-            .bankHolidayRegion,
-        };
+      // R-17: a set-up gap the resolver reports (no employment record, …) is not a reason to stop
+      // the whole evaluation and leave the visit unpriced without explanation. The carer's pay is
+      // held with the resolver's reason; the client charge is still priced. Unexpected errors
+      // still propagate and are kept as a pay evaluation failure by the caller.
+      try {
+        // PC-10: the funder that decides a funder pay override is the funder on the day of the
+        // visit, not the client's funding as it is today.
+        const payFunder = await this.payFunderForVisit(
+          db,
+          row.serviceUserId,
+          row.employeeId,
+          row.plannedStartDateTime,
+        );
+        payCardProblem = payFunder.problem;
+        const resolved = payFunder.problem
+          ? null
+          : await this.payCardsService.resolveForEmployee(
+              row.employeeId,
+              row.plannedStartDateTime,
+              { funderId: payFunder.funderId },
+            );
+        if (resolved) payCardSource = resolved.data.source;
+        if (resolved?.data.payCard) {
+          payCard = {
+            id: resolved.data.payCard.id,
+            status: resolved.data.payCard.status,
+            rulesCount: resolved.data.payCard.rules?.length ?? 0,
+            stackingPolicy: (resolved.data.payCard as { stackingPolicy?: string }).stackingPolicy,
+            version: (resolved.data.payCard as { version?: number }).version,
+            bankHolidayRegion: (resolved.data.payCard as { bankHolidayRegion?: string | null })
+              .bankHolidayRegion,
+          };
+        }
+      } catch (err) {
+        if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
+        payCardProblem = err.message;
       }
     }
 
@@ -1994,16 +3550,21 @@ export class VisitReconciliationsService {
         };
       }
     } else if (!freezeBillable) {
-      const chargeResolved = await this.chargeCardsService.resolveForServiceUser(
-        row.serviceUserId,
-      );
-      chargeCardSource = chargeResolved.data.source;
-      if (chargeResolved.data.chargeCard) {
-        chargeCard = {
-          id: chargeResolved.data.chargeCard.id,
-          status: chargeResolved.data.chargeCard.status,
-          rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
-        };
+      try {
+        const chargeResolved = await this.chargeCardsService.resolveForServiceUser(
+          row.serviceUserId,
+        );
+        chargeCardSource = chargeResolved.data.source;
+        if (chargeResolved.data.chargeCard) {
+          chargeCard = {
+            id: chargeResolved.data.chargeCard.id,
+            status: chargeResolved.data.chargeCard.status,
+            rulesCount: chargeResolved.data.chargeCard.rules?.length ?? 0,
+          };
+        }
+      } catch (err) {
+        if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
+        chargeCardProblem = err.message;
       }
     } else {
       chargeCardSource = row.chargeCardSource;
@@ -2035,6 +3596,31 @@ export class VisitReconciliationsService {
       tasksIncomplete,
       funding,
     });
+    // Say why the card is missing, so the person who sees the exception knows what to fix.
+    for (const ex of exceptions) {
+      if (ex.code === FinanceExceptionCode.PAY_CARD_MISSING && payCardProblem) {
+        ex.message = `Carer pay cannot be priced: ${payCardProblem}`;
+      }
+      if (ex.code === FinanceExceptionCode.CHARGE_CARD_MISSING && chargeCardProblem) {
+        ex.message = `The client charge cannot be priced: ${chargeCardProblem}`;
+      }
+    }
+
+    // R-18: evidence that changed after a person's approval, or after the pay was settled.
+    if (row.evidenceChangedReason) {
+      exceptions.push({ code: FinanceExceptionCode.EVIDENCE_CHANGED, message: row.evidenceChangedReason });
+    }
+
+    // VW-02: a start or finish reported by the carer app that the server could not corroborate
+    // holds the visit for a person to approve (until the office verifies or corrects the times).
+    if (!paySettled) {
+      // Per carer: on a double-up, one carer's unverified time does not hold the other's pay.
+      // The carer's own verification record (R-16); older visits fall back to job metadata.
+      const unverified = review.reasons;
+      if (unverified.length) {
+        exceptions.push({ code: FinanceExceptionCode.UNVERIFIED_TIMES, message: unverified.join(' ') });
+      }
+    }
 
     if (absentCoCarer) {
       for (let i = exceptions.length - 1; i >= 0; i -= 1) {
@@ -2242,7 +3828,7 @@ export class VisitReconciliationsService {
       dayKeyInTimeZone(row.plannedStartDateTime, timeZone),
     );
 
-    if (absentCoCarer && !manualPayableOverride && !row.includedInPayrollRunId) {
+    if (absentCoCarer && !manualPayableOverride && !paySettled) {
       // Held for review: no carer pay until finance decides (manual amount / override).
       payableAmount = null;
     } else if (freezePayable) {
@@ -2251,50 +3837,22 @@ export class VisitReconciliationsService {
           ? Number(row.payableAmount)
           : resolveManualPayableAmount(row);
     } else if (payCard && payMinutes) {
-      // Rules of the card version in force on the visit date (older versions stay priced by their own rates).
-      const { version: datedVersion, rules: payRules } = await loadPayCardRulesForDate(
-        db,
-        payCard.id,
-        row.plannedStartDateTime,
-        timeZone,
-      );
-      if (datedVersion != null) payCard.version = datedVersion;
-      // Pay uses the card's bank holiday nation (charges keep the default England & Wales calendar).
-      const payRegion = payCard.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
-      const payHolidayDates =
-        payRegion === DEFAULT_BANK_HOLIDAY_REGION
-          ? bankHolidayDates
-          : await loadBankHolidayDateSet(
-              db,
-              approvedPayStart,
-              approvedPayEnd ?? approvedPayStart,
-              timeZone,
-              payRegion,
-            );
-      const stackingPolicy =
-        ((payCard as { stackingPolicy?: string }).stackingPolicy as
-          | 'PRIORITY'
-          | 'HIGHEST'
-          | 'STACK'
-          | undefined) ?? 'PRIORITY';
-      const calc = calculatePayableAmount(
-        payRules,
-        row.plannedStartDateTime,
+      const priced = await this.priceCarerPay(db, {
+        payCard,
+        plannedStart: row.plannedStartDateTime,
+        payStart: approvedPayStart,
+        payEnd: approvedPayEnd,
         payMinutes,
-        payHolidayDates.has(dayKeyInTimeZone(row.plannedStartDateTime, timeZone)),
-        {
-          start: approvedPayStart,
-          end: approvedPayEnd,
-          stackingPolicy,
-          isBankHolidayFn: (d) =>
-            payHolidayDates.has(dayKeyInTimeZone(d, timeZone)),
-          timeZone,
-        },
-        nightDuty,
         plannedMinutes,
-      );
-      payableAmount = calc?.amount ?? null;
-      if (payableAmount == null && payMinutes > 0) {
+        nightDuty,
+        timeZone,
+        defaultHolidayDates: bankHolidayDates,
+      });
+      if (priced.version != null) payCard.version = priced.version;
+      payableAmount = priced.amount;
+      if (priced.hold) {
+        activeExceptions.push({ code: FinanceExceptionCode.RATE_MISSING, message: priced.hold });
+      } else if (payableAmount == null && payMinutes > 0) {
         activeExceptions.push({
           code: FinanceExceptionCode.RATE_MISSING,
           message:
@@ -2529,6 +4087,25 @@ export class VisitReconciliationsService {
       // Clear a previously approved pay status when no matching rate applies.
       finalStatus = deriveReconciliationStatus(activeExceptions, undefined);
     }
+    // A settled visit keeps the approval it was paid under; only explicit charge-side decisions move it.
+    if (paySettled) finalStatus = row.status;
+
+    // Replacement carer on a visit whose removed carer was already paid: never approve this row
+    // automatically. A manager decides, since paying it means recovering the first payment (VW-11).
+    if (!paySettled && !lockedOrRejected && siblingRecons.length > 1) {
+      // Automatic approval leaves approvedById empty; a person's approval records who decided.
+      const approvedByPerson =
+        row.approvedById != null &&
+        (row.status === VisitReconciliationStatus.APPROVED_FOR_PAY ||
+          row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
+          row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE);
+      if (!approvedByPerson) {
+        const { removed } = await this.rowsByAllocationState(db, row.scheduledVisitId);
+        if (removed.some((r) => r.id !== id && isPaySettled(r))) {
+          finalStatus = VisitReconciliationStatus.REQUIRES_MANAGER_APPROVAL;
+        }
+      }
+    }
 
     const becamePendingFromApproval =
       finalStatus === VisitReconciliationStatus.PENDING_REVIEW &&
@@ -2536,9 +4113,7 @@ export class VisitReconciliationsService {
         row.status === VisitReconciliationStatus.APPROVED_FOR_BOTH ||
         row.status === VisitReconciliationStatus.APPROVED_FOR_INVOICE);
 
-    await db.visitReconciliation.update({
-      where: { id },
-      data: {
+    const evaluated = {
         status: finalStatus,
         payCardId: freezePayable ? (payCard?.id ?? row.payCardId) : (payCard?.id ?? null),
         chargeCardId: keepFrozenBillable
@@ -2564,12 +4139,24 @@ export class VisitReconciliationsService {
             ? row.payCardVersion
             : null,
         lastEvaluatedAt: new Date(),
-        ...(becamePendingFromApproval ? { approvedAt: null, approvedById: null } : {}),
+        ...(becamePendingFromApproval
+          ? { approvedAt: null, approvedById: null, approvalSource: null, approvedEvidence: null }
+          : {}),
+        // R-18: note what the approval stands for. A visit approved just now by this evaluation
+        // is an automatic approval; an approval that carries no evidence yet adopts the current.
+        ...(isApprovedStatus(finalStatus) && !wasApprovedBeforeEvaluation
+          ? { approvalSource: 'AUTO_VERIFIED', approvedEvidence: currentEvidence, approvedAt: new Date() }
+          : (isApprovedStatus(finalStatus) || paySettled) && !row.approvedEvidence
+            ? { approvalSource: inferApprovalSource(row), approvedEvidence: currentEvidence }
+            : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
           : {}),
-      },
+    };
+    await db.visitReconciliation.update({
+      where: { id },
+      data: paySettled ? withoutPaySnapshotFields(evaluated) : evaluated,
     });
 
     // Freeze the pricing breakdown the moment a completed visit is priced (fresh or
@@ -2602,6 +4189,64 @@ export class VisitReconciliationsService {
       },
     });
     return incomplete > 0;
+  }
+
+  /**
+   * PC-10: who was funding the client's care on the day of the visit, for the carer's pay only.
+   * Where the funding records cannot say and the carer is paid differently for one of the funders
+   * it might have been, the pay is held for a person to settle instead of being priced on the
+   * funder the client has today.
+   */
+  private async payFunderForVisit(
+    db: DbClient,
+    serviceUserId: string,
+    employeeId: string,
+    at: Date,
+  ): Promise<{ funderId: string | null; problem: string | null }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const dayOf = (instant: Date) => dayKeyInTimeZone(instant, timeZone);
+    const dayKey = dayOf(at);
+    const client = await db.serviceUser.findFirst({
+      where: { id: serviceUserId },
+      select: {
+        currentFundingId: true,
+        fundings: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            funderId: true,
+            startDate: true,
+            endDate: true,
+            isPrimary: true,
+            isActive: true,
+            splitPriority: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    const found = payFunderOn(client?.fundings ?? [], client?.currentFundingId ?? null, dayKey, dayOf);
+    if (found.basis !== 'UNCLEAR') return { funderId: found.funderId, problem: null };
+
+    // Unclear only matters when the carer has a different pay card for one of those funders.
+    const overrides = await db.employeeFunderPayAssignment.findMany({
+      where: { employeeId, funderId: { in: found.uncertainFunderIds }, deletedAt: null },
+    });
+    const inForce = effectiveEmployeeFunderPayAssignments(
+      overrides,
+      new Date(`${dayKey}T00:00:00.000Z`),
+    );
+    if (!inForce.length) return { funderId: null, problem: null };
+    const funders = await db.funder.findMany({
+      where: { id: { in: [...new Set(inForce.map((o) => o.funderId))] } },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    });
+    const names = funders.map((f) => f.name).join(' or ') || 'a funder';
+    return {
+      funderId: null,
+      problem: `The client's funding records do not show who was funding their care on ${dayKey}, and this carer has a different pay card for work funded by ${names}. Enter the start and end dates on the client's funding and evaluate the visit again, or approve the pay by hand.`,
+    };
   }
 
   private async loadFundingSnapshot(db: DbClient, serviceUserId: string) {
@@ -3184,10 +4829,11 @@ export class VisitReconciliationsService {
         loadPayCardRulesForVersion(db, row.payCardId, row.payCardVersion),
       ]);
       const payRegion = payCard?.bankHolidayRegion || DEFAULT_BANK_HOLIDAY_REGION;
-      const payIsBankHoliday =
-        payRegion === DEFAULT_BANK_HOLIDAY_REGION
-          ? isBankHoliday
-          : await isVisitOnBankHoliday(db, row.plannedStartDateTime, timeZone, payRegion);
+      // The explanation is worked out on the same calendar as the amount.
+      const payCalendar = await loadPayCalendar(db, payStart, payEnd, payRegion);
+      const payIsBankHoliday = payCalendar.bankHolidayKeys.has(
+        dayKeyInTimeZone(row.plannedStartDateTime, timeZone),
+      );
       const livePay = buildPayRateBreakdown(
         payRules,
         row.plannedStartDateTime,
@@ -3198,7 +4844,13 @@ export class VisitReconciliationsService {
           cardSource: row.payCardSource,
         },
         payIsBankHoliday,
-        { start: payStart, end: payEnd, timeZone },
+        {
+          start: payStart,
+          end: payEnd,
+          timeZone,
+          isBankHolidayFn: (d) => payCalendar.bankHolidayKeys.has(dayKeyInTimeZone(d, timeZone)),
+          calendar: payCalendar.calendar,
+        },
         nightDuty,
         plannedMinutes,
       );

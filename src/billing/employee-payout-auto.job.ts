@@ -22,10 +22,9 @@ export function isMonthlyPayoutHour(now: Date, timeZone: string): boolean {
 }
 
 /**
- * Hourly tick; pays at 06:00 on the 4th in the organisation's operational timezone
- * (OrganisationGeneralSettings.timezone), so DST and the org setting are respected.
- * Pays UK net for statutory/closed UK payroll runs in the previous calendar month;
- * the service skips a period that already has an open batch.
+ * Runs at 06:00 in the organisation default timezone (Europe/London) on the 4th.
+ * Proposes DRAFT payout batches for closed UK payroll runs of the previous calendar month.
+ * It does not approve anything and does not mark anything paid: both need a person.
  */
 @Injectable()
 export class EmployeePayoutAutoJob {

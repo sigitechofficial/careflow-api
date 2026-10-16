@@ -163,11 +163,21 @@ export function resolveCalendarDayType(
   return 'WEEKDAY';
 }
 
+/**
+ * What the holiday calendar adds to a day's classification (PC-22 to PC-24).
+ * - `specialDays`: the organisation's own special days (a card pays them where it has a rate).
+ * - `fixedDates`: false when 25 and 26 December and 1 January are special only on the days the
+ *   bank holiday calendar lists them (so not when they fall on a weekend). Default: by date.
+ */
+export type SpecialDayCalendar = {
+  specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
+  fixedDates?: boolean;
+};
+
 export function resolveSpecialDay(
   date: Date,
-  opts?: {
+  opts?: SpecialDayCalendar & {
     isBankHoliday?: boolean;
-    specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
     timeZone?: string;
   },
 ): PaySpecialDay {
@@ -177,14 +187,8 @@ export function resolveSpecialDay(
   const fromList = opts?.specialDays?.find((s) => s.date === ymd)?.kind;
   if (fromList && fromList !== 'NONE') return fromList;
 
-  if (timeZone === 'UTC') {
-    const month = date.getUTCMonth() + 1;
-    const day = date.getUTCDate();
-    if (month === 12 && day === 25) return 'CHRISTMAS';
-    if (month === 12 && day === 26) return 'BOXING_DAY';
-    if (month === 1 && day === 1) return 'NEW_YEAR';
-  } else {
-    const [y, m, d] = ymd.split('-').map(Number);
+  if (opts?.fixedDates !== false || opts?.isBankHoliday) {
+    const [, m, d] = ymd.split('-').map(Number);
     if (m === 12 && d === 25) return 'CHRISTMAS';
     if (m === 12 && d === 26) return 'BOXING_DAY';
     if (m === 1 && d === 1) return 'NEW_YEAR';
@@ -193,8 +197,22 @@ export function resolveSpecialDay(
   return 'NONE';
 }
 
+const MINUTES_PER_DAY = 24 * 60;
+
 /**
- * Whether a wall-clock minute falls in [start, end), supporting overnight bands (22:00–06:00).
+ * True for a band end that means "to the end of the day". Screens cannot enter 24:00, so an
+ * all-day or late band is stored with an end of 23:59; a missing end means the same.
+ */
+export function isEndOfDayBandEnd(endTime?: string | null): boolean {
+  if (!endTime?.trim()) return true;
+  const end = parseHhMm(endTime);
+  return !!end && end.hours === 23 && end.minutes === 59;
+}
+
+/**
+ * Whether a wall-clock minute falls in the half-open band [start, end), supporting overnight
+ * bands (22:00–06:00). An end of 23:59 is the end of the day (24:00), so 00:00–23:59 covers every
+ * minute of the day and 19:00–23:59 runs to midnight (PC-21).
  */
 export function minuteInTimeBand(
   minuteOfDay: number,
@@ -206,7 +224,7 @@ export function minuteInTimeBand(
   const end = endTime ? parseHhMm(endTime) : { hours: 23, minutes: 59 };
   if (!start || !end) return true;
   const s = start.hours * 60 + start.minutes;
-  const e = end.hours * 60 + end.minutes;
+  const e = isEndOfDayBandEnd(endTime) ? MINUTES_PER_DAY : end.hours * 60 + end.minutes;
   if (s === e) return true;
   if (s < e) return minuteOfDay >= s && minuteOfDay < e;
   // Overnight: e.g. 22:00–06:00
@@ -219,6 +237,9 @@ function dayTypeMatchesRule(
   specialDay: PaySpecialDay,
 ): boolean {
   if (ruleDayType === 'ANY') return true;
+  // An organisation special day is not a public holiday: only a rate for special days applies
+  // to it, never the bank holiday rate (the calendar does not create a premium by itself).
+  if (specialDay === 'SPECIAL' && ruleDayType === 'BANK_HOLIDAY') return false;
   if (
     specialDay !== 'NONE' &&
     (ruleDayType === specialDay ||
@@ -271,6 +292,8 @@ export function collectBandBoundaries(
     for (const rule of rules) {
       for (const t of [rule.startTime, rule.endTime]) {
         if (!t) continue;
+        // An end of 23:59 is midnight, which is already a boundary: no extra one-minute slice.
+        if (t === rule.endTime && isEndOfDayBandEnd(t)) continue;
         const parsed = parseHhMm(t);
         if (!parsed) continue;
         let day = new Date(
@@ -337,6 +360,7 @@ export function collectBandBoundaries(
     for (const rule of rules) {
       for (const t of [rule.startTime, rule.endTime]) {
         if (!t?.trim()) continue;
+        if (t === rule.endTime && isEndOfDayBandEnd(t)) continue;
         for (const day of days) {
           const instant = combineOperationalDateAndHm(day, t.trim(), timeZone);
           if (
@@ -358,9 +382,8 @@ export function splitIntoTimeSegments(
   start: Date,
   end: Date,
   rules: TimeBandRule[],
-  opts?: {
+  opts?: SpecialDayCalendar & {
     isBankHolidayFn?: (d: Date) => boolean;
-    specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
     timeZone?: string;
   },
 ): TimeSegment[] {
@@ -377,6 +400,7 @@ export function splitIntoTimeSegments(
     const specialDay = resolveSpecialDay(segStart, {
       isBankHoliday: isBh,
       specialDays: opts?.specialDays,
+      fixedDates: opts?.fixedDates,
       timeZone,
     });
     const calendar = resolveCalendarDayType(segStart, timeZone);
@@ -560,6 +584,7 @@ export function calculateBandedPay(input: {
   baseRateOverride?: number;
   isBankHolidayFn?: (d: Date) => boolean;
   specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
+  fixedDates?: boolean;
   /** IANA TZ for interpreting rule clock bands (default UTC for unit tests). */
   timeZone?: string;
 }): BandedPayResult | null {
@@ -571,12 +596,14 @@ export function calculateBandedPay(input: {
     baseRateOverride,
     isBankHolidayFn,
     specialDays,
+    fixedDates,
     timeZone = 'UTC',
   } = input;
 
   const segments = splitIntoTimeSegments(start, end, rules, {
     isBankHolidayFn,
     specialDays,
+    fixedDates,
     timeZone,
   });
   if (!segments.length) return null;

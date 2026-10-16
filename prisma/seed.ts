@@ -1,5 +1,7 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { EXPLICIT_GRANT_PERMISSIONS } from '../src/common/guards/explicit-grant-permissions';
+import { PAYROLL_APPROVER_PERMISSIONS, PAYROLL_APPROVER_ROLE } from '../src/common/guards/payroll-approver-role';
 import { defaultJobTitles } from './seed-data/default-job-titles';
 import { WORKFORCE_CERTIFICATION_NAMES, WORKFORCE_SKILL_NAMES } from './seed-data/workforce-catalog';
 import { DEFAULT_INCIDENT_CATEGORIES } from './seed-data/incident-categories';
@@ -381,6 +383,16 @@ async function main() {
     'billing.payroll_runs.manage',
     'billing.employee_payouts.read',
     'billing.employee_payouts.manage',
+    // Financial authorisation: never implied by Super Admin / Admin (see explicit-grant-permissions.ts)
+    'billing.payroll_runs.approve',
+    'billing.employee_payouts.approve',
+    'billing.employee_payouts.settle',
+    'billing.financial_reset',
+    'payroll.runs.close',
+    'payroll.runs.reopen',
+    'payroll.pay_agreements.approve',
+    // WHERE, not WHAT: pay data for every branch, for a user who is otherwise limited to branches
+    'payroll.scope.organisation',
     'billing.invoice_runs.read',
     'billing.invoice_runs.manage',
     'billing.payments.read',
@@ -654,6 +666,8 @@ async function main() {
     'Senior Carer/Nurse',
     'Carer/Domestic',
     'CQC Inspector',
+    // Holds the pay authorisation powers. Not given to any user by the seed.
+    PAYROLL_APPROVER_ROLE,
   ];
   const roles: Awaited<ReturnType<typeof prisma.role.upsert>>[] = [];
   for (const name of roleNames) {
@@ -666,11 +680,12 @@ async function main() {
     );
   }
 
-  // Assign all permissions to Super Admin
+  // Assign all permissions to Super Admin, except the financial authorisation powers, which are
+  // held only by a role that is given them on purpose (e.g. "Payroll Approver" below).
   const superAdminRole = roles.find((r) => r.name === 'Super Admin');
   if (superAdminRole) {
     const permissions = await prisma.permission.findMany({
-      where: { deletedAt: null, isActive: true },
+      where: { deletedAt: null, isActive: true, key: { notIn: [...EXPLICIT_GRANT_PERMISSIONS] } },
     });
 
     for (const p of permissions) {
@@ -1422,6 +1437,7 @@ async function main() {
     }
   }
 
+  await assignPermKeys(PAYROLL_APPROVER_ROLE, [...PAYROLL_APPROVER_PERMISSIONS]);
   await assignPermKeys('Care Coordinator', carePathwayReadKeys);
   await assignPermKeys('Manager', carePathwayManageKeys);
   await assignPermKeys('Admin', carePathwayAdminKeys);

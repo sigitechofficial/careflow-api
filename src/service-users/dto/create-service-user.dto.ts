@@ -132,6 +132,11 @@ export class CreateServiceUserDto {
   @IsUUID()
   careTypeId?: string;
 
+  @ApiPropertyOptional({ enum: ['STANDARD', 'COMPLEX'], description: 'Standard vs Complex care level' })
+  @IsOptional()
+  @IsIn(['STANDARD', 'COMPLEX'])
+  careLevel?: 'STANDARD' | 'COMPLEX';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

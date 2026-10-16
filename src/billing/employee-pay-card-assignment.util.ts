@@ -36,6 +36,18 @@ export function sortAssignmentsLatestFirst<T extends EmployeePayCardAssignmentWi
   });
 }
 
+/** Every row covering a calendar day (YYYY-MM-DD), latest first. More than one is a conflict (PC-32). */
+export function assignmentsCoveringDay<T extends EmployeePayCardAssignmentWindow>(
+  rows: T[],
+  dayKey: string,
+): T[] {
+  return sortAssignmentsLatestFirst(rows).filter((row) => {
+    const fromOk = !row.effectiveFrom || dateOnlyKey(row.effectiveFrom) <= dayKey;
+    const toOk = !row.effectiveTo || dateOnlyKey(row.effectiveTo) >= dayKey;
+    return fromOk && toOk;
+  });
+}
+
 /** Row covering a calendar day (YYYY-MM-DD), or null when the carer had no own card that day. */
 export function pickAssignmentForDay<T extends EmployeePayCardAssignmentWindow>(
   rows: T[],
@@ -64,6 +76,9 @@ export async function recordEmployeePayCardChange(
     userId?: string | null;
   },
 ): Promise<{ changed: boolean }> {
+  // PC-32: changes for one carer take turns. Two at once used to both close the same row and both
+  // open a new one, leaving two cards in force on the same days.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`employee-pay-card:${input.employeeId}`}))`;
   const rows = await tx.employeePayCardAssignment.findMany({ where: { employeeId: input.employeeId } });
   const latest = sortAssignmentsLatestFirst(rows)[0] ?? null;
 

@@ -12,6 +12,7 @@ import {
   AssignPayCardMatchingDto,
   BillingCardQueryDto,
   ChangeEmployeePayCardDto,
+  PayCardConflictCheckDto,
   PreviewPayDto,
   ChargeCardRuleDto,
   CreateChargeCardDto,
@@ -25,11 +26,16 @@ import {
 import {
   assertEmployeeDefaultPayCard,
   buildEmploymentWhereForPayCard,
+  describePayCardConflict,
+  effectiveEmployeeFunderPayAssignments,
+  firstOverlapDay,
   isPayCardEffective,
+  matchPayCards,
   normalizePayCardAssignmentInput,
+  payCardConflictCard,
+  PayCardConflictException,
   payCardListInclude,
-  pickBestMatchingPayCard,
-  pickEffectiveEmployeeFunderPayAssignment,
+  payCardTargetsEqual,
   resolveAssignmentLabel,
 } from './pay-card-assignment.util';
 import { loadPayCardRulesForDate, payRulesSignature } from './pay-card-version.util';
@@ -44,9 +50,16 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { calculatePayableAmount } from './visit-reconciliation.util';
-import { DEFAULT_BANK_HOLIDAY_REGION } from './bank-holiday-regions.util';
+import {
+  BANK_HOLIDAY_REGION_LABELS,
+  type BankHolidayRegion,
+  DEFAULT_BANK_HOLIDAY_REGION,
+  isBankHolidayRegion,
+} from './bank-holiday-regions.util';
+import { calendarHoldForPay, loadHolidayCalendarStatus, loadPayCalendar } from './holiday-calendar.store';
 import { classifyPayRule } from './wage-types.util';
 import {
+  assignmentsCoveringDay,
   dateOnlyKey,
   parseDateOnlyKey,
   pickAssignmentForDay,
@@ -613,7 +626,14 @@ export class PayCardsService {
     if (dto.personalCard) {
       if (!dto.personalCard.rules?.length) throw new BadRequestException('Add at least one pay rate.');
       // Settings (stacking, mileage, frequency…) are copied from the card the carer is on today.
-      baseCard = (await this.resolveForEmployee(employeeId, new Date())).data.payCard;
+      // A carer whose card cannot be decided (PC-32) can still be given a personal card.
+      baseCard =
+        (
+          await this.resolveForEmployee(employeeId, new Date()).catch((err) => {
+            if (err instanceof PayCardConflictException) return null;
+            throw err;
+          })
+        )?.data.payCard ?? null;
       const requested = dto.personalCard.code?.trim().toUpperCase();
       if (requested) {
         await this.assertPayCardCodeFree(requested);
@@ -762,10 +782,21 @@ export class PayCardsService {
       },
       select: { holidayDate: true, name: true },
     });
-    const holidayKeys = new Set(holidays.map((h) => h.holidayDate.toISOString().slice(0, 10)));
+    // The same calendar and weekend-holiday policy as live pricing (PC-22 to PC-24).
+    const payCalendar = await loadPayCalendar(this.prisma, start, end, region);
+    const holidayKeys = payCalendar.bankHolidayKeys;
     const rules = mapPayRules(dto.rules);
     const stackingPolicy = (dto.stackingPolicy as 'PRIORITY' | 'HIGHEST' | 'STACK' | undefined) ?? 'PRIORITY';
-    const result = calculatePayableAmount(
+    // R-27: live pricing holds a visit on a day that is normally a bank holiday when the calendar
+    // has no entry for it. The preview says the same instead of showing an ordinary-day amount.
+    const calendarHold = await calendarHoldForPay(this.prisma, {
+      region,
+      rules,
+      start,
+      end,
+      dayOf: (instant) => dayKeyInTimeZone(instant, timeZone),
+    });
+    const result = calendarHold ? null : calculatePayableAmount(
       rules,
       start,
       minutes,
@@ -776,13 +807,32 @@ export class PayCardsService {
         stackingPolicy,
         isBankHolidayFn: (d) => holidayKeys.has(dayKeyInTimeZone(d, timeZone)),
         timeZone,
+        calendar: payCalendar.calendar,
       },
       dto.nightDuty ?? null,
       minutes,
     );
 
     const warnings: string[] = [];
-    if (!result) {
+    if (calendarHold) warnings.push(calendarHold);
+    // A year with dates missing prices its holidays as ordinary days without saying so.
+    const year = Number(date.slice(0, 4));
+    const calendarStatus = isBankHolidayRegion(region)
+      ? (await loadHolidayCalendarStatus(this.prisma, [year])).regions
+          .find((r) => r.region === region)
+          ?.years.find((y) => y.year === year)
+      : null;
+    if (calendarStatus && !calendarStatus.complete) {
+      warnings.push(
+        `The ${BANK_HOLIDAY_REGION_LABELS[region as BankHolidayRegion]} bank holiday calendar for ${year} is not complete: ${calendarStatus.issues.join(' ')}`,
+      );
+    }
+    if (rules.some((r) => r.dayType === 'EASTER')) {
+      warnings.push(
+        'This card has an Easter rate, but no day is classified as Easter: Good Friday and Easter Monday are paid as bank holidays. The Easter rate is not used until the organisation decides which days it covers.',
+      );
+    }
+    if (!result && !calendarHold) {
       warnings.push(
         dto.nightDuty === 'SLEEPING_NIGHT'
           ? 'No sleeping night rate on this pay card.'
@@ -984,14 +1034,23 @@ export class PayCardsService {
    * Resolve pay card for a carer.
    * When `funderId` is provided (visit context), employee+funder overrides win over the
    * employment default and role/branch matching. Charge cards are never consulted.
+   *
+   * Order: funder override, the carer's own dated card, then matching by level (individual, role,
+   * branch, employment type, worker type, organisation default). PC-32: when a step finds more
+   * than one card for the day and nothing ranks them, a PayCardConflictException (409) names the
+   * cards instead of one of them being chosen.
    */
   async resolveForEmployee(
     employeeId: string,
     at?: Date,
     options?: { funderId?: string | null },
   ) {
-    const asOf = at ?? new Date();
+    const instant = at ?? new Date();
     const funderId = options?.funderId?.trim() || null;
+    // PC-19: cards and assignments are in force on calendar days; the day is the local day of
+    // the moment being priced (00:15 local in summer time is still the previous day in UTC).
+    const dayKey = dayKeyInTimeZone(instant, await this.orgSettings.getOperationalTimezone());
+    const asOf = parseDateOnlyKey(dayKey);
 
     if (funderId) {
       const funderOverride = await this.findEffectiveFunderPayCard(employeeId, funderId, asOf);
@@ -1021,8 +1080,16 @@ export class PayCardsService {
       include: { payCard: { include: payCardListInclude } },
     });
     if (history.length) {
-      const row = pickAssignmentForDay(history, dayKeyInTimeZone(asOf));
-      const card = row?.payCard;
+      const covering = assignmentsCoveringDay(history, dayKey);
+      if (new Set(covering.map((row) => row.payCardId)).size > 1) {
+        throw new PayCardConflictException({
+          kind: 'OWN_CARD',
+          level: null,
+          day: dayKey,
+          cards: covering.flatMap((row) => (row.payCard ? [payCardConflictCard(row.payCard)] : [])),
+        });
+      }
+      const card = covering[0]?.payCard;
       if (card && !card.deletedAt && card.status === 'ACTIVE' && isPayCardEffective(card, asOf)) {
         return {
           data: {
@@ -1058,7 +1125,7 @@ export class PayCardsService {
       where: { deletedAt: null },
       include: payCardListInclude,
     });
-    const matched = pickBestMatchingPayCard(
+    const { card: matched, conflicting } = matchPayCards(
       {
         employeeId,
         roleId: employment.roleId,
@@ -1071,6 +1138,14 @@ export class PayCardsService {
       cards,
       { at: asOf },
     );
+    if (conflicting.length) {
+      throw new PayCardConflictException({
+        kind: 'MATCHED_LEVEL',
+        level: conflicting[0].assignmentLevel,
+        day: dayKey,
+        cards: conflicting.map(payCardConflictCard),
+      });
+    }
 
     if (!matched) {
       return {
@@ -1091,6 +1166,201 @@ export class PayCardsService {
         funderId,
       },
     };
+  }
+
+  /**
+   * Active carers who have no card of their own in force on `day`, so their card comes from
+   * matching. Only they can be caught between two cards at the same level.
+   */
+  private async carersRelyingOnMatching(day: Date, dayKey: string, locationId?: string) {
+    const employments = await this.prisma.employeeEmployment.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        employee: { deletedAt: null, isActive: true },
+        ...(locationId ? { OR: [{ locationId }, { baseLocationId: locationId }] } : {}),
+      },
+      select: {
+        employeeId: true,
+        employeeNumber: true,
+        roleId: true,
+        locationId: true,
+        baseLocationId: true,
+        contractTypeId: true,
+        isAgencyStaff: true,
+        isBankStaff: true,
+        defaultPayCard: {
+          select: { status: true, effectiveFrom: true, effectiveTo: true, deletedAt: true },
+        },
+        employee: { select: { personalDetail: { select: { firstName: true, lastName: true } } } },
+      },
+    });
+    const history = await this.prisma.employeePayCardAssignment.findMany({
+      where: { employeeId: { in: employments.map((e) => e.employeeId) } },
+      include: {
+        payCard: { select: { status: true, effectiveFrom: true, effectiveTo: true, deletedAt: true } },
+      },
+    });
+    const historyByEmployee = new Map<string, typeof history>();
+    for (const row of history) {
+      historyByEmployee.set(row.employeeId, [...(historyByEmployee.get(row.employeeId) ?? []), row]);
+    }
+    return employments
+      .filter((employment) => {
+        const rows = historyByEmployee.get(employment.employeeId) ?? [];
+        const own = rows.length
+          ? assignmentsCoveringDay(rows, dayKey)[0]?.payCard
+          : employment.defaultPayCard;
+        return !(own && !own.deletedAt && own.status === 'ACTIVE' && isPayCardEffective(own, day));
+      })
+      .map((employment) => ({
+        ...employment,
+        name:
+          [employment.employee?.personalDetail?.firstName, employment.employee?.personalDetail?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() ||
+          employment.employeeNumber ||
+          'Carer',
+      }));
+  }
+
+  /**
+   * PC-32: carers whose pay card cannot be decided today because two or more cards match them at
+   * the same level. Their pay is held until the office acts; this is the list to act on.
+   */
+  async listConflicts(locationId?: string) {
+    const dayKey = dayKeyInTimeZone(new Date(), await this.orgSettings.getOperationalTimezone());
+    const day = parseDateOnlyKey(dayKey);
+    const [carers, cards] = await Promise.all([
+      this.carersRelyingOnMatching(day, dayKey, locationId),
+      this.prisma.payCard.findMany({ where: { deletedAt: null, status: 'ACTIVE' } }),
+    ]);
+    const groups = new Map<
+      string,
+      { cards: typeof cards; carers: Array<{ employeeId: string; name: string }> }
+    >();
+    for (const carer of carers) {
+      const { conflicting } = matchPayCards(carer, cards, { at: day });
+      if (!conflicting.length) continue;
+      const key = conflicting.map((card) => card.id).join('|');
+      const group = groups.get(key) ?? { cards: conflicting, carers: [] };
+      group.carers.push({ employeeId: carer.employeeId, name: carer.name });
+      groups.set(key, group);
+    }
+    const data = [...groups.values()].map((group) => {
+      const conflict = {
+        kind: 'MATCHED_LEVEL' as const,
+        level: group.cards[0].assignmentLevel,
+        day: dayKey,
+        cards: group.cards.map(payCardConflictCard),
+      };
+      return {
+        ...conflict,
+        message: describePayCardConflict(conflict),
+        carerCount: group.carers.length,
+        carers: group.carers.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 25),
+      };
+    });
+    return {
+      data: {
+        day: dayKey,
+        carerCount: data.reduce((sum, group) => sum + group.carerCount, 0),
+        groups: data,
+      },
+    };
+  }
+
+  /**
+   * PC-32, for the pay card form: would the card as entered leave any carer between two cards?
+   * Other active cards for the same carers and dates are listed, with the carers who have no card
+   * of their own and would therefore be held. Nothing is saved and saving is not refused: several
+   * cards at one level are normal when carers are given their card individually.
+   */
+  async checkConflicts(dto: PayCardConflictCheckDto, locationId?: string) {
+    const empty = { day: null, overlapping: [], affectedCarerCount: 0, affectedCarers: [], message: null };
+    let target: ReturnType<typeof normalizePayCardAssignmentInput>;
+    try {
+      target = normalizePayCardAssignmentInput(dto);
+    } catch (err) {
+      // The target is not chosen yet: nothing to check.
+      if (err instanceof BadRequestException) return { data: empty };
+      throw err;
+    }
+    const candidate = {
+      id: dto.id ?? 'candidate',
+      code: '',
+      assignmentLevel: dto.assignmentLevel ?? ('ORGANISATION_DEFAULT' as const),
+      ...target,
+      effectiveFrom: parseDateOnly(dto.effectiveFrom),
+      effectiveTo: dto.effectiveTo ? parseDateOnly(dto.effectiveTo) : null,
+      status: 'ACTIVE' as const,
+    };
+    const todayKey = dayKeyInTimeZone(new Date(), await this.orgSettings.getOperationalTimezone());
+    const today = parseDateOnlyKey(todayKey);
+    const others = await this.prisma.payCard.findMany({
+      where: { deletedAt: null, status: 'ACTIVE', ...(dto.id ? { NOT: { id: dto.id } } : {}) },
+    });
+    const overlapping = others.flatMap((card) => {
+      if (!payCardTargetsEqual(card, candidate)) return [];
+      const from = firstOverlapDay(card, candidate);
+      if (!from || (card.effectiveTo && card.effectiveTo < today)) return [];
+      return [{ ...payCardConflictCard(card), overlapFrom: dateOnlyKey(from) }];
+    });
+
+    // Who would be held: judged on the first day the card is in force from today onwards.
+    const day = candidate.effectiveFrom > today ? candidate.effectiveFrom : today;
+    const dayKey = dateOnlyKey(day);
+    const inForce = !candidate.effectiveTo || candidate.effectiveTo >= day;
+    const affected: Array<{ employeeId: string; name: string; cards: string[] }> = [];
+    if (inForce) {
+      const carers = await this.carersRelyingOnMatching(day, dayKey, locationId);
+      const pool = [...others, candidate as unknown as (typeof others)[number]];
+      for (const carer of carers) {
+        const { conflicting } = matchPayCards(carer, pool, { at: day });
+        if (!conflicting.some((card) => card.id === candidate.id)) continue;
+        affected.push({
+          employeeId: carer.employeeId,
+          name: carer.name,
+          cards: conflicting.filter((card) => card.id !== candidate.id).map((card) => card.code),
+        });
+      }
+    }
+    const codes = [...new Set([...overlapping.map((c) => c.code), ...affected.flatMap((a) => a.cards)])];
+    const message = affected.length
+      ? `From ${dayKey}, ${affected.length} carer${affected.length === 1 ? '' : 's'} without a pay card of their own would match this card and ${codes.join(', ')} at the same level. Their pay would be held until one card is chosen: end the other card before this one starts, or give those carers their own pay card.`
+      : overlapping.length
+        ? `${codes.join(', ')} ${codes.length === 1 ? 'is' : 'are'} in force for the same carers and dates at this level. No carer relies on matching at the moment, so nobody's pay is held; a carer without their own pay card would be.`
+        : null;
+    return {
+      data: {
+        day: dayKey,
+        overlapping,
+        affectedCarerCount: affected.length,
+        affectedCarers: affected.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 25),
+        message,
+      },
+    };
+  }
+
+  /** As `resolveForEmployee`, for screens: a conflict is returned as data, not as an error. */
+  async describeForEmployee(employeeId: string, options?: { funderId?: string | null }) {
+    try {
+      const resolved = await this.resolveForEmployee(employeeId, undefined, options);
+      return { data: { ...resolved.data, conflict: null, message: null } };
+    } catch (err) {
+      if (!(err instanceof PayCardConflictException)) throw err;
+      return {
+        data: {
+          source: 'CONFLICT' as const,
+          payCard: null,
+          matchedLevel: err.conflict.level,
+          funderId: options?.funderId?.trim() || null,
+          conflict: err.conflict,
+          message: err.message,
+        },
+      };
+    }
   }
 
   /**
@@ -1118,7 +1388,16 @@ export class PayCardsService {
       },
       orderBy: { effectiveFrom: 'desc' },
     });
-    const picked = pickEffectiveEmployeeFunderPayAssignment(rows, asOf);
+    const effective = effectiveEmployeeFunderPayAssignments(rows, asOf);
+    if (new Set(effective.map((row) => row.payCardId)).size > 1) {
+      throw new PayCardConflictException({
+        kind: 'FUNDER_OVERRIDE',
+        level: null,
+        day: dateOnlyKey(asOf),
+        cards: effective.map((row) => payCardConflictCard(row.payCard)),
+      });
+    }
+    const picked = effective[0] ?? null;
     if (!picked?.payCard || picked.payCard.deletedAt) return null;
     if (picked.payCard.status !== 'ACTIVE') return null;
     if (!isPayCardEffective(picked.payCard, asOf)) return null;
@@ -1211,35 +1490,40 @@ export class PayCardsService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
-    const existing = await this.prisma.employeeFunderPayAssignment.findFirst({
-      where: { employeeId, funderId, deletedAt: null },
+    // PC-32: one override per carer and funder. Two requests at once used to both find none and
+    // both create one, leaving two overrides for the same day; the lock makes them take turns.
+    const { existing, row } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`employee-funder-pay:${employeeId}:${funderId}`}))`;
+      const existing = await tx.employeeFunderPayAssignment.findFirst({
+        where: { employeeId, funderId, deletedAt: null },
+      });
+      const row = existing
+        ? await tx.employeeFunderPayAssignment.update({
+            where: { id: existing.id },
+            data: {
+              payCardId,
+              effectiveFrom,
+              effectiveTo,
+              notes: dto.notes === undefined ? existing.notes : dto.notes?.trim() || null,
+              updatedById: userId,
+            },
+            include: { payCard: { include: payCardListInclude } },
+          })
+        : await tx.employeeFunderPayAssignment.create({
+            data: {
+              employeeId,
+              funderId,
+              payCardId,
+              effectiveFrom,
+              effectiveTo,
+              notes: dto.notes?.trim() || null,
+              createdById: userId,
+              updatedById: userId,
+            },
+            include: { payCard: { include: payCardListInclude } },
+          });
+      return { existing, row };
     });
-
-    const row = existing
-      ? await this.prisma.employeeFunderPayAssignment.update({
-          where: { id: existing.id },
-          data: {
-            payCardId,
-            effectiveFrom,
-            effectiveTo,
-            notes: dto.notes === undefined ? existing.notes : dto.notes?.trim() || null,
-            updatedById: userId,
-          },
-          include: { payCard: { include: payCardListInclude } },
-        })
-      : await this.prisma.employeeFunderPayAssignment.create({
-          data: {
-            employeeId,
-            funderId,
-            payCardId,
-            effectiveFrom,
-            effectiveTo,
-            notes: dto.notes?.trim() || null,
-            createdById: userId,
-            updatedById: userId,
-          },
-          include: { payCard: { include: payCardListInclude } },
-        });
 
     return {
       message: existing ? 'Funder pay card assignment updated' : 'Funder pay card assignment created',
@@ -1658,7 +1942,15 @@ export class ChargeCardsService {
         funderId: serviceUser.currentFunding?.funderId ?? null,
         packageName: serviceUser.currentFunding?.packageName ?? null,
         householdKey: null,
-        serviceTypeKey: null,
+        // Care level drives a SERVICE_TYPE charge-card default: a Complex/Standard care
+        // card (assignmentTargetKey "Complex care" / "Standard care") applies when nothing
+        // more specific (funding / service user / funder) is set.
+        serviceTypeKey:
+          serviceUser.careLevel === 'COMPLEX'
+            ? 'Complex care'
+            : serviceUser.careLevel === 'STANDARD'
+              ? 'Standard care'
+              : null,
       },
       cards,
     );

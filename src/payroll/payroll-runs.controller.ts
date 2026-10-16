@@ -6,8 +6,11 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  CancelUkPayrollRunDto,
+  ReviewNmwAssessmentDto,
   CreateUkPayrollRunDto,
   EnrolUkPayrollRunDto,
   ApproveHmrcFpsSubmissionDto,
@@ -15,11 +18,13 @@ import {
   SubmitHmrcFpsDto,
 } from './dto/payroll.dto';
 import { PayrollHmrcSubmissionsService } from './payroll-hmrc-submissions.service';
+import type { NmwReviewOutcome } from '../billing/nmw-period.util';
 import { PayrollRunsService } from './payroll-runs.service';
 
 @ApiTags('UK Payroll — Runs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('payroll/runs')
 export class PayrollRunsController {
   constructor(
@@ -35,10 +40,10 @@ export class PayrollRunsController {
   }
 
   @Delete()
-  @Permissions('payroll.runs.manage')
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Delete all UK payroll runs (test/ops). Also removes linked employee payout batches and resets employee year-to-date (YTD) ledgers. Does not delete tax years, schedules, or employee payroll profiles.',
+      'Test reset (disabled in production): delete all UK payroll runs, linked payout batches and year-to-date ledgers. Does not delete tax years, schedules, or employee payroll profiles.',
   })
   deleteAll(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.service.deleteAll(user.id, getRequestAuditMeta(req));
@@ -233,9 +238,33 @@ export class PayrollRunsController {
     return this.service.calculateStatutory(user.id, id, getRequestAuditMeta(req));
   }
 
+  @Post(':id/nmw-assessments/:assessmentId/review')
+  @Permissions('payroll.runs.close')
+  @ApiOperation({
+    summary: 'Record the review of a minimum wage exception that stops the run closing (not the user who created the run)',
+  })
+  reviewNmwAssessment(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('assessmentId') assessmentId: string,
+    @Body() dto: ReviewNmwAssessmentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reviewNmwAssessment(
+      user.id,
+      id,
+      assessmentId,
+      dto.note,
+      (dto.outcome as NmwReviewOutcome | undefined) ?? 'EVIDENCE_SUPPORTS_COMPLIANCE',
+      getRequestAuditMeta(req),
+    );
+  }
+
   @Post(':id/close')
-  @Permissions('payroll.runs.manage')
-  @ApiOperation({ summary: 'Close UK payroll run' })
+  @Permissions('payroll.runs.close')
+  @ApiOperation({
+    summary: 'Close UK payroll run (a different user from the one who created the run)',
+  })
   close(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
@@ -246,23 +275,32 @@ export class PayrollRunsController {
 
   @Post(':id/cancel')
   @Permissions('payroll.runs.manage')
-  @ApiOperation({ summary: 'Cancel UK payroll run shell' })
+  @ApiOperation({
+    summary:
+      'Cancel a UK payroll run that has not been closed. Its inputs stay as a snapshot and its earnings become collectable by a replacement run',
+  })
   cancel(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
+    @Body() dto: CancelUkPayrollRunDto,
     @Req() req: Request,
   ) {
-    return this.service.cancel(user.id, id, getRequestAuditMeta(req));
+    return this.service.cancel(user.id, id, getRequestAuditMeta(req), dto?.reason);
   }
 
   @Post(':id/reactivate')
   @Permissions('payroll.runs.manage')
-  @ApiOperation({ summary: 'Reactivate a closed or cancelled UK payroll run' })
+  @ApiOperation({
+    summary:
+      'Reactivate a cancelled UK payroll run, or reopen a closed one (reopening needs payroll.runs.reopen)',
+  })
   reactivate(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Req() req: Request,
   ) {
-    return this.service.reactivate(user.id, id, getRequestAuditMeta(req));
+    return this.service.reactivate(user.id, id, getRequestAuditMeta(req), {
+      mayReopenClosed: (user.permissions ?? []).includes('payroll.runs.reopen'),
+    });
   }
 }

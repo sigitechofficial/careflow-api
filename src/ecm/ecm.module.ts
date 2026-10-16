@@ -17,6 +17,7 @@ import { EcmReportsService } from './ecm-reports.service';
 import { EcmGraphAnalyticsService } from './ecm-graph-analytics.service';
 import { EcmHealthService } from './ecm-health.service';
 import { EcmMissedTriageService } from './ecm-missed-triage.service';
+import { BillingModule } from '../billing/billing.module';
 import { EcmMissedVisitDetectionJob } from './ecm-missed-visit.job';
 import { EcmMissingCheckoutDetectionJob } from './ecm-missing-checkout.job';
 import { EcmThresholdLookupsService } from './ecm-threshold-lookups.service';
@@ -30,6 +31,8 @@ import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.se
     ScheduleModule,
     OrganisationGeneralSettingsModule,
     forwardRef(() => NotificationsModule),
+    // Office attendance corrections are carried into carer pay (VisitReconciliationsService).
+    BillingModule,
   ],
   controllers: [EcmVisitsController],
   providers: [

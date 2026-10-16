@@ -18,6 +18,15 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import {
+  GUARANTEE_LEAVE_TREATMENTS,
+  GUARANTEE_QUALIFYING_TIMES,
+  GUARANTEE_TOP_UPS,
+  SALARY_COVERAGES,
+  SALARY_ENTRY_PERIODS,
+  SALARY_PRORATION_METHODS,
+} from '../salary.util';
+import { NMW_REVIEW_OUTCOMES } from '../../billing/nmw-period.util';
 
 export enum PayrollTaxYearStatusDto {
   DRAFT = 'DRAFT',
@@ -445,6 +454,94 @@ export class UpsertEmployeePayrollProfileDto {
   @MaxLength(80)
   pensionSchemeRef?: string | null;
 
+  @ApiPropertyOptional({ enum: ['ENROLLED', 'NOT_ENROLLED'], description: 'Workplace pension enrolment as confirmed' })
+  @IsOptional()
+  @IsIn(['ENROLLED', 'NOT_ENROLLED'])
+  pensionStatus?: 'ENROLLED' | 'NOT_ENROLLED' | null;
+
+  @ApiPropertyOptional({ example: '2026-04-01' })
+  @IsOptional()
+  @IsDateString()
+  pensionEnrolledFrom?: string | null;
+
+  @ApiPropertyOptional({ enum: ['QUALIFYING_EARNINGS'] })
+  @IsOptional()
+  @IsIn(['QUALIFYING_EARNINGS'])
+  pensionContributionBasis?: 'QUALIFYING_EARNINGS' | null;
+
+  @ApiPropertyOptional({ enum: ['RAS', 'NET_PAY'], description: 'Only RAS is calculated; NET_PAY is recorded but refused by payroll' })
+  @IsOptional()
+  @IsIn(['RAS', 'NET_PAY'])
+  pensionTaxRelief?: 'RAS' | 'NET_PAY' | null;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  pensionEmployeeRatePercent?: number | null;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  pensionEmployerRatePercent?: number | null;
+
+  @ApiPropertyOptional({ description: 'Reference of the approved scheme policy the rates come from' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  pensionPolicyRef?: string | null;
+
+  @ApiPropertyOptional({ enum: ['LOAN_DECLARED', 'NO_LOAN_CONFIRMED'], description: 'Student loan declaration (null: not yet verified)' })
+  @IsOptional()
+  @IsIn(['LOAN_DECLARED', 'NO_LOAN_CONFIRMED'])
+  loanDeclarationStatus?: 'LOAN_DECLARED' | 'NO_LOAN_CONFIRMED' | null;
+
+  @ApiPropertyOptional({ enum: ['STARTER_CHECKLIST', 'P45', 'OTHER_RECORD'] })
+  @IsOptional()
+  @IsIn(['STARTER_CHECKLIST', 'P45', 'OTHER_RECORD'])
+  loanDeclarationSource?: 'STARTER_CHECKLIST' | 'P45' | 'OTHER_RECORD' | null;
+
+  @ApiPropertyOptional({ example: '2026-04-01' })
+  @IsOptional()
+  @IsDateString()
+  loanDeclarationDate?: string | null;
+
+  @ApiPropertyOptional({ description: 'Ordinarily works in the UK (automatic enrolment evidence)' })
+  @IsOptional()
+  @IsBoolean()
+  pensionUkWorker?: boolean | null;
+
+  @ApiPropertyOptional({ example: '2028-05-14', description: 'Recorded State Pension age date (transitional birth dates)' })
+  @IsOptional()
+  @IsDateString()
+  statePensionAgeDate?: string | null;
+
+  @ApiPropertyOptional({
+    example: '2026-03-01',
+    description: 'The day the apprenticeship began: decides whether the apprentice minimum wage rate applies at 19 or over',
+  })
+  @IsOptional()
+  @IsDateString()
+  apprenticeshipStartDate?: string | null;
+
+  @ApiPropertyOptional({ description: 'Company director for NI, as confirmed (null: not yet classified)' })
+  @IsOptional()
+  @IsBoolean()
+  isDirector?: boolean | null;
+
+  @ApiPropertyOptional({ example: '2026-05-10', description: 'The day the person was appointed a director' })
+  @IsOptional()
+  @IsDateString()
+  directorAppointedOn?: string | null;
+
+  @ApiPropertyOptional({ enum: ['AN'], description: "Directors' NIC method: AN, the standard annual earnings period" })
+  @IsOptional()
+  @IsIn(['AN'])
+  directorNicMethod?: 'AN' | null;
+
   @ApiPropertyOptional({ example: '12-34-56' })
   @IsOptional()
   @IsString()
@@ -510,6 +607,52 @@ export class CreateEmployeePayAgreementDto {
   @Max(168)
   contractedHours?: number | null;
 
+  @ApiPropertyOptional({ enum: SALARY_ENTRY_PERIODS, description: 'How the salary is entered' })
+  @IsOptional()
+  @IsIn(SALARY_ENTRY_PERIODS as unknown as string[])
+  salaryEntryPeriod?: string | null;
+
+  @ApiPropertyOptional({ description: 'Salary per year, month or week, as salaryEntryPeriod says' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000_000)
+  salaryEntryAmount?: number | null;
+
+  @ApiPropertyOptional({ enum: SALARY_PRORATION_METHODS, description: 'How a part period is paid' })
+  @IsOptional()
+  @IsIn(SALARY_PRORATION_METHODS as unknown as string[])
+  salaryProrationMethod?: string | null;
+
+  @ApiPropertyOptional({ enum: SALARY_COVERAGES, description: 'What work the salary already pays for' })
+  @IsOptional()
+  @IsIn(SALARY_COVERAGES as unknown as string[])
+  salaryCoverage?: string | null;
+
+  @ApiPropertyOptional({ description: 'Hours a week the employer guarantees (WM-07)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(168)
+  guaranteedWeeklyHours?: number | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_TOP_UPS, description: 'Empty: the guarantee is recorded only, nothing is paid' })
+  @IsOptional()
+  @IsIn(GUARANTEE_TOP_UPS as unknown as string[])
+  guaranteeTopUp?: string | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_QUALIFYING_TIMES })
+  @IsOptional()
+  @IsIn(GUARANTEE_QUALIFYING_TIMES as unknown as string[])
+  guaranteeQualifyingTime?: string | null;
+
+  @ApiPropertyOptional({ enum: GUARANTEE_LEAVE_TREATMENTS, description: 'Empty: a week with absence is held for a person' })
+  @IsOptional()
+  @IsIn(GUARANTEE_LEAVE_TREATMENTS as unknown as string[])
+  guaranteeLeaveTreatment?: string | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
@@ -531,6 +674,30 @@ export class CreateEmployeePayAgreementDto {
 }
 
 export class UpdateEmployeePayAgreementDto extends PartialType(CreateEmployeePayAgreementDto) {}
+
+export class ReviewNmwAssessmentDto {
+  @ApiProperty({ description: 'The facts the review rests on: what was checked, against what, and what it showed' })
+  @IsString()
+  @MinLength(20)
+  @MaxLength(1000)
+  note!: string;
+
+  @ApiPropertyOptional({
+    enum: NMW_REVIEW_OUTCOMES,
+    description: 'What the review found. A confirmed shortfall keeps the run from closing until pay is topped up or corrected.',
+  })
+  @IsOptional()
+  @IsIn(NMW_REVIEW_OUTCOMES as unknown as string[])
+  outcome?: string;
+}
+
+export class CancelUkPayrollRunDto {
+  @ApiPropertyOptional({ description: 'Why the run is being cancelled (kept in the audit log)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
 
 export class CreateUkPayrollRunDto {
   @ApiProperty()
@@ -998,4 +1165,172 @@ export class RejectHmrcEpsSubmissionDto {
   @IsString()
   @MaxLength(500)
   reason?: string;
+}
+
+/** Sprint B4B: the employer's method for turning contracted weekly hours into basic hours for a year. */
+export class EnterSalariedHoursMethodDto {
+  @ApiProperty({ description: 'Weeks of contracted hours in a year, for example 52, 52.14 or 52.18', example: 52.14 })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(1)
+  @Max(53)
+  weeksPerYear!: number;
+
+  @ApiProperty({ description: 'Where the method is written down and why it is right for these contracts' })
+  @IsString()
+  @MinLength(20)
+  @MaxLength(1000)
+  basis!: string;
+
+  @ApiProperty({ description: 'First day of the pay periods it applies to (YYYY-MM-DD)' })
+  @IsDateString()
+  effectiveFrom!: string;
+}
+
+export class WithdrawSalariedHoursMethodDto {
+  @ApiProperty({ description: 'Why the method is withdrawn' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  note!: string;
+}
+
+/** Gate C13: an HMRC student / postgraduate loan start or stop notice. */
+export class RecordLoanNoticeDto {
+  @ApiProperty({ enum: ['SL1', 'SL2', 'PGL1', 'PGL2'] })
+  @IsIn(['SL1', 'SL2', 'PGL1', 'PGL2'])
+  noticeType!: 'SL1' | 'SL2' | 'PGL1' | 'PGL2';
+
+  @ApiPropertyOptional({ enum: ['1', '2', '4', '5'], description: 'SL1 only: the student loan plan' })
+  @IsOptional()
+  @IsIn(['1', '2', '4', '5'])
+  studentLoanPlan?: '1' | '2' | '4' | '5';
+
+  @ApiPropertyOptional({ description: 'HMRC notice reference, if given' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  hmrcReference?: string;
+
+  @ApiProperty({ example: '2026-05-01', description: 'The start or stop date on the notice' })
+  @IsDateString()
+  noticeDate!: string;
+
+  @ApiProperty({ example: '2026-05-12', description: 'The day the employer received the notice' })
+  @IsDateString()
+  receivedOn!: string;
+
+  @ApiProperty({ example: '2026-05-31', description: 'The first payday on which the notice can be operated' })
+  @IsDateString()
+  effectivePayday!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
+}
+
+/**
+ * Gate C15: correct a loan notice that was entered wrongly in Careflow. It voids the local
+ * record (the original stays as it was) and may record the correct notice in its place. It is
+ * not a way to stop a genuine HMRC instruction.
+ */
+export class CorrectLoanNoticeDto {
+  @ApiProperty({ description: 'Why the recorded notice is wrong' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiProperty({ description: 'The HMRC notice or document that shows the correct details' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  evidenceReference!: string;
+
+  @ApiPropertyOptional({ type: RecordLoanNoticeDto, description: 'The notice as it should have been recorded' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RecordLoanNoticeDto)
+  replacement?: RecordLoanNoticeDto;
+}
+
+/** Correction of a loan / pension amount in a CLOSED run (maker). */
+export class ProposeDeductionAdjustmentDto {
+  @ApiProperty()
+  @IsUUID()
+  employeeId!: string;
+
+  @ApiProperty({ enum: ['STUDENT_LOAN', 'POSTGRADUATE_LOAN', 'PENSION_EMPLOYEE', 'PENSION_EMPLOYER'] })
+  @IsIn(['STUDENT_LOAN', 'POSTGRADUATE_LOAN', 'PENSION_EMPLOYEE', 'PENSION_EMPLOYER'])
+  kind!: 'STUDENT_LOAN' | 'POSTGRADUATE_LOAN' | 'PENSION_EMPLOYEE' | 'PENSION_EMPLOYER';
+
+  @ApiProperty({ description: 'The CLOSED run whose amount was wrong' })
+  @IsUUID()
+  sourceRunId!: string;
+
+  @ApiProperty({ description: 'What the amount should have been' })
+  @IsNumber()
+  @Min(0)
+  correctedAmount!: number;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiProperty({ description: 'HMRC notice, scheme letter or other evidence' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  evidenceRef!: string;
+}
+
+/** Checker decision on a proposed correction. */
+export class ReviewDeductionAdjustmentDto {
+  @ApiProperty({ enum: ['APPROVE', 'REJECT'] })
+  @IsIn(['APPROVE', 'REJECT'])
+  decision!: 'APPROVE' | 'REJECT';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
+/** An automatic enrolment event for one worker. */
+export class PensionAeEventDto {
+  @ApiProperty({
+    enum: ['POSTPONEMENT', 'ENROLMENT_NOTICE_SENT', 'OPT_IN_REQUEST', 'JOINING_REQUEST', 'OPT_OUT', 'CEASE_MEMBERSHIP', 'RE_ENROLMENT_DUE'],
+  })
+  @IsIn(['POSTPONEMENT', 'ENROLMENT_NOTICE_SENT', 'OPT_IN_REQUEST', 'JOINING_REQUEST', 'OPT_OUT', 'CEASE_MEMBERSHIP', 'RE_ENROLMENT_DUE'])
+  type!: 'POSTPONEMENT' | 'ENROLMENT_NOTICE_SENT' | 'OPT_IN_REQUEST' | 'JOINING_REQUEST' | 'OPT_OUT' | 'CEASE_MEMBERSHIP' | 'RE_ENROLMENT_DUE';
+
+  @ApiProperty({ example: '2026-05-01', description: 'The event date (deferral date for a postponement, date received for an opt-out)' })
+  @IsDateString()
+  date!: string;
+
+  @ApiPropertyOptional({ description: 'Postponement end date' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Date the postponement notice was given' })
+  @IsOptional()
+  @IsDateString()
+  noticeSentOn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  evidenceRef?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }

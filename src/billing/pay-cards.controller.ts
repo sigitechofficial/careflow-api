@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -17,12 +18,13 @@ import {
   UpsertEmployeeFunderPayAssignmentDto,
   UpdateEmployeeFunderPayAssignmentDto,
   ChangeEmployeePayCardDto,
+  PayCardConflictCheckDto,
   PreviewPayDto,
 } from './dto/billing-cards.dto';
 
 @ApiTags('Billing — Pay cards')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
 @Controller('billing/pay-cards')
 export class PayCardsController {
   constructor(private readonly service: PayCardsService) {}
@@ -35,6 +37,7 @@ export class PayCardsController {
   }
 
   @Get('resolve/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({
     summary:
@@ -44,10 +47,11 @@ export class PayCardsController {
     @Param('employeeId') employeeId: string,
     @Query('funderId') funderId?: string,
   ) {
-    return this.service.resolveForEmployee(employeeId, undefined, { funderId });
+    return this.service.describeForEmployee(employeeId, { funderId });
   }
 
   @Get('employee-funder-assignments/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: 'List employee+funder pay card overrides for a carer' })
   listEmployeeFunderAssignments(@Param('employeeId') employeeId: string) {
@@ -55,6 +59,7 @@ export class PayCardsController {
   }
 
   @Post('employee-funder-assignments')
+  @PayrollScope({ kind: 'employee', source: 'body', key: 'employeeId' })
   @Permissions('billing.pay_cards.manage')
   @ApiOperation({ summary: 'Create or update employee+funder pay card override' })
   upsertEmployeeFunderAssignment(
@@ -88,6 +93,24 @@ export class PayCardsController {
     return this.service.removeEmployeeFunderAssignment(user.id, id, getRequestAuditMeta(req));
   }
 
+  @Get('conflicts')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Carers whose pay card cannot be decided today (PC-32)' })
+  listConflicts(@Query('locationId') locationId?: string) {
+    return this.service.listConflicts(locationId);
+  }
+
+  @Post('conflict-check')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({
+    summary: 'Check a pay card as entered against the other active cards (nothing is saved)',
+  })
+  checkConflicts(@Body() dto: PayCardConflictCheckDto, @Query('locationId') locationId?: string) {
+    return this.service.checkConflicts(dto, locationId);
+  }
+
   @Post('preview')
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: 'Preview pay for a sample visit with the given rules (nothing is saved)' })
@@ -96,6 +119,7 @@ export class PayCardsController {
   }
 
   @Get('employee-history/:employeeId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.read')
   @ApiOperation({ summary: "Dated history of a carer's own pay card" })
   getEmployeeHistory(@Param('employeeId') employeeId: string) {
@@ -103,6 +127,7 @@ export class PayCardsController {
   }
 
   @Post('employee-history/:employeeId/change')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('billing.pay_cards.manage')
   @ApiOperation({ summary: "Change a carer's pay card from a date (e.g. promotion)" })
   changeEmployeePayCard(
