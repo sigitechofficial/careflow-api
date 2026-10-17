@@ -1,7 +1,7 @@
 import { ComplianceCategory, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { EXPLICIT_GRANT_PERMISSIONS } from '../src/common/guards/explicit-grant-permissions';
-import { PAYROLL_APPROVER_PERMISSIONS, PAYROLL_APPROVER_ROLE } from '../src/common/guards/payroll-approver-role';
+import { EXPLICIT_GRANT_PERMISSIONS } from './seed-lib/explicit-grant-permissions';
+import { PAYROLL_APPROVER_PERMISSIONS, PAYROLL_APPROVER_ROLE } from './seed-lib/payroll-approver-role';
 import { defaultJobTitles } from './seed-data/default-job-titles';
 import { WORKFORCE_CERTIFICATION_NAMES, WORKFORCE_SKILL_NAMES } from './seed-data/workforce-catalog';
 import { DEFAULT_INCIDENT_CATEGORIES } from './seed-data/incident-categories';
