@@ -11,10 +11,16 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  allowFinancialResetInTransaction,
+  assertDifferentUser,
+  assertFinancialResetEnvironment,
+} from '../billing/financial-controls.util';
+import {
   CreatePayrollScheduleDto,
   CreatePayrollTaxCodeDto,
   CreatePayrollTaxYearDto,
   DeletePayrollPeriodsDto,
+  EnterSalariedHoursMethodDto,
   GeneratePayrollPeriodsDto,
   PayrollPeriodsQueryDto,
   PurgePayrollDataDto,
@@ -369,11 +375,18 @@ export class PayrollSettingsService {
     dto: PurgePayrollDataDto,
     meta?: RequestAuditMeta,
   ) {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     if (dto.confirm !== 'DELETE ALL PAYROLL') {
       throw new BadRequestException('Confirmation phrase is required');
     }
 
     const counts = await this.prisma.$transaction(async (tx) => {
+      await allowFinancialResetInTransaction(tx);
+      await tx.visitReconciliation.updateMany({
+        where: { paidByUkPayrollRunId: { not: null } },
+        data: { paidByUkPayrollRunId: null, lockedAt: null },
+      });
       const ytdContributions = await tx.employeePayrollYtdContribution.deleteMany({});
       const ytdLedgers = await tx.employeePayrollYtdLedger.deleteMany({});
       const hmrcSubmissions = await tx.payrollHmrcSubmission.deleteMany({});
@@ -1121,5 +1134,150 @@ export class PayrollSettingsService {
     });
     if (!row) throw new NotFoundException('Pay schedule not found');
     return row;
+  }
+
+  // ------------------------------------------------------------------ salaried hours: annual basic hours (Sprint B4B)
+
+  private mapSalariedHoursMethod(row: {
+    id: string;
+    weeksPerYear: Prisma.Decimal;
+    basis: string;
+    effectiveFrom: Date;
+    status: string;
+    isSynthetic: boolean;
+    createdById: string | null;
+    createdAt: Date;
+    approvedById: string | null;
+    approvedAt: Date | null;
+    withdrawnAt: Date | null;
+    withdrawnNote: string | null;
+  }) {
+    return {
+      id: row.id,
+      weeksPerYear: Number(row.weeksPerYear),
+      basis: row.basis,
+      effectiveFrom: row.effectiveFrom.toISOString().slice(0, 10),
+      status: row.status,
+      isSynthetic: row.isSynthetic,
+      createdById: row.createdById,
+      createdAt: row.createdAt.toISOString(),
+      approvedById: row.approvedById,
+      approvedAt: row.approvedAt?.toISOString() ?? null,
+      withdrawnAt: row.withdrawnAt?.toISOString() ?? null,
+      withdrawnNote: row.withdrawnNote,
+    };
+  }
+
+  /**
+   * The employer's method for turning contracted weekly hours into the basic hours of a year
+   * (minimum wage, salaried hours work). With no approved method in force, UK payroll does not
+   * assess salaried staff against the minimum wage: it reports that the policy is missing.
+   */
+  async listSalariedHoursMethods() {
+    const rows = await this.prisma.salariedHoursAnnualisation.findMany({ orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }] });
+    const today = new Date();
+    const inForce = rows.find((r) => r.status === 'APPROVED' && r.effectiveFrom <= today) ?? null;
+    const userIds = [...new Set(rows.flatMap((r) => [r.createdById, r.approvedById, r.withdrawnById]).filter((v): v is string => !!v))];
+    const users = userIds.length
+      ? await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } })
+      : [];
+    const name = new Map(users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]));
+    const withNames = (r: (typeof rows)[number]) => ({
+      ...this.mapSalariedHoursMethod(r),
+      createdByName: r.createdById ? (name.get(r.createdById) ?? null) : null,
+      approvedByName: r.approvedById ? (name.get(r.approvedById) ?? null) : null,
+      withdrawnByName: r.withdrawnById ? (name.get(r.withdrawnById) ?? null) : null,
+    });
+    return {
+      message: 'Salaried hours annualisation methods',
+      data: {
+        inForce: inForce ? withNames(inForce) : null,
+        methods: rows.map(withNames),
+      },
+    };
+  }
+
+  async enterSalariedHoursMethod(userId: string, dto: EnterSalariedHoursMethodDto, meta?: RequestAuditMeta) {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.salariedHoursAnnualisation.create({
+        data: {
+          weeksPerYear: dto.weeksPerYear,
+          basis: dto.basis.trim(),
+          effectiveFrom: new Date(`${dto.effectiveFrom.slice(0, 10)}T00:00:00.000Z`),
+          createdById: userId,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.SALARIED_HOURS_METHOD_ENTERED,
+        recordType: 'SalariedHoursAnnualisation',
+        recordId: created.id,
+        description: dto.basis.trim(),
+        newValues: { weeksPerYear: dto.weeksPerYear, effectiveFrom: dto.effectiveFrom.slice(0, 10) },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return created;
+    });
+    return { message: 'Method entered. It is used once a second person approves it.', data: this.mapSalariedHoursMethod(row) };
+  }
+
+  async approveSalariedHoursMethod(userId: string, id: string, meta?: RequestAuditMeta) {
+    const row = await this.prisma.salariedHoursAnnualisation.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Method not found');
+    if (row.status !== 'DRAFT') throw new BadRequestException('Only a method that is not yet in use can be approved.');
+    assertDifferentUser(row.createdById, userId, 'The annualisation method is approved by a different user from the one who entered it.');
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.salariedHoursAnnualisation.updateMany({
+        where: { id, status: 'DRAFT' },
+        data: { status: 'APPROVED', approvedById: userId, approvedAt: new Date() },
+      });
+      if (changed.count !== 1) throw new ConflictException('This method was changed by someone else. Reload and check.');
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.SALARIED_HOURS_METHOD_APPROVED,
+        recordType: 'SalariedHoursAnnualisation',
+        recordId: id,
+        description: row.basis,
+        oldValues: { status: 'DRAFT' },
+        newValues: { status: 'APPROVED', weeksPerYear: Number(row.weeksPerYear) },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+    });
+    return {
+      message: 'Method approved. Calculate gross again on open UK payroll runs from its start date.',
+      data: { id, status: 'APPROVED' },
+    };
+  }
+
+  async withdrawSalariedHoursMethod(userId: string, id: string, note: string, meta?: RequestAuditMeta) {
+    const row = await this.prisma.salariedHoursAnnualisation.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Method not found');
+    if (row.status === 'WITHDRAWN') throw new BadRequestException('This method is already withdrawn.');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.salariedHoursAnnualisation.update({
+        where: { id },
+        data: { status: 'WITHDRAWN', withdrawnById: userId, withdrawnAt: new Date(), withdrawnNote: note.trim() },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.PAYROLL,
+        action: AuditAction.SALARIED_HOURS_METHOD_WITHDRAWN,
+        recordType: 'SalariedHoursAnnualisation',
+        recordId: id,
+        description: note.trim(),
+        oldValues: { status: row.status },
+        newValues: { status: 'WITHDRAWN' },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+    });
+    return { message: 'Method withdrawn. Closed payroll is not changed.', data: { id, status: 'WITHDRAWN' } };
   }
 }

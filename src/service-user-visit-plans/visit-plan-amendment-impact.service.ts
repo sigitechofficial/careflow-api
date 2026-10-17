@@ -169,6 +169,7 @@ export class VisitPlanAmendmentImpactService {
           serviceUserId: params.serviceUserId,
           visitPlanSlotId: action.visitPlanSlotId,
           fromDate: from,
+          // The plan's times are wall-clock times in the organisation timezone, not UTC.
           resolveNewTimes: (jobStart) =>
             resolveEndFromStartAndTimes(
               jobStart,

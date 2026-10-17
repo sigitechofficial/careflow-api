@@ -161,4 +161,5 @@ export const CLARIFICATION_FIELD_LABELS: Record<string, string> = {
   IMMEDIATE_ACTIONS: 'Actions taken (reporter’s description)',
   PEOPLE_INVOLVED: 'People involved',
   EMERGENCY_SERVICES: 'Emergency services',
+  WITNESS_DETAILS: 'Witness details',
 };

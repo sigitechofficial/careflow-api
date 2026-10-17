@@ -24,6 +24,7 @@ import { isSosOutcomeCode, parseSosClosePayload, sosOutcomeLabel } from './ecm-r
 import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
+import { loadCheckInMethodsByJobIds } from './ecm-check-in-method.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { fcmReport, type FcmSendReport } from '../notifications/fcm-send-report';
@@ -293,6 +294,7 @@ export class EcmExceptionsService {
         row.kind !== EcmExceptionKind.CARER_SOS &&
         row.kind !== EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST &&
         row.kind !== EcmExceptionKind.UNABLE_TO_START &&
+        row.kind !== EcmExceptionKind.NFC_TAG_MISMATCH &&
         !keep.has(row.kind),
     );
     if (stale.length === 0) return;
@@ -407,6 +409,91 @@ export class EcmExceptionsService {
     return exception;
   }
 
+  /**
+   * Carer scanned an NFC tag that is not an ACTIVE tag of this visit's client.
+   * One open exception per visit; repeat attempts are counted in `context`.
+   */
+  async raiseNfcTagMismatch(params: {
+    scheduledJobId: string;
+    employeeId: string;
+    uid: string;
+    /** Why it didn't match, for the office. */
+    detail: string;
+    source: 'CHECK_IN' | 'APP_REPORT';
+  }) {
+    const now = new Date().toISOString();
+    const existing = await this.prisma.ecmException.findFirst({
+      where: {
+        scheduledJobId: params.scheduledJobId,
+        kind: EcmExceptionKind.NFC_TAG_MISMATCH,
+        lifecycle: { in: OPEN_LIFECYCLES },
+      },
+      select: { id: true, context: true },
+    });
+    if (existing) {
+      const ctx = (existing.context ?? {}) as Record<string, unknown>;
+      const attempts = typeof ctx.attempts === 'number' ? ctx.attempts + 1 : 2;
+      return this.prisma.ecmException.update({
+        where: { id: existing.id },
+        data: {
+          detail: `${params.detail} (${attempts} attempts)`,
+          context: {
+            ...ctx,
+            attempts,
+            lastUid: params.uid,
+            lastEmployeeId: params.employeeId,
+            lastSource: params.source,
+            lastAt: now,
+          } as Prisma.InputJsonValue,
+        },
+        select: { id: true },
+      });
+    }
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: params.scheduledJobId, deletedAt: null },
+      select: { ecmEvaluation: { select: { id: true, criticality: true } } },
+    });
+    const sla = slaTargetsForCriticality(job?.ecmEvaluation?.criticality ?? 'PRIORITY');
+    const title = 'Wrong NFC tag scanned';
+    const exception = await this.prisma.ecmException.create({
+      data: {
+        scheduledJobId: params.scheduledJobId,
+        ecmVisitEvaluationId: job?.ecmEvaluation?.id ?? null,
+        kind: EcmExceptionKind.NFC_TAG_MISMATCH,
+        lifecycle: EcmExceptionLifecycle.DETECTED,
+        title,
+        detail: params.detail,
+        context: {
+          employeeId: params.employeeId,
+          uid: params.uid,
+          source: params.source,
+          attempts: 1,
+          firstAt: now,
+        } as Prisma.InputJsonValue,
+        responseTargetMinutes: sla.responseTargetMinutes,
+        escalationDeadlineAt:
+          sla.escalationMinutes > 0
+            ? new Date(Date.now() + sla.escalationMinutes * 60_000)
+            : new Date(),
+      },
+    });
+    await this.audit.append({
+      eventType: EcmAuditEventType.EXCEPTION_DETECTED,
+      scheduledJobId: params.scheduledJobId,
+      ecmExceptionId: exception.id,
+      actorUserId: null,
+      summary: title,
+      detail: { employeeId: params.employeeId, uid: params.uid, source: params.source },
+    });
+    await this.alerts.applySlaAndAlert({
+      exceptionId: exception.id,
+      criticality: job?.ecmEvaluation?.criticality ?? 'PRIORITY',
+      notify: true,
+    });
+    return exception;
+  }
+
   async listOpen(limit = 50, serviceUserId?: string, locationId?: string) {
     await this.alerts.refreshOverdueFlags(200);
     const suWhere =
@@ -463,7 +550,7 @@ export class EcmExceptionsService {
     } as const;
     // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
     // limit hide a later same-day lock behind older exceptions.
-    const [sosRows, areaRows, mockRows, checkInRequestRows, unableToStartRows, otherRows] =
+    const [sosRows, areaRows, mockRows, checkInRequestRows, unableToStartRows, nfcMismatchRows, otherRows] =
       await Promise.all([
       this.prisma.ecmException.findMany({
         where: {
@@ -510,6 +597,16 @@ export class EcmExceptionsService {
         orderBy: [{ createdAt: 'desc' }],
         include,
       }),
+      // Wrong NFC tag is a field security event — never hide it behind the page limit.
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.NFC_TAG_MISMATCH,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
       this.prisma.ecmException.findMany({
         where: {
           kind: {
@@ -519,6 +616,7 @@ export class EcmExceptionsService {
               EcmExceptionKind.MOCK_LOCATION,
               EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST,
               EcmExceptionKind.UNABLE_TO_START,
+              EcmExceptionKind.NFC_TAG_MISMATCH,
             ],
           },
           lifecycle: { in: OPEN_LIFECYCLES },
@@ -530,7 +628,14 @@ export class EcmExceptionsService {
       }),
     ]);
     const reservedIds = new Set(
-      [...sosRows, ...areaRows, ...mockRows, ...checkInRequestRows, ...unableToStartRows].map(
+      [
+        ...sosRows,
+        ...areaRows,
+        ...mockRows,
+        ...checkInRequestRows,
+        ...unableToStartRows,
+        ...nfcMismatchRows,
+      ].map(
         (row) => row.id,
       ),
     );
@@ -540,6 +645,7 @@ export class EcmExceptionsService {
       ...mockRows,
       ...checkInRequestRows,
       ...unableToStartRows,
+      ...nfcMismatchRows,
       ...otherRows.filter((row) => !reservedIds.has(row.id)),
     ];
     const mockedJobIds = await this.mockedVisitJobIds(
@@ -548,6 +654,10 @@ export class EcmExceptionsService {
     const checkInLocations = await this.loadCheckInLocationsByJobIds(
       rows.map((row) => row.scheduledJobId),
     );
+    // Shown next to the clock-in location, e.g. NFC-verified but GPS outside the area.
+    const checkInMethods = await loadCheckInMethodsByJobIds(this.prisma, [
+      ...checkInLocations.keys(),
+    ]);
     const visitIds = rows
       .map((row) => row.scheduledJob.visits[0]?.id)
       .filter((id): id is string => Boolean(id));
@@ -640,7 +750,16 @@ export class EcmExceptionsService {
                 distanceMeters: r.visitAreaLock.distanceMeters,
               }
             : null,
-          checkInLocation: checkInLocations.get(r.scheduledJobId) ?? null,
+          checkInLocation: (() => {
+            const loc = checkInLocations.get(r.scheduledJobId);
+            if (!loc) return null;
+            const method = checkInMethods.get(r.scheduledJobId);
+            return {
+              ...loc,
+              methodCode: method?.code ?? null,
+              methodLabel: method?.label ?? null,
+            };
+          })(),
           sos:
             r.kind === EcmExceptionKind.CARER_SOS
               ? mapCarerSosAlert(r, {

@@ -13,7 +13,6 @@ import {
 } from '../employee-app/employee-app-observations.catalog';
 import {
   extractBodyMapPinsFromPayload,
-  observationPayloadMatchesJob,
   type EmployeeAppBodyMapPin,
 } from '../employee-app/employee-app-body-map-pins.util';
 import { formatSleepObservationValue } from './observation-sleep.catalog';
@@ -58,7 +57,21 @@ export type VisitObservationRecordedRow = {
   photos?: VisitObservationPhoto[];
   /** Raw observation payload for mobile form prefill (e.g. condition codes). */
   payload?: Record<string, unknown>;
+  /** Carer who recorded it (null when recorded from admin). */
+  recordedByEmployeeId: string | null;
+  recordedByName: string | null;
+  /** Shared visit only — the recorder's role on it (set by the employee app). */
+  recordedByRole?: 'lead' | 'support' | null;
+  /** True when it came from completing an Obs-linked task (not the Obs tab). */
+  fromTask: boolean;
 };
+
+/** The visit (`scheduledJobId`) a reading was recorded on, or null for unstamped legacy rows. */
+function observationVisitStamp(payload: Prisma.JsonValue | null): string | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  const jobId = (payload as Record<string, unknown>).scheduledJobId;
+  return jobId == null || jobId === '' ? null : String(jobId);
+}
 
 function readPayload(payload: Prisma.JsonValue | null): Record<string, unknown> {
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
@@ -279,8 +292,10 @@ function mapObservationPhotos(
   }));
 }
 
-function mapObservationRow(row: {
+function mapObservationRow(
+  row: {
   id: string;
+  recordedByEmployeeId?: string | null;
   notes: string | null;
   unit: string | null;
   recordedAt: Date;
@@ -293,7 +308,9 @@ function mapObservationRow(row: {
     caption: string | null;
     consentStatus: string;
   }>;
-}): VisitObservationRecordedRow {
+},
+  recorderNames: Map<string, string> = new Map(),
+): VisitObservationRecordedRow {
   const typeCode = mobileTypeCode(row.observationType.code);
   const payload = readPayload(row.payload);
   const outcomeRaw = typeof payload.outcome === 'string' ? payload.outcome : 'recorded';
@@ -363,6 +380,11 @@ function mapObservationRow(row: {
     statusLabel: status,
     statusTone: tone,
     tone,
+    recordedByEmployeeId: row.recordedByEmployeeId ?? null,
+    recordedByName: row.recordedByEmployeeId
+      ? (recorderNames.get(row.recordedByEmployeeId) ?? null)
+      : null,
+    fromTask: payload.source === 'visit_task',
     ...(bodyMapPins ? { bodyMapPins } : {}),
     ...(photos ? { photos } : {}),
     // Structured fields so mobile can reselect chips (condition, bristol, …).
@@ -653,38 +675,124 @@ export class VisitObservationsCatalogService {
     };
   }
 
+  /**
+   * Readings recorded on a visit. With a [scheduledJobId]: every reading stamped
+   * with that visit (no row limit, filtered in the DB), plus legacy readings with
+   * no visit stamp taken inside the visit window ([since] → [until]; open-ended
+   * while the visit is still running). Readings from other visits, or recorded
+   * later elsewhere (e.g. the service user page), never leak in.
+   */
   async loadVisitObservations(
     serviceUserId: string,
     since: Date,
     scheduledJobId?: string,
+    until?: Date | null,
   ): Promise<VisitObservationRecordedRow[]> {
-    const rows = await this.prisma.serviceUserObservation.findMany({
-      where: {
-        serviceUserId,
-        deletedAt: null,
-        recordedAt: { gte: since },
-      },
-      orderBy: { recordedAt: 'desc' },
-      include: { observationType: true, photos: { orderBy: { createdAt: 'asc' } } },
-      take: 20,
-    });
+    const include = {
+      observationType: true,
+      photos: { orderBy: { createdAt: 'asc' as const } },
+    };
+    let forVisit: Array<Prisma.ServiceUserObservationGetPayload<{ include: typeof include }>>;
+    if (!scheduledJobId) {
+      forVisit = await this.prisma.serviceUserObservation.findMany({
+        where: { serviceUserId, deletedAt: null, recordedAt: { gte: since } },
+        orderBy: { recordedAt: 'desc' },
+        include,
+        take: 20,
+      });
+    } else {
+      const [stamped, inWindow] = await Promise.all([
+        this.prisma.serviceUserObservation.findMany({
+          where: {
+            serviceUserId,
+            deletedAt: null,
+            payload: { path: ['scheduledJobId'], equals: scheduledJobId },
+          },
+          include,
+        }),
+        this.prisma.serviceUserObservation.findMany({
+          where: {
+            serviceUserId,
+            deletedAt: null,
+            recordedAt: { gte: since, ...(until ? { lte: until } : {}) },
+          },
+          include,
+        }),
+      ]);
+      const byId = new Map(stamped.map((row) => [row.id, row]));
+      for (const row of inWindow) {
+        if (!byId.has(row.id) && !observationVisitStamp(row.payload)) byId.set(row.id, row);
+      }
+      forVisit = [...byId.values()].sort(
+        (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
+      );
+    }
+    // Who recorded each reading — on a shared visit carers see the lead's / support's.
+    const recorderIds = [
+      ...new Set(forVisit.map((r) => r.recordedByEmployeeId).filter((id): id is string => Boolean(id))),
+    ];
+    const people = recorderIds.length
+      ? await this.prisma.employeePersonalDetail.findMany({
+          where: { employeeId: { in: recorderIds } },
+          select: { employeeId: true, firstName: true, lastName: true },
+        })
+      : [];
+    const recorderNames = new Map(
+      people.map((p) => [
+        p.employeeId,
+        [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || 'Carer',
+      ]),
+    );
+    return forVisit.map((row) => mapObservationRow(row, recorderNames));
+  }
 
-    return rows
-      .filter(
-        (row) =>
-          !scheduledJobId || observationPayloadMatchesJob(row.payload, scheduledJobId),
-      )
-      .map((row) => mapObservationRow(row));
+  /** How many readings [loadVisitObservations] returns for the visit (same rules). */
+  async countVisitObservations(
+    serviceUserId: string,
+    since: Date,
+    scheduledJobId: string,
+    until?: Date | null,
+  ): Promise<number> {
+    const [stamped, inWindow] = await Promise.all([
+      this.prisma.serviceUserObservation.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          payload: { path: ['scheduledJobId'], equals: scheduledJobId },
+        },
+        select: { id: true },
+      }),
+      this.prisma.serviceUserObservation.findMany({
+        where: {
+          serviceUserId,
+          deletedAt: null,
+          recordedAt: { gte: since, ...(until ? { lte: until } : {}) },
+        },
+        select: { id: true, payload: true },
+      }),
+    ]);
+    const ids = new Set(stamped.map((r) => r.id));
+    for (const row of inWindow) {
+      if (!observationVisitStamp(row.payload)) ids.add(row.id);
+    }
+    return ids.size;
   }
 
   async buildVisitObservationsPayload(input: {
     serviceUserId: string;
     since: Date;
     scheduledJobId?: string;
+    /** Visit end (actual) — bounds legacy readings with no visit stamp. */
+    until?: Date | null;
   }) {
     const [catalog, recorded] = await Promise.all([
       this.buildCatalogPayload(input.serviceUserId),
-      this.loadVisitObservations(input.serviceUserId, input.since, input.scheduledJobId),
+      this.loadVisitObservations(
+        input.serviceUserId,
+        input.since,
+        input.scheduledJobId,
+        input.until,
+      ),
     ]);
 
     // Latest reading per typeCode wins for list prefill.

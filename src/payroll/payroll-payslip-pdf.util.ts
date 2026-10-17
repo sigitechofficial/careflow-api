@@ -386,6 +386,22 @@ export function buildPayslipPdf(data: CarePayslipData): Promise<Buffer> {
       y += 14
     }
 
+    if (data.pensionInformation.length > 0) {
+      doc
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(C.muted)
+        .text(
+          `Workplace pension (information, not deducted again): ${data.pensionInformation
+            .map((c) => `${c.label} ${gbp(c.amount)}`)
+            .join('  |  ')}`,
+          left,
+          y,
+          { width: contentW },
+        )
+      y += 14
+    }
+
     // —— YTD ——
     if (data.ytd) {
       const ytdH = 52
@@ -418,7 +434,22 @@ export function buildPayslipPdf(data: CarePayslipData): Promise<Buffer> {
         doc.font('Helvetica').fontSize(7).fillColor(C.muted).text(label, cx, y + 22)
         doc.font('Helvetica-Bold').fontSize(9).fillColor(C.ink).text(value, cx, y + 34)
       })
-      y += ytdH + 14
+      y += ytdH + 6
+      const loanPension = [
+        data.ytd.studentLoanYtd != null ? `Student loan ${gbp(data.ytd.studentLoanYtd)}` : null,
+        data.ytd.postgraduateLoanYtd != null ? `Postgraduate loan ${gbp(data.ytd.postgraduateLoanYtd)}` : null,
+        data.ytd.pensionEmployeeNetYtd != null ? `Pension (you) ${gbp(data.ytd.pensionEmployeeNetYtd)}` : null,
+        data.ytd.pensionEmployerYtd != null ? `Pension (employer, not deducted) ${gbp(data.ytd.pensionEmployerYtd)}` : null,
+      ].filter(Boolean)
+      if (loanPension.length) {
+        doc
+          .font('Helvetica')
+          .fontSize(7.5)
+          .fillColor(C.muted)
+          .text(`Year to date: ${loanPension.join('  |  ')}`, left, y, { width: contentW })
+        y += 14
+      }
+      y += 8
     }
 
     // —— Notes ——

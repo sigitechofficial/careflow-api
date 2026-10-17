@@ -12,13 +12,21 @@ export type OrgCheckInMethodFlags = {
   domCheckInQrEnabled?: boolean | null;
 };
 
+/**
+ * Per-visit context. `nfcTagAvailable: false` means the visit's client has no
+ * ACTIVE NFC tag, so NFC cannot work there even when the org has it switched on.
+ * Leave it undefined to judge by org settings alone.
+ */
+export type CheckInMethodVisitContext = { nfcTagAvailable?: boolean };
+
 /** GPS only when flags are missing. Manual / NFC / QR are opt-in. */
 export function resolveEnabledCheckInMethods(
   settings?: OrgCheckInMethodFlags | null,
+  visit?: CheckInMethodVisitContext,
 ): string[] {
   const flags: Record<EmployeeAppCheckInMethod, boolean> = {
     GPS: settings?.domCheckInGpsEnabled !== false,
-    NFC: Boolean(settings?.domCheckInNfcEnabled),
+    NFC: Boolean(settings?.domCheckInNfcEnabled) && visit?.nfcTagAvailable !== false,
     QR: Boolean(settings?.domCheckInQrEnabled),
     MANUAL: Boolean(settings?.domCheckInManualEnabled),
   };
@@ -41,13 +49,17 @@ export function hasAnyCheckInMethodEnabled(settings: OrgCheckInMethodFlags): boo
   return resolveEnabledCheckInMethods(settings).length > 0;
 }
 
-/** Manual / NFC / QR are org opt-in. When any is on, carer should use that — not Request office. */
+/**
+ * Manual / NFC / QR are org opt-in. When any is usable, carer should use that —
+ * not Request office. NFC only counts where the client has an active tag.
+ */
 export function orgHasOptInCheckInMethod(
   settings?: OrgCheckInMethodFlags | null,
+  visit?: CheckInMethodVisitContext,
 ): boolean {
   return Boolean(
     settings?.domCheckInManualEnabled ||
-      settings?.domCheckInNfcEnabled ||
+      (settings?.domCheckInNfcEnabled && visit?.nfcTagAvailable !== false) ||
       settings?.domCheckInQrEnabled,
   );
 }

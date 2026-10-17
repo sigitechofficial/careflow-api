@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import type { ValidationError } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import type { Server } from 'http';
@@ -124,4 +124,10 @@ async function bootstrap() {
   server.requestTimeout = httpRequestTimeoutMs;
   server.headersTimeout = Math.min(httpRequestTimeoutMs + 10_000, 190_000);
 }
+// A promise nobody awaited must not stop the API for every user (Node exits on one by default).
+// It is logged as an error so that the place it came from gets fixed.
+process.on('unhandledRejection', (reason) => {
+  new Logger('UnhandledRejection').error(reason instanceof Error ? (reason.stack ?? reason.message) : String(reason));
+});
+
 bootstrap();

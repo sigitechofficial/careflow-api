@@ -101,9 +101,11 @@ import {
   slotAsWithRelations,
 } from './visit-plan-generate-preview.util';
 import {
+  resolveStoredNightDuty,
   resolveVisitPlanNightDuty,
   visitPlanGeneratedJobMetadata,
 } from './visit-plan-night-duty.util';
+import { syncVisitPlanSlotNightDutyToScheduledJobs } from './visit-plan-night-duty-sync.util';
 import type { ActivateVisitPlanDto } from './dto/suspend-visit-plan.dto';
 import type {
   VisitPlanReturnImpactPreviewQueryDto,
@@ -153,6 +155,17 @@ const calendarVisitInclude = {
     },
   },
 } satisfies Prisma.ScheduledVisitInclude;
+
+/** Fields only set from "Changes for specific dates" — blank on simulated rows. */
+const EMPTY_DATE_CHANGE_FIELDS = {
+  cancelledByParty: null,
+  cancelledByDescription: null,
+  reasonCode: null,
+  chargeDecision: null,
+  chargeDecisionNotes: null,
+  assignedEmployeeIds: [] as string[],
+  createdById: null,
+};
 
 type CalendarVisitRow = Prisma.ScheduledVisitGetPayload<{ include: typeof calendarVisitInclude }>;
 
@@ -369,13 +382,25 @@ export class ServiceUserVisitPlansService {
     ];
 
     return orderedCodes.map((slotCode, index): NormalizedVisitPlanSlot => {
-      const defaults = catalogue.find((d) => d.slotCode === slotCode) ?? {
-        ...catalogue[0]!,
-        slotCode,
-        medicationRoundCode: slotCode,
-        sortOrder: index,
-      };
       const input = byCode.get(slotCode);
+      // A time slot can hold several visits: further rows carry their own code and point at the
+      // time slot through medicationRoundCode, so they take that slot's defaults and position.
+      const linkedRound = input?.medicationRoundCode
+        ? catalogue.find((d) => d.slotCode === normalizeVisitPlanSlotCode(input.medicationRoundCode!))
+        : undefined;
+      if (/__\d+$/.test(slotCode) && !linkedRound) {
+        throw new BadRequestException('A visit must belong to an active time slot');
+      }
+      const defaults =
+        catalogue.find((d) => d.slotCode === slotCode) ??
+        (linkedRound
+          ? { ...linkedRound, slotCode, medicationRoundCode: linkedRound.slotCode }
+          : {
+              ...catalogue[0]!,
+              slotCode,
+              medicationRoundCode: slotCode,
+              sortOrder: index,
+            });
       const plannedStart = input?.plannedStartTime ?? defaults.plannedStartTime;
       const plannedEnd = input?.plannedEndTime ?? defaults.plannedEndTime;
       const slotKind =
@@ -408,6 +433,8 @@ export class ServiceUserVisitPlansService {
           slotKind: input?.slotKind ?? slotKind,
           plannedStartTime: plannedStart,
           plannedEndTime: plannedEnd,
+          slotCode,
+          medicationRoundCode: input?.medicationRoundCode,
           nightDuty: input?.nightDuty,
         }),
         slotEffectiveFrom: input?.slotEffectiveFrom ?? null,
@@ -415,7 +442,7 @@ export class ServiceUserVisitPlansService {
         oneOffDate: input?.oneOffDate ?? null,
         allowBackfillDays: input?.allowBackfillDays ?? 0,
         carerAssignments: input?.carerAssignments ?? [],
-        exceptions: input?.exceptions ?? [],
+        exceptions: input?.exceptions,
         ...mergeSlotSchedulingOptions(input ?? null),
         durationMinutes,
       };
@@ -460,7 +487,8 @@ export class ServiceUserVisitPlansService {
     tx: Prisma.TransactionClient,
     visitPlanSlotId: string,
     carerAssignments: VisitPlanSlotCarerAssignmentDto[],
-    exceptions: VisitPlanSlotExceptionDto[],
+    /** Omitted = leave the slot's date changes as they are (they are saved from their own dialogs). */
+    exceptions?: VisitPlanSlotExceptionDto[],
   ) {
     await tx.visitPlanSlotCarerAssignment.deleteMany({ where: { visitPlanSlotId } });
     if (carerAssignments.length) {
@@ -481,6 +509,7 @@ export class ServiceUserVisitPlansService {
       });
     }
 
+    if (exceptions === undefined) return;
     await tx.visitPlanSlotException.deleteMany({ where: { visitPlanSlotId } });
     if (exceptions.length) {
       await tx.visitPlanSlotException.createMany({
@@ -525,7 +554,7 @@ export class ServiceUserVisitPlansService {
       tx,
       slotId,
       slot.carerAssignments ?? [],
-      slot.exceptions ?? [],
+      slot.exceptions,
     );
     return slotId;
   }
@@ -953,7 +982,8 @@ export class ServiceUserVisitPlansService {
     if (dto.actualEndTime) {
       actualEnd = this.combineDateAndTime(day, dto.actualEndTime, timeZone);
       if (actualStart && actualEnd.getTime() <= actualStart.getTime()) {
-        actualEnd = new Date(actualEnd.getTime() + 86400000);
+        // Next day at that clock time (not +24 hours, which is an hour out on clock-change nights).
+        actualEnd = this.combineDateAndTime(new Date(day.getTime() + 86400000), dto.actualEndTime, timeZone);
       }
     } else if (dto.status === ScheduledVisitStatus.COMPLETED && !dto.actualStartTime) {
       actualEnd = new Date();
@@ -1169,6 +1199,11 @@ export class ServiceUserVisitPlansService {
               fromDateTime: visitPlanCarerSyncFromDateTime(undefined, timeZone),
               timeZone,
               respectWorkingPattern,
+            });
+            await syncVisitPlanSlotNightDutyToScheduledJobs(tx, {
+              visitPlanSlotId: row.id,
+              nightDuty: row.nightDuty,
+              fromDateTime: visitPlanCarerSyncFromDateTime(undefined, timeZone),
             });
           }
         }
@@ -1401,6 +1436,7 @@ export class ServiceUserVisitPlansService {
           slotKind: input.slotKind,
           nightDuty: input.nightDuty,
           exceptions: (input.exceptions ?? []).map((ex, idx) => ({
+            ...EMPTY_DATE_CHANGE_FIELDS,
             id: `sim-${slot.slotCode}-${idx}`,
             visitPlanSlotId: slot.id,
             exceptionDate: new Date(`${ex.exceptionDate.slice(0, 10)}T12:00:00.000Z`),
@@ -1413,6 +1449,8 @@ export class ServiceUserVisitPlansService {
             createdAt: new Date(),
             updatedAt: new Date(),
           })),
+          // Date changes are saved from their own dialogs; a plan save without them keeps what is stored.
+          ...(input.exceptions === undefined ? { exceptions: slot.exceptions } : {}),
         };
       }),
     };
@@ -3018,11 +3056,9 @@ export class ServiceUserVisitPlansService {
 
     const visitId = (result.data as { id?: string }).id;
     if (visitId) {
-      try {
-        await this.visitReconciliationsService.ensureForVisit(visitId);
-      } catch {
-        // Outcome already saved; finance sync can be retried via backfill.
-      }
+      // The outcome is already saved. A failure here is kept as an open pay evaluation failure
+      // for the office, with a retry (R-17).
+      await this.visitReconciliationsService.ensureForVisitSafe(visitId);
     }
 
     return result;
@@ -3070,9 +3106,11 @@ export class ServiceUserVisitPlansService {
       attendingEmployeeId,
       slotLabel: row.visitName,
       slotCode: row.visitPlanSlot?.slotCode ?? null,
-      nightDuty:
-        row.visitPlanSlot?.nightDuty ??
-        (typeof jobMeta.nightDuty === 'string' ? jobMeta.nightDuty : 'NONE'),
+      // Same rule as billing and the carer app: the slot's night type, else the job's (extra visits).
+      nightDuty: resolveStoredNightDuty({
+        slotNightDuty: row.visitPlanSlot?.nightDuty,
+        jobMetadata: row.scheduledJob.metadata,
+      }),
       linkedCarePlanFormIds: row.visitPlanSlot?.linkedCarePlanFormIds ?? [],
       notes: row.notes,
       scheduledStartDateTime: row.scheduledStartDateTime.toISOString(),

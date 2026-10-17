@@ -68,3 +68,58 @@ it('needs a name only for people the outcome was shared with', () => {
   );
   expect(errors).toEqual(['the name of each person the outcome was shared with']);
 });
+
+describe('applyCandourToSharing', () => {
+  const { applyCandourToSharing } = jest.requireActual('./incident-outcome.util') as typeof import('./incident-outcome.util');
+  const link = {
+    serviceUserId: 'su1',
+    toldPersonKind: 'REPRESENTATIVE' as const,
+    name: 'Paul Clarke',
+    sharedOn: '2026-10-08',
+    candourMethod: 'POST',
+    attachmentId: 'a1',
+  };
+  const blank = (key: string, personKind: 'SERVICE_USER' | 'REPRESENTATIVE', name: string) => ({
+    key,
+    personKind,
+    name,
+    shared: false,
+    sharedOn: null,
+    method: null,
+    notSharedReason: null,
+    note: null,
+  });
+
+  it('fills the representative row from the results letter', () => {
+    const out = applyCandourToSharing([blank('SU:su1', 'SERVICE_USER', 'Doris'), blank('REP:su1', 'REPRESENTATIVE', '')], [link]);
+    expect(out).toHaveLength(2);
+    expect(out[1]).toMatchObject({
+      key: 'REP:su1',
+      name: 'Paul Clarke',
+      shared: true,
+      sharedOn: '2026-10-08',
+      method: 'LETTER',
+      source: 'CANDOUR',
+      attachmentId: 'a1',
+    });
+    expect(out[0]).toMatchObject({ key: 'SU:su1', shared: false });
+  });
+
+  it('adds the row when the outcome has none yet, and maps email / by hand', () => {
+    expect(applyCandourToSharing([], [{ ...link, candourMethod: 'EMAIL' }])[0]).toMatchObject({ method: 'EMAIL' });
+    expect(
+      applyCandourToSharing([], [{ ...link, toldPersonKind: 'SERVICE_USER', candourMethod: 'HANDED' }])[0],
+    ).toMatchObject({ key: 'SU:su1', method: 'IN_PERSON' });
+  });
+
+  it('a row from Duty of Candour without a letter any more goes back to unanswered', () => {
+    const linked = applyCandourToSharing([], [link]);
+    const out = applyCandourToSharing(linked, []);
+    expect(out[0]).toMatchObject({ key: 'REP:su1', shared: false, sharedOn: null, source: null });
+  });
+
+  it('leaves rows the manager answered alone', () => {
+    const answered = { ...blank('STAFF:e1', 'SERVICE_USER', 'Liam'), shared: true, sharedOn: '2026-10-07', method: 'PHONE' };
+    expect(applyCandourToSharing([answered], [link])[0]).toEqual(answered);
+  });
+});

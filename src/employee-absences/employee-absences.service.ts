@@ -1,7 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { resolveEnterpriseVisaMeta } from '../organisation-general-settings/employee-visa-catalog.constants';
+import {
+  MAX_PARENTAL_LEAVE_WEEKS,
+  PARENTAL_LEAVE_TYPES,
+} from './dto/employee-absence.dto';
 import type {
   CreateEmployeeAbsenceDto,
   ListEmployeeAbsencesQueryDto,
@@ -69,7 +80,12 @@ const EMPLOYEE_INCLUDE = {
 
 @Injectable()
 export class EmployeeAbsencesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EmployeeAbsencesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly mail?: MailService,
+  ) {}
 
   private serialize(record: AbsenceWithEmployee) {
     const firstName = record.employee.personalDetail?.firstName ?? '';
@@ -274,6 +290,17 @@ export class EmployeeAbsencesService {
     return { from, to };
   }
 
+  /** Maternity/Paternity leave cannot be approved for longer than the statutory cap. */
+  private static enforceParentalLeaveCap(absenceType: string, from: Date, to: Date): void {
+    if (!(PARENTAL_LEAVE_TYPES as readonly string[]).includes(absenceType)) return;
+    const maxMs = MAX_PARENTAL_LEAVE_WEEKS * 7 * 86_400_000;
+    if (to.getTime() - from.getTime() > maxMs) {
+      throw new BadRequestException(
+        `${absenceType} leave cannot exceed ${MAX_PARENTAL_LEAVE_WEEKS} weeks.`,
+      );
+    }
+  }
+
   private static optionalDate(value: string | null | undefined): Date | null | undefined {
     if (value === undefined) return undefined;
     return value ? new Date(value) : null;
@@ -282,10 +309,14 @@ export class EmployeeAbsencesService {
   async create(userId: string, dto: CreateEmployeeAbsenceDto) {
     const employee = await this.prisma.employee.findFirst({
       where: { id: dto.employeeId, deletedAt: null },
-      select: { id: true },
+      select: {
+        id: true,
+        personalDetail: { select: { firstName: true, lastName: true, email: true } },
+      },
     });
     if (!employee) throw new NotFoundException('Employee not found');
     const { from, to } = EmployeeAbsencesService.parseSpan(dto.fromDateTime, dto.toDateTime);
+    EmployeeAbsencesService.enforceParentalLeaveCap(dto.absenceType, from, to);
 
     const record = await this.prisma.employeeAbsenceRecord.create({
       data: {
@@ -318,7 +349,58 @@ export class EmployeeAbsencesService {
       },
       include: EMPLOYEE_INCLUDE,
     });
+
+    if (dto.notifyByEmail) {
+      await this.notifyCarerByEmail(employee.personalDetail, dto.absenceType, from, to, dto.notes);
+    }
+
     return { data: this.serialize(record) };
+  }
+
+  /** Best-effort email to the carer that an absence was recorded. Never fails the create. */
+  private async notifyCarerByEmail(
+    personalDetail:
+      | { firstName: string; lastName: string; email: string | null }
+      | null,
+    absenceType: string,
+    from: Date,
+    to: Date,
+    notes?: string | null,
+  ): Promise<void> {
+    if (!this.mail) {
+      this.logger.warn('notifyByEmail requested but mail is not configured.');
+      return;
+    }
+    const email = personalDetail?.email?.trim();
+    if (!email) {
+      this.logger.warn('notifyByEmail requested but the carer has no email on file.');
+      return;
+    }
+    const name =
+      [personalDetail?.firstName, personalDetail?.lastName].filter(Boolean).join(' ').trim() ||
+      'there';
+    const fmt = (d: Date) =>
+      new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(d);
+    const text =
+      `Hi ${name},\n\n` +
+      `An absence has been recorded on your profile:\n` +
+      `- Type: ${absenceType}\n` +
+      `- From: ${fmt(from)}\n` +
+      `- To: ${fmt(to)}\n` +
+      (notes?.trim() ? `- Notes: ${notes.trim()}\n` : '') +
+      `\nIf anything looks wrong, please contact your manager.\n`;
+    try {
+      await this.mail.send({ to: email, subject: `Absence recorded: ${absenceType}`, text });
+    } catch (e) {
+      this.logger.warn(
+        `Failed to send absence notification: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
 
   async update(userId: string, id: string, dto: UpdateEmployeeAbsenceDto) {
@@ -345,6 +427,11 @@ export class EmployeeAbsencesService {
     const fromIso = dto.fromDateTime ?? existing.fromDateTime.toISOString();
     const toIso = dto.toDateTime ?? existing.toDateTime.toISOString();
     const { from, to } = EmployeeAbsencesService.parseSpan(fromIso, toIso);
+    EmployeeAbsencesService.enforceParentalLeaveCap(
+      dto.absenceType ?? existing.absenceType,
+      from,
+      to,
+    );
 
     const data: Prisma.EmployeeAbsenceRecordUncheckedUpdateInput = {
       fromDateTime: from,

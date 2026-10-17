@@ -250,6 +250,8 @@ export class EcmAlertService {
         ? `Carer left visit area — ${suName}`
         : row.kind === 'UNABLE_TO_START'
           ? `Unable to start visit — ${suName}`
+          : row.kind === 'NFC_TAG_MISMATCH'
+          ? `Wrong NFC tag scanned — ${suName}`
           : row.kind === 'OUTSIDE_AREA_CHECK_IN_REQUEST'
             ? `Manual check-in needs approval — ${suName}`
             : `${row.title} — ${suName}`;

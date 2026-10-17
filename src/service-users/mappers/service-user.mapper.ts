@@ -77,6 +77,7 @@ export function mapServiceUserListRow(
   gender: { id: string; name: string; code: string } | null;
   status: { id: string; name: string; code: string } | null;
   careType: { id: string; name: string; code: string } | null;
+  careLevel: string | null;
   fundingType: { id: string; name: string; code: string } | null;
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
   locationId: string | null;
@@ -107,6 +108,7 @@ export function mapServiceUserListRow(
     gender: mapLookup(user.gender),
     status: mapLookup(user.status),
     careType: mapLookup(user.careType),
+    careLevel: (user.careLevel as 'STANDARD' | 'COMPLEX' | null) ?? null,
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
     location: mapServiceUserLocation(user, scheduleAreaByLocation),
@@ -150,6 +152,7 @@ export function mapServiceUserDetail(
   maritalStatus: { id: string; name: string; code: string } | null;
   status: { id: string; name: string; code: string } | null;
   careType: { id: string; name: string; code: string } | null;
+  careLevel: string | null;
   fundingType: { id: string; name: string; code: string } | null;
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
   locationId: string | null;
@@ -260,6 +263,7 @@ export function mapServiceUserDetail(
     maritalStatus: mapLookup(user.maritalStatus),
     status: mapLookup(user.status),
     careType: mapLookup(user.careType),
+    careLevel: (user.careLevel as 'STANDARD' | 'COMPLEX' | null) ?? null,
     fundingType: mapLookup(user.fundingType),
     riskLevel: mapRiskLevel(user.riskLevel),
     location: mappedLocation,

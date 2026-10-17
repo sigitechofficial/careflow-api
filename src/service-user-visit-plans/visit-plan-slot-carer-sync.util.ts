@@ -1,3 +1,4 @@
+import { isVisitPlanExtraJobMetadata } from './visit-plan-extra-visit.util';
 import {
   AllocationStatus,
   Prisma,
@@ -50,7 +51,8 @@ const ACTIVE_ALLOCATION_STATUSES: AllocationStatus[] = [
   AllocationStatus.CONFIRMED,
 ];
 
-const SYNCABLE_VISIT_STATUSES: ScheduledVisitStatus[] = [
+/** Rota visits a plan change may still update: not started, not finished, not cancelled. */
+export const SYNCABLE_VISIT_STATUSES: ScheduledVisitStatus[] = [
   ScheduledVisitStatus.PLANNED,
   ScheduledVisitStatus.NEEDS_ATTENTION,
 ];
@@ -477,6 +479,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
       requiredCarers: true,
       scheduledStartDateTime: true,
       scheduledEndDateTime: true,
+      scheduledJob: { select: { metadata: true } },
     },
   });
 
@@ -485,6 +488,8 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   const timeZone = params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
 
   for (const visit of visits) {
+    // Extra visits keep the carers chosen when they were added.
+    if (isVisitPlanExtraJobMetadata(visit.scheduledJob.metadata)) continue;
     const jobId = visit.scheduledJobId;
     // The visit plan is the source of truth for how many carers a visit needs: a single
     // regenerated visit passes its day-specific count; bulk sync resolves it per weekday.

@@ -7,6 +7,22 @@ export type YtdPeriodAmounts = {
   employeeNi: number
   employerNi: number
   netPay: number
+  /** Gate C11: student and postgraduate loan deducted (0 when none). */
+  studentLoan?: number
+  postgraduateLoan?: number
+  /** Gate C16: workplace pension posted (0 when none). */
+  pensionEmployeeGross?: number
+  pensionEmployeeNet?: number
+  pensionEmployer?: number
+  /** Gate C10: NI data for RTI; null figures when the run row has none (legacy). */
+  ni?: {
+    category: string | null
+    directorNicMethod: string | null
+    niableEarnings: number | null
+    atLel: number | null
+    lelToPt: number | null
+    ptToUel: number | null
+  }
 }
 
 export type YtdLedgerSnapshot = {
@@ -18,6 +34,11 @@ export type YtdLedgerSnapshot = {
   employeeNiYtd: number
   employerNiYtd: number
   netPayYtd: number
+  studentLoanYtd: number
+  postgraduateLoanYtd: number
+  pensionEmployeeGrossYtd: number
+  pensionEmployeeNetYtd: number
+  pensionEmployerYtd: number
   lastClosedRunId: string | null
   updatedAt: string
 }
@@ -25,6 +46,15 @@ export type YtdLedgerSnapshot = {
 type Tx = Prisma.TransactionClient
 
 const d = (n: number) => new Prisma.Decimal(n)
+const dOrNull = (v: number | null | undefined) => (v == null ? null : new Prisma.Decimal(v))
+const niColumns = (emp: YtdPeriodAmounts) => ({
+  niCategory: emp.ni?.category ?? null,
+  directorNicMethod: emp.ni?.directorNicMethod ?? null,
+  niableEarnings: dOrNull(emp.ni?.niableEarnings),
+  niEarningsAtLel: dOrNull(emp.ni?.atLel),
+  niEarningsLelToPt: dOrNull(emp.ni?.lelToPt),
+  niEarningsPtToUel: dOrNull(emp.ni?.ptToUel),
+})
 const n = (v: Prisma.Decimal | number | null | undefined) =>
   v == null ? 0 : typeof v === 'number' ? v : Number(v)
 
@@ -37,6 +67,11 @@ export function mapYtdLedger(row: {
   employeeNiYtd: Prisma.Decimal | number
   employerNiYtd: Prisma.Decimal | number
   netPayYtd: Prisma.Decimal | number
+  studentLoanYtd?: Prisma.Decimal | number
+  postgraduateLoanYtd?: Prisma.Decimal | number
+  pensionEmployeeGrossYtd?: Prisma.Decimal | number
+  pensionEmployeeNetYtd?: Prisma.Decimal | number
+  pensionEmployerYtd?: Prisma.Decimal | number
   lastClosedRunId: string | null
   updatedAt: Date
 }): YtdLedgerSnapshot {
@@ -49,6 +84,11 @@ export function mapYtdLedger(row: {
     employeeNiYtd: n(row.employeeNiYtd),
     employerNiYtd: n(row.employerNiYtd),
     netPayYtd: n(row.netPayYtd),
+    studentLoanYtd: n(row.studentLoanYtd),
+    postgraduateLoanYtd: n(row.postgraduateLoanYtd),
+    pensionEmployeeGrossYtd: n(row.pensionEmployeeGrossYtd),
+    pensionEmployeeNetYtd: n(row.pensionEmployeeNetYtd),
+    pensionEmployerYtd: n(row.pensionEmployerYtd),
     lastClosedRunId: row.lastClosedRunId,
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -116,6 +156,12 @@ export async function postRunEmployeesToYtd(
           employeeNi: d(emp.employeeNi),
           employerNi: d(emp.employerNi),
           netPay: d(emp.netPay),
+          ...niColumns(emp),
+          studentLoan: d(emp.studentLoan ?? 0),
+          postgraduateLoan: d(emp.postgraduateLoan ?? 0),
+          pensionEmployeeGross: d(emp.pensionEmployeeGross ?? 0),
+          pensionEmployeeNet: d(emp.pensionEmployeeNet ?? 0),
+          pensionEmployer: d(emp.pensionEmployer ?? 0),
           isReversed: false,
           postedAt: new Date(),
           reversedAt: null,
@@ -136,6 +182,12 @@ export async function postRunEmployeesToYtd(
           employeeNi: d(emp.employeeNi),
           employerNi: d(emp.employerNi),
           netPay: d(emp.netPay),
+          ...niColumns(emp),
+          studentLoan: d(emp.studentLoan ?? 0),
+          postgraduateLoan: d(emp.postgraduateLoan ?? 0),
+          pensionEmployeeGross: d(emp.pensionEmployeeGross ?? 0),
+          pensionEmployeeNet: d(emp.pensionEmployeeNet ?? 0),
+          pensionEmployer: d(emp.pensionEmployer ?? 0),
           createdById: args.userId,
         },
       })
@@ -150,6 +202,11 @@ export async function postRunEmployeesToYtd(
         employeeNiYtd: { increment: emp.employeeNi },
         employerNiYtd: { increment: emp.employerNi },
         netPayYtd: { increment: emp.netPay },
+        studentLoanYtd: { increment: emp.studentLoan ?? 0 },
+        postgraduateLoanYtd: { increment: emp.postgraduateLoan ?? 0 },
+        pensionEmployeeGrossYtd: { increment: emp.pensionEmployeeGross ?? 0 },
+        pensionEmployeeNetYtd: { increment: emp.pensionEmployeeNet ?? 0 },
+        pensionEmployerYtd: { increment: emp.pensionEmployer ?? 0 },
         lastClosedRunId: args.runId,
         updatedById: args.userId,
       },
@@ -180,6 +237,11 @@ export async function reverseRunEmployeesFromYtd(
         employeeNiYtd: { decrement: n(row.employeeNi) },
         employerNiYtd: { decrement: n(row.employerNi) },
         netPayYtd: { decrement: n(row.netPay) },
+        studentLoanYtd: { decrement: n(row.studentLoan) },
+        postgraduateLoanYtd: { decrement: n(row.postgraduateLoan) },
+        pensionEmployeeGrossYtd: { decrement: n(row.pensionEmployeeGross) },
+        pensionEmployeeNetYtd: { decrement: n(row.pensionEmployeeNet) },
+        pensionEmployerYtd: { decrement: n(row.pensionEmployer) },
         updatedById: args.userId,
       },
     })
@@ -195,4 +257,60 @@ export async function reverseRunEmployeesFromYtd(
   }
 
   return { reversed }
+}
+
+export type NiYtdByCategory = {
+  niCategory: string
+  directorNicMethod: string | null
+  niableEarningsYtd: number
+  atLelYtd: number
+  lelToPtYtd: number
+  ptToUelYtd: number
+  employeeNiYtd: number
+  employerNiYtd: number
+}
+
+/**
+ * Gate C10: NI year to date for RTI, per NI category (and director method), summed from the
+ * contributions not reversed. A category change keeps the earlier category's figures; a
+ * director's earnings period is kept apart from earlier ordinary earnings. Runs closed without NI
+ * data (before C10) are listed, not guessed: their year needs reconstructing before an FPS.
+ */
+export async function niYtdByCategory(
+  db: Pick<Prisma.TransactionClient, 'employeePayrollYtdContribution'>,
+  employeeId: string,
+  taxYearId: string,
+): Promise<{ categories: NiYtdByCategory[]; runsWithoutNiData: string[] }> {
+  const rows = await db.employeePayrollYtdContribution.findMany({
+    where: { employeeId, taxYearId, isReversed: false },
+    orderBy: { postedAt: 'asc' },
+  })
+  const categories = new Map<string, NiYtdByCategory>()
+  const runsWithoutNiData: string[] = []
+  for (const row of rows) {
+    if (row.niableEarnings == null || !row.niCategory) {
+      runsWithoutNiData.push(row.ukPayrollRunId)
+      continue
+    }
+    const key = `${row.niCategory}|${row.directorNicMethod ?? ''}`
+    const sum = categories.get(key) ?? {
+      niCategory: row.niCategory,
+      directorNicMethod: row.directorNicMethod,
+      niableEarningsYtd: 0,
+      atLelYtd: 0,
+      lelToPtYtd: 0,
+      ptToUelYtd: 0,
+      employeeNiYtd: 0,
+      employerNiYtd: 0,
+    }
+    const add = (a: number, b: Prisma.Decimal | null) => Math.round((a + n(b)) * 100) / 100
+    sum.niableEarningsYtd = add(sum.niableEarningsYtd, row.niableEarnings)
+    sum.atLelYtd = add(sum.atLelYtd, row.niEarningsAtLel)
+    sum.lelToPtYtd = add(sum.lelToPtYtd, row.niEarningsLelToPt)
+    sum.ptToUelYtd = add(sum.ptToUelYtd, row.niEarningsPtToUel)
+    sum.employeeNiYtd = add(sum.employeeNiYtd, row.employeeNi)
+    sum.employerNiYtd = add(sum.employerNiYtd, row.employerNi)
+    categories.set(key, sum)
+  }
+  return { categories: [...categories.values()], runsWithoutNiData }
 }

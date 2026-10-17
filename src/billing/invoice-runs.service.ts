@@ -24,6 +24,7 @@ import {
   parseBillingDateOnly,
   splitAmount,
 } from './billing-run.util';
+import { assertFinancialResetEnvironment } from './financial-controls.util';
 import {
   formatInvoiceAuditActorName,
   recordInvoiceRunAuditEvent,
@@ -2419,6 +2420,8 @@ export class InvoiceRunsService {
    * cascade. Affected payments are reset to unmatched.
    */
   async deleteAll() {
+    // Test reset only: refused in production and unless the server opts in (SI-06).
+    assertFinancialResetEnvironment();
     const deleted = await this.prisma.$transaction(async (tx) => {
       await tx.paymentAllocation.deleteMany({});
       await tx.payment.updateMany({

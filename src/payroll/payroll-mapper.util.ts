@@ -207,6 +207,22 @@ export function mapProfile(row: {
   postgraduateLoan: boolean;
   pensionOptedIn: boolean;
   pensionSchemeRef: string | null;
+  apprenticeshipStartDate?: Date | null;
+  isDirector?: boolean | null;
+  directorAppointedOn?: Date | null;
+  directorNicMethod?: string | null;
+  pensionStatus?: string | null;
+  pensionEnrolledFrom?: Date | null;
+  pensionContributionBasis?: string | null;
+  pensionTaxRelief?: string | null;
+  pensionEmployeeRatePercent?: { toString(): string } | number | null;
+  pensionEmployerRatePercent?: { toString(): string } | number | null;
+  pensionPolicyRef?: string | null;
+  loanDeclarationStatus?: string | null;
+  loanDeclarationSource?: string | null;
+  loanDeclarationDate?: Date | null;
+  pensionUkWorker?: boolean | null;
+  statePensionAgeDate?: Date | null;
   deductionElections?: unknown;
   bankSortCode: string | null;
   bankAccountNumber: string | null;
@@ -242,6 +258,22 @@ export function mapProfile(row: {
     postgraduateLoan: row.postgraduateLoan,
     pensionOptedIn: row.pensionOptedIn,
     pensionSchemeRef: row.pensionSchemeRef,
+    apprenticeshipStartDate: dateToIsoDate(row.apprenticeshipStartDate ?? null),
+    isDirector: row.isDirector ?? null,
+    directorAppointedOn: dateToIsoDate(row.directorAppointedOn ?? null),
+    directorNicMethod: row.directorNicMethod ?? null,
+    pensionStatus: row.pensionStatus ?? null,
+    pensionEnrolledFrom: dateToIsoDate(row.pensionEnrolledFrom ?? null),
+    pensionContributionBasis: row.pensionContributionBasis ?? null,
+    pensionTaxRelief: row.pensionTaxRelief ?? null,
+    pensionEmployeeRatePercent: row.pensionEmployeeRatePercent == null ? null : Number(row.pensionEmployeeRatePercent),
+    pensionEmployerRatePercent: row.pensionEmployerRatePercent == null ? null : Number(row.pensionEmployerRatePercent),
+    pensionPolicyRef: row.pensionPolicyRef ?? null,
+    loanDeclarationStatus: row.loanDeclarationStatus ?? null,
+    loanDeclarationSource: row.loanDeclarationSource ?? null,
+    loanDeclarationDate: dateToIsoDate(row.loanDeclarationDate ?? null),
+    pensionUkWorker: row.pensionUkWorker ?? null,
+    statePensionAgeDate: dateToIsoDate(row.statePensionAgeDate ?? null),
     deductionElections,
     bankSortCode: row.bankSortCode,
     bankAccountNumber: row.bankAccountNumber,
@@ -264,6 +296,17 @@ export function mapAgreement(row: {
   annualSalary: Prisma.Decimal | null;
   contractedHours: Prisma.Decimal | null;
   hourlyRateOverride: Prisma.Decimal | null;
+  salaryEntryPeriod?: string | null;
+  salaryEntryAmount?: Prisma.Decimal | null;
+  salaryProrationMethod?: string | null;
+  salaryCoverage?: string | null;
+  guaranteedWeeklyHours?: Prisma.Decimal | null;
+  guaranteeTopUp?: string | null;
+  guaranteeQualifyingTime?: string | null;
+  guaranteeLeaveTreatment?: string | null;
+  approvedById?: string | null;
+  approvedAt?: Date | null;
+  createdById?: string | null;
   currency: string;
   notes: string | null;
   createdAt: Date;
@@ -281,6 +324,17 @@ export function mapAgreement(row: {
     annualSalary: decimalToNumber(row.annualSalary),
     contractedHours: decimalToNumber(row.contractedHours),
     hourlyRateOverride: decimalToNumber(row.hourlyRateOverride),
+    salaryEntryPeriod: row.salaryEntryPeriod ?? null,
+    salaryEntryAmount: decimalToNumber(row.salaryEntryAmount ?? null),
+    salaryProrationMethod: row.salaryProrationMethod ?? null,
+    salaryCoverage: row.salaryCoverage ?? null,
+    guaranteedWeeklyHours: decimalToNumber(row.guaranteedWeeklyHours ?? null),
+    guaranteeTopUp: row.guaranteeTopUp ?? null,
+    guaranteeQualifyingTime: row.guaranteeQualifyingTime ?? null,
+    guaranteeLeaveTreatment: row.guaranteeLeaveTreatment ?? null,
+    createdById: row.createdById ?? null,
+    approvedById: row.approvedById ?? null,
+    approvedAt: row.approvedAt?.toISOString() ?? null,
     currency: row.currency,
     notes: row.notes,
     createdAt: row.createdAt.toISOString(),

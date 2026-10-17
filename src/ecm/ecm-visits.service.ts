@@ -1,8 +1,17 @@
+import { isSyncedLate } from '../employee-app/employee-app-device-time.util';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { attendanceEventMethodLabel } from './ecm-attendance-method.util';
+import { computeCarerArrivals, type CarerArrival } from './ecm-carer-arrival.util';
+import {
+  carerAppCheckIn,
+  loadCheckInMethodsByJobIds,
+  type VisitCheckInMethod,
+  type VisitCheckInMethodCode,
+} from './ecm-check-in-method.util';
 import {
   AllocationStatus,
   EcmArrivalClassification,
@@ -66,6 +75,11 @@ const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.CONFIRMED,
 ];
 
+const CLOCK_EVENT_TYPES: VisitAttendanceEventType[] = [
+  VisitAttendanceEventType.CHECK_IN,
+  VisitAttendanceEventType.CHECK_OUT,
+];
+
 const EVAL_INCLUDE = {
   scheduledJob: {
     select: {
@@ -105,6 +119,9 @@ const EVAL_INCLUDE = {
         },
         select: {
           isLeadCarer: true,
+          scheduledStartDateTime: true,
+          actualStartDateTime: true,
+          actualEndDateTime: true,
           employee: {
             select: {
               id: true,
@@ -114,6 +131,11 @@ const EVAL_INCLUDE = {
             },
           },
         },
+      },
+      // Per-carer clock-in/out for double-up rows.
+      attendanceEvents: {
+        where: { eventType: { in: CLOCK_EVENT_TYPES } },
+        select: { employeeId: true, eventType: true, occurredAt: true },
       },
     },
   },
@@ -146,6 +168,7 @@ type LiveRowEvaluation = Pick<
   | 'durationVarianceMinutes'
   | 'appliedSettingsLevel'
   | 'operationalExceptionCodes'
+  | 'lateArrivalToleranceMinutes'
 >;
 
 /** Upper bound for one service user's / employee's visits table request. */
@@ -184,6 +207,7 @@ function previewToEvaluation(
     operationalExceptionCodes: Array.isArray(data.operationalExceptionCodes)
       ? data.operationalExceptionCodes
       : [],
+    lateArrivalToleranceMinutes: data.lateArrivalToleranceMinutes,
   };
 }
 
@@ -218,6 +242,31 @@ const COMPLETED_LIFECYCLES: ReadonlySet<EcmLifecycleStatus> = new Set([
   EcmLifecycleStatus.CLOSED,
 ]);
 
+/** Per-carer timing fields are set on double-up visits only. */
+export type EcmLiveVisitCarer = {
+  employeeId: string;
+  name: string;
+  isLeadCarer: boolean;
+  /** This carer's own planned start (assignment time, else the visit time). */
+  plannedStartDateTime?: string;
+  checkInAt?: string | null;
+  checkOutAt?: string | null;
+  /** Minutes after own planned start, only when beyond the late tolerance. */
+  lateArrivalMinutes?: number | null;
+  notClockedIn?: boolean;
+};
+
+function carerArrivalFields(arrival: CarerArrival | undefined) {
+  if (!arrival) return {};
+  return {
+    plannedStartDateTime: arrival.plannedStartDateTime.toISOString(),
+    checkInAt: arrival.checkInAt?.toISOString() ?? null,
+    checkOutAt: arrival.checkOutAt?.toISOString() ?? null,
+    lateArrivalMinutes: arrival.lateArrivalMinutes,
+    notClockedIn: arrival.notClockedIn,
+  };
+}
+
 export type EcmLiveVisitRow = {
   scheduledJobId: string;
   scheduledVisitId: string | null;
@@ -228,7 +277,7 @@ export type EcmLiveVisitRow = {
   slotLabel: string | null;
   serviceUserId: string;
   serviceUserName: string;
-  carers: Array<{ employeeId: string; name: string; isLeadCarer: boolean }>;
+  carers: Array<EcmLiveVisitCarer>;
   address: string | null;
   postcode: string | null;
   plannedStartDateTime: string;
@@ -250,6 +299,9 @@ export type EcmLiveVisitRow = {
   appliedSettingsLevel: string;
   operationalExceptionCodes: string[];
   buckets: DashboardBucket[];
+  /** How the visit was clocked in (GPS / NFC / Manual / Office / NONE). Page rows only. */
+  checkInMethod?: VisitCheckInMethodCode;
+  checkInMethodLabel?: string;
 };
 
 export type EcmLiveDashboardSummary = {
@@ -526,15 +578,22 @@ export class EcmVisitsService {
         .filter((id): id is string => Boolean(id)),
     );
     const rowCtx = { now, soonMs, dueWindowMs, operationalToday, visitRefs };
+    const methodByJob = await loadCheckInMethodsByJobIds(
+      this.prisma,
+      refreshed.map((ev) => ev.scheduledJobId),
+    );
     const rows: EcmLiveVisitRow[] = refreshed
       .map((ev) => this.toLiveRow(ev, ev.scheduledJob, rowCtx))
       .map((row) =>
-        this.withCheckInMethodRequest(
-          this.withMockLocation(
-            this.withLeftVisitArea(row, lockedVisitJobIds),
-            mockedVisitJobIds,
+        this.withCheckInMethod(
+          this.withCheckInMethodRequest(
+            this.withMockLocation(
+              this.withLeftVisitArea(row, lockedVisitJobIds),
+              mockedVisitJobIds,
+            ),
+            checkInRequestJobIds,
           ),
-          checkInRequestJobIds,
+          methodByJob,
         ),
       );
 
@@ -857,6 +916,7 @@ export class EcmVisitsService {
       lockedVisitJobIds,
       mockedVisitJobIds,
       checkInRequestJobIds,
+      methodByJob,
     ] = await Promise.all([
       loadVisitRefsByScheduledVisitIds(
         this.prisma,
@@ -867,6 +927,7 @@ export class EcmVisitsService {
       this.lockedVisitJobIds(entryJobIds),
       this.mockedVisitJobIds(entryJobIds),
       this.pendingCheckInGrantJobIds(entryJobIds),
+      loadCheckInMethodsByJobIds(this.prisma, entryJobIds),
     ]);
     const rowCtx = {
       now,
@@ -876,15 +937,18 @@ export class EcmVisitsService {
       visitRefs,
     };
     const rows = entries.map(({ job, ev }) =>
-      this.withCheckInMethodRequest(
-        this.withMockLocation(
-          this.withLeftVisitArea(
-            this.toLiveRow(ev, job, rowCtx),
-            lockedVisitJobIds,
+      this.withCheckInMethod(
+        this.withCheckInMethodRequest(
+          this.withMockLocation(
+            this.withLeftVisitArea(
+              this.toLiveRow(ev, job, rowCtx),
+              lockedVisitJobIds,
+            ),
+            mockedVisitJobIds,
           ),
-          mockedVisitJobIds,
+          checkInRequestJobIds,
         ),
-        checkInRequestJobIds,
+        methodByJob,
       ),
     );
 
@@ -941,7 +1005,21 @@ export class EcmVisitsService {
         : null) ||
       this.slotLabelFromJobName(job.jobName);
 
-    const carers = job.allocations.map((a) => {
+    const arrivals = computeCarerArrivals({
+      allocations: job.allocations.map((a) => ({
+        employeeId: a.employee.id,
+        scheduledStartDateTime: a.scheduledStartDateTime,
+        actualStartDateTime: a.actualStartDateTime,
+        actualEndDateTime: a.actualEndDateTime,
+      })),
+      events: job.attendanceEvents,
+      visitPlannedStart: ev.plannedStartDateTime,
+      lateArrivalToleranceMinutes: ev.lateArrivalToleranceMinutes,
+      visitCompleted: COMPLETED_LIFECYCLES.has(ev.lifecycleStatus),
+      visitMissed: ev.missedClassification === EcmMissedClassification.CONFIRMED_MISSED,
+      now: ctx.now,
+    });
+    const carers: EcmLiveVisitCarer[] = job.allocations.map((a) => {
       const carerName = [
         a.employee.personalDetail?.firstName,
         a.employee.personalDetail?.lastName,
@@ -953,6 +1031,7 @@ export class EcmVisitsService {
         employeeId: a.employee.id,
         name: carerName || a.employee.id,
         isLeadCarer: a.isLeadCarer,
+        ...carerArrivalFields(arrivals.get(a.employee.id)),
       };
     });
 
@@ -1048,6 +1127,10 @@ export class EcmVisitsService {
             employeeId: true,
             isLeadCarer: true,
             status: true,
+            scheduledStartDateTime: true,
+            scheduledEndDateTime: true,
+            actualStartDateTime: true,
+            actualEndDateTime: true,
             employee: {
               select: {
                 id: true,
@@ -1184,6 +1267,8 @@ export class EcmVisitsService {
       requiredCarers: number;
       address: string | null;
       postcode: string | null;
+      /** Carer-app check-in records live here (method, NFC tag name). */
+      metadata?: unknown;
       serviceUser: {
         id: string;
         firstName: string | null;
@@ -1207,6 +1292,10 @@ export class EcmVisitsService {
         employeeId: string;
         isLeadCarer: boolean;
         status: string;
+        scheduledStartDateTime: Date | null;
+        scheduledEndDateTime: Date | null;
+        actualStartDateTime: Date | null;
+        actualEndDateTime: Date | null;
         employee: {
           id: string;
           personalDetail: { firstName: string | null; lastName: string | null } | null;
@@ -1275,6 +1364,19 @@ export class EcmVisitsService {
       [su.firstName, su.lastName].filter(Boolean).join(' ').trim() ||
       'Service user';
 
+    const arrivals = computeCarerArrivals({
+      allocations: job.allocations,
+      events: job.attendanceEvents,
+      visitPlannedStart: evaluation.plannedStartDateTime,
+      lateArrivalToleranceMinutes: evaluation.lateArrivalToleranceMinutes,
+      visitCompleted: COMPLETED_LIFECYCLES.has(
+        evaluation.lifecycleStatus as EcmLifecycleStatus,
+      ),
+      visitMissed:
+        evaluation.missedClassification === EcmMissedClassification.CONFIRMED_MISSED,
+      now: new Date(),
+    });
+
     return {
       data: {
         scheduledJobId: job.id,
@@ -1297,6 +1399,10 @@ export class EcmVisitsService {
             .filter(Boolean)
             .join(' ')
             .trim(),
+          plannedEndDateTime: arrivals.has(a.employeeId)
+            ? (a.scheduledEndDateTime ?? evaluation.plannedEndDateTime)?.toISOString() ?? null
+            : undefined,
+          ...carerArrivalFields(arrivals.get(a.employeeId)),
         })),
         visit: job.visits[0]
           ? {
@@ -1355,12 +1461,23 @@ export class EcmVisitsService {
           },
           evaluatedAt: evaluation.evaluatedAt.toISOString(),
         },
-        attendanceEvents: job.attendanceEvents.map((e) => ({
+        attendanceEvents: job.attendanceEvents.map((e) => {
+          const appCheckIn =
+            e.eventType === 'CHECK_IN' ? carerAppCheckIn(job.metadata, e.employeeId) : null;
+          return {
           id: e.id,
           eventType: e.eventType,
           verificationMethod: e.verificationMethod,
+          methodLabel: attendanceEventMethodLabel({
+            verificationMethod: e.verificationMethod,
+            appCheckInMethod: appCheckIn?.method,
+            nfcTagLabel: appCheckIn?.nfcTagLabel,
+          }),
           occurredAt: e.occurredAt.toISOString(),
           deviceCapturedAt: e.deviceCapturedAt?.toISOString() ?? null,
+          // When the server received it; well after occurredAt means an offline clock-in/out.
+          receivedAt: e.createdAt.toISOString(),
+          syncedLate: isSyncedLate(e.occurredAt, e.createdAt),
           latitude: e.latitude != null ? Number(e.latitude) : null,
           longitude: e.longitude != null ? Number(e.longitude) : null,
           accuracyMeters: e.accuracyMeters != null ? Number(e.accuracyMeters) : null,
@@ -1372,7 +1489,8 @@ export class EcmVisitsService {
           employeeId: e.employeeId,
           clientEventId: e.clientEventId,
           createdAt: e.createdAt.toISOString(),
-        })),
+          };
+        }),
       },
     };
   }
@@ -1591,6 +1709,14 @@ export class EcmVisitsService {
       select: { scheduledJobId: true },
     });
     return new Set(grants.map((grant) => grant.scheduledJobId));
+  }
+
+  private withCheckInMethod(
+    row: EcmLiveVisitRow,
+    methodByJob: Map<string, VisitCheckInMethod>,
+  ): EcmLiveVisitRow {
+    const m = methodByJob.get(row.scheduledJobId);
+    return m ? { ...row, checkInMethod: m.code, checkInMethodLabel: m.label } : row;
   }
 
   private withCheckInMethodRequest(

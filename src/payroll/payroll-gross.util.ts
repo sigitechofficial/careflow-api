@@ -59,7 +59,12 @@ export function accumulateGrossLine(
     bucket.expenseTotal = round2(bucket.expenseTotal + amount);
     return;
   }
-  if (line.lineType === 'SALARY' || line.lineType === 'PAY_AGREEMENT_SALARY') {
+  if (
+    line.lineType === 'SALARY' ||
+    line.lineType === 'PAY_AGREEMENT_SALARY' ||
+    // Backpay, or a recovery when the salary of a paid period was reduced: it stays with salary.
+    line.lineType === 'SALARY_ADJUSTMENT'
+  ) {
     bucket.salaryPay = round2(bucket.salaryPay + amount);
   } else if (line.lineType === 'VISIT_PAY') {
     bucket.visitPay = round2(bucket.visitPay + amount);

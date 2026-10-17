@@ -23,6 +23,7 @@ import {
   type PaySpecialDay,
   type PayStackingPolicy,
   type TimeBandRule,
+  type SpecialDayCalendar,
 } from './pay-time-band.util';
 
 export type DetectedException = {
@@ -647,18 +648,21 @@ const SPECIAL_DAY_RULE_TYPES = new Set(
  * Special days (bank holiday, Boxing Day, org day, …) are paid like normal £/hr periods.
  * When that calendar day occurs, matching special-day rules win; if none are configured,
  * weekday / Saturday / Sunday rules still apply as fallback.
+ *
+ * PC-19: which day `visitDate` falls on is decided in `timeZone`, the organisation's local time.
+ * A moment between 00:00 and 00:59 local in summer time is still the previous day in UTC.
  */
 function dayTypeMatches(
   ruleDayType: string,
   visitDate: Date,
   isBankHoliday: boolean,
-  /** Organisation timezone — weekday / named holidays are the visit's org-local calendar day. */
   timeZone: string = 'UTC',
+  holidayCalendar?: SpecialDayCalendar,
 ): boolean {
   if (ruleDayType === 'ANY') return true;
 
-  const special = resolveSpecialDay(visitDate, { isBankHoliday, timeZone });
-  const calendar = resolveCalendarDayType(visitDate, timeZone);
+  const special = resolveSpecialDay(visitDate, { ...holidayCalendar, isBankHoliday, timeZone });
+  const calendar = resolveBandCalendarDayType(visitDate, timeZone);
 
   if (special !== 'NONE') {
     if (ruleDayType === special) return true;
@@ -772,11 +776,12 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   visitMinutes: number,
   isBankHoliday = false,
   timeZone: string = 'UTC',
+  calendar?: SpecialDayCalendar,
 ): T | null {
   if (!rules.length || visitMinutes <= 0) return null;
 
   const dayMatches = rules.filter((rule) =>
-    dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
+    dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone, calendar),
   );
   if (!dayMatches.length) return null;
 
@@ -832,20 +837,37 @@ export function calculatePayableAmount(
     isBankHolidayFn?: (d: Date) => boolean;
     /** IANA TZ for pay-card clock bands (e.g. Europe/London). */
     timeZone?: string;
+    /** Organisation special days and the weekend-holiday policy (PC-22 to PC-24). */
+    calendar?: SpecialDayCalendar;
   },
   nightDuty?: string | null,
   rateBasisMinutes?: number | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
   const timeZone = window?.timeZone ?? 'UTC';
+  const calendar = window?.calendar;
 
   if (nightDuty === 'SLEEPING_NIGHT') {
-    const rule = pickNightDutyPayRule(rules, 'SLEEP_IN', visitDate, isBankHoliday, timeZone);
+    const rule = pickNightDutyPayRule(
+      rules,
+      'SLEEP_IN',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+      calendar,
+    );
     if (!rule) return null;
     return { amount: Number(rule.amount), label: 'SLEEP_IN' };
   }
   if (nightDuty === 'WAKING_NIGHT') {
-    const rule = pickNightDutyPayRule(rules, 'WAKING_NIGHT', visitDate, isBankHoliday, timeZone);
+    const rule = pickNightDutyPayRule(
+      rules,
+      'WAKING_NIGHT',
+      visitDate,
+      isBankHoliday,
+      window?.timeZone ?? 'UTC',
+      calendar,
+    );
     if (!rule) return null;
     const hourly = Number(rule.amount) * (minutes / 60);
     return { amount: Math.round(hourly * 100) / 100, label: 'WAKING_NIGHT' };
@@ -860,7 +882,7 @@ export function calculatePayableAmount(
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Planned visits longer than 1 hour always use hourly/banded (even if actual is short).
   if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -879,6 +901,8 @@ export function calculatePayableAmount(
       rules: bandRules,
       stackingPolicy: window.stackingPolicy ?? 'PRIORITY',
       timeZone,
+      specialDays: calendar?.specialDays,
+      fixedDates: calendar?.fixedDates,
       isBankHolidayFn:
         window.isBankHolidayFn ??
         ((d) => {
@@ -921,7 +945,7 @@ export function calculatePayableAmount(
   }
 
   if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -929,8 +953,8 @@ export function calculatePayableAmount(
 
   // When planned is long, pick an hourly rule even if actual minutes would match a fixed slot.
   const rule = forceHourlyFromPlan
-    ? pickBestRule(dayRules, visitDate, rateBasisMinutes!, isBankHoliday, timeZone)
-    : pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone);
+    ? pickBestRule(dayRules, visitDate, rateBasisMinutes!, isBankHoliday, timeZone, calendar)
+    : pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (
@@ -957,11 +981,13 @@ function pickNightDutyPayRule(
   visitDate: Date,
   isBankHoliday: boolean,
   timeZone: string = 'UTC',
+  calendar?: SpecialDayCalendar,
 ): PayCardRuleLike | null {
+  // The allowance of the local day the shift starts on (PC-19).
   const matches = rules.filter(
     (rule) =>
       rule.rateType === rateType &&
-      dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone),
+      dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone, calendar),
   );
   if (!matches.length) return null;
   const dayTypeRank = (dayType: string): number => {
@@ -1163,7 +1189,7 @@ export function calculateMileageAmount(
   visitDate: Date,
   miles: number,
   isBankHoliday = false,
-  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  /** The organisation's timezone: the rule of the local day applies (PC-19). */
   timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (miles <= 0) return null;
@@ -1182,7 +1208,7 @@ export function calculateTravelTimeAmount(
   visitDate: Date,
   travelMinutes: number,
   isBankHoliday = false,
-  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  /** The organisation's timezone: the rule of the local day applies (PC-19). */
   timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (travelMinutes <= 0) return null;
@@ -1201,7 +1227,7 @@ export function calculateWaitingTimeAmount(
   visitDate: Date,
   waitingMinutes: number,
   isBankHoliday = false,
-  /** Organisation timezone (OrganisationGeneralSettings.timezone) for the rule's day type. */
+  /** The organisation's timezone: the rule of the local day applies (PC-19). */
   timeZone: string = 'UTC',
 ): { amount: number; unitRate: number; ruleLabel: string | null } | null {
   if (waitingMinutes <= 0) return null;
@@ -1362,7 +1388,7 @@ export function buildPayRateBreakdown(
     currency?: string;
   },
   isBankHoliday = false,
-  window?: { start: Date; end: Date; stackingPolicy?: PayStackingPolicy; timeZone?: string },
+  window?: Parameters<typeof calculatePayableAmount>[4],
   nightDuty?: string | null,
   rateBasisMinutes?: number | null,
 ): RateBreakdown | null {

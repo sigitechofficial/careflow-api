@@ -942,11 +942,17 @@ model OrganisationGeneralSettings {
   id                                   String                     @id @default(uuid()) @db.Uuid
   reviewCarePlanAfterDays              Int                        @default(180)
   handoverReportLastHours              Int                        @default(12)
+  /// Incidents: Duty of Candour is flagged overdue after this many days without telling the person
+  /// in person (organisation policy — the law says "as soon as reasonably practicable"). Null = off.
+  incidentCandourOverdueDays           Int?
   archiveServiceUserAfterMonths        Int                        @default(3)
   timeDisplayFormat                    TimeDisplayFormat          @default(HH_MM)
   dateDisplayFormat                    DateDisplayFormat          @default(DD_MM_YYYY)
   /// IANA timezone for operational calendar days (schedules, ECM, "today").
   timezone                             String                     @default("Europe/London")
+  /// Carer pay when a holiday falls on a weekend: BOTH (the date and its substitute day, the
+  /// behaviour before this setting existed), ACTUAL_DAY or STATUTORY_DAY. Policy decision D-13.
+  holidayPremiumBasis                  String                     @default("BOTH")
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -1003,6 +1009,8 @@ model OrganisationGeneralSettings {
   domDownloadAllServiceUsers           Boolean                    @default(false)
   domFutureVisitsDays                  Int                        @default(14)
   domAutoExtendRotaEnabled             Boolean                    @default(true)
+  /// Visit cancellation policy: emergency hospital admission is never charged to the service user.
+  domCancellationHospitalExemption     Boolean                    @default(true)
   domRotaHorizonDays                   Int                        @default(28)
   domRotaHorizonMode                   String                     @default("FIXED_DAYS")
   domAutoExtendRotaRunHour             Int                        @default(12)
@@ -1100,6 +1108,7 @@ model Employee {
   reviews           EmployeeReview[]
   documents         EmployeeDocument[]
   nonCoreActivities EmployeeNonCoreActivity[]
+  specialVisits     SpecialVisit[]
   allocations       EmployeeAllocation[]
   workingPatterns   EmployeeWorkingPattern[]
   complianceRecords EmployeeCompliance[]
@@ -1116,6 +1125,7 @@ model Employee {
   liveInBlockedCarerLinks   ServiceUserLiveInBlockedCarer[]    @relation("LiveInBlockedEmployee")
 
   medicationAdministrations     MedicationAdministrationEvent[] @relation("MedAdministeredBy")
+  medicationAdministrationsWitnessed MedicationAdministrationEvent[] @relation("MedWitnessEmployee")
   medicationReviews             MedicationReview[]              @relation("MedReviewedBy")
   medicationStockRecords        MedicationStockRecord[]         @relation("MedStockRecordedBy")
   visitActionsCompleted         VisitAction[]                   @relation("VisitActionCompletedBy")
@@ -1743,6 +1753,33 @@ model EmployeeNonCoreActivity {
   @@schema("employees")
 }
 
+/// A "special visit": a block of a carer's contracted hours used for a specific
+/// purpose (client care or non-client time) to fill the gap between contracted
+/// and booked hours. Flexible free-text title/reason.
+model SpecialVisit {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  visitDate       DateTime @db.Date
+  durationMinutes Int
+  title           String
+  notes           String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([visitDate])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
 /// Kind of item issued to staff (drives grouping and filters on the Allocation tab).
 enum AllocationItemCategory {
   EQUIPMENT
@@ -2250,8 +2287,15 @@ model BankHoliday {
   id          String   @id @default(uuid()) @db.Uuid
   holidayDate DateTime @db.Date
   name        String
+  /// UK (England & Wales), SCOTLAND, NORTHERN_IRELAND, or ORGANISATION for the organisation's own special days.
   region      String   @default("UK")
   isActive    Boolean  @default(true)
+  /// A weekday given in place of a holiday that fell on a weekend.
+  isSubstitute      Boolean   @default(false)
+  /// For a substitute day: the date the holiday itself fell on.
+  substituteForDate DateTime? @db.Date
+  /// GOV_UK (official dataset), MANUAL, or LEGACY (recorded before the source was kept).
+  source      String   @default("MANUAL")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -2913,6 +2957,8 @@ model ServiceUser {
   maritalStatusId         String?   @db.Uuid
   statusId                String?   @db.Uuid
   careTypeId              String?   @db.Uuid
+  /// Standard vs Complex care classification (STANDARD | COMPLEX). Drives the SERVICE_TYPE charge-card default.
+  careLevel               String?
   fundingTypeId           String?   @db.Uuid
   riskLevelId             String?   @db.Uuid
   profilePhotoUrl         String?
@@ -2965,6 +3011,7 @@ model ServiceUser {
   photos                ServiceUserPhoto[]
   inventoryItems        ServiceUserInventoryItem[]
   allergies             ServiceUserAllergy[]
+  nfcTags               ServiceUserNfcTag[]
   medicalConditions     ServiceUserMedicalCondition[]
   reasonableAdjustments ServiceUserReasonableAdjustment[]
   medicalHistoryEvents ServiceUserMedicalHistoryEvent[]
@@ -3799,6 +3846,8 @@ model ServiceUserCarePlanPublishedVersion {
   publishedAt      DateTime  @default(now())
   publishedById    String?   @db.Uuid
   supersededAt     DateTime?
+  /// The incident "Care plan update" measure this version is the evidence for (incidents.IncidentAction).
+  incidentActionId String?   @db.Uuid
   createdAt        DateTime  @default(now())
 
   instance    ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -3806,6 +3855,7 @@ model ServiceUserCarePlanPublishedVersion {
 
   @@unique([instanceId, versionNumber])
   @@index([instanceId])
+  @@index([incidentActionId])
   @@schema("service_users")
 }
 
@@ -4024,6 +4074,60 @@ model BodyMapRecordTypeCatalog {
   @@index([parentId])
   @@index([isActive])
   @@index([initialAssessmentWoundType])
+  @@schema("service_users")
+}
+
+/// NFC tag fixed in a service user's home. Carers scan it at clock-in to prove
+/// they are at the address. `uid` is the chip's factory UID, normalised to
+/// upper-case hex with no separators (e.g. 04A23B1C5D8000).
+/// Only one ACTIVE, non-deleted row may hold a given uid (partial unique index in SQL).
+model ServiceUserNfcTag {
+  id              String    @id @default(uuid()) @db.Uuid
+  serviceUserId   String    @db.Uuid
+  uid             String    @db.VarChar(32)
+  label           String    @db.VarChar(100)
+  locationNote    String?   @db.VarChar(500)
+  /// ACTIVE | LOST | RETIRED
+  status          String    @default("ACTIVE") @db.VarChar(20)
+  statusReason    String?   @db.VarChar(500)
+  statusChangedAt DateTime?
+  lastScannedAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser             @relation(fields: [serviceUserId], references: [id])
+  scans       ServiceUserNfcTagScan[]
+
+  @@index([serviceUserId])
+  @@index([uid])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// One scan of a registered NFC tag at clock-in — the tag's scan history.
+/// Unknown UIDs (no tag row) are only recorded as ECM exceptions.
+model ServiceUserNfcTagScan {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tagId              String   @db.Uuid
+  scheduledJobId     String   @db.Uuid
+  /// Client whose visit it was (differs from the tag's client when WRONG_CLIENT).
+  visitServiceUserId String   @db.Uuid
+  employeeId         String   @db.Uuid
+  /// ACCEPTED | WRONG_CLIENT | INACTIVE
+  result             String   @db.VarChar(20)
+  /// CHECK_IN (server) | APP_REPORT (app caught it, possibly offline)
+  source             String   @db.VarChar(20)
+  scannedAt          DateTime
+  createdAt          DateTime @default(now())
+
+  tag ServiceUserNfcTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@index([tagId, scannedAt])
   @@schema("service_users")
 }
 
@@ -4967,6 +5071,16 @@ model VisitPlanSlotException {
   durationMinutes  Int?
   requiredCarers   Int?
   notes            String                     @default("") @db.Text
+  /// Who asked for the cancellation: SERVICE_USER | AGENCY | OTHER (SKIP rows recorded from "Changes for specific dates").
+  cancelledByParty       String?
+  cancelledByDescription String?
+  /// VisitCancellationReasonCode value (kept as text — enum lives in the scheduling schema).
+  reasonCode             String?
+  chargeDecision         String?
+  chargeDecisionNotes    String?
+  /// Carers chosen for an EXTRA visit (empty = slot's usual carers).
+  assignedEmployeeIds    String[]             @default([])
+  createdById            String?              @db.Uuid
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
 
@@ -5838,6 +5952,12 @@ model ServiceUserMedication {
   statusEndReason          MedicationStatusEndReason?
   statusEndedAt            DateTime?
   statusEndedById          String?                    @db.Uuid
+  /// PRN only, optional: minimum hours between two doses.
+  prnMinGapHours           Float?
+  /// PRN only, optional: most doses allowed in any 24 hours.
+  prnMaxDosesIn24Hours     Int?
+  /// PRN only, optional: most to give at one time (free text, e.g. "2 tablets").
+  prnMaxDosePerTime        String?                    @db.VarChar(100)
   isActive                 Boolean                    @default(true)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -5978,6 +6098,10 @@ model MedicationAdministrationEvent {
   witnessRelationCode     String?                        @db.VarChar(32)
   witnessRelationDetail   String?                        @db.VarChar(128)
   witnessNotes            String?                        @db.VarChar(2000)
+  /// Set when the witness is a co-carer on the visit (picked from its allocated carers).
+  witnessEmployeeId       String?                        @db.Uuid
+  /// Why no witness was present: SINGLE_CARER_VISIT | NO_ONE_ELSE_PRESENT | OTHER.
+  witnessAbsentReasonCode String?                        @db.VarChar(32)
   correctionReason        String?
   correctionNotes         String?
   medicationNameSnapshot  String?
@@ -5993,6 +6117,9 @@ model MedicationAdministrationEvent {
   isPrn                   Boolean                        @default(false)
   prnReason               String?
   prnOutcome              String?
+  /// PRN dose given inside the minimum gap or over the 24-hour maximum set on the medicine.
+  prnOverLimit            Boolean                        @default(false)
+  prnOverLimitDetail      String?                        @db.VarChar(300)
   isActive                Boolean                        @default(true)
   createdAt               DateTime                       @default(now())
   updatedAt               DateTime                       @updatedAt
@@ -6006,6 +6133,7 @@ model MedicationAdministrationEvent {
   schedule               MedicationSchedule?            @relation(fields: [medicationScheduleId], references: [id])
   round                  MedicationAdministrationRound? @relation(fields: [roundId], references: [id])
   administeredBy         Employee?                      @relation("MedAdministeredBy", fields: [administeredById], references: [id])
+  witnessEmployee        Employee?                      @relation("MedWitnessEmployee", fields: [witnessEmployeeId], references: [id], onDelete: SetNull)
   enteredBy              User?                          @relation("MedEventEnteredBy", fields: [enteredById], references: [id])
   createdBy              User?                          @relation("MedEventCreatedBy", fields: [createdById], references: [id])
   managerReviewedBy      User?                          @relation("MedEventManagerReviewedBy", fields: [managerReviewedById], references: [id])
@@ -7075,6 +7203,17 @@ model ScheduledJobCancellation {
   reinstatedAt          DateTime?
   reinstatedById        String?                     @db.Uuid
   reinstateNotes        String?
+  /// Who asked for the cancellation: SERVICE_USER | AGENCY | OTHER.
+  cancelledByParty       String?
+  cancelledByDescription String?
+  /// Where it was recorded: ROTA | VISIT_PLAN.
+  cancellationSource     String?
+  /// Hours between recording the cancellation and the visit's planned start.
+  noticeHours            Float?
+  /// What the organisation cancellation policy suggested at the time (never recalculated).
+  suggestedChargeDecision String?
+  suggestedChargePercent  Int?
+  policySnapshot          Json?
   createdAt             DateTime                    @default(now())
   updatedAt             DateTime                    @updatedAt
 
@@ -7241,6 +7380,73 @@ model VisitAttendanceEvent {
   @@index([occurredAt])
   @@index([outsideGeofence])
   @@index([isMockLocation])
+  @@schema("scheduling")
+}
+
+/// One carer's attendance verification on one visit job (R-16): which times are the record, where
+/// each came from, what the device and the server said, what the office entered, and whether a
+/// person still has to look at them. One row per job x carer, so carers of a double-up never write
+/// to the same record. `version` counts changes of evidence; an approval remembers the version it
+/// was given for (R-18).
+model VisitAttendanceVerification {
+  id               String    @id @default(uuid()) @db.Uuid
+  scheduledJobId   String    @db.Uuid
+  employeeId       String    @db.Uuid
+  jobAllocationId  String?   @db.Uuid
+  /// SERVER | CARER_REPORTED | OFFICE | NONE
+  startSource      String    @default("NONE")
+  endSource        String    @default("NONE")
+  needsReview      Boolean   @default(false)
+  /// Plain-language reasons for the reviewer (string[]).
+  reviewReasons    Json      @default("[]")
+  /// Server-observed: when the completion arrived, and the check-in the server recorded.
+  serverReceivedAt DateTime?
+  serverCheckInAt  DateTime?
+  /// Device-reported, kept exactly as sent.
+  reportedStart    DateTime?
+  reportedEnd      DateTime?
+  /// Office-entered times, with who entered the latest one, when and why.
+  officeStart      DateTime?
+  officeEnd        DateTime?
+  officeByUserId   String?   @db.Uuid
+  officeAt         DateTime?
+  officeReason     String?
+  /// Set when the office has verified this carer's times after completion.
+  verifiedAt       DateTime?
+  verifiedByUserId String?   @db.Uuid
+  version          Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  entries VisitAttendanceVerificationEntry[]
+
+  @@unique([scheduledJobId, employeeId])
+  @@index([scheduledJobId])
+  @@index([employeeId])
+  @@index([needsReview])
+  @@schema("scheduling")
+}
+
+/// Append-only history of a verification record: every completion, late clock-out and office
+/// entry, with what it contained. `clientEventId` is the identity the device gave the request, so
+/// the same offline event delivered twice is recorded once.
+model VisitAttendanceVerificationEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  verificationId  String   @db.Uuid
+  /// COMPLETION | LATE_CLOCK_OUT | OFFICE_TIME | LEGACY_IMPORT
+  kind            String
+  /// Version of the record after this entry.
+  version         Int
+  clientEventId   String?
+  actorEmployeeId String?  @db.Uuid
+  actorUserId     String?  @db.Uuid
+  payload         Json
+  createdAt       DateTime @default(now())
+
+  verification VisitAttendanceVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@unique([verificationId, clientEventId])
+  @@index([verificationId])
   @@schema("scheduling")
 }
 
@@ -7667,6 +7873,8 @@ enum EcmExceptionKind {
   CARER_SOS
   OUTSIDE_AREA_CHECK_IN_REQUEST
   UNABLE_TO_START
+  /// Carer scanned an NFC tag that is not an active tag of this visit's client.
+  NFC_TAG_MISMATCH
   OTHER
 
   @@schema("scheduling")
@@ -8493,6 +8701,38 @@ enum MileageVehicleType {
   @@schema("billing")
 }
 
+/// TR-09: mileage rates in force from a date, per vehicle type. Two separate things are recorded:
+/// what the organisation reimburses, and the amounts HMRC approves as tax-free for the same
+/// period. The approved amounts stay empty until a person has checked them against HMRC and says
+/// where; until then the tax treatment of mileage paid in that period is "not verified".
+model MileageRate {
+  id                     String             @id @default(uuid()) @db.Uuid
+  effectiveFrom          DateTime           @db.Date
+  vehicleType            MileageVehicleType
+  /// Organisation rate per mile up to the threshold, and above it. A pay card's own mileage rate
+  /// replaces rateFirst for carers on that card.
+  rateFirst              Decimal            @db.Decimal(8, 4)
+  rateAfter              Decimal            @db.Decimal(8, 4)
+  /// Business miles in a tax year after which rateAfter applies. Null: no threshold.
+  thresholdMiles         Int?
+  passengerRate          Decimal            @default(0) @db.Decimal(8, 4)
+  approvedRateFirst      Decimal?           @db.Decimal(8, 4)
+  approvedRateAfter      Decimal?           @db.Decimal(8, 4)
+  approvedThresholdMiles Int?
+  approvedPassengerRate  Decimal?           @db.Decimal(8, 4)
+  /// Where the approved amounts were checked (publication and date).
+  approvedSource         String?
+  approvedVerifiedAt     DateTime?
+  approvedVerifiedById   String?            @db.Uuid
+  label                  String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  createdById            String?            @db.Uuid
+
+  @@unique([effectiveFrom, vehicleType])
+  @@schema("billing")
+}
+
 enum BillingFrequency {
   WEEKLY
   FOUR_WEEKLY
@@ -8691,9 +8931,22 @@ model EmployeePayItem {
   amount                 Decimal   @db.Decimal(12, 2)
   reason                 String
   notes                  String?
-  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE
+  /// MANUAL | EMPLOYEE_HOLIDAY | EMPLOYEE_ABSENCE | VISIT_CORRECTION | REVERSAL | MILEAGE_CORRECTION
   sourceType             String    @default("MANUAL")
   sourceId               String?   @db.Uuid
+  /// Correction ledger (sourceType VISIT_CORRECTION): the locked pay line being corrected, the amount
+  /// settled so far and the corrected amount. `amount` is the difference, paid in the next run.
+  originalPayrollRunLineId String? @db.Uuid
+  originalAmount           Decimal? @db.Decimal(12, 2)
+  correctedAmount          Decimal? @db.Decimal(12, 2)
+  /// Reversal (sourceType REVERSAL): the pay item this one cancels out. One reversal per item.
+  reversesPayItemId        String? @unique @db.Uuid
+  /// Mileage correction (sourceType MILEAGE_CORRECTION): `quantity` is the difference in miles and
+  /// `amount` the difference in reimbursement. A reimbursement is not wages: these say how much of
+  /// the difference is within HMRC's approved amount and how much above it (NOT_VERIFIED: unknown).
+  taxFreeAmount            Decimal? @db.Decimal(12, 2)
+  taxableAmount            Decimal? @db.Decimal(12, 2)
+  taxTreatment             String?
   payCardId              String?   @db.Uuid
   payCardVersion         Int?
   /// PENDING_APPROVAL | APPROVED | REJECTED | CANCELLED
@@ -8928,6 +9181,11 @@ enum FinanceExceptionCode {
   FUNDING_SETUP_INCOMPLETE
   PO_EXPIRED
   PO_MISSING
+  /// A start or finish time reported by the carer app that the server could not corroborate.
+  /// Holds the visit for a person to approve; it does not refuse pay.
+  UNVERIFIED_TIMES
+  /// Attendance evidence changed after a person approved the visit, or after its pay was settled.
+  EVIDENCE_CHANGED
 
   @@schema("billing")
 }
@@ -9001,6 +9259,17 @@ model VisitReconciliation {
   chargeCardSource       String?
   approvedById           String?                   @db.Uuid
   approvedAt             DateTime?
+  /// Who or what approved (R-18): AUTO_VERIFIED | MANAGER_APPROVED | MANAGER_OVERRIDE.
+  /// Null on a row that is not approved, or was approved before this was recorded.
+  approvalSource         String?
+  /// The attendance evidence the approval was given for: start|finish|review flag
+  /// (see approval-evidence.util). Evidence that differs later withdraws an automatic approval
+  /// and sends a person's approval back for review.
+  approvedEvidence       String?
+  /// Set when new evidence undermined a person's approval, or reached a visit whose pay is
+  /// settled. Cleared by the next approval or by the office verifying the times.
+  evidenceChangedReason  String?
+  evidenceChangedAt      DateTime?
   approvalNotes          String?
   /**
    * Minutes actual exceeded planned (null when no overrun).
@@ -9023,6 +9292,10 @@ model VisitReconciliation {
   lockedAt               DateTime?
   lastEvaluatedAt        DateTime?
   includedInPayrollRunId String?                   @db.Uuid
+  /// Set when a UK payroll run closes with this visit as a provisional input (approved, but never
+  /// put through a visit pay run). Like includedInPayrollRunId it means "pay settled": the visit
+  /// cannot be paid again and its pay snapshot is frozen.
+  paidByUkPayrollRunId   String?                   @db.Uuid
   includedInInvoiceRunId String?                   @db.Uuid
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
@@ -9042,6 +9315,7 @@ model VisitReconciliation {
   @@index([plannedStartDateTime])
   @@index([overrunDecision])
   @@index([includedInPayrollRunId])
+  @@index([paidByUkPayrollRunId])
   @@index([includedInInvoiceRunId])
   @@schema("billing")
 }
@@ -9074,6 +9348,48 @@ model FinanceException {
 
   @@index([visitReconciliationId])
   @@index([code])
+  @@schema("billing")
+}
+
+/// A pay calculation that could not be completed (R-17). Kept until it succeeds on a retry or a
+/// person dismisses it, so wage-bearing work never drops out of sight. One row per subject
+/// (a reconciliation, or a visit / job whose reconciliation could not even be created); a repeat
+/// failure updates the row. Holds ids and a safe message only: no error text from the database.
+model PayEvaluationFailure {
+  id                    String    @id @default(uuid()) @db.Uuid
+  /// RECON:<reconciliation id> | VISIT:<scheduled visit id> | JOB:<scheduled job id>
+  subjectKey            String    @unique
+  /// EVALUATE | ENSURE_VISIT | ENSURE_JOB
+  operation             String
+  scheduledJobId        String?   @db.Uuid
+  scheduledVisitId      String?   @db.Uuid
+  visitReconciliationId String?   @db.Uuid
+  serviceUserId         String?   @db.Uuid
+  employeeId            String?   @db.Uuid
+  visitRef              String?
+  /// BUSINESS (the office can fix the data) | TECHNICAL (unexpected; logged for monitoring)
+  kind                  String
+  category              String
+  message               String
+  /// Error class and code, for support. Never the raw error text.
+  context               Json?
+  retryable             Boolean   @default(true)
+  /// OPEN | RESOLVED | DISMISSED
+  status                String    @default("OPEN")
+  occurrences           Int       @default(1)
+  firstOccurredAt       DateTime  @default(now())
+  lastOccurredAt        DateTime  @default(now())
+  resolvedAt            DateTime?
+  resolvedById          String?   @db.Uuid
+  /// SUCCEEDED_ON_RETRY | SUCCEEDED_LATER | DISMISSED
+  resolution            String?
+  /// Every retry, dismissal and re-opening: [{ at, action, byUserId, outcome, note }]
+  history               Json      @default("[]")
+  updatedAt             DateTime  @updatedAt
+
+  @@index([status])
+  @@index([employeeId])
+  @@index([serviceUserId])
   @@schema("billing")
 }
 
@@ -9112,6 +9428,7 @@ enum PayrollRunLineType {
   SICK_PAY
   BONUS
   LIVE_IN
+  GUARANTEED_HOURS
 
   @@schema("billing")
 }
@@ -9189,6 +9506,7 @@ model PayrollRun {
   createdById              String?          @db.Uuid
 
   lines                 PayrollRunLine[]
+  nmwAssessments        NmwPeriodAssessment[]
   lockedReconciliations VisitReconciliation[] @relation("ReconciliationPayrollRun")
 
   @@index([status])
@@ -9206,12 +9524,24 @@ model PayrollRunLine {
   /// Source record id (activity id, week key…) used to stop the same earning being paid twice.
   sourceRef             String?
   employeePayItemId     String?            @db.Uuid
+  /// Original-earning claim, e.g. VISIT:<reconciliationId>:VISIT_PAY. Unique across all runs, so one
+  /// payable source is an original earning in one run only. Null for derived lines (NMW top-up,
+  /// overtime premium, rolled-up holiday); corrections are separate pay items with their own claim.
+  claimKey              String?            @unique
   employeeId            String?            @db.Uuid
   lineType              PayrollRunLineType @default(VISIT_PAY)
   description           String
   minutes               Int?
+  /// Miles, for mileage lines (TR-09). The year-to-date total is counted from these.
+  quantity              Decimal?           @db.Decimal(10, 2)
   unitAmount            Decimal?           @db.Decimal(12, 4)
   amount                Decimal            @db.Decimal(12, 2)
+  /// Mileage lines (TR-13): how much of `amount` is within HMRC's approved amount, and how much is
+  /// above it and therefore taxable. Both empty when the treatment is NOT_VERIFIED.
+  taxFreeAmount         Decimal?           @db.Decimal(12, 2)
+  taxableAmount         Decimal?           @db.Decimal(12, 2)
+  /// TAX_FREE | PART_TAXABLE | NOT_VERIFIED. Null on lines that are not reimbursements.
+  taxTreatment          String?
   currency              String             @default("GBP")
   payCardId             String?            @db.Uuid
   visitRef              String?
@@ -9228,6 +9558,263 @@ model PayrollRunLine {
   @@index([payrollRunId])
   @@index([visitReconciliationId])
   @@index([employeeId])
+  @@schema("billing")
+}
+
+/// TR-01 / TR-04 / TR-05 / TR-06: a stretch of time before a visit, classified by a person.
+/// An approved interval replaces the estimate made from the gap between two visits. It is time,
+/// never distance: mileage stays on its own lines.
+model TravelTimeInterval {
+  id                        String    @id @default(uuid()) @db.Uuid
+  employeeId                String    @db.Uuid
+  /// The visit the journey or wait led to (stored UUID); the pay run of that visit pays it.
+  toVisitReconciliationId   String    @db.Uuid
+  fromVisitReconciliationId String?   @db.Uuid
+  startAt                   DateTime
+  endAt                     DateTime
+  minutes                   Int
+  /// BETWEEN_SERVICE_USERS | REQUIRED_WAITING | REST_BREAK | ORDINARY_COMMUTE | TRAINING_JOURNEY |
+  /// CANCELLED_VISIT_JOURNEY | OTHER
+  category                  String
+  /// How the times are known: ESTIMATED | RECORDED | VERIFIED.
+  evidence                  String
+  /// PENDING | APPROVED | REJECTED. Only an approved interval changes pay.
+  status                    String    @default("PENDING")
+  /// A training journey, a journey to a cancelled visit and "other" are paid only when this is set.
+  payable                   Boolean   @default(false)
+  note                      String?
+  createdById               String?   @db.Uuid
+  createdAt                 DateTime  @default(now())
+  decidedById               String?   @db.Uuid
+  decidedAt                 DateTime?
+  decisionNote              String?
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([toVisitReconciliationId, status])
+  @@index([employeeId, startAt])
+  @@schema("billing")
+}
+
+/// Q13: what a carer is paid when a visit does not go ahead as planned. This is the employer's
+/// policy: effective-dated and put into effect by a second person. Where no rule covers an event
+/// nothing is assumed, and the event waits for a person's decision.
+model VisitDisruptionPayRule {
+  id                 String    @id @default(uuid()) @db.Uuid
+  /// CLIENT_CANCELLED | LATE_CANCELLATION | CARER_ALREADY_TRAVELLING | NOBODY_HOME |
+  /// REPLACEMENT_WORKER | EMERGENCY_VISIT | SHORTENED_VISIT | ENDED_EARLY | ADDITIONAL_WAITING
+  eventType          String
+  /// Applies when the notice given was shorter than this many minutes. Empty: any notice.
+  noticeBelowMinutes Int?
+  /// NO_PAY | PERCENT_OF_SCHEDULED | FULL_SCHEDULED | FIXED_AMOUNT | HOURLY_FOR_AFFECTED_MINUTES
+  outcome            String
+  percent            Decimal?  @db.Decimal(5, 2)
+  fixedAmount        Decimal?  @db.Decimal(12, 2)
+  effectiveFrom      DateTime  @db.Date
+  effectiveTo        DateTime? @db.Date
+  /// DRAFT | ACTIVE | RETIRED
+  status             String    @default("DRAFT")
+  /// A rule entered to test the calculation. It is never the employer's policy.
+  isSynthetic        Boolean   @default(false)
+  note               String?
+  createdById        String?   @db.Uuid
+  createdAt          DateTime  @default(now())
+  approvedById       String?   @db.Uuid
+  approvedAt         DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  @@index([eventType, status, effectiveFrom])
+  @@schema("billing")
+}
+
+/// One event for one carer on one visit, and what was decided to pay for it. An approved decision
+/// with an amount is paid through a pay item, so it is claimed and paid once like any other.
+model VisitDisruptionPayDecision {
+  id                    String    @id @default(uuid()) @db.Uuid
+  employeeId            String    @db.Uuid
+  scheduledJobId        String?   @db.Uuid
+  visitReconciliationId String?   @db.Uuid
+  eventType             String
+  /// When the visit was due, or when the event happened.
+  eventAt               DateTime
+  noticeMinutes         Int?
+  scheduledMinutes      Int?
+  /// Minutes waited, or minutes the visit was cut short by.
+  affectedMinutes       Int?
+  hourlyRate            Decimal?  @db.Decimal(12, 4)
+  ruleId                String?   @db.Uuid
+  /// What the rule in force proposes, or NOT_DECIDED when no rule covers the event.
+  proposedOutcome       String
+  proposedAmount        Decimal?  @db.Decimal(12, 2)
+  amount                Decimal?  @db.Decimal(12, 2)
+  /// NEEDS_DECISION | PENDING_APPROVAL | APPROVED | REJECTED
+  status                String
+  reason                String
+  decisionNote          String?
+  /// The pay item that pays an approved amount (stored UUID).
+  payItemId             String?   @unique @db.Uuid
+  createdById           String?   @db.Uuid
+  createdAt             DateTime  @default(now())
+  decidedById           String?   @db.Uuid
+  decidedAt             DateTime?
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  updatedAt             DateTime  @updatedAt
+
+  @@index([employeeId, eventAt])
+  @@index([scheduledJobId])
+  @@index([status])
+  @@schema("billing")
+}
+
+/// Q37–Q39: minimum wage is checked over the worker's pay reference period, not over whatever
+/// dates a visit pay run happens to cover. One row per run, worker and pay reference period: this
+/// run's pay and hours for the period, and the position of the whole period so far.
+/// How the employer turns contracted weekly hours into basic hours for a year, for the minimum
+/// wage on salaried hours work. HMRC accepts a multiplier or formula, and the employer must be
+/// able to show how the hours were ascertained. Nothing is assumed: with no approved method in
+/// force, the annual hours are not assessed (POLICY_REVIEW_REQUIRED). A method is entered by one
+/// user and approved by another; rows are never edited, only withdrawn.
+model SalariedHoursAnnualisation {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Weeks of contracted hours in a year, for example 52, 52.14 or 52.18.
+  weeksPerYear  Decimal   @db.Decimal(6, 3)
+  /// Where the method is written down and why it is right for these contracts.
+  basis         String
+  effectiveFrom DateTime  @db.Date
+  /// DRAFT | APPROVED | WITHDRAWN
+  status        String    @default("DRAFT")
+  /// A test fixture, never an employer's policy.
+  isSynthetic   Boolean   @default(false)
+  createdById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  approvedById  String?   @db.Uuid
+  approvedAt    DateTime?
+  withdrawnById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  withdrawnNote String?
+
+  @@index([status, effectiveFrom])
+  @@schema("payroll")
+}
+
+model NmwPeriodAssessment {
+  id               String   @id @default(uuid()) @db.Uuid
+  /// The visit pay run that made the assessment (time work). Empty for a UK payroll run.
+  payrollRunId     String?  @db.Uuid
+  /// The UK payroll run that made the assessment (salaried hours work; stored UUID).
+  ukPayrollRunId   String?  @db.Uuid
+  employeeId       String   @db.Uuid
+  periodStart      DateTime @db.Date
+  periodEnd        DateTime @db.Date
+  /// PAYROLL_SCHEDULE: the period of the worker's UK payroll schedule.
+  /// PAY_RUN_PERIOD: no schedule period covers the date, so the run's own dates were used.
+  periodSource     String
+  /// TIME_WORK | SALARIED_HOURS (a salaried worker is not assessed as time work here)
+  workType         String
+  category         String
+  ageAtPeriodStart Int?
+  requiredHourly   Decimal  @db.Decimal(8, 4)
+  /// This run's part of the period.
+  eligiblePay      Decimal  @db.Decimal(12, 2)
+  minutes          Int
+  /// The whole period so far: this run and the locked runs before it.
+  periodPay        Decimal  @db.Decimal(12, 2)
+  periodMinutes    Int
+  topUpAlreadyPaid Decimal  @db.Decimal(12, 2)
+  /// The top-up line of this run for the period (negative when an earlier top-up is reduced).
+  topUpInRun       Decimal  @db.Decimal(12, 2)
+  /// Empty = not assessed: nothing is claimed about compliance.
+  compliant        Boolean?
+  /// Why the assessment needs a person: NO_PAYROLL_SCHEDULE | SALARIED_NOT_ASSESSED_HERE |
+  /// BASIC_HOURS_NOT_RECORDED | EXCESS_HOURS_NOT_VERIFIED | SHORTFALL
+  issue            String?
+  /// Pay still missing against the rate after any top-up of this run.
+  shortfall        Decimal? @db.Decimal(12, 2)
+  /// What the review found: EVIDENCE_SUPPORTS_COMPLIANCE (the issue no longer stops the run
+  /// closing) | SHORTFALL_CONFIRMED (pay must be topped up or corrected; a review cannot clear it).
+  reviewOutcome    String?
+  /// Salaried hours work, Sprint B4B: the calculation year the period falls in, the basic hours
+  /// of that year and how they were derived (contracted weekly hours x weeksPerYear of the
+  /// approved method), the hours worked in the year before this period, and the hours beyond
+  /// the basic hours that this assessment counted. Empty when the year could not be assessed.
+  calcYearStart      DateTime? @db.Date
+  calcYearEnd        DateTime? @db.Date
+  weeksPerYear       Decimal?  @db.Decimal(6, 3)
+  annualBasicMinutes Int?
+  yearMinutesBefore  Int?
+  excessMinutes      Int?
+  /// The person with the power to close payroll who reviewed the issue, and when.
+  resolvedById     String?  @db.Uuid
+  resolvedAt       DateTime?
+  resolutionNote   String?
+  note             String?
+  createdAt        DateTime @default(now())
+
+  payrollRun PayrollRun? @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  @@unique([ukPayrollRunId, employeeId, periodStart])
+  @@unique([payrollRunId, employeeId, periodStart])
+  @@index([employeeId, periodStart])
+  @@schema("billing")
+}
+
+/// D-23: the employer's own statement that it has an approved policy, with legal authority, for
+/// recovering overpaid wages. Until one is in force, a recovery can be reviewed and authorised but
+/// is still not deducted. Rows are history: the one in force is the latest that is not withdrawn.
+model WageRecoveryPolicy {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Where the policy and its authority are recorded (document, clause, date approved, by whom).
+  reference     String
+  recordedById  String?   @db.Uuid
+  recordedAt    DateTime  @default(now())
+  withdrawnById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  withdrawnNote String?
+
+  @@index([withdrawnAt])
+  @@schema("billing")
+}
+
+/// An overpayment of wages that a calculation found, and whether the employer has authorised
+/// taking it back. Finding an overpayment is arithmetic; recovering it from wages is a decision
+/// with legal conditions. Nothing is deducted until a person with the authority approves it and
+/// records the basis. A rejected recovery is written off for that amount.
+model WageRecovery {
+  id                String    @id @default(uuid()) @db.Uuid
+  employeeId        String    @db.Uuid
+  /// SALARY | GUARANTEED_HOURS | OVERTIME | NMW_TOP_UP
+  kind              String
+  /// The claim the deduction line would carry, e.g. GUARANTEE:<employee>:<week>:<n>. One
+  /// recovery per settlement of a week or period, so it cannot be proposed or applied twice.
+  subjectKey        String    @unique
+  /// The overpayment, as a positive amount.
+  amount            Decimal   @db.Decimal(12, 2)
+  /// What was originally paid for the week or period, and what is now due (amount = paid - due).
+  paidAmount        Decimal?  @db.Decimal(12, 2)
+  dueAmount         Decimal?  @db.Decimal(12, 2)
+  /// What the overpayment is and how it arose.
+  reason            String
+  /// The original payment: what was paid for the week or period, and what is now due.
+  originalReference String
+  /// PROPOSED | APPROVED | REJECTED | APPLIED | WITHDRAWN
+  status            String    @default("PROPOSED")
+  /// The contractual or legal authority for the deduction, recorded by the approver.
+  authorityBasis    String?
+  decisionNote      String?
+  /// The pay run (visit pay run or UK payroll run) whose calculation proposed it, and who ran it.
+  detectedInRunId   String?   @db.Uuid
+  detectedById      String?   @db.Uuid
+  decidedById       String?   @db.Uuid
+  decidedAt         DateTime?
+  /// Set when the run holding the deduction line is locked or closed.
+  appliedInRunId    String?   @db.Uuid
+  appliedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([detectedInRunId])
   @@schema("billing")
 }
 
@@ -9249,6 +9836,10 @@ model EmployeeSalaryDeduction {
   notes       String?
   /// Calendar month this deduction applies to (YYYY-MM, UTC).
   salaryMonth String
+  /// Set when the fine was decided on an incident (Outcome & close → Staff actions); it is then
+  /// changed or removed from the incident, not from the Salary tab.
+  incidentId            String? @db.Uuid
+  incidentStaffActionId String? @db.Uuid
   isActive    Boolean             @default(true)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -9257,6 +9848,7 @@ model EmployeeSalaryDeduction {
   updatedById String?             @db.Uuid
 
   @@index([employeeId, salaryMonth])
+  @@index([incidentStaffActionId])
   @@index([type])
   @@index([deletedAt])
   @@schema("billing")
@@ -9299,6 +9891,13 @@ model EmployeePayoutBatch {
   approvedAt     DateTime?
   paidById       String?                   @db.Uuid
   paidAt         DateTime?
+  /// Settlement evidence recorded when the batch is marked PAID (bank / provider reference, value date).
+  paymentReference   String?
+  settledOn          DateTime?             @db.Date
+  settlementEvidence String?
+  /// How the system knows the batch was paid: MANUAL_ENTRY (a person typed the reference) or
+  /// BANK_CONFIRMED (matched to a bank / provider report; no such interface exists yet).
+  settlementSource   String?
 
   lines        EmployeePayoutLine[]
   ukPayrollRun UkPayrollRun         @relation(fields: [ukPayrollRunId], references: [id], onDelete: Restrict)
@@ -9314,8 +9913,10 @@ model EmployeePayoutLine {
   id                     String                   @id @default(uuid()) @db.Uuid
   batchId                String                   @db.Uuid
   employeeId             String                   @db.Uuid
-  /// Snapshot of UK net pay outstanding at create time.
+  /// Total to pay the employee: net pay outstanding plus reimbursements outstanding at create time.
   amount                 Decimal                  @db.Decimal(12, 2)
+  /// TR-13: the part of `amount` that is reimbursement (mileage, expenses), not wages.
+  reimbursementAmount    Decimal                  @default(0) @db.Decimal(12, 2)
   /// Source UK run employee row (netPay snapshot origin).
   ukPayrollRunEmployeeId String                   @db.Uuid
   status                 EmployeePayoutLineStatus @default(PENDING)
@@ -9663,6 +10264,13 @@ model EmployeePayrollYtdLedger {
   employeeNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
   employerNiYtd   Decimal  @default(0) @db.Decimal(12, 2)
   netPayYtd       Decimal  @default(0) @db.Decimal(12, 2)
+  /// Gate C11: student and postgraduate loan deducted to date (closed runs).
+  studentLoanYtd      Decimal @default(0) @db.Decimal(12, 2)
+  postgraduateLoanYtd Decimal @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension to date (closed runs).
+  pensionEmployeeGrossYtd Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNetYtd   Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployerYtd      Decimal @default(0) @db.Decimal(12, 2)
   lastClosedRunId String?  @db.Uuid
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -9691,6 +10299,22 @@ model EmployeePayrollYtdContribution {
   employeeNi     Decimal   @db.Decimal(12, 2)
   employerNi     Decimal   @db.Decimal(12, 2)
   netPay         Decimal   @db.Decimal(12, 2)
+  /// Gate C10, for RTI: the NI category and method (AN for a director, null otherwise) this
+  /// contribution belongs to, with its NI-able earnings and band shares. YTD per category is the
+  /// sum of the contributions not reversed. Null figures: posted without NI data (legacy run).
+  niCategory        String?
+  directorNicMethod String?
+  niableEarnings    Decimal?  @db.Decimal(12, 2)
+  niEarningsAtLel   Decimal?  @db.Decimal(12, 2)
+  niEarningsLelToPt Decimal?  @db.Decimal(12, 2)
+  niEarningsPtToUel Decimal?  @db.Decimal(12, 2)
+  /// Gate C11: student and postgraduate loan deducted by this run.
+  studentLoan       Decimal   @default(0) @db.Decimal(12, 2)
+  postgraduateLoan  Decimal   @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension posted by this run.
+  pensionEmployeeGross Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNet   Decimal @default(0) @db.Decimal(12, 2)
+  pensionEmployer      Decimal @default(0) @db.Decimal(12, 2)
   isReversed     Boolean   @default(false)
   postedAt       DateTime  @default(now())
   reversedAt     DateTime?
@@ -9955,6 +10579,39 @@ model EmployeePayrollProfile {
   postgraduateLoan    Boolean                      @default(false)
   pensionOptedIn      Boolean                      @default(false)
   pensionSchemeRef    String?
+  /// Gate C16: workplace pension enrolment as confirmed by a person: ENROLLED or NOT_ENROLLED; null
+  /// means not recorded (tax and NI are then not calculated). NOT_ENROLLED is not an auto-enrolment
+  /// eligibility assessment.
+  pensionStatus              String?
+  pensionEnrolledFrom        DateTime? @db.Date
+  /// QUALIFYING_EARNINGS is the only basis calculated.
+  pensionContributionBasis   String?
+  /// RAS (relief at source) is the only method calculated; NET_PAY is refused.
+  pensionTaxRelief           String?
+  /// Gross employee and employer contribution rates of the approved scheme policy.
+  pensionEmployeeRatePercent Decimal?  @db.Decimal(5, 2)
+  pensionEmployerRatePercent Decimal?  @db.Decimal(5, 2)
+  pensionPolicyRef           String?
+  /// Loan/pension completion: the employee's student loan declaration (starter checklist or P45):
+  /// LOAN_DECLARED or NO_LOAN_CONFIRMED; null = not yet verified. With its source and date.
+  loanDeclarationStatus      String?
+  loanDeclarationSource      String?
+  loanDeclarationDate        DateTime? @db.Date
+  /// Automatic enrolment evidence: ordinarily works in the UK (null = not recorded), and a
+  /// recorded State Pension age date where it cannot be derived from the date of birth.
+  pensionUkWorker            Boolean?
+  statePensionAgeDate        DateTime? @db.Date
+  /// Q37–Q39: the day the apprenticeship began. The apprentice minimum wage rate applies under 19,
+  /// or in the first year of the apprenticeship; without this date it cannot be shown for 19+.
+  apprenticeshipStartDate DateTime? @db.Date
+  /// Gate C7: company director for NI, as confirmed by a person; null means not yet classified,
+  /// and tax and NI are then not calculated. Never inferred from a job title.
+  isDirector          Boolean?
+  /// Gate C7: the day the person was appointed a director.
+  directorAppointedOn DateTime?                    @db.Date
+  /// Gate C7: directors' NIC method for the FPS. AN: standard annual earnings period (AL is not
+  /// calculated by this version).
+  directorNicMethod   String?
   /// Selected UK deduction catalogue codes (2026/27) — configuration only until engines land.
   deductionElections  Json?
   bankSortCode        String?
@@ -9989,6 +10646,30 @@ model EmployeePayAgreement {
   annualSalary       Decimal?                   @db.Decimal(12, 2)
   contractedHours    Decimal?                   @db.Decimal(8, 2)
   hourlyRateOverride Decimal?                   @db.Decimal(12, 4)
+  /// ANNUAL | MONTHLY | WEEKLY: how the salary was entered. `annualSalary` is always the yearly figure.
+  salaryEntryPeriod     String?
+  salaryEntryAmount     Decimal? @db.Decimal(12, 2)
+  /// How a part period is paid: CALENDAR_DAYS_365_25 (also when empty: the earlier behaviour) |
+  /// EQUAL_PERIODS_CALENDAR_DAYS | EQUAL_PERIODS_WORKING_DAYS.
+  salaryProrationMethod String?
+  /// What the salary already pays for: ALL_VISIT_WORK | CONTRACTED_HOURS | NO_VISIT_WORK.
+  /// Empty = not decided: the salary is paid and the visit wages are held, never paid on top.
+  salaryCoverage        String?
+  /// Guaranteed hours (WM-07 / EL-01). Hours a week the employer guarantees.
+  guaranteedWeeklyHours    Decimal? @db.Decimal(6, 2)
+  /// PAY_SHORTFALL: hours short of the guarantee are paid as a top-up. Empty: recorded only, nothing is paid.
+  guaranteeTopUp           String?
+  /// What counts towards the guarantee: VISITS | VISITS_AND_TRAVEL.
+  guaranteeQualifyingTime  String?
+  /// A week with recorded absence: COUNT_PAID_LEAVE_HOURS | REDUCE_FOR_ABSENCE_DAYS. Empty: the
+  /// top-up of such a week is held for a person to decide.
+  guaranteeLeaveTreatment  String?
+  /// Second person who approved the agreement (required when it carries or replaces a salary).
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  /// When a person last put these pay terms into effect or ended them. A change made after a
+  /// period was paid is what produces a salary adjustment for that period.
+  termsChangedAt        DateTime?
   currency           String                     @default("GBP")
   notes              String?
   createdAt          DateTime                   @default(now())
@@ -10003,6 +10684,60 @@ model EmployeePayAgreement {
   @@index([employeeId, status])
   @@index([payCardId])
   @@index([deletedAt])
+  @@schema("payroll")
+}
+
+/// Q35: how one employee's holiday is earned and paid, from a date. Nothing here is assumed for
+/// anyone: an employee with no terms recorded has no entitlement worked out by the system.
+model EmployeeLeaveTerms {
+  id                   String    @id @default(uuid()) @db.Uuid
+  employeeId           String    @db.Uuid
+  /// REGULAR_HOURS | IRREGULAR_HOURS | PART_YEAR
+  workerCategory       String
+  /// First day of the leave year, as month and day (for example 4 and 1 for 1 April).
+  leaveYearStartMonth  Int
+  leaveYearStartDay    Int       @default(1)
+  /// Regular hours: the hours of a normal working week. Statutory leave is 5.6 of these weeks.
+  weeklyHours          Decimal?  @db.Decimal(6, 2)
+  /// Leave the contract gives beyond the statutory 5.6 weeks, in hours a year.
+  contractualExtraHours Decimal? @db.Decimal(8, 2)
+  /// How a day of holiday is paid: NORMAL_REMUNERATION_52_WEEKS | ROLLED_UP_12_07
+  payMethod            String
+  /// Hours of untaken leave that may be carried into the next leave year (empty: none).
+  carryOverMaxHours    Decimal?  @db.Decimal(8, 2)
+  effectiveFrom        DateTime  @db.Date
+  effectiveTo          DateTime? @db.Date
+  /// DRAFT | ACTIVE | SUPERSEDED
+  status               String    @default("DRAFT")
+  note                 String?
+  createdById          String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  approvedById         String?   @db.Uuid
+  approvedAt           DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  @@index([employeeId, effectiveFrom])
+  @@schema("payroll")
+}
+
+/// Leave movements of an employee in hours: what was taken, adjusted, carried over or paid on
+/// leaving. Accrual is worked out from the terms and the hours worked; it is not stored here.
+model EmployeeLeaveEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  /// TAKEN | ADJUSTMENT | CARRY_OVER | LEAVER_PAYMENT
+  entryType       String
+  /// STATUTORY | CONTRACTUAL
+  entitlementType String   @default("STATUTORY")
+  /// Hours. TAKEN and LEAVER_PAYMENT reduce the balance; ADJUSTMENT and CARRY_OVER are signed.
+  hours           Decimal  @db.Decimal(8, 2)
+  /// The day the leave was taken, or the day the movement applies to.
+  date            DateTime @db.Date
+  note            String?
+  createdById     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  @@index([employeeId, date])
   @@schema("payroll")
 }
 
@@ -10136,6 +10871,104 @@ model PayrollHmrcSubmissionEvent {
   @@schema("payroll")
 }
 
+/// Gate C13: an HMRC student or postgraduate loan start/stop notice (SL1, SL2, PGL1, PGL2) as
+/// recorded by payroll staff. It applies from effectivePayday: the first payday on which the
+/// employer could operate it (never before the notice was received). Recorded once per reference.
+model EmployeeLoanNotice {
+  id              String   @id @default(uuid()) @db.Uuid
+  employeeId      String   @db.Uuid
+  /// SL1, SL2, PGL1 or PGL2.
+  noticeType      String
+  /// SL1 only: 1, 2, 4 or 5.
+  studentLoanPlan String?
+  hmrcReference   String?
+  /// The start or stop date stated on the notice.
+  noticeDate      DateTime @db.Date
+  receivedOn      DateTime @db.Date
+  effectivePayday DateTime @db.Date
+  notes           String?
+  createdAt       DateTime @default(now())
+  createdById     String   @db.Uuid
+  /// Gate C15: "employeeId|noticeType|reference" while the notice is in force and has a reference;
+  /// null once voided, so a controlled replacement can carry the same reference.
+  activeReferenceKey String?   @unique
+  /// Gate C15: the local record was entered wrongly and is voided (it was not an HMRC instruction
+  /// to stop). The original values stay as they were.
+  voidedAt           DateTime?
+  voidedById         String?   @db.Uuid
+  voidReason         String?
+  voidEvidenceRef    String?
+  /// Gate C15: the notice recorded in its place, and on that notice, the one it replaces.
+  replacedById       String?   @db.Uuid
+  replacesId         String?   @db.Uuid
+
+  @@index([employeeId])
+  @@schema("payroll")
+}
+
+/// A maker/checker correction of a student loan, postgraduate loan or pension amount already in a
+/// CLOSED run. The closed run is never rewritten: once approved, the difference is applied in the
+/// next run of the same tax year. Only refunds and reversals (negative amounts) are applied here.
+model PayrollDeductionAdjustment {
+  id              String    @id @default(uuid()) @db.Uuid
+  employeeId      String    @db.Uuid
+  taxYearId       String    @db.Uuid
+  /// STUDENT_LOAN, POSTGRADUATE_LOAN, PENSION_EMPLOYEE (net deduction) or PENSION_EMPLOYER.
+  kind            String
+  sourceRunId     String    @db.Uuid
+  originalAmount  Decimal   @db.Decimal(12, 2)
+  correctedAmount Decimal   @db.Decimal(12, 2)
+  /// correctedAmount - originalAmount (negative: refund to the employee / reversal).
+  amount          Decimal   @db.Decimal(12, 2)
+  reason          String
+  evidenceRef     String
+  /// MANUAL_CORRECTION or PENSION_OPT_OUT.
+  origin          String
+  /// PROPOSED, APPROVED or REJECTED.
+  status          String    @default("PROPOSED")
+  proposedById    String    @db.Uuid
+  proposedAt      DateTime  @default(now())
+  reviewedById    String?   @db.Uuid
+  reviewedAt      DateTime?
+  reviewNote      String?
+  appliedRunId    String?   @db.Uuid
+  appliedAt       DateTime?
+  /// "employeeId|sourceRunId|kind" while not rejected: one live correction per amount.
+  activeKey       String?   @unique
+
+  @@index([employeeId])
+  @@index([appliedRunId])
+  @@schema("payroll")
+}
+
+/// Automatic enrolment duties of one worker: the latest assessment, the dates that follow from it,
+/// postponement, statutory notices, opt-in / joining requests, opt-out and re-enrolment. Each
+/// change is also kept in the audit log.
+model EmployeePensionAe {
+  id                       String    @id @default(uuid()) @db.Uuid
+  employeeId               String    @unique @db.Uuid
+  lastAssessedOn           DateTime? @db.Date
+  lastCategory             String?
+  lastExplanation          String?
+  lastRunId                String?   @db.Uuid
+  automaticEnrolmentDate   DateTime? @db.Date
+  enrolmentDeadline        DateTime? @db.Date
+  enrolmentNoticeSentOn    DateTime? @db.Date
+  postponementFrom         DateTime? @db.Date
+  postponementEndsOn       DateTime? @db.Date
+  postponementNoticeSentOn DateTime? @db.Date
+  optInRequestedOn         DateTime? @db.Date
+  joiningRequestedOn       DateTime? @db.Date
+  optOutReceivedOn         DateTime? @db.Date
+  optOutEvidenceRef        String?
+  ceasedOn                 DateTime? @db.Date
+  reEnrolmentDueOn         DateTime? @db.Date
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@schema("payroll")
+}
+
 model UkPayrollRunEmployee {
   id                    String    @id @default(uuid()) @db.Uuid
   runId                 String    @db.Uuid
@@ -10151,6 +10984,12 @@ model UkPayrollRunEmployee {
   nmwTopUp              Decimal   @default(0) @db.Decimal(12, 2)
   otherPay              Decimal   @default(0) @db.Decimal(12, 2)
   expenseTotal          Decimal   @default(0) @db.Decimal(12, 2)
+  /// TR-13: reimbursements to be paid to the employee with this run's net pay. Equal to
+  /// expenseTotal for runs calculated since reimbursements were paid through payouts; 0 on older
+  /// runs, whose expenses were recorded but never part of a payout.
+  reimbursementPayable  Decimal   @default(0) @db.Decimal(12, 2)
+  /// Part of expenseTotal whose tax treatment has not been verified (see MileageRate).
+  expenseNotVerified    Decimal   @default(0) @db.Decimal(12, 2)
   deductionTotal        Decimal   @default(0) @db.Decimal(12, 2)
   /// visit + salary + travel + nmw + other − deductions (expenses tracked separately).
   totalGross            Decimal   @default(0) @db.Decimal(12, 2)
@@ -10165,6 +11004,42 @@ model UkPayrollRunEmployee {
   netPay                Decimal   @default(0) @db.Decimal(12, 2)
   taxCodeApplied        String?
   niCategoryApplied     String?
+  /// Gate C7: AN when NI was worked out on a director's annual (or pro rata annual) earnings period.
+  directorNicMethodApplied String?
+  /// Gate C10, for RTI: this payment's NI-able earnings and its share of the earnings bands (at the
+  /// LEL, LEL to PT, PT to UEL) of its earnings period; a supplementary payment or a director's
+  /// later payment holds only the part not reported before. Null: not recorded (legacy).
+  niableEarnings        Decimal?  @db.Decimal(12, 2)
+  niEarningsAtLel       Decimal?  @db.Decimal(12, 2)
+  niEarningsLelToPt     Decimal?  @db.Decimal(12, 2)
+  niEarningsPtToUel     Decimal?  @db.Decimal(12, 2)
+  /// Gate C11: student loan plan applied (1, 2, 4, 5 or NONE) and whether a postgraduate loan
+  /// applied; null on rows calculated before C11. The deductions reduce net pay.
+  studentLoanPlanApplied    String?
+  studentLoanDeduction      Decimal   @default(0) @db.Decimal(12, 2)
+  postgraduateLoanApplied   Boolean?
+  postgraduateLoanDeduction Decimal   @default(0) @db.Decimal(12, 2)
+  /// Gate C16: workplace pension (relief at source). pensionApplied null on rows calculated before
+  /// C16; pensionablePay is the pay counted for qualifying earnings (no expenses). The employee
+  /// net deduction reduces net pay; the employer contribution does not.
+  pensionApplied            Boolean?
+  pensionablePay            Decimal   @default(0) @db.Decimal(12, 2)
+  pensionQualifyingEarnings Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployeeGross      Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployeeNet        Decimal   @default(0) @db.Decimal(12, 2)
+  pensionTaxRelief          Decimal   @default(0) @db.Decimal(12, 2)
+  pensionEmployer           Decimal   @default(0) @db.Decimal(12, 2)
+  /// Approved corrections of earlier closed runs applied in this run (negative = refund or
+  /// reversal). The employee ones change net pay; the employer one does not.
+  studentLoanAdjustment       Decimal  @default(0) @db.Decimal(12, 2)
+  postgraduateLoanAdjustment  Decimal  @default(0) @db.Decimal(12, 2)
+  pensionEmployeeAdjustment   Decimal  @default(0) @db.Decimal(12, 2)
+  pensionEmployerAdjustment   Decimal  @default(0) @db.Decimal(12, 2)
+  /// Pension scheme reference in force when this run was calculated.
+  pensionSchemeRefApplied     String?
+  /// Automatic enrolment assessment of this pay reference period.
+  aeCategory                  String?
+  aeExplanation               String?
   statutoryExplanation  String?
   statutoryCalculatedAt DateTime?
   createdAt             DateTime  @default(now())
@@ -10197,12 +11072,24 @@ model UkPayrollInputLine {
   amount                      Decimal                  @db.Decimal(12, 2)
   isExpense                   Boolean                  @default(false)
   isProvisional               Boolean                  @default(false)
+  /// Claim on the earning this line brings into UK payroll, unique across all runs:
+  /// LINE:<visit pay line id>, SALARY:<employee id>:<period id>, DEDUCTION:<deduction id>:<period id>.
+  /// Cleared (with releasedAt set) when the run is cancelled, so a replacement run can collect the
+  /// earning; the line itself stays as the snapshot of the cancelled run. Null for provisional
+  /// visits, which are claimed on the visit when the run closes (paidByUkPayrollRunId).
+  claimKey                    String?                  @unique
+  releasedAt                  DateTime?
+  /// Value of the source earning that this line does not pay, and why:
+  /// COVERED_BY_SALARY (the salary already pays for the work; the earning is settled by this run) |
+  /// SALARY_COVERAGE_NOT_DECIDED (held: not paid and not claimed, a later run can still pay it).
+  unpaidAmount                Decimal?                 @db.Decimal(12, 2)
+  unpaidReason                String?
   createdAt                   DateTime                 @default(now())
 
   run         UkPayrollRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
   runEmployee UkPayrollRunEmployee @relation(fields: [runEmployeeId], references: [id], onDelete: Cascade)
 
-  @@unique([sourcePayrollRunLineId])
+  @@index([sourcePayrollRunLineId])
   @@index([runId])
   @@index([runEmployeeId])
   @@index([employeeId])
@@ -11369,6 +12256,13 @@ model Incident {
   injuryDetails            String?  @db.Text
   /// Carer-supplied free-text describing other people involved.
   peopleInvolved           String?  @db.Text
+  /// Carer-supplied free-text about witnesses, kept exactly as written (the office records
+  /// structured IncidentWitness rows from it).
+  witnessDetails           String?  @db.Text
+  /// Carer-app reports made outside a visit: the app's entry id (edits / retries find the row)
+  /// and the last write key applied (a retry of the same save is a replay).
+  appClientEntryId         String?  @unique
+  appLastWriteKey          String?
   /// Hospital outcome at raise — null means "Not known" (e.g. reported by phone).
   ambulanceAttended        Boolean?
   takenToAe                Boolean?
@@ -11421,6 +12315,8 @@ model Incident {
   outcome         IncidentOutcome?
   actions         IncidentAction[]
   carerSuspensions IncidentCarerSuspension[]
+  staffActions     IncidentStaffAction[]
+  candourRecords   IncidentCandour[]
   externalBodies        IncidentExternalBody[]
   courseRecommendations IncidentCarerCourseRecommendation[]
   injuries        IncidentInjury[]
@@ -11498,6 +12394,7 @@ enum IncidentClarificationField {
   IMMEDIATE_ACTIONS
   PEOPLE_INVOLVED
   EMERGENCY_SERVICES
+  WITNESS_DETAILS
 
   @@schema("incidents")
 }
@@ -11725,6 +12622,132 @@ model IncidentCarerSuspension {
 
   /// A carer can be suspended again after a lift (one open suspension at a time, checked in code).
   @@index([incidentId, employeeId])
+  @@index([incidentId])
+  @@index([employeeId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+/// Duty of Candour (Regulation 20, SI 2014/2936) for one affected service user on an incident:
+/// the decision (with the health professional's opinion), then told in person, written follow-up
+/// and results shared — or, under Reg 20(5), the attempts made when the person can't be reached or
+/// declines. Rules: incident-candour.util.ts.
+model IncidentCandour {
+  id            String @id @default(uuid()) @db.Uuid
+  incidentId    String @db.Uuid
+  serviceUserId String @db.Uuid
+
+  /// YES / NO / NOT_KNOWN / NOT_APPLICABLE
+  decision       String    @db.VarChar(20)
+  decisionReason String?   @db.Text
+  /// Regulation 20(9) harms: DEATH, IMPAIRMENT_28_DAYS, BODY_STRUCTURE_CHANGE, PROLONGED_PAIN,
+  /// PROLONGED_PSYCH_HARM, SHORTENED_LIFE, TREATMENT_TO_PREVENT
+  harmTypes      String[]  @default([])
+  /// "In the reasonable opinion of a health care professional" (may be external: GP, paramedic).
+  healthProfessionalName       String?  @db.VarChar(200)
+  healthProfessionalRole       String?  @db.VarChar(120)
+  healthProfessionalEmployeeId String?  @db.Uuid
+  decidedById    String?   @db.Uuid
+  decidedAt      DateTime?
+  /// When the duty started counting (report date, or the day it changed to Yes from No).
+  dutyStartedAt  DateTime?
+
+  /// Step 1 — told in person (Reg 20(2)–(3)).
+  toldOn             DateTime? @db.Date
+  toldByEmployeeId   String?   @db.Uuid
+  /// SERVICE_USER / REPRESENTATIVE
+  toldPersonKind     String?   @db.VarChar(20)
+  toldPersonName     String?   @db.VarChar(200)
+  toldRelationship   String?   @db.VarChar(120)
+  factsExplained     Boolean   @default(false)
+  enquiriesExplained Boolean   @default(false)
+  apologyGiven       Boolean   @default(false)
+  supportOffered     String?   @db.Text
+
+  /// Step 2 — written follow-up (Reg 20(4), copy kept under 20(6)).
+  writtenSentOn         DateTime? @db.Date
+  writtenByEmployeeId   String?   @db.Uuid
+  /// POST / EMAIL / HANDED
+  writtenMethod         String?   @db.VarChar(20)
+  writtenAttachmentId   String?   @db.Uuid
+
+  /// Step 3 — results of the enquiries shared in writing, or no further enquiries (with reason).
+  resultsSharedOn           DateTime? @db.Date
+  resultsMethod             String?   @db.VarChar(20)
+  resultsAttachmentId       String?   @db.Uuid
+  noFurtherEnquiriesReason  String?   @db.Text
+
+  /// Reg 20(5): the person can't be contacted or declines to speak — attempts are recorded.
+  unableToNotify Boolean @default(false)
+  /// DECLINED / NOT_CONTACTABLE / NO_REPRESENTATIVE
+  unableReason   String? @db.VarChar(30)
+  unableNote     String? @db.Text
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedAt   DateTime?
+
+  incident Incident                 @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  attempts IncidentCandourAttempt[]
+
+  @@unique([incidentId, serviceUserId])
+  @@index([incidentId])
+  @@index([decision])
+  @@schema("incidents")
+}
+
+/// A contact attempt for Duty of Candour (needed when the person can't be reached or declines).
+model IncidentCandourAttempt {
+  id                String   @id @default(uuid()) @db.Uuid
+  candourId         String   @db.Uuid
+  attemptedOn       DateTime @db.Date
+  /// PHONE / VISIT / LETTER / EMAIL / OTHER
+  method            String   @db.VarChar(20)
+  byEmployeeId      String?  @db.Uuid
+  outcome           String   @db.Text
+  createdAt         DateTime @default(now())
+  createdById       String?  @db.Uuid
+
+  candour IncidentCandour @relation(fields: [candourId], references: [id], onDelete: Cascade)
+
+  @@index([candourId])
+  @@schema("incidents")
+}
+
+/// What was decided for a staff member at Outcome & close: no action, a warning, a fine, dismissal
+/// or a referral to an HR process. A FINE also creates the salary deduction
+/// (billing.EmployeeSalaryDeduction.incidentStaffActionId), kept in step with this row.
+model IncidentStaffAction {
+  id         String @id @default(uuid()) @db.Uuid
+  incidentId String @db.Uuid
+  employeeId String @db.Uuid
+  /// NO_ACTION / INFORMAL_DISCUSSION / VERBAL_WARNING / WRITTEN_WARNING / FINAL_WRITTEN_WARNING /
+  /// FINE / DISMISSAL / HR_PROCESS (incident-staff-action.util.ts)
+  actionType String @db.VarChar(40)
+  reason     String @db.Text
+  /// The day the staff member was told of the decision (null = not told yet).
+  staffInformedOn DateTime? @db.Date
+
+  /// FINE only: amount in GBP and the salary month (YYYY-MM) it is deducted from.
+  fineAmount      Decimal? @db.Decimal(12, 2)
+  fineSalaryMonth String?  @db.VarChar(7)
+  /// FINE only: the manager confirmed the contract (or the staff member's written consent) allows
+  /// the deduction (Employment Rights Act 1996 s13).
+  deductionAllowedConfirmed Boolean @default(false)
+  salaryDeductionId         String? @db.Uuid
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  String?   @db.Uuid
+  updatedById  String?   @db.Uuid
+  deletedAt    DateTime?
+  deletedById  String?   @db.Uuid
+  deleteReason String?   @db.Text
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
   @@index([incidentId])
   @@index([employeeId])
   @@index([deletedAt])

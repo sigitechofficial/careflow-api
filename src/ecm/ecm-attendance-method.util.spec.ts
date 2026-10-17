@@ -1,4 +1,5 @@
 import {
+  attendanceEventMethodLabel,
   hasElectronicAttendanceEvidence,
   hasManualOfficeAttendanceEvidence,
   isElectronicAttendanceMethod,
@@ -64,5 +65,22 @@ describe('ecm-attendance-method.util', () => {
         attendanceEvents: [],
       }),
     ).toBe(true);
+  });
+});
+
+describe('attendanceEventMethodLabel', () => {
+  it('labels NFC check-ins with the tag name', () => {
+    expect(
+      attendanceEventMethodLabel({ verificationMethod: 'NFC', appCheckInMethod: 'NFC', nfcTagLabel: 'Main tag' }),
+    ).toBe('NFC tag · Main tag');
+    expect(attendanceEventMethodLabel({ verificationMethod: 'NFC' })).toBe('NFC tag');
+  });
+
+  it('uses the carer-app method because Manual is stored as MOBILE_GPS', () => {
+    expect(
+      attendanceEventMethodLabel({ verificationMethod: 'MOBILE_GPS', appCheckInMethod: 'MANUAL' }),
+    ).toBe('Manual (carer)');
+    expect(attendanceEventMethodLabel({ verificationMethod: 'MOBILE_GPS' })).toBe('GPS');
+    expect(attendanceEventMethodLabel({ verificationMethod: 'MANUAL_OFFICE' })).toBe('Office (manual)');
   });
 });

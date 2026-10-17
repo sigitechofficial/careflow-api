@@ -102,12 +102,16 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   handleDisconnect(client: Socket) {
     const userId = client.data?.userId as string | undefined;
     if (userId) {
-      void this.auditLogs.logAudit({
-        userId,
-        module: AuditModule.NOTIFICATION,
-        action: AuditAction.NOTIFICATION_SOCKET_DISCONNECTED,
-        metadata: { socketId: client.id },
-      });
+      // There is no request to answer here. A failed write (for example the user was deleted while
+      // connected) is logged by the audit service; left unhandled it would stop the whole API.
+      this.auditLogs
+        .logAudit({
+          userId,
+          module: AuditModule.NOTIFICATION,
+          action: AuditAction.NOTIFICATION_SOCKET_DISCONNECTED,
+          metadata: { socketId: client.id },
+        })
+        .catch(() => undefined);
     }
   }
 

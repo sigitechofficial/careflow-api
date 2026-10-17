@@ -1,8 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -16,12 +18,14 @@ import {
 
 @ApiTags('Billing — Payroll runs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('billing/payroll-runs')
 export class PayrollRunsController {
   constructor(private readonly service: PayrollRunsService) {}
 
   @Get('summary')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.payroll_runs.read')
   @ApiOperation({ summary: 'Payroll run draft summary for dashboard' })
   summary(@Query('locationId') locationId?: string) {
@@ -29,6 +33,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee-salaries')
+  @PayrollScope({ kind: 'branchList' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'Organisation employee salary overview for a period' })
   employeeSalaries(@Query() query: EmployeeEarningsQueryDto) {
@@ -36,6 +41,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee/:employeeId/earnings')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'Employee earnings / monthly salary summary' })
   employeeEarnings(
@@ -46,6 +52,7 @@ export class PayrollRunsController {
   }
 
   @Get('employee/:employeeId/salary-deductions')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.read', 'employees.read', 'employees.update')
   @ApiOperation({ summary: 'List fines and penalties for an employee' })
   listDeductions(
@@ -56,6 +63,7 @@ export class PayrollRunsController {
   }
 
   @Post('employee/:employeeId/salary-deductions')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.manage', 'employees.update')
   @ApiOperation({ summary: 'Add a fine or penalty to an employee monthly salary' })
   createDeduction(
@@ -67,6 +75,7 @@ export class PayrollRunsController {
   }
 
   @Delete('employee/:employeeId/salary-deductions/:deductionId')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @AnyPermission('billing.payroll_runs.manage', 'employees.update')
   @ApiOperation({ summary: 'Remove a fine or penalty from employee salary' })
   deleteDeduction(
@@ -78,20 +87,26 @@ export class PayrollRunsController {
   }
 
   @Post('employee/:employeeId/reset-earnings')
-  @AnyPermission(
-    'billing.payroll_runs.manage',
-    'billing.employee_payouts.manage',
-    'employees.update',
-  )
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Reset employee earnings display to £0: clear payouts, fines, ready visit payable amounts, and remove from UK payroll runs. Test/ops helper.',
+      'Test reset (disabled in production): clear an employee’s payouts, fines, unpaid visit amounts and UK payroll run rows.',
   })
   resetEarnings(
     @CurrentUser() user: RequestUser,
     @Param('employeeId') employeeId: string,
+    @Req() req: Request,
   ) {
-    return this.service.resetEmployeeEarnings(user.id, employeeId);
+    return this.service.resetEmployeeEarnings(user.id, employeeId, getRequestAuditMeta(req));
+  }
+
+  @Get('held-earnings')
+  @Permissions('billing.payroll_runs.read')
+  @ApiOperation({
+    summary: 'Earnings a pay run could not work out, and what has happened to each since (R-22, R-27)',
+  })
+  heldEarnings() {
+    return this.service.listHeldEarnings();
   }
 
   @Get()
@@ -118,22 +133,31 @@ export class PayrollRunsController {
   @Post(':id/calculate')
   @Permissions('billing.payroll_runs.manage')
   @ApiOperation({ summary: 'Calculate payroll lines from approved visits' })
-  calculate(@Param('id') id: string) {
-    return this.service.calculate(id);
+  calculate(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.calculate(id, user.id, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')
-  @Permissions('billing.payroll_runs.manage')
-  @ApiOperation({ summary: 'Approve payroll run for locking' })
-  approve(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.approve(user.id, id);
+  @Permissions('billing.payroll_runs.approve')
+  @ApiOperation({
+    summary: 'Approve payroll run for locking (a different user from the one who created the run)',
+  })
+  approve(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.approve(user.id, id, getRequestAuditMeta(req));
   }
 
   @Post(':id/lock')
-  @Permissions('billing.payroll_runs.manage')
+  @Permissions('billing.payroll_runs.approve')
   @ApiOperation({ summary: 'Lock payroll run and mark visits as pay-processed' })
-  lock(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    return this.service.lock(user.id, id);
+  lock(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.lock(user.id, id, getRequestAuditMeta(req));
+  }
+
+  @Delete(':id')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({ summary: 'Discard a payroll run that has not been locked (releases its visits)' })
+  discard(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.discard(user.id, id, getRequestAuditMeta(req));
   }
 
   @Get(':id/export')
@@ -152,8 +176,13 @@ export class PayrollRunsController {
   @Permissions('billing.payroll_runs.manage')
   @ApiOperation({ summary: 'Download payroll CSV and mark run as exported' })
   @ApiProduces('text/csv')
-  async export(@Param('id') id: string, @Res() res: Response) {
-    const { csv, filename } = await this.service.exportAndMark(id);
+  async export(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.service.exportAndMark(id, user.id, getRequestAuditMeta(req));
     res
       .type('text/csv; charset=utf-8')
       .setHeader('Content-Disposition', `attachment; filename="${filename}"`)

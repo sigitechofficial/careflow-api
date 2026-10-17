@@ -6,9 +6,12 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import {
+  CorrectLoanNoticeDto,
   CreateEmployeePayAgreementDto,
+  RecordLoanNoticeDto,
   UpdateEmployeePayAgreementDto,
   UpsertEmployeePayrollProfileDto,
 } from './dto/payroll.dto';
@@ -16,12 +19,13 @@ import { PayrollEmployeesService } from './payroll-employees.service';
 
 @ApiTags('UK Payroll — Employees')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
 @Controller('payroll')
 export class PayrollEmployeesController {
   constructor(private readonly service: PayrollEmployeesService) {}
 
   @Get('employees')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'List employees with payroll setup status' })
   list(@Query('locationId') locationId?: string) {
@@ -29,6 +33,7 @@ export class PayrollEmployeesController {
   }
 
   @Get('employees/:employeeId/ytd')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({
     summary: 'Get employee year-to-date pay / tax / NI for a tax year (defaults to current)',
@@ -41,6 +46,7 @@ export class PayrollEmployeesController {
   }
 
   @Get('employees/:employeeId/profile')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'Get employee payroll profile' })
   getProfile(@Param('employeeId') employeeId: string) {
@@ -48,6 +54,7 @@ export class PayrollEmployeesController {
   }
 
   @Put('employees/:employeeId/profile')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Create or update employee payroll profile (configuration only)' })
   upsertProfile(
@@ -59,7 +66,43 @@ export class PayrollEmployeesController {
     return this.service.upsertProfile(user.id, employeeId, dto, getRequestAuditMeta(req));
   }
 
+  @Get('employees/:employeeId/loan-notices')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.read')
+  @ApiOperation({ summary: 'List HMRC student / postgraduate loan notices (SL1, SL2, PGL1, PGL2)' })
+  listLoanNotices(@Param('employeeId') employeeId: string) {
+    return this.service.listLoanNotices(employeeId);
+  }
+
+  @Post('employees/:employeeId/loan-notices')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.manage')
+  @ApiOperation({ summary: 'Record an HMRC student / postgraduate loan start or stop notice' })
+  recordLoanNotice(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: RecordLoanNoticeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordLoanNotice(user.id, employeeId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('employees/:employeeId/loan-notices/:noticeId/correction')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
+  @Permissions('payroll.employees.manage')
+  @ApiOperation({ summary: 'Correct a loan notice recorded in error (voids the local record; optional replacement)' })
+  correctLoanNotice(
+    @CurrentUser() user: RequestUser,
+    @Param('employeeId') employeeId: string,
+    @Param('noticeId') noticeId: string,
+    @Body() dto: CorrectLoanNoticeDto,
+    @Req() req: Request,
+  ) {
+    return this.service.correctLoanNotice(user.id, employeeId, noticeId, dto, getRequestAuditMeta(req));
+  }
+
   @Get('employees/:employeeId/pay-agreements')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.read')
   @ApiOperation({ summary: 'List effective-dated pay agreements' })
   listAgreements(@Param('employeeId') employeeId: string) {
@@ -67,6 +110,7 @@ export class PayrollEmployeesController {
   }
 
   @Post('employees/:employeeId/pay-agreements')
+  @PayrollScope({ kind: 'employee', source: 'params', key: 'employeeId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Create an effective-dated pay agreement' })
   createAgreement(
@@ -79,6 +123,7 @@ export class PayrollEmployeesController {
   }
 
   @Patch('pay-agreements/:agreementId')
+  @PayrollScope({ kind: 'payAgreement', param: 'agreementId' })
   @Permissions('payroll.employees.manage')
   @ApiOperation({ summary: 'Update a pay agreement' })
   updateAgreement(
@@ -88,5 +133,19 @@ export class PayrollEmployeesController {
     @Req() req: Request,
   ) {
     return this.service.updateAgreement(user.id, agreementId, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('pay-agreements/:agreementId/approve')
+  @PayrollScope({ kind: 'payAgreement', param: 'agreementId' })
+  @Permissions('payroll.pay_agreements.approve')
+  @ApiOperation({
+    summary: 'Second person puts a pay agreement into effect (required when it carries or replaces a salary)',
+  })
+  approveAgreement(
+    @CurrentUser() user: RequestUser,
+    @Param('agreementId') agreementId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.approveAgreement(user.id, agreementId, getRequestAuditMeta(req));
   }
 }

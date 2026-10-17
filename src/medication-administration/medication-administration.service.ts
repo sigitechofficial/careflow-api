@@ -128,7 +128,9 @@ export class MedicationAdministrationService {
     }
 
     if (query.needsReview) {
-      where.status = { in: REVIEWABLE_STATUSES };
+      // Missed/refused-type outcomes, plus PRN doses given over their limits.
+      delete where.status;
+      where.OR = [{ status: { in: REVIEWABLE_STATUSES } }, { prnOverLimit: true }];
       where.managerReviewedAt = null;
     }
 
@@ -372,7 +374,7 @@ export class MedicationAdministrationService {
     });
     if (!existing) throw new NotFoundException('Medication administration event not found');
 
-    if (!REVIEWABLE_STATUSES.includes(existing.status)) {
+    if (!REVIEWABLE_STATUSES.includes(existing.status) && !existing.prnOverLimit) {
       throw new BadRequestException('This administration status does not require manager review');
     }
     if (existing.managerReviewedAt) {

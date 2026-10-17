@@ -4,6 +4,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { Permissions, AnyPermission } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -15,6 +16,8 @@ import {
   DecideVisitOverrunDto,
   RecalculateVisitReconciliationsDto,
   ClearVisitReconciliationsDto,
+  DismissPayEvaluationFailureDto,
+  PayEvaluationFailuresQueryDto,
   RejectVisitReconciliationDto,
   SetVisitPayableAmountDto,
   SetVisitBillableAmountDto,
@@ -24,12 +27,14 @@ import {
 
 @ApiTags('Billing — Visit reconciliation')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('billing/visit-reconciliations')
 export class VisitReconciliationsController {
   constructor(private readonly service: VisitReconciliationsService) {}
 
   @Get('summary')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.visit_reconciliations.read')
   @ApiOperation({ summary: 'Visit reconciliation summary for billing dashboard' })
   summary(@Query('locationId') locationId?: string) {
@@ -37,14 +42,49 @@ export class VisitReconciliationsController {
   }
 
   @Get('exception-queue')
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.visit_reconciliations.read')
-  @ApiOperation({ summary: 'Recent unresolved finance exceptions' })
-  exceptionQueue(@Query('limit') limit?: string) {
+  @ApiOperation({ summary: 'Recent unresolved finance exceptions (optionally for one branch)' })
+  exceptionQueue(@Query('limit') limit?: string, @Query('locationId') locationId?: string) {
     const parsed = limit ? Math.min(Number(limit) || 10, 50) : 10;
-    return this.service.getExceptionQueue(parsed);
+    return this.service.getExceptionQueue(parsed, locationId);
+  }
+
+  @Get('evaluation-failures')
+  @PayrollScope({ kind: 'branchList' })
+  @Permissions('billing.visit_reconciliations.read')
+  @ApiOperation({ summary: 'Pay calculations that failed and need attention (R-17)' })
+  evaluationFailures(@Query() query: PayEvaluationFailuresQueryDto) {
+    return this.service.listEvaluationFailures(query);
+  }
+
+  @Post('evaluation-failures/:failureId/retry')
+  @PayrollScope({ kind: 'evaluationFailure', param: 'failureId' })
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({ summary: 'Run a failed pay calculation again' })
+  retryEvaluationFailure(
+    @CurrentUser() user: RequestUser,
+    @Param('failureId') failureId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.retryEvaluationFailure(user.id, failureId, getRequestAuditMeta(req));
+  }
+
+  @Post('evaluation-failures/:failureId/dismiss')
+  @PayrollScope({ kind: 'evaluationFailure', param: 'failureId' })
+  @Permissions('billing.visit_reconciliations.manage')
+  @ApiOperation({ summary: 'Close a failed pay calculation that is no longer needed, with a reason' })
+  dismissEvaluationFailure(
+    @CurrentUser() user: RequestUser,
+    @Param('failureId') failureId: string,
+    @Body() dto: DismissPayEvaluationFailureDto,
+    @Req() req: Request,
+  ) {
+    return this.service.dismissEvaluationFailure(user.id, failureId, dto.reason, getRequestAuditMeta(req));
   }
 
   @Get()
+  @PayrollScope({ kind: 'branchList' })
   @Permissions('billing.visit_reconciliations.read')
   @ApiOperation({ summary: 'List visit reconciliations' })
   list(@Query() query: VisitReconciliationsQueryDto) {
@@ -52,6 +92,7 @@ export class VisitReconciliationsController {
   }
 
   @Get(':id')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.read')
   @ApiOperation({ summary: 'Get visit reconciliation by id' })
   getById(@Param('id') id: string) {
@@ -80,13 +121,17 @@ export class VisitReconciliationsController {
   }
 
   @Post('clear-all')
-  @Permissions('billing.visit_reconciliations.manage')
+  @Permissions('billing.financial_reset')
   @ApiOperation({
     summary:
-      'Delete visit reconciliations (optionally scoped to one service user) and dependent payroll/invoice lines',
+      'Test reset (disabled in production): delete visit reconciliations (optionally one service user) and dependent payroll/invoice lines',
   })
-  clearAll(@Body() dto: ClearVisitReconciliationsDto) {
-    return this.service.clearAll(dto?.serviceUserId);
+  clearAll(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ClearVisitReconciliationsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.clearAll(dto?.serviceUserId, user.id, getRequestAuditMeta(req));
   }
 
   @Post('bulk-approve')
@@ -97,6 +142,7 @@ export class VisitReconciliationsController {
   }
 
   @Post(':id/evaluate')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Re-run exception detection and card resolution' })
   evaluate(@Param('id') id: string) {
@@ -104,14 +150,21 @@ export class VisitReconciliationsController {
   }
 
   @Patch(':id')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Update approved payable/billable windows' })
-  update(@Param('id') id: string, @Body() dto: UpdateVisitReconciliationDto) {
-    return this.service.update(id, dto);
+  update(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateVisitReconciliationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.update(id, dto, user.id, getRequestAuditMeta(req));
   }
 
   @Post(':id/payable-amount')
-  @AnyPermission('billing.visit_reconciliations.manage', 'employees.update')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
+  @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
     summary: 'Set visit payable amount (counts toward employee salary when accepted for pay)',
   })
@@ -119,11 +172,13 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: SetVisitPayableAmountDto,
+    @Req() req: Request,
   ) {
-    return this.service.setPayableAmount(user.id, id, dto);
+    return this.service.setPayableAmount(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/billable-amount')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
     summary: 'Set visit billable amount (client/funder charge when accepted for invoice)',
@@ -132,22 +187,26 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: SetVisitBillableAmountDto,
+    @Req() req: Request,
   ) {
-    return this.service.setBillableAmount(user.id, id, dto);
+    return this.service.setBillableAmount(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Approve payable and/or billable time' })
   approve(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: ApproveVisitReconciliationDto,
+    @Req() req: Request,
   ) {
-    return this.service.approve(user.id, id, dto);
+    return this.service.approve(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/overrun/approve')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
     summary: 'Acknowledge overrun as accepted (gross pay stays on planned duration)',
@@ -156,11 +215,13 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: DecideVisitOverrunDto,
+    @Req() req: Request,
   ) {
-    return this.service.approveOverrun(user.id, id, dto);
+    return this.service.approveOverrun(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/overrun/reject')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({
     summary: 'Acknowledge overrun as rejected (gross pay stays on planned duration)',
@@ -169,18 +230,21 @@ export class VisitReconciliationsController {
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: DecideVisitOverrunDto,
+    @Req() req: Request,
   ) {
-    return this.service.rejectOverrun(user.id, id, dto);
+    return this.service.rejectOverrun(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/reject')
+  @PayrollScope({ kind: 'reconciliation', param: 'id' })
   @Permissions('billing.visit_reconciliations.manage')
   @ApiOperation({ summary: 'Reject payable and/or billable time' })
   reject(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: RejectVisitReconciliationDto,
+    @Req() req: Request,
   ) {
-    return this.service.reject(user.id, id, dto);
+    return this.service.reject(user.id, id, dto, getRequestAuditMeta(req));
   }
 }

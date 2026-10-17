@@ -182,12 +182,16 @@ describe('calculatePayableAmount with time window', () => {
 });
 
 describe('pay-mileage.util', () => {
+  // The rates the application used before rates were recorded per period (now a MileageRate row).
+  const rates = { rateFirst: 0.55, rateAfter: 0.25, thresholdMiles: 10_000, passengerRate: 0.05, approved: null };
+
   it('applies 55p then 25p after 10,000 miles', () => {
     const result = calculateUkMileage({
       miles: 100,
       vehicleType: 'CAR_VAN',
       ytdBusinessMiles: 9950,
       useUkApprovedRates: true,
+      rates,
     });
     expect(result?.milesAtPrimaryRate).toBe(50);
     expect(result?.milesAtSecondaryRate).toBe(50);
@@ -199,6 +203,7 @@ describe('pay-mileage.util', () => {
       miles: 10,
       vehicleType: 'CAR_VAN',
       passengerMiles: 10,
+      rates,
     });
     expect(result?.passengerAmount).toBe(0.5);
     expect(result?.totalAmount).toBeCloseTo(5.5 + 0.5, 2);

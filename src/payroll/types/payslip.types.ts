@@ -14,6 +14,12 @@ export type PayslipYtdSnapshot = {
   employeeNiYtd: number
   employerNiYtd: number
   netPayYtd: number
+  /** Loan/pension completion: to date from the YTD ledger (absent on older snapshots). */
+  studentLoanYtd?: number
+  postgraduateLoanYtd?: number
+  pensionEmployeeNetYtd?: number
+  pensionEmployeeGrossYtd?: number
+  pensionEmployerYtd?: number
 }
 
 export type CarePayslipData = {
@@ -55,11 +61,28 @@ export type CarePayslipData = {
   deductions: PayslipMoneyLine[]
   /** Informational — not deducted from employee net. */
   employerCosts: PayslipMoneyLine[]
+  /**
+   * Gate C19: workplace pension figures for information (employer contribution, gross employee
+   * contribution, provider basic-rate relief). Not deducted: the employee's net contribution is the
+   * deduction line.
+   */
+  pensionInformation: PayslipMoneyLine[]
+  /**
+   * Gate C19: the stored net pay checked against the stored figures (gross less PAYE, employee NI,
+   * student loan, postgraduate loan and the pension deduction). ok false: do not issue the payslip.
+   */
+  reconciliation: { ok: boolean; expectedNetPay: number; storedNetPay: number }
   totals: {
     grossPay: number
     totalDeductions: number
     netPay: number
     expenseTotal: number
+    /** Mileage and expenses reimbursed with this payment (not wages). */
+    reimbursement: number
+    /** Part of the expenses whose tax treatment has not been verified. */
+    expenseNotVerified: number
+    /** Net pay plus reimbursement: what the employee is paid for this run. */
+    totalPayable: number
   }
   /** ERA 2019 hours rule — only when pay varies by time worked. */
   hoursWorked: {

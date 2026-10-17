@@ -193,6 +193,14 @@ export class CompleteIncidentActionDto {
   @IsArray()
   @ArrayMaxSize(50)
   completedRecords?: unknown[];
+
+  @ApiPropertyOptional({
+    description:
+      'Care plan update measures: the published care plan version that made the change (required)',
+  })
+  @IsOptional()
+  @IsUUID()
+  carePlanVersionId?: string;
 }
 
 export class RemoveIncidentActionDto {

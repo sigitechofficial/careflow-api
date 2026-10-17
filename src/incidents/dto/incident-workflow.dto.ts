@@ -37,6 +37,13 @@ export class ChangeIncidentStatusDto {
   @IsOptional()
   @IsBoolean()
   overrideOpenExternalBodies?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Close while Duty of Candour is not complete (a reason is required)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  overrideIncompleteCandour?: boolean;
 }
 
 export class ChangeIncidentSeverityDto {

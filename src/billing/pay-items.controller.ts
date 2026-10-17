@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { PayrollScope, PayrollScopeGuard } from '../common/guards/payroll-scope.guard';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -12,12 +13,16 @@ import {
   CreatePayItemDto,
   PayItemQueryDto,
   PayItemSuggestionQueryDto,
+  RecordMileageCorrectionDto,
+  RecordVisitPayCorrectionDto,
   RejectPayItemDto,
+  ReversePayItemDto,
 } from './dto/pay-items.dto';
 
 @ApiTags('Billing — Pay items')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, PayrollScopeGuard)
+@PayrollScope({ kind: 'organisation' })
 @Controller('billing/pay-items')
 export class PayItemsController {
   constructor(private readonly service: PayItemsService) {}
@@ -41,6 +46,60 @@ export class PayItemsController {
   @ApiOperation({ summary: 'Enter a pay item (awaits approval)' })
   create(@CurrentUser() user: RequestUser, @Body() dto: CreatePayItemDto, @Req() req: Request) {
     return this.service.create(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('visit-corrections')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({
+    summary:
+      'Record a pay correction for a visit in a locked payroll run (difference is paid in the next run after a second approval)',
+  })
+  recordVisitCorrection(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RecordVisitPayCorrectionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordVisitCorrection(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('visit-corrections/:visitReconciliationId')
+  @Permissions('billing.payroll_runs.read')
+  @ApiOperation({ summary: 'Original pay line, corrections and reversals of one visit' })
+  visitCorrectionHistory(@Param('visitReconciliationId') visitReconciliationId: string) {
+    return this.service.visitCorrectionHistory(visitReconciliationId);
+  }
+
+  @Post('mileage-corrections')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({
+    summary:
+      'Correct the miles of a visit in a locked payroll run: the difference is reimbursed or recovered as mileage, not as wages (second approval needed)',
+  })
+  recordMileageCorrection(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RecordMileageCorrectionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.recordMileageCorrection(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('mileage-corrections/:visitReconciliationId')
+  @Permissions('billing.payroll_runs.read')
+  @ApiOperation({ summary: 'Settled mileage, corrections and reversals of one visit' })
+  mileageCorrectionHistory(@Param('visitReconciliationId') visitReconciliationId: string) {
+    return this.service.mileageCorrectionHistory(visitReconciliationId);
+  }
+
+  @Post(':id/reverse')
+  @Permissions('billing.payroll_runs.manage')
+  @ApiOperation({ summary: 'Reverse a pay item that has already been paid (once; needs a second approval)' })
+  reverse(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: ReversePayItemDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reverse(user.id, id, dto.reason, getRequestAuditMeta(req));
   }
 
   @Post(':id/approve')

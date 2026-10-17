@@ -105,5 +105,16 @@ export type CareFpsEmployeeEntry = {
     grossPayYtd: number
     netPayYtd: number
   }
+  /** Loan/pension completion: student loan (plan 1, 2, 4, 5) and postgraduate loan recovered, whole pounds. */
+  studentLoans?: {
+    planType: string | null
+    studentLoanRecoveredInPeriod: number
+    studentLoanRecoveredYtd: number
+    postgraduateLoan: boolean
+    postgraduateLoanRecoveredInPeriod: number
+    postgraduateLoanRecoveredYtd: number
+    /** false: a run of this tax year has no loan figures; the YTD cannot be reported yet. */
+    complete: boolean
+  } | null
   issues: string[]
 }

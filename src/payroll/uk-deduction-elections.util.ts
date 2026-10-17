@@ -94,3 +94,27 @@ export function electionsFromLegacyFlags(flags: {
   if (flags.pensionOptedIn) codes.push('PENSION_EMPLOYEE');
   return codes;
 }
+
+/**
+ * Gate C18: the C16 enrolment (pensionStatus) is the only source of workplace pension
+ * contributions; the legacy pension elections and pensionOptedIn never add, remove or duplicate
+ * one. Where they record something the C16 setting contradicts or cannot carry, payroll stops for
+ * an authorised review instead of choosing: salary sacrifice or additional voluntary contributions
+ * (not calculated), or an opt-in recorded for someone confirmed NOT_ENROLLED. Absent legacy
+ * settings are never a conflict. Returns the reason, or null.
+ */
+export function legacyPensionConflict(
+  pensionStatus: string | null | undefined,
+  flags: Parameters<typeof electionsFromLegacyFlags>[0],
+): string | null {
+  const codes = new Set(electionsFromLegacyFlags(flags));
+  if (flags.pensionOptedIn) codes.add('PENSION_EMPLOYEE');
+  const reasons = [
+    codes.has('SS_PENSION') ? 'salary sacrifice pension election (not calculated by this version)' : null,
+    codes.has('AVC_PENSION') ? 'additional voluntary contribution election (not calculated by this version)' : null,
+    pensionStatus && pensionStatus !== 'ENROLLED' && codes.has('PENSION_EMPLOYEE') ? `pension opt-in recorded but the enrolment says ${pensionStatus}` : null,
+  ].filter(Boolean);
+  return reasons.length
+    ? `PENSION_CONFIGURATION_CONFLICT: the legacy pension settings disagree with the workplace pension enrolment (${reasons.join('; ')}); review and correct the profile`
+    : null;
+}
