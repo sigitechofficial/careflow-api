@@ -1,21 +1,5 @@
 /**
- * Permissions the "Super Admin" shortcut does not grant.
- *
- * Authorising pay, approving a salary agreement, recording a bank settlement, closing or reopening a payroll run, deleting
- * financial test data and clearing the audit log are powers of a named role, not of system
- * administration. A user holds one of these only when a role assigned to them lists it.
+ * App re-export of the explicit-grant permission list.
+ * Implementation lives in prisma/seed-lib so `prisma db seed` can run without `src/`.
  */
-export const EXPLICIT_GRANT_PERMISSIONS: readonly string[] = [
-  'billing.payroll_runs.approve',
-  'billing.employee_payouts.approve',
-  'billing.employee_payouts.settle',
-  'billing.financial_reset',
-  'payroll.runs.close',
-  'payroll.runs.reopen',
-  'payroll.pay_agreements.approve',
-  'audit_logs.delete',
-];
-
-export function requiresExplicitGrant(permissions: readonly string[] | undefined): boolean {
-  return Boolean(permissions?.some((p) => EXPLICIT_GRANT_PERMISSIONS.includes(p)));
-}
+export { EXPLICIT_GRANT_PERMISSIONS, requiresExplicitGrant } from '../../../prisma/seed-lib/explicit-grant-permissions';
