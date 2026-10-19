@@ -2138,18 +2138,13 @@ async function main() {
   ]) {
     await upsertMedCode(prisma.medicationFrequency, row);
   }
+  // Create missing time slots only. The seed runs on every deploy, so it must not overwrite
+  // slots an organisation already has (Settings → Time slots, or a migration like
+  // 20261015120000_time_slot_morning_night_windows).
   for (const row of DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS) {
     await prisma.medicationAdministrationRound.upsert({
       where: { code: row.code },
-      update: {
-        name: row.name,
-        time: row.time,
-        windowStart: row.windowStart,
-        windowEnd: row.windowEnd,
-        sortOrder: row.sortOrder,
-        isActive: true,
-        deletedAt: null,
-      },
+      update: {},
       create: {
         name: row.name,
         code: row.code,
