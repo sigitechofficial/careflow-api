@@ -33,6 +33,11 @@ export class CreateSurveyDto {
   @IsBoolean()
   isAnonymous?: boolean;
 
+  @ApiPropertyOptional({ default: false, description: 'Mark this survey as a reusable template.' })
+  @IsOptional()
+  @IsBoolean()
+  isTemplate?: boolean;
+
   @ApiPropertyOptional({ description: 'ISO date-time the survey opens' })
   @IsOptional()
   @IsISO8601()
@@ -62,4 +67,14 @@ export class CreateSurveyDto {
   @IsArray()
   @IsUUID('all', { each: true })
   locationIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Employee job-role (EmployeeRoleLookup) IDs to scope an employee survey to. Omit or empty = all roles.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  roleIds?: string[];
 }

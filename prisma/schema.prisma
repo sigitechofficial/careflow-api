@@ -13469,6 +13469,7 @@ model PolicyAcknowledgement {
 enum SurveyTargetKind {
   EMPLOYEE
   SERVICE_USER
+  PUBLIC
 
   @@schema("surveys")
 }
@@ -13550,6 +13551,10 @@ model Survey {
   closesAt    DateTime?
   publishedAt DateTime?
   locationIds String[]         @default([]) @db.Uuid
+  /// Employee job-role (EmployeeRoleLookup) ids to scope an employee survey to. Empty = all roles.
+  roleIds     String[]         @default([]) @db.Uuid
+  /// Marks this survey as a reusable template (shown separately; used to start new surveys).
+  isTemplate  Boolean          @default(false)
   /// When to auto-send this survey to employees (scheduled distribution).
   distributeAt DateTime?
   /// When scheduled distribution actually ran (one-shot only).

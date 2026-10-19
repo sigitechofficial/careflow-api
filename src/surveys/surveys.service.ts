@@ -31,6 +31,7 @@ import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { CreateSurveyDto } from './dto/create-survey.dto';
 import { UpdateSurveyDto } from './dto/update-survey.dto';
+import { DuplicateSurveyDto } from './dto/duplicate-survey.dto';
 import {
   CreateSurveyQuestionDto,
   UpdateSurveyQuestionDto,
@@ -86,6 +87,7 @@ export class SurveysService {
     const where: Prisma.SurveyWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
     if (query.targetKind) where.targetKind = query.targetKind;
+    if (query.isTemplate !== undefined) where.isTemplate = query.isTemplate === 'true';
 
     const rows = await this.prisma.survey.findMany({
       where,
@@ -131,6 +133,8 @@ export class SurveysService {
           recurrence: r.recurrence ?? null,
           clonedFromId: r.clonedFromId ?? null,
           locationIds: r.locationIds,
+          roleIds: r.roleIds,
+          isTemplate: r.isTemplate,
           shareToken: r.shareToken,
           questionCount: r._count.questions,
           recipientCount: recipients,
@@ -180,6 +184,8 @@ export class SurveysService {
         recurrence: row.recurrence ?? null,
         clonedFromId: row.clonedFromId ?? null,
         locationIds: row.locationIds,
+        roleIds: row.roleIds,
+        isTemplate: row.isTemplate,
         shareToken: row.shareToken,
         createdById: row.createdById ?? null,
         createdByName: row.createdById ? (creatorMap.get(row.createdById) ?? null) : null,
@@ -213,6 +219,8 @@ export class SurveysService {
         distributeAt: dto.distributeAt ? new Date(dto.distributeAt) : null,
         recurrence: dto.recurrence ?? null,
         locationIds: dto.locationIds ?? [],
+        roleIds: dto.roleIds ?? [],
+        isTemplate: dto.isTemplate ?? false,
         createdById: userId,
         updatedById: userId,
       },
@@ -229,6 +237,70 @@ export class SurveysService {
     });
 
     return { message: 'Survey created', data: created };
+  }
+
+  /**
+   * Duplicate any survey (template or an existing one) with all its questions as a new DRAFT,
+   * so it can be edited and sent independently. Schedule, status and responses are not copied.
+   */
+  async duplicate(
+    userId: string,
+    id: string,
+    overrides?: DuplicateSurveyDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const source = await this.requireSurvey(id);
+    const questions = await this.prisma.surveyQuestion.findMany({
+      where: { surveyId: id, deletedAt: null },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const title = overrides?.title?.trim() || `${source.title} (Copy)`;
+    const targetKind = overrides?.targetKind ?? source.targetKind;
+    const isAnonymous = overrides?.isAnonymous ?? source.isAnonymous;
+    // Location only applies to employee / service-user surveys; roles only to employee surveys.
+    const locationIds = targetKind === SurveyTargetKind.PUBLIC ? [] : source.locationIds;
+    const roleIds =
+      targetKind === SurveyTargetKind.EMPLOYEE ? (overrides?.roleIds ?? source.roleIds) : [];
+
+    const created = await this.prisma.survey.create({
+      data: {
+        title: title.slice(0, 200),
+        description: source.description,
+        targetKind,
+        isAnonymous,
+        locationIds,
+        roleIds,
+        status: SurveyStatus.DRAFT,
+        createdById: userId,
+        updatedById: userId,
+        questions: {
+          create: questions.map((q) => ({
+            questionText: q.questionText,
+            helpText: q.helpText,
+            questionType: q.questionType,
+            options: q.options === null ? Prisma.JsonNull : q.options,
+            config: q.config === null ? Prisma.JsonNull : q.config,
+            isRequired: q.isRequired,
+            sortOrder: q.sortOrder,
+            isActive: q.isActive,
+          })),
+        },
+      },
+    });
+
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SURVEY,
+      action: AuditAction.SURVEY_CREATED,
+      recordType: 'Survey',
+      recordId: created.id,
+      newValues: auditSnapshot(created),
+      metadata: { duplicatedFromId: id, questionCount: questions.length },
+      ...meta,
+    });
+
+    return { message: 'Survey duplicated', data: created };
   }
 
   async update(userId: string, id: string, dto: UpdateSurveyDto, meta?: RequestAuditMeta) {
@@ -253,6 +325,8 @@ export class SurveysService {
               : null,
         recurrence: dto.recurrence === undefined ? undefined : dto.recurrence ?? null,
         locationIds: dto.locationIds,
+        roleIds: dto.roleIds,
+        isTemplate: dto.isTemplate,
         updatedById: userId,
       },
     });
@@ -455,6 +529,11 @@ export class SurveysService {
     requestOrigin?: string,
   ) {
     const survey = await this.requireSurvey(surveyId);
+    if (survey.targetKind === SurveyTargetKind.PUBLIC) {
+      throw new BadRequestException(
+        'Public surveys are answered through the shareable link — there is no recipient list to send to. Publish it and copy the link.',
+      );
+    }
     const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
     const questionCount = await this.prisma.surveyQuestion.count({
       where: { surveyId, deletedAt: null },
@@ -544,14 +623,20 @@ export class SurveysService {
       }
     } else {
       // Only active employees: explicit picks are filtered too, so inactive staff never receive it.
+      const roleIds = dto.roleIds ?? survey.roleIds;
       const empWhere: Prisma.EmployeeWhereInput = {
         deletedAt: null,
         isActive: true,
       };
       if (dto.employeeIds?.length) {
         empWhere.id = { in: dto.employeeIds };
-      } else if (locationIds.length > 0) {
-        empWhere.employment = { locationId: { in: locationIds } };
+      } else {
+        const employmentWhere: Prisma.EmployeeEmploymentWhereInput = {};
+        if (locationIds.length > 0) employmentWhere.locationId = { in: locationIds };
+        if (roleIds.length > 0) employmentWhere.roleId = { in: roleIds };
+        if (Object.keys(employmentWhere).length > 0) {
+          empWhere.employment = employmentWhere;
+        }
       }
       const employees = await this.prisma.employee.findMany({
         where: empWhere,
@@ -784,6 +869,7 @@ export class SurveysService {
       opensAt: Date | null;
       closesAt: Date | null;
       locationIds: string[];
+      roleIds: string[];
       recurrence: SurveyRecurrence;
       createdById: string | null;
     },
@@ -819,6 +905,7 @@ export class SurveysService {
         opensAt,
         closesAt,
         locationIds: template.locationIds,
+        roleIds: template.roleIds,
         clonedFromId: template.id,
         status: SurveyStatus.DRAFT,
         createdById: actorId || template.createdById || undefined,
@@ -873,6 +960,7 @@ export class SurveysService {
               opensAt: survey.opensAt,
               closesAt: survey.closesAt,
               locationIds: survey.locationIds,
+              roleIds: survey.roleIds,
               recurrence: survey.recurrence,
               createdById: survey.createdById,
             },
@@ -1254,13 +1342,14 @@ export class SurveysService {
         return { id: r.id, name: r.serviceUserNumber ? `${name} (${r.serviceUserNumber})` : name };
       });
     } else {
+      const employmentScope: Prisma.EmployeeEmploymentWhereInput = {};
+      if (survey.locationIds.length) employmentScope.locationId = { in: survey.locationIds };
+      if (survey.roleIds.length) employmentScope.roleId = { in: survey.roleIds };
       const rows = await this.prisma.employee.findMany({
         where: {
           deletedAt: null,
           isActive: true,
-          ...(survey.locationIds.length
-            ? { employment: { locationId: { in: survey.locationIds } } }
-            : {}),
+          ...(Object.keys(employmentScope).length ? { employment: employmentScope } : {}),
           ...(q
             ? { personalDetail: { OR: [{ firstName: contains(q) }, { lastName: contains(q) }] } }
             : {}),
