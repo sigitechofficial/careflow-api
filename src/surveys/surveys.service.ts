@@ -633,7 +633,8 @@ export class SurveysService {
       } else {
         const employmentWhere: Prisma.EmployeeEmploymentWhereInput = {};
         if (locationIds.length > 0) employmentWhere.locationId = { in: locationIds };
-        if (roleIds.length > 0) employmentWhere.roleId = { in: roleIds };
+        // roleIds holds Job Title ids (HR, managers, etc.) — targets employees by job title.
+        if (roleIds.length > 0) employmentWhere.jobTitleId = { in: roleIds };
         if (Object.keys(employmentWhere).length > 0) {
           empWhere.employment = employmentWhere;
         }
@@ -1344,7 +1345,8 @@ export class SurveysService {
     } else {
       const employmentScope: Prisma.EmployeeEmploymentWhereInput = {};
       if (survey.locationIds.length) employmentScope.locationId = { in: survey.locationIds };
-      if (survey.roleIds.length) employmentScope.roleId = { in: survey.roleIds };
+      // roleIds holds Job Title ids.
+      if (survey.roleIds.length) employmentScope.jobTitleId = { in: survey.roleIds };
       const rows = await this.prisma.employee.findMany({
         where: {
           deletedAt: null,
