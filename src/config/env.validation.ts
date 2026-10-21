@@ -107,6 +107,24 @@ class EnvironmentVariables {
   @IsString()
   OPENDFDA_API_KEY?: string;
 
+  /** ZeptoMail REST send URL (default https://api.zeptomail.com/v1.1/email). */
+  @IsOptional()
+  @IsString()
+  MAIL_API_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  ZEPTOMAIL_API_URL?: string;
+
+  /** ZeptoMail Send Mail Token (`Zoho-enczapikey …`). */
+  @IsOptional()
+  @IsString()
+  MAIL_API_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  ZEPTOMAIL_API_TOKEN?: string;
+
   @IsOptional()
   @IsString()
   SMTP_HOST?: string;
@@ -132,7 +150,7 @@ class EnvironmentVariables {
   @IsString()
   MAIL_FROM?: string;
 
-  /** `smtp` | `log` — `smtp` for Azure Communication Services. */
+  /** `api` | `smtp` | `log` — prefer `api` (ZeptoMail HTTP). */
   @IsOptional()
   @IsString()
   MAIL_MODE?: string;
