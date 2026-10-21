@@ -630,6 +630,8 @@ async function main() {
     'surveys.manage',
     'surveys.respond',
     'surveys.responses.record',
+    // Carer notifications (Settings › Carer notifications)
+    'carer_notifications.send',
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',

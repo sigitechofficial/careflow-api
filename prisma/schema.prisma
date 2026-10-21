@@ -6556,6 +6556,48 @@ model NotificationRecipient {
   @@schema("notifications")
 }
 
+enum CarerMessageAudience {
+  ALL
+  BRANCHES
+  EMPLOYEES
+
+  @@schema("notifications")
+}
+
+/// A push notification an office user sent by hand to carers (Settings › Carer notifications).
+model CarerMessage {
+  id             String               @id @default(uuid()) @db.Uuid
+  title          String               @db.VarChar(65)
+  body           String               @db.VarChar(240)
+  audience       CarerMessageAudience
+  locationIds    String[]             @default([]) @db.Uuid
+  employeeIds    String[]             @default([]) @db.Uuid
+  recipientCount Int                  @default(0)
+  withAppCount   Int                  @default(0)
+  deliveredCount Int                  @default(0)
+  sentById       String?              @db.Uuid
+  createdAt      DateTime             @default(now())
+
+  recipients CarerMessageRecipient[]
+
+  @@index([createdAt])
+  @@schema("notifications")
+}
+
+model CarerMessageRecipient {
+  id          String   @id @default(uuid()) @db.Uuid
+  messageId   String   @db.Uuid
+  employeeId  String   @db.Uuid
+  hadDevice   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  message CarerMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, employeeId])
+  @@index([employeeId])
+  @@schema("notifications")
+}
+
 /**
  * Per-user overrides for a notification type. No row = use product defaults (in-app + sound on). Composite PK avoids a redundant surrogate id.
  */
