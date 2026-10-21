@@ -27,6 +27,13 @@ import {
 import { adjacentVisits, hmDifferenceMinutes } from './allocation-job-rules.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
+import {
+  addDaysToOperationalIso,
+  dayKeyInTimeZone,
+  getOperationalTimeZone,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -89,6 +96,15 @@ export class AllocationChecksService {
     return parseDomCareAllocationRules(
       row?.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
     );
+  }
+
+  /** Organisation operational timezone (not cached — settings can change at runtime). */
+  private async loadOperationalTimezone(): Promise<string> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: ORG_SETTINGS_ID },
+      select: { timezone: true },
+    });
+    return getOperationalTimeZone(row?.timezone);
   }
 
   async runAllChecks(ctx: AllocationCheckContext): Promise<AllocationWarning[]> {
@@ -193,8 +209,9 @@ export class AllocationChecksService {
       notes: p.notes,
     }));
     const cycleConfig = employmentToCycleConfig(employee.employment, employee.createdAt);
-    const pattern = resolvePatternForDateTime(patternRows, cycleConfig, ctx.jobStart);
-    const dowLabel = DAY_LABEL[ctx.jobStart.getUTCDay()] ?? 'this day';
+    const timeZone = await this.loadOperationalTimezone();
+    const pattern = resolvePatternForDateTime(patternRows, cycleConfig, ctx.jobStart, timeZone);
+    const dowLabel = DAY_LABEL[weekdayIndexInTimeZone(ctx.jobStart, timeZone)] ?? 'this day';
 
     if (pattern && !pattern.isAvailable) {
       push(patternWarning(`Employee is marked unavailable on ${dowLabel}`));
@@ -207,8 +224,8 @@ export class AllocationChecksService {
     }
 
     if (pattern) {
-      const jobStartHm = hmFromJobDate(ctx.jobStart);
-      const jobEndHm = hmFromJobDate(ctx.jobEnd);
+      const jobStartHm = hmFromJobDate(ctx.jobStart, timeZone);
+      const jobEndHm = hmFromJobDate(ctx.jobEnd, timeZone);
       if (
         !visitTimeFitsWithinPattern(jobStartHm, jobEndHm, pattern.startTime, pattern.endTime)
       ) {
@@ -253,6 +270,7 @@ export class AllocationChecksService {
       excludeScheduledJobId: ctx.scheduledJobId,
       medicationRequired: visit?.medicationRequired ?? false,
       skillKeywords,
+      timeZone: await this.loadOperationalTimezone(),
     });
     for (const hit of hits.get(ctx.employeeId) ?? []) {
       push({
@@ -274,11 +292,15 @@ export class AllocationChecksService {
     const maxWeekly = employment?.maximumWeeklyHours ?? employment?.contractedWeeklyHours;
     if (!maxWeekly || maxWeekly <= 0) return;
 
-    const weekStart = new Date(ctx.jobStart);
-    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
-    weekStart.setUTCHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+    // Sunday-start week of the visit's org-local calendar day, as true-UTC bounds.
+    const timeZone = await this.loadOperationalTimezone();
+    const jobDayKey = dayKeyInTimeZone(ctx.jobStart, timeZone);
+    const weekStartKey = addDaysToOperationalIso(
+      jobDayKey,
+      -weekdayIndexInTimeZone(ctx.jobStart, timeZone),
+    );
+    const weekStart = operationalDayBounds(weekStartKey, timeZone).start;
+    const weekEnd = operationalDayBounds(addDaysToOperationalIso(weekStartKey, 7), timeZone).start;
 
     const allocations = await this.prisma.jobAllocation.findMany({
       where: {
@@ -457,8 +479,9 @@ export class AllocationChecksService {
         });
         toleranceMinutes = settings?.domGlobalToleranceMinutes ?? 30;
       }
-      const plannedHm = slot?.plannedStartTime ?? hmFromJobDate(job.scheduledStartDateTime);
-      const diff = hmDifferenceMinutes(plannedHm, hmFromJobDate(ctx.jobStart));
+      const timeZone = await this.loadOperationalTimezone();
+      const plannedHm = slot?.plannedStartTime ?? hmFromJobDate(job.scheduledStartDateTime, timeZone);
+      const diff = hmDifferenceMinutes(plannedHm, hmFromJobDate(ctx.jobStart, timeZone));
       if (diff != null && diff > toleranceMinutes) {
         ruleWarning(
           AllocationWarningType.VISIT_TIME_TOLERANCE,

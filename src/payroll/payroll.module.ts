@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { PayrollEmployeesController } from './payroll-employees.controller';
 import { PayrollEmployeesService } from './payroll-employees.service';
 import { PayrollLoanPensionController } from './payroll-loan-pension.controller';
@@ -17,7 +18,7 @@ import { PayrollSettingsController } from './payroll-settings.controller';
 import { PayrollSettingsService } from './payroll-settings.service';
 
 @Module({
-  imports: [PrismaModule, AuditLogsModule],
+  imports: [PrismaModule, AuditLogsModule, OrganisationGeneralSettingsModule],
   controllers: [
     PayrollSettingsController,
     PayrollEmployeesController,

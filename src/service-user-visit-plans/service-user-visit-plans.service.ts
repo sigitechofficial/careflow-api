@@ -442,6 +442,8 @@ export class ServiceUserVisitPlansService {
           slotKind: input?.slotKind ?? slotKind,
           plannedStartTime: plannedStart,
           plannedEndTime: plannedEnd,
+          slotCode,
+          medicationRoundCode: input?.medicationRoundCode,
           nightDuty: input?.nightDuty,
         }),
         slotEffectiveFrom: input?.slotEffectiveFrom ?? null,
@@ -652,11 +654,12 @@ export class ServiceUserVisitPlansService {
     const allocationRules = await loadDomCareAllocationRules(this.prisma);
     let ruleHitsByEmployee = new Map<string, AllocationRuleHit[]>();
     if (dto.scheduledDate) {
+      const timeZone = await this.orgSettings.getOperationalTimezone();
       const window = visitPlanSuggestJobWindow(
         dto.scheduledDate,
         dto.plannedStartTime,
         dto.plannedEndTime,
-        await this.orgSettings.getOperationalTimezone(),
+        timeZone,
       );
       const visit = dto.excludeScheduledJobId
         ? await this.prisma.scheduledVisit.findFirst({
@@ -675,6 +678,7 @@ export class ServiceUserVisitPlansService {
           skillKeywords: skillKeywords.length
             ? skillKeywords
             : await skillKeywordsForVisitPlanSlot(this.prisma, visit?.visitPlanSlotId),
+          timeZone,
         });
       }
     }
@@ -962,7 +966,7 @@ export class ServiceUserVisitPlansService {
       operationalTodayIso(new Date(), timeZone),
       timeZone,
     ).start;
-    const rangeEnd = visitPlanPatternRotaLookaheadEnd(rangeStart);
+    const rangeEnd = visitPlanPatternRotaLookaheadEnd(rangeStart, timeZone);
 
     const rows = await this.prisma.jobAllocation.findMany({
       where: {
@@ -1013,6 +1017,11 @@ export class ServiceUserVisitPlansService {
     }
 
     return conflicts;
+  }
+
+  /** Organisation-local "today" as a UTC-midnight calendar label (org timezone setting). */
+  private async opsTodayUtc(): Promise<Date> {
+    return visitPlanTodayUtc(new Date(), await this.orgSettings.getOperationalTimezone());
   }
 
   private parseDateOnly(value: string, field: string): Date {
@@ -1237,6 +1246,7 @@ export class ServiceUserVisitPlansService {
 
     const respectWorkingPattern =
       dto.respectWorkingPatternOnSync ?? existing.respectWorkingPatternOnSync !== false;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
 
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.slots?.length) {
@@ -1261,13 +1271,14 @@ export class ServiceUserVisitPlansService {
               carerAssignments,
               requiredCarers: row.requiredCarers,
               userId,
-              fromDateTime: visitPlanCarerSyncFromDateTime(),
+              fromDateTime: visitPlanCarerSyncFromDateTime(undefined, timeZone),
+              timeZone,
               respectWorkingPattern,
             });
             await syncVisitPlanSlotNightDutyToScheduledJobs(tx, {
               visitPlanSlotId: row.id,
               nightDuty: row.nightDuty,
-              fromDateTime: visitPlanCarerSyncFromDateTime(),
+              fromDateTime: visitPlanCarerSyncFromDateTime(undefined, timeZone),
             });
           }
         }
@@ -1430,7 +1441,8 @@ export class ServiceUserVisitPlansService {
     const patternByEmployee = await loadEmployeePatternContexts(this.prisma, employeeIds);
 
     const slotByCode = new Map(plan.slots.map((s) => [s.slotCode, s]));
-    const from = visitPlanCarerSyncFromDateTime();
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const from = visitPlanCarerSyncFromDateTime(undefined, timeZone);
     let visitsSkippedIfRespecting = 0;
 
     for (const slot of normalized) {
@@ -1465,6 +1477,7 @@ export class ServiceUserVisitPlansService {
         assignedEmployeeIds,
         row.requiredCarers,
         patternByEmployee,
+        timeZone,
       );
     }
 
@@ -1538,7 +1551,7 @@ export class ServiceUserVisitPlansService {
         },
       };
     }
-    const from = visitPlanTodayUtc();
+    const from = await this.opsTodayUtc();
     const scheduleImpact = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
       serviceUserId,
       fromDate: from,
@@ -1610,13 +1623,12 @@ export class ServiceUserVisitPlansService {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     const slot = plan.slots.find((s) => s.id === slotId);
     if (!slot) throw new NotFoundException('Visit plan slot not found');
-    this.parseDateOnly(query.date, 'date');
-    const timeZone = await this.orgSettings.getOperationalTimezone();
-    const dayBounds = operationalDayBounds(query.date, timeZone);
+    // Calendar label — ScheduleLifecycleImpactService maps it to org-local day bounds.
+    const skipDay = this.parseDateOnly(query.date, 'date');
     const scheduleImpact = await this.scheduleImpact.previewCancelScopedServiceUserJobs({
       serviceUserId,
-      fromDate: dayBounds.start,
-      toDate: dayBounds.end,
+      fromDate: skipDay,
+      toDate: skipDay,
       scope: { visitPlanSlotId: slotId },
     });
     return { data: { scheduleImpact, slotLabel: slotLabel(slot.medicationRoundCode ?? slot.slotCode) } };
@@ -1662,7 +1674,7 @@ export class ServiceUserVisitPlansService {
   }
 
   async listSuspensionReviewsOverdue() {
-    const today = visitPlanTodayUtc();
+    const today = await this.opsTodayUtc();
     const rows = await this.prisma.serviceUserVisitPlan.findMany({
       where: {
         status: VisitPlanStatus.SUSPENDED,
@@ -1727,7 +1739,7 @@ export class ServiceUserVisitPlansService {
   }
 
   async processScheduledEndPlans(userId: string): Promise<number> {
-    const today = visitPlanTodayUtc();
+    const today = await this.opsTodayUtc();
     const plans = await this.prisma.serviceUserVisitPlan.findMany({
       where: {
         status: VisitPlanStatus.ACTIVE,
@@ -1858,7 +1870,7 @@ export class ServiceUserVisitPlansService {
     if (dto?.cancelEndedPlanJobs && otherActivePlans.length) {
       scheduleImpact = await this.scheduleImpact.cancelScopedServiceUserJobs(userId, {
         serviceUserId,
-        fromDate: visitPlanTodayUtc(),
+        fromDate: await this.opsTodayUtc(),
         reason: 'Activating new visit plan package',
         source: 'visit_plan_activate',
         scope: { visitPlanIds: otherActivePlans.map((p) => p.id) },
@@ -1896,7 +1908,7 @@ export class ServiceUserVisitPlansService {
     const contingencyNotes = dto.contingencyNotes?.trim() ?? '';
     const cancelFutureVisits = dto.cancelFutureVisits !== false;
     const now = new Date();
-    const today = visitPlanTodayUtc();
+    const today = await this.opsTodayUtc();
 
     let effectiveFrom = today;
     if (dto.effectiveFrom?.trim()) {
@@ -1930,8 +1942,6 @@ export class ServiceUserVisitPlansService {
       } catch (e) {
         throw new BadRequestException(e instanceof Error ? e.message : 'Invalid expectedResumeAt');
       }
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
       if (expectedResumeAt.getTime() < today.getTime()) {
         throw new BadRequestException('expectedResumeAt cannot be in the past');
       }
@@ -1941,7 +1951,7 @@ export class ServiceUserVisitPlansService {
     try {
       suspensionReviewDueAt = dto.reviewDueAt?.trim()
         ? parseVisitPlanDateOnly(dto.reviewDueAt, 'reviewDueAt')
-        : defaultSuspensionReviewDueAt(now);
+        : defaultSuspensionReviewDueAt(today);
     } catch (e) {
       throw new BadRequestException(e instanceof Error ? e.message : 'Invalid reviewDueAt');
     }
@@ -2076,7 +2086,7 @@ export class ServiceUserVisitPlansService {
 
     const reason = dto.reason.trim();
     const cancelFutureVisits = dto.cancelFutureVisits !== false;
-    const today = visitPlanTodayUtc();
+    const today = await this.opsTodayUtc();
     let effectiveTo: Date;
     try {
       effectiveTo = parseOptionalVisitPlanDateOnly(dto.effectiveTo, 'effectiveTo', today);
@@ -2289,9 +2299,17 @@ export class ServiceUserVisitPlansService {
     planId: string,
     dto: GenerateVisitPlanScheduleDto,
     meta?: RequestAuditMeta,
-    options?: { assignCarers?: boolean },
+    options?: {
+      assignCarers?: boolean;
+      /**
+       * false = never bring back visits the office deleted (job or visit soft-deleted for that
+       * slot/day). Used by the nightly rolling-rota catch-up; manual "Regenerate" keeps restoring.
+       */
+      restoreDeletedJobs?: boolean;
+    },
   ) {
     const assignCarers = options?.assignCarers !== false;
+    const restoreDeletedJobs = options?.restoreDeletedJobs !== false;
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Only active visit plans can generate scheduled visits');
@@ -2468,6 +2486,20 @@ export class ServiceUserVisitPlansService {
             },
             orderBy: { scheduledStartDateTime: 'asc' },
           });
+          if (!existingVisit && !restoreDeletedJobs) {
+            const deletedVisit = await tx.scheduledVisit.findFirst({
+              where: {
+                visitPlanSlotId: slot.id,
+                deletedAt: { not: null },
+                scheduledStartDateTime: { gte: dayStart, lte: dayEnd },
+              },
+              select: { id: true },
+            });
+            if (deletedVisit) {
+              visitsSkipped += 1;
+              continue;
+            }
+          }
           if (existingVisit) {
             const liveJob = await tx.scheduledJob.findFirst({
               where: { id: existingVisit.scheduledJobId, deletedAt: null },
@@ -2486,6 +2518,7 @@ export class ServiceUserVisitPlansService {
                   requiredCarers,
                   userId,
                   scheduledVisitId: existingVisit.id,
+                  timeZone,
                   respectWorkingPattern,
                   carerWindows,
                 });
@@ -2504,6 +2537,7 @@ export class ServiceUserVisitPlansService {
                     excludeScheduledJobId: liveJob.id,
                     medicationRequired: existingVisit.medicationRequired,
                     visitPlanSlotId: slot.id,
+                    timeZone,
                   },
                 );
                 if (resolved.patternWarnings.length) {
@@ -2515,6 +2549,11 @@ export class ServiceUserVisitPlansService {
                   rotaConflictWarnings.push(...resolved.rotaConflictWarnings);
                 }
               }
+              visitsSkipped += 1;
+              continue;
+            }
+            if (!restoreDeletedJobs) {
+              // The office deleted this job — leave it deleted.
               visitsSkipped += 1;
               continue;
             }
@@ -2574,6 +2613,7 @@ export class ServiceUserVisitPlansService {
                 requiredCarers,
                 userId,
                 scheduledVisitId: existingVisit.id,
+                timeZone,
                 respectWorkingPattern,
                 carerWindows,
               });
@@ -2662,6 +2702,7 @@ export class ServiceUserVisitPlansService {
                 excludeScheduledJobId: job.id,
                 medicationRequired: visit.medicationRequired,
                 visitPlanSlotId: slot.id,
+                timeZone,
               },
             );
             if (resolved.patternWarnings.length) {
@@ -2742,7 +2783,9 @@ export class ServiceUserVisitPlansService {
             carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
             requiredCarers: slot.requiredCarers,
             userId,
-            fromDateTime: rangeStart,
+            // rangeStart is a UTC-midnight calendar label — sync from org-local midnight.
+            fromDateTime: operationalDayBounds(rangeStart.toISOString().slice(0, 10), timeZone).start,
+            timeZone,
             respectWorkingPattern,
           });
         }

@@ -140,6 +140,11 @@ export class VisitPlanExtraVisitsPreviewDto {
   @ArrayMaxSize(4)
   @IsUUID(undefined, { each: true })
   employeeIds!: string[];
+
+  @ApiPropertyOptional({ description: 'Preview only: the extra visit being edited, so it is not a clash with itself' })
+  @IsOptional()
+  @IsUUID()
+  editingExceptionId?: string;
 }
 
 export class VisitPlanAddExtraVisitsDto extends VisitPlanExtraVisitsPreviewDto {
@@ -162,4 +167,52 @@ export class VisitPlanAddExtraVisitsDto extends VisitPlanExtraVisitsPreviewDto {
   @IsOptional()
   @IsEnum(VisitPlanNightDuty)
   nightDuty?: VisitPlanNightDuty;
+}
+
+/** Edit one extra visit; its date and time slot stay the same. */
+export class VisitPlanEditExtraVisitDto {
+  @ApiProperty({ example: '15:30', description: 'Must stay inside the time slot the visit is in' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  startTime!: string;
+
+  @ApiProperty({ minimum: 1, maximum: 720 })
+  @IsInt()
+  @Min(1)
+  @Max(720)
+  durationMinutes!: number;
+
+  @ApiProperty({ minimum: 1, maximum: 4 })
+  @IsInt()
+  @Min(1)
+  @Max(4)
+  requiredCarers!: number;
+
+  @ApiProperty({ type: [String], description: 'Carers for the visit (may be empty); the first is the lead' })
+  @IsArray()
+  @ArrayMaxSize(4)
+  @IsUUID(undefined, { each: true })
+  employeeIds!: string[];
+
+  @ApiProperty({ description: 'Why the extra visit is needed' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4100)
+  reason!: string;
+
+  @ApiPropertyOptional({
+    enum: VisitPlanNightDuty,
+    description: 'Only for a visit that runs past midnight; NONE (normal visit) when left out',
+  })
+  @IsOptional()
+  @IsEnum(VisitPlanNightDuty)
+  nightDuty?: VisitPlanNightDuty;
+}
+
+/** Delete one extra visit before it starts. */
+export class VisitPlanDeleteExtraVisitDto {
+  @ApiProperty({ description: 'Why the extra visit is being removed' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  reason!: string;
 }

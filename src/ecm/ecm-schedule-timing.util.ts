@@ -1,3 +1,5 @@
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
+
 /**
  * Schedule-change timing flags (BE1.26 / BE1.27 helpers).
  * Late-notice default: change within 2 hours of previous due start.
@@ -16,15 +18,18 @@ export function deriveScheduleTimingFlags(
   changedAt: Date,
   newStart: Date,
   lateNoticeThresholdMs = LATE_NOTICE_THRESHOLD_MS,
+  /** Organisation timezone — "same day" means the same org-local calendar day. */
+  timeZone: string = 'UTC',
 ): ScheduleTimingFlags {
   const beforeDueTime = changedAt.getTime() <= previousStart.getTime();
   const msBeforeDue = previousStart.getTime() - changedAt.getTime();
   const lateNotice =
     beforeDueTime && msBeforeDue >= 0 && msBeforeDue < lateNoticeThresholdMs;
   const retrospective = changedAt.getTime() > previousStart.getTime();
+  const previousDay = dayKeyInTimeZone(previousStart, timeZone);
   const sameDay =
-    previousStart.toISOString().slice(0, 10) === newStart.toISOString().slice(0, 10) &&
-    previousStart.toISOString().slice(0, 10) === changedAt.toISOString().slice(0, 10);
+    previousDay === dayKeyInTimeZone(newStart, timeZone) &&
+    previousDay === dayKeyInTimeZone(changedAt, timeZone);
 
   return { beforeDueTime, lateNotice, retrospective, sameDay };
 }

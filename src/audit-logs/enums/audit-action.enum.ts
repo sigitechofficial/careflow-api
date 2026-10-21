@@ -260,6 +260,7 @@ export enum AuditAction {
   NOTIFICATION_READ_ALL = 'notification_read_all',
   NOTIFICATION_DISMISSED = 'notification_dismissed',
   NOTIFICATION_PREFERENCES_UPDATED = 'notification_preferences_updated',
+  CARER_MESSAGE_SENT = 'carer_message_sent',
   NOTIFICATION_SOCKET_CONNECTED = 'notification_socket_connected',
   NOTIFICATION_SOCKET_DISCONNECTED = 'notification_socket_disconnected',
 

@@ -1,0 +1,29 @@
+# Keep the build context small and free of secrets / runtime data.
+.git
+.github
+node_modules
+dist
+coverage
+test-results
+playwright-report
+
+# Secrets and local configuration — settings come from Container Apps / Key Vault
+.env
+.env.*
+!.env.example
+serviceAccount.json
+*.pem
+*.key
+
+# Runtime data — uploads live on the Azure Files share mounted at /app/uploads
+uploads
+*.dump
+*.sql.gz
+*.log
+
+# Not needed in the image
+functions
+docs
+postman
+Dockerfile
+.dockerignore

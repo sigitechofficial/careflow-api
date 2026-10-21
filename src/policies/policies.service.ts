@@ -143,6 +143,7 @@ export class PoliciesService {
       storagePath?: string | null;
       effectiveDate: Date | null;
       reviewDate: Date | null;
+      acknowledgementRequired?: boolean;
       publishedAt: Date | null;
       publishedById: string | null;
       archivedAt: Date | null;
@@ -190,6 +191,7 @@ export class PoliciesService {
       contentKind: row.storagePath ? 'UPLOAD' : 'EDITOR',
       effectiveDate: this.isoDate(row.effectiveDate),
       reviewDate: this.isoDate(row.reviewDate),
+      acknowledgementRequired: row.acknowledgementRequired ?? false,
       publishedAt: this.toIso(row.publishedAt),
       publishedById: row.publishedById,
       archivedAt: this.toIso(row.archivedAt),
@@ -1052,6 +1054,7 @@ export class PoliciesService {
           ...(dto.contentHtml !== undefined ? { contentHtml: dto.contentHtml } : {}),
           ...(dto.effectiveDate !== undefined ? { effectiveDate: this.toDateOnly(dto.effectiveDate) ?? null } : {}),
           ...(dto.reviewDate !== undefined ? { reviewDate: this.toDateOnly(dto.reviewDate) ?? null } : {}),
+          ...(dto.acknowledgementRequired !== undefined ? { acknowledgementRequired: dto.acknowledgementRequired } : {}),
           ...(switchToEditor
             ? { fileName: null, mimeType: null, fileSize: null, storagePath: null }
             : {}),
@@ -1737,6 +1740,7 @@ export class PoliciesService {
       storagePath?: string | null;
       effectiveDate: Date | null;
       reviewDate: Date | null;
+      acknowledgementRequired?: boolean;
     },
     nums: { versionMajor: number; versionMinor: number },
     changeSummary?: string,
@@ -1761,6 +1765,8 @@ export class PoliciesService {
             changeSummary: changeSummary ?? null,
             effectiveDate: source.effectiveDate,
             reviewDate: source.reviewDate,
+            // A new version must be read again, so carry the requirement forward.
+            acknowledgementRequired: source.acknowledgementRequired ?? false,
           },
         });
 
@@ -1850,6 +1856,7 @@ export class PoliciesService {
           contentHtml: dto.contentHtml ?? null,
           effectiveDate: this.toDateOnly(dto.effectiveDate) ?? null,
           reviewDate: this.toDateOnly(dto.reviewDate) ?? null,
+          acknowledgementRequired: dto.acknowledgementRequired ?? true,
         },
       });
 

@@ -25,6 +25,7 @@ import { resolveAuditEventType } from './audit-event-type.util';
 import { AuditEventType } from '@prisma/client';
 import { AuditModule } from './enums/audit-module.enum';
 import { AuditAction } from './enums/audit-action.enum';
+import { SecurityEventType } from './enums/security-event.enum';
 import { assertFinancialResetEnvironment } from '../billing/financial-controls.util';
 
 type Db = PrismaService | Prisma.TransactionClient;
@@ -116,8 +117,39 @@ export type LogExportParams = {
   metadata?: unknown;
 };
 
+export type FailedLoginReason = 'unknown_user' | 'bad_password' | 'inactive';
+
+const FAILED_LOGIN_HISTORY_REASON: Record<FailedLoginReason, string> = {
+  unknown_user: 'Unknown user',
+  bad_password: 'Invalid password',
+  inactive: 'Inactive account',
+};
+
+export type LogFailedLoginParams = {
+  channel:
+    | 'staff'
+    | 'employee_app'
+    | 'service_user_portal'
+    | 'temporary_inspector';
+  reason: FailedLoginReason;
+  /** Login identifier as submitted (email or username). Never pass the password. */
+  identifier: string;
+  identifierType?: 'email' | 'username';
+  /** Staff `User.id` when the account is known (portal accounts are not Users). */
+  userId?: string | null;
+  recordType: string;
+  recordId?: string | null;
+  description: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  /** Extra non-secret context kept on the security event / audit row. */
+  metadata?: Record<string, unknown>;
+};
+
 @Injectable()
 export class AuditLogsService {
+  private readonly logger = new Logger(AuditLogsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   getRequestMeta(req: Request): RequestAuditMeta {
@@ -270,6 +302,73 @@ export class AuditLogsService {
             : undefined,
       },
     });
+  }
+
+  /**
+   * Records a failed sign-in (login history + security event + LOGIN_FAILED audit row).
+   * Best-effort: a failing audit write is logged and swallowed so the caller's
+   * 'Invalid credentials' response is unchanged.
+   */
+  async logFailedLogin(params: LogFailedLoginParams): Promise<void> {
+    const identifier = String(params.identifier ?? '').slice(0, 320);
+    const identifierKey =
+      params.identifierType === 'username'
+        ? 'attemptedUsername'
+        : 'attemptedEmail';
+    const metadata = {
+      ...params.metadata,
+      [identifierKey]: identifier,
+      reason: params.reason,
+      channel: params.channel,
+    };
+    const writes: Array<() => Promise<unknown>> = [
+      () =>
+        this.logLogin({
+          userId: params.userId,
+          email: identifier,
+          event: 'login_failed',
+          status: AuditStatus.FAILED,
+          failureReason: FAILED_LOGIN_HISTORY_REASON[params.reason],
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
+        }),
+      () =>
+        this.logSecurityEvent({
+          userId: params.userId,
+          eventType: SecurityEventType.FAILED_LOGIN,
+          severity: SecuritySeverity.MEDIUM,
+          description: params.description,
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
+          metadata,
+        }),
+      () =>
+        this.logAudit({
+          userId: params.userId,
+          module: AuditModule.AUTH,
+          action: AuditAction.LOGIN_FAILED,
+          recordType: params.recordType,
+          recordId: params.recordId,
+          description: params.description,
+          metadata: {
+            [identifierKey]: identifier,
+            reason: params.reason,
+            channel: params.channel,
+          },
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
+          status: AuditStatus.FAILED,
+        }),
+    ];
+    for (const write of writes) {
+      try {
+        await write();
+      } catch (err) {
+        this.logger.warn(
+          `Failed-login audit write failed (${params.channel}/${params.reason}): ${(err as Error)?.message ?? err}`,
+        );
+      }
+    }
   }
 
   async logDataAccess(params: LogDataAccessParams) {

@@ -44,7 +44,6 @@ import { mapPublishedCarePlanForCarer } from './employee-app-care-plan-detail.ut
 import { resolveCprStatus, loadCprIaReport } from './employee-app-cpr-status.util';
 import { CARER_VISIBLE_RISK_WHERE, withoutUnreviewedIaRows } from './employee-app-ia-source.util';
 import {
-  loadOperationalTimeZone,
   loadVisitTaskPlacement,
 } from '../visit-tasks/visit-task-window.util';
 
@@ -277,7 +276,7 @@ export class EmployeeAppClientDetailService {
     ];
 
     const jobs = todayJobs.map((a) => a.scheduledJob);
-    const taskProgress = await this.loadTaskProgress(jobs);
+    const taskProgress = await this.loadTaskProgress(jobs, timeZone);
     const todayVisits = jobs.map((job) => {
       const visit = job.visits[0] ?? null;
       const startAt = visit?.scheduledStartDateTime ?? job.scheduledStartDateTime;
@@ -285,6 +284,7 @@ export class EmployeeAppClientDetailService {
         visit?.visitName ?? job.jobName,
         visit?.visitPlanSlot ?? null,
         startAt,
+        timeZone,
       );
       const progress = taskProgress.get(job.id) ?? { completed: 0, total: 0 };
       return {
@@ -1168,12 +1168,14 @@ export class EmployeeAppClientDetailService {
         scheduledEndDateTime?: Date | null;
       }>;
     }>,
+    timeZone: string,
   ) {
     if (!jobs.length) return new Map<string, { completed: number; total: number }>();
     const suIds = [...new Set(jobs.map((j) => j.serviceUserId))];
 
     // Tasks attach by visit clock window (like medicines), so load every task for the clients.
-    const [assignments, completions, timeZone] = await Promise.all([
+    // Organisation timezone is passed in by the caller (azure); no second lookup here.
+    const [assignments, completions] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
         where: {
           serviceUserId: { in: suIds },
@@ -1208,7 +1210,6 @@ export class EmployeeAppClientDetailService {
           notes: true,
         },
       }),
-      loadOperationalTimeZone(this.prisma),
     ]);
 
     // Each task sits on one visit of the client's day: covering visit, else nearest.
@@ -1227,6 +1228,7 @@ export class EmployeeAppClientDetailService {
       jobs,
       assignments,
       completions,
+      timeZone,
       placedAssignmentIdsByJob: new Map(
         [...byJob].map(([jobId, list]) => [jobId, new Set(list.map((p) => p.assignmentId))]),
       ),
@@ -1300,6 +1302,7 @@ function periodTitle(
   visitName: string | null,
   slot: { slotCode: string; medicationRoundCode: string | null } | null,
   startAt: Date,
+  timeZone: string,
 ): string {
   const code = (slot?.medicationRoundCode ?? slot?.slotCode ?? '').toUpperCase();
   if (code.includes('MORNING') || code === 'AM') return 'Morning visit';
@@ -1311,7 +1314,7 @@ function periodTitle(
   if (name.includes('lunch')) return 'Lunch visit';
   if (name.includes('tea')) return 'Tea visit';
   if (name.includes('bed')) return 'Bedtime visit';
-  const h = hourInTimeZone(startAt, 'UTC');
+  const h = hourInTimeZone(startAt, timeZone);
   if (h < 11) return 'Morning visit';
   if (h < 14) return 'Lunch visit';
   if (h < 18) return 'Tea visit';

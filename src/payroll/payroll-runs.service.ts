@@ -32,6 +32,11 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  addDaysToOperationalIso,
+  operationalDayBounds,
+} from '../common/utils/operational-day.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   allowFinancialResetInTransaction,
@@ -272,6 +277,7 @@ export class PayrollRunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   async list(locationId?: string) {
@@ -1362,11 +1368,18 @@ export class PayrollRunsService {
     const employeeIds = runEmployees.map((e) => e.employeeId);
     const periodStart = run.period.periodStart;
     const periodEnd = run.period.periodEnd;
-    // periodEnd is a @db.Date (midnight of the last day), so an inclusive `lte: periodEnd`
-    // wrongly drops any visit timed later that day. Use an exclusive next-day upper bound so
-    // the whole last calendar day of the period is covered.
-    const periodEndExclusive = new Date(periodEnd);
-    periodEndExclusive.setUTCDate(periodEndExclusive.getUTCDate() + 1);
+    // periodStart/periodEnd are @db.Date calendar labels; approvedPayStart is a true-UTC
+    // instant. Bound by organisation-local midnights (OrganisationGeneralSettings.timezone):
+    // from local midnight on periodStart to local midnight after periodEnd (exclusive).
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const periodStartBound = operationalDayBounds(
+      periodStart.toISOString().slice(0, 10),
+      timeZone,
+    ).start;
+    const periodEndExclusive = operationalDayBounds(
+      addDaysToOperationalIso(periodEnd.toISOString().slice(0, 10), 1),
+      timeZone,
+    ).start;
     const runEmployeeByEmployeeId = new Map(runEmployees.map((e) => [e.employeeId, e]));
 
     const lockedLines = await this.prisma.payrollRunLine.findMany({
@@ -1490,7 +1503,7 @@ export class PayrollRunsService {
         employeeId: { in: employeeIds },
         status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
         // The pay period is a span of UK dates: from the first midnight to the one after the last.
-        approvedPayStart: { gte: ukStartOfDay(periodStart), lt: ukStartOfDay(periodEndExclusive) },
+        approvedPayStart: { gte: periodStartBound, lt: periodEndExclusive },
         // Not yet settled by a visit pay run or by another closed UK run.
         includedInPayrollRunId: null,
         paidByUkPayrollRunId: null,

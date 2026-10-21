@@ -67,15 +67,20 @@ function toWorkingPatternRows(patterns: CarerPatternRow[]): WorkingPatternRow[] 
   }));
 }
 
-/** Whether a carer can take this concrete visit instance (day + wall-clock times). */
+/**
+ * Whether a carer can take this concrete visit instance (day + wall-clock times).
+ * `visitStart`/`visitEnd` are true-UTC instants; weekday and HH:mm are read in the
+ * organisation timezone (OrganisationGeneralSettings.timezone).
+ */
 export function isEmployeeAvailableForVisit(
   patterns: CarerPatternRow[],
   cycleConfig: WorkingPatternCycleConfig,
   visitStart: Date,
   visitEnd: Date,
+  timeZone: string,
 ): boolean {
   const rows = toWorkingPatternRows(patterns);
-  const resolved = resolvePatternForDateTime(rows, cycleConfig, visitStart);
+  const resolved = resolvePatternForDateTime(rows, cycleConfig, visitStart, timeZone);
   const pattern: CarerPatternRow | undefined = resolved
     ? {
         weekInCycle: resolved.weekInCycle,
@@ -87,8 +92,8 @@ export function isEmployeeAvailableForVisit(
       }
     : undefined;
 
-  const startHm = hmFromJobDate(visitStart);
-  const endHm = hmFromJobDate(visitEnd);
+  const startHm = hmFromJobDate(visitStart, timeZone);
+  const endHm = hmFromJobDate(visitEnd, timeZone);
   const evalResult = evaluatePatternDay(pattern, startHm, endHm);
   return evalResult === 'ok' || evalResult === 'partial';
 }

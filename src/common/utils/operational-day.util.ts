@@ -4,9 +4,14 @@
  * Browser / server local TZ must never define "today" for visits/schedules/ECM.
  */
 
+/**
+ * Last-resort fallback only (no organisation setting row / blank value).
+ * Callers must pass the organisation timezone from
+ * OrganisationGeneralSettingsService.getOperationalTimezone() — never rely on this default.
+ */
 export const DEFAULT_OPERATIONAL_TIMEZONE = 'Europe/London';
 
-/** Resolve org ops TZ from settings (falls back to Europe/London). */
+/** Resolve org ops TZ from settings (falls back to DEFAULT_OPERATIONAL_TIMEZONE). */
 export function getOperationalTimeZone(_orgTimezone?: string | null): string {
   const trimmed = _orgTimezone?.trim();
   return trimmed || DEFAULT_OPERATIONAL_TIMEZONE;

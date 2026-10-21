@@ -8,12 +8,23 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join, posix } from 'path';
 import { AppModule } from './app.module';
+import { corsOrigin } from './config/cors-origins.util';
+import { applyTrustProxy } from './config/trust-proxy.util';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useWebSocketAdapter(new IoAdapter(app));
+  // Containers get SIGTERM on restart / new revision: run Nest shutdown hooks (stop cron jobs,
+  // finish in-flight requests, disconnect Prisma) instead of being killed mid-request.
+  app.enableShutdownHooks();
+  // Behind a reverse proxy (Azure Container Apps ingress) take the client IP from the right-most
+  // X-Forwarded-For hop(s) so rate limits and audit logs see the real client, not the proxy.
+  applyTrustProxy(
+    app,
+    app.get(ConfigService).get<number>('app.trustProxyHops', 0),
+  );
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads
@@ -55,7 +66,8 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: true,
+    // ALLOWED_ORIGINS allow-list; fails closed in production when unset (see corsOrigin).
+    origin: corsOrigin(),
     credentials: true,
     // Cache the CORS preflight response in the browser for 10 minutes so
     // routine SPA navigation does not generate an OPTIONS round-trip before
@@ -86,22 +98,25 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   const config = app.get(ConfigService);
-  const swaggerPath = config.get<string>('app.swaggerPath', 'api/docs');
-  const swaggerTitle = config.get<string>('app.swaggerTitle', 'CareAdmin API');
-  const swaggerDescription = config.get<string>(
-    'app.swaggerDescription',
-    'CareAdmin backend API',
-  );
-  const swaggerVersion = config.get<string>('app.swaggerVersion', '1.0.0');
+  // Interactive API docs: on by default outside production, off in production unless SWAGGER_ENABLED=true.
+  if (config.get<boolean>('app.swaggerEnabled', false)) {
+    const swaggerPath = config.get<string>('app.swaggerPath', 'api/docs');
+    const swaggerTitle = config.get<string>('app.swaggerTitle', 'CareAdmin API');
+    const swaggerDescription = config.get<string>(
+      'app.swaggerDescription',
+      'CareAdmin backend API',
+    );
+    const swaggerVersion = config.get<string>('app.swaggerVersion', '1.0.0');
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(swaggerTitle)
-    .setDescription(swaggerDescription)
-    .setVersion(swaggerVersion)
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(swaggerPath, app, document);
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle(swaggerTitle)
+      .setDescription(swaggerDescription)
+      .setVersion(swaggerVersion)
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup(swaggerPath, app, document);
+  }
 
   const port = config.get<number>('app.port', 3000);
   // Bind all interfaces so phones/emulators can reach the API via LAN IP (not only localhost).

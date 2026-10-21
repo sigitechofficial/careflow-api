@@ -485,6 +485,7 @@ export class PayrollRunsService {
   }
 
   async getById(id: string) {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const row = await this.prisma.payrollRun.findUnique({
       where: { id },
       include: {
@@ -568,7 +569,7 @@ export class PayrollRunsService {
       const hoursLabel = minutes > 0 ? formatMinutesAsHours(minutes) : null;
       const payableTime =
         isVisitPay && recon?.approvedPayStart && recon?.approvedPayEnd
-          ? formatTimeRange(recon.approvedPayStart, recon.approvedPayEnd)
+          ? formatTimeRange(recon.approvedPayStart, recon.approvedPayEnd, timeZone)
           : lineType === PayrollRunLineType.MILEAGE
             ? 'Mileage'
             : lineType === PayrollRunLineType.TRAVEL_TIME
@@ -1635,7 +1636,8 @@ export class PayrollRunsService {
     problemCount: number;
   }> {
     const timeZone = await this.orgSettings.getOperationalTimezone();
-    const periodEnd = endOfBillingDate(run.periodEnd);
+    // End of the period's last day in the organisation timezone (as the visit query above).
+    const periodEnd = operationalDayBounds(run.periodEnd.toISOString().slice(0, 10), timeZone).end;
     const lines: Prisma.PayrollRunLineCreateManyInput[] = [];
     const employeeIds = new Set<string>();
     const cache = new Map<string, Awaited<ReturnType<PayCardsService['resolveRulesForEmployeeAt']>>>();
@@ -2682,6 +2684,7 @@ export class PayrollRunsService {
   }
 
   private async loadVisitExportRows(payrollRunId: string): Promise<PayrollVisitExportRow[]> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const allLines = await this.prisma.payrollRunLine.findMany({
       where: { payrollRunId },
       include: { visitReconciliation: true },
@@ -2808,17 +2811,17 @@ export class PayrollRunsService {
           addressLine2: employee?.personalDetail?.addressLine2,
         }),
         carerPostCode: employee?.personalDetail?.postcode ?? '',
-        visitDate: formatVisitDateMmDdYy(recon.plannedStartDateTime),
+        visitDate: formatVisitDateMmDdYy(recon.plannedStartDateTime, timeZone),
         careType: resolveCareTypeExportCode(su?.careType?.code),
-        plannedArrival: formatTimeHhMmSs(recon.plannedStartDateTime),
-        plannedDeparture: formatTimeHhMmSsOrZero(recon.plannedEndDateTime),
+        plannedArrival: formatTimeHhMmSs(recon.plannedStartDateTime, timeZone),
+        plannedDeparture: formatTimeHhMmSsOrZero(recon.plannedEndDateTime, timeZone),
         actualArrival:
           emonitored === 'LOGGED'
-            ? formatTimeHhMmSs(recon.actualStartDateTime!)
+            ? formatTimeHhMmSs(recon.actualStartDateTime!, timeZone)
             : '00:00:00',
         actualDeparture:
           emonitored === 'LOGGED'
-            ? formatTimeHhMmSs(recon.actualEndDateTime!)
+            ? formatTimeHhMmSs(recon.actualEndDateTime!, timeZone)
             : '00:00:00',
         visitHours: minutesToDecimalHours(visitMinutes),
         visitPay: formatPayAmount(visitPay),

@@ -633,8 +633,11 @@ export type ChargeCardRuleLike = {
   appliesToTravel?: boolean | null;
 };
 
-export function resolveCalendarDayType(visitDate: Date): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
-  return resolveBandCalendarDayType(visitDate);
+export function resolveCalendarDayType(
+  visitDate: Date,
+  timeZone: string = 'UTC',
+): 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' {
+  return resolveBandCalendarDayType(visitDate, timeZone);
 }
 
 const SPECIAL_DAY_RULE_TYPES = new Set(
@@ -841,6 +844,7 @@ export function calculatePayableAmount(
   rateBasisMinutes?: number | null,
 ): PayableAmountResult | null {
   if (minutes <= 0) return null;
+  const timeZone = window?.timeZone ?? 'UTC';
   const calendar = window?.calendar;
 
   if (nightDuty === 'SLEEPING_NIGHT') {
@@ -871,7 +875,6 @@ export function calculatePayableAmount(
 
   const dayRules = rules.filter((rule) => !isNightDutyPayRateType(rule.rateType));
   const bandRules = toTimeBandRules(dayRules);
-  const timeZone = window?.timeZone ?? 'UTC';
   const forceHourlyFromPlan =
     rateBasisMinutes != null &&
     rateBasisMinutes > MAX_FIXED_VISIT_MINUTES;

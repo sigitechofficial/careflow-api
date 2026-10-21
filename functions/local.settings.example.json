@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "JOBS_API_BASE_URL": "http://localhost:3993",
+    "JOBS_TRIGGER_SECRET": "<same value as JOBS_TRIGGER_SECRET in the API's .env - never commit it>",
+    "AzureWebJobs.survey-distribution.Disabled": "false"
+  }
+}

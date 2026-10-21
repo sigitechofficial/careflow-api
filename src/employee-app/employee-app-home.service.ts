@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
+  dayKeyInTimeZone,
   formatHmInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
@@ -26,7 +27,6 @@ import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { carerHomeUiStatus, resolveCarerRole } from './employee-app-multi-carer.util';
 import {
-  loadOperationalTimeZone,
   loadVisitTaskPlacement,
 } from '../visit-tasks/visit-task-window.util';
 
@@ -154,7 +154,7 @@ export class EmployeeAppHomeService {
     const [allergies, medCounts, taskProgressByJobId] = await Promise.all([
       this.loadAllergiesByServiceUser(serviceUserIds),
       this.loadMedicationCounts(serviceUserIds),
-      this.loadTaskProgress(jobs),
+      this.loadTaskProgress(jobs, timeZone),
     ]);
 
     const now = new Date();
@@ -228,7 +228,8 @@ export class EmployeeAppHomeService {
       });
       const isOvernight =
         jobMetadataIsOvernight(job.metadata) ||
-        (endAt != null && startAt.toISOString().slice(0, 10) !== endAt.toISOString().slice(0, 10));
+        (endAt != null &&
+          dayKeyInTimeZone(startAt, timeZone) !== dayKeyInTimeZone(endAt, timeZone));
 
       return {
         jobId: job.id,
@@ -459,12 +460,14 @@ export class EmployeeAppHomeService {
         scheduledEndDateTime?: Date | null;
       }>;
     }>,
+    timeZone: string,
   ) {
     if (!jobs.length) return new Map<string, { completed: number; total: number }>();
     const suIds = [...new Set(jobs.map((j) => j.serviceUserId))];
 
     // Tasks attach by visit clock window (like medicines), so load every task for the clients.
-    const [assignments, completions, timeZone] = await Promise.all([
+    // Organisation timezone is passed in by the caller (azure); no second lookup here.
+    const [assignments, completions] = await Promise.all([
       this.prisma.serviceUserVisitTaskAssignment.findMany({
         where: {
           serviceUserId: { in: suIds },
@@ -499,7 +502,6 @@ export class EmployeeAppHomeService {
           notes: true,
         },
       }),
-      loadOperationalTimeZone(this.prisma),
     ]);
 
     // Each task sits on one visit of the client's day: covering visit, else nearest.
@@ -518,6 +520,7 @@ export class EmployeeAppHomeService {
       jobs,
       assignments,
       completions,
+      timeZone,
       placedAssignmentIdsByJob: new Map(
         [...byJob].map(([jobId, list]) => [jobId, new Set(list.map((p) => p.assignmentId))]),
       ),

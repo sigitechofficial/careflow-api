@@ -135,8 +135,11 @@ export type SyncVisitPlanSlotCarersParams = {
   scheduledVisitId?: string;
   /** Lower bound for bulk sync; ignored when `scheduledVisitId` is set. Defaults to start of ops today. */
   fromDateTime?: Date;
-  /** Organisation timezone for day-of-week carer assignment. */
-  timeZone?: string;
+  /**
+   * Organisation timezone (OrganisationGeneralSettings.timezone) for day-of-week carer
+   * assignment, working-pattern checks and the default "from ops today" bound.
+   */
+  timeZone: string;
   /** When true (default), only assign carers on days/times that match their working pattern. */
   respectWorkingPattern?: boolean;
   /** Optional per-carer windows; when present, new allocations inherit these times. */
@@ -248,28 +251,35 @@ function toWorkingPatternRows(patterns: CarerPatternRow[]): WorkingPatternRow[] 
   }));
 }
 
-/** Human-readable warnings when assigned carers are outside their working pattern. */
+/**
+ * Human-readable warnings when assigned carers are outside their working pattern.
+ * Weekday and HH:mm of the (true-UTC) visit are read in the organisation `timeZone`.
+ */
 export function visitCarerPatternMismatchWarnings(
   employeeIds: string[],
   visit: { scheduledStartDateTime: Date; scheduledEndDateTime: Date | null },
   patternByEmployee: Map<string, EmployeePatternContext>,
+  timeZone: string,
 ): string[] {
   const visitStart = visit.scheduledStartDateTime;
   const visitEnd = visitEndDateTime(visitStart, visit.scheduledEndDateTime);
-  const startHm = hmFromJobDate(visitStart);
-  const endHm = hmFromJobDate(visitEnd);
-  const dayLabel = DAY_LABEL[weekdayIndexInTimeZone(visitStart, DEFAULT_OPERATIONAL_TIMEZONE)] ?? 'this day';
+  const startHm = hmFromJobDate(visitStart, timeZone);
+  const endHm = hmFromJobDate(visitEnd, timeZone);
+  const dayLabel = DAY_LABEL[weekdayIndexInTimeZone(visitStart, timeZone)] ?? 'this day';
   const messages: string[] = [];
 
   for (const employeeId of employeeIds) {
     const ctx = patternByEmployee.get(employeeId);
     if (!ctx) continue;
-    if (isEmployeeAvailableForVisit(ctx.patterns, ctx.cycleConfig, visitStart, visitEnd)) continue;
+    if (isEmployeeAvailableForVisit(ctx.patterns, ctx.cycleConfig, visitStart, visitEnd, timeZone)) {
+      continue;
+    }
 
     const resolved = resolvePatternForDateTime(
       toWorkingPatternRows(ctx.patterns),
       ctx.cycleConfig,
       visitStart,
+      timeZone,
     );
 
     if (!resolved || !resolved.isAvailable) {
@@ -307,8 +317,9 @@ export function targetEmployeeIdsForVisit(
   desired: string[],
   visit: { requiredCarers: number | null; scheduledStartDateTime: Date; scheduledEndDateTime: Date | null },
   required: number,
-  respectWorkingPattern?: boolean,
-  patternByEmployee?: Map<string, EmployeePatternContext>,
+  respectWorkingPattern: boolean | undefined,
+  patternByEmployee: Map<string, EmployeePatternContext> | undefined,
+  timeZone: string,
 ): string[] {
   const cap = Math.max(1, visit.requiredCarers || required);
   const base = desired.slice(0, cap);
@@ -319,7 +330,8 @@ export function targetEmployeeIdsForVisit(
 
   return base.filter(
     (employeeId) =>
-      visitCarerPatternMismatchWarnings([employeeId], visit, patternByEmployee).length === 0,
+      visitCarerPatternMismatchWarnings([employeeId], visit, patternByEmployee, timeZone).length ===
+      0,
   );
 }
 
@@ -338,6 +350,8 @@ export async function resolveVisitCarerAssignment(
     excludeScheduledJobId?: string;
     medicationRequired?: boolean;
     visitPlanSlotId?: string | null;
+    /** Organisation timezone for working-pattern weekday / HH:mm checks. */
+    timeZone: string;
   },
 ): Promise<{
   employeeIds: string[];
@@ -356,12 +370,18 @@ export async function resolveVisitCarerAssignment(
     required,
     respectWorkingPattern,
     options.patternByEmployee,
+    options.timeZone,
   );
   const patternWarnings: string[] = [];
 
   if (!respectWorkingPattern && options.patternByEmployee.size) {
     patternWarnings.push(
-      ...visitCarerPatternMismatchWarnings(employeeIds, visit, options.patternByEmployee),
+      ...visitCarerPatternMismatchWarnings(
+        employeeIds,
+        visit,
+        options.patternByEmployee,
+        options.timeZone,
+      ),
     );
   }
 
@@ -391,6 +411,7 @@ export async function resolveVisitCarerAssignment(
     excludeScheduledJobId: options.excludeScheduledJobId,
     medicationRequired: options.medicationRequired ?? false,
     skillKeywords: await skillKeywordsForVisitPlanSlot(tx, options.visitPlanSlotId),
+    timeZone: options.timeZone,
   });
   const allowed: string[] = [];
   const ruleWarnings: string[] = [];
@@ -422,6 +443,7 @@ export function countVisitsSkippedIfRespecting(
   assignedEmployeeIds: string[],
   requiredCarers: number,
   patternByEmployee: Map<string, EmployeePatternContext>,
+  timeZone: string,
 ): number {
   const required = Math.max(1, requiredCarers);
   const desired = (assignedEmployeeIds ?? []).slice(0, required);
@@ -429,7 +451,7 @@ export function countVisitsSkippedIfRespecting(
   for (const visit of visits) {
     const cap = Math.max(1, visit.requiredCarers || required);
     const ids = desired.slice(0, cap);
-    if (visitCarerPatternMismatchWarnings(ids, visit, patternByEmployee).length > 0) {
+    if (visitCarerPatternMismatchWarnings(ids, visit, patternByEmployee, timeZone).length > 0) {
       skipped += 1;
     }
   }
@@ -454,8 +476,8 @@ export function visitPlanCarerEmployeeIds(
 }
 
 export function visitPlanCarerSyncFromDateTime(
-  fromDate?: string,
-  timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
+  fromDate: string | undefined,
+  timeZone: string,
 ): Date {
   const day = fromDate?.trim() || operationalTodayIso(new Date(), timeZone);
   return operationalDayBounds(day, timeZone).start;
@@ -544,6 +566,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         excludeScheduledJobId: jobId,
         medicationRequired: visit.medicationRequired,
         visitPlanSlotId: params.visitPlanSlotId,
+        timeZone: params.timeZone,
       },
     );
     const target = resolved.employeeIds;

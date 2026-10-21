@@ -4,6 +4,7 @@ import {
   emptyMarAdminEchoFields,
   type MarAdminEventEchoSource,
 } from './employee-app-mar-echo.util';
+import { dayKeyInTimeZone } from '../../common/utils/operational-day.util';
 import type { MedicationWitnessEcho } from '../../medications/medication-witness.util';
 import {
   filterCompartmentsForVisitRound,
@@ -211,8 +212,12 @@ function mapPackMedicine(input: MapPackMedicineInput): EmployeeAppBlisterPackMed
 function medicationActiveOnVisitDay(
   med: { startDate?: Date | string | null; endDate?: Date | string | null },
   visitAt: Date,
+  timeZone: string | undefined,
 ): boolean {
-  const day = new Date(Date.UTC(visitAt.getUTCFullYear(), visitAt.getUTCMonth(), visitAt.getUTCDate()));
+  // Medication start/end are calendar labels; compare with the visit's org-local day.
+  const day = timeZone
+    ? new Date(`${dayKeyInTimeZone(visitAt, timeZone)}T00:00:00.000Z`)
+    : new Date(Date.UTC(visitAt.getUTCFullYear(), visitAt.getUTCMonth(), visitAt.getUTCDate()));
   if (med.startDate) {
     const start = new Date(med.startDate);
     if (!Number.isNaN(start.getTime()) && start > day) return false;
@@ -290,7 +295,8 @@ export function buildVisitBlisterPacks(input: {
               );
             }
             if (!visitAt) return true;
-            return medicationActiveOnVisitDay(member.serviceUserMedication, visitAt);
+            const recorded = eventByMed.has(member.serviceUserMedication.id);
+            return recorded || medicationActiveOnVisitDay(member.serviceUserMedication, visitAt, timeZone);
           });
           const medicines = slotMembers.map((member) =>
             mapPackMedicine({

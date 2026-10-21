@@ -9,6 +9,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { resolveAllocationWindow } from '../job-allocations/allocation-window.util';
+import { JobHandler } from '../jobs/job-handler.registry';
+import { JobRunner, runCronTick } from '../jobs/job-runner.service';
+import { jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
 
 const CLOSED_JOB: ScheduledJobStatus[] = [
   ScheduledJobStatus.COMPLETED,
@@ -36,11 +39,21 @@ export class VisitStartReminderJob {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly carerPush?: CarerVisitPushHook,
+    @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
   @Cron('*/2 * * * *', { timeZone: 'UTC' })
   async handleUpcomingVisits(): Promise<void> {
-    if (!this.carerPush) return;
+    await runCronTick(this.jobRunner, 'visit-start-reminder', () =>
+      this.runStartReminders(),
+    );
+  }
+
+  @JobHandler('visit-start-reminder')
+  async runStartReminders(): Promise<JobOutcome> {
+    if (!this.carerPush) {
+      return jobSkipped('Carer push notifications are not available');
+    }
     const now = Date.now();
     const windowEnd = new Date(now + LEAD_MINUTES * 60_000);
 
@@ -122,5 +135,6 @@ export class VisitStartReminderJob {
     if (sent > 0) {
       this.logger.log(`Visit start reminders: ${sent} job(s)`);
     }
+    return jobSuccess({ candidates: jobs.length, remindersSent: sent });
   }
 }

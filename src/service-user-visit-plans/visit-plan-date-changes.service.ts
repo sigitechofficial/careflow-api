@@ -49,12 +49,19 @@ import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util'
 import { normalizeVisitPlanSlotCode, slotLabel } from './visit-plan-slot-defaults';
 import { clampRotaHorizonDays } from './visit-plan-rolling-rota.util';
 import { wallClockVisitEnd } from './visit-plan-slot-window.util';
-import { slotTimesCrossMidnight, visitPlanGeneratedJobMetadata } from './visit-plan-night-duty.util';
+import {
+  isNightTimeSlotCode,
+  resolveStoredNightDuty,
+  slotTimesCrossMidnight,
+  visitPlanGeneratedJobMetadata,
+} from './visit-plan-night-duty.util';
 import { loadScheduledMedicationDueTimes, resolveMedicationRequiredForSlot } from './visit-medication-required.util';
 import { groupRotaGeneratedCarerPushes } from './visit-plan-rota-carer-push.util';
 import { VISIT_PLAN_EXTRA_JOB_METADATA_KEY } from './visit-plan-extra-visit.util';
 import type {
   VisitPlanAddExtraVisitsDto,
+  VisitPlanEditExtraVisitDto,
+  VisitPlanDeleteExtraVisitDto,
   VisitPlanCancelVisitsDto,
   VisitPlanCancelVisitsPreviewDto,
   VisitPlanDateChangeItemDto,
@@ -86,6 +93,13 @@ const MAX_RANGE_DAYS = 92;
 const ABSENCE_NOTE_MARKER = 'Auto: service user absence';
 /** Row-code suffix of the hidden rows that carry a time slot's extra visits. */
 const EXTRA_HOST_CODE_SUFFIX = '__X';
+/** An extra visit can be edited only while its rota job has not started. */
+const EDITABLE_EXTRA_JOB_STATUSES: ScheduledJobStatus[] = [
+  ScheduledJobStatus.DRAFT,
+  ScheduledJobStatus.UNALLOCATED,
+  ScheduledJobStatus.ALLOCATED,
+  ScheduledJobStatus.NEEDS_ATTENTION,
+];
 
 export type CancellableVisitStatus = 'ON_ROTA' | 'NOT_ON_ROTA';
 
@@ -321,9 +335,46 @@ export class VisitPlanDateChangesService {
       users.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email]),
     );
 
+    // Extra visits: their rota job decides whether they can still be edited or deleted.
+    const extraIds = rows.filter((r) => r.ex.exceptionType === VisitPlanSlotExceptionType.EXTRA).map((r) => r.ex.id);
+    const extraJobs = extraIds.length
+      ? await this.prisma.scheduledJob.findMany({
+          where: {
+            serviceUserId,
+            deletedAt: null,
+            isActive: true,
+            OR: extraIds.map((id) => ({ metadata: { path: ['visitPlanExceptionId'], equals: id } })),
+          },
+          select: {
+            status: true,
+            metadata: true,
+            visits: { where: { deletedAt: null }, take: 1, select: { status: true, actualStartDateTime: true } },
+            allocations: {
+              where: { deletedAt: null, isActive: true, status: { in: ACTIVE_ALLOCATION_ENUMS } },
+              orderBy: [{ isLeadCarer: 'desc' }, { createdAt: 'asc' }],
+              select: { employeeId: true, actualStartDateTime: true },
+            },
+          },
+        })
+      : [];
+    const extraJobByException = new Map(
+      extraJobs.map((j) => [String((j.metadata as Record<string, unknown> | null)?.visitPlanExceptionId ?? ''), j]),
+    );
+
     const changes = rows
       .map(({ slot, ex }) => {
         const isCancel = ex.exceptionType === VisitPlanSlotExceptionType.SKIP;
+        const extraJob = isCancel ? undefined : extraJobByException.get(ex.id);
+        const extraVisit = extraJob?.visits[0];
+        const canChange = Boolean(
+          extraJob &&
+            EDITABLE_EXTRA_JOB_STATUSES.includes(extraJob.status) &&
+            (!extraVisit ||
+              ((extraVisit.status === ScheduledVisitStatus.PLANNED ||
+                extraVisit.status === ScheduledVisitStatus.NEEDS_ATTENTION) &&
+                !extraVisit.actualStartDateTime)) &&
+            !extraJob.allocations.some((a) => a.actualStartDateTime),
+        );
         const reason = ex.reasonCode ? visitCancellationReasonMeta(ex.reasonCode as VisitCancellationReasonCode) : null;
         return {
           id: ex.id,
@@ -340,7 +391,14 @@ export class VisitPlanDateChangesService {
           reasonLabel: reason?.label ?? null,
           notes: ex.notes,
           chargeDecision: ex.chargeDecision,
-          assignedEmployeeIds: ex.assignedEmployeeIds ?? [],
+          // Carers on the rota visit now (lead first), so later rota changes show here too.
+          assignedEmployeeIds: extraJob ? extraJob.allocations.map((a) => a.employeeId) : (ex.assignedEmployeeIds ?? []),
+          roundCode: slot.medicationRoundCode ?? normalizeVisitPlanSlotCode(slot.slotCode).replace(/__X\d*$/, ''),
+          durationMinutes: ex.durationMinutes,
+          requiredCarers: ex.requiredCarers,
+          nightDuty: extraJob ? resolveStoredNightDuty({ jobMetadata: extraJob.metadata }) : null,
+          canEdit: canChange,
+          canDelete: canChange,
           source: ex.notes.startsWith(ABSENCE_NOTE_MARKER) ? ('ABSENCE' as const) : ('MANUAL' as const),
           recordedByName: ex.createdById ? (userName.get(ex.createdById) ?? null) : null,
           recordedAt: ex.createdAt.toISOString(),
@@ -613,7 +671,13 @@ export class VisitPlanDateChangesService {
   }
 
   /** Per-date checks for an extra visit: no clash for the service user or the chosen carers. */
-  private async checkExtraDates(plan: DatePlanRow, dto: VisitPlanExtraVisitsPreviewDto) {
+  private async checkExtraDates(
+    plan: DatePlanRow,
+    dto: VisitPlanExtraVisitsPreviewDto,
+    /** When editing an extra visit, its own rota job is not a clash. */
+    options: { excludeJobId?: string } = {},
+  ) {
+    const excludeJob = options.excludeJobId ? { id: { not: options.excludeJobId } } : {};
     if (plan.status !== VisitPlanStatus.ACTIVE) {
       throw new BadRequestException('Extra visits can only be added on an active visit plan');
     }
@@ -684,6 +748,7 @@ export class VisitPlanDateChangesService {
       // The service user cannot have two visits at once — on the rota or still to be generated.
       const overlapping = await this.prisma.scheduledJob.findFirst({
         where: {
+          ...excludeJob,
           serviceUserId: plan.serviceUserId,
           deletedAt: null,
           isActive: true,
@@ -722,6 +787,7 @@ export class VisitPlanDateChangesService {
             isActive: true,
             status: { in: ACTIVE_ALLOCATION_ENUMS },
             scheduledJob: {
+              ...excludeJob,
               deletedAt: null,
               isActive: true,
               status: { notIn: NOT_OCCUPYING_JOB_STATUSES },
@@ -760,7 +826,18 @@ export class VisitPlanDateChangesService {
 
   async previewExtraVisits(serviceUserId: string, planId: string, dto: VisitPlanExtraVisitsPreviewDto) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
-    const result = await this.checkExtraDates(plan, dto);
+    const editingJob = dto.editingExceptionId
+      ? await this.prisma.scheduledJob.findFirst({
+          where: {
+            serviceUserId,
+            deletedAt: null,
+            isActive: true,
+            metadata: { path: ['visitPlanExceptionId'], equals: dto.editingExceptionId },
+          },
+          select: { id: true },
+        })
+      : null;
+    const result = await this.checkExtraDates(plan, dto, { excludeJobId: editingJob?.id });
     return {
       data: {
         slotLabel: result.slotLabel,
@@ -791,11 +868,13 @@ export class VisitPlanDateChangesService {
     const { timeZone, employeeIds, round } = result;
     const label = result.slotLabel;
     const endHm = addMinutesToHm(dto.startTime, dto.durationMinutes);
-    // Waking / sleeping night only applies to a visit that runs past midnight; otherwise a normal visit.
-    const runsPastMidnight = slotTimesCrossMidnight(dto.startTime, endHm);
+    // Waking / sleeping night applies to the Night time slot or a visit that runs past midnight.
+    const nightTypeAllowed = isNightTimeSlotCode(round.code) || slotTimesCrossMidnight(dto.startTime, endHm);
     const nightDuty = dto.nightDuty ?? VisitPlanNightDuty.NONE;
-    if (nightDuty !== VisitPlanNightDuty.NONE && !runsPastMidnight) {
-      throw new BadRequestException('Waking or sleeping night is only for a visit that runs past midnight');
+    if (nightDuty !== VisitPlanNightDuty.NONE && !nightTypeAllowed) {
+      throw new BadRequestException(
+        'Waking or sleeping night is only for a visit in the Night time slot or one that runs past midnight',
+      );
     }
     const visitName = `${label} (extra)`;
     const notes = [reason, dto.notes?.trim()].filter(Boolean).join('\n\n');
@@ -983,12 +1062,372 @@ export class VisitPlanDateChangesService {
     };
   }
 
+  /**
+   * Edit one extra visit before it starts: time, duration, carers, night type and reason.
+   * The date and time slot stay the same; the list row and its rota visit are updated together.
+   */
+  async editExtraVisit(
+    user: RequestUser,
+    serviceUserId: string,
+    planId: string,
+    exceptionId: string,
+    dto: VisitPlanEditExtraVisitDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Give a reason for the extra visit');
+    const { plan, host, exception, date, job, visit } = await this.loadEditableExtraVisit(
+      serviceUserId,
+      planId,
+      exceptionId,
+      'edited',
+    );
+
+    const roundCode = host.medicationRoundCode ?? normalizeVisitPlanSlotCode(host.slotCode).replace(/__X\d*$/, '');
+    const result = await this.checkExtraDates(
+      plan,
+      {
+        roundCode,
+        dates: [date],
+        startTime: dto.startTime,
+        durationMinutes: dto.durationMinutes,
+        requiredCarers: dto.requiredCarers,
+        employeeIds: dto.employeeIds,
+      },
+      { excludeJobId: job.id },
+    );
+    if (!result.slotLabel) throw new BadRequestException(result.slotMessage ?? 'No time slot covers this time');
+    const check = result.checks[0];
+    if (!check?.ok) throw new BadRequestException(check?.message ?? 'This change cannot be saved');
+
+    const { timeZone, employeeIds } = result;
+    const endHm = addMinutesToHm(dto.startTime, dto.durationMinutes);
+    const nightDuty = dto.nightDuty ?? VisitPlanNightDuty.NONE;
+    if (
+      nightDuty !== VisitPlanNightDuty.NONE &&
+      !isNightTimeSlotCode(roundCode) &&
+      !slotTimesCrossMidnight(dto.startTime, endHm)
+    ) {
+      throw new BadRequestException(
+        'Waking or sleeping night is only for a visit in the Night time slot or one that runs past midnight',
+      );
+    }
+    const start = combineOperationalDateAndHm(date, dto.startTime, timeZone);
+    const end = wallClockVisitEnd(date, dto.startTime, endHm, timeZone);
+    const actualMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+    const isOvernight = operationalTodayIso(end, timeZone) !== date && formatHmInZone(end, timeZone) !== '00:00';
+    const scheduledDueTimes = await loadScheduledMedicationDueTimes(this.prisma, serviceUserId);
+    const fullyAllocated = employeeIds.length >= dto.requiredCarers;
+
+    const before = {
+      startTime: exception.plannedStartTime,
+      endTime: exception.plannedEndTime,
+      durationMinutes: exception.durationMinutes,
+      requiredCarers: exception.requiredCarers,
+      employeeIds: job.allocations.map((a) => a.employeeId),
+      notes: exception.notes,
+    };
+    const keptByEmployee = new Map(job.allocations.map((a) => [a.employeeId, a]));
+    const removed = job.allocations.filter((a) => !employeeIds.includes(a.employeeId));
+    const added = employeeIds.filter((id) => !keptByEmployee.has(id));
+    const timeChanged =
+      job.scheduledStartDateTime.getTime() !== start.getTime() ||
+      (job.scheduledEndDateTime?.getTime() ?? 0) !== end.getTime();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitPlanSlotException.update({
+        where: { id: exceptionId },
+        data: {
+          plannedStartTime: dto.startTime,
+          plannedEndTime: endHm,
+          durationMinutes: dto.durationMinutes,
+          requiredCarers: dto.requiredCarers,
+          notes: reason,
+          assignedEmployeeIds: employeeIds,
+        },
+      });
+      const oldMetadata =
+        job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
+          ? (job.metadata as Record<string, unknown>)
+          : {};
+      await tx.scheduledJob.update({
+        where: { id: job.id },
+        data: {
+          scheduledStartDateTime: start,
+          scheduledEndDateTime: end,
+          estimatedDurationMinutes: actualMinutes,
+          requiredCarers: dto.requiredCarers,
+          status: fullyAllocated ? ScheduledJobStatus.ALLOCATED : ScheduledJobStatus.NEEDS_ATTENTION,
+          notes: reason,
+          metadata: { ...oldMetadata, isOvernight, nightDuty } as Prisma.InputJsonValue,
+          updatedById: user.id,
+        },
+      });
+      if (visit) {
+        await tx.scheduledVisit.update({
+          where: { id: visit.id },
+          data: {
+            scheduledStartDateTime: start,
+            scheduledEndDateTime: end,
+            requiredCarers: dto.requiredCarers,
+            status: fullyAllocated ? ScheduledVisitStatus.PLANNED : ScheduledVisitStatus.NEEDS_ATTENTION,
+            medicationRequired: resolveMedicationRequiredForSlot({
+              plannedStartTime: dto.startTime,
+              plannedEndTime: endHm,
+              scheduledDueTimes,
+            }),
+          },
+        });
+      }
+      for (const a of removed) {
+        await tx.jobAllocation.update({
+          where: { id: a.id },
+          data: {
+            status: AllocationStatus.UNALLOCATED,
+            isActive: false,
+            isLeadCarer: false,
+            unallocatedAt: new Date(),
+            unallocatedById: user.id,
+            unallocationReason: 'Removed when the extra visit was edited',
+          },
+        });
+      }
+      for (const [index, employeeId] of employeeIds.entries()) {
+        const kept = keptByEmployee.get(employeeId);
+        const times = { scheduledStartDateTime: start, scheduledEndDateTime: end, durationMinutes: actualMinutes };
+        if (kept) {
+          await tx.jobAllocation.update({ where: { id: kept.id }, data: { ...times, isLeadCarer: index === 0 } });
+        } else {
+          await tx.jobAllocation.create({
+            data: {
+              scheduledJobId: job.id,
+              scheduledVisitId: visit?.id ?? null,
+              employeeId,
+              status: AllocationStatus.CONFIRMED,
+              requiresConfirmation: false,
+              allocatedById: user.id,
+              ...times,
+              isLeadCarer: index === 0,
+            },
+          });
+        }
+      }
+    });
+
+    const label = result.slotLabel;
+    const after = { startTime: dto.startTime, endTime: endHm, durationMinutes: dto.durationMinutes, requiredCarers: dto.requiredCarers, employeeIds, notes: reason };
+    const change = { type: 'EDIT_EXTRA_VISIT', exceptionId, date, timeSlot: roundCode, before, after };
+    await this.prisma.visitPlanAmendment.create({
+      data: {
+        visitPlanId: planId,
+        reason: `Edited extra visit on ${date} (${label} ${dto.startTime}–${endHm}) — ${reason}`,
+        snapshotBefore: { dateChange: { ...change, after: undefined } } as Prisma.InputJsonValue,
+        snapshotAfter: { dateChange: { ...change, before: undefined } } as Prisma.InputJsonValue,
+        amendedById: user.id,
+      },
+    });
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.SERVICE_USER_VISIT_PLAN_UPDATED,
+      recordType: 'ServiceUserVisitPlan',
+      recordId: planId,
+      oldValues: auditSnapshot({ dateChange: { ...change, after: undefined } }),
+      newValues: auditSnapshot({ dateChange: { ...change, before: undefined } }),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    // Tell carers: new ones get the usual "new visit" push, removed ones are told, kept ones hear about a time change.
+    if (this.carerPush) {
+      try {
+        if (added.length) await this.notifyCarersOfExtraVisits([job.id], serviceUserId, timeZone, added);
+        if (removed.length) {
+          this.carerPush.notify({
+            employeeIds: removed.map((a) => a.employeeId),
+            kind: CarerVisitPushKind.VISIT_REMOVED,
+            title: 'Removed from visit',
+            body: `You have been taken off "${job.jobName}".`,
+            scheduledJobId: job.id,
+            serviceUserId,
+          });
+        }
+        const keptIds = employeeIds.filter((id) => keptByEmployee.has(id));
+        if (timeChanged && keptIds.length) {
+          this.carerPush.notify({
+            employeeIds: keptIds,
+            kind: CarerVisitPushKind.VISIT_CHANGE,
+            title: 'Visit updated',
+            body: `Time changed for "${job.jobName}".`,
+            scheduledJobId: job.id,
+            serviceUserId,
+          });
+        }
+      } catch (err) {
+        this.logger.warn(`Extra visit edit push failed for service user ${serviceUserId}: ${(err as Error).message}`);
+      }
+    }
+
+    return { message: 'Extra visit updated', data: { id: exceptionId, date, startTime: dto.startTime, endTime: endHm } };
+  }
+
+  /** An extra visit with its rota job, only while that visit has not started. */
+  private async loadEditableExtraVisit(serviceUserId: string, planId: string, exceptionId: string, verb: 'edited' | 'deleted') {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    if (plan.status !== VisitPlanStatus.ACTIVE) {
+      throw new BadRequestException(`Extra visits can only be ${verb} on an active visit plan`);
+    }
+    const host = plan.slots.find((s) =>
+      s.exceptions.some((ex) => ex.id === exceptionId && ex.exceptionType === VisitPlanSlotExceptionType.EXTRA),
+    );
+    const exception = host?.exceptions.find((ex) => ex.id === exceptionId);
+    if (!host || !exception) throw new NotFoundException('Extra visit not found');
+    const date = exception.exceptionDate.toISOString().slice(0, 10);
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: {
+        serviceUserId,
+        deletedAt: null,
+        isActive: true,
+        metadata: { path: ['visitPlanExceptionId'], equals: exceptionId },
+      },
+      include: {
+        visits: { where: { deletedAt: null }, take: 1 },
+        allocations: { where: { deletedAt: null, isActive: true, status: { in: ACTIVE_ALLOCATION_ENUMS } } },
+      },
+    });
+    if (!job) throw new BadRequestException(`This extra visit is no longer on the rota, so it cannot be ${verb}`);
+    const visit = job.visits[0] ?? null;
+    const notStarted =
+      EDITABLE_EXTRA_JOB_STATUSES.includes(job.status) &&
+      (!visit ||
+        ((visit.status === ScheduledVisitStatus.PLANNED || visit.status === ScheduledVisitStatus.NEEDS_ATTENTION) &&
+          !visit.actualStartDateTime)) &&
+      !job.allocations.some((a) => a.actualStartDateTime);
+    if (!notStarted) throw new BadRequestException(`This visit has started or ended, so it can no longer be ${verb}`);
+    return { plan, host, exception, date, job, visit };
+  }
+
+  /**
+   * Delete one extra visit before it starts. The rota visit is soft-deleted and its carers are
+   * taken off; the list row goes. What was removed, and why, stays in the plan amendments and audit log.
+   */
+  async deleteExtraVisit(
+    user: RequestUser,
+    serviceUserId: string,
+    planId: string,
+    exceptionId: string,
+    dto: VisitPlanDeleteExtraVisitDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const reason = dto.reason.trim();
+    if (!reason) throw new BadRequestException('Give a reason for deleting the extra visit');
+    const { host, exception, date, job, visit } = await this.loadEditableExtraVisit(
+      serviceUserId,
+      planId,
+      exceptionId,
+      'deleted',
+    );
+    const now = new Date();
+    const carerIds = job.allocations.map((a) => a.employeeId);
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const a of job.allocations) {
+        await tx.jobAllocation.update({
+          where: { id: a.id },
+          data: {
+            status: AllocationStatus.UNALLOCATED,
+            isActive: false,
+            isLeadCarer: false,
+            unallocatedAt: now,
+            unallocatedById: user.id,
+            unallocationReason: 'Extra visit deleted',
+          },
+        });
+      }
+      if (visit) {
+        await tx.scheduledVisit.update({
+          where: { id: visit.id },
+          data: { deletedAt: now, deletedById: user.id, isActive: false },
+        });
+      }
+      await tx.scheduledJob.update({
+        where: { id: job.id },
+        data: { deletedAt: now, deletedById: user.id, isActive: false },
+      });
+      await tx.visitPlanSlotException.delete({ where: { id: exceptionId } });
+    });
+
+    const roundCode = host.medicationRoundCode ?? normalizeVisitPlanSlotCode(host.slotCode).replace(/__X\d*$/, '');
+    const removedVisit = {
+      exceptionId,
+      date,
+      timeSlot: roundCode,
+      startTime: exception.plannedStartTime,
+      endTime: exception.plannedEndTime,
+      durationMinutes: exception.durationMinutes,
+      requiredCarers: exception.requiredCarers,
+      employeeIds: carerIds,
+      notes: exception.notes,
+      scheduledJobId: job.id,
+    };
+    const change = { type: 'DELETE_EXTRA_VISIT', reason, removedVisit };
+    await this.prisma.visitPlanAmendment.create({
+      data: {
+        visitPlanId: planId,
+        reason: `Deleted extra visit on ${date} (${exception.plannedStartTime ?? ''}–${exception.plannedEndTime ?? ''}) — ${reason}`,
+        snapshotBefore: { dateChange: { type: 'DELETE_EXTRA_VISIT', removedVisit } } as Prisma.InputJsonValue,
+        snapshotAfter: { dateChange: change } as Prisma.InputJsonValue,
+        amendedById: user.id,
+      },
+    });
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.SERVICE_USER_VISIT_PLAN_UPDATED,
+      recordType: 'ServiceUserVisitPlan',
+      recordId: planId,
+      oldValues: auditSnapshot({ dateChange: { type: 'DELETE_EXTRA_VISIT', removedVisit } }),
+      newValues: auditSnapshot({ dateChange: change }),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    if (this.carerPush && carerIds.length) {
+      try {
+        this.carerPush.notify({
+          employeeIds: carerIds,
+          kind: CarerVisitPushKind.VISIT_REMOVED,
+          title: 'Visit removed',
+          body: `"${job.jobName}" has been removed from your rota.`,
+          scheduledJobId: job.id,
+          serviceUserId,
+        });
+      } catch (err) {
+        this.logger.warn(`Extra visit delete push failed for service user ${serviceUserId}: ${(err as Error).message}`);
+      }
+    }
+
+    return { message: 'Extra visit deleted', data: { id: exceptionId, date } };
+  }
+
   /** Same "new visit" push the carers get when the rota is generated. */
-  private async notifyCarersOfExtraVisits(jobIds: string[], serviceUserId: string, timeZone: string) {
+  private async notifyCarersOfExtraVisits(
+    jobIds: string[],
+    serviceUserId: string,
+    timeZone: string,
+    /** Only these carers (e.g. the ones just added when editing); all carers on the jobs when left out. */
+    onlyEmployeeIds?: string[],
+  ) {
     if (!this.carerPush || !jobIds.length) return;
     try {
       const allocations = await this.prisma.jobAllocation.findMany({
-        where: { scheduledJobId: { in: jobIds }, deletedAt: null, isActive: true },
+        where: {
+          scheduledJobId: { in: jobIds },
+          deletedAt: null,
+          isActive: true,
+          ...(onlyEmployeeIds ? { employeeId: { in: onlyEmployeeIds } } : {}),
+        },
         select: {
           employeeId: true,
           scheduledJobId: true,

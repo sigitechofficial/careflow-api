@@ -260,7 +260,12 @@ export class VisitPlanBulkScheduleService {
     };
   }
 
-  async bulkGenerate(userId: string, dto: BulkGenerateVisitPlanScheduleDto, meta?: RequestAuditMeta) {
+  async bulkGenerate(
+    userId: string,
+    dto: BulkGenerateVisitPlanScheduleDto,
+    meta?: RequestAuditMeta,
+    options?: { restoreDeletedJobs?: boolean },
+  ) {
     if (dto.planIds?.length) {
       const plans = await this.loadActivePlans(dto.locationId, dto.planIds);
       if (plans.length !== dto.planIds.length) {
@@ -328,6 +333,7 @@ export class VisitPlanBulkScheduleService {
             respectWorkingPatternOnSync,
           },
           meta,
+          { restoreDeletedJobs: options?.restoreDeletedJobs },
         );
         const data = response.data;
         visitsCreated += data.visitsCreated;

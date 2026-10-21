@@ -7,8 +7,11 @@ import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { openfdaConfig } from './config/openfda.config';
 import { mailConfig } from './config/mail.config';
+import { azureCostConfig } from './config/azure-cost.config';
+import { jobsConfig } from './config/jobs.config';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { OrgScopeModule } from './common/org-scope/org-scope.module';
 import { AuthModule } from './auth/auth.module';
@@ -122,6 +125,7 @@ import { SurveysModule } from './surveys/surveys.module';
 import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
 import { SafeguardingModule } from './safeguarding/safeguarding.module';
 import { CrmModule } from './crm/crm.module';
+import { CarerMessagesModule } from './carer-messages/carer-messages.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
@@ -134,14 +138,16 @@ import { RoleTasksModule } from './role-tasks/role-tasks.module';
 import { RoleResponsibilitiesModule } from './role-responsibilities/role-responsibilities.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
+import { PlatformCostsModule } from './platform-costs/platform-costs.module';
 import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig, openfdaConfig, mailConfig],
+      load: [appConfig, databaseConfig, openfdaConfig, mailConfig, azureCostConfig, jobsConfig],
       validate: validateEnv,
     }),
     // Register once here only: importing forRoot() in several feature modules made
@@ -163,6 +169,7 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
       }),
     }),
     PrismaModule,
+    HealthModule,
     MailModule,
     OrgScopeModule,
     AuthModule,
@@ -276,6 +283,7 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     SpecialistPathwaysModule,
     SafeguardingModule,
     CrmModule,
+    CarerMessagesModule,
     EmployeeHoursApprovalsModule,
     DevToolsModule,
     BillingModule,
@@ -288,7 +296,9 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     RoleResponsibilitiesModule,
     LearningModule,
     PoliciesModule,
+    PlatformCostsModule,
     ServiceUserCommunicationNotesModule,
+    JobsModule,
   ],
   providers: [
     {

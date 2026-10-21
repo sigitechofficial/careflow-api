@@ -1,0 +1,121 @@
+name: Deploy job triggers to Azure Functions
+
+# Every merge into `azure` that touches functions/ (or a manual run): test and build the timer
+# functions, deploy them to the Flex Consumption app, and check that all 7 functions registered.
+# Signs in with OIDC (managed identity id-careflow-github-deploy, needs Website Contributor on the
+# function app). No stored credentials or publish profiles.
+on:
+  push:
+    branches: [azure]
+    paths:
+      - "functions/**"
+      - ".github/workflows/deploy-azure-functions.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-azure-functions
+  cancel-in-progress: false
+
+env:
+  RG: rg-careflow-prod
+  FUNC_APP: func-careflow-jobs-prod
+  # Must match the Function App runtime (deploy/azure/scheduled-jobs/03-function-app.sh).
+  NODE_VERSION: "22"
+  EXPECTED_FUNCTIONS: >-
+    survey-distribution visit-start-reminder late-visit-alert ecm-missed-visit
+    ecm-missing-checkout platform-costs-sync employee-payout-auto
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Test (builds first)
+        run: npm test
+
+      - name: Assemble deployment package (runtime files only)
+        run: |
+          set -euo pipefail
+          rm -rf ../.deploy-functions && mkdir ../.deploy-functions
+          cp host.json package.json package-lock.json ../.deploy-functions/
+          mkdir -p ../.deploy-functions/dist && cp -R dist/src ../.deploy-functions/dist/src
+          find ../.deploy-functions/dist -name '*.map' -delete
+          (cd ../.deploy-functions && npm ci --omit=dev --no-audit --no-fund --ignore-scripts)
+          # Sanity: the entry point declared in package.json "main" exists and registers every function.
+          (cd ../.deploy-functions && node -e "
+            const m = require('@azure/functions'); const seen = [];
+            m.app.timer = (name) => seen.push(name);
+            require('./dist/src/functions/timers.js');
+            const want = process.env.EXPECTED_FUNCTIONS.split(/\s+/).filter(Boolean);
+            const missing = want.filter((n) => !seen.includes(n));
+            if (missing.length || seen.length !== want.length) { console.error('registered:', seen); process.exit(1); }
+            console.log('package registers ' + seen.length + ' timer functions');")
+          du -sh ../.deploy-functions
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Check the function app exists (Flex Consumption)
+        run: |
+          set -euo pipefail
+          name=$(az functionapp show -g "$RG" -n "$FUNC_APP" --query name -o tsv 2>/dev/null || true)
+          [ "$name" = "$FUNC_APP" ] || { echo "::error::$FUNC_APP not found in $RG (create it with deploy/azure/scheduled-jobs/03-function-app.sh) or the deploy identity lacks access"; exit 1; }
+          sku=$(az functionapp show -g "$RG" -n "$FUNC_APP" --query "properties.sku" -o tsv 2>/dev/null || true)
+          echo "plan sku: ${sku:-unknown}"
+          [ "$sku" = "FlexConsumption" ] || echo "::warning::expected a Flex Consumption app, got '${sku:-unknown}'"
+
+      # Azure/functions-action is the documented GitHub deployment path for Flex Consumption.
+      # With an azure/login (OIDC) session it detects Flex and uses "one deploy" to the app's
+      # deployment blob container. The `sku` input is only needed with publish profiles.
+      # No remote build: the package already contains its production node_modules (pure JS).
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNC_APP }}
+          package: .deploy-functions
+
+      - name: Verify all 7 functions are registered
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 24); do
+            # ARM returns names as "<app>/<function>".
+            got=$(az functionapp function list -g "$RG" -n "$FUNC_APP" --query "[].name" -o tsv 2>/dev/null | sed 's#.*/##' | sort || true)
+            missing=""
+            for f in $EXPECTED_FUNCTIONS; do grep -qx "$f" <<<"$got" || missing="$missing $f"; done
+            [ -z "$missing" ] && break
+            sleep 10
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::functions not registered after deploy:$missing"
+            echo "registered: $(echo $got)"
+            exit 1
+          fi
+          echo "registered: $(echo $got)"
+          disabled=$(az functionapp config appsettings list -g "$RG" -n "$FUNC_APP" --query "[?starts_with(name, 'AzureWebJobs.') && ends_with(name, '.Disabled') && (value=='true' || value=='1')].name" -o tsv)
+          [ -z "$disabled" ] || echo "::warning::paused by app setting: $(echo $disabled)"
+          {
+            echo "### ✅ Job triggers deployed to $FUNC_APP (${GITHUB_SHA::7})"
+            for f in $EXPECTED_FUNCTIONS; do echo "- \`$f\`"; done
+            if [ -n "$disabled" ]; then echo; echo "Paused by app setting: $(echo $disabled)"; fi
+          } >> "$GITHUB_STEP_SUMMARY"

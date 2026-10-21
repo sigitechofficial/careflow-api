@@ -10,6 +10,7 @@ import {
   deriveScheduleTimingFlags,
   suggestChangeClass,
 } from './ecm-schedule-timing.util';
+import { getOperationalTimeZone } from '../common/utils/operational-day.util';
 
 export type RecordScheduleRevisionInput = {
   scheduledJobId: string;
@@ -110,10 +111,15 @@ export class EcmScheduleVersionService {
 
     const client = input.tx ?? this.prisma;
     const changedAt = new Date();
+    const orgSettings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { timezone: true },
+    });
     const flags = deriveScheduleTimingFlags(
       input.previousStartDateTime,
       changedAt,
       input.plannedStartDateTime,
+      undefined,
+      getOperationalTimeZone(orgSettings?.timezone),
     );
 
     let changeClass: EcmScheduleChangeClass =

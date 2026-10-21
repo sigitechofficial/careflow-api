@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PolicyStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
-  addDaysToOperationalIso,
   dayKeyInTimeZone,
   formatHmInTimeZone,
   operationalDayBounds,
@@ -300,63 +298,6 @@ export class DashboardService {
       if (name) map.set(row.id, name);
     }
     return map;
-  }
-
-  /**
-   * Published policies due for review within `days` days (overdue included), by the review date on
-   * each document's current version. Dates are compared as organisation-local calendar days.
-   */
-  async policyReviews(days: number) {
-    const timeZone = await this.orgSettings.getOperationalTimezone();
-    const today = operationalTodayIso(new Date(), timeZone);
-    const until = addDaysToOperationalIso(today, days);
-
-    const [statusGroups, published] = await Promise.all([
-      this.prisma.policyDocument.groupBy({
-        by: ['status'],
-        where: { deletedAt: null },
-        _count: { _all: true },
-      }),
-      this.prisma.policyDocument.findMany({
-        where: { deletedAt: null, status: PolicyStatus.PUBLISHED },
-        select: { id: true, reference: true, title: true, currentVersionId: true },
-      }),
-    ]);
-
-    const versionIds = published.map(p => p.currentVersionId).filter((v): v is string => !!v);
-    const versions = versionIds.length
-      ? await this.prisma.policyVersion.findMany({
-          where: { id: { in: versionIds } },
-          select: { id: true, reviewDate: true },
-        })
-      : [];
-    const reviewByVersion = new Map(versions.map(v => [v.id, v.reviewDate]));
-
-    let publishedNoReviewDate = 0;
-    const items: Array<{ id: string; reference: string; title: string; reviewDate: string; overdue: boolean }> = [];
-    for (const p of published) {
-      const reviewDate = p.currentVersionId ? reviewByVersion.get(p.currentVersionId) ?? null : null;
-      if (!reviewDate) {
-        publishedNoReviewDate++;
-        continue;
-      }
-      // @db.Date values come back as UTC midnight, so the ISO date part is the stored calendar day.
-      const day = reviewDate.toISOString().slice(0, 10);
-      if (day > until) continue;
-      items.push({ id: p.id, reference: p.reference, title: p.title, reviewDate: day, overdue: day < today });
-    }
-    items.sort((a, b) => a.reviewDate.localeCompare(b.reviewDate));
-
-    return {
-      data: {
-        days,
-        byStatus: Object.fromEntries(statusGroups.map(g => [g.status, g._count._all])),
-        publishedNoReviewDate,
-        count: items.length,
-        overdue: items.filter(i => i.overdue).length,
-        items,
-      },
-    };
   }
 }
 

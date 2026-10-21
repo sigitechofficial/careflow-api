@@ -10,6 +10,7 @@ import {
 import { matchEmployeeSkills, requiredSkillKeywords } from '../service-user-visit-plans/visit-plan-carer-suggest.util';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { resolveAllocationWindow } from './allocation-window.util';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 
 /**
  * Settings-driven allocation rules (Settings → Allocation rules) evaluated for a
@@ -57,6 +58,8 @@ export type AllocationRuleHitsParams = {
   medicationRequired?: boolean;
   /** Skill keywords the client's care plan needs (see requiredSkillKeywords). */
   skillKeywords?: string[];
+  /** Organisation timezone; holiday dates are compared against the visit's org-local calendar day. */
+  timeZone?: string;
 };
 
 export async function evaluateAllocationRuleHits(
@@ -77,9 +80,12 @@ export async function evaluateAllocationRuleHits(
   };
 
   if (active('carer_on_holiday')) {
-    const jobDay = new Date(
-      Date.UTC(jobStart.getUTCFullYear(), jobStart.getUTCMonth(), jobStart.getUTCDate(), 12, 0, 0, 0),
-    );
+    // Holiday dates are calendar labels; compare against the visit's org-local calendar day.
+    const jobDay = params.timeZone
+      ? new Date(`${dayKeyInTimeZone(jobStart, params.timeZone)}T12:00:00.000Z`)
+      : new Date(
+          Date.UTC(jobStart.getUTCFullYear(), jobStart.getUTCMonth(), jobStart.getUTCDate(), 12, 0, 0, 0),
+        );
     const rows = await db.employeeHoliday.findMany({
       where: {
         employeeId: { in: ids },

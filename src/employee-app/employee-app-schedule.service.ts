@@ -160,6 +160,7 @@ export class EmployeeAppScheduleService {
         roundCode: primaryVisit?.visitPlanSlot?.medicationRoundCode ?? null,
         startAt,
         careTypeName: su.careType?.name ?? null,
+        timeZone,
       });
       const requiredCarers = Math.max(
         primaryVisit?.requiredCarers ?? 1,
@@ -375,6 +376,8 @@ function resolvePeriodLabel(input: {
   roundCode: string | null;
   startAt: Date;
   careTypeName: string | null;
+  /** Organisation timezone — the fallback period is from the org-local hour. */
+  timeZone: string;
 }): string {
   const code = (input.roundCode ?? input.slotCode ?? '').trim().toUpperCase();
   if (code === 'MORNING' || code === 'AM') return 'Morning';
@@ -401,7 +404,7 @@ function resolvePeriodLabel(input: {
     return shortenVisitType(input.careTypeName.trim());
   }
 
-  const hour = hourInTimeZone(input.startAt, 'UTC');
+  const hour = hourInTimeZone(input.startAt, input.timeZone);
   if (hour < 11) return 'Morning';
   if (hour < 14) return 'Lunch';
   if (hour < 17) return 'Afternoon';
