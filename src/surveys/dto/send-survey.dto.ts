@@ -27,6 +27,17 @@ export class SendSurveyDto {
 
   @ApiPropertyOptional({
     description:
+      'Employee job-role (EmployeeRoleLookup) ids to limit recipients to. Omit to use the survey roles (or all roles).',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  roleIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
       'If set in the future, queue employee distribution instead of sending immediately.',
   })
   @IsOptional()

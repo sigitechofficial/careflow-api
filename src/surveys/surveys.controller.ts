@@ -24,6 +24,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { SurveysService } from './surveys.service';
 import { CreateSurveyDto } from './dto/create-survey.dto';
 import { UpdateSurveyDto } from './dto/update-survey.dto';
+import { DuplicateSurveyDto } from './dto/duplicate-survey.dto';
 import {
   CreateSurveyQuestionDto,
   UpdateSurveyQuestionDto,
@@ -130,6 +131,18 @@ export class SurveysController {
     @Req() req: Request,
   ) {
     return this.service.update(user.id, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/duplicate')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Duplicate a survey and its questions as a new draft' })
+  duplicate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: DuplicateSurveyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.duplicate(user.id, id, dto, getRequestAuditMeta(req));
   }
 
   @Delete(':id')
