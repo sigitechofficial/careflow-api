@@ -119,6 +119,9 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
+import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
+import { SafeguardingModule } from './safeguarding/safeguarding.module';
+import { CrmModule } from './crm/crm.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
@@ -270,6 +273,9 @@ import { ServiceUserCommunicationNotesModule } from './service-user-communicatio
     BodyMapModule,
     IncidentsModule,
     SurveysModule,
+    SpecialistPathwaysModule,
+    SafeguardingModule,
+    CrmModule,
     EmployeeHoursApprovalsModule,
     DevToolsModule,
     BillingModule,

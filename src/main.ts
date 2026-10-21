@@ -25,7 +25,7 @@ async function bootstrap() {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
   };
-  // Incident attachments are only served through the permission-checked download endpoint —
+  // Incident attachments and specialist-pathway documents are only served through the permission-checked download endpoint —
   // never as public static files. Path is decoded, normalised and lower-cased so encoding/case/`..` tricks can't bypass it.
   app.use((req: { path: string }, res: { status: (c: number) => { json: (b: unknown) => void } }, next: () => void) => {
     let p = req.path;
@@ -35,7 +35,12 @@ async function bootstrap() {
       return res.status(400).json({ success: false, message: 'Bad request' });
     }
     p = posix.normalize(p.replace(/\\/g, '/')).toLowerCase();
-    if (p.startsWith('/uploads/incidents/') || p.startsWith('/files/uploads/incidents/')) {
+    if (
+      p.startsWith('/uploads/incidents/') ||
+      p.startsWith('/files/uploads/incidents/') ||
+      p.startsWith('/uploads/specialist-pathways/') ||
+      p.startsWith('/files/uploads/specialist-pathways/')
+    ) {
       return res.status(404).json({ success: false, message: 'Not found' });
     }
     next();

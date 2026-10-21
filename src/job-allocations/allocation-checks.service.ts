@@ -12,21 +12,19 @@ import {
   visitPatternTimeMismatch,
   formatVisitPatternTimeMismatchMessage,
 } from '../employee-working-patterns/working-pattern-time.util';
-import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
-import {
-  PARENTAL_LEAVE_TYPES,
-  ROTA_BLOCKING_LEAVE_TYPES,
-} from '../employee-absences/dto/employee-absence.dto';
 import {
   allocationRuleWarning,
   parseDomCareAllocationRules,
   type DomCareAllocationRule,
 } from '../organisation-general-settings/dom-care-allocation-rules.util';
+import { resolveAllocationWindow } from './allocation-window.util';
 import {
-  intervalsOverlap,
-  resolveAllocationWindow,
-} from './allocation-window.util';
+  evaluateAllocationRuleHits,
+  skillKeywordsForVisitPlanSlot,
+  type AllocationRuleKey,
+} from './allocation-rule-hits.util';
+import { adjacentVisits, hmDifferenceMinutes } from './allocation-job-rules.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
 
@@ -36,6 +34,19 @@ export type AllocationWarning = {
   type: AllocationWarningType;
   message: string;
   severity: AllocationWarningSeverity;
+  /** Set when an allocation rule in Settings is "Don't allow": cannot be forced. */
+  hardBlock?: boolean;
+};
+
+const RULE_WARNING_TYPE: Record<AllocationRuleKey, AllocationWarningType> = {
+  carer_on_holiday: AllocationWarningType.EMPLOYEE_ON_HOLIDAY,
+  carer_on_nca: AllocationWarningType.EMPLOYEE_ON_NCA,
+  carer_on_leave: AllocationWarningType.EMPLOYEE_ON_LEAVE,
+  allow_overlap: AllocationWarningType.TIME_CONFLICT,
+  time_between_jobs: AllocationWarningType.TRAVEL_TIME,
+  medication_not_trained: AllocationWarningType.MEDICATION_NOT_TRAINED,
+  missing_client_skills: AllocationWarningType.MISSING_SKILLS,
+  job_outside_working_pattern: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
 };
 
 export type AllocationCheckContext = {
@@ -64,23 +75,20 @@ const ORG_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
 @Injectable()
 export class AllocationChecksService {
-  private allocationRulesCache: DomCareAllocationRule[] | null = null;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly allocationCompliance: AllocationComplianceService,
   ) {}
 
+  /** Read fresh each time so changes in Settings apply without a restart. */
   private async loadAllocationRules(): Promise<DomCareAllocationRule[]> {
-    if (this.allocationRulesCache) return this.allocationRulesCache;
     const row = await this.prisma.organisationGeneralSettings.findUnique({
       where: { id: ORG_SETTINGS_ID },
       select: { domCareAllocationRules: true },
     });
-    this.allocationRulesCache = parseDomCareAllocationRules(
+    return parseDomCareAllocationRules(
       row?.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
     );
-    return this.allocationRulesCache;
   }
 
   async runAllChecks(ctx: AllocationCheckContext): Promise<AllocationWarning[]> {
@@ -88,14 +96,11 @@ export class AllocationChecksService {
     const push = (w: AllocationWarning) => results.push(w);
     const rules = await this.loadAllocationRules();
 
-    await this.checkEmployeeAvailability(ctx, push);
-    await this.checkEmployeeHoliday(ctx, push, rules);
-    await this.checkEmployeeParentalLeave(ctx, push);
-    await this.checkEmployeeNca(ctx, push, rules);
-    await this.checkEmployeeOnLeave(ctx, push);
-    await this.checkTimeConflict(ctx, push);
+    await this.checkEmployeeAvailability(ctx, push, rules);
+    await this.checkAllocationRules(ctx, push, rules);
+    await this.checkJobContextRules(ctx, push, rules);
     await this.checkCapacity(ctx, push);
-    await this.checkPreferredBlockedCarer(ctx, push);
+    await this.checkPreferredBlockedCarer(ctx, push, rules);
     await this.checkRoleMismatch(ctx, push);
     await this.checkCompliance(ctx, push);
 
@@ -111,7 +116,8 @@ export class AllocationChecksService {
     return warnings.some(
       (w) =>
         w.severity === 'blocking' &&
-        (w.type === AllocationWarningType.TIME_CONFLICT ||
+        (w.hardBlock === true ||
+          w.type === AllocationWarningType.TIME_CONFLICT ||
           w.type === AllocationWarningType.BLOCKED_CARER ||
           w.type === AllocationWarningType.COMPLIANCE_BLOCK),
     );
@@ -120,6 +126,7 @@ export class AllocationChecksService {
   async checkEmployeeAvailability(
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
+    rules: DomCareAllocationRule[],
   ): Promise<void> {
     const employee = await this.prisma.employee.findFirst({
       where: { id: ctx.employeeId, deletedAt: null, isActive: true },
@@ -167,6 +174,16 @@ export class AllocationChecksService {
       });
     }
 
+    // "Job or jobs outside working pattern" rule decides warn / hard block / ignore.
+    const patternRule = allocationRuleWarning(rules, 'job_outside_working_pattern');
+    if (!patternRule.warn) return;
+    const patternWarning = (message: string): AllocationWarning => ({
+      type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
+      message,
+      severity: patternRule.severity,
+      ...(patternRule.severity === 'blocking' ? { hardBlock: true } : {}),
+    });
+
     const patternRows: WorkingPatternRow[] = employee.workingPatterns.map((p) => ({
       weekInCycle: p.weekInCycle,
       dayOfWeek: p.dayOfWeek,
@@ -180,20 +197,12 @@ export class AllocationChecksService {
     const dowLabel = DAY_LABEL[ctx.jobStart.getUTCDay()] ?? 'this day';
 
     if (pattern && !pattern.isAvailable) {
-      push({
-        type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-        message: `Employee is marked unavailable on ${dowLabel}`,
-        severity: 'warning',
-      });
+      push(patternWarning(`Employee is marked unavailable on ${dowLabel}`));
       return;
     }
 
     if (pattern && pattern.notes === 'partial') {
-      push({
-        type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-        message: `Employee has partial availability on ${dowLabel}`,
-        severity: 'warning',
-      });
+      push(patternWarning(`Employee has partial availability on ${dowLabel}`));
       return;
     }
 
@@ -218,170 +227,39 @@ export class AllocationChecksService {
                 pattern.endTime,
               )
             : 'Visit is outside employee working hours';
-        push({
-          type: AllocationWarningType.EMPLOYEE_NOT_AVAILABLE,
-          message,
-          severity: 'warning',
-        });
+        push(patternWarning(message));
       }
     }
   }
 
-  async checkEmployeeHoliday(
+  /** Settings-driven rules: leave, holiday, NCA, overlap, travel gap, medication, skills. */
+  async checkAllocationRules(
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
     rules: DomCareAllocationRule[],
   ): Promise<void> {
-    const rule = allocationRuleWarning(rules, 'carer_on_holiday');
-    if (!rule.warn) return;
-
-    const jobDay = new Date(
-      Date.UTC(ctx.jobStart.getUTCFullYear(), ctx.jobStart.getUTCMonth(), ctx.jobStart.getUTCDate(), 12, 0, 0, 0),
-    );
-    const holiday = await this.prisma.employeeHoliday.findFirst({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        isActive: true,
-        startDate: { lte: jobDay },
-        endDate: { gte: jobDay },
-      },
+    const visit = await this.prisma.scheduledVisit.findFirst({
+      where: ctx.scheduledVisitId
+        ? { id: ctx.scheduledVisitId, deletedAt: null }
+        : { scheduledJobId: ctx.scheduledJobId, deletedAt: null },
+      select: { medicationRequired: true, visitPlanSlotId: true },
     });
-    if (!holiday) return;
-    push({
-      type: AllocationWarningType.EMPLOYEE_ON_HOLIDAY,
-      message: 'Employee is on holiday for this visit date',
-      severity: rule.severity,
+    const skillKeywords = await skillKeywordsForVisitPlanSlot(this.prisma, visit?.visitPlanSlotId);
+    const hits = await evaluateAllocationRuleHits(this.prisma, {
+      employeeIds: [ctx.employeeId],
+      jobStart: ctx.jobStart,
+      jobEnd: ctx.jobEnd,
+      rules,
+      excludeScheduledJobId: ctx.scheduledJobId,
+      medicationRequired: visit?.medicationRequired ?? false,
+      skillKeywords,
     });
-  }
-
-  /** Block allocating a carer who has approved maternity/paternity leave over the visit. */
-  async checkEmployeeParentalLeave(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-  ): Promise<void> {
-    const leave = await this.prisma.employeeAbsenceRecord.findFirst({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        absenceType: { in: [...PARENTAL_LEAVE_TYPES] },
-        permissionStatus: 'Authorised',
-        fromDateTime: { lte: ctx.jobEnd },
-        toDateTime: { gte: ctx.jobStart },
-      },
-      select: { absenceType: true },
-    });
-    if (!leave) return;
-    push({
-      type: AllocationWarningType.EMPLOYEE_ON_PARENTAL_LEAVE,
-      message: `Employee is on ${leave.absenceType.toLowerCase()} leave for this visit date`,
-      severity: 'blocking',
-    });
-  }
-
-  async checkEmployeeNca(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-    rules: DomCareAllocationRule[],
-  ): Promise<void> {
-    const rule = allocationRuleWarning(rules, 'carer_on_nca');
-    if (!rule.warn) return;
-
-    const nca = await this.prisma.employeeNonCoreActivity.findFirst({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        isActive: true,
-        dateFrom: { lte: ctx.jobEnd },
-        dateTo: { gte: ctx.jobStart },
-      },
-    });
-    if (!nca) return;
-    push({
-      type: AllocationWarningType.EMPLOYEE_ON_NCA,
-      message: 'Employee has non-core activity during this visit',
-      severity: rule.severity,
-    });
-  }
-
-  /** Block allocating a carer who is on sick or casual leave over the visit date. */
-  async checkEmployeeOnLeave(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-  ): Promise<void> {
-    const leave = await this.prisma.employeeAbsenceRecord.findFirst({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        absenceType: { in: [...ROTA_BLOCKING_LEAVE_TYPES] },
-        fromDateTime: { lte: ctx.jobEnd },
-        toDateTime: { gte: ctx.jobStart },
-      },
-      select: { absenceType: true },
-    });
-    if (!leave) return;
-    const message =
-      leave.absenceType === 'Sickness'
-        ? 'Employee is off sick for this visit date'
-        : 'Employee is on casual leave for this visit date';
-    push({
-      type: AllocationWarningType.EMPLOYEE_ON_LEAVE,
-      message,
-      severity: 'blocking',
-    });
-  }
-
-  async checkTimeConflict(
-    ctx: AllocationCheckContext,
-    push: (w: AllocationWarning) => void,
-  ): Promise<void> {
-    // Broad job-window query, then filter by each allocation's resolved timing
-    // so staggered multi-carer visits do not falsely block.
-    const candidates = await this.prisma.jobAllocation.findMany({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        isActive: true,
-        status: { in: [...ACTIVE_ALLOCATION_STATUSES] },
-        scheduledJobId: { not: ctx.scheduledJobId },
-        scheduledJob: {
-          deletedAt: null,
-          isActive: true,
-          AND: [
-            { scheduledStartDateTime: { lt: ctx.jobEnd } },
-            {
-              OR: [
-                { scheduledEndDateTime: { gt: ctx.jobStart } },
-                { scheduledEndDateTime: null },
-              ],
-            },
-          ],
-        },
-      },
-      include: {
-        scheduledJob: {
-          select: {
-            id: true,
-            jobName: true,
-            scheduledStartDateTime: true,
-            scheduledEndDateTime: true,
-            estimatedDurationMinutes: true,
-          },
-        },
-      },
-      take: 20,
-    });
-
-    const overlapping = candidates.filter((row) => {
-      const other = resolveAllocationWindow(row, row.scheduledJob);
-      return intervalsOverlap(ctx.jobStart, ctx.jobEnd, other.start, other.end);
-    });
-
-    if (overlapping.length) {
+    for (const hit of hits.get(ctx.employeeId) ?? []) {
       push({
-        type: AllocationWarningType.TIME_CONFLICT,
-        message: CARER_ROTA_CONFLICT_MESSAGE,
-        severity: 'blocking',
+        type: RULE_WARNING_TYPE[hit.key],
+        message: hit.message,
+        severity: hit.block ? 'blocking' : 'warning',
+        ...(hit.block ? { hardBlock: true } : {}),
       });
     }
   }
@@ -443,8 +321,20 @@ export class AllocationChecksService {
   async checkPreferredBlockedCarer(
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
+    rules: DomCareAllocationRule[],
   ): Promise<void> {
     const suId = ctx.serviceUserId;
+    // "Carer blocked with 1 SU on run or job allocated to" decides block / confirm / ignore.
+    const blockedRule = allocationRuleWarning(rules, 'carer_blocked_su_on_run');
+    const pushBlocked = (message: string) => {
+      if (!blockedRule.warn) return;
+      push({
+        type: AllocationWarningType.BLOCKED_CARER,
+        message,
+        severity: blockedRule.severity,
+        ...(blockedRule.severity === 'blocking' ? { hardBlock: true } : {}),
+      });
+    };
 
     const domCare = await this.prisma.serviceUserDomCare.findFirst({
       where: { serviceUserId: suId, deletedAt: null },
@@ -454,11 +344,7 @@ export class AllocationChecksService {
       },
     });
     if (domCare?.blockedCarerLinks.some((l) => l.employeeId === ctx.employeeId)) {
-      push({
-        type: AllocationWarningType.BLOCKED_CARER,
-        message: 'Employee is blocked for this service user (domiciliary care)',
-        severity: 'blocking',
-      });
+      pushBlocked('Employee is blocked for this service user (domiciliary care)');
     }
     if (domCare?.preferredCarerLinks.some((l) => l.employeeId === ctx.employeeId)) {
       push({
@@ -476,11 +362,7 @@ export class AllocationChecksService {
       },
     });
     if (liveIn?.blockedCarers.some((l) => l.employeeId === ctx.employeeId)) {
-      push({
-        type: AllocationWarningType.BLOCKED_CARER,
-        message: 'Employee is blocked for this service user (live-in profile)',
-        severity: 'blocking',
-      });
+      pushBlocked('Employee is blocked for this service user (live-in profile)');
     }
     if (liveIn?.preferredCarers.some((l) => l.employeeId === ctx.employeeId)) {
       push({
@@ -488,6 +370,185 @@ export class AllocationChecksService {
         message: 'Employee is a preferred carer (live-in profile)',
         severity: 'info',
       });
+    }
+
+    // Same rule for the other service users on this job's run.
+    if (!blockedRule.warn) return;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: ctx.scheduledJobId, deletedAt: null },
+      select: { scheduleRunId: true },
+    });
+    if (!job?.scheduleRunId) return;
+    const runJobs = await this.prisma.scheduledJob.findMany({
+      where: {
+        scheduleRunId: job.scheduleRunId,
+        deletedAt: null,
+        isActive: true,
+        serviceUserId: { not: suId },
+      },
+      select: { serviceUserId: true },
+    });
+    const runSuIds = [...new Set(runJobs.map((j) => j.serviceUserId))];
+    if (!runSuIds.length) return;
+    const [domBlocked, liveInBlocked] = await Promise.all([
+      this.prisma.serviceUserDomCare.findFirst({
+        where: {
+          serviceUserId: { in: runSuIds },
+          deletedAt: null,
+          blockedCarerLinks: { some: { employeeId: ctx.employeeId, isActive: true } },
+        },
+        select: { id: true },
+      }),
+      this.prisma.serviceUserLiveInProfile.findFirst({
+        where: {
+          serviceUserId: { in: runSuIds },
+          deletedAt: null,
+          blockedCarers: { some: { employeeId: ctx.employeeId } },
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (domBlocked || liveInBlocked) {
+      pushBlocked('Employee is blocked for another service user on this run');
+    }
+  }
+
+  /** Settings-driven rules that need the job itself: visit time tolerance, other run, zone change. */
+  async checkJobContextRules(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+    rules: DomCareAllocationRule[],
+  ): Promise<void> {
+    const ruleWarning = (type: AllocationWarningType, key: string, message: string) => {
+      const rule = allocationRuleWarning(rules, key);
+      if (!rule.warn) return;
+      push({
+        type,
+        message,
+        severity: rule.severity,
+        ...(rule.severity === 'blocking' ? { hardBlock: true } : {}),
+      });
+    };
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: ctx.scheduledJobId, deletedAt: null },
+      select: {
+        scheduledStartDateTime: true,
+        scheduleRunId: true,
+        scheduleRun: { select: { runDate: true } },
+        scheduleArea: { select: { zoneId: true, zone: { select: { name: true } } } },
+      },
+    });
+    if (!job) return;
+
+    // Visit Time Tolerance: carer's start vs the client's planned visit time.
+    if (allocationRuleWarning(rules, 'visit_time_tolerance').warn) {
+      const visit = await this.prisma.scheduledVisit.findFirst({
+        where: ctx.scheduledVisitId
+          ? { id: ctx.scheduledVisitId, deletedAt: null }
+          : { scheduledJobId: ctx.scheduledJobId, deletedAt: null },
+        select: { visitPlanSlot: { select: { plannedStartTime: true, timeToleranceMinutes: true } } },
+      });
+      const slot = visit?.visitPlanSlot;
+      let toleranceMinutes = slot?.timeToleranceMinutes;
+      if (toleranceMinutes == null) {
+        const settings = await this.prisma.organisationGeneralSettings.findUnique({
+          where: { id: ORG_SETTINGS_ID },
+          select: { domGlobalToleranceMinutes: true },
+        });
+        toleranceMinutes = settings?.domGlobalToleranceMinutes ?? 30;
+      }
+      const plannedHm = slot?.plannedStartTime ?? hmFromJobDate(job.scheduledStartDateTime);
+      const diff = hmDifferenceMinutes(plannedHm, hmFromJobDate(ctx.jobStart));
+      if (diff != null && diff > toleranceMinutes) {
+        ruleWarning(
+          AllocationWarningType.VISIT_TIME_TOLERANCE,
+          'visit_time_tolerance',
+          `Visit starts ${diff} min from the planned time ${plannedHm} (tolerance ${toleranceMinutes} min)`,
+        );
+      }
+    }
+
+    // Carer allocated to another run on the same day.
+    if (
+      job.scheduleRunId &&
+      job.scheduleRun &&
+      allocationRuleWarning(rules, 'carer_allocated_another_run').warn
+    ) {
+      const otherRun = { runDate: job.scheduleRun.runDate, id: { not: job.scheduleRunId }, deletedAt: null };
+      const ownRun = await this.prisma.scheduleRun.findFirst({
+        where: { ...otherRun, employeeId: ctx.employeeId, isActive: true },
+        select: { name: true },
+      });
+      const viaJob = ownRun
+        ? null
+        : await this.prisma.jobAllocation.findFirst({
+            where: {
+              employeeId: ctx.employeeId,
+              deletedAt: null,
+              isActive: true,
+              status: { in: [...ACTIVE_ALLOCATION_STATUSES] },
+              scheduledJob: { deletedAt: null, isActive: true, scheduleRun: { is: otherRun } },
+            },
+            select: { scheduledJob: { select: { scheduleRun: { select: { name: true } } } } },
+          });
+      const runName = ownRun?.name ?? viaJob?.scheduledJob.scheduleRun?.name;
+      if (runName) {
+        ruleWarning(
+          AllocationWarningType.ANOTHER_RUN,
+          'carer_allocated_another_run',
+          `Employee is already on another run (${runName}) on this day`,
+        );
+      }
+    }
+
+    // Visit change across zones: the carer's previous / next visit is in a different zone.
+    const zoneId = job.scheduleArea?.zoneId;
+    if (zoneId && allocationRuleWarning(rules, 'visit_change_across_zones').warn) {
+      const rows = await this.prisma.jobAllocation.findMany({
+        where: {
+          employeeId: ctx.employeeId,
+          deletedAt: null,
+          isActive: true,
+          status: { in: [...ACTIVE_ALLOCATION_STATUSES] },
+          scheduledJobId: { not: ctx.scheduledJobId },
+          scheduledJob: {
+            deletedAt: null,
+            isActive: true,
+            scheduledStartDateTime: {
+              gte: new Date(ctx.jobStart.getTime() - 24 * 3_600_000),
+              lt: new Date(ctx.jobEnd.getTime() + 24 * 3_600_000),
+            },
+          },
+        },
+        select: {
+          scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          durationMinutes: true,
+          scheduledJob: {
+            select: {
+              scheduledStartDateTime: true,
+              scheduledEndDateTime: true,
+              estimatedDurationMinutes: true,
+              scheduleArea: { select: { zoneId: true, zone: { select: { name: true } } } },
+            },
+          },
+        },
+      });
+      const visits = rows.map((r) => ({
+        ...resolveAllocationWindow(r, r.scheduledJob),
+        zoneId: r.scheduledJob.scheduleArea?.zoneId ?? null,
+        zoneName: r.scheduledJob.scheduleArea?.zone?.name ?? null,
+      }));
+      const { previous, next } = adjacentVisits(visits, ctx.jobStart, ctx.jobEnd);
+      const crossing = [previous, next].find((v) => v?.zoneId && v.zoneId !== zoneId);
+      if (crossing) {
+        const here = job.scheduleArea?.zone?.name ?? 'this zone';
+        ruleWarning(
+          AllocationWarningType.ZONE_CHANGE,
+          'visit_change_across_zones',
+          `Carer's ${crossing === previous ? 'previous' : 'next'} visit is in ${crossing.zoneName ?? 'another zone'}; this visit is in ${here}`,
+        );
+      }
     }
   }
 
@@ -516,7 +577,9 @@ export class AllocationChecksService {
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
   ): Promise<void> {
-    const result = await this.allocationCompliance.evaluateForEmployee(ctx.employeeId);
+    // Judge expiry on the visit date (not today) so documents lapsing before the visit count.
+    const asOf = new Date(Math.max(Date.now(), ctx.jobStart.getTime()));
+    const result = await this.allocationCompliance.evaluateForEmployee(ctx.employeeId, asOf);
     const messages = formatComplianceAllocationMessages(result);
     if (result.blocksAllocation && messages.block) {
       push({

@@ -84,7 +84,7 @@ const ACTIVE_STATUSES: PrismaAllocationStatus[] = [
 /** Lead-carer rules apply to visits that need 2+ carers (single-carer visits unchanged). */
 const MULTI_CARER_MIN = 2;
 
-type WarningView = { type: string; message: string; severity: string };
+type WarningView = { type: string; message: string; severity: string; hardBlock?: boolean };
 
 export type TeamCarerCheck = {
   employeeId: string;
@@ -104,7 +104,12 @@ function personName(
 }
 
 function warningViews(warnings: AllocationWarning[]): WarningView[] {
-  return warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity }));
+  return warnings.map((w) => ({
+    type: w.type,
+    message: w.message,
+    severity: w.severity,
+    ...(w.hardBlock ? { hardBlock: true } : {}),
+  }));
 }
 
 @Injectable()
@@ -489,7 +494,7 @@ export class JobAllocationsService {
     if (this.checks.hasNonOverridableBlockingWarnings(warnings)) {
       throw new BadRequestException({
         message: warnings.find((w) => w.severity === 'blocking')?.message ?? CARER_ROTA_CONFLICT_MESSAGE,
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         requiresConfirmation: false,
       });
     }
@@ -498,7 +503,7 @@ export class JobAllocationsService {
     if (hasBlocking && !dto.force) {
       throw new BadRequestException({
         message: 'Allocation blocked due to validation warnings. Use force=true to create pending confirmation.',
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         requiresConfirmation: true,
       });
     }
@@ -627,7 +632,7 @@ export class JobAllocationsService {
           ? 'Allocation created — confirmation required'
           : 'Carer allocated to job',
         requiresConfirmation: needsConfirmation,
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         data: this.mapAllocation(created),
         jobStatus: newJobStatus,
       };

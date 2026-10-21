@@ -75,6 +75,15 @@ import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-us
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
 import { CARER_ROTA_CONFLICT_MESSAGE } from './visit-carer-rota-conflict.util';
 import {
+  evaluateAllocationRuleHits,
+  skillKeywordsForVisitPlanSlot,
+  type AllocationRuleHit,
+} from '../job-allocations/allocation-rule-hits.util';
+import {
+  allocationRuleBehavior,
+  loadDomCareAllocationRules,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
+import {
   syncVisitPlanSlotCarersToScheduledJobs,
   visitPlanCarerEmployeeIds,
   visitPlanCarerSyncFromDateTime,
@@ -631,9 +640,46 @@ export class ServiceUserVisitPlansService {
       employees.map((e) => e.id),
       dto,
     );
+    // Dated suggest (rota): judge compliance expiry on the visit date, not today.
+    const visitDay = dto.scheduledDate ? new Date(`${dto.scheduledDate}T12:00:00.000Z`) : null;
     const complianceByEmployee = await this.allocationCompliance.evaluateForEmployees(
       employees.map((e) => e.id),
+      visitDay && visitDay.getTime() > Date.now() ? visitDay : new Date(),
     );
+
+    // Settings → Allocation rules: "Don't allow" hides the carer from assign lists,
+    // "Request confirmation" shows a warning. Dated rules need a concrete visit date.
+    const allocationRules = await loadDomCareAllocationRules(this.prisma);
+    let ruleHitsByEmployee = new Map<string, AllocationRuleHit[]>();
+    if (dto.scheduledDate) {
+      const window = visitPlanSuggestJobWindow(
+        dto.scheduledDate,
+        dto.plannedStartTime,
+        dto.plannedEndTime,
+        await this.orgSettings.getOperationalTimezone(),
+      );
+      const visit = dto.excludeScheduledJobId
+        ? await this.prisma.scheduledVisit.findFirst({
+            where: { scheduledJobId: dto.excludeScheduledJobId, deletedAt: null },
+            select: { medicationRequired: true, visitPlanSlotId: true },
+          })
+        : null;
+      if (window) {
+        ruleHitsByEmployee = await evaluateAllocationRuleHits(this.prisma, {
+          employeeIds: employees.map((e) => e.id),
+          jobStart: window.jobStart,
+          jobEnd: window.jobEnd,
+          rules: allocationRules,
+          excludeScheduledJobId: dto.excludeScheduledJobId,
+          medicationRequired: visit?.medicationRequired ?? false,
+          skillKeywords: skillKeywords.length
+            ? skillKeywords
+            : await skillKeywordsForVisitPlanSlot(this.prisma, visit?.visitPlanSlotId),
+        });
+      }
+    }
+    const patternBehavior = allocationRuleBehavior(allocationRules, 'job_outside_working_pattern');
+    const skillsBehavior = allocationRuleBehavior(allocationRules, 'missing_client_skills');
 
     // Weekly assigned hours per carer across all ACTIVE visit plans — used to flag
     // carers whose total assigned hours would exceed their contracted weekly hours.
@@ -765,7 +811,32 @@ export class ServiceUserVisitPlansService {
         );
       }
 
-      const fit = carerFitScore({
+      const ruleHits = [...(ruleHitsByEmployee.get(emp.id) ?? [])];
+      // Pattern warnings are already shown via `availability`; only a block is added here.
+      if (
+        patternBehavior === 'DONT_ALLOW' &&
+        (availability.unavailableDays.length > 0 || !availability.timeWindowOk)
+      ) {
+        ruleHits.push({
+          key: 'job_outside_working_pattern',
+          message: availability.summary || 'Visit is outside working pattern',
+          block: true,
+        });
+      }
+      if (!dto.scheduledDate && skills.missing.length && skillsBehavior === 'DONT_ALLOW') {
+        ruleHits.push({
+          key: 'missing_client_skills',
+          message: `Missing skills: ${skills.missing.join(', ')}`,
+          block: true,
+        });
+      }
+      const ruleBlockReasons = ruleHits.filter((h) => h.block).map((h) => h.message);
+      const ruleBlocked = ruleBlockReasons.length > 0;
+      for (const hit of ruleHits) {
+        if (!hit.block && !warnings.includes(hit.message)) warnings.push(hit.message);
+      }
+
+      const fit = ruleBlocked ? 'poor' : carerFitScore({
         isBlocked,
         hasRotaConflict,
         unavailableDays: availability.unavailableDays,
@@ -796,6 +867,8 @@ export class ServiceUserVisitPlansService {
         assignedWeeklyHours,
         projectedWeeklyHours,
         exceedsContractedHours,
+        ruleBlocked,
+        ruleBlockReasons,
         warnings,
       });
     }
@@ -2429,6 +2502,8 @@ export class ServiceUserVisitPlansService {
                     respectWorkingPattern,
                     patternByEmployee,
                     excludeScheduledJobId: liveJob.id,
+                    medicationRequired: existingVisit.medicationRequired,
+                    visitPlanSlotId: slot.id,
                   },
                 );
                 if (resolved.patternWarnings.length) {
@@ -2585,6 +2660,8 @@ export class ServiceUserVisitPlansService {
                 respectWorkingPattern,
                 patternByEmployee,
                 excludeScheduledJobId: job.id,
+                medicationRequired: visit.medicationRequired,
+                visitPlanSlotId: slot.id,
               },
             );
             if (resolved.patternWarnings.length) {

@@ -656,6 +656,16 @@ async function main() {
     'setup_checklist.read',
     // Role tasks — create/manage work for office-user roles
     'role_tasks.manage',
+    // Specialist care pathways (e.g. Learning Disability)
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+    // Safeguarding
+    'safeguarding.read',
+    'safeguarding.manage',
+    // CRM / Enquiries
+    'crm.read',
+    'crm.manage',
   ];
 
   for (const key of permissionKeys) {
@@ -747,6 +757,29 @@ async function main() {
   await assignPermKeys('Manager', ['surveys.read', 'surveys.manage', 'surveys.responses.record']);
   // Record responses by telephone / paper / in person
   await assignPermKeys('Admin', ['surveys.responses.record']);
+
+  // Specialist care pathways — coordinators read, managers build/approve plans
+  await assignPermKeys('Care Coordinator', ['specialist_pathways.read']);
+  await assignPermKeys('Manager', [
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+  ]);
+  await assignPermKeys('Admin', [
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+  ]);
+
+  // Safeguarding — coordinators read, managers & admins manage the full workflow
+  await assignPermKeys('Care Coordinator', ['safeguarding.read']);
+  await assignPermKeys('Manager', ['safeguarding.read', 'safeguarding.manage']);
+  await assignPermKeys('Admin', ['safeguarding.read', 'safeguarding.manage']);
+
+  // CRM / Enquiries — coordinators read, managers & admins run the pipeline
+  await assignPermKeys('Care Coordinator', ['crm.read']);
+  await assignPermKeys('Manager', ['crm.read', 'crm.manage']);
+  await assignPermKeys('Admin', ['crm.read', 'crm.manage']);
 
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);

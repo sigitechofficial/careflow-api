@@ -22,31 +22,7 @@ export type SendMailInput = {
   attachments?: MailAttachment[];
 };
 
-export type MailSendMode = 'api' | 'smtp' | 'log';
-
-type ParsedFrom = { address: string; name?: string };
-
-function parseFromHeader(from: string): ParsedFrom {
-  const trimmed = from.trim();
-  const angled = trimmed.match(/^(.*)<([^>]+)>$/);
-  if (angled) {
-    const name = angled[1].trim().replace(/^["']|["']$/g, '');
-    const address = angled[2].trim();
-    return name ? { address, name } : { address };
-  }
-  return { address: trimmed };
-}
-
-function normalizeApiAuthHeader(token: string): string {
-  const t = token.trim();
-  if (/^zoho-enczapikey\s+/i.test(t)) return t;
-  return `Zoho-enczapikey ${t}`;
-}
-
-function toBase64(content: string | Buffer): string {
-  if (Buffer.isBuffer(content)) return content.toString('base64');
-  return Buffer.from(content, 'utf8').toString('base64');
-}
+export type MailSendMode = 'smtp' | 'log';
 
 @Injectable()
 export class MailService {
@@ -58,7 +34,6 @@ export class MailService {
   isConfigured(): boolean {
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
     if (mode === 'log') return true;
-    if (mode === 'api') return Boolean(this.config.get<string>('mail.apiToken'));
     return Boolean(this.config.get<string>('mail.host'));
   }
 
@@ -67,7 +42,7 @@ export class MailService {
     const host = this.config.get<string>('mail.host', '');
     if (!host) {
       throw new ServiceUnavailableException(
-        'Email is not configured. Set MAIL_MODE=api with MAIL_API_TOKEN, or SMTP_HOST, or MAIL_MODE=log.',
+        'Email is not configured. Set MAIL_MODE=smtp with SMTP_HOST, or MAIL_MODE=log.',
       );
     }
     const options: SMTPTransport.Options = {
@@ -82,89 +57,6 @@ export class MailService {
     }
     this.transporter = nodemailer.createTransport(options);
     return this.transporter;
-  }
-
-  private async sendViaApi(input: SendMailInput): Promise<{ messageId: string }> {
-    const apiUrl = this.config.get<string>(
-      'mail.apiUrl',
-      'https://api.zeptomail.com/v1.1/email',
-    );
-    const token = this.config.get<string>('mail.apiToken', '');
-    if (!token) {
-      throw new ServiceUnavailableException(
-        'Email API is not configured. Set MAIL_API_TOKEN (ZeptoMail Send Mail Token).',
-      );
-    }
-
-    const from = parseFromHeader(
-      this.config.get<string>('mail.from', 'CareAdmin <noreply@careadmin.local>'),
-    );
-    const recipients = (Array.isArray(input.to) ? input.to : [input.to])
-      .map((addr) => addr.trim())
-      .filter(Boolean);
-
-    const body: Record<string, unknown> = {
-      from: from.name ? { address: from.address, name: from.name } : { address: from.address },
-      to: recipients.map((address) => ({
-        email_address: { address },
-      })),
-      subject: input.subject,
-      htmlbody: input.html ?? `<pre>${escapeHtml(input.text)}</pre>`,
-      textbody: input.text,
-    };
-
-    if (input.attachments?.length) {
-      body.attachments = input.attachments.map((a) => ({
-        name: a.filename,
-        content: toBase64(a.content),
-        mime_type: a.contentType ?? 'application/octet-stream',
-      }));
-    }
-
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: normalizeApiAuthHeader(token),
-      },
-      body: JSON.stringify(body),
-    });
-
-    const raw = await res.text();
-    let parsed: Record<string, unknown> | null = null;
-    try {
-      parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
-    } catch {
-      parsed = null;
-    }
-
-    if (!res.ok) {
-      const errObj =
-        parsed && typeof parsed.error === 'object' && parsed.error
-          ? (parsed.error as Record<string, unknown>)
-          : null;
-      const message =
-        (typeof errObj?.message === 'string' && errObj.message) ||
-        (typeof parsed?.message === 'string' && parsed.message) ||
-        raw.slice(0, 300) ||
-        `ZeptoMail API error HTTP ${res.status}`;
-      this.logger.warn(`ZeptoMail API send failed (${res.status}): ${message}`);
-      throw new ServiceUnavailableException(message);
-    }
-
-    const data =
-      parsed && typeof parsed.data === 'object' && parsed.data
-        ? (parsed.data as Record<string, unknown>)
-        : parsed;
-    const messageId =
-      (data && typeof data === 'object' && typeof (data as { request_id?: unknown }).request_id === 'string'
-        ? (data as { request_id: string }).request_id
-        : null) ||
-      (typeof parsed?.request_id === 'string' ? parsed.request_id : null) ||
-      `zepto-${Date.now()}`;
-
-    return { messageId };
   }
 
   async send(
@@ -186,11 +78,6 @@ export class MailService {
       return { messageId: `log-${Date.now()}`, mode: 'log' };
     }
 
-    if (mode === 'api') {
-      const result = await this.sendViaApi(input);
-      return { messageId: result.messageId, mode: 'api' };
-    }
-
     const info = await this.getTransporter().sendMail({
       from,
       to,
@@ -205,12 +92,4 @@ export class MailService {
     });
     return { messageId: String(info.messageId ?? ''), mode: 'smtp' };
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

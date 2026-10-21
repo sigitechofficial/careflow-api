@@ -1663,6 +1663,7 @@ model EmployeeDocument {
   uploadedDate DateTime          @default(now())
   tags         String[]
   documentType HrDocumentType?
+  complianceTypeId String?       @db.Uuid
   expiryDate   DateTime?
   status       HrDocumentStatus?
 
@@ -1674,12 +1675,14 @@ model EmployeeDocument {
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
 
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  uploadedBy User?    @relation(fields: [uploadedById], references: [id])
+  employee       Employee        @relation(fields: [employeeId], references: [id])
+  uploadedBy     User?           @relation(fields: [uploadedById], references: [id])
+  complianceType ComplianceType? @relation(fields: [complianceTypeId], references: [id])
 
   @@index([employeeId])
   @@index([uploadedDate])
   @@index([documentType])
+  @@index([complianceTypeId])
   @@index([status])
   @@index([deletedAt])
   @@schema("employees")
@@ -2518,6 +2521,7 @@ model ComplianceType {
 
   complianceRecords EmployeeCompliance[]
   requirements      ComplianceRequirement[]
+  employeeDocuments EmployeeDocument[]
 
   @@index([category])
   @@index([deletedAt])
@@ -3018,6 +3022,7 @@ model ServiceUser {
   bodyMapAlerts                  BodyMapAlert[]
   portalAccount                  ServiceUserPortalAccount?
   visitCareConsents              VisitCareConsent[]
+  specialistPathwayCases         SpecialistPathwayCase[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -13376,6 +13381,7 @@ model PolicyAcknowledgement {
 enum SurveyTargetKind {
   EMPLOYEE
   SERVICE_USER
+  PUBLIC
 
   @@schema("surveys")
 }
@@ -13457,6 +13463,10 @@ model Survey {
   closesAt    DateTime?
   publishedAt DateTime?
   locationIds String[]         @default([]) @db.Uuid
+  /// Employee job-role (EmployeeRoleLookup) ids to scope an employee survey to. Empty = all roles.
+  roleIds     String[]         @default([]) @db.Uuid
+  /// Marks this survey as a reusable template (shown separately; used to start new surveys).
+  isTemplate  Boolean          @default(false)
   /// When to auto-send this survey to employees (scheduled distribution).
   distributeAt DateTime?
   /// When scheduled distribution actually ran (one-shot only).
@@ -14016,5 +14026,519 @@ model ReferralNumberSequence {
   updatedAt DateTime @updatedAt
 
   @@id([kind, year])
+  @@schema("service_users")
+}
+
+// ---------------------------------------------------------------------------
+// Specialist care pathways (generic foundation; v1 ships Learning Disability).
+// A pathway case records a client-type-specific assessment (free-form sections
+// stored as JSON) and produces versioned, approved care plans. Section layouts
+// live in the frontend `pathway-specs.ts`, keeping this model generic.
+// ---------------------------------------------------------------------------
+
+enum SpecialistPathwayType {
+  LEARNING_DISABILITY
+  DEMENTIA
+  END_OF_LIFE
+  CHILDREN
+  SUPPORTED_LIVING
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayStatus {
+  OPEN
+  ACTIVE
+  CLOSED
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayPlanStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RETURNED
+  SUPERSEDED
+
+  @@schema("service_users")
+}
+
+model SpecialistPathwayCase {
+  id            String                  @id @default(uuid()) @db.Uuid
+  serviceUserId String                  @db.Uuid
+  pathwayType   SpecialistPathwayType
+  ref           String
+  status        SpecialistPathwayStatus @default(OPEN)
+  reviewDueDate DateTime?
+  /// Keyed assessment answers: { [sectionKey]: { fields: Record<string,string>, verifiedById, verifiedAt } }
+  sections      Json                    @default("{}")
+  closedReason  String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  plans       SpecialistPathwayCarePlan[]
+  risks       SpecialistPathwayRisk[]
+  reviews     SpecialistPathwayReview[]
+  events      SpecialistPathwayEvent[]
+  professionals SpecialistPathwayProfessional[]
+  documents     SpecialistPathwayDocument[]
+
+  @@unique([pathwayType, ref])
+  @@index([serviceUserId])
+  @@index([pathwayType, status])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayRiskStatus {
+  OPEN
+  CLOSED
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayReviewOutcome {
+  NO_CHANGE
+  PLAN_UPDATE_NEEDED
+  ESCALATED
+  CASE_CLOSED
+
+  @@schema("service_users")
+}
+
+/// Risk assessment on a pathway case: score = likelihood × impact (each 1–5).
+model SpecialistPathwayRisk {
+  id          String                      @id @default(uuid()) @db.Uuid
+  caseId      String                      @db.Uuid
+  title       String
+  category    String?
+  description String?
+  likelihood  Int
+  impact      Int
+  controls    String?
+  reviewDate  DateTime?
+  status      SpecialistPathwayRiskStatus @default(OPEN)
+  createdById String?                     @db.Uuid
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  deletedAt   DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// A recorded review of a pathway case.
+model SpecialistPathwayReview {
+  id             String                         @id @default(uuid()) @db.Uuid
+  caseId         String                         @db.Uuid
+  reviewedAt     DateTime
+  reviewedById   String?                        @db.Uuid
+  outcome        SpecialistPathwayReviewOutcome
+  notes          String?
+  nextReviewDate DateTime?
+  createdAt      DateTime                       @default(now())
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// External professional involved in a pathway case (GP, social worker, SALT...).
+model SpecialistPathwayProfessional {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @db.Uuid
+  name         String
+  role         String
+  organisation String?
+  phone        String?
+  email        String?
+  notes        String?
+  createdById  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// File attached to a pathway case. Stored outside the public static root; served only via the download endpoint.
+model SpecialistPathwayDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @db.Uuid
+  title        String
+  category     String?
+  fileName     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// Activity timeline entry on a pathway case.
+model SpecialistPathwayEvent {
+  id     String   @id @default(uuid()) @db.Uuid
+  caseId String   @db.Uuid
+  action String
+  note   String?
+  userId String?  @db.Uuid
+  at     DateTime @default(now())
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+model SpecialistPathwayCarePlan {
+  id        String                      @id @default(uuid()) @db.Uuid
+  caseId    String                      @db.Uuid
+  version   Int
+  status    SpecialistPathwayPlanStatus @default(DRAFT)
+  /// Plan body (free-form; e.g. { summary, goals[], support[] }).
+  content   Json                        @default("{}")
+  comment   String?
+
+  submittedById String?   @db.Uuid
+  submittedAt   DateTime?
+  decidedById   String?   @db.Uuid
+  decidedAt     DateTime?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, version])
+  @@index([caseId])
+  @@index([status])
+  @@schema("service_users")
+}
+
+// ---------------------------------------------------------------------------
+// Safeguarding (lean case register). A concern is raised, triaged (risk +
+// category), referred to the Local Authority / CQC, investigated via a
+// timeline of events, and closed with an outcome. People/branch are linked as
+// scalar UUIDs (validated in the service), so no cross-schema FK is needed.
+// ---------------------------------------------------------------------------
+
+enum SafeguardingStatus {
+  RAISED
+  SCREENING
+  INVESTIGATING
+  REFERRED
+  CLOSED
+
+  @@schema("incidents")
+}
+
+enum SafeguardingRisk {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("incidents")
+}
+
+enum SafeguardingCategory {
+  PHYSICAL
+  EMOTIONAL
+  SEXUAL
+  FINANCIAL
+  NEGLECT
+  SELF_NEGLECT
+  DISCRIMINATORY
+  ORGANISATIONAL
+  DOMESTIC_ABUSE
+  MODERN_SLAVERY
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum SafeguardingReferralDecision {
+  NOT_REQUIRED
+  PENDING
+  MADE
+
+  @@schema("incidents")
+}
+
+model SafeguardingCase {
+  id              String                       @id @default(uuid()) @db.Uuid
+  referenceNumber String                       @unique
+  status          SafeguardingStatus           @default(RAISED)
+  category        SafeguardingCategory
+  riskLevel       SafeguardingRisk             @default(MEDIUM)
+  aboutServiceUserId String?                   @db.Uuid
+  personDescription  String?
+  locationId         String?                   @db.Uuid
+  handlerEmployeeId  String?                   @db.Uuid
+  raisedByRole       String?
+  raisedAt           DateTime
+  description        String                    @db.Text
+  immediateAction    String?
+  laReferral         SafeguardingReferralDecision @default(PENDING)
+  laReference        String?
+  laReferredAt       DateTime?
+  cqcNotified        SafeguardingReferralDecision @default(PENDING)
+  cqcReference       String?
+  outcome            String?
+  lessonsLearned     String?
+  closedAt           DateTime?
+
+  /// Phase 2: case lead (office user), review date, immediate safety, multi-agency and the person's voice.
+  leadUserId          String?   @db.Uuid
+  reviewDate          DateTime?
+  reportedToManagerAt DateTime?
+  personSafe          String?
+  safetyMeasures      String?   @db.Text
+  personWords         String?   @db.Text
+  evidence            String?   @db.Text
+  agencies            String[]  @default([])
+  agenciesOther       String?
+  meetingHeld         String?
+  meetingDate         DateTime?
+  protectionPlan      String?   @db.Text
+  personWants         String?   @db.Text
+  capacity            String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  recordedById String?  @db.Uuid
+  deletedById  String?  @db.Uuid
+
+  events SafeguardingEvent[]
+
+  @@index([status])
+  @@index([category])
+  @@index([aboutServiceUserId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+model SafeguardingEvent {
+  id     String   @id @default(uuid()) @db.Uuid
+  caseId String   @db.Uuid
+  action String
+  note   String?
+  userId String?  @db.Uuid
+  at     DateTime @default(now())
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("incidents")
+}
+
+model SafeguardingNumberSequence {
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year])
+  @@schema("incidents")
+}
+
+// ---------------------------------------------------------------------------
+// CRM / Enquiries (lead intake pipeline). A care enquiry is captured, moved
+// through pipeline stages on a board, and converted into a ServiceUser (the
+// conversion reuses POST /service-users; the new id is stored here). People
+// are linked as scalar UUIDs, so no existing model is touched.
+// ---------------------------------------------------------------------------
+
+enum EnquiryStage {
+  NEW
+  CONTACTED
+  ASSESSMENT
+  OFFER
+  WON
+  LOST
+
+  @@schema("service_users")
+}
+
+enum EnquirySource {
+  SELF
+  FAMILY
+  GP
+  HOSPITAL
+  LOCAL_AUTHORITY
+  NHS
+  SOCIAL_WORKER
+  WEBSITE
+  WORD_OF_MOUTH
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryType {
+  PRIVATE
+  LOCAL_AUTHORITY
+  NHS
+  HOSPITAL
+
+  @@schema("service_users")
+}
+
+enum EnquiryUrgency {
+  ROUTINE
+  URGENT
+
+  @@schema("service_users")
+}
+
+enum EnquiryReceivedVia {
+  PHONE
+  EMAIL
+  WEBSITE
+  IN_PERSON
+  LETTER
+  FAX
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryLostReason {
+  PRICE
+  CHOSE_ANOTHER_PROVIDER
+  NO_CAPACITY
+  OUT_OF_AREA
+  NEEDS_NOT_MET
+  MOVED_TO_CARE_HOME
+  NO_LONGER_NEEDED
+  DECEASED
+  NO_RESPONSE
+  FUNDING_DECLINED
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryFundingType {
+  SELF_FUNDED
+  LOCAL_AUTHORITY
+  NHS_CHC
+  MIXED
+  UNKNOWN
+
+  @@schema("service_users")
+}
+
+model Enquiry {
+  id                     String         @id @default(uuid()) @db.Uuid
+  referenceNumber        String         @unique
+  stage                  EnquiryStage   @default(NEW)
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime?
+  contactName            String?
+  contactRelationship    String?
+  contactPhone           String?
+  contactEmail           String?
+  source                 EnquirySource  @default(OTHER)
+  sourceDetail           String?
+  enquiryType            EnquiryType?
+  urgency                EnquiryUrgency @default(ROUTINE)
+  needs                  String?        @db.Text
+  ownerId                String?        @db.Uuid
+  /// How the enquiry reached us (phone, email, website, …).
+  receivedVia            EnquiryReceivedVia?
+  /// When the referrer/person sent the enquiry.
+  sentAt                 DateTime?
+  /// When the office received the enquiry (may differ from createdAt — when it was entered).
+  receivedAt             DateTime?
+  addressLine            String?
+  postcode               String?
+  fundingType            EnquiryFundingType?
+  /// Funding type from the shared lookup (ServiceUserFundingType) — preferred over `fundingType`.
+  fundingTypeId          String?        @db.Uuid
+  funderName             String?
+  hoursPerWeek           Float?
+  visitsPerDay           Int?
+  requestedStartDate     DateTime?
+  /// Next follow-up due and what needs doing; overdue when in the past on an open enquiry.
+  nextFollowUpAt         DateTime?
+  nextAction             String?
+  /// Branch the enquiry belongs to (scalar link to Location; drives branch scoping).
+  locationId             String?        @db.Uuid
+  quoteWeeklyAmount      Float?
+  quoteHourlyRate        Float?
+  quoteSentAt            DateTime?
+  quoteNotes             String?
+  assessmentAt           DateTime?
+  /// Office user carrying out the assessment.
+  assessorId             String?        @db.Uuid
+  assessmentLocation     String?
+  lostReasonCode         EnquiryLostReason?
+  lostReason             String?
+  convertedServiceUserId String?        @db.Uuid
+  stageChangedAt         DateTime       @default(now())
+
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  recordedById String?   @db.Uuid
+  deletedById  String?   @db.Uuid
+
+  events EnquiryEvent[]
+
+  @@index([stage])
+  @@index([source])
+  @@index([ownerId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model EnquiryEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  enquiryId String   @db.Uuid
+  action    String
+  note      String?
+  userId    String?  @db.Uuid
+  at        DateTime @default(now())
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@schema("service_users")
+}
+
+model EnquiryNumberSequence {
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year])
   @@schema("service_users")
 }
