@@ -94,6 +94,7 @@ type EmployeeIdentityRow = {
     payrollNumber: string | null
     nationalInsuranceNo: string | null
     defaultPayCardId: string | null
+    contractedWeeklyHours: number | null
     startDate: Date | null
     endDate: Date | null
   } | null
@@ -157,6 +158,7 @@ export class PayrollEmployeesService {
         payrollNumber: true,
         nationalInsuranceNo: true,
         defaultPayCardId: true,
+        contractedWeeklyHours: true,
         startDate: true,
         endDate: true,
       },
@@ -225,6 +227,7 @@ export class PayrollEmployeesService {
         payrollNumber: e.employment?.payrollNumber ?? null,
         nationalInsuranceNo: e.employment?.nationalInsuranceNo ?? null,
         defaultPayCardId: e.employment?.defaultPayCardId ?? null,
+        contractedWeeklyHours: e.employment?.contractedWeeklyHours ?? null,
         employmentStartDate: dateToIsoDate(e.employment?.startDate ?? null),
         employmentEndDate: dateToIsoDate(e.employment?.endDate ?? null),
         profile: profile ? mapProfile(profile) : null,
@@ -820,7 +823,7 @@ export class PayrollEmployeesService {
     }
     if (input.salaryCoverage === 'CONTRACTED_HOURS' && !((input.contractedHours ?? 0) > 0)) {
       throw new BadRequestException(
-        'Enter the contracted weekly hours: the salary pays for visit work up to them, and work beyond them is paid separately.',
+        'Enter the contracted weekly hours on the Edit employee page: the salary pays for visit work up to them, and work beyond them is paid separately.',
       );
     }
     return {
@@ -876,12 +879,13 @@ export class PayrollEmployeesService {
       throw new BadRequestException('effectiveTo must be on or after effectiveFrom');
     }
 
+    const contractedHours = await this.employmentContractedHours(employeeId);
     const terms = this.agreementTermsFrom({
       basis: dto.basis,
       annualSalary: dto.annualSalary ?? null,
       salaryEntryPeriod: dto.salaryEntryPeriod ?? null,
       salaryEntryAmount: dto.salaryEntryAmount ?? null,
-      contractedHours: dto.contractedHours ?? null,
+      contractedHours,
       salaryProrationMethod: dto.salaryProrationMethod ?? null,
       salaryCoverage: dto.salaryCoverage ?? null,
       guaranteedWeeklyHours: dto.guaranteedWeeklyHours ?? null,
@@ -909,8 +913,7 @@ export class PayrollEmployeesService {
           effectiveTo,
           payCardId: dto.payCardId ?? null,
           ...terms,
-          contractedHours:
-            dto.contractedHours == null ? null : new Prisma.Decimal(dto.contractedHours),
+          contractedHours: contractedHours == null ? null : new Prisma.Decimal(contractedHours),
           hourlyRateOverride:
             dto.hourlyRateOverride == null
               ? null
@@ -1027,6 +1030,10 @@ export class PayrollEmployeesService {
     // A salary entered again in one form replaces the other form.
     const entryGiven = dto.salaryEntryAmount !== undefined || dto.salaryEntryPeriod !== undefined;
     const annualGiven = dto.annualSalary !== undefined;
+    const isDraft = existing.status === 'DRAFT';
+    const contractedHours = isDraft
+      ? await this.employmentContractedHours(existing.employeeId)
+      : num(existing.contractedHours);
     const terms = this.agreementTermsFrom({
       basis,
       annualSalary: annualGiven ? (dto.annualSalary ?? null) : entryGiven ? null : num(existing.annualSalary),
@@ -1040,7 +1047,7 @@ export class PayrollEmployeesService {
         : annualGiven
           ? null
           : num(existing.salaryEntryAmount),
-      contractedHours: pick(dto.contractedHours, num(existing.contractedHours)),
+      contractedHours,
       salaryProrationMethod: pick(dto.salaryProrationMethod, existing.salaryProrationMethod),
       salaryCoverage: pick(dto.salaryCoverage, existing.salaryCoverage),
       guaranteedWeeklyHours: pick(dto.guaranteedWeeklyHours, num(existing.guaranteedWeeklyHours)),
@@ -1062,7 +1069,6 @@ export class PayrollEmployeesService {
         'annualSalary',
         'salaryEntryPeriod',
         'salaryEntryAmount',
-        'contractedHours',
         'salaryProrationMethod',
         'salaryCoverage',
         'guaranteedWeeklyHours',
@@ -1118,12 +1124,11 @@ export class PayrollEmployeesService {
           effectiveTo: dto.effectiveTo === undefined ? undefined : effectiveTo,
           payCardId: dto.payCardId === undefined ? undefined : dto.payCardId,
           ...(inEffect && salaryInvolved ? {} : terms),
-          contractedHours:
-            dto.contractedHours === undefined
-              ? undefined
-              : dto.contractedHours == null
-                ? null
-                : new Prisma.Decimal(dto.contractedHours),
+          contractedHours: !isDraft
+            ? undefined
+            : contractedHours == null
+              ? null
+              : new Prisma.Decimal(contractedHours),
           hourlyRateOverride:
             dto.hourlyRateOverride === undefined
               ? undefined
@@ -1152,6 +1157,15 @@ export class PayrollEmployeesService {
     });
 
     return { message: 'Pay agreement updated', data: mapAgreement(row) };
+  }
+
+  /** Contracted weekly hours are entered on the employee's record (Edit employee); an agreement keeps a copy. */
+  private async employmentContractedHours(employeeId: string) {
+    const row = await this.prisma.employeeEmployment.findUnique({
+      where: { employeeId },
+      select: { contractedWeeklyHours: true },
+    });
+    return row?.contractedWeeklyHours ?? null;
   }
 
   private async requireEmployee(employeeId: string) {

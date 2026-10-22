@@ -100,6 +100,10 @@ import {
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
+import {
+  PARENTAL_LEAVE_TYPES,
+  ROTA_BLOCKING_LEAVE_TYPES,
+} from '../employee-absences/dto/employee-absence.dto';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
 import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
@@ -730,6 +734,105 @@ export class ServiceUserVisitPlansService {
     );
     const proposedWeeklyMinutes = proposedPerDayMinutes * slotDays.length;
 
+    // Upcoming time off (leave / holiday) so the picker can flag a carer who is off for
+    // some of the plan's visits. Uses the same leave types the allocation engine recognises;
+    // `blocks` reflects whether the org's allocation rule for that type is "Don't allow".
+    const timeOffEmployeeIds = employees.map((e) => e.id);
+    const leaveBlocks = allocationRuleBehavior(allocationRules, 'carer_on_leave') === 'DONT_ALLOW';
+    const holidayBlocks = allocationRuleBehavior(allocationRules, 'carer_on_holiday') === 'DONT_ALLOW';
+    const timeOffWindowStart = new Date();
+    const timeOffWindowEnd = new Date(timeOffWindowStart.getTime() + 56 * 24 * 60 * 60 * 1000);
+    const [absenceRows, holidayRows] = await Promise.all([
+      this.prisma.employeeAbsenceRecord.findMany({
+        where: {
+          employeeId: { in: timeOffEmployeeIds },
+          deletedAt: null,
+          isActive: true,
+          fromDateTime: { lte: timeOffWindowEnd },
+          toDateTime: { gte: timeOffWindowStart },
+          OR: [
+            { absenceType: { in: [...ROTA_BLOCKING_LEAVE_TYPES] } },
+            { absenceType: { in: [...PARENTAL_LEAVE_TYPES] }, permissionStatus: 'Authorised' },
+          ],
+        },
+        select: { employeeId: true, absenceType: true, fromDateTime: true, toDateTime: true },
+        orderBy: { fromDateTime: 'asc' },
+      }),
+      this.prisma.employeeHoliday.findMany({
+        where: {
+          employeeId: { in: timeOffEmployeeIds },
+          deletedAt: null,
+          isActive: true,
+          startDate: { lte: timeOffWindowEnd },
+          endDate: { gte: timeOffWindowStart },
+        },
+        select: { employeeId: true, startDate: true, endDate: true },
+        orderBy: { startDate: 'asc' },
+      }),
+    ]);
+    const leaveLabel = (type: string) =>
+      type === 'Sickness'
+        ? 'sick leave'
+        : type === 'Casual leave'
+          ? 'casual leave'
+          : `${type.toLowerCase()} leave`;
+    const timeOffByEmployee = new Map<
+      string,
+      { kind: 'leave' | 'holiday'; label: string; from: Date; to: Date; blocks: boolean }
+    >();
+    const considerTimeOff = (
+      employeeId: string,
+      entry: { kind: 'leave' | 'holiday'; label: string; from: Date; to: Date; blocks: boolean },
+    ) => {
+      const existing = timeOffByEmployee.get(employeeId);
+      // Keep the earliest-starting time off for this carer.
+      if (!existing || entry.from < existing.from) timeOffByEmployee.set(employeeId, entry);
+    };
+    for (const r of absenceRows) {
+      considerTimeOff(r.employeeId, {
+        kind: 'leave',
+        label: leaveLabel(r.absenceType),
+        from: r.fromDateTime,
+        to: r.toDateTime,
+        blocks: leaveBlocks,
+      });
+    }
+    for (const r of holidayRows) {
+      considerTimeOff(r.employeeId, {
+        kind: 'holiday',
+        label: 'holiday',
+        from: r.startDate,
+        to: r.endDate,
+        blocks: holidayBlocks,
+      });
+    }
+
+    // Carers on authorised maternity / paternity leave are hidden from assign lists (rule-blocked).
+    // Dated suggest checks the visit day; the visit-plan picker checks the next 8 weeks.
+    const parentalWindowStart = dto.scheduledDate
+      ? new Date(`${dto.scheduledDate}T00:00:00.000Z`)
+      : timeOffWindowStart;
+    const parentalWindowEnd = dto.scheduledDate
+      ? new Date(`${dto.scheduledDate}T23:59:59.999Z`)
+      : timeOffWindowEnd;
+    const parentalLeaveRows = await this.prisma.employeeAbsenceRecord.findMany({
+      where: {
+        employeeId: { in: timeOffEmployeeIds },
+        deletedAt: null,
+        isActive: true,
+        absenceType: { in: [...PARENTAL_LEAVE_TYPES] },
+        permissionStatus: 'Authorised',
+        fromDateTime: { lte: parentalWindowEnd },
+        toDateTime: { gte: parentalWindowStart },
+      },
+      select: { employeeId: true, absenceType: true, fromDateTime: true, toDateTime: true },
+      orderBy: { fromDateTime: 'asc' },
+    });
+    const parentalLeaveByEmployee = new Map<string, (typeof parentalLeaveRows)[number]>();
+    for (const r of parentalLeaveRows) {
+      if (!parentalLeaveByEmployee.has(r.employeeId)) parentalLeaveByEmployee.set(r.employeeId, r);
+    }
+
     const candidates = [];
 
     for (const emp of employees) {
@@ -834,6 +937,15 @@ export class ServiceUserVisitPlansService {
           block: true,
         });
       }
+      const parentalLeave = parentalLeaveByEmployee.get(emp.id);
+      if (parentalLeave && !ruleHits.some((h) => h.key === 'carer_on_leave' && h.block)) {
+        const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        ruleHits.push({
+          key: 'carer_on_leave',
+          message: `On ${parentalLeave.absenceType.toLowerCase()} leave ${fmt(parentalLeave.fromDateTime)} – ${fmt(parentalLeave.toDateTime)}`,
+          block: true,
+        });
+      }
       const ruleBlockReasons = ruleHits.filter((h) => h.block).map((h) => h.message);
       const ruleBlocked = ruleBlockReasons.length > 0;
       for (const hit of ruleHits) {
@@ -873,6 +985,7 @@ export class ServiceUserVisitPlansService {
         exceedsContractedHours,
         ruleBlocked,
         ruleBlockReasons,
+        timeOff: timeOffByEmployee.get(emp.id) ?? null,
         warnings,
       });
     }

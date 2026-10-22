@@ -56,6 +56,7 @@ import {
   withoutPaySnapshotFields,
   type PaySettlementRef,
 } from './pay-settlement.util';
+import { latLngOf, travelBetween } from './visit-travel-distance.util';
 import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
@@ -96,7 +97,17 @@ import {
   isDurationShortfallWithinTolerance,
   isLegacyMismatchedBillWindow,
   resolveDefaultApprovedWindows,
+  calculateMileageAmount,
+  calculateTravelTimeAmount,
 } from './visit-reconciliation.util';
+import {
+  calculateUkMileage,
+  pickMileageRates,
+  ukTaxYearStartKey,
+  type MileageVehicleType,
+} from './pay-mileage.util';
+import { mileageJourneysInTaxYear } from './mileage-ledger.store';
+import { decidedTravelForVisit } from './travel-interval.util';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
 import {
   formatTimeHhMmSs,
@@ -801,6 +812,11 @@ export class VisitReconciliationsService {
     options?: { forceRecalculateAmounts?: boolean },
   ): Promise<boolean> {
     try {
+      await this.fillTravelFromDistance(db, id);
+    } catch (err) {
+      this.logger.warn(`Could not fill travel from distance for visit ${id}: ${String(err)}`);
+    }
+    try {
       await this.evaluateInternal(db, id, options);
       await this.closeEvaluationFailure('EVALUATE', id, 'SUCCEEDED_LATER');
       return true;
@@ -808,6 +824,89 @@ export class VisitReconciliationsService {
       await this.recordEvaluationFailure('EVALUATE', id, err);
       return false;
     }
+  }
+
+  /**
+   * Fills a visit's empty mileage and travel minutes from the distance between the service user
+   * the carer visited before it that day and this one. A value a person entered is kept, and a
+   * settled or locked visit is not touched. The carer's next visit that day is filled too, so the
+   * order visits are reconciled in does not matter.
+   */
+  private async fillTravelFromDistance(db: DbClient, id: string, fillNext = true): Promise<void> {
+    const row = await db.visitReconciliation.findUnique({ where: { id } });
+    if (!row?.employeeId) return;
+    const startOf = (r: { actualStartDateTime: Date | null; plannedStartDateTime: Date }) =>
+      r.actualStartDateTime ?? r.plannedStartDateTime;
+    const start = startOf(row);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const day = dayKeyInTimeZone(start, timeZone);
+    const dayMs = 24 * 60 * 60_000;
+    const sameDay = (
+      await db.visitReconciliation.findMany({
+        where: {
+          employeeId: row.employeeId,
+          id: { not: row.id },
+          status: { not: VisitReconciliationStatus.REJECTED_FOR_PAY },
+          plannedStartDateTime: { gte: new Date(start.getTime() - dayMs), lte: new Date(start.getTime() + dayMs) },
+        },
+        select: { id: true, visitRef: true, serviceUserId: true, actualStartDateTime: true, plannedStartDateTime: true },
+      })
+    )
+      .filter((r) => dayKeyInTimeZone(startOf(r), timeZone) === day)
+      .sort((a, b) => startOf(a).getTime() - startOf(b).getTime());
+    const previous = [...sameDay].reverse().find((r) => startOf(r) < start);
+    const next = sameDay.find((r) => startOf(r) > start);
+
+    const needsFill = row.travelMiles == null || row.travelMinutes == null;
+    if (
+      previous &&
+      needsFill &&
+      previous.serviceUserId !== row.serviceUserId &&
+      row.status !== VisitReconciliationStatus.LOCKED &&
+      !isPaySettled(row)
+    ) {
+      const homes = await db.serviceUserAddress.findMany({
+        where: { serviceUserId: { in: [previous.serviceUserId, row.serviceUserId] }, deletedAt: null },
+        select: { serviceUserId: true, latitude: true, longitude: true },
+      });
+      const homeOf = (serviceUserId: string) => {
+        const home = homes.find((h) => h.serviceUserId === serviceUserId);
+        return home ? latLngOf(home.latitude, home.longitude) : null;
+      };
+      const from = homeOf(previous.serviceUserId);
+      const to = homeOf(row.serviceUserId);
+      const travel =
+        from && to
+          ? await travelBetween(from, to, {
+              apiKey: process.env.GOOGLE_MAPS_API_KEY?.trim() || null,
+              onGoogleError: (err) =>
+                this.logger.warn(`Google route for visit ${row.visitRef} failed, using the estimate: ${String(err)}`),
+            })
+          : null;
+      if (travel) {
+        const after = await db.visitReconciliation.update({
+          where: { id: row.id },
+          data: {
+            ...(row.travelMiles == null ? { travelMiles: travel.miles } : {}),
+            ...(row.travelMinutes == null ? { travelMinutes: travel.minutes } : {}),
+          },
+        });
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_UPDATED,
+          undefined,
+          row,
+          {
+            oldValues: { travelMiles: row.travelMiles?.toString() ?? null, travelMinutes: row.travelMinutes },
+            newValues: { travelMiles: after.travelMiles?.toString() ?? null, travelMinutes: after.travelMinutes },
+            reason: `Mileage and travel time filled from the ${travel.source === 'GOOGLE' ? 'Google driving route' : 'estimated distance'} from ${previous.visitRef}`,
+          },
+          undefined,
+          this.txOf(db),
+        );
+      }
+    }
+
+    if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false);
   }
 
   /**
@@ -1342,9 +1441,86 @@ export class VisitReconciliationsService {
       evidenceChangedReason: row.evidenceChangedReason,
       evidenceChangedAt: row.evidenceChangedAt?.toISOString() ?? null,
     };
+    const travelPay = await this.travelPayPreview(row, timeZone);
     // Settled pay is changed through a pay correction, not on this record.
     return {
-      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview },
+      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview, travelPay },
+    };
+  }
+
+  /**
+   * Mileage and travel time the visit pay run will pay for this visit, priced the way it prices
+   * them (pay card rules, UK mileage rates and the carer's tax-year miles). They are paid as their
+   * own lines, apart from the visit pay, so they are shown beside it rather than added to it.
+   */
+  private async travelPayPreview(row: ReconciliationRow, timeZone: string) {
+    if (!row.payCardId || !row.employeeId) return null;
+    const visitDate = row.plannedStartDateTime;
+    const [card, rules, intervals] = await Promise.all([
+      this.prisma.payCard.findUnique({
+        where: { id: row.payCardId },
+        select: { mileageVehicleType: true, useUkMileageRates: true },
+      }),
+      loadPayCardRulesForVersion(this.prisma, row.payCardId, row.payCardVersion),
+      this.prisma.travelTimeInterval.findMany({ where: { toVisitReconciliationId: row.id, status: 'APPROVED' } }),
+    ]);
+
+    const miles = row.travelMiles != null ? Number(row.travelMiles) : 0;
+    let mileage: { miles: number; unitRate: number | null; amount: number; explanation: string } | null = null;
+    if (miles > 0) {
+      const dayKey = dayKeyInTimeZone(visitDate, timeZone);
+      const vehicleType = (card?.mileageVehicleType as MileageVehicleType) ?? 'CAR_VAN';
+      const [rateRows, journeys] = await Promise.all([
+        this.prisma.mileageRate.findMany(),
+        mileageJourneysInTaxYear(this.prisma, {
+          employeeId: row.employeeId,
+          taxYearStartKey: ukTaxYearStartKey(dayKey),
+          timeZone,
+        }),
+      ]);
+      const cardMileage = calculateMileageAmount(rules, visitDate, miles, false, timeZone);
+      const uk = calculateUkMileage({
+        miles,
+        vehicleType,
+        cardRatePerMile: cardMileage?.unitRate ?? null,
+        useUkApprovedRates: card?.useUkMileageRates ?? true,
+        ytdBusinessMiles: journeys
+          .filter((j) => j.visitReconciliationId !== row.id && j.at < visitDate)
+          .reduce((total, j) => total + j.miles, 0),
+        rates: pickMileageRates(rateRows, vehicleType, dayKey),
+      });
+      const priced = uk ?? cardMileage;
+      mileage = priced
+        ? {
+            miles,
+            unitRate: priced.unitRate,
+            amount: priced.amount,
+            explanation: uk?.explanation ?? `${miles} mi × £${priced.unitRate.toFixed(2)}`,
+          }
+        : { miles, unitRate: null, amount: 0, explanation: 'No mileage rate on the pay card or for the day' };
+    }
+
+    // As the pay run: approved travel intervals decide, otherwise the minutes on the visit.
+    const decided = decidedTravelForVisit(intervals);
+    const minutes = decided ? decided.travelMinutes : (row.travelMinutes ?? 0);
+    const priced = calculateTravelTimeAmount(rules, visitDate, minutes, false, timeZone);
+    const travel =
+      minutes > 0
+        ? {
+            minutes,
+            unitRate: priced?.unitRate ?? null,
+            amount: priced?.amount ?? 0,
+            explanation: priced
+              ? `${minutes} min × £${priced.unitRate.toFixed(2)}/hr`
+              : 'No travel time rate on the pay card',
+          }
+        : null;
+
+    if (!mileage && !travel) return null;
+    return {
+      mileage,
+      travel,
+      total: Math.round(((mileage?.amount ?? 0) + (travel?.amount ?? 0)) * 100) / 100,
     };
   }
 
@@ -1399,6 +1575,7 @@ export class VisitReconciliationsService {
   }
 
   async evaluate(id: string) {
+    await this.fillTravelFromDistance(this.prisma, id);
     await this.evaluateInternal(this.prisma, id);
     return this.getById(id);
   }

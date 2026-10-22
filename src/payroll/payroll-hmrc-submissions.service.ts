@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { isSuperAdminRequest } from '../common/request-context/super-admin-context'
 import { Prisma } from '@prisma/client'
 import { AuditLogsService } from '../audit-logs/audit-logs.service'
 import { AuditAction } from '../audit-logs/enums/audit-action.enum'
@@ -682,7 +683,7 @@ export class PayrollHmrcSubmissionsService {
     if (row.environment !== 'LIVE' || row.status !== 'PENDING_APPROVAL') {
       throw new BadRequestException('Only a pending live FPS request can be approved.')
     }
-    if (row.createdById && row.createdById === approverUserId) {
+    if (row.createdById && row.createdById === approverUserId && !isSuperAdminRequest()) {
       throw new ForbiddenException(
         'You requested this live send. A different user must approve it (dual control).',
       )

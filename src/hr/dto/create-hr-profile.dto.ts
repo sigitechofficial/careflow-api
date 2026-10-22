@@ -54,13 +54,6 @@ export class CreateHrProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  contractedHours?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsString()
   @MaxLength(200)
   branchTeam?: string;

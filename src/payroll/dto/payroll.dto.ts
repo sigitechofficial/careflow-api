@@ -599,14 +599,6 @@ export class CreateEmployeePayAgreementDto {
   @Max(10_000_000)
   annualSalary?: number | null;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(168)
-  contractedHours?: number | null;
-
   @ApiPropertyOptional({ enum: SALARY_ENTRY_PERIODS, description: 'How the salary is entered' })
   @IsOptional()
   @IsIn(SALARY_ENTRY_PERIODS as unknown as string[])

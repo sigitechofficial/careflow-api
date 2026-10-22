@@ -12,6 +12,7 @@ import { corsOrigin } from './config/cors-origins.util';
 import { applyTrustProxy } from './config/trust-proxy.util';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { runInRequestContext } from './common/request-context/super-admin-context';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -25,6 +26,8 @@ async function bootstrap() {
     app,
     app.get(ConfigService).get<number>('app.trustProxyHops', 0),
   );
+  // Each request carries whether its user is a Super Admin (see super-admin-context.ts).
+  app.use(runInRequestContext);
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads

@@ -85,7 +85,6 @@ describe('audit entries are saved with the change: pay agreements and visit pay 
       effectiveFrom: '2026-11-01',
       salaryEntryPeriod: 'MONTHLY',
       salaryEntryAmount: 2000,
-      contractedHours: 37.5,
       salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS',
       salaryCoverage: 'ALL_VISIT_WORK',
     };
@@ -107,7 +106,11 @@ describe('audit entries are saved with the change: pay agreements and visit pay 
       officer = await createStaffUser(t.prisma, { permissions: ['payroll.employees.read', 'payroll.employees.manage', ORG] });
       approver = await createStaffUser(t.prisma, { permissions: ['payroll.employees.read', 'payroll.pay_agreements.approve', ORG] });
       employeeId = (await createCarer(t.prisma)).employeeId;
+      await setHours(37.5);
     });
+    // Contracted weekly hours are entered on the employee's record; agreements and terms copy them.
+    const setHours = (hours: number | null) =>
+      t.prisma.employeeEmployment.updateMany({ where: { employeeId }, data: { contractedWeeklyHours: hours } });
 
     it('creating, approving, replacing and changing an agreement are each saved with their audit entry', async () => {
       const created = await create();
@@ -177,15 +180,16 @@ describe('audit entries are saved with the change: pay agreements and visit pay 
     it('the audit entry cannot be written: a change to an agreement is rolled back', async () => {
       const id = (await create()).body.data.id as string;
       const before = await facts();
+      await setHours(40); // a draft takes the employee's hours again when it is saved
       breakAuditTable();
-      const refused = await patch(officer, `/payroll/pay-agreements/${id}`, { salaryEntryAmount: 2500, contractedHours: 40 });
+      const refused = await patch(officer, `/payroll/pay-agreements/${id}`, { salaryEntryAmount: 2500 });
       expect(refused.status).toBe(500);
       expect(await facts()).toEqual(before); // salary and weekly hours as they were
       expect(await entries(id, 'payroll_pay_agreement_updated')).toEqual([]);
 
       jest.restoreAllMocks();
       expect((await patch(officer, `/payroll/pay-agreements/${id}`, { salaryEntryAmount: 2500 })).status).toBe(200);
-      expect((await facts())[0]).toMatchObject({ annualSalary: 30000, contractedHours: 37.5 });
+      expect((await facts())[0]).toMatchObject({ annualSalary: 30000, contractedHours: 40 });
       expect(await entries(id, 'payroll_pay_agreement_updated')).toHaveLength(1);
     });
 

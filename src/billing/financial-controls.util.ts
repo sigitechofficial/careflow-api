@@ -1,12 +1,13 @@
 import { ForbiddenException } from '@nestjs/common';
+import { isSuperAdminRequest } from '../common/request-context/super-admin-context';
 
 /**
  * Maker / checker: the person who prepared a financial record cannot be the one who authorises it.
  * A record with no recorded maker (legacy rows, scheduled proposals) can be authorised by anyone
- * who holds the permission.
+ * who holds the permission. A Super Admin may authorise their own records.
  */
 export function assertDifferentUser(makerId: string | null | undefined, checkerId: string, message: string) {
-  if (makerId && makerId === checkerId) throw new ForbiddenException(message);
+  if (makerId && makerId === checkerId && !isSuperAdminRequest()) throw new ForbiddenException(message);
 }
 
 /**

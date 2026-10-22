@@ -92,8 +92,16 @@ export class LeaveService {
 
   async createTerms(userId: string, employeeId: string, dto: CreateLeaveTermsDto, meta?: RequestAuditMeta) {
     await this.requireEmployee(employeeId);
-    if (dto.workerCategory === 'REGULAR_HOURS' && !((dto.weeklyHours ?? 0) > 0)) {
-      throw new BadRequestException('Enter the hours of a normal working week: statutory leave is 5.6 of those weeks.');
+    // The normal week is the contracted weekly hours on the employee's record; the terms keep a copy.
+    const employment = await this.prisma.employeeEmployment.findUnique({
+      where: { employeeId },
+      select: { contractedWeeklyHours: true },
+    });
+    const weeklyHours = employment?.contractedWeeklyHours ?? null;
+    if (dto.workerCategory === 'REGULAR_HOURS' && !((weeklyHours ?? 0) > 0)) {
+      throw new BadRequestException(
+        'Enter the contracted weekly hours on the Edit employee page: they are the hours of a normal working week, and statutory leave is 5.6 of those weeks.',
+      );
     }
     if (dto.payMethod === 'ROLLED_UP_12_07' && !rolledUpAllowedFor(dto.workerCategory)) {
       throw new BadRequestException(
@@ -106,7 +114,7 @@ export class LeaveService {
         workerCategory: dto.workerCategory,
         leaveYearStartMonth: dto.leaveYearStartMonth,
         leaveYearStartDay: dto.leaveYearStartDay ?? 1,
-        weeklyHours: dto.workerCategory === 'REGULAR_HOURS' ? dto.weeklyHours : (dto.weeklyHours ?? null),
+        weeklyHours,
         contractualExtraHours: dto.contractualExtraHours ?? null,
         payMethod: dto.payMethod,
         carryOverMaxHours: dto.carryOverMaxHours ?? null,

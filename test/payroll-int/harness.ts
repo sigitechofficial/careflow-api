@@ -233,6 +233,7 @@ export function buildUkPayrollRunsService(prisma: PrismaService, audit = createA
   const service = new (UkPayrollRunsService as unknown as new (...args: unknown[]) => UkPayrollRunsService)(
     prisma,
     audit.service,
+    stubOrgSettings,
   );
   return { service, audit };
 }
