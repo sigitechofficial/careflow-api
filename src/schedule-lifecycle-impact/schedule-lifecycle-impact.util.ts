@@ -174,6 +174,33 @@ export function buildUnallocateEmployeeJobsWhere(
   };
 }
 
+/**
+ * Allocations on visits that overlap an exact time window (e.g. an 11:00–12:00 non-core activity).
+ * A visit with no planned end counts when it starts inside the window.
+ */
+export function buildUnallocateEmployeeJobsInWindowWhere(
+  employeeId: string,
+  from: Date,
+  to: Date,
+): Prisma.JobAllocationWhereInput {
+  return {
+    employeeId,
+    deletedAt: null,
+    isActive: true,
+    status: { in: ACTIVE_ALLOCATION_STATUSES },
+    scheduledJob: {
+      deletedAt: null,
+      isActive: true,
+      status: { in: CANCELLABLE_JOB_STATUSES },
+      scheduledStartDateTime: { lt: to },
+      OR: [
+        { scheduledEndDateTime: { gt: from } },
+        { scheduledEndDateTime: null, scheduledStartDateTime: { gte: from } },
+      ],
+    },
+  };
+}
+
 export function normalizeImpactStartDate(fromDate: Date): Date {
   return new Date(
     Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate(), 0, 0, 0, 0),

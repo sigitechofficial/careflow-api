@@ -28,6 +28,10 @@ import {
   FeedbackTransitionDto,
   UpdateFeedbackDto,
 } from './dto/feedback.dto';
+import {
+  PauseIncidentInvestigationDto,
+  UpsertIncidentInvestigationDto,
+} from '../incidents/dto/incident-review.dto';
 
 @ApiTags('Complaints & Compliments')
 @ApiBearerAuth()
@@ -91,6 +95,49 @@ export class FeedbackController {
     @Req() req: Request,
   ) {
     return this.service.transition(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/investigation')
+  @Permissions('complaints.manage')
+  @ApiOperation({ summary: 'Save the complaint investigation (same form as incidents)' })
+  upsertInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpsertIncidentInvestigationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.upsertInvestigation(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get(':id/investigators')
+  @Permissions('complaints.manage')
+  @ApiOperation({ summary: 'Staff who can lead the investigation' })
+  investigators(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.service.eligibleInvestigators(user, id);
+  }
+
+  @Post(':id/investigation/pause')
+  @Permissions('complaints.manage')
+  pauseInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PauseIncidentInvestigationDto,
+    @Req() req: Request,
+  ) {
+    return this.service.pauseInvestigation(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/investigation/resume')
+  @Permissions('complaints.manage')
+  resumeInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.resumeInvestigation(user, id, getRequestAuditMeta(req));
   }
 
   @Post(':id/notes')

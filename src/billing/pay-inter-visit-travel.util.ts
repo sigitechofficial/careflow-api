@@ -8,6 +8,7 @@
  * and attributes qualifying minutes to the destination visit.
  */
 
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import {
   classifyGapBetweenVisits,
   type GapClassification,
@@ -33,6 +34,9 @@ export type InterVisitWindow = {
   /** Manual unpaid travel already recorded. */
   manualUnpaidTravelMinutes?: number | null;
   serviceUserId?: string | null;
+  /** Map point of the visit address (for travel worked out from distance). */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type InterVisitJourney = {
@@ -53,7 +57,30 @@ export type InterVisitJourney = {
   unpaidNmwMinutes: number;
   explanation: string;
   requiresManagerReview: boolean;
+  /** Miles of the journey when travel is worked out from distance. */
+  travelMiles?: number;
 };
+
+/** How the journey between two visits is paid. */
+export type TravelPayBasis = 'GAP' | 'DISTANCE';
+export const TRAVEL_PAY_BASES: readonly TravelPayBasis[] = ['GAP', 'DISTANCE'];
+
+/** A journey longer than this is not paid automatically (likely a wrong address); flagged for review. */
+export const DEFAULT_MAX_AUTO_TRAVEL_MILES = 50;
+
+/** Straight-line distance in miles between two map points. */
+export function straightLineMiles(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.sqrt(h));
+}
 
 export type DetectInterVisitTravelOptions = {
   longBreakMinutes?: number;
@@ -64,6 +91,23 @@ export type DetectInterVisitTravelOptions = {
    * unpaid personal time unless they are still short enough and different SUs suggest travel.
    */
   assumeReturnHomeOnLongGap?: boolean;
+  /**
+   * When false, gaps are not paid automatically: only journeys to visits with travel minutes
+   * entered by hand are kept. Default true.
+   */
+  autoPayGaps?: boolean;
+  /**
+   * GAP (default): the gap rules above. DISTANCE: on the same day, the journey between two
+   * service users is worked out from their map points (× roadFactor at averageSpeedMph), however
+   * long the gap; once the date changes nothing is paid.
+   */
+  basis?: TravelPayBasis;
+  averageSpeedMph?: number;
+  /** Roads are not straight: straight-line miles × this. */
+  roadFactor?: number;
+  /** Operational timezone, for "same day". */
+  timeZone?: string;
+  maxAutoMiles?: number;
 };
 
 function minutesBetween(start: Date, end: Date): number {
@@ -82,6 +126,7 @@ export function detectInterVisitTravel(
   const maxGap = options.maxAutoTravelGapMinutes ?? DEFAULT_MAX_AUTO_TRAVEL_GAP_MINUTES;
   const shortGap = options.shortGapMinutes ?? DEFAULT_SHORT_GAP_MINUTES;
   const assumeReturnHome = options.assumeReturnHomeOnLongGap !== false;
+  const autoPayGaps = options.autoPayGaps !== false;
 
   const byEmployee = new Map<string, InterVisitWindow[]>();
   for (const w of windows) {
@@ -102,6 +147,13 @@ export function detectInterVisitTravel(
 
       const gapMinutes = minutesBetween(from.payEnd, to.payStart);
       if (gapMinutes <= 0) continue;
+      if (!autoPayGaps && !((to.manualTravelMinutes ?? 0) > 0)) continue;
+
+      if (options.basis === 'DISTANCE' && !((to.manualTravelMinutes ?? 0) > 0)) {
+        const journey = distanceJourney(from, to, employeeId, gapMinutes, options);
+        if (journey) journeys.push(journey);
+        continue;
+      }
 
       const differentClients =
         !!from.serviceUserId &&
@@ -215,6 +267,7 @@ export function summariseTravelForDestination(
   nmwMinutes: number;
   explanations: string[];
   requiresManagerReview: boolean;
+  travelMiles: number;
 } {
   const mine = journeys.filter((j) => j.toReconciliationId === toReconciliationId);
   return {
@@ -224,5 +277,72 @@ export function summariseTravelForDestination(
     nmwMinutes: mine.reduce((s, j) => s + j.nmwMinutes, 0),
     explanations: mine.map((j) => j.explanation),
     requiresManagerReview: mine.some((j) => j.requiresManagerReview),
+    travelMiles: Math.round(mine.reduce((s, j) => s + (j.travelMiles ?? 0), 0) * 10) / 10,
+  };
+}
+
+/**
+ * DISTANCE basis: the journey between two visits on the same day, from the two addresses.
+ * Null = no journey (date changed, or the same service user).
+ */
+function distanceJourney(
+  from: InterVisitWindow,
+  to: InterVisitWindow,
+  employeeId: string,
+  gapMinutes: number,
+  options: DetectInterVisitTravelOptions,
+): InterVisitJourney | null {
+  const timeZone = options.timeZone ?? 'Europe/London';
+  if (dayKeyInTimeZone(from.payEnd, timeZone) !== dayKeyInTimeZone(to.payStart, timeZone)) return null;
+  if (from.serviceUserId && from.serviceUserId === to.serviceUserId) return null;
+
+  const base = {
+    fromReconciliationId: from.reconciliationId,
+    toReconciliationId: to.reconciliationId,
+    employeeId,
+    fromVisitRef: from.visitRef,
+    toVisitRef: to.visitRef,
+    gapMinutes,
+    payableWaitingMinutes: 0,
+    unpaidNmwMinutes: 0,
+  };
+  const review = (explanation: string): InterVisitJourney => ({
+    ...base,
+    classification: 'REQUIRES_MANAGER_REVIEW',
+    nmwMinutes: 0,
+    payableTravelMinutes: 0,
+    travelMiles: 0,
+    explanation,
+    requiresManagerReview: true,
+  });
+
+  if (from.latitude == null || from.longitude == null || to.latitude == null || to.longitude == null) {
+    return review(`No map location for one of the addresses (${from.visitRef} → ${to.visitRef}); enter the travel by hand`);
+  }
+  const roadFactor = options.roadFactor ?? 1.3;
+  const speed = options.averageSpeedMph ?? 20;
+  const maxMiles = options.maxAutoMiles ?? DEFAULT_MAX_AUTO_TRAVEL_MILES;
+  const miles =
+    Math.round(
+      straightLineMiles(
+        { latitude: from.latitude, longitude: from.longitude },
+        { latitude: to.latitude, longitude: to.longitude },
+      ) *
+        roadFactor *
+        10,
+    ) / 10;
+  if (miles > maxMiles) {
+    return review(`${miles} miles between ${from.visitRef} and ${to.visitRef} is over ${maxMiles}; check the addresses`);
+  }
+  const minutes = miles > 0 ? Math.max(1, Math.ceil((miles / speed) * 60)) : 0;
+  return {
+    ...base,
+    classification: 'PAID_TRAVEL',
+    nmwMinutes: minutes,
+    payableTravelMinutes: minutes,
+    travelMiles: miles,
+    explanation: `${miles} mi at ${speed} mph = ${minutes}m travel ${from.visitRef} → ${to.visitRef} (gap ${gapMinutes}m)`,
+    // The drive takes longer than the gap: the visit times need a look.
+    requiresManagerReview: minutes > gapMinutes,
   };
 }

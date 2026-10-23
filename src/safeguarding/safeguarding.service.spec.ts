@@ -77,6 +77,7 @@ describe('SafeguardingService', () => {
     },
     safeguardingNumberSequence: { upsert: jest.fn() },
     safeguardingEvent: { create: jest.fn() },
+    safeguardingInvestigation: { findUnique: jest.fn() },
     $transaction: jest.fn(),
   };
 
@@ -87,6 +88,7 @@ describe('SafeguardingService', () => {
     prisma.serviceUser.findMany.mockResolvedValue([]);
     prisma.location.findMany.mockResolvedValue([]);
     prisma.safeguardingCase.findMany.mockResolvedValue([]);
+    prisma.safeguardingInvestigation.findUnique.mockResolvedValue(null);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -134,6 +136,23 @@ describe('SafeguardingService', () => {
         data: expect.objectContaining({ status: 'CLOSED', outcome: 'Resolved' }),
       }),
     );
+  });
+
+  it('blocks CLOSE while a started investigation is not completed', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow());
+    prisma.safeguardingInvestigation.findUnique.mockResolvedValue({ investigationStatus: 'IN_PROGRESS' });
+    await expect(
+      service.transition(admin, 'sg1', { action: 'CLOSE', outcome: 'Resolved' }),
+    ).rejects.toThrow('Complete the investigation before closing the case');
+    expect(prisma.safeguardingCase.update).not.toHaveBeenCalled();
+  });
+
+  it('closes a case whose investigation is completed', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow());
+    prisma.safeguardingInvestigation.findUnique.mockResolvedValue({ investigationStatus: 'COMPLETED' });
+    prisma.safeguardingCase.update.mockResolvedValue(baseRow({ status: 'CLOSED', outcome: 'Resolved' }));
+    await service.transition(admin, 'sg1', { action: 'CLOSE', outcome: 'Resolved' });
+    expect(prisma.safeguardingCase.update).toHaveBeenCalled();
   });
 
   it('screens a raised case (RAISED -> SCREENING)', async () => {

@@ -10,6 +10,8 @@ import {
   Max,
   MaxLength,
   Min,
+  IsArray,
+  ArrayMaxSize,
 } from 'class-validator';
 import {
   EnquiryFundingType,
@@ -84,6 +86,17 @@ export class CreateEnquiryDto {
   @IsString()
   @MaxLength(4000)
   needs?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    description: 'Care plans the person is likely to need (published care plan forms).',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  carePlanFormIds?: string[];
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Owning employee.' })
   @IsOptional()

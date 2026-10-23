@@ -27,13 +27,21 @@ import { UpdateSafeguardingDto } from './dto/update-safeguarding.dto';
 import { TransitionSafeguardingDto } from './dto/transition-safeguarding.dto';
 import { SafeguardingNoteDto } from './dto/note-safeguarding.dto';
 import { ListSafeguardingQueryDto } from './dto/list-safeguarding-query.dto';
+import { SafeguardingInvestigationService } from './safeguarding-investigation.service';
+import {
+  PauseSafeguardingInvestigationDto,
+  UpsertSafeguardingInvestigationDto,
+} from './dto/safeguarding-investigation.dto';
 
 @ApiTags('Safeguarding')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('safeguarding')
 export class SafeguardingController {
-  constructor(private readonly service: SafeguardingService) {}
+  constructor(
+    private readonly service: SafeguardingService,
+    private readonly investigation: SafeguardingInvestigationService,
+  ) {}
 
   @Get()
   @AnyPermission('safeguarding.read', 'safeguarding.manage')
@@ -56,11 +64,56 @@ export class SafeguardingController {
     return this.service.leads();
   }
 
+  @Get('investigators')
+  @Permissions('safeguarding.manage')
+  @ApiOperation({ summary: 'Staff who can lead a safeguarding investigation (active carers and managers)' })
+  investigators() {
+    return this.investigation.investigators();
+  }
+
   @Get(':id')
   @AnyPermission('safeguarding.read', 'safeguarding.manage')
   @ApiOperation({ summary: 'Get a safeguarding case with its timeline' })
   getById(@CurrentUser() user: RequestUser, @Param('id') id: string) {
     return this.service.getById(user, id);
+  }
+
+  @Get(':id/investigation')
+  @AnyPermission('safeguarding.read', 'safeguarding.manage')
+  @ApiOperation({ summary: 'Get the investigation of a safeguarding case (null when none yet)' })
+  getInvestigation(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.investigation.get(user, id);
+  }
+
+  @Post(':id/investigation')
+  @Permissions('safeguarding.manage')
+  @ApiOperation({ summary: 'Save (or complete) the investigation of a safeguarding case' })
+  upsertInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpsertSafeguardingInvestigationDto,
+    @Req() req: Request,
+  ) {
+    return this.investigation.upsert(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/investigation/pause')
+  @Permissions('safeguarding.manage')
+  @ApiOperation({ summary: 'Pause the investigation (reason and next review date)' })
+  pauseInvestigation(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: PauseSafeguardingInvestigationDto,
+    @Req() req: Request,
+  ) {
+    return this.investigation.pause(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/investigation/resume')
+  @Permissions('safeguarding.manage')
+  @ApiOperation({ summary: 'Resume a paused investigation' })
+  resumeInvestigation(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.investigation.resume(user, id, getRequestAuditMeta(req));
   }
 
   @Post()

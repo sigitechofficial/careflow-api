@@ -23,6 +23,7 @@ function row(overrides: Record<string, unknown> = {}) {
     enquiryType: null,
     urgency: 'ROUTINE',
     needs: null,
+    carePlanFormIds: [],
     ownerId: null,
     locationId: null,
     assessorId: null,
@@ -53,6 +54,7 @@ describe('CrmService', () => {
     user: { findMany: jest.fn() },
     serviceUserFundingType: { findMany: jest.fn() },
     location: { findMany: jest.fn() },
+    carePathwayForm: { findMany: jest.fn() },
     serviceUser: { findFirst: jest.fn(), findMany: jest.fn() },
     enquiryNumberSequence: { upsert: jest.fn() },
     enquiryEvent: { create: jest.fn() },
@@ -64,6 +66,7 @@ describe('CrmService', () => {
     prisma.user.findMany.mockResolvedValue([]);
     prisma.serviceUserFundingType.findMany.mockResolvedValue([]);
     prisma.location.findMany.mockResolvedValue([]);
+    prisma.carePathwayForm.findMany.mockResolvedValue([]);
     prisma.enquiry.findMany.mockResolvedValue([]);
     prisma.serviceUser.findMany.mockResolvedValue([]);
     prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) => cb(prisma));
@@ -118,6 +121,26 @@ describe('CrmService', () => {
     const call = prisma.enquiry.update.mock.calls[0][0];
     expect(call.data).toEqual(expect.objectContaining({ hoursPerWeek: 14, fundingTypeId: 'ft-1' }));
     expect(call.data.events.create).toEqual([expect.objectContaining({ action: 'Details updated' })]);
+  });
+
+  it('stores the chosen care plans and returns their names', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row());
+    prisma.enquiry.update.mockResolvedValue(row({ carePlanFormIds: ['cp-1', 'cp-gone'] }));
+    prisma.carePathwayForm.findMany.mockResolvedValue([{ id: 'cp-1', name: 'Mobility' }]);
+    const res = await service.update(admin, 'e1', { carePlanFormIds: ['cp-1', 'cp-gone'] } as any);
+    const call = prisma.enquiry.update.mock.calls[0][0];
+    expect(call.data.carePlanFormIds).toEqual(['cp-1', 'cp-gone']);
+    expect(call.data.events.create).toEqual([expect.objectContaining({ action: 'Details updated' })]);
+    // A care plan that no longer exists is left out of the named list.
+    expect(res.data.carePlans).toEqual([{ id: 'cp-1', name: 'Mobility' }]);
+  });
+
+  it('treats the same care plans in another order as no change', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ carePlanFormIds: ['cp-1', 'cp-2'] }));
+    prisma.enquiry.update.mockResolvedValue(row({ carePlanFormIds: ['cp-2', 'cp-1'] }));
+    await service.update(admin, 'e1', { carePlanFormIds: ['cp-2', 'cp-1'] } as any);
+    const call = prisma.enquiry.update.mock.calls[0]?.[0];
+    expect(call?.data?.events?.create ?? []).toEqual([]);
   });
 
   it('writes an "Assigned to" event when the owner changes', async () => {

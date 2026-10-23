@@ -27,6 +27,12 @@ import {
   FeedbackTransitionDto,
   UpdateFeedbackDto,
 } from './dto/feedback.dto';
+import { InvestigationCoreService } from '../incidents/investigation-core.service';
+import { formatDayKey } from '../incidents/incident-investigation.util';
+import type {
+  PauseIncidentInvestigationDto,
+  UpsertIncidentInvestigationDto,
+} from '../incidents/dto/incident-review.dto';
 
 const EVENT_FOR_ACTION: Record<FeedbackAction, string> = {
   ACKNOWLEDGE: 'ACKNOWLEDGED',
@@ -55,6 +61,7 @@ export class FeedbackService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly orgScope: OrgScopeService,
+    private readonly investigations: InvestigationCoreService,
   ) {}
 
   // ---------------------------------------------------------------- reads
@@ -176,10 +183,17 @@ export class FeedbackService {
 
   async findOne(actor: RequestUser, id: string) {
     const row = await this.getInScope(actor, id);
-    const events = await this.prisma.feedbackEvent.findMany({
-      where: { feedbackId: id },
-      orderBy: { createdAt: 'asc' },
-    });
+    const [events, investigation, pauses] = await Promise.all([
+      this.prisma.feedbackEvent.findMany({
+        where: { feedbackId: id },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.feedbackInvestigation.findUnique({ where: { feedbackId: id } }),
+      this.prisma.feedbackInvestigationPause.findMany({
+        where: { feedbackId: id },
+        orderBy: { pausedAt: 'asc' },
+      }),
+    ]);
     const names = await this.resolveNames(
       [row],
       events.map((e) => e.userId),
@@ -187,6 +201,9 @@ export class FeedbackService {
     return {
       data: {
         ...this.toRow(row, names, new Date()),
+        investigation: investigation
+          ? await this.investigations.mapInvestigation(investigation, pauses)
+          : null,
         events: events.map((e) => ({
           id: e.id,
           action: e.action,
@@ -490,6 +507,126 @@ export class FeedbackService {
       );
     });
     return { message: 'Deleted', data: {} };
+  }
+
+  // ---------------------------------------------------------------- investigation
+
+  /** Same investigation as an incident's (set-up, findings, evidence); only while investigating. */
+  async upsertInvestigation(
+    actor: RequestUser,
+    id: string,
+    dto: UpsertIncidentInvestigationDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const record = await this.getInvestigatingComplaint(actor, id);
+    const existing = await this.prisma.feedbackInvestigation.findUnique({
+      where: { feedbackId: id },
+    });
+    const core = await this.investigations.prepareSave(existing, dto);
+    const nowComplete = !existing?.completedAt && !!core.data.completedAt;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.feedbackInvestigation.upsert({
+        where: { feedbackId: id },
+        create: {
+          feedbackId: id,
+          ...core.data,
+          createdById: actor.id,
+          updatedById: actor.id,
+        },
+        update: { ...core.data, updatedById: actor.id },
+      });
+      // Timeline: one entry per meaningful set-up / evidence change, plus completion.
+      const notes = [
+        ...(existing ? [] : ['Investigation record started']),
+        ...core.changes,
+      ];
+      for (const note of notes) {
+        await tx.feedbackEvent.create({
+          data: { feedbackId: id, action: 'INVESTIGATION_UPDATED', note, userId: actor.id },
+        });
+      }
+      if (nowComplete) {
+        await tx.feedbackEvent.create({
+          data: { feedbackId: id, action: 'INVESTIGATION_COMPLETED', userId: actor.id },
+        });
+      }
+      await this.logAudit(tx, actor, AuditAction.FEEDBACK_UPDATED, record, record, meta);
+    });
+    return this.findOne(actor, id);
+  }
+
+  async eligibleInvestigators(actor: RequestUser, id: string) {
+    await this.getInScope(actor, id);
+    return { data: await this.investigations.investigatorCandidates() };
+  }
+
+  async pauseInvestigation(
+    actor: RequestUser,
+    id: string,
+    dto: PauseIncidentInvestigationDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const record = await this.getInvestigatingComplaint(actor, id);
+    const existing = await this.prisma.feedbackInvestigation.findUnique({
+      where: { feedbackId: id },
+    });
+    const { reason, nextReviewDate } = await this.investigations.validatePause(existing, dto);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.feedbackInvestigationPause.create({
+        data: { feedbackId: id, reason, pausedById: actor.id, nextReviewDate },
+      });
+      await tx.feedbackInvestigation.update({
+        where: { feedbackId: id },
+        data: { investigationStatus: 'PAUSED', updatedById: actor.id },
+      });
+      await tx.feedbackEvent.create({
+        data: {
+          feedbackId: id,
+          action: 'INVESTIGATION_PAUSED',
+          note: `${reason} (next review ${formatDayKey(dto.nextReviewDate)})`,
+          userId: actor.id,
+        },
+      });
+      await this.logAudit(tx, actor, AuditAction.FEEDBACK_UPDATED, record, record, meta);
+    });
+    return this.findOne(actor, id);
+  }
+
+  async resumeInvestigation(actor: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const record = await this.getInvestigatingComplaint(actor, id);
+    const existing = await this.prisma.feedbackInvestigation.findUnique({
+      where: { feedbackId: id },
+    });
+    if (existing?.investigationStatus !== 'PAUSED') {
+      throw new BadRequestException('The investigation is not paused');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.feedbackInvestigationPause.updateMany({
+        where: { feedbackId: id, resumedAt: null },
+        data: { resumedAt: new Date(), resumedById: actor.id },
+      });
+      await tx.feedbackInvestigation.update({
+        where: { feedbackId: id },
+        data: { investigationStatus: 'IN_PROGRESS', updatedById: actor.id },
+      });
+      await tx.feedbackEvent.create({
+        data: { feedbackId: id, action: 'INVESTIGATION_RESUMED', userId: actor.id },
+      });
+      await this.logAudit(tx, actor, AuditAction.FEEDBACK_UPDATED, record, record, meta);
+    });
+    return this.findOne(actor, id);
+  }
+
+  /** The investigation can only be changed on a complaint that is being investigated. */
+  private async getInvestigatingComplaint(actor: RequestUser, id: string) {
+    const record = await this.getInScope(actor, id);
+    if (record.type !== 'COMPLAINT') {
+      throw new BadRequestException('Only complaints are investigated');
+    }
+    if (record.status !== 'INVESTIGATING') {
+      throw new BadRequestException('Start the investigation on this complaint first');
+    }
+    return record;
   }
 
   // ---------------------------------------------------------------- helpers

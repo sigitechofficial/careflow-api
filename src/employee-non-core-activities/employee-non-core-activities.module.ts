@@ -3,9 +3,10 @@ import { EmployeeNonCoreActivitiesController } from './employee-non-core-activit
 import { EmployeeNonCoreActivitiesService } from './employee-non-core-activities.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
-  imports: [AuditLogsModule, ScheduleLifecycleImpactModule],
+  imports: [AuditLogsModule, ScheduleLifecycleImpactModule, BillingModule],
   controllers: [EmployeeNonCoreActivitiesController],
   providers: [EmployeeNonCoreActivitiesService],
 })

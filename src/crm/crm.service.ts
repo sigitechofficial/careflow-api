@@ -59,6 +59,7 @@ type NameMaps = {
   users?: Map<string, string | null>;
   funding?: Map<string, string>;
   locations?: Map<string, string>;
+  carePlans?: Map<string, string>;
 };
 
 function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
@@ -80,6 +81,11 @@ function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
     enquiryType: row.enquiryType,
     urgency: row.urgency,
     needs: row.needs,
+    carePlanFormIds: row.carePlanFormIds,
+    // A care plan removed since keeps its id but has no name; it is left out of the list.
+    carePlans: row.carePlanFormIds
+      .filter(id => maps.carePlans?.has(id))
+      .map(id => ({ id, name: maps.carePlans!.get(id)! })),
     ownerId: row.ownerId,
     ownerName: user(row.ownerId),
     locationId: row.locationId,
@@ -199,6 +205,16 @@ export class CrmService {
     return new Map(rows.map(r => [r.id, r.name]));
   }
 
+  private async carePlanNames(ids: string[]) {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return new Map<string, string>();
+    const rows = await this.prisma.carePathwayForm.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, name: true },
+    });
+    return new Map(rows.map(r => [r.id, r.name]));
+  }
+
   private async locationNames(ids: Array<string | null | undefined>) {
     const unique = [...new Set(ids.filter((v): v is string => !!v))];
     if (unique.length === 0) return new Map<string, string>();
@@ -211,12 +227,13 @@ export class CrmService {
 
   /** Map rows to API shape with user / funding / branch names resolved. */
   private async present<T extends AnyEnquiryRow>(rows: T[]) {
-    const [users, funding, locations] = await Promise.all([
+    const [users, funding, locations, carePlans] = await Promise.all([
       this.userNames(rows.flatMap(r => [r.recordedById, r.ownerId, r.assessorId])),
       this.fundingNames(rows.map(r => r.fundingTypeId)),
       this.locationNames(rows.map(r => r.locationId)),
+      this.carePlanNames(rows.flatMap(r => r.carePlanFormIds)),
     ]);
-    return rows.map(r => mapEnquiry(r, { users, funding, locations }));
+    return rows.map(r => mapEnquiry(r, { users, funding, locations, carePlans }));
   }
 
   /* ─── reads ─────────────────────────────────────────────────────────── */
@@ -226,6 +243,16 @@ export class CrmService {
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, code: true },
+    });
+    return { data: rows };
+  }
+
+  /** Published, active care plan forms (Settings → Care pathway), for the care needs list. */
+  async carePlans() {
+    const rows = await this.prisma.carePathwayForm.findMany({
+      where: { formType: 'CARE_PLAN', status: 'PUBLISHED', isActive: true, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     });
     return { data: rows };
   }
@@ -407,6 +434,7 @@ export class CrmService {
           enquiryType: dto.enquiryType ?? null,
           urgency: dto.urgency ?? 'ROUTINE',
           needs: dto.needs ?? null,
+          carePlanFormIds: dto.carePlanFormIds ?? [],
           ownerId: dto.ownerId ?? null,
           locationId,
           receivedVia: dto.receivedVia ?? null,
@@ -473,7 +501,7 @@ export class CrmService {
 
       const data: Record<string, unknown> = {};
       (['firstName', 'lastName', 'contactName', 'contactRelationship', 'contactPhone',
-        'contactEmail', 'source', 'sourceDetail', 'enquiryType', 'urgency', 'needs',
+        'contactEmail', 'source', 'sourceDetail', 'enquiryType', 'urgency', 'needs', 'carePlanFormIds',
         'ownerId', 'receivedVia', 'addressLine', 'postcode', 'fundingType', 'fundingTypeId', 'funderName',
         'hoursPerWeek', 'visitsPerDay', 'nextAction', 'assessorId', 'assessmentLocation',
         'quoteWeeklyAmount', 'quoteHourlyRate', 'quoteNotes'] as const).forEach(k => {
@@ -483,7 +511,8 @@ export class CrmService {
       if (locationId !== undefined) data.locationId = locationId;
 
       // Only record what actually changed.
-      const norm = (x: unknown) => (x instanceof Date ? x.getTime() : (x ?? null));
+      const norm = (x: unknown) =>
+        x instanceof Date ? x.getTime() : Array.isArray(x) ? [...x].sort().join(',') : (x ?? null);
       const prev = before as Record<string, unknown>;
       const changedKeys = Object.keys(data).filter(k => norm(prev[k]) !== norm(data[k]));
       const has = (...keys: string[]) => keys.some(k => changedKeys.includes(k));

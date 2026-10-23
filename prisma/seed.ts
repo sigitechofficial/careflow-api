@@ -173,6 +173,7 @@ async function main() {
     'Self Isolation',
     'Non working time',
     'Last Minute sickness',
+    'Office meeting',
   ])
     await upsertLookup(prisma.nonCoreActivityReason, name);
 

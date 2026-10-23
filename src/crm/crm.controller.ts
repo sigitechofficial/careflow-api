@@ -59,6 +59,13 @@ export class CrmController {
     return this.service.fundingTypes();
   }
 
+  @Get('care-plans')
+  @AnyPermission('crm.read', 'crm.manage')
+  @ApiOperation({ summary: 'Published care plans the enquiry form can list under care needs' })
+  carePlans() {
+    return this.service.carePlans();
+  }
+
   @Get('owners')
   @AnyPermission('crm.read', 'crm.manage')
   @ApiOperation({ summary: 'Office users an enquiry can be assigned to' })

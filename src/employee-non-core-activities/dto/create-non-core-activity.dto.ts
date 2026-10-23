@@ -68,5 +68,14 @@ export class CreateNonCoreActivityDto {
   @IsOptional()
   @IsBoolean()
   applyToSchedule?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, each visit the employee is taken off is paid at its visit rate through a pay item awaiting approval, and the activity itself is not paid (no double pay). Needs applyToSchedule.',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  payRemovedVisits?: boolean;
 }
 

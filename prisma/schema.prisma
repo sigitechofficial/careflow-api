@@ -953,6 +953,23 @@ model OrganisationGeneralSettings {
   /// Carer pay when a holiday falls on a weekend: BOTH (the date and its substitute day, the
   /// behaviour before this setting existed), ACTUAL_DAY or STATUTORY_DAY. Policy decision D-13.
   holidayPremiumBasis                  String                     @default("BOTH")
+  /// Carer pay: priority per day type ({ CHRISTMAS: 100, ..., ANY: 10 }) when rules for different days
+  /// compete; higher wins. Null = the built-in order (most specific day wins).
+  payDayTypePriority                   Json?
+  /// Travel between visits: false = gaps are never paid automatically (only travel entered on a visit).
+  travelGapPayEnabled                  Boolean                    @default(true)
+  /// Travel between visits: GAP (the gap limits below) or DISTANCE (the drive between the two addresses, same day only).
+  travelPayBasis                       String                     @default("GAP") @db.VarChar(20)
+  /// Travel between visits (DISTANCE): average driving speed that turns miles into travel minutes.
+  travelAverageSpeedMph                Int                        @default(20)
+  /// Travel between visits (DISTANCE): straight-line miles × this, as roads are not straight.
+  travelRoadFactor                     Decimal                    @default(1.3) @db.Decimal(4, 2)
+  /// Travel between visits: gaps up to this many minutes are paid as waiting time.
+  travelWaitingGapMinutes              Int                        @default(15)
+  /// Travel between visits: gaps from this many minutes between visits to the same service user are a break (not paid).
+  travelBreakGapMinutes                Int                        @default(60)
+  /// Travel between visits: gaps from this many minutes are treated as the carer going home (not paid).
+  travelWentHomeGapMinutes             Int                        @default(90)
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -14040,7 +14057,9 @@ model FeedbackRecord {
   deletedAt    DateTime?
   deletedById  String?   @db.Uuid
 
-  events FeedbackEvent[]
+  events              FeedbackEvent[]
+  investigation       FeedbackInvestigation?
+  investigationPauses FeedbackInvestigationPause[]
 
   @@index([type, status])
   @@index([receivedAt])
@@ -14063,6 +14082,59 @@ model FeedbackEvent {
   feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
 
   @@index([feedbackId, createdAt])
+  @@schema("incidents")
+}
+
+/// Investigation of a complaint: the same set-up, findings and evidence as an incident investigation
+/// (shared rules in incidents/investigation-core.service), without the incident-only scope fields.
+model FeedbackInvestigation {
+  id                         String                  @id @default(uuid()) @db.Uuid
+  feedbackId                 String                  @unique @db.Uuid
+  whatHappened               String?                 @db.Text
+  whyHappened                String?                 @db.Text
+  contributingFactors        String[]
+  contributingFactorDetails  Json?
+  rootCause                  String?                 @db.Text
+  preventable                IncidentPreventability?
+  conclusion                 String?                 @db.Text
+  completedAt                DateTime?
+  investigationLevel         String?                 @db.VarChar(20)
+  leadInvestigatorEmployeeId String?                 @db.Uuid
+  investigatorInvolved       String?                 @db.VarChar(20)
+  investigatorInvolvedReason String?                 @db.Text
+  targetDate                 DateTime?               @db.Date
+  termsOfReference           String?                 @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the complaint status).
+  investigationStatus        String                  @default("IN_PROGRESS") @db.VarChar(20)
+  recordsReviewed            String[]
+  recordsReviewedDetails     Json?
+  evidenceNotes              String?                 @db.Text
+  outstandingEvidence        String?                 @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+/// Pauses of a complaint investigation (kept after resuming).
+model FeedbackInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  feedbackId     String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId, pausedAt])
   @@schema("incidents")
 }
 
@@ -14663,6 +14735,8 @@ model SafeguardingCase {
   deletedById  String?  @db.Uuid
 
   events SafeguardingEvent[]
+  investigation       SafeguardingInvestigation?
+  investigationPauses SafeguardingInvestigationPause[]
 
   @@index([status])
   @@index([category])
@@ -14683,6 +14757,61 @@ model SafeguardingEvent {
   case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
+  @@schema("incidents")
+}
+
+/// Structured investigation of a safeguarding case (one per case, upserted) — same shape as
+/// IncidentInvestigation: set-up, findings, contributing factors, evidence and conclusion.
+model SafeguardingInvestigation {
+  id                         String                  @id @default(uuid()) @db.Uuid
+  caseId                     String                  @unique @db.Uuid
+  whatHappened               String?                 @db.Text
+  whyHappened                String?                 @db.Text
+  contributingFactors        String[]
+  contributingFactorDetails  Json?
+  rootCause                  String?                 @db.Text
+  preventable                IncidentPreventability?
+  conclusion                 String?                 @db.Text
+  completedAt                DateTime?
+  /// STANDARD / ENHANCED / COMPREHENSIVE.
+  investigationLevel         String?                 @db.VarChar(20)
+  leadInvestigatorEmployeeId String?                 @db.Uuid
+  /// NO / YES / NOT_KNOWN.
+  investigatorInvolved       String?                 @db.VarChar(20)
+  investigatorInvolvedReason String?                 @db.Text
+  targetDate                 DateTime?               @db.Date
+  termsOfReference           String?                 @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the case status).
+  investigationStatus        String                  @default("IN_PROGRESS") @db.VarChar(20)
+  recordsReviewed            String[]
+  recordsReviewedDetails     Json?
+  evidenceNotes              String?                 @db.Text
+  outstandingEvidence        String?                 @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+/// One pause of a safeguarding investigation (kept after it is resumed).
+model SafeguardingInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  caseId         String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, pausedAt])
   @@schema("incidents")
 }
 
@@ -14798,6 +14927,8 @@ model Enquiry {
   enquiryType            EnquiryType?
   urgency                EnquiryUrgency @default(ROUTINE)
   needs                  String?        @db.Text
+  /// Care plans the person is likely to need (CARE_PLAN CarePathwayForm ids; scalar links).
+  carePlanFormIds        String[]       @default([]) @db.Uuid
   ownerId                String?        @db.Uuid
   /// How the enquiry reached us (phone, email, website, …).
   receivedVia            EnquiryReceivedVia?

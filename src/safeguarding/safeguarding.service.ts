@@ -603,6 +603,14 @@ export class SafeguardingService {
             'Record the Local Authority and CQC referral decisions before closing',
           );
         }
+        // An investigation that was started must be completed before the case closes.
+        const investigation = await tx.safeguardingInvestigation.findUnique({
+          where: { caseId: id },
+          select: { investigationStatus: true },
+        });
+        if (investigation && investigation.investigationStatus !== 'COMPLETED') {
+          throw new BadRequestException('Complete the investigation before closing the case');
+        }
         data.outcome = outcome;
         if (dto.lessonsLearned !== undefined) data.lessonsLearned = dto.lessonsLearned;
         data.closedAt = new Date();
