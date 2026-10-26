@@ -36,6 +36,12 @@ export class VisitReconciliationsQueryDto {
   @IsBoolean()
   hasExceptions?: boolean;
 
+  @ApiPropertyOptional({ description: 'Only visits whose carer pay (all carers) is above the charge' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  payOverCharge?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

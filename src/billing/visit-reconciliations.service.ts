@@ -1364,6 +1364,18 @@ export class VisitReconciliationsService {
       where.scheduledVisitId = { notIn: nightDutyVisitFilter.ids };
     }
 
+    if (query.payOverCharge === true) {
+      const ids = await this.scheduledVisitIdsWithPayOverCharge();
+      if (!ids.length) {
+        return {
+          data: [],
+          meta: buildPaginationMeta({ total: 0, page, limit }),
+        };
+      }
+      // Alongside any night-duty filter on the same field.
+      where.AND = [{ scheduledVisitId: { in: ids } }];
+    }
+
     if (query.search?.trim()) {
       const s = query.search.trim();
       const serviceUsers = await this.prisma.serviceUser.findMany({
@@ -1406,6 +1418,21 @@ export class VisitReconciliationsService {
       data: enriched,
       meta: buildPaginationMeta({ total, page, limit }),
     };
+  }
+
+  /**
+   * Visits whose carer pay (every carer row) is above the visit's total charge — the same rule as
+   * payOverCharge on the rows: compared per visit, and only once some row has a priced charge.
+   */
+  private async scheduledVisitIdsWithPayOverCharge(): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ scheduledVisitId: string }>>(Prisma.sql`
+      SELECT "scheduledVisitId"
+      FROM "billing"."VisitReconciliation"
+      GROUP BY "scheduledVisitId"
+      HAVING COUNT("billableAmount") > 0
+        AND ROUND(COALESCE(SUM("payableAmount"), 0) - COALESCE(SUM("billableAmount"), 0), 2) > 0
+    `);
+    return rows.map((r) => r.scheduledVisitId);
   }
 
   async getById(id: string) {
