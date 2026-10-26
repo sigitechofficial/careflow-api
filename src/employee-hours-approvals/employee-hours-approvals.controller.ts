@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseFloatPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -81,6 +82,16 @@ export class EmployeeHoursApprovalsController {
   @ApiOperation({ summary: "A service user's weekly hours change waiting for approval" })
   pendingServiceUserHours(@Query('serviceUserId', new ParseUUIDPipe()) serviceUserId: string) {
     return this.service.pendingServiceUserHoursChange(serviceUserId);
+  }
+
+  @Get('service-user-hours/impact')
+  @Permissions('service_users.read')
+  @ApiOperation({ summary: 'What lowering a service user\'s weekly hours would do to their visits' })
+  serviceUserHoursImpact(
+    @Query('serviceUserId', new ParseUUIDPipe()) serviceUserId: string,
+    @Query('weeklyHours', new ParseFloatPipe()) weeklyHours: number,
+  ) {
+    return this.service.serviceUserHoursImpact(serviceUserId, weeklyHours);
   }
 
   @Post('service-user-hours')

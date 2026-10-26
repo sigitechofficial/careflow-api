@@ -1028,6 +1028,8 @@ model OrganisationGeneralSettings {
   domLateVisitZoneAlerts               Json                       @default("[]")
   domCareShiftDefinitions              Json                       @default("[]")
   domCareAllocationRules               Json                       @default("[]")
+  /// Service user weekly hours rules (approval, over-limit behaviour, weeks checked). Missing keys use the defaults.
+  serviceUserWeeklyHoursSettings       Json                       @default("{}")
   incidentDetailsEditableMinutes       Int                        @default(60)
   incidentDisplayHours                 Int                        @default(12)
   incidentDefaultStatus                String                     @default("REPORTED")
@@ -4806,6 +4808,8 @@ enum EmployeeHoursApprovalType {
   SERVICE_USER_WEEKLY_HOURS_CHANGE
   /// An extra visit that takes a service user's week over their weekly hours.
   EXTRA_VISIT_OVER_HOURS
+  /// A draft visit plan over the service user's weekly hours: it can't be activated until approved.
+  DRAFT_PLAN_OVER_HOURS
 
   @@schema("service_users")
 }

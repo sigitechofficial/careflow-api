@@ -48,6 +48,11 @@ import { EXTRA_VISIT_CREATOR } from '../employee-hours-approvals/extra-visit-cre
     // Lets an approved "extra visit over weekly hours" request create the visit.
     { provide: EXTRA_VISIT_CREATOR, useExisting: VisitPlanDateChangesService },
   ],
-  exports: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
+  exports: [
+    ServiceUserVisitPlansService,
+    VisitPlanBulkScheduleService,
+    VisitPlanAmendmentImpactService,
+    VisitPlanWeeklyHoursService,
+  ],
 })
 export class ServiceUserVisitPlansModule {}

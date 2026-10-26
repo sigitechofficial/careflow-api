@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BulkGenerateVisitPlanScheduleDto } from './dto/bulk-generate-visit-plan-schedule.dto';
 import { BulkVisitPlanScheduleCandidatesQueryDto } from './dto/bulk-visit-plan-schedule-query.dto';
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
+import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
 import {
   type ScheduleAreaBranchLookup,
   loadScheduleAreaByLocationMap,
@@ -55,7 +56,10 @@ export type BulkVisitPlanScheduleResultItem = {
   rotaConflictWarnings?: string[];
   error?: string;
   skipReason?: string;
+  /** The plan has weeks over the service user's weekly contracted hours in this run. */
+  weeklyHoursWarning?: string;
 };
+
 
 function serviceUserMatchesLocationFilter(
   su: {
@@ -165,6 +169,7 @@ export class VisitPlanBulkScheduleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly visitPlans: ServiceUserVisitPlansService,
+    private readonly weeklyHours: VisitPlanWeeklyHoursService,
   ) {}
 
   private async loadRoundNameMap(): Promise<Map<string, string>> {
@@ -264,8 +269,16 @@ export class VisitPlanBulkScheduleService {
     userId: string,
     dto: BulkGenerateVisitPlanScheduleDto,
     meta?: RequestAuditMeta,
-    options?: { restoreDeletedJobs?: boolean },
+    options?: {
+      restoreDeletedJobs?: boolean;
+      /** Who runs it: a person (bulk generate page) or the hourly rolling rota. */
+      source?: 'manual' | 'rolling';
+    },
   ) {
+    const source = options?.source ?? 'manual';
+    const hoursCtx = await this.weeklyHours.context();
+    const bulkRule = hoursCtx.rules.bulkOverLimit;
+    const weeklyHoursWarnings: string[] = [];
     if (dto.planIds?.length) {
       const plans = await this.loadActivePlans(dto.locationId, dto.planIds);
       if (plans.length !== dto.planIds.length) {
@@ -321,6 +334,34 @@ export class VisitPlanBulkScheduleService {
         continue;
       }
 
+      // Weekly contracted hours (Settings → Dom Rules): warn, or skip by hand / everywhere.
+      let weeklyHoursWarning: string | undefined;
+      const over = await this.weeklyHours.overLimitWeeksForRange({
+        serviceUserId: plan.serviceUserId,
+        planId: plan.id,
+        fallbackHours: plan.weeklyContractedHours,
+        fromIso: dto.fromDate.slice(0, 10),
+        toIso: dto.toDate.slice(0, 10),
+      });
+      const overText = await this.weeklyHours.describeOverLimit(over);
+      if (overText) {
+        weeklyHoursWarning = `${label}: ${overText}`;
+        if (bulkRule === 'SKIP_ALL' || (bulkRule === 'SKIP_MANUAL' && source === 'manual')) {
+          skipped += 1;
+          weeklyHoursWarnings.push(`${weeklyHoursWarning} (skipped)`);
+          results.push({
+            serviceUserId: plan.serviceUserId,
+            planId: plan.id,
+            serviceUserLabel: label,
+            status: 'skipped',
+            skipReason: `O${weeklyHoursWarning.slice(label.length + 3)}`,
+            weeklyHoursWarning,
+          });
+          continue;
+        }
+        weeklyHoursWarnings.push(weeklyHoursWarning);
+      }
+
       try {
         const respectWorkingPatternOnSync =
           dto.respectWorkingPatternOnSync ?? plan.respectWorkingPatternOnSync;
@@ -333,7 +374,8 @@ export class VisitPlanBulkScheduleService {
             respectWorkingPatternOnSync,
           },
           meta,
-          { restoreDeletedJobs: options?.restoreDeletedJobs },
+          // The weekly hours were checked above for this run.
+          { restoreDeletedJobs: options?.restoreDeletedJobs, skipWeeklyHoursCheck: true },
         );
         const data = response.data;
         visitsCreated += data.visitsCreated;
@@ -358,6 +400,7 @@ export class VisitPlanBulkScheduleService {
           visitsWithRotaConflicts: data.visitsWithRotaConflicts ?? 0,
           patternWarnings: data.patternWarnings ?? [],
           rotaConflictWarnings: data.rotaConflictWarnings ?? [],
+          ...(weeklyHoursWarning ? { weeklyHoursWarning } : {}),
         });
       } catch (error) {
         failed += 1;
@@ -394,6 +437,8 @@ export class VisitPlanBulkScheduleService {
           visitsWithRotaConflicts,
           patternWarnings: [...new Set(patternWarnings)],
           rotaConflictWarnings: [...new Set(rotaConflictWarnings)],
+          /** Plans over the service user's weekly contracted hours (generated or skipped). */
+          weeklyHoursWarnings,
         },
         results,
       },

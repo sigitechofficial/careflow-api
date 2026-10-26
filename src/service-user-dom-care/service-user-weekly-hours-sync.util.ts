@@ -23,8 +23,8 @@ export async function syncServiceUserWeeklyHours(
     serviceUserId: string;
     value: string | null | undefined;
     userId: string;
-    /** Where the change was made (that record is already saved), or a manager approval. */
-    source: 'dom_care' | 'visit_plan' | 'approval';
+    /** Where the change was made (that record is already saved), a manager approval, or a change settings let through without one. */
+    source: 'dom_care' | 'visit_plan' | 'approval' | 'direct';
     sourceVisitPlanId?: string;
     meta?: RequestAuditMeta;
   },

@@ -17,6 +17,18 @@ import {
   WEEKLY_HOURS_LIMIT_BASES,
   WEEKLY_HOURS_REJECT_ACTIONS,
 } from '../dom-care-allocation-rules.util';
+import {
+  SU_BULK_OVER_LIMIT,
+  SU_DRAFT_OVER_LIMIT,
+  SU_EXTRA_EDIT_OVER_LIMIT,
+  SU_EXTRA_OVER_LIMIT,
+  SU_HOURS_CHANGE_APPROVAL,
+  SU_HOURS_CHECK_WEEKS_MAX,
+  SU_HOURS_CHECK_WEEKS_MIN,
+  SU_HOURS_DECREASE_ACTIONS,
+  SU_PLAN_OVER_LIMIT,
+  SU_SPECIAL_OVER_LIMIT,
+} from '../service-user-weekly-hours-settings.util';
 
 export class DomJobCancellationRuleDto {
   @ApiProperty()
@@ -170,4 +182,61 @@ export class DomLateVisitZoneAlertDto {
   @IsArray()
   @IsUUID('4', { each: true })
   notificationEmployeeIds!: string[];
+}
+
+export class ServiceUserWeeklyHoursSettingsDto {
+  @ApiProperty({ enum: SU_HOURS_CHANGE_APPROVAL })
+  @IsIn(SU_HOURS_CHANGE_APPROVAL)
+  changeApproval!: (typeof SU_HOURS_CHANGE_APPROVAL)[number];
+
+  @ApiProperty({ enum: SU_HOURS_DECREASE_ACTIONS })
+  @IsIn(SU_HOURS_DECREASE_ACTIONS)
+  decreaseAction!: (typeof SU_HOURS_DECREASE_ACTIONS)[number];
+
+  @ApiProperty({ enum: SU_PLAN_OVER_LIMIT })
+  @IsIn(SU_PLAN_OVER_LIMIT)
+  planOverLimit!: (typeof SU_PLAN_OVER_LIMIT)[number];
+
+  @ApiProperty({ enum: SU_EXTRA_OVER_LIMIT })
+  @IsIn(SU_EXTRA_OVER_LIMIT)
+  extraOverLimit!: (typeof SU_EXTRA_OVER_LIMIT)[number];
+
+  @ApiProperty()
+  @IsBoolean()
+  extraApproveRecheck!: boolean;
+
+  @ApiProperty()
+  @IsBoolean()
+  extraRejectReasonRequired!: boolean;
+
+  @ApiProperty({ enum: SU_EXTRA_EDIT_OVER_LIMIT })
+  @IsIn(SU_EXTRA_EDIT_OVER_LIMIT)
+  extraEditOverLimit!: (typeof SU_EXTRA_EDIT_OVER_LIMIT)[number];
+
+  @ApiPropertyOptional({ enum: SU_BULK_OVER_LIMIT, default: 'WARN' })
+  @IsOptional()
+  @IsIn(SU_BULK_OVER_LIMIT)
+  bulkOverLimit?: (typeof SU_BULK_OVER_LIMIT)[number];
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  specialVisitsCount?: boolean;
+
+  @ApiPropertyOptional({ enum: SU_SPECIAL_OVER_LIMIT, default: 'WARN' })
+  @IsOptional()
+  @IsIn(SU_SPECIAL_OVER_LIMIT)
+  specialVisitOverLimit?: (typeof SU_SPECIAL_OVER_LIMIT)[number];
+
+  @ApiPropertyOptional({ enum: SU_DRAFT_OVER_LIMIT, default: 'BLOCK' })
+  @IsOptional()
+  @IsIn(SU_DRAFT_OVER_LIMIT)
+  draftOverLimit?: (typeof SU_DRAFT_OVER_LIMIT)[number];
+
+  @ApiProperty({ minimum: SU_HOURS_CHECK_WEEKS_MIN, maximum: SU_HOURS_CHECK_WEEKS_MAX })
+  @Type(() => Number)
+  @IsInt()
+  @Min(SU_HOURS_CHECK_WEEKS_MIN)
+  @Max(SU_HOURS_CHECK_WEEKS_MAX)
+  checkWeeks!: number;
 }

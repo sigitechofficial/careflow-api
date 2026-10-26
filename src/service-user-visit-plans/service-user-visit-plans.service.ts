@@ -99,6 +99,7 @@ import {
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
+import type { SuDraftOverLimit, SuPlanOverLimit } from '../organisation-general-settings/service-user-weekly-hours-settings.util';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import {
   currentServiceUserWeeklyHours,
@@ -1195,9 +1196,10 @@ export class ServiceUserVisitPlansService {
    */
   async weeklyHoursSummary(serviceUserId: string, planId: string) {
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
-    const summary = await this.weeklyHours.count(this.prisma, planId);
+    const context = await this.weeklyHours.context();
+    const summary = await this.weeklyHours.count(this.prisma, planId, context);
     const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
-    return { data: this.weeklyHours.withLimit(summary, limit) };
+    return { data: await this.withPlanLimit(plan, summary, limit, context.rules) };
   }
 
   /**
@@ -1221,7 +1223,26 @@ export class ServiceUserVisitPlansService {
     } catch (e) {
       if (!(e instanceof WeeklyHoursPreviewRollback)) throw e;
     }
-    return { data: this.weeklyHours.withLimit(result.summary!, limit) };
+    return { data: await this.withPlanLimit(plan, result.summary!, limit, context.rules) };
+  }
+
+  /** A draft follows the draft rule and carries its manager-approval request, if any. */
+  private async withPlanLimit(
+    plan: { id: string; status: VisitPlanStatus },
+    summary: VisitPlanWeeklyHoursSummary,
+    limit: number | null,
+    rules: { planOverLimit: SuPlanOverLimit; draftOverLimit: SuDraftOverLimit },
+  ) {
+    if (plan.status !== VisitPlanStatus.DRAFT) {
+      return this.weeklyHours.withLimit(summary, limit, rules.planOverLimit);
+    }
+    return {
+      ...this.weeklyHours.withLimit(summary, limit, rules.draftOverLimit),
+      draftApproval:
+        rules.draftOverLimit === 'MANAGER_APPROVAL'
+          ? await this.hoursApprovals.latestDraftPlanRequest(plan.id)
+          : null,
+    };
   }
 
   async getById(serviceUserId: string, planId: string) {
@@ -1280,7 +1301,7 @@ export class ServiceUserVisitPlansService {
         await this.persistSlotRelations(tx, row.id, slot.carerAssignments ?? [], slot.exceptions ?? []);
       }
       // Visits may not take any week over the service user's weekly contracted hours.
-      await this.weeklyHours.assertWithinLimit(tx, serviceUserId, plan.id, null, weeklyContractedHours);
+      await this.weeklyHours.assertWithinLimit(tx, serviceUserId, plan.id, null, weeklyContractedHours, 'DRAFT');
       await syncServiceUserWeeklyHours(tx, this.audit, {
         serviceUserId,
         value: weeklyContractedHours,
@@ -1308,6 +1329,7 @@ export class ServiceUserVisitPlansService {
       return full;
     });
 
+    await this.syncDraftOverHoursRequest(userId, serviceUserId, created.id, meta);
     return { message: 'Visit plan created', data: this.mapPlan(created, roundNameByCode) };
   }
 
@@ -1354,6 +1376,7 @@ export class ServiceUserVisitPlansService {
           planId,
           weeklyHoursBefore,
           existing.weeklyContractedHours,
+          existing.status === VisitPlanStatus.DRAFT ? 'DRAFT' : 'PLAN',
         );
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
           const row = await tx.visitPlanSlot.findFirst({
@@ -1445,6 +1468,9 @@ export class ServiceUserVisitPlansService {
     const snapshotAfter = this.snapshot(updated, roundNameByCode) as VisitPlanSnapshotShape;
     // Flag carers now assigned beyond their contracted weekly hours for manager approval.
     await this.hoursApprovals.reconcileForPlan(userId, serviceUserId, planId);
+    if (existing.status === VisitPlanStatus.DRAFT) {
+      await this.syncDraftOverHoursRequest(userId, serviceUserId, planId, meta);
+    }
     let scheduleImpact: ScheduleImpactResult | undefined;
     if (existing.status === VisitPlanStatus.ACTIVE && dto.applyScheduleImpact) {
       scheduleImpact = await this.amendmentImpact.applyAmendmentImpact(userId, {
@@ -1723,7 +1749,21 @@ export class ServiceUserVisitPlansService {
       absenceDays: new Set(),
       timeZone,
     });
-    return { data: preview };
+    // Shown before confirming: weeks over the weekly hours and whether generating is refused.
+    const weeklyHoursWarning = await this.weeklyHoursRunWarning(
+      serviceUserId,
+      plan.id,
+      plan.weeklyContractedHours,
+      dto,
+    );
+    const { rules } = await this.weeklyHours.context();
+    return {
+      data: {
+        ...preview,
+        weeklyHoursWarning: weeklyHoursWarning ? `This plan is ${weeklyHoursWarning}` : null,
+        weeklyHoursBlocked: Boolean(weeklyHoursWarning) && rules.bulkOverLimit !== 'WARN',
+      },
+    };
   }
 
   async previewSkipScheduleImpact(
@@ -1888,6 +1928,35 @@ export class ServiceUserVisitPlansService {
     return ended;
   }
 
+  /**
+   * Settings → Dom Rules "draft visit plan over the hours" on manager approval: keep the draft's
+   * approval request in step with its busiest week. Other settings need no request.
+   */
+  private async syncDraftOverHoursRequest(
+    userId: string,
+    serviceUserId: string,
+    planId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ heaviestMinutes: number } | null> {
+    const { rules } = await this.weeklyHours.context();
+    if (rules.draftOverLimit !== 'MANAGER_APPROVAL') return null;
+    const over = await this.weeklyHours.draftOverWeeks(serviceUserId, planId);
+    await this.hoursApprovals.syncDraftPlanRequest(userId, { serviceUserId, planId, ...over }, meta);
+    return { heaviestMinutes: Math.max(0, ...over.overWeeks.map((w) => w.minutes)) };
+  }
+
+  /** Why this draft can't be activated yet because of its weekly hours (null when it can). */
+  private async draftOverHoursActivationBlock(
+    userId: string,
+    serviceUserId: string,
+    planId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<string | null> {
+    const synced = await this.syncDraftOverHoursRequest(userId, serviceUserId, planId, meta);
+    if (!synced) return null;
+    return this.hoursApprovals.draftPlanActivationBlock(planId, synced.heaviestMinutes);
+  }
+
   async activate(
     userId: string,
     serviceUserId: string,
@@ -1902,6 +1971,10 @@ export class ServiceUserVisitPlansService {
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     if (!enabledSlots.length) {
       throw new BadRequestException('Enable at least one visit slot before activation');
+    }
+    if (plan.status === VisitPlanStatus.DRAFT) {
+      const blocked = await this.draftOverHoursActivationBlock(userId, serviceUserId, planId, meta);
+      if (blocked) throw new BadRequestException(blocked);
     }
     const wasSuspended = plan.status === VisitPlanStatus.SUSPENDED;
     const reactivationNote = dto?.reactivationReason?.trim() || '';
@@ -1977,6 +2050,10 @@ export class ServiceUserVisitPlansService {
       });
       return activated;
     });
+    if (!wasSuspended) {
+      // A live plan no longer needs its draft weekly-hours request.
+      await this.hoursApprovals.cancelPendingDraftPlanRequests(planId, 'Plan activated');
+    }
 
     let scheduleImpact: ScheduleImpactResult | undefined;
     if (dto?.cancelEndedPlanJobs && otherActivePlans.length) {
@@ -2418,6 +2495,8 @@ export class ServiceUserVisitPlansService {
        * slot/day). Used by the nightly rolling-rota catch-up; manual "Regenerate" keeps restoring.
        */
       restoreDeletedJobs?: boolean;
+      /** Bulk generate and the rolling rota check the weekly hours themselves before calling this. */
+      skipWeeklyHoursCheck?: boolean;
     },
   ) {
     const assignCarers = options?.assignCarers !== false;
@@ -2442,6 +2521,20 @@ export class ServiceUserVisitPlansService {
     const backfillOnly = dto.backfillOnly === true;
     if (backfillOnly && backfillDays < 1) {
       throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
+    }
+
+    // Weekly contracted hours (Settings → Dom Rules, same rule as bulk generate): warn, or refuse
+    // when generating by hand is set to skip plans over the hours. Past days are never counted.
+    const weeklyHoursWarning = options?.skipWeeklyHoursCheck
+      ? null
+      : await this.weeklyHoursRunWarning(serviceUserId, plan.id, plan.weeklyContractedHours, dto);
+    if (weeklyHoursWarning) {
+      const { rules } = await this.weeklyHours.context();
+      if (rules.bulkOverLimit !== 'WARN') {
+        throw new BadRequestException(
+          `This plan is ${weeklyHoursWarning}. No visits were generated (Settings → Dom Rules). Fix the visit plan or the weekly contracted hours first.`,
+        );
+      }
     }
     const clampToSlot = !backfillOnly;
     const rangeStart = new Date(from);
@@ -2939,8 +3032,26 @@ export class ServiceUserVisitPlansService {
         fromDate: dto.fromDate,
         toDate: dto.toDate,
         backfillDays,
+        ...(weeklyHoursWarning ? { weeklyHoursWarning: `This plan is ${weeklyHoursWarning}` } : {}),
       },
     };
+  }
+
+  /** Weeks of this run over the service user's weekly hours, in words (null when none). */
+  private async weeklyHoursRunWarning(
+    serviceUserId: string,
+    planId: string,
+    fallbackHours: string | null,
+    dto: GenerateVisitPlanScheduleDto,
+  ): Promise<string | null> {
+    const over = await this.weeklyHours.overLimitWeeksForRange({
+      serviceUserId,
+      planId,
+      fallbackHours,
+      fromIso: dto.fromDate.slice(0, 10),
+      toIso: dto.toDate.slice(0, 10),
+    });
+    return this.weeklyHours.describeOverLimit(over);
   }
 
   private async notifyCarersOfGeneratedRota(createdJobIds: string[], serviceUserId: string) {

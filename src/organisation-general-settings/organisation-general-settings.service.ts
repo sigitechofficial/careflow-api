@@ -22,6 +22,10 @@ import {
   type IncidentTypeSetting,
 } from './incident-management.util';
 import {
+  parseServiceUserWeeklyHoursSettings,
+  type ServiceUserWeeklyHoursSettings,
+} from './service-user-weekly-hours-settings.util';
+import {
   parseDomCareAllocationRules,
   serializeDomCareAllocationRules,
   type DomCareAllocationRule,
@@ -147,6 +151,7 @@ type SettingsRow = {
   domLateVisitZoneAlerts: unknown;
   domCareShiftDefinitions: unknown;
   domCareAllocationRules: unknown;
+  serviceUserWeeklyHoursSettings: unknown;
   incidentDetailsEditableMinutes: number;
   incidentDisplayHours: number;
   incidentDefaultStatus: string;
@@ -296,6 +301,9 @@ function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
     domCareAllocationRules: parseDomCareAllocationRules(
       row.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
     ),
+    serviceUserWeeklyHoursSettings: parseServiceUserWeeklyHoursSettings(
+      row.serviceUserWeeklyHoursSettings as Parameters<typeof parseServiceUserWeeklyHoursSettings>[0],
+    ),
     incidentDetailsEditableMinutes: row.incidentDetailsEditableMinutes,
     incidentDisplayHours: row.incidentDisplayHours,
     incidentDefaultStatus: parseIncidentDefaultStatus(row.incidentDefaultStatus),
@@ -429,6 +437,11 @@ function buildUpdateData(
   if (dto.domCareAllocationRules !== undefined) {
     data.domCareAllocationRules = serializeDomCareAllocationRules(
       dto.domCareAllocationRules as DomCareAllocationRule[],
+    );
+  }
+  if (dto.serviceUserWeeklyHoursSettings !== undefined) {
+    data.serviceUserWeeklyHoursSettings = parseServiceUserWeeklyHoursSettings(
+      dto.serviceUserWeeklyHoursSettings as unknown as Prisma.JsonValue,
     );
   }
   set('incidentDetailsEditableMinutes', dto.incidentDetailsEditableMinutes);
@@ -570,6 +583,15 @@ export class OrganisationGeneralSettingsService {
       select: { timezone: true },
     });
     return getOperationalTimeZone(row?.timezone);
+  }
+
+  /** Service user weekly hours rules (defaults when never saved). */
+  async getServiceUserWeeklyHoursSettings(): Promise<ServiceUserWeeklyHoursSettings> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { serviceUserWeeklyHoursSettings: true },
+    });
+    return parseServiceUserWeeklyHoursSettings(row?.serviceUserWeeklyHoursSettings);
   }
 
   /** Operational timezone + date/time display formats for exports and UI helpers. */

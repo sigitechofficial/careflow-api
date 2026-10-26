@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpecialVisitDto } from './dto/special-visit.dto';
+import { VisitPlanWeeklyHoursService } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
 
 /** Allocation statuses that count as the carer actually being booked. */
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
@@ -39,7 +40,10 @@ function jobMinutes(job: {
 
 @Injectable()
 export class SpecialVisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly weeklyHours: VisitPlanWeeklyHoursService,
+  ) {}
 
   /** Day (UTC midnight) a Date falls on, used as the ScheduleBatch.scheduleDate. */
   private static dayOf(d: Date): Date {
@@ -79,6 +83,11 @@ export class SpecialVisitsService {
       throw new BadRequestException('End time must be after start time');
     }
     const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+    // Service user's weekly contracted hours (Settings → Dom Rules): block, or create with a warning.
+    const hours = await this.weeklyHours.checkSpecialVisit({ serviceUserId: dto.serviceUserId, start, end });
+    if (hours?.blocked) {
+      throw new BadRequestException(`${hours.message}. The special visit was not created (Settings → Dom Rules).`);
+    }
     const scheduleBatchId = await this.batchForDate(start);
 
     const job = await this.prisma.$transaction(async (tx) => {
@@ -111,7 +120,12 @@ export class SpecialVisitsService {
       return createdJob;
     });
 
-    return { data: { id: job.id } };
+    return {
+      data: {
+        id: job.id,
+        ...(hours ? { weeklyHoursWarning: hours.message } : {}),
+      },
+    };
   }
 
   async list(employeeId: string, weekStartIso: string) {

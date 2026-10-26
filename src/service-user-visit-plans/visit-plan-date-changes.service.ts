@@ -49,6 +49,10 @@ import {
 } from '../scheduled-jobs-housekeeping/visit-cancellation-policy.util';
 import { CANCELLABLE_JOB_STATUSES } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
+import {
+  computeVisitPlanWeeklyHours,
+  visitPlanOccurrenceMinutes,
+} from './visit-plan-weekly-hours.util';
 import { normalizeVisitPlanSlotCode, slotLabel } from './visit-plan-slot-defaults';
 import { clampRotaHorizonDays } from './visit-plan-rolling-rota.util';
 import { wallClockVisitEnd } from './visit-plan-slot-window.util';
@@ -162,7 +166,7 @@ export type ExtraVisitDateCheck = {
   weekStart?: string;
   /** Week minutes with this extra visit added. */
   weekMinutes?: number;
-  /** Editing only: the change would take the week over the weekly hours, so it can't be saved. */
+  /** The week would go over the weekly hours: blocked when `ok` is false, else a warning only (Settings → Dom Rules). */
   overWeeklyHours?: boolean;
 };
 
@@ -960,8 +964,15 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         })
       : null;
     const result = await this.checkExtraDates(plan, dto, { excludeJobId: editingJob?.id });
-    // New extra visits: say which dates go over the weekly hours and need a manager.
+    // New extra visits: say which dates go over the weekly hours and what happens to them
+    // (Settings → Dom Rules: manager approval, blocked, or added with a warning).
     let limitWeeklyHours: number | null = null;
+    const { rules } = await this.weeklyHours.context();
+    // The dialog puts "over the weekly contracted hours:" in front of this.
+    const overMessage = (weekMinutes: number, limit: number | null) =>
+      `that week would have ${formatMinutesAsHours(weekMinutes)} of ${formatMinutesAsHours(
+        Math.round((limit ?? 0) * 60),
+      )}`;
     if (!dto.editingExceptionId && result.slotLabel) {
       const hours = await this.weeklyHours.classifyExtraDates({
         serviceUserId,
@@ -978,9 +989,16 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       for (const check of result.checks) {
         const h = byDate.get(check.date);
         if (!h) continue;
-        check.needsApproval = h.needsApproval;
         check.weekStart = h.weekStart;
         check.weekMinutes = h.weekMinutes;
+        if (!h.needsApproval) continue;
+        if (rules.extraOverLimit === 'MANAGER_APPROVAL') {
+          check.needsApproval = true;
+        } else {
+          check.overWeeklyHours = true;
+          check.message = overMessage(h.weekMinutes, hours.limitWeeklyHours);
+          if (rules.extraOverLimit === 'BLOCK') check.ok = false;
+        }
       }
     }
     // Editing: the same hours rule as the save, so the dialog does not say "can be saved" when it can't.
@@ -1000,12 +1018,11 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         for (const check of result.checks) {
           check.weekStart = hours.weekStart;
           check.weekMinutes = hours.weekMinutes;
-          if (check.ok && hours.blocked) {
-            check.ok = false;
+          if (check.ok && hours.over) {
+            // Blocked by default; Settings → Dom Rules can make it a warning only.
             check.overWeeklyHours = true;
-            check.message = `that week would have ${formatMinutesAsHours(hours.weekMinutes)} of ${formatMinutesAsHours(
-              Math.round((hours.limitWeeklyHours ?? 0) * 60),
-            )} weekly contracted hours`;
+            check.message = overMessage(hours.weekMinutes, hours.limitWeeklyHours);
+            if (hours.blocked) check.ok = false;
           }
         }
       }
@@ -1054,12 +1071,15 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     const visitName = `${label} (extra)`;
     const notes = [reason, dto.notes?.trim()].filter(Boolean).join('\n\n');
 
-    // Dates whose week would go over the service user's weekly hours go to a manager instead
-    // (one request per date); the rest are created now. Night visits (sleeping or waking) count
-    // their full hours like any other visit.
+    // Dates whose week would go over the service user's weekly hours: by default they go to a
+    // manager (one request per date) and the rest are created now. Settings → Dom Rules can block
+    // them instead, or add them with a warning only. Night visits count their full hours.
     let toCreate = valid;
     const sentForApproval: Array<{ date: string; weekStart: string; weekMinutes: number; approvalId: string }> = [];
+    const overWeeklyHours: Array<{ date: string; weekMinutes: number }> = [];
+    const blockedOverHours: ExtraVisitDateCheck[] = [];
     if (!options.approvedOverHours) {
+      const { rules } = await this.weeklyHours.context();
       const hours = await this.weeklyHours.classifyExtraDates({
         serviceUserId,
         planId: plan.id,
@@ -1072,8 +1092,23 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       });
       const over = hours.dates.filter((d) => d.needsApproval);
       const overDates = new Set(over.map((d) => d.date));
-      toCreate = valid.filter((c) => !overDates.has(c.date));
-      if (over.length) {
+      const overLabel = (weekMinutes: number) =>
+        `Over the weekly contracted hours: that week would have ${formatMinutesAsHours(weekMinutes)} of ${formatMinutesAsHours(
+          Math.round((hours.limitWeeklyHours ?? 0) * 60),
+        )}`;
+      if (rules.extraOverLimit === 'WARN') {
+        overWeeklyHours.push(...over.map((d) => ({ date: d.date, weekMinutes: d.weekMinutes })));
+      } else {
+        toCreate = valid.filter((c) => !overDates.has(c.date));
+      }
+      if (over.length && rules.extraOverLimit === 'BLOCK') {
+        if (!toCreate.length) throw new BadRequestException(`${overLabel(over[0].weekMinutes)}.`);
+        for (const d of over) {
+          const check = valid.find((c) => c.date === d.date);
+          if (check) blockedOverHours.push({ ...check, ok: false, message: overLabel(d.weekMinutes) });
+        }
+      }
+      if (over.length && rules.extraOverLimit === 'MANAGER_APPROVAL') {
         const display = await this.orgSettings.getOperationalDisplaySettings();
         const limitMinutes = hours.limitWeeklyHours != null ? Math.round(hours.limitWeeklyHours * 60) : null;
         for (const d of over) {
@@ -1276,7 +1311,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       createdJobIds.push(jobId);
     }
 
-    const skipped = result.checks.filter((c) => !c.ok);
+    const skipped = [...result.checks.filter((c) => !c.ok), ...blockedOverHours];
     if (toCreate.length) {
       const change = {
         type: 'ADD_EXTRA_VISITS',
@@ -1315,6 +1350,9 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       sentForApproval.length
         ? `${sentForApproval.length} sent for manager approval (over the weekly hours)`
         : null,
+      overWeeklyHours.length
+        ? `${overWeeklyHours.length} ${overWeeklyHours.length === 1 ? 'goes' : 'go'} over the weekly hours (allowed by settings)`
+        : null,
     ].filter(Boolean);
     return {
       message: parts.join('. ') || 'No extra visits added',
@@ -1323,6 +1361,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         createdDates: toCreate.map((c) => c.date),
         createdExceptionIds,
         sentForApproval,
+        overWeeklyHours,
         skipped: skipped.map((c) => ({ date: c.date, message: c.message })),
       },
     };
@@ -1388,6 +1427,112 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       weekMinutes: hours.dates[0]?.weekMinutes ?? p.weekMinutes,
       limitWeeklyHours: hours.limitWeeklyHours,
     };
+  }
+
+  /**
+   * Weekly hours lowered to `newHours`: which upcoming visits to cancel so no checked week goes
+   * over. In each week over, the latest visits go first. Time-critical visits are never picked
+   * (cancelling them needs welfare and family checks). Nothing is saved.
+   */
+  async planHoursDecrease(serviceUserId: string, newHours: number) {
+    const empty = {
+      planId: null as string | null,
+      limitMinutes: Math.round(newHours * 60),
+      overWeeks: [] as Array<{ weekStart: string; minutes: number }>,
+      toCancel: [] as CancellableVisit[],
+      stillOverWeeks: [] as Array<{ weekStart: string; minutes: number }>,
+    };
+    const active = await this.prisma.serviceUserVisitPlan.findFirst({
+      where: { serviceUserId, status: VisitPlanStatus.ACTIVE, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!active) return empty;
+    const plan = await this.getPlanOrThrow(serviceUserId, active.id);
+    const ctx = await this.weeklyHours.context();
+    const limitMinutes = Math.round(newHours * 60);
+    const cancelledOnRota = await this.weeklyHours.cancelledOnRota(this.prisma, plan.id);
+    const weeks = computeVisitPlanWeeklyHours({
+      slots: plan.slots,
+      planAnchor: plan.effectiveFrom,
+      planEffectiveTo: plan.effectiveTo,
+      timeZone: ctx.timeZone,
+      mode: ctx.mode,
+      weeks: ctx.checkWeeks,
+      cancelledOnRota,
+      additionalMinutesByDay: await this.weeklyHours.specialVisitMinutesByDay(this.prisma, serviceUserId),
+    }).weeks;
+    const overWeeks = weeks
+      .filter((w) => w.minutes > limitMinutes)
+      .map((w) => ({ weekStart: w.weekStart, minutes: w.minutes }));
+    if (!overWeeks.length) return { ...empty, planId: plan.id };
+
+    const today = operationalTodayIso(new Date(), ctx.timeZone);
+    const lastDay = addDaysIso(weeks[weeks.length - 1].weekStart, 6);
+    const candidates = (await this.listCancellable(plan, today, lastDay)).filter((v) => !v.timeCritical);
+    const toCancel: CancellableVisit[] = [];
+    const stillOverWeeks: Array<{ weekStart: string; minutes: number }> = [];
+    for (const week of overWeeks) {
+      const weekEnd = addDaysIso(week.weekStart, 6);
+      const inWeek = candidates
+        .filter((v) => v.date >= week.weekStart && v.date <= weekEnd)
+        .sort((a, b) => b.startDateTime.localeCompare(a.startDateTime));
+      // Visits count independently, so cancelling one lowers its week by exactly its own minutes.
+      let minutes = week.minutes;
+      for (const visit of inWeek) {
+        if (minutes <= limitMinutes) break;
+        const slot = plan.slots.find((sl) => sl.id === visit.visitPlanSlotId);
+        if (!slot) continue;
+        const visitMinutes = visitPlanOccurrenceMinutes({
+          slot,
+          dayIso: visit.date,
+          planAnchor: plan.effectiveFrom,
+          planEffectiveTo: plan.effectiveTo,
+          timeZone: ctx.timeZone,
+          mode: ctx.mode,
+          cancelledOnRota,
+        });
+        if (visitMinutes <= 0) continue;
+        minutes -= visitMinutes;
+        toCancel.push(visit);
+      }
+      if (minutes > limitMinutes) stillOverWeeks.push({ weekStart: week.weekStart, minutes });
+    }
+    return { planId: plan.id, limitMinutes, overWeeks, toCancel, stillOverWeeks };
+  }
+
+  /**
+   * Cancel the visits `planHoursDecrease` picks, through the normal "Cancel visits" path (no
+   * charge, cancelled by "other" with the hours change as the note). Returns how many were cancelled.
+   */
+  async applyHoursDecrease(
+    userId: string,
+    serviceUserId: string,
+    newHours: number,
+    meta?: RequestAuditMeta,
+  ): Promise<{ cancelled: number }> {
+    const plan = await this.planHoursDecrease(serviceUserId, newHours);
+    if (!plan.planId || !plan.toCancel.length) return { cancelled: 0 };
+    const note = `Weekly contracted hours reduced to ${newHours}h`;
+    await this.cancelVisits(
+      { id: userId } as RequestUser,
+      serviceUserId,
+      plan.planId,
+      {
+        items: plan.toCancel.map((v) => ({ visitPlanSlotId: v.visitPlanSlotId, date: v.date })),
+        cancelledBy: 'OTHER',
+        cancelledByDescription: note,
+        // "Cancelled by: other" only takes the reason "other"; the note says why.
+        reasonCode: 'OTHER',
+        reasonNotes: note,
+        chargeDecision: VisitChargeDecision.NO_CHARGE,
+        chargeDecisionNotes: `${note} — the visit is no longer part of the package.`,
+        welfareChecked: false,
+        familyNotified: false,
+        commissionerNotified: false,
+      },
+      meta,
+    );
+    return { cancelled: plan.toCancel.length };
   }
 
   /**
@@ -1477,7 +1622,14 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       });
       // A longer extra visit may not take its week over the service user's weekly contracted hours.
       if (hoursBefore) {
-        await this.weeklyHours.assertWithinLimit(tx, serviceUserId, plan.id, hoursBefore, plan.weeklyContractedHours);
+        await this.weeklyHours.assertWithinLimit(
+          tx,
+          serviceUserId,
+          plan.id,
+          hoursBefore,
+          plan.weeklyContractedHours,
+          'EXTRA_EDIT',
+        );
       }
       const oldMetadata =
         job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)

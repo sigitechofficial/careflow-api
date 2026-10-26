@@ -1,4 +1,4 @@
-import { VisitPlanNightDuty } from '@prisma/client';
+import { VisitPlanNightDuty, VisitPlanSlotExceptionType } from '@prisma/client';
 import {
   buildVisitPlanOccurrence,
   type SlotWithRelations,
@@ -31,6 +31,15 @@ export type VisitPlanWeeklyHoursSummary = {
   heaviestWeek: VisitPlanWeekHours | null;
 };
 
+/** An extra visit cancelled through "Cancel visits" keeps its row and gets a SKIP on the same date. */
+function isCancelledExtra(slot: SlotWithRelations, dayIso: string): boolean {
+  return (slot.exceptions ?? []).some(
+    (ex) =>
+      ex.exceptionType === VisitPlanSlotExceptionType.SKIP &&
+      ex.exceptionDate.toISOString().slice(0, 10) === dayIso,
+  );
+}
+
 function utcDay(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));
@@ -48,6 +57,8 @@ function mondayOf(iso: string): string {
  * - Double-up: COMBINED adds each carer's time (a carer not chosen yet counts the visit time);
  *   FIXED counts the visit window once.
  * - Every visit counts its full time, sleeping nights (sleep-in) and waking nights included.
+ * - Visits cancelled on the rota are left out when `cancelledOnRota` is given; called-off visits still count.
+ * - `additionalMinutesByDay` adds visits outside the plan that count too (special visits).
  */
 export function computeVisitPlanWeeklyHours(params: {
   slots: SlotWithRelations[];
@@ -58,6 +69,10 @@ export function computeVisitPlanWeeklyHours(params: {
   /** First day counted (org timezone, YYYY-MM-DD); earlier days of its week are skipped. Defaults to today. */
   fromIso?: string;
   weeks?: number;
+  /** "slotId|YYYY-MM-DD" of visits cancelled on the rota: not counted (called-off visits still count). */
+  cancelledOnRota?: Set<string>;
+  /** Minutes per day (YYYY-MM-DD) from visits outside the plan that also count, e.g. special visits. */
+  additionalMinutesByDay?: Map<string, number>;
 }): VisitPlanWeeklyHoursSummary {
   const weekCount = params.weeks ?? VISIT_PLAN_HOURS_CHECK_WEEKS;
   const fromIso =
@@ -77,6 +92,7 @@ export function computeVisitPlanWeeklyHours(params: {
       const dayIso = addDaysToOperationalIso(weekStart, d);
       // Days already gone get no new visits from the plan, so they are not counted.
       if (dayIso < fromIso) continue;
+      week.minutes += params.additionalMinutesByDay?.get(dayIso) ?? 0;
       const day = utcDay(dayIso);
       for (const slot of params.slots) {
         const occurrence = buildVisitPlanOccurrence(
@@ -89,6 +105,8 @@ export function computeVisitPlanWeeklyHours(params: {
           },
         );
         if (!occurrence) continue;
+        if (occurrence.isExtra && isCancelledExtra(slot, dayIso)) continue;
+        if (params.cancelledOnRota?.has(`${slot.id}|${dayIso}`)) continue;
         week.visits += 1;
         // A sleeping night counts its full hours too; the number of them is kept for display.
         // An extra visit sits on a hidden normal host slot, so it is never seen as a sleep-in here.
@@ -110,6 +128,29 @@ export function computeVisitPlanWeeklyHours(params: {
     null,
   );
   return { mode: params.mode, weeks, heaviestWeek };
+}
+
+/** Minutes one visit (a slot on a day) counts against the weekly hours; 0 when it does not happen. */
+export function visitPlanOccurrenceMinutes(params: {
+  slot: SlotWithRelations;
+  dayIso: string;
+  planAnchor: Date;
+  planEffectiveTo: Date | null;
+  timeZone: string;
+  mode: MultiCarerHoursMode;
+  cancelledOnRota?: Set<string>;
+}): number {
+  const occurrence = buildVisitPlanOccurrence(
+    params.slot,
+    utcDay(params.dayIso),
+    params.planAnchor,
+    params.planEffectiveTo,
+    { timeZone: params.timeZone },
+  );
+  if (!occurrence) return 0;
+  if (occurrence.isExtra && isCancelledExtra(params.slot, params.dayIso)) return 0;
+  if (params.cancelledOnRota?.has(`${params.slot.id}|${params.dayIso}`)) return 0;
+  return occurrenceMinutes(occurrence, params.mode);
 }
 
 function occurrenceMinutes(

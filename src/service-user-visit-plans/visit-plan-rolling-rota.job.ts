@@ -106,6 +106,7 @@ export class VisitPlanRollingRotaJob {
     let visitsWithPatternWarnings = 0;
     let visitsWithRotaConflicts = 0;
     const planResults: RotaPlanResult[] = [];
+    const weeklyHoursWarnings: string[] = [];
 
     for (const chunk of chunks) {
       let response: Awaited<
@@ -121,7 +122,7 @@ export class VisitPlanRollingRotaJob {
           },
           undefined,
           // Nightly catch-up never brings back visits the office deleted.
-          { restoreDeletedJobs: false },
+          { restoreDeletedJobs: false, source: 'rolling' },
         );
       } catch (error) {
         if (
@@ -140,6 +141,7 @@ export class VisitPlanRollingRotaJob {
       visitsSkipped += totals.visitsSkipped;
       visitsWithPatternWarnings += totals.visitsWithPatternWarnings;
       visitsWithRotaConflicts += totals.visitsWithRotaConflicts;
+      weeklyHoursWarnings.push(...(totals.weeklyHoursWarnings ?? []));
       for (const r of response.data.results) {
         planResults.push({
           planId: r.planId,
@@ -151,6 +153,10 @@ export class VisitPlanRollingRotaJob {
     }
 
     const plans = summarisePlanResults(planResults);
+    // Plans over a service user's weekly contracted hours (Settings → Dom Rules decides warn or skip).
+    for (const warning of [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED)) {
+      this.logger.warn(`Rolling rota: ${warning}`);
+    }
     this.logger.log(
       `Rolling rota ${window.fromDate}..${window.toDate} (${mode}, horizon ${horizonDays}d, tz ${timeZone}): ` +
         `${visitsCreated} created, ${visitsSkipped} skipped, ${plans.succeeded} plans ok, ` +
@@ -170,6 +176,7 @@ export class VisitPlanRollingRotaJob {
         skipped: plans.skipped,
       },
       failedPlans: plans.failures.slice(0, MAX_LISTED),
+      weeklyHoursWarnings: [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED),
     };
     if (plans.failed > 0) {
       // Visits for the other plans are kept; failing the run raises the alert and lets the

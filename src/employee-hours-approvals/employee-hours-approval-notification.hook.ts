@@ -178,6 +178,39 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  async notifyDraftPlanRequested(params: {
+    approvalId: string;
+    serviceUserId: string;
+    /** "week of 30/11/2026 has 42h of 25h", already in the organisation's format. */
+    weekHoursLabel: string;
+    requestedById?: string;
+  }): Promise<void> {
+    if (!this.notifications) return;
+    try {
+      const recipientUserIds = await this.approverUserIds();
+      if (!recipientUserIds.length) return;
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: params.serviceUserId },
+        select: { firstName: true, lastName: true },
+      });
+      const suName = `${su?.firstName ?? ''} ${su?.lastName ?? ''}`.trim() || 'A service user';
+      await this.notifications.notifyUsers({
+        recipientUserIds,
+        type: NotificationType.SYSTEM_MESSAGE,
+        title: `Draft visit plan over weekly hours — ${suName}`,
+        message: `${suName}: the draft visit plan's ${params.weekHoursLabel}. It can't be activated until approved. Open Hours Approvals to approve or reject.`,
+        module: NotificationModule.SERVICE_USER,
+        severity: NotificationSeverity.WARNING,
+        recordType: 'EmployeeHoursApproval',
+        recordId: params.approvalId,
+        metadata: { href: '/hours-approvals', approvalId: params.approvalId, serviceUserId: params.serviceUserId },
+        createdById: params.requestedById,
+      });
+    } catch (err) {
+      this.logger.warn(`Draft plan request notify failed: ${(err as Error).message}`);
+    }
+  }
+
   async notifyExtraVisitRequested(params: {
     approvalId: string;
     serviceUserId: string;
