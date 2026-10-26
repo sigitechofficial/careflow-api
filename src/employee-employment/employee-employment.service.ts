@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataAccessType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -86,6 +86,23 @@ export class EmployeeEmploymentService {
       where: { id: employeeId, deletedAt: null },
     });
     if (!exists) throw new NotFoundException('Employee not found');
+
+    // Once set, contracted weekly hours only change through an approved hours request.
+    if (dto.contractedWeeklyHours !== undefined) {
+      const current = await this.prisma.employeeEmployment.findUnique({
+        where: { employeeId },
+        select: { contractedWeeklyHours: true },
+      });
+      const currentHours = current?.contractedWeeklyHours ?? null;
+      if (
+        currentHours != null &&
+        Math.abs(Number(dto.contractedWeeklyHours) - currentHours) > 0.001
+      ) {
+        throw new BadRequestException(
+          'Contracted weekly hours can only be changed through a manager-approved request. Send it for review instead.',
+        );
+      }
+    }
 
     const { baseLocationIds, serviceUserAreaIds, defaultPayCardId, ...employmentScalars } = dto;
 

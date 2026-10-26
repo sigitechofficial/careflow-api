@@ -14,6 +14,7 @@ import { groupRotaGeneratedCarerPushes } from './visit-plan-rota-carer-push.util
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { resolveApprovedWeeklyHoursThreshold } from '../common/utils/approved-weekly-hours.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -56,7 +57,14 @@ import {
   EMPTY_COMPLIANCE_ALLOCATION_RESULT,
   formatComplianceAllocationMessages,
 } from '../employee-compliance/allocation-compliance.util';
-import { combineOperationalDateAndHm, operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
+import {
+  addDaysToOperationalIso,
+  combineOperationalDateAndHm,
+  dayKeyInTimeZone,
+  operationalDayBounds,
+  operationalTodayIso,
+} from '../common/utils/operational-day.util';
+import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
 import type { ScheduleImpactResult } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
 import {
@@ -92,6 +100,14 @@ import {
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
+import {
+  currentServiceUserWeeklyHours,
+  sameWeeklyHours,
+  SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE,
+  syncServiceUserWeeklyHours,
+} from '../service-user-dom-care/service-user-weekly-hours-sync.util';
+import type { VisitPlanWeeklyHoursSummary } from './visit-plan-weekly-hours.util';
+import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
 import type { VisitPlanSlotCarerAssignmentDto, VisitPlanSlotExceptionDto } from './dto/visit-plan-slot-enterprise.dto';
 import type { NormalizedVisitPlanSlot } from './visit-plan-normalized-slot.types';
 import { VisitPlanAmendmentImpactService } from './visit-plan-amendment-impact.service';
@@ -171,6 +187,9 @@ type CalendarVisitRow = Prisma.ScheduledVisitGetPayload<{ include: typeof calend
 
 type PlanRow = Prisma.ServiceUserVisitPlanGetPayload<{ include: typeof planInclude }>;
 
+/** Thrown to roll back the weekly-hours preview transaction (nothing is saved). */
+class WeeklyHoursPreviewRollback extends Error {}
+
 @Injectable()
 export class ServiceUserVisitPlansService {
   private readonly logger = new Logger(ServiceUserVisitPlansService.name);
@@ -183,6 +202,7 @@ export class ServiceUserVisitPlansService {
     private readonly amendmentImpact: VisitPlanAmendmentImpactService,
     private readonly visitReconciliationsService: VisitReconciliationsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly weeklyHours: VisitPlanWeeklyHoursService,
     private readonly allocationCompliance: AllocationComplianceService,
     private readonly hoursApprovals: EmployeeHoursApprovalsService,
     @Optional() private readonly carerPush?: CarerVisitPushHook,
@@ -632,6 +652,7 @@ export class ServiceUserVisitPlansService {
     const rotaConflictByEmployee = await this.loadRotaConflictJobNamesByEmployee(
       employees.map((e) => e.id),
       dto,
+      serviceUserId,
     );
     const complianceByEmployee = await this.allocationCompliance.evaluateForEmployees(
       employees.map((e) => e.id),
@@ -639,6 +660,8 @@ export class ServiceUserVisitPlansService {
 
     // Weekly assigned hours per carer across all ACTIVE visit plans — used to flag
     // carers whose total assigned hours would exceed their contracted weekly hours.
+    // This service user's own copy of the slot being edited is left out, so a carer
+    // already saved on it is not counted twice (it is added back as the proposed visit).
     const assignedMinutesByEmployee = new Map<string, number>();
     const assignmentRows = await this.prisma.visitPlanSlotCarerAssignment.findMany({
       where: {
@@ -653,17 +676,25 @@ export class ServiceUserVisitPlansService {
         plannedEndTime: true,
         visitPlanSlot: {
           select: {
+            slotCode: true,
             daysOfWeek: true,
             plannedStartTime: true,
             plannedEndTime: true,
             durationMinutes: true,
             slotKind: true,
+            visitPlan: { select: { serviceUserId: true } },
           },
         },
       },
     });
     for (const a of assignmentRows) {
       const slot = a.visitPlanSlot;
+      if (
+        slot.visitPlan.serviceUserId === serviceUserId &&
+        slot.slotCode === dto.slotCode
+      ) {
+        continue;
+      }
       const start = a.plannedStartTime ?? slot.plannedStartTime;
       const end = a.plannedEndTime ?? slot.plannedEndTime;
       const perDay =
@@ -676,6 +707,9 @@ export class ServiceUserVisitPlansService {
         (assignedMinutesByEmployee.get(a.employeeId) ?? 0) + perDay * days,
       );
     }
+    const completedMinutesByEmployee = await this.completedMinutesThisWeek(
+      employees.map((e) => e.id),
+    );
     const proposedPerDayMinutes = deriveDurationFromTimes(
       dto.plannedStartTime,
       dto.plannedEndTime,
@@ -749,8 +783,12 @@ export class ServiceUserVisitPlansService {
       if (complianceMessages.block) warnings.push(complianceMessages.block);
       else if (complianceMessages.warn) warnings.push(complianceMessages.warn);
 
-      // Contracted-hours flag: total assigned + this visit would exceed contracted weekly hours.
+      // Weekly-hours flag: total assigned + this visit would exceed the allowed weekly hours
+      // (active approved extra hours, else contracted).
       const contractedWeeklyHours = emp.employment?.contractedWeeklyHours ?? null;
+      const allowedWeeklyHours = resolveApprovedWeeklyHoursThreshold(
+        emp.employment,
+      );
       const assignedWeeklyHours =
         Math.round(((assignedMinutesByEmployee.get(emp.id) ?? 0) / 60) * 10) / 10;
       const projectedWeeklyHours =
@@ -758,12 +796,12 @@ export class ServiceUserVisitPlansService {
           (((assignedMinutesByEmployee.get(emp.id) ?? 0) + proposedWeeklyMinutes) / 60) * 10,
         ) / 10;
       const exceedsContractedHours =
-        contractedWeeklyHours != null &&
-        contractedWeeklyHours > 0 &&
-        projectedWeeklyHours > contractedWeeklyHours + 0.01;
+        allowedWeeklyHours != null &&
+        allowedWeeklyHours > 0 &&
+        projectedWeeklyHours > allowedWeeklyHours + 0.01;
       if (exceedsContractedHours) {
         warnings.push(
-          `Exceeds contracted hours (~${projectedWeeklyHours}h of ${contractedWeeklyHours}h/wk)`,
+          `Exceeds weekly hours (~${projectedWeeklyHours}h of ${allowedWeeklyHours}h/wk)`,
         );
       }
 
@@ -795,7 +833,10 @@ export class ServiceUserVisitPlansService {
         complianceIssues,
         complianceBlocksAllocation,
         contractedWeeklyHours,
+        allowedWeeklyHours,
         assignedWeeklyHours,
+        completedWeeklyHours:
+          Math.round(((completedMinutesByEmployee.get(emp.id) ?? 0) / 60) * 10) / 10,
         projectedWeeklyHours,
         exceedsContractedHours,
         warnings,
@@ -823,9 +864,65 @@ export class ServiceUserVisitPlansService {
     };
   }
 
+  /**
+   * Minutes of COMPLETED visits per carer in the current rota week (Sunday start, org
+   * timezone — same week as the rota capacity check). Shown as "Done" in the carer picker.
+   */
+  private async completedMinutesThisWeek(
+    employeeIds: string[],
+  ): Promise<Map<string, number>> {
+    const minutesByEmployee = new Map<string, number>();
+    if (!employeeIds.length) return minutesByEmployee;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const now = new Date();
+    const weekStartKey = addDaysToOperationalIso(
+      dayKeyInTimeZone(now, timeZone),
+      -weekdayIndexInTimeZone(now, timeZone),
+    );
+    const weekStart = operationalDayBounds(weekStartKey, timeZone).start;
+    const weekEnd = operationalDayBounds(
+      addDaysToOperationalIso(weekStartKey, 7),
+      timeZone,
+    ).start;
+    const rows = await this.prisma.jobAllocation.findMany({
+      where: {
+        employeeId: { in: employeeIds },
+        deletedAt: null,
+        isActive: true,
+        scheduledJob: {
+          deletedAt: null,
+          scheduledStartDateTime: { gte: weekStart, lt: weekEnd },
+          visits: { some: { status: ScheduledVisitStatus.COMPLETED } },
+        },
+      },
+      select: {
+        employeeId: true,
+        scheduledStartDateTime: true,
+        scheduledEndDateTime: true,
+        scheduledJob: {
+          select: { scheduledStartDateTime: true, scheduledEndDateTime: true },
+        },
+      },
+    });
+    for (const row of rows) {
+      const start =
+        row.scheduledStartDateTime ?? row.scheduledJob.scheduledStartDateTime;
+      const end =
+        row.scheduledEndDateTime ?? row.scheduledJob.scheduledEndDateTime;
+      if (!start || !end) continue;
+      const minutes = Math.max(0, (end.getTime() - start.getTime()) / 60000);
+      minutesByEmployee.set(
+        row.employeeId,
+        (minutesByEmployee.get(row.employeeId) ?? 0) + minutes,
+      );
+    }
+    return minutesByEmployee;
+  }
+
   private async loadRotaConflictJobNamesByEmployee(
     employeeIds: string[],
     dto: SuggestVisitPlanCarersDto,
+    serviceUserId: string,
   ): Promise<Map<string, string[]>> {
     const conflicts = new Map<string, string[]>();
     if (!employeeIds.length) return conflicts;
@@ -915,6 +1012,10 @@ export class ServiceUserVisitPlansService {
             jobName: true,
             scheduledStartDateTime: true,
             scheduledEndDateTime: true,
+            serviceUserId: true,
+            visits: {
+              select: { visitPlanSlot: { select: { slotCode: true } } },
+            },
           },
         },
       },
@@ -923,6 +1024,11 @@ export class ServiceUserVisitPlansService {
 
     for (const row of rows) {
       const job = row.scheduledJob;
+      // The visit being edited already has rota jobs for its carers — those are not a clash.
+      const isThisVisit =
+        job.serviceUserId === serviceUserId &&
+        job.visits.some((v) => v.visitPlanSlot?.slotCode === dto.slotCode);
+      if (isThisVisit) continue;
       if (
         !scheduledJobOverlapsVisitPlanSlot({
           jobStart: job.scheduledStartDateTime,
@@ -1083,6 +1189,41 @@ export class ServiceUserVisitPlansService {
     return { data: row ? this.mapPlan(row, roundNameByCode) : null };
   }
 
+  /**
+   * Planned visit hours per week for the next weeks, against the service user's weekly
+   * contracted hours (DOM Care / approved value). Read only.
+   */
+  async weeklyHoursSummary(serviceUserId: string, planId: string) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const summary = await this.weeklyHours.count(this.prisma, planId);
+    const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
+    return { data: this.weeklyHours.withLimit(summary, limit) };
+  }
+
+  /**
+   * Same count for an unsaved visit schedule (the plan page while editing). The slots are
+   * written inside a transaction that is always rolled back, so nothing is saved.
+   */
+  async previewWeeklyHours(serviceUserId: string, planId: string, slots: VisitPlanSlotDto[] | undefined) {
+    const plan = await this.getPlanOrThrow(serviceUserId, planId);
+    const rounds = await this.loadMedicationRoundCatalog();
+    const context = await this.weeklyHours.context();
+    const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
+    const result: { summary?: VisitPlanWeeklyHoursSummary } = {};
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        for (const slot of this.normalizeSlots(slots, rounds)) {
+          await this.upsertPlanSlot(tx, planId, slot);
+        }
+        result.summary = await this.weeklyHours.count(tx, planId, context);
+        throw new WeeklyHoursPreviewRollback();
+      });
+    } catch (e) {
+      if (!(e instanceof WeeklyHoursPreviewRollback)) throw e;
+    }
+    return { data: this.weeklyHours.withLimit(result.summary!, limit) };
+  }
+
   async getById(serviceUserId: string, planId: string) {
     const roundNameByCode = await this.loadRoundNameMap();
     const row = await this.getPlanOrThrow(serviceUserId, planId);
@@ -1103,6 +1244,13 @@ export class ServiceUserVisitPlansService {
     const effectiveFrom = dto.effectiveFrom ? new Date(dto.effectiveFrom) : new Date();
 
     const created = await this.prisma.$transaction(async (tx) => {
+      // A new plan starts from the service user's current weekly hours; changing them needs approval.
+      const currentHours = await currentServiceUserWeeklyHours(tx, serviceUserId);
+      if (currentHours != null && !sameWeeklyHours(currentHours, weeklyContractedHours)) {
+        throw new BadRequestException(
+          `Weekly contracted hours must match the service user's current hours (${currentHours}h). ${SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE}`,
+        );
+      }
       const plan = await tx.serviceUserVisitPlan.create({
         data: {
           serviceUserId,
@@ -1131,6 +1279,16 @@ export class ServiceUserVisitPlansService {
         });
         await this.persistSlotRelations(tx, row.id, slot.carerAssignments ?? [], slot.exceptions ?? []);
       }
+      // Visits may not take any week over the service user's weekly contracted hours.
+      await this.weeklyHours.assertWithinLimit(tx, serviceUserId, plan.id, null, weeklyContractedHours);
+      await syncServiceUserWeeklyHours(tx, this.audit, {
+        serviceUserId,
+        value: weeklyContractedHours,
+        userId,
+        source: 'visit_plan',
+        sourceVisitPlanId: plan.id,
+        meta,
+      });
       const full = await tx.serviceUserVisitPlan.findUniqueOrThrow({
         where: { id: plan.id },
         include: planInclude,
@@ -1171,13 +1329,32 @@ export class ServiceUserVisitPlansService {
 
     const respectWorkingPattern =
       dto.respectWorkingPatternOnSync ?? existing.respectWorkingPatternOnSync !== false;
+    const weeklyHoursBefore = dto.slots?.length ? await this.weeklyHours.count(this.prisma, planId) : null;
     const timeZone = await this.orgSettings.getOperationalTimezone();
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Once set, weekly hours change only through a manager-approved request.
+      if (
+        dto.weeklyContractedHours !== undefined &&
+        !sameWeeklyHours(dto.weeklyContractedHours, existing.weeklyContractedHours)
+      ) {
+        const currentHours = await currentServiceUserWeeklyHours(tx, serviceUserId);
+        if (currentHours != null && !sameWeeklyHours(currentHours, dto.weeklyContractedHours)) {
+          throw new BadRequestException(SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE);
+        }
+      }
       if (dto.slots?.length) {
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
           await this.upsertPlanSlot(tx, planId, slot);
         }
+        // Visits may not take any week over the service user's weekly contracted hours.
+        await this.weeklyHours.assertWithinLimit(
+          tx,
+          serviceUserId,
+          planId,
+          weeklyHoursBefore,
+          existing.weeklyContractedHours,
+        );
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
           const row = await tx.visitPlanSlot.findFirst({
             where: { visitPlanId: planId, slotCode: slot.slotCode },
@@ -1226,6 +1403,16 @@ export class ServiceUserVisitPlansService {
           updatedById: userId,
         },
       });
+      if (dto.weeklyContractedHours !== undefined) {
+        await syncServiceUserWeeklyHours(tx, this.audit, {
+          serviceUserId,
+          value: dto.weeklyContractedHours,
+          userId,
+          source: 'visit_plan',
+          sourceVisitPlanId: planId,
+          meta,
+        });
+      }
       const after = await tx.serviceUserVisitPlan.findUniqueOrThrow({
         where: { id: planId },
         include: planInclude,

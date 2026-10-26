@@ -13,6 +13,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import {
+  WEEKLY_HOURS_LIMIT_BASES,
+  WEEKLY_HOURS_REJECT_ACTIONS,
+} from '../dom-care-allocation-rules.util';
 
 export class DomJobCancellationRuleDto {
   @ApiProperty()
@@ -49,7 +53,29 @@ export class DomJobCancellationRuleDto {
   payEmployeePercent!: number;
 }
 
-const ALLOCATION_BEHAVIORS = ['DONT_ALLOW', 'ALWAYS_ALLOW', 'REQUEST_CONFIRMATION'] as const;
+const ALLOCATION_BEHAVIORS = [
+  'DONT_ALLOW',
+  'ALWAYS_ALLOW',
+  'REQUEST_CONFIRMATION',
+  'MANAGER_APPROVAL',
+] as const;
+
+export class DomWeeklyHoursRuleOptionsDto {
+  @ApiProperty({ enum: WEEKLY_HOURS_LIMIT_BASES })
+  @IsIn(WEEKLY_HOURS_LIMIT_BASES)
+  limitBasis!: (typeof WEEKLY_HOURS_LIMIT_BASES)[number];
+
+  @ApiProperty({ enum: WEEKLY_HOURS_REJECT_ACTIONS })
+  @IsIn(WEEKLY_HOURS_REJECT_ACTIONS)
+  rejectAction!: (typeof WEEKLY_HOURS_REJECT_ACTIONS)[number];
+
+  @ApiProperty({ minimum: 1, maximum: 168 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  maxApprovableHours!: number;
+}
 
 export class DomCareAllocationRuleDto {
   @ApiProperty()
@@ -73,6 +99,12 @@ export class DomCareAllocationRuleDto {
   @Min(0)
   @Max(999)
   minutes?: number | null;
+
+  @ApiPropertyOptional({ type: DomWeeklyHoursRuleOptionsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DomWeeklyHoursRuleOptionsDto)
+  weeklyHours?: DomWeeklyHoursRuleOptionsDto;
 }
 
 export class DomCareShiftDefinitionDto {

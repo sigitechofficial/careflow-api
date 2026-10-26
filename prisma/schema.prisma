@@ -4792,6 +4792,20 @@ enum EmployeeHoursApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
+
+  @@schema("service_users")
+}
+
+enum EmployeeHoursApprovalType {
+  /// A visit plan put the carer over their weekly hours.
+  VISIT_PLAN_OVER_HOURS
+  /// A change to the carer's contracted weekly hours waiting for a manager.
+  CONTRACTED_HOURS_CHANGE
+  /// A change to a service user's weekly contracted hours waiting for a manager.
+  SERVICE_USER_WEEKLY_HOURS_CHANGE
+  /// An extra visit that takes a service user's week over their weekly hours.
+  EXTRA_VISIT_OVER_HOURS
 
   @@schema("service_users")
 }
@@ -4800,16 +4814,26 @@ enum EmployeeHoursApprovalStatus {
 /// hours. Created when an over-contracted assignment is saved; the carer is
 /// assigned immediately but stays PENDING until decided. Independent of the
 /// slot's carer-assignment rows (which are replaced on every slot save).
+/// CONTRACTED_HOURS_CHANGE rows hold a requested contracted-hours change instead
+/// (no service user / visit plan); nothing changes until they are approved.
 model EmployeeHoursApproval {
   id                    String                      @id @default(uuid()) @db.Uuid
-  employeeId            String                      @db.Uuid
-  serviceUserId         String                      @db.Uuid
-  visitPlanId           String                      @db.Uuid
+  /// Null for service user weekly hours requests (no carer involved).
+  employeeId            String?                     @db.Uuid
+  requestType           EmployeeHoursApprovalType   @default(VISIT_PLAN_OVER_HOURS)
+  serviceUserId         String?                     @db.Uuid
+  visitPlanId           String?                     @db.Uuid
   visitPlanSlotId       String?                     @db.Uuid
   status                EmployeeHoursApprovalStatus @default(PENDING)
   contractedWeeklyHours Float?
   projectedWeeklyHours  Float?
   extraHours            Float?
+  previousContractedWeeklyHours  Float?
+  requestedContractedWeeklyHours Float?
+  /// Preview shown when the request was sent (visits/hours that would be unassigned).
+  impactSummary         Json?
+  /// Extra visit over hours: the visit to create when approved (date, time, carers, reason…).
+  requestPayload        Json?
   reason                String?                     @db.Text
   requestedById         String?                     @db.Uuid
   requestedAt           DateTime                    @default(now())
@@ -4823,6 +4847,7 @@ model EmployeeHoursApproval {
   @@index([employeeId])
   @@index([serviceUserId])
   @@index([visitPlanSlotId])
+  @@index([requestType])
   @@schema("service_users")
 }
 
@@ -14351,4 +14376,91 @@ model ReferralNumberSequence {
 
   @@id([kind, year])
   @@schema("service_users")
+}
+
+/// On-call: who covers evenings, nights, weekends and bank holidays when the office is closed.
+enum OnCallTier {
+  FIRST_LINE
+  SECOND_LINE
+
+  @@schema("scheduling")
+}
+
+/// One on-call shift. locationId null = covers every branch.
+model OnCallShift {
+  id          String     @id @default(uuid()) @db.Uuid
+  employeeId  String     @db.Uuid
+  locationId  String?    @db.Uuid
+  tier        OnCallTier
+  startsAt    DateTime
+  endsAt      DateTime
+  notes       String?    @db.VarChar(500)
+  createdById String?    @db.Uuid
+  updatedById String?    @db.Uuid
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([employeeId])
+  @@schema("scheduling")
+}
+
+enum OnCallCallerType {
+  CARER
+  SERVICE_USER
+  FAMILY
+  PROFESSIONAL
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum OnCallCallCategory {
+  CARER_SICKNESS
+  LATE_OR_MISSED_VISIT
+  ACCESS_PROBLEM
+  SERVICE_USER_UNWELL
+  MEDICATION
+  CONCERN_OR_COMPLAINT
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum OnCallCallStatus {
+  OPEN
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+/// A call received while the office is closed. OPEN calls make up the morning handover.
+model OnCallCall {
+  id                String             @id @default(uuid()) @db.Uuid
+  receivedAt        DateTime
+  takenByUserId     String?            @db.Uuid
+  callerType        OnCallCallerType
+  callerName        String             @db.VarChar(120)
+  callerPhone       String?            @db.VarChar(40)
+  callerEmployeeId  String?            @db.Uuid
+  serviceUserId     String?            @db.Uuid
+  locationId        String?            @db.Uuid
+  category          OnCallCallCategory
+  summary           String             @db.VarChar(2000)
+  actionTaken       String?            @db.VarChar(2000)
+  followUpRequired  Boolean            @default(false)
+  status            OnCallCallStatus   @default(OPEN)
+  closedAt          DateTime?
+  closedByUserId    String?            @db.Uuid
+  closingNote       String?            @db.VarChar(1000)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  @@index([receivedAt])
+  @@index([status])
+  @@index([serviceUserId])
+  @@schema("scheduling")
 }

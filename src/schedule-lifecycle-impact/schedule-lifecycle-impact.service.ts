@@ -49,6 +49,8 @@ export type UnallocateEmployeeJobsParams = {
   toDate: Date | null;
   reason: string;
   source: ScheduleImpactSource;
+  /** Only these allocation rows. */
+  allocationIds?: string[];
 };
 
 export type TimelineJobOperationalFlags = {
@@ -379,6 +381,29 @@ export class ScheduleLifecycleImpactService {
     );
   }
 
+  /**
+   * Unassign specific rota allocations of one carer (from today on; past, completed and
+   * cancelled visits are never touched by the shared where-builder).
+   */
+  async unallocateEmployeeAllocations(
+    userId: string,
+    employeeId: string,
+    allocationIds: string[],
+    reason: string,
+    source: ScheduleImpactSource,
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ScheduleImpactResult> {
+    if (!allocationIds.length) return { jobsCancelled: 0, jobsUnallocated: 0, jobIds: [] };
+    const from = await this.opsTodayLabel();
+    return this.unallocateEmployeeJobsInRange(
+      userId,
+      { employeeId, fromDate: from, toDate: null, reason, source, allocationIds },
+      meta,
+      tx,
+    );
+  }
+
   async loadTimelineOperationalFlags(
     jobs: TimelineJobForOperationalFlags[],
     day: Date,
@@ -532,7 +557,12 @@ export class ScheduleLifecycleImpactService {
 
     const run = async (client: Prisma.TransactionClient) => {
       const allocations = await client.jobAllocation.findMany({
-        where: buildUnallocateEmployeeJobsWhere(params.employeeId, from, to),
+        where: buildUnallocateEmployeeJobsWhere(
+          params.employeeId,
+          from,
+          to,
+          params.allocationIds,
+        ),
         select: {
           id: true,
           scheduledJobId: true,

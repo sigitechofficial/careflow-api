@@ -123,6 +123,7 @@ import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { CarerMessagesModule } from './carer-messages/carer-messages.module';
+import { OnCallModule } from './on-call/on-call.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
@@ -278,6 +279,7 @@ import { JobsModule } from './jobs/jobs.module';
     IncidentsModule,
     SurveysModule,
     CarerMessagesModule,
+    OnCallModule,
     EmployeeHoursApprovalsModule,
     DevToolsModule,
     BillingModule,

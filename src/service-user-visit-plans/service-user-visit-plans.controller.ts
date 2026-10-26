@@ -23,6 +23,7 @@ import { SuggestVisitPlanCarersDto } from './dto/suggest-visit-plan-carers.dto';
 import { VisitPlanCalendarVisitsQueryDto } from './dto/visit-plan-calendar-visits-query.dto';
 import { RecordVisitPlanCalendarOutcomeDto } from './dto/record-visit-plan-calendar-outcome.dto';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
+import { PreviewVisitPlanWeeklyHoursDto } from './dto/preview-visit-plan-weekly-hours.dto';
 
 @ApiTags('Service User Visit Plans')
 @ApiBearerAuth()
@@ -50,6 +51,24 @@ export class ServiceUserVisitPlansController {
   @ApiOperation({ summary: 'Suggest carers for a visit plan slot (availability, skills, preferences)' })
   suggestCarers(@Param('id') serviceUserId: string, @Body() dto: SuggestVisitPlanCarersDto) {
     return this.service.suggestCarers(serviceUserId, dto);
+  }
+
+  @Get(':planId/weekly-hours')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read')
+  @ApiOperation({ summary: "Planned visit hours per week against the service user's weekly hours" })
+  weeklyHours(@Param('id') serviceUserId: string, @Param('planId') planId: string) {
+    return this.service.weeklyHoursSummary(serviceUserId, planId);
+  }
+
+  @Post(':planId/weekly-hours-preview')
+  @AnyPermission('service_users.visit_plan.read', 'service_users.read')
+  @ApiOperation({ summary: 'Weekly hours for an unsaved visit schedule (nothing is saved)' })
+  previewWeeklyHours(
+    @Param('id') serviceUserId: string,
+    @Param('planId') planId: string,
+    @Body() dto: PreviewVisitPlanWeeklyHoursDto,
+  ) {
+    return this.service.previewWeeklyHours(serviceUserId, planId, dto.slots);
   }
 
   @Get(':planId')
