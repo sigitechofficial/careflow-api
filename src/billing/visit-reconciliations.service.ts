@@ -71,6 +71,7 @@ import {
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { payOverCharge, type PayOverCharge } from './pay-over-charge.util';
 import { buildFundingSplits, buildFunderSplitPreview, formatMoney } from './billing-run.util';
 import {
   loadPerFunderChargeCalculation,
@@ -286,6 +287,8 @@ export type VisitReconciliationListRow = {
   approvedBillable: string;
   payableAmount: string | null;
   billableAmount: string | null;
+  /** Set when the visit's carer pay (all carers) is above what is charged for it. */
+  payOverCharge: PayOverCharge | null;
   travelMiles: number | null;
   travelMinutes: number | null;
   currency: string;
@@ -4548,7 +4551,7 @@ export class VisitReconciliationsService {
 
     const visitIds = [...new Set(rows.map((r) => r.scheduledVisitId))];
     const jobIds = [...new Set(rows.map((r) => r.scheduledJobId))];
-    const [serviceUsers, employees, nightVisits, nightJobs] = await Promise.all([
+    const [serviceUsers, employees, nightVisits, nightJobs, visitTotals] = await Promise.all([
       suIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: suIds } },
@@ -4595,8 +4598,27 @@ export class VisitReconciliationsService {
             select: { id: true, metadata: true },
           })
         : [],
+      // Every carer row of each visit (also those not on this page), to compare pay with charge per visit.
+      visitIds.length
+        ? this.prisma.visitReconciliation.groupBy({
+            by: ['scheduledVisitId'],
+            where: { scheduledVisitId: { in: visitIds } },
+            _sum: { payableAmount: true, billableAmount: true },
+            _count: { billableAmount: true },
+          })
+        : [],
     ]);
 
+    const payOverChargeByVisit = new Map(
+      visitTotals.map((t) => [
+        t.scheduledVisitId,
+        payOverCharge(
+          t._sum.payableAmount != null ? Number(t._sum.payableAmount) : null,
+          // No priced charge on any row yet: nothing to compare with.
+          t._count.billableAmount > 0 ? Number(t._sum.billableAmount ?? 0) : null,
+        ),
+      ]),
+    );
     const suById = new Map(serviceUsers.map((su) => [su.id, su]));
     const nightDutyByJobId = new Map(
       nightJobs.map((job) => [
@@ -4659,6 +4681,7 @@ export class VisitReconciliationsService {
                 const manual = resolveManualBillableAmount(row);
                 return manual != null ? `£${manual.toFixed(2)}` : null;
               })(),
+        payOverCharge: payOverChargeByVisit.get(row.scheduledVisitId) ?? null,
         travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
         travelMinutes: row.travelMinutes ?? null,
         currency: row.currency,
