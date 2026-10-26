@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { MailModule } from '../mail/mail.module';
+import { TravelRoutesModule } from '../travel-routes/travel-routes.module';
 import { PayCardsController } from './pay-cards.controller';
 import { ChargeCardsController } from './charge-cards.controller';
 import { FundingContractsController } from './funding-contracts.controller';
@@ -38,7 +39,14 @@ import { FundingUsageService } from './funding-usage.service';
 import { MileageRatesService } from './mileage-rates.service';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule, OrganisationGeneralSettingsModule, MailModule, AuditLogsModule],
+  imports: [
+    PrismaModule,
+    ScheduleModule,
+    OrganisationGeneralSettingsModule,
+    MailModule,
+    AuditLogsModule,
+    TravelRoutesModule,
+  ],
   controllers: [
     PayCardsController,
     ChargeCardsController,

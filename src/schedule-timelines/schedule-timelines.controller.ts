@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -12,6 +12,7 @@ import { JobsDayTimelineQueryDto } from './dto/jobs-day-timeline-query.dto';
 import { EmployeeTimelineQueryDto } from './dto/employee-timeline-query.dto';
 import { ServiceUserTimelineQueryDto } from './dto/service-user-timeline-query.dto';
 import { EmployeeCapacityQueryDto } from './dto/employee-capacity-query.dto';
+import { TravelLegsDto } from './dto/travel-legs.dto';
 
 @ApiTags('Schedule Timelines')
 @ApiBearerAuth()
@@ -29,6 +30,14 @@ export class ScheduleTimelinesController {
     @Req() req: Request,
   ) {
     return this.service.jobsDayRuns(user.id, query, getRequestAuditMeta(req));
+  }
+
+  @Post('travel-legs')
+  @HttpCode(200)
+  @Permissions('schedule_timelines.read')
+  @ApiOperation({ summary: 'Driving distance and time between rota visits (Google, cached; estimate as fallback)' })
+  travelLegs(@Body() dto: TravelLegsDto) {
+    return this.service.travelLegs(dto);
   }
 
   @Get('jobs/day-timeline')

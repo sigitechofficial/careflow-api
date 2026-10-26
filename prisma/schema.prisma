@@ -15002,3 +15002,17 @@ model EnquiryNumberSequence {
   @@id([year])
   @@schema("service_users")
 }
+
+/// Google driving distance and time between two map points (rounded to 5 decimals), kept so the
+/// rota and visit billing do not ask Google again for the same journey. Only Google answers are stored.
+model TravelRouteCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  originKey      String   @db.VarChar(32)
+  destinationKey String   @db.VarChar(32)
+  meters         Int
+  seconds        Int
+  fetchedAt      DateTime @default(now())
+
+  @@unique([originKey, destinationKey])
+  @@schema("scheduling")
+}

@@ -57,7 +57,8 @@ import {
   withoutPaySnapshotFields,
   type PaySettlementRef,
 } from './pay-settlement.util';
-import { latLngOf, travelBetween } from './visit-travel-distance.util';
+import { latLngOf, travelOfLeg } from './visit-travel-distance.util';
+import { DrivingTravelService } from '../travel-routes/driving-travel.service';
 import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
@@ -378,6 +379,7 @@ export class VisitReconciliationsService {
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly auditLogs: AuditLogsService,
     private readonly payItems: PayItemsService,
+    private readonly drivingTravel: DrivingTravelService,
   ) {}
 
   /** The open transaction behind a client, to pass on to an audit entry; none for the plain client. */
@@ -880,14 +882,8 @@ export class VisitReconciliationsService {
       };
       const from = homeOf(previous.serviceUserId);
       const to = homeOf(row.serviceUserId);
-      const travel =
-        from && to
-          ? await travelBetween(from, to, {
-              apiKey: process.env.GOOGLE_MAPS_API_KEY?.trim() || null,
-              onGoogleError: (err) =>
-                this.logger.warn(`Google route for visit ${row.visitRef} failed, using the estimate: ${String(err)}`),
-            })
-          : null;
+      const leg = from && to ? await this.drivingTravel.between(from, to) : null;
+      const travel = leg ? travelOfLeg(leg) : null;
       if (travel) {
         const after = await db.visitReconciliation.update({
           where: { id: row.id },

@@ -38,26 +38,40 @@ export function haversineKm(from: LatLng, to: LatLng): number {
 
 export type TravelBetween = { miles: number; minutes: number; source: 'GOOGLE' | 'ESTIMATE' };
 
-function travelOf(roadKm: number, minutes: number, source: TravelBetween['source']): TravelBetween {
-  return { miles: Math.round((roadKm / KM_PER_MILE) * 10) / 10, minutes: Math.max(1, Math.round(minutes)), source };
+/** A journey before rounding: road km and driving minutes. */
+export type RouteLeg = { km: number; minutes: number; source: TravelBetween['source'] };
+
+/** Road miles (1 decimal) and whole driving minutes (at least 1) of a journey. */
+export function travelOfLeg(leg: RouteLeg): TravelBetween {
+  return {
+    miles: Math.round((leg.km / KM_PER_MILE) * 10) / 10,
+    minutes: Math.max(1, Math.round(leg.minutes)),
+    source: leg.source,
+  };
+}
+
+/** Road km and driving minutes estimated from the coordinates; null when they are the same place. */
+export function estimateRoute(from: LatLng, to: LatLng): RouteLeg | null {
+  const km = haversineKm(from, to) * ROAD_DISTANCE_FACTOR;
+  if (!(km > 0)) return null;
+  return { km, minutes: (km / AVERAGE_DRIVING_SPEED_KMH) * 60, source: 'ESTIMATE' };
 }
 
 /** Road miles (1 decimal) and driving minutes from one home to another; null when they are the same place. */
 export function estimateTravelBetween(from: LatLng, to: LatLng): TravelBetween | null {
-  const roadKm = haversineKm(from, to) * ROAD_DISTANCE_FACTOR;
-  if (!(roadKm > 0)) return null;
-  return travelOf(roadKm, (roadKm / AVERAGE_DRIVING_SPEED_KMH) * 60, 'ESTIMATE');
+  const leg = estimateRoute(from, to);
+  return leg ? travelOfLeg(leg) : null;
 }
 
 const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
-/** Driving distance and time from Google; null when Google gives no route. Throws when the call fails. */
-export async function googleDrivingTravel(
+/** Driving km and minutes from Google; null when Google gives no route. Throws when the call fails. */
+export async function googleDrivingRoute(
   from: LatLng,
   to: LatLng,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<TravelBetween | null> {
+): Promise<RouteLeg | null> {
   const point = (p: LatLng) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
   const res = await fetchImpl(ROUTES_URL, {
     method: 'POST',
@@ -75,7 +89,18 @@ export async function googleDrivingTravel(
   const meters = route?.distanceMeters ?? 0;
   const seconds = Number.parseFloat(route?.duration ?? '');
   if (!(meters > 0) || !Number.isFinite(seconds)) return null;
-  return travelOf(meters / 1000, seconds / 60, 'GOOGLE');
+  return { km: meters / 1000, minutes: seconds / 60, source: 'GOOGLE' };
+}
+
+/** Driving distance and time from Google; null when Google gives no route. Throws when the call fails. */
+export async function googleDrivingTravel(
+  from: LatLng,
+  to: LatLng,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<TravelBetween | null> {
+  const leg = await googleDrivingRoute(from, to, apiKey, fetchImpl);
+  return leg ? travelOfLeg(leg) : null;
 }
 
 /** Google's driving distance and time when a key is set; otherwise, or when Google fails, the estimate. */
