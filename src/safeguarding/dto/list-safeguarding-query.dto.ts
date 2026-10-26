@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import {
   SafeguardingCategory,
   SafeguardingRisk,
@@ -31,4 +31,10 @@ export class ListSafeguardingQueryDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({ description: 'Search by reference, person or description' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }

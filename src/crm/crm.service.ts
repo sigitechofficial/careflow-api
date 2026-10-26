@@ -279,6 +279,21 @@ export class CrmService {
       ...(query.source ? { source: query.source } : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
     });
+    const search = query.search?.trim();
+    if (search) {
+      const contains = { contains: search, mode: 'insensitive' as const };
+      andWhereFragment(where, {
+        OR: [
+          { referenceNumber: contains },
+          { firstName: contains },
+          { lastName: contains },
+          { contactName: contains },
+          { contactEmail: contains },
+          { contactPhone: contains },
+          { postcode: contains },
+        ],
+      });
+    }
     const rows = await this.prisma.enquiry.findMany({ where, orderBy: { createdAt: 'desc' } });
     return { data: await this.present(rows) };
   }

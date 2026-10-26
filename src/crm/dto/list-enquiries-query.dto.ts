@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { EnquirySource, EnquiryStage } from '@prisma/client';
 
 export class ListEnquiriesQueryDto {
@@ -22,4 +22,10 @@ export class ListEnquiriesQueryDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({ description: 'Search by reference, name, contact or postcode' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }

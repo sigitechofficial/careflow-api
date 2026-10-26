@@ -350,6 +350,18 @@ export class SafeguardingService {
       ...(query.riskLevel ? { riskLevel: query.riskLevel } : {}),
       ...(query.aboutServiceUserId ? { aboutServiceUserId: query.aboutServiceUserId } : {}),
     });
+    const search = query.search?.trim();
+    if (search) {
+      const contains = { contains: search, mode: 'insensitive' as const };
+      andWhereFragment(where, {
+        OR: [
+          { referenceNumber: contains },
+          { personDescription: contains },
+          { description: contains },
+          { laReference: contains },
+        ],
+      });
+    }
     const rows = await this.prisma.safeguardingCase.findMany({ where, orderBy: { createdAt: 'desc' } });
     return { data: await this.present(rows) };
   }
