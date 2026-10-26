@@ -35,6 +35,8 @@ import { WageRecoveriesService } from './wage-recoveries.service';
 import { WageRecoveriesController } from './wage-recoveries.controller';
 import { BankHolidaysService } from './bank-holidays.service';
 import { MileageRatesController } from './mileage-rates.controller';
+import { FundingUsageController } from './funding-usage.controller';
+import { FundingUsageService } from './funding-usage.service';
 import { MileageRatesService } from './mileage-rates.service';
 
 @Module({
@@ -43,6 +45,7 @@ import { MileageRatesService } from './mileage-rates.service';
     PayCardsController,
     ChargeCardsController,
     FundingContractsController,
+    FundingUsageController,
     InvoiceTemplatesController,
     VisitReconciliationsController,
     PayrollRunsController,
@@ -61,6 +64,7 @@ import { MileageRatesService } from './mileage-rates.service';
     PayCardsService,
     ChargeCardsService,
     FundingContractsService,
+    FundingUsageService,
     InvoiceTemplatesService,
     VisitReconciliationsService,
     PayrollRunsService,
