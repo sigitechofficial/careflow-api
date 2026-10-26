@@ -31,7 +31,6 @@ import {
   type InvoiceRunAuditTrailItem,
 } from './invoice-run-audit.util';
 import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
-import { InvoiceTemplatesService } from './invoice-templates.service';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
 import {
   buildInvoiceExportVisitRow,
@@ -126,7 +125,6 @@ export type InvoiceRunRow = {
 export class InvoiceRunsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly invoiceTemplates: InvoiceTemplatesService,
     private readonly mail: MailService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
@@ -2134,12 +2132,8 @@ export class InvoiceRunsService {
 
     const lineData: Prisma.InvoiceRunLineCreateManyInput[] = [];
     let exceptionCount = 0;
-    let templateMissingCount = 0;
     const serviceUserIds = new Set<string>();
     const funderIds = new Set<string>();
-
-    // Ensure an organisation-wide default exists for funders/contracts with no template.
-    await this.invoiceTemplates.ensureOrganisationDefaultTemplate();
 
     for (const recon of eligibleRecons) {
       const billMins = recon.billableMinutes ?? 0;
@@ -2217,17 +2211,6 @@ export class InvoiceRunsService {
           if (split.amount <= 0) continue;
           if (split.funderId) funderIds.add(split.funderId);
 
-          const lineIssues = [...issues];
-          const resolved = await this.invoiceTemplates.resolveForServiceUser(
-            recon.serviceUserId,
-            split.id,
-          );
-          if (!resolved.data.invoiceTemplate) {
-            templateMissingCount += 1;
-            lineIssues.push('Invoice template missing');
-            if (!issues.length) exceptionCount += 1;
-          }
-
           lineData.push({
             invoiceRunId: id,
             visitReconciliationId: recon.id,
@@ -2243,7 +2226,7 @@ export class InvoiceRunsService {
             amount: split.amount,
             chargeCardId: split.chargeCardId ?? recon.chargeCardId,
             visitRef: recon.visitRef,
-            exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
+            exceptionMessage: issues.length ? issues.join('; ') : null,
           });
         }
         continue;
@@ -2286,17 +2269,6 @@ export class InvoiceRunsService {
         for (const split of legacyAllocated) {
           if (split.funderId) funderIds.add(split.funderId);
 
-          const lineIssues = [...issues];
-          const resolved = await this.invoiceTemplates.resolveForServiceUser(
-            recon.serviceUserId,
-            split.id,
-          );
-          if (!resolved.data.invoiceTemplate) {
-            templateMissingCount += 1;
-            lineIssues.push('Invoice template missing');
-            if (!issues.length) exceptionCount += 1;
-          }
-
           lineData.push({
             invoiceRunId: id,
             visitReconciliationId: recon.id,
@@ -2312,7 +2284,7 @@ export class InvoiceRunsService {
             amount: split.amount,
             chargeCardId: recon.chargeCardId,
             visitRef: recon.visitRef,
-            exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
+            exceptionMessage: issues.length ? issues.join('; ') : null,
           });
         }
         continue;
@@ -2320,17 +2292,6 @@ export class InvoiceRunsService {
 
       for (const split of allocated) {
         if (split.funderId) funderIds.add(split.funderId);
-
-        const lineIssues = [...issues];
-        const resolved = await this.invoiceTemplates.resolveForServiceUser(
-          recon.serviceUserId,
-          split.id,
-        );
-        if (!resolved.data.invoiceTemplate) {
-          templateMissingCount += 1;
-          lineIssues.push('Invoice template missing');
-          if (!issues.length) exceptionCount += 1;
-        }
 
         lineData.push({
           invoiceRunId: id,
@@ -2347,7 +2308,7 @@ export class InvoiceRunsService {
           amount: split.amount,
           chargeCardId: split.chargeCardId ?? recon.chargeCardId,
           visitRef: recon.visitRef,
-          exceptionMessage: lineIssues.length ? lineIssues.join('; ') : null,
+          exceptionMessage: issues.length ? issues.join('; ') : null,
         });
       }
     }
@@ -2355,9 +2316,7 @@ export class InvoiceRunsService {
     const netTotal = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
     let exportStatus: BillingRunExportStatus =
       BillingRunExportStatus.NOT_STARTED;
-    if (templateMissingCount > 0) {
-      exportStatus = BillingRunExportStatus.TEMPLATE_MISSING;
-    } else if (lineData.length > 0 && exceptionCount === 0) {
+    if (lineData.length > 0 && exceptionCount === 0) {
       exportStatus = BillingRunExportStatus.READY_TO_RENDER;
     }
 

@@ -7,7 +7,6 @@ import { MailModule } from '../mail/mail.module';
 import { PayCardsController } from './pay-cards.controller';
 import { ChargeCardsController } from './charge-cards.controller';
 import { FundingContractsController } from './funding-contracts.controller';
-import { InvoiceTemplatesController } from './invoice-templates.controller';
 import { VisitReconciliationsController } from './visit-reconciliations.controller';
 import { PayrollRunsController } from './payroll-runs.controller';
 import { InvoiceRunsController } from './invoice-runs.controller';
@@ -15,7 +14,6 @@ import { PaymentsController } from './payments.controller';
 import { EmployeePayoutsController } from './employee-payouts.controller';
 import { PayCardsService, ChargeCardsService } from './billing-cards.service';
 import { FundingContractsService } from './funding-contracts.service';
-import { InvoiceTemplatesService } from './invoice-templates.service';
 import { VisitReconciliationsService } from './visit-reconciliations.service';
 import { PayrollRunsService } from './payroll-runs.service';
 import { InvoiceRunsService } from './invoice-runs.service';
@@ -46,7 +44,6 @@ import { MileageRatesService } from './mileage-rates.service';
     ChargeCardsController,
     FundingContractsController,
     FundingUsageController,
-    InvoiceTemplatesController,
     VisitReconciliationsController,
     PayrollRunsController,
     InvoiceRunsController,
@@ -65,7 +62,6 @@ import { MileageRatesService } from './mileage-rates.service';
     ChargeCardsService,
     FundingContractsService,
     FundingUsageService,
-    InvoiceTemplatesService,
     VisitReconciliationsService,
     PayrollRunsService,
     InvoiceRunsService,
@@ -84,7 +80,6 @@ import { MileageRatesService } from './mileage-rates.service';
     PayCardsService,
     ChargeCardsService,
     FundingContractsService,
-    InvoiceTemplatesService,
     VisitReconciliationsService,
     PayrollRunsService,
     InvoiceRunsService,

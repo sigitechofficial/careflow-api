@@ -195,7 +195,6 @@ export class SetupChecklistService {
       schedules,
       payrollReady,
       company,
-      orgTemplate,
       funders,
       fundersWithContact,
     ] = await Promise.all([
@@ -242,13 +241,6 @@ export class SetupChecklistService {
           email: true,
           phoneNumber: true,
           bankAccountNumber: true,
-        },
-      }),
-      this.prisma.invoiceTemplate.count({
-        where: {
-          deletedAt: null,
-          scope: 'ORGANISATION_DEFAULT',
-          status: 'ACTIVE',
         },
       }),
       this.prisma.funder.count({ where: { deletedAt: null, isActive: true } }),
@@ -421,13 +413,6 @@ export class SetupChecklistService {
               'Bank account shown on invoices so funders can pay you.',
             link: '/settings/company',
             status: company?.bankAccountNumber?.trim() ? 'complete' : 'missing',
-          },
-          {
-            key: 'invoice-template',
-            label: 'Default invoice template',
-            description: 'An active organisation-wide invoice template.',
-            link: '/billing?tab=invoice-templates',
-            status: orgTemplate > 0 ? 'complete' : 'missing',
           },
           {
             key: 'funders',

@@ -20,7 +20,6 @@ import { ApproveServiceUserFundingDto } from './dto/approve-service-user-funding
 import { EndServiceUserFundingDto } from './dto/end-service-user-funding.dto';
 import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
 import { assertFundingSplitPercentages } from '../billing/funding-contract.util';
-import { assertDefaultInvoiceTemplate } from '../billing/invoice-template.util';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 
 const fundingInclude = {
@@ -33,15 +32,10 @@ const fundingInclude = {
       paymentTerms: true,
       defaultChargeCardId: true,
       defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
-      defaultInvoiceTemplateId: true,
-      defaultInvoiceTemplate: { select: { id: true, name: true, code: true, status: true, templateType: true } },
     },
   },
   approvedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
   defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
-  defaultInvoiceTemplate: {
-    select: { id: true, name: true, code: true, status: true, templateType: true, version: true },
-  },
   serviceUser: {
     select: {
       id: true,
@@ -238,9 +232,6 @@ export class ServiceUserFundingService {
     if (dto.reviewDate !== undefined) data.reviewDate = dto.reviewDate ? this.parseDay(dto.reviewDate) : null;
     if (dto.notes !== undefined) data.notes = dto.notes?.trim() ?? null;
     if (dto.defaultChargeCardId !== undefined) data.defaultChargeCardId = dto.defaultChargeCardId;
-    if (dto.defaultInvoiceTemplateId !== undefined) {
-      data.defaultInvoiceTemplateId = dto.defaultInvoiceTemplateId;
-    }
     return data;
   }
 
@@ -307,9 +298,6 @@ export class ServiceUserFundingService {
       if (dto.defaultChargeCardId !== undefined) {
         await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
       }
-      if (dto.defaultInvoiceTemplateId !== undefined) {
-        await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
-      }
       await assertFundingSplitPercentages(tx, serviceUserId, dto.splitPercent);
       if (isPrimary) {
         await tx.serviceUserFunding.updateMany({
@@ -347,7 +335,6 @@ export class ServiceUserFundingService {
           reviewDate: dto.reviewDate ? this.parseDay(dto.reviewDate) : null,
           notes: dto.notes?.trim() ?? null,
           defaultChargeCardId: dto.defaultChargeCardId ?? null,
-          defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId ?? null,
           createdById: userId,
           updatedById: userId,
         },
@@ -395,9 +382,6 @@ export class ServiceUserFundingService {
     const result = await this.prisma.$transaction(async (tx) => {
       if (dto.defaultChargeCardId !== undefined) {
         await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
-      }
-      if (dto.defaultInvoiceTemplateId !== undefined) {
-        await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
       }
       if (dto.splitPercent !== undefined) {
         await assertFundingSplitPercentages(tx, serviceUserId, dto.splitPercent, fundingId);

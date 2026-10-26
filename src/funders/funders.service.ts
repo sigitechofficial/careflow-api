@@ -11,7 +11,6 @@ import { FunderQueryDto } from './dto/funder-query.dto';
 import { CreateFunderDto } from './dto/create-funder.dto';
 import { UpdateFunderDto } from './dto/update-funder.dto';
 import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
-import { assertDefaultInvoiceTemplate } from '../billing/invoice-template.util';
 
 @Injectable()
 export class FundersService {
@@ -72,9 +71,6 @@ export class FundersService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (dto.defaultChargeCardId) await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
-        if (dto.defaultInvoiceTemplateId) {
-          await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
-        }
         const created = await tx.funder.create({
           data: {
             name: dto.name.trim(),
@@ -92,7 +88,6 @@ export class FundersService {
             notes: dto.notes?.trim() ?? null,
             paymentTerms: dto.paymentTerms?.trim() || null,
             defaultChargeCardId: dto.defaultChargeCardId ?? null,
-            defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId ?? null,
             createdById: userId,
           },
           include: { fundingType: { select: { id: true, name: true, code: true } } },
@@ -130,9 +125,6 @@ export class FundersService {
         if (dto.defaultChargeCardId !== undefined) {
           await assertDefaultChargeCard(tx, dto.defaultChargeCardId);
         }
-        if (dto.defaultInvoiceTemplateId !== undefined) {
-          await assertDefaultInvoiceTemplate(tx, dto.defaultInvoiceTemplateId);
-        }
         const updated = await tx.funder.update({
           where: { id },
           data: {
@@ -153,9 +145,6 @@ export class FundersService {
               ? { paymentTerms: dto.paymentTerms?.trim() || null }
               : {}),
             ...(dto.defaultChargeCardId !== undefined ? { defaultChargeCardId: dto.defaultChargeCardId } : {}),
-            ...(dto.defaultInvoiceTemplateId !== undefined
-              ? { defaultInvoiceTemplateId: dto.defaultInvoiceTemplateId }
-              : {}),
             updatedById: userId,
           },
           include: { fundingType: { select: { id: true, name: true, code: true } } },
