@@ -29,10 +29,6 @@ export type TravelGapSettings = {
   breakGapMinutes: number;
   /** Gaps from this are treated as the carer going home (not paid). */
   wentHomeGapMinutes: number;
-  /** DISTANCE: average driving speed used to turn miles into travel minutes. */
-  averageSpeedMph: number;
-  /** DISTANCE: straight-line miles × this (roads are not straight). */
-  roadFactor: number;
 };
 
 export const DEFAULT_TRAVEL_GAP_SETTINGS: TravelGapSettings = {
@@ -41,8 +37,6 @@ export const DEFAULT_TRAVEL_GAP_SETTINGS: TravelGapSettings = {
   waitingGapMinutes: DEFAULT_SHORT_GAP_MINUTES,
   breakGapMinutes: DEFAULT_LONG_BREAK_MINUTES,
   wentHomeGapMinutes: DEFAULT_MAX_AUTO_TRAVEL_GAP_MINUTES,
-  averageSpeedMph: 20,
-  roadFactor: 1.3,
 };
 
 /** Longest gap the limits may cover (12 hours, the same cap as a recorded travel interval). */
@@ -56,8 +50,6 @@ export async function loadTravelGapSettings(db: Db): Promise<TravelGapSettings> 
       travelWaitingGapMinutes: true,
       travelBreakGapMinutes: true,
       travelWentHomeGapMinutes: true,
-      travelAverageSpeedMph: true,
-      travelRoadFactor: true,
     },
   });
   if (!row) return DEFAULT_TRAVEL_GAP_SETTINGS;
@@ -69,8 +61,6 @@ export async function loadTravelGapSettings(db: Db): Promise<TravelGapSettings> 
     waitingGapMinutes: row.travelWaitingGapMinutes,
     breakGapMinutes: row.travelBreakGapMinutes,
     wentHomeGapMinutes: row.travelWentHomeGapMinutes,
-    averageSpeedMph: row.travelAverageSpeedMph,
-    roadFactor: Number(row.travelRoadFactor),
   };
 }
 
@@ -86,8 +76,6 @@ export async function loadTravelGapOptions(db: Db): Promise<DetectInterVisitTrav
     shortGapMinutes: s.waitingGapMinutes,
     longBreakMinutes: s.breakGapMinutes,
     maxAutoTravelGapMinutes: s.wentHomeGapMinutes,
-    averageSpeedMph: s.averageSpeedMph,
-    roadFactor: s.roadFactor,
     timeZone: org?.timezone || 'Europe/London',
   };
 }
@@ -124,11 +112,5 @@ export function assertValidTravelGapSettings(s: TravelGapSettings): void {
   }
   if (s.breakGapMinutes > s.wentHomeGapMinutes) {
     throw new BadRequestException('The break limit can’t be longer than the went-home limit');
-  }
-  if (!Number.isInteger(s.averageSpeedMph) || s.averageSpeedMph < 5 || s.averageSpeedMph > 70) {
-    throw new BadRequestException('The average speed must be a whole number from 5 to 70 mph');
-  }
-  if (!Number.isFinite(s.roadFactor) || s.roadFactor < 1 || s.roadFactor > 3) {
-    throw new BadRequestException('The road factor must be from 1.0 to 3.0');
   }
 }

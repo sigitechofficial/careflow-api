@@ -4,7 +4,6 @@ import {
   IsDateString,
   IsIn,
   IsInt,
-  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -103,14 +102,6 @@ export class SetTravelGapSettingsDto {
   @ApiProperty({ enum: ['GAP', 'DISTANCE'], description: 'GAP = gap limits; DISTANCE = drive between the two addresses, same day only' })
   @IsIn(['GAP', 'DISTANCE'])
   basis!: 'GAP' | 'DISTANCE';
-
-  @ApiProperty({ description: 'DISTANCE: average driving speed (mph)' })
-  @IsInt()
-  averageSpeedMph!: number;
-
-  @ApiProperty({ description: 'DISTANCE: straight-line miles × this' })
-  @IsNumber()
-  roadFactor!: number;
 
   @ApiProperty({ description: 'Gaps up to this many minutes are paid as waiting time' })
   @IsInt()

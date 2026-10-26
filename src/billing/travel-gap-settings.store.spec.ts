@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { detectInterVisitTravel } from './pay-inter-visit-travel.util';
 import { assertValidTravelGapSettings, DEFAULT_TRAVEL_GAP_SETTINGS } from './travel-gap-settings.store';
+import { estimateTravelBetween } from './visit-travel-distance.util';
 
 const at = (hhmm: string) => new Date(`2026-10-23T${hhmm}:00.000Z`);
 const twoVisits = (gapEnd: string) => [
@@ -39,18 +40,20 @@ describe('travel gap settings', () => {
     // Enid (Chingford) and Margaret (Bromley): about 6.2 miles apart in a straight line.
     const enid = { latitude: 51.632, longitude: 0.001 }
     const margaret = { latitude: 51.5421, longitude: 0.001 }
-    const opts = { basis: 'DISTANCE' as const, averageSpeedMph: 20, roadFactor: 1.3, timeZone: 'Europe/London' }
+    const opts = { basis: 'DISTANCE' as const, timeZone: 'Europe/London' }
     const located = (start: string, b = margaret) => {
       const [first, second] = twoVisits(start)
       return [{ ...first, ...enid }, { ...second, ...b }]
     }
 
-    it('pays the drive, not the gap, however long the gap', () => {
+    it('pays the drive, not the gap, however long the gap, with the same estimate as the visit fill', () => {
+      const estimate = estimateTravelBetween({ lat: enid.latitude, lng: enid.longitude }, { lat: margaret.latitude, lng: margaret.longitude })
       for (const start of ['09:30', '11:00', '15:00']) {
         const [j] = detectInterVisitTravel(located(start), opts)
         expect(j.classification).toBe('PAID_TRAVEL')
-        expect(j.travelMiles).toBe(8.1)
-        expect(j.payableTravelMinutes).toBe(25)
+        expect(j.travelMiles).toBe(estimate?.miles)
+        expect(j.travelMiles).toBe(8.4)
+        expect(j.payableTravelMinutes).toBe(estimate?.minutes)
         expect(j.payableWaitingMinutes).toBe(0)
       }
     })

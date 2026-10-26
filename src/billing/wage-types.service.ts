@@ -77,8 +77,6 @@ export class WageTypesService {
       waitingGapMinutes: dto.waitingGapMinutes,
       breakGapMinutes: dto.breakGapMinutes,
       wentHomeGapMinutes: dto.wentHomeGapMinutes,
-      averageSpeedMph: dto.averageSpeedMph,
-      roadFactor: Math.round(dto.roadFactor * 100) / 100,
     };
     assertValidTravelGapSettings(next);
     const previous = await loadTravelGapSettings(this.prisma);
@@ -91,8 +89,6 @@ export class WageTypesService {
       travelWaitingGapMinutes: next.waitingGapMinutes,
       travelBreakGapMinutes: next.breakGapMinutes,
       travelWentHomeGapMinutes: next.wentHomeGapMinutes,
-      travelAverageSpeedMph: next.averageSpeedMph,
-      travelRoadFactor: next.roadFactor,
     };
     await this.prisma.$transaction(async (tx) => {
       const settings = await tx.organisationGeneralSettings.findFirst({ select: { id: true } });

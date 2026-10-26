@@ -13,6 +13,7 @@ import {
   classifyGapBetweenVisits,
   type GapClassification,
 } from './pay-mileage.util';
+import { estimateTravelBetween } from './visit-travel-distance.util';
 
 /** Gaps at or above this (minutes) are treated as possible home / personal break. */
 export const DEFAULT_LONG_BREAK_MINUTES = 60;
@@ -68,20 +69,6 @@ export const TRAVEL_PAY_BASES: readonly TravelPayBasis[] = ['GAP', 'DISTANCE'];
 /** A journey longer than this is not paid automatically (likely a wrong address); flagged for review. */
 export const DEFAULT_MAX_AUTO_TRAVEL_MILES = 50;
 
-/** Straight-line distance in miles between two map points. */
-export function straightLineMiles(
-  a: { latitude: number; longitude: number },
-  b: { latitude: number; longitude: number },
-): number {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLng = toRad(b.longitude - a.longitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
-  return 2 * 3958.8 * Math.asin(Math.sqrt(h));
-}
-
 export type DetectInterVisitTravelOptions = {
   longBreakMinutes?: number;
   maxAutoTravelGapMinutes?: number;
@@ -98,13 +85,11 @@ export type DetectInterVisitTravelOptions = {
   autoPayGaps?: boolean;
   /**
    * GAP (default): the gap rules above. DISTANCE: on the same day, the journey between two
-   * service users is worked out from their map points (× roadFactor at averageSpeedMph), however
-   * long the gap; once the date changes nothing is paid.
+   * service users is the travel recorded on the visit (filled from Google when it is reconciled)
+   * or, when none is recorded, the same estimate from their map points, however long the gap;
+   * once the date changes nothing is paid.
    */
   basis?: TravelPayBasis;
-  averageSpeedMph?: number;
-  /** Roads are not straight: straight-line miles × this. */
-  roadFactor?: number;
   /** Operational timezone, for "same day". */
   timeZone?: string;
   maxAutoMiles?: number;
@@ -319,29 +304,24 @@ function distanceJourney(
   if (from.latitude == null || from.longitude == null || to.latitude == null || to.longitude == null) {
     return review(`No map location for one of the addresses (${from.visitRef} → ${to.visitRef}); enter the travel by hand`);
   }
-  const roadFactor = options.roadFactor ?? 1.3;
-  const speed = options.averageSpeedMph ?? 20;
   const maxMiles = options.maxAutoMiles ?? DEFAULT_MAX_AUTO_TRAVEL_MILES;
-  const miles =
-    Math.round(
-      straightLineMiles(
-        { latitude: from.latitude, longitude: from.longitude },
-        { latitude: to.latitude, longitude: to.longitude },
-      ) *
-        roadFactor *
-        10,
-    ) / 10;
+  // The same estimate the visit uses when Google gives no route.
+  const estimate = estimateTravelBetween(
+    { lat: from.latitude, lng: from.longitude },
+    { lat: to.latitude, lng: to.longitude },
+  );
+  const miles = estimate?.miles ?? 0;
   if (miles > maxMiles) {
     return review(`${miles} miles between ${from.visitRef} and ${to.visitRef} is over ${maxMiles}; check the addresses`);
   }
-  const minutes = miles > 0 ? Math.max(1, Math.ceil((miles / speed) * 60)) : 0;
+  const minutes = estimate?.minutes ?? 0;
   return {
     ...base,
     classification: 'PAID_TRAVEL',
     nmwMinutes: minutes,
     payableTravelMinutes: minutes,
     travelMiles: miles,
-    explanation: `${miles} mi at ${speed} mph = ${minutes}m travel ${from.visitRef} → ${to.visitRef} (gap ${gapMinutes}m)`,
+    explanation: `${miles} mi estimated = ${minutes}m travel ${from.visitRef} → ${to.visitRef} (gap ${gapMinutes}m)`,
     // The drive takes longer than the gap: the visit times need a look.
     requiresManagerReview: minutes > gapMinutes,
   };
