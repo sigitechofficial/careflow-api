@@ -159,13 +159,6 @@ export class CreatePolicyDto {
   @IsDateString()
   reviewDate?: string;
 
-  @ApiPropertyOptional({
-    description: 'Staff in the audience must read and acknowledge this version once published. Defaults to true for new policies.',
-  })
-  @IsOptional()
-  @IsBoolean()
-  acknowledgementRequired?: boolean;
-
   @ApiPropertyOptional({ type: () => [PolicyApplicabilityInputDto] })
   @IsOptional()
   @IsArray()
