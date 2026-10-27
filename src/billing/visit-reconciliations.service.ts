@@ -842,27 +842,7 @@ export class VisitReconciliationsService {
   private async fillTravelFromDistance(db: DbClient, id: string, fillNext = true): Promise<void> {
     const row = await db.visitReconciliation.findUnique({ where: { id } });
     if (!row?.employeeId) return;
-    const startOf = (r: { actualStartDateTime: Date | null; plannedStartDateTime: Date }) =>
-      r.actualStartDateTime ?? r.plannedStartDateTime;
-    const start = startOf(row);
-    const timeZone = await this.orgSettings.getOperationalTimezone();
-    const day = dayKeyInTimeZone(start, timeZone);
-    const dayMs = 24 * 60 * 60_000;
-    const sameDay = (
-      await db.visitReconciliation.findMany({
-        where: {
-          employeeId: row.employeeId,
-          id: { not: row.id },
-          status: { not: VisitReconciliationStatus.REJECTED_FOR_PAY },
-          plannedStartDateTime: { gte: new Date(start.getTime() - dayMs), lte: new Date(start.getTime() + dayMs) },
-        },
-        select: { id: true, visitRef: true, serviceUserId: true, actualStartDateTime: true, plannedStartDateTime: true },
-      })
-    )
-      .filter((r) => dayKeyInTimeZone(startOf(r), timeZone) === day)
-      .sort((a, b) => startOf(a).getTime() - startOf(b).getTime());
-    const previous = [...sameDay].reverse().find((r) => startOf(r) < start);
-    const next = sameDay.find((r) => startOf(r) > start);
+    const { previous, next } = await this.sameDayNeighbours(db, row);
 
     const needsFill = row.travelMiles == null || row.travelMinutes == null;
     if (
@@ -908,6 +888,53 @@ export class VisitReconciliationsService {
     }
 
     if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false);
+  }
+
+  /** The carer's visits just before and just after this one on the same day. */
+  private async sameDayNeighbours(
+    db: DbClient,
+    row: { id: string; employeeId: string | null; actualStartDateTime: Date | null; plannedStartDateTime: Date },
+  ) {
+    if (!row.employeeId) return { previous: undefined, next: undefined };
+    const startOf = (r: { actualStartDateTime: Date | null; plannedStartDateTime: Date }) =>
+      r.actualStartDateTime ?? r.plannedStartDateTime;
+    const start = startOf(row);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const day = dayKeyInTimeZone(start, timeZone);
+    const dayMs = 24 * 60 * 60_000;
+    const sameDay = (
+      await db.visitReconciliation.findMany({
+        where: {
+          employeeId: row.employeeId,
+          id: { not: row.id },
+          status: { not: VisitReconciliationStatus.REJECTED_FOR_PAY },
+          plannedStartDateTime: { gte: new Date(start.getTime() - dayMs), lte: new Date(start.getTime() + dayMs) },
+        },
+        select: { id: true, visitRef: true, serviceUserId: true, actualStartDateTime: true, plannedStartDateTime: true },
+      })
+    )
+      .filter((r) => dayKeyInTimeZone(startOf(r), timeZone) === day)
+      .sort((a, b) => startOf(a).getTime() - startOf(b).getTime());
+    return {
+      previous: [...sameDay].reverse().find((r) => startOf(r) < start),
+      next: sameDay.find((r) => startOf(r) > start),
+    };
+  }
+
+  /** The service user the carer visited before this visit that day, whom the travel is measured from. */
+  private async previousVisitOf(row: ReconciliationRow) {
+    const { previous } = await this.sameDayNeighbours(this.prisma, row);
+    if (!previous) return null;
+    const su = await this.prisma.serviceUser.findUnique({
+      where: { id: previous.serviceUserId },
+      select: { firstName: true, lastName: true, preferredName: true },
+    });
+    return {
+      visitRef: previous.visitRef,
+      serviceUserName: su ? formatPersonName(su) : 'Unknown',
+      startDateTime: (previous.actualStartDateTime ?? previous.plannedStartDateTime).toISOString(),
+      sameServiceUser: previous.serviceUserId === row.serviceUserId,
+    };
   }
 
   /**
@@ -1472,9 +1499,17 @@ export class VisitReconciliationsService {
       evidenceChangedAt: row.evidenceChangedAt?.toISOString() ?? null,
     };
     const travelPay = await this.travelPayPreview(row, timeZone);
+    const previousVisit = await this.previousVisitOf(row);
     // Settled pay is changed through a pay correction, not on this record.
     return {
-      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview, travelPay },
+      data: {
+        ...enriched,
+        paySettled: isPaySettled(row),
+        approval,
+        calculationPreview: preview,
+        travelPay,
+        previousVisit,
+      },
     };
   }
 
