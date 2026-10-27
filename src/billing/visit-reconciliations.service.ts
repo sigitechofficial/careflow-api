@@ -1262,9 +1262,11 @@ export class VisitReconciliationsService {
       actualStartDateTime: true,
       actualEndDateTime: true,
     } as const;
+    // Carers linked to this visit, plus carers on the job not linked to any visit (a carer dragged
+    // onto the job on the rota board has no visit), so every carer of the visit gets a row.
     const visitAllocations = await db.jobAllocation.findMany({
       where: {
-        scheduledVisitId: visitId,
+        OR: [{ scheduledVisitId: visitId }, { scheduledJobId: jobId, scheduledVisitId: null }],
         deletedAt: null,
         isActive: true,
         status: { in: ACTIVE_ALLOCATION },
