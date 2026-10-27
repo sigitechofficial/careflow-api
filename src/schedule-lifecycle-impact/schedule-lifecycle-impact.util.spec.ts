@@ -1,4 +1,5 @@
 import {
+  buildUnallocateEmployeeJobsInWindowWhere,
   calendarDayUtc,
   datesOverlap,
   filterJobsByWeekdays,
@@ -121,6 +122,19 @@ describe('schedule-lifecycle-impact.util', () => {
 
     it('returns all jobs when no weekdays are given', () => {
       expect(filterJobsByWeekdays(jobs, undefined, 'Europe/London')).toHaveLength(2);
+    });
+  });
+
+  it('limits a timed window to overlapping visits, not the whole day', () => {
+    const from = new Date('2026-10-24T10:00:00.000Z');
+    const to = new Date('2026-10-24T11:00:00.000Z');
+    const where = buildUnallocateEmployeeJobsInWindowWhere('emp-1', from, to);
+    expect(where.scheduledJob).toMatchObject({
+      scheduledStartDateTime: { lt: to },
+      OR: [
+        { scheduledEndDateTime: { gt: from } },
+        { scheduledEndDateTime: null, scheduledStartDateTime: { gte: from } },
+      ],
     });
   });
 });

@@ -122,6 +122,9 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
+import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
+import { SafeguardingModule } from './safeguarding/safeguarding.module';
+import { CrmModule } from './crm/crm.module';
 import { CarerMessagesModule } from './carer-messages/carer-messages.module';
 import { OnCallModule } from './on-call/on-call.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
@@ -278,6 +281,9 @@ import { JobsModule } from './jobs/jobs.module';
     BodyMapModule,
     IncidentsModule,
     SurveysModule,
+    SpecialistPathwaysModule,
+    SafeguardingModule,
+    CrmModule,
     CarerMessagesModule,
     OnCallModule,
     EmployeeHoursApprovalsModule,

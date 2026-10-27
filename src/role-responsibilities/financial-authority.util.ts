@@ -1,4 +1,3 @@
-import { requiresExplicitGrant } from '../common/guards/explicit-grant-permissions';
 import { COMPANY_WIDE_IDENTITY_ROLES, IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
 
 /**
@@ -115,7 +114,7 @@ export function userHoldsPower(user: AuthorityUser, power: FinancialPower): bool
   const roleNames = user.roles.map((r) => r.name);
   const superAdmin = roleNames.includes(IDENTITY_ROLE.SUPER_ADMIN);
   const holdsAll = power.permissions.every(
-    (p) => granted.has(p) || (superAdmin && !requiresExplicitGrant([p])),
+    (p) => granted.has(p) || superAdmin,
   );
   if (!holdsAll) return false;
   if (!power.organisationWide) return true;

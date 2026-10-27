@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -14,12 +15,19 @@ import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import {
   BankHolidayQueryDto,
   CreateBankHolidayDto,
+  SetDayTypePriorityDto,
   SetHolidayPremiumBasisDto,
   UpdateBankHolidayDto,
 } from './dto/wage-types.dto';
 import { GOV_UK_DIVISION_REGION, type BankHolidayRegion } from './bank-holiday-regions.util';
 import { ORGANISATION_SPECIAL_DAY_REGION, substituteDayInfo } from './holiday-calendar.util';
-import { loadHolidayCalendarStatus, loadHolidayPremiumBasis } from './holiday-calendar.store';
+import {
+  DEFAULT_DAY_TYPE_PRIORITY,
+  PAY_DAY_TYPES,
+  loadDayTypePriority,
+  loadHolidayCalendarStatus,
+  loadHolidayPremiumBasis,
+} from './holiday-calendar.store';
 
 /** The official UK government dataset of bank holidays for the three calendars. */
 export const GOV_UK_BANK_HOLIDAYS_URL = 'https://www.gov.uk/bank-holidays.json';
@@ -311,5 +319,64 @@ export class BankHolidaysService {
       });
     });
     return { message: 'Holiday pay basis updated', data: { basis: dto.basis } };
+  }
+
+  /** Carer pay: priority per day type, and whether the organisation has set its own. */
+  async getDayTypePriority() {
+    const saved = await loadDayTypePriority(this.prisma);
+    return {
+      data: {
+        custom: saved != null,
+        priorities: { ...DEFAULT_DAY_TYPE_PRIORITY, ...(saved ?? {}) },
+        defaults: DEFAULT_DAY_TYPE_PRIORITY,
+      },
+    };
+  }
+
+  /**
+   * Organisation policy: which day's rate wins when rules for different days compete. Changes carer
+   * pay for visits priced from then on, so it needs a reason and is audited. Null = built-in order.
+   */
+  async setDayTypePriority(userId: string, dto: SetDayTypePriorityDto, meta?: RequestAuditMeta) {
+    let next: Record<string, number> | null = null;
+    if (dto.priorities) {
+      next = {};
+      for (const d of PAY_DAY_TYPES) {
+        const v = dto.priorities[d];
+        if (!Number.isInteger(v) || v < 0 || v > 1000) {
+          throw new BadRequestException(`Give every day a whole-number priority from 0 to 1000 (${d})`);
+        }
+        next[d] = v;
+      }
+      const extra = Object.keys(dto.priorities).filter((k) => !(PAY_DAY_TYPES as readonly string[]).includes(k));
+      if (extra.length) throw new BadRequestException(`Unknown day type: ${extra.join(', ')}`);
+    }
+    const previous = await loadDayTypePriority(this.prisma);
+    await this.prisma.$transaction(async (tx) => {
+      const settings = await tx.organisationGeneralSettings.findFirst({ select: { id: true } });
+      const data = { payDayTypePriority: next ?? Prisma.DbNull };
+      if (settings) {
+        await tx.organisationGeneralSettings.update({ where: { id: settings.id }, data });
+      } else {
+        await tx.organisationGeneralSettings.create({ data });
+      }
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.BILLING,
+        action: AuditAction.PAY_DAY_PRIORITY_CHANGED,
+        recordType: 'OrganisationGeneralSettings',
+        recordId: settings?.id,
+        oldValues: { payDayTypePriority: previous },
+        newValues: { payDayTypePriority: next },
+        metadata: { reason: dto.reason.trim() },
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+    });
+    return {
+      message: next ? 'Day priority updated' : 'Day priority reset to the built-in order',
+      data: (await this.getDayTypePriority()).data,
+    };
   }
 }

@@ -1,4 +1,5 @@
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { loadTravelGapOptions, withServiceUserLocations } from './travel-gap-settings.store';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import {
@@ -56,6 +57,8 @@ import {
   withoutPaySnapshotFields,
   type PaySettlementRef,
 } from './pay-settlement.util';
+import { latLngOf, travelOfLeg } from './visit-travel-distance.util';
+import { DrivingTravelService } from '../travel-routes/driving-travel.service';
 import {
   ApproveVisitReconciliationDto,
   BackfillVisitReconciliationsDto,
@@ -69,6 +72,7 @@ import {
   VisitReconciliationsQueryDto,
 } from './dto/visit-reconciliations.dto';
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
+import { payOverCharge, type PayOverCharge } from './pay-over-charge.util';
 import { buildFundingSplits, buildFunderSplitPreview, formatMoney } from './billing-run.util';
 import {
   loadPerFunderChargeCalculation,
@@ -96,7 +100,18 @@ import {
   isDurationShortfallWithinTolerance,
   isLegacyMismatchedBillWindow,
   resolveDefaultApprovedWindows,
+  calculateMileageAmount,
+  calculateTravelTimeAmount,
 } from './visit-reconciliation.util';
+import {
+  calculateUkMileage,
+  pickMileageRates,
+  ukTaxYearStartKey,
+  type MileageVehicleType,
+} from './pay-mileage.util';
+import { mileageJourneysInTaxYear } from './mileage-ledger.store';
+import { decidedTravelForVisit } from './travel-interval.util';
+import { priceVisitTravelPay } from './visit-travel-pay';
 import { resolveVisitDeliveryToleranceMinutes } from '../scheduling/visit-delivery-assessment.util';
 import {
   formatTimeHhMmSs,
@@ -273,6 +288,8 @@ export type VisitReconciliationListRow = {
   approvedBillable: string;
   payableAmount: string | null;
   billableAmount: string | null;
+  /** Set when the visit's carer pay (all carers) is above what is charged for it. */
+  payOverCharge: PayOverCharge | null;
   travelMiles: number | null;
   travelMinutes: number | null;
   currency: string;
@@ -362,6 +379,7 @@ export class VisitReconciliationsService {
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly auditLogs: AuditLogsService,
     private readonly payItems: PayItemsService,
+    private readonly drivingTravel: DrivingTravelService,
   ) {}
 
   /** The open transaction behind a client, to pass on to an audit entry; none for the plain client. */
@@ -801,6 +819,11 @@ export class VisitReconciliationsService {
     options?: { forceRecalculateAmounts?: boolean },
   ): Promise<boolean> {
     try {
+      await this.fillTravelFromDistance(db, id);
+    } catch (err) {
+      this.logger.warn(`Could not fill travel from distance for visit ${id}: ${String(err)}`);
+    }
+    try {
       await this.evaluateInternal(db, id, options);
       await this.closeEvaluationFailure('EVALUATE', id, 'SUCCEEDED_LATER');
       return true;
@@ -808,6 +831,83 @@ export class VisitReconciliationsService {
       await this.recordEvaluationFailure('EVALUATE', id, err);
       return false;
     }
+  }
+
+  /**
+   * Fills a visit's empty mileage and travel minutes from the distance between the service user
+   * the carer visited before it that day and this one. A value a person entered is kept, and a
+   * settled or locked visit is not touched. The carer's next visit that day is filled too, so the
+   * order visits are reconciled in does not matter.
+   */
+  private async fillTravelFromDistance(db: DbClient, id: string, fillNext = true): Promise<void> {
+    const row = await db.visitReconciliation.findUnique({ where: { id } });
+    if (!row?.employeeId) return;
+    const startOf = (r: { actualStartDateTime: Date | null; plannedStartDateTime: Date }) =>
+      r.actualStartDateTime ?? r.plannedStartDateTime;
+    const start = startOf(row);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const day = dayKeyInTimeZone(start, timeZone);
+    const dayMs = 24 * 60 * 60_000;
+    const sameDay = (
+      await db.visitReconciliation.findMany({
+        where: {
+          employeeId: row.employeeId,
+          id: { not: row.id },
+          status: { not: VisitReconciliationStatus.REJECTED_FOR_PAY },
+          plannedStartDateTime: { gte: new Date(start.getTime() - dayMs), lte: new Date(start.getTime() + dayMs) },
+        },
+        select: { id: true, visitRef: true, serviceUserId: true, actualStartDateTime: true, plannedStartDateTime: true },
+      })
+    )
+      .filter((r) => dayKeyInTimeZone(startOf(r), timeZone) === day)
+      .sort((a, b) => startOf(a).getTime() - startOf(b).getTime());
+    const previous = [...sameDay].reverse().find((r) => startOf(r) < start);
+    const next = sameDay.find((r) => startOf(r) > start);
+
+    const needsFill = row.travelMiles == null || row.travelMinutes == null;
+    if (
+      previous &&
+      needsFill &&
+      previous.serviceUserId !== row.serviceUserId &&
+      row.status !== VisitReconciliationStatus.LOCKED &&
+      !isPaySettled(row)
+    ) {
+      const homes = await db.serviceUserAddress.findMany({
+        where: { serviceUserId: { in: [previous.serviceUserId, row.serviceUserId] }, deletedAt: null },
+        select: { serviceUserId: true, latitude: true, longitude: true },
+      });
+      const homeOf = (serviceUserId: string) => {
+        const home = homes.find((h) => h.serviceUserId === serviceUserId);
+        return home ? latLngOf(home.latitude, home.longitude) : null;
+      };
+      const from = homeOf(previous.serviceUserId);
+      const to = homeOf(row.serviceUserId);
+      const leg = from && to ? await this.drivingTravel.between(from, to) : null;
+      const travel = leg ? travelOfLeg(leg) : null;
+      if (travel) {
+        const after = await db.visitReconciliation.update({
+          where: { id: row.id },
+          data: {
+            ...(row.travelMiles == null ? { travelMiles: travel.miles } : {}),
+            ...(row.travelMinutes == null ? { travelMinutes: travel.minutes } : {}),
+          },
+        });
+        await this.auditVisit(
+          AuditAction.VISIT_RECONCILIATION_UPDATED,
+          undefined,
+          row,
+          {
+            oldValues: { travelMiles: row.travelMiles?.toString() ?? null, travelMinutes: row.travelMinutes },
+            newValues: { travelMiles: after.travelMiles?.toString() ?? null, travelMinutes: after.travelMinutes },
+            reason: `Mileage and travel time filled from the ${travel.source === 'GOOGLE' ? 'Google driving route' : 'estimated distance'} from ${previous.visitRef}`,
+          },
+          undefined,
+          this.txOf(db),
+        );
+      }
+    }
+
+    if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false);
   }
 
   /**
@@ -1260,6 +1360,18 @@ export class VisitReconciliationsService {
       where.scheduledVisitId = { notIn: nightDutyVisitFilter.ids };
     }
 
+    if (query.payOverCharge === true) {
+      const ids = await this.scheduledVisitIdsWithPayOverCharge();
+      if (!ids.length) {
+        return {
+          data: [],
+          meta: buildPaginationMeta({ total: 0, page, limit }),
+        };
+      }
+      // Alongside any night-duty filter on the same field.
+      where.AND = [{ scheduledVisitId: { in: ids } }];
+    }
+
     if (query.search?.trim()) {
       const s = query.search.trim();
       const serviceUsers = await this.prisma.serviceUser.findMany({
@@ -1304,6 +1416,21 @@ export class VisitReconciliationsService {
     };
   }
 
+  /**
+   * Visits whose carer pay (every carer row) is above the visit's total charge — the same rule as
+   * payOverCharge on the rows: compared per visit, and only once some row has a priced charge.
+   */
+  private async scheduledVisitIdsWithPayOverCharge(): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ scheduledVisitId: string }>>(Prisma.sql`
+      SELECT "scheduledVisitId"
+      FROM "billing"."VisitReconciliation"
+      GROUP BY "scheduledVisitId"
+      HAVING COUNT("billableAmount") > 0
+        AND ROUND(COALESCE(SUM("payableAmount"), 0) - COALESCE(SUM("billableAmount"), 0), 2) > 0
+    `);
+    return rows.map((r) => r.scheduledVisitId);
+  }
+
   async getById(id: string) {
     const existing = await this.prisma.visitReconciliation.findUnique({
       where: { id },
@@ -1342,10 +1469,20 @@ export class VisitReconciliationsService {
       evidenceChangedReason: row.evidenceChangedReason,
       evidenceChangedAt: row.evidenceChangedAt?.toISOString() ?? null,
     };
+    const travelPay = await this.travelPayPreview(row, timeZone);
     // Settled pay is changed through a pay correction, not on this record.
     return {
-      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview },
+      data: { ...enriched, paySettled: isPaySettled(row), approval, calculationPreview: preview, travelPay },
     };
+  }
+
+  /**
+   * Mileage and travel time the visit pay run will pay for this visit, priced the way it prices
+   * them (pay card rules, UK mileage rates and the carer's tax-year miles). They are paid as their
+   * own lines, apart from the visit pay, so they are shown beside it rather than added to it.
+   */
+  private travelPayPreview(row: ReconciliationRow, timeZone: string) {
+    return priceVisitTravelPay(this.prisma, row, timeZone);
   }
 
   private alignFrozenPricingSnapshot(
@@ -1399,6 +1536,7 @@ export class VisitReconciliationsService {
   }
 
   async evaluate(id: string) {
+    await this.fillTravelFromDistance(this.prisma, id);
     await this.evaluateInternal(this.prisma, id);
     return this.getById(id);
   }
@@ -2919,6 +3057,71 @@ export class VisitReconciliationsService {
   }
 
   /**
+   * What a carer would have been paid for a scheduled visit they did not do (e.g. taken off it for
+   * an office meeting): its planned times, priced on the carer's pay card for the visit day, the
+   * same way a pay run prices a visit. A null amount comes with the reason it could not be priced.
+   * Nothing is written.
+   */
+  async plannedCarerPayForVisit(
+    employeeId: string,
+    scheduledJobId: string,
+    db: DbClient = this.prisma,
+  ): Promise<{ amount: number | null; problem?: string; day: string | null }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const job = await db.scheduledJob.findUnique({
+      where: { id: scheduledJobId },
+      select: {
+        serviceUserId: true,
+        scheduledStartDateTime: true,
+        scheduledEndDateTime: true,
+        metadata: true,
+        visits: { select: { visitPlanSlot: { select: { nightDuty: true } } }, take: 1 },
+      },
+    });
+    if (!job) return { amount: null, problem: 'Visit not found', day: null };
+    const plannedStart = job.scheduledStartDateTime;
+    const plannedEnd = job.scheduledEndDateTime;
+    // The operational day the visit falls on — the pay item's work date.
+    const day = dayKeyInTimeZone(plannedStart, timeZone);
+    const plannedMinutes = plannedEnd ? minutesBetween(plannedStart, plannedEnd) : 0;
+    if (!plannedEnd || plannedMinutes <= 0) return { amount: null, problem: 'The visit has no planned end time', day };
+
+    const payFunder = await this.payFunderForVisit(db, job.serviceUserId, employeeId, plannedStart);
+    if (payFunder.problem) return { amount: null, problem: payFunder.problem, day };
+    let card: { id: string; stackingPolicy?: string; bankHolidayRegion?: string | null } | null = null;
+    try {
+      const resolved = await this.payCardsService.resolveForEmployee(employeeId, plannedStart, {
+        funderId: payFunder.funderId,
+      });
+      const found = resolved.data.payCard as
+        | { id: string; stackingPolicy?: string; bankHolidayRegion?: string | null }
+        | null;
+      if (found) card = { id: found.id, stackingPolicy: found.stackingPolicy, bankHolidayRegion: found.bankHolidayRegion };
+    } catch (err) {
+      if (!(err instanceof HttpException) || err.getStatus() >= 500) throw err;
+      return { amount: null, problem: err.message, day };
+    }
+    if (!card) return { amount: null, problem: 'The carer has no pay card for the visit day', day };
+
+    const priced = await this.priceCarerPay(db, {
+      payCard: card,
+      plannedStart,
+      payStart: plannedStart,
+      payEnd: plannedEnd,
+      payMinutes: plannedMinutes,
+      plannedMinutes,
+      nightDuty: resolveStoredNightDuty({
+        slotNightDuty: job.visits[0]?.visitPlanSlot?.nightDuty,
+        jobMetadata: job.metadata,
+      }),
+      timeZone,
+    });
+    if (priced.hold) return { amount: null, problem: priced.hold, day };
+    if (priced.amount == null) return { amount: null, problem: 'No matching rate on the carer’s pay card', day };
+    return { amount: priced.amount, day };
+  }
+
+  /**
    * What the carer pay of a row would be on its current recorded times, priced on the pay card and
    * version the row was priced on. Null when there are no times, no card or no matching rate.
    * Nothing is written.
@@ -3998,6 +4201,7 @@ export class VisitReconciliationsService {
     // Suggest inter-visit travel when not manually recorded (NMW working time between assignments).
     let suggestedTravelMinutes: number | null | undefined;
     let suggestedUnpaidTravelMinutes: number | null | undefined;
+    let suggestedTravelMiles: number | undefined;
     if (
       row.employeeId &&
       approvedPayStart &&
@@ -4025,7 +4229,8 @@ export class VisitReconciliationsService {
         },
       });
       if (prev?.employeeId && prev.approvedPayStart && prev.approvedPayEnd) {
-        const journeys = detectInterVisitTravel([
+        const travelGapOptions = await loadTravelGapOptions(db);
+        const journeys = detectInterVisitTravel(await withServiceUserLocations(db, [
           {
             reconciliationId: prev.id,
             employeeId: prev.employeeId,
@@ -4045,8 +4250,10 @@ export class VisitReconciliationsService {
             manualUnpaidTravelMinutes:
               (row as { unpaidTravelMinutes?: number | null }).unpaidTravelMinutes ?? null,
           },
-        ]);
+        ]), travelGapOptions);
         const auto = summariseTravelForDestination(journeys, id);
+        // Miles worked out from distance, unless miles were entered on the visit.
+        if (auto.travelMiles > 0 && row.travelMiles == null) suggestedTravelMiles = auto.travelMiles;
         if (auto.payableTravelMinutes > 0 || auto.payableWaitingMinutes > 0) {
           suggestedTravelMinutes =
             auto.payableTravelMinutes > 0
@@ -4150,6 +4357,7 @@ export class VisitReconciliationsService {
             ? { approvalSource: inferApprovalSource(row), approvedEvidence: currentEvidence }
             : {}),
         ...(suggestedTravelMinutes != null ? { travelMinutes: suggestedTravelMinutes } : {}),
+        ...(suggestedTravelMiles != null ? { travelMiles: suggestedTravelMiles } : {}),
         ...(suggestedUnpaidTravelMinutes != null
           ? { unpaidTravelMinutes: suggestedUnpaidTravelMinutes }
           : {}),
@@ -4366,7 +4574,7 @@ export class VisitReconciliationsService {
 
     const visitIds = [...new Set(rows.map((r) => r.scheduledVisitId))];
     const jobIds = [...new Set(rows.map((r) => r.scheduledJobId))];
-    const [serviceUsers, employees, nightVisits, nightJobs] = await Promise.all([
+    const [serviceUsers, employees, nightVisits, nightJobs, visitTotals] = await Promise.all([
       suIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: suIds } },
@@ -4413,8 +4621,27 @@ export class VisitReconciliationsService {
             select: { id: true, metadata: true },
           })
         : [],
+      // Every carer row of each visit (also those not on this page), to compare pay with charge per visit.
+      visitIds.length
+        ? this.prisma.visitReconciliation.groupBy({
+            by: ['scheduledVisitId'],
+            where: { scheduledVisitId: { in: visitIds } },
+            _sum: { payableAmount: true, billableAmount: true },
+            _count: { billableAmount: true },
+          })
+        : [],
     ]);
 
+    const payOverChargeByVisit = new Map(
+      visitTotals.map((t) => [
+        t.scheduledVisitId,
+        payOverCharge(
+          t._sum.payableAmount != null ? Number(t._sum.payableAmount) : null,
+          // No priced charge on any row yet: nothing to compare with.
+          t._count.billableAmount > 0 ? Number(t._sum.billableAmount ?? 0) : null,
+        ),
+      ]),
+    );
     const suById = new Map(serviceUsers.map((su) => [su.id, su]));
     const nightDutyByJobId = new Map(
       nightJobs.map((job) => [
@@ -4477,6 +4704,7 @@ export class VisitReconciliationsService {
                 const manual = resolveManualBillableAmount(row);
                 return manual != null ? `£${manual.toFixed(2)}` : null;
               })(),
+        payOverCharge: payOverChargeByVisit.get(row.scheduledVisitId) ?? null,
         travelMiles: row.travelMiles != null ? Number(row.travelMiles) : null,
         travelMinutes: row.travelMinutes ?? null,
         currency: row.currency,

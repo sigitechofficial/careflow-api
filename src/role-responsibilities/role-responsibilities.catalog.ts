@@ -301,6 +301,30 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     view: ['surveys.read'],
     act: ['surveys.responses.record'],
   },
+  {
+    key: 'specialist_pathways',
+    label: 'Specialist care pathways',
+    description:
+      'Record specialist pathway assessments (e.g. Learning Disability) and build, submit and approve pathway care plans.',
+    view: ['specialist_pathways.read'],
+    act: ['specialist_pathways.manage', 'specialist_pathways.approve'],
+  },
+  {
+    key: 'safeguarding',
+    label: 'Safeguarding',
+    description:
+      'Raise, triage, refer, investigate and close safeguarding concerns with a case timeline.',
+    view: ['safeguarding.read'],
+    act: ['safeguarding.manage'],
+  },
+  {
+    key: 'crm',
+    label: 'Enquiries (CRM)',
+    description:
+      'Capture care enquiries, move them through the pipeline and convert them into service users.',
+    view: ['crm.read'],
+    act: ['crm.manage'],
+  },
 ];
 
 /**

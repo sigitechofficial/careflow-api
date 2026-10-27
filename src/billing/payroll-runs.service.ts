@@ -5,6 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { loadTravelGapOptions, withServiceUserLocations } from './travel-gap-settings.store';
+import { priceVisitTravelPay } from './visit-travel-pay';
 import {
   PayrollRunLineType,
   PayrollRunStatus,
@@ -832,7 +834,8 @@ export class PayrollRunsService {
     const reconciliations = candidates.filter((r) => !heldElsewhere.has(r.id));
 
     // Auto inter-visit travel (HMRC: travel between assignments is NMW working time).
-    const autoJourneys = detectInterVisitTravel(
+    const travelGapOptions = await loadTravelGapOptions(this.prisma);
+    const travelWindows = await withServiceUserLocations(this.prisma,
       reconciliations
         .filter((r) => r.employeeId && r.approvedPayStart && r.approvedPayEnd)
         .map((r) => ({
@@ -847,6 +850,7 @@ export class PayrollRunsService {
           serviceUserId: r.serviceUserId,
         })),
     );
+    const autoJourneys = detectInterVisitTravel(travelWindows, travelGapOptions);
     const autoByDestination = new Map(
       [...new Set(autoJourneys.map((j) => j.toReconciliationId))].map((id) => [
         id,
@@ -967,7 +971,7 @@ export class PayrollRunsService {
           recon.payCardVersion,
         );
         const visitDate = recon.plannedStartDateTime;
-        const miles = recon.travelMiles != null ? Number(recon.travelMiles) : 0;
+        const miles = recon.travelMiles != null ? Number(recon.travelMiles) : (auto?.travelMiles ?? 0);
         const manualTravelMins = recon.travelMinutes ?? 0;
         const autoTravelMins = auto?.payableTravelMinutes ?? 0;
         const autoWaitingMins = auto?.payableWaitingMinutes ?? 0;
@@ -3406,6 +3410,35 @@ export class PayrollRunsService {
       }),
       this.prisma.visitReconciliation.count({ where: salaryWhere }),
     ]);
+
+    // Mileage and travel time the pay run pays beside the visit pay, for the same visits.
+    const travelVisits = await this.prisma.visitReconciliation.findMany({
+      where: { ...salaryWhere, AND: [{ OR: [{ travelMiles: { gt: 0 } }, { travelMinutes: { gt: 0 } }] }] },
+      select: {
+        id: true,
+        payCardId: true,
+        payCardVersion: true,
+        employeeId: true,
+        plannedStartDateTime: true,
+        travelMiles: true,
+        travelMinutes: true,
+      },
+    });
+    const travelEarnings = { miles: 0, mileageAmount: 0, minutes: 0, travelAmount: 0, mileageVisits: 0, travelVisits: 0 };
+    for (const visit of travelVisits) {
+      const pay = await priceVisitTravelPay(this.prisma, visit, timeZone);
+      if (pay?.mileage) {
+        travelEarnings.miles += pay.mileage.miles;
+        travelEarnings.mileageAmount += pay.mileage.amount;
+        travelEarnings.mileageVisits += 1;
+      }
+      if (pay?.travel) {
+        travelEarnings.minutes += pay.travel.minutes;
+        travelEarnings.travelAmount += pay.travel.amount;
+        travelEarnings.travelVisits += 1;
+      }
+    }
+    const round2 = (n: number) => Math.round(n * 100) / 100;
     const salaryAmount = Number(salaryAmountAgg._sum.payableAmount ?? 0);
 
     // Settled by a closed UK run directly (no visit pay run): counted with the locked earnings.
@@ -3600,6 +3633,19 @@ export class PayrollRunsService {
         salaryAmount: formatMoney(visitSalary),
         salaryAmountValue: visitSalary,
         salaryVisitCount,
+        /** Paid beside the visit pay by the pay run (same visits as the salary). */
+        mileageEarnings: {
+          miles: round2(travelEarnings.miles),
+          amount: formatMoney(round2(travelEarnings.mileageAmount)),
+          amountValue: round2(travelEarnings.mileageAmount),
+          visitCount: travelEarnings.mileageVisits,
+        },
+        travelTimeEarnings: {
+          minutes: travelEarnings.minutes,
+          amount: formatMoney(round2(travelEarnings.travelAmount)),
+          amountValue: round2(travelEarnings.travelAmount),
+          visitCount: travelEarnings.travelVisits,
+        },
         /** Net = visit salary − fines − penalties. */
         netSalaryAmount: formatMoney(netSalary),
         netSalaryAmountValue: netSalary,

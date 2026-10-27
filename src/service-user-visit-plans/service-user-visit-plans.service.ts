@@ -88,6 +88,15 @@ import { activeServiceUserAbsenceWhere, calendarDayUtcNoon } from '../service-us
 import { computeGenerationStart, maxAllowedBackfillDays } from './visit-plan-slot-carer-resolve.util';
 import { CARER_ROTA_CONFLICT_MESSAGE } from './visit-carer-rota-conflict.util';
 import {
+  evaluateAllocationRuleHits,
+  skillKeywordsForVisitPlanSlot,
+  type AllocationRuleHit,
+} from '../job-allocations/allocation-rule-hits.util';
+import {
+  allocationRuleBehavior,
+  loadDomCareAllocationRules,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
+import {
   syncVisitPlanSlotCarersToScheduledJobs,
   visitPlanCarerEmployeeIds,
   visitPlanCarerSyncFromDateTime,
@@ -105,6 +114,10 @@ import {
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import type { SuDraftOverLimit, SuPlanOverLimit } from '../organisation-general-settings/service-user-weekly-hours-settings.util';
+import {
+  PARENTAL_LEAVE_TYPES,
+  ROTA_BLOCKING_LEAVE_TYPES,
+} from '../employee-absences/dto/employee-absence.dto';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import {
   currentServiceUserWeeklyHours,
@@ -661,8 +674,11 @@ export class ServiceUserVisitPlansService {
       dto,
       serviceUserId,
     );
+    // Dated suggest (rota): judge compliance expiry on the visit date, not today.
+    const visitDay = dto.scheduledDate ? new Date(`${dto.scheduledDate}T12:00:00.000Z`) : null;
     const complianceByEmployee = await this.allocationCompliance.evaluateForEmployees(
       employees.map((e) => e.id),
+      visitDay && visitDay.getTime() > Date.now() ? visitDay : new Date(),
     );
 
     // Carers' weekly hours (Monday–Sunday) with the same count as the hours approvals: rota
@@ -670,6 +686,42 @@ export class ServiceUserVisitPlansService {
     // chosen for is left out and added back as the proposed visit: a rota visit (scheduledDate)
     // counts in its own week; a plan visit in the busiest of the coming weeks.
     const timeZone = await this.orgSettings.getOperationalTimezone();
+
+    // Settings → Allocation rules: "Don't allow" hides the carer from assign lists,
+    // "Request confirmation" shows a warning. Dated rules need a concrete visit date.
+    const allocationRules = await loadDomCareAllocationRules(this.prisma);
+    let ruleHitsByEmployee = new Map<string, AllocationRuleHit[]>();
+    if (dto.scheduledDate) {
+      const window = visitPlanSuggestJobWindow(
+        dto.scheduledDate,
+        dto.plannedStartTime,
+        dto.plannedEndTime,
+        timeZone,
+      );
+      const visit = dto.excludeScheduledJobId
+        ? await this.prisma.scheduledVisit.findFirst({
+            where: { scheduledJobId: dto.excludeScheduledJobId, deletedAt: null },
+            select: { medicationRequired: true, visitPlanSlotId: true },
+          })
+        : null;
+      if (window) {
+        ruleHitsByEmployee = await evaluateAllocationRuleHits(this.prisma, {
+          employeeIds: employees.map((e) => e.id),
+          jobStart: window.jobStart,
+          jobEnd: window.jobEnd,
+          rules: allocationRules,
+          excludeScheduledJobId: dto.excludeScheduledJobId,
+          medicationRequired: visit?.medicationRequired ?? false,
+          skillKeywords: skillKeywords.length
+            ? skillKeywords
+            : await skillKeywordsForVisitPlanSlot(this.prisma, visit?.visitPlanSlotId),
+          timeZone,
+        });
+      }
+    }
+    const patternBehavior = allocationRuleBehavior(allocationRules, 'job_outside_working_pattern');
+    const skillsBehavior = allocationRuleBehavior(allocationRules, 'missing_client_skills');
+
     const proposedPerDayMinutes = deriveDurationFromTimes(
       dto.plannedStartTime,
       dto.plannedEndTime,
@@ -728,6 +780,105 @@ export class ServiceUserVisitPlansService {
     const completedMinutesByEmployee = await this.completedMinutesThisWeek(
       employees.map((e) => e.id),
     );
+
+    // Upcoming time off (leave / holiday) so the picker can flag a carer who is off for
+    // some of the plan's visits. Uses the same leave types the allocation engine recognises;
+    // `blocks` reflects whether the org's allocation rule for that type is "Don't allow".
+    const timeOffEmployeeIds = employees.map((e) => e.id);
+    const leaveBlocks = allocationRuleBehavior(allocationRules, 'carer_on_leave') === 'DONT_ALLOW';
+    const holidayBlocks = allocationRuleBehavior(allocationRules, 'carer_on_holiday') === 'DONT_ALLOW';
+    const timeOffWindowStart = new Date();
+    const timeOffWindowEnd = new Date(timeOffWindowStart.getTime() + 56 * 24 * 60 * 60 * 1000);
+    const [absenceRows, holidayRows] = await Promise.all([
+      this.prisma.employeeAbsenceRecord.findMany({
+        where: {
+          employeeId: { in: timeOffEmployeeIds },
+          deletedAt: null,
+          isActive: true,
+          fromDateTime: { lte: timeOffWindowEnd },
+          toDateTime: { gte: timeOffWindowStart },
+          OR: [
+            { absenceType: { in: [...ROTA_BLOCKING_LEAVE_TYPES] } },
+            { absenceType: { in: [...PARENTAL_LEAVE_TYPES] }, permissionStatus: 'Authorised' },
+          ],
+        },
+        select: { employeeId: true, absenceType: true, fromDateTime: true, toDateTime: true },
+        orderBy: { fromDateTime: 'asc' },
+      }),
+      this.prisma.employeeHoliday.findMany({
+        where: {
+          employeeId: { in: timeOffEmployeeIds },
+          deletedAt: null,
+          isActive: true,
+          startDate: { lte: timeOffWindowEnd },
+          endDate: { gte: timeOffWindowStart },
+        },
+        select: { employeeId: true, startDate: true, endDate: true },
+        orderBy: { startDate: 'asc' },
+      }),
+    ]);
+    const leaveLabel = (type: string) =>
+      type === 'Sickness'
+        ? 'sick leave'
+        : type === 'Casual leave'
+          ? 'casual leave'
+          : `${type.toLowerCase()} leave`;
+    const timeOffByEmployee = new Map<
+      string,
+      { kind: 'leave' | 'holiday'; label: string; from: Date; to: Date; blocks: boolean }
+    >();
+    const considerTimeOff = (
+      employeeId: string,
+      entry: { kind: 'leave' | 'holiday'; label: string; from: Date; to: Date; blocks: boolean },
+    ) => {
+      const existing = timeOffByEmployee.get(employeeId);
+      // Keep the earliest-starting time off for this carer.
+      if (!existing || entry.from < existing.from) timeOffByEmployee.set(employeeId, entry);
+    };
+    for (const r of absenceRows) {
+      considerTimeOff(r.employeeId, {
+        kind: 'leave',
+        label: leaveLabel(r.absenceType),
+        from: r.fromDateTime,
+        to: r.toDateTime,
+        blocks: leaveBlocks,
+      });
+    }
+    for (const r of holidayRows) {
+      considerTimeOff(r.employeeId, {
+        kind: 'holiday',
+        label: 'holiday',
+        from: r.startDate,
+        to: r.endDate,
+        blocks: holidayBlocks,
+      });
+    }
+
+    // Carers on authorised maternity / paternity leave are hidden from assign lists (rule-blocked).
+    // Dated suggest checks the visit day; the visit-plan picker checks the next 8 weeks.
+    const parentalWindowStart = dto.scheduledDate
+      ? new Date(`${dto.scheduledDate}T00:00:00.000Z`)
+      : timeOffWindowStart;
+    const parentalWindowEnd = dto.scheduledDate
+      ? new Date(`${dto.scheduledDate}T23:59:59.999Z`)
+      : timeOffWindowEnd;
+    const parentalLeaveRows = await this.prisma.employeeAbsenceRecord.findMany({
+      where: {
+        employeeId: { in: timeOffEmployeeIds },
+        deletedAt: null,
+        isActive: true,
+        absenceType: { in: [...PARENTAL_LEAVE_TYPES] },
+        permissionStatus: 'Authorised',
+        fromDateTime: { lte: parentalWindowEnd },
+        toDateTime: { gte: parentalWindowStart },
+      },
+      select: { employeeId: true, absenceType: true, fromDateTime: true, toDateTime: true },
+      orderBy: { fromDateTime: 'asc' },
+    });
+    const parentalLeaveByEmployee = new Map<string, (typeof parentalLeaveRows)[number]>();
+    for (const r of parentalLeaveRows) {
+      if (!parentalLeaveByEmployee.has(r.employeeId)) parentalLeaveByEmployee.set(r.employeeId, r);
+    }
 
     const candidates = [];
 
@@ -818,7 +969,41 @@ export class ServiceUserVisitPlansService {
         );
       }
 
-      const fit = carerFitScore({
+      const ruleHits = [...(ruleHitsByEmployee.get(emp.id) ?? [])];
+      // Pattern warnings are already shown via `availability`; only a block is added here.
+      if (
+        patternBehavior === 'DONT_ALLOW' &&
+        (availability.unavailableDays.length > 0 || !availability.timeWindowOk)
+      ) {
+        ruleHits.push({
+          key: 'job_outside_working_pattern',
+          message: availability.summary || 'Visit is outside working pattern',
+          block: true,
+        });
+      }
+      if (!dto.scheduledDate && skills.missing.length && skillsBehavior === 'DONT_ALLOW') {
+        ruleHits.push({
+          key: 'missing_client_skills',
+          message: `Missing skills: ${skills.missing.join(', ')}`,
+          block: true,
+        });
+      }
+      const parentalLeave = parentalLeaveByEmployee.get(emp.id);
+      if (parentalLeave && !ruleHits.some((h) => h.key === 'carer_on_leave' && h.block)) {
+        const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        ruleHits.push({
+          key: 'carer_on_leave',
+          message: `On ${parentalLeave.absenceType.toLowerCase()} leave ${fmt(parentalLeave.fromDateTime)} – ${fmt(parentalLeave.toDateTime)}`,
+          block: true,
+        });
+      }
+      const ruleBlockReasons = ruleHits.filter((h) => h.block).map((h) => h.message);
+      const ruleBlocked = ruleBlockReasons.length > 0;
+      for (const hit of ruleHits) {
+        if (!hit.block && !warnings.includes(hit.message)) warnings.push(hit.message);
+      }
+
+      const fit = ruleBlocked ? 'poor' : carerFitScore({
         isBlocked,
         hasRotaConflict,
         unavailableDays: availability.unavailableDays,
@@ -853,6 +1038,9 @@ export class ServiceUserVisitPlansService {
           Math.round(((completedMinutesByEmployee.get(emp.id) ?? 0) / 60) * 10) / 10,
         projectedWeeklyHours,
         exceedsContractedHours,
+        ruleBlocked,
+        ruleBlockReasons,
+        timeOff: timeOffByEmployee.get(emp.id) ?? null,
         warnings,
       });
     }
@@ -2757,6 +2945,8 @@ export class ServiceUserVisitPlansService {
                     respectWorkingPattern,
                     patternByEmployee,
                     excludeScheduledJobId: liveJob.id,
+                    medicationRequired: existingVisit.medicationRequired,
+                    visitPlanSlotId: slot.id,
                     timeZone,
                   },
                 );
@@ -2921,6 +3111,8 @@ export class ServiceUserVisitPlansService {
                 respectWorkingPattern,
                 patternByEmployee,
                 excludeScheduledJobId: job.id,
+                medicationRequired: visit.medicationRequired,
+                visitPlanSlotId: slot.id,
                 timeZone,
               },
             );

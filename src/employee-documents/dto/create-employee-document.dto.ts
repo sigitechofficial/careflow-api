@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateEmployeeDocumentDto {
   @ApiPropertyOptional()
@@ -11,6 +11,11 @@ export class CreateEmployeeDocumentDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ description: 'Compliance type this document relates to' })
+  @IsOptional()
+  @IsUUID()
+  complianceTypeId?: string;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

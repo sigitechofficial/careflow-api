@@ -194,9 +194,4 @@ export class CreateServiceUserFundingDto {
   @IsOptional()
   @IsUUID()
   defaultChargeCardId?: string | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  defaultInvoiceTemplateId?: string | null;
 }

@@ -3,6 +3,8 @@ import { AllocationStatus, Prisma } from '@prisma/client';
 import { DataAccessType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
+import { DrivingTravelService } from '../travel-routes/driving-travel.service';
+import type { TravelLegsDto } from './dto/travel-legs.dto';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -53,6 +55,7 @@ export class ScheduleTimelinesService {
     private readonly audit: AuditLogsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly drivingTravel: DrivingTravelService,
   ) {}
 
   /** Board / timeline job window for a civil date in the organisation operational timezone. */
@@ -611,6 +614,25 @@ export class ScheduleTimelinesService {
         rows,
       },
       meta: buildPaginationMeta({ page, limit, total }),
+    };
+  }
+
+  /**
+   * Driving distance and time of each journey on the rota, in the order asked: Google's route when
+   * there is one (kept for later), otherwise the estimate from the coordinates. Null = same place.
+   */
+  async travelLegs(dto: TravelLegsDto) {
+    const legs = await this.drivingTravel.legs(dto.pairs);
+    return {
+      data: legs.map((leg) =>
+        leg
+          ? {
+              km: Math.round(leg.km * 100) / 100,
+              minutes: Math.max(1, Math.round(leg.minutes)),
+              source: leg.source,
+            }
+          : null,
+      ),
     };
   }
 }

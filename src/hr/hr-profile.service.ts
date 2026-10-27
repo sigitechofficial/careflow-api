@@ -316,9 +316,6 @@ export class HrProfileService {
     const data: Prisma.EmployeeEmploymentUncheckedUpdateInput = {};
     if (dto.jobTitleId !== undefined) data.jobTitleId = dto.jobTitleId;
     if (dto.contractTypeId !== undefined) data.contractTypeId = dto.contractTypeId;
-    if (dto.contractedHours !== undefined) {
-      data.contractedWeeklyHours = dto.contractedHours;
-    }
     if (dto.branchLocationId !== undefined) data.locationId = dto.branchLocationId;
     if (dto.employmentStartDate !== undefined) data.startDate = dto.employmentStartDate;
     return data;

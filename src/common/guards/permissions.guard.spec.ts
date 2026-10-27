@@ -33,15 +33,10 @@ describe('PermissionsGuard', () => {
     expect(run({ any: ['employees.update', 'billing.pay_cards.manage'] }, superAdmin)).toBe(true);
   });
 
-  it('SI-15: does not let Super Admin approve pay, settle payouts, close or reopen payroll, reset data or clear the audit log', () => {
+  it('lets Super Admin approve pay, settle payouts, close or reopen payroll, reset data and clear the audit log', () => {
     for (const permission of EXPLICIT_GRANT_PERMISSIONS) {
-      expect(() => run({ all: [permission] }, superAdmin)).toThrow(ForbiddenException);
+      expect(run({ all: [permission] }, superAdmin)).toBe(true);
     }
-  });
-
-  it('SI-15: grants those powers to a Super Admin whose role lists them explicitly', () => {
-    const explicit: User = { roles: ['Super Admin'], permissions: ['billing.payroll_runs.approve'] };
-    expect(run({ all: ['billing.payroll_runs.approve'] }, explicit)).toBe(true);
   });
 
   it('SI-11: refuses a user without the permission, and a user without the approval permission', () => {

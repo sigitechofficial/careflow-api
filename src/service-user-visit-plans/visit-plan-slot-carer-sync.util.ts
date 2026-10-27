@@ -40,6 +40,15 @@ import {
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
+import {
+  blockingRuleHits,
+  evaluateAllocationRuleHits,
+  skillKeywordsForVisitPlanSlot,
+} from '../job-allocations/allocation-rule-hits.util';
+import {
+  allocationRuleBehavior,
+  loadDomCareAllocationRules,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
 
 type VisitPlanSlotCarerSyncParams = {
   scheduledJobId: string;
@@ -341,25 +350,33 @@ export async function resolveVisitCarerAssignment(
     respectWorkingPattern: boolean;
     patternByEmployee: Map<string, EmployeePatternContext>;
     excludeScheduledJobId?: string;
+    medicationRequired?: boolean;
+    visitPlanSlotId?: string | null;
     /** Organisation timezone for working-pattern weekday / HH:mm checks. */
     timeZone: string;
   },
 ): Promise<{
   employeeIds: string[];
   patternWarnings: string[];
+  /** Carers left off the visit: rota clash or a "Don't allow" allocation rule. */
   rotaConflictWarnings: string[];
 }> {
+  const rules = await loadDomCareAllocationRules(tx);
+  // "Don't allow" outside working pattern always filters, whatever the plan's toggle says.
+  const respectWorkingPattern =
+    options.respectWorkingPattern ||
+    allocationRuleBehavior(rules, 'job_outside_working_pattern') === 'DONT_ALLOW';
   const employeeIds = targetEmployeeIdsForVisit(
     desired,
     visit,
     required,
-    options.respectWorkingPattern,
+    respectWorkingPattern,
     options.patternByEmployee,
     options.timeZone,
   );
   const patternWarnings: string[] = [];
 
-  if (!options.respectWorkingPattern && options.patternByEmployee.size) {
+  if (!respectWorkingPattern && options.patternByEmployee.size) {
     patternWarnings.push(
       ...visitCarerPatternMismatchWarnings(
         employeeIds,
@@ -386,10 +403,34 @@ export async function resolveVisitCarerAssignment(
   );
   const withoutConflict = filterEmployeeIdsWithoutRotaConflict(employeeIds, conflicts, nameById);
 
-  return {
+  // Settings → Allocation rules set to "Don't allow" (leave, holiday, NCA, travel gap,
+  // medication, skills). Overlap is already handled by the rota conflict filter above.
+  const ruleHits = await evaluateAllocationRuleHits(tx, {
     employeeIds: withoutConflict.employeeIds,
+    jobStart,
+    jobEnd,
+    rules,
+    excludeScheduledJobId: options.excludeScheduledJobId,
+    medicationRequired: options.medicationRequired ?? false,
+    skillKeywords: await skillKeywordsForVisitPlanSlot(tx, options.visitPlanSlotId),
+    timeZone: options.timeZone,
+  });
+  const allowed: string[] = [];
+  const ruleWarnings: string[] = [];
+  for (const employeeId of withoutConflict.employeeIds) {
+    const blocking = blockingRuleHits(ruleHits.get(employeeId)).filter((h) => h.key !== 'allow_overlap');
+    if (blocking.length) {
+      const name = nameById.get(employeeId) ?? employeeId;
+      ruleWarnings.push(`${name}: ${blocking.map((h) => h.message).join('; ')} — not assigned`);
+      continue;
+    }
+    allowed.push(employeeId);
+  }
+
+  return {
+    employeeIds: allowed,
     patternWarnings,
-    rotaConflictWarnings: withoutConflict.warnings,
+    rotaConflictWarnings: [...withoutConflict.warnings, ...ruleWarnings],
   };
 }
 
@@ -481,6 +522,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
       requiredCarers: true,
       scheduledStartDateTime: true,
       scheduledEndDateTime: true,
+      medicationRequired: true,
       scheduledJob: { select: { metadata: true } },
     },
   });
@@ -525,6 +567,8 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         respectWorkingPattern,
         patternByEmployee,
         excludeScheduledJobId: jobId,
+        medicationRequired: visit.medicationRequired,
+        visitPlanSlotId: params.visitPlanSlotId,
         timeZone: params.timeZone,
       },
     );

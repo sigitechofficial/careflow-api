@@ -83,11 +83,6 @@ export class CreateFunderDto {
   @IsUUID()
   defaultChargeCardId?: string | null;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  defaultInvoiceTemplateId?: string | null;
-
   @ApiPropertyOptional({
     description: 'QBO-style payment terms (e.g. Net 30, Due on receipt)',
     maxLength: 100,

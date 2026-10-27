@@ -297,7 +297,7 @@ describe('PAYE through the UK payroll run (Gate C1)', () => {
     await ukRuns.calculateGross(maker.id, april);
 
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: null } });
-    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Tax and NI not calculated: 1 employee\(s\) cannot be taxed by this version: no tax code recorded \(1\)/);
+    await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Tax and NI were not calculated for this run\. 1 employee needs attention: .+ — no tax code recorded/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SK0' } });
     await expect(ukRuns.calculateStatutory(maker.id, april)).rejects.toThrow(/Scottish K code SK0 is not recognised/);
     await t.prisma.employeePayrollProfile.update({ where: { employeeId }, data: { taxCode: 'SD4' } });

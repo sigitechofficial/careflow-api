@@ -12,7 +12,9 @@ import { BankHolidaysService } from './bank-holidays.service';
 import {
   BankHolidayQueryDto,
   CreateBankHolidayDto,
+  SetDayTypePriorityDto,
   SetHolidayPremiumBasisDto,
+  SetTravelGapSettingsDto,
   UpdateBankHolidayDto,
   UpdateWageTypeDto,
 } from './dto/wage-types.dto';
@@ -29,6 +31,24 @@ export class WageTypesController {
   @ApiOperation({ summary: 'Wage type catalogue with current support level' })
   list() {
     return this.service.list();
+  }
+
+  @Get('travel-gaps')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Limits for paying the gap between two visits as waiting or travel time' })
+  travelGaps() {
+    return this.service.getTravelGapSettings();
+  }
+
+  @Patch('travel-gaps')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Set the waiting, break and went-home limits for travel between visits' })
+  setTravelGaps(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetTravelGapSettingsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.setTravelGapSettings(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Patch(':code')
@@ -72,6 +92,24 @@ export class BankHolidaysController {
   })
   status(@Query('years') years?: string) {
     return this.service.status(years);
+  }
+
+  @Get('day-priority')
+  @Permissions('billing.pay_cards.read')
+  @ApiOperation({ summary: 'Carer pay: priority per day type when rules for different days compete' })
+  dayPriority() {
+    return this.service.getDayTypePriority();
+  }
+
+  @Patch('day-priority')
+  @Permissions('billing.pay_cards.manage')
+  @ApiOperation({ summary: 'Set the priority per day type for carer pay (null = built-in order)' })
+  setDayPriority(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetDayTypePriorityDto,
+    @Req() req: Request,
+  ) {
+    return this.service.setDayTypePriority(user.id, dto, getRequestAuditMeta(req));
   }
 
   @Patch('premium-basis')
