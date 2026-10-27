@@ -126,6 +126,7 @@ import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathw
 import { SafeguardingModule } from './safeguarding/safeguarding.module';
 import { CrmModule } from './crm/crm.module';
 import { CarerMessagesModule } from './carer-messages/carer-messages.module';
+import { OnCallModule } from './on-call/on-call.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { BillingModule } from './billing/billing.module';
@@ -284,6 +285,7 @@ import { JobsModule } from './jobs/jobs.module';
     SafeguardingModule,
     CrmModule,
     CarerMessagesModule,
+    OnCallModule,
     EmployeeHoursApprovalsModule,
     DevToolsModule,
     BillingModule,

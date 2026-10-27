@@ -17,6 +17,8 @@ import { VisitPlanGovernanceController } from './visit-plan-governance.controlle
 import { ScheduledJobsHousekeepingModule } from '../scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
 import { VisitPlanDateChangesController } from './visit-plan-date-changes.controller';
 import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
+import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
+import { EXTRA_VISIT_CREATOR } from '../employee-hours-approvals/extra-visit-creator';
 
 @Module({
   imports: [
@@ -42,7 +44,15 @@ import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
     VisitPlanBulkScheduleService,
     VisitPlanAmendmentImpactService,
     VisitPlanDateChangesService,
+    VisitPlanWeeklyHoursService,
+    // Lets an approved "extra visit over weekly hours" request create the visit.
+    { provide: EXTRA_VISIT_CREATOR, useExisting: VisitPlanDateChangesService },
   ],
-  exports: [ServiceUserVisitPlansService, VisitPlanBulkScheduleService, VisitPlanAmendmentImpactService],
+  exports: [
+    ServiceUserVisitPlansService,
+    VisitPlanBulkScheduleService,
+    VisitPlanAmendmentImpactService,
+    VisitPlanWeeklyHoursService,
+  ],
 })
 export class ServiceUserVisitPlansModule {}

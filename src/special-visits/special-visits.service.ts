@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpecialVisitDto } from './dto/special-visit.dto';
+import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
+import { VisitPlanWeeklyHoursService } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
 
 /** Allocation statuses that count as the carer actually being booked. */
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
@@ -39,7 +41,11 @@ function jobMinutes(job: {
 
 @Injectable()
 export class SpecialVisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly weeklyHours: VisitPlanWeeklyHoursService,
+    private readonly carerHours: CarerWeeklyHoursService,
+  ) {}
 
   /** Day (UTC midnight) a Date falls on, used as the ScheduleBatch.scheduleDate. */
   private static dayOf(d: Date): Date {
@@ -79,6 +85,28 @@ export class SpecialVisitsService {
       throw new BadRequestException('End time must be after start time');
     }
     const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+    // Service user's weekly contracted hours (Settings → Dom Rules): block, or create with a warning.
+    const hours = await this.weeklyHours.checkSpecialVisit({ serviceUserId: dto.serviceUserId, start, end });
+    if (hours?.blocked) {
+      throw new BadRequestException(`${hours.message}. The special visit was not created (Settings → Dom Rules).`);
+    }
+    // The carer's contracted weekly hours (Settings → Dom Rules "Carer over weekly hours").
+    const carerRule = await this.carerHours.rule();
+    const carerCheck =
+      carerRule.behavior === 'ALWAYS_ALLOW'
+        ? null
+        : await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
+            { start, end, serviceUserId: dto.serviceUserId },
+          ]);
+    const carerOver = Boolean(carerCheck?.over.length && carerCheck.limitMinutes != null);
+    const hoursLabel = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+    const carerMessage = carerOver
+      ? `The carer would go over their contracted weekly hours (that week ${hoursLabel(carerCheck!.weeks[0]?.minutes ?? 0)} of ${hoursLabel(carerCheck!.limitMinutes!)})`
+      : null;
+    if (carerMessage && carerRule.behavior === 'DONT_ALLOW') {
+      throw new BadRequestException(`${carerMessage}. The special visit was not created (Settings → Dom Rules).`);
+    }
+    const waitForManager = Boolean(carerMessage) && carerRule.behavior === 'MANAGER_APPROVAL';
     const scheduleBatchId = await this.batchForDate(start);
 
     const job = await this.prisma.$transaction(async (tx) => {
@@ -91,27 +119,58 @@ export class SpecialVisitsService {
           scheduledEndDateTime: end,
           estimatedDurationMinutes: durationMinutes,
           requiredCarers: 1,
-          status: 'ALLOCATED',
+          // Waiting for a manager: the carer goes on it once approved.
+          status: waitForManager ? 'UNALLOCATED' : 'ALLOCATED',
           notes: dto.notes?.trim() || null,
           metadata: { special: true },
         },
       });
-      await tx.jobAllocation.create({
-        data: {
-          scheduledJobId: createdJob.id,
-          employeeId: dto.employeeId,
-          status: 'CONFIRMED',
-          isLeadCarer: true,
-          scheduledStartDateTime: start,
-          scheduledEndDateTime: end,
-          durationMinutes,
-          allocatedAt: new Date(),
-        },
-      });
+      if (!waitForManager) {
+        await tx.jobAllocation.create({
+          data: {
+            scheduledJobId: createdJob.id,
+            employeeId: dto.employeeId,
+            // Over the weekly hours with "request confirmation": on the visit, to be confirmed.
+            status: carerMessage ? 'PENDING_CONFIRMATION' : 'CONFIRMED',
+            requiresConfirmation: Boolean(carerMessage),
+            ...(carerMessage ? { warningTypes: ['CAPACITY_EXCEEDED'], warningMessages: [carerMessage] } : {}),
+            isLeadCarer: true,
+            scheduledStartDateTime: start,
+            scheduledEndDateTime: end,
+            durationMinutes,
+            allocatedAt: new Date(),
+          },
+        });
+      }
       return createdJob;
     });
+    if (waitForManager) {
+      await this.carerHours.requestRotaVisitApproval(this.prisma, {
+        employeeId: dto.employeeId,
+        scheduledJobId: job.id,
+        serviceUserId: dto.serviceUserId,
+        requestedById: userId,
+        start,
+        end,
+        weekStart: carerCheck!.weeks[0]?.weekStart ?? (await this.carerHours.weekStartOf(start)),
+        weekMinutes: carerCheck!.weeks[0]?.minutes ?? 0,
+        limitMinutes: carerCheck!.limitMinutes ?? 0,
+        source: 'SPECIAL_VISIT',
+        allocation: { isLeadCarer: true },
+      });
+    }
 
-    return { data: { id: job.id } };
+    return {
+      data: {
+        id: job.id,
+        ...(hours ? { weeklyHoursWarning: hours.message } : {}),
+        ...(carerMessage
+          ? waitForManager
+            ? { carerHoursApprovalRequested: `${carerMessage} — sent to a manager; the carer is put on it once approved.` }
+            : { carerHoursWarning: `${carerMessage} — needs confirmation on the rota.` }
+          : {}),
+      },
+    };
   }
 
   async list(employeeId: string, weekStartIso: string) {

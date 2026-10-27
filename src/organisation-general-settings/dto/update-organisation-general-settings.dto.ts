@@ -17,6 +17,7 @@ import {
   DomCareShiftDefinitionDto,
   DomJobCancellationRuleDto,
   DomLateVisitZoneAlertDto,
+  ServiceUserWeeklyHoursSettingsDto,
 } from './dom-care-settings.dto';
 import { IncidentTypeSettingDto } from './incident-management.dto';
 import { INCIDENT_DEFAULT_STATUSES } from '../incident-management.util';
@@ -498,6 +499,12 @@ export class UpdateOrganisationGeneralSettingsDto {
   @ValidateNested({ each: true })
   @Type(() => DomCareAllocationRuleDto)
   domCareAllocationRules?: DomCareAllocationRuleDto[];
+
+  @ApiPropertyOptional({ type: ServiceUserWeeklyHoursSettingsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ServiceUserWeeklyHoursSettingsDto)
+  serviceUserWeeklyHoursSettings?: ServiceUserWeeklyHoursSettingsDto;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 10080 })
   @IsOptional()

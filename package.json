@@ -74,6 +74,7 @@
     "seed:surveys": "ts-node --transpile-only prisma/scripts/seed-surveys.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@azure/communication-email": "^1.1.0",
     "@azure/identity": "^4.13.1",
     "@nestjs/common": "^11.0.1",

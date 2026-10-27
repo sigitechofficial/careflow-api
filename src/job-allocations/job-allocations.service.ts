@@ -28,6 +28,7 @@ import { AllocationChecksService, type AllocationWarning } from './allocation-ch
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
+import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
@@ -121,6 +122,7 @@ export class JobAllocationsService {
     private readonly notifications: ScheduleAllocationNotificationHook,
     private readonly orgScope: OrgScopeService,
     private readonly carerPush: CarerVisitPushHook,
+    private readonly carerHours: CarerWeeklyHoursService,
   ) {}
 
   /** Status for a new allocation given its check warnings (same rules for single and team). */
@@ -244,6 +246,11 @@ export class JobAllocationsService {
       };
       userId: string;
       meta?: RequestAuditMeta;
+      /**
+       * False when the visit window has already been decided elsewhere (a visit plan amendment):
+       * a customised assignment that no longer fits is left as it is instead of refusing.
+       */
+      rejectOutside?: boolean;
     },
   ): Promise<void> {
     const allocations = await tx.jobAllocation.findMany({
@@ -307,7 +314,7 @@ export class JobAllocationsService {
       }
     }
 
-    if (outside.length) {
+    if (outside.length && params.rejectOutside !== false) {
       throw new BadRequestException({
         message:
           'One or more carer assignment times fall outside the new visit window. Correct assignment timings before saving.',
@@ -458,6 +465,11 @@ export class JobAllocationsService {
     dto: AllocateJobDto,
     meta?: RequestAuditMeta,
     actor?: RequestUser,
+    /**
+     * Set when a manager approved the carer over their weekly hours (Hours approvals).
+     * `skipAllocationChecks`: an extra or special visit, which never runs the rota checks.
+     */
+    options: { weeklyHoursApproved?: boolean; skipAllocationChecks?: boolean } = {},
   ) {
     if (actor) {
       await this.orgScope.assertScheduledJobInScope(
@@ -481,15 +493,24 @@ export class JobAllocationsService {
     }
 
     const assignment = this.resolveAssignmentTimesFromDto(job, dto);
-    const warnings = await this.checks.runAllChecks({
-      scheduledJobId,
-      scheduledVisitId: dto.scheduledVisitId,
-      employeeId: dto.employeeId,
-      serviceUserId: job.serviceUserId,
-      jobStart: assignment.start,
-      jobEnd: assignment.end,
-      jobMetadata: job.metadata,
-    });
+    const allWarnings = options.skipAllocationChecks
+      ? []
+      : await this.checks.runAllChecks({
+          scheduledJobId,
+          scheduledVisitId: dto.scheduledVisitId,
+          employeeId: dto.employeeId,
+          serviceUserId: job.serviceUserId,
+          jobStart: assignment.start,
+          jobEnd: assignment.end,
+          jobMetadata: job.metadata,
+          skipWeeklyHours: options.weeklyHoursApproved,
+        });
+    const needsApproval = allWarnings.some(
+      (w) => w.type === AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+    );
+    const warnings = allWarnings.filter(
+      (w) => w.type !== AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+    );
 
     if (this.checks.hasNonOverridableBlockingWarnings(warnings)) {
       throw new BadRequestException({
@@ -506,6 +527,38 @@ export class JobAllocationsService {
         warnings: warningViews(warnings),
         requiresConfirmation: true,
       });
+    }
+
+    // Over the carer's weekly hours (Settings → Dom Rules: manager approval): the carer is not
+    // put on the visit; a manager decides on Hours approvals, and approving allocates them.
+    if (needsApproval) {
+      const weekStart = await this.carerHours.weekStartOf(assignment.start);
+      const check = await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
+        { start: assignment.start, end: assignment.end, serviceUserId: job.serviceUserId },
+      ]);
+      const request = await this.carerHours.requestRotaVisitApproval(this.prisma, {
+        employeeId: dto.employeeId,
+        scheduledJobId,
+        serviceUserId: job.serviceUserId,
+        requestedById: userId,
+        start: assignment.start,
+        end: assignment.end,
+        weekStart,
+        weekMinutes: check.weeks[0]?.minutes ?? 0,
+        limitMinutes: check.limitMinutes ?? 0,
+        source: 'ROTA',
+        allocation: { ...dto },
+      });
+      // `meta` survives the response wrapper (top-level fields do not).
+      return {
+        message: 'Sent to a manager — the carer is over their weekly hours and is put on this visit once approved',
+        data: { approvalRequested: true, approvalId: request.id },
+        meta: {
+          approvalRequested: true,
+          approvalId: request.id,
+          warnings: allWarnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        },
+      };
     }
 
     const { status, needsConfirmation } = this.allocationOutcome(warnings, dto.force);
@@ -703,7 +756,7 @@ export class JobAllocationsService {
     }
 
     // Same per-carer checks as POST /allocate, run for every new carer before any write.
-    const checked: Array<TeamCarerCheck & { raw: AllocationWarning[] }> = [];
+    const checked: Array<TeamCarerCheck & { raw: AllocationWarning[]; needsApproval?: boolean }> = [];
     for (const employeeId of dto.employeeIds) {
       const name = nameById.get(employeeId) ?? 'Carer';
       try {
@@ -734,12 +787,13 @@ export class JobAllocationsService {
       checked.push({
         employeeId,
         name,
+        needsApproval: warnings.some((w) => w.type === AllocationWarningType.CAPACITY_NEEDS_APPROVAL),
         hardBlocked: this.checks.hasNonOverridableBlockingWarnings(warnings),
         requiresConfirmation:
           this.checks.hasBlockingWarnings(warnings) &&
           !this.checks.hasNonOverridableBlockingWarnings(warnings),
         warnings: warningViews(warnings),
-        raw: warnings,
+        raw: warnings.filter((w) => w.type !== AllocationWarningType.CAPACITY_NEEDS_APPROVAL),
       });
     }
 
@@ -768,6 +822,20 @@ export class JobAllocationsService {
         requiresConfirmation: true,
       });
     }
+
+    // Carers over their weekly hours (manager approval) are not put on the visit yet; the
+    // lead must be someone who goes on it now.
+    const leadCheck = checked.find((c) => c.employeeId === dto.leadEmployeeId);
+    if (leadCheck?.needsApproval) {
+      throw new BadRequestException({
+        message: `Team not assigned — ${leadCheck.name} is over their weekly hours and needs a manager's approval, so cannot be the lead. Choose another lead.`,
+        warnings: flatWarnings,
+        carers: carersPayload,
+        requiresConfirmation: false,
+      });
+    }
+    const toApprove = checked.filter((c) => c.needsApproval);
+    const toAllocate = checked.filter((c) => !c.needsApproval);
 
     const previousJobStatus = job.status;
     const previousLeadEmployeeId =
@@ -831,7 +899,7 @@ export class JobAllocationsService {
 
       const created: Array<Prisma.JobAllocationGetPayload<{ include: typeof allocationInclude }>> =
         [];
-      for (const [index, carer] of checked.entries()) {
+      for (const [index, carer] of toAllocate.entries()) {
         const { status, needsConfirmation } = this.allocationOutcome(carer.raw, dto.force);
         const warningTypes = carer.raw.map((w) => w.type);
         const warningMessages = carer.raw.map((w) => w.message);
@@ -905,7 +973,39 @@ export class JobAllocationsService {
       return { created, newJobStatus };
     });
 
-    for (const [index, carer] of checked.entries()) {
+    const approvalRequests: Array<{ employeeId: string; name: string; approvalId: string }> = [];
+    if (toApprove.length) {
+      const weekStart = await this.carerHours.weekStartOf(assignment.start);
+      for (const carer of toApprove) {
+        const check = await this.carerHours.checkNewVisits(this.prisma, carer.employeeId, [
+          { start: assignment.start, end: assignment.end, serviceUserId: job.serviceUserId },
+        ]);
+        const request = await this.carerHours.requestRotaVisitApproval(this.prisma, {
+          employeeId: carer.employeeId,
+          scheduledJobId,
+          serviceUserId: job.serviceUserId,
+          requestedById: userId,
+          start: assignment.start,
+          end: assignment.end,
+          weekStart,
+          weekMinutes: check.weeks[0]?.minutes ?? 0,
+          limitMinutes: check.limitMinutes ?? 0,
+          source: 'ROTA',
+          allocation: {
+            employeeId: carer.employeeId,
+            scheduledVisitId: dto.scheduledVisitId,
+            notes: dto.notes,
+            force: dto.force,
+            isLeadCarer: false,
+            scheduledStartDateTime: assignment.start.toISOString(),
+            scheduledEndDateTime: assignment.end.toISOString(),
+          },
+        });
+        approvalRequests.push({ employeeId: carer.employeeId, name: carer.name, approvalId: request.id });
+      }
+    }
+
+    for (const [index, carer] of toAllocate.entries()) {
       const row = result.created[index]!;
       void this.notifications.notifyAllocated({
         employeeId: carer.employeeId,
@@ -931,19 +1031,23 @@ export class JobAllocationsService {
       this.notifications.scheduleLeadChangePush({
         scheduledJobId,
         previousLeadEmployeeId,
-        newlyAssignedEmployeeIds: dto.employeeIds,
+        newlyAssignedEmployeeIds: toAllocate.map((c) => c.employeeId),
       });
     }
 
+    const approvalText = approvalRequests.length
+      ? ` Sent to a manager (over weekly hours): ${approvalRequests.map((a) => a.name).join(', ')} — put on the visit once approved.`
+      : '';
     const pending = result.created.some(
       (r) => r.status === PrismaAllocationStatus.PENDING_CONFIRMATION,
     );
     return {
       message: pending
-        ? `Carers allocated — confirmation required. ${leadName} is the lead carer.`
-        : `Carers allocated. ${leadName} is the lead carer.`,
+        ? `Carers allocated — confirmation required. ${leadName} is the lead carer.${approvalText}`
+        : `Carers allocated. ${leadName} is the lead carer.${approvalText}`,
       data: result.created.map((r) => this.mapAllocation(r)),
       meta: {
+        approvalRequests,
         requiresConfirmation: pending,
         leadEmployeeId: dto.leadEmployeeId,
         jobStatus: result.newJobStatus,

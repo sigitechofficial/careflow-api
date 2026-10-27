@@ -8,6 +8,12 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PatchServiceUserDomCareDto } from './dto/patch-service-user-dom-care.dto';
 import {
+  currentServiceUserWeeklyHours,
+  sameWeeklyHours,
+  SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE,
+  syncServiceUserWeeklyHours,
+} from './service-user-weekly-hours-sync.util';
+import {
   decryptSecureText,
   encryptSecureText,
   IA_DOOR_CODE_FIELD_KEY,
@@ -362,6 +368,17 @@ export class ServiceUserDomCareService {
         include: this.domInclude(),
       });
 
+      // Once set, weekly hours change only through a manager-approved request.
+      if (
+        dto.weeklyContractedHours !== undefined &&
+        !sameWeeklyHours(dto.weeklyContractedHours, dom?.weeklyContractedHours)
+      ) {
+        const current = await currentServiceUserWeeklyHours(tx, serviceUserId);
+        if (current != null && !sameWeeklyHours(current, dto.weeklyContractedHours)) {
+          throw new BadRequestException(SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE);
+        }
+      }
+
       const doorCode =
         dto.doorCode === undefined
           ? undefined
@@ -473,6 +490,15 @@ export class ServiceUserDomCareService {
       }
       if (dto.doorCode !== undefined) {
         await this.syncKeySafeCodeToIa(tx, serviceUserId, dto.doorCode ?? null);
+      }
+      if (dto.weeklyContractedHours !== undefined) {
+        await syncServiceUserWeeklyHours(tx, this.audit, {
+          serviceUserId,
+          value: dto.weeklyContractedHours,
+          userId,
+          source: 'dom_care',
+          meta,
+        });
       }
 
       const fresh = await tx.serviceUserDomCare.findUniqueOrThrow({

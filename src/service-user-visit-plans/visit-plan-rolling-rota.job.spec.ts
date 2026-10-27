@@ -101,8 +101,9 @@ describe('VisitPlanRollingRotaJob', () => {
       'sys',
       { fromDate: '2026-10-02', toDate: '2026-10-30', readyOnly: true },
       undefined,
-      // nightly catch-up must never bring back visits the office deleted
-      { restoreDeletedJobs: false },
+      // nightly catch-up must never bring back visits the office deleted; it runs as the rolling rota
+      // (Settings → Dom Rules can skip plans over the weekly hours only when run by hand)
+      { restoreDeletedJobs: false, source: 'rolling' },
     );
     expect(outcome).toMatchObject({
       status: 'success',

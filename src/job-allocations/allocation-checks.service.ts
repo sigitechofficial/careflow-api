@@ -27,13 +27,9 @@ import {
 import { adjacentVisits, hmDifferenceMinutes } from './allocation-job-rules.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
-import {
-  addDaysToOperationalIso,
-  dayKeyInTimeZone,
-  getOperationalTimeZone,
-  operationalDayBounds,
-} from '../common/utils/operational-day.util';
+import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
+import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -64,6 +60,8 @@ export type AllocationCheckContext = {
   jobStart: Date;
   jobEnd: Date;
   jobMetadata?: Prisma.JsonValue;
+  /** A manager already approved this carer over their weekly hours for this visit. */
+  skipWeeklyHours?: boolean;
 };
 
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
@@ -85,6 +83,7 @@ export class AllocationChecksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly allocationCompliance: AllocationComplianceService,
+    private readonly carerHours: CarerWeeklyHoursService,
   ) {}
 
   /** Read fresh each time so changes in Settings apply without a restart. */
@@ -115,7 +114,7 @@ export class AllocationChecksService {
     await this.checkEmployeeAvailability(ctx, push, rules);
     await this.checkAllocationRules(ctx, push, rules);
     await this.checkJobContextRules(ctx, push, rules);
-    await this.checkCapacity(ctx, push);
+    if (!ctx.skipWeeklyHours) await this.checkCapacity(ctx, push);
     await this.checkPreferredBlockedCarer(ctx, push, rules);
     await this.checkRoleMismatch(ctx, push);
     await this.checkCompliance(ctx, push);
@@ -135,7 +134,9 @@ export class AllocationChecksService {
         (w.hardBlock === true ||
           w.type === AllocationWarningType.TIME_CONFLICT ||
           w.type === AllocationWarningType.BLOCKED_CARER ||
-          w.type === AllocationWarningType.COMPLIANCE_BLOCK),
+          w.type === AllocationWarningType.COMPLIANCE_BLOCK ||
+          // Over the weekly hours with Settings → Dom Rules on "Don't allow".
+          w.type === AllocationWarningType.CAPACITY_EXCEEDED),
     );
   }
 
@@ -282,60 +283,36 @@ export class AllocationChecksService {
     }
   }
 
+  /**
+   * Carer over their contracted weekly hours (Monday–Sunday, + grace) with this visit —
+   * Settings → Dom Rules "Carer over weekly hours": don't allow (hard block), request
+   * confirmation (warning), manager approval (not allocated; a request goes to a manager) or
+   * always allow.
+   */
   async checkCapacity(
     ctx: AllocationCheckContext,
     push: (w: AllocationWarning) => void,
   ): Promise<void> {
-    const employment = await this.prisma.employeeEmployment.findFirst({
-      where: { employeeId: ctx.employeeId, deletedAt: null },
-    });
-    const maxWeekly = employment?.maximumWeeklyHours ?? employment?.contractedWeeklyHours;
-    if (!maxWeekly || maxWeekly <= 0) return;
-
-    // Sunday-start week of the visit's org-local calendar day, as true-UTC bounds.
-    const timeZone = await this.loadOperationalTimezone();
-    const jobDayKey = dayKeyInTimeZone(ctx.jobStart, timeZone);
-    const weekStartKey = addDaysToOperationalIso(
-      jobDayKey,
-      -weekdayIndexInTimeZone(ctx.jobStart, timeZone),
-    );
-    const weekStart = operationalDayBounds(weekStartKey, timeZone).start;
-    const weekEnd = operationalDayBounds(addDaysToOperationalIso(weekStartKey, 7), timeZone).start;
-
-    const allocations = await this.prisma.jobAllocation.findMany({
-      where: {
-        employeeId: ctx.employeeId,
-        deletedAt: null,
-        isActive: true,
-        status: { in: [...ACTIVE_ALLOCATION_STATUSES] },
-        scheduledJob: {
-          deletedAt: null,
-          scheduledStartDateTime: { gte: weekStart, lt: weekEnd },
-        },
-      },
-      include: {
-        scheduledJob: {
-          select: {
-            scheduledStartDateTime: true,
-            scheduledEndDateTime: true,
-            estimatedDurationMinutes: true,
-          },
-        },
-      },
-    });
-
-    let totalHours = 0;
-    for (const a of allocations) {
-      const window = resolveAllocationWindow(a, a.scheduledJob);
-      totalHours += (window.end.getTime() - window.start.getTime()) / 3_600_000;
-    }
-    const jobHours =
-      (ctx.jobEnd.getTime() - ctx.jobStart.getTime()) / 3_600_000 || 1;
-    if (totalHours + jobHours > maxWeekly) {
+    const rule = await this.carerHours.rule();
+    if (rule.behavior === 'ALWAYS_ALLOW') return;
+    const check = await this.carerHours.checkNewVisits(this.prisma, ctx.employeeId, [
+      { start: ctx.jobStart, end: ctx.jobEnd, serviceUserId: ctx.serviceUserId },
+    ]);
+    if (!check.over.length || check.limitMinutes == null) return;
+    const week = check.weeks[0];
+    const hours = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+    const base = `Over contracted weekly hours: that week would have ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes)}`;
+    if (rule.behavior === 'MANAGER_APPROVAL') {
+      push({
+        type: AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+        message: `${base} — a manager must approve before the carer is put on this visit`,
+        severity: 'info',
+      });
+    } else {
       push({
         type: AllocationWarningType.CAPACITY_EXCEEDED,
-        message: `Allocating would exceed maximum weekly hours (${maxWeekly}h); estimated ${(totalHours + jobHours).toFixed(1)}h`,
-        severity: 'warning',
+        message: base,
+        severity: rule.behavior === 'DONT_ALLOW' ? 'blocking' : 'warning',
       });
     }
   }

@@ -160,7 +160,8 @@ export function buildInitialAssessmentPdfData(params: {
       .filter((q) => isAnsweredForExport(q, answerMap.get(q.id)))
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((q) => ({
-        questionText: q.questionText,
+        // First-person wording (metadata.displayLabel); the stored text stays the match key.
+        questionText: metaString(q, 'displayLabel') ?? q.questionText,
         answerText:
           formatInitialAssessmentAnswerForExport(q, answerMap.get(q.id), {
             includeSecureFields: params.includeSecureFields,

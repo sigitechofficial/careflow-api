@@ -47,7 +47,8 @@ export type ScheduleImpactSource =
   | 'visit_plan_skip_exception'
   | 'employee_holiday'
   | 'employee_non_core_activity'
-  | 'employee_inactive';
+  | 'employee_inactive'
+  | 'employee_hours_reduced';
 
 export const SCHEDULE_IMPACT_PREVIEW_MAX = 500;
 
@@ -159,8 +160,11 @@ export function buildUnallocateEmployeeJobsWhere(
   employeeId: string,
   from: Date,
   to: Date,
+  /** Only these allocation rows. */
+  allocationIds?: string[],
 ): Prisma.JobAllocationWhereInput {
   return {
+    ...(allocationIds ? { id: { in: allocationIds } } : {}),
     employeeId,
     deletedAt: null,
     isActive: true,

@@ -633,6 +633,10 @@ async function main() {
     'surveys.responses.record',
     // Carer notifications (Settings › Carer notifications)
     'carer_notifications.send',
+    // On-call rota and out-of-hours calls (Operations › On-call)
+    'on_call.read',
+    'on_call.manage',
+    'on_call.log',
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
