@@ -3,7 +3,6 @@ import { AllocationStatus, Prisma, ScheduledJobStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { deriveDurationFromTimes } from '../service-user-visit-plans/visit-plan-slot-window.util';
-import { resolveApprovedWeeklyHoursThreshold } from '../common/utils/approved-weekly-hours.util';
 import {
   addDaysToOperationalIso,
   dayKeyInTimeZone,
@@ -114,7 +113,10 @@ export class CarerHoursReductionService {
     limit: number,
     now: Date,
   ): Promise<{ weeks: ContractedHoursWeekImpact[]; allocationIds: string[] }> {
-    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const [timeZone, rule] = await Promise.all([
+      this.orgSettings.getOperationalTimezone(),
+      this.orgSettings.getCarerWeeklyHoursRule(),
+    ]);
     const currentWeekKey = this.mondayKey(now, timeZone);
     const currentWeekStart = operationalDayBounds(
       currentWeekKey,
@@ -125,11 +127,25 @@ export class CarerHoursReductionService {
         employeeId,
         deletedAt: null,
         isActive: true,
-        status: { in: ACTIVE_ALLOCATION },
+        // Called-off visits keep the carer's row with status CANCELLED (counted per setting).
+        OR: [
+          { status: { in: ACTIVE_ALLOCATION } },
+          ...(rule.countCalledOff
+            ? [
+                {
+                  status: AllocationStatus.CANCELLED,
+                  scheduledJob: { status: ScheduledJobStatus.CALLED_OFF },
+                },
+              ]
+            : []),
+        ],
         scheduledJob: {
           deletedAt: null,
           isActive: true,
-          status: { notIn: NOT_HAPPENING_JOB },
+          // Called-off visits count when Settings → Dom Rules says so; cancelled ones never do.
+          status: {
+            notIn: rule.countCalledOff ? [ScheduledJobStatus.CANCELLED] : NOT_HAPPENING_JOB,
+          },
           scheduledStartDateTime: { gte: currentWeekStart },
         },
       },
@@ -179,7 +195,8 @@ export class CarerHoursReductionService {
         canUnassign:
           start.getTime() > now.getTime() &&
           row.scheduledJob.status !== ScheduledJobStatus.COMPLETED &&
-          row.scheduledJob.status !== ScheduledJobStatus.IN_PROGRESS,
+          row.scheduledJob.status !== ScheduledJobStatus.IN_PROGRESS &&
+          row.scheduledJob.status !== ScheduledJobStatus.CALLED_OFF,
       });
       byWeek.set(key, list);
     }
@@ -350,23 +367,12 @@ export class CarerHoursReductionService {
   ): Promise<ContractedHoursImpact & { allocationIds: string[] }> {
     const employment = await client.employeeEmployment.findUnique({
       where: { employeeId },
-      select: {
-        contractedWeeklyHours: true,
-        weeklyHoursCapOverride: true,
-        weeklyHoursCapOverrideExpiresAt: true,
-      },
+      select: { contractedWeeklyHours: true },
     });
     const previous = employment?.contractedWeeklyHours ?? null;
-    const limit =
-      resolveApprovedWeeklyHoursThreshold(
-        {
-          contractedWeeklyHours: requestedContractedWeeklyHours,
-          weeklyHoursCapOverride: employment?.weeklyHoursCapOverride ?? null,
-          weeklyHoursCapOverrideExpiresAt:
-            employment?.weeklyHoursCapOverrideExpiresAt ?? null,
-        },
-        now,
-      ) ?? requestedContractedWeeklyHours;
+    // The carer's limit is their contracted weekly hours (+ the grace in Settings → Dom Rules).
+    const { graceMinutes } = await this.orgSettings.getCarerWeeklyHoursRule();
+    const limit = requestedContractedWeeklyHours + graceMinutes / 60;
     const isDecrease =
       previous != null &&
       requestedContractedWeeklyHours < previous - HOURS_EPSILON;
@@ -459,7 +465,7 @@ export class CarerHoursReductionService {
    * per-day rows for the days they keep; because per-day rows replace the all-days rows on
    * that day, the other carers' all-days rows are copied onto those days too.
    */
-  private async removeCarerFromSlotDays(
+  async removeCarerFromSlotDays(
     tx: Prisma.TransactionClient,
     employeeId: string,
     slotId: string,

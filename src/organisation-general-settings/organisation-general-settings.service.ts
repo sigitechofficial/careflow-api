@@ -26,9 +26,13 @@ import {
   type ServiceUserWeeklyHoursSettings,
 } from './service-user-weekly-hours-settings.util';
 import {
+  DEFAULT_WEEKLY_HOURS_RULE_OPTIONS,
   parseDomCareAllocationRules,
   serializeDomCareAllocationRules,
+  WEEKLY_HOURS_RULE_KEY,
+  type DomAllocationRuleBehavior,
   type DomCareAllocationRule,
+  type DomWeeklyHoursRuleOptions,
 } from './dom-care-allocation-rules.util';
 import {
   parseDomCareShiftDefinitions,
@@ -592,6 +596,25 @@ export class OrganisationGeneralSettingsService {
       select: { serviceUserWeeklyHoursSettings: true },
     });
     return parseServiceUserWeeklyHoursSettings(row?.serviceUserWeeklyHoursSettings);
+  }
+
+  /** Settings → Dom Rules "Carer over weekly hours" (read fresh: it can change at runtime). */
+  async getCarerWeeklyHoursRule(): Promise<
+    DomWeeklyHoursRuleOptions & { behavior: DomAllocationRuleBehavior; graceMinutes: number }
+  > {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { domCareAllocationRules: true },
+    });
+    const rule = parseDomCareAllocationRules(
+      row?.domCareAllocationRules as Parameters<typeof parseDomCareAllocationRules>[0],
+    ).find((r) => r.key === WEEKLY_HOURS_RULE_KEY);
+    return {
+      ...DEFAULT_WEEKLY_HOURS_RULE_OPTIONS,
+      ...rule?.weeklyHours,
+      behavior: rule?.behavior ?? 'MANAGER_APPROVAL',
+      graceMinutes: rule?.minutes ?? 0,
+    };
   }
 
   /** Operational timezone + date/time display formats for exports and UI helpers. */

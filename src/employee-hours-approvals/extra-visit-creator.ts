@@ -35,6 +35,9 @@ export interface ExtraVisitCreator {
     stillOverWeeks: Array<{ weekStart: string; minutes: number }>;
   }>;
 
+  /** Put the plan's carers back onto its upcoming rota visits (after an over-hours approval). */
+  resyncPlanCarers(userId: string, planId: string): Promise<{ jobsUpdated: number }>;
+
   /** Weekly hours lowered: cancel the latest visits in each week over the new hours. */
   applyHoursDecrease(
     userId: string,

@@ -1,4 +1,5 @@
 import { isVisitPlanExtraJobMetadata } from './visit-plan-extra-visit.util';
+import { rotaApprovedAfterRejection } from '../employee-hours-approvals/rota-approval-override.util';
 import {
   AllocationStatus,
   Prisma,
@@ -34,6 +35,7 @@ import {
 } from './visit-plan-slot-carer-resolve.util';
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
+  dayKeyInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
@@ -486,6 +488,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   let jobsUpdated = 0;
 
   const timeZone = params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
+  const withheld = await withheldCarerDates(tx, params.visitPlanSlotId);
 
   for (const visit of visits) {
     // Extra visits keep the carers chosen when they were added.
@@ -525,7 +528,11 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         timeZone: params.timeZone,
       },
     );
-    const target = resolved.employeeIds;
+    // Carers over their weekly hours stay off the visits a manager has not approved yet.
+    const visitDate =
+      (visit.scheduledJob.metadata as { date?: string } | null)?.date?.slice(0, 10) ??
+      dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone);
+    const target = resolved.employeeIds.filter((id) => !withheld.has(`${id}|${visitDate}`));
 
     const activeAllocations = await tx.jobAllocation.findMany({
       where: {
@@ -613,6 +620,45 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   }
 
   return { jobsUpdated };
+}
+
+/**
+ * "employeeId|YYYY-MM-DD" of this slot's visits held back from carers by an over-weekly-hours
+ * request (Hours approvals) that is waiting or was rejected.
+ */
+async function withheldCarerDates(
+  tx: Prisma.TransactionClient,
+  visitPlanSlotId: string,
+): Promise<Set<string>> {
+  const slot = await tx.visitPlanSlot.findUnique({
+    where: { id: visitPlanSlotId },
+    select: { visitPlanId: true },
+  });
+  const out = new Set<string>();
+  if (!slot) return out;
+  const rows = await tx.employeeHoursApproval.findMany({
+    where: {
+      visitPlanId: slot.visitPlanId,
+      requestType: 'VISIT_PLAN_OVER_HOURS',
+      // Waiting for a manager, or rejected: the carer does not do those visits.
+      status: { in: ['PENDING', 'REJECTED'] },
+    },
+    select: { employeeId: true, status: true, decidedAt: true, requestPayload: true },
+  });
+  // A rejected visit a manager later approved on the rota stays with the carer.
+  const approvedLater = await rotaApprovedAfterRejection(
+    tx,
+    rows.filter((r) => r.status === 'REJECTED'),
+  );
+  for (const r of rows) {
+    for (const key of (r.requestPayload as { withheld?: string[] } | null)?.withheld ?? []) {
+      const [slotId, date] = key.split('|');
+      if (slotId !== visitPlanSlotId) continue;
+      if (r.status === 'REJECTED' && approvedLater.has(`${r.employeeId}|${key}`)) continue;
+      out.add(`${r.employeeId}|${date}`);
+    }
+  }
+  return out;
 }
 
 async function linkedVisitPlanSlotIds(

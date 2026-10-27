@@ -3,8 +3,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { EmployeeHoursApprovalsController } from './employee-hours-approvals.controller';
 import { EmployeeHoursApprovalsService } from './employee-hours-approvals.service';
-import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
 import { CarerHoursReductionService } from './carer-hours-reduction.service';
+import { CarerWeeklyHoursModule } from './carer-weekly-hours.module';
+import { JobAllocationsModule } from '../job-allocations/job-allocations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.module';
@@ -16,13 +17,14 @@ import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/sche
     NotificationsModule,
     OrganisationGeneralSettingsModule,
     ScheduleLifecycleImpactModule,
+    CarerWeeklyHoursModule,
+    JobAllocationsModule,
   ],
   controllers: [EmployeeHoursApprovalsController],
   providers: [
     EmployeeHoursApprovalsService,
-    EmployeeHoursApprovalNotificationHook,
     CarerHoursReductionService,
   ],
-  exports: [EmployeeHoursApprovalsService, EmployeeHoursApprovalNotificationHook],
+  exports: [EmployeeHoursApprovalsService, CarerWeeklyHoursModule],
 })
 export class EmployeeHoursApprovalsModule {}

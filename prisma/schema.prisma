@@ -4810,6 +4810,9 @@ enum EmployeeHoursApprovalType {
   EXTRA_VISIT_OVER_HOURS
   /// A draft visit plan over the service user's weekly hours: it can't be activated until approved.
   DRAFT_PLAN_OVER_HOURS
+  /// A rota visit (board, extra or special visit) that puts the carer over their contracted weekly hours:
+  /// the carer is allocated only once a manager approves.
+  ROTA_VISIT_OVER_HOURS
 
   @@schema("service_users")
 }

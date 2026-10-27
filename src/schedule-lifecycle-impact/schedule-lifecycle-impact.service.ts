@@ -272,6 +272,8 @@ export class ScheduleLifecycleImpactService {
         select: {
           id: true,
           scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          estimatedDurationMinutes: true,
           metadata: true,
           visits: {
             where: { deletedAt: null, isActive: true, visitPlanSlotId: params.visitPlanSlotId },
@@ -311,6 +313,24 @@ export class ScheduleLifecycleImpactService {
             },
           });
         }
+        // Carers who had the visit's own times move with it (same rule as changing a visit's
+        // time on the rota); customised carer times are kept.
+        await this.jobAllocations.syncAllocationTimingsToJobWindow(client, {
+          scheduledJobId: job.id,
+          previousJob: {
+            scheduledStartDateTime: job.scheduledStartDateTime,
+            scheduledEndDateTime: job.scheduledEndDateTime,
+            estimatedDurationMinutes: job.estimatedDurationMinutes,
+          },
+          nextJob: {
+            scheduledStartDateTime: newTimes.start,
+            scheduledEndDateTime: newTimes.end,
+            estimatedDurationMinutes: job.estimatedDurationMinutes,
+          },
+          userId,
+          meta,
+          rejectOutside: false,
+        });
         jobIds.push(job.id);
       }
 

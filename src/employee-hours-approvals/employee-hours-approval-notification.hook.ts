@@ -245,6 +245,54 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  /** Tell approvers a rota visit is waiting: the carer would go over their contracted weekly hours. */
+  async notifyRotaVisitRequested(params: {
+    approvalId: string;
+    employeeId: string;
+    serviceUserId: string | null;
+    /** "11/11/2026 14:00–16:00", already in the organisation's format. */
+    visitLabel: string;
+    projectedWeeklyHours: number;
+    contractedWeeklyHours: number;
+    requestedById?: string;
+  }): Promise<void> {
+    if (!this.notifications) return;
+    try {
+      const recipientUserIds = await this.approverUserIds();
+      if (!recipientUserIds.length) return;
+      const [employee, su] = await Promise.all([
+        this.prisma.employee.findFirst({
+          where: { id: params.employeeId },
+          select: { personalDetail: { select: { firstName: true, lastName: true } } },
+        }),
+        params.serviceUserId
+          ? this.prisma.serviceUser.findFirst({
+              where: { id: params.serviceUserId },
+              select: { firstName: true, lastName: true },
+            })
+          : Promise.resolve(null),
+      ]);
+      const employeeName =
+        `${employee?.personalDetail?.firstName ?? ''} ${employee?.personalDetail?.lastName ?? ''}`.trim() ||
+        'A carer';
+      const suName = su ? `${su.firstName ?? ''} ${su.lastName ?? ''}`.trim() : '';
+      await this.notifications.notifyUsers({
+        recipientUserIds,
+        type: NotificationType.SYSTEM_MESSAGE,
+        title: `Visit over weekly hours — ${employeeName}`,
+        message: `${employeeName}: visit${suName ? ` with ${suName}` : ''} on ${params.visitLabel} takes the week to ${params.projectedWeeklyHours}h (contracted ${params.contractedWeeklyHours}h). The carer is not on it until approved. Open Hours Approvals to approve or reject.`,
+        module: NotificationModule.SERVICE_USER,
+        severity: NotificationSeverity.WARNING,
+        recordType: 'EmployeeHoursApproval',
+        recordId: params.approvalId,
+        metadata: { href: '/hours-approvals', approvalId: params.approvalId, employeeId: params.employeeId },
+        createdById: params.requestedById,
+      });
+    } catch (err) {
+      this.logger.warn(`Rota visit request notify failed: ${(err as Error).message}`);
+    }
+  }
+
   /** Tell the person who sent a request that a manager approved or rejected it. */
   async notifyRequesterDecided(params: {
     approvalId: string;

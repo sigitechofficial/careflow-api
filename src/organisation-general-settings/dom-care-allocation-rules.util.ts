@@ -6,15 +6,12 @@ export type DomAllocationRuleBehavior =
   | 'REQUEST_CONFIRMATION'
   | 'MANAGER_APPROVAL';
 
-/** Settings-only for now — not read by any allocation or visit-plan check yet. */
+/**
+ * Carer over their contracted weekly hours (Monday–Sunday) on the rota board, extra visits and
+ * special visits. Visit plans always need a manager's approval. `minutes` is the grace allowed
+ * over the limit.
+ */
 export const WEEKLY_HOURS_RULE_KEY = 'carer_over_weekly_hours';
-
-export const WEEKLY_HOURS_LIMIT_BASES = [
-  'CONTRACTED',
-  'MAXIMUM',
-  'APPROVED_EXTRA',
-] as const;
-export type WeeklyHoursLimitBasis = (typeof WEEKLY_HOURS_LIMIT_BASES)[number];
 
 export const WEEKLY_HOURS_REJECT_ACTIONS = [
   'REMOVE_EXTRA_VISITS',
@@ -24,9 +21,10 @@ export type WeeklyHoursRejectAction =
   (typeof WEEKLY_HOURS_REJECT_ACTIONS)[number];
 
 export type DomWeeklyHoursRuleOptions = {
-  limitBasis: WeeklyHoursLimitBasis;
   rejectAction: WeeklyHoursRejectAction;
   maxApprovableHours: number;
+  /** Called-off visits (the carer went, the service user turned it down) count in the carer's week. */
+  countCalledOff: boolean;
 };
 
 export type DomCareAllocationRule = {
@@ -41,9 +39,9 @@ export type DomCareAllocationRule = {
 const BEHAVIORS: DomAllocationRuleBehavior[] = ['DONT_ALLOW', 'ALWAYS_ALLOW', 'REQUEST_CONFIRMATION'];
 
 export const DEFAULT_WEEKLY_HOURS_RULE_OPTIONS: DomWeeklyHoursRuleOptions = {
-  limitBasis: 'CONTRACTED',
-  rejectAction: 'REMOVE_FROM_PLAN',
+  rejectAction: 'REMOVE_EXTRA_VISITS',
   maxApprovableHours: 60,
+  countCalledOff: true,
 };
 
 export const DEFAULT_DOM_CARE_ALLOCATION_RULES: DomCareAllocationRule[] = [
@@ -69,7 +67,7 @@ export const DEFAULT_DOM_CARE_ALLOCATION_RULES: DomCareAllocationRule[] = [
   {
     key: WEEKLY_HOURS_RULE_KEY,
     label: 'Carer over weekly hours',
-    behavior: 'REQUEST_CONFIRMATION',
+    behavior: 'MANAGER_APPROVAL',
     minutes: 0,
     weeklyHours: { ...DEFAULT_WEEKLY_HOURS_RULE_OPTIONS },
   },
@@ -101,11 +99,6 @@ function parseBehavior(
 
 function parseWeeklyHoursOptions(value: unknown): DomWeeklyHoursRuleOptions {
   const raw = isRecord(value) ? value : {};
-  const limitBasis = WEEKLY_HOURS_LIMIT_BASES.includes(
-    raw.limitBasis as WeeklyHoursLimitBasis,
-  )
-    ? (raw.limitBasis as WeeklyHoursLimitBasis)
-    : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.limitBasis;
   const rejectAction = WEEKLY_HOURS_REJECT_ACTIONS.includes(
     raw.rejectAction as WeeklyHoursRejectAction,
   )
@@ -115,7 +108,11 @@ function parseWeeklyHoursOptions(value: unknown): DomWeeklyHoursRuleOptions {
   const maxApprovableHours = Number.isFinite(n)
     ? Math.max(1, Math.min(168, Math.round(n)))
     : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.maxApprovableHours;
-  return { limitBasis, rejectAction, maxApprovableHours };
+  const countCalledOff =
+    typeof raw.countCalledOff === 'boolean'
+      ? raw.countCalledOff
+      : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.countCalledOff;
+  return { rejectAction, maxApprovableHours, countCalledOff };
 }
 
 function parseRule(raw: unknown): DomCareAllocationRule | null {

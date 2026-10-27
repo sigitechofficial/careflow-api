@@ -1,3 +1,4 @@
+import { CarerWeeklyHoursModule } from '../employee-hours-approvals/carer-weekly-hours.module';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
@@ -10,7 +11,7 @@ import { AllocationChecksService } from './allocation-checks.service';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
 
 @Module({
-  imports: [PrismaModule, AuditLogsModule, NotificationsModule, EmployeeComplianceModule],
+  imports: [PrismaModule, AuditLogsModule, NotificationsModule, EmployeeComplianceModule, CarerWeeklyHoursModule],
   controllers: [JobAllocationsController, ScheduledJobAllocationsController],
   providers: [JobAllocationsService, AllocationChecksService, ScheduleAllocationNotificationHook],
   exports: [JobAllocationsService, AllocationChecksService],

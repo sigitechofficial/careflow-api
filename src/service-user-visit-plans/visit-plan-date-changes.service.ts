@@ -78,6 +78,14 @@ import type {
   VisitPlanDateChangesRangeQueryDto,
   VisitPlanExtraVisitsPreviewDto,
 } from './dto/visit-plan-date-changes.dto';
+import {
+  mapDbCarerAssignmentsForSync,
+  syncVisitPlanSlotCarersToScheduledJobs,
+  visitPlanCarerEmployeeIds,
+  visitPlanCarerSyncFromDateTime,
+} from './visit-plan-slot-carer-sync.util';
+import { resolveGlobalAssignedEmployeeIds } from './visit-plan-readiness.util';
+import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
 
 const datePlanInclude = {
   slots: {
@@ -168,6 +176,16 @@ export type ExtraVisitDateCheck = {
   weekMinutes?: number;
   /** The week would go over the weekly hours: blocked when `ok` is false, else a warning only (Settings → Dom Rules). */
   overWeeklyHours?: boolean;
+  /**
+   * Carers over their contracted weekly hours with this visit and what saving does
+   * (Settings → Dom Rules "Carer over weekly hours"): wait for a manager, or go on to be confirmed.
+   * "Don't allow" makes the date not ok instead.
+   */
+  carerOverHours?: Array<{
+    employeeId: string;
+    message: string;
+    outcome: 'MANAGER_APPROVAL' | 'REQUEST_CONFIRMATION';
+  }>;
 };
 
 /** What an "extra visit over weekly hours" request creates when a manager approves it. */
@@ -191,6 +209,31 @@ export type ExtraVisitApprovalPayload = {
   createdExceptionId?: string;
 };
 
+/**
+ * Editing an extra visit: the carers it gives more time to — new on the visit, or already on it
+ * with a longer visit than before. Only they are checked against their weekly hours.
+ */
+function carersGivenMoreTime(
+  employeeIds: string[],
+  current: Array<{
+    employeeId: string;
+    scheduledStartDateTime: Date | null;
+    scheduledEndDateTime: Date | null;
+    durationMinutes: number | null;
+  }>,
+  newMinutes: number,
+): string[] {
+  return employeeIds.filter((id) => {
+    const a = current.find((row) => row.employeeId === id);
+    if (!a) return true;
+    const oldMinutes =
+      a.scheduledStartDateTime && a.scheduledEndDateTime
+        ? Math.round((a.scheduledEndDateTime.getTime() - a.scheduledStartDateTime.getTime()) / 60000)
+        : (a.durationMinutes ?? 0);
+    return newMinutes > oldMinutes;
+  });
+}
+
 @Injectable()
 export class VisitPlanDateChangesService implements ExtraVisitCreator {
   private readonly logger = new Logger(VisitPlanDateChangesService.name);
@@ -201,6 +244,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly weeklyHours: VisitPlanWeeklyHoursService,
     private readonly hoursApprovalNotifications: EmployeeHoursApprovalNotificationHook,
+    private readonly carerHours: CarerWeeklyHoursService,
     @Inject(forwardRef(() => ScheduledJobsHousekeepingService))
     private readonly housekeeping: ScheduledJobsHousekeepingService,
     @Optional() private readonly carerPush?: CarerVisitPushHook,
@@ -1027,6 +1071,70 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         }
       }
     }
+    // Carers over their contracted weekly hours: what saving will do for each date.
+    if (result.slotLabel && result.employeeIds.length) {
+      const endHm = addMinutesToHm(dto.startTime, dto.durationMinutes);
+      const dates = result.checks.filter((c) => c.ok);
+      const editingAllocations = editingJob
+        ? await this.prisma.jobAllocation.findMany({
+            where: {
+              scheduledJobId: editingJob.id,
+              deletedAt: null,
+              isActive: true,
+              status: { in: ACTIVE_ALLOCATION_ENUMS },
+            },
+            select: {
+              id: true,
+              employeeId: true,
+              scheduledStartDateTime: true,
+              scheduledEndDateTime: true,
+              durationMinutes: true,
+            },
+          })
+        : [];
+      const excludeAllocationIds = editingAllocations.map((a) => a.id);
+      const carers = await this.carerHoursForExtras(
+        editingJob
+          ? carersGivenMoreTime(result.employeeIds, editingAllocations, dto.durationMinutes)
+          : result.employeeIds,
+        dates.map((c) => ({
+          date: c.date,
+          start: combineOperationalDateAndHm(c.date, dto.startTime, result.timeZone),
+          end: wallClockVisitEnd(c.date, dto.startTime, endHm, result.timeZone),
+        })),
+        serviceUserId,
+        excludeAllocationIds,
+        false,
+      );
+      if (carers.over.size) {
+        const names = new Map(
+          (
+            await this.prisma.employeePersonalDetail.findMany({
+              where: { employeeId: { in: result.employeeIds }, deletedAt: null },
+              select: { employeeId: true, firstName: true, lastName: true },
+            })
+          ).map((p) => [p.employeeId, `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim() || 'Carer']),
+        );
+        for (const check of dates) {
+          const over = result.employeeIds
+            .filter((id) => carers.over.has(`${check.date}|${id}`))
+            .map((id) => ({
+              employeeId: id,
+              message: `${names.get(id) ?? 'Carer'} would go ${carers.over.get(`${check.date}|${id}`)}`,
+            }));
+          if (!over.length) continue;
+          if (carers.behavior === 'DONT_ALLOW') {
+            check.ok = false;
+            check.message = `${over[0].message} — not allowed (Settings → Dom Rules)`;
+          } else {
+            check.carerOverHours = over.map((o) => ({
+              ...o,
+              outcome: carers.behavior === 'MANAGER_APPROVAL' ? 'MANAGER_APPROVAL' : 'REQUEST_CONFIRMATION',
+            }));
+          }
+        }
+      }
+    }
     return {
       data: {
         slotLabel: result.slotLabel,
@@ -1197,6 +1305,21 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       ? [su.address.addressLine1, su.address.addressLine2, su.address.town, su.address.postcode].filter(Boolean).join(', ')
       : null;
 
+    // Carers over their contracted weekly hours (Settings → Dom Rules "Carer over weekly hours").
+    const carerCheck = await this.carerHoursForExtras(
+      employeeIds,
+      toCreate.map((c) => ({
+        date: c.date,
+        start: combineOperationalDateAndHm(c.date, dto.startTime, timeZone),
+        end: wallClockVisitEnd(c.date, dto.startTime, endHm, timeZone),
+      })),
+      serviceUserId,
+    );
+    const carerApprovals: Array<{ date: string; employeeId: string; approvalId: string }> = [];
+    const carerWarnings: Array<{ date: string; employeeId: string; message: string }> = [];
+    const waitingForManager = (date: string, employeeId: string) =>
+      carerCheck.behavior === 'MANAGER_APPROVAL' && carerCheck.over.has(`${date}|${employeeId}`);
+
     const createdJobIds: string[] = [];
     const createdExceptionIds: string[] = [];
     for (const check of toCreate) {
@@ -1238,7 +1361,9 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           });
         }
 
-        const allocated = employeeIds.length;
+        // Carers waiting for a manager (over their weekly hours) are not on the visit yet.
+        const onVisit = employeeIds.filter((id) => !waitingForManager(date, id));
+        const allocated = onVisit.length;
         const job = await tx.scheduledJob.create({
           data: {
             scheduleBatchId: batch.id,
@@ -1289,14 +1414,19 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           },
         });
 
-        for (const [index, employeeId] of employeeIds.entries()) {
+        for (const [index, employeeId] of onVisit.entries()) {
+          const overMessage = carerCheck.over.get(`${date}|${employeeId}`);
           await tx.jobAllocation.create({
             data: {
               scheduledJobId: job.id,
               scheduledVisitId: visit.id,
               employeeId,
-              status: AllocationStatus.CONFIRMED,
-              requiresConfirmation: false,
+              // Over the weekly hours with "request confirmation": on the visit, to be confirmed.
+              status: overMessage ? AllocationStatus.PENDING_CONFIRMATION : AllocationStatus.CONFIRMED,
+              requiresConfirmation: Boolean(overMessage),
+              ...(overMessage
+                ? { warningTypes: ['CAPACITY_EXCEEDED'], warningMessages: [`Carer ${overMessage}`] }
+                : {}),
               allocatedById: user.id,
               scheduledStartDateTime: start,
               scheduledEndDateTime: end,
@@ -1304,11 +1434,30 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
               isLeadCarer: index === 0,
             },
           });
+          if (overMessage) carerWarnings.push({ date, employeeId, message: overMessage });
         }
         createdExceptionIds.push(exception.id);
-        return job.id;
+        return { jobId: job.id, visitId: visit.id };
       });
-      createdJobIds.push(jobId);
+      createdJobIds.push(jobId.jobId);
+      for (const employeeId of employeeIds.filter((id) => waitingForManager(date, id))) {
+        const weekStart = await this.carerHours.weekStartOf(start);
+        const count = await this.carerHours.count(this.prisma, employeeId, { weekStarts: [weekStart] });
+        const request = await this.carerHours.requestRotaVisitApproval(this.prisma, {
+          employeeId,
+          scheduledJobId: jobId.jobId,
+          serviceUserId,
+          requestedById: user.id,
+          start,
+          end,
+          weekStart,
+          weekMinutes: (count.weeks[0]?.minutes ?? 0) + actualMinutes,
+          limitMinutes: count.limitMinutes ?? 0,
+          source: 'EXTRA_VISIT',
+          allocation: { scheduledVisitId: jobId.visitId, isLeadCarer: false },
+        });
+        carerApprovals.push({ date, employeeId, approvalId: request.id });
+      }
     }
 
     const skipped = [...result.checks.filter((c) => !c.ok), ...blockedOverHours];
@@ -1353,6 +1502,12 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       overWeeklyHours.length
         ? `${overWeeklyHours.length} ${overWeeklyHours.length === 1 ? 'goes' : 'go'} over the weekly hours (allowed by settings)`
         : null,
+      carerApprovals.length
+        ? `${carerApprovals.length} carer place${carerApprovals.length === 1 ? '' : 's'} sent to a manager (carer over their weekly hours)`
+        : null,
+      carerWarnings.length
+        ? `${carerWarnings.length} carer place${carerWarnings.length === 1 ? '' : 's'} need confirmation (carer over their weekly hours)`
+        : null,
     ].filter(Boolean);
     return {
       message: parts.join('. ') || 'No extra visits added',
@@ -1362,6 +1517,8 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         createdExceptionIds,
         sentForApproval,
         overWeeklyHours,
+        carerApprovals,
+        carerWarnings,
         skipped: skipped.map((c) => ({ date: c.date, message: c.message })),
       },
     };
@@ -1501,6 +1658,100 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
   }
 
   /**
+   * Carers over their contracted weekly hours with these new visits — Settings → Dom Rules
+   * "Carer over weekly hours": "don't allow" refuses the change; otherwise returns the
+   * "date|employeeId" pairs over the hours with a message (manager approval: the carer waits;
+   * request confirmation: they go on needing confirmation).
+   */
+  private async carerHoursForExtras(
+    employeeIds: string[],
+    visits: Array<{ date: string; start: Date; end: Date }>,
+    serviceUserId: string,
+    excludeAllocationIds: string[] = [],
+    /** False for the preview: report "don't allow" instead of refusing. */
+    throwOnBlock = true,
+  ): Promise<{
+    behavior: Awaited<ReturnType<CarerWeeklyHoursService['rule']>>['behavior'];
+    over: Map<string, string>;
+  }> {
+    const rule = await this.carerHours.rule();
+    const over = new Map<string, string>();
+    if (rule.behavior === 'ALWAYS_ALLOW' || !employeeIds.length || !visits.length) {
+      return { behavior: rule.behavior, over };
+    }
+    const hours = (m: number) => formatMinutesAsHours(m);
+    for (const employeeId of employeeIds) {
+      const check = await this.carerHours.checkNewVisits(
+        this.prisma,
+        employeeId,
+        visits.map((v) => ({ start: v.start, end: v.end, serviceUserId })),
+        { excludeAllocationIds },
+      );
+      for (const i of check.over) {
+        const visit = visits[i];
+        const weekStart = await this.carerHours.weekStartOf(visit.start);
+        const week = check.weeks.find((w) => w.weekStart === weekStart);
+        over.set(
+          `${visit.date}|${employeeId}`,
+          `over their contracted weekly hours (that week ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes ?? 0)})`,
+        );
+      }
+    }
+    if (over.size && rule.behavior === 'DONT_ALLOW' && throwOnBlock) {
+      const [key, message] = [...over.entries()][0];
+      const [date, employeeId] = key.split('|');
+      const person = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId, deletedAt: null },
+        select: { firstName: true, lastName: true },
+      });
+      const name = `${person?.firstName ?? ''} ${person?.lastName ?? ''}`.trim() || 'A carer';
+      const display = await this.orgSettings.getOperationalDisplaySettings();
+      throw new BadRequestException(
+        `${name} would go ${message} on ${formatOrganisationIsoDate(date, display.dateDisplayFormat)}. Choose another carer or change the visit.`,
+      );
+    }
+    return { behavior: rule.behavior, over };
+  }
+
+  /**
+   * Put every carer of the plan back onto its upcoming rota visits as the plan says (after a
+   * manager approves a carer over their weekly hours). Visits still held back stay without them.
+   */
+  async resyncPlanCarers(userId: string, planId: string): Promise<{ jobsUpdated: number }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const plan = await this.prisma.serviceUserVisitPlan.findUnique({
+      where: { id: planId },
+      select: {
+        status: true,
+        respectWorkingPatternOnSync: true,
+        slots: { where: { isActive: true }, include: { carerAssignments: true } },
+      },
+    });
+    if (!plan || plan.status !== 'ACTIVE') return { jobsUpdated: 0 };
+    let jobsUpdated = 0;
+    await this.prisma.$transaction(async (tx) => {
+      for (const slot of plan.slots) {
+        const result = await syncVisitPlanSlotCarersToScheduledJobs(tx, {
+          visitPlanSlotId: slot.id,
+          assignedEmployeeIds: visitPlanCarerEmployeeIds(
+            [],
+            resolveGlobalAssignedEmployeeIds(slot.assignedEmployeeIds, slot.carerAssignments),
+            slot.requiredCarers,
+          ),
+          carerAssignments: mapDbCarerAssignmentsForSync(slot.carerAssignments ?? []),
+          requiredCarers: slot.requiredCarers,
+          userId,
+          fromDateTime: visitPlanCarerSyncFromDateTime(undefined, timeZone),
+          timeZone,
+          respectWorkingPattern: plan.respectWorkingPatternOnSync !== false,
+        });
+        jobsUpdated += result.jobsUpdated;
+      }
+    });
+    return { jobsUpdated };
+  }
+
+  /**
    * Cancel the visits `planHoursDecrease` picks, through the normal "Cancel visits" path (no
    * charge, cancelled by "other" with the hours change as the note). Returns how many were cancelled.
    */
@@ -1590,7 +1841,24 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     const actualMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
     const isOvernight = operationalTodayIso(end, timeZone) !== date && formatHmInZone(end, timeZone) !== '00:00';
     const scheduledDueTimes = await loadScheduledMedicationDueTimes(this.prisma, serviceUserId);
-    const fullyAllocated = employeeIds.length >= dto.requiredCarers;
+    // Carers over their contracted weekly hours with the edited visit (their current place on
+    // it is left out of the count).
+    // Only carers the edit gives more time to (new on the visit, or a longer visit) are checked:
+    // a carer already on it — e.g. approved over their hours — keeps their place otherwise.
+    const editMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+    const carerCheck = await this.carerHoursForExtras(
+      carersGivenMoreTime(employeeIds, job.allocations, editMinutes),
+      [{ date, start, end }],
+      serviceUserId,
+      job.allocations.map((a) => a.id),
+    );
+    const waiting = new Set(
+      carerCheck.behavior === 'MANAGER_APPROVAL'
+        ? employeeIds.filter((id) => carerCheck.over.has(`${date}|${id}`))
+        : [],
+    );
+    const onVisit = employeeIds.filter((id) => !waiting.has(id));
+    const fullyAllocated = onVisit.length >= dto.requiredCarers;
 
     const before = {
       startTime: exception.plannedStartTime,
@@ -1601,8 +1869,9 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       notes: exception.notes,
     };
     const keptByEmployee = new Map(job.allocations.map((a) => [a.employeeId, a]));
-    const removed = job.allocations.filter((a) => !employeeIds.includes(a.employeeId));
-    const added = employeeIds.filter((id) => !keptByEmployee.has(id));
+    // Carers waiting for a manager come off the visit until approved.
+    const removed = job.allocations.filter((a) => !onVisit.includes(a.employeeId));
+    const added = onVisit.filter((id) => !keptByEmployee.has(id));
     const timeChanged =
       job.scheduledStartDateTime.getTime() !== start.getTime() ||
       (job.scheduledEndDateTime?.getTime() ?? 0) !== end.getTime();
@@ -1677,11 +1946,24 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           },
         });
       }
-      for (const [index, employeeId] of employeeIds.entries()) {
+      for (const [index, employeeId] of onVisit.entries()) {
         const kept = keptByEmployee.get(employeeId);
         const times = { scheduledStartDateTime: start, scheduledEndDateTime: end, durationMinutes: actualMinutes };
+        // Over the weekly hours with "request confirmation": on the visit, to be confirmed.
+        const overMessage = carerCheck.over.get(`${date}|${employeeId}`);
+        const confirm = overMessage
+          ? {
+              status: AllocationStatus.PENDING_CONFIRMATION,
+              requiresConfirmation: true,
+              warningTypes: ['CAPACITY_EXCEEDED'],
+              warningMessages: [`Carer ${overMessage}`],
+            }
+          : null;
         if (kept) {
-          await tx.jobAllocation.update({ where: { id: kept.id }, data: { ...times, isLeadCarer: index === 0 } });
+          await tx.jobAllocation.update({
+            where: { id: kept.id },
+            data: { ...times, isLeadCarer: index === 0, ...(confirm ?? {}) },
+          });
         } else {
           await tx.jobAllocation.create({
             data: {
@@ -1693,6 +1975,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
               allocatedById: user.id,
               ...times,
               isLeadCarer: index === 0,
+              ...(confirm ?? {}),
             },
           });
         }
@@ -1700,6 +1983,23 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     });
 
     const label = result.slotLabel;
+    for (const employeeId of waiting) {
+      const weekStart = await this.carerHours.weekStartOf(start);
+      const count = await this.carerHours.count(this.prisma, employeeId, { weekStarts: [weekStart] });
+      await this.carerHours.requestRotaVisitApproval(this.prisma, {
+        employeeId,
+        scheduledJobId: job.id,
+        serviceUserId,
+        requestedById: user.id,
+        start,
+        end,
+        weekStart,
+        weekMinutes: (count.weeks[0]?.minutes ?? 0) + actualMinutes,
+        limitMinutes: count.limitMinutes ?? 0,
+        source: 'EXTRA_VISIT',
+        allocation: { scheduledVisitId: visit?.id, isLeadCarer: false },
+      });
+    }
     const after = { startTime: dto.startTime, endTime: endHm, durationMinutes: dto.durationMinutes, requiredCarers: dto.requiredCarers, employeeIds, notes: reason };
     const change = { type: 'EDIT_EXTRA_VISIT', exceptionId, date, timeSlot: roundCode, before, after };
     await this.prisma.visitPlanAmendment.create({
@@ -1753,7 +2053,12 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       }
     }
 
-    return { message: 'Extra visit updated', data: { id: exceptionId, date, startTime: dto.startTime, endTime: endHm } };
+    return {
+      message: waiting.size
+        ? `Extra visit updated. ${waiting.size} carer${waiting.size === 1 ? ' is' : 's are'} over their weekly hours — sent to a manager, on the visit once approved`
+        : 'Extra visit updated',
+      data: { id: exceptionId, date, startTime: dto.startTime, endTime: endHm },
+    };
   }
 
   /** An extra visit with its rota job, only while that visit has not started. */

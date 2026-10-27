@@ -13,10 +13,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import {
-  WEEKLY_HOURS_LIMIT_BASES,
-  WEEKLY_HOURS_REJECT_ACTIONS,
-} from '../dom-care-allocation-rules.util';
+import { WEEKLY_HOURS_REJECT_ACTIONS } from '../dom-care-allocation-rules.util';
 import {
   SU_BULK_OVER_LIMIT,
   SU_DRAFT_OVER_LIMIT,
@@ -73,10 +70,6 @@ const ALLOCATION_BEHAVIORS = [
 ] as const;
 
 export class DomWeeklyHoursRuleOptionsDto {
-  @ApiProperty({ enum: WEEKLY_HOURS_LIMIT_BASES })
-  @IsIn(WEEKLY_HOURS_LIMIT_BASES)
-  limitBasis!: (typeof WEEKLY_HOURS_LIMIT_BASES)[number];
-
   @ApiProperty({ enum: WEEKLY_HOURS_REJECT_ACTIONS })
   @IsIn(WEEKLY_HOURS_REJECT_ACTIONS)
   rejectAction!: (typeof WEEKLY_HOURS_REJECT_ACTIONS)[number];
@@ -87,6 +80,11 @@ export class DomWeeklyHoursRuleOptionsDto {
   @Min(1)
   @Max(168)
   maxApprovableHours!: number;
+
+  @ApiPropertyOptional({ description: 'Called-off visits count in the carer weekly hours (default true).' })
+  @IsOptional()
+  @IsBoolean()
+  countCalledOff?: boolean;
 }
 
 export class DomCareAllocationRuleDto {
