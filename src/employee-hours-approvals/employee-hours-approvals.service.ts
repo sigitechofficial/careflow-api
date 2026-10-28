@@ -204,6 +204,24 @@ export class EmployeeHoursApprovalsService {
     return { message: 'Request cancelled', data: { id } };
   }
 
+  /** Delete every request with this status (the list's current tab). */
+  async deleteAll(userId: string, status: EmployeeHoursApprovalStatus, meta?: RequestAuditMeta) {
+    if (!Object.values(EmployeeHoursApprovalStatus).includes(status)) {
+      throw new BadRequestException('A valid status is required.');
+    }
+    const { count } = await this.prisma.employeeHoursApproval.deleteMany({ where: { status } });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.EMPLOYEE,
+      action: AuditAction.EMPLOYEE_HOURS_APPROVAL_DECIDED,
+      recordType: 'EmployeeHoursApproval',
+      recordId: status,
+      newValues: { deleted: count, status },
+      ...meta,
+    });
+    return { message: `${count} request${count === 1 ? '' : 's'} deleted`, data: { count } };
+  }
+
   private async approveContractedHoursChange(
     userId: string,
     row: Prisma.EmployeeHoursApprovalGetPayload<object>,

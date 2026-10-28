@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseFloatPipe,
@@ -37,6 +38,17 @@ export class EmployeeHoursApprovalsController {
   @ApiOperation({ summary: 'List employee over-contracted-hours approvals' })
   list(@Query('status') status?: EmployeeHoursApprovalStatus) {
     return this.service.list(status);
+  }
+
+  @Delete()
+  @Permissions('hours_approvals.manage')
+  @ApiOperation({ summary: 'Delete every hours request with the given status' })
+  deleteAll(
+    @CurrentUser() user: RequestUser,
+    @Query('status') status: EmployeeHoursApprovalStatus,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteAll(user.id, status, getRequestAuditMeta(req));
   }
 
   @Get('contracted-hours/preview')
