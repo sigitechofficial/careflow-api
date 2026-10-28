@@ -164,6 +164,10 @@ const APPROVED_INVOICE_RUN_STATUSES: InvoiceRunStatus[] = [
   InvoiceRunStatus.DISPUTED,
 ];
 
+/** Audit wording of mileage and travel time worked out from distance (also how they are recognised later). */
+const TRAVEL_FILLED_FROM_DISTANCE = 'Mileage and travel time filled from';
+const TRAVEL_CLEARED_FROM_DISTANCE = 'Mileage and travel time cleared';
+
 function isBillingEligibleVisit(visit: {
   status: ScheduledVisitStatus;
   actualStartDateTime: Date | null;
@@ -835,59 +839,119 @@ export class VisitReconciliationsService {
 
   /**
    * Fills a visit's empty mileage and travel minutes from the distance between the service user
-   * the carer visited before it that day and this one. A value a person entered is kept, and a
-   * settled or locked visit is not touched. The carer's next visit that day is filled too, so the
-   * order visits are reconciled in does not matter.
+   * the carer visited before it that day and this one. Values filled this way follow the carer's
+   * day when it changes (worked out again, or cleared when the visit becomes the first of the day);
+   * a value a person entered is kept, and a settled or locked visit is not touched. The carer's
+   * next visit that day is filled too, so the order visits are reconciled in does not matter.
    */
-  private async fillTravelFromDistance(db: DbClient, id: string, fillNext = true): Promise<void> {
+  private async fillTravelFromDistance(
+    db: DbClient,
+    id: string,
+    fillNext = true,
+    timeZone?: string,
+  ): Promise<void> {
     const row = await db.visitReconciliation.findUnique({ where: { id } });
     if (!row?.employeeId) return;
-    const { previous, next } = await this.sameDayNeighbours(db, row);
+    timeZone ??= await this.orgSettings.getOperationalTimezone();
+    const { previous, next } = await this.sameDayNeighbours(db, row, timeZone);
 
-    const needsFill = row.travelMiles == null || row.travelMinutes == null;
-    if (
-      previous &&
-      needsFill &&
-      previous.serviceUserId !== row.serviceUserId &&
-      row.status !== VisitReconciliationStatus.LOCKED &&
-      !isPaySettled(row)
-    ) {
-      const homes = await db.serviceUserAddress.findMany({
-        where: { serviceUserId: { in: [previous.serviceUserId, row.serviceUserId] }, deletedAt: null },
-        select: { serviceUserId: true, latitude: true, longitude: true },
+    if (row.status !== VisitReconciliationStatus.LOCKED && !isPaySettled(row)) {
+      const hasTravel = row.travelMiles != null || row.travelMinutes != null;
+      const needsFill = row.travelMiles == null || row.travelMinutes == null;
+      const filledFromDistance = hasTravel && (await this.travelStillFilledFromDistance(db, row));
+      const travelFrom = previous && previous.serviceUserId !== row.serviceUserId ? previous : undefined;
+      const travelOf = (r: { travelMiles: Prisma.Decimal | null; travelMinutes: number | null }) => ({
+        travelMiles: r.travelMiles?.toString() ?? null,
+        travelMinutes: r.travelMinutes,
       });
-      const homeOf = (serviceUserId: string) => {
-        const home = homes.find((h) => h.serviceUserId === serviceUserId);
-        return home ? latLngOf(home.latitude, home.longitude) : null;
-      };
-      const from = homeOf(previous.serviceUserId);
-      const to = homeOf(row.serviceUserId);
-      const leg = from && to ? await this.drivingTravel.between(from, to) : null;
-      const travel = leg ? travelOfLeg(leg) : null;
-      if (travel) {
-        const after = await db.visitReconciliation.update({
-          where: { id: row.id },
-          data: {
-            ...(row.travelMiles == null ? { travelMiles: travel.miles } : {}),
-            ...(row.travelMinutes == null ? { travelMinutes: travel.minutes } : {}),
-          },
+
+      let change: { data: Prisma.VisitReconciliationUpdateInput; reason: string } | null = null;
+      if (!travelFrom) {
+        if (filledFromDistance) {
+          change = {
+            data: { travelMiles: null, travelMinutes: null },
+            reason: previous
+              ? `${TRAVEL_CLEARED_FROM_DISTANCE}: the visit before it was for the same service user`
+              : `${TRAVEL_CLEARED_FROM_DISTANCE}: first visit of the carer's day`,
+          };
+        }
+      } else if (needsFill || filledFromDistance) {
+        const homes = await db.serviceUserAddress.findMany({
+          where: { serviceUserId: { in: [travelFrom.serviceUserId, row.serviceUserId] }, deletedAt: null },
+          select: { serviceUserId: true, latitude: true, longitude: true },
         });
+        const homeOf = (serviceUserId: string) => {
+          const home = homes.find((h) => h.serviceUserId === serviceUserId);
+          return home ? latLngOf(home.latitude, home.longitude) : null;
+        };
+        const from = homeOf(travelFrom.serviceUserId);
+        const to = homeOf(row.serviceUserId);
+        const leg = from && to ? await this.drivingTravel.between(from, to) : null;
+        const travel = leg ? travelOfLeg(leg) : null;
+        if (travel) {
+          // Filled before: both follow the new route. Entered by a person: only the empty one is filled.
+          const data = filledFromDistance
+            ? { travelMiles: travel.miles, travelMinutes: travel.minutes }
+            : {
+                ...(row.travelMiles == null ? { travelMiles: travel.miles } : {}),
+                ...(row.travelMinutes == null ? { travelMinutes: travel.minutes } : {}),
+              };
+          const unchanged =
+            (data.travelMiles === undefined || row.travelMiles?.toString() === String(data.travelMiles)) &&
+            (data.travelMinutes === undefined || row.travelMinutes === data.travelMinutes);
+          if (!unchanged) {
+            change = {
+              data,
+              reason: `${TRAVEL_FILLED_FROM_DISTANCE} the ${travel.source === 'GOOGLE' ? 'Google driving route' : 'estimated distance'} from ${travelFrom.visitRef}`,
+            };
+          }
+        }
+      }
+
+      if (change) {
+        const after = await db.visitReconciliation.update({ where: { id: row.id }, data: change.data });
         await this.auditVisit(
           AuditAction.VISIT_RECONCILIATION_UPDATED,
           undefined,
           row,
-          {
-            oldValues: { travelMiles: row.travelMiles?.toString() ?? null, travelMinutes: row.travelMinutes },
-            newValues: { travelMiles: after.travelMiles?.toString() ?? null, travelMinutes: after.travelMinutes },
-            reason: `Mileage and travel time filled from the ${travel.source === 'GOOGLE' ? 'Google driving route' : 'estimated distance'} from ${previous.visitRef}`,
-          },
+          { oldValues: travelOf(row), newValues: travelOf(after), reason: change.reason },
           undefined,
           this.txOf(db),
         );
       }
     }
 
-    if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false);
+    if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false, timeZone);
+  }
+
+  /**
+   * Whether the visit's mileage and travel minutes are still the ones filled from distance: the
+   * last change to them was that fill, and nothing (a person, the travel gap rules) changed them since.
+   */
+  private async travelStillFilledFromDistance(
+    db: DbClient,
+    row: { id: string; travelMiles: Prisma.Decimal | null; travelMinutes: number | null },
+  ): Promise<boolean> {
+    const logs = await db.auditLog.findMany({
+      where: {
+        recordType: 'VisitReconciliation',
+        recordId: row.id,
+        action: AuditAction.VISIT_RECONCILIATION_UPDATED,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { description: true, oldValues: true, newValues: true },
+    });
+    const travelKey = (v: unknown) => {
+      const values = (v ?? {}) as { travelMiles?: string | null; travelMinutes?: number | null };
+      return JSON.stringify([values.travelMiles ?? null, values.travelMinutes ?? null]);
+    };
+    const lastTravelChange = logs.find((l) => travelKey(l.oldValues) !== travelKey(l.newValues));
+    if (!lastTravelChange?.description?.startsWith(TRAVEL_FILLED_FROM_DISTANCE)) return false;
+    return (
+      travelKey(lastTravelChange.newValues) ===
+      travelKey({ travelMiles: row.travelMiles?.toString() ?? null, travelMinutes: row.travelMinutes })
+    );
   }
 
   /**
@@ -898,12 +962,13 @@ export class VisitReconciliationsService {
   private async sameDayNeighbours(
     db: DbClient,
     row: { id: string; employeeId: string | null; actualStartDateTime: Date | null; plannedStartDateTime: Date },
+    timeZone?: string,
   ) {
     if (!row.employeeId) return { previous: undefined, next: undefined };
     const startOf = (r: { actualStartDateTime: Date | null; plannedStartDateTime: Date }) =>
       r.actualStartDateTime ?? r.plannedStartDateTime;
     const start = startOf(row);
-    const timeZone = await this.orgSettings.getOperationalTimezone();
+    timeZone ??= await this.orgSettings.getOperationalTimezone();
     const day = dayKeyInTimeZone(start, timeZone);
     const dayMs = 24 * 60 * 60_000;
     const sameDay = (
