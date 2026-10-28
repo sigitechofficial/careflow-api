@@ -48,7 +48,39 @@ export type CarerHoursVisit = {
   visitPlanSlotId?: string;
   /** Not saved yet: the visit being checked. */
   isNew?: boolean;
+  /** Waiting for a manager on Hours approvals (counted as if approved). */
+  pendingApprovalId?: string;
+  /** A plan visit counted at a new time that waits for a manager (the request's id). */
+  pendingTimeApprovalId?: string;
 };
+
+/**
+ * A plan visit's new time waiting for a manager (Hours approvals): the plan and the rota keep
+ * the old time until it is approved. Kept on the carer's plan request as `pendingTimes`.
+ */
+export type PendingPlanTimeChange = {
+  slotId: string;
+  slotLabel: string;
+  fromStart: string;
+  fromEnd: string;
+  fromMinutes: number;
+  toStart: string;
+  toEnd: string;
+  toMinutes: number;
+  /** The slot's own duration field (may be empty), put back exactly. */
+  fromDurationMinutes?: number | null;
+  toDurationMinutes?: number | null;
+};
+
+/** HH:MM (or HH:MM:SS) as minutes from midnight. */
+export function hmMinutes(time: string): number {
+  const [h, m] = time.split(':');
+  return (Number(h) || 0) * 60 + (Number(m) || 0);
+}
+
+export function samePlanTime(a: string | null | undefined, b: string | null | undefined): boolean {
+  return a != null && b != null && hmMinutes(a) === hmMinutes(b);
+}
 
 export type CarerHoursWeek = {
   /** Monday, YYYY-MM-DD. */
@@ -76,6 +108,12 @@ export function mondayOf(iso: string): string {
   return addDaysToOperationalIso(iso, -offset);
 }
 
+/** "That week would have 66.5h — above the 60h weekly maximum …" (a carer over the most a manager can approve). */
+export function carerOverMaxMessage(weekMinutes: number, maxMinutes: number): string {
+  const h = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+  return `That week would have ${h(weekMinutes)} — above the ${h(maxMinutes)} weekly maximum a manager can approve (Settings → Dom Rules)`;
+}
+
 function utcDay(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));
@@ -85,8 +123,9 @@ function utcDay(iso: string): Date {
  * A carer's weekly hours (Monday–Sunday) against their contracted weekly hours, the same
  * count everywhere a carer is put on visits:
  * - days with a rota: the rota visits allocated to the carer (plan, extra and special visits);
- * - days without a rota yet: the carer's visits on active visit plans.
- * Cancelled visits never count; called-off ones count when Settings → Dom Rules says so.
+ * - days without a rota yet: the carer's visits on active visit plans;
+ * - visits waiting for a manager on Hours approvals (rota, extra, special and plan visits).
+ * Cancelled and missed visits never count; called-off ones count when Settings → Dom Rules says so.
  * `planOverride` counts that plan from its rows (as `client` sees them, e.g. inside a save)
  * instead of the rota, so a change being saved is counted before the rota is updated.
  */
@@ -109,6 +148,8 @@ export class CarerWeeklyHoursService {
       planOverride?: string;
       /** Visits not saved yet (e.g. the rota visit being allocated). */
       extra?: CarerHoursVisit[];
+      /** Requests waiting for a manager left out (e.g. the one being replaced). */
+      excludeApprovalIds?: string[];
       /** Only these weeks (Mondays); default: this week and the next ones. */
       weekStarts?: string[];
       /** Rota allocations left out (e.g. the one being replaced). */
@@ -142,6 +183,7 @@ export class CarerWeeklyHoursService {
       excludeSlotIds?: string[];
       /** Rota visits left out (the visit being allocated). */
       excludeScheduledJobIds?: string[];
+      excludeApprovalIds?: string[];
     } = {},
   ): Promise<Map<string, CarerHoursCount>> {
     const ids = [...new Set(employeeIds)];
@@ -182,8 +224,8 @@ export class CarerWeeklyHoursService {
       timeZone,
     ).start;
     const notHappening: ScheduledJobStatus[] = rule.countCalledOff
-      ? [ScheduledJobStatus.CANCELLED]
-      : [ScheduledJobStatus.CANCELLED, ScheduledJobStatus.CALLED_OFF];
+      ? [ScheduledJobStatus.CANCELLED, ScheduledJobStatus.MISSED]
+      : [ScheduledJobStatus.CANCELLED, ScheduledJobStatus.MISSED, ScheduledJobStatus.CALLED_OFF];
 
     const visitsById = new Map<string, CarerHoursVisit[]>(
       ids.map((id) => [id, [...(options.extraByEmployee?.get(id) ?? [])]]),
@@ -296,6 +338,15 @@ export class CarerWeeklyHoursService {
       .filter((id) => !excludeSlots.has(id));
     const onRota = new Set<string>();
     const cancelled = new Set<string>();
+    const rotaJobBySlotDay = new Map<
+      string,
+      {
+        id: string;
+        scheduledStartDateTime: Date;
+        scheduledEndDateTime: Date | null;
+        estimatedDurationMinutes: number | null;
+      }
+    >();
     if (slotIds.length) {
       const jobs = await client.scheduledJob.findMany({
         where: {
@@ -311,7 +362,14 @@ export class CarerWeeklyHoursService {
             metadata: { path: ['visitPlanSlotId'], equals: id },
           })),
         },
-        select: { status: true, metadata: true },
+        select: {
+          id: true,
+          status: true,
+          metadata: true,
+          scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          estimatedDurationMinutes: true,
+        },
       });
       for (const job of jobs) {
         const m = job.metadata as {
@@ -322,6 +380,7 @@ export class CarerWeeklyHoursService {
         const key = `${m.visitPlanSlotId}|${m.date.slice(0, 10)}`;
         onRota.add(key);
         if (notHappening.includes(job.status)) cancelled.add(key);
+        else rotaJobBySlotDay.set(key, job);
       }
     }
     // Plan visits a manager rejected for a carer stay off them ("slotId|date" per carer).
@@ -379,6 +438,167 @@ export class CarerWeeklyHoursService {
       }
     }
 
+    // 3) Visits waiting for a manager count as if approved, so several requests in one week
+    // can't each look within the hours on their own.
+    const allocatedJobs = new Set(
+      allocations.map((a) => `${a.employeeId}|${a.scheduledJob.id}`),
+    );
+    const pendingRows = await client.employeeHoursApproval.findMany({
+      where: {
+        employeeId: { in: ids },
+        status: EmployeeHoursApprovalStatus.PENDING,
+        requestType: {
+          in: [
+            EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS,
+            EmployeeHoursApprovalType.VISIT_PLAN_OVER_HOURS,
+          ],
+        },
+        ...(options.excludeApprovalIds?.length
+          ? { id: { notIn: options.excludeApprovalIds } }
+          : {}),
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        requestType: true,
+        visitPlanId: true,
+        serviceUserId: true,
+        requestPayload: true,
+      },
+    });
+    const pendingJobIds = pendingRows
+      .filter((r) => r.requestType === EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS)
+      .map((r) => (r.requestPayload as { scheduledJobId?: string } | null)?.scheduledJobId)
+      .filter((id): id is string => Boolean(id));
+    const pendingJobs = new Map(
+      (pendingJobIds.length
+        ? await client.scheduledJob.findMany({
+            where: {
+              id: { in: pendingJobIds },
+              deletedAt: null,
+              isActive: true,
+              status: { notIn: notHappening },
+            },
+            select: { id: true, serviceUserId: true, metadata: true },
+          })
+        : []
+      ).map((j) => [j.id, j]),
+    );
+    for (const r of pendingRows) {
+      if (!r.employeeId) continue;
+      const list = visitsById.get(r.employeeId);
+      if (!list) continue;
+      if (r.requestType === EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS) {
+        const p = r.requestPayload as {
+          scheduledJobId?: string;
+          start?: string;
+          end?: string;
+        } | null;
+        const job = p?.scheduledJobId ? pendingJobs.get(p.scheduledJobId) : undefined;
+        if (!job || !p?.start || !p.end) continue;
+        if (excludeJobs.has(job.id)) continue;
+        if (allocatedJobs.has(`${r.employeeId}|${job.id}`)) {
+          // A held edit of a visit the carer is on: counted at the new time.
+          if (!(r.requestPayload as { pendingEdit?: unknown } | null)?.pendingEdit) continue;
+          const onIt = list.find((v) => v.scheduledJobId === job.id && v.allocationId);
+          if (!onIt) continue;
+          const start = new Date(p.start);
+          onIt.start = start;
+          onIt.minutes = Math.max(0, Math.round((new Date(p.end).getTime() - start.getTime()) / 60000));
+          onIt.pendingApprovalId = r.id;
+          continue;
+        }
+        const meta = job.metadata as { visitPlanId?: string; visitPlanSlotId?: string } | null;
+        // The plan being saved is counted from its rows.
+        if (options.planOverride && meta?.visitPlanId === options.planOverride) continue;
+        const start = new Date(p.start);
+        const end = new Date(p.end);
+        if (start < from || start >= to) continue;
+        list.push({
+          date: dayKeyInTimeZone(start, timeZone),
+          start,
+          minutes: Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)),
+          serviceUserId: job.serviceUserId,
+          scheduledJobId: job.id,
+          visitPlanId: meta?.visitPlanId,
+          visitPlanSlotId: meta?.visitPlanSlotId,
+          pendingApprovalId: r.id,
+        });
+        continue;
+      }
+      // Plan visits held back: days without a rota already count from the plan (above), so
+      // only the rota visits the carer is not on yet are added.
+      if (options.planOverride && r.visitPlanId === options.planOverride) continue;
+      for (const key of (r.requestPayload as { withheld?: string[] } | null)?.withheld ?? []) {
+        const [slotId, day] = key.split('|');
+        if (!slotId || !day || day < firstDay || day > lastDay) continue;
+        if (excludeSlots.has(slotId)) continue;
+        const job = rotaJobBySlotDay.get(key);
+        if (!job || excludeJobs.has(job.id) || allocatedJobs.has(`${r.employeeId}|${job.id}`)) continue;
+        const minutes = job.scheduledEndDateTime
+          ? Math.max(
+              0,
+              Math.round(
+                (job.scheduledEndDateTime.getTime() - job.scheduledStartDateTime.getTime()) / 60000,
+              ),
+            )
+          : (job.estimatedDurationMinutes ?? 0);
+        list.push({
+          date: day,
+          start: job.scheduledStartDateTime,
+          minutes,
+          serviceUserId: r.serviceUserId,
+          scheduledJobId: job.id,
+          visitPlanId: r.visitPlanId ?? undefined,
+          visitPlanSlotId: slotId,
+          pendingApprovalId: r.id,
+        });
+      }
+    }
+
+    // 4) Plan visit times waiting for a manager count at the new time, while the plan still
+    // has the old one (inside a save it may already have the new time).
+    const timeRows = await client.employeeHoursApproval.findMany({
+      where: {
+        status: EmployeeHoursApprovalStatus.PENDING,
+        requestType: EmployeeHoursApprovalType.VISIT_PLAN_OVER_HOURS,
+        ...(options.excludeApprovalIds?.length
+          ? { id: { notIn: options.excludeApprovalIds } }
+          : {}),
+      },
+      select: { id: true, requestPayload: true },
+    });
+    const timeChanges = new Map<string, PendingPlanTimeChange & { approvalId: string }>();
+    for (const r of timeRows) {
+      for (const c of (r.requestPayload as { pendingTimes?: PendingPlanTimeChange[] } | null)?.pendingTimes ?? []) {
+        if (c?.slotId && !excludeSlots.has(c.slotId)) timeChanges.set(c.slotId, { ...c, approvalId: r.id });
+      }
+    }
+    if (timeChanges.size) {
+      const slotsNow = await client.visitPlanSlot.findMany({
+        where: { id: { in: [...timeChanges.keys()] } },
+        select: { id: true, plannedStartTime: true, plannedEndTime: true },
+      });
+      for (const slot of slotsNow) {
+        const c = timeChanges.get(slot.id)!;
+        if (!samePlanTime(slot.plannedStartTime, c.fromStart) || !samePlanTime(slot.plannedEndTime, c.fromEnd)) {
+          timeChanges.delete(slot.id);
+        }
+      }
+      for (const slotId of [...timeChanges.keys()]) {
+        if (!slotsNow.some((s) => s.id === slotId)) timeChanges.delete(slotId);
+      }
+      for (const list of visitsById.values()) {
+        for (const v of list) {
+          const c = v.visitPlanSlotId ? timeChanges.get(v.visitPlanSlotId) : undefined;
+          if (!c || v.date < today) continue;
+          v.start = new Date(v.start.getTime() + (hmMinutes(c.toStart) - hmMinutes(c.fromStart)) * 60000);
+          v.minutes = Math.max(0, v.minutes + c.toMinutes - c.fromMinutes);
+          v.pendingTimeApprovalId = c.approvalId;
+        }
+      }
+    }
+
     const graceMinutes = rule.graceMinutes;
     for (const id of ids) {
       const limitMinutes = limitById.get(id) ?? null;
@@ -415,8 +635,9 @@ export class CarerWeeklyHoursService {
 
   /**
    * New rota visits for a carer (in the order given): which of them take a week over the
-   * contracted weekly hours (+ grace). In a week over, the new visits are picked latest first
-   * until the week fits — visits the carer already has never count as "over".
+   * contracted weekly hours (+ grace), and which take it over the most weekly hours a manager can
+   * approve (Settings → Dom Rules; never allowed). In a week over, the new visits are picked
+   * latest first until the week fits — visits the carer already has never count as "over".
    */
   async checkNewVisits(
     client: Client,
@@ -428,9 +649,17 @@ export class CarerWeeklyHoursService {
     graceMinutes: number;
     /** Indexes of `newVisits` over the hours. */
     over: number[];
+    /** The most weekly hours a manager can approve, in minutes. */
+    maxMinutes: number;
+    /** Indexes of `newVisits` that take a week over `maxMinutes`. */
+    overMax: number[];
     weeks: Array<{ weekStart: string; minutes: number }>;
   }> {
-    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const [timeZone, rule] = await Promise.all([
+      this.orgSettings.getOperationalTimezone(),
+      this.rule(),
+    ]);
+    const maxMinutes = Math.round(rule.maxApprovableHours * 60);
     const extra: CarerHoursVisit[] = newVisits.map((v, i) => ({
       date: dayKeyInTimeZone(v.start, timeZone),
       start: v.start,
@@ -447,9 +676,8 @@ export class CarerWeeklyHoursService {
       weekStarts: extra.map((v) => mondayOf(v.date)),
       excludeAllocationIds: options.excludeAllocationIds,
     });
-    const over: number[] = [];
-    if (count.limitMinutes != null) {
-      const threshold = count.limitMinutes + count.graceMinutes;
+    const newOver = (threshold: number): number[] => {
+      const out: number[] = [];
       for (const week of count.weeks) {
         let excess = week.minutes - threshold;
         if (excess <= 0) continue;
@@ -458,15 +686,18 @@ export class CarerWeeklyHoursService {
           .sort((a, b) => b.start.getTime() - a.start.getTime());
         for (const v of fresh) {
           if (excess <= 0) break;
-          over.push(Number(v.allocationId!.slice(4)));
+          out.push(Number(v.allocationId!.slice(4)));
           excess -= v.minutes;
         }
       }
-    }
+      return out.sort((a, b) => a - b);
+    };
     return {
       limitMinutes: count.limitMinutes,
       graceMinutes: count.graceMinutes,
-      over: over.sort((a, b) => a - b),
+      over: count.limitMinutes != null ? newOver(count.limitMinutes + count.graceMinutes) : [],
+      maxMinutes,
+      overMax: newOver(maxMinutes),
       weeks: count.weeks.map((w) => ({
         weekStart: w.weekStart,
         minutes: w.minutes,
@@ -493,6 +724,8 @@ export class CarerWeeklyHoursService {
       /** Where it came from: rota board, extra visit, special visit. */
       source: 'ROTA' | 'EXTRA_VISIT' | 'SPECIAL_VISIT';
       allocation: Record<string, unknown>;
+      /** An extra visit edit held until approved (applied when every carer it waits on is). */
+      pendingEdit?: Record<string, unknown>;
     },
   ): Promise<{ id: string }> {
     const open = await client.employeeHoursApproval.findFirst({
@@ -505,9 +738,24 @@ export class CarerWeeklyHoursService {
           equals: params.scheduledJobId,
         },
       },
-      select: { id: true },
+      select: { id: true, requestPayload: true },
     });
-    if (open) return open;
+    if (open && params.pendingEdit) {
+      // A newer edit of the same visit replaces the one waiting.
+      await client.employeeHoursApproval.update({
+        where: { id: open.id },
+        data: {
+          requestPayload: {
+            ...((open.requestPayload ?? {}) as Record<string, unknown>),
+            start: params.start.toISOString(),
+            end: params.end.toISOString(),
+            weekMinutes: params.weekMinutes,
+            pendingEdit: params.pendingEdit,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
+    if (open) return { id: open.id };
     const contracted = Math.round((params.limitMinutes / 60) * 10) / 10;
     const projected = Math.round((params.weekMinutes / 60) * 10) / 10;
     const row = await client.employeeHoursApproval.create({
@@ -528,6 +776,7 @@ export class CarerWeeklyHoursService {
           weekStart: params.weekStart,
           weekMinutes: params.weekMinutes,
           allocation: params.allocation,
+          ...(params.pendingEdit ? { pendingEdit: params.pendingEdit } : {}),
         } as Prisma.InputJsonValue,
         reason: "Rota visit over the carer's contracted weekly hours",
         requestedById: params.requestedById,
@@ -539,6 +788,11 @@ export class CarerWeeklyHoursService {
       dayKeyInTimeZone(params.start, display.timeZone),
       display.dateDisplayFormat,
     )} ${formatOrganisationHm(formatHmInTimeZone(params.start, display.timeZone), display.timeDisplayFormat)}–${formatOrganisationHm(formatHmInTimeZone(params.end, display.timeZone), display.timeDisplayFormat)}`;
+    const editBefore = (params.pendingEdit as { before?: { startTime?: string; endTime?: string } } | undefined)?.before;
+    const heldEditFrom =
+      editBefore?.startTime && editBefore.endTime
+        ? `${formatOrganisationHm(editBefore.startTime.slice(0, 5), display.timeDisplayFormat)}–${formatOrganisationHm(editBefore.endTime.slice(0, 5), display.timeDisplayFormat)}`
+        : undefined;
     setImmediate(() => {
       void this.notificationHook.notifyRotaVisitRequested({
         approvalId: row.id,
@@ -548,6 +802,7 @@ export class CarerWeeklyHoursService {
         projectedWeeklyHours: projected,
         contractedWeeklyHours: contracted,
         requestedById: params.requestedById,
+        heldEditFrom,
       });
     });
     return row;

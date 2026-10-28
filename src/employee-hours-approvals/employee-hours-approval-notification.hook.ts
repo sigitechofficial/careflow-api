@@ -255,6 +255,8 @@ export class EmployeeHoursApprovalNotificationHook {
     projectedWeeklyHours: number;
     contractedWeeklyHours: number;
     requestedById?: string;
+    /** An edit of a visit the carer may already be on: its current times ("10:00–11:00"). */
+    heldEditFrom?: string;
   }): Promise<void> {
     if (!this.notifications) return;
     try {
@@ -280,7 +282,9 @@ export class EmployeeHoursApprovalNotificationHook {
         recipientUserIds,
         type: NotificationType.SYSTEM_MESSAGE,
         title: `Visit over weekly hours — ${employeeName}`,
-        message: `${employeeName}: visit${suName ? ` with ${suName}` : ''} on ${params.visitLabel} takes the week to ${params.projectedWeeklyHours}h (contracted ${params.contractedWeeklyHours}h). The carer is not on it until approved. Open Hours Approvals to approve or reject.`,
+        message: params.heldEditFrom
+          ? `${employeeName}: extra visit${suName ? ` with ${suName}` : ''} changed from ${params.heldEditFrom} to ${params.visitLabel} takes the week to ${params.projectedWeeklyHours}h (contracted ${params.contractedWeeklyHours}h). The visit keeps its current time and carers until approved. Open Hours Approvals to approve or reject.`
+          : `${employeeName}: visit${suName ? ` with ${suName}` : ''} on ${params.visitLabel} takes the week to ${params.projectedWeeklyHours}h (contracted ${params.contractedWeeklyHours}h). The carer is not on it until approved. Open Hours Approvals to approve or reject.`,
         module: NotificationModule.SERVICE_USER,
         severity: NotificationSeverity.WARNING,
         recordType: 'EmployeeHoursApproval',

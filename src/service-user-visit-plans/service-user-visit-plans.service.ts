@@ -120,6 +120,11 @@ import {
 } from '../employee-absences/dto/employee-absence.dto';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import {
+  hmMinutes,
+  samePlanTime,
+  type PendingPlanTimeChange,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
+import {
   currentServiceUserWeeklyHours,
   sameWeeklyHours,
   SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE,
@@ -565,6 +570,55 @@ export class ServiceUserVisitPlansService {
         })),
       });
     }
+  }
+
+  /** Saved slots whose visits got longer than before the save (time and length, before → after). */
+  private async longerVisitTimes(
+    tx: Prisma.TransactionClient,
+    before: Array<{
+      id: string;
+      slotCode: string;
+      medicationRoundCode: string | null;
+      plannedStartTime: string;
+      plannedEndTime: string;
+      durationMinutes: number | null;
+      isEnabled: boolean;
+      isActive: boolean;
+    }>,
+    roundNameByCode: Map<string, string>,
+  ): Promise<PendingPlanTimeChange[]> {
+    const minutesOf = (start: string, end: string, duration: number | null) => {
+      if (duration != null && duration > 0) return duration;
+      const diff = hmMinutes(end) - hmMinutes(start);
+      return diff > 0 ? diff : diff + 24 * 60;
+    };
+    const ids = before.filter((b) => b.isEnabled && b.isActive).map((b) => b.id);
+    if (!ids.length) return [];
+    const after = await tx.visitPlanSlot.findMany({
+      where: { id: { in: ids }, isEnabled: true, isActive: true },
+      select: { id: true, plannedStartTime: true, plannedEndTime: true, durationMinutes: true },
+    });
+    const out: PendingPlanTimeChange[] = [];
+    for (const a of after) {
+      const b = before.find((x) => x.id === a.id)!;
+      if (samePlanTime(a.plannedStartTime, b.plannedStartTime) && samePlanTime(a.plannedEndTime, b.plannedEndTime)) continue;
+      const fromMinutes = minutesOf(b.plannedStartTime, b.plannedEndTime, b.durationMinutes);
+      const toMinutes = minutesOf(a.plannedStartTime, a.plannedEndTime, a.durationMinutes);
+      if (toMinutes <= fromMinutes) continue;
+      out.push({
+        slotId: a.id,
+        slotLabel: slotLabel(b.medicationRoundCode ?? b.slotCode, roundNameByCode),
+        fromStart: b.plannedStartTime.slice(0, 5),
+        fromEnd: b.plannedEndTime.slice(0, 5),
+        fromMinutes,
+        fromDurationMinutes: b.durationMinutes,
+        toStart: a.plannedStartTime.slice(0, 5),
+        toEnd: a.plannedEndTime.slice(0, 5),
+        toMinutes,
+        toDurationMinutes: a.durationMinutes,
+      });
+    }
+    return out;
   }
 
   private async upsertPlanSlot(tx: Prisma.TransactionClient, planId: string, slot: NormalizedVisitPlanSlot) {
@@ -1562,6 +1616,9 @@ export class ServiceUserVisitPlansService {
       ? await this.hoursApprovals.planVisitsByCarer(planId)
       : undefined;
     const timeZone = await this.orgSettings.getOperationalTimezone();
+    // Longer visits that keep their old time until a manager approves the new one.
+    const heldTimeSlotIds = new Set<string>();
+    const heldTimeChanges: PendingPlanTimeChange[] = [];
 
     const updated = await this.prisma.$transaction(async (tx) => {
       // Once set, weekly hours change only through a manager-approved request.
@@ -1588,10 +1645,21 @@ export class ServiceUserVisitPlansService {
           existing.status === VisitPlanStatus.DRAFT ? 'DRAFT' : 'PLAN',
         );
         // Carers over their contracted weekly hours need a manager's approval; until then the
-        // sync below leaves them off the visits that go over.
+        // sync below leaves them off the visits that go over, and a visit made longer keeps its
+        // old time.
+        const timeChanges = await this.longerVisitTimes(tx, existing.slots, roundNameByCode);
         await this.hoursApprovals.reconcileForPlan(userId, serviceUserId, planId, tx, {
           previousVisits: carerVisitsBefore,
+          timeChanges,
+          heldTimeSlotIds,
         });
+        for (const c of timeChanges.filter((t) => heldTimeSlotIds.has(t.slotId))) {
+          heldTimeChanges.push(c);
+          await tx.visitPlanSlot.update({
+            where: { id: c.slotId },
+            data: { plannedStartTime: c.fromStart, plannedEndTime: c.fromEnd, durationMinutes: c.fromDurationMinutes ?? null },
+          });
+        }
         for (const slot of this.normalizeSlots(dto.slots, rounds)) {
           const row = await tx.visitPlanSlot.findFirst({
             where: { visitPlanId: planId, slotCode: slot.slotCode },
@@ -1694,8 +1762,13 @@ export class ServiceUserVisitPlansService {
     }
 
     return {
-      message: 'Visit plan updated',
+      message: heldTimeChanges.length
+        ? `Visit plan updated. ${heldTimeChanges
+            .map((c) => `${c.slotLabel} ${c.fromStart}–${c.fromEnd} → ${c.toStart}–${c.toEnd}`)
+            .join(', ')}: a carer goes over their weekly hours — the visit keeps its current time until a manager approves (Hours approvals)`
+        : 'Visit plan updated',
       data: this.mapPlan(updated, roundNameByCode),
+      ...(heldTimeChanges.length ? { heldTimeChanges } : {}),
       ...(scheduleImpact ? { scheduleImpact } : {}),
     };
   }

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpecialVisitDto } from './dto/special-visit.dto';
-import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
+import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
 import { VisitPlanWeeklyHoursService } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
 
 /** Allocation statuses that count as the carer actually being booked. */
@@ -92,12 +92,16 @@ export class SpecialVisitsService {
     }
     // The carer's contracted weekly hours (Settings → Dom Rules "Carer over weekly hours").
     const carerRule = await this.carerHours.rule();
-    const carerCheck =
-      carerRule.behavior === 'ALWAYS_ALLOW'
-        ? null
-        : await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
-            { start, end, serviceUserId: dto.serviceUserId },
-          ]);
+    const maxCheck = await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
+      { start, end, serviceUserId: dto.serviceUserId },
+    ]);
+    // Above the most weekly hours a manager can approve: never, whatever the setting.
+    if (maxCheck.overMax.length) {
+      throw new BadRequestException(
+        `${carerOverMaxMessage(maxCheck.weeks[0]?.minutes ?? 0, maxCheck.maxMinutes)}. The special visit was not created — choose another carer.`,
+      );
+    }
+    const carerCheck = carerRule.behavior === 'ALWAYS_ALLOW' ? null : maxCheck;
     const carerOver = Boolean(carerCheck?.over.length && carerCheck.limitMinutes != null);
     const hoursLabel = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
     const carerMessage = carerOver
