@@ -890,7 +890,11 @@ export class VisitReconciliationsService {
     if (fillNext && next) await this.fillTravelFromDistance(db, next.id, false);
   }
 
-  /** The carer's visits just before and just after this one on the same day. */
+  /**
+   * The carer's visits just before and just after this one on the same day, in the order they were
+   * actually done. A visit not started yet (its row exists once its reference is issued) is not
+   * one the carer travelled from: a 07:00 visit still open does not make 11:00 a second visit.
+   */
   private async sameDayNeighbours(
     db: DbClient,
     row: { id: string; employeeId: string | null; actualStartDateTime: Date | null; plannedStartDateTime: Date },
@@ -907,6 +911,7 @@ export class VisitReconciliationsService {
         where: {
           employeeId: row.employeeId,
           id: { not: row.id },
+          actualStartDateTime: { not: null },
           status: { not: VisitReconciliationStatus.REJECTED_FOR_PAY },
           plannedStartDateTime: { gte: new Date(start.getTime() - dayMs), lte: new Date(start.getTime() + dayMs) },
         },
