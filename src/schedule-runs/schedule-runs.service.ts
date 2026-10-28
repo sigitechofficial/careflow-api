@@ -377,6 +377,21 @@ export class ScheduleRunsService {
         continue;
       }
 
+      // A single-carer visit is full while someone else holds it: move it to the run carer.
+      if (dto.replaceExisting && job.requiredCarers <= 1) {
+        for (const other of job.allocations) {
+          if (other.employeeId === dto.unallocateEmployeeId) continue; // already taken off above
+          try {
+            await this.allocations.unallocate(userId, job.id, {
+              employeeId: other.employeeId,
+              reason: 'Visit moved to the run carer',
+            }, meta);
+          } catch (error) {
+            if (!(error instanceof NotFoundException)) throw error;
+          }
+        }
+      }
+
       try {
         await this.allocations.allocate(userId, job.id, {
           employeeId: run.employeeId,
