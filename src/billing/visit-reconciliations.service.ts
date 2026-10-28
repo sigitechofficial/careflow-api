@@ -852,10 +852,12 @@ export class VisitReconciliationsService {
   ): Promise<void> {
     const row = await db.visitReconciliation.findUnique({ where: { id } });
     if (!row?.employeeId) return;
+    const editable = row.status !== VisitReconciliationStatus.LOCKED && !isPaySettled(row);
+    if (!editable && !fillNext) return;
     timeZone ??= await this.orgSettings.getOperationalTimezone();
     const { previous, next } = await this.sameDayNeighbours(db, row, timeZone);
 
-    if (row.status !== VisitReconciliationStatus.LOCKED && !isPaySettled(row)) {
+    if (editable) {
       const hasTravel = row.travelMiles != null || row.travelMinutes != null;
       const needsFill = row.travelMiles == null || row.travelMinutes == null;
       const filledFromDistance = hasTravel && (await this.travelStillFilledFromDistance(db, row));
@@ -896,9 +898,10 @@ export class VisitReconciliationsService {
                 ...(row.travelMiles == null ? { travelMiles: travel.miles } : {}),
                 ...(row.travelMinutes == null ? { travelMinutes: travel.minutes } : {}),
               };
-          const unchanged =
-            (data.travelMiles === undefined || row.travelMiles?.toString() === String(data.travelMiles)) &&
-            (data.travelMinutes === undefined || row.travelMinutes === data.travelMinutes);
+          const before = travelOf(row);
+          const unchanged = Object.entries(data).every(
+            ([key, value]) => String(before[key as keyof typeof before]) === String(value),
+          );
           if (!unchanged) {
             change = {
               data,

@@ -18,10 +18,22 @@ describe('VisitReconciliationsService — travel filled from the previous visit'
     travelMiles: number | null;
     travelMinutes: number | null;
   };
-  type Log = { recordId: string; action: string; description?: string; oldValues?: unknown; newValues?: unknown; createdAt: Date };
+  type Log = {
+    recordId: string;
+    action: string;
+    description?: string;
+    oldValues?: unknown;
+    newValues?: unknown;
+    createdAt: Date;
+  };
 
   const at = (hm: string) => new Date(`2026-10-28T${hm}:00.000Z`);
-  const visit = (id: string, serviceUserId: string, planned: string, actual: string | null): Row => ({
+  const visit = (
+    id: string,
+    serviceUserId: string,
+    planned: string,
+    actual: string | null,
+  ): Row => ({
     id,
     visitRef: `VIS-${id}`,
     employeeId: 'carer',
@@ -39,47 +51,65 @@ describe('VisitReconciliationsService — travel filled from the previous visit'
     const db = {
       visitReconciliation: {
         // Copies, like Prisma: the row read before an update keeps its old values.
-        findUnique: jest.fn(async ({ where }: { where: { id: string } }) => {
+        findUnique: jest.fn(({ where }: { where: { id: string } }) => {
           const row = rows.find((r) => r.id === where.id);
-          return row ? { ...row } : null;
+          return Promise.resolve(row ? { ...row } : null);
         }),
-        findMany: jest.fn(async ({ where }: { where: { employeeId: string; id: { not: string } } }) =>
-          rows.filter(
-            (r) =>
-              r.employeeId === where.employeeId &&
-              r.id !== where.id.not &&
-              r.actualStartDateTime != null &&
-              r.status !== VisitReconciliationStatus.REJECTED_FOR_PAY,
-          ),
+        findMany: jest.fn(
+          ({ where }: { where: { employeeId: string; id: { not: string } } }) =>
+            Promise.resolve(
+              rows.filter(
+                (r) =>
+                  r.employeeId === where.employeeId &&
+                  r.id !== where.id.not &&
+                  r.actualStartDateTime != null &&
+                  r.status !== VisitReconciliationStatus.REJECTED_FOR_PAY,
+              ),
+            ),
         ),
-        update: jest.fn(async ({ where, data }: { where: { id: string }; data: Partial<Row> }) => {
-          const row = rows.find((r) => r.id === where.id)!;
-          Object.assign(row, data);
-          return { ...row };
-        }),
+        update: jest.fn(
+          ({ where, data }: { where: { id: string }; data: Partial<Row> }) => {
+            const row = rows.find((r) => r.id === where.id)!;
+            Object.assign(row, data);
+            return Promise.resolve({ ...row });
+          },
+        ),
       },
       serviceUserAddress: {
-        findMany: jest.fn(async () => [
+        findMany: jest.fn().mockResolvedValue([
           { serviceUserId: 'enid', latitude: '51.632', longitude: '0.001' },
           { serviceUserId: 'samuel', latitude: '51.4851', longitude: '0.0412' },
         ]),
       },
       auditLog: {
-        findMany: jest.fn(async ({ where }: { where: { recordId: string; action: string } }) =>
-          logs
-            .filter((l) => l.recordId === where.recordId && l.action === where.action)
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        findMany: jest.fn(
+          ({ where }: { where: { recordId: string; action: string } }) =>
+            Promise.resolve(
+              logs
+                .filter(
+                  (l) =>
+                    l.recordId === where.recordId && l.action === where.action,
+                )
+                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+            ),
         ),
       },
     };
     const auditLogs = {
-      logAudit: jest.fn(async (entry: Omit<Log, 'createdAt'>) => {
+      logAudit: jest.fn((entry: Omit<Log, 'createdAt'>) => {
         logs.push({ ...entry, createdAt: new Date(++clock) });
+        return Promise.resolve();
       }),
     };
-    const orgSettings = { getOperationalTimezone: jest.fn(async () => 'Europe/London') };
+    const orgSettings = {
+      getOperationalTimezone: jest.fn().mockResolvedValue('Europe/London'),
+    };
     // Google: Enid → Samuel 28.51 km (17.7 mi), 40 min.
-    const drivingTravel = { between: jest.fn(async () => ({ km: 28.51, minutes: 39.9, source: 'GOOGLE' as const })) };
+    const drivingTravel = {
+      between: jest
+        .fn()
+        .mockResolvedValue({ km: 28.51, minutes: 39.9, source: 'GOOGLE' }),
+    };
     const service = new VisitReconciliationsService(
       db as never,
       {} as never,
@@ -90,7 +120,11 @@ describe('VisitReconciliationsService — travel filled from the previous visit'
       drivingTravel as never,
     );
     const fill = (id: string) =>
-      (service as unknown as { fillTravelFromDistance: (db: unknown, id: string) => Promise<void> }).fillTravelFromDistance(db, id);
+      (
+        service as unknown as {
+          fillTravelFromDistance: (db: unknown, id: string) => Promise<void>;
+        }
+      ).fillTravelFromDistance(db, id);
     return { fill, logs };
   }
 
@@ -121,7 +155,9 @@ describe('VisitReconciliationsService — travel filled from the previous visit'
     morning.status = VisitReconciliationStatus.REJECTED_FOR_PAY;
     await fill('late');
     expect(late).toMatchObject({ travelMiles: null, travelMinutes: null });
-    expect(logs.at(-1)?.description).toContain("first visit of the carer's day");
+    expect(logs.at(-1)?.description).toContain(
+      "first visit of the carer's day",
+    );
   });
 
   it('keeps travel a person entered', async () => {

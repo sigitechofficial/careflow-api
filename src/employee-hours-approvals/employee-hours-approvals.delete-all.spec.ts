@@ -12,7 +12,9 @@ describe('EmployeeHoursApprovalsService.deleteAll', () => {
         deleteMany: jest.fn().mockResolvedValue({ count: ids.length }),
       },
     };
-    const prisma = { $transaction: jest.fn((work: (t: typeof tx) => unknown) => work(tx)) };
+    const prisma = {
+      $transaction: jest.fn((work: (t: typeof tx) => unknown) => work(tx)),
+    };
     const audit = { logAudit: jest.fn() };
     const service = new EmployeeHoursApprovalsService(
       prisma as never,
@@ -31,12 +33,19 @@ describe('EmployeeHoursApprovalsService.deleteAll', () => {
 
   it('deletes the requests with that status and audits their ids in the same transaction', async () => {
     const { service, tx, audit } = build(['a', 'b']);
-    await expect(service.deleteAll('user', EmployeeHoursApprovalStatus.PENDING)).resolves.toEqual({
+    await expect(
+      service.deleteAll('user', EmployeeHoursApprovalStatus.PENDING),
+    ).resolves.toEqual({
       message: '2 requests deleted',
       data: { count: 2 },
     });
-    expect(tx.employeeHoursApproval.findMany).toHaveBeenCalledWith({ where: { status: 'PENDING' }, select: { id: true } });
-    expect(tx.employeeHoursApproval.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['a', 'b'] } } });
+    expect(tx.employeeHoursApproval.findMany).toHaveBeenCalledWith({
+      where: { status: 'PENDING' },
+      select: { id: true },
+    });
+    expect(tx.employeeHoursApproval.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['a', 'b'] } },
+    });
     expect(audit.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         tx,
@@ -48,13 +57,17 @@ describe('EmployeeHoursApprovalsService.deleteAll', () => {
 
   it('does nothing when there are none', async () => {
     const { service, tx, audit } = build([]);
-    await expect(service.deleteAll('user', EmployeeHoursApprovalStatus.REJECTED)).resolves.toMatchObject({ data: { count: 0 } });
+    await expect(
+      service.deleteAll('user', EmployeeHoursApprovalStatus.REJECTED),
+    ).resolves.toMatchObject({ data: { count: 0 } });
     expect(tx.employeeHoursApproval.deleteMany).not.toHaveBeenCalled();
     expect(audit.logAudit).not.toHaveBeenCalled();
   });
 
   it('refuses an unknown status', async () => {
     const { service } = build([]);
-    await expect(service.deleteAll('user', 'ALL' as EmployeeHoursApprovalStatus)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.deleteAll('user', 'ALL' as EmployeeHoursApprovalStatus),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
