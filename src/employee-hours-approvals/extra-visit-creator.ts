@@ -35,6 +35,14 @@ export interface ExtraVisitCreator {
     stillOverWeeks: Array<{ weekStart: string; minutes: number }>;
   }>;
 
+  /** Apply an extra visit edit that waited for a manager (every carer it put over approved). */
+  applyHeldExtraVisitEdit(
+    userId: string,
+    serviceUserId: string,
+    pendingEdit: Record<string, unknown>,
+    approvedEmployeeIds: string[],
+  ): Promise<void>;
+
   /** Put the plan's carers back onto its upcoming rota visits (after an over-hours approval). */
   resyncPlanCarers(userId: string, planId: string): Promise<{ jobsUpdated: number }>;
 

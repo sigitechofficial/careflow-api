@@ -29,7 +29,7 @@ import { AllocationComplianceService } from '../employee-compliance/allocation-c
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
 import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
-import { CarerWeeklyHoursService } from '../employee-hours-approvals/carer-weekly-hours.service';
+import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -294,13 +294,23 @@ export class AllocationChecksService {
     push: (w: AllocationWarning) => void,
   ): Promise<void> {
     const rule = await this.carerHours.rule();
-    if (rule.behavior === 'ALWAYS_ALLOW') return;
     const check = await this.carerHours.checkNewVisits(this.prisma, ctx.employeeId, [
       { start: ctx.jobStart, end: ctx.jobEnd, serviceUserId: ctx.serviceUserId },
     ]);
-    if (!check.over.length || check.limitMinutes == null) return;
     const week = check.weeks[0];
     const hours = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+    // Above the most weekly hours a manager can approve: never, whatever the setting.
+    if (check.overMax.length) {
+      push({
+        type: AllocationWarningType.CAPACITY_EXCEEDED,
+        message: `${carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes)}. Choose another carer`,
+        severity: 'blocking',
+        hardBlock: true,
+      });
+      return;
+    }
+    if (rule.behavior === 'ALWAYS_ALLOW') return;
+    if (!check.over.length || check.limitMinutes == null) return;
     const base = `Over contracted weekly hours: that week would have ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes)}`;
     if (rule.behavior === 'MANAGER_APPROVAL') {
       push({

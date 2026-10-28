@@ -24,10 +24,10 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
     visitPlanSlotId: slotId,
   });
 
-  function build(count: CarerHoursCount) {
+  function build(count: CarerHoursCount, maxApprovableHours = 60) {
     const client = {
       visitPlanSlotCarerAssignment: {
-        findMany: jest.fn().mockResolvedValue([{ employeeId: 'john' }]),
+        findMany: jest.fn().mockResolvedValue([{ employeeId: 'john', visitPlanSlotId: 'slot-am' }]),
       },
       employeeHoursApproval: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -36,8 +36,18 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
         create: jest.fn().mockResolvedValue({ id: 'req-1' }),
       },
       jobAllocation: { findMany: jest.fn().mockResolvedValue([]) },
+      visitPlanSlot: { findMany: jest.fn().mockResolvedValue([]), update: jest.fn() },
+      employeePersonalDetail: {
+        findFirst: jest.fn().mockResolvedValue({ firstName: 'John', lastName: 'Smith' }),
+      },
     };
-    const carerHours = { count: jest.fn().mockResolvedValue(count) };
+    const carerHours = {
+      count: jest.fn().mockResolvedValue(count),
+      rule: jest.fn().mockResolvedValue({ maxApprovableHours }),
+    };
+    const orgSettings = {
+      getOperationalDisplaySettings: jest.fn().mockResolvedValue({ dateDisplayFormat: 'DD/MM/YYYY' }),
+    };
     const notificationHook = { notifyPendingCreated: jest.fn() };
     const service = new EmployeeHoursApprovalsService(
       {} as never,
@@ -46,7 +56,7 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
       notificationHook as never,
       {} as never,
       {} as never,
-      {} as never,
+      orgSettings as never,
       carerHours as never,
       {} as never,
       {} as never,
@@ -117,6 +127,86 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
     );
     expect([...held]).toEqual(['john|slot-mid|2026-11-02']);
     expect(client.employeeHoursApproval.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds back the new visit a plan save adds, not an existing later one', async () => {
+    // Mon–Fri evening 4h (20h, on the limit), then a new Mon 07:00 1h makes it 21h.
+    const days = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'];
+    const w = week(
+      [
+        visit('2026-11-02', 7, 60, 'plan-1', 'slot-morning'),
+        ...days.map((d) => visit(d, 17, 240, 'plan-1', 'slot-evening')),
+      ],
+      5,
+    );
+    const { service, client } = build({
+      limitMinutes: 1200,
+      graceMinutes: 0,
+      weeks: [w],
+      overWeeks: [w],
+      heaviestMinutes: w.minutes,
+    });
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never, {
+      previousVisits: new Map([['john', new Set(days.map((d) => `slot-evening|${d}`))]]),
+    });
+    expect([...held]).toEqual(['john|slot-morning|2026-11-02']);
+  });
+
+  it('keeps a longer visit at its old time for a manager instead of holding visits back', async () => {
+    // Mon–Fri evening made 4h → 5h: 25h against a 20h limit.
+    const days = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'];
+    const w = week(days.map((d) => visit(d, 17, 300, 'plan-1', 'slot-evening')), 4);
+    const { service, client } = build({
+      limitMinutes: 1200,
+      graceMinutes: 0,
+      weeks: [w],
+      overWeeks: [w],
+      heaviestMinutes: w.minutes,
+    });
+    client.visitPlanSlotCarerAssignment.findMany.mockResolvedValue([
+      { employeeId: 'john', visitPlanSlotId: 'slot-evening' },
+    ]);
+    const heldTimeSlotIds = new Set<string>();
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never, {
+      previousVisits: new Map([['john', new Set(days.map((d) => `slot-evening|${d}`))]]),
+      timeChanges: [
+        {
+          slotId: 'slot-evening',
+          slotLabel: 'Evening',
+          fromStart: '17:00',
+          fromEnd: '21:00',
+          fromMinutes: 240,
+          toStart: '17:00',
+          toEnd: '22:00',
+          toMinutes: 300,
+        },
+      ],
+      heldTimeSlotIds,
+    });
+    expect([...held]).toEqual([]);
+    expect([...heldTimeSlotIds]).toEqual(['slot-evening']);
+    const payload = client.employeeHoursApproval.create.mock.calls[0][0].data.requestPayload;
+    expect(payload.pendingTimes).toHaveLength(1);
+    expect(payload.withheld).toEqual([]);
+  });
+
+  it('refuses a plan save whose new visits take a week above the weekly maximum', async () => {
+    // 5h of other visits, then a new 2h plan visit: 7h against a 6h maximum.
+    const w = week(
+      [
+        visit('2026-11-02', 9, 300, 'plan-2', 'slot-x'),
+        visit('2026-11-05', 9, 120, 'plan-1', 'slot-am'),
+      ],
+      1,
+    );
+    const { service, client } = build(
+      { limitMinutes: 240, graceMinutes: 0, weeks: [w], overWeeks: [w], heaviestMinutes: w.minutes },
+      6,
+    );
+    await expect(
+      service.reconcileForPlan('u', 'su', 'plan-1', client as never, { previousVisits: new Map() }),
+    ).rejects.toThrow(/John Smith: That week would have 7h — above the 6h weekly maximum/);
+    expect(client.employeeHoursApproval.create).not.toHaveBeenCalled();
   });
 
   it("holds back this plan's visits after the crossing and asks a manager", async () => {
