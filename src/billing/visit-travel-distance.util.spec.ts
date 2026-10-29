@@ -8,6 +8,7 @@ describe('travel between service users from coordinates', () => {
     expect(haversineKm(chingford, tenKmSouth)).toBeCloseTo(10, 1);
   });
 
+  // Keep in step with careflow-admin schedule-job-travel-distance.util.test (same points, same answer).
   it('turns it into road miles and driving minutes, as the rota does', () => {
     // 10 km × 1.35 = 13.5 road km ≈ 8.4 miles; 13.5 km at 28 km/h ≈ 29 minutes.
     expect(estimateTravelBetween(chingford, tenKmSouth)).toEqual({ miles: 8.4, minutes: 29, source: 'ESTIMATE' });

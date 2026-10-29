@@ -255,20 +255,32 @@ export class EmployeeHoursApprovalsService {
     return { message: 'Request cancelled', data: { id } };
   }
 
-  /** Delete every request with this status (the list's current tab). */
+  /**
+   * Delete every request with this status (the list's current tab). A deleted pending carer-hours
+   * request no longer holds visits back; the next plan save asks again if the carer is still over.
+   * The deleted ids are kept in the audit entry, saved together with the delete.
+   */
   async deleteAll(userId: string, status: EmployeeHoursApprovalStatus, meta?: RequestAuditMeta) {
     if (!Object.values(EmployeeHoursApprovalStatus).includes(status)) {
       throw new BadRequestException('A valid status is required.');
     }
-    const { count } = await this.prisma.employeeHoursApproval.deleteMany({ where: { status } });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.EMPLOYEE,
-      action: AuditAction.EMPLOYEE_HOURS_APPROVAL_DECIDED,
-      recordType: 'EmployeeHoursApproval',
-      recordId: status,
-      newValues: { deleted: count, status },
-      ...meta,
+    const count = await this.prisma.$transaction(async (tx) => {
+      const rows = await tx.employeeHoursApproval.findMany({ where: { status }, select: { id: true } });
+      if (!rows.length) return 0;
+      const ids = rows.map((r) => r.id);
+      await tx.employeeHoursApproval.deleteMany({ where: { id: { in: ids } } });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.EMPLOYEE,
+        action: AuditAction.EMPLOYEE_HOURS_APPROVALS_DELETED,
+        recordType: 'EmployeeHoursApproval',
+        recordId: status,
+        oldValues: { status, ids },
+        newValues: { deleted: ids.length },
+        ...meta,
+      });
+      return ids.length;
     });
     return { message: `${count} request${count === 1 ? '' : 's'} deleted`, data: { count } };
   }
