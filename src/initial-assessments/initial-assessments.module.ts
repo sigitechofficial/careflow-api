@@ -9,6 +9,8 @@ import { InitialAssessmentCarePlanRulesController } from './initial-assessment-c
 import { InitialAssessmentsService } from './initial-assessments.service';
 import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
+import { InitialAssessmentTranscriptionService } from './initial-assessment-transcription.service';
+import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { InitialAssessmentNotificationHook } from './initial-assessment-notifica
     InitialAssessmentsService,
     InitialAssessmentCarePlanRulesService,
     InitialAssessmentNotificationHook,
+    InitialAssessmentTranscriptionService,
+    InitialAssessmentAiFillService,
   ],
   exports: [InitialAssessmentsService, InitialAssessmentCarePlanRulesService],
 })

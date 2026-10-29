@@ -19,6 +19,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
+import { unlink } from 'fs';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
@@ -44,13 +45,23 @@ import {
 import { UploadInitialAssessmentAttachmentDto } from './dto/initial-assessment-attachment.dto';
 import { InitialAssessmentCarePlanDecisionDto } from './dto/initial-assessment-care-plan-decision.dto';
 import { initialAssessmentUploadMulterOptionsFromRequest } from './initial-assessment-upload.util';
+import {
+  InitialAssessmentTranscriptionService,
+  transcriptionMulterOptions,
+} from './initial-assessment-transcription.service';
+import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
+import { InitialAssessmentAiFillDto } from './dto/initial-assessment-ai-fill.dto';
 
 @ApiTags('Initial Assessments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('service-users/:id/initial-assessments')
 export class InitialAssessmentsController {
-  constructor(private readonly service: InitialAssessmentsService) {}
+  constructor(
+    private readonly service: InitialAssessmentsService,
+    private readonly transcription: InitialAssessmentTranscriptionService,
+    private readonly aiFillService: InitialAssessmentAiFillService,
+  ) {}
 
   @Get()
   @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
@@ -472,6 +483,52 @@ export class InitialAssessmentsController {
     @Req() req: Request,
   ) {
     return this.service.listAttachments(user.id, serviceUserId, submissionId, getRequestAuditMeta(req));
+  }
+
+  @Post(':submissionId/transcriptions')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Transcribe a recorded conversation to text (Whisper, on this server)' })
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } }, required: ['file'] } })
+  @UseInterceptors(FileInterceptor('file', transcriptionMulterOptions()))
+  async startTranscription(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Audio file is required');
+    try {
+      await this.service.assertSubmissionExists(serviceUserId, submissionId);
+    } catch (e) {
+      unlink(file.path, () => undefined);
+      throw e;
+    }
+    return this.transcription.start(user.id, submissionId, file);
+  }
+
+  @Post(':submissionId/ai-fill')
+  @HttpCode(HttpStatus.OK)
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  @ApiOperation({ summary: 'Suggest answers for the given questions from a conversation transcript (AI)' })
+  aiFill(
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Body() dto: InitialAssessmentAiFillDto,
+  ) {
+    return this.aiFillService.suggest(serviceUserId, submissionId, dto);
+  }
+
+  @Get(':submissionId/transcriptions/:jobId')
+  @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
+  async getTranscription(
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    await this.service.assertSubmissionExists(serviceUserId, submissionId);
+    return this.transcription.get(submissionId, jobId);
   }
 
   @Post(':submissionId/attachments')

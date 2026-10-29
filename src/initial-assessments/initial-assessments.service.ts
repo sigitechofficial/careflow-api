@@ -193,6 +193,14 @@ export class InitialAssessmentsService {
     return row;
   }
 
+  async assertSubmissionExists(serviceUserId: string, submissionId: string) {
+    const row = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { id: submissionId, serviceUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!row) throw new NotFoundException('Initial assessment submission not found');
+  }
+
   private async logDataAccess(
     userId: string,
     params: {
