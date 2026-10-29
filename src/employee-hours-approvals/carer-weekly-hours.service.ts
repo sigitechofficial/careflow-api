@@ -801,6 +801,9 @@ export class CarerWeeklyHoursService {
       allocation: Record<string, unknown>;
       /** An extra visit edit held until approved (applied when every carer it waits on is). */
       pendingEdit?: Record<string, unknown>;
+      /** Carers taken off the visit when this is approved (a run carer taking it over). */
+      replaceEmployeeIds?: string[];
+      replaceEmployeeNames?: string[];
     },
   ): Promise<{ id: string }> {
     const open = await client.employeeHoursApproval.findFirst({
@@ -852,6 +855,9 @@ export class CarerWeeklyHoursService {
           weekMinutes: params.weekMinutes,
           allocation: params.allocation,
           ...(params.pendingEdit ? { pendingEdit: params.pendingEdit } : {}),
+          ...(params.replaceEmployeeIds?.length
+            ? { replaceEmployeeIds: params.replaceEmployeeIds, replaceEmployeeNames: params.replaceEmployeeNames ?? [] }
+            : {}),
         } as Prisma.InputJsonValue,
         reason: "Rota visit over the carer's contracted weekly hours",
         requestedById: params.requestedById,

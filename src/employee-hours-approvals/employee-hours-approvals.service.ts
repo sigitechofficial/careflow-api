@@ -1783,10 +1783,35 @@ export class EmployeeHoursApprovalsService {
   private async rotaApprovalAllocation(
     scheduledJobId: string,
     employeeId: string,
-    payload: { source?: 'ROTA' | 'EXTRA_VISIT' | 'SPECIAL_VISIT'; start?: string; end?: string; allocation?: Record<string, unknown> },
-  ): Promise<{ dto: AllocateJobDto; options: { weeklyHoursApproved: boolean; skipAllocationChecks: boolean } }> {
+    payload: {
+      source?: 'ROTA' | 'EXTRA_VISIT' | 'SPECIAL_VISIT';
+      start?: string;
+      end?: string;
+      allocation?: Record<string, unknown>;
+      replaceEmployeeIds?: string[];
+    },
+  ): Promise<{
+    dto: AllocateJobDto;
+    options: { weeklyHoursApproved: boolean; skipAllocationChecks: boolean; replacingEmployeeIds: string[] };
+    /** Carers still on the visit that approving takes off (a run carer taking it over). */
+    replacing: string[];
+  }> {
     // Extra and special visits put the carer on without the rota checks, as when they are made.
     const direct = payload.source === 'EXTRA_VISIT' || payload.source === 'SPECIAL_VISIT';
+    const replacing = payload.replaceEmployeeIds?.length
+      ? (
+          await this.prisma.jobAllocation.findMany({
+            where: {
+              scheduledJobId,
+              employeeId: { in: payload.replaceEmployeeIds },
+              deletedAt: null,
+              isActive: true,
+              status: { in: ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] },
+            },
+            select: { employeeId: true },
+          })
+        ).map((a) => a.employeeId)
+      : [];
     // A visit with no lead yet gets this carer as lead (they were first in line when it was made).
     const hasLead = await this.prisma.jobAllocation.count({
       where: {
@@ -1806,7 +1831,8 @@ export class EmployeeHoursApprovalsService {
         ...(hasLead ? {} : { isLeadCarer: true }),
         employeeId,
       } as AllocateJobDto,
-      options: { weeklyHoursApproved: true, skipAllocationChecks: direct },
+      options: { weeklyHoursApproved: true, skipAllocationChecks: direct, replacingEmployeeIds: replacing },
+      replacing,
     };
   }
 
@@ -1823,6 +1849,7 @@ export class EmployeeHoursApprovalsService {
       end?: string;
       allocation?: Record<string, unknown>;
       pendingEdit?: { editId?: string };
+      replaceEmployeeIds?: string[];
     };
     if (!payload.scheduledJobId || payload.pendingEdit?.editId) return null;
     const allocation = await this.rotaApprovalAllocation(payload.scheduledJobId, row.employeeId, payload);
@@ -1856,13 +1883,30 @@ export class EmployeeHoursApprovalsService {
     // Allocate first: if the visit changed (cancelled, filled, carer now busy) approve fails
     // with that reason and the request stays waiting.
     const allocation = await this.rotaApprovalAllocation(payload.scheduledJobId, row.employeeId, payload);
+    if (allocation.replacing.length) {
+      // A run carer taking over the visit: check first, then the carer on it comes off.
+      const reason = await this.jobAllocations.allocationBlockedReason(
+        payload.scheduledJobId,
+        allocation.dto,
+        allocation.options,
+      );
+      if (reason) throw new BadRequestException(reason);
+      for (const employeeId of allocation.replacing) {
+        await this.jobAllocations.unallocate(
+          userId,
+          payload.scheduledJobId,
+          { employeeId, reason: 'Visit moved to the run carer (approved)' },
+          meta,
+        );
+      }
+    }
     await this.jobAllocations.allocate(
       userId,
       payload.scheduledJobId,
       allocation.dto,
       meta,
       undefined,
-      allocation.options,
+      { ...allocation.options, replacingEmployeeIds: [] },
     );
     const updated = await this.prisma.employeeHoursApproval.update({
       where: { id: row.id },

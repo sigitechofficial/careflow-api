@@ -13,6 +13,7 @@ import { CreateScheduleRunDto } from './dto/create-schedule-run.dto';
 import { UpdateScheduleRunDto } from './dto/update-schedule-run.dto';
 import { RunVisitIdsDto } from './dto/run-visit-ids.dto';
 import { SyncScheduleRunCarerDto } from './dto/sync-schedule-run-carer.dto';
+import { PreviewRunCarerDto } from './dto/preview-run-carer.dto';
 
 @ApiTags('Schedule Runs')
 @ApiBearerAuth()
@@ -26,6 +27,15 @@ export class ScheduleRunsController {
   @ApiOperation({ summary: 'List schedule runs' })
   list(@CurrentUser() user: RequestUser, @Query() query: ScheduleRunQueryDto) {
     return this.service.list(query, user);
+  }
+
+  @Post('carer-preview')
+  @Permissions('schedule_runs.read')
+  @ApiOperation({
+    summary: 'What putting a carer on these run visits would do: weekly hours and checks (nothing is saved)',
+  })
+  previewCarer(@Body() dto: PreviewRunCarerDto) {
+    return this.service.previewCarer(dto);
   }
 
   @Get(':id')
