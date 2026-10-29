@@ -104,6 +104,19 @@ function personName(
   return [pd?.firstName, pd?.lastName].filter(Boolean).join(' ').trim() || fallback;
 }
 
+/** The reason an allocation was refused: its first blocking check, else the error's message. */
+export function allocationErrorReason(err: unknown): string {
+  if (err instanceof HttpException) {
+    const res = err.getResponse() as { warnings?: WarningView[] } | string;
+    const blocking =
+      typeof res === 'object'
+        ? res.warnings?.find((w) => w.severity === 'blocking')
+        : undefined;
+    return blocking?.message ?? err.message;
+  }
+  return err instanceof Error ? err.message : 'Could not be allocated';
+}
+
 function warningViews(warnings: AllocationWarning[]): WarningView[] {
   return warnings.map((w) => ({
     type: w.type,
@@ -459,24 +472,15 @@ export class JobAllocationsService {
     return next;
   }
 
-  async allocate(
-    userId: string,
+  /**
+   * Everything allocate() checks before it saves: the visit, the carer, a free place and the
+   * rota checks. Throws with the reason when the carer can't be put on the visit.
+   */
+  private async checkAllocation(
     scheduledJobId: string,
     dto: AllocateJobDto,
-    meta?: RequestAuditMeta,
-    actor?: RequestUser,
-    /**
-     * Set when a manager approved the carer over their weekly hours (Hours approvals).
-     * `skipAllocationChecks`: an extra or special visit, which never runs the rota checks.
-     */
-    options: { weeklyHoursApproved?: boolean; skipAllocationChecks?: boolean } = {},
+    options: { weeklyHoursApproved?: boolean; skipAllocationChecks?: boolean },
   ) {
-    if (actor) {
-      await this.orgScope.assertScheduledJobInScope(
-        this.orgScope.fromRequestUser(actor),
-        scheduledJobId,
-      );
-    }
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: scheduledJobId, deletedAt: null, isActive: true },
     });
@@ -528,6 +532,56 @@ export class JobAllocationsService {
         requiresConfirmation: true,
       });
     }
+    return { job, assignment, allWarnings, warnings, needsApproval };
+  }
+
+  /**
+   * Why allocate() would refuse this carer now (null: it would go through). Nothing is saved —
+   * e.g. the Add extra hours preview of the requests it would approve.
+   */
+  async allocationBlockedReason(
+    scheduledJobId: string,
+    dto: AllocateJobDto,
+    options: { weeklyHoursApproved?: boolean; skipAllocationChecks?: boolean } = {},
+  ): Promise<string | null> {
+    try {
+      await this.checkAllocation(scheduledJobId, dto, options);
+      return null;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        return allocationErrorReason(err);
+      }
+      throw err;
+    }
+  }
+
+  async allocate(
+    userId: string,
+    scheduledJobId: string,
+    dto: AllocateJobDto,
+    meta?: RequestAuditMeta,
+    actor?: RequestUser,
+    /**
+     * Set when a manager approved the carer over their weekly hours (Hours approvals).
+     * `skipAllocationChecks`: an extra or special visit, which never runs the rota checks.
+     */
+    options: { weeklyHoursApproved?: boolean; skipAllocationChecks?: boolean } = {},
+  ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
+    const { job, assignment, allWarnings, warnings, needsApproval } = await this.checkAllocation(
+      scheduledJobId,
+      dto,
+      options,
+    );
 
     // Over the carer's weekly hours (Settings → Dom Rules: manager approval): the carer is not
     // put on the visit; a manager decides on Hours approvals, and approving allocates them.
@@ -545,7 +599,7 @@ export class JobAllocationsService {
         end: assignment.end,
         weekStart,
         weekMinutes: check.weeks[0]?.minutes ?? 0,
-        limitMinutes: check.limitMinutes ?? 0,
+        limitMinutes: check.contractedMinutes ?? 0,
         source: 'ROTA',
         allocation: { ...dto },
       });
@@ -989,7 +1043,7 @@ export class JobAllocationsService {
           end: assignment.end,
           weekStart,
           weekMinutes: check.weeks[0]?.minutes ?? 0,
-          limitMinutes: check.limitMinutes ?? 0,
+          limitMinutes: check.contractedMinutes ?? 0,
           source: 'ROTA',
           allocation: {
             employeeId: carer.employeeId,
@@ -1174,6 +1228,8 @@ export class JobAllocationsService {
           unallocatedAt: new Date(),
           unallocatedById: userId,
           unallocationReason: dto.reason?.trim() ?? null,
+          // A person took the carer off: the nightly plan sync leaves them off this visit.
+          unallocatedByHand: true,
           // Removed carers are never the lead.
           ...(allocation.isLeadCarer ? { isLeadCarer: false } : {}),
         },

@@ -297,6 +297,36 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  /** Tell managers which carer requests were approved automatically (back within the weekly hours). */
+  async notifyAutoApproved(params: {
+    approved: Array<{ approvalId: string; label: string }>;
+    requestedById?: string;
+  }): Promise<void> {
+    if (!this.notifications || !params.approved.length) return;
+    try {
+      const recipientUserIds = await this.approverUserIds();
+      if (!recipientUserIds.length) return;
+      const n = params.approved.length;
+      const shown = params.approved.slice(0, 5).map((a) => a.label);
+      await this.notifications.notifyUsers({
+        recipientUserIds,
+        type: NotificationType.SYSTEM_MESSAGE,
+        title: `${n} hours request${n === 1 ? '' : 's'} approved automatically`,
+        message:
+          `The carer is back within their weekly hours, so ${n === 1 ? 'this request was' : 'these requests were'} approved and the carer put on the visit: ` +
+          `${shown.join('; ')}${n > shown.length ? ` and ${n - shown.length} more` : ''}. See Hours Approvals → Approved.`,
+        module: NotificationModule.SERVICE_USER,
+        severity: NotificationSeverity.INFO,
+        recordType: 'EmployeeHoursApproval',
+        recordId: params.approved[0]!.approvalId,
+        metadata: { href: '/hours-approvals', approvalIds: params.approved.map((a) => a.approvalId) },
+        createdById: params.requestedById,
+      });
+    } catch (err) {
+      this.logger.warn(`Auto-approved notify failed: ${(err as Error).message}`);
+    }
+  }
+
   /** Tell the person who sent a request that a manager approved or rejected it. */
   async notifyRequesterDecided(params: {
     approvalId: string;

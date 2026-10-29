@@ -1731,7 +1731,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         const week = check.weeks.find((w) => w.weekStart === weekStart);
         over.set(
           `${visit.date}|${employeeId}`,
-          `over their contracted weekly hours (that week ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes ?? 0)})`,
+          `over their weekly hours (that week ${hours(week?.minutes ?? 0)} of ${hours(week?.limitMinutes ?? check.limitMinutes ?? 0)})`,
         );
       }
     }

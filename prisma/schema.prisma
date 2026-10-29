@@ -4880,6 +4880,40 @@ model EmployeeHoursApproval {
   @@schema("service_users")
 }
 
+/// How the manager picked the dates of extra weekly hours (the dates are always stored).
+enum EmployeeExtraHoursPeriod {
+  DAY
+  WEEK
+  RANGE
+
+  @@schema("employees")
+}
+
+/// Extra weekly hours a manager gave a carer for a day, a week or a date range. Every
+/// Monday–Sunday week the dates touch gets the extra on top of the contracted weekly hours;
+/// extras on the same week add up. Cancelled rows are kept as the record.
+model EmployeeExtraWeeklyHours {
+  id            String                   @id @default(uuid()) @db.Uuid
+  employeeId    String                   @db.Uuid
+  periodType    EmployeeExtraHoursPeriod
+  startDate     DateTime                 @db.Date
+  endDate       DateTime                 @db.Date
+  extraHours    Float
+  reason        String?                  @db.Text
+  grantedById   String?                  @db.Uuid
+  grantedAt     DateTime                 @default(now())
+  /// Hours requests approved because of this extra, and those still over (shown on the record).
+  outcome       Json?
+  cancelledById String?                  @db.Uuid
+  cancelledAt   DateTime?
+  cancelReason  String?                  @db.Text
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([employeeId, startDate, endDate])
+  @@schema("employees")
+}
+
 enum VisitPlanStatusEventType {
   SUSPENDED
   REACTIVATED
@@ -7358,6 +7392,9 @@ model JobAllocation {
    */
   actualEndDateTime      DateTime?
   isLeadCarer            Boolean          @default(false)
+  /// Put on the visit from the visit plan (generate / plan sync). False: chosen on the rota,
+  /// approved on Hours approvals, an extra or special visit — the nightly plan sync keeps it.
+  fromVisitPlan          Boolean          @default(false)
   warningTypes           Json?
   warningMessages        Json?
   notes                  String?
@@ -7366,6 +7403,9 @@ model JobAllocation {
   unallocatedAt          DateTime?
   unallocatedById        String?          @db.Uuid
   unallocationReason     String?
+  /// Taken off the visit by a person on the rota (not by leave, a status change or the plan sync):
+  /// the nightly plan sync does not put this carer back on the visit.
+  unallocatedByHand      Boolean          @default(false)
   isActive               Boolean          @default(true)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt

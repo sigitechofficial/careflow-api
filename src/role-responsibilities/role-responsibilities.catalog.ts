@@ -248,6 +248,13 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     act: ['hours_approvals.manage'],
   },
   {
+    key: 'extra-weekly-hours',
+    label: 'Give extra weekly hours',
+    description: 'Give or cancel extra weekly hours for a carer (a day, a week or a date range).',
+    view: ['employees.read'],
+    act: ['employees.extra_hours.manage'],
+  },
+  {
     key: 'training',
     label: 'Training (Learning)',
     description: 'Courses, assignments, training events and certificates.',

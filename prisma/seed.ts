@@ -640,6 +640,8 @@ async function main() {
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
+    // Extra weekly hours for a carer (day / week / date range)
+    'employees.extra_hours.manage',
     // Azure Pricing (platform costs) — Super Admin only (granted via the all-permissions sweep)
     'platform_costs.read',
     'platform_costs.manage',
@@ -780,6 +782,9 @@ async function main() {
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
   await assignPermKeys('Manager', ['hours_approvals.read', 'hours_approvals.manage']);
+  // Extra weekly hours — managers and admins give carers extra hours for a day, week or range
+  await assignPermKeys('Manager', ['employees.extra_hours.manage']);
+  await assignPermKeys('Admin', ['employees.extra_hours.manage']);
 
   // Office user salaries — company-wide admins only (Super Admin already has every permission)
   await assignPermKeys('Admin', ['office_salaries.manage', 'setup_checklist.read', 'role_tasks.manage']);
@@ -2809,6 +2814,7 @@ async function main() {
     'notifications.read',
   ];
   await assignPermKeys('Master Staff Allocation', masterAllocPermKeys);
+  await assignPermKeys('Master Staff Allocation', ['employees.extra_hours.manage']);
 
   // Ensure Staff Allocation can view staff/SUs needed for allocation (additive).
   await assignPermKeys('Staff Allocation', [
@@ -2816,6 +2822,7 @@ async function main() {
     'service_users.read',
     'service_users.assignments.read',
     'lookups.read',
+    'employees.extra_hours.manage',
   ]);
 
   // Optional employment RBAC levels (job title sync → identity role). Does not replace job titles.

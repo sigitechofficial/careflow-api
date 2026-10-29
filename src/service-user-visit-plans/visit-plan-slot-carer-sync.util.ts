@@ -486,6 +486,27 @@ export function visitPlanCarerSyncFromDateTime(
 }
 
 /** Push visit-plan slot carer defaults onto matching scheduled jobs. */
+/**
+ * What the plan sync changes on one visit. Only carers the plan put on are replaced; carers
+ * chosen on the rota or approved by a manager stay and take a place. A plan carer a person took
+ * off this visit is not put back.
+ */
+export function planSyncAllocationChanges<T extends { employeeId: string; fromVisitPlan: boolean }>(params: {
+  active: T[];
+  target: string[];
+  removedByHand: Set<string>;
+  requiredCarers: number;
+}): { toRemove: T[]; toAdd: string[] } {
+  const currentIds = new Set(params.active.map((row) => row.employeeId));
+  const targetIds = new Set(params.target);
+  const toRemove = params.active.filter((row) => row.fromVisitPlan && !targetIds.has(row.employeeId));
+  const kept = params.active.length - toRemove.length;
+  const toAdd = params.target
+    .filter((employeeId) => !currentIds.has(employeeId) && !params.removedByHand.has(employeeId))
+    .slice(0, Math.max(0, params.requiredCarers - kept));
+  return { toRemove, toAdd };
+}
+
 export async function syncVisitPlanSlotCarersToScheduledJobs(
   tx: Prisma.TransactionClient,
   params: SyncVisitPlanSlotCarersParams,
@@ -585,13 +606,31 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         isActive: true,
         status: { in: ACTIVE_ALLOCATION_STATUSES },
       },
-      select: { id: true, employeeId: true },
+      select: { id: true, employeeId: true, fromVisitPlan: true },
     });
-
-    const currentIds = new Set(activeAllocations.map((row) => row.employeeId));
-    const targetIds = new Set(target);
-    const toRemove = activeAllocations.filter((row) => !targetIds.has(row.employeeId));
-    const toAdd = target.filter((employeeId) => !currentIds.has(employeeId));
+    // Carers a person took off this visit on the rota stay off it (leave, a status change or this
+    // sync taking them off does not count: those come back as before).
+    const removedByHand = new Set(
+      (
+        await tx.jobAllocation.findMany({
+          where: {
+            scheduledJobId: jobId,
+            deletedAt: null,
+            isActive: false,
+            status: AllocationStatus.UNALLOCATED,
+            unallocatedByHand: true,
+            employeeId: { notIn: activeAllocations.map((row) => row.employeeId) },
+          },
+          select: { employeeId: true },
+        })
+      ).map((row) => row.employeeId),
+    );
+    const { toRemove, toAdd } = planSyncAllocationChanges({
+      active: activeAllocations,
+      target,
+      removedByHand,
+      requiredCarers: visitRequired,
+    });
 
     if (toRemove.length === 0 && toAdd.length === 0 && !requiredChanged) continue;
 
@@ -655,6 +694,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
           scheduledEndDateTime: end,
           durationMinutes,
           isLeadCarer: carerWindow?.isLeadCarer ?? false,
+          fromVisitPlan: true,
         },
       });
     }
