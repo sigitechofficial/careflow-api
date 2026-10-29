@@ -105,6 +105,8 @@ function parseBehavior(
   // Manager approval exists only on the weekly-hours rule.
   if (value === 'MANAGER_APPROVAL')
     return key === WEEKLY_HOURS_RULE_KEY ? 'MANAGER_APPROVAL' : null;
+  // Weekly hours are always checked: no "always allow" on that rule (falls back to the default).
+  if (value === 'ALWAYS_ALLOW' && key === WEEKLY_HOURS_RULE_KEY) return null;
   return BEHAVIORS.includes(value as DomAllocationRuleBehavior)
     ? (value as DomAllocationRuleBehavior)
     : null;
@@ -177,7 +179,9 @@ export function serializeDomCareAllocationRules(rules: DomCareAllocationRule[]):
     const row = {
       key: r.key,
       label: r.label,
-      behavior: parseBehavior(r.behavior, r.key) ?? 'DONT_ALLOW',
+      behavior:
+        parseBehavior(r.behavior, r.key) ??
+        (r.key === WEEKLY_HOURS_RULE_KEY ? 'MANAGER_APPROVAL' : 'DONT_ALLOW'),
       minutes: RULES_WITH_MINUTES.has(r.key) ? (r.minutes ?? 0) : null,
     };
     return r.key === WEEKLY_HOURS_RULE_KEY

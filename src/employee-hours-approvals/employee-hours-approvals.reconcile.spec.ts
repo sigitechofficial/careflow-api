@@ -67,6 +67,9 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
   const week = (visits: CarerHoursVisit[], overFrom: number) => ({
     weekStart: '2026-11-02',
     minutes: visits.reduce((sum, v) => sum + v.minutes, 0),
+    // No extra weekly hours: the week's limit is the contracted hours.
+    limitMinutes: null,
+    extraMinutes: 0,
     visits,
     overVisits: visits.slice(overFrom),
   });

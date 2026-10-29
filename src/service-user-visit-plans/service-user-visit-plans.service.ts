@@ -818,14 +818,32 @@ export class ServiceUserVisitPlansService {
         excludeScheduledJobIds: dto.excludeScheduledJobId ? [dto.excludeScheduledJobId] : [],
       },
     );
-    /** The week shown for a carer: the busiest with this visit added. */
+    /**
+     * The week shown for a carer: the one furthest over its own limit (contracted + extra weekly
+     * hours for that week) with this visit added; the busiest when the carer has no limit.
+     */
     const pickerWeek = (employeeId: string) => {
       const count = hoursByEmployee.get(employeeId);
-      let best: { weekStart: string; existing: number; withVisit: number } | null = null;
+      let best: {
+        weekStart: string;
+        existing: number;
+        withVisit: number;
+        limitMinutes: number | null;
+        extraMinutes: number;
+        margin: number;
+      } | null = null;
       for (const week of count?.weeks ?? []) {
         const withVisit = week.minutes + (proposedByWeek.get(week.weekStart) ?? 0);
-        if (!best || withVisit > best.withVisit) {
-          best = { weekStart: week.weekStart, existing: week.minutes, withVisit };
+        const margin = withVisit - (week.limitMinutes ?? 0);
+        if (!best || margin > best.margin) {
+          best = {
+            weekStart: week.weekStart,
+            existing: week.minutes,
+            withVisit,
+            limitMinutes: week.limitMinutes,
+            extraMinutes: week.extraMinutes,
+            margin,
+          };
         }
       }
       return { ...best, graceMinutes: count?.graceMinutes ?? 0 };
@@ -1004,18 +1022,27 @@ export class ServiceUserVisitPlansService {
       // Weekly-hours flag: that week with this visit goes over the carer's contracted weekly
       // hours (+ grace in Settings → Dom Rules) — the same rule as the hours approvals.
       const contractedWeeklyHours = emp.employment?.contractedWeeklyHours ?? null;
-      const allowedWeeklyHours = contractedWeeklyHours;
       const week = pickerWeek(emp.id);
       const assignedWeeklyHours = Math.round(((week.existing ?? 0) / 60) * 10) / 10;
       const projectedWeeklyHours = Math.round(((week.withVisit ?? 0) / 60) * 10) / 10;
       const weeklyHoursWeekStart = week.weekStart ?? null;
+      // That week's limit: contracted + extra weekly hours given for it.
+      const weekLimitMinutes =
+        week.limitMinutes ??
+        (contractedWeeklyHours != null && contractedWeeklyHours > 0
+          ? Math.round(contractedWeeklyHours * 60)
+          : null);
+      const allowedWeeklyHours =
+        weekLimitMinutes != null ? Math.round((weekLimitMinutes / 60) * 10) / 10 : contractedWeeklyHours;
       const exceedsContractedHours =
-        contractedWeeklyHours != null &&
-        contractedWeeklyHours > 0 &&
-        (week.withVisit ?? 0) > Math.round(contractedWeeklyHours * 60) + week.graceMinutes;
+        weekLimitMinutes != null && (week.withVisit ?? 0) > weekLimitMinutes + week.graceMinutes;
       if (exceedsContractedHours) {
+        const weekLimitHours = Math.round((weekLimitMinutes / 60) * 10) / 10;
+        const extraNote = week.extraMinutes
+          ? ` incl. ${Math.round((week.extraMinutes / 60) * 10) / 10}h extra`
+          : '';
         warnings.push(
-          `Exceeds weekly hours (~${projectedWeeklyHours}h of ${contractedWeeklyHours}h${
+          `Exceeds weekly hours (~${projectedWeeklyHours}h of ${weekLimitHours}h${extraNote}${
             weeklyHoursWeekStart
               ? `, week of ${formatOrganisationIsoDate(weeklyHoursWeekStart, display.dateDisplayFormat)}`
               : ''
@@ -3225,6 +3252,7 @@ export class ServiceUserVisitPlansService {
                     scheduledEndDateTime: carer.end,
                     durationMinutes: carer.durationMinutes,
                     isLeadCarer: carer.isLeadCarer,
+                    fromVisitPlan: true,
                   },
                 });
               }
@@ -3565,6 +3593,7 @@ export class ServiceUserVisitPlansService {
                 scheduledEndDateTime: carer.end,
                 durationMinutes: carer.durationMinutes,
                 isLeadCarer: carer.isLeadCarer,
+                fromVisitPlan: true,
               },
             });
           }

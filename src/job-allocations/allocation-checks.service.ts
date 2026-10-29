@@ -311,7 +311,8 @@ export class AllocationChecksService {
     }
     if (rule.behavior === 'ALWAYS_ALLOW') return;
     if (!check.over.length || check.limitMinutes == null) return;
-    const base = `Over contracted weekly hours: that week would have ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes)}`;
+    const extra = week?.extraMinutes ? ` (incl. ${hours(week.extraMinutes)} extra)` : '';
+    const base = `Over contracted weekly hours: that week would have ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes)}${extra}`;
     if (rule.behavior === 'MANAGER_APPROVAL') {
       push({
         type: AllocationWarningType.CAPACITY_NEEDS_APPROVAL,

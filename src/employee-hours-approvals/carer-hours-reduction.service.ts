@@ -12,6 +12,7 @@ import {
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { ScheduleLifecycleImpactService } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.service';
+import { extraMinutesByWeek } from './carer-weekly-hours.service';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const HOURS_EPSILON = 0.01;
@@ -203,17 +204,25 @@ export class CarerHoursReductionService {
 
     const weeks: ContractedHoursWeekImpact[] = [];
     const allocationIds: string[] = [];
-    for (const key of [...byWeek.keys()].sort()) {
+    const weekKeys = [...byWeek.keys()].sort();
+    // Extra weekly hours given for a week (Add extra hours) raise that week's limit.
+    const extraByWeek = weekKeys.length
+      ? ((await extraMinutesByWeek(client, [employeeId], weekKeys[0], weekKeys[weekKeys.length - 1])).get(
+          employeeId,
+        ) ?? new Map<string, number>())
+      : new Map<string, number>();
+    for (const key of weekKeys) {
       const visits = byWeek
         .get(key)!
         .sort((a, b) => a.start.getTime() - b.start.getTime());
+      const weekLimit = limit + (extraByWeek.get(key) ?? 0) / 60;
       let total = 0;
       let over = false;
       let hoursToUnassign = 0;
       let visitsToUnassign = 0;
       const unassigned: ContractedHoursUnassignedVisit[] = [];
       for (const visit of visits) {
-        if (!over && total + visit.hours > limit + HOURS_EPSILON) over = true;
+        if (!over && total + visit.hours > weekLimit + HOURS_EPSILON) over = true;
         if (over && visit.canUnassign) {
           allocationIds.push(visit.id);
           visitsToUnassign += 1;

@@ -86,13 +86,17 @@ export type CarerHoursWeek = {
   /** Monday, YYYY-MM-DD. */
   weekStart: string;
   minutes: number;
+  /** That week's limit in minutes: contracted + extra weekly hours given for it (null: no limit set). */
+  limitMinutes: number | null;
+  /** Extra weekly hours given for that week (Add extra hours), in minutes. */
+  extraMinutes: number;
   visits: CarerHoursVisit[];
   /** Visits from the one that crosses the limit (+ grace) to the end of the week. */
   overVisits: CarerHoursVisit[];
 };
 
 export type CarerHoursCount = {
-  /** Contracted weekly hours in minutes (null: no limit set). */
+  /** Contracted weekly hours in minutes (null: no limit set). Each week's own limit is on the week. */
   limitMinutes: number | null;
   graceMinutes: number;
   weeks: CarerHoursWeek[];
@@ -112,6 +116,45 @@ export function mondayOf(iso: string): string {
 export function carerOverMaxMessage(weekMinutes: number, maxMinutes: number): string {
   const h = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
   return `That week would have ${h(weekMinutes)} — above the ${h(maxMinutes)} weekly maximum a manager can approve (Settings → Dom Rules)`;
+}
+
+/** Monday–Sunday weeks (Mondays, YYYY-MM-DD) that the days from `startIso` to `endIso` touch. */
+export function weeksTouched(startIso: string, endIso: string): string[] {
+  const out: string[] = [];
+  for (let w = mondayOf(startIso); w <= endIso; w = addDaysToOperationalIso(w, 7)) out.push(w);
+  return out;
+}
+
+/**
+ * Extra weekly hours given to carers (Add extra hours), in minutes per carer per week (Monday),
+ * for the weeks from `firstWeek` to `lastWeek`. Extras on the same week add up.
+ */
+export async function extraMinutesByWeek(
+  client: Client,
+  employeeIds: string[],
+  firstWeek: string,
+  lastWeek: string,
+): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  if (!employeeIds.length) return out;
+  const rows = await client.employeeExtraWeeklyHours.findMany({
+    where: {
+      employeeId: { in: employeeIds },
+      cancelledAt: null,
+      startDate: { lte: utcDay(addDaysToOperationalIso(lastWeek, 6)) },
+      endDate: { gte: utcDay(firstWeek) },
+    },
+    select: { employeeId: true, startDate: true, endDate: true, extraHours: true },
+  });
+  for (const r of rows) {
+    const byWeek = out.get(r.employeeId) ?? new Map<string, number>();
+    const minutes = Math.round(r.extraHours * 60);
+    for (const w of weeksTouched(r.startDate.toISOString().slice(0, 10), r.endDate.toISOString().slice(0, 10))) {
+      byWeek.set(w, (byWeek.get(w) ?? 0) + minutes);
+    }
+    out.set(r.employeeId, byWeek);
+  }
+  return out;
 }
 
 function utcDay(iso: string): Date {
@@ -156,6 +199,8 @@ export class CarerWeeklyHoursService {
       excludeAllocationIds?: string[];
       /** "slotId|YYYY-MM-DD" plan visits the carer will not do (a manager rejected them). */
       skipPlanVisits?: Set<string>;
+      /** Extra weekly hours not saved yet (a preview), minutes per carer per week. */
+      addExtraMinutes?: Map<string, Map<string, number>>;
     } = {},
   ): Promise<CarerHoursCount> {
     const { extra, ...rest } = options;
@@ -184,6 +229,8 @@ export class CarerWeeklyHoursService {
       /** Rota visits left out (the visit being allocated). */
       excludeScheduledJobIds?: string[];
       excludeApprovalIds?: string[];
+      /** Extra weekly hours not saved yet (a preview), minutes per carer per week. */
+      addExtraMinutes?: Map<string, Map<string, number>>;
     } = {},
   ): Promise<Map<string, CarerHoursCount>> {
     const ids = [...new Set(employeeIds)];
@@ -218,6 +265,17 @@ export class CarerWeeklyHoursService {
       weekStarts[weekStarts.length - 1],
       6,
     );
+    const extraByWeek = await extraMinutesByWeek(
+      client,
+      ids,
+      firstDay,
+      weekStarts[weekStarts.length - 1],
+    );
+    for (const [id, byWeek] of options.addExtraMinutes ?? []) {
+      const merged = extraByWeek.get(id) ?? new Map<string, number>();
+      for (const [week, minutes] of byWeek) merged.set(week, (merged.get(week) ?? 0) + minutes);
+      extraByWeek.set(id, merged);
+    }
     const from = operationalDayBounds(firstDay, timeZone).start;
     const to = operationalDayBounds(
       addDaysToOperationalIso(lastDay, 1),
@@ -603,10 +661,12 @@ export class CarerWeeklyHoursService {
     for (const id of ids) {
       const limitMinutes = limitById.get(id) ?? null;
       const visits = visitsById.get(id) ?? [];
-      const threshold =
-        limitMinutes != null ? limitMinutes + graceMinutes : null;
       const weeks: CarerHoursWeek[] = weekStarts.map((weekStart) => {
         const weekEnd = addDaysToOperationalIso(weekStart, 6);
+        // Extra weekly hours raise that week's limit (only for a carer with contracted hours).
+        const extraMinutes = extraByWeek.get(id)?.get(weekStart) ?? 0;
+        const weekLimit = limitMinutes != null ? limitMinutes + extraMinutes : null;
+        const threshold = weekLimit != null ? weekLimit + graceMinutes : null;
         const list = visits
           .filter((v) => v.date >= weekStart && v.date <= weekEnd)
           .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -619,7 +679,14 @@ export class CarerWeeklyHoursService {
           if (over) overVisits.push(v);
           total += v.minutes;
         }
-        return { weekStart, minutes: total, visits: list, overVisits };
+        return {
+          weekStart,
+          minutes: total,
+          limitMinutes: weekLimit,
+          extraMinutes,
+          visits: list,
+          overVisits,
+        };
       });
       const overWeeks = weeks.filter((w) => w.overVisits.length > 0);
       result.set(id, {
@@ -645,7 +712,10 @@ export class CarerWeeklyHoursService {
     newVisits: Array<{ start: Date; end: Date; serviceUserId?: string | null }>,
     options: { excludeAllocationIds?: string[] } = {},
   ): Promise<{
+    /** The first week's limit (contracted + extra for that week); each week has its own below. */
     limitMinutes: number | null;
+    /** Contracted weekly hours in minutes (without extra hours). */
+    contractedMinutes: number | null;
     graceMinutes: number;
     /** Indexes of `newVisits` over the hours. */
     over: number[];
@@ -653,7 +723,7 @@ export class CarerWeeklyHoursService {
     maxMinutes: number;
     /** Indexes of `newVisits` that take a week over `maxMinutes`. */
     overMax: number[];
-    weeks: Array<{ weekStart: string; minutes: number }>;
+    weeks: Array<{ weekStart: string; minutes: number; limitMinutes: number | null; extraMinutes: number }>;
   }> {
     const [timeZone, rule] = await Promise.all([
       this.orgSettings.getOperationalTimezone(),
@@ -676,9 +746,11 @@ export class CarerWeeklyHoursService {
       weekStarts: extra.map((v) => mondayOf(v.date)),
       excludeAllocationIds: options.excludeAllocationIds,
     });
-    const newOver = (threshold: number): number[] => {
+    const newOver = (thresholdOf: (week: CarerHoursWeek) => number | null): number[] => {
       const out: number[] = [];
       for (const week of count.weeks) {
+        const threshold = thresholdOf(week);
+        if (threshold == null) continue;
         let excess = week.minutes - threshold;
         if (excess <= 0) continue;
         const fresh = week.visits
@@ -693,14 +765,17 @@ export class CarerWeeklyHoursService {
       return out.sort((a, b) => a - b);
     };
     return {
-      limitMinutes: count.limitMinutes,
+      limitMinutes: count.weeks[0]?.limitMinutes ?? count.limitMinutes,
+      contractedMinutes: count.limitMinutes,
       graceMinutes: count.graceMinutes,
-      over: count.limitMinutes != null ? newOver(count.limitMinutes + count.graceMinutes) : [],
+      over: newOver((w) => (w.limitMinutes != null ? w.limitMinutes + count.graceMinutes : null)),
       maxMinutes,
-      overMax: newOver(maxMinutes),
+      overMax: newOver(() => maxMinutes),
       weeks: count.weeks.map((w) => ({
         weekStart: w.weekStart,
         minutes: w.minutes,
+        limitMinutes: w.limitMinutes,
+        extraMinutes: w.extraMinutes,
       })),
     };
   }
@@ -726,6 +801,9 @@ export class CarerWeeklyHoursService {
       allocation: Record<string, unknown>;
       /** An extra visit edit held until approved (applied when every carer it waits on is). */
       pendingEdit?: Record<string, unknown>;
+      /** Carers taken off the visit when this is approved (a run carer taking it over). */
+      replaceEmployeeIds?: string[];
+      replaceEmployeeNames?: string[];
     },
   ): Promise<{ id: string }> {
     const open = await client.employeeHoursApproval.findFirst({
@@ -777,6 +855,9 @@ export class CarerWeeklyHoursService {
           weekMinutes: params.weekMinutes,
           allocation: params.allocation,
           ...(params.pendingEdit ? { pendingEdit: params.pendingEdit } : {}),
+          ...(params.replaceEmployeeIds?.length
+            ? { replaceEmployeeIds: params.replaceEmployeeIds, replaceEmployeeNames: params.replaceEmployeeNames ?? [] }
+            : {}),
         } as Prisma.InputJsonValue,
         reason: "Rota visit over the carer's contracted weekly hours",
         requestedById: params.requestedById,

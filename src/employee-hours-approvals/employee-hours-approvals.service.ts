@@ -23,6 +23,7 @@ import {
   carerOverMaxMessage,
   mondayOf,
   samePlanTime,
+  type CarerHoursCount,
   type PendingPlanTimeChange,
 } from './carer-weekly-hours.service';
 import { resolveEndFromStartAndTimes } from '../service-user-visit-plans/visit-plan-amendment-impact.util';
@@ -70,6 +71,32 @@ function formatHoursMinutes(minutes: number): string {
   const m = Math.round(minutes % 60);
   if (h === 0) return `${m}m`;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/** A carer request's week furthest over its own limit (contracted + extra + grace) now. */
+export type CarerRequestWeekNow = {
+  shortMinutes: number;
+  weekStart: string;
+  weekMinutes: number;
+  limitMinutes: number | null;
+  extraMinutes: number;
+};
+
+function worstCarerWeek(count: CarerHoursCount): CarerRequestWeekNow | null {
+  let worst: CarerRequestWeekNow | null = null;
+  for (const w of count.weeks) {
+    const short = w.limitMinutes != null ? Math.max(0, w.minutes - (w.limitMinutes + count.graceMinutes)) : 0;
+    if (!worst || short > worst.shortMinutes || (short === worst.shortMinutes && w.minutes > worst.weekMinutes)) {
+      worst = {
+        shortMinutes: short,
+        weekStart: w.weekStart,
+        weekMinutes: w.minutes,
+        limitMinutes: w.limitMinutes,
+        extraMinutes: w.extraMinutes,
+      };
+    }
+  }
+  return worst;
 }
 
 @Injectable()
@@ -829,14 +856,17 @@ export class EmployeeHoursApprovalsService {
           0,
           ...rows.filter((r) => r.status === EmployeeHoursApprovalStatus.APPROVED).map(heaviestOf),
         );
-        const threshold = Math.max(count.limitMinutes + count.graceMinutes, approvedMinutes);
+        // Each week's own limit: contracted + extra weekly hours given for it.
+        const limit = count.limitMinutes;
+        const thresholdOf = (week: { limitMinutes: number | null }) =>
+          Math.max((week.limitMinutes ?? limit) + count.graceMinutes, approvedMinutes);
         const before = options.previousVisits?.get(employeeId);
         // Visits this request already holds back stay held while it waits.
         const heldBefore = new Set(
           (pending?.requestPayload as { withheld?: string[] } | null)?.withheld ?? [],
         );
         for (const week of count.overWeeks) {
-          let excess = week.minutes - threshold;
+          let excess = week.minutes - thresholdOf(week);
           // A longer visit waits for the manager at its old time first: its extra minutes are
           // what the approval is for, so no visit is held back for them.
           for (const v of week.visits) {
@@ -1297,6 +1327,8 @@ export class EmployeeHoursApprovalsService {
 
     // Pending carer requests: the week as it is now, with every waiting request counted.
     const carerWeekNow = new Map<string, number>();
+    const carerLimitNow = new Map<string, CarerRequestWeekNow>();
+    const carerBlockedNow = new Map<string, string>();
     await Promise.all(
       rows
         .filter(
@@ -1307,8 +1339,17 @@ export class EmployeeHoursApprovalsService {
         )
         .map(async (r) => {
           try {
-            const minutes = await this.carerRequestWeekMinutesNow(r);
-            if (minutes != null) carerWeekNow.set(r.id, minutes);
+            const count = await this.carerRequestWeeksNow(r);
+            if (count) {
+              carerWeekNow.set(r.id, Math.max(0, ...count.weeks.map((w) => w.minutes)));
+              const worst = worstCarerWeek(count);
+              if (worst) carerLimitNow.set(r.id, worst);
+              // Back within the hours but still waiting: what stops the approval.
+              if (worst && worst.shortMinutes <= 0) {
+                const reason = await this.rotaApprovalBlockedReason(r);
+                if (reason) carerBlockedNow.set(r.id, reason);
+              }
+            }
           } catch (err) {
             this.logger.warn(`Carer week hours for request ${r.id} failed: ${(err as Error).message}`);
           }
@@ -1351,6 +1392,24 @@ export class EmployeeHoursApprovalsService {
           carerWeekNow.has(r.id) && r.contractedWeeklyHours != null
             ? round1((projectedOf(r) ?? 0) - r.contractedWeeklyHours)
             : r.extraHours,
+        /**
+         * Pending carer requests: the week furthest over its own limit now — limit = contracted +
+         * extra weekly hours given for it; shortHours 0 = it fits now.
+         */
+        weekNow: (() => {
+          const w = carerLimitNow.get(r.id);
+          return w
+            ? {
+                weekStart: w.weekStart,
+                weekHours: round1(w.weekMinutes / 60),
+                limitHours: w.limitMinutes != null ? round1(w.limitMinutes / 60) : null,
+                extraHours: round1(w.extraMinutes / 60),
+                shortHours: round1(w.shortMinutes / 60),
+                /** Within the hours, but another rota check stops the approval (why). */
+                blockedReason: carerBlockedNow.get(r.id) ?? null,
+              }
+            : null;
+        })(),
         requestedAt: r.requestedAt.toISOString(),
         decidedAt: r.decidedAt?.toISOString() ?? null,
         decisionNotes: r.decisionNotes,
@@ -1655,9 +1714,10 @@ export class EmployeeHoursApprovalsService {
    * included) as if approved: minutes of the busiest week its visits are in. Null: not a carer
    * request, or nothing left to count.
    */
-  private async carerRequestWeekMinutesNow(
+  private async carerRequestWeeksNow(
     row: Prisma.EmployeeHoursApprovalGetPayload<object>,
-  ): Promise<number | null> {
+    addExtraMinutes?: Map<string, Map<string, number>>,
+  ): Promise<CarerHoursCount | null> {
     if (!row.employeeId) return null;
     const payload = (row.requestPayload ?? {}) as {
       weekStart?: string;
@@ -1681,8 +1741,28 @@ export class EmployeeHoursApprovalsService {
       ];
     }
     if (!weekStarts.length) return null;
-    const count = await this.carerHours.count(this.prisma, row.employeeId, { weekStarts });
-    return Math.max(0, ...count.weeks.map((w) => w.minutes));
+    return this.carerHours.count(this.prisma, row.employeeId, { weekStarts, addExtraMinutes });
+  }
+
+  /**
+   * How far a carer request's weeks are over their own limit now (contracted + extra weekly
+   * hours for each week, + grace), every visit waiting for a manager counted as if approved.
+   * Null: not a carer request, or nothing left to count.
+   */
+  async carerRequestShortMinutesNow(
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+    /** Extra weekly hours not saved yet (a preview), minutes per carer per week. */
+    addExtraMinutes?: Map<string, Map<string, number>>,
+  ): Promise<CarerRequestWeekNow | null> {
+    const count = await this.carerRequestWeeksNow(row, addExtraMinutes);
+    return count ? worstCarerWeek(count) : null;
+  }
+
+  private async carerRequestWeekMinutesNow(
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+  ): Promise<number | null> {
+    const count = await this.carerRequestWeeksNow(row);
+    return count ? Math.max(0, ...count.weeks.map((w) => w.minutes)) : null;
   }
 
   /** Approve is refused while the week would go above the most a manager can approve. */
@@ -1698,6 +1778,83 @@ export class EmployeeHoursApprovalsService {
   }
 
   // ── Rota visits over a carer's weekly hours (rota board, extra, special visits) ──
+
+  /** The allocation approving a rota visit request makes (the same one the preview checks). */
+  private async rotaApprovalAllocation(
+    scheduledJobId: string,
+    employeeId: string,
+    payload: {
+      source?: 'ROTA' | 'EXTRA_VISIT' | 'SPECIAL_VISIT';
+      start?: string;
+      end?: string;
+      allocation?: Record<string, unknown>;
+      replaceEmployeeIds?: string[];
+    },
+  ): Promise<{
+    dto: AllocateJobDto;
+    options: { weeklyHoursApproved: boolean; skipAllocationChecks: boolean; replacingEmployeeIds: string[] };
+    /** Carers still on the visit that approving takes off (a run carer taking it over). */
+    replacing: string[];
+  }> {
+    // Extra and special visits put the carer on without the rota checks, as when they are made.
+    const direct = payload.source === 'EXTRA_VISIT' || payload.source === 'SPECIAL_VISIT';
+    const replacing = payload.replaceEmployeeIds?.length
+      ? (
+          await this.prisma.jobAllocation.findMany({
+            where: {
+              scheduledJobId,
+              employeeId: { in: payload.replaceEmployeeIds },
+              deletedAt: null,
+              isActive: true,
+              status: { in: ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] },
+            },
+            select: { employeeId: true },
+          })
+        ).map((a) => a.employeeId)
+      : [];
+    // A visit with no lead yet gets this carer as lead (they were first in line when it was made).
+    const hasLead = await this.prisma.jobAllocation.count({
+      where: {
+        scheduledJobId,
+        deletedAt: null,
+        isActive: true,
+        isLeadCarer: true,
+        status: { in: ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] },
+      },
+    });
+    return {
+      dto: {
+        ...(payload.allocation ?? {}),
+        ...(direct && payload.start && payload.end
+          ? { scheduledStartDateTime: payload.start, scheduledEndDateTime: payload.end }
+          : {}),
+        ...(hasLead ? {} : { isLeadCarer: true }),
+        employeeId,
+      } as AllocateJobDto,
+      options: { weeklyHoursApproved: true, skipAllocationChecks: direct, replacingEmployeeIds: replacing },
+      replacing,
+    };
+  }
+
+  /**
+   * Why approving this rota visit request would fail now, other than the weekly hours (null: it
+   * would go through). Nothing is saved. Plan requests and held extra visit edits: null.
+   */
+  async rotaApprovalBlockedReason(row: Prisma.EmployeeHoursApprovalGetPayload<object>): Promise<string | null> {
+    if (row.requestType !== EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS || !row.employeeId) return null;
+    const payload = (row.requestPayload ?? {}) as {
+      scheduledJobId?: string;
+      source?: 'ROTA' | 'EXTRA_VISIT' | 'SPECIAL_VISIT';
+      start?: string;
+      end?: string;
+      allocation?: Record<string, unknown>;
+      pendingEdit?: { editId?: string };
+      replaceEmployeeIds?: string[];
+    };
+    if (!payload.scheduledJobId || payload.pendingEdit?.editId) return null;
+    const allocation = await this.rotaApprovalAllocation(payload.scheduledJobId, row.employeeId, payload);
+    return this.jobAllocations.allocationBlockedReason(payload.scheduledJobId, allocation.dto, allocation.options);
+  }
 
   /** Approve: the carer is allocated to the visit as it was asked for (other checks still apply). */
   private async approveRotaVisitOverHours(
@@ -1725,32 +1882,31 @@ export class EmployeeHoursApprovalsService {
     if (pendingEdit?.editId) return this.approveHeldExtraEdit(userId, row, pendingEdit, notes, meta);
     // Allocate first: if the visit changed (cancelled, filled, carer now busy) approve fails
     // with that reason and the request stays waiting.
-    // Extra and special visits put the carer on without the rota checks, as when they are made.
-    const direct = payload.source === 'EXTRA_VISIT' || payload.source === 'SPECIAL_VISIT';
-    // A visit with no lead yet gets this carer as lead (they were first in line when it was made).
-    const hasLead = await this.prisma.jobAllocation.count({
-      where: {
-        scheduledJobId: payload.scheduledJobId,
-        deletedAt: null,
-        isActive: true,
-        isLeadCarer: true,
-        status: { in: ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] },
-      },
-    });
+    const allocation = await this.rotaApprovalAllocation(payload.scheduledJobId, row.employeeId, payload);
+    if (allocation.replacing.length) {
+      // A run carer taking over the visit: check first, then the carer on it comes off.
+      const reason = await this.jobAllocations.allocationBlockedReason(
+        payload.scheduledJobId,
+        allocation.dto,
+        allocation.options,
+      );
+      if (reason) throw new BadRequestException(reason);
+      for (const employeeId of allocation.replacing) {
+        await this.jobAllocations.unallocate(
+          userId,
+          payload.scheduledJobId,
+          { employeeId, reason: 'Visit moved to the run carer (approved)' },
+          meta,
+        );
+      }
+    }
     await this.jobAllocations.allocate(
       userId,
       payload.scheduledJobId,
-      {
-        ...(payload.allocation ?? {}),
-        ...(direct && payload.start && payload.end
-          ? { scheduledStartDateTime: payload.start, scheduledEndDateTime: payload.end }
-          : {}),
-        ...(hasLead ? {} : { isLeadCarer: true }),
-        employeeId: row.employeeId,
-      } as AllocateJobDto,
+      allocation.dto,
       meta,
       undefined,
-      { weeklyHoursApproved: true, skipAllocationChecks: direct },
+      { ...allocation.options, replacingEmployeeIds: [] },
     );
     const updated = await this.prisma.employeeHoursApproval.update({
       where: { id: row.id },
@@ -2084,8 +2240,10 @@ export class EmployeeHoursApprovalsService {
             ),
           ),
         );
-        const threshold = Math.max(count.limitMinutes + count.graceMinutes, approvedMinutes);
+        const limit = count.limitMinutes;
         for (const week of count.overWeeks) {
+          // Each week's own limit: contracted + extra weekly hours given for it.
+          const threshold = Math.max((week.limitMinutes ?? limit) + count.graceMinutes, approvedMinutes);
           // Only this plan's visits from the one that crosses the limit on.
           const planVisits = week.overVisits
             .filter((v) => v.visitPlanId === visitPlanId && v.visitPlanSlotId)

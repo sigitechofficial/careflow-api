@@ -4,6 +4,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { EmployeeHoursApprovalsController } from './employee-hours-approvals.controller';
 import { EmployeeHoursApprovalsService } from './employee-hours-approvals.service';
 import { CarerHoursReductionService } from './carer-hours-reduction.service';
+import { CarerExtraHoursService } from './carer-extra-hours.service';
 import { CarerWeeklyHoursModule } from './carer-weekly-hours.module';
 import { JobAllocationsModule } from '../job-allocations/job-allocations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -24,7 +25,8 @@ import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/sche
   providers: [
     EmployeeHoursApprovalsService,
     CarerHoursReductionService,
+    CarerExtraHoursService,
   ],
-  exports: [EmployeeHoursApprovalsService, CarerWeeklyHoursModule],
+  exports: [EmployeeHoursApprovalsService, CarerExtraHoursService, CarerWeeklyHoursModule],
 })
 export class EmployeeHoursApprovalsModule {}

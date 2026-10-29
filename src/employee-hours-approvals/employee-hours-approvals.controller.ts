@@ -25,13 +25,18 @@ import { EmployeeHoursApprovalsService } from './employee-hours-approvals.servic
 import { DecideHoursApprovalDto } from './dto/decide-hours-approval.dto';
 import { RequestContractedHoursChangeDto } from './dto/request-contracted-hours-change.dto';
 import { RequestServiceUserHoursChangeDto } from './dto/request-service-user-hours-change.dto';
+import { CarerExtraHoursService } from './carer-extra-hours.service';
+import { CancelExtraWeeklyHoursDto, GrantExtraWeeklyHoursDto } from './dto/grant-extra-weekly-hours.dto';
 
 @ApiTags('Employee hours approvals')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('hours-approvals')
 export class EmployeeHoursApprovalsController {
-  constructor(private readonly service: EmployeeHoursApprovalsService) {}
+  constructor(
+    private readonly service: EmployeeHoursApprovalsService,
+    private readonly extraHours: CarerExtraHoursService,
+  ) {}
 
   @Get()
   @AnyPermission('hours_approvals.read', 'hours_approvals.manage')
@@ -87,6 +92,57 @@ export class EmployeeHoursApprovalsController {
       dto.reason,
       getRequestAuditMeta(req),
     );
+  }
+
+  @Post('check-within-limit')
+  @AnyPermission('hours_approvals.read', 'hours_approvals.manage')
+  @ApiOperation({
+    summary: 'Approve carer requests that are back within the weekly hours (runs when Hours approvals opens)',
+  })
+  checkWithinLimit() {
+    return this.extraHours.approveBackWithinLimit().then((data) => ({
+      message: data.approved.length
+        ? `${data.approved.length} request(s) approved automatically`
+        : 'No request is back within the weekly hours',
+      data,
+    }));
+  }
+
+  @Get('extra-hours')
+  @Permissions('employees.read')
+  @ApiOperation({ summary: "A carer's extra weekly hours (with cancelled ones, as the record)" })
+  listExtraHours(@Query('employeeId', new ParseUUIDPipe()) employeeId: string) {
+    return this.extraHours.list(employeeId);
+  }
+
+  @Post('extra-hours')
+  @Permissions('employees.extra_hours.manage')
+  @ApiOperation({ summary: 'Give a carer extra weekly hours for a day, a week or a date range' })
+  grantExtraHours(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: GrantExtraWeeklyHoursDto,
+    @Req() req: Request,
+  ) {
+    return this.extraHours.grant(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('extra-hours/preview')
+  @Permissions('employees.extra_hours.manage')
+  @ApiOperation({ summary: 'What adding extra weekly hours would do (nothing is saved)' })
+  previewExtraHours(@Body() dto: GrantExtraWeeklyHoursDto) {
+    return this.extraHours.preview(dto);
+  }
+
+  @Post('extra-hours/:id/cancel')
+  @Permissions('employees.extra_hours.manage')
+  @ApiOperation({ summary: 'Cancel extra weekly hours given by mistake' })
+  cancelExtraHours(
+    @CurrentUser() user: RequestUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CancelExtraWeeklyHoursDto,
+    @Req() req: Request,
+  ) {
+    return this.extraHours.cancel(user.id, id, dto.reason, getRequestAuditMeta(req));
   }
 
   @Get('service-user-hours/pending')
