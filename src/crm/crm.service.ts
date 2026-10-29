@@ -164,7 +164,8 @@ export class CrmService {
     return where;
   }
 
-  private async getInScope(actor: RequestUser, id: string, tx: Prisma.TransactionClient = this.prisma) {
+  /** The enquiry if the actor may see it (used by quotations too). */
+  async getInScope(actor: RequestUser, id: string, tx: Prisma.TransactionClient = this.prisma) {
     const row = await tx.enquiry.findFirst({ where: { ...this.scopeWhere(actor), id } });
     if (!row) throw new NotFoundException('Enquiry not found');
     return row;
@@ -424,6 +425,8 @@ export class CrmService {
   async create(actor: RequestUser, dto: CreateEnquiryDto, meta?: RequestAuditMeta) {
     const userId = actor.id;
     const locationId = this.resolveLocationId(actor, dto.locationId) ?? null;
+    // Every enquiry belongs to the branch that received it (drives who sees and manages it).
+    if (!locationId) throw new BadRequestException('Choose the branch that received this enquiry');
 
     return this.prisma.$transaction(async tx => {
       const year = new Date().getFullYear();
@@ -508,8 +511,11 @@ export class CrmService {
       assessmentAt: this.parseDate(dto.assessmentAt),
       quoteSentAt: this.parseDate(dto.quoteSentAt),
     };
+    if (dto.locationId === null || dto.locationId === '') {
+      throw new BadRequestException('An enquiry must keep the branch that received it');
+    }
     const locationId =
-      dto.locationId === undefined ? undefined : this.resolveLocationId(actor, dto.locationId ?? null);
+      dto.locationId === undefined ? undefined : this.resolveLocationId(actor, dto.locationId);
 
     return this.prisma.$transaction(async tx => {
       const before = await this.getInScope(actor, id, tx);

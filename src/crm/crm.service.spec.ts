@@ -207,6 +207,13 @@ describe('CrmService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('requires the branch that received the enquiry', async () => {
+    await expect(service.create(admin, { firstName: 'A', lastName: 'B' } as any)).rejects.toThrow(
+      'Choose the branch that received this enquiry',
+    );
+    await expect(service.update(admin, 'e1', { locationId: null } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   /* ─── link + duplicates ─── */
 
   it('links the created service user and marks the enquiry Won', async () => {
