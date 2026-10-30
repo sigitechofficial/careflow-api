@@ -508,6 +508,7 @@ export enum AuditAction {
   EMPLOYEE_CONTRACTED_HOURS_CHANGE_REQUESTED = 'employee_contracted_hours_change_requested',
   EMPLOYEE_EXTRA_WEEKLY_HOURS_GRANTED = 'employee_extra_weekly_hours_granted',
   EMPLOYEE_EXTRA_WEEKLY_HOURS_CANCELLED = 'employee_extra_weekly_hours_cancelled',
+  EMPLOYEE_EXTRA_WEEKLY_HOURS_REQUESTED = 'employee_extra_weekly_hours_requested',
   SERVICE_USER_WEEKLY_HOURS_CHANGE_REQUESTED = 'service_user_weekly_hours_change_requested',
   EXTRA_VISIT_OVER_HOURS_REQUESTED = 'extra_visit_over_hours_requested',
   DRAFT_PLAN_OVER_HOURS_REQUESTED = 'draft_plan_over_hours_requested',

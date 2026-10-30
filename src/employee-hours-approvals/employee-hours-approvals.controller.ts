@@ -27,6 +27,8 @@ import { RequestContractedHoursChangeDto } from './dto/request-contracted-hours-
 import { RequestServiceUserHoursChangeDto } from './dto/request-service-user-hours-change.dto';
 import { CarerExtraHoursService } from './carer-extra-hours.service';
 import { CancelExtraWeeklyHoursDto, GrantExtraWeeklyHoursDto } from './dto/grant-extra-weekly-hours.dto';
+import { HoursHistoryService } from './hours-history.service';
+import { HoursHistoryQueryDto } from './dto/hours-history-query.dto';
 
 @ApiTags('Employee hours approvals')
 @ApiBearerAuth()
@@ -36,6 +38,7 @@ export class EmployeeHoursApprovalsController {
   constructor(
     private readonly service: EmployeeHoursApprovalsService,
     private readonly extraHours: CarerExtraHoursService,
+    private readonly history: HoursHistoryService,
   ) {}
 
   @Get()
@@ -43,6 +46,15 @@ export class EmployeeHoursApprovalsController {
   @ApiOperation({ summary: 'List employee over-contracted-hours approvals' })
   list(@Query('status') status?: EmployeeHoursApprovalStatus) {
     return this.service.list(status);
+  }
+
+  @Get('history')
+  @AnyPermission('hours_approvals.read', 'hours_approvals.manage')
+  @ApiOperation({
+    summary: 'Extra hours, hours requests, extra and special visits: who gave, asked and approved',
+  })
+  historyList(@Query() query: HoursHistoryQueryDto) {
+    return this.history.list(query);
   }
 
   @Delete()
@@ -203,9 +215,16 @@ export class EmployeeHoursApprovalsController {
     return this.service.approve(user.id, id, dto.notes, getRequestAuditMeta(req));
   }
 
+  @Get(':id/reject-preview')
+  @Permissions('hours_approvals.manage')
+  @ApiOperation({ summary: 'Visits Reject would leave without the carer (nothing saved)' })
+  rejectPreview(@Param('id') id: string) {
+    return this.service.rejectPreview(id);
+  }
+
   @Post(':id/reject')
   @Permissions('hours_approvals.manage')
-  @ApiOperation({ summary: 'Reject extra hours and remove the carer from the plan' })
+  @ApiOperation({ summary: 'Reject a request (a reason is required); over-hours visits stay without the carer' })
   reject(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,

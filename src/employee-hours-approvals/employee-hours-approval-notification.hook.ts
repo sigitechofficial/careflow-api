@@ -90,6 +90,42 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  /** Tell approvers extra weekly hours for a carer are waiting for them (Settings → Dom Rules). */
+  async notifyExtraHoursRequested(params: {
+    approvalId: string;
+    employeeId: string;
+    extraHours: number;
+    periodLabel: string;
+    requestedById?: string;
+  }): Promise<void> {
+    if (!this.notifications) return;
+    try {
+      const recipientUserIds = await this.approverUserIds();
+      if (!recipientUserIds.length) return;
+      const employee = await this.prisma.employee.findFirst({
+        where: { id: params.employeeId },
+        select: { personalDetail: { select: { firstName: true, lastName: true } } },
+      });
+      const employeeName =
+        `${employee?.personalDetail?.firstName ?? ''} ${employee?.personalDetail?.lastName ?? ''}`.trim() ||
+        'A carer';
+      await this.notifications.notifyUsers({
+        recipientUserIds,
+        type: NotificationType.SYSTEM_MESSAGE,
+        title: `+${params.extraHours}h extra hours — ${employeeName}`,
+        message: `${employeeName}: ${params.extraHours}h extra weekly hours (${params.periodLabel}) are waiting for approval. Open Hours Approvals to approve or reject.`,
+        module: NotificationModule.EMPLOYEE,
+        severity: NotificationSeverity.WARNING,
+        recordType: 'EmployeeHoursApproval',
+        recordId: params.approvalId,
+        metadata: { href: '/hours-approvals', approvalId: params.approvalId, employeeId: params.employeeId },
+        createdById: params.requestedById,
+      });
+    } catch (err) {
+      this.logger.warn(`Extra hours notify failed: ${(err as Error).message}`);
+    }
+  }
+
   /** Tell approvers a carer's contracted weekly hours change is waiting for them. */
   async notifyContractedChangeRequested(params: {
     approvalId: string;

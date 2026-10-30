@@ -63,6 +63,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
           errors,
           // Contract error code (e.g. employee-app SUPPORT_READ_ONLY, OTHER_VISIT_ACTIVE).
           ...(typeof res?.code === 'string' ? { code: res.code } : {}),
+          // Carer weekly hours: the carer the error is about (admin links to their working hours).
+          ...(typeof res?.employeeId === 'string' ? { employeeId: res.employeeId } : {}),
           // Allocation checks: the admin "Allocate anyway" flow reads these.
           ...(Array.isArray(res?.warnings) ? { warnings: res.warnings } : {}),
           ...(typeof res?.requiresConfirmation === 'boolean'
