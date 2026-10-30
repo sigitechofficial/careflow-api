@@ -26,8 +26,12 @@ import {
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import {
   CarerWeeklyHoursService,
+  carerMaxMinutes,
+  carerNoContractedHoursError,
+  carerOverMaxError,
   extraMinutesByWeek,
   mondayOf,
+  overMaxAllowed,
   weeksTouched,
 } from './carer-weekly-hours.service';
 import { EmployeeHoursApprovalsService } from './employee-hours-approvals.service';
@@ -134,7 +138,8 @@ export class CarerExtraHoursService {
    * or which waiting requests would be approved and which would still be over.
    */
   async preview(dto: GrantExtraWeeklyHoursDto) {
-    let checked: { startDate: string; endDate: string; weeks: string[] };
+    const needsApproval = (await this.carerHours.rule()).extraHoursNeedApproval;
+    let checked: Awaited<ReturnType<CarerExtraHoursService['checkGrant']>>;
     try {
       checked = await this.checkGrant(dto);
     } catch (err) {
@@ -143,6 +148,8 @@ export class CarerExtraHoursService {
           message: 'Extra hours preview',
           data: {
             blockedMessage: err.message,
+            needsApproval,
+            overMaxWarning: null,
             willApprove: [],
             stillOver: [],
             wontApprove: [],
@@ -181,17 +188,104 @@ export class CarerExtraHoursService {
     }
     return {
       message: 'Extra hours preview',
-      data: { blockedMessage: null, willApprove, stillOver, wontApprove },
+      data: {
+        blockedMessage: null,
+        /** Settings → Dom Rules: the extra hours wait for a manager (nothing applies until approved). */
+        needsApproval,
+        overMaxWarning: checked.overMaxWarning,
+        willApprove,
+        stillOver,
+        wontApprove,
+      },
     };
   }
 
-  /** Give the carer extra weekly hours, then approve their requests that now fit. */
-  async grant(
+  /**
+   * Give the carer extra weekly hours, then approve their requests that now fit. When Settings →
+   * Dom Rules says extra hours need a manager's approval, a request goes to Hours approvals
+   * instead and nothing applies until it is approved.
+   */
+  async grant(userId: string, dto: GrantExtraWeeklyHoursDto, meta?: RequestAuditMeta) {
+    const checked = await this.checkGrant(dto);
+    if ((await this.carerHours.rule()).extraHoursNeedApproval) {
+      return this.requestApproval(userId, dto, checked, meta);
+    }
+    return this.applyGrant(userId, dto, checked, meta);
+  }
+
+  /** A manager approved extra hours waiting on Hours approvals: give them now (checked again). */
+  async applyApprovedRequest(
     userId: string,
-    dto: GrantExtraWeeklyHoursDto,
+    approval: Prisma.EmployeeHoursApprovalGetPayload<object>,
     meta?: RequestAuditMeta,
   ) {
-    const { startDate, endDate, weeks } = await this.checkGrant(dto);
+    const dto = (approval.requestPayload ?? {}) as unknown as GrantExtraWeeklyHoursDto;
+    const checked = await this.checkGrant(dto);
+    return this.applyGrant(userId, dto, checked, meta);
+  }
+
+  private async requestApproval(
+    userId: string,
+    dto: GrantExtraWeeklyHoursDto,
+    checked: Awaited<ReturnType<CarerExtraHoursService['checkGrant']>>,
+    meta?: RequestAuditMeta,
+  ) {
+    const display = await this.orgSettings.getOperationalDisplaySettings();
+    const fmt = (iso: string) => formatOrganisationIsoDate(iso, display.dateDisplayFormat);
+    const periodLabel =
+      checked.startDate === checked.endDate ? fmt(checked.startDate) : `${fmt(checked.startDate)} – ${fmt(checked.endDate)}`;
+    const row = await this.prisma.employeeHoursApproval.create({
+      data: {
+        requestType: EmployeeHoursApprovalType.EXTRA_WEEKLY_HOURS,
+        employeeId: dto.employeeId,
+        status: EmployeeHoursApprovalStatus.PENDING,
+        requestedById: userId,
+        contractedWeeklyHours: checked.contracted,
+        projectedWeeklyHours: round1(checked.contracted + dto.extraHours),
+        extraHours: dto.extraHours,
+        reason: dto.reason?.trim() || null,
+        requestPayload: {
+          employeeId: dto.employeeId,
+          periodType: dto.periodType,
+          startDate: dto.startDate,
+          ...(dto.endDate ? { endDate: dto.endDate } : {}),
+          extraHours: dto.extraHours,
+          ...(dto.reason?.trim() ? { reason: dto.reason.trim() } : {}),
+          periodStart: checked.startDate,
+          periodEnd: checked.endDate,
+          ...(checked.overMaxWarning ? { overMaxWarning: checked.overMaxWarning } : {}),
+        } as Prisma.InputJsonValue,
+      },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.EMPLOYEE,
+      action: AuditAction.EMPLOYEE_EXTRA_WEEKLY_HOURS_REQUESTED,
+      recordType: 'EmployeeHoursApproval',
+      recordId: row.id,
+      newValues: { employeeId: dto.employeeId, extraHours: dto.extraHours, startDate: checked.startDate, endDate: checked.endDate },
+      ...meta,
+    });
+    void this.notificationHook.notifyExtraHoursRequested({
+      approvalId: row.id,
+      employeeId: dto.employeeId,
+      extraHours: dto.extraHours,
+      periodLabel,
+      requestedById: userId,
+    });
+    return {
+      message: `${round1(dto.extraHours)}h extra sent for manager approval — nothing changes until it is approved`,
+      data: { id: row.id, sentForApproval: true, startDate: checked.startDate, endDate: checked.endDate, extraHours: dto.extraHours },
+    };
+  }
+
+  private async applyGrant(
+    userId: string,
+    dto: GrantExtraWeeklyHoursDto,
+    checked: Awaited<ReturnType<CarerExtraHoursService['checkGrant']>>,
+    meta?: RequestAuditMeta,
+  ) {
+    const { startDate, endDate, weeks, overMaxWarning } = checked;
     const row = await this.prisma.employeeExtraWeeklyHours.create({
       data: {
         employeeId: dto.employeeId,
@@ -216,6 +310,7 @@ export class CarerExtraHoursService {
         endDate,
         extraHours: dto.extraHours,
         reason: row.reason,
+        ...(overMaxWarning ? { aboveWeeklyMaximum: overMaxWarning } : {}),
       },
       ...meta,
     });
@@ -231,6 +326,7 @@ export class CarerExtraHoursService {
       data: { outcome: outcome as unknown as Prisma.InputJsonValue },
     });
     const parts = [`${round1(dto.extraHours)}h extra added`];
+    if (overMaxWarning) parts.push("above the carer's weekly maximum");
     if (outcome.approved.length)
       parts.push(`${outcome.approved.length} waiting request(s) approved`);
     if (outcome.stillOver.length)
@@ -249,24 +345,26 @@ export class CarerExtraHoursService {
     };
   }
 
-  /** The dates and weeks, once the carer has contracted hours and no week goes above the maximum. */
+  /**
+   * The dates and weeks, once the carer has contracted hours and no week goes above the carer's
+   * maximum weekly hours (Employment; blank = 60h). Above it is refused — unless Settings → Dom
+   * Rules allows going over the maximum: then it goes ahead with `overMaxWarning` set.
+   */
   private async checkGrant(dto: GrantExtraWeeklyHoursDto) {
     await this.requireEmployee(dto.employeeId);
     const { startDate, endDate } = this.periodDates(dto);
     const employment = await this.prisma.employeeEmployment.findUnique({
       where: { employeeId: dto.employeeId },
-      select: { contractedWeeklyHours: true },
+      select: { contractedWeeklyHours: true, maximumWeeklyHours: true },
     });
     const contracted = employment?.contractedWeeklyHours ?? null;
-    if (contracted == null || contracted <= 0) {
-      throw new BadRequestException(
-        'This carer has no contracted weekly hours. Set them first (Employment → Working hours) — extra hours are added on top of them.',
-      );
-    }
+    if (contracted == null || contracted <= 0) throw carerNoContractedHoursError(dto.employeeId);
 
     // Every week the dates touch: contracted + extras already given + this one ≤ the maximum.
     const weeks = weeksTouched(startDate, endDate);
-    const { maxApprovableHours } = await this.carerHours.rule();
+    const rule = await this.carerHours.rule();
+    const canGoOverMax = overMaxAllowed(rule);
+    let overMaxWarning: string | null = null;
     const given =
       (
         await extraMinutesByWeek(
@@ -278,17 +376,25 @@ export class CarerExtraHoursService {
       ).get(dto.employeeId) ?? new Map<string, number>();
     const display = await this.orgSettings.getOperationalDisplaySettings();
     const addMinutes = Math.round(dto.extraHours * 60);
-    const maxMinutes = Math.round(maxApprovableHours * 60);
+    const maxMinutes = carerMaxMinutes(employment?.maximumWeeklyHours);
+    const maxHours = round1(maxMinutes / 60);
     const contractedMinutes = Math.round(contracted * 60);
     for (const week of weeks) {
       const already = given.get(week) ?? 0;
       const total = contractedMinutes + already + addMinutes;
+      if (total > maxMinutes && canGoOverMax) {
+        overMaxWarning ??=
+          `Week of ${formatOrganisationIsoDate(week, display.dateDisplayFormat)} would have ${round1(total / 60)}h — ` +
+          `above the carer's ${maxHours}h weekly maximum (allowed by Settings → Dom Rules).`;
+        continue;
+      }
       if (total > maxMinutes) {
         const room = Math.max(0, maxMinutes - contractedMinutes - already);
-        throw new BadRequestException(
+        throw carerOverMaxError(
+          dto.employeeId,
           `Week of ${formatOrganisationIsoDate(week, display.dateDisplayFormat)} would have ${round1(total / 60)}h ` +
             `(${round1(contracted)}h contracted${already ? ` + ${round1(already / 60)}h extra already given` : ''} + ${round1(dto.extraHours)}h) — ` +
-            `above the ${maxApprovableHours}h weekly maximum (Settings → Dom Rules). ` +
+            `above the carer's ${maxHours}h weekly maximum (Employment → Working hours). ` +
             (room > 0
               ? `At most ${round1(room / 60)}h more can be added for that week.`
               : 'No more hours can be added for that week.'),
@@ -296,7 +402,7 @@ export class CarerExtraHoursService {
       }
     }
 
-    return { startDate, endDate, weeks };
+    return { startDate, endDate, weeks, overMaxWarning, contracted };
   }
 
   /** Cancel extra hours given by mistake (kept as the record). Requests already approved stay. */
@@ -312,6 +418,11 @@ export class CarerExtraHoursService {
     if (!row) throw new NotFoundException('Extra weekly hours not found');
     if (row.cancelledAt)
       throw new BadRequestException('These extra hours are already cancelled.');
+    const outcome = row.outcome as unknown as ExtraHoursOutcome | null;
+    if (outcome?.approved?.length)
+      throw new BadRequestException(
+        'These extra hours approved a request, so they cannot be cancelled.',
+      );
     const updated = await this.prisma.employeeExtraWeeklyHours.update({
       where: { id },
       data: {

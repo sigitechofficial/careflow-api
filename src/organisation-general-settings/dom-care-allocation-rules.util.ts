@@ -7,24 +7,28 @@ export type DomAllocationRuleBehavior =
   | 'MANAGER_APPROVAL';
 
 /**
- * Carer over their contracted weekly hours (Monday–Sunday) on the rota board, extra visits and
- * special visits. Visit plans always need a manager's approval. `minutes` is the grace allowed
- * over the limit.
+ * Carer over their weekly hours (contracted + extra, Monday–Sunday) on any path that gives visits:
+ * visit plans, rota board, extra visits and special visits. `behavior` is MANAGER_APPROVAL (visits
+ * over the limit wait for a manager) or REQUEST_CONFIRMATION (they are assigned with a warning).
+ * `minutes` is the grace allowed over the limit.
  */
 export const WEEKLY_HOURS_RULE_KEY = 'carer_over_weekly_hours';
 
-export const WEEKLY_HOURS_REJECT_ACTIONS = [
-  'REMOVE_EXTRA_VISITS',
-  'REMOVE_FROM_PLAN',
-] as const;
-export type WeeklyHoursRejectAction =
-  (typeof WEEKLY_HOURS_REJECT_ACTIONS)[number];
+/** A carer's maximum weekly hours when their Employment "Maximum weekly hours" is blank. */
+export const DEFAULT_CARER_MAX_WEEKLY_HOURS = 60;
+
+/** Above a carer's maximum weekly hours: never, or as the approval setting says. */
+export const WEEKLY_HOURS_OVER_MAX_OPTIONS = ['NO', 'YES'] as const;
+export type WeeklyHoursOverMax = (typeof WEEKLY_HOURS_OVER_MAX_OPTIONS)[number];
 
 export type DomWeeklyHoursRuleOptions = {
-  rejectAction: WeeklyHoursRejectAction;
-  maxApprovableHours: number;
+  allowOverMax: WeeklyHoursOverMax;
   /** Called-off visits (the carer went, the service user turned it down) count in the carer's week. */
   countCalledOff: boolean;
+  /** A change to a carer's contracted weekly hours waits for a manager. */
+  contractedChangeNeedsApproval: boolean;
+  /** Extra weekly hours given to a carer wait for a manager. */
+  extraHoursNeedApproval: boolean;
 };
 
 export type DomCareAllocationRule = {
@@ -39,9 +43,10 @@ export type DomCareAllocationRule = {
 const BEHAVIORS: DomAllocationRuleBehavior[] = ['DONT_ALLOW', 'ALWAYS_ALLOW', 'REQUEST_CONFIRMATION'];
 
 export const DEFAULT_WEEKLY_HOURS_RULE_OPTIONS: DomWeeklyHoursRuleOptions = {
-  rejectAction: 'REMOVE_EXTRA_VISITS',
-  maxApprovableHours: 60,
+  allowOverMax: 'NO',
   countCalledOff: true,
+  contractedChangeNeedsApproval: true,
+  extraHoursNeedApproval: false,
 };
 
 export const DEFAULT_DOM_CARE_ALLOCATION_RULES: DomCareAllocationRule[] = [
@@ -105,8 +110,12 @@ function parseBehavior(
   // Manager approval exists only on the weekly-hours rule.
   if (value === 'MANAGER_APPROVAL')
     return key === WEEKLY_HOURS_RULE_KEY ? 'MANAGER_APPROVAL' : null;
-  // Weekly hours are always checked: no "always allow" on that rule (falls back to the default).
-  if (value === 'ALWAYS_ALLOW' && key === WEEKLY_HOURS_RULE_KEY) return null;
+  if (key === WEEKLY_HOURS_RULE_KEY) {
+    // Two choices only: a manager approves, or assign with a warning. The old "Don't allow"
+    // becomes manager approval; "always allow" falls back to the default.
+    if (value === 'DONT_ALLOW') return 'MANAGER_APPROVAL';
+    return value === 'REQUEST_CONFIRMATION' ? 'REQUEST_CONFIRMATION' : null;
+  }
   return BEHAVIORS.includes(value as DomAllocationRuleBehavior)
     ? (value as DomAllocationRuleBehavior)
     : null;
@@ -114,20 +123,17 @@ function parseBehavior(
 
 function parseWeeklyHoursOptions(value: unknown): DomWeeklyHoursRuleOptions {
   const raw = isRecord(value) ? value : {};
-  const rejectAction = WEEKLY_HOURS_REJECT_ACTIONS.includes(
-    raw.rejectAction as WeeklyHoursRejectAction,
-  )
-    ? (raw.rejectAction as WeeklyHoursRejectAction)
-    : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.rejectAction;
-  const n = Number(raw.maxApprovableHours);
-  const maxApprovableHours = Number.isFinite(n)
-    ? Math.max(1, Math.min(168, Math.round(n)))
-    : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.maxApprovableHours;
-  const countCalledOff =
-    typeof raw.countCalledOff === 'boolean'
-      ? raw.countCalledOff
-      : DEFAULT_WEEKLY_HOURS_RULE_OPTIONS.countCalledOff;
-  return { rejectAction, maxApprovableHours, countCalledOff };
+  const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
+  const d = DEFAULT_WEEKLY_HOURS_RULE_OPTIONS;
+  // Saved before 30 Oct 2026 as MANAGER_APPROVAL ("Yes, with manager approval").
+  const allowOverMax: WeeklyHoursOverMax =
+    raw.allowOverMax === 'YES' || raw.allowOverMax === 'MANAGER_APPROVAL' ? 'YES' : 'NO';
+  return {
+    allowOverMax,
+    countCalledOff: bool(raw.countCalledOff, d.countCalledOff),
+    contractedChangeNeedsApproval: bool(raw.contractedChangeNeedsApproval, d.contractedChangeNeedsApproval),
+    extraHoursNeedApproval: bool(raw.extraHoursNeedApproval, d.extraHoursNeedApproval),
+  };
 }
 
 function parseRule(raw: unknown): DomCareAllocationRule | null {

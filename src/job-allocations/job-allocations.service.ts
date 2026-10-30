@@ -28,7 +28,15 @@ import { AllocationChecksService, type AllocationWarning } from './allocation-ch
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
-import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
+import {
+  CarerWeeklyHoursService,
+  CARER_NO_CONTRACTED_HOURS_MESSAGE,
+  carerMaxMinutes,
+  carerOverMaxApprovalMessage,
+  carerOverMaxMessage,
+  overMaxAllowed,
+  visitsNeedApproval,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
@@ -653,23 +661,33 @@ export class JobAllocationsService {
     if (check) {
       const overMax = new Set(check.overMax);
       const over = new Set(check.over);
+      const needsApproval = visitsNeedApproval(rule);
       toCount.forEach((v, i) => {
         const week = check.weeks.find((w) => w.weekStart === weekOf.get(v.jobId));
-        if (overMax.has(i)) {
+        if (check.noContractedHours) {
+          v.outcome = 'BLOCKED';
+          v.message = CARER_NO_CONTRACTED_HOURS_MESSAGE;
+          v.replaceEmployeeIds = [];
+          v.replaceNames = [];
+        } else if (overMax.has(i) && !overMaxAllowed(rule)) {
           v.outcome = 'BLOCKED';
           v.message = carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes);
           v.replaceEmployeeIds = [];
           v.replaceNames = [];
-        } else if (over.has(i) && rule.behavior !== 'ALWAYS_ALLOW') {
+        } else if (overMax.has(i)) {
+          // Over the carer's maximum, allowed by Settings → Dom Rules: follows the approval setting.
           v.overWeeklyHours = true;
-          if (rule.behavior === 'MANAGER_APPROVAL') {
+          if (needsApproval) {
+            v.outcome = 'NEEDS_APPROVAL';
+            v.message = carerOverMaxApprovalMessage(week?.minutes ?? 0, check.maxMinutes);
+          } else {
+            v.message = carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes);
+          }
+        } else if (over.has(i)) {
+          v.overWeeklyHours = true;
+          if (needsApproval) {
             v.outcome = 'NEEDS_APPROVAL';
             v.message = 'Over the weekly hours — a manager must approve before the carer goes on it';
-          } else if (rule.behavior === 'DONT_ALLOW') {
-            v.outcome = 'BLOCKED';
-            v.message = "Over the weekly hours (Settings → Dom Rules: don't allow)";
-            v.replaceEmployeeIds = [];
-            v.replaceNames = [];
           } else {
             v.message = 'Goes over the weekly hours';
           }
@@ -694,7 +712,7 @@ export class JobAllocationsService {
         limitMinutes: w.limitMinutes,
         extraMinutes: w.extraMinutes,
       })),
-      maxMinutes: check?.maxMinutes ?? Math.round(rule.maxApprovableHours * 60),
+      maxMinutes: check?.maxMinutes ?? carerMaxMinutes(null),
     };
   }
 

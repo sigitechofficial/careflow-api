@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataAccessType } from '@prisma/client';
+import { DEFAULT_CARER_MAX_WEEKLY_HOURS } from '../organisation-general-settings/dom-care-allocation-rules.util';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -86,6 +87,27 @@ export class EmployeeEmploymentService {
       where: { id: employeeId, deletedAt: null },
     });
     if (!exists) throw new NotFoundException('Employee not found');
+
+    // Maximum weekly hours can never be below contracted weekly hours: whichever is already set,
+    // the other is checked against it.
+    if (dto.contractedWeeklyHours !== undefined || dto.maximumWeeklyHours !== undefined) {
+      const current = await this.prisma.employeeEmployment.findUnique({
+        where: { employeeId },
+        select: { contractedWeeklyHours: true, maximumWeeklyHours: true },
+      });
+      const num = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const contracted = num(dto.contractedWeeklyHours !== undefined ? dto.contractedWeeklyHours : current?.contractedWeeklyHours);
+      const maximum = num(dto.maximumWeeklyHours !== undefined ? dto.maximumWeeklyHours : current?.maximumWeeklyHours);
+      // A blank maximum means 60h.
+      const effectiveMax = maximum != null && maximum > 0 ? maximum : DEFAULT_CARER_MAX_WEEKLY_HOURS;
+      if (contracted != null && effectiveMax < contracted - 0.001) {
+        throw new BadRequestException(
+          dto.maximumWeeklyHours !== undefined && dto.maximumWeeklyHours !== null
+            ? `Maximum weekly hours (${effectiveMax}h) can't be less than the contracted weekly hours (${contracted}h).`
+            : `Contracted weekly hours (${contracted}h) can't be more than the maximum weekly hours (${effectiveMax}h${maximum == null || maximum <= 0 ? ' — the default when Maximum is blank' : ''}).`,
+        );
+      }
+    }
 
     // Once set, contracted weekly hours only change through an approved hours request.
     if (dto.contractedWeeklyHours !== undefined) {

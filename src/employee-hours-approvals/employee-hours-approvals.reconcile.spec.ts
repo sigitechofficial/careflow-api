@@ -24,8 +24,14 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
     visitPlanSlotId: slotId,
   });
 
-  function build(count: CarerHoursCount, maxApprovableHours = 60) {
+  function build(
+    count: Omit<CarerHoursCount, 'maxMinutes'> & { maxMinutes?: number },
+    maxHours = 60,
+    rule: { allowOverMax?: 'NO' | 'YES'; behavior?: 'MANAGER_APPROVAL' | 'REQUEST_CONFIRMATION' } = {},
+    planStatus = 'ACTIVE',
+  ) {
     const client = {
+      serviceUserVisitPlan: { findUnique: jest.fn().mockResolvedValue({ status: planStatus }) },
       visitPlanSlotCarerAssignment: {
         findMany: jest.fn().mockResolvedValue([{ employeeId: 'john', visitPlanSlotId: 'slot-am' }]),
       },
@@ -42,8 +48,8 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
       },
     };
     const carerHours = {
-      count: jest.fn().mockResolvedValue(count),
-      rule: jest.fn().mockResolvedValue({ maxApprovableHours }),
+      count: jest.fn().mockResolvedValue({ maxMinutes: maxHours * 60, ...count }),
+      rule: jest.fn().mockResolvedValue({ behavior: 'MANAGER_APPROVAL', allowOverMax: 'NO', graceMinutes: 0, ...rule }),
     };
     const orgSettings = {
       getOperationalDisplaySettings: jest.fn().mockResolvedValue({ dateDisplayFormat: 'DD/MM/YYYY' }),
@@ -208,7 +214,100 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
     );
     await expect(
       service.reconcileForPlan('u', 'su', 'plan-1', client as never, { previousVisits: new Map() }),
-    ).rejects.toThrow(/John Smith: That week would have 7h — above the 6h weekly maximum/);
+    ).rejects.toThrow(/John Smith: That week would have 7h — above the carer's 6h weekly maximum/);
+    expect(client.employeeHoursApproval.create).not.toHaveBeenCalled();
+  });
+
+  it('asks a manager instead when over the maximum is allowed with approval', async () => {
+    // Same 7h against a 6h maximum, Settings → Dom Rules "Allow over a carer's maximum" Yes.
+    const w = week(
+      [
+        visit('2026-11-02', 9, 300, 'plan-2', 'slot-x'),
+        visit('2026-11-05', 9, 120, 'plan-1', 'slot-am'),
+      ],
+      1,
+    );
+    const { service, client } = build(
+      { limitMinutes: 240, graceMinutes: 0, weeks: [w], overWeeks: [w], heaviestMinutes: w.minutes },
+      6,
+      { allowOverMax: 'YES', behavior: 'MANAGER_APPROVAL' },
+    );
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never, {
+      previousVisits: new Map(),
+    });
+    expect([...held]).toEqual(['john|slot-am|2026-11-05']);
+    expect(client.employeeHoursApproval.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('no approval needed: assigned with a warning — nothing held, no request', async () => {
+    const w = week(
+      [
+        visit('2026-11-02', 9, 300, 'plan-2', 'slot-x'),
+        visit('2026-11-05', 9, 120, 'plan-1', 'slot-am'),
+      ],
+      1,
+    );
+    const { service, client } = build(
+      { limitMinutes: 240, graceMinutes: 0, weeks: [w], overWeeks: [w], heaviestMinutes: w.minutes },
+      60,
+      { behavior: 'REQUEST_CONFIRMATION' },
+    );
+    const warnings: string[] = [];
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never, {
+      previousVisits: new Map(),
+      warnings,
+    });
+    expect(held.size).toBe(0);
+    expect(client.employeeHoursApproval.create).not.toHaveBeenCalled();
+    expect(warnings).toEqual([expect.stringMatching(/^John Smith goes over their weekly hours \(week of 02\/11\/2026: 7h of 4h\)/)]);
+  });
+
+  it('no approval needed but above the maximum (not allowed): still refused', async () => {
+    const w = week(
+      [
+        visit('2026-11-02', 9, 300, 'plan-2', 'slot-x'),
+        visit('2026-11-05', 9, 120, 'plan-1', 'slot-am'),
+      ],
+      1,
+    );
+    const { service, client } = build(
+      { limitMinutes: 240, graceMinutes: 0, weeks: [w], overWeeks: [w], heaviestMinutes: w.minutes },
+      6,
+      { behavior: 'REQUEST_CONFIRMATION', allowOverMax: 'NO' },
+    );
+    await expect(
+      service.reconcileForPlan('u', 'su', 'plan-1', client as never, { previousVisits: new Map() }),
+    ).rejects.toMatchObject({ response: expect.objectContaining({ code: 'CARER_OVER_MAX_WEEKLY_HOURS' }) });
+  });
+
+  it('draft plans are not checked', async () => {
+    const w = week([visit('2026-11-05', 9, 600, 'plan-1', 'slot-am')], 0);
+    const { service, client } = build(
+      { limitMinutes: 240, graceMinutes: 0, weeks: [w], overWeeks: [w], heaviestMinutes: w.minutes },
+      6,
+      {},
+      'DRAFT',
+    );
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never, { previousVisits: new Map() });
+    expect(held.size).toBe(0);
+    expect(client.employeeHoursApproval.create).not.toHaveBeenCalled();
+  });
+
+  it('no contracted hours: a save giving the carer visits is refused', async () => {
+    const w = week([visit('2026-11-05', 9, 120, 'plan-1', 'slot-am')], 0);
+    const { service, client } = build({ limitMinutes: null, graceMinutes: 0, weeks: [w], overWeeks: [], heaviestMinutes: 120 });
+    await expect(
+      service.reconcileForPlan('u', 'su', 'plan-1', client as never, { previousVisits: new Map() }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'CARER_NO_CONTRACTED_HOURS', employeeId: 'john' }),
+    });
+  });
+
+  it('no contracted hours: the rota (no save) leaves the carer off this plan\'s visits', async () => {
+    const w = week([visit('2026-11-05', 9, 120, 'plan-1', 'slot-am')], 0);
+    const { service, client } = build({ limitMinutes: null, graceMinutes: 0, weeks: [w], overWeeks: [], heaviestMinutes: 120 });
+    const held = await service.reconcileForPlan('u', 'su', 'plan-1', client as never);
+    expect([...held]).toEqual(['john|slot-am|2026-11-05']);
     expect(client.employeeHoursApproval.create).not.toHaveBeenCalled();
   });
 
@@ -236,5 +335,53 @@ describe('EmployeeHoursApprovalsService.reconcileForPlan — which visits are ov
     );
     expect([...held]).toEqual(['john|slot-am|2026-11-05']);
     expect(client.employeeHoursApproval.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('EmployeeHoursApprovalsService approve — the weekly maximum', () => {
+  function build(rule: { allowOverMax: 'NO' | 'YES'; behavior: 'MANAGER_APPROVAL' | 'REQUEST_CONFIRMATION' }) {
+    const carerHours = {
+      // 7h that week against the carer's 6h maximum.
+      count: jest.fn().mockResolvedValue({ weeks: [{ minutes: 420 }], maxMinutes: 360 }),
+      rule: jest.fn().mockResolvedValue(rule),
+    };
+    const service = new EmployeeHoursApprovalsService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      carerHours as never,
+      {} as never,
+      {} as never,
+    );
+    const row = {
+      id: 'req-1',
+      employeeId: 'john',
+      requestType: 'VISIT_PLAN_OVER_HOURS',
+      requestPayload: { withheld: ['slot-am|2026-11-05'] },
+      projectedWeeklyHours: 7,
+    };
+    const assert = () =>
+      (service as unknown as { assertWithinMaxApprovable: (r: unknown) => Promise<void> }).assertWithinMaxApprovable(row);
+    return { assert };
+  }
+
+  it('refuses above the maximum by default', async () => {
+    await expect(build({ allowOverMax: 'NO', behavior: 'MANAGER_APPROVAL' }).assert()).rejects.toThrow(
+      /Cannot approve — that week would have 7h/,
+    );
+  });
+
+  it('allows it when Settings → Dom Rules allows over the maximum', async () => {
+    await expect(build({ allowOverMax: 'YES', behavior: 'MANAGER_APPROVAL' }).assert()).resolves.toBeUndefined();
+  });
+
+  it("names the carer's own maximum when refused", async () => {
+    await expect(build({ allowOverMax: 'NO', behavior: 'REQUEST_CONFIRMATION' }).assert()).rejects.toThrow(
+      /above the carer's 6h weekly maximum/,
+    );
   });
 });

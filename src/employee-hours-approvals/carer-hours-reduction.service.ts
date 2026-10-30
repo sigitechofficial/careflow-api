@@ -215,7 +215,8 @@ export class CarerHoursReductionService {
       const visits = byWeek
         .get(key)!
         .sort((a, b) => a.start.getTime() - b.start.getTime());
-      const weekLimit = limit + (extraByWeek.get(key) ?? 0) / 60;
+      // Contracted + extra for that week + grace minutes (Settings → Dom Rules) is not over.
+      const weekLimit = limit + (extraByWeek.get(key) ?? 0) / 60 + rule.graceMinutes / 60;
       let total = 0;
       let over = false;
       let hoursToUnassign = 0;

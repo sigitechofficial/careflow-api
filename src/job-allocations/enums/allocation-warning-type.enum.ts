@@ -3,6 +3,8 @@ export enum AllocationWarningType {
   CAPACITY_EXCEEDED = 'CAPACITY_EXCEEDED',
   /** Over the carer's contracted weekly hours and Settings → Dom Rules asks a manager: not allocated, a request is sent. */
   CAPACITY_NEEDS_APPROVAL = 'CAPACITY_NEEDS_APPROVAL',
+  /** The carer has no contracted weekly hours: they can't be given visits until hours are set. */
+  CARER_NO_CONTRACTED_HOURS = 'CARER_NO_CONTRACTED_HOURS',
   ROLE_MISMATCH = 'ROLE_MISMATCH',
   BLOCKED_CARER = 'BLOCKED_CARER',
   PREFERRED_CARER_MATCH = 'PREFERRED_CARER_MATCH',
